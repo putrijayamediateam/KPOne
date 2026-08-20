@@ -33,6 +33,7 @@ These rules apply to the entire repository.
 ## Data and migrations
 
 - Multi-branch staff relationships belong in `staff_branch_assignments`; do not reduce them to a single `users.branch_id`.
+- Runtime branch-assignment mutations must go through `BranchAssignmentService`. Controlled local/testing bootstrap seeders and test fixtures may write synthetic records directly when needed to establish initial state; that path is not an application mutation API.
 - Add foreign keys and indexes deliberately. Avoid destructive cascades for organisation reference data.
 - Keep audit records append-oriented; system-event state transitions must remain explicit and auditable.
 - Reference staffing counts are documentation, not identities or generated user records.

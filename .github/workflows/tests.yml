@@ -30,6 +30,7 @@ jobs:
 
     env:
       APP_ENV: testing
+      APP_KEY: base64:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
       DB_CONNECTION: pgsql
       DB_HOST: 127.0.0.1
       DB_PORT: 5432
@@ -60,8 +61,17 @@ jobs:
         with:
           node-version: '22'
 
-      - name: Setup Application
-        run: composer setup
+      - name: Install PHP dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Migrate isolated test database
+        run: php artisan migrate --force
+
+      - name: Build frontend assets
+        run: npm run build
 
       - name: Run CI Checks
         run: composer ci:check

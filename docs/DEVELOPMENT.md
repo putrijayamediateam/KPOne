@@ -2,7 +2,7 @@
 
 ## Prerequisites
 
-- PHP 8.3 or newer with `curl`, `fileinfo`, `intl`, `mbstring`, `openssl`, `pdo_pgsql`, and `sodium`
+- PHP 8.4.1 or newer with `curl`, `fileinfo`, `intl`, `mbstring`, `openssl`, `pdo_pgsql`, and `sodium`
 - Composer 2
 - Node.js 22+ and npm
 - PostgreSQL 18
@@ -34,7 +34,9 @@
    composer run dev
    ```
 
-The repository defaults to PostgreSQL. PHPUnit overrides the connection to an in-memory SQLite database to keep tests isolated and deterministic; SQLite is not a supported deployed database.
+The repository defaults to PostgreSQL. The default local PHPUnit configuration overrides the connection to an in-memory SQLite database to keep the routine test workflow fast and isolated; SQLite is not a supported deployed database. GitHub Actions deliberately supplies `DB_CONNECTION=pgsql` and an isolated PostgreSQL 18 service database, so the complete suite also covers production-database semantics.
+
+PostgreSQL-specific regression tests skip explicitly on SQLite. In PostgreSQL CI they exercise transactional rollback and genuine row-lock contention using separately bootstrapped PHP worker processes and database connections. Never point that workflow at a developer or production database: the tests require `APP_ENV=testing` and a database name clearly marked as a test database before they write fixtures.
 
 ## Dummy account
 
@@ -44,6 +46,8 @@ The repository defaults to PostgreSQL. PHPUnit overrides the connection to an in
 - `KPOne-Dev-Only!`
 
 Production environments must not use this identity. The seeder does not create staff from planning headcounts.
+
+Seeding is controlled bootstrap, not a runtime administration path. Runtime branch-assignment mutations must use `BranchAssignmentService` so validation, locking, and audit guarantees apply. A synthetic local/testing seeder or test fixture may use explicit guarded writes to establish initial fictional state when routing it through runtime services would create misleading operational audit history.
 
 ## Google sign-in
 

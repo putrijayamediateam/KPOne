@@ -40,11 +40,13 @@ The audit foundation records successful/failed login, logout, inactive-session r
 
 Audit metadata is explicitly selected by callers and sanitised recursively and case-insensitively for credential-like key variants. Sensitive keys remain visible with a `[REDACTED]` value. Never pass request headers, OAuth tokens, credentials, or request bodies wholesale. Audit access is itself organisation-scoped and permission-protected.
 
-Application models reject audit/system-event update and delete operations, and no application route exposes those mutations. Where infrastructure permits, the production application database role should additionally be denied `UPDATE` and `DELETE` on `audit_logs`; database grants are intentionally deferred from Phase 0A. Production operations must also define retention, restricted database roles, backups, monitoring, and tamper-evidence appropriate to healthcare operations and Malaysian legal requirements before regulated data is introduced.
+`AuditLog` rejects model update and delete operations, and no application route exposes those mutations. `SystemEvent` has a different, explicit lifecycle: its `processed_at` field is intended for a future controlled processing transition, while replacement and deletion are not ordinary application flows. Phase 0A has no system-event producer, processor, or mutation route. A future processor must encapsulate the transition in a domain service and audit it before such functionality is enabled. Where infrastructure permits, the production application database role should additionally be denied `UPDATE` and `DELETE` on `audit_logs`; database grants are intentionally deferred from Phase 0A. Production operations must also define retention, restricted database roles, backups, monitoring, and tamper-evidence appropriate to healthcare operations and Malaysian legal requirements before regulated data is introduced.
 
 ## Branch-assignment mutations
 
 `BranchAssignmentService` is the supported boundary for create, update, end, and primary-assignment changes. Deletion is intentionally unsupported so historical assignment periods remain available. Mutations lock the parent staff-profile row inside a transaction; this serialises primary changes for the same staff member on PostgreSQL while retaining the normal SQLite test workflow. Every implicit demotion and explicit promotion receives its own before/after audit record.
+
+This boundary applies to runtime/domain mutations. Controlled local/testing bootstrap seeders and test fixtures may establish synthetic initial state directly when necessary; those code paths must remain environment-bound, non-routable, and visibly distinct from runtime mutation APIs.
 
 ## Reporting and review
 

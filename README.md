@@ -21,10 +21,10 @@ No patient, clinical, dispensary, billing, inventory, HR workflow, finance workf
 
 ## Stack
 
-- PHP 8.3+ and Laravel 13
+- PHP 8.4.1+ and Laravel 13
 - Vue 3, TypeScript, Inertia 3, Tailwind CSS, and shadcn-vue
 - PostgreSQL 18 in deployed/local application environments
-- SQLite in the isolated automated test environment only
+- SQLite for the default isolated local PHPUnit workflow; PostgreSQL 18 in GitHub Actions
 - Spatie Laravel Permission and Laravel Socialite
 - PHPUnit from the official Laravel Vue starter kit
 

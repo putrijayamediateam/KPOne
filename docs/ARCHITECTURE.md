@@ -32,6 +32,8 @@ Each assignment records:
 
 Effective assignment queries include only periods covering the current date. `BranchAccessService` is the single backend decision point for available branches, selected branch context, and branch visibility. Organisation-scoped staff may select any active branch in their organisation; branch-scoped staff may select only effectively assigned branches.
 
+Runtime branch-assignment changes use `BranchAssignmentService`, including create, update, end, and primary-assignment operations. Synthetic local/testing seeders and test fixtures are a separate controlled bootstrap boundary: they may establish initial fictional state directly where using runtime services would add misleading operational audit history. Bootstrap access is not available through HTTP or other runtime application flows.
+
 ## Roles, permissions, and scope
 
 Spatie stores roles and permissions in its standard tables. Permission names encode the protected capability and scope, for example:
@@ -46,7 +48,7 @@ Future clinical permissions must be separate names and deliberate grants. `techn
 
 ## Authentication
 
-Fortify provides password authentication and reset flows. Public registration is disabled. Authentication checks `users.is_active` before password validation, and authenticated requests pass through `EnsureActiveUser` to reject a session if the account is later deactivated.
+Fortify provides password authentication and reset flows. Public registration is disabled. `CreateNewUser` remains unwired starter-kit residue: registration is absent from Fortify's enabled features and no create-user action is registered. It must not be treated as a staff provisioning path or wired without a reviewed provisioning design. Authentication checks `users.is_active` before password validation, and authenticated requests pass through `EnsureActiveUser` to reject a session if the account is later deactivated.
 
 Socialite provides Google OAuth architecture. The callback resolves the Google subject or normalised email to an already-created active KPOne user. Unknown, inactive, or mismatched identities are rejected; no account is created and no provider token is stored. A successful first link records only the stable Google subject.
 
@@ -54,9 +56,9 @@ Socialite provides Google OAuth architecture. The callback resolves the Google s
 
 `AuditRecorder` appends sanitised security/administration records. Model update and delete operations on `AuditLog` are blocked to keep the default application path append-oriented. Database administrators still require operational retention and tamper-monitoring controls in deployment.
 
-Authentication and Spatie access events are observed centrally. Activation and branch-assignment services record their changes explicitly. Sensitive metadata keys such as password, token, secret, authorisation, and cookie are removed before persistence.
+Authentication and Spatie access events are observed centrally. Activation and branch-assignment services record their changes explicitly. Sensitive metadata keys such as password, token, secret, authorisation, and cookie are preserved for structural context, but their values are replaced recursively with `[REDACTED]` before persistence.
 
-`system_events` is an integration-neutral foundation for later internal operational signals. Phase 0A adds no broker or event-driven subsystem.
+`system_events` is an integration-neutral foundation for later internal operational signals. Unlike immutable `audit_logs`, a system event has an explicit processing lifecycle represented by `processed_at`. Phase 0A has no runtime producer or processor, broker, or event-driven subsystem. Any future processing transition must use an explicit service and produce an audit record; replacing or deleting the originating event is not an ordinary application flow.
 
 ## Data model
 
