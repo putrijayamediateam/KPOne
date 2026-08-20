@@ -1,0 +1,14 @@
+export * from './auth';
+export * from './navigation';
+export * from './ui';
+
+export type BranchSummary = {
+    id: number;
+    code: string;
+    name: string;
+};
+
+export type BranchContext = {
+    active: BranchSummary | null;
+    available: BranchSummary[];
+} | null;
