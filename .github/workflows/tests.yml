@@ -61,6 +61,9 @@ jobs:
         with:
           node-version: '22'
 
+      - name: Prepare ephemeral CI environment
+        run: cp .env.example .env
+
       - name: Install PHP dependencies
         run: composer install --no-interaction --prefer-dist --no-progress
 

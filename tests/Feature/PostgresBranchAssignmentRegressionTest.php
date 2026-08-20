@@ -11,22 +11,30 @@ use App\Domain\Organisation\Models\Branch;
 use App\Domain\Organisation\Models\Department;
 use App\Domain\Organisation\Models\Organisation;
 use App\Models\User;
+use Illuminate\Database\Connection;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use RuntimeException;
+use Symfony\Component\Process\InputStream;
 use Symfony\Component\Process\Process;
 use Tests\TestCase;
 
 class PostgresBranchAssignmentRegressionTest extends TestCase
 {
+    private const OBSERVER_CONNECTION = 'pgsql_regression_observer';
+
     private ?int $fixtureOrganisationId = null;
 
     private bool $postgresTestDatabaseConfirmed = false;
 
     /** @var list<Process> */
     private array $workers = [];
+
+    /** @var list<InputStream> */
+    private array $workerInputs = [];
 
     protected function setUp(): void
     {
@@ -49,11 +57,23 @@ class PostgresBranchAssignmentRegressionTest extends TestCase
             }
         }
 
+        Config::set(
+            'database.connections.'.self::OBSERVER_CONNECTION,
+            config('database.connections.'.config('database.default')),
+        );
+        DB::purge(self::OBSERVER_CONNECTION);
+
         $this->postgresTestDatabaseConfirmed = true;
     }
 
     protected function tearDown(): void
     {
+        foreach ($this->workerInputs as $input) {
+            if (! $input->isClosed()) {
+                $input->close();
+            }
+        }
+
         foreach ($this->workers as $worker) {
             if ($worker->isRunning()) {
                 $worker->stop(1);
@@ -73,6 +93,8 @@ class PostgresBranchAssignmentRegressionTest extends TestCase
             DB::table('branches')->where('organisation_id', $this->fixtureOrganisationId)->delete();
             DB::table('organisations')->where('id', $this->fixtureOrganisationId)->delete();
         }
+
+        DB::purge(self::OBSERVER_CONNECTION);
 
         parent::tearDown();
     }
@@ -124,26 +146,66 @@ class PostgresBranchAssignmentRegressionTest extends TestCase
         $fixture = $this->createFixture(3);
         [, $firstTarget, $secondTarget] = $fixture['assignments'];
         $auditCountsBefore = $this->primaryAuditCounts();
+        $this->assertSame(0, DB::connection()->transactionLevel(), 'Concurrency fixtures must be committed.');
+        $this->assertTrue($this->observerConnection()
+            ->table('staff_profiles')
+            ->where('id', $fixture['profile']->id)
+            ->exists(), 'The independent observer connection cannot see the committed fixture.');
+        $this->assertSame(3, $this->observerConnection()
+            ->table('staff_branch_assignments')
+            ->where('staff_profile_id', $fixture['profile']->id)
+            ->count());
+
         $workerNames = [
             'kpone-pg-test-'.Str::replace('-', '', (string) Str::uuid()),
             'kpone-pg-test-'.Str::replace('-', '', (string) Str::uuid()),
         ];
-        $this->workers = [
-            $this->newPrimaryChangeWorker($fixture['user'], $fixture['profile'], $firstTarget, $workerNames[0]),
-            $this->newPrimaryChangeWorker($fixture['user'], $fixture['profile'], $secondTarget, $workerNames[1]),
-        ];
+        $firstWorker = $this->newPrimaryChangeWorker(
+            $fixture['user'],
+            $fixture['profile'],
+            $firstTarget,
+            $workerNames[0],
+        );
+        $secondWorker = $this->newPrimaryChangeWorker(
+            $fixture['user'],
+            $fixture['profile'],
+            $secondTarget,
+            $workerNames[1],
+        );
+        $this->workers = [$firstWorker['process'], $secondWorker['process']];
+        $this->workerInputs = [$firstWorker['input'], $secondWorker['input']];
+
+        foreach ($this->workers as $worker) {
+            $worker->start();
+        }
+
+        $workerBackendPids = $this->waitUntilWorkersAreReady();
+        $this->assertNotSame($workerBackendPids[0], $workerBackendPids[1]);
+        $this->assertWorkerBackends($workerBackendPids, $workerNames);
 
         $connection = DB::connection();
+        $parentBackendPid = (int) $connection->scalar('select pg_backend_pid()');
+        $this->assertNotContains($parentBackendPid, $workerBackendPids);
         $connection->beginTransaction();
 
         try {
             StaffProfile::query()->whereKey($fixture['profile']->id)->lockForUpdate()->firstOrFail();
 
-            foreach ($this->workers as $worker) {
-                $worker->start();
+            foreach ($this->workerInputs as $input) {
+                $input->write("GO\n");
             }
 
-            $this->waitUntilWorkersAreBlocked($workerNames);
+            foreach ($this->workerInputs as $input) {
+                $input->close();
+            }
+
+            $waitStates = $this->waitUntilWorkersAreBlocked($workerBackendPids, $workerNames);
+            $this->assertCount(2, $waitStates);
+            foreach ($waitStates as $waitState) {
+                $this->assertSame('Lock', $waitState['wait_event_type']);
+                $this->assertSame(1, $waitState['has_ungranted_lock']);
+            }
+
             $connection->commit();
 
             foreach ($this->workers as $worker) {
@@ -161,8 +223,12 @@ class PostgresBranchAssignmentRegressionTest extends TestCase
             }
         }
 
-        foreach ($this->workers as $worker) {
-            $this->assertSame(0, $worker->getExitCode(), 'A PostgreSQL primary-change worker failed.');
+        foreach ($this->workers as $index => $worker) {
+            $this->assertSame(0, $worker->getExitCode(), $this->workerDiagnostic($worker));
+            $this->assertMatchesRegularExpression(
+                '/^DONE '.preg_quote((string) $workerBackendPids[$index], '/').'$/m',
+                $worker->getOutput(),
+            );
         }
 
         $this->assertSame(1, $fixture['profile']->branchAssignments()->where('is_primary', true)->count());
@@ -240,12 +306,14 @@ class PostgresBranchAssignmentRegressionTest extends TestCase
         return compact('user', 'profile', 'assignments');
     }
 
+    /** @return array{process: Process, input: InputStream} */
     private function newPrimaryChangeWorker(
         User $actor,
         StaffProfile $profile,
         StaffBranchAssignment $assignment,
         string $applicationName,
-    ): Process {
+    ): array {
+        $input = new InputStream;
         $process = new Process([
             PHP_BINARY,
             base_path('tests/Support/PostgresPrimaryChangeWorker.php'),
@@ -254,41 +322,163 @@ class PostgresBranchAssignmentRegressionTest extends TestCase
             (string) $assignment->id,
             $applicationName,
         ], base_path());
+        $process->setInput($input);
         $process->setTimeout(30);
 
-        return $process;
+        return compact('process', 'input');
     }
 
-    /** @param array{string, string} $workerNames */
-    private function waitUntilWorkersAreBlocked(array $workerNames): void
+    /** @return array{int, int} */
+    private function waitUntilWorkersAreReady(): array
     {
-        $deadline = microtime(true) + 15;
+        $deadline = microtime(true) + 10;
 
         do {
-            foreach ($this->workers as $worker) {
-                if ($worker->isTerminated()) {
-                    throw new RuntimeException('A PostgreSQL worker exited before reaching row-lock contention.');
+            $backendPids = [];
+
+            foreach ($this->workers as $index => $worker) {
+                $this->failIfWorkerTerminated($worker, 'before reporting READY');
+
+                if (preg_match('/^READY ([1-9][0-9]*)$/m', $worker->getOutput(), $matches) === 1) {
+                    $backendPids[$index] = (int) $matches[1];
                 }
             }
 
-            $blockedSessions = DB::select(
-                <<<'SQL'
-                    select application_name
-                    from pg_stat_activity
-                    where application_name in (?, ?)
-                      and wait_event_type = 'Lock'
-                    SQL,
-                $workerNames,
-            );
-
-            if (count($blockedSessions) === count($workerNames)) {
-                return;
+            if (count($backendPids) === count($this->workers)) {
+                return [$backendPids[0], $backendPids[1]];
             }
 
             usleep(50_000);
         } while (microtime(true) < $deadline);
 
-        throw new RuntimeException('PostgreSQL workers did not reach concurrent row-lock contention in time.');
+        throw new RuntimeException('PostgreSQL workers did not report READY. '.$this->workerDiagnostics());
+    }
+
+    /**
+     * @param  array{int, int}  $workerBackendPids
+     * @param  array{string, string}  $workerNames
+     */
+    private function assertWorkerBackends(array $workerBackendPids, array $workerNames): void
+    {
+        $backends = $this->observerConnection()->select(
+            <<<'SQL'
+                select pid, application_name
+                from pg_stat_activity
+                where datname = current_database()
+                  and ((pid = ? and application_name = ?)
+                    or (pid = ? and application_name = ?))
+                SQL,
+            [
+                $workerBackendPids[0],
+                $workerNames[0],
+                $workerBackendPids[1],
+                $workerNames[1],
+            ],
+        );
+
+        $this->assertCount(2, $backends, 'Workers are not connected to the expected PostgreSQL test database.');
+    }
+
+    /**
+     * @param  array{int, int}  $workerBackendPids
+     * @param  array{string, string}  $workerNames
+     * @return list<array{pid: int, wait_event_type: string, wait_event: string, has_ungranted_lock: int}>
+     */
+    private function waitUntilWorkersAreBlocked(array $workerBackendPids, array $workerNames): array
+    {
+        $deadline = microtime(true) + 15;
+        $lastObserved = [];
+
+        do {
+            foreach ($this->workers as $worker) {
+                $this->failIfWorkerTerminated($worker, 'before row-lock contention was observed');
+            }
+
+            $sessions = $this->observerConnection()->select(
+                <<<'SQL'
+                    select
+                        activity.pid,
+                        activity.wait_event_type,
+                        activity.wait_event,
+                        case when exists (
+                            select 1
+                            from pg_locks
+                            where pg_locks.pid = activity.pid
+                              and not pg_locks.granted
+                        ) then 1 else 0 end as has_ungranted_lock
+                    from pg_stat_activity as activity
+                    where activity.datname = current_database()
+                      and ((activity.pid = ? and activity.application_name = ?)
+                        or (activity.pid = ? and activity.application_name = ?))
+                    SQL,
+                [
+                    $workerBackendPids[0],
+                    $workerNames[0],
+                    $workerBackendPids[1],
+                    $workerNames[1],
+                ],
+            );
+            $lastObserved = array_values(array_map(static function (object $session): array {
+                $values = get_object_vars($session);
+
+                return [
+                    'pid' => (int) ($values['pid'] ?? 0),
+                    'wait_event_type' => (string) ($values['wait_event_type'] ?? ''),
+                    'wait_event' => (string) ($values['wait_event'] ?? ''),
+                    'has_ungranted_lock' => (int) ($values['has_ungranted_lock'] ?? 0),
+                ];
+            }, $sessions));
+
+            if (count($lastObserved) === count($workerBackendPids)
+                && collect($lastObserved)->every(fn (array $session): bool => $session['wait_event_type'] === 'Lock'
+                    && $session['has_ungranted_lock'] === 1)) {
+                return $lastObserved;
+            }
+
+            usleep(50_000);
+        } while (microtime(true) < $deadline);
+
+        throw new RuntimeException(
+            'PostgreSQL workers did not reach concurrent row-lock contention. '
+            .$this->workerDiagnostics().' observed='.json_encode($lastObserved, JSON_THROW_ON_ERROR),
+        );
+    }
+
+    private function failIfWorkerTerminated(Process $worker, string $phase): void
+    {
+        if ($worker->isTerminated()) {
+            throw new RuntimeException("A PostgreSQL worker exited {$phase}. ".$this->workerDiagnostic($worker));
+        }
+    }
+
+    private function workerDiagnostics(): string
+    {
+        return collect($this->workers)
+            ->map(fn (Process $worker): string => $this->workerDiagnostic($worker))
+            ->implode('; ');
+    }
+
+    private function workerDiagnostic(Process $worker): string
+    {
+        preg_match_all('/^(?:READY|DONE) [1-9][0-9]*$/m', $worker->getOutput(), $protocolLines);
+        $errorOutput = trim($worker->getErrorOutput());
+        $safeError = $errorOutput === ''
+            ? 'none'
+            : (preg_match('/\A[A-Za-z_\\\\][A-Za-z0-9_\\\\]*\z/', $errorOutput) === 1
+                ? $errorOutput
+                : '[REDACTED]');
+
+        return sprintf(
+            'exit=%s protocol=%s error=%s',
+            $worker->getExitCode() === null ? 'running' : (string) $worker->getExitCode(),
+            $protocolLines[0] === [] ? 'none' : implode(',', $protocolLines[0]),
+            $safeError,
+        );
+    }
+
+    private function observerConnection(): Connection
+    {
+        return DB::connection(self::OBSERVER_CONNECTION);
     }
 
     /** @return array{demoted: int, promoted: int} */

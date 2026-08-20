@@ -33,12 +33,25 @@ try {
     }
 
     $connection->statement("select set_config('application_name', ?, false)", [$argv[4]]);
+    $backendPid = (int) $connection->scalar('select pg_backend_pid()');
+
+    fwrite(STDOUT, "READY {$backendPid}".PHP_EOL);
+    fflush(STDOUT);
+
+    $signal = fgets(STDIN);
+
+    if ($signal === false || trim($signal) !== 'GO') {
+        exit(66);
+    }
 
     app(BranchAssignmentService::class)->changePrimary(
         StaffProfile::query()->findOrFail((int) $argv[2]),
         StaffBranchAssignment::query()->findOrFail((int) $argv[3]),
         User::query()->findOrFail((int) $argv[1]),
     );
+
+    fwrite(STDOUT, "DONE {$backendPid}".PHP_EOL);
+    fflush(STDOUT);
 
     exit(0);
 } catch (Throwable $exception) {
