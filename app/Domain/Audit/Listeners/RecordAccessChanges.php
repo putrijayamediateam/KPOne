@@ -2,6 +2,7 @@
 
 namespace App\Domain\Audit\Listeners;
 
+use App\Domain\Audit\AccessChangeActorContext;
 use App\Domain\Audit\AuditRecorder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Arr;
@@ -15,7 +16,10 @@ use Spatie\Permission\Models\Role;
 
 class RecordAccessChanges
 {
-    public function __construct(private AuditRecorder $audit) {}
+    public function __construct(
+        private AuditRecorder $audit,
+        private AccessChangeActorContext $actors,
+    ) {}
 
     public function roleAttached(RoleAttachedEvent $event): void
     {
@@ -40,7 +44,12 @@ class RecordAccessChanges
     /** @param class-string<Model> $modelClass */
     private function record(string $event, Model $subject, string $key, mixed $values, string $modelClass): void
     {
-        $this->audit->record($event, $subject, [$key => $this->names($values, $modelClass)]);
+        $this->audit->record(
+            $event,
+            $subject,
+            [$key => $this->names($values, $modelClass)],
+            $this->actors->current(),
+        );
     }
 
     /**

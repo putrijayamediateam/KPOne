@@ -26,7 +26,7 @@ class AuditLogController extends Controller
                 'subjectType' => $log->subject_type ? class_basename($log->subject_type) : null,
                 'subjectId' => $log->subject_id,
                 'occurredAt' => $log->occurred_at->toIso8601String(),
-                'metadata' => $log->metadata,
+                'roleNames' => $log->roleNames(),
             ])->values(),
             'total' => $paginator->total(),
             'prev_page_url' => $paginator->previousPageUrl(),

@@ -21,6 +21,7 @@ use Illuminate\Support\Str;
 use Laravel\Socialite\Socialite;
 use Laravel\Socialite\Two\User as SocialiteUser;
 use LogicException;
+use Tests\Support\StaffBranchAssignmentBootstrapper;
 use Tests\TestCase;
 
 class SecurityHardeningTest extends TestCase
@@ -168,7 +169,10 @@ class SecurityHardeningTest extends TestCase
         $subject = $this->createStaff();
         $assignment = $this->createAssignment($subject, $this->cheras);
 
-        app(BranchAssignmentService::class)->update($assignment, ['assignment_type' => 'temporary'], $actor);
+        app(BranchAssignmentService::class)->update($assignment, [
+            'assignment_type' => 'temporary',
+            'valid_until' => now()->addWeek()->toDateString(),
+        ], $actor);
 
         $log = AuditLog::query()->where('event', 'staff.branch_assignment.updated')->latest('id')->firstOrFail();
         $this->assertSame('permanent', $log->metadata['before']['assignment_type']);
@@ -184,7 +188,7 @@ class SecurityHardeningTest extends TestCase
             'valid_from' => now()->subWeek()->toDateString(),
         ]);
 
-        app(BranchAssignmentService::class)->end($assignment, now()->subDay()->toDateString(), $actor);
+        app(BranchAssignmentService::class)->end($assignment, $actor, now()->subDay()->toDateString());
 
         $log = AuditLog::query()->where('event', 'staff.branch_assignment.ended')->latest('id')->firstOrFail();
         $this->assertNull($log->metadata['before']['valid_until']);
@@ -506,17 +510,16 @@ class SecurityHardeningTest extends TestCase
         array $attributes = [],
         ?User $actor = null,
     ): StaffBranchAssignment {
-        return app(BranchAssignmentService::class)->create(
-            $user->staffProfile,
-            $branch,
-            [
-                'assignment_type' => 'permanent',
-                'is_primary' => false,
-                'valid_from' => now()->subDay()->toDateString(),
-                ...$attributes,
-            ],
-            $actor,
-        );
+        $values = [
+            'assignment_type' => 'permanent',
+            'is_primary' => false,
+            'valid_from' => now()->subDay()->toDateString(),
+            ...$attributes,
+        ];
+
+        return $actor
+            ? app(BranchAssignmentService::class)->create($user->staffProfile, $branch, $values, $actor)
+            : StaffBranchAssignmentBootstrapper::create($user->staffProfile, $branch, $values);
     }
 
     private function fakeGoogle(string $subject, string $email, bool $verified): void

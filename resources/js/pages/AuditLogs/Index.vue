@@ -10,6 +10,7 @@ import {
     CardHeader,
     CardTitle,
 } from '@/components/ui/card';
+import { formatAuditEventLabel } from '@/lib/displayLabels';
 
 defineOptions({
     layout: { breadcrumbs: [{ title: 'Audit Logs', href: '/audit-logs' }] },
@@ -25,7 +26,7 @@ defineProps<{
             subjectType: string | null;
             subjectId: number | null;
             occurredAt: string;
-            metadata: Record<string, unknown> | null;
+            roleNames: string[];
         }>;
         prev_page_url: string | null;
         next_page_url: string | null;
@@ -33,8 +34,6 @@ defineProps<{
     };
 }>();
 
-const formatEvent = (value: string) =>
-    value.replaceAll('.', ' › ').replaceAll('_', ' ');
 const formatTime = (value: string) =>
     new Intl.DateTimeFormat('en-MY', {
         dateStyle: 'medium',
@@ -86,8 +85,13 @@ const formatTime = (value: string) =>
                         <tbody class="divide-y">
                             <tr v-for="log in logs.data" :key="log.id">
                                 <td class="px-6 py-4">
-                                    <div class="font-medium capitalize">
-                                        {{ formatEvent(log.event) }}
+                                    <div class="font-medium">
+                                        {{
+                                            formatAuditEventLabel(
+                                                log.event,
+                                                log.roleNames,
+                                            )
+                                        }}
                                     </div>
                                     <div
                                         v-if="log.subjectType"

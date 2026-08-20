@@ -9,6 +9,7 @@ import {
     CardHeader,
     CardTitle,
 } from '@/components/ui/card';
+import { formatRoleLabel } from '@/lib/displayLabels';
 
 defineOptions({
     layout: {
@@ -19,10 +20,6 @@ defineProps<{
     roles: Array<{ id: number; name: string; permissions: string[] }>;
     permissions: string[];
 }>();
-const label = (value: string) =>
-    value
-        .replaceAll('_', ' ')
-        .replace(/\b\w/g, (character) => character.toUpperCase());
 </script>
 
 <template>
@@ -75,7 +72,7 @@ const label = (value: string) =>
                     <div>
                         <div class="flex items-center gap-2 font-medium">
                             <KeyRound class="size-4 text-emerald-700" />{{
-                                label(role.name)
+                                formatRoleLabel(role.name)
                             }}
                         </div>
                         <div class="mt-1 text-xs text-muted-foreground">

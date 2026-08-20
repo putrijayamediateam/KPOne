@@ -2,36 +2,84 @@
 
 namespace App\Http\Controllers;
 
-use App\Domain\Access\StaffAccessService;
+use App\Domain\Identity\Services\StaffAdministrationService;
+use App\Domain\Identity\Services\StaffDirectoryService;
+use App\Domain\Identity\Services\StaffProvisioningService;
+use App\Http\Requests\StoreStaffRequest;
+use App\Http\Requests\UpdateStaffRequest;
+use App\Models\User;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class StaffController extends Controller
 {
-    public function index(Request $request, StaffAccessService $access): Response
+    public function index(Request $request, StaffDirectoryService $directory): Response
     {
-        $staff = $access->visibleUsers($request->user())
-            ->with(['roles:id,name', 'staffProfile.department:id,name', 'staffProfile.branchAssignments' => fn ($query) => $query->effectiveAt()->with('branch:id,code,name')])
-            ->orderBy('name')
-            ->get()
-            ->map(fn ($user) => [
-                'id' => $user->id,
-                'name' => $user->name,
-                'email' => $user->email,
-                'isActive' => $user->is_active,
-                'jobTitle' => $user->staffProfile?->job_title,
-                'department' => $user->staffProfile?->department?->name,
-                'roles' => $user->roles->pluck('name')->values()->all(),
-                'branches' => $user->staffProfile?->branchAssignments->map(fn ($assignment) => [
-                    'id' => $assignment->branch->id,
-                    'code' => $assignment->branch->code,
-                    'name' => $assignment->branch->name,
-                    'isPrimary' => $assignment->is_primary,
-                    'assignmentType' => $assignment->assignment_type,
-                ])->values()->all() ?? [],
-            ]);
+        $filters = $request->only(['search', 'branch', 'department', 'role', 'status']);
 
-        return Inertia::render('Staff/Index', ['staff' => $staff]);
+        return Inertia::render('Staff/Index', [
+            'staff' => $directory->search($request->user(), $filters),
+            'filters' => $filters,
+            'filterOptions' => $directory->filterOptions($request->user()),
+            'canCreate' => $request->user()->can('create', User::class),
+        ]);
+    }
+
+    public function create(Request $request, StaffDirectoryService $directory): Response
+    {
+        $this->authorize('create', User::class);
+
+        return Inertia::render('Staff/Create', [
+            'options' => $directory->options($request->user()),
+            'today' => now()->toDateString(),
+        ]);
+    }
+
+    public function store(
+        StoreStaffRequest $request,
+        StaffProvisioningService $provisioning,
+    ): RedirectResponse {
+        $staff = $provisioning->provision($request->user(), $request->validated());
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('Staff account created.')]);
+
+        return to_route('staff.show', $staff);
+    }
+
+    public function show(Request $request, User $staff, StaffDirectoryService $directory): Response
+    {
+        $this->authorize('view', $staff);
+        $detail = $directory->detail($request->user(), $staff);
+        $canManage = in_array(true, (array) $detail['can'], true);
+
+        return Inertia::render('Staff/Show', [
+            'staff' => $detail,
+            'options' => $canManage ? $directory->options($request->user()) : null,
+            'today' => now()->toDateString(),
+        ]);
+    }
+
+    public function edit(Request $request, User $staff, StaffDirectoryService $directory): Response
+    {
+        $this->authorize('update', $staff);
+
+        return Inertia::render('Staff/Edit', [
+            'staff' => $directory->detail($request->user(), $staff),
+            'options' => $directory->options($request->user()),
+        ]);
+    }
+
+    public function update(
+        UpdateStaffRequest $request,
+        User $staff,
+        StaffAdministrationService $administration,
+    ): RedirectResponse {
+        $administration->updateProfile($staff, $request->validated(), $request->user());
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('Staff profile updated.')]);
+
+        return to_route('staff.show', $staff);
     }
 }

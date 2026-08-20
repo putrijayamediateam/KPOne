@@ -8,7 +8,9 @@ The replacement will be incremental. Safety, continuity, clear ownership, and au
 
 ## Current delivery
 
-Phase 0A establishes the platform contract before operational modules exist: one organisation, three branches, nine departments, staff identity, multi-branch assignment periods, RBAC, authentication, audit, and the application shell.
+Phase 0A established the platform contract: one organisation, three branches, nine departments, staff identity, multi-branch assignment periods, RBAC, authentication, audit, and the application shell.
+
+Phase 0B adds internal operational staff provisioning and identity administration. Authorised organisation-scoped administrators can create staff accounts transactionally, maintain permitted identity and employment fields, manage effective-dated branch assignments through the domain service, sync approved roles, activate or deactivate accounts, and review a staff access summary. Every security-relevant mutation remains server-authorised and audited.
 
 The current public website remains a separate system. Its current website administration remains the production administration path during migration. KPOne Phase 0A contains no website integration.
 
@@ -18,8 +20,8 @@ Yezza remains outside this delivery. No replacement, integration, or migration f
 
 The order below is directional and requires a separately approved scope for each phase:
 
-1. Platform hardening and staff provisioning workflows.
-2. Patient registration, appointments, and queue operations.
+1. Production deployment, recovery, access review, and staff-governance hardening.
+2. Patient registration, appointments, and queue operations after a separately approved regulated-data phase.
 3. Clinical encounters, diagnosis, prescribing, and dispensary workflows.
 4. Billing, panel/corporate, and inventory operations.
 5. HR and finance operations.

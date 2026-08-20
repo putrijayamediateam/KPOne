@@ -29,6 +29,10 @@ These rules apply to the entire repository.
 - Unknown Google identities must never create users. Social login may authenticate only an existing active account.
 - Audit identity, access, activation, and branch-assignment changes without recording credentials, tokens, cookies, or secret fields.
 - Preserve CSRF protection, session regeneration, rate limits, secure-cookie production settings, and inactive-session rejection.
+- Internal account creation must use `StaffProvisioningService`; public registration must remain disabled.
+- Staff role, branch-access, and status mutations must reject self-escalation and targets with greater effective administrative authority. The protected director authority may not be governed by a non-director account.
+- Active staff must retain exactly one currently effective primary branch. Future-only primary access is not a Phase 0B employment lifecycle.
+- Bootstrap passwords, when used, are one-time administrator inputs: hash immediately and never audit, log, return, flash, or persist them as plaintext.
 
 ## Data and migrations
 

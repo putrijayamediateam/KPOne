@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Domain\Audit\AccessChangeActorContext;
 use App\Domain\Audit\Listeners\RecordAccessChanges;
 use App\Domain\Audit\Listeners\RecordAuthenticationEvents;
 use App\Domain\Identity\Policies\StaffPolicy;
@@ -30,7 +31,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->app->scoped(AccessChangeActorContext::class);
     }
 
     /**

@@ -61,6 +61,12 @@ GOOGLE_REDIRECT_URI="${APP_URL}/auth/google/callback"
 
 Google sign-in never provisions users. Create and activate the KPOne account first, and ensure its email matches the intended Google identity. Use only dummy accounts in local development.
 
+## Phase 0B staff provisioning
+
+Authenticated organisation administrators provision staff through the Staff module; public registration remains unavailable. Google-only provisioning stores no password or provider token. Password provisioning accepts a strong bootstrap value, hashes it immediately, and never returns or audits it. Forced first-login rotation is not available in Phase 0B, so use only synthetic credentials locally and follow a separately approved credential-transfer procedure before production use.
+
+An active staff account requires exactly one currently effective primary branch. Additional assignments may be current or future-dated. All runtime assignment changes use `BranchAssignmentService`; do not replace its locking, validation, and audit boundary with direct model writes.
+
 ## Commands
 
 Backend:

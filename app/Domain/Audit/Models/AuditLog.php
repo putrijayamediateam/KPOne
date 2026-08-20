@@ -45,6 +45,32 @@ class AuditLog extends Model
         ];
     }
 
+    /** @return list<string> */
+    public function roleNames(): array
+    {
+        if (! in_array($this->event, ['access.role.attached', 'access.role.detached'], true)) {
+            return [];
+        }
+
+        $roles = $this->metadata['roles'] ?? [];
+
+        if (! is_array($roles)) {
+            return [];
+        }
+
+        $roleNames = [];
+
+        foreach ($roles as $role) {
+            if (is_string($role)
+                && preg_match('/\A[a-z][a-z0-9_]{0,99}\z/', $role) === 1
+                && ! in_array($role, $roleNames, true)) {
+                $roleNames[] = $role;
+            }
+        }
+
+        return $roleNames;
+    }
+
     /** @return BelongsTo<Organisation, $this> */
     public function organisation(): BelongsTo
     {

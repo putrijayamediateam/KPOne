@@ -2,11 +2,13 @@
 
 namespace App\Domain\Identity\Services;
 
+use App\Domain\Access\StaffAuthorityService;
 use App\Domain\Audit\AuditRecorder;
 use App\Domain\Identity\Models\StaffBranchAssignment;
 use App\Domain\Identity\Models\StaffProfile;
 use App\Domain\Organisation\Models\Branch;
 use App\Models\User;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
@@ -19,24 +21,28 @@ use Illuminate\Validation\ValidationException;
  */
 class BranchAssignmentService
 {
-    public function __construct(private AuditRecorder $audit) {}
+    public function __construct(
+        private AuditRecorder $audit,
+        private StaffAuthorityService $authority,
+    ) {}
 
-    /** @param array{assignment_type:string,is_primary?:bool,valid_from:string,valid_until?:string|null} $attributes */
+    /** @param array<string, mixed> $attributes */
     public function create(
         StaffProfile $profile,
         Branch $branch,
         array $attributes,
-        ?User $actor = null,
+        User $actor,
     ): StaffBranchAssignment {
         $validated = Validator::make($attributes, [
             'assignment_type' => ['required', 'string', 'max:50'],
             'is_primary' => ['sometimes', 'boolean'],
             'valid_from' => ['required', 'date_format:Y-m-d'],
-            'valid_until' => ['nullable', 'date_format:Y-m-d', 'after_or_equal:valid_from'],
+            'valid_until' => ['required_if:assignment_type,temporary', 'nullable', 'date_format:Y-m-d', 'after_or_equal:valid_from'],
         ])->validate();
 
         return DB::transaction(function () use ($profile, $branch, $validated, $actor) {
             $lockedProfile = $this->lockProfile($profile);
+            $this->authorizeActor($actor, $lockedProfile->user);
 
             if ($lockedProfile->user->organisation_id !== $branch->organisation_id) {
                 throw ValidationException::withMessages([
@@ -71,16 +77,17 @@ class BranchAssignmentService
         });
     }
 
-    /** @param array{assignment_type?:string,valid_from?:string,valid_until?:string|null} $attributes */
+    /** @param array<string, mixed> $attributes */
     public function update(
         StaffBranchAssignment $assignment,
         array $attributes,
-        ?User $actor = null,
+        User $actor,
     ): StaffBranchAssignment {
         $this->rejectUnsupportedKeys($attributes, ['assignment_type', 'valid_from', 'valid_until']);
 
         return DB::transaction(function () use ($assignment, $attributes, $actor) {
             $profile = $this->lockProfile($assignment->staffProfile);
+            $this->authorizeActor($actor, $profile->user);
             $lockedAssignment = $this->lockAssignment($profile, $assignment);
             $before = $this->snapshot($lockedAssignment);
             $validated = Validator::make([
@@ -92,8 +99,10 @@ class BranchAssignmentService
             ], [
                 'assignment_type' => ['required', 'string', 'max:50'],
                 'valid_from' => ['required', 'date_format:Y-m-d'],
-                'valid_until' => ['nullable', 'date_format:Y-m-d', 'after_or_equal:valid_from'],
+                'valid_until' => ['required_if:assignment_type,temporary', 'nullable', 'date_format:Y-m-d', 'after_or_equal:valid_from'],
             ])->validate();
+
+            $this->protectActivePrimary($profile, $lockedAssignment, $validated);
 
             $lockedAssignment->forceFill($validated);
 
@@ -108,12 +117,19 @@ class BranchAssignmentService
 
     public function end(
         StaffBranchAssignment $assignment,
+        User $actor,
         ?string $validUntil = null,
-        ?User $actor = null,
     ): StaffBranchAssignment {
         return DB::transaction(function () use ($assignment, $validUntil, $actor) {
             $profile = $this->lockProfile($assignment->staffProfile);
+            $this->authorizeActor($actor, $profile->user);
             $lockedAssignment = $this->lockAssignment($profile, $assignment);
+
+            if ($profile->user->is_active && $lockedAssignment->is_primary) {
+                throw ValidationException::withMessages([
+                    'assignment' => 'Change the primary branch before ending this assignment.',
+                ]);
+            }
             $before = $this->snapshot($lockedAssignment);
             $validated = Validator::make([
                 'valid_from' => $lockedAssignment->valid_from->toDateString(),
@@ -137,10 +153,11 @@ class BranchAssignmentService
     public function changePrimary(
         StaffProfile $profile,
         StaffBranchAssignment $assignment,
-        ?User $actor = null,
+        User $actor,
     ): StaffBranchAssignment {
         return DB::transaction(function () use ($profile, $assignment, $actor) {
             $lockedProfile = $this->lockProfile($profile);
+            $this->authorizeActor($actor, $lockedProfile->user);
             $lockedAssignment = $this->lockAssignment($lockedProfile, $assignment);
             $this->promoteLocked($lockedProfile, $lockedAssignment, $actor);
 
@@ -151,11 +168,17 @@ class BranchAssignmentService
     private function promoteLocked(
         StaffProfile $profile,
         StaffBranchAssignment $target,
-        ?User $actor,
+        User $actor,
     ): void {
         if (! $target->newQuery()->whereKey($target->id)->effectiveAt()->exists()) {
             throw ValidationException::withMessages([
                 'assignment' => 'Only a currently effective assignment can be primary.',
+            ]);
+        }
+
+        if ($profile->user->is_active && $target->valid_until !== null) {
+            throw ValidationException::withMessages([
+                'assignment' => 'An active staff member cannot use an expiring assignment as primary.',
             ]);
         }
 
@@ -189,6 +212,37 @@ class BranchAssignmentService
             ->whereKey($profile->id)
             ->lockForUpdate()
             ->firstOrFail();
+    }
+
+    private function authorizeActor(User $actor, User $subject): void
+    {
+        if ($actor->is($subject)
+            || ! $actor->can('access.manage.organisation')
+            || ! $this->authority->canManage($actor, $subject)) {
+            throw new AuthorizationException('You may not change this staff member\'s branch access.');
+        }
+    }
+
+    /** @param array<string, mixed> $attributes */
+    private function protectActivePrimary(
+        StaffProfile $profile,
+        StaffBranchAssignment $assignment,
+        array $attributes,
+    ): void {
+        if (! $profile->user->is_active || ! $assignment->is_primary) {
+            return;
+        }
+
+        $validFrom = $attributes['valid_from'] ?? null;
+        $validUntil = $attributes['valid_until'] ?? null;
+
+        if ($validUntil !== null
+            || ! is_string($validFrom)
+            || $validFrom > now()->toDateString()) {
+            throw ValidationException::withMessages([
+                'assignment' => 'An active staff member must retain a currently effective primary branch.',
+            ]);
+        }
     }
 
     private function lockAssignment(
@@ -235,7 +289,7 @@ class BranchAssignmentService
         string $event,
         StaffBranchAssignment $assignment,
         array $before,
-        ?User $actor,
+        User $actor,
     ): void {
         $assignment->refresh();
         $this->audit->record(

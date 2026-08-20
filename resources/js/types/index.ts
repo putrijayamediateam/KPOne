@@ -1,5 +1,6 @@
 export * from './auth';
 export * from './navigation';
+export * from './staff';
 export * from './ui';
 
 export type BranchSummary = {

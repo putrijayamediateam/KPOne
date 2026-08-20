@@ -14,7 +14,7 @@ HTTP controllers translate requests and Inertia responses. They do not own scope
 
 ## Runtime shape
 
-The staff application uses Laravel session authentication, CSRF middleware, Inertia 3, and Vue 3. PostgreSQL 18 is the application database. Queues, event brokers, microservices, and Kubernetes are not part of Phase 0A.
+The staff application uses Laravel session authentication, CSRF middleware, Inertia 3, and Vue 3. PostgreSQL 18 is the application database. Queues, event brokers, microservices, and Kubernetes are not part of Phase 0.
 
 All persistent timestamps are written in UTC. Branches carry `Asia/Kuala_Lumpur` as their presentation timezone. Numeric primary keys are internal identifiers.
 
@@ -34,6 +34,16 @@ Effective assignment queries include only periods covering the current date. `Br
 
 Runtime branch-assignment changes use `BranchAssignmentService`, including create, update, end, and primary-assignment operations. Synthetic local/testing seeders and test fixtures are a separate controlled bootstrap boundary: they may establish initial fictional state directly where using runtime services would add misleading operational audit history. Bootstrap access is not available through HTTP or other runtime application flows.
 
+Runtime mutation services require a concrete authenticated actor and fail closed when one is not supplied. The development seeder is independently environment-guarded, and synthetic assignment fixtures use a test-autoloaded bootstrap helper; neither boundary is callable by an HTTP controller. For Phase 0B, a primary assignment is the staff member's stable home/base branch and is non-expiring while the account is active. Effective-dated temporary assignments are additional access only; scheduling a temporary operational primary or automatic fallback is not implemented.
+
+Phase 0B staff administration is split across small application/domain services:
+
+- `StaffDirectoryService` applies server-side staff visibility, filtering, and assignment projection.
+- `StaffProvisioningService` owns the outer transaction for user, profile, roles, initial assignments, primary-branch establishment, and final audit evidence.
+- `StaffAdministrationService` owns explicit profile, department, activation, and deactivation changes.
+- `StaffRoleService` validates catalogue roles and the actor's effective authority before using Spatie role synchronisation.
+- `BranchAssignmentService` remains the only runtime branch-assignment mutation boundary.
+
 ## Roles, permissions, and scope
 
 Spatie stores roles and permissions in its standard tables. Permission names encode the protected capability and scope, for example:
@@ -44,11 +54,13 @@ Spatie stores roles and permissions in its standard tables. Permission names enc
 
 Roles are seeded bundles, not special cases in controllers. Routes use `RequireAnyPermission`; model-specific checks use policies; query visibility uses `StaffAccessService` and `BranchAccessService`. Vue receives the effective permission list only to present appropriate navigation.
 
+Phase 0B reuses the existing `staff.manage.organisation` and `access.manage.organisation` permissions instead of creating redundant verbs. Full provisioning requires both. Profile/status changes require staff management; role and branch-access changes require access management. `StaffAuthorityService` compares effective administrative capabilities and scope coverage for both current targets and proposed roles. The director role is an explicit protected governance role because the Phase 0 catalogue intentionally gives director and technical administrator equivalent platform permissions; a non-director therefore cannot govern a director even though their permission sets otherwise match.
+
 Future clinical permissions must be separate names and deliberate grants. `technical_admin` has platform-foundation administration permissions and no implicit clinical-content access.
 
 ## Authentication
 
-Fortify provides password authentication and reset flows. Public registration is disabled. `CreateNewUser` remains unwired starter-kit residue: registration is absent from Fortify's enabled features and no create-user action is registered. It must not be treated as a staff provisioning path or wired without a reviewed provisioning design. Authentication checks `users.is_active` before password validation, and authenticated requests pass through `EnsureActiveUser` to reject a session if the account is later deactivated.
+Fortify provides password authentication and reset flows. Public registration is disabled. Phase 0B removed the unused starter `CreateNewUser` action only after the internal `StaffProvisioningService` path, Fortify configuration, route inspection, and registration-negative tests proved that Fortify had no dependency on it. Authentication checks `users.is_active` before password validation, and authenticated requests pass through `EnsureActiveUser` to reject a session if the account is later deactivated.
 
 Socialite provides Google OAuth architecture. The callback resolves the Google subject or normalised email to an already-created active KPOne user. Unknown, inactive, or mismatched identities are rejected; no account is created and no provider token is stored. A successful first link records only the stable Google subject.
 
@@ -56,7 +68,7 @@ Socialite provides Google OAuth architecture. The callback resolves the Google s
 
 `AuditRecorder` appends sanitised security/administration records. Model update and delete operations on `AuditLog` are blocked to keep the default application path append-oriented. Database administrators still require operational retention and tamper-monitoring controls in deployment.
 
-Authentication and Spatie access events are observed centrally. Activation and branch-assignment services record their changes explicitly. Sensitive metadata keys such as password, token, secret, authorisation, and cookie are preserved for structural context, but their values are replaced recursively with `[REDACTED]` before persistence.
+Authentication and Spatie access events are observed centrally. Provisioning, identity/profile, activation, and branch-assignment services record their changes explicitly. Sensitive metadata keys such as password, token, secret, authorisation, and cookie are preserved for structural context, but their values are replaced recursively with `[REDACTED]` before persistence.
 
 `system_events` is an integration-neutral foundation for later internal operational signals. Unlike immutable `audit_logs`, a system event has an explicit processing lifecycle represented by `processed_at`. Phase 0A has no runtime producer or processor, broker, or event-driven subsystem. Any future processing transition must use an explicit service and produce an audit record; replacing or deleting the originating event is not an ordinary application flow.
 
@@ -85,4 +97,4 @@ Laravel also owns framework tables for sessions, password resets, cache, jobs, f
 
 ## Coexistence
 
-The current website and its website admin remain separate and production-active during migration. KPOne has no dependency on them in Phase 0A. Yezza replacement and legacy data migration require later, explicitly approved architecture and reconciliation work.
+The current website and its website admin remain separate and production-active during migration. KPOne has no dependency on them in Phase 0A or Phase 0B. Yezza replacement and legacy data migration require later, explicitly approved architecture and reconciliation work.

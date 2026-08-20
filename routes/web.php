@@ -6,7 +6,10 @@ use App\Http\Controllers\Auth\GoogleAuthController;
 use App\Http\Controllers\BranchContextController;
 use App\Http\Controllers\BranchController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\StaffBranchAssignmentController;
 use App\Http\Controllers\StaffController;
+use App\Http\Controllers\StaffRoleController;
+use App\Http\Controllers\StaffStatusController;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
@@ -27,6 +30,39 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('staff', [StaffController::class, 'index'])
         ->middleware('permission:staff.view.own,staff.view.branch,staff.view.organisation')
         ->name('staff.index');
+    Route::get('staff/create', [StaffController::class, 'create'])
+        ->middleware(['permission:staff.manage.organisation', 'permission:access.manage.organisation'])
+        ->name('staff.create');
+    Route::post('staff', [StaffController::class, 'store'])
+        ->middleware(['permission:staff.manage.organisation', 'permission:access.manage.organisation'])
+        ->name('staff.store');
+    Route::get('staff/{staff}', [StaffController::class, 'show'])
+        ->middleware('permission:staff.view.own,staff.view.branch,staff.view.organisation')
+        ->name('staff.show');
+    Route::get('staff/{staff}/edit', [StaffController::class, 'edit'])
+        ->middleware('permission:staff.manage.organisation')
+        ->name('staff.edit');
+    Route::patch('staff/{staff}', [StaffController::class, 'update'])
+        ->middleware('permission:staff.manage.organisation')
+        ->name('staff.update');
+    Route::post('staff/{staff}/branch-assignments', [StaffBranchAssignmentController::class, 'store'])
+        ->middleware('permission:access.manage.organisation')
+        ->name('staff.branch-assignments.store');
+    Route::patch('staff/{staff}/branch-assignments/{assignment}', [StaffBranchAssignmentController::class, 'update'])
+        ->middleware('permission:access.manage.organisation')
+        ->name('staff.branch-assignments.update');
+    Route::patch('staff/{staff}/branch-assignments/{assignment}/end', [StaffBranchAssignmentController::class, 'end'])
+        ->middleware('permission:access.manage.organisation')
+        ->name('staff.branch-assignments.end');
+    Route::post('staff/{staff}/branch-assignments/{assignment}/primary', [StaffBranchAssignmentController::class, 'setPrimary'])
+        ->middleware('permission:access.manage.organisation')
+        ->name('staff.branch-assignments.primary');
+    Route::put('staff/{staff}/roles', [StaffRoleController::class, 'update'])
+        ->middleware('permission:access.manage.organisation')
+        ->name('staff.roles.update');
+    Route::patch('staff/{staff}/status', [StaffStatusController::class, 'update'])
+        ->middleware('permission:staff.manage.organisation')
+        ->name('staff.status.update');
 
     Route::get('branches', [BranchController::class, 'index'])
         ->middleware('permission:branches.view.branch,branches.view.organisation')

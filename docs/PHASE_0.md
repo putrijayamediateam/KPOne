@@ -17,6 +17,14 @@ Build the trustworthy platform boundary before operational healthcare modules: o
 - Append-oriented audit and system-event tables
 - Automated security, access-scope, assignment, and audit tests
 
+## Phase 0B identity administration closeout
+
+Phase 0B adds an operational staff directory, transactional internal provisioning, staff detail/access review, permitted profile and department changes, audited multi-role management, effective-dated branch assignment management, and account activation/deactivation. It does not add a public registration path or any patient/clinical module.
+
+Active staff provisioning and reactivation require exactly one currently effective primary branch. Runtime branch changes remain owned by `BranchAssignmentService`. Role, access, and status mutations compare the target's current effective administrative authority with the actor, and non-directors cannot govern protected director accounts.
+
+See `docs/PHASE_0B.md` for the service, transaction, audit, and residual-risk details.
+
 ## Planning headcounts
 
 These counts are planning reference data only. They do not create user records and must not be used to infer real identities:
@@ -30,7 +38,7 @@ These counts are planning reference data only. They do not create user records a
 
 ## Explicitly out of scope
 
-Phase 0A does not implement or model:
+Phase 0A and Phase 0B do not implement or model:
 
 - patient records, IC/passport storage, or patient registration
 - queue, appointments, clinical records, diagnosis, or prescribing
@@ -44,6 +52,6 @@ The current website remains separate, and its current website admin remains in p
 
 ## Remaining Phase 0 work
 
-Items to address in a separately reviewed follow-up include production deployment/runbook design, production PostgreSQL role/backup policy, staff provisioning and approval UX, access-control mutation UX around the existing audited services, Google OAuth credential onboarding, audit retention/export rules, and a formal threat model before any regulated module begins.
+Items to address in a separately reviewed follow-up include production deployment/runbook design, production PostgreSQL role/backup policy, formal staff approval/delegation policy, forced first-login password rotation or an invitation/reset workflow, wider access-control catalogue mutation UX, Google OAuth credential onboarding, audit retention/export rules, and a formal threat model before any regulated module begins.
 
 None of those items authorises a later-phase operational module.

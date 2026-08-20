@@ -16,6 +16,7 @@ use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Str;
 use Laravel\Socialite\Socialite;
 use Laravel\Socialite\Two\User as SocialiteUser;
+use Tests\Support\StaffBranchAssignmentBootstrapper;
 use Tests\TestCase;
 
 class Phase0FoundationTest extends TestCase
@@ -98,6 +99,7 @@ class Phase0FoundationTest extends TestCase
 
     public function test_branch_assignment_works_and_is_effective(): void
     {
+        $actor = $this->createStaff('director');
         $user = $this->createStaff();
 
         $assignment = app(BranchAssignmentService::class)->create(
@@ -109,6 +111,7 @@ class Phase0FoundationTest extends TestCase
                 'valid_from' => now()->subDay()->toDateString(),
                 'valid_until' => null,
             ],
+            $actor,
         );
 
         $this->assertTrue($assignment->is_primary);
@@ -126,7 +129,11 @@ class Phase0FoundationTest extends TestCase
         app(BranchAssignmentService::class)->create(
             $subject->staffProfile,
             $this->cheras,
-            ['assignment_type' => 'temporary', 'valid_from' => now()->toDateString()],
+            [
+                'assignment_type' => 'temporary',
+                'valid_from' => now()->toDateString(),
+                'valid_until' => now()->addWeek()->toDateString(),
+            ],
             $actor,
         );
 
@@ -206,7 +213,7 @@ class Phase0FoundationTest extends TestCase
         ]);
 
         foreach ($branches as $index => $branch) {
-            app(BranchAssignmentService::class)->create($profile, $branch, [
+            StaffBranchAssignmentBootstrapper::create($profile, $branch, [
                 'is_primary' => $index === 0,
                 'assignment_type' => 'permanent',
                 'valid_from' => now()->subDay()->toDateString(),

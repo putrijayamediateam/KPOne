@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Domain\Access\StaffAuthorityService;
 use App\Domain\Audit\AuditRecorder;
 use App\Domain\Audit\Models\AuditLog;
 use App\Domain\Identity\Models\StaffBranchAssignment;
@@ -18,6 +19,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use RuntimeException;
+use Spatie\Permission\Models\Permission;
 use Symfony\Component\Process\InputStream;
 use Symfony\Component\Process\Process;
 use Tests\TestCase;
@@ -88,6 +90,13 @@ class PostgresBranchAssignmentRegressionTest extends TestCase
 
         if ($this->postgresTestDatabaseConfirmed && $this->fixtureOrganisationId !== null) {
             DB::table('audit_logs')->where('organisation_id', $this->fixtureOrganisationId)->delete();
+            $fixtureUserIds = DB::table('users')
+                ->where('organisation_id', $this->fixtureOrganisationId)
+                ->pluck('id');
+            DB::table('model_has_permissions')
+                ->where('model_type', User::class)
+                ->whereIn('model_id', $fixtureUserIds)
+                ->delete();
             DB::table('users')->where('organisation_id', $this->fixtureOrganisationId)->delete();
             DB::table('departments')->where('organisation_id', $this->fixtureOrganisationId)->delete();
             DB::table('branches')->where('organisation_id', $this->fixtureOrganisationId)->delete();
@@ -125,10 +134,10 @@ class PostgresBranchAssignmentRegressionTest extends TestCase
         };
 
         try {
-            (new BranchAssignmentService($failingAuditRecorder))->changePrimary(
+            (new BranchAssignmentService($failingAuditRecorder, app(StaffAuthorityService::class)))->changePrimary(
                 $fixture['profile'],
                 $target,
-                $fixture['user'],
+                $fixture['actor'],
             );
             $this->fail('The injected audit failure did not abort the primary change.');
         } catch (RuntimeException $exception) {
@@ -161,13 +170,13 @@ class PostgresBranchAssignmentRegressionTest extends TestCase
             'kpone-pg-test-'.Str::replace('-', '', (string) Str::uuid()),
         ];
         $firstWorker = $this->newPrimaryChangeWorker(
-            $fixture['user'],
+            $fixture['actor'],
             $fixture['profile'],
             $firstTarget,
             $workerNames[0],
         );
         $secondWorker = $this->newPrimaryChangeWorker(
-            $fixture['user'],
+            $fixture['actor'],
             $fixture['profile'],
             $secondTarget,
             $workerNames[1],
@@ -244,6 +253,7 @@ class PostgresBranchAssignmentRegressionTest extends TestCase
 
     /**
      * @return array{
+     *     actor: User,
      *     user: User,
      *     profile: StaffProfile,
      *     assignments: list<StaffBranchAssignment>
@@ -267,6 +277,15 @@ class PostgresBranchAssignmentRegressionTest extends TestCase
             'name' => 'Test Department',
             'is_active' => true,
         ])->save();
+
+        $actor = new User;
+        $actor->forceFill([
+            'organisation_id' => $organisation->id,
+            'name' => 'PostgreSQL Test Actor',
+            'email' => "postgresql.actor.{$suffix}@kpone.test",
+            'is_active' => true,
+        ])->save();
+        $actor->givePermissionTo(Permission::findOrCreate('access.manage.organisation', 'web'));
 
         $user = new User;
         $user->forceFill([
@@ -300,10 +319,10 @@ class PostgresBranchAssignmentRegressionTest extends TestCase
                 'assignment_type' => 'test',
                 'is_primary' => $index === 0,
                 'valid_from' => now()->subDay()->toDateString(),
-            ], $user);
+            ], $actor);
         }
 
-        return compact('user', 'profile', 'assignments');
+        return compact('actor', 'user', 'profile', 'assignments');
     }
 
     /** @return array{process: Process, input: InputStream} */

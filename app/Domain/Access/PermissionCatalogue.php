@@ -4,6 +4,8 @@ namespace App\Domain\Access;
 
 final class PermissionCatalogue
 {
+    public const PROTECTED_AUTHORITY_ROLE = 'director';
+
     /** @return list<string> */
     public static function all(): array
     {
@@ -76,5 +78,10 @@ final class PermissionCatalogue
                 'system_events.view.organisation',
             ],
         ];
+    }
+
+    public static function isAdministrativeAuthority(string $permission): bool
+    {
+        return str_contains($permission, '.manage.');
     }
 }

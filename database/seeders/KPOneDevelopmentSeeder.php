@@ -10,6 +10,7 @@ use App\Domain\Organisation\Models\Organisation;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
+use LogicException;
 
 class KPOneDevelopmentSeeder extends Seeder
 {
@@ -19,6 +20,13 @@ class KPOneDevelopmentSeeder extends Seeder
 
     public function run(): void
     {
+        if (! app()->environment(['local', 'testing'])) {
+            throw new LogicException('The synthetic development bootstrap is restricted to local and testing environments.');
+        }
+
+        // Controlled, actorless bootstrap for synthetic local/testing data only.
+        // This guard prevents production use even when the seeder is invoked
+        // directly; runtime assignment mutations must use BranchAssignmentService.
         $organisation = Organisation::query()->where('code', 'KLINIK_PUTRIJAYA')->firstOrFail();
         $department = Department::query()
             ->where('organisation_id', $organisation->id)

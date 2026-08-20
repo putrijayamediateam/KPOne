@@ -4,9 +4,9 @@ KPOne is the Klinik Putrijaya Digital Operating System: a production healthcare 
 
 This repository is a new, independent Laravel application. It does not modify or depend on `MiniWeb_KlinikPutrijaya_Fullstack`.
 
-## Current scope: Phase 0A
+## Current scope: Phase 0A + Phase 0B
 
-Phase 0A provides only the platform foundation:
+Phase 0A provides the platform foundation, and Phase 0B adds internal operational staff identity administration:
 
 - Klinik Putrijaya organisation, branches, and departments
 - staff identity and effective multi-branch assignments
@@ -16,6 +16,10 @@ Phase 0A provides only the platform foundation:
 - append-oriented audit logs and system-event storage
 - a responsive Vue/Inertia application shell
 - Dashboard, Profile, Staff, Branches, Access Control, and Audit Logs pages
+- server-filtered staff directory and operational staff detail/access summary
+- transactional internal staff provisioning with Google-only or immediately hashed password access
+- explicit staff profile, department, role, branch-assignment, activation, and deactivation workflows
+- higher-authority target protection and an active-account primary-branch invariant
 
 No patient, clinical, dispensary, billing, inventory, HR workflow, finance workflow, website integration, Yezza, messaging, OTP, or migration functionality is implemented.
 
@@ -62,3 +66,5 @@ npm run build
 ```
 
 Architecture, security, phase boundaries, and contributor rules are in [`docs/`](docs) and [AGENTS.md](AGENTS.md).
+
+Phase 0B implementation details are documented in [docs/PHASE_0B.md](docs/PHASE_0B.md).
