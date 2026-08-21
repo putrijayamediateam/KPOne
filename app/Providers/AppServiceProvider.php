@@ -8,6 +8,8 @@ use App\Domain\Audit\Listeners\RecordAuthenticationEvents;
 use App\Domain\Identity\Policies\StaffPolicy;
 use App\Domain\Organisation\Models\Branch;
 use App\Domain\Organisation\Policies\BranchPolicy;
+use App\Domain\Patient\Models\Patient;
+use App\Domain\Patient\Policies\PatientPolicy;
 use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Auth\Events\Failed;
@@ -17,6 +19,7 @@ use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
 use Spatie\Permission\Events\PermissionAttachedEvent;
@@ -42,12 +45,22 @@ class AppServiceProvider extends ServiceProvider
         $this->configureDefaults();
         $this->configureAuthorization();
         $this->configureAuditListeners();
+
+        Route::bind('patient', function (string $value): Patient {
+            $actor = request()->user();
+
+            return Patient::query()
+                ->where('organisation_id', $actor->organisation_id)
+                ->where('patient_number', $value)
+                ->firstOrFail();
+        });
     }
 
     protected function configureAuthorization(): void
     {
         Gate::policy(Branch::class, BranchPolicy::class);
         Gate::policy(User::class, StaffPolicy::class);
+        Gate::policy(Patient::class, PatientPolicy::class);
     }
 
     protected function configureAuditListeners(): void

@@ -6,6 +6,9 @@ use App\Http\Controllers\Auth\GoogleAuthController;
 use App\Http\Controllers\BranchContextController;
 use App\Http\Controllers\BranchController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\PatientController;
+use App\Http\Controllers\PatientIdentifierController;
+use App\Http\Controllers\PatientSearchController;
 use App\Http\Controllers\StaffBranchAssignmentController;
 use App\Http\Controllers\StaffController;
 use App\Http\Controllers\StaffRoleController;
@@ -81,6 +84,44 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('audit-logs', AuditLogController::class)
         ->middleware('permission:audit.view.organisation')
         ->name('audit-logs.index');
+
+    Route::middleware(['sensitive.no-store', 'inertia.encrypt'])->group(function () {
+        Route::get('patients', [PatientController::class, 'index'])
+            ->middleware('permission:patients.search.organisation')
+            ->name('patients.index');
+        Route::post('patients/search', [PatientSearchController::class, 'search'])
+            ->middleware(['permission:patients.search.organisation', 'throttle:60,1'])
+            ->name('patients.search');
+        Route::post('patients/duplicate-check', [PatientSearchController::class, 'duplicateCheck'])
+            ->middleware(['permission:patients.create.organisation', 'throttle:30,1'])
+            ->name('patients.duplicate-check');
+        Route::get('patients/create', [PatientController::class, 'create'])
+            ->middleware('permission:patients.create.organisation')
+            ->name('patients.create');
+        Route::post('patients', [PatientController::class, 'store'])
+            ->middleware(['permission:patients.create.organisation', 'throttle:20,1'])
+            ->name('patients.store');
+        Route::get('patients/{patient}', [PatientController::class, 'show'])
+            ->middleware('permission:patients.view.organisation')
+            ->name('patients.show');
+        Route::get('patients/{patient}/edit', [PatientController::class, 'edit'])
+            ->middleware('permission:patients.update.organisation')
+            ->name('patients.edit');
+        Route::patch('patients/{patient}', [PatientController::class, 'update'])
+            ->middleware('permission:patients.update.organisation')
+            ->name('patients.update');
+        Route::post('patients/{patient}/identifiers', [PatientIdentifierController::class, 'store'])
+            ->middleware('permission:patients.update.organisation')
+            ->name('patients.identifiers.store');
+        Route::patch('patients/{patient}/identifiers/{identifier}', [PatientIdentifierController::class, 'replace'])
+            ->scopeBindings()
+            ->middleware('permission:patients.identifiers.manage.organisation')
+            ->name('patients.identifiers.replace');
+        Route::patch('patients/{patient}/identifiers/{identifier}/retire', [PatientIdentifierController::class, 'retire'])
+            ->scopeBindings()
+            ->middleware('permission:patients.identifiers.manage.organisation')
+            ->name('patients.identifiers.retire');
+    });
 });
 
 require __DIR__.'/settings.php';

@@ -4,6 +4,7 @@ use App\Domain\Audit\AuditRecorder;
 use App\Http\Middleware\EnsureActiveUser;
 use App\Http\Middleware\HandleAppearance;
 use App\Http\Middleware\HandleInertiaRequests;
+use App\Http\Middleware\PreventSensitiveResponseCaching;
 use App\Http\Middleware\RequireAnyPermission;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Foundation\Application;
@@ -11,6 +12,7 @@ use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets;
 use Illuminate\Http\Request;
+use Illuminate\Routing\Middleware\SubstituteBindings;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -30,9 +32,34 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->alias([
             'permission' => RequireAnyPermission::class,
+            'sensitive.no-store' => PreventSensitiveResponseCaching::class,
         ]);
+
+        $middleware->prependToPriorityList(SubstituteBindings::class, RequireAnyPermission::class);
+        $middleware->prependToPriorityList(RequireAnyPermission::class, EnsureActiveUser::class);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
+        $exceptions->dontFlash([
+            'password',
+            'password_confirmation',
+            'current_password',
+            'patient_query',
+            'query',
+            'value',
+            'identifiers',
+            'full_name',
+            'date_of_birth',
+            'sex',
+            'nationality_code',
+            'mobile_phone',
+            'email',
+            'address_line_1',
+            'address_line_2',
+            'postcode',
+            'city',
+            'state',
+            'country_code',
+        ]);
         $exceptions->shouldRenderJsonWhen(
             fn (Request $request) => $request->is('api/*') || $request->expectsJson(),
         );

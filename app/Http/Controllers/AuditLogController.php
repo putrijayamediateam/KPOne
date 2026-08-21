@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Domain\Audit\Models\AuditLog;
+use App\Domain\Patient\Models\Patient;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -18,16 +19,20 @@ class AuditLogController extends Controller
             ->latest('occurred_at')
             ->paginate(25);
         $logs = [
-            'data' => $paginator->getCollection()->map(fn (AuditLog $log) => [
-                'id' => $log->id,
-                'event' => $log->event,
-                'actor' => $log->actor instanceof User ? $log->actor->name : 'System',
-                'branch' => $log->branch?->code,
-                'subjectType' => $log->subject_type ? class_basename($log->subject_type) : null,
-                'subjectId' => $log->subject_id,
-                'occurredAt' => $log->occurred_at->toIso8601String(),
-                'roleNames' => $log->roleNames(),
-            ])->values(),
+            'data' => $paginator->getCollection()->map(function (AuditLog $log): array {
+                $isPatient = $log->subject_type === (new Patient)->getMorphClass();
+
+                return [
+                    'id' => $log->id,
+                    'event' => $log->event,
+                    'actor' => $log->actor instanceof User ? $log->actor->name : 'System',
+                    'branch' => $log->branch?->code,
+                    'subjectType' => $isPatient ? 'Patient record' : ($log->subject_type ? class_basename($log->subject_type) : null),
+                    'subjectId' => $isPatient ? null : $log->subject_id,
+                    'occurredAt' => $log->occurred_at->toIso8601String(),
+                    'roleNames' => $log->roleNames(),
+                ];
+            })->values(),
             'total' => $paginator->total(),
             'prev_page_url' => $paginator->previousPageUrl(),
             'next_page_url' => $paginator->nextPageUrl(),

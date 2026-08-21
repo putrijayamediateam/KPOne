@@ -36,6 +36,8 @@
 
 The repository defaults to PostgreSQL. The default local PHPUnit configuration overrides the connection to an in-memory SQLite database to keep the routine test workflow fast and isolated; SQLite is not a supported deployed database. GitHub Actions deliberately supplies `DB_CONNECTION=pgsql` and an isolated PostgreSQL 18 service database, so the complete suite also covers production-database semantics.
 
+Phase 1A adds no patient development seeder. Local and automated Patient Master records must remain obviously synthetic; never copy production patient data into local, test, screenshots, fixtures, backups, or debugging tools. The PostgreSQL Patient Master regression uses separate PHP processes to prove counter initialization/allocation and identifier unique-index contention.
+
 PostgreSQL-specific regression tests skip explicitly on SQLite. In PostgreSQL CI they exercise transactional rollback and genuine row-lock contention using separately bootstrapped PHP worker processes and database connections. Never point that workflow at a developer or production database: the tests require `APP_ENV=testing` and a database name clearly marked as a test database before they write fixtures.
 
 ## Dummy account

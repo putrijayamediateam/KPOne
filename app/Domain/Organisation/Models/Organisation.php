@@ -2,6 +2,7 @@
 
 namespace App\Domain\Organisation\Models;
 
+use App\Domain\Patient\Models\Patient;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Attributes\Guarded;
 use Illuminate\Database\Eloquent\Model;
@@ -37,5 +38,11 @@ class Organisation extends Model
     public function users(): HasMany
     {
         return $this->hasMany(User::class);
+    }
+
+    /** @return HasMany<Patient, $this> */
+    public function patients(): HasMany
+    {
+        return $this->hasMany(Patient::class);
     }
 }

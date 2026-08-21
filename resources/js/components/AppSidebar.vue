@@ -6,6 +6,7 @@ import {
     LayoutDashboard,
     ShieldCheck,
     Users,
+    UserRoundSearch,
 } from '@lucide/vue';
 import { computed } from 'vue';
 import AppLogo from '@/components/AppLogo.vue';
@@ -29,6 +30,9 @@ const can = (permission: string) =>
 
 const mainNavItems = computed<NavItem[]>(() => [
     { title: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
+    ...(can('patients.search.organisation')
+        ? [{ title: 'Patients', href: '/patients', icon: UserRoundSearch }]
+        : []),
     ...(can('staff.view.own') ||
     can('staff.view.branch') ||
     can('staff.view.organisation')
@@ -75,7 +79,7 @@ const mainNavItems = computed<NavItem[]>(() => [
             <div
                 class="px-3 pb-2 text-[11px] font-medium tracking-wide text-sidebar-foreground/40 group-data-[collapsible=icon]:hidden"
             >
-                Phase 0B · Staff identity
+                Phase 1A · Patient Master
             </div>
             <NavUser />
         </SidebarFooter>

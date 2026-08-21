@@ -97,9 +97,10 @@ const formatTime = (value: string) =>
                                         v-if="log.subjectType"
                                         class="text-xs text-muted-foreground"
                                     >
-                                        {{ log.subjectType }} #{{
-                                            log.subjectId
-                                        }}
+                                        {{ log.subjectType
+                                        }}<template v-if="log.subjectId">
+                                            #{{ log.subjectId }}</template
+                                        >
                                     </div>
                                 </td>
                                 <td class="px-6 py-4">{{ log.actor }}</td>

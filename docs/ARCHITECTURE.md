@@ -9,6 +9,7 @@ KPOne is one Laravel deployment and one PostgreSQL database. Domain boundaries o
 - `app/Domain/Access`: permission catalogue and branch/staff scope services
 - `app/Domain/Audit`: append-oriented records, recorder, and security-event listeners
 - `app/Domain/Shared`: reserved for genuinely cross-domain primitives; it should not become a miscellaneous folder
+- `app/Domain/Patient`: organisation-level Patient Master models, policy, number allocation, identity normalisation, directory, and administration
 
 HTTP controllers translate requests and Inertia responses. They do not own scope rules. The application remains compatible with normal Laravel routing, service-container, Eloquent, policy, middleware, migration, and seeder conventions. No third-party modules framework is used.
 
@@ -58,6 +59,12 @@ Phase 0B reuses the existing `staff.manage.organisation` and `access.manage.orga
 
 Future clinical permissions must be separate names and deliberate grants. `technical_admin` has platform-foundation administration permissions and no implicit clinical-content access.
 
+## Patient Master
+
+Patients belong to an organisation and deliberately have no branch owner. Branch context will belong to future registration and operational records, not canonical identity. Patient identifiers retain current and retired NRIC/passport history; the database reserves canonical values across both states. A row-locked organisation counter allocates immutable `KP-00000001` patient numbers inside the creation transaction.
+
+`PatientAdministrationService` is the explicit actor, authorisation, normalisation, transaction, optimistic-locking, and structural-audit boundary. `PatientDirectoryService` performs bounded server-side search and constructs masked/minimised Inertia or JSON projections. Patient models are fully guarded and are never serialized directly to Vue.
+
 ## Authentication
 
 Fortify provides password authentication and reset flows. Public registration is disabled. Phase 0B removed the unused starter `CreateNewUser` action only after the internal `StaffProvisioningService` path, Fortify configuration, route inspection, and registration-negative tests proved that Fortify had no dependency on it. Authentication checks `users.is_active` before password validation, and authenticated requests pass through `EnsureActiveUser` to reject a session if the account is later deactivated.
@@ -84,6 +91,9 @@ Domain tables:
 - `staff_branch_assignments`
 - `audit_logs`
 - `system_events`
+- `patient_number_counters`
+- `patients`
+- `patient_identifiers`
 
 RBAC tables:
 

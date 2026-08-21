@@ -1,10 +1,12 @@
 # Security
 
-## Data classification for Phase 0
+## Data classification
 
 Phase 0A stores organisation structure and staff access metadata. Phase 0B supports operational work identity, department, role, status, and branch-assignment administration. It must not store patient details, IC/passport values, clinical content, prescriptions, billing data, real staff seed data, plaintext credentials, or operational secrets.
 
 Test and seed records use fictional names and `.test` addresses. Planning headcounts are documentation only.
+
+Phase 1A introduces restricted patient identity and contact data in the schema, but development and automated testing remain synthetic-only. Patient identity documents, DOB, sex, contact, and address data are confidential healthcare administrative data. Search responses are masked and minimized; full details require a separate view permission. Patient permissions never imply future clinical-record access, and technical administrators receive none.
 
 ## Authentication controls
 
@@ -35,6 +37,8 @@ Route middleware checks coarse permissions, policies check model access, and dom
 
 Permissions have explicit `own`, `branch`, or `organisation` scope. New permissions are not inherited by an existing role unless a reviewed seed/migration change adds them. In particular, `technical_admin` must never receive future clinical-content access automatically.
 
+Patient Master search is organisation-wide only for explicitly authorised operational roles because returning patients may attend any branch. It is not branch ownership. Search, view, create, update, and identifier-correction permissions are separate. Existing NRIC/passport retirement or replacement requires `patients.identifiers.manage.organisation`; normal CAs may only supply an initial identifier or add the first identifier of a type.
+
 Phase 0B mutations also compare authority on the target, not only the actor's coarse route permission. Current target administrative permissions must be covered by the actor; proposed role capabilities must be covered at an equal or broader explicit scope. Director is a protected governance role, so a non-director technical administrator cannot change a director's roles, branch access, or status. Self role/access/status mutation is rejected.
 
 Runtime identity/access mutation services require an explicit non-null actor and do not treat omission as system authorization. Role synchronization supplies that actor through a scoped, synchronous audit context so Spatie attach/detach events remain correctly attributed even outside an authenticated HTTP session; the context does not add duplicate summary events.
@@ -62,3 +66,5 @@ Phase 0B supports Google-only pre-provisioning with a null password and an optio
 ## Reporting and review
 
 Before adding regulated data or a new external integration, complete a focused threat model, data classification, retention decision, access matrix review, and recovery test. Security findings must be handled without adding real sensitive data to issues, logs, fixtures, or screenshots.
+
+Phase 1A intentionally does not use application field encryption. Compensating requirements are strict server authorisation, response masking/minimisation, no PII duplication in audit/application logs, encrypted transport, encrypted production database/storage/backups, and restricted database/backup roles. Field encryption must be reassessed before real-patient production rollout.
