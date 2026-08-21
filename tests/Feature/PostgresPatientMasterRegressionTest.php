@@ -287,10 +287,14 @@ class PostgresPatientMasterRegressionTest extends TestCase
 
     private function waitForLock(int $pid): void
     {
+        if ($pid <= 0) {
+            throw new RuntimeException('Patient worker did not report a valid PostgreSQL backend PID.');
+        }
+
         $deadline = microtime(true) + 10;
         do {
-            $blocked = DB::selectOne('select wait_event_type from pg_stat_activity where pid = ?', [$pid]);
-            if (($blocked->wait_event_type ?? null) === 'Lock') {
+            $blocked = DB::selectOne('select cardinality(pg_blocking_pids(?)) as blocker_count', [$pid]);
+            if ((int) ($blocked->blocker_count ?? 0) > 0) {
                 return;
             }
             usleep(50_000);
