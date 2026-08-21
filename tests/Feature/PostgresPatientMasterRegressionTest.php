@@ -118,6 +118,7 @@ class PostgresPatientMasterRegressionTest extends TestCase
         $this->waitReady([$wait]);
         $wait['input']->write("GO\n");
         $wait['input']->close();
+        $this->waitForOutput($wait['process'], 'ATTEMPTING');
         $waitPid = $this->protocolPid($wait['process']->getOutput());
         $this->waitForLock($waitPid);
         $hold['input']->write("COMMIT\n");

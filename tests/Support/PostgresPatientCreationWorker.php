@@ -66,6 +66,8 @@ try {
         }
         $connection->beginTransaction();
         try {
+            fwrite(STDOUT, "ATTEMPTING {$pid}".PHP_EOL);
+            fflush(STDOUT);
             $connection->table('patient_identifiers')->insert([
                 'organisation_id' => (int) $organisationId,
                 'patient_id' => (int) $patientId,
