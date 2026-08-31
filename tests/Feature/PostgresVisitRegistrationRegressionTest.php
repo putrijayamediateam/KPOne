@@ -573,8 +573,15 @@ class PostgresVisitRegistrationRegressionTest extends TestCase
                             select 1 from pg_locks
                             where pg_locks.pid = activity.pid and not pg_locks.granted
                         ) then 1 else 0 end as has_ungranted_lock,
-                        case when ?::integer is null then false
-                            else ?::integer = any(pg_blocking_pids(pid)) end as expected_blocker
+                        case when ?::integer is null then false else exists (
+                            with recursive blockers(pid) as (
+                                select unnest(pg_blocking_pids(activity.pid))
+                                union
+                                select unnest(pg_blocking_pids(blockers.pid))
+                                from blockers
+                            )
+                            select 1 from blockers where pid = ?::integer
+                        ) end as expected_blocker
                     from pg_stat_activity as activity
                     where pid = ?
                     SQL,
