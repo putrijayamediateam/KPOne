@@ -6,11 +6,23 @@ export type ClinicalDiagnosis = {
 };
 
 export type ClinicalHistorySummary = {
-    visitNumber: string;
     startedAt: string;
     branch: string;
     attendingClinician: string;
-    diagnoses: ClinicalDiagnosis[];
+    status: 'in_progress';
+    viewUrl: string;
+};
+
+export type ClinicalVitals = {
+    observedAt: string | null;
+    systolicBp: number | null;
+    diastolicBp: number | null;
+    pulseBpm: number | null;
+    temperatureCelsius: string | null;
+    spo2Percent: string | null;
+    weightKg: string | null;
+    heightCm: string | null;
+    bmi: number | null;
 };
 
 export type ClinicalEncounterPage = {
@@ -43,18 +55,31 @@ export type ClinicalEncounterPage = {
         lockVersion: number;
         updatedAt: string;
     };
-    vitals: {
-        observedAt: string | null;
-        systolicBp: number | null;
-        diastolicBp: number | null;
-        pulseBpm: number | null;
-        temperatureCelsius: string | null;
-        spo2Percent: string | null;
-        weightKg: string | null;
-        heightCm: string | null;
-        bmi: number | null;
-    };
+    vitals: ClinicalVitals;
     diagnoses: ClinicalDiagnosis[];
     history: ClinicalHistorySummary[];
     limitations: { structuredHistory: string };
+};
+
+export type ClinicalHistoryDetailPage = {
+    patient: {
+        patientNumber: string;
+        name: string;
+        dateOfBirth: string | null;
+        sex: string;
+    };
+    visit: { visitNumber: string };
+    branch: { name: string };
+    encounter: {
+        status: 'in_progress';
+        clinicalNote: string | null;
+        startedAt: string;
+        attendingClinician: string;
+    };
+    vitals: ClinicalVitals;
+    diagnoses: ClinicalDiagnosis[];
+    navigation: {
+        backLabel: string;
+        backUrl: string;
+    };
 };

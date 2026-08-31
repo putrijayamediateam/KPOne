@@ -36,7 +36,7 @@ class ClinicalEncounterDirectoryTest extends ClinicalTestCase
                 ->missing('clinical.encounter.id'));
     }
 
-    public function test_history_is_bounded_same_patient_same_organisation_and_contains_no_notes(): void
+    public function test_history_is_bounded_and_contains_structural_metadata_only(): void
     {
         [$doctor, $ca, $currentVisit, $currentQueue] = $this->servingFixture();
         $current = $this->startEncounter($doctor, $currentVisit, $currentQueue);
@@ -59,8 +59,17 @@ class ClinicalEncounterDirectoryTest extends ClinicalTestCase
         $detail = app(ClinicalEncounterDirectoryService::class)->detail($doctor, $currentVisit);
 
         $this->assertCount(15, $detail['history']);
+        $this->assertSame(
+            ['startedAt', 'branch', 'attendingClinician', 'status', 'viewUrl'],
+            array_keys($detail['history'][0]),
+        );
+        $this->assertStringContainsString('/encounter/history', $detail['history'][0]['viewUrl']);
         $encoded = json_encode($detail['history'], JSON_THROW_ON_ERROR);
         $this->assertStringNotContainsString('historical private note', $encoded);
+        $this->assertStringNotContainsString('Synthetic diagnosis alpha', $encoded);
+        foreach (['clinicalNote', 'vitals', 'diagnoses', 'registrationReason', 'lockVersion', 'id'] as $forbiddenKey) {
+            $this->assertStringNotContainsString('"'.$forbiddenKey.'"', $encoded);
+        }
     }
 
     public function test_patient_master_permission_alone_cannot_obtain_clinical_history(): void

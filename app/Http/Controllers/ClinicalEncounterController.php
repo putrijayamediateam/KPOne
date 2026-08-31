@@ -34,6 +34,16 @@ class ClinicalEncounterController extends Controller
         ]);
     }
 
+    public function history(
+        Request $request,
+        Visit $historicalVisit,
+        ClinicalEncounterDirectoryService $directory,
+    ): Response {
+        return Inertia::render('Clinical/HistoryShow', [
+            'historical' => $directory->historicalDetail($request->user(), $historicalVisit),
+        ]);
+    }
+
     public function update(
         UpdateClinicalEncounterRequest $request,
         Visit $visit,

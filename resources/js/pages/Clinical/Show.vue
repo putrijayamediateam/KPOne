@@ -434,22 +434,21 @@ const save = () => {
                 <h2 class="font-semibold">Recent Encounters</h2>
                 <div
                     v-for="item in clinical.history"
-                    :key="item.visitNumber"
-                    class="flex flex-wrap justify-between gap-2 border-b py-2 text-sm last:border-0"
+                    :key="item.viewUrl"
+                    class="flex flex-wrap items-center justify-between gap-3 border-b py-2.5 text-sm last:border-0"
                 >
-                    <span>
+                    <span class="flex flex-wrap items-center gap-x-1">
                         <span class="font-medium">{{
                             new Date(item.startedAt).toLocaleDateString()
                         }}</span>
                         · {{ item.branch }} · {{ item.attendingClinician }}
                     </span>
-                    <span class="text-muted-foreground">
-                        {{
-                            item.diagnoses
-                                .map((row) => row.diagnosisText)
-                                .join(', ') || 'No diagnosis recorded'
-                        }}
-                    </span>
+                    <Link
+                        :href="item.viewUrl"
+                        class="rounded-md border px-3 py-1.5 text-xs font-medium hover:bg-muted"
+                    >
+                        View details
+                    </Link>
                 </div>
             </section>
 

@@ -74,6 +74,18 @@ class AppServiceProvider extends ServiceProvider
                 ->where('visit_number', $value)
                 ->firstOrFail();
         });
+
+        // Historical clinical continuity is organisation-scoped after an
+        // explicit clinical relationship check. It therefore cannot use the
+        // active-branch Visit binding used by operational Visit routes.
+        Route::bind('historicalVisit', function (string $value): Visit {
+            $actor = request()->user();
+
+            return Visit::query()
+                ->where('organisation_id', $actor->organisation_id)
+                ->where('visit_number', $value)
+                ->firstOrFail();
+        });
     }
 
     protected function configureAuthorization(): void
