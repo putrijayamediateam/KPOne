@@ -195,6 +195,12 @@ class QueueDirectoryService
             && in_array($visit->assigned_doctor_user_id, $eligibleDoctorIds, true);
         $canCall = $actor->can('queue.call.branch')
             || ($actor->can('queue.call.own') && $visit->assigned_doctor_user_id === $actor->id);
+        $canOpenEncounter = $entry->status === QueueEntry::STATUS_SERVING
+            && $doctorEligible
+            && $actor->is_active
+            && $actor->hasRole('resident_doctor')
+            && $actor->can('encounters.start.own')
+            && $visit->assigned_doctor_user_id === $actor->id;
 
         return [
             'queueNumber' => sprintf('%03d', $entry->queue_number),
@@ -220,6 +226,9 @@ class QueueDirectoryService
             // service re-authorize Call In; avoid a branch-assignment query
             // for every row in the three-second polling projection.
             'canCall' => $doctorEligible && $canCall,
+            // Clinical permissions are independent of Queue authority. This
+            // remains a UI hint; Encounter start re-authorizes under lock.
+            'canOpenEncounter' => $canOpenEncounter,
         ];
     }
 

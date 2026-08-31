@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Domain\Audit\Models\AuditLog;
+use App\Domain\Clinical\Models\ClinicalEncounter;
 use App\Domain\Patient\Models\Patient;
 use App\Domain\Queue\Models\QueueEntry;
 use App\Domain\Visit\Models\Visit;
@@ -25,7 +26,8 @@ class AuditLogController extends Controller
                 $isPatient = $log->subject_type === (new Patient)->getMorphClass();
                 $isVisit = $log->subject_type === (new Visit)->getMorphClass();
                 $isQueue = $log->subject_type === (new QueueEntry)->getMorphClass();
-                $isProtectedOperationalRecord = $isPatient || $isVisit || $isQueue;
+                $isEncounter = $log->subject_type === (new ClinicalEncounter)->getMorphClass();
+                $isProtectedOperationalRecord = $isPatient || $isVisit || $isQueue || $isEncounter;
 
                 return [
                     'id' => $log->id,
@@ -36,7 +38,11 @@ class AuditLogController extends Controller
                         ? 'Patient record'
                         : ($isVisit
                             ? 'Visit record'
-                            : ($isQueue ? 'Queue record' : ($log->subject_type ? class_basename($log->subject_type) : null))),
+                            : ($isQueue
+                                ? 'Queue record'
+                                : ($isEncounter
+                                    ? 'Clinical record'
+                                    : ($log->subject_type ? class_basename($log->subject_type) : null)))),
                     'subjectId' => $isProtectedOperationalRecord ? null : $log->subject_id,
                     'occurredAt' => $log->occurred_at->toIso8601String(),
                     'roleNames' => $log->roleNames(),

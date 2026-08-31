@@ -406,17 +406,18 @@ class StaffAdministrationTest extends TestCase
     public function test_future_and_expired_assignments_do_not_grant_branch_access(): void
     {
         $subject = $this->createStaff('ca', [$this->cheras]);
+        $branchDate = now()->setTimezone($this->cheras->timezone);
         $expired = StaffBranchAssignmentBootstrapper::create($subject->staffProfile, $this->puchong, [
             'assignment_type' => 'temporary',
             'is_primary' => false,
-            'valid_from' => now()->subWeek()->toDateString(),
-            'valid_until' => now()->subDay()->toDateString(),
+            'valid_from' => $branchDate->subWeek()->toDateString(),
+            'valid_until' => $branchDate->subDay()->toDateString(),
         ]);
         $future = StaffBranchAssignmentBootstrapper::create($subject->staffProfile, $this->sungaiBesi, [
             'assignment_type' => 'temporary',
             'is_primary' => false,
-            'valid_from' => now()->addDay()->toDateString(),
-            'valid_until' => now()->addWeek()->toDateString(),
+            'valid_from' => $branchDate->addDay()->toDateString(),
+            'valid_until' => $branchDate->addWeek()->toDateString(),
         ]);
 
         $access = app(BranchAccessService::class);

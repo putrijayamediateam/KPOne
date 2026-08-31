@@ -93,7 +93,7 @@ const mainNavItems = computed<NavItem[]>(() => [
             <div
                 class="px-3 pb-2 text-[11px] font-medium tracking-wide text-sidebar-foreground/40 group-data-[collapsible=icon]:hidden"
             >
-                Phase 1C · Queue & CA Console
+                Phase 2A · Clinical Encounter
             </div>
             <NavUser />
         </SidebarFooter>

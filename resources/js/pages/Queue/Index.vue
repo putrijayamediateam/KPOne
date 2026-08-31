@@ -33,6 +33,7 @@ const isRefreshing = ref(false);
 const isApplyingFilters = ref(false);
 const error = ref('');
 const callingVisit = ref<string | null>(null);
+const openingVisit = ref<string | null>(null);
 const filters = reactive({
     query: '',
     doctor_id: '',
@@ -236,6 +237,32 @@ const callIn = (row: QueueRow) => {
         },
     );
 };
+const openConsultation = (row: QueueRow) => {
+    if (openingVisit.value) {
+        return;
+    }
+
+    openingVisit.value = row.visitNumber;
+    router.post(
+        `/visits/${encodeURIComponent(row.visitNumber)}/encounter`,
+        {
+            expected_branch_id: live.value.branch.id,
+            visit_lock_version: row.visitLockVersion,
+            queue_lock_version: row.queueLockVersion,
+        },
+        {
+            preserveScroll: true,
+            onError: (errors) => {
+                error.value =
+                    Object.values(errors)[0] ??
+                    'The consultation could not be opened.';
+            },
+            onFinish: () => {
+                openingVisit.value = null;
+            },
+        },
+    );
+};
 const handleVisibility = () => {
     if (document.hidden) {
         if (pollTimer) {
@@ -399,7 +426,7 @@ onBeforeUnmount(() => {
                         class="font-mono text-2xl font-bold text-emerald-800"
                         >{{ row.queueNumber }}</span
                     >
-                    <span class="min-w-0">
+                    <span class="min-w-0 flex-1">
                         <span class="block truncate font-semibold">{{
                             row.patientName
                         }}</span>
@@ -408,6 +435,18 @@ onBeforeUnmount(() => {
                             >{{ row.doctorName }}</span
                         >
                     </span>
+                    <Button
+                        v-if="row.canOpenEncounter"
+                        size="sm"
+                        :disabled="openingVisit !== null || !row.doctorEligible"
+                        @click="openConsultation(row)"
+                    >
+                        <LoaderCircle
+                            v-if="openingVisit === row.visitNumber"
+                            class="size-4 animate-spin"
+                        />
+                        Open consultation
+                    </Button>
                 </div>
             </div>
             <p

@@ -12,6 +12,8 @@ Phase 1B introduces branch Visit administration: Visit type, administrative reas
 
 Phase 1C introduces branch Queue operations. Queue and Visit permissions remain separate, resident doctors receive only their own assigned Queue, and technical administrators receive none. Polling repeats the same explicit minimized projection and authorization on every private POST request; it is not a broader data channel.
 
+Phase 2A introduces highly restricted clinical notes, vitals, and diagnoses. Only the snapshotted attending resident doctor receives own Encounter access, and every start/save revalidates active status, resident-doctor role, clinical permission, active branch, and effective primary or temporary assignment. Directors, Queue supervisors, CAs, and technical administrators receive no direct clinical permission. Bounded cross-branch history is available only for the same organisation-level Patient while the doctor owns the current care relationship; there is no general Clinical History search.
+
 ## Authentication controls
 
 - Laravel's stateful web guard and session cookies protect the staff application.
@@ -47,6 +49,8 @@ Visits require explicit `.branch` view/create/update/cancel permissions plus act
 
 Queue access requires explicit `queue.view.own`/`.branch`, `queue.enter.branch`, or `queue.call.own`/`.branch` permissions. Queue ownership is always active-branch-derived. Own scope is forced to the actor's assigned doctor ID server-side. Queue-number probing cannot bind a record, and Patient/Visit permission does not imply Queue access.
 
+Clinical access requires explicit `encounters.view.own`, `encounters.start.own`, `encounters.update.own`, and separately gated `encounters.history.view.organisation`. Queue Call In authority never implies clinical access. Encounter route identity remains the branch-scoped Visit number, and the browser cannot control organisation, branch, Patient, clinician, status, timestamps, child ownership, positions, or clinical record version.
+
 Phase 0B mutations also compare authority on the target, not only the actor's coarse route permission. Current target administrative permissions must be covered by the actor; proposed role capabilities must be covered at an equal or broader explicit scope. Director is a protected governance role, so a non-director technical administrator cannot change a director's roles, branch access, or status. Self role/access/status mutation is rejected.
 
 Runtime identity/access mutation services require an explicit non-null actor and do not treat omission as system authorization. Role synchronization supplies that actor through a scoped, synchronous audit context so Spatie attach/detach events remain correctly attributed even outside an authenticated HTTP session; the context does not add duplicate summary events.
@@ -62,6 +66,8 @@ Audit metadata is explicitly selected by callers and sanitised recursively and c
 Visit audits contain structural state only. They exclude Patient identity and numbers, Visit numbers, doctor identity, Visit/cancellation reasons, Panel member references, raw requests, and exception details. Priority changes use directional events. Global audit projections identify only a neutral “Visit record” and suppress its subject ID, so technical audit access cannot become a Patient/Visit disclosure channel.
 
 Queue audit projections likewise identify only a neutral “Queue record” and suppress the subject ID. `queue.entered`, `queue.called`, and `queue.removed` contain structural transition/version metadata only, never Patient identity, Queue number, reason, doctor identity, or cancellation reason.
+
+Clinical audits identify only a neutral “Clinical record” and suppress the subject ID. `encounter.started` and `encounter.updated` contain state/version and changed-section names only. They never contain clinical-note text, diagnosis text/codes, vital values, Patient/Visit numbers, or clinician identity. Clinical request roots are excluded from validation flash data, clinical pages use private/no-store and encrypted Inertia history, and Queue polling/Patient search never carry clinical content.
 
 `AuditLog` rejects model update and delete operations, and no application route exposes those mutations. `SystemEvent` has a different, explicit lifecycle: its `processed_at` field is intended for a future controlled processing transition, while replacement and deletion are not ordinary application flows. Phase 0A has no system-event producer, processor, or mutation route. A future processor must encapsulate the transition in a domain service and audit it before such functionality is enabled. Where infrastructure permits, the production application database role should additionally be denied `UPDATE` and `DELETE` on `audit_logs`; database grants are intentionally deferred from Phase 0A. Production operations must also define retention, restricted database roles, backups, monitoring, and tamper-evidence appropriate to healthcare operations and Malaysian legal requirements before regulated data is introduced.
 
@@ -80,3 +86,5 @@ Phase 0B supports Google-only pre-provisioning with a null password and an optio
 Before adding regulated data or a new external integration, complete a focused threat model, data classification, retention decision, access matrix review, and recovery test. Security findings must be handled without adding real sensitive data to issues, logs, fixtures, or screenshots.
 
 Phase 1A intentionally does not use application field encryption. Compensating requirements are strict server authorisation, response masking/minimisation, no PII duplication in audit/application logs, encrypted transport, encrypted production database/storage/backups, and restricted database/backup roles. Field encryption must be reassessed before real-patient production rollout.
+
+Phase 2A remains a development milestone. It lacks clinical signing/finalization, addenda, handover, completion, structured allergy/condition master data, legal retention approval, and clinical recovery validation. Real-patient production approval remains not granted.

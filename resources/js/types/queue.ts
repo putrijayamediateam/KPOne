@@ -19,6 +19,7 @@ export type QueueRow = {
     visitLockVersion: number;
     queueLockVersion: number;
     canCall: boolean;
+    canOpenEncounter: boolean;
 };
 
 export type QueueSnapshot = {

@@ -5,6 +5,7 @@ use App\Http\Controllers\AuditLogController;
 use App\Http\Controllers\Auth\GoogleAuthController;
 use App\Http\Controllers\BranchContextController;
 use App\Http\Controllers\BranchController;
+use App\Http\Controllers\ClinicalEncounterController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\PatientController;
 use App\Http\Controllers\PatientIdentifierController;
@@ -89,6 +90,16 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->name('audit-logs.index');
 
     Route::middleware(['sensitive.no-store', 'inertia.encrypt'])->group(function () {
+        Route::post('visits/{visit}/encounter', [ClinicalEncounterController::class, 'store'])
+            ->middleware(['permission:encounters.start.own', 'throttle:20,1'])
+            ->name('encounters.store');
+        Route::get('visits/{visit}/encounter', [ClinicalEncounterController::class, 'show'])
+            ->middleware('permission:encounters.view.own')
+            ->name('encounters.show');
+        Route::patch('visits/{visit}/encounter', [ClinicalEncounterController::class, 'update'])
+            ->middleware(['permission:encounters.update.own', 'throttle:60,1'])
+            ->name('encounters.update');
+
         Route::get('queue', [QueueController::class, 'index'])
             ->middleware('permission:queue.view.own,queue.view.branch')
             ->name('queue.index');

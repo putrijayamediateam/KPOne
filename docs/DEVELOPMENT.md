@@ -42,6 +42,8 @@ Phase 1B likewise adds no Panel, Patient, or Visit seeder. `PanelFactory`, `Pati
 
 Phase 1C adds no Queue seeder. `QueueEntryFactory` is test-only. Queue pages use an initial bounded Inertia projection followed by an authorised private POST snapshot approximately every three seconds while visible. The PostgreSQL Queue regression uses separate processes to prove Queue-entry uniqueness, branch/day counter allocation, Call In and Visit/doctor race serialization.
 
+Phase 2A adds no Encounter, vitals, or diagnosis seeder. Its factories and feature fixtures use synthetic content only. The PostgreSQL Clinical regression uses separate processes to prove one Encounter per Visit, Start/Call/security-state serialization, stale aggregate rejection, diagnosis-list integrity, and rollback. Do not use clinical text copied from any real Patient in local tests, screenshots, logs, or debugging tools.
+
 PostgreSQL-specific regression tests skip explicitly on SQLite. In PostgreSQL CI they exercise transactional rollback and genuine row-lock contention using separately bootstrapped PHP worker processes and database connections. Never point that workflow at a developer or production database: the tests require `APP_ENV=testing` and a database name clearly marked as a test database before they write fixtures.
 
 ## Dummy account
@@ -109,3 +111,4 @@ Run destructive migration commands only against a confirmed local/test database.
 - Do not add later-phase tables or placeholder personal/clinical fields speculatively.
 - Treat Registration as canonical Visit creation. Do not add a parallel Registration table or Queue/clinical/billing columns to `visits`.
 - Treat Queue Entry as the one-to-one operational child of a Consultation Visit. Do not duplicate Patient, doctor, reason, priority, clinical, or billing fields on it.
+- Treat Clinical Encounter as the one-to-one in-progress clinical child of a Serving Consultation Visit. Keep clinical note, vitals, and diagnoses out of Patient, Visit, Queue polling, and audit metadata. Do not add signing, completion, handover, treatment, prescribing, or billing semantics in Phase 2A.

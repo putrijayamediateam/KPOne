@@ -6,6 +6,8 @@ use App\Domain\Access\BranchAccessService;
 use App\Domain\Audit\AccessChangeActorContext;
 use App\Domain\Audit\Listeners\RecordAccessChanges;
 use App\Domain\Audit\Listeners\RecordAuthenticationEvents;
+use App\Domain\Clinical\Models\ClinicalEncounter;
+use App\Domain\Clinical\Policies\ClinicalEncounterPolicy;
 use App\Domain\Identity\Policies\StaffPolicy;
 use App\Domain\Organisation\Models\Branch;
 use App\Domain\Organisation\Policies\BranchPolicy;
@@ -77,6 +79,7 @@ class AppServiceProvider extends ServiceProvider
     protected function configureAuthorization(): void
     {
         Gate::policy(Branch::class, BranchPolicy::class);
+        Gate::policy(ClinicalEncounter::class, ClinicalEncounterPolicy::class);
         Gate::policy(User::class, StaffPolicy::class);
         Gate::policy(Patient::class, PatientPolicy::class);
         Gate::policy(QueueEntry::class, QueueEntryPolicy::class);

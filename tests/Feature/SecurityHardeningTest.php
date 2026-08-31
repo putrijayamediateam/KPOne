@@ -233,9 +233,10 @@ class SecurityHardeningTest extends TestCase
     public function test_expired_branch_assignment_does_not_grant_access(): void
     {
         $user = $this->createStaff('ca');
+        $branchDate = now()->setTimezone($this->cheras->timezone);
         $this->createAssignment($user, $this->cheras, [
-            'valid_from' => now()->subWeek()->toDateString(),
-            'valid_until' => now()->subDay()->toDateString(),
+            'valid_from' => $branchDate->subWeek()->toDateString(),
+            'valid_until' => $branchDate->subDay()->toDateString(),
         ]);
 
         $this->actingAs($user)->get(route('branches.show', $this->cheras))->assertForbidden();
@@ -244,8 +245,9 @@ class SecurityHardeningTest extends TestCase
     public function test_future_branch_assignment_does_not_grant_access(): void
     {
         $user = $this->createStaff('ca');
+        $branchDate = now()->setTimezone($this->cheras->timezone);
         $this->createAssignment($user, $this->cheras, [
-            'valid_from' => now()->addDay()->toDateString(),
+            'valid_from' => $branchDate->addDay()->toDateString(),
         ]);
 
         $this->actingAs($user)->get(route('branches.show', $this->cheras))->assertForbidden();

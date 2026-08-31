@@ -11,6 +11,8 @@ KPOne is one Laravel deployment and one PostgreSQL database. Domain boundaries o
 - `app/Domain/Shared`: reserved for genuinely cross-domain primitives; it should not become a miscellaneous folder
 - `app/Domain/Patient`: organisation-level Patient Master models, policy, number allocation, identity normalisation, directory, and administration
 - `app/Domain/Visit`: branch operational Visits, Registration, doctor eligibility, Visit number allocation, directory, administration, and policy
+- `app/Domain/Queue`: one-to-one branch Queue Entries, branch/day numbering, live projection, and Waiting/Serving transitions
+- `app/Domain/Clinical`: one-to-one Clinical Encounters, vitals observations, diagnoses, own-clinician policy, aggregate save, and minimized clinical projection
 
 HTTP controllers translate requests and Inertia responses. They do not own scope rules. The application remains compatible with normal Laravel routing, service-container, Eloquent, policy, middleware, migration, and seeder conventions. No third-party modules framework is used.
 
@@ -76,7 +78,9 @@ Phase 1B Visit state remains only `registered` or `cancelled`. Consultation/OTC,
 
 Phase 1C adds a one-to-one `QueueEntry` operational child for registered Consultation Visits. Queue Entry owns the branch/day numeric Queue number and `waiting`, `serving`, or `removed` state; Patient, assigned doctor, reason, coverage, and priority continue to resolve through Visit. `QueueEntryService` owns idempotent Send to Waiting and atomic Call In, `QueueDirectoryService` owns branch/own minimized snapshots and carry-over, and `QueueNumberGenerator` allocates under a branch/day counter lock. All combined mutations lock Visit before Queue Entry. Queue polling is a bounded private POST request approximately every three seconds while visible; no broker or persistent connection is introduced.
 
-Phase 1C ends at Serving. Hold/Resume, Clinical Encounter, completion, medication, dispensing, inventory, billing, appointment, and patient-facing state remain absent.
+Phase 2A begins only from a registered Consultation whose Queue Entry is Serving. `ClinicalEncounterService` creates one `in_progress` Encounter per Visit and atomically saves one clinical note, one current vitals observation, and an ordered diagnosis list under one optimistic version. The attending clinician is snapshotted at Start and cannot be silently reassigned. Combined clinical mutations lock actor security state, then Visit, Queue Entry, Encounter, vitals, and diagnosis rows. Visit and Queue state remain unchanged.
+
+Phase 2A stops before signing/finalization, addenda, handover, Treatment Plan, medication, completion, dispensing, inventory, billing, appointment, and patient-facing state.
 
 ## Authentication
 
@@ -112,6 +116,9 @@ Domain tables:
 - `visits`
 - `queue_number_counters`
 - `queue_entries`
+- `clinical_encounters`
+- `encounter_vital_observations`
+- `encounter_diagnoses`
 
 RBAC tables:
 

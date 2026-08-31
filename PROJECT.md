@@ -18,6 +18,8 @@ Phase 1B adds branch-scoped Patient Registration. Registration creates the canon
 
 Phase 1C adds the Consultation Queue as a one-to-one operational child of Visit. It provides branch/day numeric Queue numbers, Waiting, Urgent-first deterministic ordering, own-doctor Queue, Call In to Serving, previous-day carry-over, Queue-aware Visit cancellation through Waiting, and an authorised live CA/doctor console. It ends at Serving; Hold/Resume, Clinical Encounter content, completion, dispensing, and billing remain outside this delivery.
 
+Phase 2A adds the first clinical aggregate after a Consultation reaches Serving: one in-progress Clinical Encounter per Visit, a single current vitals observation, one clinical note, ordered structured diagnoses, own-clinician authorization, bounded care-related history summaries, structural audit, and optimistic concurrency. It does not finalize or complete an Encounter and contains no treatment, prescription, order, dispensing, billing, or patient-facing workflow. Real-patient production approval remains not granted.
+
 The current public website remains a separate system. Its current website administration remains the production administration path during migration. KPOne Phase 0A contains no website integration.
 
 Yezza remains outside this delivery. No replacement, integration, or migration from Yezza is being implemented yet.
@@ -28,7 +30,7 @@ The order below is directional and requires a separately approved scope for each
 
 1. Production deployment, recovery, access review, and staff-governance hardening.
 2. Appointment design and later Queue refinements after separately approved phases.
-3. Clinical encounters, diagnosis, prescribing, completion, and dispensary workflows.
+3. Treatment planning, prescribing, completion, and dispensary workflows after the Phase 2A clinical foundation receives its production safety gates.
 4. Billing, panel/corporate, and inventory operations.
 5. HR and finance operations.
 6. Website management, marketing, and controlled external integrations.

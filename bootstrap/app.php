@@ -65,6 +65,12 @@ return Application::configure(basePath: dirname(__DIR__))
             'patient_number',
             'quick_patient',
             'queue_query',
+            'clinical_note',
+            'vitals',
+            'diagnoses',
+            'diagnosis_text',
+            'diagnosis_code',
+            'code_system',
         ]);
         $exceptions->shouldRenderJsonWhen(
             fn (Request $request) => $request->is('api/*') || $request->expectsJson(),

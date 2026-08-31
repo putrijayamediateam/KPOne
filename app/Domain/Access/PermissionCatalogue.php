@@ -39,6 +39,10 @@ final class PermissionCatalogue
             'queue.enter.branch',
             'queue.call.own',
             'queue.call.branch',
+            'encounters.view.own',
+            'encounters.start.own',
+            'encounters.update.own',
+            'encounters.history.view.organisation',
         ];
     }
 
@@ -88,6 +92,10 @@ final class PermissionCatalogue
                 'visits.view.branch',
                 'queue.view.own',
                 'queue.call.own',
+                'encounters.view.own',
+                'encounters.start.own',
+                'encounters.update.own',
+                'encounters.history.view.organisation',
             ],
             'ca' => [
                 ...$branch,
