@@ -29,6 +29,8 @@ export type VisitRow = {
     coverageLabel: string;
     priority: VisitPriority;
     status: 'registered' | 'cancelled';
+    queueNumber: string | null;
+    queueStatus: 'waiting' | 'serving' | 'removed' | null;
 };
 
 export type VisitDetail = {
@@ -55,5 +57,13 @@ export type VisitDetail = {
     cancelledAt: string | null;
     cancellationReason: string | null;
     lockVersion: number;
-    can: { update: boolean; cancel: boolean };
+    queue: {
+        queueNumber: string;
+        operationalDate: string;
+        status: 'waiting' | 'serving' | 'removed';
+        queuedAt: string;
+        calledAt: string | null;
+        lockVersion: number;
+    } | null;
+    can: { update: boolean; cancel: boolean; sendToWaiting: boolean };
 };

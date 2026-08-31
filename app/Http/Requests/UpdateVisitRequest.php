@@ -17,6 +17,7 @@ class UpdateVisitRequest extends FormRequest
         return [
             'expected_branch_id' => ['required', 'integer'],
             'lock_version' => ['required', 'integer', 'min:1'],
+            'queue_lock_version' => ['nullable', 'integer', 'min:1'],
             'visit_type' => ['required', 'in:consultation,otc'],
             'assigned_doctor_user_id' => ['nullable', 'integer', 'required_if:visit_type,consultation'],
             'visit_reason' => ['nullable', 'string', 'max:500', 'required_if:visit_type,consultation'],

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Head, Link, useForm, usePage } from '@inertiajs/vue3';
-import { ArrowLeft, Ban, Pencil } from '@lucide/vue';
+import { ArrowLeft, Ban, ListOrdered, Pencil } from '@lucide/vue';
 import { computed, ref } from 'vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
@@ -21,8 +21,20 @@ const cancelling = ref(false);
 const cancelForm = useForm({
     expected_branch_id: page.props.branchContext?.active?.id ?? 0,
     lock_version: props.visit.lockVersion,
+    queue_lock_version: props.visit.queue?.lockVersion ?? null,
     cancellation_reason: '',
 });
+const queueForm = useForm({
+    expected_branch_id: page.props.branchContext?.active?.id ?? 0,
+    visit_lock_version: props.visit.lockVersion,
+});
+const sendToWaiting = () => {
+    queueForm.post(`/visits/${props.visit.visitNumber}/queue`);
+};
+const queueError = (key: string) =>
+    (queueForm.errors as Record<string, string>)[key];
+const cancelError = (key: string) =>
+    (cancelForm.errors as Record<string, string>)[key];
 const submitCancel = () => {
     cancelForm.patch(`/visits/${props.visit.visitNumber}/cancel`, {
         preserveState: true,
@@ -76,6 +88,14 @@ const submitCancel = () => {
                         >Register another Patient</Link
                     ></Button
                 >
+                <Button
+                    v-if="visit.can.sendToWaiting"
+                    :disabled="queueForm.processing"
+                    @click="sendToWaiting"
+                >
+                    <ListOrdered class="size-4" />
+                    {{ queueForm.processing ? 'Sending…' : 'Send to Waiting' }}
+                </Button>
             </div>
         </div>
         <section class="grid gap-4 md:grid-cols-3">
@@ -124,6 +144,38 @@ const submitCancel = () => {
                 </dl>
             </div>
         </section>
+        <section
+            v-if="visit.queue"
+            class="flex items-center justify-between rounded-lg border border-emerald-200 bg-emerald-50/40 p-4"
+        >
+            <div class="flex items-center gap-3">
+                <ListOrdered class="size-5 text-emerald-800" />
+                <div>
+                    <div
+                        class="text-xs font-medium tracking-wide text-muted-foreground uppercase"
+                    >
+                        Consultation Queue
+                    </div>
+                    <div class="font-mono text-2xl font-bold">
+                        {{ visit.queue.queueNumber }}
+                    </div>
+                    <div class="text-xs text-muted-foreground">
+                        {{ visit.queue.operationalDate }} ·
+                        <span class="capitalize">{{ visit.queue.status }}</span>
+                    </div>
+                </div>
+            </div>
+            <Button variant="outline" as-child
+                ><Link href="/queue">Open Queue</Link></Button
+            >
+        </section>
+        <InputError
+            :message="
+                queueError('visit_lock_version') ||
+                queueError('expected_branch_id') ||
+                queueError('queue')
+            "
+        />
         <section class="rounded-lg border bg-card p-4">
             <h2 class="font-semibold">Administrative Visit reason</h2>
             <p class="mt-2 text-sm whitespace-pre-wrap">
@@ -190,9 +242,11 @@ const submitCancel = () => {
                     placeholder="Cancellation reason"
                 /><InputError
                     :message="
-                        cancelForm.errors.cancellation_reason ||
-                        cancelForm.errors.expected_branch_id ||
-                        cancelForm.errors.lock_version
+                        cancelError('cancellation_reason') ||
+                        cancelError('expected_branch_id') ||
+                        cancelError('lock_version') ||
+                        cancelError('queue_lock_version') ||
+                        cancelError('queue')
                     "
                 />
                 <div class="flex justify-end">

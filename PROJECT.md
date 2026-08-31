@@ -16,6 +16,8 @@ Phase 1A adds the organisation-level Patient Master foundation: stable KPOne pat
 
 Phase 1B adds branch-scoped Patient Registration. Registration creates the canonical Visit that later Queue, clinical, dispensing, and billing domains must extend. It provides Consultation/OTC classification, eligible doctor assignment, administrative reason, priority, provisional Self-pay/Panel intent, idempotency, repeat-attendance review, registered-only editing/cancellation, and a privacy-minimised Registration Console. Queue Entry and every clinical, medication, financial, appointment, messaging, portal, and external-integration workflow remain outside this delivery.
 
+Phase 1C adds the Consultation Queue as a one-to-one operational child of Visit. It provides branch/day numeric Queue numbers, Waiting, Urgent-first deterministic ordering, own-doctor Queue, Call In to Serving, previous-day carry-over, Queue-aware Visit cancellation through Waiting, and an authorised live CA/doctor console. It ends at Serving; Hold/Resume, Clinical Encounter content, completion, dispensing, and billing remain outside this delivery.
+
 The current public website remains a separate system. Its current website administration remains the production administration path during migration. KPOne Phase 0A contains no website integration.
 
 Yezza remains outside this delivery. No replacement, integration, or migration from Yezza is being implemented yet.
@@ -25,8 +27,8 @@ Yezza remains outside this delivery. No replacement, integration, or migration f
 The order below is directional and requires a separately approved scope for each phase:
 
 1. Production deployment, recovery, access review, and staff-governance hardening.
-2. Queue operations and appointments after separately approved phases.
-3. Clinical encounters, diagnosis, prescribing, and dispensary workflows.
+2. Appointment design and later Queue refinements after separately approved phases.
+3. Clinical encounters, diagnosis, prescribing, completion, and dispensary workflows.
 4. Billing, panel/corporate, and inventory operations.
 5. HR and finance operations.
 6. Website management, marketing, and controlled external integrations.

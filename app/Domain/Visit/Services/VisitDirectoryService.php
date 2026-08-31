@@ -6,6 +6,7 @@ use App\Domain\Access\BranchAccessService;
 use App\Domain\Organisation\Models\Branch;
 use App\Domain\Patient\Models\Patient;
 use App\Domain\Patient\Services\PatientDirectoryService;
+use App\Domain\Queue\Models\QueueEntry;
 use App\Domain\Visit\Models\Panel;
 use App\Domain\Visit\Models\Visit;
 use App\Models\User;
@@ -48,7 +49,11 @@ class VisitDirectoryService
             ->where('organisation_id', $actor->organisation_id)
             ->where('branch_id', $branch->id)
             ->whereBetween('registered_at', [$from, $to])
-            ->with(['patient:id,patient_number,full_name', 'assignedDoctor:id,name']);
+            ->with([
+                'patient:id,patient_number,full_name',
+                'assignedDoctor:id,name',
+                'queueEntry:id,organisation_id,branch_id,visit_id,operational_date,queue_number,status,lock_version',
+            ]);
 
         $patientQuery = trim((string) ($criteria['patient_query'] ?? ''));
         if ($patientQuery !== '') {
@@ -72,7 +77,7 @@ class VisitDirectoryService
         $paginator = $query->latest('registered_at')->paginate(25, page: (int) ($criteria['page'] ?? 1));
 
         return [
-            'data' => $paginator->getCollection()->map(fn (Visit $visit) => $this->row($visit, $branch))->values(),
+            'data' => $paginator->getCollection()->map(fn (Visit $visit) => $this->row($actor, $visit, $branch))->values(),
             'total' => $paginator->total(),
             'currentPage' => $paginator->currentPage(),
             'lastPage' => $paginator->lastPage(),
@@ -83,7 +88,13 @@ class VisitDirectoryService
     public function detail(User $actor, Visit $visit): array
     {
         Gate::forUser($actor)->authorize('view', $visit);
-        $visit->load(['branch:id,code,name,timezone', 'patient:id,patient_number,full_name,date_of_birth,sex', 'assignedDoctor:id,name']);
+        $visit->load([
+            'branch:id,code,name,timezone',
+            'patient:id,patient_number,full_name,date_of_birth,sex',
+            'assignedDoctor:id,name',
+            'queueEntry:id,organisation_id,branch_id,visit_id,operational_date,queue_number,status,queued_at,called_at,lock_version',
+        ]);
+        $visibleQueueEntry = $this->visibleQueueEntry($actor, $visit);
 
         return [
             'visitNumber' => $visit->visit_number,
@@ -109,9 +120,21 @@ class VisitDirectoryService
             'cancelledAt' => $visit->cancelled_at?->setTimezone($visit->branch->timezone)->toIso8601String(),
             'cancellationReason' => $visit->cancellation_reason,
             'lockVersion' => $visit->lock_version,
+            'queue' => $visibleQueueEntry ? [
+                'queueNumber' => sprintf('%03d', $visibleQueueEntry->queue_number),
+                'operationalDate' => $visibleQueueEntry->operational_date->toDateString(),
+                'status' => $visibleQueueEntry->status,
+                'queuedAt' => $visibleQueueEntry->queued_at->toIso8601String(),
+                'calledAt' => $visibleQueueEntry->called_at?->toIso8601String(),
+                'lockVersion' => $visibleQueueEntry->lock_version,
+            ] : null,
             'can' => [
                 'update' => $actor->can('update', $visit),
                 'cancel' => $actor->can('cancel', $visit),
+                'sendToWaiting' => $visit->status === Visit::STATUS_REGISTERED
+                    && $visit->visit_type === 'consultation'
+                    && $visit->queueEntry === null
+                    && $actor->can('create', QueueEntry::class),
             ],
         ];
     }
@@ -223,8 +246,10 @@ class VisitDirectoryService
     }
 
     /** @return array<string, mixed> */
-    private function row(Visit $visit, Branch $branch): array
+    private function row(User $actor, Visit $visit, Branch $branch): array
     {
+        $visibleQueueEntry = $this->visibleQueueEntry($actor, $visit);
+
         return [
             'visitNumber' => $visit->visit_number,
             'patientNumber' => $visit->patient->patient_number,
@@ -237,7 +262,21 @@ class VisitDirectoryService
                 ? $visit->coverage_panel_name_snapshot : 'Self-pay',
             'priority' => $visit->priority,
             'status' => $visit->status,
+            'queueNumber' => $visibleQueueEntry ? sprintf('%03d', $visibleQueueEntry->queue_number) : null,
+            'queueStatus' => $visibleQueueEntry?->status,
         ];
+    }
+
+    private function visibleQueueEntry(User $actor, Visit $visit): ?QueueEntry
+    {
+        $entry = $visit->queueEntry;
+        if (! $entry) {
+            return null;
+        }
+
+        $entry->setRelation('visit', $visit);
+
+        return Gate::forUser($actor)->allows('view', $entry) ? $entry : null;
     }
 
     private function escapeLike(string $value): string

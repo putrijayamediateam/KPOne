@@ -1,6 +1,7 @@
 export * from './auth';
 export * from './navigation';
 export * from './patient';
+export * from './queue';
 export * from './staff';
 export * from './ui';
 export * from './visit';

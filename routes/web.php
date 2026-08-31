@@ -9,6 +9,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\PatientController;
 use App\Http\Controllers\PatientIdentifierController;
 use App\Http\Controllers\PatientSearchController;
+use App\Http\Controllers\QueueController;
 use App\Http\Controllers\RegistrationController;
 use App\Http\Controllers\StaffBranchAssignmentController;
 use App\Http\Controllers\StaffController;
@@ -88,6 +89,19 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->name('audit-logs.index');
 
     Route::middleware(['sensitive.no-store', 'inertia.encrypt'])->group(function () {
+        Route::get('queue', [QueueController::class, 'index'])
+            ->middleware('permission:queue.view.own,queue.view.branch')
+            ->name('queue.index');
+        Route::post('queue/search', [QueueController::class, 'search'])
+            ->middleware(['permission:queue.view.own,queue.view.branch', 'throttle:120,1'])
+            ->name('queue.search');
+        Route::post('visits/{visit}/queue', [QueueController::class, 'store'])
+            ->middleware(['permission:queue.enter.branch', 'throttle:30,1'])
+            ->name('queue.store');
+        Route::patch('visits/{visit}/queue/call', [QueueController::class, 'call'])
+            ->middleware(['permission:queue.call.own,queue.call.branch', 'throttle:30,1'])
+            ->name('queue.call');
+
         Route::get('registration', [RegistrationController::class, 'index'])
             ->middleware('permission:visits.view.branch')
             ->name('registration.index');

@@ -40,6 +40,8 @@ Phase 1A adds no patient development seeder. Local and automated Patient Master 
 
 Phase 1B likewise adds no Panel, Patient, or Visit seeder. `PanelFactory`, `PatientFactory`, and `VisitFactory` are test-only synthetic fixtures. The separate-process PostgreSQL Visit regression covers idempotency, Visit-counter allocation, repeat-attendance serialization, cross-branch attendance, and update/cancel contention. SQLite remains the routine workflow and explicitly skips PostgreSQL-only process tests.
 
+Phase 1C adds no Queue seeder. `QueueEntryFactory` is test-only. Queue pages use an initial bounded Inertia projection followed by an authorised private POST snapshot approximately every three seconds while visible. The PostgreSQL Queue regression uses separate processes to prove Queue-entry uniqueness, branch/day counter allocation, Call In and Visit/doctor race serialization.
+
 PostgreSQL-specific regression tests skip explicitly on SQLite. In PostgreSQL CI they exercise transactional rollback and genuine row-lock contention using separately bootstrapped PHP worker processes and database connections. Never point that workflow at a developer or production database: the tests require `APP_ENV=testing` and a database name clearly marked as a test database before they write fixtures.
 
 ## Dummy account
@@ -106,3 +108,4 @@ Run destructive migration commands only against a confirmed local/test database.
 - Use `.test` email domains and obviously fictional names.
 - Do not add later-phase tables or placeholder personal/clinical fields speculatively.
 - Treat Registration as canonical Visit creation. Do not add a parallel Registration table or Queue/clinical/billing columns to `visits`.
+- Treat Queue Entry as the one-to-one operational child of a Consultation Visit. Do not duplicate Patient, doctor, reason, priority, clinical, or billing fields on it.

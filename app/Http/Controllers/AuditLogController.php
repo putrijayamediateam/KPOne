@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Domain\Audit\Models\AuditLog;
 use App\Domain\Patient\Models\Patient;
+use App\Domain\Queue\Models\QueueEntry;
 use App\Domain\Visit\Models\Visit;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -23,7 +24,8 @@ class AuditLogController extends Controller
             'data' => $paginator->getCollection()->map(function (AuditLog $log): array {
                 $isPatient = $log->subject_type === (new Patient)->getMorphClass();
                 $isVisit = $log->subject_type === (new Visit)->getMorphClass();
-                $isProtectedOperationalRecord = $isPatient || $isVisit;
+                $isQueue = $log->subject_type === (new QueueEntry)->getMorphClass();
+                $isProtectedOperationalRecord = $isPatient || $isVisit || $isQueue;
 
                 return [
                     'id' => $log->id,
@@ -32,7 +34,9 @@ class AuditLogController extends Controller
                     'branch' => $log->branch?->code,
                     'subjectType' => $isPatient
                         ? 'Patient record'
-                        : ($isVisit ? 'Visit record' : ($log->subject_type ? class_basename($log->subject_type) : null)),
+                        : ($isVisit
+                            ? 'Visit record'
+                            : ($isQueue ? 'Queue record' : ($log->subject_type ? class_basename($log->subject_type) : null))),
                     'subjectId' => $isProtectedOperationalRecord ? null : $log->subject_id,
                     'occurredAt' => $log->occurred_at->toIso8601String(),
                     'roleNames' => $log->roleNames(),

@@ -10,6 +10,8 @@ Phase 1A introduces restricted patient identity and contact data in the schema, 
 
 Phase 1B introduces branch Visit administration: Visit type, administrative reason, doctor assignment, priority, provisional coverage/member reference, registration/cancellation evidence, and branch provenance. Visit and Patient permissions remain separate. The Registration Console minimizes output, member references are never listed, and sensitive Visit text is never copied into audit metadata.
 
+Phase 1C introduces branch Queue operations. Queue and Visit permissions remain separate, resident doctors receive only their own assigned Queue, and technical administrators receive none. Polling repeats the same explicit minimized projection and authorization on every private POST request; it is not a broader data channel.
+
 ## Authentication controls
 
 - Laravel's stateful web guard and session cookies protect the staff application.
@@ -43,6 +45,8 @@ Patient Master search is organisation-wide only for explicitly authorised operat
 
 Visits require explicit `.branch` view/create/update/cancel permissions plus active branch context and effective branch authority. The server derives Visit ownership; `expected_branch_id` detects stale forms but cannot select another branch. Resident doctors are read-only. Technical and non-operational roles receive no Visit permission. Cancelled Visits are immutable and no Visit delete/reopen route exists.
 
+Queue access requires explicit `queue.view.own`/`.branch`, `queue.enter.branch`, or `queue.call.own`/`.branch` permissions. Queue ownership is always active-branch-derived. Own scope is forced to the actor's assigned doctor ID server-side. Queue-number probing cannot bind a record, and Patient/Visit permission does not imply Queue access.
+
 Phase 0B mutations also compare authority on the target, not only the actor's coarse route permission. Current target administrative permissions must be covered by the actor; proposed role capabilities must be covered at an equal or broader explicit scope. Director is a protected governance role, so a non-director technical administrator cannot change a director's roles, branch access, or status. Self role/access/status mutation is rejected.
 
 Runtime identity/access mutation services require an explicit non-null actor and do not treat omission as system authorization. Role synchronization supplies that actor through a scoped, synchronous audit context so Spatie attach/detach events remain correctly attributed even outside an authenticated HTTP session; the context does not add duplicate summary events.
@@ -56,6 +60,8 @@ The audit foundation records successful/failed login, logout, inactive-session r
 Audit metadata is explicitly selected by callers and sanitised recursively and case-insensitively for credential-like key variants. Sensitive keys remain visible with a `[REDACTED]` value. Never pass request headers, OAuth tokens, credentials, or request bodies wholesale. Audit access is itself organisation-scoped and permission-protected.
 
 Visit audits contain structural state only. They exclude Patient identity and numbers, Visit numbers, doctor identity, Visit/cancellation reasons, Panel member references, raw requests, and exception details. Priority changes use directional events. Global audit projections identify only a neutral “Visit record” and suppress its subject ID, so technical audit access cannot become a Patient/Visit disclosure channel.
+
+Queue audit projections likewise identify only a neutral “Queue record” and suppress the subject ID. `queue.entered`, `queue.called`, and `queue.removed` contain structural transition/version metadata only, never Patient identity, Queue number, reason, doctor identity, or cancellation reason.
 
 `AuditLog` rejects model update and delete operations, and no application route exposes those mutations. `SystemEvent` has a different, explicit lifecycle: its `processed_at` field is intended for a future controlled processing transition, while replacement and deletion are not ordinary application flows. Phase 0A has no system-event producer, processor, or mutation route. A future processor must encapsulate the transition in a domain service and audit it before such functionality is enabled. Where infrastructure permits, the production application database role should additionally be denied `UPDATE` and `DELETE` on `audit_logs`; database grants are intentionally deferred from Phase 0A. Production operations must also define retention, restricted database roles, backups, monitoring, and tamper-evidence appropriate to healthcare operations and Malaysian legal requirements before regulated data is introduced.
 

@@ -235,7 +235,7 @@ class PostgresBranchAssignmentRegressionTest extends TestCase
         foreach ($this->workers as $index => $worker) {
             $this->assertSame(0, $worker->getExitCode(), $this->workerDiagnostic($worker));
             $this->assertMatchesRegularExpression(
-                '/^DONE '.preg_quote((string) $workerBackendPids[$index], '/').'$/m',
+                '/^DONE '.preg_quote((string) $workerBackendPids[$index], '/').'\r?$/m',
                 $worker->getOutput(),
             );
         }
@@ -358,7 +358,7 @@ class PostgresBranchAssignmentRegressionTest extends TestCase
             foreach ($this->workers as $index => $worker) {
                 $this->failIfWorkerTerminated($worker, 'before reporting READY');
 
-                if (preg_match('/^READY ([1-9][0-9]*)$/m', $worker->getOutput(), $matches) === 1) {
+                if (preg_match('/^READY ([1-9][0-9]*)\r?$/m', $worker->getOutput(), $matches) === 1) {
                     $backendPids[$index] = (int) $matches[1];
                 }
             }
@@ -479,7 +479,7 @@ class PostgresBranchAssignmentRegressionTest extends TestCase
 
     private function workerDiagnostic(Process $worker): string
     {
-        preg_match_all('/^(?:READY|DONE) [1-9][0-9]*$/m', $worker->getOutput(), $protocolLines);
+        preg_match_all('/^(?:READY|DONE) [1-9][0-9]*\r?$/m', $worker->getOutput(), $protocolLines);
         $errorOutput = trim($worker->getErrorOutput());
         $safeError = $errorOutput === ''
             ? 'none'

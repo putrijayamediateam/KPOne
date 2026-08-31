@@ -8,6 +8,7 @@ use App\Domain\Identity\Models\StaffBranchAssignment;
 use App\Domain\Identity\Models\StaffProfile;
 use App\Domain\Organisation\Models\Branch;
 use App\Domain\Patient\Models\Patient;
+use App\Domain\Queue\Models\QueueEntry;
 use App\Domain\Visit\Models\Panel;
 use App\Domain\Visit\Models\Visit;
 use App\Models\User;
@@ -38,6 +39,11 @@ class VisitAdministrationService
             Patient::query()->whereKey($visit->patient_id)->lockForUpdate()->firstOrFail();
             $locked = Visit::query()->whereKey($visit->id)->lockForUpdate()->firstOrFail();
             $this->assertMutable($locked, (int) $validated['lock_version']);
+            $queueEntry = QueueEntry::query()
+                ->where('visit_id', $locked->id)
+                ->lockForUpdate()
+                ->first();
+            $this->assertQueueAllowsUpdate($queueEntry, $validated['queue_lock_version'] ?? null, $validated['visit_type']);
 
             [, , $effectiveDate] = $this->branchDay($branch);
             $doctor = null;
@@ -77,6 +83,7 @@ class VisitAdministrationService
         $validated = Validator::make($attributes, [
             'expected_branch_id' => ['required', 'integer'],
             'lock_version' => ['required', 'integer', 'min:1'],
+            'queue_lock_version' => ['nullable', 'integer', 'min:1'],
             'cancellation_reason' => ['required', 'string', 'max:500'],
         ])->validate();
         $reason = trim($validated['cancellation_reason']);
@@ -89,6 +96,11 @@ class VisitAdministrationService
             Patient::query()->whereKey($visit->patient_id)->lockForUpdate()->firstOrFail();
             $locked = Visit::query()->whereKey($visit->id)->lockForUpdate()->firstOrFail();
             $this->assertMutable($locked, (int) $validated['lock_version']);
+            $queueEntry = QueueEntry::query()
+                ->where('visit_id', $locked->id)
+                ->lockForUpdate()
+                ->first();
+            $this->assertQueueAllowsCancellation($queueEntry, $validated['queue_lock_version'] ?? null);
             $locked->forceFill([
                 'status' => Visit::STATUS_CANCELLED,
                 'cancelled_at' => now()->utc(),
@@ -97,6 +109,19 @@ class VisitAdministrationService
                 'updated_by_user_id' => $actor->id,
                 'lock_version' => $locked->lock_version + 1,
             ])->save();
+            if ($queueEntry) {
+                $queueEntry->forceFill([
+                    'status' => QueueEntry::STATUS_REMOVED,
+                    'removed_at' => $locked->cancelled_at,
+                    'updated_by_user_id' => $actor->id,
+                    'lock_version' => $queueEntry->lock_version + 1,
+                ])->save();
+                $this->audit->record('queue.removed', $queueEntry, [
+                    'from_state' => QueueEntry::STATUS_WAITING,
+                    'to_state' => QueueEntry::STATUS_REMOVED,
+                    'record_version' => $queueEntry->lock_version,
+                ], $actor, $branch);
+            }
             $this->audit->record('visit.cancelled', $locked, [
                 'record_version' => $locked->lock_version,
             ], $actor, $branch);
@@ -114,6 +139,7 @@ class VisitAdministrationService
         $validated = Validator::make($attributes, [
             'expected_branch_id' => ['required', 'integer'],
             'lock_version' => ['required', 'integer', 'min:1'],
+            'queue_lock_version' => ['nullable', 'integer', 'min:1'],
             'visit_type' => ['required', Rule::in(['consultation', 'otc'])],
             'assigned_doctor_user_id' => ['nullable', 'integer', 'required_if:visit_type,consultation'],
             'visit_reason' => ['nullable', 'string', 'max:500', 'required_if:visit_type,consultation'],
@@ -177,6 +203,47 @@ class VisitAdministrationService
         if ($visit->lock_version !== $expectedVersion) {
             throw ValidationException::withMessages([
                 'lock_version' => 'This Visit changed after it was opened. Reload and review the latest details.',
+            ]);
+        }
+    }
+
+    private function assertQueueAllowsUpdate(
+        ?QueueEntry $entry,
+        mixed $expectedVersion,
+        string $visitType,
+    ): void {
+        $this->assertQueueVersion($entry, $expectedVersion);
+        if (! $entry) {
+            return;
+        }
+        if ($entry->status !== QueueEntry::STATUS_WAITING) {
+            throw ValidationException::withMessages([
+                'queue' => 'A Visit cannot be edited after the Patient has been Called In.',
+            ]);
+        }
+        if ($visitType !== 'consultation') {
+            throw ValidationException::withMessages([
+                'visit_type' => 'A Visit already in the Consultation Queue cannot be changed to OTC.',
+            ]);
+        }
+    }
+
+    private function assertQueueAllowsCancellation(?QueueEntry $entry, mixed $expectedVersion): void
+    {
+        $this->assertQueueVersion($entry, $expectedVersion);
+        if ($entry && $entry->status !== QueueEntry::STATUS_WAITING) {
+            throw ValidationException::withMessages([
+                'queue' => 'A Visit cannot be cancelled after the Patient has been Called In.',
+            ]);
+        }
+    }
+
+    private function assertQueueVersion(?QueueEntry $entry, mixed $expectedVersion): void
+    {
+        if (($entry === null && $expectedVersion !== null)
+            || ($entry !== null && (int) $expectedVersion !== $entry->lock_version)) {
+            throw ValidationException::withMessages([
+                'queue_lock_version' => 'This Queue entry changed after the Visit was opened. Reload and review the latest state.',
             ]);
         }
     }

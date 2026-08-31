@@ -72,7 +72,11 @@ Phase 1B Registration creates a canonical branch-owned `Visit`; it does not crea
 
 `VisitRegistrationService` owns idempotency, stale branch-context checks, Patient locking, repeat-attendance review, doctor and Panel revalidation, number allocation, creation, and structural audit. Quick Patient creation calls the unchanged Phase 1A administration service inside the same outer transaction. `VisitAdministrationService` owns optimistic registered-only edit and final cancellation. `VisitDirectoryService` enforces active-branch and branch-timezone projections. `VisitDoctorEligibilityService` accepts active resident doctors with any currently effective assignment to the Visit branch, including temporary coverage.
 
-Phase 1B Visit state is only `registered` or `cancelled`. Consultation/OTC, priority, administrative reason, and provisional Self-pay/Panel intent are registration attributes. No Queue, clinical, medication, dispensing, inventory, billing, appointment, or patient-facing state is represented.
+Phase 1B Visit state remains only `registered` or `cancelled`. Consultation/OTC, priority, administrative reason, and provisional Self-pay/Panel intent are Visit attributes.
+
+Phase 1C adds a one-to-one `QueueEntry` operational child for registered Consultation Visits. Queue Entry owns the branch/day numeric Queue number and `waiting`, `serving`, or `removed` state; Patient, assigned doctor, reason, coverage, and priority continue to resolve through Visit. `QueueEntryService` owns idempotent Send to Waiting and atomic Call In, `QueueDirectoryService` owns branch/own minimized snapshots and carry-over, and `QueueNumberGenerator` allocates under a branch/day counter lock. All combined mutations lock Visit before Queue Entry. Queue polling is a bounded private POST request approximately every three seconds while visible; no broker or persistent connection is introduced.
+
+Phase 1C ends at Serving. Hold/Resume, Clinical Encounter, completion, medication, dispensing, inventory, billing, appointment, and patient-facing state remain absent.
 
 ## Authentication
 
@@ -106,6 +110,8 @@ Domain tables:
 - `panels`
 - `visit_number_counters`
 - `visits`
+- `queue_number_counters`
+- `queue_entries`
 
 RBAC tables:
 

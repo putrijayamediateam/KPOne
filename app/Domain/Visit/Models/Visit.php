@@ -5,12 +5,14 @@ namespace App\Domain\Visit\Models;
 use App\Domain\Organisation\Models\Branch;
 use App\Domain\Organisation\Models\Organisation;
 use App\Domain\Patient\Models\Patient;
+use App\Domain\Queue\Models\QueueEntry;
 use App\Models\User;
 use Database\Factories\VisitFactory;
 use Illuminate\Database\Eloquent\Attributes\Guarded;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Carbon;
 
 /**
@@ -41,6 +43,7 @@ use Illuminate\Support\Carbon;
  * @property-read Patient $patient
  * @property-read User|null $assignedDoctor
  * @property-read Panel|null $panel
+ * @property-read QueueEntry|null $queueEntry
  */
 #[Guarded(['*'])]
 class Visit extends Model
@@ -101,6 +104,12 @@ class Visit extends Model
     public function panel(): BelongsTo
     {
         return $this->belongsTo(Panel::class);
+    }
+
+    /** @return HasOne<QueueEntry, $this> */
+    public function queueEntry(): HasOne
+    {
+        return $this->hasOne(QueueEntry::class);
     }
 
     /** @return BelongsTo<User, $this> */

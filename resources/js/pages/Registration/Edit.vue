@@ -13,6 +13,7 @@ const page = usePage<{ branchContext: BranchContext }>();
 const form = useForm({
     expected_branch_id: page.props.branchContext?.active?.id ?? 0,
     lock_version: props.visit.lockVersion,
+    queue_lock_version: props.visit.queue?.lockVersion ?? null,
     visit_type: props.visit.visitType,
     assigned_doctor_user_id: props.visit.doctor?.id ?? '',
     visit_reason: props.visit.visitReason ?? '',
@@ -132,7 +133,10 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
             </section>
             <InputError
                 :message="
-                    errorFor('expected_branch_id') || errorFor('lock_version')
+                    errorFor('expected_branch_id') ||
+                    errorFor('lock_version') ||
+                    errorFor('queue_lock_version') ||
+                    errorFor('queue')
                 "
             />
             <div class="flex justify-end">

@@ -17,6 +17,7 @@ class CancelVisitRequest extends FormRequest
         return [
             'expected_branch_id' => ['required', 'integer'],
             'lock_version' => ['required', 'integer', 'min:1'],
+            'queue_lock_version' => ['nullable', 'integer', 'min:1'],
             'cancellation_reason' => ['required', 'string', 'max:500'],
         ];
     }

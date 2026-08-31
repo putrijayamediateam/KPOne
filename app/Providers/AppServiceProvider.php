@@ -11,6 +11,8 @@ use App\Domain\Organisation\Models\Branch;
 use App\Domain\Organisation\Policies\BranchPolicy;
 use App\Domain\Patient\Models\Patient;
 use App\Domain\Patient\Policies\PatientPolicy;
+use App\Domain\Queue\Models\QueueEntry;
+use App\Domain\Queue\Policies\QueueEntryPolicy;
 use App\Domain\Visit\Models\Visit;
 use App\Domain\Visit\Policies\VisitPolicy;
 use App\Models\User;
@@ -77,6 +79,7 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(Branch::class, BranchPolicy::class);
         Gate::policy(User::class, StaffPolicy::class);
         Gate::policy(Patient::class, PatientPolicy::class);
+        Gate::policy(QueueEntry::class, QueueEntryPolicy::class);
         Gate::policy(Visit::class, VisitPolicy::class);
     }
 

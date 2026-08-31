@@ -34,6 +34,11 @@ final class PermissionCatalogue
             'visits.create.branch',
             'visits.update.branch',
             'visits.cancel.branch',
+            'queue.view.own',
+            'queue.view.branch',
+            'queue.enter.branch',
+            'queue.call.own',
+            'queue.call.branch',
         ];
     }
 
@@ -72,8 +77,18 @@ final class PermissionCatalogue
                 'visits.create.branch',
                 'visits.update.branch',
                 'visits.cancel.branch',
+                'queue.view.branch',
+                'queue.enter.branch',
+                'queue.call.branch',
             ],
-            'resident_doctor' => [...$branch, 'patients.search.organisation', 'patients.view.organisation', 'visits.view.branch'],
+            'resident_doctor' => [
+                ...$branch,
+                'patients.search.organisation',
+                'patients.view.organisation',
+                'visits.view.branch',
+                'queue.view.own',
+                'queue.call.own',
+            ],
             'ca' => [
                 ...$branch,
                 'patients.search.organisation',
@@ -84,6 +99,8 @@ final class PermissionCatalogue
                 'visits.create.branch',
                 'visits.update.branch',
                 'visits.cancel.branch',
+                'queue.view.branch',
+                'queue.enter.branch',
             ],
             'ca_supervisor' => [
                 ...$branch,
@@ -96,6 +113,9 @@ final class PermissionCatalogue
                 'visits.create.branch',
                 'visits.update.branch',
                 'visits.cancel.branch',
+                'queue.view.branch',
+                'queue.enter.branch',
+                'queue.call.branch',
             ],
             'panel_officer' => $organisation,
             'finance_officer' => $organisation,

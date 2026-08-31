@@ -327,6 +327,12 @@ const visitHref = (number: string) => '/visits/' + encodeURIComponent(number);
                                         class="text-xs text-muted-foreground capitalize"
                                         >{{ visit.visitType }}</span
                                     >
+                                    <span
+                                        v-if="visit.queueStatus"
+                                        class="rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-800 capitalize"
+                                        >Queue {{ visit.queueNumber }} ·
+                                        {{ visit.queueStatus }}</span
+                                    >
                                 </div>
                                 <div
                                     class="mt-1 truncate text-xs text-muted-foreground"

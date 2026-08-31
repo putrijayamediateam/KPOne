@@ -3,6 +3,7 @@
 namespace App\Domain\Visit\Policies;
 
 use App\Domain\Access\BranchAccessService;
+use App\Domain\Queue\Models\QueueEntry;
 use App\Domain\Visit\Models\Visit;
 use App\Models\User;
 
@@ -33,6 +34,7 @@ class VisitPolicy
     public function update(User $actor, Visit $visit): bool
     {
         return $visit->status === Visit::STATUS_REGISTERED
+            && $this->queueAllowsMutation($visit)
             && $actor->organisation_id === $visit->organisation_id
             && $actor->can('visits.update.branch')
             && $this->isActiveVisitBranch($actor, $visit);
@@ -41,6 +43,7 @@ class VisitPolicy
     public function cancel(User $actor, Visit $visit): bool
     {
         return $visit->status === Visit::STATUS_REGISTERED
+            && $this->queueAllowsMutation($visit)
             && $actor->organisation_id === $visit->organisation_id
             && $actor->can('visits.cancel.branch')
             && $this->isActiveVisitBranch($actor, $visit);
@@ -51,5 +54,14 @@ class VisitPolicy
         $active = $this->branches->activeBranch($actor);
 
         return $active !== null && $active->id === $visit->branch_id && $this->branches->canSelect($actor, $active);
+    }
+
+    private function queueAllowsMutation(Visit $visit): bool
+    {
+        $status = $visit->relationLoaded('queueEntry')
+            ? $visit->queueEntry?->status
+            : $visit->queueEntry()->value('status');
+
+        return $status === null || $status === QueueEntry::STATUS_WAITING;
     }
 }
