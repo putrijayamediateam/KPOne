@@ -554,17 +554,44 @@ class PostgresVisitRegistrationRegressionTest extends TestCase
         }
 
         $deadline = microtime(true) + 10;
+        $lastObserved = null;
         do {
-            $result = $expectedBlockerPid === null
-                ? $this->observerConnection()->selectOne('select cardinality(pg_blocking_pids(?)) as blockers', [$pid])
-                : $this->observerConnection()->selectOne('select ? = any(pg_blocking_pids(?)) as blocked', [$expectedBlockerPid, $pid]);
-            if (($expectedBlockerPid === null && (int) ($result->blockers ?? 0) > 0)
-                || ($expectedBlockerPid !== null && (bool) ($result->blocked ?? false))) {
+            $result = $this->observerConnection()->selectOne(
+                <<<'SQL'
+                    select
+                        state,
+                        coalesce(wait_event_type, '') as wait_event_type,
+                        coalesce(wait_event, '') as wait_event,
+                        cardinality(pg_blocking_pids(pid)) as blocker_count,
+                        case when exists (
+                            select 1 from pg_locks
+                            where pg_locks.pid = activity.pid and not pg_locks.granted
+                        ) then 1 else 0 end as has_ungranted_lock,
+                        case when ?::integer is null then false
+                            else ?::integer = any(pg_blocking_pids(pid)) end as expected_blocker
+                    from pg_stat_activity as activity
+                    where pid = ?
+                    SQL,
+                [$expectedBlockerPid, $expectedBlockerPid, $pid],
+            );
+            $lastObserved = $result === null ? null : [
+                'state' => (string) $result->state,
+                'wait_event_type' => (string) $result->wait_event_type,
+                'wait_event' => (string) $result->wait_event,
+                'blocker_count' => (int) $result->blocker_count,
+                'has_ungranted_lock' => (int) $result->has_ungranted_lock,
+                'expected_blocker' => filter_var($result->expected_blocker, FILTER_VALIDATE_BOOL),
+            ];
+            if (($expectedBlockerPid === null && ($lastObserved['blocker_count'] ?? 0) > 0)
+                || ($expectedBlockerPid !== null && ($lastObserved['expected_blocker'] ?? false))) {
                 return;
             }
             usleep(50_000);
         } while (microtime(true) < $deadline);
-        throw new RuntimeException('Expected PostgreSQL in-flight blocking was not observed.');
+        throw new RuntimeException(
+            'Expected PostgreSQL in-flight blocking was not observed. observed='
+            .json_encode($lastObserved, JSON_THROW_ON_ERROR),
+        );
     }
 
     private function observerConnection(): Connection
