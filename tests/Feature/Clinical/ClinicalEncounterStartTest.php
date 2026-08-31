@@ -110,7 +110,14 @@ class ClinicalEncounterStartTest extends ClinicalTestCase
                 $visit->forceFill(['visit_type' => 'otc'])->save();
             }
             if ($mode === 'cancelled') {
-                $visit->forceFill(['status' => Visit::STATUS_CANCELLED])->save();
+                $visit->forceFill([
+                    'status' => Visit::STATUS_CANCELLED,
+                    'cancelled_at' => now()->utc(),
+                    'cancelled_by_user_id' => $ca->id,
+                    'cancellation_reason' => 'Synthetic cancelled Visit fixture',
+                    'updated_by_user_id' => $ca->id,
+                    'lock_version' => $visit->lock_version + 1,
+                ])->save();
             }
             $this->selectBranch($doctor);
 

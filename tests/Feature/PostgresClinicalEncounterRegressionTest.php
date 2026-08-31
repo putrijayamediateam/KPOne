@@ -322,7 +322,8 @@ class PostgresClinicalEncounterRegressionTest extends TestCase
             'visits.view.branch', 'branch_context.switch.organisation',
         ]);
         $doctor = $this->user($organisation, $branch, 'resident_doctor', [
-            'queue.view.own', 'queue.call.own', 'encounters.view.own', 'encounters.start.own',
+            'branch_context.switch.branch', 'queue.view.own', 'queue.call.own',
+            'encounters.view.own', 'encounters.start.own',
             'encounters.update.own', 'encounters.history.view.organisation',
         ]);
         $profile = $doctor->staffProfile;

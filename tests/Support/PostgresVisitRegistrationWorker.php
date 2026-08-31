@@ -116,9 +116,13 @@ try {
         if (trim((string) fgets(STDIN)) !== 'COMMIT') {
             exit(67);
         }
+        $futureBranchDate = now()
+            ->setTimezone($assignment->branch()->firstOrFail()->timezone)
+            ->addDay()
+            ->toDateString();
         app(BranchAssignmentService::class)->update($assignment, [
-            'valid_from' => now()->addDay()->toDateString(),
-            'valid_until' => now()->addDay()->toDateString(),
+            'valid_from' => $futureBranchDate,
+            'valid_until' => $futureBranchDate,
         ], User::query()->findOrFail((int) $actorId));
         $connection->commit();
         fwrite(STDOUT, 'ASSIGNMENT_CHANGED'.PHP_EOL);
