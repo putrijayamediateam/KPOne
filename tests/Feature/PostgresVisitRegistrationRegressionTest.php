@@ -16,7 +16,9 @@ use App\Domain\Visit\Services\VisitDoctorEligibilityService;
 use App\Domain\Visit\Services\VisitNumberGenerator;
 use App\Domain\Visit\Services\VisitRegistrationService;
 use App\Models\User;
+use Illuminate\Database\Connection;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -31,6 +33,8 @@ use Tests\TestCase;
 
 class PostgresVisitRegistrationRegressionTest extends TestCase
 {
+    private const OBSERVER_CONNECTION = 'pgsql_visit_regression_observer';
+
     private ?int $organisationId = null;
 
     /** @var list<Process> */
@@ -54,6 +58,12 @@ class PostgresVisitRegistrationRegressionTest extends TestCase
                 throw new RuntimeException('Migrate the isolated PostgreSQL test database before Visit regressions.');
             }
         }
+
+        Config::set(
+            'database.connections.'.self::OBSERVER_CONNECTION,
+            config('database.connections.'.config('database.default')),
+        );
+        DB::purge(self::OBSERVER_CONNECTION);
     }
 
     protected function tearDown(): void
@@ -84,6 +94,7 @@ class PostgresVisitRegistrationRegressionTest extends TestCase
             DB::table('branches')->where('organisation_id', $this->organisationId)->delete();
             DB::table('organisations')->where('id', $this->organisationId)->delete();
         }
+        DB::purge(self::OBSERVER_CONNECTION);
         parent::tearDown();
     }
 
@@ -304,6 +315,7 @@ class PostgresVisitRegistrationRegressionTest extends TestCase
     public function test_late_quick_patient_visit_failure_rolls_back_both_counters_and_audits(): void
     {
         [$organisation, $branches, $actors] = $this->fixture();
+        $fixtureAuditCount = DB::table('audit_logs')->where('organisation_id', $organisation->id)->count();
         app('session')->start();
         session([BranchAccessService::SESSION_KEY => $branches[0]->id]);
         $failingAudit = new class extends AuditRecorder
@@ -338,7 +350,7 @@ class PostgresVisitRegistrationRegressionTest extends TestCase
         $this->assertSame(0, DB::table('visits')->where('organisation_id', $organisation->id)->count());
         $this->assertSame(0, DB::table('patient_number_counters')->where('organisation_id', $organisation->id)->count());
         $this->assertSame(0, DB::table('visit_number_counters')->where('organisation_id', $organisation->id)->count());
-        $this->assertSame(0, DB::table('audit_logs')->where('organisation_id', $organisation->id)->count());
+        $this->assertSame($fixtureAuditCount, DB::table('audit_logs')->where('organisation_id', $organisation->id)->count());
     }
 
     /** @return array{Organisation, list<Branch>, list<User>} */
@@ -537,11 +549,15 @@ class PostgresVisitRegistrationRegressionTest extends TestCase
 
     private function waitForDatabaseBlock(int $pid, ?int $expectedBlockerPid = null): void
     {
+        if ($pid <= 0) {
+            throw new RuntimeException('Visit worker did not report a valid PostgreSQL backend PID.');
+        }
+
         $deadline = microtime(true) + 10;
         do {
             $result = $expectedBlockerPid === null
-                ? DB::selectOne('select cardinality(pg_blocking_pids(?)) as blockers', [$pid])
-                : DB::selectOne('select ? = any(pg_blocking_pids(?)) as blocked', [$expectedBlockerPid, $pid]);
+                ? $this->observerConnection()->selectOne('select cardinality(pg_blocking_pids(?)) as blockers', [$pid])
+                : $this->observerConnection()->selectOne('select ? = any(pg_blocking_pids(?)) as blocked', [$expectedBlockerPid, $pid]);
             if (($expectedBlockerPid === null && (int) ($result->blockers ?? 0) > 0)
                 || ($expectedBlockerPid !== null && (bool) ($result->blocked ?? false))) {
                 return;
@@ -549,5 +565,10 @@ class PostgresVisitRegistrationRegressionTest extends TestCase
             usleep(50_000);
         } while (microtime(true) < $deadline);
         throw new RuntimeException('Expected PostgreSQL in-flight blocking was not observed.');
+    }
+
+    private function observerConnection(): Connection
+    {
+        return DB::connection(self::OBSERVER_CONNECTION);
     }
 }
