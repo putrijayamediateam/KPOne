@@ -59,6 +59,11 @@ return Application::configure(basePath: dirname(__DIR__))
             'city',
             'state',
             'country_code',
+            'visit_reason',
+            'cancellation_reason',
+            'coverage_member_reference',
+            'patient_number',
+            'quick_patient',
         ]);
         $exceptions->shouldRenderJsonWhen(
             fn (Request $request) => $request->is('api/*') || $request->expectsJson(),

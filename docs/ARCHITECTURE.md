@@ -10,6 +10,7 @@ KPOne is one Laravel deployment and one PostgreSQL database. Domain boundaries o
 - `app/Domain/Audit`: append-oriented records, recorder, and security-event listeners
 - `app/Domain/Shared`: reserved for genuinely cross-domain primitives; it should not become a miscellaneous folder
 - `app/Domain/Patient`: organisation-level Patient Master models, policy, number allocation, identity normalisation, directory, and administration
+- `app/Domain/Visit`: branch operational Visits, Registration, doctor eligibility, Visit number allocation, directory, administration, and policy
 
 HTTP controllers translate requests and Inertia responses. They do not own scope rules. The application remains compatible with normal Laravel routing, service-container, Eloquent, policy, middleware, migration, and seeder conventions. No third-party modules framework is used.
 
@@ -65,6 +66,14 @@ Patients belong to an organisation and deliberately have no branch owner. Branch
 
 `PatientAdministrationService` is the explicit actor, authorisation, normalisation, transaction, optimistic-locking, and structural-audit boundary. `PatientDirectoryService` performs bounded server-side search and constructs masked/minimised Inertia or JSON projections. Patient models are fully guarded and are never serialized directly to Vue.
 
+## Patient Registration and canonical Visit
+
+Phase 1B Registration creates a canonical branch-owned `Visit`; it does not create a separate Registration record. Patient identity remains organisation-owned, while branch provenance and operational status belong to the Visit. Organisation-wide, branch-independent `KPV-00000001` numbers use a locked counter inside the transaction.
+
+`VisitRegistrationService` owns idempotency, stale branch-context checks, Patient locking, repeat-attendance review, doctor and Panel revalidation, number allocation, creation, and structural audit. Quick Patient creation calls the unchanged Phase 1A administration service inside the same outer transaction. `VisitAdministrationService` owns optimistic registered-only edit and final cancellation. `VisitDirectoryService` enforces active-branch and branch-timezone projections. `VisitDoctorEligibilityService` accepts active resident doctors with any currently effective assignment to the Visit branch, including temporary coverage.
+
+Phase 1B Visit state is only `registered` or `cancelled`. Consultation/OTC, priority, administrative reason, and provisional Self-pay/Panel intent are registration attributes. No Queue, clinical, medication, dispensing, inventory, billing, appointment, or patient-facing state is represented.
+
 ## Authentication
 
 Fortify provides password authentication and reset flows. Public registration is disabled. Phase 0B removed the unused starter `CreateNewUser` action only after the internal `StaffProvisioningService` path, Fortify configuration, route inspection, and registration-negative tests proved that Fortify had no dependency on it. Authentication checks `users.is_active` before password validation, and authenticated requests pass through `EnsureActiveUser` to reject a session if the account is later deactivated.
@@ -94,6 +103,9 @@ Domain tables:
 - `patient_number_counters`
 - `patients`
 - `patient_identifiers`
+- `panels`
+- `visit_number_counters`
+- `visits`
 
 RBAC tables:
 

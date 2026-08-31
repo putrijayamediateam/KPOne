@@ -38,6 +38,8 @@ The repository defaults to PostgreSQL. The default local PHPUnit configuration o
 
 Phase 1A adds no patient development seeder. Local and automated Patient Master records must remain obviously synthetic; never copy production patient data into local, test, screenshots, fixtures, backups, or debugging tools. The PostgreSQL Patient Master regression uses separate PHP processes to prove counter initialization/allocation and identifier unique-index contention.
 
+Phase 1B likewise adds no Panel, Patient, or Visit seeder. `PanelFactory`, `PatientFactory`, and `VisitFactory` are test-only synthetic fixtures. The separate-process PostgreSQL Visit regression covers idempotency, Visit-counter allocation, repeat-attendance serialization, cross-branch attendance, and update/cancel contention. SQLite remains the routine workflow and explicitly skips PostgreSQL-only process tests.
+
 PostgreSQL-specific regression tests skip explicitly on SQLite. In PostgreSQL CI they exercise transactional rollback and genuine row-lock contention using separately bootstrapped PHP worker processes and database connections. Never point that workflow at a developer or production database: the tests require `APP_ENV=testing` and a database name clearly marked as a test database before they write fixtures.
 
 ## Dummy account
@@ -103,3 +105,4 @@ Run destructive migration commands only against a confirmed local/test database.
 - Add a test proving both the allowed and denied path.
 - Use `.test` email domains and obviously fictional names.
 - Do not add later-phase tables or placeholder personal/clinical fields speculatively.
+- Treat Registration as canonical Visit creation. Do not add a parallel Registration table or Queue/clinical/billing columns to `visits`.

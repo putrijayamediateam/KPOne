@@ -3,6 +3,7 @@ export * from './navigation';
 export * from './patient';
 export * from './staff';
 export * from './ui';
+export * from './visit';
 
 export type BranchSummary = {
     id: number;

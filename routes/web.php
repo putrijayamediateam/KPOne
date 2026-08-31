@@ -9,10 +9,12 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\PatientController;
 use App\Http\Controllers\PatientIdentifierController;
 use App\Http\Controllers\PatientSearchController;
+use App\Http\Controllers\RegistrationController;
 use App\Http\Controllers\StaffBranchAssignmentController;
 use App\Http\Controllers\StaffController;
 use App\Http\Controllers\StaffRoleController;
 use App\Http\Controllers\StaffStatusController;
+use App\Http\Controllers\VisitController;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
@@ -86,6 +88,31 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->name('audit-logs.index');
 
     Route::middleware(['sensitive.no-store', 'inertia.encrypt'])->group(function () {
+        Route::get('registration', [RegistrationController::class, 'index'])
+            ->middleware('permission:visits.view.branch')
+            ->name('registration.index');
+        Route::post('registration/search', [RegistrationController::class, 'search'])
+            ->middleware(['permission:visits.view.branch', 'throttle:60,1'])
+            ->name('registration.search');
+        Route::get('registration/create', [RegistrationController::class, 'create'])
+            ->middleware('permission:visits.create.branch')
+            ->name('registration.create');
+        Route::post('registration', [RegistrationController::class, 'store'])
+            ->middleware(['permission:visits.create.branch', 'throttle:30,1'])
+            ->name('registration.store');
+        Route::get('visits/{visit}', [VisitController::class, 'show'])
+            ->middleware('permission:visits.view.branch')
+            ->name('visits.show');
+        Route::get('visits/{visit}/edit', [VisitController::class, 'edit'])
+            ->middleware('permission:visits.update.branch')
+            ->name('visits.edit');
+        Route::patch('visits/{visit}', [VisitController::class, 'update'])
+            ->middleware('permission:visits.update.branch')
+            ->name('visits.update');
+        Route::patch('visits/{visit}/cancel', [VisitController::class, 'cancel'])
+            ->middleware('permission:visits.cancel.branch')
+            ->name('visits.cancel');
+
         Route::get('patients', [PatientController::class, 'index'])
             ->middleware('permission:patients.search.organisation')
             ->name('patients.index');

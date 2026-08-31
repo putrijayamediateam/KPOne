@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Domain\Access\BranchAccessService;
 use App\Domain\Audit\AccessChangeActorContext;
 use App\Domain\Audit\Listeners\RecordAccessChanges;
 use App\Domain\Audit\Listeners\RecordAuthenticationEvents;
@@ -10,6 +11,8 @@ use App\Domain\Organisation\Models\Branch;
 use App\Domain\Organisation\Policies\BranchPolicy;
 use App\Domain\Patient\Models\Patient;
 use App\Domain\Patient\Policies\PatientPolicy;
+use App\Domain\Visit\Models\Visit;
+use App\Domain\Visit\Policies\VisitPolicy;
 use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Auth\Events\Failed;
@@ -35,6 +38,7 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->scoped(AccessChangeActorContext::class);
+        $this->app->scoped(BranchAccessService::class);
     }
 
     /**
@@ -54,6 +58,18 @@ class AppServiceProvider extends ServiceProvider
                 ->where('patient_number', $value)
                 ->firstOrFail();
         });
+
+        Route::bind('visit', function (string $value): Visit {
+            $actor = request()->user();
+            $branch = app(BranchAccessService::class)->activeBranch($actor);
+            abort_if($branch === null, 404);
+
+            return Visit::query()
+                ->where('organisation_id', $actor->organisation_id)
+                ->where('branch_id', $branch->id)
+                ->where('visit_number', $value)
+                ->firstOrFail();
+        });
     }
 
     protected function configureAuthorization(): void
@@ -61,6 +77,7 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(Branch::class, BranchPolicy::class);
         Gate::policy(User::class, StaffPolicy::class);
         Gate::policy(Patient::class, PatientPolicy::class);
+        Gate::policy(Visit::class, VisitPolicy::class);
     }
 
     protected function configureAuditListeners(): void

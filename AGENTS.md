@@ -14,7 +14,7 @@ These rules apply to the entire repository.
 ## Architecture
 
 - Keep a modular monolith and normal Laravel conventions.
-- Place business rules under `app/Domain/{Organisation,Identity,Access,Audit,Shared}`.
+- Place business rules under `app/Domain/{Organisation,Identity,Access,Audit,Patient,Visit,Shared}`.
 - Do not add a modules framework, microservice, broker, Kubernetes configuration, or speculative infrastructure.
 - Prefer Laravel first-party features. Add a dependency only when its value and security posture are clear.
 - Use internal numeric primary keys. Add public identifiers separately only when an external contract requires them.

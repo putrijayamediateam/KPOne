@@ -27,8 +27,12 @@ class PatientDirectoryService
         $page = is_numeric($criteria['page'] ?? null) ? (int) $criteria['page'] : 1;
 
         $patients = Patient::query()
+            ->select(['id', 'patient_number', 'full_name', 'date_of_birth', 'sex', 'mobile_phone'])
             ->where('organisation_id', $actor->organisation_id)
-            ->with(['identifiers' => fn ($builder) => $builder->whereNull('retired_at')->oldest('id')]);
+            ->with(['identifiers' => fn ($builder) => $builder
+                ->select(['id', 'patient_id', 'identifier_type', 'normalized_value'])
+                ->whereNull('retired_at')
+                ->oldest('id')]);
 
         match ($type) {
             'patient_number' => $patients->where('patient_number', Str::upper($query)),
@@ -41,6 +45,47 @@ class PatientDirectoryService
         };
 
         return $this->projectPaginator($patients->orderBy('full_name')->paginate(20, page: $page));
+    }
+
+    /**
+     * Return a bounded, caller-ranked Patient summary list without exposing
+     * internal identifiers or unmasked identity/contact values.
+     *
+     * @param  list<int>  $patientIds
+     * @return list<array<string, mixed>>
+     */
+    public function summaries(User $actor, array $patientIds): array
+    {
+        Gate::forUser($actor)->authorize('search', Patient::class);
+        $ids = collect($patientIds)
+            ->unique()
+            ->take(20)
+            ->values();
+
+        if ($ids->isEmpty()) {
+            return [];
+        }
+
+        $patients = Patient::query()
+            ->select(['id', 'patient_number', 'full_name', 'date_of_birth', 'sex', 'mobile_phone'])
+            ->where('organisation_id', $actor->organisation_id)
+            ->whereKey($ids->all())
+            ->with(['identifiers' => fn ($builder) => $builder
+                ->select(['id', 'patient_id', 'identifier_type', 'normalized_value'])
+                ->whereNull('retired_at')
+                ->oldest('id')])
+            ->get()
+            ->keyBy('id');
+
+        $summaries = [];
+        foreach ($ids as $id) {
+            $patient = $patients->get($id);
+            if ($patient instanceof Patient) {
+                $summaries[] = $this->projectPatient($patient);
+            }
+        }
+
+        return $summaries;
     }
 
     /**
@@ -149,25 +194,29 @@ class PatientDirectoryService
     private function projectPaginator(LengthAwarePaginator $paginator): array
     {
         return [
-            'data' => collect($paginator->items())->map(function (Patient $patient): array {
-                $identifier = $patient->identifiers->first();
-
-                return [
-                    'patientNumber' => $patient->patient_number,
-                    'fullName' => $patient->full_name,
-                    'dateOfBirth' => $patient->date_of_birth?->format('Y-m-d'),
-                    'sex' => $patient->sex,
-                    'identifier' => $identifier ? [
-                        'type' => $identifier->identifier_type,
-                        'maskedValue' => $this->identity->maskIdentifier($identifier->identifier_type, $identifier->normalized_value),
-                    ] : null,
-                    'maskedPhone' => $this->identity->maskPhone($patient->mobile_phone),
-                ];
-            })->values()->all(),
+            'data' => collect($paginator->items())->map(fn (Patient $patient): array => $this->projectPatient($patient))->values()->all(),
             'currentPage' => $paginator->currentPage(),
             'lastPage' => $paginator->lastPage(),
             'perPage' => $paginator->perPage(),
             'total' => $paginator->total(),
+        ];
+    }
+
+    /** @return array<string, mixed> */
+    private function projectPatient(Patient $patient): array
+    {
+        $identifier = $patient->identifiers->first();
+
+        return [
+            'patientNumber' => $patient->patient_number,
+            'fullName' => $patient->full_name,
+            'dateOfBirth' => $patient->date_of_birth?->format('Y-m-d'),
+            'sex' => $patient->sex,
+            'identifier' => $identifier ? [
+                'type' => $identifier->identifier_type,
+                'maskedValue' => $this->identity->maskIdentifier($identifier->identifier_type, $identifier->normalized_value),
+            ] : null,
+            'maskedPhone' => $this->identity->maskPhone($patient->mobile_phone),
         ];
     }
 

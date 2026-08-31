@@ -4,7 +4,7 @@ KPOne is the Klinik Putrijaya Digital Operating System: a production healthcare 
 
 This repository is a new, independent Laravel application. It does not modify or depend on `MiniWeb_KlinikPutrijaya_Fullstack`.
 
-## Current scope: Phase 0A + Phase 0B + Phase 1A
+## Current scope: Phase 0A + Phase 0B + Phase 1A + Phase 1B
 
 Phase 0A provides the platform foundation, and Phase 0B adds internal operational staff identity administration:
 
@@ -21,8 +21,9 @@ Phase 0A provides the platform foundation, and Phase 0B adds internal operationa
 - explicit staff profile, department, role, branch-assignment, activation, and deactivation workflows
 - higher-authority target protection and an active-account primary-branch invariant
 - organisation-level Patient Master identity, privacy-minimised search, identifier history, and controlled demographic administration
+- branch-scoped Patient Registration with canonical Visits, Consultation/OTC, eligible doctor assignment, urgency, provisional coverage, idempotency, repeat warnings, edit/cancel, and a dense operational console
 
-Phase 1A answers only “Who is this patient?”. It does not implement registration, appointments, queue, clinical records, prescriptions, billing, panel, patient login, QR/OTP, or legacy integration.
+Phase 1A answers “Who is this patient?”. Phase 1B registers that Patient into a canonical branch Visit. It does not implement Queue Entry/number/state, appointments, clinical records, prescriptions, dispensing, billing, claims, patient login, QR/OTP, or legacy integration.
 
 ## Stack
 
@@ -70,3 +71,4 @@ Architecture, security, phase boundaries, and contributor rules are in [`docs/`]
 
 Phase 0B implementation details are documented in [docs/PHASE_0B.md](docs/PHASE_0B.md).
 Phase 1A scope, privacy gate, and production-readiness conditions are documented in [docs/PHASE_1A.md](docs/PHASE_1A.md).
+Phase 1B Registration, Visit invariants, concurrency rules, and the Phase 1C boundary are documented in [docs/PHASE_1B.md](docs/PHASE_1B.md).

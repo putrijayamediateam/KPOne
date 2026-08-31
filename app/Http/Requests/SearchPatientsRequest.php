@@ -28,4 +28,14 @@ class SearchPatientsRequest extends FormRequest
             'page' => ['nullable', 'integer', 'min:1', 'max:10000'],
         ];
     }
+
+    /** @return array<string, string> */
+    public function messages(): array
+    {
+        return [
+            'query.required' => 'Enter a Patient name, NRIC, phone number or Patient number.',
+            'query.min' => 'Enter at least 3 characters to search Patients.',
+            'issuing_country_code.required_if' => 'Please enter the passport issuing country.',
+        ];
+    }
 }

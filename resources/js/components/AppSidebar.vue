@@ -4,6 +4,7 @@ import {
     Building2,
     FileText,
     LayoutDashboard,
+    ClipboardPlus,
     ShieldCheck,
     Users,
     UserRoundSearch,
@@ -30,6 +31,15 @@ const can = (permission: string) =>
 
 const mainNavItems = computed<NavItem[]>(() => [
     { title: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
+    ...(can('visits.view.branch')
+        ? [
+              {
+                  title: 'Registration',
+                  href: '/registration',
+                  icon: ClipboardPlus,
+              },
+          ]
+        : []),
     ...(can('patients.search.organisation')
         ? [{ title: 'Patients', href: '/patients', icon: UserRoundSearch }]
         : []),
@@ -79,7 +89,7 @@ const mainNavItems = computed<NavItem[]>(() => [
             <div
                 class="px-3 pb-2 text-[11px] font-medium tracking-wide text-sidebar-foreground/40 group-data-[collapsible=icon]:hidden"
             >
-                Phase 1A · Patient Master
+                Phase 1B · Patient Registration
             </div>
             <NavUser />
         </SidebarFooter>
