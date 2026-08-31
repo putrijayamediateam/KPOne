@@ -228,8 +228,7 @@ class PostgresVisitRegistrationRegressionTest extends TestCase
         $registration['process']->start();
         $this->waitReady([$registration]);
         $registration['input']->write("GO\n");
-        $registrationPid = $this->pid($registration['process']->getOutput());
-        $this->waitForDatabaseBlock($registrationPid);
+        $this->waitForDatabaseBlock($registration['process']);
         $deactivate['input']->write("COMMIT\n");
         $deactivate['input']->close();
         $registration['input']->close();
@@ -478,7 +477,7 @@ class PostgresVisitRegistrationRegressionTest extends TestCase
                 $worker['input']->close();
             }
             foreach ($workers as $worker) {
-                $this->waitForDatabaseBlock($this->pid($worker['process']->getOutput()), $parentPid);
+                $this->waitForDatabaseBlock($worker['process'], $parentPid);
             }
             DB::commit();
         } catch (\Throwable $exception) {
@@ -506,7 +505,7 @@ class PostgresVisitRegistrationRegressionTest extends TestCase
         $this->waitReady([$registration]);
         $registration['input']->write("GO\n");
         $registration['input']->close();
-        $this->waitForDatabaseBlock($this->pid($registration['process']->getOutput()));
+        $this->waitForDatabaseBlock($registration['process']);
 
         $mutation['input']->write("COMMIT\n");
         $mutation['input']->close();
@@ -547,8 +546,9 @@ class PostgresVisitRegistrationRegressionTest extends TestCase
         return (int) ($matches[1] ?? 0);
     }
 
-    private function waitForDatabaseBlock(int $pid, ?int $expectedBlockerPid = null): void
+    private function waitForDatabaseBlock(Process $process, ?int $expectedBlockerPid = null): void
     {
+        $pid = $this->pid($process->getOutput());
         if ($pid <= 0) {
             throw new RuntimeException('Visit worker did not report a valid PostgreSQL backend PID.');
         }
@@ -556,6 +556,12 @@ class PostgresVisitRegistrationRegressionTest extends TestCase
         $deadline = microtime(true) + 10;
         $lastObserved = null;
         do {
+            if ($process->isTerminated()) {
+                throw new RuntimeException(
+                    'Visit worker exited before PostgreSQL blocking was observed. exit='.(string) $process->getExitCode(),
+                );
+            }
+
             $result = $this->observerConnection()->selectOne(
                 <<<'SQL'
                     select
