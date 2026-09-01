@@ -1,13 +1,20 @@
 <script setup lang="ts">
 import { router, usePage } from '@inertiajs/vue3';
-import { Building2, ChevronDown } from '@lucide/vue';
+import { Building2 } from '@lucide/vue';
 import { computed } from 'vue';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
 
 const page = usePage();
 const context = computed(() => page.props.branchContext);
 
-const changeBranch = (event: Event) => {
-    const branchId = Number((event.target as HTMLSelectElement).value);
+const changeBranch = (value: unknown) => {
+    const branchId = Number(value);
 
     if (branchId) {
         router.post(
@@ -20,29 +27,33 @@ const changeBranch = (event: Event) => {
 </script>
 
 <template>
-    <label
+    <Select
         v-if="context?.active"
-        class="group flex h-9 items-center gap-1.5 rounded-lg border border-border/80 bg-background px-2 text-xs transition-colors focus-within:border-ring focus-within:ring-2 focus-within:ring-ring/25 hover:border-foreground/25 hover:bg-muted/20"
+        :model-value="String(context.active.id)"
+        @update:model-value="changeBranch"
     >
-        <Building2 class="size-3.5 text-muted-foreground" aria-hidden="true" />
-        <span class="sr-only">Active branch</span>
-        <select
-            :value="String(context.active.id)"
-            class="max-w-36 cursor-pointer appearance-none bg-transparent pr-4 font-normal text-foreground outline-none"
+        <SelectTrigger
+            class="h-9 w-auto max-w-44 gap-2 border-0 bg-muted/60 px-2.5 text-xs font-normal shadow-none hover:bg-muted focus-visible:border-transparent focus-visible:ring-2 focus-visible:ring-ring/35"
             aria-label="Active branch"
-            @change="changeBranch"
         >
-            <option
+            <Building2
+                class="size-3.5 shrink-0 text-muted-foreground"
+                aria-hidden="true"
+            />
+            <SelectValue class="truncate" />
+        </SelectTrigger>
+        <SelectContent
+            align="end"
+            class="rounded-xl border-border/70 p-1.5 shadow-xl shadow-black/5"
+        >
+            <SelectItem
                 v-for="branch in context.available"
                 :key="branch.id"
                 :value="String(branch.id)"
+                class="min-h-8 rounded-lg px-2.5 text-[13px] data-[state=checked]:bg-pink-50 data-[state=checked]:text-pink-800 dark:data-[state=checked]:bg-pink-950/30 dark:data-[state=checked]:text-pink-200"
             >
                 {{ branch.name }}
-            </option>
-        </select>
-        <ChevronDown
-            class="pointer-events-none -ml-4 size-3.5 text-muted-foreground transition-colors group-hover:text-foreground"
-            aria-hidden="true"
-        />
-    </label>
+            </SelectItem>
+        </SelectContent>
+    </Select>
 </template>

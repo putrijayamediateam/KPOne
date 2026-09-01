@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Link } from '@inertiajs/vue3';
-import { Ellipsis, LoaderCircle } from '@lucide/vue';
+import { Clock3, Ellipsis, LoaderCircle, UserRound } from '@lucide/vue';
 import { Button } from '@/components/ui/button';
 import {
     DropdownMenu,
@@ -9,6 +9,12 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from '@/components/ui/tooltip';
 import type { PatientBoardRow } from '@/types';
 
 defineProps<{
@@ -30,11 +36,11 @@ const visitHref = (number: string) => `/visits/${encodeURIComponent(number)}`;
 const editHref = (number: string) => `${visitHref(number)}/edit`;
 const statusClass = (tone: PatientBoardRow['statusTone']) =>
     ({
-        neutral: 'border-border/80 bg-muted/25 text-muted-foreground',
-        waiting: 'border-amber-200/80 bg-amber-50/55 text-amber-800',
-        serving: 'border-emerald-200/80 bg-emerald-50/55 text-emerald-800',
-        cancelled: 'border-border/80 bg-muted/35 text-muted-foreground',
-        removed: 'border-border/80 bg-background text-muted-foreground',
+        neutral: 'bg-muted/55 text-muted-foreground',
+        waiting: 'bg-amber-100/70 text-amber-800',
+        serving: 'bg-emerald-100/65 text-emerald-800',
+        cancelled: 'bg-muted/70 text-muted-foreground',
+        removed: 'bg-muted/40 text-muted-foreground',
     })[tone];
 </script>
 
@@ -65,18 +71,30 @@ const statusClass = (tone: PatientBoardRow['statusTone']) =>
                     class="border-b border-border/60 transition-colors last:border-0 hover:bg-muted/20"
                 >
                     <td class="px-3 py-2.5 align-middle">
-                        <div class="truncate font-medium text-foreground">
-                            {{ row.patientName }}
-                        </div>
-                        <div
-                            class="truncate text-[11px] font-normal text-muted-foreground"
-                        >
-                            {{ row.patientNumber }}
+                        <div class="flex min-w-0 items-center gap-2.5">
+                            <span
+                                class="grid size-8 shrink-0 place-items-center rounded-full bg-muted/75 text-muted-foreground"
+                                aria-hidden="true"
+                            >
+                                <UserRound class="size-3.5" />
+                            </span>
+                            <div class="min-w-0">
+                                <div
+                                    class="truncate font-medium text-foreground"
+                                >
+                                    {{ row.patientName }}
+                                </div>
+                                <div
+                                    class="truncate text-[11px] font-normal text-muted-foreground"
+                                >
+                                    {{ row.patientNumber }}
+                                </div>
+                            </div>
                         </div>
                     </td>
                     <td class="px-3 py-2.5 align-middle">
                         <span
-                            class="inline-flex min-w-8 justify-center rounded-md border border-border/80 bg-muted/20 px-1.5 py-0.5 font-normal text-foreground tabular-nums"
+                            class="inline-flex min-w-9 justify-center rounded-md bg-muted/65 px-2 py-0.5 font-normal text-foreground tabular-nums"
                             >{{ row.queueNumber ?? '—' }}</span
                         >
                     </td>
@@ -99,33 +117,55 @@ const statusClass = (tone: PatientBoardRow['statusTone']) =>
                         </div>
                     </td>
                     <td class="px-3 py-2.5 align-middle">
-                        <div
-                            class="max-w-full truncate rounded-md border border-border/80 bg-muted/15 px-2 py-0.5 font-normal transition-colors hover:border-foreground/20 hover:bg-muted/30 focus-visible:ring-2 focus-visible:ring-ring/30 focus-visible:outline-none"
-                            :title="row.doctorName ?? 'Unassigned'"
-                            tabindex="0"
-                        >
-                            {{ row.doctorName ?? 'Unassigned' }}
-                        </div>
+                        <TooltipProvider :delay-duration="350">
+                            <Tooltip>
+                                <TooltipTrigger as-child>
+                                    <span
+                                        class="flex max-w-full items-center gap-1.5 rounded-md bg-muted/70 px-2 py-0.5 font-normal transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring/35 focus-visible:outline-none"
+                                        tabindex="0"
+                                    >
+                                        <UserRound
+                                            class="size-3 shrink-0 text-muted-foreground"
+                                            aria-hidden="true"
+                                        />
+                                        <span class="truncate">{{
+                                            row.doctorName ?? 'Unassigned'
+                                        }}</span>
+                                    </span>
+                                </TooltipTrigger>
+                                <TooltipContent
+                                    side="top"
+                                    class="max-w-56 rounded-lg px-2 py-1 text-[11px] shadow-lg"
+                                >
+                                    {{ row.doctorName ?? 'Unassigned' }}
+                                </TooltipContent>
+                            </Tooltip>
+                        </TooltipProvider>
                     </td>
                     <td class="px-3 py-2.5 align-middle">
                         <div class="truncate">{{ row.coverageLabel }}</div>
                     </td>
                     <td class="px-3 py-2.5 align-middle">
                         <span
-                            class="inline-flex rounded-md border border-border/80 bg-muted/15 px-1.5 py-0.5 font-normal tabular-nums"
-                            >{{ row.durationLabel }}</span
+                            class="inline-flex items-center gap-1.5 rounded-md bg-muted/65 px-2 py-0.5 font-normal tabular-nums"
                         >
+                            <Clock3
+                                class="size-3 text-muted-foreground"
+                                aria-hidden="true"
+                            />
+                            {{ row.durationLabel }}
+                        </span>
                     </td>
                     <td class="px-3 py-2.5 align-middle">
                         <div class="flex flex-wrap items-center gap-1.5">
                             <span
-                                class="inline-flex rounded-md border px-1.5 py-0.5 text-[11px] font-normal"
+                                class="inline-flex rounded-md px-2 py-0.5 text-[11px] font-normal"
                                 :class="statusClass(row.statusTone)"
                                 >{{ row.statusLabel }}</span
                             >
                             <span
                                 v-if="row.priority === 'urgent'"
-                                class="inline-flex rounded-md border border-red-200/80 bg-red-50/60 px-1.5 py-0.5 text-[11px] font-medium text-red-700"
+                                class="inline-flex rounded-md bg-rose-100/70 px-2 py-0.5 text-[11px] font-normal text-rose-700"
                                 >Urgent</span
                             >
                         </div>
@@ -145,8 +185,14 @@ const statusClass = (tone: PatientBoardRow['statusTone']) =>
                                     <Ellipsis v-else class="size-4" />
                                 </Button>
                             </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" class="w-48">
-                                <DropdownMenuItem as-child>
+                            <DropdownMenuContent
+                                align="end"
+                                class="w-48 rounded-xl border-border/70 p-1.5 shadow-xl shadow-black/5"
+                            >
+                                <DropdownMenuItem
+                                    as-child
+                                    class="min-h-8 rounded-lg px-2.5 text-[13px]"
+                                >
                                     <Link :href="visitHref(row.visitNumber)"
                                         >View Visit</Link
                                     >
@@ -154,6 +200,7 @@ const statusClass = (tone: PatientBoardRow['statusTone']) =>
                                 <DropdownMenuItem
                                     v-if="row.can.viewPatient"
                                     as-child
+                                    class="min-h-8 rounded-lg px-2.5 text-[13px]"
                                 >
                                     <Link :href="patientHref(row.patientNumber)"
                                         >View Patient</Link
@@ -162,6 +209,7 @@ const statusClass = (tone: PatientBoardRow['statusTone']) =>
                                 <DropdownMenuItem
                                     v-if="row.can.update"
                                     as-child
+                                    class="min-h-8 rounded-lg px-2.5 text-[13px]"
                                 >
                                     <Link :href="editHref(row.visitNumber)"
                                         >Edit Visit</Link
@@ -177,22 +225,25 @@ const statusClass = (tone: PatientBoardRow['statusTone']) =>
                                 />
                                 <DropdownMenuItem
                                     v-if="row.can.sendToWaiting"
+                                    class="min-h-8 rounded-lg px-2.5 text-[13px]"
                                     @select="$emit('sendToWaiting', row)"
                                     >Send to Waiting</DropdownMenuItem
                                 >
                                 <DropdownMenuItem
                                     v-if="row.can.call"
+                                    class="min-h-8 rounded-lg px-2.5 text-[13px]"
                                     @select="$emit('call', row)"
                                     >Call In</DropdownMenuItem
                                 >
                                 <DropdownMenuItem
                                     v-if="row.can.openConsultation"
+                                    class="min-h-8 rounded-lg px-2.5 text-[13px]"
                                     @select="$emit('openConsultation', row)"
                                     >Open Consultation</DropdownMenuItem
                                 >
                                 <DropdownMenuItem
                                     v-if="row.can.cancel"
-                                    class="text-red-700 focus:text-red-700"
+                                    class="min-h-8 rounded-lg px-2.5 text-[13px] text-red-700 focus:text-red-700"
                                     @select="$emit('cancel', row)"
                                     >Cancel Visit</DropdownMenuItem
                                 >

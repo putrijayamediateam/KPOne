@@ -70,9 +70,21 @@ const waitLabel = (row: QueueRow) => {
         Math.floor((effectiveNow - Date.parse(start)) / 60_000),
     );
 
-    return minutes < 60
-        ? `${minutes}m`
-        : `${Math.floor(minutes / 60)}h ${minutes % 60}m`;
+    if (minutes < 1) {
+        return '<1 min';
+    }
+
+    if (minutes < 60) {
+        return `${minutes} ${minutes === 1 ? 'min' : 'mins'}`;
+    }
+
+    const hours = Math.floor(minutes / 60);
+    const remainder = minutes % 60;
+    const hourLabel = `${hours} ${hours === 1 ? 'hour' : 'hours'}`;
+
+    return remainder
+        ? `${hourLabel} ${remainder} ${remainder === 1 ? 'min' : 'mins'}`
+        : hourLabel;
 };
 const sourceRows = computed<QueueRow[]>(() => {
     if (activeTab.value === 'removed') {
@@ -374,35 +386,33 @@ onBeforeUnmount(() => {
 <template>
     <Head title="Consultation" />
     <main
-        class="mx-auto flex w-full max-w-[1600px] flex-1 flex-col gap-3 px-3 py-4 md:px-5"
+        class="mx-auto flex w-full max-w-[1600px] flex-1 flex-col gap-2 px-3 py-2 md:px-5"
     >
-        <header class="flex flex-wrap items-center justify-between gap-3">
-            <h1 class="text-2xl font-semibold tracking-tight">Consultation</h1>
-            <span class="text-xs text-muted-foreground">{{
+        <div class="flex items-center gap-2 border-b">
+            <nav
+                class="flex min-w-0 flex-1 gap-1 overflow-x-auto"
+                aria-label="Consultation Queue status"
+            >
+                <button
+                    v-for="tab in tabs"
+                    :key="tab.value"
+                    type="button"
+                    class="relative shrink-0 px-3 py-2 text-[13px] font-normal text-muted-foreground transition-colors hover:bg-muted/25 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-inset"
+                    :class="
+                        activeTab === tab.value
+                            ? 'font-medium text-foreground after:absolute after:inset-x-3 after:bottom-0 after:h-px after:bg-foreground/60'
+                            : ''
+                    "
+                    :aria-current="activeTab === tab.value ? 'page' : undefined"
+                    @click="selectTab(tab.value)"
+                >
+                    {{ tab.label }}
+                </button>
+            </nav>
+            <span class="shrink-0 text-[11px] text-muted-foreground">{{
                 isRefreshing ? 'Refreshing…' : 'Live · every 3 seconds'
             }}</span>
-        </header>
-
-        <nav
-            class="flex gap-1 overflow-x-auto border-b"
-            aria-label="Consultation Queue status"
-        >
-            <button
-                v-for="tab in tabs"
-                :key="tab.value"
-                type="button"
-                class="relative shrink-0 px-3 py-2 text-sm font-normal text-muted-foreground transition-colors hover:bg-muted/25 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-inset"
-                :class="
-                    activeTab === tab.value
-                        ? 'text-foreground after:absolute after:inset-x-3 after:bottom-0 after:h-px after:bg-foreground/50'
-                        : ''
-                "
-                :aria-current="activeTab === tab.value ? 'page' : undefined"
-                @click="selectTab(tab.value)"
-            >
-                {{ tab.label }}
-            </button>
-        </nav>
+        </div>
 
         <form
             class="grid gap-2 border-b pb-3 md:grid-cols-2 xl:grid-cols-[minmax(280px,1.6fr)_minmax(160px,0.8fr)_140px_auto_auto]"
@@ -413,14 +423,14 @@ onBeforeUnmount(() => {
                     class="absolute top-2.5 left-3 size-4 text-muted-foreground" /><input
                     v-model="filters.query"
                     autocomplete="off"
-                    class="h-9 w-full rounded-lg border border-border/80 bg-background pr-3 pl-9 text-sm transition-colors outline-none hover:border-foreground/20 focus:border-ring focus:ring-2 focus:ring-ring/20"
+                    class="h-9 w-full rounded-lg border border-transparent bg-muted/45 pr-3 pl-9 text-[13px] transition-colors outline-none hover:bg-muted/65 focus:border-ring/40 focus:bg-background focus:ring-2 focus:ring-ring/25"
                     placeholder="Patient or exact Queue number"
             /></label>
             <select
                 v-if="live.scope === 'branch'"
                 v-model="filters.doctor_id"
                 aria-label="Doctor"
-                class="h-9 rounded-lg border border-border/80 bg-background px-2 text-sm transition-colors outline-none hover:border-foreground/20 focus:border-ring focus:ring-2 focus:ring-ring/20"
+                class="h-9 rounded-lg border border-transparent bg-muted/45 px-2 text-[13px] transition-colors outline-none hover:bg-muted/65 focus:border-ring/40 focus:bg-background focus:ring-2 focus:ring-ring/25"
             >
                 <option value="">All doctors</option>
                 <option
@@ -434,7 +444,7 @@ onBeforeUnmount(() => {
             <select
                 v-model="filters.priority"
                 aria-label="Urgency"
-                class="h-9 rounded-lg border border-border/80 bg-background px-2 text-sm transition-colors outline-none hover:border-foreground/20 focus:border-ring focus:ring-2 focus:ring-ring/20"
+                class="h-9 rounded-lg border border-transparent bg-muted/45 px-2 text-[13px] transition-colors outline-none hover:bg-muted/65 focus:border-ring/40 focus:bg-background focus:ring-2 focus:ring-ring/25"
             >
                 <option value="">All urgency</option>
                 <option value="urgent">Urgent</option>

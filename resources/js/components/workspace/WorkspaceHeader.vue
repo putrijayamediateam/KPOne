@@ -69,12 +69,15 @@ const items = computed(() =>
 const isActive = (href: string) =>
     page.url === href ||
     (href !== '/dashboard' && page.url.startsWith(`${href}/`));
+
+// Replace null with '/images/brand/kp-mark.png' after the approved asset lands.
+const approvedBrandMarkPath: string | null = null;
 </script>
 
 <template>
     <header class="sticky top-0 z-40 border-b bg-background/95 backdrop-blur">
         <div
-            class="mx-auto flex h-14 w-full max-w-[1600px] items-center gap-3 px-3 md:px-5 lg:grid lg:grid-cols-[minmax(180px,1fr)_auto_minmax(180px,1fr)]"
+            class="mx-auto flex h-13 w-full max-w-[1600px] items-center gap-3 px-3 md:px-5 lg:grid lg:grid-cols-[minmax(180px,1fr)_auto_minmax(180px,1fr)]"
         >
             <Sheet>
                 <SheetTrigger as-child>
@@ -117,7 +120,13 @@ const isActive = (href: string) =>
                 class="flex shrink-0 items-center gap-2 rounded-md focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
                 aria-label="Open KPOne Main Menu"
             >
-                <AppLogoIcon class="size-8 text-emerald-800" />
+                <img
+                    v-if="approvedBrandMarkPath"
+                    :src="approvedBrandMarkPath"
+                    alt=""
+                    class="size-8 object-contain"
+                />
+                <AppLogoIcon v-else class="size-8 text-emerald-800" />
                 <span
                     class="hidden text-sm font-semibold tracking-tight text-pink-700 sm:block"
                     >KPOne</span
@@ -132,10 +141,10 @@ const isActive = (href: string) =>
                     v-for="item in items"
                     :key="item.href"
                     :href="item.href"
-                    class="relative flex h-14 items-center px-2.5 text-sm font-normal text-muted-foreground transition-colors hover:bg-muted/30 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-inset xl:px-3.5"
+                    class="relative flex h-13 items-center px-2.5 text-[13px] font-normal text-muted-foreground transition-colors hover:bg-muted/35 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none focus-visible:ring-inset xl:px-3.5"
                     :class="
                         isActive(item.href)
-                            ? 'text-foreground after:absolute after:inset-x-3 after:bottom-0 after:h-px after:bg-foreground/50'
+                            ? 'font-medium text-foreground after:absolute after:inset-x-3 after:bottom-0 after:h-px after:bg-foreground/60'
                             : ''
                     "
                 >
@@ -163,10 +172,10 @@ const isActive = (href: string) =>
                         <Button
                             variant="ghost"
                             size="icon"
-                            class="size-10 rounded-full"
+                            class="size-10 rounded-full hover:bg-muted/60"
                             aria-label="Open user menu"
                         >
-                            <Avatar class="size-9">
+                            <Avatar class="size-9.5">
                                 <AvatarFallback
                                     class="bg-muted text-xs font-semibold"
                                 >
@@ -175,7 +184,10 @@ const isActive = (href: string) =>
                             </Avatar>
                         </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" class="w-60">
+                    <DropdownMenuContent
+                        align="end"
+                        class="w-60 rounded-xl border-border/70 p-1.5 shadow-xl shadow-black/5"
+                    >
                         <UserMenuContent :user="user" />
                     </DropdownMenuContent>
                 </DropdownMenu>
