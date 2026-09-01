@@ -164,7 +164,15 @@ try {
                 'expected_branch_id' => $branchId,
                 'lock_version' => $expected,
                 'clinical_note' => 'Synthetic independent Treatment Plan race note '.$suffix,
-                'vitals' => [],
+                'vitals' => [
+                    'systolic_bp' => null,
+                    'diastolic_bp' => null,
+                    'pulse_bpm' => null,
+                    'temperature_celsius' => null,
+                    'spo2_percent' => null,
+                    'weight_kg' => null,
+                    'height_cm' => null,
+                ],
                 'diagnoses' => [],
             ]);
             fwrite(STDOUT, 'NOTE_SAVED'.PHP_EOL);
