@@ -27,6 +27,7 @@ use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
+use PDOException;
 use RuntimeException;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
@@ -285,7 +286,8 @@ class PostgresClinicalSafetyRegressionTest extends TestCase
                     ->update(['patient_allergy_profile_id' => $secondProfile->id]);
             });
             $this->fail('Expected the source Allergy Profile consistency trigger to reject the move.');
-        } catch (QueryException) {
+        } catch (QueryException|PDOException $exception) {
+            $this->assertSame('P0001', $exception->getCode());
             $this->assertDatabaseHas('patient_allergy_records', [
                 'id' => $record->id,
                 'patient_allergy_profile_id' => $record->patient_allergy_profile_id,
