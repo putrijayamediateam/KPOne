@@ -33,20 +33,26 @@ class VisitPolicy
 
     public function update(User $actor, Visit $visit): bool
     {
-        return $visit->status === Visit::STATUS_REGISTERED
-            && $this->queueAllowsMutation($visit)
-            && $actor->organisation_id === $visit->organisation_id
-            && $actor->can('visits.update.branch')
-            && $this->isActiveVisitBranch($actor, $visit);
+        return $this->actionHints($actor, $visit)['update'];
     }
 
     public function cancel(User $actor, Visit $visit): bool
     {
-        return $visit->status === Visit::STATUS_REGISTERED
+        return $this->actionHints($actor, $visit)['cancel'];
+    }
+
+    /** @return array{update: bool, cancel: bool} */
+    public function actionHints(User $actor, Visit $visit): array
+    {
+        $mutable = $visit->status === Visit::STATUS_REGISTERED
             && $this->queueAllowsMutation($visit)
             && $actor->organisation_id === $visit->organisation_id
-            && $actor->can('visits.cancel.branch')
             && $this->isActiveVisitBranch($actor, $visit);
+
+        return [
+            'update' => $mutable && $actor->can('visits.update.branch'),
+            'cancel' => $mutable && $actor->can('visits.cancel.branch'),
+        ];
     }
 
     private function isActiveVisitBranch(User $actor, Visit $visit): bool

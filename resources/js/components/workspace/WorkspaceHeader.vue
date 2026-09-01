@@ -2,7 +2,6 @@
 import { Link, usePage } from '@inertiajs/vue3';
 import { Menu } from '@lucide/vue';
 import { computed } from 'vue';
-import AppLogoIcon from '@/components/AppLogoIcon.vue';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import {
@@ -69,9 +68,6 @@ const items = computed(() =>
 const isActive = (href: string) =>
     page.url === href ||
     (href !== '/dashboard' && page.url.startsWith(`${href}/`));
-
-// Replace null with '/images/brand/kp-mark.png' after the approved asset lands.
-const approvedBrandMarkPath: string | null = null;
 </script>
 
 <template>
@@ -121,12 +117,10 @@ const approvedBrandMarkPath: string | null = null;
                 aria-label="Open KPOne Main Menu"
             >
                 <img
-                    v-if="approvedBrandMarkPath"
-                    :src="approvedBrandMarkPath"
-                    alt=""
+                    src="/kp-mark.png"
+                    alt="Klinik Putrijaya"
                     class="size-8 object-contain"
                 />
-                <AppLogoIcon v-else class="size-8 text-emerald-800" />
                 <span
                     class="hidden text-sm font-semibold tracking-tight text-pink-700 sm:block"
                     >KPOne</span

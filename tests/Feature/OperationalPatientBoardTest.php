@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Domain\Queue\Services\QueueEntryService;
+use App\Domain\Visit\Services\VisitAdministrationService;
 use Tests\Feature\Queue\QueueTestCase;
 
 class OperationalPatientBoardTest extends QueueTestCase
@@ -69,6 +70,103 @@ class OperationalPatientBoardTest extends QueueTestCase
             ->assertJsonMissingPath('data.0.treatmentPlan')
             ->assertJsonMissingPath('data.0.dateOfBirth')
             ->assertJsonMissingPath('data.0.sex');
+    }
+
+    public function test_ca_waiting_visit_exposes_existing_edit_and_cancel_actions_without_call_authority(): void
+    {
+        $ca = $this->actor('ca');
+        $entry = $this->send($ca, $this->consultationVisit($ca, $this->doctor()));
+        $this->selectBranch($ca);
+
+        $this->postJson(route('registration.search'), ['board_status' => 'waiting'])
+            ->assertOk()
+            ->assertJsonPath('data.0.visitNumber', $entry->visit->visit_number)
+            ->assertJsonPath('data.0.can.update', true)
+            ->assertJsonPath('data.0.can.cancel', true)
+            ->assertJsonPath('data.0.can.call', false)
+            ->assertJsonPath('data.0.can.sendToWaiting', false)
+            ->assertJsonMissingPath('data.0.clinicalNote')
+            ->assertJsonMissingPath('data.0.treatmentPlan');
+    }
+
+    public function test_ca_serving_and_cancelled_visits_do_not_expose_edit_or_cancel_actions(): void
+    {
+        $ca = $this->actor('ca');
+        $doctor = $this->doctor();
+        $serving = $this->send($ca, $this->consultationVisit($ca, $doctor));
+        $this->selectBranch($doctor);
+        app(QueueEntryService::class)->call($doctor, $serving->visit, [
+            'expected_branch_id' => $this->branch->id,
+            'visit_lock_version' => $serving->visit->lock_version,
+            'queue_lock_version' => $serving->lock_version,
+        ]);
+
+        $cancelled = $this->consultationVisit($ca, $doctor);
+        app(VisitAdministrationService::class)->cancel($cancelled, [
+            'expected_branch_id' => $this->branch->id,
+            'lock_version' => $cancelled->lock_version,
+            'queue_lock_version' => null,
+            'cancellation_reason' => 'Synthetic Patient Board cancellation',
+        ], $ca);
+        $this->selectBranch($ca);
+
+        $this->postJson(route('registration.search'), ['board_status' => 'serving'])
+            ->assertOk()
+            ->assertJsonPath('data.0.visitNumber', $serving->visit->visit_number)
+            ->assertJsonPath('data.0.can.update', false)
+            ->assertJsonPath('data.0.can.cancel', false);
+        $this->postJson(route('registration.search'), ['board_status' => 'cancelled'])
+            ->assertOk()
+            ->assertJsonPath('data.0.visitNumber', $cancelled->visit_number)
+            ->assertJsonPath('data.0.can.update', false)
+            ->assertJsonPath('data.0.can.cancel', false)
+            ->assertJsonPath('data.0.can.sendToWaiting', false)
+            ->assertJsonPath('data.0.can.call', false);
+
+        $this->actingAs($ca)->patch(route('visits.update', $serving->visit), [])->assertForbidden();
+        $this->actingAs($ca)->patch(route('visits.cancel', $serving->visit), [])->assertForbidden();
+    }
+
+    public function test_registered_consultation_preserves_existing_visit_and_queue_action_hints(): void
+    {
+        $ca = $this->actor('ca');
+        $visit = $this->consultationVisit($ca, $this->doctor());
+        $this->selectBranch($ca);
+
+        $this->postJson(route('registration.search'), ['board_status' => 'all'])
+            ->assertOk()
+            ->assertJsonPath('data.0.visitNumber', $visit->visit_number)
+            ->assertJsonPath('data.0.can.update', true)
+            ->assertJsonPath('data.0.can.cancel', true)
+            ->assertJsonPath('data.0.can.sendToWaiting', true)
+            ->assertJsonPath('data.0.can.call', false);
+    }
+
+    public function test_waiting_call_hints_preserve_existing_supervisor_director_and_assigned_doctor_authority(): void
+    {
+        foreach (['ca_supervisor', 'director'] as $role) {
+            $actor = $this->actor($role);
+            $this->send($actor, $this->consultationVisit($actor, $this->doctor()));
+            $this->selectBranch($actor);
+
+            $this->postJson(route('registration.search'), ['board_status' => 'waiting'])
+                ->assertOk()
+                ->assertJsonPath('data.0.can.call', true)
+                ->assertJsonPath('data.0.can.update', true)
+                ->assertJsonPath('data.0.can.cancel', true);
+        }
+
+        $ca = $this->actor('ca');
+        $doctor = $this->doctor();
+        $own = $this->send($ca, $this->consultationVisit($ca, $doctor));
+        $this->selectBranch($doctor);
+
+        $this->postJson(route('queue.search'))
+            ->assertOk()
+            ->assertJsonPath('waiting.data.0.visitNumber', $own->visit->visit_number)
+            ->assertJsonPath('waiting.data.0.canCall', true)
+            ->assertJsonPath('waiting.data.0.can.update', false)
+            ->assertJsonPath('waiting.data.0.can.cancel', false);
     }
 
     public function test_doctor_queue_scope_cannot_be_broadened_by_browser_filters(): void

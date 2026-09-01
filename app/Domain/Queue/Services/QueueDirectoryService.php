@@ -5,6 +5,7 @@ namespace App\Domain\Queue\Services;
 use App\Domain\Access\BranchAccessService;
 use App\Domain\Organisation\Models\Branch;
 use App\Domain\Queue\Models\QueueEntry;
+use App\Domain\Visit\Policies\VisitPolicy;
 use App\Domain\Visit\Services\VisitDoctorEligibilityService;
 use App\Models\User;
 use Carbon\CarbonInterface;
@@ -18,6 +19,7 @@ class QueueDirectoryService
     public function __construct(
         private BranchAccessService $branches,
         private VisitDoctorEligibilityService $doctors,
+        private VisitPolicy $visitPolicy,
     ) {}
 
     /**
@@ -38,6 +40,7 @@ class QueueDirectoryService
         $status = (string) ($criteria['status'] ?? '');
         $page = (int) ($criteria['page'] ?? 1);
         $carryPage = (int) ($criteria['carry_page'] ?? 1);
+        $visitActionHints = [];
 
         $waiting = ['data' => [], 'total' => 0, 'currentPage' => 1, 'lastPage' => 1];
         if ($status === '' || $status === QueueEntry::STATUS_WAITING) {
@@ -50,7 +53,9 @@ class QueueDirectoryService
                 ->paginate(25, page: $page);
             $waiting = [
                 'data' => $paginator->getCollection()
-                    ->map(fn (QueueEntry $entry) => $this->row($actor, $entry, $branch, $now, $eligibleDoctorIds))
+                    ->map(function (QueueEntry $entry) use ($actor, $branch, $now, $eligibleDoctorIds, &$visitActionHints): array {
+                        return $this->row($actor, $entry, $branch, $now, $eligibleDoctorIds, $visitActionHints);
+                    })
                     ->values(),
                 'total' => $paginator->total(),
                 'currentPage' => $paginator->currentPage(),
@@ -70,7 +75,9 @@ class QueueDirectoryService
                 ->paginate(25, pageName: 'carry_page', page: $carryPage);
             $carryOver = [
                 'data' => $carryPaginator->getCollection()
-                    ->map(fn (QueueEntry $entry) => $this->row($actor, $entry, $branch, $now, $eligibleDoctorIds))
+                    ->map(function (QueueEntry $entry) use ($actor, $branch, $now, $eligibleDoctorIds, &$visitActionHints): array {
+                        return $this->row($actor, $entry, $branch, $now, $eligibleDoctorIds, $visitActionHints);
+                    })
                     ->values(),
                 'total' => $carryPaginator->total(),
                 'currentPage' => $carryPaginator->currentPage(),
@@ -85,7 +92,9 @@ class QueueDirectoryService
                 ->latest('queue_entries.called_at')
                 ->limit(25)
                 ->get()
-                ->map(fn (QueueEntry $entry) => $this->row($actor, $entry, $branch, $now, $eligibleDoctorIds))
+                ->map(function (QueueEntry $entry) use ($actor, $branch, $now, $eligibleDoctorIds, &$visitActionHints): array {
+                    return $this->row($actor, $entry, $branch, $now, $eligibleDoctorIds, $visitActionHints);
+                })
                 ->values();
         }
 
@@ -96,7 +105,9 @@ class QueueDirectoryService
                 ->latest('queue_entries.removed_at')
                 ->limit(25)
                 ->get()
-                ->map(fn (QueueEntry $entry) => $this->row($actor, $entry, $branch, $now, $eligibleDoctorIds))
+                ->map(function (QueueEntry $entry) use ($actor, $branch, $now, $eligibleDoctorIds, &$visitActionHints): array {
+                    return $this->row($actor, $entry, $branch, $now, $eligibleDoctorIds, $visitActionHints);
+                })
                 ->values();
         }
 
@@ -141,7 +152,7 @@ class QueueDirectoryService
             ->with([
                 'visit' => fn ($visit) => $visit
                     ->select([
-                        'id', 'patient_id', 'visit_number', 'visit_reason', 'priority', 'coverage_type',
+                        'id', 'organisation_id', 'branch_id', 'patient_id', 'visit_number', 'visit_reason', 'priority', 'coverage_type',
                         'coverage_panel_name_snapshot', 'assigned_doctor_user_id', 'status', 'lock_version',
                     ])
                     ->with(['patient:id,organisation_id,patient_number,full_name', 'assignedDoctor:id,name']),
@@ -180,6 +191,7 @@ class QueueDirectoryService
 
     /**
      * @param  list<int>  $eligibleDoctorIds
+     * @param  array<string, array{update: bool, cancel: bool}>  $visitActionHints
      * @return array<string, mixed>
      */
     private function row(
@@ -188,6 +200,7 @@ class QueueDirectoryService
         Branch $branch,
         CarbonInterface $now,
         array $eligibleDoctorIds,
+        array &$visitActionHints,
     ): array {
         $visit = $entry->visit;
         $entry->setRelation('visit', $visit);
@@ -202,6 +215,7 @@ class QueueDirectoryService
             && $actor->hasRole('resident_doctor')
             && $actor->can('encounters.start.own')
             && $visit->assigned_doctor_user_id === $actor->id;
+        $actions = $visitActionHints[$entry->status] ??= $this->visitPolicy->actionHints($actor, $visit);
 
         return [
             'queueNumber' => sprintf('%03d', $entry->queue_number),
@@ -232,8 +246,8 @@ class QueueDirectoryService
             'canOpenEncounter' => $canOpenEncounter,
             'can' => [
                 'viewPatient' => Gate::forUser($actor)->allows('view', $visit->patient),
-                'update' => Gate::forUser($actor)->allows('update', $visit),
-                'cancel' => Gate::forUser($actor)->allows('cancel', $visit),
+                'update' => $actions['update'],
+                'cancel' => $actions['cancel'],
             ],
         ];
     }

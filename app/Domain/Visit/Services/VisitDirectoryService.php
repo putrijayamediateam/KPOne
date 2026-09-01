@@ -9,6 +9,7 @@ use App\Domain\Patient\Services\PatientDirectoryService;
 use App\Domain\Queue\Models\QueueEntry;
 use App\Domain\Visit\Models\Panel;
 use App\Domain\Visit\Models\Visit;
+use App\Domain\Visit\Policies\VisitPolicy;
 use App\Models\User;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Facades\Gate;
@@ -21,6 +22,7 @@ class VisitDirectoryService
         private BranchAccessService $branches,
         private VisitDoctorEligibilityService $doctors,
         private PatientDirectoryService $patients,
+        private VisitPolicy $visitPolicy,
     ) {}
 
     /**
@@ -35,6 +37,8 @@ class VisitDirectoryService
         $query = Visit::query()
             ->select([
                 'id',
+                'organisation_id',
+                'branch_id',
                 'patient_id',
                 'visit_number',
                 'visit_type',
@@ -89,10 +93,13 @@ class VisitDirectoryService
         $effectiveDate = now()->setTimezone($branch->timezone)->toDateString();
         $eligibleDoctorIds = $this->doctors->eligibleDoctors($branch, $effectiveDate)
             ->pluck('id')->map(fn ($id): int => (int) $id)->values()->all();
+        $actionHints = [];
 
         return [
             'data' => $paginator->getCollection()
-                ->map(fn (Visit $visit) => $this->row($actor, $visit, $branch, $eligibleDoctorIds))
+                ->map(function (Visit $visit) use ($actor, $branch, $eligibleDoctorIds, &$actionHints): array {
+                    return $this->row($actor, $visit, $branch, $eligibleDoctorIds, $actionHints);
+                })
                 ->values(),
             'total' => $paginator->total(),
             'currentPage' => $paginator->currentPage(),
@@ -263,11 +270,19 @@ class VisitDirectoryService
 
     /**
      * @param  array<int, int>  $eligibleDoctorIds
+     * @param  array<string, array{update: bool, cancel: bool}>  $actionHints
      * @return array<string, mixed>
      */
-    private function row(User $actor, Visit $visit, Branch $branch, array $eligibleDoctorIds): array
-    {
+    private function row(
+        User $actor,
+        Visit $visit,
+        Branch $branch,
+        array $eligibleDoctorIds,
+        array &$actionHints,
+    ): array {
         $visibleQueueEntry = $this->visibleQueueEntry($actor, $visit);
+        $visibleQueueStatus = $visibleQueueEntry instanceof QueueEntry ? $visibleQueueEntry->status : 'none';
+        $actionKey = $visit->status.':'.$visibleQueueStatus;
         $doctorEligible = $visit->assigned_doctor_user_id !== null
             && in_array($visit->assigned_doctor_user_id, $eligibleDoctorIds, true);
         $canCall = $visibleQueueEntry?->status === QueueEntry::STATUS_WAITING
@@ -286,6 +301,7 @@ class VisitDirectoryService
                 : null,
             default => null,
         };
+        $actions = $actionHints[$actionKey] ??= $this->visitPolicy->actionHints($actor, $visit);
 
         return [
             'visitNumber' => $visit->visit_number,
@@ -306,8 +322,8 @@ class VisitDirectoryService
             'queueLockVersion' => $visibleQueueEntry?->lock_version,
             'can' => [
                 'viewPatient' => Gate::forUser($actor)->allows('view', $visit->patient),
-                'update' => Gate::forUser($actor)->allows('update', $visit),
-                'cancel' => Gate::forUser($actor)->allows('cancel', $visit),
+                'update' => $actions['update'],
+                'cancel' => $actions['cancel'],
                 'sendToWaiting' => $visit->status === Visit::STATUS_REGISTERED
                     && $visit->visit_type === 'consultation'
                     && $visit->queueEntry === null
