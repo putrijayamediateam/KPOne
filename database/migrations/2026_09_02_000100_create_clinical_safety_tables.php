@@ -225,7 +225,7 @@ return new class extends Migration
         DB::statement('ALTER TABLE patient_problem_records ADD CONSTRAINT problem_records_dates_check CHECK (onset_date IS NULL OR resolved_date IS NULL OR onset_date <= resolved_date)');
 
         DB::unprepared(<<<'SQL'
-            CREATE FUNCTION kpone_validate_allergy_profile_consistency()
+            CREATE OR REPLACE FUNCTION kpone_validate_allergy_profile_consistency()
             RETURNS trigger LANGUAGE plpgsql AS $$
             DECLARE
                 target_profile_id bigint;
@@ -286,7 +286,7 @@ return new class extends Migration
         SQL);
 
         DB::unprepared(<<<'SQL'
-            CREATE FUNCTION kpone_validate_encounter_allergy_review_patient()
+            CREATE OR REPLACE FUNCTION kpone_validate_encounter_allergy_review_patient()
             RETURNS trigger LANGUAGE plpgsql AS $$
             DECLARE
                 encounter_patient_id bigint;

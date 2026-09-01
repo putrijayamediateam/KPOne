@@ -90,6 +90,22 @@ class PostgresClinicalSafetyRegressionTest extends TestCase
 
     public function test_simultaneous_first_profile_creation_commits_one_coherent_aggregate(): void
     {
+        $installedFunctions = (int) DB::scalar(<<<'SQL'
+            SELECT count(*)
+            FROM pg_proc
+            INNER JOIN pg_namespace ON pg_namespace.oid = pg_proc.pronamespace
+            WHERE pg_namespace.nspname = current_schema()
+              AND pg_proc.proname IN (
+                  'kpone_validate_allergy_profile_consistency',
+                  'kpone_validate_encounter_allergy_review_patient'
+              )
+        SQL);
+        $this->assertSame(
+            2,
+            $installedFunctions,
+            'Laravel schema refresh must reinstall both Clinical Safety trigger functions.',
+        );
+
         $fixture = $this->fixture();
         $workers = [
             $this->safetyWorker(['add', (string) $fixture['doctor']->id, $fixture['visit']->visit_number, (string) $fixture['branch']->id, 'null', 'ALPHA']),
