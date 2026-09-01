@@ -93,6 +93,34 @@ const sourceRows = computed<QueueRow[]>(() => {
         ...live.value.serving,
     ];
 });
+const compactDate = (value: string) => {
+    const [year, month, day] = value.split('-').map(Number);
+
+    if (!year || !month || !day) {
+        return value;
+    }
+
+    return new Intl.DateTimeFormat('en-MY', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+        timeZone: 'UTC',
+    }).format(new Date(Date.UTC(year, month - 1, day)));
+};
+const compactTime = (value: string) => {
+    const [hour, minute] = value.split(':').map(Number);
+
+    if (hour === undefined || minute === undefined) {
+        return value;
+    }
+
+    return new Intl.DateTimeFormat('en-MY', {
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true,
+        timeZone: 'UTC',
+    }).format(new Date(Date.UTC(2000, 0, 1, hour, minute)));
+};
 const boardRows = computed<PatientBoardRow[]>(() =>
     sourceRows.value.map((row) => ({
         key: `${row.operationalDate}-${row.queueNumber}`,
@@ -100,7 +128,8 @@ const boardRows = computed<PatientBoardRow[]>(() =>
         patientNumber: row.patientNumber,
         visitNumber: row.visitNumber,
         queueNumber: row.queueNumber,
-        arrivedAt: row.queuedTime,
+        arrivedDate: compactDate(row.operationalDate),
+        arrivedTime: compactTime(row.queuedTime),
         visitNotes: row.visitReasonExcerpt,
         doctorName: row.doctorName,
         coverageLabel: row.coverageLabel,
@@ -347,16 +376,8 @@ onBeforeUnmount(() => {
     <main
         class="mx-auto flex w-full max-w-[1600px] flex-1 flex-col gap-3 px-3 py-4 md:px-5"
     >
-        <header class="flex flex-wrap items-end justify-between gap-3">
-            <div>
-                <h1 class="text-2xl font-semibold tracking-tight">
-                    Consultation
-                </h1>
-                <p class="text-sm text-muted-foreground">
-                    {{ live.branch.name }} · {{ live.operationalDate }} ·
-                    {{ live.scope === 'own' ? 'My Patients' : 'Branch Queue' }}
-                </p>
-            </div>
+        <header class="flex flex-wrap items-center justify-between gap-3">
+            <h1 class="text-2xl font-semibold tracking-tight">Consultation</h1>
             <span class="text-xs text-muted-foreground">{{
                 isRefreshing ? 'Refreshing…' : 'Live · every 3 seconds'
             }}</span>
@@ -370,10 +391,10 @@ onBeforeUnmount(() => {
                 v-for="tab in tabs"
                 :key="tab.value"
                 type="button"
-                class="relative shrink-0 px-3 py-2 text-sm font-medium text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                class="relative shrink-0 px-3 py-2 text-sm font-normal text-muted-foreground transition-colors hover:bg-muted/25 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-inset"
                 :class="
                     activeTab === tab.value
-                        ? 'text-foreground after:absolute after:inset-x-2 after:bottom-0 after:h-0.5 after:bg-emerald-700'
+                        ? 'text-foreground after:absolute after:inset-x-3 after:bottom-0 after:h-px after:bg-foreground/50'
                         : ''
                 "
                 :aria-current="activeTab === tab.value ? 'page' : undefined"
@@ -392,14 +413,14 @@ onBeforeUnmount(() => {
                     class="absolute top-2.5 left-3 size-4 text-muted-foreground" /><input
                     v-model="filters.query"
                     autocomplete="off"
-                    class="h-9 w-full rounded-md border bg-background pr-3 pl-9 text-sm"
+                    class="h-9 w-full rounded-lg border border-border/80 bg-background pr-3 pl-9 text-sm transition-colors outline-none hover:border-foreground/20 focus:border-ring focus:ring-2 focus:ring-ring/20"
                     placeholder="Patient or exact Queue number"
             /></label>
             <select
                 v-if="live.scope === 'branch'"
                 v-model="filters.doctor_id"
                 aria-label="Doctor"
-                class="h-9 rounded-md border bg-background px-2 text-sm"
+                class="h-9 rounded-lg border border-border/80 bg-background px-2 text-sm transition-colors outline-none hover:border-foreground/20 focus:border-ring focus:ring-2 focus:ring-ring/20"
             >
                 <option value="">All doctors</option>
                 <option
@@ -413,7 +434,7 @@ onBeforeUnmount(() => {
             <select
                 v-model="filters.priority"
                 aria-label="Urgency"
-                class="h-9 rounded-md border bg-background px-2 text-sm"
+                class="h-9 rounded-lg border border-border/80 bg-background px-2 text-sm transition-colors outline-none hover:border-foreground/20 focus:border-ring focus:ring-2 focus:ring-ring/20"
             >
                 <option value="">All urgency</option>
                 <option value="urgent">Urgent</option>

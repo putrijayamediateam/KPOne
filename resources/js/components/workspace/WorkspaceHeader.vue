@@ -74,7 +74,7 @@ const isActive = (href: string) =>
 <template>
     <header class="sticky top-0 z-40 border-b bg-background/95 backdrop-blur">
         <div
-            class="mx-auto flex h-14 w-full max-w-[1600px] items-center gap-3 px-3 md:px-5"
+            class="mx-auto flex h-14 w-full max-w-[1600px] items-center gap-3 px-3 md:px-5 lg:grid lg:grid-cols-[minmax(180px,1fr)_auto_minmax(180px,1fr)]"
         >
             <Sheet>
                 <SheetTrigger as-child>
@@ -118,21 +118,24 @@ const isActive = (href: string) =>
                 aria-label="Open KPOne Main Menu"
             >
                 <AppLogoIcon class="size-8 text-emerald-800" />
-                <span class="hidden text-sm font-semibold sm:block">KPOne</span>
+                <span
+                    class="hidden text-sm font-semibold tracking-tight text-pink-700 sm:block"
+                    >KPOne</span
+                >
             </Link>
 
             <nav
-                class="hidden min-w-0 flex-1 items-stretch gap-0.5 lg:flex"
+                class="hidden min-w-0 items-stretch justify-self-center lg:flex"
                 aria-label="Primary navigation"
             >
                 <Link
                     v-for="item in items"
                     :key="item.href"
                     :href="item.href"
-                    class="relative flex h-14 items-center px-2.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-inset xl:px-3"
+                    class="relative flex h-14 items-center px-2.5 text-sm font-normal text-muted-foreground transition-colors hover:bg-muted/30 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-inset xl:px-3.5"
                     :class="
                         isActive(item.href)
-                            ? 'text-foreground after:absolute after:inset-x-2 after:bottom-0 after:h-0.5 after:bg-emerald-700'
+                            ? 'text-foreground after:absolute after:inset-x-3 after:bottom-0 after:h-px after:bg-foreground/50'
                             : ''
                     "
                 >
@@ -140,7 +143,9 @@ const isActive = (href: string) =>
                 </Link>
             </nav>
 
-            <div class="ml-auto flex shrink-0 items-center gap-2">
+            <div
+                class="ml-auto flex shrink-0 items-center gap-2 lg:ml-0 lg:justify-self-end"
+            >
                 <Button
                     v-if="context === 'admin' && workspace?.canEnterClinic"
                     as-child
@@ -158,10 +163,10 @@ const isActive = (href: string) =>
                         <Button
                             variant="ghost"
                             size="icon"
-                            class="rounded-full"
+                            class="size-10 rounded-full"
                             aria-label="Open user menu"
                         >
-                            <Avatar class="size-8">
+                            <Avatar class="size-9">
                                 <AvatarFallback
                                     class="bg-muted text-xs font-semibold"
                                 >

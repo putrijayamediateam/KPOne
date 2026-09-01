@@ -30,17 +30,19 @@ const visitHref = (number: string) => `/visits/${encodeURIComponent(number)}`;
 const editHref = (number: string) => `${visitHref(number)}/edit`;
 const statusClass = (tone: PatientBoardRow['statusTone']) =>
     ({
-        neutral: 'border-border bg-muted/40 text-muted-foreground',
-        waiting: 'border-amber-200 bg-amber-50 text-amber-800',
-        serving: 'border-emerald-200 bg-emerald-50 text-emerald-800',
-        cancelled: 'border-border bg-muted text-muted-foreground',
-        removed: 'border-border bg-background text-muted-foreground',
+        neutral: 'border-border/80 bg-muted/25 text-muted-foreground',
+        waiting: 'border-amber-200/80 bg-amber-50/55 text-amber-800',
+        serving: 'border-emerald-200/80 bg-emerald-50/55 text-emerald-800',
+        cancelled: 'border-border/80 bg-muted/35 text-muted-foreground',
+        removed: 'border-border/80 bg-background text-muted-foreground',
     })[tone];
 </script>
 
 <template>
     <div class="overflow-x-auto">
-        <table class="w-full min-w-[1040px] table-fixed text-left text-sm">
+        <table
+            class="w-full min-w-[1040px] table-fixed text-left text-[13px] leading-5"
+        >
             <thead
                 class="border-y bg-muted/25 text-[11px] font-semibold tracking-wide text-muted-foreground uppercase"
             >
@@ -62,55 +64,73 @@ const statusClass = (tone: PatientBoardRow['statusTone']) =>
                     :key="row.key"
                     class="border-b border-border/60 transition-colors last:border-0 hover:bg-muted/20"
                 >
-                    <td class="px-3 py-2.5 align-top">
-                        <div class="truncate font-medium">
+                    <td class="px-3 py-2.5 align-middle">
+                        <div class="truncate font-medium text-foreground">
                             {{ row.patientName }}
                         </div>
                         <div
-                            class="truncate font-mono text-[11px] text-muted-foreground"
+                            class="truncate text-[11px] font-normal text-muted-foreground"
                         >
                             {{ row.patientNumber }}
                         </div>
                     </td>
+                    <td class="px-3 py-2.5 align-middle">
+                        <span
+                            class="inline-flex min-w-8 justify-center rounded-md border border-border/80 bg-muted/20 px-1.5 py-0.5 font-normal text-foreground tabular-nums"
+                            >{{ row.queueNumber ?? '—' }}</span
+                        >
+                    </td>
                     <td
-                        class="px-3 py-2.5 align-top font-mono font-semibold tabular-nums"
+                        class="px-3 py-2.5 align-middle font-normal tabular-nums"
                     >
-                        {{ row.queueNumber ?? '—' }}
+                        <span class="block whitespace-nowrap">{{
+                            row.arrivedDate
+                        }}</span>
+                        <span
+                            class="block text-xs whitespace-nowrap text-muted-foreground"
+                            >{{ row.arrivedTime }}</span
+                        >
                     </td>
-                    <td class="px-3 py-2.5 align-top tabular-nums">
-                        {{ row.arrivedAt }}
-                    </td>
-                    <td class="px-3 py-2.5 align-top">
+                    <td class="px-3 py-2.5 align-middle">
                         <div
                             class="line-clamp-2 text-xs leading-5 text-muted-foreground"
                         >
                             {{ row.visitNotes ?? 'No reason recorded' }}
                         </div>
                     </td>
-                    <td class="px-3 py-2.5 align-top">
-                        <div class="truncate">
+                    <td class="px-3 py-2.5 align-middle">
+                        <div
+                            class="max-w-full truncate rounded-md border border-border/80 bg-muted/15 px-2 py-0.5 font-normal transition-colors hover:border-foreground/20 hover:bg-muted/30 focus-visible:ring-2 focus-visible:ring-ring/30 focus-visible:outline-none"
+                            :title="row.doctorName ?? 'Unassigned'"
+                            tabindex="0"
+                        >
                             {{ row.doctorName ?? 'Unassigned' }}
                         </div>
                     </td>
-                    <td class="px-3 py-2.5 align-top">
+                    <td class="px-3 py-2.5 align-middle">
                         <div class="truncate">{{ row.coverageLabel }}</div>
                     </td>
-                    <td class="px-3 py-2.5 align-top font-medium tabular-nums">
-                        {{ row.durationLabel }}
-                    </td>
-                    <td class="px-3 py-2.5 align-top">
+                    <td class="px-3 py-2.5 align-middle">
                         <span
-                            class="inline-flex rounded-full border px-2 py-0.5 text-[11px] font-medium"
-                            :class="statusClass(row.statusTone)"
-                            >{{ row.statusLabel }}</span
-                        >
-                        <span
-                            v-if="row.priority === 'urgent'"
-                            class="mt-1 block text-[11px] font-semibold text-red-700"
-                            >Urgent</span
+                            class="inline-flex rounded-md border border-border/80 bg-muted/15 px-1.5 py-0.5 font-normal tabular-nums"
+                            >{{ row.durationLabel }}</span
                         >
                     </td>
-                    <td class="px-3 py-2 text-right align-top">
+                    <td class="px-3 py-2.5 align-middle">
+                        <div class="flex flex-wrap items-center gap-1.5">
+                            <span
+                                class="inline-flex rounded-md border px-1.5 py-0.5 text-[11px] font-normal"
+                                :class="statusClass(row.statusTone)"
+                                >{{ row.statusLabel }}</span
+                            >
+                            <span
+                                v-if="row.priority === 'urgent'"
+                                class="inline-flex rounded-md border border-red-200/80 bg-red-50/60 px-1.5 py-0.5 text-[11px] font-medium text-red-700"
+                                >Urgent</span
+                            >
+                        </div>
+                    </td>
+                    <td class="px-3 py-2 text-right align-middle">
                         <DropdownMenu>
                             <DropdownMenuTrigger as-child>
                                 <Button

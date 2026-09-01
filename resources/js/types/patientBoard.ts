@@ -7,7 +7,8 @@ export type PatientBoardRow = {
     patientNumber: string;
     visitNumber: string;
     queueNumber: string | null;
-    arrivedAt: string;
+    arrivedDate: string;
+    arrivedTime: string;
     visitNotes: string | null;
     doctorName: string | null;
     coverageLabel: string;

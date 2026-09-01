@@ -83,6 +83,39 @@ const duration = (minutes: number | null) => {
         ? `${minutes}m`
         : `${Math.floor(minutes / 60)}h ${minutes % 60}m`;
 };
+const compactDate = (value: string) => {
+    const [year, month, day] = value.split('-').map(Number);
+
+    if (!year || !month || !day) {
+        return value;
+    }
+
+    return new Intl.DateTimeFormat('en-MY', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+        timeZone: 'UTC',
+    }).format(new Date(Date.UTC(year, month - 1, day)));
+};
+const compactTime = (value: string) => {
+    const [hour, minute] = value.split(':').map(Number);
+
+    if (hour === undefined || minute === undefined) {
+        return value;
+    }
+
+    return new Intl.DateTimeFormat('en-MY', {
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true,
+        timeZone: 'UTC',
+    }).format(new Date(Date.UTC(2000, 0, 1, hour, minute)));
+};
+const registrationDateLabel = computed(() =>
+    form.date_from === form.date_to
+        ? compactDate(form.date_from)
+        : `${compactDate(form.date_from)}–${compactDate(form.date_to)}`,
+);
 const boardRows = computed<PatientBoardRow[]>(() =>
     rows.value.map((visit) => {
         const status =
@@ -105,7 +138,8 @@ const boardRows = computed<PatientBoardRow[]>(() =>
             patientNumber: visit.patientNumber,
             visitNumber: visit.visitNumber,
             queueNumber: visit.queueNumber,
-            arrivedAt: visit.registeredAt,
+            arrivedDate: registrationDateLabel.value,
+            arrivedTime: compactTime(visit.registeredAt),
             visitNotes: visit.visitReasonExcerpt,
             doctorName: visit.doctorName,
             coverageLabel: visit.coverageLabel,
@@ -267,15 +301,8 @@ const requestCancellation = (row: PatientBoardRow) => {
     <main
         class="mx-auto flex w-full max-w-[1600px] flex-1 flex-col gap-3 px-3 py-4 md:px-5"
     >
-        <header class="flex flex-wrap items-end justify-between gap-3">
-            <div>
-                <h1 class="text-2xl font-semibold tracking-tight">
-                    Registration
-                </h1>
-                <p class="text-sm text-muted-foreground">
-                    {{ options.branch.name }} · live Patient board
-                </p>
-            </div>
+        <header class="flex flex-wrap items-center justify-between gap-3">
+            <h1 class="text-2xl font-semibold tracking-tight">Registration</h1>
             <Button v-if="canCreate" as-child size="sm"
                 ><Link href="/registration/create"
                     ><Plus class="size-4" /> Register Visit</Link
@@ -291,10 +318,10 @@ const requestCancellation = (row: PatientBoardRow) => {
                 v-for="tab in tabs"
                 :key="tab.value"
                 type="button"
-                class="relative shrink-0 px-3 py-2 text-sm font-medium text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                class="relative shrink-0 px-3 py-2 text-sm font-normal text-muted-foreground transition-colors hover:bg-muted/25 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-inset"
                 :class="
                     activeTab === tab.value
-                        ? 'text-foreground after:absolute after:inset-x-2 after:bottom-0 after:h-0.5 after:bg-emerald-700'
+                        ? 'text-foreground after:absolute after:inset-x-3 after:bottom-0 after:h-px after:bg-foreground/50'
                         : ''
                 "
                 :aria-current="activeTab === tab.value ? 'page' : undefined"
@@ -303,7 +330,7 @@ const requestCancellation = (row: PatientBoardRow) => {
                 {{ tab.label }}
                 <span
                     v-if="tab.planned"
-                    class="ml-1 text-[10px] font-normal uppercase"
+                    class="ml-1 text-[9px] font-normal tracking-normal text-muted-foreground/70"
                     >Planned</span
                 >
             </button>
@@ -335,14 +362,14 @@ const requestCancellation = (row: PatientBoardRow) => {
                         <input
                             v-model="form.patient_query"
                             autocomplete="off"
-                            class="h-9 w-full rounded-md border bg-background pr-3 pl-9 text-sm"
+                            class="h-9 w-full rounded-lg border border-border/80 bg-background pr-3 pl-9 text-sm transition-colors outline-none hover:border-foreground/20 focus:border-ring focus:ring-2 focus:ring-ring/20"
                             placeholder="Patient name or exact Patient No."
                         />
                     </label>
                     <select
                         v-model="form.doctor_id"
                         aria-label="Doctor"
-                        class="h-9 rounded-md border bg-background px-2 text-sm"
+                        class="h-9 rounded-lg border border-border/80 bg-background px-2 text-sm transition-colors outline-none hover:border-foreground/20 focus:border-ring focus:ring-2 focus:ring-ring/20"
                     >
                         <option value="">All doctors</option>
                         <option
@@ -356,7 +383,7 @@ const requestCancellation = (row: PatientBoardRow) => {
                     <select
                         v-model="form.coverage_type"
                         aria-label="Coverage"
-                        class="h-9 rounded-md border bg-background px-2 text-sm"
+                        class="h-9 rounded-lg border border-border/80 bg-background px-2 text-sm transition-colors outline-none hover:border-foreground/20 focus:border-ring focus:ring-2 focus:ring-ring/20"
                     >
                         <option value="">All coverage</option>
                         <option value="self_pay">Self-pay</option>
@@ -365,7 +392,7 @@ const requestCancellation = (row: PatientBoardRow) => {
                     <select
                         v-model="form.priority"
                         aria-label="Urgency"
-                        class="h-9 rounded-md border bg-background px-2 text-sm"
+                        class="h-9 rounded-lg border border-border/80 bg-background px-2 text-sm transition-colors outline-none hover:border-foreground/20 focus:border-ring focus:ring-2 focus:ring-ring/20"
                     >
                         <option value="">All urgency</option>
                         <option value="urgent">Urgent</option>
@@ -400,7 +427,7 @@ const requestCancellation = (row: PatientBoardRow) => {
                     <label class="grid gap-1 text-xs"
                         >Visit type<select
                             v-model="form.visit_type"
-                            class="h-9 rounded-md border bg-background px-2 text-sm"
+                            class="h-9 rounded-lg border border-border/80 bg-background px-2 text-sm transition-colors outline-none hover:border-foreground/20 focus:border-ring focus:ring-2 focus:ring-ring/20"
                         >
                             <option value="">All</option>
                             <option value="consultation">Consultation</option>
@@ -411,13 +438,13 @@ const requestCancellation = (row: PatientBoardRow) => {
                         >From<input
                             v-model="form.date_from"
                             type="date"
-                            class="h-9 rounded-md border bg-background px-2 text-sm"
+                            class="h-9 rounded-lg border border-border/80 bg-background px-2 text-sm transition-colors outline-none hover:border-foreground/20 focus:border-ring focus:ring-2 focus:ring-ring/20"
                     /></label>
                     <label class="grid gap-1 text-xs"
                         >To<input
                             v-model="form.date_to"
                             type="date"
-                            class="h-9 rounded-md border bg-background px-2 text-sm"
+                            class="h-9 rounded-lg border border-border/80 bg-background px-2 text-sm transition-colors outline-none hover:border-foreground/20 focus:border-ring focus:ring-2 focus:ring-ring/20"
                     /></label>
                     <Button
                         type="button"
