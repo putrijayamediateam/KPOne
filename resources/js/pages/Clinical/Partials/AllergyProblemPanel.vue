@@ -250,36 +250,17 @@ const transitionProblem = (
 </script>
 
 <template>
-    <section
-        class="space-y-4 rounded-lg border border-amber-200 bg-amber-50/30 p-4"
-    >
-        <div class="flex flex-wrap items-start justify-between gap-3">
+    <section class="space-y-3 rounded-lg border bg-background p-3 md:p-4">
+        <div class="flex flex-wrap items-start justify-between gap-2">
             <div>
                 <h2 class="flex items-center gap-2 font-semibold">
-                    <ShieldCheck class="size-4 text-amber-800" /> Allergies &
+                    <ShieldCheck class="size-4 text-slate-700" /> Allergies &
                     Conditions
                 </h2>
                 <p class="text-xs text-muted-foreground">
                     Longitudinal clinical safety information for the current
                     Patient.
                 </p>
-            </div>
-            <div
-                v-if="allergies"
-                class="rounded-md border px-3 py-2 text-xs"
-                :class="
-                    reviewCurrent
-                        ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
-                        : 'border-amber-300 bg-amber-100/60 text-amber-900'
-                "
-            >
-                <span v-if="reviewCurrent" class="flex items-center gap-1">
-                    <Check class="size-3.5" /> Reviewed for this consultation
-                </span>
-                <span v-else class="flex items-center gap-1">
-                    <AlertTriangle class="size-3.5" /> Review required for this
-                    consultation
-                </span>
             </div>
         </div>
 
@@ -291,344 +272,438 @@ const transitionProblem = (
             {{ actionError }}
         </p>
 
-        <div v-if="allergies" class="space-y-3">
-            <div class="flex flex-wrap items-center justify-between gap-2">
-                <div>
-                    <h3 class="text-sm font-semibold">Allergies</h3>
-                    <p
-                        v-if="allergies.status === 'unknown'"
-                        class="text-sm text-amber-900"
+        <div class="grid gap-3 lg:grid-cols-2 lg:items-start">
+            <section
+                v-if="allergies"
+                class="space-y-3 rounded-md border bg-white p-3 dark:bg-background"
+                aria-labelledby="allergies-heading"
+            >
+                <div class="space-y-2 border-b pb-3">
+                    <div
+                        class="flex flex-wrap items-start justify-between gap-2"
                     >
-                        Allergy status not yet reviewed
-                    </p>
-                    <p
-                        v-else-if="allergies.status === 'no_known_allergies'"
-                        class="text-sm font-medium text-emerald-800"
-                    >
-                        No known allergies
-                        <span
-                            v-if="allergies.reviewedAt"
-                            class="font-normal text-muted-foreground"
+                        <div class="min-w-0">
+                            <h3
+                                id="allergies-heading"
+                                class="text-sm font-semibold"
+                            >
+                                Allergies
+                            </h3>
+                            <p
+                                v-if="allergies.status === 'unknown'"
+                                class="text-sm font-medium text-amber-900 dark:text-amber-300"
+                            >
+                                Allergy status not yet reviewed
+                            </p>
+                            <p
+                                v-else-if="
+                                    allergies.status === 'no_known_allergies'
+                                "
+                                class="text-sm font-medium"
+                            >
+                                No known allergies
+                                <span
+                                    v-if="allergies.reviewedAt"
+                                    class="font-normal text-muted-foreground"
+                                >
+                                    · Recorded
+                                    {{
+                                        new Date(
+                                            allergies.reviewedAt,
+                                        ).toLocaleString()
+                                    }}
+                                </span>
+                            </p>
+                            <p v-else class="text-sm font-medium">
+                                Allergies recorded ·
+                                {{ allergies.records.length }} active
+                            </p>
+                        </div>
+                        <div
+                            class="inline-flex shrink-0 items-center gap-1 rounded-md border px-2 py-1 text-xs font-medium"
+                            :class="
+                                reviewCurrent
+                                    ? 'border-emerald-200 bg-emerald-50/60 text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-300'
+                                    : 'border-amber-300 bg-amber-50/70 text-amber-900 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-300'
+                            "
                         >
-                            · Recorded
-                            {{
-                                new Date(allergies.reviewedAt).toLocaleString()
-                            }}
-                        </span>
-                    </p>
-                    <p v-else class="text-sm font-medium text-amber-900">
-                        Allergies recorded
-                    </p>
-                </div>
-                <div v-if="allergies.canUpdate" class="flex flex-wrap gap-2">
-                    <Button
-                        size="sm"
-                        variant="outline"
-                        type="button"
-                        @click="showAllergyForm = true"
-                    >
-                        <Plus class="size-3.5" /> Record allergy
-                    </Button>
-                    <Button
-                        v-if="allergies.status !== 'has_allergies'"
-                        size="sm"
-                        variant="outline"
-                        type="button"
-                        :disabled="allergyBusy"
-                        @click="declareNoKnown"
-                    >
-                        Declare no known allergies
-                    </Button>
-                </div>
-            </div>
+                            <Check v-if="reviewCurrent" class="size-3.5" />
+                            <AlertTriangle v-else class="size-3.5" />
+                            <span v-if="reviewCurrent">
+                                Reviewed for this consultation
+                            </span>
+                            <span v-else>Review required</span>
+                        </div>
+                    </div>
 
-            <div
-                v-for="record in allergies.records"
-                :key="record.publicId"
-                class="flex flex-wrap items-start justify-between gap-3 border-t py-3 text-sm"
-            >
-                <div>
-                    <div class="font-medium">{{ record.allergen }}</div>
-                    <div class="text-xs text-muted-foreground">
-                        {{ record.category ?? 'Category not recorded' }} ·
-                        Reaction: {{ record.reaction ?? 'Not recorded' }} ·
-                        Severity: {{ record.severity ?? 'Not recorded' }}
+                    <div class="flex flex-wrap items-center gap-2">
+                        <Button
+                            v-if="
+                                allergies.canReview &&
+                                allergies.status !== 'unknown' &&
+                                !reviewCurrent
+                            "
+                            size="sm"
+                            type="button"
+                            :disabled="allergyBusy"
+                            @click="reviewAllergies"
+                        >
+                            Review for this consultation
+                        </Button>
+                        <Button
+                            v-if="allergies.canUpdate"
+                            size="sm"
+                            variant="outline"
+                            type="button"
+                            @click="showAllergyForm = true"
+                        >
+                            <Plus class="size-3.5" /> Record allergy
+                        </Button>
+                        <Button
+                            v-if="
+                                allergies.canUpdate &&
+                                allergies.status !== 'has_allergies'
+                            "
+                            size="sm"
+                            variant="ghost"
+                            type="button"
+                            :disabled="allergyBusy"
+                            @click="declareNoKnown"
+                        >
+                            Declare no known allergies
+                        </Button>
                     </div>
                 </div>
-                <div v-if="allergies.canUpdate" class="flex gap-2">
-                    <Button
-                        size="sm"
-                        variant="ghost"
-                        type="button"
-                        @click="startAllergyEdit(record)"
-                    >
-                        Edit
-                    </Button>
-                    <Button
-                        size="sm"
-                        variant="ghost"
-                        type="button"
-                        :disabled="allergyBusy"
-                        @click="enterAllergyInError(record)"
-                    >
-                        Entered in error
-                    </Button>
-                </div>
-            </div>
 
-            <form
-                v-if="showAllergyForm && allergies.canUpdate"
-                class="grid gap-3 rounded-md bg-background p-3 md:grid-cols-2"
-                @submit.prevent="saveAllergy"
-            >
-                <label class="text-sm md:col-span-2">
-                    Allergen
-                    <input
-                        v-model="allergyForm.allergen_text"
-                        maxlength="500"
-                        required
-                        class="mt-1 h-9 w-full rounded-md border bg-background px-3"
-                    />
-                </label>
-                <label class="text-sm">
-                    Category
-                    <select
-                        v-model="allergyForm.category"
-                        class="mt-1 h-9 w-full rounded-md border bg-background px-3"
+                <div v-if="allergies.records.length" class="divide-y">
+                    <div
+                        v-for="record in allergies.records"
+                        :key="record.publicId"
+                        class="grid gap-1 py-2 text-sm sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start sm:gap-3"
                     >
-                        <option value="">Not recorded</option>
-                        <option value="medication">Medication</option>
-                        <option value="food">Food</option>
-                        <option value="environmental">Environmental</option>
-                        <option value="other">Other</option>
-                    </select>
-                </label>
-                <label class="text-sm">
-                    Severity
-                    <select
-                        v-model="allergyForm.severity"
-                        class="mt-1 h-9 w-full rounded-md border bg-background px-3"
-                    >
-                        <option value="">Not recorded</option>
-                        <option value="mild">Mild</option>
-                        <option value="moderate">Moderate</option>
-                        <option value="severe">Severe</option>
-                    </select>
-                </label>
-                <label class="text-sm md:col-span-2">
-                    Reaction
-                    <textarea
-                        v-model="allergyForm.reaction_text"
-                        maxlength="1000"
-                        rows="2"
-                        class="mt-1 w-full rounded-md border bg-background px-3 py-2"
-                    />
-                </label>
+                        <div class="min-w-0">
+                            <div class="font-medium">{{ record.allergen }}</div>
+                            <div class="text-xs text-muted-foreground">
+                                Reaction:
+                                {{ record.reaction ?? 'Not recorded' }}
+                            </div>
+                            <div class="text-xs text-muted-foreground">
+                                {{ record.category ?? 'Category not recorded' }}
+                                · Severity:
+                                {{ record.severity ?? 'Not recorded' }}
+                            </div>
+                        </div>
+                        <div
+                            v-if="allergies.canUpdate"
+                            class="flex flex-wrap gap-1 sm:justify-end"
+                        >
+                            <Button
+                                size="sm"
+                                variant="ghost"
+                                type="button"
+                                @click="startAllergyEdit(record)"
+                            >
+                                Edit
+                            </Button>
+                            <Button
+                                size="sm"
+                                variant="ghost"
+                                type="button"
+                                class="text-red-700 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"
+                                :disabled="allergyBusy"
+                                @click="enterAllergyInError(record)"
+                            >
+                                Entered in error
+                            </Button>
+                        </div>
+                    </div>
+                </div>
                 <p
-                    v-if="Object.keys(allergyForm.errors).length"
-                    class="text-xs text-red-700 md:col-span-2"
+                    v-else-if="allergies.status !== 'no_known_allergies'"
+                    class="text-xs text-muted-foreground"
                 >
-                    Review the highlighted Allergy information and try again.
+                    No active structured allergies recorded. This does not imply
+                    no known allergies.
                 </p>
-                <div class="flex gap-2 md:col-span-2">
-                    <Button size="sm" :disabled="allergyForm.processing">
-                        {{ editingAllergy ? 'Save allergy' : 'Add allergy' }}
-                    </Button>
-                    <Button
-                        size="sm"
-                        variant="ghost"
-                        type="button"
-                        @click="resetAllergyForm"
-                    >
-                        Cancel
-                    </Button>
-                </div>
-            </form>
 
-            <Button
-                v-if="
-                    allergies.canReview &&
-                    allergies.status !== 'unknown' &&
-                    !reviewCurrent
-                "
-                size="sm"
-                type="button"
-                :disabled="allergyBusy"
-                @click="reviewAllergies"
-            >
-                Reviewed for this consultation
-            </Button>
-        </div>
-
-        <div
-            v-else
-            class="rounded-md border border-amber-300 bg-amber-100/60 px-3 py-2 text-sm text-amber-900"
-        >
-            Allergy information is unavailable for this consultation. Do not
-            interpret this as no known allergies.
-        </div>
-
-        <div v-if="problems" class="space-y-3 border-t pt-4">
-            <div class="flex flex-wrap items-center justify-between gap-2">
-                <div>
-                    <h3 class="text-sm font-semibold">Problem List</h3>
-                    <p class="text-xs text-muted-foreground">
-                        Active conditions are shown first. No automated medicine
-                        checks are performed.
-                    </p>
-                </div>
-                <Button
-                    v-if="problems.canUpdate"
-                    size="sm"
-                    variant="outline"
-                    type="button"
-                    @click="showProblemForm = true"
+                <form
+                    v-if="showAllergyForm && allergies.canUpdate"
+                    class="grid gap-2 rounded-md border bg-muted/20 p-3 sm:grid-cols-2"
+                    @submit.prevent="saveAllergy"
                 >
-                    <Plus class="size-3.5" /> Add problem
-                </Button>
-            </div>
+                    <label class="text-sm sm:col-span-2">
+                        Allergen
+                        <input
+                            v-model="allergyForm.allergen_text"
+                            maxlength="500"
+                            required
+                            class="mt-1 h-9 w-full rounded-md border bg-background px-3"
+                        />
+                    </label>
+                    <label class="text-sm">
+                        Category
+                        <select
+                            v-model="allergyForm.category"
+                            class="mt-1 h-9 w-full rounded-md border bg-background px-3"
+                        >
+                            <option value="">Not recorded</option>
+                            <option value="medication">Medication</option>
+                            <option value="food">Food</option>
+                            <option value="environmental">Environmental</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </label>
+                    <label class="text-sm">
+                        Severity
+                        <select
+                            v-model="allergyForm.severity"
+                            class="mt-1 h-9 w-full rounded-md border bg-background px-3"
+                        >
+                            <option value="">Not recorded</option>
+                            <option value="mild">Mild</option>
+                            <option value="moderate">Moderate</option>
+                            <option value="severe">Severe</option>
+                        </select>
+                    </label>
+                    <label class="text-sm sm:col-span-2">
+                        Reaction
+                        <textarea
+                            v-model="allergyForm.reaction_text"
+                            maxlength="1000"
+                            rows="2"
+                            class="mt-1 w-full rounded-md border bg-background px-3 py-2"
+                        />
+                    </label>
+                    <p
+                        v-if="Object.keys(allergyForm.errors).length"
+                        class="text-xs text-red-700 sm:col-span-2"
+                    >
+                        Review the highlighted Allergy information and try
+                        again.
+                    </p>
+                    <div class="flex gap-2 sm:col-span-2">
+                        <Button size="sm" :disabled="allergyForm.processing">
+                            {{
+                                editingAllergy ? 'Save allergy' : 'Add allergy'
+                            }}
+                        </Button>
+                        <Button
+                            size="sm"
+                            variant="ghost"
+                            type="button"
+                            @click="resetAllergyForm"
+                        >
+                            Cancel
+                        </Button>
+                    </div>
+                </form>
+            </section>
 
             <div
-                v-for="record in problems.active"
-                :key="record.publicId"
-                class="flex flex-wrap items-start justify-between gap-3 border-t py-3 text-sm"
+                v-else
+                class="rounded-md border border-amber-300 bg-amber-50/70 px-3 py-2 text-sm text-amber-900 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-300"
             >
-                <div>
-                    <div class="font-medium">{{ record.condition }}</div>
-                    <div class="text-xs text-muted-foreground">
-                        <span v-if="record.conditionCode">
-                            {{ record.codeSystem }} {{ record.conditionCode }} ·
-                        </span>
-                        Onset: {{ record.onsetDate ?? 'Not recorded' }}
-                    </div>
-                </div>
-                <div v-if="problems.canUpdate" class="flex flex-wrap gap-2">
-                    <Button
-                        size="sm"
-                        variant="ghost"
-                        type="button"
-                        @click="startProblemEdit(record)"
-                    >
-                        Edit
-                    </Button>
-                    <Button
-                        size="sm"
-                        variant="ghost"
-                        type="button"
-                        :disabled="problemBusy"
-                        @click="transitionProblem(record, 'resolve')"
-                    >
-                        Resolve
-                    </Button>
-                    <Button
-                        size="sm"
-                        variant="ghost"
-                        type="button"
-                        :disabled="problemBusy"
-                        @click="transitionProblem(record, 'entered-in-error')"
-                    >
-                        Entered in error
-                    </Button>
-                </div>
+                Allergy information is unavailable for this consultation. Do not
+                interpret this as no known allergies.
             </div>
 
-            <p
-                v-if="!problems.active.length"
-                class="rounded-md bg-background px-3 py-2 text-sm text-muted-foreground"
+            <section
+                v-if="problems"
+                class="space-y-3 rounded-md border bg-white p-3 dark:bg-background"
+                aria-labelledby="problems-heading"
             >
-                No active structured conditions recorded. This does not imply
-                that no medical conditions exist.
-            </p>
-
-            <details v-if="problems.resolved.length" class="text-sm">
-                <summary class="cursor-pointer font-medium">
-                    Resolved problems ({{ problems.resolved.length }})
-                </summary>
                 <div
-                    v-for="record in problems.resolved"
-                    :key="record.publicId"
-                    class="flex flex-wrap items-center justify-between gap-2 border-t py-2"
+                    class="flex flex-wrap items-start justify-between gap-2 border-b pb-3"
                 >
-                    <span>
-                        {{ record.condition }} · Resolved
-                        {{ record.resolvedDate ?? 'date not recorded' }}
-                    </span>
+                    <div>
+                        <h3 id="problems-heading" class="text-sm font-semibold">
+                            Problem List
+                        </h3>
+                        <p class="text-xs text-muted-foreground">
+                            {{ problems.active.length }} active ·
+                            {{ problems.resolved.length }} resolved · No
+                            automated medicine checks
+                        </p>
+                    </div>
                     <Button
                         v-if="problems.canUpdate"
                         size="sm"
-                        variant="ghost"
+                        variant="outline"
                         type="button"
-                        :disabled="problemBusy"
-                        @click="transitionProblem(record, 'entered-in-error')"
+                        @click="showProblemForm = true"
                     >
-                        Entered in error
+                        <Plus class="size-3.5" /> Add problem
                     </Button>
                 </div>
-            </details>
 
-            <form
-                v-if="showProblemForm && problems.canUpdate"
-                class="grid gap-3 rounded-md bg-background p-3 md:grid-cols-2"
-                @submit.prevent="saveProblem"
-            >
-                <label class="text-sm md:col-span-2">
-                    Condition
-                    <input
-                        v-model="problemForm.condition_text"
-                        maxlength="500"
-                        required
-                        class="mt-1 h-9 w-full rounded-md border bg-background px-3"
-                    />
-                </label>
-                <label class="text-sm">
-                    Condition code
-                    <input
-                        v-model="problemForm.condition_code"
-                        maxlength="50"
-                        class="mt-1 h-9 w-full rounded-md border bg-background px-3"
-                    />
-                </label>
-                <label class="text-sm">
-                    Code system
-                    <input
-                        v-model="problemForm.code_system"
-                        maxlength="50"
-                        class="mt-1 h-9 w-full rounded-md border bg-background px-3"
-                    />
-                </label>
-                <label class="text-sm">
-                    Onset date
-                    <input
-                        v-model="problemForm.onset_date"
-                        type="date"
-                        class="mt-1 h-9 w-full rounded-md border bg-background px-3"
-                    />
-                </label>
-                <p
-                    v-if="Object.keys(problemForm.errors).length"
-                    class="text-xs text-red-700 md:col-span-2"
-                >
-                    Review the highlighted Problem information and try again.
+                <div v-if="problems.active.length" class="divide-y">
+                    <div
+                        v-for="record in problems.active"
+                        :key="record.publicId"
+                        class="grid gap-1 py-2 text-sm sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start sm:gap-3"
+                    >
+                        <div class="min-w-0">
+                            <div class="font-medium">
+                                {{ record.condition }}
+                            </div>
+                            <div class="text-xs text-muted-foreground">
+                                <span v-if="record.conditionCode">
+                                    {{ record.codeSystem }}
+                                    {{ record.conditionCode }} ·
+                                </span>
+                                Onset:
+                                {{ record.onsetDate ?? 'Not recorded' }}
+                            </div>
+                        </div>
+                        <div
+                            v-if="problems.canUpdate"
+                            class="flex flex-wrap gap-1 sm:justify-end"
+                        >
+                            <Button
+                                size="sm"
+                                variant="ghost"
+                                type="button"
+                                @click="startProblemEdit(record)"
+                            >
+                                Edit
+                            </Button>
+                            <Button
+                                size="sm"
+                                variant="ghost"
+                                type="button"
+                                :disabled="problemBusy"
+                                @click="transitionProblem(record, 'resolve')"
+                            >
+                                Resolve
+                            </Button>
+                            <Button
+                                size="sm"
+                                variant="ghost"
+                                type="button"
+                                class="text-red-700 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"
+                                :disabled="problemBusy"
+                                @click="
+                                    transitionProblem(
+                                        record,
+                                        'entered-in-error',
+                                    )
+                                "
+                            >
+                                Entered in error
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+
+                <p v-else class="text-xs text-muted-foreground">
+                    No active structured conditions recorded. This does not
+                    imply that no medical conditions exist.
                 </p>
-                <div class="flex gap-2 md:col-span-2">
-                    <Button size="sm" :disabled="problemForm.processing">
-                        {{ editingProblem ? 'Save problem' : 'Add problem' }}
-                    </Button>
-                    <Button
-                        size="sm"
-                        variant="ghost"
-                        type="button"
-                        @click="resetProblemForm"
-                    >
-                        Cancel
-                    </Button>
-                </div>
-            </form>
-        </div>
 
-        <div v-else class="border-t pt-4 text-sm text-muted-foreground">
-            Structured Problem List information is unavailable for this
-            consultation.
+                <details
+                    v-if="problems.resolved.length"
+                    class="border-t pt-2 text-sm text-muted-foreground"
+                >
+                    <summary
+                        class="cursor-pointer font-medium text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                    >
+                        Resolved problems ({{ problems.resolved.length }})
+                    </summary>
+                    <div
+                        v-for="record in problems.resolved"
+                        :key="record.publicId"
+                        class="grid gap-1 border-t py-2 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:gap-2"
+                    >
+                        <span>
+                            {{ record.condition }} · Resolved
+                            {{ record.resolvedDate ?? 'date not recorded' }}
+                        </span>
+                        <Button
+                            v-if="problems.canUpdate"
+                            size="sm"
+                            variant="ghost"
+                            type="button"
+                            class="text-red-700 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"
+                            :disabled="problemBusy"
+                            @click="
+                                transitionProblem(record, 'entered-in-error')
+                            "
+                        >
+                            Entered in error
+                        </Button>
+                    </div>
+                </details>
+
+                <form
+                    v-if="showProblemForm && problems.canUpdate"
+                    class="grid gap-2 rounded-md border bg-muted/20 p-3 sm:grid-cols-2"
+                    @submit.prevent="saveProblem"
+                >
+                    <label class="text-sm sm:col-span-2">
+                        Condition
+                        <input
+                            v-model="problemForm.condition_text"
+                            maxlength="500"
+                            required
+                            class="mt-1 h-9 w-full rounded-md border bg-background px-3"
+                        />
+                    </label>
+                    <label class="text-sm">
+                        Condition code
+                        <input
+                            v-model="problemForm.condition_code"
+                            maxlength="50"
+                            class="mt-1 h-9 w-full rounded-md border bg-background px-3"
+                        />
+                    </label>
+                    <label class="text-sm">
+                        Code system
+                        <input
+                            v-model="problemForm.code_system"
+                            maxlength="50"
+                            class="mt-1 h-9 w-full rounded-md border bg-background px-3"
+                        />
+                    </label>
+                    <label class="text-sm">
+                        Onset date
+                        <input
+                            v-model="problemForm.onset_date"
+                            type="date"
+                            class="mt-1 h-9 w-full rounded-md border bg-background px-3"
+                        />
+                    </label>
+                    <p
+                        v-if="Object.keys(problemForm.errors).length"
+                        class="text-xs text-red-700 sm:col-span-2"
+                    >
+                        Review the highlighted Problem information and try
+                        again.
+                    </p>
+                    <div class="flex gap-2 sm:col-span-2">
+                        <Button size="sm" :disabled="problemForm.processing">
+                            {{
+                                editingProblem ? 'Save problem' : 'Add problem'
+                            }}
+                        </Button>
+                        <Button
+                            size="sm"
+                            variant="ghost"
+                            type="button"
+                            @click="resetProblemForm"
+                        >
+                            Cancel
+                        </Button>
+                    </div>
+                </form>
+            </section>
+
+            <div
+                v-else
+                class="rounded-md border px-3 py-2 text-sm text-muted-foreground"
+            >
+                Structured Problem List information is unavailable for this
+                consultation.
+            </div>
         </div>
     </section>
 </template>
