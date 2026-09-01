@@ -1,6 +1,14 @@
 <script setup lang="ts">
 import { useForm } from '@inertiajs/vue3';
-import { LoaderCircle, Plus, Search, Trash2 } from '@lucide/vue';
+import {
+    ArrowDown,
+    ArrowUp,
+    ChevronDown,
+    LoaderCircle,
+    Plus,
+    Search,
+    Trash2,
+} from '@lucide/vue';
 import { computed, ref } from 'vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
@@ -31,12 +39,125 @@ type ServiceSearch = {
     unit: string;
 };
 
-const form = useForm({
-    expected_branch_id: props.branchId,
-    lock_version: props.plan.lockVersion,
-    medicines: props.plan.medicines.map((item) => ({
-        public_id: item.publicId as string | null,
-        catalogue_public_id: null as string | null,
+const customChoice = '__custom';
+const dosageUnits = ['tablet', 'capsule', 'mL', 'drop', 'puff', 'sachet'];
+const frequencyPresets = [
+    'Once daily',
+    'Twice daily',
+    'Three times daily',
+    'Four times daily',
+];
+const durationUnits = ['day', 'week', 'month'];
+const routePresets = ['Oral', 'Topical', 'Inhaled'];
+
+type AmountUnitComposer = {
+    mode: 'structured' | 'custom';
+    amount: string;
+    unit: string;
+    custom: string;
+};
+
+type MedicineFormRow = {
+    public_id: string | null;
+    catalogue_public_id: string | null;
+    quantity_ordered: string;
+    dosage: string;
+    frequency: string;
+    duration: string;
+    route: string;
+    administration_instruction: string;
+    indication: string;
+    precaution: string;
+    display_name: string;
+    code: string;
+    unit: string;
+    strength: string | null;
+    dosage_composer: AmountUnitComposer;
+    frequency_choice: string;
+    frequency_custom: string;
+    duration_composer: AmountUnitComposer;
+    route_choice: string;
+    route_custom: string;
+};
+
+type ServiceFormRow = {
+    public_id: string | null;
+    catalogue_public_id: string | null;
+    quantity_ordered: string;
+    clinical_instruction: string;
+    display_name: string;
+    code: string;
+    unit: string;
+};
+
+const canonicalUnit = (value: string, units: string[]) =>
+    units.find((unit) => unit.toLowerCase() === value.toLowerCase()) ?? null;
+
+const parseAmountUnit = (
+    value: string,
+    units: string[],
+    plural = false,
+): AmountUnitComposer => {
+    const trimmed = value.trim();
+    const match = trimmed.match(/^(\d+(?:\.\d+)?)\s+(.+)$/);
+
+    if (match) {
+        const rawUnit = plural ? match[2].replace(/s$/i, '') : match[2];
+        const unit = canonicalUnit(rawUnit, units);
+
+        if (unit) {
+            return {
+                mode: 'structured',
+                amount: match[1],
+                unit,
+                custom: '',
+            };
+        }
+    }
+
+    return trimmed
+        ? { mode: 'custom', amount: '', unit: '', custom: trimmed }
+        : { mode: 'structured', amount: '', unit: '', custom: '' };
+};
+
+const composeAmountUnit = (composer: AmountUnitComposer, plural = false) => {
+    if (composer.mode === 'custom') {
+        return composer.custom.trim();
+    }
+
+    const amount = composer.amount.trim();
+
+    if (!amount || !composer.unit) {
+        return '';
+    }
+
+    const suffix =
+        plural && Number.parseFloat(amount) !== 1
+            ? `${composer.unit}s`
+            : composer.unit;
+
+    return `${amount} ${suffix}`;
+};
+
+const selectValue = (value: string, presets: string[]) => {
+    if (!value) {
+        return { choice: '', custom: '' };
+    }
+
+    return presets.includes(value)
+        ? { choice: value, custom: '' }
+        : { choice: customChoice, custom: value };
+};
+
+const medicineRow = (
+    item: TreatmentPlanPage['medicines'][number],
+): MedicineFormRow => {
+    const frequency = selectValue(item.frequency, frequencyPresets);
+    const route = selectValue(item.route ?? '', routePresets);
+
+    return {
+        public_id: item.publicId,
+        catalogue_public_id: null,
         quantity_ordered: item.quantityOrdered,
         dosage: item.dosage,
         frequency: item.frequency,
@@ -49,16 +170,36 @@ const form = useForm({
         code: item.code,
         unit: item.unit,
         strength: item.strength,
-    })),
-    services: props.plan.services.map((item) => ({
-        public_id: item.publicId as string | null,
-        catalogue_public_id: null as string | null,
-        quantity_ordered: item.quantityOrdered,
-        clinical_instruction: item.clinicalInstruction ?? '',
-        display_name: item.displayName,
-        code: item.code,
-        unit: item.unit,
-    })),
+        dosage_composer: parseAmountUnit(item.dosage, dosageUnits),
+        frequency_choice: frequency.choice,
+        frequency_custom: frequency.custom,
+        duration_composer: parseAmountUnit(
+            item.duration ?? '',
+            durationUnits,
+            true,
+        ),
+        route_choice: route.choice,
+        route_custom: route.custom,
+    };
+};
+
+const serviceRow = (
+    item: TreatmentPlanPage['services'][number],
+): ServiceFormRow => ({
+    public_id: item.publicId,
+    catalogue_public_id: null,
+    quantity_ordered: item.quantityOrdered,
+    clinical_instruction: item.clinicalInstruction ?? '',
+    display_name: item.displayName,
+    code: item.code,
+    unit: item.unit,
+});
+
+const form = useForm({
+    expected_branch_id: props.branchId,
+    lock_version: props.plan.lockVersion,
+    medicines: props.plan.medicines.map(medicineRow),
+    services: props.plan.services.map(serviceRow),
 });
 
 const medicineQuery = ref('');
@@ -150,6 +291,7 @@ const addMedicine = (item: MedicineSearch) => {
         return;
     }
 
+    const suggestedUnit = canonicalUnit(item.unit, dosageUnits) ?? '';
     form.medicines.push({
         public_id: null,
         catalogue_public_id: item.publicId,
@@ -165,9 +307,83 @@ const addMedicine = (item: MedicineSearch) => {
         code: item.code,
         unit: item.unit,
         strength: item.strength,
+        dosage_composer: {
+            mode: suggestedUnit ? 'structured' : 'custom',
+            amount: '',
+            unit: suggestedUnit,
+            custom: '',
+        },
+        frequency_choice: '',
+        frequency_custom: '',
+        duration_composer: {
+            mode: 'structured',
+            amount: '',
+            unit: '',
+            custom: '',
+        },
+        route_choice: '',
+        route_custom: '',
     });
     medicineResults.value = [];
     medicineQuery.value = '';
+};
+const syncMedicine = (item: MedicineFormRow) => {
+    item.dosage = composeAmountUnit(item.dosage_composer);
+    item.frequency =
+        item.frequency_choice === customChoice
+            ? item.frequency_custom.trim()
+            : item.frequency_choice;
+    item.duration = composeAmountUnit(item.duration_composer, true);
+    item.route =
+        item.route_choice === customChoice
+            ? item.route_custom.trim()
+            : item.route_choice;
+};
+const selectDosageUnit = (item: MedicineFormRow) => {
+    if (item.dosage_composer.unit === customChoice) {
+        item.dosage_composer.mode = 'custom';
+        item.dosage_composer.unit = '';
+        item.dosage_composer.custom = item.dosage;
+    }
+
+    syncMedicine(item);
+};
+const selectDurationUnit = (item: MedicineFormRow) => {
+    if (item.duration_composer.unit === customChoice) {
+        item.duration_composer.mode = 'custom';
+        item.duration_composer.unit = '';
+        item.duration_composer.custom = item.duration;
+    }
+
+    syncMedicine(item);
+};
+const useStructuredDosage = (item: MedicineFormRow) => {
+    item.dosage_composer = {
+        mode: 'structured',
+        amount: '',
+        unit: canonicalUnit(item.unit, dosageUnits) ?? '',
+        custom: '',
+    };
+    syncMedicine(item);
+};
+const useStructuredDuration = (item: MedicineFormRow) => {
+    item.duration_composer = {
+        mode: 'structured',
+        amount: '',
+        unit: '',
+        custom: '',
+    };
+    syncMedicine(item);
+};
+const moveRow = <T,>(rows: T[], index: number, direction: -1 | 1) => {
+    const target = index + direction;
+
+    if (target < 0 || target >= rows.length) {
+        return;
+    }
+
+    const [row] = rows.splice(index, 1);
+    rows.splice(target, 0, row);
 };
 const addService = (item: ServiceSearch) => {
     if (
@@ -189,6 +405,8 @@ const addService = (item: ServiceSearch) => {
     serviceQuery.value = '';
 };
 const save = () => {
+    form.medicines.forEach(syncMedicine);
+
     form.transform((data) => ({
         ...data,
         medicines: data.medicines.map((row) => ({
@@ -215,32 +433,8 @@ const save = () => {
             preserveScroll: true,
             onSuccess: () => {
                 form.lock_version = props.plan.lockVersion;
-                form.medicines = props.plan.medicines.map((item) => ({
-                    public_id: item.publicId as string | null,
-                    catalogue_public_id: null,
-                    quantity_ordered: item.quantityOrdered,
-                    dosage: item.dosage,
-                    frequency: item.frequency,
-                    duration: item.duration ?? '',
-                    route: item.route ?? '',
-                    administration_instruction:
-                        item.administrationInstruction ?? '',
-                    indication: item.indication ?? '',
-                    precaution: item.precaution ?? '',
-                    display_name: item.displayName,
-                    code: item.code,
-                    unit: item.unit,
-                    strength: item.strength,
-                }));
-                form.services = props.plan.services.map((item) => ({
-                    public_id: item.publicId as string | null,
-                    catalogue_public_id: null,
-                    quantity_ordered: item.quantityOrdered,
-                    clinical_instruction: item.clinicalInstruction ?? '',
-                    display_name: item.displayName,
-                    code: item.code,
-                    unit: item.unit,
-                }));
+                form.medicines = props.plan.medicines.map(medicineRow);
+                form.services = props.plan.services.map(serviceRow);
                 form.defaults();
             },
         },
@@ -249,7 +443,7 @@ const save = () => {
 </script>
 
 <template>
-    <section class="space-y-4 rounded-lg border bg-background p-4">
+    <section class="space-y-3 rounded-lg border bg-background p-3.5">
         <div class="flex flex-wrap items-start justify-between gap-3">
             <div>
                 <h2 class="font-semibold">Treatment Plan</h2>
@@ -274,7 +468,7 @@ const save = () => {
             >
         </div>
 
-        <div class="space-y-3">
+        <div class="space-y-2.5">
             <div class="flex flex-wrap items-end gap-2">
                 <label class="min-w-64 flex-1 text-sm">
                     Find medicine
@@ -321,25 +515,53 @@ const save = () => {
             <div
                 v-for="(item, index) in form.medicines"
                 :key="item.public_id ?? item.catalogue_public_id ?? index"
-                class="space-y-2 rounded-md border p-3"
+                class="space-y-2 rounded-md border border-border/80 bg-background p-2.5"
             >
                 <div class="flex items-center justify-between gap-3">
-                    <div class="text-sm font-medium">
-                        {{ item.display_name }}
-                        <span class="font-normal text-muted-foreground"
-                            >· {{ item.code }}</span
+                    <div class="min-w-0 text-sm font-medium">
+                        <span class="truncate">{{ item.display_name }}</span>
+                        <span class="ml-1 font-normal text-muted-foreground"
+                            >· {{ item.code
+                            }}<template v-if="item.strength">
+                                · {{ item.strength }}</template
+                            ></span
                         >
                     </div>
-                    <Button
-                        type="button"
-                        size="icon"
-                        variant="ghost"
-                        aria-label="Withdraw medicine order"
-                        @click="form.medicines.splice(index, 1)"
-                        ><Trash2 class="size-4"
-                    /></Button>
+                    <div class="flex shrink-0 items-center gap-0.5">
+                        <Button
+                            type="button"
+                            size="icon"
+                            variant="ghost"
+                            class="size-8"
+                            :disabled="index === 0"
+                            :aria-label="`Move ${item.display_name} up`"
+                            @click="moveRow(form.medicines, index, -1)"
+                            ><ArrowUp class="size-3.5"
+                        /></Button>
+                        <Button
+                            type="button"
+                            size="icon"
+                            variant="ghost"
+                            class="size-8"
+                            :disabled="index === form.medicines.length - 1"
+                            :aria-label="`Move ${item.display_name} down`"
+                            @click="moveRow(form.medicines, index, 1)"
+                            ><ArrowDown class="size-3.5"
+                        /></Button>
+                        <Button
+                            type="button"
+                            size="icon"
+                            variant="ghost"
+                            class="size-8 text-muted-foreground hover:text-destructive"
+                            :aria-label="`Withdraw ${item.display_name}`"
+                            @click="form.medicines.splice(index, 1)"
+                            ><Trash2 class="size-3.5"
+                        /></Button>
+                    </div>
                 </div>
-                <div class="grid gap-2 md:grid-cols-3">
+                <div
+                    class="grid gap-2 sm:grid-cols-2 lg:grid-cols-[120px_minmax(210px,1.2fr)_minmax(190px,1fr)_minmax(190px,1fr)]"
+                >
                     <label class="text-xs"
                         >Quantity ({{ item.unit }})<input
                             v-model="item.quantity_ordered"
@@ -348,40 +570,194 @@ const save = () => {
                             step="0.001"
                             class="mt-1 h-9 w-full rounded-md border px-3 text-sm"
                     /></label>
+                    <fieldset class="text-xs">
+                        <legend>Dosage</legend>
+                        <div
+                            v-if="item.dosage_composer.mode === 'structured'"
+                            class="mt-1 grid grid-cols-[minmax(70px,1fr)_minmax(105px,1.3fr)] gap-1"
+                        >
+                            <input
+                                v-model="item.dosage_composer.amount"
+                                type="number"
+                                step="any"
+                                inputmode="decimal"
+                                aria-label="Dosage amount"
+                                class="h-9 min-w-0 rounded-md border px-2 text-sm"
+                                @input="syncMedicine(item)"
+                            />
+                            <select
+                                v-model="item.dosage_composer.unit"
+                                aria-label="Dosage unit"
+                                class="h-9 min-w-0 rounded-md border bg-background px-2 text-sm"
+                                @change="selectDosageUnit(item)"
+                            >
+                                <option value="">Unit</option>
+                                <option
+                                    v-for="unit in dosageUnits"
+                                    :key="unit"
+                                    :value="unit"
+                                >
+                                    {{ unit }}
+                                </option>
+                                <option :value="customChoice">
+                                    Custom / Other
+                                </option>
+                            </select>
+                        </div>
+                        <div v-else class="mt-1 flex gap-1">
+                            <input
+                                v-model="item.dosage_composer.custom"
+                                maxlength="255"
+                                aria-label="Custom dosage"
+                                class="h-9 min-w-0 flex-1 rounded-md border px-2 text-sm"
+                                @input="syncMedicine(item)"
+                            />
+                            <Button
+                                type="button"
+                                size="sm"
+                                variant="outline"
+                                class="h-9 px-2"
+                                @click="useStructuredDosage(item)"
+                                >Units</Button
+                            >
+                        </div>
+                    </fieldset>
                     <label class="text-xs"
-                        >Dosage<input
-                            v-model="item.dosage"
+                        >Frequency<select
+                            v-model="item.frequency_choice"
+                            class="mt-1 h-9 w-full rounded-md border bg-background px-2 text-sm"
+                            @change="syncMedicine(item)"
+                        >
+                            <option value="">Select frequency</option>
+                            <option
+                                v-for="frequency in frequencyPresets"
+                                :key="frequency"
+                                :value="frequency"
+                            >
+                                {{ frequency }}
+                            </option>
+                            <option :value="customChoice">
+                                Custom / Other
+                            </option>
+                        </select>
+                        <input
+                            v-if="item.frequency_choice === customChoice"
+                            v-model="item.frequency_custom"
                             maxlength="255"
-                            class="mt-1 h-9 w-full rounded-md border px-3 text-sm"
+                            aria-label="Custom frequency"
+                            class="mt-1 h-9 w-full rounded-md border px-2 text-sm"
+                            @input="syncMedicine(item)"
+                    /></label>
+                    <fieldset class="text-xs">
+                        <legend>
+                            Duration
+                            <span class="text-muted-foreground"
+                                >(optional)</span
+                            >
+                        </legend>
+                        <div
+                            v-if="item.duration_composer.mode === 'structured'"
+                            class="mt-1 grid grid-cols-[minmax(70px,1fr)_minmax(105px,1.3fr)] gap-1"
+                        >
+                            <input
+                                v-model="item.duration_composer.amount"
+                                type="number"
+                                step="any"
+                                inputmode="decimal"
+                                aria-label="Duration amount"
+                                class="h-9 min-w-0 rounded-md border px-2 text-sm"
+                                @input="syncMedicine(item)"
+                            />
+                            <select
+                                v-model="item.duration_composer.unit"
+                                aria-label="Duration unit"
+                                class="h-9 min-w-0 rounded-md border bg-background px-2 text-sm"
+                                @change="selectDurationUnit(item)"
+                            >
+                                <option value="">Unit</option>
+                                <option
+                                    v-for="unit in durationUnits"
+                                    :key="unit"
+                                    :value="unit"
+                                >
+                                    {{ unit }}(s)
+                                </option>
+                                <option :value="customChoice">
+                                    Custom / Other
+                                </option>
+                            </select>
+                        </div>
+                        <div v-else class="mt-1 flex gap-1">
+                            <input
+                                v-model="item.duration_composer.custom"
+                                maxlength="255"
+                                aria-label="Custom duration"
+                                class="h-9 min-w-0 flex-1 rounded-md border px-2 text-sm"
+                                @input="syncMedicine(item)"
+                            />
+                            <Button
+                                type="button"
+                                size="sm"
+                                variant="outline"
+                                class="h-9 px-2"
+                                @click="useStructuredDuration(item)"
+                                >Units</Button
+                            >
+                        </div>
+                    </fieldset>
+                </div>
+                <div class="grid gap-2 sm:grid-cols-2">
+                    <label class="text-xs"
+                        >Route
+                        <span class="text-muted-foreground">(optional)</span
+                        ><select
+                            v-model="item.route_choice"
+                            class="mt-1 h-9 w-full rounded-md border bg-background px-2 text-sm"
+                            @change="syncMedicine(item)"
+                        >
+                            <option value="">Select route</option>
+                            <option
+                                v-for="route in routePresets"
+                                :key="route"
+                                :value="route"
+                            >
+                                {{ route }}
+                            </option>
+                            <option :value="customChoice">
+                                Custom / Other
+                            </option>
+                        </select>
+                        <input
+                            v-if="item.route_choice === customChoice"
+                            v-model="item.route_custom"
+                            maxlength="255"
+                            aria-label="Custom route"
+                            class="mt-1 h-9 w-full rounded-md border px-2 text-sm"
+                            @input="syncMedicine(item)"
                     /></label>
                     <label class="text-xs"
-                        >Frequency<input
-                            v-model="item.frequency"
-                            maxlength="255"
-                            class="mt-1 h-9 w-full rounded-md border px-3 text-sm"
-                    /></label>
-                    <label class="text-xs"
-                        >Duration<input
-                            v-model="item.duration"
-                            maxlength="255"
-                            class="mt-1 h-9 w-full rounded-md border px-3 text-sm"
-                    /></label>
-                    <label class="text-xs"
-                        >Route<input
-                            v-model="item.route"
-                            maxlength="255"
-                            class="mt-1 h-9 w-full rounded-md border px-3 text-sm"
-                    /></label>
-                    <label class="text-xs"
-                        >Instruction<input
+                        >Instruction
+                        <span class="text-muted-foreground">(optional)</span
+                        ><input
                             v-model="item.administration_instruction"
                             maxlength="2000"
+                            placeholder="e.g. After meals"
                             class="mt-1 h-9 w-full rounded-md border px-3 text-sm"
                     /></label>
                 </div>
-                <details class="text-xs text-muted-foreground">
-                    <summary class="cursor-pointer">
-                        Additional clinical details
+                <details class="group text-xs text-muted-foreground">
+                    <summary
+                        class="flex w-fit cursor-pointer list-none items-center gap-1 rounded px-1 py-0.5 font-medium text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                    >
+                        <ChevronDown
+                            class="size-3.5 transition-transform group-open:rotate-180"
+                        />
+                        More details
+                        <span
+                            v-if="item.indication || item.precaution"
+                            class="text-muted-foreground"
+                            >· Added</span
+                        >
                     </summary>
                     <div class="mt-2 grid gap-2 md:grid-cols-2">
                         <label
@@ -410,7 +786,7 @@ const save = () => {
             </p>
         </div>
 
-        <div class="space-y-3 border-t pt-4">
+        <div class="space-y-2.5 border-t pt-3">
             <div class="flex flex-wrap items-end gap-2">
                 <label class="min-w-64 flex-1 text-sm"
                     >Find service / procedure<input
@@ -451,7 +827,7 @@ const save = () => {
             <div
                 v-for="(item, index) in form.services"
                 :key="item.public_id ?? item.catalogue_public_id ?? index"
-                class="grid gap-2 rounded-md border p-3 md:grid-cols-[1fr_140px_2fr_auto] md:items-end"
+                class="grid gap-2 rounded-md border border-border/80 p-2.5 sm:grid-cols-[minmax(160px,1fr)_120px_minmax(200px,1.5fr)_auto] sm:items-end"
             >
                 <div class="text-sm font-medium">
                     {{ item.display_name }}
@@ -473,14 +849,37 @@ const save = () => {
                         maxlength="2000"
                         class="mt-1 h-9 w-full rounded-md border px-3 text-sm"
                 /></label>
-                <Button
-                    type="button"
-                    size="icon"
-                    variant="ghost"
-                    aria-label="Withdraw service order"
-                    @click="form.services.splice(index, 1)"
-                    ><Trash2 class="size-4"
-                /></Button>
+                <div class="flex items-center justify-end gap-0.5">
+                    <Button
+                        type="button"
+                        size="icon"
+                        variant="ghost"
+                        class="size-8"
+                        :disabled="index === 0"
+                        :aria-label="`Move ${item.display_name} up`"
+                        @click="moveRow(form.services, index, -1)"
+                        ><ArrowUp class="size-3.5"
+                    /></Button>
+                    <Button
+                        type="button"
+                        size="icon"
+                        variant="ghost"
+                        class="size-8"
+                        :disabled="index === form.services.length - 1"
+                        :aria-label="`Move ${item.display_name} down`"
+                        @click="moveRow(form.services, index, 1)"
+                        ><ArrowDown class="size-3.5"
+                    /></Button>
+                    <Button
+                        type="button"
+                        size="icon"
+                        variant="ghost"
+                        class="size-8 text-muted-foreground hover:text-destructive"
+                        :aria-label="`Withdraw ${item.display_name}`"
+                        @click="form.services.splice(index, 1)"
+                        ><Trash2 class="size-3.5"
+                    /></Button>
+                </div>
             </div>
             <p
                 v-if="!form.services.length"
