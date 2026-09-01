@@ -2,6 +2,7 @@ export * from './auth';
 export * from './clinical';
 export * from './navigation';
 export * from './patient';
+export * from './patientBoard';
 export * from './queue';
 export * from './staff';
 export * from './ui';

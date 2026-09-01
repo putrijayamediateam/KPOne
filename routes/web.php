@@ -8,6 +8,7 @@ use App\Http\Controllers\BranchController;
 use App\Http\Controllers\ClinicalAllergyController;
 use App\Http\Controllers\ClinicalEncounterController;
 use App\Http\Controllers\ClinicalProblemController;
+use App\Http\Controllers\ClinicPlaceholderController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\PatientController;
 use App\Http\Controllers\PatientIdentifierController;
@@ -21,11 +22,12 @@ use App\Http\Controllers\StaffStatusController;
 use App\Http\Controllers\TreatmentPlanCatalogueController;
 use App\Http\Controllers\TreatmentPlanController;
 use App\Http\Controllers\VisitController;
+use App\Http\Controllers\WorkspaceController;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', fn () => Auth::check()
-    ? redirect()->route('dashboard')
+    ? redirect()->route('workspace')
     : redirect()->route('login'))->name('home');
 
 Route::middleware(['guest', 'throttle:10,1'])->group(function () {
@@ -34,9 +36,18 @@ Route::middleware(['guest', 'throttle:10,1'])->group(function () {
 });
 
 Route::middleware(['auth', 'verified'])->group(function () {
+    Route::get('workspace', WorkspaceController::class)->name('workspace');
+
     Route::get('dashboard', DashboardController::class)
         ->middleware('permission:dashboard.view.own')
         ->name('dashboard');
+
+    Route::middleware('permission:visits.view.branch,queue.view.own,queue.view.branch')->group(function () {
+        Route::get('reviews', ClinicPlaceholderController::class)->name('clinic.reviews');
+        Route::get('panel-claims', ClinicPlaceholderController::class)->name('clinic.panel-claims');
+        Route::get('insight', ClinicPlaceholderController::class)->name('clinic.insight');
+        Route::get('purchase', ClinicPlaceholderController::class)->name('clinic.purchase');
+    });
 
     Route::get('staff', [StaffController::class, 'index'])
         ->middleware('permission:staff.view.own,staff.view.branch,staff.view.organisation')

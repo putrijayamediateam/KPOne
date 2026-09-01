@@ -7,6 +7,7 @@ use App\Domain\Clinical\Services\ClinicalEncounterService;
 use App\Domain\Visit\Models\Visit;
 use App\Http\Requests\StartClinicalEncounterRequest;
 use App\Http\Requests\UpdateClinicalEncounterRequest;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -38,10 +39,14 @@ class ClinicalEncounterController extends Controller
         Request $request,
         Visit $historicalVisit,
         ClinicalEncounterDirectoryService $directory,
-    ): Response {
-        return Inertia::render('Clinical/HistoryShow', [
-            'historical' => $directory->historicalDetail($request->user(), $historicalVisit),
-        ]);
+    ): Response|JsonResponse {
+        $historical = $directory->historicalDetail($request->user(), $historicalVisit);
+
+        if ($request->expectsJson()) {
+            return response()->json($historical);
+        }
+
+        return Inertia::render('Clinical/HistoryShow', ['historical' => $historical]);
     }
 
     public function update(

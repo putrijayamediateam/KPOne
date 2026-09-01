@@ -114,32 +114,20 @@ const contextItems = computed(() => [
     },
     { label: 'Access scope', value: props.summary.accessScope },
 ]);
-
-const foundationStatus = [
-    { label: 'Identity', description: 'Secure accounts and sessions' },
-    {
-        label: 'Branch access',
-        description: 'Multi-branch assignment and context',
-    },
-    {
-        label: 'Audit trail',
-        description: 'Administrative and security history',
-    },
-];
 </script>
 
 <template>
-    <Head title="Dashboard" />
+    <Head title="Main Menu" />
     <main
         class="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 p-4 md:p-8"
     >
         <header class="flex flex-col gap-1">
             <h1 class="text-2xl font-semibold tracking-tight text-foreground">
-                Clinic management
+                KPOne Main Menu
             </h1>
             <p class="text-sm text-muted-foreground">
-                Manage the current KPOne foundation and administrative workspace
-                for {{ summary.organisation }}.
+                Open an authorized management module for
+                {{ summary.organisation }}.
             </p>
         </header>
 
@@ -207,29 +195,6 @@ const foundationStatus = [
                     >
                         {{ item.value }}
                     </p>
-                </div>
-            </div>
-        </section>
-
-        <section>
-            <h2
-                class="mb-2 text-xs font-medium tracking-wide text-muted-foreground uppercase"
-            >
-                System foundation
-            </h2>
-            <div class="divide-y rounded-xl border bg-card">
-                <div
-                    v-for="item in foundationStatus"
-                    :key="item.label"
-                    class="flex items-center justify-between gap-4 px-4 py-2.5"
-                >
-                    <div>
-                        <p class="text-sm text-foreground">{{ item.label }}</p>
-                        <p class="text-xs text-muted-foreground">
-                            {{ item.description }}
-                        </p>
-                    </div>
-                    <span class="text-xs font-medium text-primary">Ready</span>
                 </div>
             </div>
         </section>

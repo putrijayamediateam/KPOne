@@ -20,6 +20,15 @@ declare module '@inertiajs/core' {
             name: string;
             auth: Auth;
             branchContext: BranchContext;
+            workspace: {
+                defaultUrl: string;
+                canEnterClinic: boolean;
+                navigation: {
+                    registration: boolean;
+                    consultation: boolean;
+                    placeholders: boolean;
+                };
+            } | null;
             sidebarOpen: boolean;
             [key: string]: unknown;
         };

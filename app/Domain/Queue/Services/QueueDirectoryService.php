@@ -144,7 +144,7 @@ class QueueDirectoryService
                         'id', 'patient_id', 'visit_number', 'visit_reason', 'priority', 'coverage_type',
                         'coverage_panel_name_snapshot', 'assigned_doctor_user_id', 'status', 'lock_version',
                     ])
-                    ->with(['patient:id,patient_number,full_name', 'assignedDoctor:id,name']),
+                    ->with(['patient:id,organisation_id,patient_number,full_name', 'assignedDoctor:id,name']),
             ]);
 
         if (! $actor->can('queue.view.branch')) {
@@ -191,6 +191,7 @@ class QueueDirectoryService
     ): array {
         $visit = $entry->visit;
         $entry->setRelation('visit', $visit);
+        $visit->setRelation('queueEntry', $entry);
         $doctorEligible = $visit->assigned_doctor_user_id !== null
             && in_array($visit->assigned_doctor_user_id, $eligibleDoctorIds, true);
         $canCall = $actor->can('queue.call.branch')
@@ -229,6 +230,11 @@ class QueueDirectoryService
             // Clinical permissions are independent of Queue authority. This
             // remains a UI hint; Encounter start re-authorizes under lock.
             'canOpenEncounter' => $canOpenEncounter,
+            'can' => [
+                'viewPatient' => Gate::forUser($actor)->allows('view', $visit->patient),
+                'update' => Gate::forUser($actor)->allows('update', $visit),
+                'cancel' => Gate::forUser($actor)->allows('cancel', $visit),
+            ],
         ];
     }
 

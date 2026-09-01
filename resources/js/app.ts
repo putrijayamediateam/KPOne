@@ -1,7 +1,8 @@
 import { createInertiaApp } from '@inertiajs/vue3';
 import { initializeTheme } from '@/composables/useAppearance';
-import AppLayout from '@/layouts/AppLayout.vue';
+import AdminLayout from '@/layouts/AdminLayout.vue';
 import AuthLayout from '@/layouts/AuthLayout.vue';
+import ClinicLayout from '@/layouts/ClinicLayout.vue';
 import SettingsLayout from '@/layouts/settings/Layout.vue';
 import { initializeFlashToast } from '@/lib/flashToast';
 
@@ -16,9 +17,15 @@ createInertiaApp({
             case name.startsWith('auth/'):
                 return AuthLayout;
             case name.startsWith('settings/'):
-                return [AppLayout, SettingsLayout];
+                return [AdminLayout, SettingsLayout];
+            case name.startsWith('Registration/'):
+            case name.startsWith('Queue/'):
+            case name.startsWith('Patient/'):
+            case name.startsWith('Clinical/'):
+            case name.startsWith('Clinic/'):
+                return ClinicLayout;
             default:
-                return AppLayout;
+                return AdminLayout;
         }
     },
     progress: {

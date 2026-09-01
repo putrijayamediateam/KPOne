@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use App\Domain\Access\BranchAccessService;
+use App\Domain\Access\WorkspaceLandingService;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -38,6 +39,7 @@ class HandleInertiaRequests extends Middleware
     {
         $user = $request->user();
         $branchContext = null;
+        $workspace = null;
 
         if ($user) {
             $branches = app(BranchAccessService::class);
@@ -48,6 +50,18 @@ class HandleInertiaRequests extends Middleware
             $branchContext = [
                 'active' => $activeBranch?->only(['id', 'code', 'name']),
                 'available' => $availableBranches->map->only(['id', 'code', 'name'])->values(),
+            ];
+
+            $landing = app(WorkspaceLandingService::class);
+            $canEnterClinic = $landing->canEnterClinic($user);
+            $workspace = [
+                'defaultUrl' => route('workspace', absolute: false),
+                'canEnterClinic' => $canEnterClinic,
+                'navigation' => [
+                    'registration' => $user->can('visits.view.branch'),
+                    'consultation' => $user->can('queue.view.own') || $user->can('queue.view.branch'),
+                    'placeholders' => $canEnterClinic,
+                ],
             ];
         }
 
@@ -68,6 +82,7 @@ class HandleInertiaRequests extends Middleware
                 'permissions' => $user?->getAllPermissions()->pluck('name')->values() ?? [],
             ],
             'branchContext' => $branchContext,
+            'workspace' => $workspace,
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
         ];
     }

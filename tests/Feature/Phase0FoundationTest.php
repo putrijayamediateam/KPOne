@@ -147,7 +147,7 @@ class Phase0FoundationTest extends TestCase
         $user = $this->createStaff('ca', [$this->cheras], 'login.staff@kpone.test');
 
         $this->post(route('login.store'), ['email' => $user->email, 'password' => 'password'])
-            ->assertRedirect(route('dashboard', absolute: false));
+            ->assertRedirect(route('workspace', absolute: false));
         $this->post(route('logout'))->assertRedirect(route('home'));
 
         $this->assertDatabaseHas('audit_logs', ['event' => 'auth.login.succeeded', 'actor_user_id' => $user->id]);

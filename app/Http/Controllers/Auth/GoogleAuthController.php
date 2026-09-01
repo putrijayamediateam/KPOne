@@ -77,7 +77,7 @@ class GoogleAuthController extends Controller
         Auth::login($user);
         $request->session()->regenerate();
 
-        return redirect()->intended(route('dashboard', absolute: false));
+        return redirect()->intended(route('workspace', absolute: false));
     }
 
     /** @return array{user:?User,subject:?User,reason:?string} */

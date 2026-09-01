@@ -20,6 +20,11 @@ export type QueueRow = {
     queueLockVersion: number;
     canCall: boolean;
     canOpenEncounter: boolean;
+    can: {
+        viewPatient: boolean;
+        update: boolean;
+        cancel: boolean;
+    };
 };
 
 export type QueueSnapshot = {

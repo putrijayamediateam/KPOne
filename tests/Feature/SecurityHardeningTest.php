@@ -313,7 +313,7 @@ class SecurityHardeningTest extends TestCase
         $user = $this->createStaff('ca', [$this->cheras], 'verified.google@kpone.test');
         $this->fakeGoogle('stable-google-subject', 'VERIFIED.GOOGLE@KPONE.TEST', true);
 
-        $this->get(route('google.callback'))->assertRedirect('/dashboard');
+        $this->get(route('google.callback'))->assertRedirect('/workspace');
 
         $this->assertAuthenticatedAs($user);
         $this->assertSame('stable-google-subject', $user->fresh()->google_subject);
@@ -383,7 +383,7 @@ class SecurityHardeningTest extends TestCase
         $user->forceFill(['google_subject' => 'existing-stable-subject'])->save();
         $this->fakeGoogle('existing-stable-subject', 'changed.provider.email@kpone.test', true);
 
-        $this->get(route('google.callback'))->assertRedirect('/dashboard');
+        $this->get(route('google.callback'))->assertRedirect('/workspace');
 
         $this->assertAuthenticatedAs($user);
         $this->assertSame('existing-stable-subject', $user->fresh()->google_subject);

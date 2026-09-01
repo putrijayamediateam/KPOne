@@ -31,6 +31,17 @@ export type VisitRow = {
     status: 'registered' | 'cancelled';
     queueNumber: string | null;
     queueStatus: 'waiting' | 'serving' | 'removed' | null;
+    durationMinutes: number | null;
+    visitLockVersion: number;
+    queueLockVersion: number | null;
+    can: {
+        viewPatient: boolean;
+        update: boolean;
+        cancel: boolean;
+        sendToWaiting: boolean;
+        call: boolean;
+        openConsultation: boolean;
+    };
 };
 
 export type VisitDetail = {

@@ -45,15 +45,26 @@ class VisitDirectoryService
                 'coverage_panel_name_snapshot',
                 'registered_at',
                 'status',
+                'lock_version',
             ])
             ->where('organisation_id', $actor->organisation_id)
             ->where('branch_id', $branch->id)
             ->whereBetween('registered_at', [$from, $to])
             ->with([
-                'patient:id,patient_number,full_name',
+                'patient:id,organisation_id,patient_number,full_name',
                 'assignedDoctor:id,name',
-                'queueEntry:id,organisation_id,branch_id,visit_id,operational_date,queue_number,status,lock_version',
+                'queueEntry:id,organisation_id,branch_id,visit_id,operational_date,queue_number,status,queued_at,called_at,lock_version',
             ]);
+
+        $boardStatus = (string) ($criteria['board_status'] ?? 'all');
+        if (in_array($boardStatus, [QueueEntry::STATUS_WAITING, QueueEntry::STATUS_SERVING], true)) {
+            $query->where('status', Visit::STATUS_REGISTERED)
+                ->whereHas('queueEntry', fn ($queue) => $queue->where('status', $boardStatus));
+        } elseif ($boardStatus === Visit::STATUS_CANCELLED) {
+            $query->where('status', Visit::STATUS_CANCELLED);
+        } elseif (in_array($boardStatus, ['dispensary', 'completed'], true)) {
+            $query->whereRaw('1 = 0');
+        }
 
         $patientQuery = trim((string) ($criteria['patient_query'] ?? ''));
         if ($patientQuery !== '') {
@@ -75,9 +86,14 @@ class VisitDirectoryService
         }
 
         $paginator = $query->latest('registered_at')->paginate(25, page: (int) ($criteria['page'] ?? 1));
+        $effectiveDate = now()->setTimezone($branch->timezone)->toDateString();
+        $eligibleDoctorIds = $this->doctors->eligibleDoctors($branch, $effectiveDate)
+            ->pluck('id')->map(fn ($id): int => (int) $id)->values()->all();
 
         return [
-            'data' => $paginator->getCollection()->map(fn (Visit $visit) => $this->row($actor, $visit, $branch))->values(),
+            'data' => $paginator->getCollection()
+                ->map(fn (Visit $visit) => $this->row($actor, $visit, $branch, $eligibleDoctorIds))
+                ->values(),
             'total' => $paginator->total(),
             'currentPage' => $paginator->currentPage(),
             'lastPage' => $paginator->lastPage(),
@@ -245,10 +261,31 @@ class VisitDirectoryService
         return [$from->utc(), $to->utc()];
     }
 
-    /** @return array<string, mixed> */
-    private function row(User $actor, Visit $visit, Branch $branch): array
+    /**
+     * @param  array<int, int>  $eligibleDoctorIds
+     * @return array<string, mixed>
+     */
+    private function row(User $actor, Visit $visit, Branch $branch, array $eligibleDoctorIds): array
     {
         $visibleQueueEntry = $this->visibleQueueEntry($actor, $visit);
+        $doctorEligible = $visit->assigned_doctor_user_id !== null
+            && in_array($visit->assigned_doctor_user_id, $eligibleDoctorIds, true);
+        $canCall = $visibleQueueEntry?->status === QueueEntry::STATUS_WAITING
+            && $doctorEligible
+            && Gate::forUser($actor)->allows('call', $visibleQueueEntry);
+        $canOpenEncounter = $visibleQueueEntry?->status === QueueEntry::STATUS_SERVING
+            && $doctorEligible
+            && $actor->is_active
+            && $actor->hasRole('resident_doctor')
+            && $actor->can('encounters.start.own')
+            && $visit->assigned_doctor_user_id === $actor->id;
+        $durationMinutes = match ($visibleQueueEntry?->status) {
+            QueueEntry::STATUS_WAITING => max(0, (int) $visibleQueueEntry->queued_at->diffInMinutes(now()->utc())),
+            QueueEntry::STATUS_SERVING => $visibleQueueEntry->called_at
+                ? max(0, (int) $visibleQueueEntry->called_at->diffInMinutes(now()->utc()))
+                : null,
+            default => null,
+        };
 
         return [
             'visitNumber' => $visit->visit_number,
@@ -264,6 +301,20 @@ class VisitDirectoryService
             'status' => $visit->status,
             'queueNumber' => $visibleQueueEntry ? sprintf('%03d', $visibleQueueEntry->queue_number) : null,
             'queueStatus' => $visibleQueueEntry?->status,
+            'durationMinutes' => $durationMinutes,
+            'visitLockVersion' => $visit->lock_version,
+            'queueLockVersion' => $visibleQueueEntry?->lock_version,
+            'can' => [
+                'viewPatient' => Gate::forUser($actor)->allows('view', $visit->patient),
+                'update' => Gate::forUser($actor)->allows('update', $visit),
+                'cancel' => Gate::forUser($actor)->allows('cancel', $visit),
+                'sendToWaiting' => $visit->status === Visit::STATUS_REGISTERED
+                    && $visit->visit_type === 'consultation'
+                    && $visit->queueEntry === null
+                    && Gate::forUser($actor)->allows('create', QueueEntry::class),
+                'call' => $canCall,
+                'openConsultation' => $canOpenEncounter,
+            ],
         ];
     }
 

@@ -62,6 +62,34 @@ class ClinicalEncounterHistoryTest extends ClinicalTestCase
             ->missing('historical.actions'));
     }
 
+    public function test_authorized_history_can_be_loaded_on_demand_as_an_explicit_json_projection(): void
+    {
+        $doctor = $this->doctor();
+        $ca = $this->actor('ca');
+        $patient = $this->patient($ca);
+        [$historicalVisit, , $historical] = $this->servingEncounterForPatient($ca, $doctor, $patient);
+        app(ClinicalEncounterService::class)->update($doctor, $historicalVisit, $this->aggregate($historical, [
+            'clinical_note' => 'Synthetic on-demand note',
+        ]));
+        $historical->forceFill(['started_at' => now()->subDay()])->save();
+        $this->servingEncounterForPatient($ca, $doctor, $patient, confirmRepeat: true);
+        $this->selectBranch($doctor);
+
+        $this->getJson(route('encounters.history.show', $historicalVisit))
+            ->assertOk()
+            ->assertHeaderContains('Cache-Control', 'no-store')
+            ->assertHeaderContains('Cache-Control', 'private')
+            ->assertJsonPath('encounter.clinicalNote', 'Synthetic on-demand note')
+            ->assertJsonPath('patient.patientNumber', $patient->patient_number)
+            ->assertJsonMissingPath('encounter.lockVersion')
+            ->assertJsonMissingPath('patient.id')
+            ->assertJsonMissingPath('visit.id')
+            ->assertJsonMissingPath('treatmentPlan')
+            ->assertJsonMissingPath('allergies')
+            ->assertJsonMissingPath('problems')
+            ->assertJsonMissingPath('actions');
+    }
+
     public function test_attending_clinician_can_view_authored_history_without_current_care_path(): void
     {
         [$doctor, , $visit, $queue] = $this->servingFixture();
@@ -106,6 +134,12 @@ class ClinicalEncounterHistoryTest extends ClinicalTestCase
         $existing->assertNotFound()->assertDontSee('existence-sensitive');
         $missing->assertNotFound();
         $this->assertSame($existing->getStatusCode(), $missing->getStatusCode());
+
+        $existingJson = $this->getJson(route('encounters.history.show', $visit));
+        $missingJson = $this->getJson(route('encounters.history.show', $withoutEncounter));
+        $existingJson->assertNotFound()->assertJsonMissingPath('encounter.clinicalNote');
+        $missingJson->assertNotFound();
+        $this->assertSame($existingJson->getStatusCode(), $missingJson->getStatusCode());
     }
 
     public function test_non_clinical_roles_and_guest_cannot_open_historical_detail(): void
@@ -119,6 +153,7 @@ class ClinicalEncounterHistoryTest extends ClinicalTestCase
             $actor = $this->actor($role);
             $this->selectBranch($actor);
             $this->get(route('encounters.history.show', $visit))->assertForbidden();
+            $this->getJson(route('encounters.history.show', $visit))->assertForbidden();
         }
     }
 

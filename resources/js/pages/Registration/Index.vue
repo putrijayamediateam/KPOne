@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { Head, Link } from '@inertiajs/vue3';
+import { Head, Link, router } from '@inertiajs/vue3';
 import {
     ChevronDown,
-    ClipboardPlus,
+    LoaderCircle,
     Plus,
     Search,
     SlidersHorizontal,
@@ -10,12 +10,15 @@ import {
 } from '@lucide/vue';
 import { computed, reactive, ref } from 'vue';
 import InputError from '@/components/InputError.vue';
+import PatientBoard from '@/components/patient-board/PatientBoard.vue';
+import VisitCancellationDialog from '@/components/patient-board/VisitCancellationDialog.vue';
 import { Button } from '@/components/ui/button';
-import type { VisitOptions, VisitRow } from '@/types';
+import type { PatientBoardRow, VisitOptions, VisitRow } from '@/types';
 
 defineOptions({
     layout: { breadcrumbs: [{ title: 'Registration', href: '/registration' }] },
 });
+
 const props = defineProps<{
     visits: {
         data: VisitRow[];
@@ -26,13 +29,28 @@ const props = defineProps<{
     options: Pick<VisitOptions, 'branch' | 'doctors'>;
     canCreate: boolean;
 }>();
+
+type BoardTab =
+    'all' | 'waiting' | 'serving' | 'dispensary' | 'completed' | 'cancelled';
+const tabs: Array<{ value: BoardTab; label: string; planned?: boolean }> = [
+    { value: 'all', label: 'All' },
+    { value: 'waiting', label: 'Waiting' },
+    { value: 'serving', label: 'Serving Now' },
+    { value: 'dispensary', label: 'Dispensary', planned: true },
+    { value: 'completed', label: 'Completed', planned: true },
+    { value: 'cancelled', label: 'Cancelled' },
+];
+const activeTab = ref<BoardTab>('all');
 const rows = ref(props.visits.data);
 const total = ref(props.visits.total);
 const currentPage = ref(props.visits.currentPage);
 const lastPage = ref(props.visits.lastPage);
 const loading = ref(false);
 const error = ref('');
+const busyKey = ref<string | null>(null);
 const showMoreFilters = ref(false);
+const cancellationRow = ref<PatientBoardRow | null>(null);
+const cancelOpen = ref(false);
 const today = new Intl.DateTimeFormat('en-CA', {
     timeZone: props.options.branch.timezone,
     year: 'numeric',
@@ -45,14 +63,76 @@ const form = reactive({
     visit_type: '',
     priority: '',
     coverage_type: '',
-    status: '',
+    board_status: 'all' as BoardTab,
     date_from: today,
     date_to: today,
 });
 const csrf = () =>
     document.querySelector<HTMLMetaElement>('meta[name="csrf-token"]')
         ?.content ?? '';
+let searchGeneration = 0;
+const plannedTab = computed(
+    () => activeTab.value === 'dispensary' || activeTab.value === 'completed',
+);
+const duration = (minutes: number | null) => {
+    if (minutes === null) {
+        return '—';
+    }
+
+    return minutes < 60
+        ? `${minutes}m`
+        : `${Math.floor(minutes / 60)}h ${minutes % 60}m`;
+};
+const boardRows = computed<PatientBoardRow[]>(() =>
+    rows.value.map((visit) => {
+        const status =
+            visit.status === 'cancelled'
+                ? { label: 'Cancelled', tone: 'cancelled' as const }
+                : visit.queueStatus === 'serving'
+                  ? { label: 'Serving Now', tone: 'serving' as const }
+                  : visit.queueStatus === 'waiting'
+                    ? { label: 'Waiting', tone: 'waiting' as const }
+                    : visit.queueStatus === 'removed'
+                      ? {
+                            label: 'Removed from Queue',
+                            tone: 'removed' as const,
+                        }
+                      : { label: 'Registered', tone: 'neutral' as const };
+
+        return {
+            key: visit.visitNumber,
+            patientName: visit.patientName,
+            patientNumber: visit.patientNumber,
+            visitNumber: visit.visitNumber,
+            queueNumber: visit.queueNumber,
+            arrivedAt: visit.registeredAt,
+            visitNotes: visit.visitReasonExcerpt,
+            doctorName: visit.doctorName,
+            coverageLabel: visit.coverageLabel,
+            durationLabel: duration(visit.durationMinutes),
+            priority: visit.priority,
+            statusLabel: status.label,
+            statusTone: status.tone,
+            can: visit.can,
+            source: visit,
+        };
+    }),
+);
+
 const search = async (page = 1) => {
+    const generation = ++searchGeneration;
+
+    if (plannedTab.value) {
+        rows.value = [];
+        total.value = 0;
+        currentPage.value = 1;
+        lastPage.value = 1;
+        loading.value = false;
+        error.value = '';
+
+        return;
+    }
+
     loading.value = true;
     error.value = '';
 
@@ -68,6 +148,10 @@ const search = async (page = 1) => {
             body: JSON.stringify({ ...form, page }),
         });
         const payload = await response.json();
+
+        if (generation !== searchGeneration) {
+            return;
+        }
 
         if (!response.ok) {
             const validationErrors = payload.errors as
@@ -87,14 +171,23 @@ const search = async (page = 1) => {
         currentPage.value = payload.currentPage;
         lastPage.value = payload.lastPage;
     } catch {
-        error.value = 'Registration search could not be completed.';
+        if (generation === searchGeneration) {
+            error.value = 'Registration search could not be completed.';
+        }
     } finally {
-        loading.value = false;
+        if (generation === searchGeneration) {
+            loading.value = false;
+        }
     }
+};
+const selectTab = (tab: BoardTab) => {
+    activeTab.value = tab;
+    form.board_status = tab;
+    void search(1);
 };
 const advancedFilterCount = computed(
     () =>
-        [form.priority, form.status].filter(Boolean).length +
+        [form.priority, form.visit_type].filter(Boolean).length +
         (form.date_from !== today || form.date_to !== today ? 1 : 0),
 );
 const resetFilters = () => {
@@ -104,303 +197,290 @@ const resetFilters = () => {
         visit_type: '',
         priority: '',
         coverage_type: '',
-        status: '',
+        board_status: activeTab.value,
         date_from: today,
         date_to: today,
     });
     showMoreFilters.value = false;
-    search(1);
+    void search(1);
 };
-const visitHref = (number: string) => '/visits/' + encodeURIComponent(number);
+const source = (row: PatientBoardRow) => row.source as VisitRow;
+const runMutation = (
+    row: PatientBoardRow,
+    method: 'post' | 'patch',
+    url: string,
+    data: Record<string, number>,
+) => {
+    busyKey.value = row.key;
+    router[method](url, data, {
+        preserveScroll: true,
+        onError: (errors) => {
+            error.value =
+                Object.values(errors)[0] ??
+                'The action could not be completed.';
+        },
+        onFinish: () => {
+            busyKey.value = null;
+        },
+    });
+};
+const sendToWaiting = (row: PatientBoardRow) =>
+    runMutation(
+        row,
+        'post',
+        `/visits/${encodeURIComponent(row.visitNumber)}/queue`,
+        {
+            expected_branch_id: props.options.branch.id,
+            visit_lock_version: source(row).visitLockVersion,
+        },
+    );
+const callIn = (row: PatientBoardRow) =>
+    runMutation(
+        row,
+        'patch',
+        `/visits/${encodeURIComponent(row.visitNumber)}/queue/call`,
+        {
+            expected_branch_id: props.options.branch.id,
+            visit_lock_version: source(row).visitLockVersion,
+            queue_lock_version: source(row).queueLockVersion!,
+        },
+    );
+const openConsultation = (row: PatientBoardRow) =>
+    runMutation(
+        row,
+        'post',
+        `/visits/${encodeURIComponent(row.visitNumber)}/encounter`,
+        {
+            expected_branch_id: props.options.branch.id,
+            visit_lock_version: source(row).visitLockVersion,
+            queue_lock_version: source(row).queueLockVersion!,
+        },
+    );
+const requestCancellation = (row: PatientBoardRow) => {
+    cancellationRow.value = row;
+    cancelOpen.value = true;
+};
 </script>
 
 <template>
     <Head title="Registration" />
-    <main class="flex flex-1 flex-col gap-4 p-4 md:p-6">
-        <div
-            class="flex flex-col justify-between gap-3 md:flex-row md:items-center"
-        >
-            <div class="flex items-center gap-3">
-                <div class="rounded-lg bg-emerald-100 p-2 text-emerald-800">
-                    <ClipboardPlus class="size-5" />
-                </div>
-                <div>
-                    <h1 class="text-2xl font-semibold tracking-tight">
-                        Registration
-                    </h1>
-                    <p class="text-sm text-muted-foreground">
-                        {{ options.branch.name }} · current operational day
-                    </p>
-                </div>
+    <main
+        class="mx-auto flex w-full max-w-[1600px] flex-1 flex-col gap-3 px-3 py-4 md:px-5"
+    >
+        <header class="flex flex-wrap items-end justify-between gap-3">
+            <div>
+                <h1 class="text-2xl font-semibold tracking-tight">
+                    Registration
+                </h1>
+                <p class="text-sm text-muted-foreground">
+                    {{ options.branch.name }} · live Patient board
+                </p>
             </div>
-            <Button v-if="canCreate" as-child>
-                <Link href="/registration/create"
+            <Button v-if="canCreate" as-child size="sm"
+                ><Link href="/registration/create"
                     ><Plus class="size-4" /> Register Visit</Link
+                ></Button
+            >
+        </header>
+
+        <nav
+            class="flex gap-1 overflow-x-auto border-b"
+            aria-label="Patient board status"
+        >
+            <button
+                v-for="tab in tabs"
+                :key="tab.value"
+                type="button"
+                class="relative shrink-0 px-3 py-2 text-sm font-medium text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                :class="
+                    activeTab === tab.value
+                        ? 'text-foreground after:absolute after:inset-x-2 after:bottom-0 after:h-0.5 after:bg-emerald-700'
+                        : ''
+                "
+                :aria-current="activeTab === tab.value ? 'page' : undefined"
+                @click="selectTab(tab.value)"
+            >
+                {{ tab.label }}
+                <span
+                    v-if="tab.planned"
+                    class="ml-1 text-[10px] font-normal uppercase"
+                    >Planned</span
                 >
-            </Button>
+            </button>
+        </nav>
+
+        <div v-if="plannedTab" class="border-y px-4 py-12 text-center">
+            <h2 class="font-semibold">
+                {{
+                    activeTab === 'dispensary'
+                        ? 'Dispensary'
+                        : 'Completed Visits'
+                }}
+            </h2>
+            <p class="mt-1 text-sm text-muted-foreground">
+                Planned workflow — not available yet. No Patient records are
+                represented in this state.
+            </p>
         </div>
 
-        <form class="rounded-lg border bg-card p-3" @submit.prevent="search(1)">
-            <div
-                class="grid gap-2 md:grid-cols-2 lg:grid-cols-[minmax(260px,1.7fr)_minmax(160px,0.8fr)_minmax(140px,0.7fr)_minmax(140px,0.7fr)_auto_auto]"
-            >
-                <label class="relative md:col-span-2 lg:col-span-1">
-                    <Search
-                        class="absolute top-2.5 left-3 size-4 text-muted-foreground"
-                    />
-                    <input
-                        v-model="form.patient_query"
-                        autofocus
-                        autocomplete="off"
-                        class="h-9 w-full rounded-md border bg-background pr-3 pl-9 text-sm focus-visible:ring-2 focus-visible:ring-emerald-600/30 focus-visible:outline-none"
-                        placeholder="Patient name or exact Patient No."
-                    />
-                </label>
-                <select
-                    v-model="form.doctor_id"
-                    aria-label="Doctor"
-                    class="h-9 rounded-md border bg-background px-2 text-sm"
+        <template v-else>
+            <form class="border-b pb-3" @submit.prevent="search(1)">
+                <div
+                    class="grid gap-2 md:grid-cols-2 xl:grid-cols-[minmax(260px,1.6fr)_minmax(150px,0.8fr)_140px_140px_auto_auto]"
                 >
-                    <option value="">All doctors</option>
-                    <option
-                        v-for="doctor in options.doctors"
-                        :key="doctor.id"
-                        :value="doctor.id"
+                    <label class="relative md:col-span-2 xl:col-span-1">
+                        <Search
+                            class="absolute top-2.5 left-3 size-4 text-muted-foreground"
+                        />
+                        <input
+                            v-model="form.patient_query"
+                            autocomplete="off"
+                            class="h-9 w-full rounded-md border bg-background pr-3 pl-9 text-sm"
+                            placeholder="Patient name or exact Patient No."
+                        />
+                    </label>
+                    <select
+                        v-model="form.doctor_id"
+                        aria-label="Doctor"
+                        class="h-9 rounded-md border bg-background px-2 text-sm"
                     >
-                        {{ doctor.name }}
-                    </option>
-                </select>
-                <select
-                    v-model="form.visit_type"
-                    aria-label="Visit type"
-                    class="h-9 rounded-md border bg-background px-2 text-sm"
-                >
-                    <option value="">All visit types</option>
-                    <option value="consultation">Consultation</option>
-                    <option value="otc">OTC</option>
-                </select>
-                <select
-                    v-model="form.coverage_type"
-                    aria-label="Coverage"
-                    class="h-9 rounded-md border bg-background px-2 text-sm"
-                >
-                    <option value="">All coverage</option>
-                    <option value="self_pay">Self-pay</option>
-                    <option value="panel">Panel</option>
-                </select>
-                <Button size="sm" type="submit" :disabled="loading">
-                    {{ loading ? 'Loading…' : 'Apply' }}
-                </Button>
-                <Button
-                    type="button"
-                    size="sm"
-                    variant="outline"
-                    @click="showMoreFilters = !showMoreFilters"
-                >
-                    <SlidersHorizontal class="size-4" /> More
-                    <span
-                        v-if="advancedFilterCount"
-                        class="rounded-full bg-emerald-100 px-1.5 text-[11px] text-emerald-800"
-                        >{{ advancedFilterCount }}</span
+                        <option value="">All doctors</option>
+                        <option
+                            v-for="doctor in options.doctors"
+                            :key="doctor.id"
+                            :value="doctor.id"
+                        >
+                            {{ doctor.name }}
+                        </option>
+                    </select>
+                    <select
+                        v-model="form.coverage_type"
+                        aria-label="Coverage"
+                        class="h-9 rounded-md border bg-background px-2 text-sm"
                     >
-                    <ChevronDown
-                        class="size-3.5 transition-transform"
-                        :class="showMoreFilters ? 'rotate-180' : ''"
-                    />
-                </Button>
-            </div>
-            <div
-                v-if="showMoreFilters"
-                class="mt-3 flex flex-wrap items-end gap-2 border-t border-border/60 pt-3"
-            >
-                <label class="grid gap-1">
-                    <span class="text-xs font-medium text-muted-foreground"
-                        >Priority</span
-                    >
+                        <option value="">All coverage</option>
+                        <option value="self_pay">Self-pay</option>
+                        <option value="panel">Panel</option>
+                    </select>
                     <select
                         v-model="form.priority"
+                        aria-label="Urgency"
                         class="h-9 rounded-md border bg-background px-2 text-sm"
                     >
-                        <option value="">All priorities</option>
-                        <option value="normal">Normal</option>
+                        <option value="">All urgency</option>
                         <option value="urgent">Urgent</option>
+                        <option value="normal">Normal</option>
                     </select>
-                </label>
-                <label class="grid gap-1">
-                    <span class="text-xs font-medium text-muted-foreground"
-                        >Status</span
+                    <Button size="sm" type="submit" :disabled="loading"
+                        ><LoaderCircle
+                            v-if="loading"
+                            class="size-4 animate-spin"
+                        />{{ loading ? 'Applying…' : 'Apply' }}</Button
                     >
-                    <select
-                        v-model="form.status"
-                        class="h-9 rounded-md border bg-background px-2 text-sm"
+                    <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        @click="showMoreFilters = !showMoreFilters"
                     >
-                        <option value="">All statuses</option>
-                        <option value="registered">Registered</option>
-                        <option value="cancelled">Cancelled</option>
-                    </select>
-                </label>
-                <label class="grid gap-1">
-                    <span class="text-xs font-medium text-muted-foreground"
-                        >From</span
-                    >
-                    <input
-                        v-model="form.date_from"
-                        type="date"
-                        class="h-9 rounded-md border bg-background px-2 text-sm"
-                    />
-                </label>
-                <label class="grid gap-1">
-                    <span class="text-xs font-medium text-muted-foreground"
-                        >To</span
-                    >
-                    <input
-                        v-model="form.date_to"
-                        type="date"
-                        class="h-9 rounded-md border bg-background px-2 text-sm"
-                    />
-                </label>
-                <Button
-                    type="button"
-                    size="sm"
-                    variant="ghost"
-                    @click="resetFilters"
+                        <SlidersHorizontal class="size-4" /> More
+                        <span v-if="advancedFilterCount" class="text-xs">{{
+                            advancedFilterCount
+                        }}</span
+                        ><ChevronDown
+                            class="size-3.5"
+                            :class="showMoreFilters ? 'rotate-180' : ''"
+                        />
+                    </Button>
+                </div>
+                <div
+                    v-if="showMoreFilters"
+                    class="mt-3 flex flex-wrap items-end gap-2 border-t pt-3"
                 >
-                    <X class="size-4" /> Reset
-                </Button>
-            </div>
-            <InputError class="mt-2" :message="error" />
-        </form>
-
-        <section
-            class="overflow-hidden rounded-lg bg-card ring-1 ring-border/60"
-        >
-            <div
-                class="flex items-center justify-between px-4 py-2.5 text-xs text-muted-foreground"
-            >
-                <span>{{ total }} Visit{{ total === 1 ? '' : 's' }}</span>
-                <span>25 per page</span>
-            </div>
-            <div class="overflow-x-auto">
-                <table class="w-full min-w-[940px] text-left text-sm">
-                    <thead
-                        class="bg-muted/35 text-[11px] font-semibold tracking-wide text-muted-foreground uppercase"
-                    >
-                        <tr>
-                            <th class="px-4 py-2.5">Registered</th>
-                            <th class="px-4 py-2.5">Patient</th>
-                            <th class="px-4 py-2.5">Visit</th>
-                            <th class="px-4 py-2.5">Doctor</th>
-                            <th class="px-4 py-2.5">Coverage</th>
-                            <th class="px-4 py-2.5">Priority</th>
-                            <th class="px-4 py-2.5">Status</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr
-                            v-for="visit in rows"
-                            :key="visit.visitNumber"
-                            class="border-b border-border/40 transition-colors last:border-0 hover:bg-emerald-50/30"
+                    <label class="grid gap-1 text-xs"
+                        >Visit type<select
+                            v-model="form.visit_type"
+                            class="h-9 rounded-md border bg-background px-2 text-sm"
                         >
-                            <td class="px-4 py-3.5 align-top">
-                                <span class="font-semibold tabular-nums">{{
-                                    visit.registeredAt
-                                }}</span>
-                            </td>
-                            <td class="px-4 py-3.5 align-top">
-                                <div class="font-medium">
-                                    {{ visit.patientName }}
-                                </div>
-                                <div
-                                    class="font-mono text-xs text-muted-foreground"
-                                >
-                                    {{ visit.patientNumber }}
-                                </div>
-                            </td>
-                            <td class="max-w-72 px-4 py-3.5 align-top">
-                                <div class="flex items-center gap-2">
-                                    <Link
-                                        :href="visitHref(visit.visitNumber)"
-                                        class="font-mono text-xs font-medium text-emerald-800 hover:underline"
-                                        >{{ visit.visitNumber }}</Link
-                                    >
-                                    <span
-                                        class="text-xs text-muted-foreground capitalize"
-                                        >{{ visit.visitType }}</span
-                                    >
-                                    <span
-                                        v-if="visit.queueStatus"
-                                        class="rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-800 capitalize"
-                                        >Queue {{ visit.queueNumber }} ·
-                                        {{ visit.queueStatus }}</span
-                                    >
-                                </div>
-                                <div
-                                    class="mt-1 truncate text-xs text-muted-foreground"
-                                >
-                                    {{
-                                        visit.visitReasonExcerpt ??
-                                        'No reason recorded'
-                                    }}
-                                </div>
-                            </td>
-                            <td class="px-4 py-3.5 align-top">
-                                {{ visit.doctorName ?? '—' }}
-                            </td>
-                            <td class="px-4 py-3.5 align-top">
-                                {{ visit.coverageLabel }}
-                            </td>
-                            <td class="px-4 py-3.5 align-top">
-                                <span
-                                    :class="
-                                        visit.priority === 'urgent'
-                                            ? 'border-red-200 bg-red-50 text-red-700'
-                                            : 'border-muted bg-muted/40 text-muted-foreground'
-                                    "
-                                    class="rounded-full border px-2 py-0.5 text-xs font-medium capitalize"
-                                    >{{ visit.priority }}</span
-                                >
-                            </td>
-                            <td class="px-4 py-3.5 align-top">
-                                <span
-                                    :class="
-                                        visit.status === 'registered'
-                                            ? 'bg-emerald-50 text-emerald-800'
-                                            : 'bg-muted text-muted-foreground'
-                                    "
-                                    class="rounded-full px-2 py-0.5 text-xs font-medium capitalize"
-                                    >{{ visit.status }}</span
-                                >
-                            </td>
-                        </tr>
-                        <tr v-if="!rows.length">
-                            <td
-                                colspan="7"
-                                class="px-4 py-12 text-center text-sm text-muted-foreground"
-                            >
-                                No Visits match this operational view.
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-            <div
-                v-if="lastPage > 1"
-                class="flex justify-end gap-2 border-t p-3"
-            >
-                <Button
-                    size="sm"
-                    variant="outline"
-                    :disabled="currentPage === 1"
-                    @click="search(currentPage - 1)"
-                    >Previous</Button
-                ><Button
-                    size="sm"
-                    variant="outline"
-                    :disabled="currentPage === lastPage"
-                    @click="search(currentPage + 1)"
-                    >Next</Button
+                            <option value="">All</option>
+                            <option value="consultation">Consultation</option>
+                            <option value="otc">OTC</option>
+                        </select></label
+                    >
+                    <label class="grid gap-1 text-xs"
+                        >From<input
+                            v-model="form.date_from"
+                            type="date"
+                            class="h-9 rounded-md border bg-background px-2 text-sm"
+                    /></label>
+                    <label class="grid gap-1 text-xs"
+                        >To<input
+                            v-model="form.date_to"
+                            type="date"
+                            class="h-9 rounded-md border bg-background px-2 text-sm"
+                    /></label>
+                    <Button
+                        type="button"
+                        size="sm"
+                        variant="ghost"
+                        @click="resetFilters"
+                        ><X class="size-4" /> Reset</Button
+                    >
+                </div>
+                <InputError class="mt-2" :message="error" />
+            </form>
+
+            <section class="overflow-hidden border-y bg-background">
+                <div
+                    class="flex items-center justify-between px-3 py-2 text-xs text-muted-foreground"
                 >
-            </div>
-        </section>
+                    <span>{{ total }} Visit{{ total === 1 ? '' : 's' }}</span
+                    ><span>25 per page</span>
+                </div>
+                <PatientBoard
+                    :rows="boardRows"
+                    :busy-key="busyKey"
+                    @send-to-waiting="sendToWaiting"
+                    @call="callIn"
+                    @open-consultation="openConsultation"
+                    @cancel="requestCancellation"
+                />
+                <div
+                    v-if="lastPage > 1"
+                    class="flex justify-end gap-2 border-t p-3"
+                >
+                    <Button
+                        size="sm"
+                        variant="outline"
+                        :disabled="currentPage === 1"
+                        @click="search(currentPage - 1)"
+                        >Previous</Button
+                    >
+                    <Button
+                        size="sm"
+                        variant="outline"
+                        :disabled="currentPage === lastPage"
+                        @click="search(currentPage + 1)"
+                        >Next</Button
+                    >
+                </div>
+            </section>
+        </template>
+
+        <VisitCancellationDialog
+            v-model:open="cancelOpen"
+            :row="cancellationRow"
+            :branch-id="options.branch.id"
+            :visit-lock-version="
+                cancellationRow
+                    ? source(cancellationRow).visitLockVersion
+                    : null
+            "
+            :queue-lock-version="
+                cancellationRow
+                    ? source(cancellationRow).queueLockVersion
+                    : null
+            "
+        />
     </main>
 </template>
