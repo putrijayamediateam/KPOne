@@ -128,7 +128,7 @@ try {
             ])->save();
         } else {
             $encounter = ClinicalEncounter::query()->where('visit_id', $visit->id)->lockForUpdate()->firstOrFail();
-            DB::table('clinical_encounters')->whereKey($encounter->id)->update([
+            DB::table('clinical_encounters')->where('id', $encounter->id)->update([
                 'attending_clinician_user_id' => (int) $argv[3],
                 'updated_at' => now()->utc(),
             ]);

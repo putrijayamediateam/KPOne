@@ -183,7 +183,7 @@ class PostgresTreatmentPlanRegressionTest extends TestCase
             $this->worker(['save-service', (string) $fixture['doctor']->id, $fixture['visit']->visit_number, (string) $fixture['branch']->id, 'null', $service->public_id, 'PLAN']),
         ];
 
-        $this->runTogetherWhileParentBlocks($workers, $fixture['patient']);
+        $this->runTogetherWhileParentBlocks($workers, $fixture['visit']);
 
         $output = $this->workerOutput($workers);
         $this->assertStringContainsString('NOTE_SAVED', $output);
@@ -637,11 +637,11 @@ class PostgresTreatmentPlanRegressionTest extends TestCase
     }
 
     /** @param list<Worker> $workers */
-    private function runTogetherWhileParentBlocks(array $workers, Patient $patient): void
+    private function runTogetherWhileParentBlocks(array $workers, Model $blocker): void
     {
         DB::beginTransaction();
         try {
-            Patient::query()->whereKey($patient->id)->lockForUpdate()->firstOrFail();
+            $blocker->newQuery()->whereKey($blocker->getKey())->lockForUpdate()->firstOrFail();
             $parentPid = (int) DB::scalar('select pg_backend_pid()');
             foreach ($workers as $worker) {
                 $worker['process']->start();
@@ -704,9 +704,12 @@ class PostgresTreatmentPlanRegressionTest extends TestCase
             if (str_contains(str_replace("\r\n", "\n", $process->getOutput()), $needle)) {
                 return;
             }
+            if ($process->isTerminated()) {
+                throw new RuntimeException('Treatment Plan worker exited before reporting '.$needle.'. Output: '.$process->getOutput().' Error: '.$process->getErrorOutput());
+            }
             usleep(50_000);
         } while (microtime(true) < $deadline);
-        throw new RuntimeException('Treatment Plan worker protocol timeout.');
+        throw new RuntimeException('Treatment Plan worker protocol timeout waiting for '.$needle.'. Output: '.$process->getOutput().' Error: '.$process->getErrorOutput());
     }
 
     private function workerPid(Process $process): int
@@ -726,7 +729,7 @@ class PostgresTreatmentPlanRegressionTest extends TestCase
         $deadline = microtime(true) + 10;
         do {
             if ($process->isTerminated()) {
-                throw new RuntimeException('Treatment Plan worker exited before blocking was observed.');
+                throw new RuntimeException('Treatment Plan worker exited before blocking was observed. Output: '.$process->getOutput().' Error: '.$process->getErrorOutput());
             }
             $result = $this->observer()->selectOne(<<<'SQL'
                 select exists (
@@ -743,7 +746,7 @@ class PostgresTreatmentPlanRegressionTest extends TestCase
             }
             usleep(50_000);
         } while (microtime(true) < $deadline);
-        throw new RuntimeException('Expected Treatment Plan PostgreSQL blocking was not observed.');
+        throw new RuntimeException('Expected Treatment Plan PostgreSQL blocking was not observed. Output: '.$process->getOutput().' Error: '.$process->getErrorOutput());
     }
 
     private function observer(): Connection
@@ -774,10 +777,12 @@ class PostgresTreatmentPlanRegressionTest extends TestCase
         DB::table('treatment_plans')->where('organisation_id', $id)->delete();
         DB::table('clinical_service_catalogue_items')->where('organisation_id', $id)->delete();
         DB::table('medicine_catalogue_items')->where('organisation_id', $id)->delete();
-        DB::table('clinical_encounter_allergy_reviews')->where('organisation_id', $id)->delete();
-        DB::table('patient_allergy_records')->where('organisation_id', $id)->delete();
-        DB::table('patient_allergy_profile_versions')->where('organisation_id', $id)->delete();
-        DB::table('patient_allergy_profiles')->where('organisation_id', $id)->delete();
+        DB::transaction(function () use ($id): void {
+            DB::table('clinical_encounter_allergy_reviews')->where('organisation_id', $id)->delete();
+            DB::table('patient_allergy_records')->where('organisation_id', $id)->delete();
+            DB::table('patient_allergy_profile_versions')->where('organisation_id', $id)->delete();
+            DB::table('patient_allergy_profiles')->where('organisation_id', $id)->delete();
+        });
         DB::table('audit_logs')->where('organisation_id', $id)->delete();
         DB::table('clinical_encounters')->where('organisation_id', $id)->delete();
         DB::table('queue_entries')->where('organisation_id', $id)->delete();
