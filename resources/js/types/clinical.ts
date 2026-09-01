@@ -25,6 +25,46 @@ export type ClinicalVitals = {
     bmi: number | null;
 };
 
+export type ClinicalAllergyRecord = {
+    publicId: string;
+    allergen: string;
+    category: 'medication' | 'food' | 'environmental' | 'other' | null;
+    reaction: string | null;
+    severity: 'mild' | 'moderate' | 'severe' | null;
+    recordedAt: string;
+};
+
+export type ClinicalAllergySafety = {
+    status: 'unknown' | 'no_known_allergies' | 'has_allergies';
+    profileLockVersion: number | null;
+    reviewedAt: string | null;
+    records: ClinicalAllergyRecord[];
+    encounterReview: {
+        reviewedAt: string;
+        reviewedVersion: number;
+        isCurrent: boolean;
+    } | null;
+    canUpdate: boolean;
+    canReview: boolean;
+};
+
+export type ClinicalProblemRecord = {
+    publicId: string;
+    condition: string;
+    conditionCode: string | null;
+    codeSystem: string | null;
+    status: 'active' | 'resolved';
+    onsetDate: string | null;
+    resolvedDate: string | null;
+    lockVersion: number;
+};
+
+export type ClinicalProblemList = {
+    active: ClinicalProblemRecord[];
+    resolved: ClinicalProblemRecord[];
+    canUpdate: boolean;
+};
+
 export type ClinicalEncounterPage = {
     branch: { id: number; code: string; name: string; timezone: string };
     patient: {
@@ -57,8 +97,9 @@ export type ClinicalEncounterPage = {
     };
     vitals: ClinicalVitals;
     diagnoses: ClinicalDiagnosis[];
+    allergies: ClinicalAllergySafety | null;
+    problems: ClinicalProblemList | null;
     history: ClinicalHistorySummary[];
-    limitations: { structuredHistory: string };
 };
 
 export type ClinicalHistoryDetailPage = {

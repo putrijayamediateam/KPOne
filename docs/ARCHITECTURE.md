@@ -12,7 +12,7 @@ KPOne is one Laravel deployment and one PostgreSQL database. Domain boundaries o
 - `app/Domain/Patient`: organisation-level Patient Master models, policy, number allocation, identity normalisation, directory, and administration
 - `app/Domain/Visit`: branch operational Visits, Registration, doctor eligibility, Visit number allocation, directory, administration, and policy
 - `app/Domain/Queue`: one-to-one branch Queue Entries, branch/day numbering, live projection, and Waiting/Serving transitions
-- `app/Domain/Clinical`: one-to-one Clinical Encounters, vitals observations, diagnoses, own-clinician policy, aggregate save, and minimized clinical projection
+- `app/Domain/Clinical`: one-to-one Clinical Encounters, vitals observations, diagnoses, longitudinal Allergy/Profile review and Problem List records, own-clinician policy, aggregate services, and minimized clinical projections
 
 HTTP controllers translate requests and Inertia responses. They do not own scope rules. The application remains compatible with normal Laravel routing, service-container, Eloquent, policy, middleware, migration, and seeder conventions. No third-party modules framework is used.
 
@@ -81,6 +81,10 @@ Phase 1C adds a one-to-one `QueueEntry` operational child for registered Consult
 Phase 2A begins only from a registered Consultation whose Queue Entry is Serving. `ClinicalEncounterService` creates one `in_progress` Encounter per Visit and atomically saves one clinical note, one current vitals observation, and an ordered diagnosis list under one optimistic version. The attending clinician is snapshotted at Start and cannot be silently reassigned. Combined clinical mutations lock actor security state, then Visit, Queue Entry, Encounter, vitals, and diagnosis rows. Visit and Queue state remain unchanged.
 
 Phase 2A stops before signing/finalization, addenda, handover, Treatment Plan, medication, completion, dispensing, inventory, billing, appointment, and patient-facing state.
+
+Phase 2B.0 adds one lazy organisation-level Allergy Profile per Patient, append-only Profile versions, active/entered-in-error Allergy Records, one exact Profile-version review per current Encounter, and row-versioned active/resolved/entered-in-error Problem Records. Allergy status is never inferred as no-known from missing rows. All access is through the active attending doctor's current Serving care relationship; historical Encounter authorship does not grant current longitudinal access. Mutations extend the Phase 2A lock order from actor security state → Patient → Visit → Queue Entry → Encounter into Profile → ordered Allergy rows → Encounter review → ordered Problem rows. A future medicine aggregate may follow only after these locks and must revalidate the exact reviewed Profile version.
+
+Phase 2B.0 still contains no Treatment Plan, medicine/service order, medication decision support, Dispensary, stock, billing, Visit completion, or Queue completion.
 
 ## Authentication
 

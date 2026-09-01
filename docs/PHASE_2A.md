@@ -58,7 +58,7 @@ Each summary may open a dedicated read-only Previous Consultation page on demand
 
 Historical detail has no mutation, save, reopen, finalise, sign, delete, handover, or treatment action. Its projection excludes aggregate lock versions and writable metadata. Phase 2B may later extend this read-only page with separately authorised historical treatment information without changing the Phase 2A relationship check.
 
-Phase 1A has no structured allergy or underlying-condition source. Phase 2A does not invent one or misuse clinical notes as longitudinal master data. The clinical page therefore states: “Structured allergy and medical-condition history is not yet available in KPOne.” It must never imply “No known allergies.” A separately reviewed longitudinal allergy/condition model is required before medication or prescribing workflows approach production use.
+Phase 2A released without a structured allergy or underlying-condition source and deliberately did not misuse Clinical Note as longitudinal master data. The subsequent Phase 2B.0 safety foundation adds explicit longitudinal Allergy/Profile review and Problem List records while preserving the Phase 2A Encounter boundary. Medication and prescribing workflows remain unavailable.
 
 ## Privacy and audit
 

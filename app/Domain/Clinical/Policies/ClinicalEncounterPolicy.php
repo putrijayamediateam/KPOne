@@ -46,6 +46,31 @@ class ClinicalEncounterPolicy
             && $actor->can('encounters.history.view.organisation');
     }
 
+    public function viewAllergies(User $actor, ClinicalEncounter $encounter): bool
+    {
+        return $this->ownsEncounter($actor, $encounter, 'allergies.view.own');
+    }
+
+    public function updateAllergies(User $actor, ClinicalEncounter $encounter): bool
+    {
+        return $this->ownsEncounter($actor, $encounter, 'allergies.update.own');
+    }
+
+    public function reviewAllergies(User $actor, ClinicalEncounter $encounter): bool
+    {
+        return $this->ownsEncounter($actor, $encounter, 'allergies.review.own');
+    }
+
+    public function viewProblems(User $actor, ClinicalEncounter $encounter): bool
+    {
+        return $this->ownsEncounter($actor, $encounter, 'problems.view.own');
+    }
+
+    public function updateProblems(User $actor, ClinicalEncounter $encounter): bool
+    {
+        return $this->ownsEncounter($actor, $encounter, 'problems.update.own');
+    }
+
     public function viewHistory(
         User $actor,
         ClinicalEncounter $historical,

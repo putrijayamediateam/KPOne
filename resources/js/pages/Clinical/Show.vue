@@ -12,6 +12,7 @@ import {
 import { computed } from 'vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
+import AllergyProblemPanel from '@/pages/Clinical/Partials/AllergyProblemPanel.vue';
 import type { ClinicalEncounterPage } from '@/types';
 
 defineOptions({
@@ -186,12 +187,12 @@ const save = () => {
             </div>
         </section>
 
-        <div
-            class="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50/50 p-3 text-sm text-amber-900"
-        >
-            <AlertTriangle class="mt-0.5 size-4 shrink-0" />
-            {{ clinical.limitations.structuredHistory }}
-        </div>
+        <AllergyProblemPanel
+            :visit-number="clinical.visit.visitNumber"
+            :branch-id="clinical.branch.id"
+            :allergies="clinical.allergies"
+            :problems="clinical.problems"
+        />
 
         <div
             v-if="stateError"

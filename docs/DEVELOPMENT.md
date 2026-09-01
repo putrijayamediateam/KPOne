@@ -44,6 +44,8 @@ Phase 1C adds no Queue seeder. `QueueEntryFactory` is test-only. Queue pages use
 
 Phase 2A adds no Encounter, vitals, or diagnosis seeder. Its factories and feature fixtures use synthetic content only. The PostgreSQL Clinical regression uses separate processes to prove one Encounter per Visit, Start/Call/security-state serialization, stale aggregate rejection, diagnosis-list integrity, and rollback. Do not use clinical text copied from any real Patient in local tests, screenshots, logs, or debugging tools.
 
+Phase 2B.0 adds no Allergy Profile, Allergy Record, Encounter review, Problem List, or catalogue seeder. Its factories are test-only and all fixtures use obvious synthetic clinical text. The PostgreSQL Clinical safety regression uses separate processes to prove Profile creation/version serialization, no-known versus Allergy races, competing Allergy edits, final-error consistency, review-versus-mutation staleness, authority revalidation, scope isolation, and full rollback. No Treatment Plan, medicine/service order, catalogue data, Dispensary, inventory, or billing fixture is introduced.
+
 PostgreSQL-specific regression tests skip explicitly on SQLite. In PostgreSQL CI they exercise transactional rollback and genuine row-lock contention using separately bootstrapped PHP worker processes and database connections. Never point that workflow at a developer or production database: the tests require `APP_ENV=testing` and a database name clearly marked as a test database before they write fixtures.
 
 ## Dummy account
@@ -112,3 +114,4 @@ Run destructive migration commands only against a confirmed local/test database.
 - Treat Registration as canonical Visit creation. Do not add a parallel Registration table or Queue/clinical/billing columns to `visits`.
 - Treat Queue Entry as the one-to-one operational child of a Consultation Visit. Do not duplicate Patient, doctor, reason, priority, clinical, or billing fields on it.
 - Treat Clinical Encounter as the one-to-one in-progress clinical child of a Serving Consultation Visit. Keep clinical note, vitals, and diagnoses out of Patient, Visit, Queue polling, and audit metadata. Do not add signing, completion, handover, treatment, prescribing, or billing semantics in Phase 2A.
+- Treat Allergy Profile and Problem List as organisation-level longitudinal clinical data available only through current Encounter care. Never infer no-known from zero rows, auto-review after mutation, copy clinical values into audits/operational projections, or bypass the Profile-version review gate intended for future medicine ordering.

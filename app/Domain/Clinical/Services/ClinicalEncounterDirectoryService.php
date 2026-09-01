@@ -13,7 +13,10 @@ use Illuminate\Support\Facades\Gate;
 
 class ClinicalEncounterDirectoryService
 {
-    public function __construct(private BranchAccessService $branches) {}
+    public function __construct(
+        private BranchAccessService $branches,
+        private ClinicalSafetyDirectoryService $clinicalSafety,
+    ) {}
 
     /** @return array<string, mixed> */
     public function detail(User $actor, Visit $visit): array
@@ -78,10 +81,9 @@ class ClinicalEncounterDirectoryService
                 'codeSystem' => $diagnosis->code_system,
                 'isPrimary' => $diagnosis->is_primary,
             ])->values(),
+            'allergies' => $this->clinicalSafety->allergies($actor, $encounter),
+            'problems' => $this->clinicalSafety->problems($actor, $encounter),
             'history' => $this->history($actor, $encounter),
-            'limitations' => [
-                'structuredHistory' => 'Structured allergy and medical-condition history is not yet available in KPOne.',
-            ],
         ];
     }
 

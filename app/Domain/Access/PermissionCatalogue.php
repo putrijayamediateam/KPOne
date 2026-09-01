@@ -43,6 +43,11 @@ final class PermissionCatalogue
             'encounters.start.own',
             'encounters.update.own',
             'encounters.history.view.organisation',
+            'allergies.view.own',
+            'allergies.update.own',
+            'allergies.review.own',
+            'problems.view.own',
+            'problems.update.own',
         ];
     }
 
@@ -96,6 +101,11 @@ final class PermissionCatalogue
                 'encounters.start.own',
                 'encounters.update.own',
                 'encounters.history.view.organisation',
+                'allergies.view.own',
+                'allergies.update.own',
+                'allergies.review.own',
+                'problems.view.own',
+                'problems.update.own',
             ],
             'ca' => [
                 ...$branch,

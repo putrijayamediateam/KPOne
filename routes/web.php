@@ -5,7 +5,9 @@ use App\Http\Controllers\AuditLogController;
 use App\Http\Controllers\Auth\GoogleAuthController;
 use App\Http\Controllers\BranchContextController;
 use App\Http\Controllers\BranchController;
+use App\Http\Controllers\ClinicalAllergyController;
 use App\Http\Controllers\ClinicalEncounterController;
+use App\Http\Controllers\ClinicalProblemController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\PatientController;
 use App\Http\Controllers\PatientIdentifierController;
@@ -102,6 +104,33 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::patch('visits/{visit}/encounter', [ClinicalEncounterController::class, 'update'])
             ->middleware(['permission:encounters.update.own', 'throttle:60,1'])
             ->name('encounters.update');
+        Route::post('visits/{visit}/encounter/allergies/no-known', [ClinicalAllergyController::class, 'declareNoKnown'])
+            ->middleware(['permission:allergies.update.own', 'throttle:30,1'])
+            ->name('encounters.allergies.no-known');
+        Route::post('visits/{visit}/encounter/allergies', [ClinicalAllergyController::class, 'store'])
+            ->middleware(['permission:allergies.update.own', 'throttle:60,1'])
+            ->name('encounters.allergies.store');
+        Route::patch('visits/{visit}/encounter/allergies/{allergy}', [ClinicalAllergyController::class, 'update'])
+            ->middleware(['permission:allergies.update.own', 'throttle:60,1'])
+            ->name('encounters.allergies.update');
+        Route::patch('visits/{visit}/encounter/allergies/{allergy}/entered-in-error', [ClinicalAllergyController::class, 'enterInError'])
+            ->middleware(['permission:allergies.update.own', 'throttle:30,1'])
+            ->name('encounters.allergies.entered-in-error');
+        Route::post('visits/{visit}/encounter/allergies/review', [ClinicalAllergyController::class, 'review'])
+            ->middleware(['permission:allergies.review.own', 'throttle:30,1'])
+            ->name('encounters.allergies.review');
+        Route::post('visits/{visit}/encounter/problems', [ClinicalProblemController::class, 'store'])
+            ->middleware(['permission:problems.update.own', 'throttle:60,1'])
+            ->name('encounters.problems.store');
+        Route::patch('visits/{visit}/encounter/problems/{problem}', [ClinicalProblemController::class, 'update'])
+            ->middleware(['permission:problems.update.own', 'throttle:60,1'])
+            ->name('encounters.problems.update');
+        Route::patch('visits/{visit}/encounter/problems/{problem}/resolve', [ClinicalProblemController::class, 'resolve'])
+            ->middleware(['permission:problems.update.own', 'throttle:30,1'])
+            ->name('encounters.problems.resolve');
+        Route::patch('visits/{visit}/encounter/problems/{problem}/entered-in-error', [ClinicalProblemController::class, 'enterInError'])
+            ->middleware(['permission:problems.update.own', 'throttle:30,1'])
+            ->name('encounters.problems.entered-in-error');
 
         Route::get('queue', [QueueController::class, 'index'])
             ->middleware('permission:queue.view.own,queue.view.branch')

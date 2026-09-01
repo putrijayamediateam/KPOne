@@ -96,4 +96,10 @@ class ClinicalEncounter extends Model
     {
         return $this->hasMany(EncounterDiagnosis::class)->orderBy('position');
     }
+
+    /** @return HasOne<ClinicalEncounterAllergyReview, $this> */
+    public function allergyReview(): HasOne
+    {
+        return $this->hasOne(ClinicalEncounterAllergyReview::class);
+    }
 }

@@ -2,6 +2,8 @@
 
 namespace App\Domain\Patient\Models;
 
+use App\Domain\Clinical\Models\PatientAllergyProfile;
+use App\Domain\Clinical\Models\PatientProblemRecord;
 use App\Domain\Organisation\Models\Organisation;
 use App\Models\User;
 use Database\Factories\PatientFactory;
@@ -10,6 +12,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Carbon;
 
 /**
@@ -64,6 +67,18 @@ class Patient extends Model
     public function identifiers(): HasMany
     {
         return $this->hasMany(PatientIdentifier::class);
+    }
+
+    /** @return HasOne<PatientAllergyProfile, $this> */
+    public function allergyProfile(): HasOne
+    {
+        return $this->hasOne(PatientAllergyProfile::class);
+    }
+
+    /** @return HasMany<PatientProblemRecord, $this> */
+    public function problemRecords(): HasMany
+    {
+        return $this->hasMany(PatientProblemRecord::class);
     }
 
     /** @return BelongsTo<User, $this> */
