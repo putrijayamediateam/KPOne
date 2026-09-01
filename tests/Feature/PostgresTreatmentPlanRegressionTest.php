@@ -388,6 +388,23 @@ class PostgresTreatmentPlanRegressionTest extends TestCase
 
         $this->assertSame($plan->lock_version, $plan->refresh()->lock_version);
         $this->assertSame($validatedVersions[$orderA->id], $orderA->refresh()->allergy_profile_version_validated);
+
+        $currentProfile = $staleProfile->refresh();
+        app(PatientAllergyService::class)->review($staleFixture['doctor'], $staleFixture['visit'], [
+            'expected_branch_id' => $staleFixture['branch']->id,
+            'profile_lock_version' => $currentProfile->lock_version,
+        ]);
+        $changedMedicine['dosage'] = 'Changed after current Allergy review';
+        $plan = $service->save($staleFixture['doctor'], $staleFixture['visit'], [
+            'expected_branch_id' => $staleFixture['branch']->id,
+            'lock_version' => $plan->lock_version,
+            'medicines' => [$changedMedicine],
+            'services' => [],
+        ]);
+
+        $this->assertSame('Changed after current Allergy review', $orderA->refresh()->dosage);
+        $this->assertSame($currentProfile->lock_version, $orderA->allergy_profile_version_validated);
+        $this->assertSame($plan->lock_version, $plan->refresh()->lock_version);
     }
 
     public function test_catalogue_inactivation_serializes_before_new_medicine_and_service_orders(): void
