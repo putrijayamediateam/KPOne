@@ -250,7 +250,10 @@ const transitionProblem = (
 </script>
 
 <template>
-    <section class="space-y-3 rounded-lg border bg-background p-3 md:p-4">
+    <section
+        id="clinical-safety"
+        class="space-y-3 rounded-lg border bg-background p-3 md:p-4"
+    >
         <div class="flex flex-wrap items-start justify-between gap-2">
             <div>
                 <h2 class="flex items-center gap-2 font-semibold">

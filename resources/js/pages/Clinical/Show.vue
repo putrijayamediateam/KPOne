@@ -13,6 +13,7 @@ import { computed } from 'vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import AllergyProblemPanel from '@/pages/Clinical/Partials/AllergyProblemPanel.vue';
+import TreatmentPlanPanel from '@/pages/Clinical/Partials/TreatmentPlanPanel.vue';
 import type { ClinicalEncounterPage } from '@/types';
 
 defineOptions({
@@ -431,28 +432,6 @@ const save = () => {
                 </p>
             </section>
 
-            <section v-if="clinical.history.length" class="space-y-2">
-                <h2 class="font-semibold">Recent Encounters</h2>
-                <div
-                    v-for="item in clinical.history"
-                    :key="item.viewUrl"
-                    class="flex flex-wrap items-center justify-between gap-3 border-b py-2.5 text-sm last:border-0"
-                >
-                    <span class="flex flex-wrap items-center gap-x-1">
-                        <span class="font-medium">{{
-                            new Date(item.startedAt).toLocaleDateString()
-                        }}</span>
-                        · {{ item.branch }} · {{ item.attendingClinician }}
-                    </span>
-                    <Link
-                        :href="item.viewUrl"
-                        class="rounded-md border px-3 py-1.5 text-xs font-medium hover:bg-muted"
-                    >
-                        View details
-                    </Link>
-                </div>
-            </section>
-
             <div
                 class="fixed inset-x-0 bottom-0 z-20 border-t bg-background/95 p-3 backdrop-blur md:left-64"
             >
@@ -486,5 +465,34 @@ const save = () => {
                 </div>
             </div>
         </form>
+
+        <TreatmentPlanPanel
+            :visit-number="clinical.visit.visitNumber"
+            :branch-id="clinical.branch.id"
+            :plan="clinical.treatmentPlan"
+            :allergies="clinical.allergies"
+        />
+
+        <section v-if="clinical.history.length" class="space-y-2">
+            <h2 class="font-semibold">Recent Encounters</h2>
+            <div
+                v-for="item in clinical.history"
+                :key="item.viewUrl"
+                class="flex flex-wrap items-center justify-between gap-3 border-b py-2.5 text-sm last:border-0"
+            >
+                <span class="flex flex-wrap items-center gap-x-1">
+                    <span class="font-medium">{{
+                        new Date(item.startedAt).toLocaleDateString()
+                    }}</span>
+                    · {{ item.branch }} · {{ item.attendingClinician }}
+                </span>
+                <Link
+                    :href="item.viewUrl"
+                    class="rounded-md border px-3 py-1.5 text-xs font-medium hover:bg-muted"
+                >
+                    View details
+                </Link>
+            </div>
+        </section>
     </main>
 </template>

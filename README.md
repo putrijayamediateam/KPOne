@@ -4,7 +4,7 @@ KPOne is the Klinik Putrijaya Digital Operating System: a production healthcare 
 
 This repository is a new, independent Laravel application. It does not modify or depend on `MiniWeb_KlinikPutrijaya_Fullstack`.
 
-## Current scope: Phase 0A + Phase 0B + Phase 1A + Phase 1B + Phase 1C + Phase 2A + Phase 2B.0
+## Current scope: Phase 0A + Phase 0B + Phase 1A + Phase 1B + Phase 1C + Phase 2A + Phase 2B.0 + Phase 2B
 
 Phase 0A provides the platform foundation, and Phase 0B adds internal operational staff identity administration:
 
@@ -25,8 +25,9 @@ Phase 0A provides the platform foundation, and Phase 0B adds internal operationa
 - branch-local Consultation Queue numbers, Waiting, Urgent-first FIFO ordering, own-doctor Queue, Call In to Serving, carry-over visibility, and a live CA/doctor Queue console
 - one in-progress own-doctor Clinical Encounter per Serving Consultation, with one current vitals observation, one clinical note, ordered diagnoses, bounded care-related history summaries, and optimistic locking
 - an organisation-level structured Allergy Profile/version ledger, explicit per-Encounter Allergy review, longitudinal Problem List, current-care-only clinical safety access, and a reusable stale-review gate for future medicine ordering
+- one in-progress own-clinician Treatment Plan with governed medicine/service catalogue selection, immutable order snapshots, exact stale-write protection, mandatory current Allergy review for medicine mutations, and retained withdrawn orders
 
-Phase 1A answers “Who is this patient?”. Phase 1B registers that Patient into a canonical branch Visit. Phase 1C places Consultation Visits into Waiting and ends when the Patient is Serving. Phase 2A records an in-progress clinical assessment. Phase 2B.0 adds the structured Allergy and Problem List safety foundation but no Treatment Plan or order. The current scope stops before signing, finalization, handover, completion, medicines/services, dispensing, billing, claims, patient login, QR/OTP, or legacy integration.
+Phase 1A answers “Who is this patient?”. Phase 1B registers that Patient into a canonical branch Visit. Phase 1C places Consultation Visits into Waiting and ends when the Patient is Serving. Phase 2A records an in-progress clinical assessment. Phase 2B.0 adds structured Allergy and Problem List safety. Phase 2B adds in-progress medicine and service/procedure orders but stops before prescription signing, finalization, handover, completion, fulfilment, stock, dispensing, billing, claims, patient login, QR/OTP, or legacy integration.
 
 ## Stack
 
@@ -78,3 +79,4 @@ Phase 1B Registration, Visit invariants, concurrency rules, and the Phase 1C bou
 Phase 1C Queue architecture, permissions, polling, concurrency, and the Phase 2 boundary are documented in [docs/PHASE_1C.md](docs/PHASE_1C.md).
 Phase 2A Clinical Encounter ownership, privacy, aggregate concurrency, and production limitations are documented in [docs/PHASE_2A.md](docs/PHASE_2A.md).
 Phase 2B.0 Allergy/Profile review, Problem List, stale-review safety, privacy, and future medicine/catalogue contracts are documented in [docs/PHASE_2B_0.md](docs/PHASE_2B_0.md).
+Phase 2B Treatment Plan ownership, catalogue snapshots, Allergy gate, concurrency, privacy, and downstream boundaries are documented in [docs/PHASE_2B.md](docs/PHASE_2B.md).

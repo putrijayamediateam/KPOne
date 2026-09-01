@@ -18,6 +18,8 @@ use App\Http\Controllers\StaffBranchAssignmentController;
 use App\Http\Controllers\StaffController;
 use App\Http\Controllers\StaffRoleController;
 use App\Http\Controllers\StaffStatusController;
+use App\Http\Controllers\TreatmentPlanCatalogueController;
+use App\Http\Controllers\TreatmentPlanController;
 use App\Http\Controllers\VisitController;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
@@ -131,6 +133,15 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::patch('visits/{visit}/encounter/problems/{problem}/entered-in-error', [ClinicalProblemController::class, 'enterInError'])
             ->middleware(['permission:problems.update.own', 'throttle:30,1'])
             ->name('encounters.problems.entered-in-error');
+        Route::put('visits/{visit}/encounter/treatment-plan', [TreatmentPlanController::class, 'save'])
+            ->middleware(['permission:treatment_plans.create.own,treatment_plans.update.own', 'throttle:60,1'])
+            ->name('encounters.treatment-plan.save');
+        Route::post('visits/{visit}/encounter/treatment-plan/catalogue/medicines/search', [TreatmentPlanCatalogueController::class, 'medicines'])
+            ->middleware(['permission:treatment_plans.view.own', 'throttle:60,1'])
+            ->name('encounters.treatment-plan.catalogue.medicines');
+        Route::post('visits/{visit}/encounter/treatment-plan/catalogue/services/search', [TreatmentPlanCatalogueController::class, 'services'])
+            ->middleware(['permission:treatment_plans.view.own', 'throttle:60,1'])
+            ->name('encounters.treatment-plan.catalogue.services');
 
         Route::get('queue', [QueueController::class, 'index'])
             ->middleware('permission:queue.view.own,queue.view.branch')

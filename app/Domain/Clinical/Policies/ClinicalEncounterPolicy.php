@@ -71,6 +71,21 @@ class ClinicalEncounterPolicy
         return $this->ownsEncounter($actor, $encounter, 'problems.update.own');
     }
 
+    public function viewTreatmentPlan(User $actor, ClinicalEncounter $encounter): bool
+    {
+        return $this->ownsEncounter($actor, $encounter, 'treatment_plans.view.own');
+    }
+
+    public function createTreatmentPlan(User $actor, ClinicalEncounter $encounter): bool
+    {
+        return $this->ownsEncounter($actor, $encounter, 'treatment_plans.create.own');
+    }
+
+    public function updateTreatmentPlan(User $actor, ClinicalEncounter $encounter): bool
+    {
+        return $this->ownsEncounter($actor, $encounter, 'treatment_plans.update.own');
+    }
+
     public function viewHistory(
         User $actor,
         ClinicalEncounter $historical,

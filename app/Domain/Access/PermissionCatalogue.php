@@ -48,6 +48,9 @@ final class PermissionCatalogue
             'allergies.review.own',
             'problems.view.own',
             'problems.update.own',
+            'treatment_plans.view.own',
+            'treatment_plans.create.own',
+            'treatment_plans.update.own',
         ];
     }
 
@@ -106,6 +109,9 @@ final class PermissionCatalogue
                 'allergies.review.own',
                 'problems.view.own',
                 'problems.update.own',
+                'treatment_plans.view.own',
+                'treatment_plans.create.own',
+                'treatment_plans.update.own',
             ],
             'ca' => [
                 ...$branch,

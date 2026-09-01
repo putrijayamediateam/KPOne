@@ -86,6 +86,8 @@ Phase 2B.0 adds one lazy organisation-level Allergy Profile per Patient, append-
 
 Phase 2B.0 still contains no Treatment Plan, medicine/service order, medication decision support, Dispensary, stock, billing, Visit completion, or Queue completion.
 
+Phase 2B adds a separately versioned one-to-one Treatment Plan under the current Clinical Encounter, with relational medicine and service/procedure order children. Catalogue references are organisation-scoped; order identity fields are snapshotted so later catalogue changes do not rewrite history. Medicine mutation extends the existing clinical lock order through the Allergy Profile and exact Encounter review before locking the plan, order rows, and referenced catalogue rows. Persisted removals are explicit `withdrawn` transitions. Encounter, Visit, and Queue versions/states do not change merely because treatment is saved. Phase 2B has no fulfilment, stock, price, billing, signing, or completion state.
+
 ## Authentication
 
 Fortify provides password authentication and reset flows. Public registration is disabled. Phase 0B removed the unused starter `CreateNewUser` action only after the internal `StaffProvisioningService` path, Fortify configuration, route inspection, and registration-negative tests proved that Fortify had no dependency on it. Authentication checks `users.is_active` before password validation, and authenticated requests pass through `EnsureActiveUser` to reject a session if the account is later deactivated.
@@ -123,6 +125,11 @@ Domain tables:
 - `clinical_encounters`
 - `encounter_vital_observations`
 - `encounter_diagnoses`
+- `medicine_catalogue_items`
+- `clinical_service_catalogue_items`
+- `treatment_plans`
+- `treatment_plan_medicine_orders`
+- `treatment_plan_service_orders`
 
 RBAC tables:
 

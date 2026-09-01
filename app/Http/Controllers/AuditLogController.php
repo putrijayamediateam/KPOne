@@ -7,6 +7,7 @@ use App\Domain\Clinical\Models\ClinicalEncounter;
 use App\Domain\Clinical\Models\PatientAllergyProfile;
 use App\Domain\Clinical\Models\PatientAllergyRecord;
 use App\Domain\Clinical\Models\PatientProblemRecord;
+use App\Domain\Clinical\Models\TreatmentPlan;
 use App\Domain\Patient\Models\Patient;
 use App\Domain\Queue\Models\QueueEntry;
 use App\Domain\Visit\Models\Visit;
@@ -36,6 +37,8 @@ class AuditLogController extends Controller
                     'problem.updated',
                     'problem.resolved',
                     'problem.entered_in_error',
+                    'treatment_plan.created',
+                    'treatment_plan.updated',
                 ], true);
                 $isPatient = $log->subject_type === (new Patient)->getMorphClass();
                 $isVisit = $log->subject_type === (new Visit)->getMorphClass();
@@ -44,8 +47,9 @@ class AuditLogController extends Controller
                 $isAllergyProfile = $log->subject_type === (new PatientAllergyProfile)->getMorphClass();
                 $isAllergyRecord = $log->subject_type === (new PatientAllergyRecord)->getMorphClass();
                 $isProblemRecord = $log->subject_type === (new PatientProblemRecord)->getMorphClass();
+                $isTreatmentPlan = $log->subject_type === (new TreatmentPlan)->getMorphClass();
                 $isProtectedOperationalRecord = $isPatient || $isVisit || $isQueue || $isEncounter
-                    || $isAllergyProfile || $isAllergyRecord || $isProblemRecord;
+                    || $isAllergyProfile || $isAllergyRecord || $isProblemRecord || $isTreatmentPlan;
                 $subjectType = match (true) {
                     $isPatient => 'Patient record',
                     $isVisit => 'Visit record',
@@ -53,6 +57,7 @@ class AuditLogController extends Controller
                     $isEncounter => 'Clinical record',
                     $isAllergyProfile, $isAllergyRecord => 'Clinical allergy record',
                     $isProblemRecord => 'Clinical problem record',
+                    $isTreatmentPlan => 'Treatment Plan record',
                     default => $log->subject_type ? class_basename($log->subject_type) : null,
                 };
 

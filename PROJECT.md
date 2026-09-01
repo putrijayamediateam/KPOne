@@ -22,6 +22,8 @@ Phase 2A adds the first clinical aggregate after a Consultation reaches Serving:
 
 Phase 2B.0 adds the clinical safety prerequisite for later medicine ordering: a longitudinal organisation-level Allergy Profile with explicit unknown/no-known/has-allergies semantics, active structured Allergy Records, an immutable version ledger, explicit Encounter review of an exact Profile version, and a longitudinal Problem List. It adds no Treatment Plan, medicine/service order, automatic contraindication/interaction logic, Dispensary, inventory, or billing behavior. Real-patient production approval remains not granted.
 
+Phase 2B adds one in-progress Treatment Plan per current Clinical Encounter. The attending resident doctor may atomically maintain governed catalogue-backed medicine and clinical service/procedure orders under a separate optimistic version. Medicine mutations require the exact current Encounter Allergy review. Orders retain immutable identity snapshots and persisted removals are withdrawn rather than deleted. There is no stock, fulfilment, performed-service state, pricing, billing, signing, finalisation, Visit/Queue completion, or Phase 3 workflow. Real-patient production approval remains not granted.
+
 The current public website remains a separate system. Its current website administration remains the production administration path during migration. KPOne Phase 0A contains no website integration.
 
 Yezza remains outside this delivery. No replacement, integration, or migration from Yezza is being implemented yet.

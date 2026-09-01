@@ -24,6 +24,7 @@ class ClinicalSafetyAuthorizationTest extends ClinicalTestCase
         foreach ([
             'allergies.view.own', 'allergies.update.own', 'allergies.review.own',
             'problems.view.own', 'problems.update.own',
+            'treatment_plans.view.own', 'treatment_plans.create.own', 'treatment_plans.update.own',
         ] as $permission) {
             $this->assertSame($allowed, $actor->can($permission), "{$role} {$permission}");
         }

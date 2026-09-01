@@ -83,6 +83,18 @@ return Application::configure(basePath: dirname(__DIR__))
             'condition_code',
             'onset_date',
             'resolved_date',
+            'treatment_plan',
+            'medicines',
+            'services',
+            'dosage',
+            'frequency',
+            'duration',
+            'route',
+            'administration_instruction',
+            'indication',
+            'precaution',
+            'clinical_instruction',
+            'quantity_ordered',
         ]);
         $exceptions->shouldRenderJsonWhen(
             fn (Request $request) => $request->is('api/*') || $request->expectsJson(),

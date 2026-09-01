@@ -102,4 +102,10 @@ class ClinicalEncounter extends Model
     {
         return $this->hasOne(ClinicalEncounterAllergyReview::class);
     }
+
+    /** @return HasOne<TreatmentPlan, $this> */
+    public function treatmentPlan(): HasOne
+    {
+        return $this->hasOne(TreatmentPlan::class);
+    }
 }

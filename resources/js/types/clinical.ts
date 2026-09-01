@@ -65,6 +65,44 @@ export type ClinicalProblemList = {
     canUpdate: boolean;
 };
 
+export type TreatmentPlanMedicine = {
+    publicId: string;
+    code: string;
+    displayName: string;
+    strength: string | null;
+    dosageForm: string | null;
+    unit: string;
+    quantityOrdered: string;
+    dosage: string;
+    frequency: string;
+    duration: string | null;
+    route: string | null;
+    administrationInstruction: string | null;
+    indication: string | null;
+    precaution: string | null;
+    allergyProfileVersionValidated: number;
+};
+
+export type TreatmentPlanService = {
+    publicId: string;
+    code: string;
+    displayName: string;
+    unit: string;
+    quantityOrdered: string;
+    clinicalInstruction: string | null;
+};
+
+export type TreatmentPlanPage = {
+    present: boolean;
+    status: 'in_progress' | null;
+    lockVersion: number | null;
+    medicines: TreatmentPlanMedicine[];
+    withdrawnMedicines: { displayName: string; withdrawnAt: string | null }[];
+    services: TreatmentPlanService[];
+    withdrawnServices: { displayName: string; withdrawnAt: string | null }[];
+    canSave: boolean;
+};
+
 export type ClinicalEncounterPage = {
     branch: { id: number; code: string; name: string; timezone: string };
     patient: {
@@ -99,6 +137,7 @@ export type ClinicalEncounterPage = {
     diagnoses: ClinicalDiagnosis[];
     allergies: ClinicalAllergySafety | null;
     problems: ClinicalProblemList | null;
+    treatmentPlan: TreatmentPlanPage;
     history: ClinicalHistorySummary[];
 };
 

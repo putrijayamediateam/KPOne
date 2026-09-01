@@ -16,6 +16,7 @@ class ClinicalEncounterDirectoryService
     public function __construct(
         private BranchAccessService $branches,
         private ClinicalSafetyDirectoryService $clinicalSafety,
+        private TreatmentPlanDirectoryService $treatmentPlans,
     ) {}
 
     /** @return array<string, mixed> */
@@ -83,6 +84,7 @@ class ClinicalEncounterDirectoryService
             ])->values(),
             'allergies' => $this->clinicalSafety->allergies($actor, $encounter),
             'problems' => $this->clinicalSafety->problems($actor, $encounter),
+            'treatmentPlan' => $this->treatmentPlans->detail($actor, $encounter),
             'history' => $this->history($actor, $encounter),
         ];
     }
