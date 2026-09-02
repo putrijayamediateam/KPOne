@@ -10,6 +10,7 @@ use App\Domain\Clinical\Dispensary\Services\DispensaryHandoffService;
 use App\Domain\Clinical\Dispensary\Services\DispensaryService;
 use App\Domain\Clinical\Models\ClinicalEncounter;
 use App\Domain\Clinical\Models\PatientAllergyProfile;
+use App\Domain\Clinical\Models\PatientAllergyProfileVersion;
 use App\Domain\Clinical\Models\TreatmentPlan;
 use App\Domain\Clinical\Services\TreatmentPlanService;
 use App\Domain\Identity\Models\StaffBranchAssignment;
@@ -88,7 +89,22 @@ try {
             DB::table('treatment_plans')->where('id', $plan->id)->increment('lock_version');
         } else {
             $profile = PatientAllergyProfile::query()->whereKey((int) $argv[2])->lockForUpdate()->firstOrFail();
-            $profile->forceFill(['status' => PatientAllergyProfile::STATUS_UNKNOWN, 'lock_version' => $profile->lock_version + 1])->save();
+            $changedAt = now()->utc();
+            $profile->forceFill([
+                'status' => PatientAllergyProfile::STATUS_UNKNOWN,
+                'reviewed_at' => null,
+                'reviewed_by_user_id' => null,
+                'lock_version' => $profile->lock_version + 1,
+            ])->save();
+            $version = new PatientAllergyProfileVersion;
+            $version->forceFill([
+                'organisation_id' => $profile->organisation_id,
+                'patient_allergy_profile_id' => $profile->id,
+                'version' => $profile->lock_version,
+                'resulting_status' => $profile->status,
+                'changed_at' => $changedAt,
+                'changed_by_user_id' => $profile->updated_by_user_id,
+            ])->save();
         }
         fwrite(STDOUT, 'LOCKED'.PHP_EOL);
         fflush(STDOUT);

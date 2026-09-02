@@ -35,6 +35,7 @@ use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
+use PDOException;
 use RuntimeException;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
@@ -160,7 +161,7 @@ class PostgresDispensaryInventoryRegressionTest extends TestCase
         try {
             DB::transaction(fn () => DB::table('stock_movements')->where('id', $movement->id)->update(['quantity' => '3.000']));
             $this->fail('Deferred reconciliation accepted movement quantity that differed from its allocation.');
-        } catch (QueryException $exception) {
+        } catch (QueryException|PDOException $exception) {
             $this->assertSame('23514', $exception->getCode());
         }
         $this->assertSame('4.000', (string) DB::table('stock_movements')->where('id', $movement->id)->value('quantity'));
