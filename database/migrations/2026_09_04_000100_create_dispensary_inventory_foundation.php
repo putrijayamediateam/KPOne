@@ -356,7 +356,7 @@ return new class extends Migration
         DB::statement('ALTER TABLE inventory_skus ADD CONSTRAINT inventory_skus_units_positive CHECK (pack_size > 0 AND unit_conversion > 0)');
         DB::statement("ALTER TABLE stock_movements ADD CONSTRAINT stock_movements_shape_check CHECK (quantity > 0 AND ((movement_type = 'opening_balance' AND source_location_id IS NULL AND destination_location_id IS NOT NULL AND dispensary_item_batch_allocation_id IS NULL) OR (movement_type = 'transfer' AND source_location_id IS NOT NULL AND destination_location_id IS NOT NULL AND source_location_id <> destination_location_id AND dispensary_item_batch_allocation_id IS NULL) OR (movement_type = 'dispense' AND source_location_id IS NOT NULL AND destination_location_id IS NULL AND dispensary_item_batch_allocation_id IS NOT NULL)))");
         DB::unprepared(<<<'SQL'
-CREATE FUNCTION enforce_completed_dispensary_allocations() RETURNS trigger AS $$
+CREATE OR REPLACE FUNCTION enforce_completed_dispensary_allocations() RETURNS trigger AS $$
 BEGIN
     IF EXISTS (
         SELECT 1
