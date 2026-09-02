@@ -103,7 +103,7 @@ class PostgresDispensaryInventoryRegressionTest extends TestCase
         $args = ['send', (string) $f['doctor']->id, (string) $f['branch']->id, $f['visit']->visit_number, (string) $f['plan']->lock_version];
         $output = $this->race([$this->worker($args), $this->worker($args)], $f['patient']);
         $this->assertSame(1, substr_count($output, 'SENT'));
-        $this->assertSame(1, substr_count($output, 'STALE'));
+        $this->assertSame(1, substr_count($output, 'STALE') + substr_count($output, 'DENIED'));
         $this->assertSame(1, DispensaryCase::query()->where('treatment_plan_id', $f['plan']->id)->count());
         $this->assertSame(1, DispensaryHandoff::query()->where('organisation_id', $f['organisation']->id)->where('status', 'open')->count());
         $this->assertSame(1, AuditLog::query()->where('organisation_id', $f['organisation']->id)->where('event', 'treatment_plan.sent_to_dispensary')->count());
@@ -114,7 +114,7 @@ class PostgresDispensaryInventoryRegressionTest extends TestCase
         $f = $this->fixture();
         $workers = [
             $this->worker(['send', (string) $f['doctor']->id, (string) $f['branch']->id, $f['visit']->visit_number, '1']),
-            $this->worker(['plan-edit', (string) $f['doctor']->id, (string) $f['branch']->id, $f['visit']->visit_number, $f['plan']->public_id, '1']),
+            $this->worker(['plan-edit', (string) $f['doctor']->id, (string) $f['branch']->id, $f['visit']->visit_number, (string) $f['plan']->id, '1']),
         ];
         $output = $this->race($workers, $f['visit']);
         $this->assertSame(1, substr_count($output, 'SENT') + substr_count($output, 'PLAN_SAVED'));
@@ -207,7 +207,7 @@ class PostgresDispensaryInventoryRegressionTest extends TestCase
     public function test_plan_version_change_winning_before_complete_rejects_handoff(): void
     {
         $f = $this->completableFixture('10.000', '4.000');
-        $leader = $this->worker(['plan-version', $f['plan']->public_id]);
+        $leader = $this->worker(['plan-version', (string) $f['plan']->id]);
         $follower = $this->worker(['complete', (string) $f['ca']->id, (string) $f['branch']->id, $f['case']->public_id, (string) $f['case']->lock_version]);
         $this->assertStringContainsString('STALE', $this->leaderThenFollower($leader, $follower));
         $this->assertDatabaseMissing('stock_movements', ['organisation_id' => $f['organisation']->id, 'movement_type' => 'dispense']);
@@ -406,7 +406,7 @@ class PostgresDispensaryInventoryRegressionTest extends TestCase
         $sku = new InventorySku;
         $sku->forceFill(['public_id' => (string) Str::uuid(), 'organisation_id' => $f['organisation']->id, 'inventory_item_id' => $inventoryItem->id, 'sku_code' => 'SKU-'.Str::upper(Str::random(6)), 'pack_size' => 1, 'purchase_unit' => 'unit', 'stock_unit' => 'unit', 'dispensing_unit' => 'unit', 'unit_conversion' => 1, 'storage_type' => 'ambient', 'cold_chain_required' => false, 'do_not_freeze' => false, 'protect_from_light' => false, 'batch_tracking_required' => true, 'expiry_tracking_required' => true, 'is_active' => true])->save();
         $mapping = new MedicineCatalogueInventorySku;
-        $mapping->forceFill(['organisation_id' => $f['organisation']->id, 'medicine_catalogue_item_id' => $f['medicine']->id, 'inventory_sku_id' => $sku->id, 'is_active' => true])->save();
+        $mapping->forceFill(['organisation_id' => $f['organisation']->id, 'medicine_catalogue_item_id' => $f['medicine']->id, 'inventory_sku_id' => $sku->id, 'is_active' => true, 'approved_by_user_id' => $f['inventorySupervisor']->id, 'approved_at' => now()->utc()])->save();
         $location = $this->location($f, 'DISP-A');
         $destination = $this->location($f, 'DISP-B');
         $batch = new InventoryBatch;

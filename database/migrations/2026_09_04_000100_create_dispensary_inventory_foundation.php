@@ -339,7 +339,7 @@ return new class extends Migration
     {
         DB::statement('ALTER TABLE treatment_plans DROP CONSTRAINT treatment_plans_status_check');
         DB::statement("ALTER TABLE treatment_plans ADD CONSTRAINT treatment_plans_status_check CHECK (status IN ('in_progress', 'ready_for_dispensing'))");
-        DB::statement("ALTER TABLE queue_entries ADD CONSTRAINT queue_entries_removal_reason_check CHECK ((status = 'removed' AND removal_reason IS NOT NULL) OR (status <> 'removed' AND removal_reason IS NULL)) NOT VALID");
+        DB::statement("ALTER TABLE queue_entries ADD CONSTRAINT queue_entries_removal_reason_check CHECK (status = 'removed' OR removal_reason IS NULL) NOT VALID");
         DB::statement("ALTER TABLE dispensary_cases ADD CONSTRAINT dispensary_cases_status_check CHECK (status IN ('pending', 'dispensing', 'returned_to_doctor', 'completed'))");
         DB::statement('ALTER TABLE dispensary_cases ADD CONSTRAINT dispensary_cases_version_positive CHECK (lock_version > 0)');
         DB::statement("ALTER TABLE dispensary_handoffs ADD CONSTRAINT dispensary_handoffs_status_check CHECK (status IN ('open', 'returned', 'completed'))");

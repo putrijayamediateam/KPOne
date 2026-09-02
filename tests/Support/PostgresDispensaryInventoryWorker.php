@@ -70,7 +70,12 @@ try {
             $visit = Visit::query()->whereKey($visitStub->id)->lockForUpdate()->firstOrFail();
             $kind = (string) $argv[3];
             if ($kind === 'visit') {
-                $visit->forceFill(['status' => Visit::STATUS_CANCELLED])->save();
+                $visit->forceFill([
+                    'status' => Visit::STATUS_CANCELLED,
+                    'cancelled_at' => now()->utc(),
+                    'cancelled_by_user_id' => (int) $argv[4],
+                    'cancellation_reason' => 'Synthetic Phase 3A state-loss race',
+                ])->save();
             } elseif ($kind === 'queue') {
                 QueueEntry::query()->where('visit_id', $visit->id)->lockForUpdate()->firstOrFail()
                     ->forceFill(['removal_reason' => 'state_changed'])->save();
@@ -79,7 +84,7 @@ try {
                     ->forceFill(['attending_clinician_user_id' => (int) $argv[4]])->save();
             }
         } elseif ($mode === 'plan-version') {
-            $plan = TreatmentPlan::query()->where('public_id', (string) $argv[2])->lockForUpdate()->firstOrFail();
+            $plan = TreatmentPlan::query()->whereKey((int) $argv[2])->lockForUpdate()->firstOrFail();
             DB::table('treatment_plans')->where('id', $plan->id)->increment('lock_version');
         } else {
             $profile = PatientAllergyProfile::query()->whereKey((int) $argv[2])->lockForUpdate()->firstOrFail();
@@ -106,7 +111,7 @@ try {
         fwrite(STDOUT, 'SENT'.PHP_EOL);
     } elseif ($mode === 'plan-edit') {
         $visit = Visit::query()->where('visit_number', (string) $argv[4])->firstOrFail();
-        $plan = TreatmentPlan::query()->where('public_id', (string) $argv[5])->with('medicineOrders')->firstOrFail();
+        $plan = TreatmentPlan::query()->whereKey((int) $argv[5])->with('medicineOrders')->firstOrFail();
         $order = $plan->medicineOrders->firstOrFail();
         app(TreatmentPlanService::class)->save($actor, $visit, [
             'expected_branch_id' => $branchId, 'lock_version' => (int) $argv[6],

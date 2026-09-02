@@ -187,11 +187,11 @@ class TreatmentPlanTest extends ClinicalTestCase
         $allocation = DB::table('dispensary_item_batch_allocations')->where('dispensary_item_id', $fixture['item']->id)->sole();
 
         try {
-            DB::table('dispensary_item_batch_allocations')->where('id', $allocation->id)->update(['inventory_location_id' => $otherLocation->id]);
+            DB::transaction(fn () => DB::table('dispensary_item_batch_allocations')->where('id', $allocation->id)->update(['inventory_location_id' => $otherLocation->id]));
             $this->fail('The database accepted a cross-branch allocation location.');
         } catch (QueryException) {
-            $this->assertSame($fixture['location']->id, (int) DB::table('dispensary_item_batch_allocations')->where('id', $allocation->id)->value('inventory_location_id'));
         }
+        $this->assertSame($fixture['location']->id, (int) DB::table('dispensary_item_batch_allocations')->where('id', $allocation->id)->value('inventory_location_id'));
     }
 
     public function test_complete_uses_branch_local_date_for_final_expiry_validation(): void
