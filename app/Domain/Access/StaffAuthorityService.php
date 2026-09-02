@@ -58,6 +58,13 @@ class StaffAuthorityService
             return false;
         }
 
+        // Director is the explicitly protected governance authority. Its ability
+        // to assign a clinical/operational role does not grant that role's
+        // permissions to the director account itself.
+        if ($actor->hasRole(PermissionCatalogue::PROTECTED_AUTHORITY_ROLE)) {
+            return true;
+        }
+
         $proposedPermissions = $roleModels
             ->flatMap(fn (Role $role) => $role->permissions->pluck('name'))
             ->unique();

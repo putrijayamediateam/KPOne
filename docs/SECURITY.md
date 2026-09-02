@@ -1,5 +1,7 @@
 # Security
 
+Phase 3A-Core uses explicit doctor-send, attending-doctor acknowledgement, and branch Dispensary permissions. Inventory balances have no general edit endpoint; immutable movements and final commit-time clinical revalidation are mandatory.
+
 ## Data classification
 
 Phase 0A stores organisation structure and staff access metadata. Phase 0B supports operational work identity, department, role, status, and branch-assignment administration. It must not store patient details, IC/passport values, clinical content, prescriptions, billing data, real staff seed data, plaintext credentials, or operational secrets.

@@ -168,6 +168,11 @@ const statusClass = (tone: PatientBoardRow['statusTone']) =>
                                 class="inline-flex rounded-md bg-rose-100/70 px-2 py-0.5 text-[11px] font-normal text-rose-700"
                                 >Urgent</span
                             >
+                            <span
+                                v-if="row.returnedFromDispensary"
+                                class="inline-flex rounded-md bg-pink-100/70 px-2 py-0.5 text-[11px] font-normal text-pink-800"
+                                >Returned</span
+                            >
                         </div>
                     </td>
                     <td class="px-3 py-2 text-right align-middle">
@@ -220,6 +225,7 @@ const statusClass = (tone: PatientBoardRow['statusTone']) =>
                                         row.can.sendToWaiting ||
                                         row.can.call ||
                                         row.can.openConsultation ||
+                                        row.can.openDispensary ||
                                         row.can.cancel
                                     "
                                 />
@@ -241,6 +247,18 @@ const statusClass = (tone: PatientBoardRow['statusTone']) =>
                                     @select="$emit('openConsultation', row)"
                                     >Open Consultation</DropdownMenuItem
                                 >
+                                <DropdownMenuItem
+                                    v-if="
+                                        row.can.openDispensary &&
+                                        row.dispensaryUrl
+                                    "
+                                    as-child
+                                    class="min-h-8 rounded-lg px-2.5 text-[13px]"
+                                >
+                                    <Link :href="row.dispensaryUrl"
+                                        >Open Dispensary</Link
+                                    >
+                                </DropdownMenuItem>
                                 <DropdownMenuItem
                                     v-if="row.can.cancel"
                                     class="min-h-8 rounded-lg px-2.5 text-[13px] text-red-700 focus:text-red-700"

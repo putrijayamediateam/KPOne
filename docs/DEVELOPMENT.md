@@ -1,5 +1,7 @@
 # Development
 
+Phase 3A PostgreSQL contention tests must run only against a disposable database recognisably named for testing. A local PostgreSQL skip is not release evidence.
+
 ## Prerequisites
 
 - PHP 8.4.1 or newer with `curl`, `fileinfo`, `intl`, `mbstring`, `openssl`, `pdo_pgsql`, and `sodium`

@@ -3,8 +3,10 @@
 namespace App\Domain\Clinical\Services;
 
 use App\Domain\Clinical\Models\ClinicalEncounter;
+use App\Domain\Clinical\Models\ClinicalEncounterAllergyReview;
 use App\Domain\Clinical\Models\ClinicalServiceCatalogueItem;
 use App\Domain\Clinical\Models\MedicineCatalogueItem;
+use App\Domain\Clinical\Models\PatientAllergyProfile;
 use App\Domain\Clinical\Models\TreatmentPlan;
 use App\Domain\Clinical\Models\TreatmentPlanMedicineOrder;
 use App\Domain\Clinical\Models\TreatmentPlanServiceOrder;
@@ -37,7 +39,9 @@ class TreatmentPlanDirectoryService
             'withdrawnMedicines' => $plan ? $plan->medicineOrders->where('status', TreatmentPlanMedicineOrder::STATUS_WITHDRAWN)->map(fn (TreatmentPlanMedicineOrder $order): array => $this->withdrawnMedicine($order))->values()->all() : [],
             'services' => $plan ? $plan->serviceOrders->where('status', TreatmentPlanServiceOrder::STATUS_ACTIVE)->map(fn (TreatmentPlanServiceOrder $order): array => $this->service($order))->values()->all() : [],
             'withdrawnServices' => $plan ? $plan->serviceOrders->where('status', TreatmentPlanServiceOrder::STATUS_WITHDRAWN)->map(fn (TreatmentPlanServiceOrder $order): array => $this->withdrawnService($order))->values()->all() : [],
-            'canSave' => Gate::forUser($actor)->allows($plan ? 'updateTreatmentPlan' : 'createTreatmentPlan', $encounter),
+            'canSave' => ($plan === null || $plan->status === TreatmentPlan::STATUS_IN_PROGRESS)
+                && Gate::forUser($actor)->allows($plan ? 'updateTreatmentPlan' : 'createTreatmentPlan', $encounter),
+            'canSendToDispensary' => $this->canSend($actor, $encounter, $plan),
         ];
     }
 
@@ -149,5 +153,24 @@ class TreatmentPlanDirectoryService
     private function escapeLike(string $value): string
     {
         return str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $value);
+    }
+
+    private function canSend(User $actor, ClinicalEncounter $encounter, ?TreatmentPlan $plan): bool
+    {
+        if (! $plan || $plan->status !== TreatmentPlan::STATUS_IN_PROGRESS || ! $actor->hasRole('resident_doctor') || ! $actor->can('treatment_plans.send_to_dispensary.own')) {
+            return false;
+        }
+        $orders = $plan->medicineOrders->where('status', TreatmentPlanMedicineOrder::STATUS_ACTIVE);
+        if ($orders->isEmpty()) {
+            return false;
+        }
+        $patientId = $encounter->visit()->value('patient_id');
+        $profile = PatientAllergyProfile::query()->where('organisation_id', $actor->organisation_id)->where('patient_id', $patientId)->first();
+        $review = ClinicalEncounterAllergyReview::query()->where('clinical_encounter_id', $encounter->id)->first();
+
+        return $profile && $profile->status !== PatientAllergyProfile::STATUS_UNKNOWN && $review
+            && $review->reviewed_by_user_id === $encounter->attending_clinician_user_id
+            && $review->allergy_profile_lock_version_reviewed === $profile->lock_version
+            && $orders->every(fn (TreatmentPlanMedicineOrder $order): bool => $order->allergy_profile_version_validated === $profile->lock_version);
     }
 }

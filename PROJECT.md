@@ -1,5 +1,7 @@
 # KPOne project
 
+Current unreleased milestone: Phase 3A-Core Dispensary and Minimal Inventory Foundation. Quick Treatment Sets and Phase 3B remain deferred.
+
 ## Vision
 
 KPOne will become Klinik Putrijaya's cohesive digital operating system. Its long-term purpose is to connect safe patient administration, clinic operations, clinical work, medication, revenue, stock, people operations, corporate panels, marketing, digital channels, patient services, and management intelligence without fragmenting the business into unrelated systems.

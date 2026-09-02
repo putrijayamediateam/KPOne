@@ -3,6 +3,7 @@
 namespace App\Domain\Visit\Services;
 
 use App\Domain\Access\BranchAccessService;
+use App\Domain\Clinical\Dispensary\Services\DispensaryDirectoryService;
 use App\Domain\Organisation\Models\Branch;
 use App\Domain\Patient\Models\Patient;
 use App\Domain\Patient\Services\PatientDirectoryService;
@@ -23,6 +24,7 @@ class VisitDirectoryService
         private VisitDoctorEligibilityService $doctors,
         private PatientDirectoryService $patients,
         private VisitPolicy $visitPolicy,
+        private DispensaryDirectoryService $dispensary,
     ) {}
 
     /**
@@ -32,6 +34,9 @@ class VisitDirectoryService
     public function search(User $actor, array $criteria): array
     {
         Gate::forUser($actor)->authorize('viewAny', Visit::class);
+        if (($criteria['board_status'] ?? null) === 'dispensary') {
+            return $this->dispensary->board($actor, $criteria);
+        }
         $branch = $this->activeBranch($actor);
         [$from, $to] = $this->dateRange($branch, $criteria);
         $query = Visit::query()
@@ -57,7 +62,7 @@ class VisitDirectoryService
             ->with([
                 'patient:id,organisation_id,patient_number,full_name',
                 'assignedDoctor:id,name',
-                'queueEntry:id,organisation_id,branch_id,visit_id,operational_date,queue_number,status,queued_at,called_at,lock_version',
+                'queueEntry:id,organisation_id,branch_id,visit_id,operational_date,queue_number,status,queued_at,called_at,returned_from_dispensary_at,lock_version',
             ]);
 
         $boardStatus = (string) ($criteria['board_status'] ?? 'all');
@@ -66,7 +71,7 @@ class VisitDirectoryService
                 ->whereHas('queueEntry', fn ($queue) => $queue->where('status', $boardStatus));
         } elseif ($boardStatus === Visit::STATUS_CANCELLED) {
             $query->where('status', Visit::STATUS_CANCELLED);
-        } elseif (in_array($boardStatus, ['dispensary', 'completed'], true)) {
+        } elseif ($boardStatus === 'completed') {
             $query->whereRaw('1 = 0');
         }
 
@@ -115,7 +120,7 @@ class VisitDirectoryService
             'branch:id,code,name,timezone',
             'patient:id,patient_number,full_name,date_of_birth,sex',
             'assignedDoctor:id,name',
-            'queueEntry:id,organisation_id,branch_id,visit_id,operational_date,queue_number,status,queued_at,called_at,lock_version',
+            'queueEntry:id,organisation_id,branch_id,visit_id,operational_date,queue_number,status,queued_at,called_at,returned_from_dispensary_at,lock_version',
         ]);
         $visibleQueueEntry = $this->visibleQueueEntry($actor, $visit);
 
@@ -320,6 +325,8 @@ class VisitDirectoryService
             'durationMinutes' => $durationMinutes,
             'visitLockVersion' => $visit->lock_version,
             'queueLockVersion' => $visibleQueueEntry?->lock_version,
+            'returnedFromDispensary' => $visibleQueueEntry?->status === QueueEntry::STATUS_SERVING
+                && $visibleQueueEntry->returned_from_dispensary_at !== null,
             'can' => [
                 'viewPatient' => Gate::forUser($actor)->allows('view', $visit->patient),
                 'update' => $actions['update'],

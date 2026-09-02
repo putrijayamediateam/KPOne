@@ -127,7 +127,7 @@ class QueueAuthorizationTest extends QueueTestCase
         $this->assertNotEmpty($queueRoutes);
         $this->assertTrue($queueRoutes->every(fn ($route) => ! in_array('DELETE', $route->methods(), true)));
         $this->assertTrue($queueRoutes->every(fn ($route) => in_array('auth', $route->gatherMiddleware(), true)));
-        $this->assertSame([], $queueRoutes->filter(fn ($route) => preg_match('/hold|resume|prescri|dispens|billing/i', (string) $route->uri()) === 1)->all());
-        $this->assertSame([], $routes->filter(fn ($route) => preg_match('/prescri|dispens|billing/i', (string) $route->uri()) === 1)->all());
+        $this->assertSame([], $queueRoutes->filter(fn ($route) => preg_match('/hold|resume|prescri|billing/i', (string) $route->uri()) === 1)->all());
+        $this->assertSame([], $routes->filter(fn ($route) => preg_match('/prescri|billing/i', (string) $route->uri()) === 1)->all());
     }
 }

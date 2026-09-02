@@ -233,6 +233,8 @@ class QueueDirectoryService
             'queuedAt' => $entry->queued_at->toIso8601String(),
             'queuedTime' => $entry->queued_at->setTimezone($branch->timezone)->format('H:i'),
             'calledAt' => $entry->called_at?->toIso8601String(),
+            'returnedFromDispensary' => $entry->status === QueueEntry::STATUS_SERVING
+                && $entry->returned_from_dispensary_at !== null,
             'waitingMinutes' => $entry->status === QueueEntry::STATUS_WAITING
                 ? max(0, (int) $entry->queued_at->diffInMinutes($now)) : null,
             'visitLockVersion' => $visit->lock_version,

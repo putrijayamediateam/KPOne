@@ -3,16 +3,37 @@
 namespace Tests\Feature\Clinical;
 
 use App\Domain\Audit\Models\AuditLog;
+use App\Domain\Clinical\Dispensary\Models\DispensaryCase;
+use App\Domain\Clinical\Dispensary\Models\DispensaryHandoff;
+use App\Domain\Clinical\Dispensary\Models\DispensaryItem;
+use App\Domain\Clinical\Dispensary\Models\DispensaryItemException;
+use App\Domain\Clinical\Dispensary\Services\DispensaryDirectoryService;
+use App\Domain\Clinical\Dispensary\Services\DispensaryHandoffService;
+use App\Domain\Clinical\Dispensary\Services\DispensaryService;
+use App\Domain\Clinical\Dispensary\Services\DoctorDispensaryAttentionService;
 use App\Domain\Clinical\Models\ClinicalServiceCatalogueItem;
 use App\Domain\Clinical\Models\MedicineCatalogueItem;
 use App\Domain\Clinical\Models\PatientAllergyProfile;
+use App\Domain\Clinical\Models\TreatmentPlan;
 use App\Domain\Clinical\Models\TreatmentPlanMedicineOrder;
 use App\Domain\Clinical\Models\TreatmentPlanServiceOrder;
 use App\Domain\Clinical\Services\ClinicalEncounterDirectoryService;
 use App\Domain\Clinical\Services\PatientAllergyService;
 use App\Domain\Clinical\Services\TreatmentPlanService;
+use App\Domain\Organisation\Inventory\Models\InventoryBatch;
+use App\Domain\Organisation\Inventory\Models\InventoryItem;
+use App\Domain\Organisation\Inventory\Models\InventoryLocation;
+use App\Domain\Organisation\Inventory\Models\InventorySku;
+use App\Domain\Organisation\Inventory\Models\InventoryStockBalance;
+use App\Domain\Organisation\Inventory\Models\MedicineCatalogueInventorySku;
+use App\Domain\Organisation\Inventory\Services\InventoryMovementService;
+use App\Domain\Organisation\Models\Branch;
 use App\Domain\Visit\Models\Visit;
 use App\Models\User;
+use Carbon\CarbonImmutable;
+use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Database\QueryException;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -20,6 +41,273 @@ use LogicException;
 
 class TreatmentPlanTest extends ClinicalTestCase
 {
+    public function test_attending_doctor_sees_only_own_pending_patient_declined_acknowledgement(): void
+    {
+        [$doctor, $ca, $visit, , $case, $item, $exception] = $this->patientDeclinedFixture();
+
+        $attention = app(ClinicalEncounterDirectoryService::class)->detail($doctor, $visit)['dispensaryAttention'];
+        $this->assertCount(1, $attention);
+        $this->assertSame($exception->public_id, $attention[0]['exceptionPublicId']);
+        $this->assertSame('awaiting_acknowledgement', $attention[0]['status']);
+        $this->assertSame($item->quantity_ordered, $attention[0]['quantityOrdered']);
+        $this->assertArrayNotHasKey('allocations', $attention[0]);
+
+        foreach ([$this->doctor(), $ca, $this->actor('director'), $this->actor('technical_admin')] as $other) {
+            $this->selectBranch($other, $visit->branch);
+            $this->assertSame([], app(DoctorDispensaryAttentionService::class)->forEncounter($other, $visit->clinicalEncounter));
+        }
+
+        $this->actingAs($ca)->post(route('dispensary.exceptions.acknowledge', $exception), [
+            'case_lock_version' => $case->lock_version,
+            'item_lock_version' => $item->lock_version,
+        ])->assertForbidden();
+    }
+
+    public function test_acknowledgement_requires_exact_current_proposal_and_changes_no_clinical_or_stock_state(): void
+    {
+        [$doctor, , $visit, $plan, $case, $item, $exception] = $this->patientDeclinedFixture();
+        $profile = PatientAllergyProfile::query()->where('patient_id', $visit->patient_id)->sole();
+        $versions = [$plan->lock_version, $profile->lock_version, $item->allergy_profile_version_validated];
+
+        $this->selectBranch($doctor, $visit->branch);
+        $this->actingAs($doctor)->post(route('dispensary.exceptions.acknowledge', $exception), [
+            'case_lock_version' => $case->lock_version + 1,
+            'item_lock_version' => $item->lock_version,
+        ])->assertSessionHasErrors('exception');
+        $this->assertSame(DispensaryItemException::STATUS_AWAITING, $exception->refresh()->status);
+
+        $this->actingAs($doctor)->post(route('dispensary.exceptions.acknowledge', $exception), [
+            'case_lock_version' => $case->lock_version,
+            'item_lock_version' => $item->lock_version,
+        ])->assertRedirect();
+
+        $this->assertSame(DispensaryItemException::STATUS_ACKNOWLEDGED, $exception->refresh()->status);
+        $this->assertSame($doctor->id, $exception->acknowledged_by_user_id);
+        $this->assertSame($versions, [$plan->refresh()->lock_version, $profile->refresh()->lock_version, $item->refresh()->allergy_profile_version_validated]);
+        $this->assertDatabaseCount('stock_movements', 0);
+        $audit = AuditLog::query()->where('event', 'dispensary.partial_acknowledged')->sole();
+        $this->assertStringNotContainsString('Synthetic medicine', json_encode($audit->metadata, JSON_THROW_ON_ERROR));
+        $this->assertStringNotContainsString('quantity', json_encode($audit->metadata, JSON_THROW_ON_ERROR));
+    }
+
+    public function test_changed_proposal_supersedes_acknowledgement_and_requires_doctor_review_again(): void
+    {
+        [$doctor, $ca, $visit, , $case, $item, $exception] = $this->patientDeclinedFixture();
+        app(DispensaryService::class)->acknowledge($doctor, $exception, [
+            'case_lock_version' => $case->lock_version,
+            'item_lock_version' => $item->lock_version,
+        ]);
+
+        $this->selectBranch($ca, $visit->branch);
+        $updated = app(DispensaryService::class)->updateItem($ca, $case->refresh(), $item->refresh(), [
+            'expected_branch_id' => $visit->branch_id,
+            'case_lock_version' => $case->refresh()->lock_version,
+            'item_lock_version' => $item->refresh()->lock_version,
+            'status' => 'partial',
+            'quantity_dispensed' => '0.500',
+            'reason' => 'patient_declined',
+            'allocations' => [],
+        ]);
+
+        $this->assertSame(DispensaryItemException::STATUS_SUPERSEDED, $exception->refresh()->status);
+        $current = $updated->exceptions->where('status', DispensaryItemException::STATUS_AWAITING)->last();
+        $this->assertNotNull($current);
+        $attention = app(ClinicalEncounterDirectoryService::class)->detail($doctor, $visit)['dispensaryAttention'];
+        $this->assertTrue($attention[0]['reviewAgain']);
+        $this->assertSame('0.500', $attention[0]['proposedQuantity']);
+        $this->assertSame(DispensaryItemException::STATUS_AWAITING, $attention[0]['status']);
+    }
+
+    public function test_acknowledged_patient_declined_non_fulfilment_allows_atomic_completion(): void
+    {
+        [$doctor, $ca, $visit, , $case, $item, $exception] = $this->patientDeclinedFixture();
+        app(DispensaryService::class)->acknowledge($doctor, $exception, [
+            'case_lock_version' => $case->lock_version,
+            'item_lock_version' => $item->lock_version,
+        ]);
+        $this->selectBranch($ca, $visit->branch);
+        $completed = app(DispensaryService::class)->complete($ca, $case->refresh(), [
+            'expected_branch_id' => $visit->branch_id,
+            'case_lock_version' => $case->refresh()->lock_version,
+        ]);
+
+        $this->assertSame(DispensaryCase::STATUS_COMPLETED, $completed->status);
+        $this->assertSame(DispensaryHandoff::STATUS_COMPLETED, $completed->handoffs()->sole()->status);
+        $this->assertDatabaseCount('stock_movements', 0);
+    }
+
+    public function test_dispensary_detail_mutation_hints_require_current_case_handler(): void
+    {
+        [, $owner, $visit, , $case] = $this->patientDeclinedFixture();
+        $otherCa = $this->actor('ca');
+        $this->selectBranch($otherCa, $visit->branch);
+
+        $otherView = app(DispensaryDirectoryService::class)->detail($otherCa, $case->refresh());
+        $this->assertFalse($otherView['can']['update']);
+        $this->assertFalse($otherView['can']['complete']);
+
+        $this->selectBranch($owner, $visit->branch);
+        $ownerView = app(DispensaryDirectoryService::class)->detail($owner, $case->refresh());
+        $this->assertTrue($ownerView['can']['update']);
+        $this->assertTrue($ownerView['can']['complete']);
+    }
+
+    public function test_complete_revalidates_current_location_sku_and_mapping_before_stock_deduction(): void
+    {
+        foreach (['location', 'sku', 'mapping'] as $reference) {
+            $fixture = $this->stockedPartialFixture();
+            $fixture[$reference]->forceFill(['is_active' => false])->save();
+
+            try {
+                app(DispensaryService::class)->complete($fixture['ca'], $fixture['case']->refresh(), [
+                    'expected_branch_id' => $fixture['visit']->branch_id,
+                    'case_lock_version' => $fixture['case']->refresh()->lock_version,
+                ]);
+                $this->fail('Completion accepted an inactive '.$reference.'.');
+            } catch (ValidationException $exception) {
+                $this->assertArrayHasKey('allocations', $exception->errors());
+            }
+
+            $this->assertSame(DispensaryCase::STATUS_DISPENSING, $fixture['case']->refresh()->status);
+            $this->assertSame('10.000', (string) $fixture['balance']->refresh()->quantity);
+            $this->assertDatabaseMissing('stock_movements', [
+                'organisation_id' => $fixture['ca']->organisation_id,
+                'movement_type' => 'dispense',
+            ]);
+        }
+    }
+
+    public function test_allocation_location_branch_is_enforced_by_the_database(): void
+    {
+        $fixture = $this->stockedPartialFixture();
+        $otherBranch = new Branch;
+        $otherBranch->forceFill(['organisation_id' => $fixture['ca']->organisation_id, 'code' => 'SYN-OTHER-'.Str::upper(Str::random(4)), 'name' => 'Synthetic Other Branch', 'timezone' => 'Asia/Kuala_Lumpur', 'is_active' => true])->save();
+        $otherLocation = new InventoryLocation;
+        $otherLocation->forceFill(['public_id' => (string) Str::uuid(), 'organisation_id' => $fixture['ca']->organisation_id, 'branch_id' => $otherBranch->id, 'code' => 'SYN-OTHER-DISP-'.Str::upper(Str::random(4)), 'name' => 'Synthetic Other Dispensary', 'type' => InventoryLocation::TYPE_DISPENSARY, 'is_active' => true])->save();
+        $allocation = DB::table('dispensary_item_batch_allocations')->where('dispensary_item_id', $fixture['item']->id)->sole();
+
+        try {
+            DB::table('dispensary_item_batch_allocations')->where('id', $allocation->id)->update(['inventory_location_id' => $otherLocation->id]);
+            $this->fail('The database accepted a cross-branch allocation location.');
+        } catch (QueryException) {
+            $this->assertSame($fixture['location']->id, (int) DB::table('dispensary_item_batch_allocations')->where('id', $allocation->id)->value('inventory_location_id'));
+        }
+    }
+
+    public function test_complete_uses_branch_local_date_for_final_expiry_validation(): void
+    {
+        CarbonImmutable::setTestNow(CarbonImmutable::parse('2026-09-01 16:30:00', 'UTC'));
+        try {
+            $fixture = $this->stockedPartialFixture();
+            $fixture['batch']->forceFill([
+                'expiry_date' => now()->setTimezone($fixture['visit']->branch->timezone)->toDateString(),
+            ])->save();
+
+            try {
+                app(DispensaryService::class)->complete($fixture['ca'], $fixture['case']->refresh(), [
+                    'expected_branch_id' => $fixture['visit']->branch_id,
+                    'case_lock_version' => $fixture['case']->refresh()->lock_version,
+                ]);
+                $this->fail('Completion accepted a batch expiring on the branch-local current date.');
+            } catch (ValidationException $exception) {
+                $this->assertArrayHasKey('allocations', $exception->errors());
+            }
+
+            $this->assertSame('10.000', (string) $fixture['balance']->refresh()->quantity);
+            $this->assertDatabaseMissing('stock_movements', [
+                'organisation_id' => $fixture['ca']->organisation_id,
+                'movement_type' => 'dispense',
+            ]);
+        } finally {
+            CarbonImmutable::setTestNow();
+        }
+    }
+
+    public function test_send_to_dispensary_records_the_post_transition_plan_version_and_no_stock_movement(): void
+    {
+        [$doctor, , $visit, $queue] = $this->servingFixture();
+        $this->startEncounter($doctor, $visit, $queue);
+        $this->reviewNoKnown($doctor, $visit);
+        $medicine = $this->medicineCatalogue($doctor);
+        $plan = app(TreatmentPlanService::class)->save($doctor, $visit, $this->payload(null, [$this->medicinePayload($medicine)]));
+
+        $case = app(DispensaryHandoffService::class)->send($doctor, $visit, [
+            'expected_branch_id' => $visit->branch_id,
+            'lock_version' => $plan->lock_version,
+        ]);
+
+        $plan->refresh();
+        $handoff = $case->handoffs()->sole();
+        $this->assertSame(TreatmentPlan::STATUS_READY_FOR_DISPENSING, $plan->status);
+        $this->assertSame(2, $plan->lock_version);
+        $this->assertSame($plan->lock_version, $handoff->treatment_plan_lock_version_received);
+        $this->assertSame(DispensaryCase::STATUS_PENDING, $case->status);
+        $this->assertSame(DispensaryHandoff::STATUS_OPEN, $handoff->status);
+        $this->assertSame(DispensaryItem::STATUS_PENDING, $handoff->items()->sole()->status);
+        $this->assertSame('removed', $queue->refresh()->status);
+        $this->assertSame('sent_to_dispensary', $queue->removal_reason);
+        $this->assertDatabaseCount('stock_movements', 0);
+        $this->assertDatabaseHas('audit_logs', ['event' => 'treatment_plan.sent_to_dispensary']);
+    }
+
+    public function test_send_requires_active_medicine_and_current_allergy_safety(): void
+    {
+        [$doctor, , $visit, $queue] = $this->servingFixture();
+        $this->startEncounter($doctor, $visit, $queue);
+        $service = $this->serviceCatalogue($doctor);
+        $plan = app(TreatmentPlanService::class)->save($doctor, $visit, $this->payload(null, services: [$this->servicePayload($service)]));
+
+        try {
+            app(DispensaryHandoffService::class)->send($doctor, $visit, ['expected_branch_id' => $visit->branch_id, 'lock_version' => $plan->lock_version]);
+            $this->fail('A service-only Treatment Plan was sent to Dispensary.');
+        } catch (ValidationException $exception) {
+            $this->assertNotEmpty($exception->errors());
+        }
+
+        $this->assertDatabaseCount('dispensary_cases', 0);
+        $this->assertSame(TreatmentPlan::STATUS_IN_PROGRESS, $plan->refresh()->status);
+    }
+
+    public function test_ready_plan_rejects_ordinary_treatment_plan_save(): void
+    {
+        [$doctor, , $visit, $queue] = $this->servingFixture();
+        $this->startEncounter($doctor, $visit, $queue);
+        $this->reviewNoKnown($doctor, $visit);
+        $medicine = $this->medicineCatalogue($doctor);
+        $plan = app(TreatmentPlanService::class)->save($doctor, $visit, $this->payload(null, [$this->medicinePayload($medicine)]));
+        app(DispensaryHandoffService::class)->send($doctor, $visit, ['expected_branch_id' => $visit->branch_id, 'lock_version' => $plan->lock_version]);
+
+        $this->expectException(AuthorizationException::class);
+        app(TreatmentPlanService::class)->save($doctor, $visit, $this->payload($plan->refresh()->lock_version, [$this->medicinePayload($medicine, $plan->medicineOrders()->sole()->public_id)]));
+    }
+
+    public function test_return_to_doctor_is_dedicated_stock_free_and_resend_creates_a_new_attempt(): void
+    {
+        [$doctor, $ca, $visit, $queue] = $this->servingFixture();
+        $this->startEncounter($doctor, $visit, $queue);
+        $this->reviewNoKnown($doctor, $visit);
+        $medicine = $this->medicineCatalogue($doctor);
+        $plan = app(TreatmentPlanService::class)->save($doctor, $visit, $this->payload(null, [$this->medicinePayload($medicine)]));
+        $case = app(DispensaryHandoffService::class)->send($doctor, $visit, ['expected_branch_id' => $visit->branch_id, 'lock_version' => $plan->lock_version]);
+
+        $this->selectBranch($ca, $visit->branch);
+        $case = app(DispensaryService::class)->start($ca, $case, ['expected_branch_id' => $visit->branch_id, 'case_lock_version' => $case->lock_version]);
+        $case = app(DispensaryService::class)->returnToDoctor($ca, $case, ['expected_branch_id' => $visit->branch_id, 'case_lock_version' => $case->lock_version]);
+
+        $this->assertSame(DispensaryCase::STATUS_RETURNED, $case->status);
+        $this->assertSame(DispensaryHandoff::STATUS_RETURNED, $case->handoffs()->first()->status);
+        $this->assertSame('serving', $queue->refresh()->status);
+        $this->assertNotNull($queue->returned_from_dispensary_at);
+        $this->assertSame(TreatmentPlan::STATUS_IN_PROGRESS, $plan->refresh()->status);
+        $this->assertDatabaseCount('stock_movements', 0);
+
+        $this->selectBranch($doctor, $visit->branch);
+        $resent = app(DispensaryHandoffService::class)->send($doctor, $visit, ['expected_branch_id' => $visit->branch_id, 'lock_version' => $plan->lock_version]);
+        $this->assertSame([1, 2], $resent->handoffs()->orderBy('attempt_number')->pluck('attempt_number')->all());
+        $this->assertSame(DispensaryHandoff::STATUS_RETURNED, $resent->handoffs()->orderBy('attempt_number')->first()->status);
+        $this->assertSame(DispensaryHandoff::STATUS_OPEN, $resent->handoffs()->get()->last()->status);
+    }
+
     public function test_authorized_http_first_save_accepts_explicit_null_plan_version(): void
     {
         [$doctor, , $visit, $queue] = $this->servingFixture();
@@ -470,6 +758,91 @@ class TreatmentPlanTest extends ClinicalTestCase
         ]);
 
         return $profile;
+    }
+
+    /** @return array{User, User, Visit, TreatmentPlan, DispensaryCase, DispensaryItem, DispensaryItemException} */
+    private function patientDeclinedFixture(): array
+    {
+        [$doctor, $ca, $visit, $queue] = $this->servingFixture();
+        $this->startEncounter($doctor, $visit, $queue);
+        $this->reviewNoKnown($doctor, $visit);
+        $medicine = $this->medicineCatalogue($doctor);
+        $plan = app(TreatmentPlanService::class)->save($doctor, $visit, $this->payload(null, [$this->medicinePayload($medicine)]));
+        $case = app(DispensaryHandoffService::class)->send($doctor, $visit, [
+            'expected_branch_id' => $visit->branch_id,
+            'lock_version' => $plan->lock_version,
+        ]);
+        $this->selectBranch($ca, $visit->branch);
+        $case = app(DispensaryService::class)->start($ca, $case, [
+            'expected_branch_id' => $visit->branch_id,
+            'case_lock_version' => $case->lock_version,
+        ]);
+        $item = $case->handoffs()->where('status', DispensaryHandoff::STATUS_OPEN)->sole()->items()->sole();
+        $item = app(DispensaryService::class)->updateItem($ca, $case, $item, [
+            'expected_branch_id' => $visit->branch_id,
+            'case_lock_version' => $case->lock_version,
+            'item_lock_version' => $item->lock_version,
+            'status' => 'not_dispensed',
+            'quantity_dispensed' => '0.000',
+            'reason' => 'patient_declined',
+            'allocations' => [],
+        ]);
+        $case->refresh();
+        $exception = $item->exceptions()->where('status', DispensaryItemException::STATUS_AWAITING)->sole();
+        $this->selectBranch($doctor, $visit->branch);
+
+        return [$doctor, $ca, $visit->refresh(), $plan->refresh(), $case, $item->refresh(), $exception];
+    }
+
+    /** @return array<string, mixed> */
+    private function stockedPartialFixture(): array
+    {
+        [$doctor, $ca, $visit, , $case, $item] = $this->patientDeclinedFixture();
+        $inventoryItem = new InventoryItem;
+        $inventoryItem->forceFill(['public_id' => (string) Str::uuid(), 'organisation_id' => $ca->organisation_id, 'code' => 'SYN-ITEM-'.Str::upper(Str::random(6)), 'generic_name' => 'Synthetic stock item', 'is_active' => true])->save();
+        $sku = new InventorySku;
+        $sku->forceFill(['public_id' => (string) Str::uuid(), 'organisation_id' => $ca->organisation_id, 'inventory_item_id' => $inventoryItem->id, 'sku_code' => 'SYN-SKU-'.Str::upper(Str::random(6)), 'pack_size' => 1, 'purchase_unit' => 'unit', 'stock_unit' => 'unit', 'dispensing_unit' => 'unit', 'unit_conversion' => 1, 'storage_type' => 'ambient', 'cold_chain_required' => false, 'do_not_freeze' => false, 'protect_from_light' => false, 'batch_tracking_required' => true, 'expiry_tracking_required' => true, 'is_active' => true])->save();
+        $mapping = new MedicineCatalogueInventorySku;
+        $mapping->forceFill(['organisation_id' => $ca->organisation_id, 'medicine_catalogue_item_id' => $item->medicine_catalogue_item_id, 'inventory_sku_id' => $sku->id, 'is_active' => true, 'approved_by_user_id' => $doctor->id, 'approved_at' => now()->utc()])->save();
+        $location = new InventoryLocation;
+        $location->forceFill(['public_id' => (string) Str::uuid(), 'organisation_id' => $ca->organisation_id, 'branch_id' => $visit->branch_id, 'code' => 'SYN-DISP-'.Str::upper(Str::random(5)), 'name' => 'Synthetic Dispensary', 'type' => InventoryLocation::TYPE_DISPENSARY, 'is_active' => true])->save();
+        $batch = new InventoryBatch;
+        $batch->forceFill(['public_id' => (string) Str::uuid(), 'organisation_id' => $ca->organisation_id, 'inventory_sku_id' => $sku->id, 'batch_number' => 'SYN-BATCH-'.Str::upper(Str::random(5)), 'expiry_date' => now()->setTimezone($visit->branch->timezone)->addMonth()->toDateString(), 'received_at' => now()->subDay()->toDateString(), 'status' => InventoryBatch::STATUS_AVAILABLE])->save();
+        $supervisor = $this->actor('ca_supervisor');
+        $this->selectBranch($supervisor, $visit->branch);
+        app(InventoryMovementService::class)->openingBalance($supervisor, [
+            'expected_branch_id' => $visit->branch_id,
+            'location_public_id' => $location->public_id,
+            'sku_public_id' => $sku->public_id,
+            'batch_public_id' => $batch->public_id,
+            'quantity' => '10.000',
+        ]);
+        $this->selectBranch($ca, $visit->branch);
+        $item = app(DispensaryService::class)->updateItem($ca, $case->refresh(), $item->refresh(), [
+            'expected_branch_id' => $visit->branch_id,
+            'case_lock_version' => $case->refresh()->lock_version,
+            'item_lock_version' => $item->refresh()->lock_version,
+            'status' => 'partial',
+            'quantity_dispensed' => '0.500',
+            'reason' => 'patient_declined',
+            'allocations' => [[
+                'location_public_id' => $location->public_id,
+                'sku_public_id' => $sku->public_id,
+                'batch_public_id' => $batch->public_id,
+                'quantity' => '0.500',
+            ]],
+        ]);
+        $case->refresh();
+        $exception = $item->exceptions()->where('status', DispensaryItemException::STATUS_AWAITING)->sole();
+        $this->selectBranch($doctor, $visit->branch);
+        app(DispensaryService::class)->acknowledge($doctor, $exception, [
+            'case_lock_version' => $case->lock_version,
+            'item_lock_version' => $item->lock_version,
+        ]);
+        $this->selectBranch($ca, $visit->branch);
+        $balance = InventoryStockBalance::query()->where('inventory_location_id', $location->id)->sole();
+
+        return compact('doctor', 'ca', 'visit', 'case', 'item', 'location', 'sku', 'mapping', 'batch', 'balance');
     }
 
     private function medicineCatalogue(User $doctor): MedicineCatalogueItem

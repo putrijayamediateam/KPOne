@@ -147,6 +147,7 @@ const boardRows = computed<PatientBoardRow[]>(() =>
         coverageLabel: row.coverageLabel,
         durationLabel: row.status === 'removed' ? '—' : waitLabel(row),
         priority: row.priority,
+        returnedFromDispensary: row.returnedFromDispensary,
         statusLabel:
             row.status === 'serving'
                 ? 'Serving Now'

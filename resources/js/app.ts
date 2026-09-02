@@ -22,6 +22,7 @@ createInertiaApp({
             case name.startsWith('Queue/'):
             case name.startsWith('Patient/'):
             case name.startsWith('Clinical/'):
+            case name.startsWith('Dispensary/'):
             case name.startsWith('Clinic/'):
                 return ClinicLayout;
             default:

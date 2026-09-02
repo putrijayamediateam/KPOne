@@ -12,6 +12,15 @@ import {
 import { computed, ref } from 'vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
+import {
+    Dialog,
+    DialogClose,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
 import type {
     ClinicalAllergySafety,
     TreatmentPlanPage,
@@ -23,6 +32,22 @@ const props = defineProps<{
     plan: TreatmentPlanPage;
     allergies: ClinicalAllergySafety | null;
 }>();
+const sendOpen = ref(false);
+const sendForm = useForm({
+    expected_branch_id: props.branchId,
+    lock_version: props.plan.lockVersion,
+});
+const sendToDispensary = () => {
+    if (props.plan.lockVersion === null) {
+        return;
+    }
+
+    sendForm.lock_version = props.plan.lockVersion;
+    sendForm.post(
+        `/visits/${props.visitNumber}/encounter/treatment-plan/send-to-dispensary`,
+        { preserveScroll: true, onSuccess: () => (sendOpen.value = false) },
+    );
+};
 
 type MedicineSearch = {
     publicId: string;
@@ -890,7 +915,14 @@ const save = () => {
         </div>
 
         <InputError :message="formError" />
-        <div class="flex justify-end">
+        <div class="flex justify-end gap-2">
+            <Button
+                v-if="plan.canSendToDispensary"
+                type="button"
+                variant="outline"
+                @click="sendOpen = true"
+                >Send to Dispensary</Button
+            >
             <Button
                 type="button"
                 :disabled="form.processing || !plan.canSave"
@@ -903,5 +935,29 @@ const save = () => {
                 }}</Button
             >
         </div>
+        <Dialog v-model:open="sendOpen">
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle
+                        >Send this Treatment Plan to Dispensary?</DialogTitle
+                    >
+                    <DialogDescription
+                        >The Treatment Plan will be locked for normal editing
+                        while Dispensary processes it.</DialogDescription
+                    >
+                </DialogHeader>
+                <InputError :message="Object.values(sendForm.errors)[0]" />
+                <DialogFooter>
+                    <DialogClose as-child
+                        ><Button variant="outline">Cancel</Button></DialogClose
+                    >
+                    <Button
+                        :disabled="sendForm.processing"
+                        @click="sendToDispensary"
+                        >Send to Dispensary</Button
+                    >
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
     </section>
 </template>

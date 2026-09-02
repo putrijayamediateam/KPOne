@@ -6,6 +6,9 @@ use App\Domain\Access\BranchAccessService;
 use App\Domain\Audit\AccessChangeActorContext;
 use App\Domain\Audit\Listeners\RecordAccessChanges;
 use App\Domain\Audit\Listeners\RecordAuthenticationEvents;
+use App\Domain\Clinical\Dispensary\Models\DispensaryCase;
+use App\Domain\Clinical\Dispensary\Models\DispensaryItem;
+use App\Domain\Clinical\Dispensary\Models\DispensaryItemException;
 use App\Domain\Clinical\Models\ClinicalEncounter;
 use App\Domain\Clinical\Policies\ClinicalEncounterPolicy;
 use App\Domain\Identity\Policies\StaffPolicy;
@@ -86,6 +89,16 @@ class AppServiceProvider extends ServiceProvider
                 ->where('visit_number', $value)
                 ->firstOrFail();
         });
+
+        Route::bind('dispensaryCase', function (string $value): DispensaryCase {
+            $actor = request()->user();
+            $branch = app(BranchAccessService::class)->activeBranch($actor);
+            abort_if($branch === null, 404);
+
+            return DispensaryCase::query()->where('public_id', $value)->where('organisation_id', $actor->organisation_id)->where('branch_id', $branch->id)->firstOrFail();
+        });
+        Route::bind('item', fn (string $value): DispensaryItem => DispensaryItem::query()->where('public_id', $value)->where('organisation_id', request()->user()->organisation_id)->firstOrFail());
+        Route::bind('exception', fn (string $value): DispensaryItemException => DispensaryItemException::query()->where('public_id', $value)->where('organisation_id', request()->user()->organisation_id)->firstOrFail());
     }
 
     protected function configureAuthorization(): void
