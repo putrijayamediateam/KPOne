@@ -10,6 +10,8 @@ use App\Http\Controllers\ClinicalEncounterController;
 use App\Http\Controllers\ClinicalProblemController;
 use App\Http\Controllers\ClinicPlaceholderController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\DispensaryController;
+use App\Http\Controllers\InventoryMovementController;
 use App\Http\Controllers\PatientController;
 use App\Http\Controllers\PatientIdentifierController;
 use App\Http\Controllers\PatientSearchController;
@@ -147,6 +149,30 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::put('visits/{visit}/encounter/treatment-plan', [TreatmentPlanController::class, 'save'])
             ->middleware(['permission:treatment_plans.create.own,treatment_plans.update.own', 'throttle:60,1'])
             ->name('encounters.treatment-plan.save');
+        Route::post('visits/{visit}/encounter/treatment-plan/send-to-dispensary', [TreatmentPlanController::class, 'send'])
+            ->middleware(['permission:treatment_plans.send_to_dispensary.own', 'throttle:20,1'])
+            ->name('encounters.treatment-plan.send-to-dispensary');
+
+        Route::get('dispensary/{dispensaryCase}', [DispensaryController::class, 'show'])
+            ->middleware('permission:dispensary.view.branch')->name('dispensary.show');
+        Route::get('dispensary/{dispensaryCase}/labels', [DispensaryController::class, 'labels'])
+            ->middleware('permission:dispensary.view.branch')->name('dispensary.labels');
+        Route::get('dispensary/{dispensaryCase}/items/{itemPublicId}/label', [DispensaryController::class, 'labels'])
+            ->middleware('permission:dispensary.view.branch')->whereUuid('itemPublicId')->name('dispensary.items.label');
+        Route::post('dispensary/{dispensaryCase}/start', [DispensaryController::class, 'start'])
+            ->middleware(['permission:dispensary.start.branch', 'throttle:30,1'])->name('dispensary.start');
+        Route::patch('dispensary/{dispensaryCase}/items/{item}', [DispensaryController::class, 'updateItem'])
+            ->middleware(['permission:dispensary.update.branch', 'throttle:60,1'])->name('dispensary.items.update');
+        Route::post('dispensary/{dispensaryCase}/return-to-doctor', [DispensaryController::class, 'returnToDoctor'])
+            ->middleware(['permission:dispensary.return_to_doctor.branch', 'throttle:20,1'])->name('dispensary.return-to-doctor');
+        Route::post('dispensary/{dispensaryCase}/complete', [DispensaryController::class, 'complete'])
+            ->middleware(['permission:dispensary.complete.branch', 'throttle:20,1'])->name('dispensary.complete');
+        Route::post('dispensary-exceptions/{exception}/acknowledge', [DispensaryController::class, 'acknowledge'])
+            ->middleware(['permission:dispensary.acknowledge_partial.own', 'throttle:20,1'])->name('dispensary.exceptions.acknowledge');
+        Route::post('inventory/opening-balances', [InventoryMovementController::class, 'openingBalance'])
+            ->middleware(['permission:inventory.opening_balance.branch', 'throttle:20,1'])->name('inventory.opening-balances.store');
+        Route::post('inventory/transfers', [InventoryMovementController::class, 'transfer'])
+            ->middleware(['permission:inventory.transfer.branch,inventory.transfer.organisation', 'throttle:30,1'])->name('inventory.transfers.store');
         Route::post('visits/{visit}/encounter/treatment-plan/catalogue/medicines/search', [TreatmentPlanCatalogueController::class, 'medicines'])
             ->middleware(['permission:treatment_plans.view.own', 'throttle:60,1'])
             ->name('encounters.treatment-plan.catalogue.medicines');

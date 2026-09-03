@@ -36,7 +36,7 @@ const tabs: Array<{ value: BoardTab; label: string; planned?: boolean }> = [
     { value: 'all', label: 'All' },
     { value: 'waiting', label: 'Waiting' },
     { value: 'serving', label: 'Serving Now' },
-    { value: 'dispensary', label: 'Dispensary', planned: true },
+    { value: 'dispensary', label: 'Dispensary' },
     { value: 'completed', label: 'Completed', planned: true },
     { value: 'cancelled', label: 'Cancelled' },
 ];
@@ -71,9 +71,7 @@ const csrf = () =>
     document.querySelector<HTMLMetaElement>('meta[name="csrf-token"]')
         ?.content ?? '';
 let searchGeneration = 0;
-const plannedTab = computed(
-    () => activeTab.value === 'dispensary' || activeTab.value === 'completed',
-);
+const plannedTab = computed(() => activeTab.value === 'completed');
 const duration = (minutes: number | null) => {
     if (minutes === null) {
         return '—';
@@ -130,19 +128,29 @@ const registrationDateLabel = computed(() =>
 );
 const boardRows = computed<PatientBoardRow[]>(() =>
     rows.value.map((visit) => {
-        const status =
-            visit.status === 'cancelled'
-                ? { label: 'Cancelled', tone: 'cancelled' as const }
-                : visit.queueStatus === 'serving'
-                  ? { label: 'Serving Now', tone: 'serving' as const }
-                  : visit.queueStatus === 'waiting'
-                    ? { label: 'Waiting', tone: 'waiting' as const }
-                    : visit.queueStatus === 'removed'
-                      ? {
-                            label: 'Removed from Queue',
-                            tone: 'removed' as const,
-                        }
-                      : { label: 'Registered', tone: 'neutral' as const };
+        const status = visit.dispensaryStatus
+            ? {
+                  label:
+                      visit.dispensaryStatus === 'pending'
+                          ? 'Pending'
+                          : 'Dispensing',
+                  tone:
+                      visit.dispensaryStatus === 'pending'
+                          ? ('waiting' as const)
+                          : ('serving' as const),
+              }
+            : visit.status === 'cancelled'
+              ? { label: 'Cancelled', tone: 'cancelled' as const }
+              : visit.queueStatus === 'serving'
+                ? { label: 'Serving Now', tone: 'serving' as const }
+                : visit.queueStatus === 'waiting'
+                  ? { label: 'Waiting', tone: 'waiting' as const }
+                  : visit.queueStatus === 'removed'
+                    ? {
+                          label: 'Removed from Queue',
+                          tone: 'removed' as const,
+                      }
+                    : { label: 'Registered', tone: 'neutral' as const };
 
         return {
             key: visit.visitNumber,
@@ -157,6 +165,8 @@ const boardRows = computed<PatientBoardRow[]>(() =>
             coverageLabel: visit.coverageLabel,
             durationLabel: duration(visit.durationMinutes),
             priority: visit.priority,
+            returnedFromDispensary: visit.returnedFromDispensary,
+            dispensaryUrl: visit.dispensaryUrl,
             statusLabel: status.label,
             statusTone: status.tone,
             can: visit.can,

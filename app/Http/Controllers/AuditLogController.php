@@ -3,11 +3,13 @@
 namespace App\Http\Controllers;
 
 use App\Domain\Audit\Models\AuditLog;
+use App\Domain\Clinical\Dispensary\Models\DispensaryCase;
 use App\Domain\Clinical\Models\ClinicalEncounter;
 use App\Domain\Clinical\Models\PatientAllergyProfile;
 use App\Domain\Clinical\Models\PatientAllergyRecord;
 use App\Domain\Clinical\Models\PatientProblemRecord;
 use App\Domain\Clinical\Models\TreatmentPlan;
+use App\Domain\Organisation\Inventory\Models\StockMovement;
 use App\Domain\Patient\Models\Patient;
 use App\Domain\Queue\Models\QueueEntry;
 use App\Domain\Visit\Models\Visit;
@@ -39,6 +41,13 @@ class AuditLogController extends Controller
                     'problem.entered_in_error',
                     'treatment_plan.created',
                     'treatment_plan.updated',
+                    'treatment_plan.sent_to_dispensary',
+                    'dispensary.started',
+                    'dispensary.updated',
+                    'dispensary.returned_to_doctor',
+                    'dispensary.partial_acknowledged',
+                    'dispensary.completed',
+                    'inventory.dispensed',
                 ], true);
                 $isPatient = $log->subject_type === (new Patient)->getMorphClass();
                 $isVisit = $log->subject_type === (new Visit)->getMorphClass();
@@ -48,8 +57,11 @@ class AuditLogController extends Controller
                 $isAllergyRecord = $log->subject_type === (new PatientAllergyRecord)->getMorphClass();
                 $isProblemRecord = $log->subject_type === (new PatientProblemRecord)->getMorphClass();
                 $isTreatmentPlan = $log->subject_type === (new TreatmentPlan)->getMorphClass();
+                $isDispensaryCase = $log->subject_type === (new DispensaryCase)->getMorphClass();
+                $isStockMovement = $log->subject_type === (new StockMovement)->getMorphClass();
                 $isProtectedOperationalRecord = $isPatient || $isVisit || $isQueue || $isEncounter
-                    || $isAllergyProfile || $isAllergyRecord || $isProblemRecord || $isTreatmentPlan;
+                    || $isAllergyProfile || $isAllergyRecord || $isProblemRecord || $isTreatmentPlan
+                    || $isDispensaryCase || $isStockMovement;
                 $subjectType = match (true) {
                     $isPatient => 'Patient record',
                     $isVisit => 'Visit record',
@@ -58,6 +70,8 @@ class AuditLogController extends Controller
                     $isAllergyProfile, $isAllergyRecord => 'Clinical allergy record',
                     $isProblemRecord => 'Clinical problem record',
                     $isTreatmentPlan => 'Treatment Plan record',
+                    $isDispensaryCase => 'Dispensary record',
+                    $isStockMovement => 'Inventory movement',
                     default => $log->subject_type ? class_basename($log->subject_type) : null,
                 };
 

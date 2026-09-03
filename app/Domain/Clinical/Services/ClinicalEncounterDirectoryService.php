@@ -3,6 +3,7 @@
 namespace App\Domain\Clinical\Services;
 
 use App\Domain\Access\BranchAccessService;
+use App\Domain\Clinical\Dispensary\Services\DoctorDispensaryAttentionService;
 use App\Domain\Clinical\Models\ClinicalEncounter;
 use App\Domain\Clinical\Models\EncounterDiagnosis;
 use App\Domain\Clinical\Models\EncounterVitalObservation;
@@ -17,6 +18,7 @@ class ClinicalEncounterDirectoryService
         private BranchAccessService $branches,
         private ClinicalSafetyDirectoryService $clinicalSafety,
         private TreatmentPlanDirectoryService $treatmentPlans,
+        private DoctorDispensaryAttentionService $dispensaryAttention,
     ) {}
 
     /** @return array<string, mixed> */
@@ -34,7 +36,7 @@ class ClinicalEncounterDirectoryService
                 ])->with([
                     'patient:id,organisation_id,patient_number,full_name,date_of_birth,sex',
                     'branch:id,organisation_id,code,name,timezone',
-                    'queueEntry:id,organisation_id,branch_id,visit_id,operational_date,queue_number,status,called_at,lock_version',
+                    'queueEntry:id,organisation_id,branch_id,visit_id,operational_date,queue_number,status,called_at,removed_at,removal_reason,lock_version',
                 ]),
                 'attendingClinician:id,organisation_id,name',
                 'vitalObservation',
@@ -44,6 +46,7 @@ class ClinicalEncounterDirectoryService
         Gate::forUser($actor)->authorize('view', $encounter);
 
         $vitals = $encounter->vitalObservation;
+        $isActiveConsultation = $encounter->visit->queueEntry?->status === QueueEntry::STATUS_SERVING;
 
         return [
             'branch' => $encounter->visit->branch->only(['id', 'code', 'name', 'timezone']),
@@ -82,9 +85,10 @@ class ClinicalEncounterDirectoryService
                 'codeSystem' => $diagnosis->code_system,
                 'isPrimary' => $diagnosis->is_primary,
             ])->values(),
-            'allergies' => $this->clinicalSafety->allergies($actor, $encounter),
-            'problems' => $this->clinicalSafety->problems($actor, $encounter),
+            'allergies' => $isActiveConsultation ? $this->clinicalSafety->allergies($actor, $encounter) : null,
+            'problems' => $isActiveConsultation ? $this->clinicalSafety->problems($actor, $encounter) : null,
             'treatmentPlan' => $this->treatmentPlans->detail($actor, $encounter),
+            'dispensaryAttention' => $this->dispensaryAttention->forEncounter($actor, $encounter),
             'history' => $this->history($actor, $encounter),
         ];
     }

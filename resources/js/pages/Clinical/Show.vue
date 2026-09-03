@@ -14,6 +14,7 @@ import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import AllergyProblemPanel from '@/pages/Clinical/Partials/AllergyProblemPanel.vue';
 import ClinicalHistoryPanel from '@/pages/Clinical/Partials/ClinicalHistoryPanel.vue';
+import DispensaryAttentionPanel from '@/pages/Clinical/Partials/DispensaryAttentionPanel.vue';
 import TreatmentPlanPanel from '@/pages/Clinical/Partials/TreatmentPlanPanel.vue';
 import type { ClinicalEncounterPage } from '@/types';
 
@@ -249,6 +250,10 @@ const save = () => {
                     :branch-id="clinical.branch.id"
                     :allergies="clinical.allergies"
                     :problems="clinical.problems"
+                />
+
+                <DispensaryAttentionPanel
+                    :items="clinical.dispensaryAttention"
                 />
 
                 <div

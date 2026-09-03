@@ -19,6 +19,8 @@ class TreatmentPlan extends Model
 
     public const STATUS_IN_PROGRESS = 'in_progress';
 
+    public const STATUS_READY_FOR_DISPENSING = 'ready_for_dispensing';
+
     protected static function newFactory(): TreatmentPlanFactory
     {
         return TreatmentPlanFactory::new();
@@ -28,10 +30,16 @@ class TreatmentPlan extends Model
     {
         static::deleting(fn (): never => throw new LogicException('Treatment Plans are retained clinical records.'));
         static::updating(function (self $plan): void {
-            foreach (['organisation_id', 'branch_id', 'clinical_encounter_id', 'status', 'created_by_user_id'] as $attribute) {
+            foreach (['organisation_id', 'branch_id', 'clinical_encounter_id', 'created_by_user_id'] as $attribute) {
                 if ($plan->isDirty($attribute)) {
                     throw new LogicException('Treatment Plan ownership and lifecycle are immutable in Phase 2B.');
                 }
+            }
+            if ($plan->isDirty('status') && ! in_array([$plan->getOriginal('status'), $plan->status], [
+                [self::STATUS_IN_PROGRESS, self::STATUS_READY_FOR_DISPENSING],
+                [self::STATUS_READY_FOR_DISPENSING, self::STATUS_IN_PROGRESS],
+            ], true)) {
+                throw new LogicException('Invalid Treatment Plan lifecycle transition.');
             }
         });
     }

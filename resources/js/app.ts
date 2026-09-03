@@ -13,6 +13,7 @@ createInertiaApp({
     layout: (name) => {
         switch (true) {
             case name === 'Welcome':
+            case name === 'Dispensary/Labels':
                 return null;
             case name.startsWith('auth/'):
                 return AuthLayout;
@@ -22,6 +23,7 @@ createInertiaApp({
             case name.startsWith('Queue/'):
             case name.startsWith('Patient/'):
             case name.startsWith('Clinical/'):
+            case name.startsWith('Dispensary/'):
             case name.startsWith('Clinic/'):
                 return ClinicLayout;
             default:

@@ -95,6 +95,13 @@ return Application::configure(basePath: dirname(__DIR__))
             'precaution',
             'clinical_instruction',
             'quantity_ordered',
+            'dispensary',
+            'quantity_dispensed',
+            'allocations',
+            'batch_public_id',
+            'batch_number',
+            'expiry_date',
+            'inventory',
         ]);
         $exceptions->shouldRenderJsonWhen(
             fn (Request $request) => $request->is('api/*') || $request->expectsJson(),

@@ -68,6 +68,9 @@ class TreatmentPlanService
 
             if ($plan) {
                 Gate::forUser($care->actor)->authorize('updateTreatmentPlan', $care->encounter);
+                if ($plan->status !== TreatmentPlan::STATUS_IN_PROGRESS) {
+                    throw ValidationException::withMessages(['treatment_plan' => 'This Treatment Plan is locked while Dispensary processes it.']);
+                }
             } else {
                 Gate::forUser($care->actor)->authorize('createTreatmentPlan', $care->encounter);
             }

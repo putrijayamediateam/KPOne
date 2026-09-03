@@ -1,5 +1,7 @@
 # Architecture
 
+Phase 3A-Core adds `Clinical/Dispensary` and `Organisation/Inventory` inside the modular monolith. Clinical handoff and inventory remain separate aggregates joined only in the atomic completion transaction.
+
 ## Decision: modular monolith
 
 KPOne is one Laravel deployment and one PostgreSQL database. Domain boundaries organise the code without introducing deployment boundaries:

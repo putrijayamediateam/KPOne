@@ -34,6 +34,10 @@ export type VisitRow = {
     durationMinutes: number | null;
     visitLockVersion: number;
     queueLockVersion: number | null;
+    returnedFromDispensary?: boolean;
+    dispensaryStatus?: 'pending' | 'dispensing';
+    medicineCount?: number;
+    dispensaryUrl?: string;
     can: {
         viewPatient: boolean;
         update: boolean;
@@ -41,6 +45,7 @@ export type VisitRow = {
         sendToWaiting: boolean;
         call: boolean;
         openConsultation: boolean;
+        openDispensary?: boolean;
     };
 };
 

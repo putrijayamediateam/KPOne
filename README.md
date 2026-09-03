@@ -4,7 +4,9 @@ KPOne is the Klinik Putrijaya Digital Operating System: a production healthcare 
 
 This repository is a new, independent Laravel application. It does not modify or depend on `MiniWeb_KlinikPutrijaya_Fullstack`.
 
-## Current scope: Phase 0A + Phase 0B + Phase 1A + Phase 1B + Phase 1C + Phase 2A + Phase 2B.0 + Phase 2B
+## Current scope: Phase 0A through Phase 2C, with Phase 3A-Core under implementation
+
+The unreleased Dispensary and minimal inventory foundation is documented in [docs/PHASE_3A.md](docs/PHASE_3A.md).
 
 Phase 0A provides the platform foundation, and Phase 0B adds internal operational staff identity administration:
 

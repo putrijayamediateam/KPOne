@@ -94,13 +94,29 @@ export type TreatmentPlanService = {
 
 export type TreatmentPlanPage = {
     present: boolean;
-    status: 'in_progress' | null;
+    status: 'in_progress' | 'ready_for_dispensing' | null;
     lockVersion: number | null;
     medicines: TreatmentPlanMedicine[];
     withdrawnMedicines: { displayName: string; withdrawnAt: string | null }[];
     services: TreatmentPlanService[];
     withdrawnServices: { displayName: string; withdrawnAt: string | null }[];
     canSave: boolean;
+    canSendToDispensary: boolean;
+};
+
+export type DoctorDispensaryAttention = {
+    exceptionPublicId: string;
+    medicineName: string;
+    strength: string | null;
+    unit: string;
+    quantityOrdered: string;
+    proposedQuantity: string;
+    reason: string;
+    status: 'awaiting_acknowledgement' | 'acknowledged';
+    reviewAgain: boolean;
+    caseLockVersion: number;
+    itemLockVersion: number;
+    acknowledgeUrl: string;
 };
 
 export type ClinicalEncounterPage = {
@@ -138,6 +154,7 @@ export type ClinicalEncounterPage = {
     allergies: ClinicalAllergySafety | null;
     problems: ClinicalProblemList | null;
     treatmentPlan: TreatmentPlanPage;
+    dispensaryAttention: DoctorDispensaryAttention[];
     history: ClinicalHistorySummary[];
 };
 

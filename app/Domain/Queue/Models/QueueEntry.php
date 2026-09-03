@@ -26,6 +26,8 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $called_at
  * @property int|null $called_by_user_id
  * @property Carbon|null $removed_at
+ * @property string|null $removal_reason
+ * @property Carbon|null $returned_from_dispensary_at
  * @property int $updated_by_user_id
  * @property int $lock_version
  * @property-read Visit $visit
@@ -56,6 +58,7 @@ class QueueEntry extends Model
             'queued_at' => 'immutable_datetime',
             'called_at' => 'immutable_datetime',
             'removed_at' => 'immutable_datetime',
+            'returned_from_dispensary_at' => 'immutable_datetime',
             'lock_version' => 'integer',
             'created_at' => 'immutable_datetime',
             'updated_at' => 'immutable_datetime',

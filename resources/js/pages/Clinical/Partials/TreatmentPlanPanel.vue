@@ -12,6 +12,15 @@ import {
 import { computed, ref } from 'vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
+import {
+    Dialog,
+    DialogClose,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
 import type {
     ClinicalAllergySafety,
     TreatmentPlanPage,
@@ -23,6 +32,22 @@ const props = defineProps<{
     plan: TreatmentPlanPage;
     allergies: ClinicalAllergySafety | null;
 }>();
+const sendOpen = ref(false);
+const sendForm = useForm({
+    expected_branch_id: props.branchId,
+    lock_version: props.plan.lockVersion,
+});
+const sendToDispensary = () => {
+    if (props.plan.lockVersion === null) {
+        return;
+    }
+
+    sendForm.lock_version = props.plan.lockVersion;
+    sendForm.post(
+        `/visits/${props.visitNumber}/encounter/treatment-plan/send-to-dispensary`,
+        { preserveScroll: true, onSuccess: () => (sendOpen.value = false) },
+    );
+};
 
 type MedicineSearch = {
     publicId: string;
@@ -52,7 +77,7 @@ const routePresets = ['Oral', 'Topical', 'Inhaled'];
 
 type AmountUnitComposer = {
     mode: 'structured' | 'custom';
-    amount: string;
+    amount: string | number | null | undefined;
     unit: string;
     custom: string;
 };
@@ -120,12 +145,27 @@ const parseAmountUnit = (
         : { mode: 'structured', amount: '', unit: '', custom: '' };
 };
 
+// Vue number inputs emit numbers; clearing them may emit an empty/null value.
+// Preserve text rather than parsing a numeric prefix or substituting a default.
+const normalizeAmount = (
+    value: AmountUnitComposer['amount'],
+): string | null => {
+    if (value === null || value === undefined) {
+        return '';
+    }
+
+    if (typeof value === 'number') {
+        return Number.isFinite(value) ? String(value) : null;
+    }
+
+    return value.trim();
+};
 const composeAmountUnit = (composer: AmountUnitComposer, plural = false) => {
     if (composer.mode === 'custom') {
         return composer.custom.trim();
     }
 
-    const amount = composer.amount.trim();
+    const amount = normalizeAmount(composer.amount);
 
     if (!amount || !composer.unit) {
         return '';
@@ -405,6 +445,24 @@ const addService = (item: ServiceSearch) => {
     serviceQuery.value = '';
 };
 const save = () => {
+    form.clearErrors();
+
+    for (const row of form.medicines) {
+        for (const composer of [row.dosage_composer, row.duration_composer]) {
+            if (
+                composer.mode === 'structured' &&
+                normalizeAmount(composer.amount) === null
+            ) {
+                form.setError(
+                    'medicines',
+                    'Enter a finite dosage or duration amount, or use Custom text.',
+                );
+
+                return;
+            }
+        }
+    }
+
     form.medicines.forEach(syncMedicine);
 
     form.transform((data) => ({
@@ -448,11 +506,15 @@ const save = () => {
             <div>
                 <h2 class="font-semibold">Treatment Plan</h2>
                 <p class="text-xs text-muted-foreground">
-                    Clinical orders only. Dispensing, stock and billing are
-                    handled later.
+                    Clinical orders only. Dispensary fulfilment follows Complete
+                    Consultation. Billing is outside this workspace.
                 </p>
             </div>
-            <span class="rounded border px-2 py-1 text-xs">In progress</span>
+            <span class="rounded border px-2 py-1 text-xs">{{
+                plan.status === 'ready_for_dispensing'
+                    ? 'Sent to Dispensary'
+                    : 'In progress'
+            }}</span>
         </div>
 
         <div
@@ -890,7 +952,14 @@ const save = () => {
         </div>
 
         <InputError :message="formError" />
-        <div class="flex justify-end">
+        <div class="flex justify-end gap-2">
+            <Button
+                v-if="plan.canSendToDispensary"
+                type="button"
+                variant="outline"
+                @click="sendOpen = true"
+                >Complete Consultation</Button
+            >
             <Button
                 type="button"
                 :disabled="form.processing || !plan.canSave"
@@ -903,5 +972,29 @@ const save = () => {
                 }}</Button
             >
         </div>
+        <Dialog v-model:open="sendOpen">
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Complete consultation?</DialogTitle>
+                    <DialogDescription
+                        >This will send the current Treatment Plan to Dispensary
+                        for medicine preparation. You can continue the
+                        consultation only if the case is returned from
+                        Dispensary.</DialogDescription
+                    >
+                </DialogHeader>
+                <InputError :message="Object.values(sendForm.errors)[0]" />
+                <DialogFooter>
+                    <DialogClose as-child
+                        ><Button variant="outline">Cancel</Button></DialogClose
+                    >
+                    <Button
+                        :disabled="sendForm.processing"
+                        @click="sendToDispensary"
+                        >Complete Consultation</Button
+                    >
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
     </section>
 </template>
