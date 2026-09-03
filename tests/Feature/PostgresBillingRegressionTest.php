@@ -359,9 +359,12 @@ class PostgresBillingRegressionTest extends TestCase
         $workers = [$this->worker($args), $this->billWorker($f, 'bill-pay', $this->payArgs($f, 1000), 'doctor')];
         $this->runWorkers($workers);
         $this->assertSame(2, substr_count($this->workerOutput($workers), 'DENIED'));
+        $this->assertSame($settledState, $this->financialSnapshot($f));
         $branch = new Branch;
         $branch->forceFill(['organisation_id' => $f['organisation']->id, 'code' => 'OTHER', 'name' => 'Synthetic other branch', 'timezone' => 'Asia/Kuala_Lumpur', 'is_active' => true])->save();
         $actor = $this->user($f['organisation'], $branch, 'ca', $this->caPermissions());
+        // Fixture permission grants legitimately audit; isolate the subsequent denial.
+        $settledState = $this->financialSnapshot($f);
         $args[1] = (string) $actor->id;
         $args[2] = (string) $branch->id;
         $workers = [$this->worker($args)];
