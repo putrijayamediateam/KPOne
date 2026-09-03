@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Head, router, usePage } from '@inertiajs/vue3';
-import { CheckCircle2, LoaderCircle, RotateCcw } from '@lucide/vue';
+import { CheckCircle2, LoaderCircle, Printer, RotateCcw } from '@lucide/vue';
 import { reactive, ref } from 'vue';
 import { Button } from '@/components/ui/button';
 
@@ -168,7 +168,28 @@ const saveItem = (item: Item) => {
                     {{ dispensary.doctor ?? 'No doctor' }}
                 </p>
             </div>
-            <div class="flex gap-2">
+            <div class="flex flex-wrap gap-2">
+                <Button
+                    v-if="
+                        dispensary.items.some(
+                            (item) => item.status !== 'not_dispensed',
+                        )
+                    "
+                    as-child
+                    variant="outline"
+                    size="sm"
+                >
+                    <a
+                        :href="`/dispensary/${dispensary.publicId}/labels`"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                    >
+                        <Printer class="size-4" />Print all labels
+                        <span class="sr-only"
+                            >(opens print preview in a new tab)</span
+                        >
+                    </a>
+                </Button>
                 <Button
                     v-if="dispensary.can.start"
                     :disabled="busy"
@@ -236,6 +257,25 @@ const saveItem = (item: Item) => {
                             >{{ item.quantityOrdered }} {{ item.unit }}</strong
                         >
                     </p>
+                    <Button
+                        v-if="item.status !== 'not_dispensed'"
+                        as-child
+                        variant="ghost"
+                        size="sm"
+                        class="mt-1"
+                    >
+                        <a
+                            :href="`/dispensary/${dispensary.publicId}/items/${item.publicId}/label`"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                        >
+                            <Printer class="size-3.5" />Print Label
+                            <span class="sr-only"
+                                >for {{ item.name }} (opens print preview in a
+                                new tab)</span
+                            >
+                        </a>
+                    </Button>
                 </div>
                 <div class="grid gap-2 text-xs sm:grid-cols-2 lg:grid-cols-4">
                     <p>
@@ -333,7 +373,8 @@ const saveItem = (item: Item) => {
                         v-else-if="!item.availability.length"
                         class="text-xs text-amber-700"
                     >
-                        No eligible stock in permitted locations.
+                        No eligible stock in this branch's Dispensary. Stock at
+                        other locations requires transfer before fulfilment.
                     </p>
                     <Button
                         size="sm"

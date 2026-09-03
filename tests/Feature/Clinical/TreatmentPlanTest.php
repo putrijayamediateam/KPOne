@@ -26,8 +26,11 @@ use App\Domain\Organisation\Inventory\Models\InventoryLocation;
 use App\Domain\Organisation\Inventory\Models\InventorySku;
 use App\Domain\Organisation\Inventory\Models\InventoryStockBalance;
 use App\Domain\Organisation\Inventory\Models\MedicineCatalogueInventorySku;
+use App\Domain\Organisation\Inventory\Services\InventoryAvailabilityService;
 use App\Domain\Organisation\Inventory\Services\InventoryMovementService;
 use App\Domain\Organisation\Models\Branch;
+use App\Domain\Organisation\Models\Organisation;
+use App\Domain\Queue\Services\QueueDirectoryService;
 use App\Domain\Visit\Models\Visit;
 use App\Models\User;
 use Carbon\CarbonImmutable;
@@ -37,10 +40,285 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use Inertia\Testing\AssertableInertia as Assert;
 use LogicException;
 
 class TreatmentPlanTest extends ClinicalTestCase
 {
+    public function test_composed_and_custom_medicine_text_survives_reload_without_duplicate_orders(): void
+    {
+        [$doctor, , $visit, $queue] = $this->servingFixture();
+        $this->startEncounter($doctor, $visit, $queue);
+        $this->reviewNoKnown($doctor, $visit);
+        $medicine = $this->medicineCatalogue($doctor);
+        $row = [...$this->medicinePayload($medicine), 'dosage' => '1 tablet', 'frequency' => 'Once daily', 'duration' => '5 days'];
+        $url = route('encounters.treatment-plan.save', $visit);
+        $this->put($url, $this->payload(null, [$row]))->assertSessionHasNoErrors()->assertRedirect();
+        $plan = TreatmentPlan::query()->sole();
+        $order = $plan->medicineOrders()->sole();
+        $this->assertSame(1, $plan->lock_version);
+        $this->get(route('encounters.show', $visit))->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('clinical.treatmentPlan.lockVersion', 1)
+            ->has('clinical.treatmentPlan.medicines', 1)
+            ->where('clinical.treatmentPlan.medicines.0.dosage', '1 tablet')
+            ->where('clinical.treatmentPlan.medicines.0.duration', '5 days'));
+
+        $row = [...$row, 'public_id' => $order->public_id, 'catalogue_public_id' => null, 'dosage' => 'as directed', 'duration' => 'custom duration'];
+        $this->put($url, $this->payload(1, [$row]))->assertSessionHasNoErrors()->assertRedirect();
+        $this->assertSame(2, $plan->refresh()->lock_version);
+        $this->assertDatabaseCount('treatment_plan_medicine_orders', 1);
+        $this->assertSame($order->id, $plan->medicineOrders()->sole()->id);
+        $this->assertSame('as directed', $order->refresh()->dosage);
+        $this->assertSame('custom duration', $order->duration);
+        $this->putJson($url, $this->payload(2, [[...$row, 'dosage' => '']]))->assertUnprocessable()->assertJsonValidationErrors('medicines.0.dosage');
+        $this->putJson($url, $this->payload(2, [[...$row, 'quantity_ordered' => '-1']]))->assertUnprocessable();
+        $this->assertSame(2, $plan->refresh()->lock_version);
+        $this->assertDatabaseCount('treatment_plan_medicine_orders', 1);
+        $this->put($url, $this->payload(2, [[...$row, 'duration' => null]]))->assertSessionHasNoErrors()->assertRedirect();
+        $this->assertSame(3, $plan->refresh()->lock_version);
+        $this->assertNull($order->refresh()->duration);
+    }
+
+    public function test_removed_queue_advertises_existing_clinical_entry_only_for_pending_attending_doctor_attention(): void
+    {
+        [$doctor, $ca, $visit, , $case, $item, $exception] = $this->patientDeclinedFixture();
+        $snapshot = $this->postJson(route('queue.search'), ['status' => 'removed'])->assertOk();
+        $snapshot->assertJsonPath('removed.0.canOpenEncounter', true);
+        $row = $snapshot->json('removed.0');
+        foreach (['medicineName', 'quantityOrdered', 'proposedQuantity', 'exceptionPublicId', 'clinicalNote', 'dispensaryAttention'] as $key) {
+            $this->assertArrayNotHasKey($key, $row);
+        }
+        $this->assertStringNotContainsString('Synthetic medicine', $snapshot->getContent());
+        $this->get(route('encounters.show', $row['visitNumber']))->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('clinical.dispensaryAttention.0.exceptionPublicId', $exception->public_id));
+
+        foreach ([$ca, $this->actor('director')] as $other) {
+            $this->selectBranch($other, $visit->branch);
+            $this->postJson(route('queue.search'), ['status' => 'removed'])->assertOk()->assertJsonPath('removed.0.canOpenEncounter', false);
+        }
+        $unrelated = $this->doctor();
+        $this->selectBranch($unrelated, $visit->branch);
+        $this->postJson(route('queue.search'), ['status' => 'removed', 'scope' => 'branch'])->assertOk()->assertJsonCount(0, 'removed');
+        $this->get(route('encounters.show', $visit))->assertNotFound();
+        $this->selectBranch($this->actor('technical_admin'), $visit->branch);
+        $this->postJson(route('queue.search'), ['status' => 'removed'])->assertForbidden();
+        $this->get(route('encounters.show', $visit))->assertForbidden();
+
+        $this->selectBranch($doctor, $visit->branch);
+        app(DispensaryService::class)->acknowledge($doctor, $exception, [
+            'case_lock_version' => $case->lock_version, 'item_lock_version' => $item->lock_version,
+        ]);
+        $this->postJson(route('queue.search'), ['status' => 'removed'])->assertOk()->assertJsonPath('removed.0.canOpenEncounter', false);
+    }
+
+    public function test_pending_attention_navigation_requires_exact_permission_and_effective_branch(): void
+    {
+        [$doctor, , $visit] = $this->patientDeclinedFixture();
+        $attention = app(DoctorDispensaryAttentionService::class);
+        $this->assertTrue($attention->hasPendingForVisit($doctor, $visit));
+        $role = $doctor->roles()->where('name', 'resident_doctor')->firstOrFail();
+        $role->revokePermissionTo('dispensary.acknowledge_partial.own');
+        $this->assertFalse($attention->hasPendingForVisit($doctor->fresh(), $visit));
+        $role->givePermissionTo('dispensary.acknowledge_partial.own');
+        $this->assertTrue($attention->hasPendingForVisit($doctor->fresh(), $visit));
+        $doctor->forceFill(['is_active' => false])->save();
+        $this->assertFalse($attention->hasPendingForVisit($doctor->fresh(), $visit));
+        $doctor->forceFill(['is_active' => true])->save();
+        $doctor->staffProfile->branchAssignments()->update(['valid_until' => now()->subDay()->toDateString()]);
+        $this->assertFalse($attention->hasPendingForVisit($doctor->fresh(), $visit));
+    }
+
+    public function test_treatment_plan_badge_uses_authoritative_lifecycle_and_removed_entry_uses_get(): void
+    {
+        $panel = preg_replace('/\s+/', ' ', file_get_contents(resource_path('js/pages/Clinical/Partials/TreatmentPlanPanel.vue')));
+        $this->assertStringContainsString("plan.status === 'ready_for_dispensing' ? 'Sent to Dispensary' : 'In progress'", $panel);
+        $queue = file_get_contents(resource_path('js/pages/Queue/Index.vue'));
+        $this->assertStringContainsString('openConsultation: row.canOpenEncounter,', $queue);
+        $this->assertStringContainsString("if (entry.status === 'removed')", $queue);
+        $this->assertStringContainsString('router.get(`/visits/${encodeURIComponent(row.visitNumber)}/encounter`)', $queue);
+    }
+
+    public function test_single_medicine_label_uses_saved_actual_snapshot_and_is_non_mutating(): void
+    {
+        $fixture = $this->stockedPartialFixture(true);
+        $before = $this->fulfilmentSnapshot();
+        $url = route('dispensary.items.label', [$fixture['case'], $fixture['item']->public_id]);
+        $response = $this->get($url)->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->component('Dispensary/Labels')
+            ->where('labels.patient.name', $fixture['visit']->patient->full_name)
+            ->where('labels.branch', $fixture['visit']->branch->name)
+            ->has('labels.items', 1)
+            ->where('labels.items.0.quantity', '0.500')
+            ->where('labels.items.0.dosage', 'Synthetic dosage')
+            ->missing('labels.items.0.publicId')
+            ->missing('labels.items.0.lockVersion')
+            ->missing('labels.items.0.allocations'));
+        $this->assertStringContainsString('no-store', $response->headers->get('Cache-Control'));
+        $this->get($url)->assertOk();
+        $this->assertSame($before, $this->fulfilmentSnapshot());
+    }
+
+    public function test_all_medicine_labels_exclude_services_and_do_not_fabricate_pending_actual_quantity(): void
+    {
+        $fixture = $this->stockedPartialFixture(true);
+        $before = $this->fulfilmentSnapshot();
+        $this->get(route('dispensary.labels', $fixture['case']))->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->component('Dispensary/Labels')
+            ->has('labels.items', 2)
+            ->where('labels.items.0.quantity', '0.500')
+            ->where('labels.items.1.name', 'Synthetic second medicine')
+            ->where('labels.items.1.quantity', null));
+        $this->assertDatabaseCount('treatment_plan_service_orders', 1);
+        $this->assertSame($before, $this->fulfilmentSnapshot());
+        $labels = app(DispensaryDirectoryService::class)->labels($fixture['ca'], $fixture['case']->refresh());
+        $this->assertSame(['clinic', 'branch', 'patient', 'date', 'items'], array_keys($labels));
+        $this->assertSame(['name', 'strength', 'quantity', 'unit', 'dosage', 'frequency', 'duration', 'instruction'], array_keys($labels['items'][0]));
+    }
+
+    public function test_labels_exclude_non_dispensed_items_and_scope_item_identity_to_current_handoff(): void
+    {
+        [, $ca, $visit, , $case, $item] = $this->patientDeclinedFixture(true);
+        $this->selectBranch($ca, $visit->branch);
+        $this->get(route('dispensary.labels', $case))->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->has('labels.items', 1)->where('labels.items.0.name', 'Synthetic second medicine'));
+        $this->get(route('dispensary.items.label', [$case, $item->public_id]))->assertNotFound();
+        $this->get(route('dispensary.items.label', [$case, (string) Str::uuid()]))->assertNotFound();
+        $other = $this->stockedPartialFixture();
+        $this->get(route('dispensary.items.label', [$other['case'], $item->public_id]))->assertNotFound();
+        app(DispensaryService::class)->returnToDoctor($other['ca'], $other['case']->refresh(), [
+            'expected_branch_id' => $other['visit']->branch_id,
+            'case_lock_version' => $other['case']->refresh()->lock_version,
+        ]);
+        $this->get(route('dispensary.labels', $other['case']))->assertNotFound();
+        $this->get(route('dispensary.show', $other['case']))->assertNotFound();
+    }
+
+    public function test_labels_preserve_role_branch_and_organisation_privacy(): void
+    {
+        $fixture = $this->stockedPartialFixture();
+        $urls = [route('dispensary.labels', $fixture['case']), route('dispensary.items.label', [$fixture['case'], $fixture['item']->public_id])];
+        foreach (['resident_doctor', 'director', 'technical_admin'] as $role) {
+            $this->selectBranch($this->actor($role));
+            foreach ($urls as $url) {
+                $this->get($url)->assertForbidden();
+            }
+        }
+        $this->assertPrivateCaseUrls($urls);
+    }
+
+    public function test_completed_dispensary_revisit_is_minimal_read_only_and_private(): void
+    {
+        $fixture = $this->stockedPartialFixture();
+        app(DispensaryService::class)->complete($fixture['ca'], $fixture['case']->refresh(), [
+            'expected_branch_id' => $fixture['visit']->branch_id,
+            'case_lock_version' => $fixture['case']->refresh()->lock_version,
+        ]);
+        $this->assertSame('9.500', $fixture['balance']->refresh()->quantity);
+        $before = $this->fulfilmentSnapshot();
+        $url = route('dispensary.show', $fixture['case']);
+        $response = $this->get($url)->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->component('Dispensary/Completed')
+            ->where('dispensary.status', 'completed')
+            ->where('dispensary.visit.visitNumber', $fixture['visit']->visit_number)
+            ->missing('dispensary.items')->missing('dispensary.can')->missing('dispensary.lockVersion'));
+        $this->assertStringContainsString('no-store', $response->headers->get('Cache-Control'));
+        $this->assertSame(['status', 'patient', 'visit', 'completedAt'], array_keys(app(DispensaryDirectoryService::class)->detail($fixture['ca'], $fixture['case']->refresh())));
+        $this->get(route('dispensary.labels', $fixture['case']))->assertNotFound();
+        $this->assertSame($before, $this->fulfilmentSnapshot());
+        $this->assertPrivateCaseUrls([$url]);
+        foreach (['resident_doctor', 'director', 'technical_admin'] as $role) {
+            $this->selectBranch($this->actor($role));
+            $this->get($url)->assertForbidden();
+        }
+    }
+
+    public function test_only_eligible_current_branch_dispensary_stock_is_selectable_and_store_information_grants_no_authority(): void
+    {
+        $fixture = $this->stockedPartialFixture();
+        $locations = [];
+        foreach ([InventoryLocation::TYPE_BRANCH_STORE, InventoryLocation::TYPE_MEDICAL_STOCK] as $type) {
+            $location = $fixture['location']->replicate();
+            $location->forceFill(['public_id' => (string) Str::uuid(), 'code' => 'SYN-'.Str::random(8), 'type' => $type, 'branch_id' => $type === InventoryLocation::TYPE_MEDICAL_STOCK ? null : $fixture['visit']->branch_id])->save();
+            // Synthetic initial inventory state only, not a runtime balance-edit path.
+            DB::table('inventory_stock_balances')->insert(collect($fixture['balance']->getAttributes())->except('id')->merge(['inventory_location_id' => $location->id])->all());
+            $locations[] = $location;
+        }
+        foreach (['expired', InventoryBatch::STATUS_QUARANTINED, InventoryBatch::STATUS_DAMAGED, 'empty'] as $exclusion) {
+            $batch = $fixture['batch']->replicate();
+            $batch->forceFill([
+                'public_id' => (string) Str::uuid(), 'batch_number' => 'SYN-'.Str::random(8),
+                'status' => in_array($exclusion, ['expired', 'empty'], true) ? InventoryBatch::STATUS_AVAILABLE : $exclusion,
+                'expiry_date' => $exclusion === 'expired' ? now()->subDay()->toDateString() : $fixture['batch']->expiry_date,
+            ])->save();
+            DB::table('inventory_stock_balances')->insert(collect($fixture['balance']->getAttributes())->except('id')->merge(['inventory_batch_id' => $batch->id, 'quantity' => $exclusion === 'empty' ? '0.000' : '10.000'])->all());
+        }
+        $detail = app(DispensaryDirectoryService::class)->detail($fixture['ca'], $fixture['case']->refresh());
+        $this->assertCount(1, $detail['items'][0]['availability']);
+        $this->assertSame($fixture['location']->public_id, $detail['items'][0]['availability'][0]['locationPublicId']);
+        $this->assertSame($fixture['batch']->public_id, $detail['items'][0]['availability'][0]['batchPublicId']);
+        $informational = app(InventoryAvailabilityService::class)->forSku($fixture['ca'], $fixture['sku']->id, $fixture['visit']->branch_id);
+        $this->assertCount(3, $informational);
+        $before = $this->fulfilmentSnapshot();
+        foreach ($locations as $location) {
+            $this->patchJson(route('dispensary.items.update', [$fixture['case'], $fixture['item']]), [
+                'expected_branch_id' => $fixture['visit']->branch_id,
+                'case_lock_version' => $fixture['case']->refresh()->lock_version,
+                'item_lock_version' => $fixture['item']->refresh()->lock_version,
+                'status' => 'partial', 'quantity_dispensed' => '0.500', 'reason' => 'patient_declined',
+                'allocations' => [['location_public_id' => $location->public_id, 'sku_public_id' => $fixture['sku']->public_id, 'batch_public_id' => $fixture['batch']->public_id, 'quantity' => '0.500']],
+            ])->assertNotFound();
+        }
+        $this->assertSame($before, $this->fulfilmentSnapshot());
+    }
+
+    public function test_dispensary_print_and_consultation_copy_have_explicit_non_mutating_ui_contracts(): void
+    {
+        $panel = preg_replace('/\s+/', ' ', file_get_contents(resource_path('js/pages/Clinical/Partials/TreatmentPlanPanel.vue')));
+        $this->assertStringContainsString('Complete Consultation', $panel);
+        $this->assertStringContainsString('Complete consultation?', $panel);
+        $this->assertStringContainsString('This will send the current Treatment Plan to Dispensary', $panel);
+        $this->assertStringNotContainsString('Send to Dispensary', $panel);
+        $this->assertStringContainsString('Dispensary fulfilment follows Complete Consultation.', $panel);
+        $this->assertStringNotContainsString('dispensing, stock and billing are handled later', $panel);
+        $labels = file_get_contents(resource_path('js/pages/Dispensary/Labels.vue'));
+        $this->assertStringContainsString('const printLabels = () => window.print();', $labels);
+        $this->assertStringContainsString('@media print', $labels);
+        $this->assertStringContainsString('Not yet recorded', $labels);
+        foreach (['router.', 'fetch(', 'localStorage', 'sessionStorage', 'useForm'] as $mutation) {
+            $this->assertStringNotContainsString($mutation, $labels);
+        }
+        $workspace = file_get_contents(resource_path('js/pages/Dispensary/Show.vue'));
+        $this->assertStringContainsString('Print all labels', $workspace);
+        $this->assertStringContainsString('Print Label', $workspace);
+        $board = file_get_contents(resource_path('js/components/patient-board/PatientBoard.vue'));
+        $this->assertStringContainsString('returnedFromDispensary', $board);
+        $this->assertStringContainsString('Returned', $board);
+    }
+
+    /** @param list<string> $urls */
+    private function assertPrivateCaseUrls(array $urls): void
+    {
+        $otherOrganisation = Organisation::query()->create(['code' => 'SYN-OTHER-'.Str::random(6), 'name' => 'Synthetic other organisation', 'is_active' => true]);
+        foreach ([$this->organisation->id, $otherOrganisation->id] as $organisationId) {
+            $branch = new Branch;
+            $branch->forceFill(['organisation_id' => $organisationId, 'code' => 'SYN-'.Str::random(6), 'name' => 'Synthetic other branch', 'timezone' => 'Asia/Kuala_Lumpur', 'is_active' => true])->save();
+            $this->selectBranch($this->actor('ca', $branch), $branch);
+            foreach ($urls as $url) {
+                $this->get($url)->assertNotFound();
+            }
+        }
+    }
+
+    private function fulfilmentSnapshot(): string
+    {
+        $snapshot = [];
+        foreach (['treatment_plans', 'treatment_plan_medicine_orders', 'treatment_plan_service_orders', 'dispensary_cases', 'dispensary_handoffs', 'dispensary_items', 'dispensary_item_exceptions', 'dispensary_item_batch_allocations', 'inventory_stock_balances', 'stock_movements', 'audit_logs', 'patient_allergy_profiles', 'clinical_encounter_allergy_reviews', 'queue_entries'] as $table) {
+            $snapshot[$table] = DB::table($table)->orderBy('id')->get()->all();
+        }
+
+        return json_encode($snapshot, JSON_THROW_ON_ERROR);
+    }
+
     public function test_attending_doctor_sees_only_own_pending_patient_declined_acknowledgement(): void
     {
         [$doctor, $ca, $visit, , $case, $item, $exception] = $this->patientDeclinedFixture();
@@ -133,6 +411,7 @@ class TreatmentPlanTest extends ClinicalTestCase
 
         $this->assertSame(DispensaryCase::STATUS_COMPLETED, $completed->status);
         $this->assertSame(DispensaryHandoff::STATUS_COMPLETED, $completed->handoffs()->sole()->status);
+        $this->assertSame(TreatmentPlan::STATUS_READY_FOR_DISPENSING, $completed->treatmentPlan->status);
         $this->assertDatabaseCount('stock_movements', 0);
     }
 
@@ -284,12 +563,15 @@ class TreatmentPlanTest extends ClinicalTestCase
     public function test_return_to_doctor_is_dedicated_stock_free_and_resend_creates_a_new_attempt(): void
     {
         [$doctor, $ca, $visit, $queue] = $this->servingFixture();
+        $this->assertFalse(app(QueueDirectoryService::class)->snapshot($doctor)['serving'][0]['returnedFromDispensary']);
         $this->startEncounter($doctor, $visit, $queue);
         $this->reviewNoKnown($doctor, $visit);
         $medicine = $this->medicineCatalogue($doctor);
         $plan = app(TreatmentPlanService::class)->save($doctor, $visit, $this->payload(null, [$this->medicinePayload($medicine)]));
         $case = app(DispensaryHandoffService::class)->send($doctor, $visit, ['expected_branch_id' => $visit->branch_id, 'lock_version' => $plan->lock_version]);
 
+        $this->assertFalse(app(QueueDirectoryService::class)->snapshot($doctor, ['status' => 'removed'])['removed'][0]['canOpenEncounter']);
+        $this->assertSame('ready_for_dispensing', app(ClinicalEncounterDirectoryService::class)->detail($doctor, $visit)['treatmentPlan']['status']);
         $this->selectBranch($ca, $visit->branch);
         $case = app(DispensaryService::class)->start($ca, $case, ['expected_branch_id' => $visit->branch_id, 'case_lock_version' => $case->lock_version]);
         $case = app(DispensaryService::class)->returnToDoctor($ca, $case, ['expected_branch_id' => $visit->branch_id, 'case_lock_version' => $case->lock_version]);
@@ -298,14 +580,18 @@ class TreatmentPlanTest extends ClinicalTestCase
         $this->assertSame(DispensaryHandoff::STATUS_RETURNED, $case->handoffs()->first()->status);
         $this->assertSame('serving', $queue->refresh()->status);
         $this->assertNotNull($queue->returned_from_dispensary_at);
+        $this->assertTrue(app(QueueDirectoryService::class)->snapshot($ca)['serving'][0]['returnedFromDispensary']);
         $this->assertSame(TreatmentPlan::STATUS_IN_PROGRESS, $plan->refresh()->status);
         $this->assertDatabaseCount('stock_movements', 0);
 
         $this->selectBranch($doctor, $visit->branch);
+        $this->assertSame('in_progress', app(ClinicalEncounterDirectoryService::class)->detail($doctor, $visit)['treatmentPlan']['status']);
         $resent = app(DispensaryHandoffService::class)->send($doctor, $visit, ['expected_branch_id' => $visit->branch_id, 'lock_version' => $plan->lock_version]);
+        $this->assertSame('ready_for_dispensing', app(ClinicalEncounterDirectoryService::class)->detail($doctor, $visit)['treatmentPlan']['status']);
         $this->assertSame([1, 2], $resent->handoffs()->orderBy('attempt_number')->pluck('attempt_number')->all());
         $this->assertSame(DispensaryHandoff::STATUS_RETURNED, $resent->handoffs()->orderBy('attempt_number')->first()->status);
         $this->assertSame(DispensaryHandoff::STATUS_OPEN, $resent->handoffs()->get()->last()->status);
+        $this->assertFalse(app(QueueDirectoryService::class)->snapshot($doctor, ['status' => 'removed'])['removed'][0]['returnedFromDispensary']);
     }
 
     public function test_authorized_http_first_save_accepts_explicit_null_plan_version(): void
@@ -761,13 +1047,21 @@ class TreatmentPlanTest extends ClinicalTestCase
     }
 
     /** @return array{User, User, Visit, TreatmentPlan, DispensaryCase, DispensaryItem, DispensaryItemException} */
-    private function patientDeclinedFixture(): array
+    private function patientDeclinedFixture(bool $multipleMedicines = false): array
     {
         [$doctor, $ca, $visit, $queue] = $this->servingFixture();
         $this->startEncounter($doctor, $visit, $queue);
         $this->reviewNoKnown($doctor, $visit);
         $medicine = $this->medicineCatalogue($doctor);
-        $plan = app(TreatmentPlanService::class)->save($doctor, $visit, $this->payload(null, [$this->medicinePayload($medicine)]));
+        $medicines = [$this->medicinePayload($medicine)];
+        $services = [];
+        if ($multipleMedicines) {
+            $second = $this->medicineCatalogue($doctor);
+            $second->forceFill(['display_name' => 'Synthetic second medicine'])->save();
+            $medicines[] = $this->medicinePayload($second);
+            $services[] = $this->servicePayload($this->serviceCatalogue($doctor));
+        }
+        $plan = app(TreatmentPlanService::class)->save($doctor, $visit, $this->payload(null, $medicines, $services));
         $case = app(DispensaryHandoffService::class)->send($doctor, $visit, [
             'expected_branch_id' => $visit->branch_id,
             'lock_version' => $plan->lock_version,
@@ -777,7 +1071,7 @@ class TreatmentPlanTest extends ClinicalTestCase
             'expected_branch_id' => $visit->branch_id,
             'case_lock_version' => $case->lock_version,
         ]);
-        $item = $case->handoffs()->where('status', DispensaryHandoff::STATUS_OPEN)->sole()->items()->sole();
+        $item = $case->handoffs()->where('status', DispensaryHandoff::STATUS_OPEN)->sole()->items()->orderBy('id')->firstOrFail();
         $item = app(DispensaryService::class)->updateItem($ca, $case, $item, [
             'expected_branch_id' => $visit->branch_id,
             'case_lock_version' => $case->lock_version,
@@ -795,9 +1089,9 @@ class TreatmentPlanTest extends ClinicalTestCase
     }
 
     /** @return array<string, mixed> */
-    private function stockedPartialFixture(): array
+    private function stockedPartialFixture(bool $multipleMedicines = false): array
     {
-        [$doctor, $ca, $visit, , $case, $item] = $this->patientDeclinedFixture();
+        [$doctor, $ca, $visit, , $case, $item] = $this->patientDeclinedFixture($multipleMedicines);
         $inventoryItem = new InventoryItem;
         $inventoryItem->forceFill(['public_id' => (string) Str::uuid(), 'organisation_id' => $ca->organisation_id, 'code' => 'SYN-ITEM-'.Str::upper(Str::random(6)), 'generic_name' => 'Synthetic stock item', 'is_active' => true])->save();
         $sku = new InventorySku;

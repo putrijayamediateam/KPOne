@@ -155,6 +155,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
         Route::get('dispensary/{dispensaryCase}', [DispensaryController::class, 'show'])
             ->middleware('permission:dispensary.view.branch')->name('dispensary.show');
+        Route::get('dispensary/{dispensaryCase}/labels', [DispensaryController::class, 'labels'])
+            ->middleware('permission:dispensary.view.branch')->name('dispensary.labels');
+        Route::get('dispensary/{dispensaryCase}/items/{itemPublicId}/label', [DispensaryController::class, 'labels'])
+            ->middleware('permission:dispensary.view.branch')->whereUuid('itemPublicId')->name('dispensary.items.label');
         Route::post('dispensary/{dispensaryCase}/start', [DispensaryController::class, 'start'])
             ->middleware(['permission:dispensary.start.branch', 'throttle:30,1'])->name('dispensary.start');
         Route::patch('dispensary/{dispensaryCase}/items/{item}', [DispensaryController::class, 'updateItem'])

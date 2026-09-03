@@ -19,7 +19,14 @@ class DispensaryController extends Controller
 {
     public function show(Request $request, DispensaryCase $dispensaryCase, DispensaryDirectoryService $directory): Response
     {
-        return Inertia::render('Dispensary/Show', ['dispensary' => $directory->detail($request->user(), $dispensaryCase)]);
+        $detail = $directory->detail($request->user(), $dispensaryCase);
+
+        return Inertia::render($detail['status'] === DispensaryCase::STATUS_COMPLETED ? 'Dispensary/Completed' : 'Dispensary/Show', ['dispensary' => $detail]);
+    }
+
+    public function labels(Request $request, DispensaryCase $dispensaryCase, DispensaryDirectoryService $directory, ?string $itemPublicId = null): Response
+    {
+        return Inertia::render('Dispensary/Labels', ['labels' => $directory->labels($request->user(), $dispensaryCase, $itemPublicId)]);
     }
 
     public function start(DispensaryCaseActionRequest $request, DispensaryCase $dispensaryCase, DispensaryService $service): RedirectResponse

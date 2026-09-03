@@ -169,7 +169,7 @@ const boardRows = computed<PatientBoardRow[]>(() =>
             cancel: row.can.cancel,
             sendToWaiting: false,
             call: row.canCall && row.status === 'waiting',
-            openConsultation: row.canOpenEncounter && row.status === 'serving',
+            openConsultation: row.canOpenEncounter,
         },
         source: row,
     })),
@@ -324,6 +324,14 @@ const callIn = (row: PatientBoardRow) => {
 };
 const openConsultation = (row: PatientBoardRow) => {
     const entry = source(row);
+
+    if (entry.status === 'removed') {
+        // Existing authorized read-only entry; never restart a removed Queue.
+        router.get(`/visits/${encodeURIComponent(row.visitNumber)}/encounter`);
+
+        return;
+    }
+
     busyKey.value = row.key;
     router.post(
         `/visits/${encodeURIComponent(row.visitNumber)}/encounter`,

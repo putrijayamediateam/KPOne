@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\DB;
 class InventoryAvailabilityService
 {
     /** @return list<array<string,mixed>> */
-    public function forSku(User $actor, int $skuId, int $branchId): array
+    public function forSku(User $actor, int $skuId, int $branchId, bool $dispensaryOnly = false): array
     {
         $branch = Branch::query()
             ->whereKey($branchId)
@@ -23,6 +23,7 @@ class InventoryAvailabilityService
             ->join('inventory_locations', 'inventory_locations.id', '=', 'inventory_stock_balances.inventory_location_id')
             ->join('inventory_batches', 'inventory_batches.id', '=', 'inventory_stock_balances.inventory_batch_id')
             ->where('inventory_locations.is_active', true)->where(fn ($q) => $q->where('inventory_locations.branch_id', $branchId)->orWhereNull('inventory_locations.branch_id'))
+            ->when($dispensaryOnly, fn ($q) => $q->where('inventory_locations.branch_id', $branchId)->where('inventory_locations.type', InventoryLocation::TYPE_DISPENSARY))
             ->where('inventory_batches.status', InventoryBatch::STATUS_AVAILABLE)->whereDate('inventory_batches.expiry_date', '>', $localDate)
             ->orderByRaw('CASE WHEN inventory_locations.branch_id = ? AND inventory_locations.type = ? THEN 0 WHEN inventory_locations.branch_id = ? THEN 1 ELSE 2 END', [$branchId, InventoryLocation::TYPE_DISPENSARY, $branchId])
             ->orderBy('inventory_batches.expiry_date')->orderBy('inventory_batches.received_at')->orderBy('inventory_batches.id')

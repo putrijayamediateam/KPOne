@@ -77,7 +77,7 @@ const routePresets = ['Oral', 'Topical', 'Inhaled'];
 
 type AmountUnitComposer = {
     mode: 'structured' | 'custom';
-    amount: string;
+    amount: string | number | null | undefined;
     unit: string;
     custom: string;
 };
@@ -145,12 +145,27 @@ const parseAmountUnit = (
         : { mode: 'structured', amount: '', unit: '', custom: '' };
 };
 
+// Vue number inputs emit numbers; clearing them may emit an empty/null value.
+// Preserve text rather than parsing a numeric prefix or substituting a default.
+const normalizeAmount = (
+    value: AmountUnitComposer['amount'],
+): string | null => {
+    if (value === null || value === undefined) {
+        return '';
+    }
+
+    if (typeof value === 'number') {
+        return Number.isFinite(value) ? String(value) : null;
+    }
+
+    return value.trim();
+};
 const composeAmountUnit = (composer: AmountUnitComposer, plural = false) => {
     if (composer.mode === 'custom') {
         return composer.custom.trim();
     }
 
-    const amount = composer.amount.trim();
+    const amount = normalizeAmount(composer.amount);
 
     if (!amount || !composer.unit) {
         return '';
@@ -430,6 +445,24 @@ const addService = (item: ServiceSearch) => {
     serviceQuery.value = '';
 };
 const save = () => {
+    form.clearErrors();
+
+    for (const row of form.medicines) {
+        for (const composer of [row.dosage_composer, row.duration_composer]) {
+            if (
+                composer.mode === 'structured' &&
+                normalizeAmount(composer.amount) === null
+            ) {
+                form.setError(
+                    'medicines',
+                    'Enter a finite dosage or duration amount, or use Custom text.',
+                );
+
+                return;
+            }
+        }
+    }
+
     form.medicines.forEach(syncMedicine);
 
     form.transform((data) => ({
@@ -473,11 +506,15 @@ const save = () => {
             <div>
                 <h2 class="font-semibold">Treatment Plan</h2>
                 <p class="text-xs text-muted-foreground">
-                    Clinical orders only. Dispensing, stock and billing are
-                    handled later.
+                    Clinical orders only. Dispensary fulfilment follows Complete
+                    Consultation. Billing is outside this workspace.
                 </p>
             </div>
-            <span class="rounded border px-2 py-1 text-xs">In progress</span>
+            <span class="rounded border px-2 py-1 text-xs">{{
+                plan.status === 'ready_for_dispensing'
+                    ? 'Sent to Dispensary'
+                    : 'In progress'
+            }}</span>
         </div>
 
         <div
@@ -921,7 +958,7 @@ const save = () => {
                 type="button"
                 variant="outline"
                 @click="sendOpen = true"
-                >Send to Dispensary</Button
+                >Complete Consultation</Button
             >
             <Button
                 type="button"
@@ -938,12 +975,12 @@ const save = () => {
         <Dialog v-model:open="sendOpen">
             <DialogContent>
                 <DialogHeader>
-                    <DialogTitle
-                        >Send this Treatment Plan to Dispensary?</DialogTitle
-                    >
+                    <DialogTitle>Complete consultation?</DialogTitle>
                     <DialogDescription
-                        >The Treatment Plan will be locked for normal editing
-                        while Dispensary processes it.</DialogDescription
+                        >This will send the current Treatment Plan to Dispensary
+                        for medicine preparation. You can continue the
+                        consultation only if the case is returned from
+                        Dispensary.</DialogDescription
                     >
                 </DialogHeader>
                 <InputError :message="Object.values(sendForm.errors)[0]" />
@@ -954,7 +991,7 @@ const save = () => {
                     <Button
                         :disabled="sendForm.processing"
                         @click="sendToDispensary"
-                        >Send to Dispensary</Button
+                        >Complete Consultation</Button
                     >
                 </DialogFooter>
             </DialogContent>

@@ -3,6 +3,7 @@
 namespace App\Domain\Queue\Services;
 
 use App\Domain\Access\BranchAccessService;
+use App\Domain\Clinical\Dispensary\Services\DoctorDispensaryAttentionService;
 use App\Domain\Organisation\Models\Branch;
 use App\Domain\Queue\Models\QueueEntry;
 use App\Domain\Visit\Policies\VisitPolicy;
@@ -20,6 +21,7 @@ class QueueDirectoryService
         private BranchAccessService $branches,
         private VisitDoctorEligibilityService $doctors,
         private VisitPolicy $visitPolicy,
+        private DoctorDispensaryAttentionService $dispensaryAttention,
     ) {}
 
     /**
@@ -144,6 +146,8 @@ class QueueDirectoryService
                 'queue_entries.queued_at',
                 'queue_entries.called_at',
                 'queue_entries.removed_at',
+                'queue_entries.removal_reason',
+                'queue_entries.returned_from_dispensary_at',
                 'queue_entries.lock_version',
             ])
             ->join('visits', 'visits.id', '=', 'queue_entries.visit_id')
@@ -215,6 +219,9 @@ class QueueDirectoryService
             && $actor->hasRole('resident_doctor')
             && $actor->can('encounters.start.own')
             && $visit->assigned_doctor_user_id === $actor->id;
+        if ($entry->status === QueueEntry::STATUS_REMOVED) {
+            $canOpenEncounter = $this->dispensaryAttention->hasPendingForVisit($actor, $visit);
+        }
         $actions = $visitActionHints[$entry->status] ??= $this->visitPolicy->actionHints($actor, $visit);
 
         return [

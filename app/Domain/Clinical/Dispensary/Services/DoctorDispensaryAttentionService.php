@@ -11,13 +11,58 @@ use App\Domain\Clinical\Models\ClinicalEncounter;
 use App\Domain\Queue\Models\QueueEntry;
 use App\Domain\Visit\Models\Visit;
 use App\Models\User;
+use Illuminate\Support\Facades\Gate;
 
 class DoctorDispensaryAttentionService
 {
     public function __construct(private BranchAccessService $branches) {}
 
+    // Structural navigation hint only. Do not load medicine snapshots into Queue polling.
+    public function hasPendingForVisit(User $actor, Visit $visit): bool
+    {
+        if (! $actor->is_active || ! $actor->hasRole('resident_doctor')
+            || ! $actor->can('dispensary.acknowledge_partial.own')
+            || $visit->assigned_doctor_user_id !== $actor->id) {
+            return false;
+        }
+
+        $encounter = ClinicalEncounter::query()
+            ->where('organisation_id', $actor->organisation_id)
+            ->where('branch_id', $visit->branch_id)
+            ->where('visit_id', $visit->id)
+            ->first(['id', 'organisation_id', 'branch_id', 'visit_id', 'attending_clinician_user_id', 'status']);
+        if (! $encounter) {
+            return false;
+        }
+        $encounter->setRelation('visit', $visit);
+
+        return Gate::forUser($actor)->allows('view', $encounter)
+            && $this->eligible($actor, $encounter)
+            && DispensaryCase::query()
+                ->where('organisation_id', $actor->organisation_id)
+                ->where('branch_id', $visit->branch_id)
+                ->where('visit_id', $visit->id)
+                ->where('clinical_encounter_id', $encounter->id)
+                ->whereIn('status', [DispensaryCase::STATUS_PENDING, DispensaryCase::STATUS_DISPENSING])
+                ->whereHas('handoffs', fn ($handoff) => $handoff
+                    ->where('status', DispensaryHandoff::STATUS_OPEN)
+                    ->whereHas('items.exceptions', fn ($exception) => $exception
+                        ->where('reason', DispensaryItemException::REASON_PATIENT_DECLINED)
+                        ->where('status', DispensaryItemException::STATUS_AWAITING)))
+                ->exists();
+    }
+
     /** @return list<array<string, mixed>> */
     public function forEncounter(User $actor, ClinicalEncounter $encounter): array
+    {
+        if (! $this->eligible($actor, $encounter)) {
+            return [];
+        }
+
+        return $this->attention($actor, $encounter);
+    }
+
+    private function eligible(User $actor, ClinicalEncounter $encounter): bool
     {
         $branch = $this->branches->activeBranch($actor);
         $visit = $encounter->visit;
@@ -35,9 +80,16 @@ class DoctorDispensaryAttentionService
             || $visit->status !== Visit::STATUS_REGISTERED
             || $visit->queueEntry->status !== QueueEntry::STATUS_REMOVED
             || $visit->queueEntry->removal_reason !== 'sent_to_dispensary') {
-            return [];
+            return false;
         }
 
+        return true;
+    }
+
+    /** @return list<array<string, mixed>> */
+    private function attention(User $actor, ClinicalEncounter $encounter): array
+    {
+        $visit = $encounter->visit;
         $case = DispensaryCase::query()
             ->where('organisation_id', $actor->organisation_id)
             ->where('branch_id', $encounter->branch_id)
