@@ -42,11 +42,12 @@ use App\Domain\Visit\Models\Visit;
 use App\Models\User;
 use Illuminate\Database\Connection;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
+use PDOException;
 use RuntimeException;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
@@ -112,6 +113,14 @@ class PostgresBillingRegressionTest extends TestCase
     public function test_two_cashiers_cannot_overpay_one_invoice(): void
     {
         $f = $this->billingFixture();
+        $before = $this->financialSnapshot($f);
+        try {
+            app(PaymentService::class)->add($f['ca'], $f['visit'], $f['invoice'], [...$this->payArgs($f, 5000), 'expected_branch_id' => $f['branch']->id, 'lock_version' => $f['invoice']->lock_version]);
+            $this->fail('A 5000-sen payment must not settle a 4000-sen balance.');
+        } catch (ValidationException $e) {
+            $this->assertArrayHasKey('amount_sen', $e->errors());
+            $this->assertSame($before, $this->financialSnapshot($f));
+        }
         $out = $this->race([$this->billWorker($f, 'bill-pay', $this->payArgs($f, 4000)), $this->billWorker($f, 'bill-pay', $this->payArgs($f, 4000), 'ca2')], $f['patient']);
         $this->assertSame(1, substr_count($out, 'SUCCESS'));
         $this->assertSame(1, substr_count($out, 'STALE'));
@@ -174,21 +183,27 @@ class PostgresBillingRegressionTest extends TestCase
         $this->assertSame(2, DB::table('invoice_lines')->where('invoice_id', $f['invoice']->id)->count());
         // Direct SQL proof reaches COMMIT, exercising deferred protection rather than model guards.
         $lineId = DB::table('invoice_lines')->where('invoice_id', $f['invoice']->id)->value('id');
-        $this->assertPgRejects(fn () => DB::table('invoice_lines')->where('id', $lineId)->update(['quantity' => '-1.000']));
-        $this->assertPgRejects(fn () => DB::table('invoice_lines')->where('id', $lineId)->update(['display_name' => 'Forbidden final rewrite']));
-        $this->assertPgRejects(fn () => DB::table('invoices')->where('id', $f['invoice']->id)->update(['total_sen' => 1]));
-        $this->assertPgRejects(fn () => DB::table('invoice_lines')->where('id', $lineId)->update(['branch_id' => 999999999]));
+        $snapshot = fn () => $this->financialSnapshot($f);
+        $this->assertPgRejects(fn () => DB::table('invoice_lines')->where('id', $lineId)->update(['quantity' => '-1.000']), $snapshot);
+        $this->assertPgRejects(fn () => DB::table('invoice_lines')->where('id', $lineId)->update(['display_name' => 'Forbidden final rewrite']), $snapshot, 'Final financial evidence is immutable and retained', true);
+        $this->assertPgRejects(fn () => DB::table('invoices')->where('id', $f['invoice']->id)->update(['total_sen' => 1]), $snapshot);
+        $this->assertPgRejects(fn () => DB::table('invoice_lines')->where('id', $lineId)->update(['branch_id' => 999999999]), $snapshot);
     }
 
     public function test_dispensary_completion_and_billing_generation_use_committed_actual_quantity(): void
     {
-        $f = $this->completableFixture('10.000', '4.000');
+        $f = $this->completableFixture('20.000', '10.000', '20.000');
         $this->prices($f, 4000);
         $out = $this->race([$this->worker(['complete', (string) $f['ca']->id, (string) $f['branch']->id, $f['case']->public_id, (string) $f['case']->lock_version]), $this->billWorker($f, 'bill-build', [], 'ca2')], $f['patient']);
         $this->assertStringContainsString('COMPLETED', $out);
+        $movements = DB::table('stock_movements')->where('organisation_id', $f['organisation']->id)->orderBy('id')->get()->toJson();
         $invoice = app(BillingBuilderService::class)->build($f['ca'], $f['visit'], ['expected_branch_id' => $f['branch']->id, 'lock_version' => null]);
-        $this->assertSame('4.000', (string) DB::table('invoice_lines')->where('invoice_id', $invoice->id)->where('line_type', 'medicine')->value('quantity'));
-        $this->assertSame('6.000', (string) $f['balance']->refresh()->quantity);
+        $this->assertSame('20.000', (string) $f['item']->refresh()->quantity_ordered);
+        $this->assertSame('10.000', (string) $f['item']->quantity_dispensed);
+        $this->assertSame('10.000', (string) DB::table('invoice_lines')->where('invoice_id', $invoice->id)->where('line_type', 'medicine')->value('quantity'));
+        $this->assertSame('10.000', (string) $f['balance']->refresh()->quantity);
+        $this->assertSame($movements, DB::table('stock_movements')->where('organisation_id', $f['organisation']->id)->orderBy('id')->get()->toJson());
+        $this->assertSame(2, DB::table('stock_movements')->where('organisation_id', $f['organisation']->id)->count()); // One opening, one dispense; no billing movement.
     }
 
     public function test_payment_permission_loss_wins_before_mutation(): void
@@ -222,8 +237,10 @@ class PostgresBillingRegressionTest extends TestCase
         $f = $this->billingFixture();
         app(PaymentService::class)->add($f['ca'], $f['visit'], $f['invoice'], [...$this->payArgs($f, 2000), 'expected_branch_id' => $f['branch']->id, 'lock_version' => $f['invoice']->lock_version]);
         $f['invoice']->refresh();
-        $a = $this->payArgs($f, 2000);
-        $b = $this->payArgs($f, 2000);
+        $qr = new PaymentMethod;
+        $qr->forceFill(['organisation_id' => $f['organisation']->id, 'code' => 'qr', 'name' => 'QR', 'requires_reference' => true])->save();
+        $a = [...$this->payArgs($f, 2000), 'method' => 'qr', 'reference' => 'SYNTHETIC-QR'];
+        $b = [...$this->payArgs($f, 2000), 'method' => 'qr', 'reference' => 'SYNTHETIC-QR'];
         $out = $this->race([$this->billWorker($f, 'bill-pay', $a), $this->billWorker($f, 'bill-pay', $b)], $f['patient']);
         $this->assertSame(1, substr_count($out, 'SUCCESS'));
         $this->assertSame(1, substr_count($out, 'STALE'));
@@ -233,6 +250,9 @@ class PostgresBillingRegressionTest extends TestCase
         $this->runWorkers($workers);
         $this->assertStringContainsString('SUCCESS', $this->workerOutput($workers));
         $this->assertSame(2, Payment::query()->where('organisation_id', $f['organisation']->id)->count());
+        $this->assertSame(2000, (int) Payment::query()->where('organisation_id', $f['organisation']->id)->where('method_snapshot', 'Cash')->sum('amount_sen'));
+        $this->assertSame(2000, (int) Payment::query()->where('organisation_id', $f['organisation']->id)->where('method_snapshot', 'QR')->sum('amount_sen'));
+        $this->assertSame(['total' => 4000, 'self_pay' => 4000, 'panel' => 0, 'deferred' => 0, 'due_now' => 0], app(FinancialLedger::class)->state($f['invoice']));
     }
 
     public function test_late_financial_audit_failure_rolls_back_payment_and_completion(): void
@@ -276,7 +296,7 @@ class PostgresBillingRegressionTest extends TestCase
     public function test_no_medicine_checkout_and_encounter_edit_serialize_on_visit(): void
     {
         $f = $this->noMedicineFixture(false);
-        $out = $this->race([$this->billWorker($f, 'bill-checkout', $this->checkoutArgs($f), 'doctor'), $this->billWorker($f, 'bill-edit', ['lock_version' => $f['encounter']->lock_version, 'clinical_note' => 'Synthetic concurrent checkout note', 'vitals' => [], 'diagnoses' => []], 'doctor')], $f['visit']);
+        $out = $this->race([$this->billWorker($f, 'bill-checkout', $this->checkoutArgs($f), 'doctor'), $this->billWorker($f, 'bill-edit', ['lock_version' => $f['encounter']->lock_version, 'clinical_note' => 'Synthetic concurrent checkout note', 'vitals' => ['pulse_bpm' => 72], 'diagnoses' => []], 'doctor')], $f['visit']);
         $this->assertSame(1, substr_count($out, 'SUCCESS'));
         $this->assertSame(1, substr_count($out, 'STALE') + substr_count($out, 'DENIED'));
         $this->assertSame(0, DispensaryCase::query()->where('visit_id', $f['visit']->id)->count());
@@ -331,7 +351,8 @@ class PostgresBillingRegressionTest extends TestCase
         $this->assertSame(1, substr_count($out, 'SUCCESS'));
         $this->assertSame($before, $f['visit']->refresh()->completion_evidence);
         $this->assertSame(1000, app(FinancialLedger::class)->state($f['invoice'])['deferred']);
-        $this->assertPgRejects(fn () => DB::table('patient_receivables')->where('id', $proposal->id)->update(['remaining_sen' => 0]));
+        $this->assertPgRejects(fn () => DB::table('patient_receivables')->where('id', $proposal->id)->update(['remaining_sen' => 0]), fn () => $this->financialSnapshot($f), 'Deferred balance must reconcile to immutable receipt allocations', true);
+        $settledState = $this->financialSnapshot($f);
         $other = $this->fixture();
         $f['outsider'] = $other['ca'];
         $args = ['bill-pay', (string) $other['ca']->id, (string) $other['branch']->id, $f['visit']->visit_number, base64_encode(json_encode([...$this->payArgs($f, 1000), 'invoice' => $f['invoice']->public_id, 'lock_version' => $f['invoice']->refresh()->lock_version], JSON_THROW_ON_ERROR))];
@@ -347,6 +368,9 @@ class PostgresBillingRegressionTest extends TestCase
         $this->runWorkers($workers);
         $this->assertStringContainsString('DENIED', $this->workerOutput($workers));
         $this->assertSame(1000, app(FinancialLedger::class)->state($f['invoice'])['deferred']);
+        $this->assertSame($settledState, $this->financialSnapshot($f));
+        $this->assertSame($f['invoice']->id, $proposal->refresh()->invoice_id);
+        $this->assertSame($before, $f['visit']->refresh()->completion_evidence);
     }
 
     private function billingFixture(int $total = 4000, bool $finalized = true): array
@@ -362,14 +386,41 @@ class PostgresBillingRegressionTest extends TestCase
         return $f;
     }
 
-    private function assertPgRejects(\Closure $operation): void
+    private function assertPgRejects(\Closure $operation, \Closure $snapshot, string $message = '', bool $deferred = false): void
     {
+        $this->assertSame(0, DB::transactionLevel());
+        $before = $snapshot();
+        $statementCompleted = false;
         try {
-            DB::transaction($operation);
+            DB::transaction(function () use ($operation, &$statementCompleted): void {
+                $operation();
+                $statementCompleted = true;
+            });
             $this->fail('PostgreSQL accepted invalid retained financial evidence.');
-        } catch (QueryException $e) {
-            $this->assertContains($e->errorInfo[0], ['23514', '23503', '23505']);
+        } catch (PDOException $e) {
+            // QueryException extends PDOException; COMMIT may throw the native parent.
+            $this->assertSame('23514', (string) ($e->errorInfo[0] ?? $e->getCode()), $e->getMessage());
+            if ($message !== '') {
+                $this->assertStringContainsString($message, $e->getMessage());
+            }
+            if ($deferred) {
+                $this->assertTrue($statementCompleted, 'The deferred violation must occur at COMMIT, not during the statement.');
+            }
+            $this->assertSame(0, DB::transactionLevel());
+            $this->assertFalse(DB::connection()->getPdo()->inTransaction());
+            $this->assertSame($before, $snapshot(), 'The independent observer must see the original committed evidence after rollback.');
         }
+    }
+
+    /** @return array<string, string> */
+    private function financialSnapshot(array $f): array
+    {
+        $state = [];
+        foreach (['visits', 'invoices', 'invoice_lines', 'payments', 'payment_allocations', 'payment_reversals', 'coverage_allocations', 'patient_receivables', 'audit_logs'] as $table) {
+            $state[$table] = DB::connection(self::OBSERVER)->table($table)->where('organisation_id', $f['organisation']->id)->orderBy('id')->get()->toJson();
+        }
+
+        return $state;
     }
 
     private function prices(array &$f, int $consultationPrice): void
@@ -432,7 +483,7 @@ class PostgresBillingRegressionTest extends TestCase
         return $this->worker([$mode, (string) $f[$actor]->id, (string) $f['branch']->id, $f['visit']->visit_number, base64_encode(json_encode(['invoice' => $f['invoice']->public_id ?? null, 'lock_version' => $f['invoice']->lock_version ?? null, ...$a], JSON_THROW_ON_ERROR))]);
     }
 
-    private function fixture(): array
+    private function fixture(string $ordered = '10.000'): array
     {
         $organisation = new Organisation;
         $organisation->forceFill(['code' => 'DISP_PG_'.Str::upper(Str::random(8)), 'name' => 'Synthetic Phase 3A PG', 'is_active' => true])->save();
@@ -459,7 +510,7 @@ class PostgresBillingRegressionTest extends TestCase
         $medicine = new MedicineCatalogueItem;
         $medicine->forceFill(['public_id' => (string) Str::uuid(), 'organisation_id' => $organisation->id, 'code' => 'MED-'.Str::upper(Str::random(7)), 'display_name' => 'Synthetic concurrency medicine', 'strength_text' => 'Synthetic strength', 'dosage_form' => 'unit', 'order_unit' => 'unit', 'authorisation_class' => MedicineCatalogueItem::AUTHORISATION_DOCTOR_REQUIRED, 'is_active' => true, 'created_by_user_id' => $doctor->id, 'updated_by_user_id' => $doctor->id])->save();
         $plan = app(TreatmentPlanService::class)->save($doctor, $visit, ['expected_branch_id' => $branch->id, 'lock_version' => null, 'medicines' => [[
-            'public_id' => null, 'catalogue_public_id' => $medicine->public_id, 'quantity_ordered' => '10.000',
+            'public_id' => null, 'catalogue_public_id' => $medicine->public_id, 'quantity_ordered' => $ordered,
             'dosage' => 'Synthetic dosage', 'frequency' => 'Synthetic frequency', 'duration' => null, 'route' => null,
             'administration_instruction' => null, 'indication' => null, 'precaution' => null,
         ]], 'services' => []]);
@@ -468,9 +519,9 @@ class PostgresBillingRegressionTest extends TestCase
     }
 
     /** @return array<string, mixed> */
-    private function sentFixture(): array
+    private function sentFixture(string $ordered = '10.000'): array
     {
-        $f = $this->fixture();
+        $f = $this->fixture($ordered);
         session([BranchAccessService::SESSION_KEY => $f['branch']->id]);
         $f['case'] = app(DispensaryHandoffService::class)->send($f['doctor'], $f['visit'], ['expected_branch_id' => $f['branch']->id, 'lock_version' => $f['plan']->lock_version]);
         $f['item'] = $f['case']->handoffs()->where('status', DispensaryHandoff::STATUS_OPEN)->sole()->items()->sole();
@@ -479,9 +530,9 @@ class PostgresBillingRegressionTest extends TestCase
     }
 
     /** @return array<string, mixed> */
-    private function startedFixture(): array
+    private function startedFixture(string $ordered = '10.000'): array
     {
-        $f = $this->sentFixture();
+        $f = $this->sentFixture($ordered);
         session([BranchAccessService::SESSION_KEY => $f['branch']->id]);
         $f['case'] = app(DispensaryService::class)->start($f['ca'], $f['case'], ['expected_branch_id' => $f['branch']->id, 'case_lock_version' => $f['case']->lock_version]);
         $f['item'] = $f['item']->refresh();
@@ -511,9 +562,9 @@ class PostgresBillingRegressionTest extends TestCase
     }
 
     /** @return array<string, mixed> */
-    private function completableFixture(string $opening, string $actual): array
+    private function completableFixture(string $opening, string $actual, string $ordered = '10.000'): array
     {
-        $f = $this->startedFixture();
+        $f = $this->startedFixture($ordered);
         $inventoryItem = new InventoryItem;
         $inventoryItem->forceFill(['public_id' => (string) Str::uuid(), 'organisation_id' => $f['organisation']->id, 'code' => 'ITEM-'.Str::upper(Str::random(6)), 'generic_name' => 'Synthetic stock item', 'is_active' => true])->save();
         $sku = new InventorySku;

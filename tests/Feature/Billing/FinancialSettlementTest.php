@@ -4,6 +4,7 @@ namespace Tests\Feature\Billing;
 
 use App\Domain\Visit\Billing\Models\PaymentMethod;
 use App\Domain\Visit\Billing\Services\BillingBuilderService;
+use App\Domain\Visit\Billing\Services\CompleteVisitationService;
 use App\Domain\Visit\Billing\Services\FinancialLedger;
 use App\Domain\Visit\Billing\Services\InvoiceCorrectionService;
 use App\Domain\Visit\Billing\Services\PaymentService;
@@ -31,9 +32,19 @@ class FinancialSettlementTest extends BillingTestCase
         $this->assertSame($one->id, $retry->id);
         $a['lock_version'] = $invoice->refresh()->lock_version;
         $a['idempotency_key'] = (string) Str::uuid();
+        $qr = new PaymentMethod;
+        $qr->forceFill(['organisation_id' => $visit->organisation_id, 'code' => 'qr', 'name' => 'QR', 'requires_reference' => true])->save();
+        $a['method'] = 'qr';
+        $a['reference'] = 'SYNTHETIC-QR';
         app(PaymentService::class)->add($ca, $visit, $invoice, $a);
         $this->assertSame(['total' => 4000, 'self_pay' => 4000, 'panel' => 0, 'deferred' => 0, 'due_now' => 0], app(FinancialLedger::class)->state($invoice));
         $this->assertDatabaseCount('payments', 2);
+        $this->assertDatabaseCount('stock_movements', 0);
+        $this->assertDatabaseHas('payments', ['method_snapshot' => 'Cash', 'amount_sen' => 2000]);
+        $this->assertDatabaseHas('payments', ['method_snapshot' => 'QR', 'amount_sen' => 2000]);
+        $this->assertDatabaseCount('dispensary_cases', 0);
+        app(CompleteVisitationService::class)->complete($ca, $visit, ['expected_branch_id' => $visit->branch_id, 'visit_lock_version' => $visit->lock_version, 'lock_version' => $invoice->refresh()->lock_version]);
+        $this->assertSame('completed', $visit->refresh()->status);
         $this->assertDatabaseCount('stock_movements', 0);
         $a['lock_version'] = $invoice->refresh()->lock_version;
         $a['idempotency_key'] = (string) Str::uuid();
@@ -43,10 +54,10 @@ class FinancialSettlementTest extends BillingTestCase
 
     public function test_panel_acceptance_is_not_cash_and_missing_limit_fails_closed(): void
     {
-        [, $ca, $visit, $invoice] = $this->finalizedFixture();
+        [, $ca, $visit, $invoice] = $this->finalizedFixture(44800);
         $panel = Panel::factory()->create(['organisation_id' => $visit->organisation_id]);
         $service = app(ResponsibilityService::class);
-        $proposal = $service->propose($ca, $visit, $invoice, 'panel', ['expected_branch_id' => $visit->branch_id, 'lock_version' => $invoice->lock_version, 'amount_sen' => 3000, 'panel_id' => $panel->id, 'reason' => 'Synthetic verified responsibility']);
+        $proposal = $service->propose($ca, $visit, $invoice, 'panel', ['expected_branch_id' => $visit->branch_id, 'lock_version' => $invoice->lock_version, 'amount_sen' => 40800, 'panel_id' => $panel->id, 'reason' => 'Synthetic verified responsibility']);
         $supervisor = $this->actor('ca_supervisor');
         $this->selectBranch($supervisor, $visit->branch);
         $approval = ['expected_branch_id' => $visit->branch_id, 'lock_version' => $invoice->refresh()->lock_version, 'proposal_lock_version' => $proposal->lock_version];
@@ -56,17 +67,19 @@ class FinancialSettlementTest extends BillingTestCase
         } catch (ValidationException) {
             $this->assertSame('proposed', $proposal->refresh()->status);
         }
-        DB::table('billing_approval_limits')->insert(['organisation_id' => $visit->organisation_id, 'branch_id' => $visit->branch_id, 'user_id' => $supervisor->id, 'capability' => 'panel', 'limit_sen' => 5000]);
+        DB::table('billing_approval_limits')->insert(['organisation_id' => $visit->organisation_id, 'branch_id' => $visit->branch_id, 'user_id' => $supervisor->id, 'capability' => 'panel', 'limit_sen' => 40800]);
         $service->approve($supervisor, $visit, $invoice, 'panel', $proposal->public_id, $approval);
         $state = app(FinancialLedger::class)->state($invoice);
-        $this->assertSame(3000, $state['panel']);
+        $this->assertSame(40800, $state['panel']);
         $this->assertSame(0, $state['self_pay']);
-        $this->assertSame(1000, $state['due_now']);
+        $this->assertSame(4000, $state['due_now']);
         $this->assertDatabaseCount('payments', 0);
         $this->method($visit->organisation_id);
         $this->selectBranch($ca, $visit->branch);
-        app(PaymentService::class)->add($ca, $visit, $invoice, ['expected_branch_id' => $visit->branch_id, 'lock_version' => $invoice->refresh()->lock_version, 'amount_sen' => 1000, 'method' => 'cash', 'idempotency_key' => (string) Str::uuid()]);
-        $this->assertSame(['total' => 4000, 'self_pay' => 1000, 'panel' => 3000, 'deferred' => 0, 'due_now' => 0], app(FinancialLedger::class)->state($invoice));
+        app(PaymentService::class)->add($ca, $visit, $invoice, ['expected_branch_id' => $visit->branch_id, 'lock_version' => $invoice->refresh()->lock_version, 'amount_sen' => 4000, 'method' => 'cash', 'idempotency_key' => (string) Str::uuid()]);
+        $this->assertSame(['total' => 44800, 'self_pay' => 4000, 'panel' => 40800, 'deferred' => 0, 'due_now' => 0], app(FinancialLedger::class)->state($invoice));
+        $this->assertDatabaseCount('payments', 1);
+        $this->assertDatabaseHas('payments', ['method_snapshot' => 'Cash', 'amount_sen' => 4000]);
     }
 
     public function test_deferment_requires_independent_approval_and_payment_reduces_original_debt(): void
@@ -90,6 +103,7 @@ class FinancialSettlementTest extends BillingTestCase
         DB::table('billing_approval_limits')->insert(['organisation_id' => $visit->organisation_id, 'branch_id' => $visit->branch_id, 'user_id' => $other->id, 'capability' => 'deferment', 'limit_sen' => 5000]);
         $service->approve($other, $visit, $invoice, 'deferment', $proposal->public_id, $a);
         $this->assertSame(0, app(FinancialLedger::class)->state($invoice)['due_now']);
+        $this->assertDatabaseCount('payments', 0);
         $this->selectBranch($ca, $visit->branch);
         app(PaymentService::class)->add($ca, $visit, $invoice, ['expected_branch_id' => $visit->branch_id, 'lock_version' => $invoice->refresh()->lock_version, 'amount_sen' => 1000, 'method' => 'cash', 'idempotency_key' => (string) Str::uuid()]);
         $this->assertSame(3000, $proposal->refresh()->remaining_sen);

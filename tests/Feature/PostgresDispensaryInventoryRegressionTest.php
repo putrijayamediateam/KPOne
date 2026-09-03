@@ -486,7 +486,7 @@ class PostgresDispensaryInventoryRegressionTest extends TestCase
     /** @return list<string> */
     private function doctorPermissions(): array
     {
-        return ['branch_context.switch.branch', 'queue.view.own', 'queue.call.own', 'encounters.view.own', 'encounters.start.own', 'encounters.update.own', 'allergies.view.own', 'allergies.update.own', 'allergies.review.own', 'treatment_plans.view.own', 'treatment_plans.create.own', 'treatment_plans.update.own', 'treatment_plans.send_to_dispensary.own', 'dispensary.acknowledge_partial.own'];
+        return ['consultations.complete.own', 'branch_context.switch.branch', 'queue.view.own', 'queue.call.own', 'encounters.view.own', 'encounters.start.own', 'encounters.update.own', 'allergies.view.own', 'allergies.update.own', 'allergies.review.own', 'treatment_plans.view.own', 'treatment_plans.create.own', 'treatment_plans.update.own', 'treatment_plans.send_to_dispensary.own', 'dispensary.acknowledge_partial.own'];
     }
 
     /** @return list<string> */
