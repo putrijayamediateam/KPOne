@@ -133,7 +133,7 @@ BEGIN
             OR NOT EXISTS (SELECT 1 FROM queue_entries WHERE visit_id=NEW.id AND status='removed')
             OR NOT EXISTS (SELECT 1 FROM consultation_checkouts c JOIN clinical_encounters e ON e.id=c.clinical_encounter_id LEFT JOIN treatment_plans p ON p.id=c.treatment_plan_id
                 WHERE c.id=inv.consultation_checkout_id AND c.current_visit_guard=NEW.id AND c.encounter_version=e.lock_version AND c.plan_version IS NOT DISTINCT FROM p.lock_version
-                AND e.attending_clinician_user_id=NEW.assigned_doctor_user_id AND (c.route='billing' OR EXISTS (SELECT 1 FROM dispensary_handoffs h JOIN dispensary_cases d ON d.id=h.dispensary_case_id WHERE h.id=c.dispensary_handoff_id AND h.status='completed' AND d.status='completed')))) THEN
+                AND e.attending_clinician_user_id=NEW.assigned_doctor_user_id AND (c.route='billing' OR EXISTS (SELECT 1 FROM dispensary_handoffs h JOIN dispensary_cases d ON d.id=h.dispensary_case_id WHERE h.id=c.dispensary_handoff_id AND h.status='completed' AND d.status='completed'))) THEN
             RAISE EXCEPTION 'Completed Visit requires current final sources and Invoice evidence' USING ERRCODE='23514';
         END IF;
         PERFORM kpone_billing_check_invoice(inv.id);
