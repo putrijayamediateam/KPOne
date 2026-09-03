@@ -10,6 +10,7 @@ final class PermissionCatalogue
     public static function all(): array
     {
         return [
+            ...BillingPermissions::all(),
             'dashboard.view.own',
             'profile.view.own',
             'staff.view.own',
@@ -62,6 +63,9 @@ final class PermissionCatalogue
             'inventory.opening_balance.branch',
             'inventory.transfer.branch',
             'inventory.transfer.organisation',
+            'consultations.complete.own',
+            'consultations.reopen.own',
+            'services.confirm.own',
         ];
     }
 
@@ -82,7 +86,7 @@ final class PermissionCatalogue
             'branch_context.switch.organisation',
         ];
 
-        return [
+        $roles = [
             'director' => [
                 ...$organisation,
                 'staff.manage.organisation',
@@ -125,6 +129,9 @@ final class PermissionCatalogue
                 'treatment_plans.update.own',
                 'treatment_plans.send_to_dispensary.own',
                 'dispensary.acknowledge_partial.own',
+                'consultations.complete.own',
+                'consultations.reopen.own',
+                'services.confirm.own',
             ],
             'ca' => [
                 ...$branch,
@@ -190,6 +197,11 @@ final class PermissionCatalogue
                 'system_events.view.organisation',
             ],
         ];
+        foreach (BillingPermissions::roles() as $role => $permissions) {
+            $roles[$role] = [...$roles[$role], ...$permissions];
+        }
+
+        return $roles;
     }
 
     public static function isAdministrativeAuthority(string $permission): bool

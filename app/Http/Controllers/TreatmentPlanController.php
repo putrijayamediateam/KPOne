@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Domain\Clinical\Dispensary\Services\DispensaryHandoffService;
+use App\Domain\Clinical\Services\CompleteConsultationService;
 use App\Domain\Clinical\Services\TreatmentPlanService;
 use App\Domain\Visit\Models\Visit;
 use App\Http\Requests\SaveTreatmentPlanRequest;
@@ -12,10 +12,10 @@ use Inertia\Inertia;
 
 class TreatmentPlanController extends Controller
 {
-    public function send(SendTreatmentPlanToDispensaryRequest $request, Visit $visit, DispensaryHandoffService $handoff): RedirectResponse
+    public function send(SendTreatmentPlanToDispensaryRequest $request, Visit $visit, CompleteConsultationService $checkout): RedirectResponse
     {
-        $handoff->send($request->user(), $visit, $request->validated());
-        Inertia::flash('toast', ['type' => 'success', 'message' => __('Treatment Plan sent to Dispensary.')]);
+        $result = $checkout->complete($request->user(), $visit, $request->validated());
+        Inertia::flash('toast', ['type' => 'success', 'message' => $result->route === 'billing' ? __('Consultation completed. Awaiting Billing.') : __('Consultation completed. Sent to Dispensary.')]);
 
         return to_route('queue.index');
     }

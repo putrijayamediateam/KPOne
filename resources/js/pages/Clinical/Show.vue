@@ -556,6 +556,9 @@ const save = () => {
                     :visit-number="clinical.visit.visitNumber"
                     :branch-id="clinical.branch.id"
                     :plan="clinical.treatmentPlan"
+                    :visit-version="clinical.visit.lockVersion"
+                    :queue-version="clinical.queue.lockVersion"
+                    :encounter-version="clinical.encounter.lockVersion"
                     :allergies="clinical.allergies"
                 />
             </div>

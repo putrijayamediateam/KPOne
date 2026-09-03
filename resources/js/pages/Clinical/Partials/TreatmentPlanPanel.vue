@@ -9,7 +9,7 @@ import {
     Search,
     Trash2,
 } from '@lucide/vue';
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import {
@@ -30,23 +30,60 @@ const props = defineProps<{
     visitNumber: string;
     branchId: number;
     plan: TreatmentPlanPage;
+    visitVersion: number;
+    queueVersion: number;
+    encounterVersion: number;
     allergies: ClinicalAllergySafety | null;
 }>();
 const sendOpen = ref(false);
 const sendForm = useForm({
     expected_branch_id: props.branchId,
     lock_version: props.plan.lockVersion,
+    visit_lock_version: props.visitVersion,
+    queue_lock_version: props.queueVersion,
+    encounter_lock_version: props.encounterVersion,
+    service_deliveries: props.plan.services.map((service) => ({
+        order_public_id: service.publicId,
+        disposition: '',
+        quantity_performed: '',
+    })),
 });
 const sendToDispensary = () => {
-    if (props.plan.lockVersion === null) {
-        return;
-    }
-
     sendForm.lock_version = props.plan.lockVersion;
+    sendForm.visit_lock_version = props.visitVersion;
+    sendForm.queue_lock_version = props.queueVersion;
+    sendForm.encounter_lock_version = props.encounterVersion;
+    sendForm.service_deliveries = sendForm.service_deliveries.map((row) => ({
+        ...row,
+        quantity_performed:
+            row.disposition === 'not_performed' ? '0' : row.quantity_performed,
+    }));
     sendForm.post(
-        `/visits/${props.visitNumber}/encounter/treatment-plan/send-to-dispensary`,
+        `/visits/${props.visitNumber}/encounter/complete-consultation`,
         { preserveScroll: true, onSuccess: () => (sendOpen.value = false) },
     );
+};
+watch(
+    () => props.plan.services,
+    (services) => {
+        sendForm.service_deliveries = services.map((service) => ({
+            order_public_id: service.publicId,
+            disposition: '',
+            quantity_performed: '',
+        }));
+    },
+);
+const reopenForm = useForm({
+    expected_branch_id: props.branchId,
+    visit_lock_version: props.visitVersion,
+    checkout_lock_version: props.plan.checkout?.lockVersion ?? 0,
+});
+const reopenCheckout = () => {
+    reopenForm.visit_lock_version = props.visitVersion;
+    reopenForm.checkout_lock_version = props.plan.checkout?.lockVersion ?? 0;
+    reopenForm.post(`/visits/${props.visitNumber}/encounter/reopen-checkout`, {
+        preserveScroll: true,
+    });
 };
 
 type MedicineSearch = {
@@ -952,9 +989,23 @@ const save = () => {
         </div>
 
         <InputError :message="formError" />
+        <p
+            v-if="plan.checkout?.route === 'billing'"
+            class="text-sm text-muted-foreground"
+        >
+            Consultation closed — awaiting Billing.
+        </p>
+        <InputError :message="Object.values(reopenForm.errors)[0]" />
         <div class="flex justify-end gap-2">
             <Button
-                v-if="plan.canSendToDispensary"
+                v-if="plan.checkout?.canReopen"
+                variant="outline"
+                :disabled="reopenForm.processing"
+                @click="reopenCheckout"
+                >Reopen consultation</Button
+            >
+            <Button
+                v-if="plan.canCompleteConsultation"
                 type="button"
                 variant="outline"
                 @click="sendOpen = true"
@@ -976,13 +1027,54 @@ const save = () => {
             <DialogContent>
                 <DialogHeader>
                     <DialogTitle>Complete consultation?</DialogTitle>
-                    <DialogDescription
+                    <DialogDescription v-if="plan.medicines.length > 0"
                         >This will send the current Treatment Plan to Dispensary
                         for medicine preparation. You can continue the
                         consultation only if the case is returned from
                         Dispensary.</DialogDescription
                     >
+                    <DialogDescription v-else
+                        >This will complete the current consultation and send
+                        the Patient to Billing. No physical Dispensary handoff
+                        or stock movement is required.</DialogDescription
+                    >
                 </DialogHeader>
+                <div
+                    v-for="(service, index) in plan.services"
+                    :key="service.publicId"
+                    class="space-y-2 border-t py-2 text-sm"
+                >
+                    <p>
+                        {{ service.displayName }} · Ordered
+                        {{ service.quantityOrdered }} {{ service.unit }}
+                    </p>
+                    <label :for="`performed-${service.publicId}`"
+                        >Service disposition</label
+                    >
+                    <select
+                        :id="`performed-${service.publicId}`"
+                        v-model="sendForm.service_deliveries[index].disposition"
+                        class="h-9 w-full rounded-md border bg-background px-2"
+                    >
+                        <option value="">Confirm disposition</option>
+                        <option value="performed">Performed</option>
+                        <option value="not_performed">Not performed</option>
+                    </select>
+                    <label
+                        v-if="
+                            sendForm.service_deliveries[index].disposition ===
+                            'performed'
+                        "
+                        class="block"
+                        >Performed quantity<input
+                            v-model="
+                                sendForm.service_deliveries[index]
+                                    .quantity_performed
+                            "
+                            inputmode="decimal"
+                            class="ml-2 h-9 w-24 rounded-md border px-2"
+                    /></label>
+                </div>
                 <InputError :message="Object.values(sendForm.errors)[0]" />
                 <DialogFooter>
                     <DialogClose as-child

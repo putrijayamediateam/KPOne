@@ -10,10 +10,12 @@ use App\Domain\Clinical\Dispensary\Models\DispensaryItemBatchAllocation;
 use App\Domain\Clinical\Dispensary\Models\DispensaryItemException;
 use App\Domain\Clinical\Models\ClinicalEncounter;
 use App\Domain\Clinical\Models\ClinicalEncounterAllergyReview;
+use App\Domain\Clinical\Models\ConsultationCheckout;
 use App\Domain\Clinical\Models\PatientAllergyProfile;
 use App\Domain\Clinical\Models\PatientAllergyRecord;
 use App\Domain\Clinical\Models\TreatmentPlan;
 use App\Domain\Clinical\Models\TreatmentPlanMedicineOrder;
+use App\Domain\Clinical\Services\CheckoutEvidenceService;
 use App\Domain\Identity\Models\StaffBranchAssignment;
 use App\Domain\Identity\Models\StaffProfile;
 use App\Domain\Organisation\Inventory\Models\InventoryBatch;
@@ -103,6 +105,7 @@ class DispensaryService
                 $this->stale('queue');
             }
             $queue->forceFill(['status' => QueueEntry::STATUS_SERVING, 'removed_at' => null, 'removal_reason' => null, 'returned_from_dispensary_at' => now()->utc(), 'updated_by_user_id' => $actor->id, 'lock_version' => $queue->lock_version + 1])->save();
+            app(CheckoutEvidenceService::class)->supersede(ConsultationCheckout::query()->where('current_visit_guard', $visit->id)->first());
             $this->audit->record('dispensary.returned_to_doctor', $case, ['record_version' => $case->lock_version, 'plan_version' => $plan->lock_version], $actor, $branch);
         });
     }
@@ -267,6 +270,7 @@ class DispensaryService
             $review = ClinicalEncounterAllergyReview::query()->where('clinical_encounter_id', $encounter->id)->lockForUpdate()->first();
             $plan = TreatmentPlan::query()->whereKey($lockedCaseStub->treatment_plan_id)->lockForUpdate()->firstOrFail();
             TreatmentPlanMedicineOrder::query()->where('treatment_plan_id', $plan->id)->orderBy('id')->lockForUpdate()->get();
+            ConsultationCheckout::query()->where('visit_id', $visit->id)->orderBy('id')->lockForUpdate()->get();
             $lockedCase = DispensaryCase::query()->whereKey($lockedCaseStub->id)->lockForUpdate()->firstOrFail();
             if ($lockedCase->lock_version !== (int) $attributes['case_lock_version']) {
                 $this->stale('case_lock_version');

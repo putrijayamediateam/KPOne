@@ -14,6 +14,13 @@ class SendTreatmentPlanToDispensaryRequest extends FormRequest
     /** @return array<string, list<string>> */
     public function rules(): array
     {
-        return ['expected_branch_id' => ['required', 'integer', 'min:1'], 'lock_version' => ['required', 'integer', 'min:1']];
+        return [
+            'expected_branch_id' => ['required', 'integer', 'min:1'],
+            'visit_lock_version' => ['required', 'integer', 'min:1'],
+            'queue_lock_version' => ['required', 'integer', 'min:1'],
+            'encounter_lock_version' => ['required', 'integer', 'min:1'],
+            'lock_version' => ['required', 'integer', 'min:1'],
+            'service_deliveries' => ['present', 'array', 'max:100'],
+        ];
     }
 }

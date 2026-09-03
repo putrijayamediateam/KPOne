@@ -102,6 +102,12 @@ export type TreatmentPlanPage = {
     withdrawnServices: { displayName: string; withdrawnAt: string | null }[];
     canSave: boolean;
     canSendToDispensary: boolean;
+    canCompleteConsultation: boolean;
+    checkout: {
+        route: 'billing' | 'dispensary';
+        lockVersion: number;
+        canReopen: boolean;
+    } | null;
 };
 
 export type DoctorDispensaryAttention = {

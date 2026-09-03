@@ -4,6 +4,7 @@ namespace App\Domain\Queue\Services;
 
 use App\Domain\Access\BranchAccessService;
 use App\Domain\Clinical\Dispensary\Services\DoctorDispensaryAttentionService;
+use App\Domain\Clinical\Services\CheckoutReopenEligibility;
 use App\Domain\Organisation\Models\Branch;
 use App\Domain\Queue\Models\QueueEntry;
 use App\Domain\Visit\Policies\VisitPolicy;
@@ -220,7 +221,8 @@ class QueueDirectoryService
             && $actor->can('encounters.start.own')
             && $visit->assigned_doctor_user_id === $actor->id;
         if ($entry->status === QueueEntry::STATUS_REMOVED) {
-            $canOpenEncounter = $this->dispensaryAttention->hasPendingForVisit($actor, $visit);
+            $canOpenEncounter = $this->dispensaryAttention->hasPendingForVisit($actor, $visit)
+                || app(CheckoutReopenEligibility::class)->allows($actor, $visit);
         }
         $actions = $visitActionHints[$entry->status] ??= $this->visitPolicy->actionHints($actor, $visit);
 

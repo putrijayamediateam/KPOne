@@ -3,7 +3,9 @@
 namespace App\Domain\Visit\Services;
 
 use App\Domain\Access\BranchAccessService;
+use App\Domain\Clinical\Dispensary\Models\DispensaryCase;
 use App\Domain\Clinical\Dispensary\Services\DispensaryDirectoryService;
+use App\Domain\Clinical\Models\ConsultationCheckout;
 use App\Domain\Organisation\Models\Branch;
 use App\Domain\Patient\Models\Patient;
 use App\Domain\Patient\Services\PatientDirectoryService;
@@ -55,6 +57,7 @@ class VisitDirectoryService
                 'registered_at',
                 'status',
                 'lock_version',
+                'completed_at',
             ])
             ->where('organisation_id', $actor->organisation_id)
             ->where('branch_id', $branch->id)
@@ -72,7 +75,13 @@ class VisitDirectoryService
         } elseif ($boardStatus === Visit::STATUS_CANCELLED) {
             $query->where('status', Visit::STATUS_CANCELLED);
         } elseif ($boardStatus === 'completed') {
-            $query->whereRaw('1 = 0');
+            $query->where('status', Visit::STATUS_COMPLETED);
+        } elseif ($boardStatus === 'billing') {
+            abort_unless($actor->can('billing.view.branch'), 404);
+            $query->where('status', Visit::STATUS_REGISTERED)->whereExists(function ($q): void {
+                $q->selectRaw('1')->from('consultation_checkouts as checkout')->whereColumn('checkout.current_visit_guard', 'visits.id')
+                    ->where(fn ($r) => $r->where('checkout.route', 'billing')->orWhereExists(fn ($c) => $c->selectRaw('1')->from('dispensary_cases as dc')->whereColumn('dc.visit_id', 'visits.id')->where('dc.status', 'completed')));
+            });
         }
 
         $patientQuery = trim((string) ($criteria['patient_query'] ?? ''));
@@ -307,6 +316,9 @@ class VisitDirectoryService
             default => null,
         };
         $actions = $actionHints[$actionKey] ??= $this->visitPolicy->actionHints($actor, $visit);
+        $checkout = ConsultationCheckout::query()->where('current_visit_guard', $visit->id)->first(['route']);
+        $canBilling = $actor->can('billing.view.branch') && ($visit->status === Visit::STATUS_COMPLETED || ($checkout !== null && ($checkout->route === 'billing'
+            || DispensaryCase::query()->where('visit_id', $visit->id)->where('status', 'completed')->exists())));
 
         return [
             'visitNumber' => $visit->visit_number,
@@ -324,6 +336,9 @@ class VisitDirectoryService
             'queueStatus' => $visibleQueueEntry?->status,
             'durationMinutes' => $durationMinutes,
             'visitLockVersion' => $visit->lock_version,
+            'billingUrl' => $canBilling ? route('billing.show', $visit) : null,
+            'awaitingBilling' => $canBilling && $visit->status === Visit::STATUS_REGISTERED,
+            'completedAt' => $visit->completed_at?->setTimezone($branch->timezone)->format('j M Y, g:i A'),
             'queueLockVersion' => $visibleQueueEntry?->lock_version,
             'returnedFromDispensary' => $visibleQueueEntry?->status === QueueEntry::STATUS_SERVING
                 && $visibleQueueEntry->returned_from_dispensary_at !== null,
@@ -337,6 +352,7 @@ class VisitDirectoryService
                     && Gate::forUser($actor)->allows('create', QueueEntry::class),
                 'call' => $canCall,
                 'openConsultation' => $canOpenEncounter,
+                'openBilling' => $canBilling,
             ],
         ];
     }

@@ -5,6 +5,7 @@ namespace App\Domain\Clinical\Services;
 use App\Domain\Clinical\Models\ClinicalEncounter;
 use App\Domain\Clinical\Models\ClinicalEncounterAllergyReview;
 use App\Domain\Clinical\Models\ClinicalServiceCatalogueItem;
+use App\Domain\Clinical\Models\ConsultationCheckout;
 use App\Domain\Clinical\Models\MedicineCatalogueItem;
 use App\Domain\Clinical\Models\PatientAllergyProfile;
 use App\Domain\Clinical\Models\TreatmentPlan;
@@ -31,6 +32,8 @@ class TreatmentPlanDirectoryService
             ->with(['medicineOrders', 'serviceOrders'])
             ->first();
 
+        $checkout = ConsultationCheckout::query()->where('current_visit_guard', $encounter->visit_id)->first();
+
         return [
             'present' => $plan !== null,
             'status' => $plan?->status,
@@ -40,8 +43,15 @@ class TreatmentPlanDirectoryService
             'services' => $plan ? $plan->serviceOrders->where('status', TreatmentPlanServiceOrder::STATUS_ACTIVE)->map(fn (TreatmentPlanServiceOrder $order): array => $this->service($order))->values()->all() : [],
             'withdrawnServices' => $plan ? $plan->serviceOrders->where('status', TreatmentPlanServiceOrder::STATUS_WITHDRAWN)->map(fn (TreatmentPlanServiceOrder $order): array => $this->withdrawnService($order))->values()->all() : [],
             'canSave' => ($plan === null || $plan->status === TreatmentPlan::STATUS_IN_PROGRESS)
+                && $encounter->visit->status === Visit::STATUS_REGISTERED
+                && $encounter->visit->queueEntry?->status === 'serving'
                 && Gate::forUser($actor)->allows($plan ? 'updateTreatmentPlan' : 'createTreatmentPlan', $encounter),
             'canSendToDispensary' => $this->canSend($actor, $encounter, $plan),
+            'canCompleteConsultation' => $actor->can('consultations.complete.own') && $checkout === null
+                && $encounter->visit->status === Visit::STATUS_REGISTERED && $encounter->visit->queueEntry?->status === 'serving'
+                && (($plan === null || $plan->medicineOrders->where('status', 'active')->isEmpty()) || $this->canSend($actor, $encounter, $plan)),
+            'checkout' => $checkout ? ['route' => $checkout->route, 'lockVersion' => $checkout->lock_version,
+                'canReopen' => app(CheckoutReopenEligibility::class)->allows($actor, $encounter->visit)] : null,
         ];
     }
 

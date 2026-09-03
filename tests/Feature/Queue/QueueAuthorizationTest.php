@@ -128,6 +128,8 @@ class QueueAuthorizationTest extends QueueTestCase
         $this->assertTrue($queueRoutes->every(fn ($route) => ! in_array('DELETE', $route->methods(), true)));
         $this->assertTrue($queueRoutes->every(fn ($route) => in_array('auth', $route->gatherMiddleware(), true)));
         $this->assertSame([], $queueRoutes->filter(fn ($route) => preg_match('/hold|resume|prescri|billing/i', (string) $route->uri()) === 1)->all());
-        $this->assertSame([], $routes->filter(fn ($route) => preg_match('/prescri|billing/i', (string) $route->uri()) === 1)->all());
+        $this->assertSame([], $routes->filter(fn ($route) => preg_match('/prescri/i', (string) $route->uri()) === 1)->all());
+        $billingRoutes = $routes->filter(fn ($route) => str_contains($route->uri(), '/billing'));
+        $this->assertTrue($billingRoutes->every(fn ($route) => in_array('auth', $route->gatherMiddleware(), true) && in_array('sensitive.no-store', $route->gatherMiddleware(), true)));
     }
 }

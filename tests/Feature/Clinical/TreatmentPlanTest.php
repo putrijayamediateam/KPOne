@@ -31,6 +31,11 @@ use App\Domain\Organisation\Inventory\Services\InventoryMovementService;
 use App\Domain\Organisation\Models\Branch;
 use App\Domain\Organisation\Models\Organisation;
 use App\Domain\Queue\Services\QueueDirectoryService;
+use App\Domain\Visit\Billing\Models\ChargeDefinition;
+use App\Domain\Visit\Billing\Models\InvoiceLine;
+use App\Domain\Visit\Billing\Models\PriceBook;
+use App\Domain\Visit\Billing\Models\PriceEntry;
+use App\Domain\Visit\Billing\Services\BillingBuilderService;
 use App\Domain\Visit\Models\Visit;
 use App\Models\User;
 use Carbon\CarbonImmutable;
@@ -45,6 +50,80 @@ use LogicException;
 
 class TreatmentPlanTest extends ClinicalTestCase
 {
+    public function test_legacy_handoff_http_route_requires_exact_checkout_permission(): void
+    {
+        [$doctor, $visit, $queue, $plan, $payload] = $this->legacyCheckoutFixture();
+        $doctor->roles()->sole()->revokePermissionTo('consultations.complete.own');
+        $this->assertTrue($doctor->fresh()->can('treatment_plans.send_to_dispensary.own'));
+        $this->post(route('encounters.treatment-plan.send-to-dispensary', $visit), $payload)->assertForbidden();
+        $this->assertDatabaseCount('consultation_checkouts', 0);
+        $this->assertDatabaseCount('dispensary_handoffs', 0);
+        $this->assertSame('serving', $queue->refresh()->status);
+        $this->assertSame('in_progress', $plan->refresh()->status);
+    }
+
+    public function test_internal_handoff_cannot_create_checkout_after_completion_permission_loss(): void
+    {
+        [$doctor, $visit, , , $payload] = $this->legacyCheckoutFixture();
+        $doctor->roles()->sole()->revokePermissionTo('consultations.complete.own');
+        try {
+            app(DispensaryHandoffService::class)->send($doctor, $visit, $payload);
+            $this->fail('Checkout completion permission was bypassed.');
+        } catch (AuthorizationException) {
+            $this->assertDatabaseCount('consultation_checkouts', 0);
+            $this->assertDatabaseCount('dispensary_handoffs', 0);
+        }
+    }
+
+    public function test_legacy_handoff_http_route_requires_current_clinical_versions(): void
+    {
+        [, $visit, $queue, $plan, $payload] = $this->legacyCheckoutFixture();
+        foreach (['visit_lock_version', 'queue_lock_version', 'encounter_lock_version'] as $field) {
+            $this->post(route('encounters.treatment-plan.send-to-dispensary', $visit), [...$payload, $field => 999])
+                ->assertSessionHasErrors('checkout');
+            $this->assertDatabaseCount('consultation_checkouts', 0);
+            $this->assertDatabaseCount('dispensary_handoffs', 0);
+        }
+        $this->post(route('encounters.treatment-plan.send-to-dispensary', $visit), [
+            'expected_branch_id' => $visit->branch_id, 'lock_version' => $plan->lock_version,
+        ])->assertSessionHasErrors(['visit_lock_version', 'queue_lock_version', 'encounter_lock_version', 'service_deliveries']);
+        $this->assertSame('serving', $queue->refresh()->status);
+        $this->assertSame('in_progress', $plan->refresh()->status);
+    }
+
+    public function test_legacy_handoff_http_route_preserves_explicit_service_confirmation_and_current_checkout(): void
+    {
+        [, $visit, $queue, $plan, $payload] = $this->legacyCheckoutFixture(withService: true);
+        $this->post(route('encounters.treatment-plan.send-to-dispensary', $visit), $payload)->assertSessionHasErrors('service_deliveries');
+        $this->assertDatabaseCount('consultation_checkouts', 0);
+        $order = $plan->serviceOrders()->sole();
+        $payload['service_deliveries'] = [['order_public_id' => $order->public_id, 'quantity_performed' => '1.000', 'disposition' => 'performed']];
+        $this->post(route('encounters.treatment-plan.send-to-dispensary', $visit), $payload)
+            ->assertRedirect(route('queue.index'))->assertSessionHasNoErrors();
+        $this->assertDatabaseCount('consultation_checkouts', 1);
+        $this->assertDatabaseCount('service_deliveries', 1);
+        $this->assertDatabaseCount('dispensary_handoffs', 1);
+        $this->assertSame('removed', $queue->refresh()->status);
+        $this->assertSame('ready_for_dispensing', $plan->refresh()->status);
+        $this->assertDatabaseCount('stock_movements', 0);
+    }
+
+    private function legacyCheckoutFixture(bool $withService = false): array
+    {
+        [$doctor, , $visit, $queue] = $this->servingFixture();
+        $encounter = $this->startEncounter($doctor, $visit, $queue);
+        $this->reviewNoKnown($doctor, $visit);
+        $plan = app(TreatmentPlanService::class)->save($doctor, $visit, $this->payload(null,
+            [$this->medicinePayload($this->medicineCatalogue($doctor))],
+            $withService ? [$this->servicePayload($this->serviceCatalogue($doctor))] : []));
+
+        return [$doctor, $visit, $queue, $plan, [
+            'expected_branch_id' => $visit->branch_id, 'lock_version' => $plan->lock_version,
+            'visit_lock_version' => $visit->lock_version, 'queue_lock_version' => $queue->lock_version,
+            'encounter_lock_version' => $encounter->lock_version, 'service_deliveries' => [],
+        ]];
+    }
+
     public function test_composed_and_custom_medicine_text_survives_reload_without_duplicate_orders(): void
     {
         [$doctor, , $visit, $queue] = $this->servingFixture();
@@ -1031,6 +1110,51 @@ class TreatmentPlanTest extends ClinicalTestCase
         $this->assertDatabaseCount('treatment_plans', 0);
     }
 
+    public function test_billing_uses_actual_completed_medicine_once_and_never_moves_stock(): void
+    {
+        $f = $this->stockedPartialFixture();
+        app(DispensaryService::class)->complete($f['ca'], $f['case'], ['expected_branch_id' => $f['visit']->branch_id, 'case_lock_version' => $f['case']->lock_version]);
+        $book = new PriceBook;
+        $book->forceFill(['public_id' => (string) Str::uuid(), 'organisation_id' => $f['ca']->organisation_id, 'scope_key' => 'organisation', 'name' => 'Synthetic billing prices', 'currency' => 'MYR'])->save();
+        foreach (['consultation', 'medicine'] as $type) {
+            $charge = new ChargeDefinition;
+            $charge->forceFill(['public_id' => (string) Str::uuid(), 'organisation_id' => $f['ca']->organisation_id, 'type' => $type, 'code' => 'UAT-'.$type, 'display_name' => 'Synthetic '.$type,
+                'source_key' => $type === 'consultation' ? 'consultation' : 'medicine:'.$f['item']->medicine_catalogue_item_id, 'medicine_catalogue_item_id' => $type === 'medicine' ? $f['item']->medicine_catalogue_item_id : null, 'unit' => $type === 'consultation' ? 'consultation' : $f['item']->unit_snapshot])->save();
+            $price = new PriceEntry;
+            $price->forceFill(['organisation_id' => $f['ca']->organisation_id, 'price_book_id' => $book->id, 'charge_definition_id' => $charge->id, 'version' => 1, 'unit_price_sen' => $type === 'consultation' ? 4000 : 101, 'effective_at' => now()->subMinute(), 'published_by_user_id' => $f['ca']->id])->save();
+        }
+        $before = [$f['balance']->refresh()->quantity, DB::table('stock_movements')->count(), $f['case']->treatmentPlan->attributesToArray()];
+        $builder = app(BillingBuilderService::class);
+        $invoice = $builder->build($f['ca'], $f['visit'], ['expected_branch_id' => $f['visit']->branch_id, 'lock_version' => null]);
+        $invoice = $builder->finalize($f['ca'], $f['visit'], $invoice, ['expected_branch_id' => $f['visit']->branch_id, 'lock_version' => $invoice->lock_version]);
+        $line = InvoiceLine::query()->where('invoice_id', $invoice->id)->where('line_type', 'medicine')->sole();
+        $this->assertSame('0.500', $line->quantity);
+        $this->assertSame(51, $line->line_total_sen);
+        $this->assertSame(4051, $invoice->total_sen);
+        $this->assertSame($before, [$f['balance']->refresh()->quantity, DB::table('stock_movements')->count(), $f['case']->treatmentPlan->fresh()->attributesToArray()]);
+    }
+
+    public function test_completed_zero_actual_medicine_is_not_billed_or_priced(): void
+    {
+        [$doctor, $ca, $visit, , $case, $item] = $this->patientDeclinedFixture();
+        $item = app(DispensaryService::class)->updateItem($ca, $case->refresh(), $item->refresh(), ['expected_branch_id' => $visit->branch_id, 'case_lock_version' => $case->lock_version, 'item_lock_version' => $item->lock_version, 'status' => 'not_dispensed', 'quantity_dispensed' => '0', 'reason' => 'patient_declined', 'allocations' => []]);
+        $this->selectBranch($doctor, $visit->branch);
+        $exception = $item->exceptions()->where('status', DispensaryItemException::STATUS_AWAITING)->sole();
+        app(DispensaryService::class)->acknowledge($doctor, $exception, ['case_lock_version' => $case->refresh()->lock_version, 'item_lock_version' => $item->lock_version]);
+        $this->selectBranch($ca, $visit->branch);
+        app(DispensaryService::class)->complete($ca, $case->refresh(), ['expected_branch_id' => $visit->branch_id, 'case_lock_version' => $case->lock_version]);
+        $book = new PriceBook;
+        $book->forceFill(['public_id' => (string) Str::uuid(), 'organisation_id' => $ca->organisation_id, 'scope_key' => 'organisation', 'name' => 'Synthetic prices', 'currency' => 'MYR'])->save();
+        $charge = new ChargeDefinition;
+        $charge->forceFill(['public_id' => (string) Str::uuid(), 'organisation_id' => $ca->organisation_id, 'type' => 'consultation', 'code' => 'UAT-CONSULT', 'display_name' => 'Synthetic consultation', 'source_key' => 'consultation', 'unit' => 'consultation'])->save();
+        $price = new PriceEntry;
+        $price->forceFill(['organisation_id' => $ca->organisation_id, 'price_book_id' => $book->id, 'charge_definition_id' => $charge->id, 'version' => 1, 'unit_price_sen' => 4000, 'effective_at' => now()->subMinute(), 'published_by_user_id' => $ca->id])->save();
+        $invoice = app(BillingBuilderService::class)->build($ca, $visit, ['expected_branch_id' => $visit->branch_id, 'lock_version' => null]);
+        $this->assertSame(4000, $invoice->total_sen);
+        $this->assertSame('consultation', InvoiceLine::query()->sole()->line_type);
+        $this->assertDatabaseCount('stock_movements', 0);
+    }
+
     private function reviewNoKnown(User $doctor, Visit $visit): PatientAllergyProfile
     {
         $service = app(PatientAllergyService::class);
@@ -1065,6 +1189,7 @@ class TreatmentPlanTest extends ClinicalTestCase
         $case = app(DispensaryHandoffService::class)->send($doctor, $visit, [
             'expected_branch_id' => $visit->branch_id,
             'lock_version' => $plan->lock_version,
+            'service_deliveries' => $plan->serviceOrders()->get()->map(fn ($order): array => ['order_public_id' => $order->public_id, 'disposition' => 'not_performed', 'quantity_performed' => '0'])->all(),
         ]);
         $this->selectBranch($ca, $visit->branch);
         $case = app(DispensaryService::class)->start($ca, $case, [

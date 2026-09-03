@@ -20,6 +20,9 @@ class DispensaryController extends Controller
     public function show(Request $request, DispensaryCase $dispensaryCase, DispensaryDirectoryService $directory): Response
     {
         $detail = $directory->detail($request->user(), $dispensaryCase);
+        if ($detail['status'] === DispensaryCase::STATUS_COMPLETED && $request->user()->can('billing.view.branch')) {
+            $detail['billingUrl'] = route('billing.show', $dispensaryCase->visit);
+        }
 
         return Inertia::render($detail['status'] === DispensaryCase::STATUS_COMPLETED ? 'Dispensary/Completed' : 'Dispensary/Show', ['dispensary' => $detail]);
     }
@@ -58,7 +61,7 @@ class DispensaryController extends Controller
         $service->complete($request->user(), $dispensaryCase, $request->validated());
         Inertia::flash('toast', ['type' => 'success', 'message' => 'Dispensary completed.']);
 
-        return to_route('registration.index');
+        return $request->user()->can('billing.view.branch') ? to_route('billing.show', $dispensaryCase->visit) : to_route('registration.index');
     }
 
     public function acknowledge(AcknowledgeDispensaryPartialRequest $request, DispensaryItemException $exception, DispensaryService $service): RedirectResponse

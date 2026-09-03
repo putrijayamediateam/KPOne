@@ -3,12 +3,14 @@
 use App\Http\Controllers\AccessControlController;
 use App\Http\Controllers\AuditLogController;
 use App\Http\Controllers\Auth\GoogleAuthController;
+use App\Http\Controllers\BillingController;
 use App\Http\Controllers\BranchContextController;
 use App\Http\Controllers\BranchController;
 use App\Http\Controllers\ClinicalAllergyController;
 use App\Http\Controllers\ClinicalEncounterController;
 use App\Http\Controllers\ClinicalProblemController;
 use App\Http\Controllers\ClinicPlaceholderController;
+use App\Http\Controllers\ConsultationCheckoutController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DispensaryController;
 use App\Http\Controllers\InventoryMovementController;
@@ -153,8 +155,27 @@ Route::middleware(['auth', 'verified'])->group(function () {
             ->middleware(['permission:treatment_plans.send_to_dispensary.own', 'throttle:20,1'])
             ->name('encounters.treatment-plan.send-to-dispensary');
 
+        Route::post('visits/{visit}/encounter/complete-consultation', [ConsultationCheckoutController::class, 'complete'])
+            ->middleware(['permission:consultations.complete.own', 'throttle:20,1'])->name('encounters.checkout');
+        Route::post('visits/{visit}/encounter/reopen-checkout', [ConsultationCheckoutController::class, 'reopen'])
+            ->middleware(['permission:consultations.reopen.own', 'throttle:20,1'])->name('encounters.checkout.reopen');
+
         Route::get('dispensary/{dispensaryCase}', [DispensaryController::class, 'show'])
             ->middleware('permission:dispensary.view.branch')->name('dispensary.show');
+
+        Route::prefix('visits/{visit}/billing')->controller(BillingController::class)->group(function () {
+            Route::get('/', 'show')->middleware('permission:billing.view.branch,billing.summary.branch')->name('billing.show');
+            Route::post('build', 'build')->middleware(['permission:billing.build.branch', 'throttle:20,1'])->name('billing.build');
+            Route::post('complete', 'complete')->middleware(['permission:visits.complete.branch', 'throttle:20,1'])->name('billing.complete');
+            Route::post('{invoice}/finalize', 'finalize')->middleware(['permission:billing.finalize.branch', 'throttle:20,1'])->name('billing.finalize');
+            Route::post('{invoice}/payments', 'payment')->middleware(['permission:payments.add.branch', 'throttle:20,1'])->name('billing.payment');
+            Route::post('{invoice}/responsibility/{kind}', 'propose')->whereIn('kind', ['panel', 'deferment'])->middleware(['permission:coverage.propose.branch,outstanding.request.branch', 'throttle:20,1'])->name('billing.propose');
+            Route::post('{invoice}/responsibility/{kind}/{proposal}/approve', 'approve')->whereIn('kind', ['panel', 'deferment'])->whereUuid('proposal')->middleware(['permission:coverage.approve.branch,outstanding.approve.branch', 'throttle:20,1'])->name('billing.approve');
+            Route::post('{invoice}/payments/{payment}/reverse', 'reverse')->middleware(['permission:payments.reverse.branch', 'throttle:10,1'])->name('billing.reverse');
+            Route::post('{invoice}/void', 'void')->middleware(['permission:invoices.void.branch', 'throttle:10,1'])->name('billing.void');
+            Route::get('{invoice}/print', 'printInvoice')->middleware('permission:billing.print.branch')->name('billing.print');
+            Route::get('{invoice}/receipts/{payment}/print', 'printReceipt')->middleware('permission:billing.print.branch')->name('billing.receipt');
+        });
         Route::get('dispensary/{dispensaryCase}/labels', [DispensaryController::class, 'labels'])
             ->middleware('permission:dispensary.view.branch')->name('dispensary.labels');
         Route::get('dispensary/{dispensaryCase}/items/{itemPublicId}/label', [DispensaryController::class, 'labels'])

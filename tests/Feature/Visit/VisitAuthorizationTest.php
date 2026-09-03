@@ -148,13 +148,14 @@ class VisitAuthorizationTest extends VisitTestCase
         }
     }
 
-    public function test_visit_routes_expose_no_delete_or_post_phase_2b_surface(): void
+    public function test_visit_routes_expose_no_delete_or_unapproved_future_surface(): void
     {
         $routes = collect(app('router')->getRoutes());
         $this->assertFalse($routes->contains(fn ($route) => in_array('DELETE', $route->methods(), true) && str_starts_with($route->uri(), 'visits')));
-        foreach (['prescription', 'billing', 'invoice', 'payment', 'qr', 'otp', 'portal'] as $term) {
+        foreach (['prescription', 'refund', 'procurement', 'qr', 'otp', 'portal'] as $term) {
             $this->assertFalse($routes->contains(fn ($route) => str_contains(strtolower($route->uri()), $term)));
         }
-        $this->assertContains(Visit::STATUS_REGISTERED, ['registered', 'cancelled']);
+        $this->assertSame('completed', Visit::STATUS_COMPLETED);
+        $this->assertContains(Visit::STATUS_REGISTERED, ['registered', 'cancelled', 'completed']);
     }
 }

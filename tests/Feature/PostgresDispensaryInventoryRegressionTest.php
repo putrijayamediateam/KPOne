@@ -696,6 +696,8 @@ class PostgresDispensaryInventoryRegressionTest extends TestCase
     private function deleteOrganisation(int $id): void
     {
         DB::transaction(function () use ($id): void {
+            DB::table('service_deliveries')->where('organisation_id', $id)->delete();
+            DB::table('consultation_checkouts')->where('organisation_id', $id)->delete();
             foreach (['stock_movements', 'dispensary_item_batch_allocations', 'dispensary_item_exceptions', 'dispensary_items', 'dispensary_handoffs', 'dispensary_cases', 'inventory_stock_balances', 'medicine_catalogue_inventory_skus', 'medicine_catalogue_aliases', 'inventory_batches', 'inventory_locations', 'inventory_skus', 'inventory_items', 'treatment_plan_service_orders', 'treatment_plan_medicine_orders', 'treatment_plans', 'clinical_service_catalogue_items', 'medicine_catalogue_items', 'clinical_encounter_allergy_reviews', 'patient_allergy_records', 'patient_allergy_profile_versions', 'patient_allergy_profiles', 'audit_logs', 'clinical_encounters', 'queue_entries', 'queue_number_counters', 'visits', 'visit_number_counters', 'patients', 'patient_number_counters'] as $table) {
                 DB::table($table)->where('organisation_id', $id)->delete();
             }
