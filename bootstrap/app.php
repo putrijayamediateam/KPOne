@@ -102,6 +102,17 @@ return Application::configure(basePath: dirname(__DIR__))
             'batch_number',
             'expiry_date',
             'inventory',
+            'service_deliveries',
+            'billing',
+            'payment',
+            'payments',
+            'amount_sen',
+            'reference',
+            'member_reference',
+            'reason',
+            'coverage',
+            'deferment',
+            'invoice',
         ]);
         $exceptions->shouldRenderJsonWhen(
             fn (Request $request) => $request->is('api/*') || $request->expectsJson(),

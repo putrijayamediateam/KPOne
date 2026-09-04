@@ -31,13 +31,20 @@ const props = defineProps<{
 }>();
 
 type BoardTab =
-    'all' | 'waiting' | 'serving' | 'dispensary' | 'completed' | 'cancelled';
+    | 'all'
+    | 'waiting'
+    | 'serving'
+    | 'dispensary'
+    | 'billing'
+    | 'completed'
+    | 'cancelled';
 const tabs: Array<{ value: BoardTab; label: string; planned?: boolean }> = [
     { value: 'all', label: 'All' },
     { value: 'waiting', label: 'Waiting' },
     { value: 'serving', label: 'Serving Now' },
     { value: 'dispensary', label: 'Dispensary' },
-    { value: 'completed', label: 'Completed', planned: true },
+    { value: 'billing', label: 'Awaiting Billing' },
+    { value: 'completed', label: 'Completed' },
     { value: 'cancelled', label: 'Cancelled' },
 ];
 const activeTab = ref<BoardTab>('all');
@@ -71,7 +78,7 @@ const csrf = () =>
     document.querySelector<HTMLMetaElement>('meta[name="csrf-token"]')
         ?.content ?? '';
 let searchGeneration = 0;
-const plannedTab = computed(() => activeTab.value === 'completed');
+const plannedTab = computed(() => false);
 const duration = (minutes: number | null) => {
     if (minutes === null) {
         return '—';
@@ -128,29 +135,34 @@ const registrationDateLabel = computed(() =>
 );
 const boardRows = computed<PatientBoardRow[]>(() =>
     rows.value.map((visit) => {
-        const status = visit.dispensaryStatus
-            ? {
-                  label:
-                      visit.dispensaryStatus === 'pending'
-                          ? 'Pending'
-                          : 'Dispensing',
-                  tone:
-                      visit.dispensaryStatus === 'pending'
-                          ? ('waiting' as const)
-                          : ('serving' as const),
-              }
-            : visit.status === 'cancelled'
-              ? { label: 'Cancelled', tone: 'cancelled' as const }
-              : visit.queueStatus === 'serving'
-                ? { label: 'Serving Now', tone: 'serving' as const }
-                : visit.queueStatus === 'waiting'
-                  ? { label: 'Waiting', tone: 'waiting' as const }
-                  : visit.queueStatus === 'removed'
+        const status =
+            visit.status === 'completed'
+                ? { label: 'Completed', tone: 'neutral' as const }
+                : visit.awaitingBilling
+                  ? { label: 'Awaiting Billing', tone: 'neutral' as const }
+                  : visit.dispensaryStatus
                     ? {
-                          label: 'Removed from Queue',
-                          tone: 'removed' as const,
+                          label:
+                              visit.dispensaryStatus === 'pending'
+                                  ? 'Pending'
+                                  : 'Dispensing',
+                          tone:
+                              visit.dispensaryStatus === 'pending'
+                                  ? ('waiting' as const)
+                                  : ('serving' as const),
                       }
-                    : { label: 'Registered', tone: 'neutral' as const };
+                    : visit.status === 'cancelled'
+                      ? { label: 'Cancelled', tone: 'cancelled' as const }
+                      : visit.queueStatus === 'serving'
+                        ? { label: 'Serving Now', tone: 'serving' as const }
+                        : visit.queueStatus === 'waiting'
+                          ? { label: 'Waiting', tone: 'waiting' as const }
+                          : visit.queueStatus === 'removed'
+                            ? {
+                                  label: 'Removed from Queue',
+                                  tone: 'removed' as const,
+                              }
+                            : { label: 'Registered', tone: 'neutral' as const };
 
         return {
             key: visit.visitNumber,
@@ -167,6 +179,8 @@ const boardRows = computed<PatientBoardRow[]>(() =>
             priority: visit.priority,
             returnedFromDispensary: visit.returnedFromDispensary,
             dispensaryUrl: visit.dispensaryUrl,
+            billingUrl: visit.billingUrl,
+            completedAt: visit.completedAt,
             statusLabel: status.label,
             statusTone: status.tone,
             can: visit.can,

@@ -173,6 +173,11 @@ const statusClass = (tone: PatientBoardRow['statusTone']) =>
                                 class="inline-flex rounded-md bg-pink-100/70 px-2 py-0.5 text-[11px] font-normal text-pink-800"
                                 >Returned</span
                             >
+                            <span
+                                v-if="row.completedAt"
+                                class="text-[11px] text-muted-foreground"
+                                >{{ row.completedAt }}</span
+                            >
                         </div>
                     </td>
                     <td class="px-3 py-2 text-right align-middle">
@@ -265,6 +270,15 @@ const statusClass = (tone: PatientBoardRow['statusTone']) =>
                                     @select="$emit('cancel', row)"
                                     >Cancel Visit</DropdownMenuItem
                                 >
+                                <DropdownMenuItem
+                                    v-if="row.can.openBilling && row.billingUrl"
+                                    as-child
+                                    class="min-h-8 rounded-lg px-2.5 text-[13px]"
+                                >
+                                    <Link :href="row.billingUrl"
+                                        >Open Billing</Link
+                                    >
+                                </DropdownMenuItem>
                             </DropdownMenuContent>
                         </DropdownMenu>
                     </td>

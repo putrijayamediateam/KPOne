@@ -16,6 +16,8 @@ export type PatientBoardRow = {
     priority: 'normal' | 'urgent';
     returnedFromDispensary?: boolean;
     dispensaryUrl?: string;
+    billingUrl?: string | null;
+    completedAt?: string | null;
     statusLabel: string;
     statusTone: PatientBoardStatusTone;
     can: {
@@ -26,6 +28,7 @@ export type PatientBoardRow = {
         call: boolean;
         openConsultation: boolean;
         openDispensary?: boolean;
+        openBilling?: boolean;
     };
     source: unknown;
 };

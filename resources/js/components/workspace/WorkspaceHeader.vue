@@ -28,6 +28,14 @@ const workspace = computed(() => page.props.workspace);
 const can = (permission: string) => permissions.value.includes(permission);
 
 const clinicItems = computed(() => [
+    ...(workspace.value?.navigation.panelWork &&
+    !workspace.value?.navigation.placeholders
+        ? [{ label: 'Panel responsibility', href: '/panel-claims' }]
+        : []),
+    ...(workspace.value?.navigation.financeWork &&
+    !workspace.value?.canEnterClinic
+        ? [{ label: 'Finance / Billing', href: '/financial-work' }]
+        : []),
     ...(workspace.value?.navigation.registration
         ? [{ label: 'Registration', href: '/registration' }]
         : []),
@@ -46,6 +54,12 @@ const clinicItems = computed(() => [
 
 const adminItems = computed(() => [
     { label: 'Main Menu', href: '/dashboard' },
+    ...(workspace.value?.navigation.panelWork
+        ? [{ label: 'Panel responsibility', href: '/panel-claims' }]
+        : []),
+    ...(workspace.value?.navigation.financeWork
+        ? [{ label: 'Finance / Billing', href: '/financial-work' }]
+        : []),
     ...(can('staff.view.own') ||
     can('staff.view.branch') ||
     can('staff.view.organisation')

@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Attributes\Guarded;
 use Illuminate\Database\Eloquent\Model;
 use LogicException;
 
+/** @property string $proposed_quantity_dispensed Exact decimal:3 cast. */
 #[Guarded(['*'])]
 class DispensaryItemException extends Model
 {

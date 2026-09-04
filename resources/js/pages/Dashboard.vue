@@ -43,6 +43,33 @@ type ModuleGroup = {
 const moduleGroups = computed<ModuleGroup[]>(() =>
     [
         {
+            title: 'Financial work',
+            tasks: [
+                ...(page.props.workspace?.navigation.panelWork
+                    ? [
+                          {
+                              title: 'Panel responsibility',
+                              description:
+                                  'Review coverage requests; claims submission is planned',
+                              href: '/panel-claims',
+                              icon: FileText,
+                          },
+                      ]
+                    : []),
+                ...(page.props.workspace?.navigation.financeWork
+                    ? [
+                          {
+                              title: 'Finance / Billing',
+                              description:
+                                  'Review current branch invoices and outstanding balances',
+                              href: '/financial-work',
+                              icon: FileText,
+                          },
+                      ]
+                    : []),
+            ],
+        },
+        {
             title: 'Organisation',
             tasks: [
                 ...(can('branches.view.branch') ||

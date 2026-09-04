@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Domain\Audit\Models\AuditLog;
 use App\Domain\Clinical\Dispensary\Models\DispensaryCase;
 use App\Domain\Clinical\Models\ClinicalEncounter;
+use App\Domain\Clinical\Models\ConsultationCheckout;
 use App\Domain\Clinical\Models\PatientAllergyProfile;
 use App\Domain\Clinical\Models\PatientAllergyRecord;
 use App\Domain\Clinical\Models\PatientProblemRecord;
@@ -29,7 +30,8 @@ class AuditLogController extends Controller
             ->paginate(25);
         $logs = [
             'data' => $paginator->getCollection()->map(function (AuditLog $log): array {
-                $isClinicalSafetyEvent = in_array($log->event, [
+                $isFinancialEvent = str_starts_with($log->event, 'billing.');
+                $isClinicalSafetyEvent = $isFinancialEvent || in_array($log->event, [
                     'allergy_profile.updated',
                     'allergy_record.created',
                     'allergy_record.updated',
@@ -48,6 +50,8 @@ class AuditLogController extends Controller
                     'dispensary.partial_acknowledged',
                     'dispensary.completed',
                     'inventory.dispensed',
+                    'consultation.checked_out',
+                    'consultation.checkout_reopened',
                 ], true);
                 $isPatient = $log->subject_type === (new Patient)->getMorphClass();
                 $isVisit = $log->subject_type === (new Visit)->getMorphClass();
@@ -59,10 +63,13 @@ class AuditLogController extends Controller
                 $isTreatmentPlan = $log->subject_type === (new TreatmentPlan)->getMorphClass();
                 $isDispensaryCase = $log->subject_type === (new DispensaryCase)->getMorphClass();
                 $isStockMovement = $log->subject_type === (new StockMovement)->getMorphClass();
-                $isProtectedOperationalRecord = $isPatient || $isVisit || $isQueue || $isEncounter
+                $isCheckout = $log->subject_type === (new ConsultationCheckout)->getMorphClass();
+                $isProtectedOperationalRecord = $isFinancialEvent || $isCheckout || $isPatient || $isVisit || $isQueue || $isEncounter
                     || $isAllergyProfile || $isAllergyRecord || $isProblemRecord || $isTreatmentPlan
                     || $isDispensaryCase || $isStockMovement;
                 $subjectType = match (true) {
+                    $isFinancialEvent => 'Financial record',
+                    $isCheckout => 'Clinical checkout record',
                     $isPatient => 'Patient record',
                     $isVisit => 'Visit record',
                     $isQueue => 'Queue record',
@@ -79,7 +86,7 @@ class AuditLogController extends Controller
                     'id' => $log->id,
                     'event' => $log->event,
                     'actor' => $isClinicalSafetyEvent
-                        ? 'Clinical user'
+                        ? ($isFinancialEvent ? 'Authorized user' : 'Clinical user')
                         : ($log->actor instanceof User ? $log->actor->name : 'System'),
                     'branch' => $log->branch?->code,
                     'subjectType' => $subjectType,

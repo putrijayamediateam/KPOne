@@ -28,7 +28,7 @@ export type VisitRow = {
     doctorName: string | null;
     coverageLabel: string;
     priority: VisitPriority;
-    status: 'registered' | 'cancelled';
+    status: 'registered' | 'cancelled' | 'completed';
     queueNumber: string | null;
     queueStatus: 'waiting' | 'serving' | 'removed' | null;
     durationMinutes: number | null;
@@ -38,6 +38,9 @@ export type VisitRow = {
     dispensaryStatus?: 'pending' | 'dispensing';
     medicineCount?: number;
     dispensaryUrl?: string;
+    billingUrl?: string | null;
+    awaitingBilling?: boolean;
+    completedAt?: string | null;
     can: {
         viewPatient: boolean;
         update: boolean;
@@ -46,6 +49,7 @@ export type VisitRow = {
         call: boolean;
         openConsultation: boolean;
         openDispensary?: boolean;
+        openBilling?: boolean;
     };
 };
 
@@ -59,7 +63,7 @@ export type VisitDetail = {
     };
     branch: { code: string; name: string };
     visitType: VisitType;
-    status: 'registered' | 'cancelled';
+    status: 'registered' | 'cancelled' | 'completed';
     priority: VisitPriority;
     visitReason: string | null;
     doctor: { id: number; name: string } | null;

@@ -8,6 +8,7 @@ use App\Domain\Organisation\Models\Organisation;
 use App\Domain\Patient\Models\Patient;
 use App\Domain\Queue\Models\QueueEntry;
 use App\Models\User;
+use Carbon\CarbonImmutable;
 use Database\Factories\VisitFactory;
 use Illuminate\Database\Eloquent\Attributes\Guarded;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -39,6 +40,8 @@ use Illuminate\Support\Carbon;
  * @property int|null $cancelled_by_user_id
  * @property string|null $cancellation_reason
  * @property int $lock_version
+ * @property CarbonImmutable|null $completed_at
+ * @property array<string,mixed>|null $completion_evidence
  * @property-read Organisation $organisation
  * @property-read Branch $branch
  * @property-read Patient $patient
@@ -62,11 +65,15 @@ class Visit extends Model
 
     public const STATUS_CANCELLED = 'cancelled';
 
+    public const STATUS_COMPLETED = 'completed';
+
     protected function casts(): array
     {
         return [
             'registered_at' => 'immutable_datetime',
             'cancelled_at' => 'immutable_datetime',
+            'completed_at' => 'immutable_datetime',
+            'completion_evidence' => 'array',
             'lock_version' => 'integer',
             'created_at' => 'immutable_datetime',
             'updated_at' => 'immutable_datetime',

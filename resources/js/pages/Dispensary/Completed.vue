@@ -8,6 +8,7 @@ defineProps<{
         patient: { name: string; patientNumber: string };
         visit: { visitNumber: string };
         completedAt: string | null;
+        billingUrl?: string;
     };
 }>();
 </script>
@@ -31,5 +32,10 @@ defineProps<{
         <Button as-child variant="outline" size="sm">
             <Link href="/registration">Return to Registration</Link>
         </Button>
+        <Button v-if="dispensary.billingUrl" as-child size="sm" class="ml-2"
+            ><Link :href="dispensary.billingUrl"
+                >Continue to Billing</Link
+            ></Button
+        >
     </main>
 </template>

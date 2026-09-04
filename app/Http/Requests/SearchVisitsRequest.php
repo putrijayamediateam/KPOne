@@ -22,7 +22,7 @@ class SearchVisitsRequest extends FormRequest
             'priority' => ['nullable', 'in:normal,urgent'],
             'coverage_type' => ['nullable', 'in:self_pay,panel'],
             'status' => ['nullable', 'in:registered,cancelled'],
-            'board_status' => ['nullable', 'in:all,waiting,serving,dispensary,completed,cancelled'],
+            'board_status' => ['nullable', 'in:all,waiting,serving,dispensary,billing,completed,cancelled'],
             'date_from' => ['nullable', 'date_format:Y-m-d'],
             'date_to' => ['nullable', 'date_format:Y-m-d'],
             'page' => ['nullable', 'integer', 'min:1'],

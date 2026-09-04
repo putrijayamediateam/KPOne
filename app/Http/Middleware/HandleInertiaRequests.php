@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Domain\Access\BillingWorkAccess;
 use App\Domain\Access\BranchAccessService;
 use App\Domain\Access\WorkspaceLandingService;
 use Illuminate\Http\Request;
@@ -61,6 +62,8 @@ class HandleInertiaRequests extends Middleware
                     'registration' => $user->can('visits.view.branch'),
                     'consultation' => $user->can('queue.view.own') || $user->can('queue.view.branch'),
                     'placeholders' => $canEnterClinic,
+                    'panelWork' => app(BillingWorkAccess::class)->panel($user),
+                    'financeWork' => app(BillingWorkAccess::class)->finance($user),
                 ],
             ];
         }

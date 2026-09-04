@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use LogicException;
 
+/** @property string|null $quantity_dispensed Exact decimal:3 cast; never floating-point quantity. */
 #[Guarded(['*'])]
 class DispensaryItem extends Model
 {
