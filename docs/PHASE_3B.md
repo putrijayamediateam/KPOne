@@ -181,6 +181,15 @@ The existing untracked `docs/PHASE_3B_DESIGN.md` was preserved, not authored or 
 
 Debt settlement allocations retain both the exact receivable reference and applied sen. The materialized remaining deferment must reconcile to these immutable receipts; it is not an independently editable balance.
 
+## Final UAT discoverability corrections (unreleased)
+
+- Main Menu and authorized header links expose Panel responsibility (`/panel-claims`) and Finance / Billing (`/financial-work`). Landing, roles and permission grants are unchanged.
+- The Panel queue contains current proposed/approved Panel responsibility on current finalized invoices in the actor's active branch. Claims submission remains planned. It excludes private deferment text/dates, payments, invoice lines and clinical content.
+- Finance work requires existing financial summary/detail and outstanding-view authority; its bounded queue shows current finalized invoice summaries only. Review reuses the existing Billing authorization and projection. Neither queue grants a mutation permission. Both responses are private/no-store and paginated at 25 rows; browser input cannot select branch, organisation or mode.
+- Dispensary uses the authoritative Visit Reason with the same 80-character excerpt as the other operational boards. Return/re-handoff does not copy or change the reason; true missing reasons remain null.
+
+Deferred to the UI/Registration Refinement Round, not changed here: green primary buttons; completed-page payment-form presentation; invoice/receipt print styling; expiry and outstanding dates showing midnight; Completed Visit Open Queue; Arrived/date overlap; registration Phone + IC/Passport validation; Sex → Gender wording; searchable/addable/multiple Visit Reasons; general UI refinement.
+
 ## Local implementation validation
 
 - Focused Phase 3B feature tests: **27 passed, 183 assertions**.

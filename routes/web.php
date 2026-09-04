@@ -4,6 +4,7 @@ use App\Http\Controllers\AccessControlController;
 use App\Http\Controllers\AuditLogController;
 use App\Http\Controllers\Auth\GoogleAuthController;
 use App\Http\Controllers\BillingController;
+use App\Http\Controllers\BillingWorkController;
 use App\Http\Controllers\BranchContextController;
 use App\Http\Controllers\BranchController;
 use App\Http\Controllers\ClinicalAllergyController;
@@ -48,10 +49,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::middleware('permission:visits.view.branch,queue.view.own,queue.view.branch')->group(function () {
         Route::get('reviews', ClinicPlaceholderController::class)->name('clinic.reviews');
-        Route::get('panel-claims', ClinicPlaceholderController::class)->name('clinic.panel-claims');
         Route::get('insight', ClinicPlaceholderController::class)->name('clinic.insight');
         Route::get('purchase', ClinicPlaceholderController::class)->name('clinic.purchase');
     });
+
+    Route::get('panel-claims', [BillingWorkController::class, 'panel'])->middleware('sensitive.no-store')->name('clinic.panel-claims');
+    Route::get('financial-work', [BillingWorkController::class, 'finance'])->middleware('sensitive.no-store')->name('billing.work');
 
     Route::get('staff', [StaffController::class, 'index'])
         ->middleware('permission:staff.view.own,staff.view.branch,staff.view.organisation')

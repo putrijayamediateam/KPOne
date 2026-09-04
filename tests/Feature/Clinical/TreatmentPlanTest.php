@@ -37,6 +37,7 @@ use App\Domain\Visit\Billing\Models\PriceBook;
 use App\Domain\Visit\Billing\Models\PriceEntry;
 use App\Domain\Visit\Billing\Services\BillingBuilderService;
 use App\Domain\Visit\Models\Visit;
+use App\Domain\Visit\Services\VisitDirectoryService;
 use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Auth\Access\AuthorizationException;
@@ -642,6 +643,9 @@ class TreatmentPlanTest extends ClinicalTestCase
     public function test_return_to_doctor_is_dedicated_stock_free_and_resend_creates_a_new_attempt(): void
     {
         [$doctor, $ca, $visit, $queue] = $this->servingFixture();
+        $visit->forceFill(['visit_reason' => 'Sakit tekak'])->save();
+        $this->assertSame('Sakit tekak', app(VisitDirectoryService::class)->search($ca, [])['data'][0]['visitReasonExcerpt']);
+        $this->assertSame('Sakit tekak', app(QueueDirectoryService::class)->snapshot($doctor)['serving'][0]['visitReasonExcerpt']);
         $this->assertFalse(app(QueueDirectoryService::class)->snapshot($doctor)['serving'][0]['returnedFromDispensary']);
         $this->startEncounter($doctor, $visit, $queue);
         $this->reviewNoKnown($doctor, $visit);
@@ -653,12 +657,15 @@ class TreatmentPlanTest extends ClinicalTestCase
         $this->assertSame('ready_for_dispensing', app(ClinicalEncounterDirectoryService::class)->detail($doctor, $visit)['treatmentPlan']['status']);
         $this->selectBranch($ca, $visit->branch);
         $case = app(DispensaryService::class)->start($ca, $case, ['expected_branch_id' => $visit->branch_id, 'case_lock_version' => $case->lock_version]);
+        $this->assertSame('Sakit tekak', app(DispensaryDirectoryService::class)->board($ca, [])['data'][0]['visitReasonExcerpt']);
         $case = app(DispensaryService::class)->returnToDoctor($ca, $case, ['expected_branch_id' => $visit->branch_id, 'case_lock_version' => $case->lock_version]);
 
         $this->assertSame(DispensaryCase::STATUS_RETURNED, $case->status);
         $this->assertSame(DispensaryHandoff::STATUS_RETURNED, $case->handoffs()->first()->status);
         $this->assertSame('serving', $queue->refresh()->status);
         $this->assertNotNull($queue->returned_from_dispensary_at);
+        $this->assertSame('Sakit tekak', $visit->refresh()->visit_reason);
+        $this->assertSame('Sakit tekak', app(QueueDirectoryService::class)->snapshot($ca)['serving'][0]['visitReasonExcerpt']);
         $this->assertTrue(app(QueueDirectoryService::class)->snapshot($ca)['serving'][0]['returnedFromDispensary']);
         $this->assertSame(TreatmentPlan::STATUS_IN_PROGRESS, $plan->refresh()->status);
         $this->assertDatabaseCount('stock_movements', 0);
@@ -671,6 +678,10 @@ class TreatmentPlanTest extends ClinicalTestCase
         $this->assertSame(DispensaryHandoff::STATUS_RETURNED, $resent->handoffs()->orderBy('attempt_number')->first()->status);
         $this->assertSame(DispensaryHandoff::STATUS_OPEN, $resent->handoffs()->get()->last()->status);
         $this->assertFalse(app(QueueDirectoryService::class)->snapshot($doctor, ['status' => 'removed'])['removed'][0]['returnedFromDispensary']);
+        $this->selectBranch($ca, $visit->branch);
+        $this->assertSame('Sakit tekak', app(DispensaryDirectoryService::class)->board($ca, [])['data'][0]['visitReasonExcerpt']);
+        $visit->forceFill(['visit_reason' => null])->save();
+        $this->assertNull(app(DispensaryDirectoryService::class)->board($ca, [])['data'][0]['visitReasonExcerpt']);
     }
 
     public function test_authorized_http_first_save_accepts_explicit_null_plan_version(): void

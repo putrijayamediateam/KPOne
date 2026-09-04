@@ -54,7 +54,6 @@ class WorkspaceTest extends VisitTestCase
 
         foreach ([
             'clinic.reviews' => 'Reviews',
-            'clinic.panel-claims' => 'Panel Claims',
             'clinic.insight' => 'Insight',
             'clinic.purchase' => 'Purchase',
         ] as $route => $module) {

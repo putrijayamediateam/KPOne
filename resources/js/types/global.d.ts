@@ -27,6 +27,8 @@ declare module '@inertiajs/core' {
                     registration: boolean;
                     consultation: boolean;
                     placeholders: boolean;
+                    panelWork: boolean;
+                    financeWork: boolean;
                 };
             } | null;
             sidebarOpen: boolean;
