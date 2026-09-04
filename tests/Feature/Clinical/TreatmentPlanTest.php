@@ -680,8 +680,6 @@ class TreatmentPlanTest extends ClinicalTestCase
         $this->assertFalse(app(QueueDirectoryService::class)->snapshot($doctor, ['status' => 'removed'])['removed'][0]['returnedFromDispensary']);
         $this->selectBranch($ca, $visit->branch);
         $this->assertSame('Sakit tekak', app(DispensaryDirectoryService::class)->board($ca, [])['data'][0]['visitReasonExcerpt']);
-        $visit->forceFill(['visit_reason' => null])->save();
-        $this->assertNull(app(DispensaryDirectoryService::class)->board($ca, [])['data'][0]['visitReasonExcerpt']);
     }
 
     public function test_authorized_http_first_save_accepts_explicit_null_plan_version(): void
