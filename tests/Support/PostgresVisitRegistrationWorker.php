@@ -50,6 +50,7 @@ try {
                     ? [
                         'full_name' => 'Synthetic Idempotent Quick',
                         'sex' => 'unknown',
+                        'mobile_phone' => '+60123456789',
                         'duplicate_override' => true,
                         'identifiers' => $patientNumber === 'QUICK_IDENTIFIER' ? [[
                             'identifier_type' => 'passport',
