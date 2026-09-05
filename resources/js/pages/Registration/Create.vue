@@ -10,7 +10,13 @@ import {
 } from '@lucide/vue';
 import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue';
 import InputError from '@/components/InputError.vue';
+import PhoneInput from '@/components/patient/PhoneInput.vue';
 import { Button } from '@/components/ui/button';
+import {
+    phoneError,
+    identityError,
+    focusInvalidField,
+} from '@/lib/patient-registration';
 import type { PatientRegistrationSummary, VisitOptions } from '@/types';
 
 defineOptions({
@@ -42,6 +48,7 @@ type QuickPatientInput = {
     date_of_birth: string;
     sex: string;
     mobile_phone: string;
+    phone_country: string;
     duplicate_override: boolean;
     identifiers: Array<{
         identifier_type: 'nric' | 'passport';
@@ -83,6 +90,7 @@ const quick = ref({
     date_of_birth: '',
     sex: 'unknown',
     mobile_phone: '',
+    phone_country: 'MY',
     duplicate_override: false,
 });
 const csrf = () =>
@@ -103,7 +111,7 @@ const patientSearchType = (query: string) => {
         return 'nric';
     }
 
-    if (/^\+?\d[\d\s-]{6,}$/.test(trimmed)) {
+    if (/^\+?[()\d][()\d\s-]{6,}$/.test(trimmed)) {
         return 'phone';
     }
 
@@ -265,7 +273,40 @@ const patientSummaryName = computed(
         'New Patient',
 );
 const submit = () => {
+    form.clearErrors();
+
     if (quickMode.value) {
+        const missingName = !quick.value.full_name.trim();
+
+        if (missingName) {
+            form.setError(
+                'quick_patient.full_name',
+                'Please enter the Patient name.',
+            );
+        }
+
+        const phone = phoneError(
+            quick.value.mobile_phone,
+            quick.value.phone_country,
+        );
+        const identity = identityError(
+            quickIdentifierType.value,
+            quickIdentifierValue.value,
+            quickIssuer.value,
+        );
+
+        if (phone) {
+            form.setError('quick_patient.mobile_phone', phone);
+        }
+
+        if (identity) {
+            form.setError('quick_patient.identifiers', identity);
+        }
+
+        if (missingName || phone || identity) {
+            return focusInvalidField();
+        }
+
         form.quick_patient = {
             ...quick.value,
             identifiers: quickIdentifierValue.value.trim()
@@ -284,7 +325,10 @@ const submit = () => {
         form.patient_number = '';
     }
 
-    form.post('/registration', { preserveState: true });
+    form.post('/registration', {
+        preserveState: true,
+        onError: focusInvalidField,
+    });
 };
 const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
 </script>
@@ -465,63 +509,95 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
                     ><span class="text-sm font-medium">Name</span
                     ><input
                         id="quick-patient-name"
+                        :aria-invalid="!!errorFor('quick_patient.full_name')"
+                        aria-describedby="quick-name-error"
                         v-model="quick.full_name"
                         autocomplete="off"
                         class="h-10 rounded-md border bg-background px-3 text-sm" /><InputError
+                        id="quick-name-error"
+                        role="alert"
                         :message="errorFor('quick_patient.full_name')"
                 /></label>
                 <label class="grid gap-1"
                     ><span class="text-sm font-medium"
-                        >Identity document (optional)</span
+                        >Identity document *</span
                     >
                     <div class="flex">
                         <select
                             v-model="quickIdentifierType"
+                            aria-label="Identification type"
                             class="h-10 rounded-l-md border bg-background px-2 text-sm"
                         >
-                            <option value="nric">NRIC</option>
+                            <option value="nric">Malaysian IC</option>
                             <option value="passport">Passport</option></select
                         ><input
                             v-model="quickIdentifierValue"
+                            aria-label="IC or Passport number"
+                            :aria-invalid="
+                                !!(
+                                    errorFor('quick_patient.identifiers') ||
+                                    errorFor(
+                                        'quick_patient.identifiers.0.value',
+                                    )
+                                )
+                            "
+                            aria-describedby="quick-identity-error"
                             autocomplete="off"
                             class="h-10 min-w-0 flex-1 rounded-r-md border border-l-0 bg-background px-3 text-sm"
                         />
                     </div>
                     <InputError
+                        id="quick-identity-error"
+                        role="alert"
                         :message="
                             errorFor('quick_patient.identifiers') ||
-                            errorFor('quick_patient.identifiers.0.value')
+                            errorFor('quick_patient.identifiers.0.value') ||
+                            errorFor(
+                                'quick_patient.identifiers.0.issuing_country_code',
+                            )
                         "
                 /></label>
                 <label
                     v-if="quickIdentifierType === 'passport'"
                     class="grid gap-1"
-                    ><span class="text-sm font-medium">Passport issuer</span
+                    ><span class="text-sm font-medium">Passport issuer *</span
                     ><input
                         v-model="quickIssuer"
+                        :aria-invalid="
+                            !!errorFor(
+                                'quick_patient.identifiers.0.issuing_country_code',
+                            )
+                        "
+                        aria-describedby="quick-identity-error"
                         maxlength="2"
                         class="h-10 rounded-md border bg-background px-3 text-sm uppercase" /></label
                 ><span v-else />
-                <label class="grid gap-1"
-                    ><span class="text-sm font-medium">Phone (optional)</span
-                    ><input
-                        v-model="quick.mobile_phone"
-                        autocomplete="off"
-                        class="h-10 rounded-md border bg-background px-3 text-sm" /><InputError
-                        :message="errorFor('quick_patient.mobile_phone')"
-                /></label>
+                <PhoneInput
+                    id="quick-phone"
+                    v-model="quick.mobile_phone"
+                    v-model:country="quick.phone_country"
+                    required
+                    :error="
+                        errorFor('quick_patient.mobile_phone') ||
+                        errorFor('quick_patient.phone_country')
+                    "
+                />
                 <label class="grid gap-1"
                     ><span class="text-sm font-medium">DOB (optional)</span
                     ><input
                         v-model="quick.date_of_birth"
+                        :aria-invalid="
+                            !!errorFor('quick_patient.date_of_birth')
+                        "
                         type="date"
                         class="h-10 rounded-md border bg-background px-3 text-sm" /><InputError
                         :message="errorFor('quick_patient.date_of_birth')"
                 /></label>
                 <label class="grid gap-1"
-                    ><span class="text-sm font-medium">Sex</span
+                    ><span class="text-sm font-medium">Gender</span
                     ><select
                         v-model="quick.sex"
+                        :aria-invalid="!!errorFor('quick_patient.sex')"
                         class="h-10 rounded-md border bg-background px-3 text-sm"
                     >
                         <option value="unknown">Unknown</option>
@@ -604,6 +680,9 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
                             ></span
                         ><select
                             v-model="form.assigned_doctor_user_id"
+                            :aria-invalid="
+                                !!form.errors.assigned_doctor_user_id
+                            "
                             class="h-10 rounded-md border bg-background px-3 text-sm focus-visible:ring-2 focus-visible:ring-emerald-600/30 focus-visible:outline-none"
                         >
                             <option value="">Select doctor</option>
@@ -627,6 +706,7 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
                             ></span
                         ><textarea
                             v-model="form.visit_reason"
+                            :aria-invalid="!!form.errors.visit_reason"
                             maxlength="500"
                             rows="2"
                             autocomplete="off"
@@ -718,6 +798,7 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
                             ><span class="text-sm font-medium">Panel</span
                             ><select
                                 v-model="form.panel_id"
+                                :aria-invalid="!!form.errors.panel_id"
                                 class="h-10 rounded-md border bg-background px-3 text-sm focus-visible:ring-2 focus-visible:ring-emerald-600/30 focus-visible:outline-none"
                             >
                                 <option value="">Select Panel</option>
@@ -735,6 +816,9 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
                                 >Member/staff reference (optional)</span
                             ><input
                                 v-model="form.coverage_member_reference"
+                                :aria-invalid="
+                                    !!form.errors.coverage_member_reference
+                                "
                                 autocomplete="off"
                                 class="h-10 rounded-md border bg-background px-3 text-sm focus-visible:ring-2 focus-visible:ring-emerald-600/30 focus-visible:outline-none" /></label
                     ></template>

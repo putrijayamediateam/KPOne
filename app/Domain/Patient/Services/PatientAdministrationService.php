@@ -33,6 +33,7 @@ class PatientAdministrationService
     public function create(User $actor, array $attributes): Patient
     {
         Gate::forUser($actor)->authorize('create', Patient::class);
+        (new PatientPhoneNormalizer)->normalize($attributes['mobile_phone'] ?? null, $attributes['phone_country'] ?? 'MY', required: true);
         $normalized = $this->validatePatient($this->identity->normalizePatient($attributes));
         $identifiers = $this->normalizeIdentifierList($attributes['identifiers'] ?? []);
 
@@ -81,7 +82,15 @@ class PatientAdministrationService
     public function update(Patient $patient, array $attributes, User $actor): Patient
     {
         Gate::forUser($actor)->authorize('update', $patient);
-        $normalized = $this->validatePatient($this->identity->normalizePatient($attributes));
+        // Missing legacy contact data is permitted; a changed value must be valid.
+        $samePhone = ($attributes['mobile_phone'] ?? '') === ($patient->mobile_phone ?? '');
+        if (! $samePhone) {
+            (new PatientPhoneNormalizer)->normalize($attributes['mobile_phone'] ?? null, $attributes['phone_country'] ?? 'MY', required: true);
+        }
+        $normalized = $this->validatePatient($this->identity->normalizePatient($samePhone ? [...$attributes, 'mobile_phone' => null] : $attributes));
+        if ($samePhone) {
+            $normalized['mobile_phone'] = $patient->mobile_phone;
+        }
         $expectedVersion = (int) ($attributes['lock_version'] ?? 0);
 
         return DB::transaction(function () use ($patient, $actor, $normalized, $expectedVersion): Patient {
@@ -232,14 +241,20 @@ class PatientAdministrationService
     /** @return list<array{identifier_type: string, issuing_country_code: string, normalized_value: string}> */
     private function normalizeIdentifierList(mixed $identifiers): array
     {
-        if (! is_array($identifiers)) {
-            return [];
+        if (! is_array($identifiers) || count($identifiers) !== 1 || ! is_array($identifiers[0] ?? null)) {
+            throw ValidationException::withMessages(['identifiers' => 'Pilih satu No. IC atau Passport.']);
         }
 
         $normalized = [];
         foreach ($identifiers as $identifier) {
-            if (is_array($identifier) && filled($identifier['value'] ?? null)) {
+            try {
                 $normalized[] = $this->identity->normalizeIdentifier($identifier);
+            } catch (ValidationException $exception) {
+                $errors = [];
+                foreach ($exception->errors() as $key => $messages) {
+                    $errors['identifiers.0.'.$key] = $messages;
+                }
+                throw ValidationException::withMessages($errors);
             }
         }
 

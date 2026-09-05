@@ -3,6 +3,7 @@ import { Head, Link, useForm } from '@inertiajs/vue3';
 import { ArrowLeft, Save } from '@lucide/vue';
 import PatientFormFields from '@/components/patient/PatientFormFields.vue';
 import { Button } from '@/components/ui/button';
+import { phoneError, focusInvalidField } from '@/lib/patient-registration';
 import type { PatientDetail, PatientFormValues } from '@/types';
 
 defineOptions({
@@ -20,6 +21,7 @@ const form = useForm<PatientFormValues & { lock_version: number }>({
     sex: props.patient.identity.sex,
     nationality_code: props.patient.identity.nationalityCode ?? '',
     mobile_phone: props.patient.contact.mobilePhone ?? '',
+    phone_country: 'MY',
     email: props.patient.contact.email ?? '',
     address_line_1: props.patient.address.line1 ?? '',
     address_line_2: props.patient.address.line2 ?? '',
@@ -29,10 +31,24 @@ const form = useForm<PatientFormValues & { lock_version: number }>({
     country_code: props.patient.address.countryCode ?? '',
     lock_version: props.patient.administrative.lockVersion,
 });
-const submit = () =>
+const submit = () => {
+    form.clearErrors();
+
+    if (form.mobile_phone !== (props.patient.contact.mobilePhone ?? '')) {
+        const error = phoneError(form.mobile_phone, form.phone_country);
+
+        if (error) {
+            form.setError('mobile_phone', error);
+
+            return focusInvalidField();
+        }
+    }
+
     form.patch('/patients/' + encodeURIComponent(props.patient.patientNumber), {
         preserveState: true,
+        onError: focusInvalidField,
     });
+};
 </script>
 
 <template>
@@ -47,7 +63,11 @@ const submit = () =>
             </p>
         </div>
         <form class="space-y-5" @submit.prevent="submit">
-            <PatientFormFields :model="form" :errors="form.errors" />
+            <PatientFormFields
+                :model="form"
+                :errors="form.errors"
+                :original-phone="patient.contact.mobilePhone ?? ''"
+            />
             <div
                 v-if="form.errors.lock_version"
                 class="rounded-md border border-amber-300 bg-amber-50 p-4 text-sm"

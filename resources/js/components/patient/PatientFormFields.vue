@@ -1,10 +1,13 @@
 <script setup lang="ts">
 import { reactive } from 'vue';
 import InputError from '@/components/InputError.vue';
+import PhoneInput from '@/components/patient/PhoneInput.vue';
 import type { PatientFormValues } from '@/types';
 
 const props = defineProps<{
     model: PatientFormValues;
+    newPatient?: boolean;
+    originalPhone?: string;
     errors: Partial<Record<keyof PatientFormValues, string>>;
 }>();
 const fields = reactive(props.model);
@@ -22,27 +25,35 @@ const fields = reactive(props.model);
             </div>
             <div class="grid gap-4 p-5 md:grid-cols-2">
                 <label class="grid gap-2 md:col-span-2">
-                    <span class="text-sm font-medium">Full name</span>
+                    <span class="text-sm font-medium">Full name *</span>
                     <input
                         v-model="fields.full_name"
+                        :aria-invalid="!!errors.full_name"
+                        aria-describedby="patient-name-error"
                         class="h-10 rounded-md border bg-background px-3 text-sm"
                         autocomplete="off"
                     />
-                    <InputError :message="errors.full_name" />
+                    <InputError
+                        id="patient-name-error"
+                        role="alert"
+                        :message="errors.full_name"
+                    />
                 </label>
                 <label class="grid gap-2">
                     <span class="text-sm font-medium">Date of birth</span>
                     <input
                         v-model="fields.date_of_birth"
+                        :aria-invalid="!!errors.date_of_birth"
                         type="date"
                         class="h-10 rounded-md border bg-background px-3 text-sm"
                     />
                     <InputError :message="errors.date_of_birth" />
                 </label>
                 <label class="grid gap-2">
-                    <span class="text-sm font-medium">Sex</span>
+                    <span class="text-sm font-medium">Gender</span>
                     <select
                         v-model="fields.sex"
+                        :aria-invalid="!!errors.sex"
                         class="h-10 rounded-md border bg-background px-3 text-sm"
                     >
                         <option value="female">Female</option>
@@ -58,6 +69,7 @@ const fields = reactive(props.model);
                     >
                     <input
                         v-model="fields.nationality_code"
+                        :aria-invalid="!!errors.nationality_code"
                         maxlength="2"
                         placeholder="MY"
                         class="h-10 rounded-md border bg-background px-3 text-sm uppercase"
@@ -72,20 +84,19 @@ const fields = reactive(props.model);
                 <h2 class="font-semibold">Contact</h2>
             </div>
             <div class="grid gap-4 p-5 md:grid-cols-2">
-                <label class="grid gap-2">
-                    <span class="text-sm font-medium">Mobile phone</span>
-                    <input
-                        v-model="fields.mobile_phone"
-                        class="h-10 rounded-md border bg-background px-3 text-sm"
-                        autocomplete="off"
-                        placeholder="+60123456789"
-                    />
-                    <InputError :message="errors.mobile_phone" />
-                </label>
+                <PhoneInput
+                    id="patient-phone"
+                    v-model="fields.mobile_phone"
+                    v-model:country="fields.phone_country"
+                    :required="newPatient"
+                    :unchanged-value="originalPhone"
+                    :error="errors.mobile_phone || errors.phone_country"
+                />
                 <label class="grid gap-2">
                     <span class="text-sm font-medium">Email</span>
                     <input
                         v-model="fields.email"
+                        :aria-invalid="!!errors.email"
                         type="email"
                         class="h-10 rounded-md border bg-background px-3 text-sm"
                         autocomplete="off"
@@ -104,6 +115,7 @@ const fields = reactive(props.model);
                     <span class="text-sm font-medium">Address line 1</span>
                     <input
                         v-model="fields.address_line_1"
+                        :aria-invalid="!!errors.address_line_1"
                         class="h-10 rounded-md border bg-background px-3 text-sm"
                         autocomplete="off"
                     />
@@ -113,6 +125,7 @@ const fields = reactive(props.model);
                     <span class="text-sm font-medium">Address line 2</span>
                     <input
                         v-model="fields.address_line_2"
+                        :aria-invalid="!!errors.address_line_2"
                         class="h-10 rounded-md border bg-background px-3 text-sm"
                         autocomplete="off"
                     />
@@ -122,6 +135,7 @@ const fields = reactive(props.model);
                     ><span class="text-sm font-medium">Postcode</span
                     ><input
                         v-model="fields.postcode"
+                        :aria-invalid="!!errors.postcode"
                         class="h-10 rounded-md border bg-background px-3 text-sm" /><InputError
                         :message="errors.postcode"
                 /></label>
@@ -129,6 +143,7 @@ const fields = reactive(props.model);
                     ><span class="text-sm font-medium">City</span
                     ><input
                         v-model="fields.city"
+                        :aria-invalid="!!errors.city"
                         class="h-10 rounded-md border bg-background px-3 text-sm" /><InputError
                         :message="errors.city"
                 /></label>
@@ -136,6 +151,7 @@ const fields = reactive(props.model);
                     ><span class="text-sm font-medium">State</span
                     ><input
                         v-model="fields.state"
+                        :aria-invalid="!!errors.state"
                         class="h-10 rounded-md border bg-background px-3 text-sm" /><InputError
                         :message="errors.state"
                 /></label>
@@ -143,6 +159,7 @@ const fields = reactive(props.model);
                     ><span class="text-sm font-medium">Country code</span
                     ><input
                         v-model="fields.country_code"
+                        :aria-invalid="!!errors.country_code"
                         maxlength="2"
                         placeholder="MY"
                         class="h-10 rounded-md border bg-background px-3 text-sm uppercase" /><InputError

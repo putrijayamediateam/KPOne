@@ -18,7 +18,8 @@ class CheckPatientDuplicatesRequest extends FormRequest
         return [
             'full_name' => ['required', 'string', 'max:255'],
             'date_of_birth' => ['nullable', 'date_format:Y-m-d'],
-            'mobile_phone' => ['nullable', 'string', 'max:32'],
+            'mobile_phone' => ['nullable', 'string', 'max:64'],
+            'phone_country' => ['sometimes', 'string', 'size:2'],
         ];
     }
 }

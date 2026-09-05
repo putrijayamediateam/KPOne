@@ -1,9 +1,15 @@
 <script setup lang="ts">
 import { Head, Link, useForm } from '@inertiajs/vue3';
-import { ArrowLeft, Plus, Trash2, UserPlus } from '@lucide/vue';
+import { ArrowLeft, UserPlus } from '@lucide/vue';
 import InputError from '@/components/InputError.vue';
 import PatientFormFields from '@/components/patient/PatientFormFields.vue';
 import { Button } from '@/components/ui/button';
+import {
+    phoneError,
+    identityError,
+    identifierIssuer,
+    focusInvalidField,
+} from '@/lib/patient-registration';
 import type { PatientFormValues } from '@/types';
 
 defineOptions({
@@ -30,6 +36,7 @@ const form = useForm<
     sex: 'unknown',
     nationality_code: '',
     mobile_phone: '',
+    phone_country: 'MY',
     email: '',
     address_line_1: '',
     address_line_2: '',
@@ -37,17 +44,46 @@ const form = useForm<
     city: '',
     state: '',
     country_code: 'MY',
-    identifiers: [],
+    identifiers: [
+        { identifier_type: 'nric', issuing_country_code: 'MY', value: '' },
+    ],
     duplicate_override: false,
 });
-const addIdentifier = () =>
-    form.identifiers.push({
-        identifier_type: 'nric',
-        issuing_country_code: 'MY',
-        value: '',
-    });
 const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
-const submit = () => form.post('/patients', { preserveState: true });
+const submit = () => {
+    form.clearErrors();
+    const missingName = !form.full_name.trim();
+
+    if (missingName) {
+        form.setError('full_name', 'Please enter the Patient name.');
+    }
+
+    const phone = phoneError(form.mobile_phone, form.phone_country);
+    const identity = form.identifiers[0];
+    identity.issuing_country_code = identifierIssuer(
+        identity.identifier_type,
+        identity.issuing_country_code,
+    );
+    const identifier = identityError(
+        identity.identifier_type,
+        identity.value,
+        identity.issuing_country_code,
+    );
+
+    if (phone) {
+        form.setError('mobile_phone', phone);
+    }
+
+    if (identifier) {
+        form.setError('identifiers', identifier);
+    }
+
+    if (missingName || phone || identifier) {
+        return focusInvalidField();
+    }
+
+    form.post('/patients', { preserveState: true, onError: focusInvalidField });
+};
 </script>
 
 <template>
@@ -67,8 +103,12 @@ const submit = () => form.post('/patients', { preserveState: true });
                 </p>
             </div>
         </div>
-        <form class="space-y-5" @submit.prevent="submit">
-            <PatientFormFields :model="form" :errors="form.errors" />
+        <form class="space-y-5" novalidate @submit.prevent="submit">
+            <PatientFormFields
+                :model="form"
+                :errors="form.errors"
+                new-patient
+            />
             <section class="rounded-lg border bg-card">
                 <div
                     class="flex items-start justify-between gap-4 border-b px-5 py-4"
@@ -76,17 +116,10 @@ const submit = () => form.post('/patients', { preserveState: true });
                     <div>
                         <h2 class="font-semibold">Identifiers</h2>
                         <p class="text-sm text-muted-foreground">
-                            Optional initial NRIC or passport. Values remain
+                            Required Malaysian IC or Passport. Values remain
                             reserved if later retired.
                         </p>
                     </div>
-                    <Button
-                        type="button"
-                        size="sm"
-                        variant="outline"
-                        @click="addIdentifier"
-                        ><Plus class="size-4" /> Add</Button
-                    >
                 </div>
                 <div class="space-y-3 p-5">
                     <div
@@ -98,38 +131,80 @@ const submit = () => form.post('/patients', { preserveState: true });
                     <div
                         v-for="(identifier, index) in form.identifiers"
                         :key="index"
-                        class="grid gap-3 rounded-md border p-4 md:grid-cols-[150px_110px_1fr_auto]"
+                        class="grid gap-3 rounded-md border p-4 md:grid-cols-3"
                     >
-                        <select
-                            v-model="identifier.identifier_type"
-                            class="h-10 rounded-md border bg-background px-3 text-sm"
-                        >
-                            <option value="nric">NRIC</option>
-                            <option value="passport">Passport</option>
-                        </select>
-                        <input
-                            v-model="identifier.issuing_country_code"
-                            maxlength="2"
-                            :disabled="identifier.identifier_type === 'nric'"
-                            class="h-10 rounded-md border bg-background px-3 text-sm uppercase"
-                        />
-                        <input
-                            v-model="identifier.value"
-                            autocomplete="off"
-                            class="h-10 rounded-md border bg-background px-3 text-sm"
-                            placeholder="Identifier value"
-                        />
-                        <Button
-                            type="button"
-                            size="icon"
-                            variant="ghost"
-                            @click="form.identifiers.splice(index, 1)"
-                            ><Trash2 class="size-4"
-                        /></Button>
+                        <label class="grid gap-2"
+                            ><span class="text-sm font-medium"
+                                >Identification type *</span
+                            >
+                            <select
+                                v-model="identifier.identifier_type"
+                                @change="
+                                    identifier.issuing_country_code =
+                                        identifierIssuer(
+                                            identifier.identifier_type,
+                                            identifier.issuing_country_code,
+                                        )
+                                "
+                                aria-label="Identification type"
+                                class="h-10 rounded-md border bg-background px-3 text-sm"
+                            >
+                                <option value="nric">Malaysian IC</option>
+                                <option value="passport">Passport</option>
+                            </select>
+                        </label>
+                        <label class="grid gap-2"
+                            ><span class="text-sm font-medium"
+                                >Issuing country *</span
+                            >
+                            <input
+                                v-model="identifier.issuing_country_code"
+                                aria-label="Passport issuing country"
+                                maxlength="2"
+                                :disabled="
+                                    identifier.identifier_type === 'nric'
+                                "
+                                class="h-10 rounded-md border bg-background px-3 text-sm uppercase"
+                            />
+                        </label>
+                        <label class="grid gap-2"
+                            ><span class="text-sm font-medium"
+                                >IC / Passport number *</span
+                            >
+                            <input
+                                v-model="identifier.value"
+                                aria-label="IC or Passport number"
+                                required
+                                :aria-invalid="
+                                    !!(
+                                        errorFor(
+                                            'identifiers.' + index + '.value',
+                                        ) ||
+                                        errorFor(
+                                            'identifiers.' +
+                                                index +
+                                                '.issuing_country_code',
+                                        ) ||
+                                        errorFor('identifiers')
+                                    )
+                                "
+                                :aria-describedby="'identity-error-' + index"
+                                autocomplete="off"
+                                class="h-10 rounded-md border bg-background px-3 text-sm"
+                                placeholder="Identifier value"
+                            />
+                        </label>
                         <InputError
-                            class="md:col-span-4"
+                            :id="'identity-error-' + index"
+                            role="alert"
+                            class="md:col-span-3"
                             :message="
                                 errorFor('identifiers.' + index + '.value') ||
+                                errorFor(
+                                    'identifiers.' +
+                                        index +
+                                        '.issuing_country_code',
+                                ) ||
                                 errorFor('identifiers')
                             "
                         />

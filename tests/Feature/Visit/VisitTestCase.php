@@ -71,6 +71,8 @@ abstract class VisitTestCase extends TestCase
             'full_name' => 'Synthetic Visit Patient '.Str::random(8),
             'date_of_birth' => '1990-01-01',
             'sex' => 'unknown',
+            'mobile_phone' => '+60123456789',
+            'identifiers' => [['identifier_type' => 'passport', 'issuing_country_code' => 'MY', 'value' => 'SYN-'.Str::upper(Str::random(12))]],
             'duplicate_override' => true,
             ...$overrides,
         ]);
