@@ -13,7 +13,7 @@ class PatientAdministrationTest extends PatientTestCase
     public function test_ca_can_add_first_type_but_cannot_retire_or_replace_existing_identifier(): void
     {
         $ca = $this->actor('ca');
-        $patient = $this->createPatient($ca, ['identifiers' => []]);
+        $patient = $this->legacyPatient($ca);
         $service = app(PatientAdministrationService::class);
         $identifier = $service->addIdentifier($patient, ['identifier_type' => 'nric', 'value' => '900101011234'], $ca);
         $this->assertSame('900101011234', $identifier->normalized_value);
@@ -101,11 +101,7 @@ class PatientAdministrationTest extends PatientTestCase
         $first = $this->createPatient($director, [
             'identifiers' => [['identifier_type' => 'passport', 'issuing_country_code' => 'MY', 'value' => 'SYN-P100']],
         ]);
-        $second = $this->createPatient($director, [
-            'full_name' => 'Synthetic Patient Beta',
-            'date_of_birth' => '1980-02-02',
-            'identifiers' => [],
-        ]);
+        $second = $this->legacyPatient($director);
 
         try {
             app(PatientAdministrationService::class)->addIdentifier(

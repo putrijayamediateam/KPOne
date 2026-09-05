@@ -108,7 +108,7 @@ const formatTime = (value: string) =>
                         </dd>
                     </div>
                     <div>
-                        <dt class="text-muted-foreground">Sex</dt>
+                        <dt class="text-muted-foreground">Gender</dt>
                         <dd class="font-medium capitalize">
                             {{ patient.identity.sex }}
                         </dd>

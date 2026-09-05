@@ -44,6 +44,7 @@ try {
                     'full_name' => 'Synthetic Concurrent '.$suffix,
                     'date_of_birth' => '1990-01-01',
                     'sex' => 'unknown',
+                    'mobile_phone' => '+60123456789',
                     'duplicate_override' => true,
                     'identifiers' => [['identifier_type' => 'nric', 'value' => $nric]],
                 ],

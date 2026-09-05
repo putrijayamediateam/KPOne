@@ -338,7 +338,7 @@ class PostgresVisitRegistrationRegressionTest extends TestCase
         try {
             $service->register($actors[0], [
                 'idempotency_key' => (string) Str::uuid(), 'expected_branch_id' => $branches[0]->id,
-                'quick_patient' => ['full_name' => 'Synthetic Rollback', 'sex' => 'unknown', 'duplicate_override' => true],
+                'quick_patient' => ['full_name' => 'Synthetic Rollback', 'sex' => 'unknown', 'duplicate_override' => true, 'mobile_phone' => '+60123456789', 'identifiers' => [['identifier_type' => 'passport', 'issuing_country_code' => 'MY', 'value' => 'SYN-ROLLBACK']]],
                 'visit_type' => 'otc', 'priority' => 'normal', 'coverage_type' => 'self_pay',
             ]);
             $this->fail('Expected injected failure.');

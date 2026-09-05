@@ -95,7 +95,8 @@ class VisitCreationTest extends VisitTestCase
             'quick_patient' => [
                 'full_name' => 'Synthetic Quick Patient',
                 'sex' => 'unknown',
-                'mobile_phone' => null,
+                'mobile_phone' => '+60123456789',
+                'identifiers' => [['identifier_type' => 'passport', 'issuing_country_code' => 'MY', 'value' => 'SYN-QUICK']],
                 'duplicate_override' => true,
             ],
         ]);
@@ -116,6 +117,8 @@ class VisitCreationTest extends VisitTestCase
                 'expected_branch_id' => $this->branch->id,
                 'quick_patient' => [
                     'full_name' => 'Synthetic Possible Duplicate',
+                    'mobile_phone' => '+60123456789',
+                    'identifiers' => [['identifier_type' => 'passport', 'issuing_country_code' => 'MY', 'value' => 'SYN-DUPLICATE']],
                     'date_of_birth' => '1990-01-01',
                     'sex' => 'unknown',
                 ],
@@ -189,7 +192,7 @@ class VisitCreationTest extends VisitTestCase
             $service->register($ca, [
                 'idempotency_key' => (string) Str::uuid(),
                 'expected_branch_id' => $this->branch->id,
-                'quick_patient' => ['full_name' => 'Synthetic Atomic Rollback', 'sex' => 'unknown', 'duplicate_override' => true],
+                'quick_patient' => ['full_name' => 'Synthetic Atomic Rollback', 'sex' => 'unknown', 'duplicate_override' => true, 'mobile_phone' => '+60123456789', 'identifiers' => [['identifier_type' => 'passport', 'issuing_country_code' => 'MY', 'value' => 'SYN-ROLLBACK']]],
                 'visit_type' => 'otc',
                 'priority' => 'normal',
                 'coverage_type' => 'self_pay',
@@ -228,7 +231,7 @@ class VisitCreationTest extends VisitTestCase
         $attributes = [
             'idempotency_key' => $key,
             'expected_branch_id' => $this->branch->id,
-            'quick_patient' => ['full_name' => 'Synthetic Idempotent Quick', 'sex' => 'unknown', 'duplicate_override' => true],
+            'quick_patient' => ['full_name' => 'Synthetic Idempotent Quick', 'sex' => 'unknown', 'duplicate_override' => true, 'mobile_phone' => '+60123456789', 'identifiers' => [['identifier_type' => 'passport', 'issuing_country_code' => 'MY', 'value' => 'SYN-RETRY']]],
             'visit_type' => 'otc',
             'priority' => 'normal',
             'coverage_type' => 'self_pay',

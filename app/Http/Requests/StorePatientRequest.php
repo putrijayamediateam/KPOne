@@ -20,7 +20,8 @@ class StorePatientRequest extends FormRequest
             'date_of_birth' => ['nullable', 'date_format:Y-m-d', 'before_or_equal:today'],
             'sex' => ['required', 'in:female,male,indeterminate,unknown'],
             'nationality_code' => ['nullable', 'string', 'size:2'],
-            'mobile_phone' => ['nullable', 'string', 'max:32'],
+            'mobile_phone' => ['required', 'string', 'max:64'],
+            'phone_country' => ['sometimes', 'string', 'size:2'],
             'email' => ['nullable', 'email', 'max:255'],
             'address_line_1' => ['nullable', 'string', 'max:255'],
             'address_line_2' => ['nullable', 'string', 'max:255'],
@@ -28,7 +29,7 @@ class StorePatientRequest extends FormRequest
             'city' => ['nullable', 'string', 'max:100'],
             'state' => ['nullable', 'string', 'max:100'],
             'country_code' => ['nullable', 'string', 'size:2'],
-            'identifiers' => ['nullable', 'array', 'max:3'],
+            'identifiers' => ['required', 'array', 'size:1'],
             'identifiers.*.identifier_type' => ['required', 'in:nric,passport'],
             'identifiers.*.issuing_country_code' => ['nullable', 'string', 'size:2'],
             'identifiers.*.value' => ['required', 'string', 'max:100'],
@@ -39,6 +40,18 @@ class StorePatientRequest extends FormRequest
             'created_by_user_id' => ['prohibited'],
             'updated_by_user_id' => ['prohibited'],
             'lock_version' => ['prohibited'],
+        ];
+    }
+
+    /** @return array<string, string> */
+    public function messages(): array
+    {
+        return [
+            'mobile_phone.required' => 'Nombor telefon diperlukan.',
+            'mobile_phone.string' => 'Masukkan nombor telefon yang sah untuk negara yang dipilih.',
+            'mobile_phone.max' => 'Masukkan nombor telefon yang sah untuk negara yang dipilih.',
+            'identifiers.required' => 'Pilih satu No. IC atau Passport.',
+            'identifiers.0.value.required' => $this->input('identifiers.0.identifier_type') === 'passport' ? 'No. Passport tidak lengkap.' : 'No. IC mesti mempunyai 12 digit.',
         ];
     }
 }

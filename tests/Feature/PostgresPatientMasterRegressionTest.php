@@ -228,8 +228,8 @@ class PostgresPatientMasterRegressionTest extends TestCase
 
     private function attributes(string $name, ?string $nric = null): array
     {
-        return ['full_name' => 'Synthetic '.$name, 'date_of_birth' => '1990-01-01', 'sex' => 'unknown', 'duplicate_override' => true,
-            'identifiers' => $nric ? [['identifier_type' => 'nric', 'value' => $nric]] : []];
+        return ['full_name' => 'Synthetic '.$name, 'date_of_birth' => '1990-01-01', 'sex' => 'unknown', 'mobile_phone' => '+60123456789', 'duplicate_override' => true,
+            'identifiers' => $nric ? [['identifier_type' => 'nric', 'value' => $nric]] : [['identifier_type' => 'passport', 'issuing_country_code' => 'MY', 'value' => 'SYN-'.Str::upper(Str::random(12))]]];
     }
 
     private function serviceWorker(User $actor, string $suffix, string $nric): array

@@ -21,6 +21,8 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        // Preserve raw contact/IC input until domain validation rejects control characters.
+        $middleware->trimStrings(except: ['mobile_phone', 'quick_patient.mobile_phone', 'value', 'identifiers.*.value', 'quick_patient.identifiers.*.value']);
         $middleware->encryptCookies(except: ['appearance', 'sidebar_state']);
 
         $middleware->web(append: [

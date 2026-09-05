@@ -22,7 +22,7 @@ class PatientIdentityService
             ...$attributes,
             'full_name' => $fullName,
             'search_name' => Str::lower($fullName),
-            'mobile_phone' => $this->normalizePhone($attributes['mobile_phone'] ?? null),
+            'mobile_phone' => (new PatientPhoneNormalizer)->normalize($attributes['mobile_phone'] ?? null, $attributes['phone_country'] ?? 'MY'),
             'email' => $this->nullableLower($attributes['email'] ?? null),
             'nationality_code' => $this->countryCode($attributes['nationality_code'] ?? null),
             'country_code' => $this->countryCode($attributes['country_code'] ?? null),
@@ -41,8 +41,15 @@ class PatientIdentityService
     public function normalizeIdentifier(array $identifier): array
     {
         $type = Str::lower(trim((string) ($identifier['identifier_type'] ?? '')));
-        $issuer = $this->countryCode($identifier['issuing_country_code'] ?? null);
-        $value = $this->unicode((string) ($identifier['value'] ?? ''));
+        try {
+            $issuer = $this->countryCode($identifier['issuing_country_code'] ?? null);
+        } catch (ValidationException) {
+            throw ValidationException::withMessages(['issuing_country_code' => 'Negara pengeluar Passport diperlukan.']);
+        }
+        if (! is_string($identifier['value'] ?? null)) {
+            throw ValidationException::withMessages(['value' => 'No. IC atau Passport diperlukan.']);
+        }
+        $value = $identifier['value'];
 
         if (! in_array($type, ['nric', 'passport'], true)) {
             throw ValidationException::withMessages(['identifier_type' => 'Select a supported identifier type.']);
@@ -50,20 +57,20 @@ class PatientIdentityService
 
         if ($type === 'nric') {
             $issuer = 'MY';
-            $normalized = preg_replace('/[\s-]+/u', '', $value) ?? '';
+            $normalized = str_replace([' ', '-'], '', $value);
 
             if (preg_match('/\A[0-9]{12}\z/', $normalized) !== 1) {
-                throw ValidationException::withMessages(['value' => 'Enter a valid 12-digit Malaysian NRIC.']);
+                throw ValidationException::withMessages(['value' => 'No. IC mesti mempunyai 12 digit.']);
             }
         } else {
             if ($issuer === null) {
-                throw ValidationException::withMessages(['issuing_country_code' => 'Passport issuing country is required.']);
+                throw ValidationException::withMessages(['issuing_country_code' => 'Negara pengeluar Passport diperlukan.']);
             }
 
-            $normalized = Str::upper(preg_replace('/\s+/u', '', trim($value)) ?? '');
+            $normalized = Str::upper(preg_replace('/\s+/u', '', trim($this->unicode($value))) ?? '');
 
             if (preg_match('/\A[A-Z0-9][A-Z0-9-]{2,31}\z/', $normalized) !== 1) {
-                throw ValidationException::withMessages(['value' => 'Enter a valid passport number.']);
+                throw ValidationException::withMessages(['value' => strlen($normalized) < 3 ? 'No. Passport tidak lengkap.' : 'Semak format No. Passport.']);
             }
         }
 
@@ -101,7 +108,7 @@ class PatientIdentityService
 
     public function normalizeSearchPhone(string $value): string
     {
-        return $this->normalizePhone($value) ?? '';
+        return (new PatientPhoneNormalizer)->normalize($value) ?? '';
     }
 
     public function normalizeSearchName(string $value): string
@@ -147,29 +154,6 @@ class PatientIdentityService
             })
             ->limit(5)
             ->get();
-    }
-
-    private function normalizePhone(mixed $value): ?string
-    {
-        $value = $this->nullableText($value);
-
-        if ($value === null) {
-            return null;
-        }
-
-        $compact = preg_replace('/[\s().-]+/u', '', $value) ?? '';
-
-        if (str_starts_with($compact, '0')) {
-            $compact = '+60'.substr($compact, 1);
-        } elseif (str_starts_with($compact, '60')) {
-            $compact = '+'.$compact;
-        }
-
-        if (preg_match('/\A\+[1-9][0-9]{7,14}\z/', $compact) !== 1) {
-            throw ValidationException::withMessages(['mobile_phone' => 'Enter a valid international or Malaysian mobile number.']);
-        }
-
-        return $compact;
     }
 
     private function countryCode(mixed $value): ?string

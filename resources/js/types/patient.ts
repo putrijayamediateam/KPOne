@@ -41,6 +41,7 @@ export type PatientDetail = {
 };
 
 export type PatientFormValues = {
+    phone_country?: string;
     full_name: string;
     date_of_birth: string;
     sex: 'female' | 'male' | 'indeterminate' | 'unknown';
