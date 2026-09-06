@@ -11,9 +11,11 @@ use App\Domain\Organisation\Models\Branch;
 use App\Domain\Organisation\Models\Organisation;
 use App\Domain\Patient\Models\Patient;
 use App\Domain\Patient\Services\PatientAdministrationService;
+use App\Domain\Visit\Models\VisitReason;
 use App\Domain\Visit\Services\VisitDirectoryService;
 use App\Domain\Visit\Services\VisitDoctorEligibilityService;
 use App\Domain\Visit\Services\VisitNumberGenerator;
+use App\Domain\Visit\Services\VisitReasonService;
 use App\Domain\Visit\Services\VisitRegistrationService;
 use App\Models\User;
 use Illuminate\Database\Connection;
@@ -80,11 +82,13 @@ class PostgresVisitRegistrationRegressionTest extends TestCase
         }
         if ($this->organisationId !== null) {
             DB::table('audit_logs')->where('organisation_id', $this->organisationId)->delete();
+            DB::table('visit_reason_assignments')->where('organisation_id', $this->organisationId)->delete();
             DB::table('visits')->where('organisation_id', $this->organisationId)->delete();
             DB::table('visit_number_counters')->where('organisation_id', $this->organisationId)->delete();
             DB::table('patient_identifiers')->where('organisation_id', $this->organisationId)->delete();
             DB::table('patients')->where('organisation_id', $this->organisationId)->delete();
             DB::table('patient_number_counters')->where('organisation_id', $this->organisationId)->delete();
+            DB::table('visit_reason_catalogue_items')->where('organisation_id', $this->organisationId)->delete();
             DB::table('staff_branch_assignments')->whereIn('branch_id', DB::table('branches')->where('organisation_id', $this->organisationId)->pluck('id'))->delete();
             $userIds = DB::table('users')->where('organisation_id', $this->organisationId)->pluck('id');
             DB::table('model_has_permissions')->where('model_type', User::class)->whereIn('model_id', $userIds)->delete();
@@ -333,6 +337,7 @@ class PostgresVisitRegistrationRegressionTest extends TestCase
             app(PatientAdministrationService::class),
             app(VisitDoctorEligibilityService::class),
             app(VisitNumberGenerator::class),
+            app(VisitReasonService::class),
             $failingAudit,
         );
         try {
@@ -375,6 +380,12 @@ class PostgresVisitRegistrationRegressionTest extends TestCase
 
             return $actor;
         })->all();
+        $reason = new VisitReason;
+        $reason->forceFill([
+            'public_id' => (string) Str::uuid(), 'organisation_id' => $organisation->id,
+            'name' => 'Synthetic concurrent reason', 'normalized_name' => 'synthetic concurrent reason',
+            'is_active' => true, 'created_by_user_id' => $actors[0]->id,
+        ])->save();
 
         return [$organisation, $branches, $actors];
     }

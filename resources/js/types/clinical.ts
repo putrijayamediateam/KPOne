@@ -1,3 +1,5 @@
+import type { VisitReasonPresentation } from './visit';
+
 export type ClinicalDiagnosis = {
     diagnosisText: string;
     diagnosisCode: string | null;
@@ -10,6 +12,7 @@ export type ClinicalHistorySummary = {
     branch: string;
     attendingClinician: string;
     status: 'in_progress';
+    visitReason: string | null;
     viewUrl: string;
 };
 
@@ -137,6 +140,7 @@ export type ClinicalEncounterPage = {
         visitNumber: string;
         priority: 'normal' | 'urgent';
         registrationReason: string | null;
+        registrationReasons: VisitReasonPresentation;
         registeredAt: string;
         lockVersion: number;
     };

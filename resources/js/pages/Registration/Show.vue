@@ -177,9 +177,22 @@ const submitCancel = () => {
             "
         />
         <section class="rounded-lg border bg-card p-4">
-            <h2 class="font-semibold">Administrative Visit reason</h2>
-            <p class="mt-2 text-sm whitespace-pre-wrap">
-                {{ visit.visitReason ?? 'Not recorded.' }}
+            <h2 class="font-semibold">Visit Reason</h2>
+            <template v-if="visit.visitReasons.primary">
+                <p class="mt-2 text-sm">
+                    <span class="font-medium">Primary:</span>
+                    {{ visit.visitReasons.primary }}
+                </p>
+                <p
+                    v-if="visit.visitReasons.additional.length"
+                    class="mt-1 text-sm text-muted-foreground"
+                >
+                    <span class="font-medium text-foreground">Additional:</span>
+                    {{ visit.visitReasons.additional.join(' · ') }}
+                </p>
+            </template>
+            <p v-else class="mt-2 text-sm whitespace-pre-wrap">
+                {{ visit.visitReasons.legacy ?? 'Not recorded.' }}
             </p>
         </section>
         <section

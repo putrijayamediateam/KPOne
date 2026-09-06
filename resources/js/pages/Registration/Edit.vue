@@ -1,8 +1,11 @@
 <script setup lang="ts">
 import { Head, Link, useForm, usePage } from '@inertiajs/vue3';
 import { ArrowLeft } from '@lucide/vue';
+import { ref } from 'vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
+import VisitReasonPicker from '@/components/visit/VisitReasonPicker.vue';
+import type { VisitReasonOption } from '@/components/visit/VisitReasonPicker.vue';
 import type { BranchContext, VisitDetail, VisitOptions } from '@/types';
 
 defineOptions({
@@ -10,19 +13,38 @@ defineOptions({
 });
 const props = defineProps<{ visit: VisitDetail; options: VisitOptions }>();
 const page = usePage<{ branchContext: BranchContext }>();
+const selectedVisitReasons = ref<VisitReasonOption[]>(
+    props.visit.visitReasons.structured.map((reason) => ({
+        publicId: reason.publicId,
+        name: reason.label,
+    })),
+);
 const form = useForm({
     expected_branch_id: page.props.branchContext?.active?.id ?? 0,
     lock_version: props.visit.lockVersion,
     queue_lock_version: props.visit.queue?.lockVersion ?? null,
     visit_type: props.visit.visitType,
     assigned_doctor_user_id: props.visit.doctor?.id ?? '',
-    visit_reason: props.visit.visitReason ?? '',
+    visit_reason_public_ids: props.visit.visitReasons.structured.map(
+        (reason) => reason.publicId,
+    ),
     coverage_type: props.visit.coverage.type,
     panel_id: props.visit.coverage.panelId ?? '',
     coverage_member_reference: props.visit.coverage.memberReference ?? '',
     priority: props.visit.priority,
 });
-const submit = () => form.patch(`/visits/${props.visit.visitNumber}`);
+const submit = () => {
+    form.transform((data) => {
+        if (props.visit.visitReasons.structured.length) {
+            return data;
+        }
+
+        const legacy = { ...data };
+        Reflect.deleteProperty(legacy, 'visit_reason_public_ids');
+
+        return legacy;
+    }).patch(`/visits/${props.visit.visitNumber}`);
+};
 const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
 </script>
 
@@ -74,16 +96,29 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
                         ><InputError
                             :message="errorFor('assigned_doctor_user_id')"
                     /></label>
-                    <label class="grid gap-1 md:col-span-2"
-                        ><span class="text-sm font-medium">Visit reason</span
-                        ><textarea
-                            v-model="form.visit_reason"
-                            maxlength="500"
-                            rows="3"
-                            autocomplete="off"
-                            class="rounded-md border bg-background px-3 py-2 text-sm" /><InputError
-                            :message="errorFor('visit_reason')"
-                    /></label>
+                    <div class="grid gap-1 md:col-span-2">
+                        <span class="text-sm font-medium">Visit Reason</span>
+                        <VisitReasonPicker
+                            v-if="visit.visitReasons.structured.length"
+                            v-model="form.visit_reason_public_ids"
+                            v-model:selected="selectedVisitReasons"
+                            :error="errorFor('visit_reason_public_ids')"
+                        />
+                        <div
+                            v-else
+                            class="rounded-md border bg-muted/30 px-3 py-2 text-sm"
+                        >
+                            <p class="whitespace-pre-wrap">
+                                {{
+                                    visit.visitReasons.legacy ?? 'Not recorded.'
+                                }}
+                            </p>
+                            <p class="mt-1 text-xs text-muted-foreground">
+                                Historical free-text Visit Reason is preserved
+                                unchanged.
+                            </p>
+                        </div>
+                    </div>
                     <label class="grid gap-1"
                         ><span class="text-sm font-medium">Coverage</span
                         ><select

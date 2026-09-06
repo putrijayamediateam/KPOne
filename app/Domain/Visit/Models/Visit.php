@@ -14,6 +14,7 @@ use Illuminate\Database\Eloquent\Attributes\Guarded;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Carbon;
 
@@ -125,6 +126,12 @@ class Visit extends Model
     public function clinicalEncounter(): HasOne
     {
         return $this->hasOne(ClinicalEncounter::class);
+    }
+
+    /** @return HasMany<VisitReasonAssignment, $this> */
+    public function reasonAssignments(): HasMany
+    {
+        return $this->hasMany(VisitReasonAssignment::class)->orderBy('position');
     }
 
     /** @return BelongsTo<User, $this> */

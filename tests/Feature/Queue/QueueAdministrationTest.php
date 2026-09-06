@@ -143,7 +143,7 @@ class QueueAdministrationTest extends QueueTestCase
             'queue_lock_version' => $entry->lock_version,
             'visit_type' => 'otc',
             'assigned_doctor_user_id' => null,
-            'visit_reason' => null,
+            'visit_reason_public_ids' => [],
             'priority' => 'normal',
             'coverage_type' => 'self_pay',
         ], $ca);
@@ -170,7 +170,7 @@ class QueueAdministrationTest extends QueueTestCase
             'queue_lock_version' => $entry->lock_version,
             'visit_type' => 'consultation',
             'assigned_doctor_user_id' => $doctor->id,
-            'visit_reason' => 'Synthetic prohibited Serving edit',
+            'visit_reason_public_ids' => $this->visitReasonIds($visit),
             'priority' => 'normal',
             'coverage_type' => 'self_pay',
         ], $ca);
@@ -207,7 +207,7 @@ class QueueAdministrationTest extends QueueTestCase
             'queue_lock_version' => $entry->lock_version,
             'visit_type' => 'consultation',
             'assigned_doctor_user_id' => $coveringDoctor->id,
-            'visit_reason' => 'Synthetic temporary coverage reassignment',
+            'visit_reason_public_ids' => $this->visitReasonIds($visit),
             'priority' => 'normal',
             'coverage_type' => 'panel',
             'panel_id' => $panel->id,
@@ -215,7 +215,7 @@ class QueueAdministrationTest extends QueueTestCase
         ], $ca);
 
         $this->assertSame($coveringDoctor->id, $updated->assigned_doctor_user_id);
-        $this->assertSame('Synthetic temporary coverage reassignment', $updated->visit_reason);
+        $this->assertSame($visit->visit_reason, $updated->visit_reason);
         $this->assertSame('panel', $updated->coverage_type);
         $this->assertSame($panel->id, $updated->panel_id);
         $this->assertSame('SYNTH-WAITING-REF', $updated->coverage_member_reference);
@@ -258,7 +258,7 @@ class QueueAdministrationTest extends QueueTestCase
             'queue_lock_version' => $entry->lock_version,
             'visit_type' => $visit->visit_type,
             'assigned_doctor_user_id' => $visit->assigned_doctor_user_id,
-            'visit_reason' => $visit->visit_reason,
+            'visit_reason_public_ids' => $this->visitReasonIds($visit),
             'priority' => $visit->priority,
             'coverage_type' => $visit->coverage_type,
             'panel_id' => $visit->panel_id,

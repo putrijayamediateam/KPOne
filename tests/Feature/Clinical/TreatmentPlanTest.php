@@ -38,6 +38,7 @@ use App\Domain\Visit\Billing\Models\PriceEntry;
 use App\Domain\Visit\Billing\Services\BillingBuilderService;
 use App\Domain\Visit\Models\Visit;
 use App\Domain\Visit\Services\VisitDirectoryService;
+use App\Domain\Visit\Services\VisitReasonService;
 use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Auth\Access\AuthorizationException;
@@ -643,7 +644,9 @@ class TreatmentPlanTest extends ClinicalTestCase
     public function test_return_to_doctor_is_dedicated_stock_free_and_resend_creates_a_new_attempt(): void
     {
         [$doctor, $ca, $visit, $queue] = $this->servingFixture();
+        $reason = app(VisitReasonService::class)->create($ca, 'Sakit tekak');
         $visit->forceFill(['visit_reason' => 'Sakit tekak'])->save();
+        app(VisitReasonService::class)->replace($visit, collect([$reason]));
         $this->assertSame('Sakit tekak', app(VisitDirectoryService::class)->search($ca, [])['data'][0]['visitReasonExcerpt']);
         $this->assertSame('Sakit tekak', app(QueueDirectoryService::class)->snapshot($doctor)['serving'][0]['visitReasonExcerpt']);
         $this->assertFalse(app(QueueDirectoryService::class)->snapshot($doctor)['serving'][0]['returnedFromDispensary']);

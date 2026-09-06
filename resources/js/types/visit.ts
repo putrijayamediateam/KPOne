@@ -9,6 +9,14 @@ export type VisitOptions = {
     panels: Array<{ id: number; name: string }>;
 };
 
+export type VisitReasonSelection = { publicId: string; name: string };
+export type VisitReasonPresentation = {
+    primary: string | null;
+    additional: string[];
+    legacy: string | null;
+    structured: Array<{ publicId: string; label: string; position: number }>;
+};
+
 export type PatientRegistrationSummary = {
     patientNumber: string;
     fullName: string;
@@ -66,6 +74,7 @@ export type VisitDetail = {
     status: 'registered' | 'cancelled' | 'completed';
     priority: VisitPriority;
     visitReason: string | null;
+    visitReasons: VisitReasonPresentation;
     doctor: { id: number; name: string } | null;
     coverage: {
         type: VisitCoverage;

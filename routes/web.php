@@ -27,6 +27,7 @@ use App\Http\Controllers\StaffStatusController;
 use App\Http\Controllers\TreatmentPlanCatalogueController;
 use App\Http\Controllers\TreatmentPlanController;
 use App\Http\Controllers\VisitController;
+use App\Http\Controllers\VisitReasonController;
 use App\Http\Controllers\WorkspaceController;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
@@ -229,6 +230,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('registration', [RegistrationController::class, 'store'])
             ->middleware(['permission:visits.create.branch', 'throttle:30,1'])
             ->name('registration.store');
+        Route::get('visit-reasons', [VisitReasonController::class, 'index'])
+            ->middleware(['permission:visits.create.branch', 'throttle:120,1'])
+            ->name('visit-reasons.index');
+        Route::post('visit-reasons', [VisitReasonController::class, 'store'])
+            ->middleware(['permission:visits.create.branch', 'throttle:30,1'])
+            ->name('visit-reasons.store');
         Route::get('visits/{visit}', [VisitController::class, 'show'])
             ->middleware('permission:visits.view.branch')
             ->name('visits.show');

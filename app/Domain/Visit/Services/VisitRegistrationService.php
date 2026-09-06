@@ -29,6 +29,7 @@ class VisitRegistrationService
         private PatientAdministrationService $patients,
         private VisitDoctorEligibilityService $doctors,
         private VisitNumberGenerator $numbers,
+        private VisitReasonService $reasons,
         private AuditRecorder $audit,
     ) {}
 
@@ -93,6 +94,11 @@ class VisitRegistrationService
                 }
 
                 $panel = $this->lockPanel($lockedActor, $validated);
+                $reasons = $this->reasons->resolve(
+                    $lockedActor,
+                    $validated['visit_reason_public_ids'],
+                    $validated['visit_type'] === 'consultation',
+                );
                 $visit = new Visit;
                 $visit->forceFill([
                     'organisation_id' => $lockedActor->organisation_id,
@@ -103,7 +109,7 @@ class VisitRegistrationService
                     'visit_type' => $validated['visit_type'],
                     'status' => Visit::STATUS_REGISTERED,
                     'priority' => $validated['priority'],
-                    'visit_reason' => $validated['visit_reason'],
+                    'visit_reason' => $reasons->first()?->name,
                     'assigned_doctor_user_id' => $doctor?->id,
                     'coverage_type' => $validated['coverage_type'],
                     'panel_id' => $panel?->id,
@@ -115,6 +121,7 @@ class VisitRegistrationService
                     'updated_by_user_id' => $lockedActor->id,
                     'lock_version' => 1,
                 ])->save();
+                $this->reasons->assign($visit, $reasons);
 
                 $this->audit->record('visit.created', $visit, [
                     'visit_type' => $visit->visit_type,
@@ -176,7 +183,9 @@ class VisitRegistrationService
             ],
             'visit_type' => ['required', Rule::in(['consultation', 'otc'])],
             'assigned_doctor_user_id' => ['nullable', 'integer', 'required_if:visit_type,consultation'],
-            'visit_reason' => ['nullable', 'string', 'max:500', 'required_if:visit_type,consultation'],
+            'visit_reason' => ['prohibited'],
+            'visit_reason_public_ids' => ['nullable', 'array', 'max:5', 'required_if:visit_type,consultation'],
+            'visit_reason_public_ids.*' => ['required', 'uuid', 'distinct'],
             'priority' => ['required', Rule::in(['normal', 'urgent'])],
             'coverage_type' => ['required', Rule::in(['self_pay', 'panel'])],
             'panel_id' => ['nullable', 'integer', 'required_if:coverage_type,panel'],
@@ -184,16 +193,12 @@ class VisitRegistrationService
             'confirm_repeat' => ['nullable', 'boolean'],
         ])->validate();
 
-        $validated['visit_reason'] = $this->nullableTrim($validated['visit_reason'] ?? null);
+        $validated['visit_reason_public_ids'] = array_values($validated['visit_reason_public_ids'] ?? []);
         $validated['coverage_member_reference'] = $this->nullableTrim($validated['coverage_member_reference'] ?? null);
         $validated['assigned_doctor_user_id'] = isset($validated['assigned_doctor_user_id'])
             ? (int) $validated['assigned_doctor_user_id'] : null;
         $validated['panel_id'] = isset($validated['panel_id']) ? (int) $validated['panel_id'] : null;
         $validated['confirm_repeat'] = (bool) ($validated['confirm_repeat'] ?? false);
-
-        if ($validated['visit_type'] === 'consultation' && $validated['visit_reason'] === null) {
-            throw ValidationException::withMessages(['visit_reason' => 'A Visit reason is required for Consultation.']);
-        }
 
         if ($validated['coverage_type'] === 'self_pay') {
             $validated['panel_id'] = null;
