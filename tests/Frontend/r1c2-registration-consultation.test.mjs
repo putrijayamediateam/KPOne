@@ -268,6 +268,19 @@ test('R1-C2 operational areas do not render native selects', () => {
     }
 });
 
+test('financial workspace navigation uses only dedicated shared capability flags', () => {
+    const header = read(
+        'resources/js/components/workspace/WorkspaceHeader.vue',
+    );
+
+    assert.match(header, /navigation\.panelWork/);
+    assert.match(header, /navigation\.financeWork/);
+    assert.doesNotMatch(
+        header,
+        /navigation\.placeholders[\s\S]*Panel Claims/,
+    );
+});
+
 test('Visit Reason combobox prevents Enter submission and exposes complete semantics', () => {
     const picker = read('resources/js/components/visit/VisitReasonPicker.vue');
     assert.match(

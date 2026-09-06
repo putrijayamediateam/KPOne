@@ -8,12 +8,12 @@ final class BillingWorkAccess
 {
     public function panel(User $actor): bool
     {
-        return $this->summary($actor) && ($actor->can('coverage.propose.branch') || $actor->can('coverage.approve.branch'));
+        return $this->summary($actor) && $actor->can('panel.work.view.branch');
     }
 
     public function finance(User $actor): bool
     {
-        return $this->summary($actor) && $actor->can('outstanding.view.branch');
+        return $this->summary($actor) && $actor->can('finance.work.view.branch');
     }
 
     private function summary(User $actor): bool

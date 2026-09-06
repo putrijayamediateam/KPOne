@@ -6,6 +6,7 @@ use App\Domain\Organisation\Models\Branch;
 use App\Domain\Organisation\Models\Organisation;
 use App\Domain\Visit\Billing\Services\ResponsibilityService;
 use App\Domain\Visit\Models\Panel;
+use Illuminate\Support\Facades\DB;
 use Inertia\Testing\AssertableInertia as Assert;
 
 class BillingWorkTest extends BillingTestCase
@@ -49,11 +50,85 @@ class BillingWorkTest extends BillingTestCase
         $this->assertDatabaseHas('invoices', ['id' => $invoice->id, 'lock_version' => $invoice->lock_version]);
     }
 
+    public function test_clinic_roles_have_no_financial_workspace_navigation_or_direct_access_while_supervisor_approval_remains_narrow(): void
+    {
+        [$doctor, $ca, $visit, $invoice] = $this->finalizedFixture();
+        $supervisor = $this->actor('ca_supervisor');
+
+        foreach ([$ca, $doctor, $supervisor] as $actor) {
+            $this->selectBranch($actor, $visit->branch);
+            $this->assertFalse($actor->can('panel.work.view.branch'));
+            $this->assertFalse($actor->can('finance.work.view.branch'));
+            $this->get(route('dashboard'))->assertOk()->assertInertia(fn (Assert $page) => $page
+                ->where('workspace.navigation.panelWork', false)
+                ->where('workspace.navigation.financeWork', false)
+                ->missing('work'));
+            $this->get(route('clinic.panel-claims'))->assertForbidden();
+            $this->get(route('billing.work'))->assertForbidden();
+        }
+
+        $this->selectBranch($ca, $visit->branch);
+        $proposal = app(ResponsibilityService::class)->propose($ca, $visit, $invoice, 'deferment', [
+            'expected_branch_id' => $visit->branch_id,
+            'lock_version' => $invoice->lock_version,
+            'amount_sen' => 1000,
+            'due_date' => now()->addDay()->toDateString(),
+            'reason' => 'Synthetic governed approval',
+        ]);
+        DB::table('billing_approval_limits')->insert([
+            'organisation_id' => $visit->organisation_id,
+            'branch_id' => $visit->branch_id,
+            'user_id' => $supervisor->id,
+            'capability' => 'deferment',
+            'limit_sen' => 1000,
+        ]);
+        $this->selectBranch($supervisor, $visit->branch);
+        app(ResponsibilityService::class)->approve($supervisor, $visit, $invoice, 'deferment', $proposal->public_id, [
+            'expected_branch_id' => $visit->branch_id,
+            'lock_version' => $invoice->refresh()->lock_version,
+            'proposal_lock_version' => $proposal->lock_version,
+        ]);
+
+        $this->assertSame('approved', $proposal->refresh()->status);
+    }
+
+    public function test_dedicated_panel_and_finance_workspaces_do_not_cross_grant_or_include_technical_admin(): void
+    {
+        $this->finalizedFixture();
+        $panel = $this->actor('panel_officer');
+        $finance = $this->actor('finance_officer');
+        $technical = $this->actor('technical_admin');
+
+        $this->selectBranch($panel);
+        $this->get(route('dashboard'))->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('workspace.navigation.panelWork', true)
+            ->where('workspace.navigation.financeWork', false));
+        $this->get(route('clinic.panel-claims'))->assertOk();
+        $this->get(route('billing.work'))->assertForbidden();
+
+        $this->selectBranch($finance);
+        $this->get(route('dashboard'))->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('workspace.navigation.panelWork', false)
+            ->where('workspace.navigation.financeWork', true));
+        $this->get(route('clinic.panel-claims'))->assertForbidden();
+        $this->get(route('billing.work'))->assertOk();
+
+        $this->selectBranch($technical);
+        $this->get(route('dashboard'))->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('workspace.navigation.panelWork', false)
+            ->where('workspace.navigation.financeWork', false)
+            ->missing('work'));
+        $this->get(route('clinic.panel-claims'))->assertForbidden();
+        $this->get(route('billing.work'))->assertForbidden();
+    }
+
     public function test_work_queues_do_not_trust_browser_branch_scope_and_deny_non_financial_actors(): void
     {
         [, $ca, $visit, $invoice] = $this->finalizedFixture();
         $panel = Panel::factory()->create(['organisation_id' => $visit->organisation_id]);
         app(ResponsibilityService::class)->propose($ca, $visit, $invoice, 'panel', ['expected_branch_id' => $visit->branch_id, 'lock_version' => $invoice->lock_version, 'amount_sen' => 4000, 'reason' => 'Synthetic coverage', 'panel_id' => $panel->id]);
+        $panelActor = $this->actor('panel_officer');
+        $this->selectBranch($panelActor);
         $this->get(route('clinic.panel-claims'))->assertInertia(fn (Assert $p) => $p->has('work.data', 1));
         foreach (['technical_admin', 'resident_doctor'] as $role) {
             $actor = $this->actor($role);
@@ -61,11 +136,7 @@ class BillingWorkTest extends BillingTestCase
             $this->get(route('dashboard'))->assertInertia(fn (Assert $p) => $p->where('workspace.navigation.panelWork', false)->where('workspace.navigation.financeWork', false));
             $this->get(route('billing.work'))->assertForbidden();
             $this->post(route('billing.complete', $visit), [])->assertForbidden();
-            if ($role === 'technical_admin') {
-                $this->get(route('clinic.panel-claims'))->assertForbidden();
-            } else {
-                $this->get(route('clinic.panel-claims'))->assertInertia(fn (Assert $p) => $p->component('Clinic/Placeholder')->missing('work'));
-            }
+            $this->get(route('clinic.panel-claims'))->assertForbidden();
         }
         $other = Branch::query()->where('organisation_id', $this->organisation->id)->where('id', '<>', $this->branch->id)->firstOrFail();
         $org = new Organisation;
