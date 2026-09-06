@@ -39,6 +39,7 @@ export type VisitRow = {
     status: 'registered' | 'cancelled' | 'completed';
     queueNumber: string | null;
     queueStatus: 'waiting' | 'serving' | 'removed' | null;
+    queueRemovalReason?: string | null;
     durationMinutes: number | null;
     visitLockVersion: number;
     queueLockVersion: number | null;

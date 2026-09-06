@@ -13,6 +13,13 @@ import InputError from '@/components/InputError.vue';
 import PatientBoard from '@/components/patient-board/PatientBoard.vue';
 import VisitCancellationDialog from '@/components/patient-board/VisitCancellationDialog.vue';
 import { Button } from '@/components/ui/button';
+import { OperationalSelect } from '@/components/ui/select';
+import OperationalTabs from '@/components/ui/tabs/OperationalTabs.vue';
+import {
+    queuePresentationLabel,
+    servingDurationLabel,
+    waitingDurationLabel,
+} from '@/lib/r1c2-presentation';
 import type { PatientBoardRow, QueueRow, QueueSnapshot } from '@/types';
 
 defineOptions({
@@ -25,7 +32,7 @@ const tabs: Array<{ value: QueueTab; label: string }> = [
     { value: 'all', label: 'All active' },
     { value: 'waiting', label: 'Waiting' },
     { value: 'serving', label: 'Serving Now' },
-    { value: 'removed', label: 'Removed' },
+    { value: 'removed', label: 'Consultation Completed' },
 ];
 const live = ref(props.snapshot);
 const activeTab = ref<QueueTab>('all');
@@ -59,7 +66,7 @@ watch(
         receivedAt.value = Date.now();
     },
 );
-const waitLabel = (row: QueueRow) => {
+const elapsedMinutes = (row: QueueRow) => {
     void clockNow.value;
     const effectiveNow =
         Date.parse(live.value.serverNow) + (Date.now() - receivedAt.value);
@@ -70,22 +77,20 @@ const waitLabel = (row: QueueRow) => {
         Math.floor((effectiveNow - Date.parse(start)) / 60_000),
     );
 
-    if (minutes < 1) {
-        return '<1 min';
-    }
-
-    if (minutes < 60) {
-        return `${minutes} ${minutes === 1 ? 'min' : 'mins'}`;
-    }
-
-    const hours = Math.floor(minutes / 60);
-    const remainder = minutes % 60;
-    const hourLabel = `${hours} ${hours === 1 ? 'hour' : 'hours'}`;
-
-    return remainder
-        ? `${hourLabel} ${remainder} ${remainder === 1 ? 'min' : 'mins'}`
-        : hourLabel;
+    return minutes;
 };
+const doctorOptions = computed(() => [
+    { value: '', label: 'All doctors' },
+    ...live.value.doctors.map((doctor) => ({
+        value: doctor.id,
+        label: doctor.name,
+    })),
+]);
+const urgencyOptions = [
+    { value: '', label: 'All urgency' },
+    { value: 'urgent', label: 'Urgent' },
+    { value: 'normal', label: 'Normal' },
+];
 const sourceRows = computed<QueueRow[]>(() => {
     if (activeTab.value === 'removed') {
         return live.value.removed;
@@ -145,18 +150,19 @@ const boardRows = computed<PatientBoardRow[]>(() =>
         visitNotes: row.visitReasonExcerpt,
         doctorName: row.doctorName,
         coverageLabel: row.coverageLabel,
-        durationLabel: row.status === 'removed' ? '—' : waitLabel(row),
+        durationLabel:
+            row.status === 'serving'
+                ? servingDurationLabel(elapsedMinutes(row))
+                : row.status === 'waiting'
+                  ? waitingDurationLabel(elapsedMinutes(row))
+                  : '—',
         priority: row.priority,
         returnedFromDispensary: row.returnedFromDispensary,
         statusLabel:
-            row.status === 'serving'
-                ? 'Serving Now'
-                : row.status === 'waiting' &&
-                    row.operationalDate !== live.value.operationalDate
-                  ? 'Waiting · carry-over'
-                  : row.status === 'waiting'
-                    ? 'Waiting'
-                    : 'Removed from Queue',
+            row.status === 'waiting' &&
+            row.operationalDate !== live.value.operationalDate
+                ? 'Waiting · carry-over'
+                : queuePresentationLabel(row),
         statusTone:
             row.status === 'serving'
                 ? 'serving'
@@ -290,6 +296,7 @@ const selectTab = (tab: QueueTab) => {
     filters.status = tab === 'all' ? '' : tab;
     void applyFilters();
 };
+const selectOperationalTab = (value: string) => selectTab(value as QueueTab);
 const clearFilters = () => {
     Object.assign(filters, {
         query: '',
@@ -398,26 +405,13 @@ onBeforeUnmount(() => {
         class="mx-auto flex w-full max-w-[1600px] flex-1 flex-col gap-2 px-3 py-2 md:px-5"
     >
         <div class="flex items-center gap-2 border-b">
-            <nav
-                class="flex min-w-0 flex-1 gap-1 overflow-x-auto"
-                aria-label="Consultation Queue status"
-            >
-                <button
-                    v-for="tab in tabs"
-                    :key="tab.value"
-                    type="button"
-                    class="relative shrink-0 px-3 py-2 text-[13px] font-normal text-muted-foreground transition-colors hover:bg-muted/25 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-inset"
-                    :class="
-                        activeTab === tab.value
-                            ? 'font-medium text-foreground after:absolute after:inset-x-3 after:bottom-0 after:h-px after:bg-foreground/60'
-                            : ''
-                    "
-                    :aria-current="activeTab === tab.value ? 'page' : undefined"
-                    @click="selectTab(tab.value)"
-                >
-                    {{ tab.label }}
-                </button>
-            </nav>
+            <OperationalTabs
+                :model-value="activeTab"
+                class="min-w-0 flex-1"
+                label="Consultation Queue status"
+                :tabs="tabs"
+                @update:model-value="selectOperationalTab"
+            />
             <span class="shrink-0 text-[11px] text-muted-foreground">{{
                 isRefreshing ? 'Refreshing…' : 'Live · every 3 seconds'
             }}</span>
@@ -435,30 +429,17 @@ onBeforeUnmount(() => {
                     class="h-9 w-full rounded-lg border border-transparent bg-muted/45 pr-3 pl-9 text-[13px] transition-colors outline-none hover:bg-muted/65 focus:border-ring/40 focus:bg-background focus:ring-2 focus:ring-ring/25"
                     placeholder="Patient or exact Queue number"
             /></label>
-            <select
+            <OperationalSelect
                 v-if="live.scope === 'branch'"
                 v-model="filters.doctor_id"
-                aria-label="Doctor"
-                class="h-9 rounded-lg border border-transparent bg-muted/45 px-2 text-[13px] transition-colors outline-none hover:bg-muted/65 focus:border-ring/40 focus:bg-background focus:ring-2 focus:ring-ring/25"
-            >
-                <option value="">All doctors</option>
-                <option
-                    v-for="doctor in live.doctors"
-                    :key="doctor.id"
-                    :value="doctor.id"
-                >
-                    {{ doctor.name }}
-                </option></select
-            ><span v-else class="hidden xl:block" />
-            <select
+                label="Doctor"
+                :options="doctorOptions"
+            /><span v-else class="hidden xl:block" />
+            <OperationalSelect
                 v-model="filters.priority"
-                aria-label="Urgency"
-                class="h-9 rounded-lg border border-transparent bg-muted/45 px-2 text-[13px] transition-colors outline-none hover:bg-muted/65 focus:border-ring/40 focus:bg-background focus:ring-2 focus:ring-ring/25"
-            >
-                <option value="">All urgency</option>
-                <option value="urgent">Urgent</option>
-                <option value="normal">Normal</option>
-            </select>
+                label="Urgency"
+                :options="urgencyOptions"
+            />
             <Button type="submit" size="sm" :disabled="isApplyingFilters"
                 ><LoaderCircle
                     v-if="isApplyingFilters"

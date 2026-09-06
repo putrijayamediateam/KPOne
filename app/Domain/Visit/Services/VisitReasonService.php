@@ -26,18 +26,28 @@ class VisitReasonService
         private BranchAccessService $branches,
     ) {}
 
-    /** @return list<array{publicId:string,name:string}> */
+    /** @return list<array{publicId:string,name:string,isActive:bool}> */
     public function search(User $actor, string $query): array
     {
         Gate::forUser($actor)->authorize('create', Visit::class);
         $normalized = $this->normalize($query, allowEmpty: true);
 
-        return array_values(VisitReason::query()
+        $exact = $normalized === '' ? null : VisitReason::query()
+            ->where('organisation_id', $actor->organisation_id)
+            ->where('normalized_name', $normalized)
+            ->first(['id', 'public_id', 'name', 'is_active']);
+        $reasons = VisitReason::query()
             ->where('organisation_id', $actor->organisation_id)
             ->where('is_active', true)
             ->when($normalized !== '', fn ($builder) => $builder->where('normalized_name', 'like', '%'.$this->escapeLike($normalized).'%'))
-            ->orderBy('name')->limit(20)->get(['public_id', 'name'])
-            ->map(fn (VisitReason $reason): array => ['publicId' => $reason->public_id, 'name' => $reason->name])
+            ->when($exact, fn ($builder) => $builder->where('id', '!=', $exact->id))
+            ->orderBy('name')->limit($exact ? 19 : 20)->get(['public_id', 'name', 'is_active']);
+        if ($exact) {
+            $reasons->prepend($exact);
+        }
+
+        return array_values($reasons
+            ->map(fn (VisitReason $reason): array => ['publicId' => $reason->public_id, 'name' => $reason->name, 'isActive' => $reason->is_active])
             ->all());
     }
 

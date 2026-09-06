@@ -338,6 +338,7 @@ class VisitDirectoryService
             'status' => $visit->status,
             'queueNumber' => $visibleQueueEntry ? sprintf('%03d', $visibleQueueEntry->queue_number) : null,
             'queueStatus' => $visibleQueueEntry?->status,
+            'queueRemovalReason' => $visibleQueueEntry?->removal_reason,
             'durationMinutes' => $durationMinutes,
             'visitLockVersion' => $visit->lock_version,
             'billingUrl' => $canBilling ? route('billing.show', $visit) : null,

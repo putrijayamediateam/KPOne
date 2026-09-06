@@ -21,6 +21,8 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
+import { OperationalSelect } from '@/components/ui/select';
+import { treatmentSaveButtonVariant } from '@/lib/r1c2-presentation';
 import type {
     ClinicalAllergySafety,
     TreatmentPlanPage,
@@ -111,6 +113,24 @@ const frequencyPresets = [
 ];
 const durationUnits = ['day', 'week', 'month'];
 const routePresets = ['Oral', 'Topical', 'Inhaled'];
+const selectOptions = (values: string[], emptyLabel: string, custom = true) => [
+    { value: '', label: emptyLabel },
+    ...values.map((value) => ({ value, label: value })),
+    ...(custom ? [{ value: customChoice, label: 'Custom / Other' }] : []),
+];
+const dosageUnitOptions = selectOptions(dosageUnits, 'Unit');
+const frequencyOptions = selectOptions(frequencyPresets, 'Select frequency');
+const durationUnitOptions = [
+    { value: '', label: 'Unit' },
+    ...durationUnits.map((value) => ({ value, label: `${value}(s)` })),
+    { value: customChoice, label: 'Custom / Other' },
+];
+const routeOptions = selectOptions(routePresets, 'Select route');
+const dispositionOptions = [
+    { value: '', label: 'Confirm disposition' },
+    { value: 'performed', label: 'Performed' },
+    { value: 'not_performed', label: 'Not performed' },
+];
 
 type AmountUnitComposer = {
     mode: 'structured' | 'custom';
@@ -573,7 +593,7 @@ const save = () => {
                     Find medicine
                     <input
                         v-model="medicineQuery"
-                        class="mt-1 h-9 w-full rounded-md border px-3"
+                        class="mt-1 h-9 w-full rounded-md border border-input bg-card px-3 outline-none hover:border-foreground/25 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/40"
                         autocomplete="off"
                         @keyup.enter.prevent="search('medicines')"
                     />
@@ -667,7 +687,7 @@ const save = () => {
                             type="number"
                             min="0.001"
                             step="0.001"
-                            class="mt-1 h-9 w-full rounded-md border px-3 text-sm"
+                            class="mt-1 h-9 w-full rounded-md border border-input bg-card px-3 text-sm outline-none hover:border-foreground/25 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/40"
                     /></label>
                     <fieldset class="text-xs">
                         <legend>Dosage</legend>
@@ -681,34 +701,22 @@ const save = () => {
                                 step="any"
                                 inputmode="decimal"
                                 aria-label="Dosage amount"
-                                class="h-9 min-w-0 rounded-md border px-2 text-sm"
+                                class="h-9 min-w-0 rounded-md border border-input bg-card px-2 text-sm outline-none hover:border-foreground/25 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/40"
                                 @input="syncMedicine(item)"
                             />
-                            <select
+                            <OperationalSelect
                                 v-model="item.dosage_composer.unit"
-                                aria-label="Dosage unit"
-                                class="h-9 min-w-0 rounded-md border bg-background px-2 text-sm"
-                                @change="selectDosageUnit(item)"
-                            >
-                                <option value="">Unit</option>
-                                <option
-                                    v-for="unit in dosageUnits"
-                                    :key="unit"
-                                    :value="unit"
-                                >
-                                    {{ unit }}
-                                </option>
-                                <option :value="customChoice">
-                                    Custom / Other
-                                </option>
-                            </select>
+                                label="Dosage unit"
+                                :options="dosageUnitOptions"
+                                @update:model-value="selectDosageUnit(item)"
+                            />
                         </div>
                         <div v-else class="mt-1 flex gap-1">
                             <input
                                 v-model="item.dosage_composer.custom"
                                 maxlength="255"
                                 aria-label="Custom dosage"
-                                class="h-9 min-w-0 flex-1 rounded-md border px-2 text-sm"
+                                class="h-9 min-w-0 flex-1 rounded-md border border-input bg-card px-2 text-sm outline-none hover:border-foreground/25 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/40"
                                 @input="syncMedicine(item)"
                             />
                             <Button
@@ -722,29 +730,18 @@ const save = () => {
                         </div>
                     </fieldset>
                     <label class="text-xs"
-                        >Frequency<select
+                        >Frequency<OperationalSelect
                             v-model="item.frequency_choice"
-                            class="mt-1 h-9 w-full rounded-md border bg-background px-2 text-sm"
-                            @change="syncMedicine(item)"
-                        >
-                            <option value="">Select frequency</option>
-                            <option
-                                v-for="frequency in frequencyPresets"
-                                :key="frequency"
-                                :value="frequency"
-                            >
-                                {{ frequency }}
-                            </option>
-                            <option :value="customChoice">
-                                Custom / Other
-                            </option>
-                        </select>
+                            class="mt-1"
+                            label="Frequency"
+                            :options="frequencyOptions"
+                            @update:model-value="syncMedicine(item)" />
                         <input
                             v-if="item.frequency_choice === customChoice"
                             v-model="item.frequency_custom"
                             maxlength="255"
                             aria-label="Custom frequency"
-                            class="mt-1 h-9 w-full rounded-md border px-2 text-sm"
+                            class="mt-1 h-9 w-full rounded-md border border-input bg-card px-2 text-sm outline-none hover:border-foreground/25 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/40"
                             @input="syncMedicine(item)"
                     /></label>
                     <fieldset class="text-xs">
@@ -764,34 +761,22 @@ const save = () => {
                                 step="any"
                                 inputmode="decimal"
                                 aria-label="Duration amount"
-                                class="h-9 min-w-0 rounded-md border px-2 text-sm"
+                                class="h-9 min-w-0 rounded-md border border-input bg-card px-2 text-sm outline-none hover:border-foreground/25 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/40"
                                 @input="syncMedicine(item)"
                             />
-                            <select
+                            <OperationalSelect
                                 v-model="item.duration_composer.unit"
-                                aria-label="Duration unit"
-                                class="h-9 min-w-0 rounded-md border bg-background px-2 text-sm"
-                                @change="selectDurationUnit(item)"
-                            >
-                                <option value="">Unit</option>
-                                <option
-                                    v-for="unit in durationUnits"
-                                    :key="unit"
-                                    :value="unit"
-                                >
-                                    {{ unit }}(s)
-                                </option>
-                                <option :value="customChoice">
-                                    Custom / Other
-                                </option>
-                            </select>
+                                label="Duration unit"
+                                :options="durationUnitOptions"
+                                @update:model-value="selectDurationUnit(item)"
+                            />
                         </div>
                         <div v-else class="mt-1 flex gap-1">
                             <input
                                 v-model="item.duration_composer.custom"
                                 maxlength="255"
                                 aria-label="Custom duration"
-                                class="h-9 min-w-0 flex-1 rounded-md border px-2 text-sm"
+                                class="h-9 min-w-0 flex-1 rounded-md border border-input bg-card px-2 text-sm outline-none hover:border-foreground/25 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/40"
                                 @input="syncMedicine(item)"
                             />
                             <Button
@@ -809,29 +794,18 @@ const save = () => {
                     <label class="text-xs"
                         >Route
                         <span class="text-muted-foreground">(optional)</span
-                        ><select
+                        ><OperationalSelect
                             v-model="item.route_choice"
-                            class="mt-1 h-9 w-full rounded-md border bg-background px-2 text-sm"
-                            @change="syncMedicine(item)"
-                        >
-                            <option value="">Select route</option>
-                            <option
-                                v-for="route in routePresets"
-                                :key="route"
-                                :value="route"
-                            >
-                                {{ route }}
-                            </option>
-                            <option :value="customChoice">
-                                Custom / Other
-                            </option>
-                        </select>
+                            class="mt-1"
+                            label="Route"
+                            :options="routeOptions"
+                            @update:model-value="syncMedicine(item)" />
                         <input
                             v-if="item.route_choice === customChoice"
                             v-model="item.route_custom"
                             maxlength="255"
                             aria-label="Custom route"
-                            class="mt-1 h-9 w-full rounded-md border px-2 text-sm"
+                            class="mt-1 h-9 w-full rounded-md border border-input bg-card px-2 text-sm outline-none hover:border-foreground/25 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/40"
                             @input="syncMedicine(item)"
                     /></label>
                     <label class="text-xs"
@@ -841,7 +815,7 @@ const save = () => {
                             v-model="item.administration_instruction"
                             maxlength="2000"
                             placeholder="e.g. After meals"
-                            class="mt-1 h-9 w-full rounded-md border px-3 text-sm"
+                            class="mt-1 h-9 w-full rounded-md border border-input bg-card px-3 text-sm outline-none hover:border-foreground/25 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/40"
                     /></label>
                 </div>
                 <details class="group text-xs text-muted-foreground">
@@ -864,14 +838,14 @@ const save = () => {
                                 v-model="item.indication"
                                 maxlength="2000"
                                 rows="2"
-                                class="mt-1 w-full rounded-md border bg-background p-2 text-sm text-foreground"
+                                class="mt-1 w-full rounded-md border border-input bg-card p-2 text-sm text-foreground outline-none hover:border-foreground/25 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/40"
                             /></label
                         ><label
                             >Precaution / additional instruction<textarea
                                 v-model="item.precaution"
                                 maxlength="2000"
                                 rows="2"
-                                class="mt-1 w-full rounded-md border bg-background p-2 text-sm text-foreground"
+                                class="mt-1 w-full rounded-md border border-input bg-card p-2 text-sm text-foreground outline-none hover:border-foreground/25 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/40"
                             />
                         </label>
                     </div>
@@ -890,7 +864,7 @@ const save = () => {
                 <label class="min-w-64 flex-1 text-sm"
                     >Find service / procedure<input
                         v-model="serviceQuery"
-                        class="mt-1 h-9 w-full rounded-md border px-3"
+                        class="mt-1 h-9 w-full rounded-md border border-input bg-card px-3 outline-none hover:border-foreground/25 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/40"
                         autocomplete="off"
                         @keyup.enter.prevent="search('services')"
                 /></label>
@@ -940,13 +914,13 @@ const save = () => {
                         type="number"
                         min="0.001"
                         step="0.001"
-                        class="mt-1 h-9 w-full rounded-md border px-3 text-sm"
+                        class="mt-1 h-9 w-full rounded-md border border-input bg-card px-3 text-sm outline-none hover:border-foreground/25 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/40"
                 /></label>
                 <label class="text-xs"
                     >Clinical instruction<input
                         v-model="item.clinical_instruction"
                         maxlength="2000"
-                        class="mt-1 h-9 w-full rounded-md border px-3 text-sm"
+                        class="mt-1 h-9 w-full rounded-md border border-input bg-card px-3 text-sm outline-none hover:border-foreground/25 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/40"
                 /></label>
                 <div class="flex items-center justify-end gap-0.5">
                     <Button
@@ -1007,12 +981,14 @@ const save = () => {
             <Button
                 v-if="plan.canCompleteConsultation"
                 type="button"
-                variant="outline"
                 @click="sendOpen = true"
                 >Complete Consultation</Button
             >
             <Button
                 type="button"
+                :variant="
+                    treatmentSaveButtonVariant(plan.canCompleteConsultation)
+                "
                 :disabled="form.processing || !plan.canSave"
                 @click="save"
                 ><LoaderCircle
@@ -1051,15 +1027,11 @@ const save = () => {
                     <label :for="`performed-${service.publicId}`"
                         >Service disposition</label
                     >
-                    <select
-                        :id="`performed-${service.publicId}`"
+                    <OperationalSelect
                         v-model="sendForm.service_deliveries[index].disposition"
-                        class="h-9 w-full rounded-md border bg-background px-2"
-                    >
-                        <option value="">Confirm disposition</option>
-                        <option value="performed">Performed</option>
-                        <option value="not_performed">Not performed</option>
-                    </select>
+                        label="Service disposition"
+                        :options="dispositionOptions"
+                    />
                     <label
                         v-if="
                             sendForm.service_deliveries[index].disposition ===
@@ -1072,7 +1044,7 @@ const save = () => {
                                     .quantity_performed
                             "
                             inputmode="decimal"
-                            class="ml-2 h-9 w-24 rounded-md border px-2"
+                            class="ml-2 h-9 w-24 rounded-md border border-input bg-card px-2 outline-none hover:border-foreground/25 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/40"
                     /></label>
                 </div>
                 <InputError :message="Object.values(sendForm.errors)[0]" />

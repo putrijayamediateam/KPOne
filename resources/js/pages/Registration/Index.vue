@@ -13,6 +13,13 @@ import InputError from '@/components/InputError.vue';
 import PatientBoard from '@/components/patient-board/PatientBoard.vue';
 import VisitCancellationDialog from '@/components/patient-board/VisitCancellationDialog.vue';
 import { Button } from '@/components/ui/button';
+import { OperationalSelect } from '@/components/ui/select';
+import OperationalTabs from '@/components/ui/tabs/OperationalTabs.vue';
+import {
+    queuePresentationLabel,
+    waitingDurationLabel,
+    servingDurationLabel,
+} from '@/lib/r1c2-presentation';
 import type { PatientBoardRow, VisitOptions, VisitRow } from '@/types';
 
 defineOptions({
@@ -79,27 +86,28 @@ const csrf = () =>
         ?.content ?? '';
 let searchGeneration = 0;
 const plannedTab = computed(() => false);
-const duration = (minutes: number | null) => {
-    if (minutes === null) {
-        return '—';
-    }
-
-    if (minutes < 1) {
-        return '<1 min';
-    }
-
-    if (minutes < 60) {
-        return `${minutes} ${minutes === 1 ? 'min' : 'mins'}`;
-    }
-
-    const hours = Math.floor(minutes / 60);
-    const remainder = minutes % 60;
-    const hourLabel = `${hours} ${hours === 1 ? 'hour' : 'hours'}`;
-
-    return remainder
-        ? `${hourLabel} ${remainder} ${remainder === 1 ? 'min' : 'mins'}`
-        : hourLabel;
-};
+const doctorOptions = computed(() => [
+    { value: '', label: 'All doctors' },
+    ...props.options.doctors.map((doctor) => ({
+        value: doctor.id,
+        label: doctor.name,
+    })),
+]);
+const coverageOptions = [
+    { value: '', label: 'All coverage' },
+    { value: 'self_pay', label: 'Self-pay' },
+    { value: 'panel', label: 'Panel' },
+];
+const urgencyOptions = [
+    { value: '', label: 'All urgency' },
+    { value: 'urgent', label: 'Urgent' },
+    { value: 'normal', label: 'Normal' },
+];
+const visitTypeOptions = [
+    { value: '', label: 'All' },
+    { value: 'consultation', label: 'Consultation' },
+    { value: 'otc', label: 'OTC' },
+];
 const compactDate = (value: string) => {
     const [year, month, day] = value.split('-').map(Number);
 
@@ -159,7 +167,11 @@ const boardRows = computed<PatientBoardRow[]>(() =>
                           ? { label: 'Waiting', tone: 'waiting' as const }
                           : visit.queueStatus === 'removed'
                             ? {
-                                  label: 'Removed from Queue',
+                                  label: queuePresentationLabel({
+                                      status: 'removed',
+                                      removalReason: visit.queueRemovalReason,
+                                      visitStatus: visit.status,
+                                  }),
                                   tone: 'removed' as const,
                               }
                             : { label: 'Registered', tone: 'neutral' as const };
@@ -175,7 +187,12 @@ const boardRows = computed<PatientBoardRow[]>(() =>
             visitNotes: visit.visitReasonExcerpt,
             doctorName: visit.doctorName,
             coverageLabel: visit.coverageLabel,
-            durationLabel: duration(visit.durationMinutes),
+            durationLabel:
+                visit.queueStatus === 'serving'
+                    ? servingDurationLabel(visit.durationMinutes)
+                    : visit.queueStatus === 'waiting'
+                      ? waitingDurationLabel(visit.durationMinutes)
+                      : '—',
             priority: visit.priority,
             returnedFromDispensary: visit.returnedFromDispensary,
             dispensaryUrl: visit.dispensaryUrl,
@@ -255,6 +272,7 @@ const selectTab = (tab: BoardTab) => {
     form.board_status = tab;
     void search(1);
 };
+const selectOperationalTab = (value: string) => selectTab(value as BoardTab);
 const advancedFilterCount = computed(
     () =>
         [form.priority, form.visit_type].filter(Boolean).length +
@@ -338,31 +356,13 @@ const requestCancellation = (row: PatientBoardRow) => {
         class="mx-auto flex w-full max-w-[1600px] flex-1 flex-col gap-2 px-3 py-2 md:px-5"
     >
         <div class="flex items-center gap-2 border-b">
-            <nav
-                class="flex min-w-0 flex-1 gap-1 overflow-x-auto"
-                aria-label="Patient board status"
-            >
-                <button
-                    v-for="tab in tabs"
-                    :key="tab.value"
-                    type="button"
-                    class="relative shrink-0 px-3 py-2 text-[13px] font-normal text-muted-foreground transition-colors hover:bg-muted/25 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-inset"
-                    :class="
-                        activeTab === tab.value
-                            ? 'font-medium text-foreground after:absolute after:inset-x-3 after:bottom-0 after:h-px after:bg-foreground/60'
-                            : ''
-                    "
-                    :aria-current="activeTab === tab.value ? 'page' : undefined"
-                    @click="selectTab(tab.value)"
-                >
-                    {{ tab.label }}
-                    <span
-                        v-if="tab.planned"
-                        class="ml-1 text-[9px] font-normal tracking-normal text-muted-foreground/70"
-                        >Planned</span
-                    >
-                </button>
-            </nav>
+            <OperationalTabs
+                class="min-w-0 flex-1"
+                :model-value="activeTab"
+                label="Patient board status"
+                :tabs="tabs"
+                @update:model-value="selectOperationalTab"
+            />
             <Button v-if="canCreate" as-child size="sm" class="shrink-0"
                 ><Link href="/registration/create"
                     ><Plus class="size-4" /> Register Visit</Link
@@ -400,38 +400,21 @@ const requestCancellation = (row: PatientBoardRow) => {
                             placeholder="Patient name or exact Patient No."
                         />
                     </label>
-                    <select
+                    <OperationalSelect
                         v-model="form.doctor_id"
-                        aria-label="Doctor"
-                        class="h-9 rounded-lg border border-transparent bg-muted/45 px-2 text-[13px] transition-colors outline-none hover:bg-muted/65 focus:border-ring/40 focus:bg-background focus:ring-2 focus:ring-ring/25"
-                    >
-                        <option value="">All doctors</option>
-                        <option
-                            v-for="doctor in options.doctors"
-                            :key="doctor.id"
-                            :value="doctor.id"
-                        >
-                            {{ doctor.name }}
-                        </option>
-                    </select>
-                    <select
+                        label="Doctor"
+                        :options="doctorOptions"
+                    />
+                    <OperationalSelect
                         v-model="form.coverage_type"
-                        aria-label="Coverage"
-                        class="h-9 rounded-lg border border-transparent bg-muted/45 px-2 text-[13px] transition-colors outline-none hover:bg-muted/65 focus:border-ring/40 focus:bg-background focus:ring-2 focus:ring-ring/25"
-                    >
-                        <option value="">All coverage</option>
-                        <option value="self_pay">Self-pay</option>
-                        <option value="panel">Panel</option>
-                    </select>
-                    <select
+                        label="Coverage"
+                        :options="coverageOptions"
+                    />
+                    <OperationalSelect
                         v-model="form.priority"
-                        aria-label="Urgency"
-                        class="h-9 rounded-lg border border-transparent bg-muted/45 px-2 text-[13px] transition-colors outline-none hover:bg-muted/65 focus:border-ring/40 focus:bg-background focus:ring-2 focus:ring-ring/25"
-                    >
-                        <option value="">All urgency</option>
-                        <option value="urgent">Urgent</option>
-                        <option value="normal">Normal</option>
-                    </select>
+                        label="Urgency"
+                        :options="urgencyOptions"
+                    />
                     <Button size="sm" type="submit" :disabled="loading"
                         ><LoaderCircle
                             v-if="loading"
@@ -458,16 +441,14 @@ const requestCancellation = (row: PatientBoardRow) => {
                     v-if="showMoreFilters"
                     class="mt-3 flex flex-wrap items-end gap-2 border-t pt-3"
                 >
-                    <label class="grid gap-1 text-xs"
-                        >Visit type<select
+                    <label class="grid min-w-40 gap-1 text-xs"
+                        >Visit type
+                        <OperationalSelect
                             v-model="form.visit_type"
-                            class="h-9 rounded-lg border border-transparent bg-muted/45 px-2 text-[13px] transition-colors outline-none hover:bg-muted/65 focus:border-ring/40 focus:bg-background focus:ring-2 focus:ring-ring/25"
-                        >
-                            <option value="">All</option>
-                            <option value="consultation">Consultation</option>
-                            <option value="otc">OTC</option>
-                        </select></label
-                    >
+                            label="Visit type"
+                            :options="visitTypeOptions"
+                        />
+                    </label>
                     <label class="grid gap-1 text-xs"
                         >From<input
                             v-model="form.date_from"

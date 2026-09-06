@@ -148,6 +148,7 @@ export type ClinicalEncounterPage = {
         queueNumber: string;
         operationalDate: string;
         status: 'serving';
+        queuedAt: string;
         calledAt: string | null;
         lockVersion: number;
     };
