@@ -12,6 +12,8 @@ import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue';
 import InputError from '@/components/InputError.vue';
 import PhoneInput from '@/components/patient/PhoneInput.vue';
 import { Button } from '@/components/ui/button';
+import VisitReasonPicker from '@/components/visit/VisitReasonPicker.vue';
+import type { VisitReasonOption } from '@/components/visit/VisitReasonPicker.vue';
 import {
     phoneError,
     identityError,
@@ -63,7 +65,7 @@ type RegistrationForm = {
     quick_patient: QuickPatientInput | null;
     visit_type: 'consultation' | 'otc';
     assigned_doctor_user_id: number | '';
-    visit_reason: string;
+    visit_reason_public_ids: string[];
     coverage_type: 'self_pay' | 'panel';
     panel_id: number | '';
     coverage_member_reference: string;
@@ -78,7 +80,7 @@ const form = useForm<RegistrationForm>({
     visit_type: 'consultation' as 'consultation' | 'otc',
     assigned_doctor_user_id:
         props.options.doctors.length === 1 ? props.options.doctors[0].id : '',
-    visit_reason: '',
+    visit_reason_public_ids: [],
     coverage_type: 'self_pay' as 'self_pay' | 'panel',
     panel_id: '',
     coverage_member_reference: '',
@@ -93,6 +95,7 @@ const quick = ref({
     phone_country: 'MY',
     duplicate_override: false,
 });
+const selectedVisitReasons = ref<VisitReasonOption[]>([]);
 const csrf = () =>
     document.querySelector<HTMLMetaElement>('meta[name="csrf-token"]')
         ?.content ?? '';
@@ -696,31 +699,21 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
                         ><InputError
                             :message="errorFor('assigned_doctor_user_id')"
                     /></label>
-                    <label class="grid gap-1 md:col-span-2"
-                        ><span class="text-sm font-medium"
-                            >4. Visit reason
+                    <div class="grid gap-1 md:col-span-2">
+                        <span class="text-sm font-medium"
+                            >4. Visit Reason
                             <span
                                 v-if="form.visit_type === 'otc'"
                                 class="font-normal text-muted-foreground"
                                 >(optional)</span
                             ></span
-                        ><textarea
-                            v-model="form.visit_reason"
-                            :aria-invalid="!!form.errors.visit_reason"
-                            maxlength="500"
-                            rows="2"
-                            autocomplete="off"
-                            class="rounded-md border bg-background px-3 py-2 text-sm focus-visible:ring-2 focus-visible:ring-emerald-600/30 focus-visible:outline-none"
-                            placeholder="e.g. fever, follow-up result, vaccination"
+                        >
+                        <VisitReasonPicker
+                            v-model="form.visit_reason_public_ids"
+                            v-model:selected="selectedVisitReasons"
+                            :error="errorFor('visit_reason_public_ids')"
                         />
-                        <div class="flex justify-between">
-                            <InputError
-                                :message="errorFor('visit_reason')"
-                            /><span class="text-xs text-muted-foreground"
-                                >{{ form.visit_reason.length }}/500</span
-                            >
-                        </div></label
-                    >
+                    </div>
                     <fieldset class="grid gap-1">
                         <legend class="mb-1 text-sm font-medium">
                             5. Coverage

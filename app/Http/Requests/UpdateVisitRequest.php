@@ -20,7 +20,9 @@ class UpdateVisitRequest extends FormRequest
             'queue_lock_version' => ['nullable', 'integer', 'min:1'],
             'visit_type' => ['required', 'in:consultation,otc'],
             'assigned_doctor_user_id' => ['nullable', 'integer', 'required_if:visit_type,consultation'],
-            'visit_reason' => ['nullable', 'string', 'max:500', 'required_if:visit_type,consultation'],
+            'visit_reason' => ['prohibited'],
+            'visit_reason_public_ids' => ['sometimes', 'array', 'max:5'],
+            'visit_reason_public_ids.*' => ['required', 'uuid', 'distinct'],
             'priority' => ['required', 'in:normal,urgent'],
             'coverage_type' => ['required', 'in:self_pay,panel'],
             'panel_id' => ['nullable', 'integer', 'required_if:coverage_type,panel'],
@@ -40,8 +42,7 @@ class UpdateVisitRequest extends FormRequest
     {
         return [
             'assigned_doctor_user_id.required_if' => 'Please select a doctor for this consultation.',
-            'visit_reason.required_if' => 'Please enter a reason for this consultation.',
-            'visit_reason.max' => 'The Visit reason must be 500 characters or fewer.',
+            'visit_reason_public_ids.max' => 'A Visit can have up to 5 reasons.',
             'panel_id.required_if' => 'Please select a Panel for this Visit.',
             'coverage_member_reference.max' => 'The Panel member reference must be 100 characters or fewer.',
             'lock_version.required' => 'This Visit needs to be reloaded before it can be changed.',

@@ -10,6 +10,8 @@ use App\Domain\Patient\Models\Patient;
 use App\Domain\Queue\Models\QueueEntry;
 use App\Domain\Queue\Services\QueueEntryService;
 use App\Domain\Visit\Models\Visit;
+use App\Domain\Visit\Models\VisitReason;
+use App\Domain\Visit\Models\VisitReasonAssignment;
 use App\Models\User;
 use Illuminate\Database\Connection;
 use Illuminate\Support\Facades\Config;
@@ -73,12 +75,14 @@ class PostgresQueueRegressionTest extends TestCase
         if ($this->organisationId !== null) {
             DB::table('audit_logs')->where('organisation_id', $this->organisationId)->delete();
             DB::table('queue_entries')->where('organisation_id', $this->organisationId)->delete();
+            DB::table('visit_reason_assignments')->where('organisation_id', $this->organisationId)->delete();
             DB::table('queue_number_counters')->where('organisation_id', $this->organisationId)->delete();
             DB::table('visits')->where('organisation_id', $this->organisationId)->delete();
             DB::table('visit_number_counters')->where('organisation_id', $this->organisationId)->delete();
             DB::table('patient_identifiers')->where('organisation_id', $this->organisationId)->delete();
             DB::table('patients')->where('organisation_id', $this->organisationId)->delete();
             DB::table('patient_number_counters')->where('organisation_id', $this->organisationId)->delete();
+            DB::table('visit_reason_catalogue_items')->where('organisation_id', $this->organisationId)->delete();
             $branchIds = DB::table('branches')->where('organisation_id', $this->organisationId)->pluck('id');
             DB::table('staff_branch_assignments')->whereIn('branch_id', $branchIds)->delete();
             $userIds = DB::table('users')->where('organisation_id', $this->organisationId)->pluck('id');
@@ -325,6 +329,25 @@ class PostgresQueueRegressionTest extends TestCase
             'coverage_type' => 'self_pay', 'registered_at' => now()->utc(),
             'registered_by_user_id' => $actor->id, 'updated_by_user_id' => $actor->id, 'lock_version' => 1,
         ])->save();
+        $reasonName = 'Synthetic PostgreSQL Queue reason '.$visit->id;
+        $reason = new VisitReason;
+        $reason->forceFill([
+            'public_id' => (string) Str::uuid(),
+            'organisation_id' => $organisation->id,
+            'name' => $reasonName,
+            'normalized_name' => Str::lower($reasonName),
+            'is_active' => true,
+            'created_by_user_id' => $actor->id,
+        ])->save();
+        $assignment = new VisitReasonAssignment;
+        $assignment->forceFill([
+            'organisation_id' => $organisation->id,
+            'branch_id' => $branch->id,
+            'visit_id' => $visit->id,
+            'visit_reason_catalogue_item_id' => $reason->id,
+            'label_snapshot' => $reasonName,
+            'position' => 1,
+        ])->save();
 
         return $visit;
     }
@@ -511,9 +534,11 @@ class PostgresQueueRegressionTest extends TestCase
         $id = $this->organisationId;
         DB::table('audit_logs')->where('organisation_id', $id)->delete();
         DB::table('queue_entries')->where('organisation_id', $id)->delete();
+        DB::table('visit_reason_assignments')->where('organisation_id', $id)->delete();
         DB::table('queue_number_counters')->where('organisation_id', $id)->delete();
         DB::table('visits')->where('organisation_id', $id)->delete();
         DB::table('patients')->where('organisation_id', $id)->delete();
+        DB::table('visit_reason_catalogue_items')->where('organisation_id', $id)->delete();
         $branchIds = DB::table('branches')->where('organisation_id', $id)->pluck('id');
         DB::table('staff_branch_assignments')->whereIn('branch_id', $branchIds)->delete();
         $userIds = DB::table('users')->where('organisation_id', $id)->pluck('id');

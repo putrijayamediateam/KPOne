@@ -5,6 +5,7 @@ namespace Tests\Feature\Queue;
 use App\Domain\Queue\Models\QueueEntry;
 use App\Domain\Queue\Services\QueueDirectoryService;
 use App\Domain\Visit\Services\VisitAdministrationService;
+use App\Domain\Visit\Services\VisitReasonService;
 use App\Domain\Visit\Services\VisitRegistrationService;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
@@ -83,7 +84,7 @@ class QueueDirectoryTest extends QueueTestCase
             'queue_lock_version' => $second->lock_version,
             'visit_type' => 'consultation',
             'assigned_doctor_user_id' => $doctor->id,
-            'visit_reason' => 'Synthetic urgent Queue update',
+            'visit_reason_public_ids' => $this->visitReasonIds($secondVisit),
             'priority' => 'urgent',
             'coverage_type' => 'self_pay',
         ], $director);
@@ -96,7 +97,7 @@ class QueueDirectoryTest extends QueueTestCase
                 'expected_branch_id' => $otherBranch->id,
                 'visit_type' => 'consultation',
                 'assigned_doctor_user_id' => $otherDoctor->id,
-                'visit_reason' => 'Synthetic isolated branch Queue',
+                'visit_reason_public_ids' => [app(VisitReasonService::class)->create($director, 'Synthetic isolated branch Queue')->public_id],
             ]),
         );
         $this->send($director, $otherVisit);

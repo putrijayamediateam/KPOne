@@ -9,6 +9,7 @@ use App\Domain\Organisation\Models\Branch;
 use App\Domain\Queue\Models\QueueEntry;
 use App\Domain\Visit\Policies\VisitPolicy;
 use App\Domain\Visit\Services\VisitDoctorEligibilityService;
+use App\Domain\Visit\Services\VisitReasonService;
 use App\Models\User;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Builder;
@@ -23,6 +24,7 @@ class QueueDirectoryService
         private VisitDoctorEligibilityService $doctors,
         private VisitPolicy $visitPolicy,
         private DoctorDispensaryAttentionService $dispensaryAttention,
+        private VisitReasonService $visitReasons,
     ) {}
 
     /**
@@ -160,7 +162,7 @@ class QueueDirectoryService
                         'id', 'organisation_id', 'branch_id', 'patient_id', 'visit_number', 'visit_reason', 'priority', 'coverage_type',
                         'coverage_panel_name_snapshot', 'assigned_doctor_user_id', 'status', 'lock_version',
                     ])
-                    ->with(['patient:id,organisation_id,patient_number,full_name', 'assignedDoctor:id,name']),
+                    ->with(['patient:id,organisation_id,patient_number,full_name', 'assignedDoctor:id,name', 'reasonAssignments.reason:id,public_id,name']),
             ]);
 
         if (! $actor->can('queue.view.branch')) {
@@ -232,7 +234,7 @@ class QueueDirectoryService
             'patientNumber' => $visit->patient->patient_number,
             'patientName' => $visit->patient->full_name,
             'visitNumber' => $visit->visit_number,
-            'visitReasonExcerpt' => $visit->visit_reason ? Str::limit($visit->visit_reason, 80) : null,
+            'visitReasonExcerpt' => ($summary = $this->visitReasons->summary($visit)) ? Str::limit($summary, 80) : null,
             'doctorName' => $visit->assignedDoctor?->name,
             'doctorEligible' => $doctorEligible,
             'coverageLabel' => $visit->coverage_type === 'panel'

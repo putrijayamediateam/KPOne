@@ -81,7 +81,8 @@ try {
                 'queue_lock_version' => (int) $queueVersion,
                 'visit_type' => 'consultation',
                 'assigned_doctor_user_id' => $mode === 'reassign' ? (int) $doctorId : $visit->assigned_doctor_user_id,
-                'visit_reason' => 'Synthetic PostgreSQL Queue update',
+                'visit_reason_public_ids' => $visit->reasonAssignments()->with('reason')->get()
+                    ->pluck('reason.public_id')->all(),
                 'priority' => $mode === 'priority' ? 'urgent' : $visit->priority,
                 'coverage_type' => 'self_pay',
             ], User::query()->findOrFail((int) $actorId));

@@ -74,7 +74,7 @@ class VisitAdministrationTest extends VisitTestCase
             'lock_version' => $visit->lock_version,
             'visit_type' => $visit->visit_type,
             'assigned_doctor_user_id' => $visit->assigned_doctor_user_id,
-            'visit_reason' => $visit->visit_reason,
+            ...($visit->reasonAssignments()->exists() ? ['visit_reason_public_ids' => $visit->reasonAssignments()->with('reason')->get()->pluck('reason.public_id')->all()] : []),
             'priority' => $visit->priority,
             'coverage_type' => $visit->coverage_type,
             'panel_id' => $visit->panel_id,

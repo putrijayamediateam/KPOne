@@ -106,6 +106,12 @@ onBeforeUnmount(() => controller?.abort());
                                 {{ item.branch }} ·
                                 {{ item.attendingClinician }}
                             </div>
+                            <div
+                                v-if="item.visitReason"
+                                class="truncate text-xs text-muted-foreground"
+                            >
+                                Visit Reason: {{ item.visitReason }}
+                            </div>
                         </div>
                         <Button
                             type="button"

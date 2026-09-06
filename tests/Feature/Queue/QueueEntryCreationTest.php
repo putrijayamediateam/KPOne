@@ -4,6 +4,7 @@ namespace Tests\Feature\Queue;
 
 use App\Domain\Audit\Models\AuditLog;
 use App\Domain\Queue\Models\QueueEntry;
+use App\Domain\Visit\Services\VisitReasonService;
 use App\Domain\Visit\Services\VisitRegistrationService;
 use Illuminate\Database\Eloquent\MassAssignmentException;
 use Illuminate\Support\Facades\Date;
@@ -63,7 +64,7 @@ class QueueEntryCreationTest extends QueueTestCase
                 'expected_branch_id' => $otherBranch->id,
                 'visit_type' => 'consultation',
                 'assigned_doctor_user_id' => $otherDoctor->id,
-                'visit_reason' => 'Synthetic other branch Queue',
+                'visit_reason_public_ids' => [app(VisitReasonService::class)->create($ca, 'Synthetic other branch Queue')->public_id],
             ]));
             $other = $this->send($ca, $otherVisit);
 

@@ -10,6 +10,7 @@ use App\Domain\Organisation\Models\Organisation;
 use App\Domain\Patient\Models\Patient;
 use App\Domain\Patient\Services\PatientAdministrationService;
 use App\Domain\Visit\Models\Visit;
+use App\Domain\Visit\Services\VisitReasonService;
 use App\Domain\Visit\Services\VisitRegistrationService;
 use App\Models\User;
 use Database\Seeders\KPOneReferenceSeeder;
@@ -101,6 +102,19 @@ abstract class VisitTestCase extends TestCase
     {
         $this->selectBranch($actor);
 
+        if (is_string($overrides['visit_reason'] ?? null)) {
+            $reason = app(VisitReasonService::class)->create($actor, $overrides['visit_reason']);
+            unset($overrides['visit_reason']);
+            $overrides['visit_reason_public_ids'] = [$reason->public_id];
+        }
+
         return app(VisitRegistrationService::class)->register($actor, $this->visitAttributes($patient, $overrides));
+    }
+
+    /** @return list<string> */
+    protected function visitReasonIds(Visit $visit): array
+    {
+        return $visit->reasonAssignments()->with('reason')->orderBy('position')->get()
+            ->pluck('reason.public_id')->all();
     }
 }

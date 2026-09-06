@@ -9,6 +9,7 @@ use App\Domain\Clinical\Models\EncounterDiagnosis;
 use App\Domain\Clinical\Models\EncounterVitalObservation;
 use App\Domain\Queue\Models\QueueEntry;
 use App\Domain\Visit\Models\Visit;
+use App\Domain\Visit\Services\VisitReasonService;
 use App\Models\User;
 use Illuminate\Support\Facades\Gate;
 
@@ -19,6 +20,7 @@ class ClinicalEncounterDirectoryService
         private ClinicalSafetyDirectoryService $clinicalSafety,
         private TreatmentPlanDirectoryService $treatmentPlans,
         private DoctorDispensaryAttentionService $dispensaryAttention,
+        private VisitReasonService $visitReasons,
     ) {}
 
     /** @return array<string, mixed> */
@@ -37,6 +39,7 @@ class ClinicalEncounterDirectoryService
                     'patient:id,organisation_id,patient_number,full_name,date_of_birth,sex',
                     'branch:id,organisation_id,code,name,timezone',
                     'queueEntry:id,organisation_id,branch_id,visit_id,operational_date,queue_number,status,called_at,removed_at,removal_reason,lock_version',
+                    'reasonAssignments.reason:id,public_id,name',
                 ]),
                 'attendingClinician:id,organisation_id,name',
                 'vitalObservation',
@@ -59,7 +62,8 @@ class ClinicalEncounterDirectoryService
             'visit' => [
                 'visitNumber' => $encounter->visit->visit_number,
                 'priority' => $encounter->visit->priority,
-                'registrationReason' => $encounter->visit->visit_reason,
+                'registrationReason' => $this->visitReasons->summary($encounter->visit),
+                'registrationReasons' => $this->visitReasons->presentation($encounter->visit),
                 'registeredAt' => $encounter->visit->registered_at->toIso8601String(),
                 'lockVersion' => $encounter->visit->lock_version,
             ],
@@ -169,7 +173,9 @@ class ClinicalEncounterDirectoryService
             ->whereHas('visit', fn ($query) => $query
                 ->where('patient_id', $current->visit->patient_id))
             ->with([
-                'visit:id,organisation_id,branch_id,visit_number,patient_id',
+                'visit' => fn ($query) => $query->select([
+                    'id', 'organisation_id', 'branch_id', 'visit_number', 'patient_id', 'visit_reason',
+                ])->with('reasonAssignments.reason:id,public_id,name'),
                 'branch:id,organisation_id,code,name',
                 'attendingClinician:id,organisation_id,name',
             ])
@@ -184,6 +190,7 @@ class ClinicalEncounterDirectoryService
                 'branch' => $encounter->branch->name,
                 'attendingClinician' => $encounter->attendingClinician->name,
                 'status' => $encounter->status,
+                'visitReason' => $this->visitReasons->summary($encounter->visit),
                 'viewUrl' => route('encounters.history.show', $encounter->visit),
             ])->values()->all();
 

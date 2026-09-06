@@ -105,7 +105,7 @@ class VisitDirectoryTest extends VisitTestCase
             'visit_reason' => null,
         ])->assertSessionHasErrors([
             'assigned_doctor_user_id' => 'Please select a doctor for this consultation.',
-            'visit_reason' => 'Please enter a reason for this consultation.',
+            'visit_reason_public_ids' => 'Select at least one Visit Reason.',
         ]);
     }
 

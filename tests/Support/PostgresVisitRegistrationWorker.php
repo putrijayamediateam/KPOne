@@ -8,6 +8,7 @@ use App\Domain\Identity\Models\StaffProfile;
 use App\Domain\Identity\Services\BranchAssignmentService;
 use App\Domain\Identity\Services\StaffRoleService;
 use App\Domain\Visit\Models\Visit;
+use App\Domain\Visit\Models\VisitReason;
 use App\Domain\Visit\Services\VisitAdministrationService;
 use App\Domain\Visit\Services\VisitRegistrationService;
 use App\Models\User;
@@ -61,7 +62,9 @@ try {
                     : null,
                 'visit_type' => $doctorId === 'none' ? 'otc' : 'consultation',
                 'assigned_doctor_user_id' => $doctorId === 'none' ? null : (int) $doctorId,
-                'visit_reason' => $doctorId === 'none' ? null : 'Synthetic concurrent reason',
+                'visit_reason_public_ids' => $doctorId === 'none' ? [] : [VisitReason::query()
+                    ->where('organisation_id', (int) User::query()->whereKey((int) $actorId)->value('organisation_id'))
+                    ->where('is_active', true)->valueOrFail('public_id')],
                 'priority' => 'normal',
                 'coverage_type' => 'self_pay',
                 'confirm_repeat' => $confirm === 'yes',

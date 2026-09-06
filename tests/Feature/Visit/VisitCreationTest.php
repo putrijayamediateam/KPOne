@@ -11,6 +11,7 @@ use App\Domain\Visit\Models\Panel;
 use App\Domain\Visit\Models\Visit;
 use App\Domain\Visit\Services\VisitDoctorEligibilityService;
 use App\Domain\Visit\Services\VisitNumberGenerator;
+use App\Domain\Visit\Services\VisitReasonService;
 use App\Domain\Visit\Services\VisitRegistrationService;
 use App\Models\User;
 use Illuminate\Database\Eloquent\MassAssignmentException;
@@ -185,6 +186,7 @@ class VisitCreationTest extends VisitTestCase
             app(PatientAdministrationService::class),
             app(VisitDoctorEligibilityService::class),
             app(VisitNumberGenerator::class),
+            app(VisitReasonService::class),
             $failingAudit,
         );
 

@@ -45,7 +45,7 @@ class QueueConcurrencyTest extends QueueTestCase
             'queue_lock_version' => $entry->lock_version,
             'visit_type' => 'consultation',
             'assigned_doctor_user_id' => $doctor->id,
-            'visit_reason' => 'Synthetic stale Queue edit',
+            'visit_reason_public_ids' => $this->visitReasonIds($visit),
             'priority' => 'urgent',
             'coverage_type' => 'self_pay',
         ], $supervisor);
@@ -67,7 +67,7 @@ class QueueConcurrencyTest extends QueueTestCase
                 'queue_lock_version' => $staleVersion,
                 'visit_type' => 'consultation',
                 'assigned_doctor_user_id' => $doctor->id,
-                'visit_reason' => 'Synthetic stale Queue version',
+                'visit_reason_public_ids' => $this->visitReasonIds($visit),
                 'priority' => 'urgent',
                 'coverage_type' => 'self_pay',
             ], $ca);
@@ -93,7 +93,7 @@ class QueueConcurrencyTest extends QueueTestCase
             'queue_lock_version' => $entry->lock_version,
             'visit_type' => 'consultation',
             'assigned_doctor_user_id' => $doctor->id,
-            'visit_reason' => 'Synthetic edit loaded before cancellation',
+            'visit_reason_public_ids' => $this->visitReasonIds($visit),
             'priority' => 'urgent',
             'coverage_type' => 'self_pay',
         ];

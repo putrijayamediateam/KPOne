@@ -27,6 +27,7 @@ class VisitDirectoryService
         private PatientDirectoryService $patients,
         private VisitPolicy $visitPolicy,
         private DispensaryDirectoryService $dispensary,
+        private VisitReasonService $reasons,
     ) {}
 
     /**
@@ -65,6 +66,7 @@ class VisitDirectoryService
             ->with([
                 'patient:id,organisation_id,patient_number,full_name',
                 'assignedDoctor:id,name',
+                'reasonAssignments.reason:id,public_id,name',
                 'queueEntry:id,organisation_id,branch_id,visit_id,operational_date,queue_number,status,queued_at,called_at,returned_from_dispensary_at,lock_version',
             ]);
 
@@ -130,6 +132,7 @@ class VisitDirectoryService
             'patient:id,patient_number,full_name,date_of_birth,sex',
             'assignedDoctor:id,name',
             'queueEntry:id,organisation_id,branch_id,visit_id,operational_date,queue_number,status,queued_at,called_at,returned_from_dispensary_at,lock_version',
+            'reasonAssignments.reason:id,public_id,name',
         ]);
         $visibleQueueEntry = $this->visibleQueueEntry($actor, $visit);
 
@@ -146,6 +149,7 @@ class VisitDirectoryService
             'status' => $visit->status,
             'priority' => $visit->priority,
             'visitReason' => $visit->visit_reason,
+            'visitReasons' => $this->reasons->presentation($visit),
             'doctor' => $visit->assignedDoctor?->only(['id', 'name']),
             'coverage' => [
                 'type' => $visit->coverage_type,
@@ -326,7 +330,7 @@ class VisitDirectoryService
             'patientName' => $visit->patient->full_name,
             'visitType' => $visit->visit_type,
             'registeredAt' => $visit->registered_at->setTimezone($branch->timezone)->format('H:i'),
-            'visitReasonExcerpt' => $visit->visit_reason ? Str::limit($visit->visit_reason, 80) : null,
+            'visitReasonExcerpt' => ($summary = $this->reasons->summary($visit)) ? Str::limit($summary, 80) : null,
             'doctorName' => $visit->assignedDoctor?->name,
             'coverageLabel' => $visit->coverage_type === 'panel'
                 ? $visit->coverage_panel_name_snapshot : 'Self-pay',

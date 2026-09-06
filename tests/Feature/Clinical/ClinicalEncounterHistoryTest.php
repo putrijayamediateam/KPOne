@@ -11,6 +11,7 @@ use App\Domain\Patient\Models\Patient;
 use App\Domain\Queue\Models\QueueEntry;
 use App\Domain\Queue\Services\QueueEntryService;
 use App\Domain\Visit\Models\Visit;
+use App\Domain\Visit\Services\VisitReasonService;
 use App\Domain\Visit\Services\VisitRegistrationService;
 use App\Models\User;
 use Illuminate\Support\Facades\Route;
@@ -258,11 +259,12 @@ class ClinicalEncounterHistoryTest extends ClinicalTestCase
     ): array {
         $branch ??= $this->branch;
         $this->selectBranch($ca, $branch);
+        $reason = app(VisitReasonService::class)->create($ca, 'Synthetic history context');
         $visit = app(VisitRegistrationService::class)->register($ca, $this->visitAttributes($patient, [
             'expected_branch_id' => $branch->id,
             'visit_type' => 'consultation',
             'assigned_doctor_user_id' => $doctor->id,
-            'visit_reason' => 'Synthetic history context',
+            'visit_reason_public_ids' => [$reason->public_id],
             'confirm_repeat' => $confirmRepeat,
         ]));
         $queue = app(QueueEntryService::class)->enter($ca, $visit, [

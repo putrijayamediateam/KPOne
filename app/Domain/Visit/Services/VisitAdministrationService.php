@@ -24,6 +24,7 @@ class VisitAdministrationService
     public function __construct(
         private BranchAccessService $branches,
         private VisitDoctorEligibilityService $doctors,
+        private VisitReasonService $reasons,
         private AuditRecorder $audit,
     ) {}
 
@@ -55,10 +56,26 @@ class VisitAdministrationService
                 'visit_type', 'priority', 'visit_reason', 'assigned_doctor_user_id', 'coverage_type',
                 'panel_id', 'coverage_panel_name_snapshot', 'coverage_member_reference',
             ]);
+            $reasonSelectionProvided = array_key_exists('visit_reason_public_ids', $validated);
+            $currentStructured = $locked->reasonAssignments()->exists();
+            $beforeReasonIds = $locked->reasonAssignments()
+                ->orderBy('position')
+                ->pluck('visit_reason_catalogue_item_id')
+                ->map(fn ($id): int => (int) $id)
+                ->all();
+            $reasons = $reasonSelectionProvided
+                ? $this->reasons->resolve($actor, $validated['visit_reason_public_ids'], $validated['visit_type'] === 'consultation', $locked)
+                : collect();
+            if ($currentStructured && ! $reasonSelectionProvided && $validated['visit_type'] === 'consultation') {
+                throw ValidationException::withMessages(['visit_reason_public_ids' => 'Select at least one Visit Reason.']);
+            }
+            $primaryReasonSnapshot = $reasonSelectionProvided
+                ? $this->reasons->replace($locked, $reasons)
+                : $locked->visit_reason;
             $locked->forceFill([
                 'visit_type' => $validated['visit_type'],
                 'priority' => $validated['priority'],
-                'visit_reason' => $validated['visit_reason'],
+                'visit_reason' => $primaryReasonSnapshot,
                 'assigned_doctor_user_id' => $doctor?->id,
                 'coverage_type' => $validated['coverage_type'],
                 'panel_id' => $panel?->id,
@@ -68,6 +85,14 @@ class VisitAdministrationService
                 'updated_by_user_id' => $actor->id,
                 'lock_version' => $locked->lock_version + 1,
             ])->save();
+            if ($reasonSelectionProvided) {
+                if ($beforeReasonIds !== $reasons->pluck('id')->map(fn ($id): int => (int) $id)->all()) {
+                    $this->audit->record('visit.reasons.updated', $locked, [
+                        'selected_reason_count' => $reasons->count(),
+                        'record_version' => $locked->lock_version,
+                    ], $actor, $locked->branch);
+                }
+            }
 
             $this->recordChanges($locked, $before, $actor);
 
@@ -142,20 +167,18 @@ class VisitAdministrationService
             'queue_lock_version' => ['nullable', 'integer', 'min:1'],
             'visit_type' => ['required', Rule::in(['consultation', 'otc'])],
             'assigned_doctor_user_id' => ['nullable', 'integer', 'required_if:visit_type,consultation'],
-            'visit_reason' => ['nullable', 'string', 'max:500', 'required_if:visit_type,consultation'],
+            'visit_reason' => ['prohibited'],
+            'visit_reason_public_ids' => ['sometimes', 'array', 'max:5'],
+            'visit_reason_public_ids.*' => ['required', 'uuid', 'distinct'],
             'priority' => ['required', Rule::in(['normal', 'urgent'])],
             'coverage_type' => ['required', Rule::in(['self_pay', 'panel'])],
             'panel_id' => ['nullable', 'integer', 'required_if:coverage_type,panel'],
             'coverage_member_reference' => ['nullable', 'string', 'max:100'],
         ])->validate();
-        $validated['visit_reason'] = $this->nullableTrim($validated['visit_reason'] ?? null);
         $validated['coverage_member_reference'] = $this->nullableTrim($validated['coverage_member_reference'] ?? null);
         $validated['assigned_doctor_user_id'] = isset($validated['assigned_doctor_user_id'])
             ? (int) $validated['assigned_doctor_user_id'] : null;
         $validated['panel_id'] = isset($validated['panel_id']) ? (int) $validated['panel_id'] : null;
-        if ($validated['visit_type'] === 'consultation' && $validated['visit_reason'] === null) {
-            throw ValidationException::withMessages(['visit_reason' => 'A Visit reason is required for Consultation.']);
-        }
         if ($validated['coverage_type'] === 'self_pay') {
             $validated['panel_id'] = null;
             $validated['coverage_member_reference'] = null;

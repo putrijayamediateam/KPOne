@@ -28,6 +28,8 @@ class ClinicalEncounterDirectoryTest extends ClinicalTestCase
                 ->where('clinical.patient.patientNumber', $visit->patient->patient_number)
                 ->where('clinical.vitals.bmi', 23.4)
                 ->where('clinical.queue.status', 'serving')
+                ->where('clinical.visit.registrationReason', 'Synthetic Queue reason')
+                ->where('clinical.visit.registrationReasons.primary', 'Synthetic Queue reason')
                 ->where('clinical.allergies.status', 'unknown')
                 ->where('clinical.allergies.profileLockVersion', null)
                 ->where('clinical.allergies.records', [])
@@ -64,9 +66,10 @@ class ClinicalEncounterDirectoryTest extends ClinicalTestCase
 
         $this->assertCount(15, $detail['history']);
         $this->assertSame(
-            ['startedAt', 'branch', 'attendingClinician', 'status', 'viewUrl'],
+            ['startedAt', 'branch', 'attendingClinician', 'status', 'visitReason', 'viewUrl'],
             array_keys($detail['history'][0]),
         );
+        $this->assertSame('Synthetic Queue reason', $detail['history'][0]['visitReason']);
         $this->assertStringContainsString('/encounter/history', $detail['history'][0]['viewUrl']);
         $encoded = json_encode($detail['history'], JSON_THROW_ON_ERROR);
         $this->assertStringNotContainsString('historical private note', $encoded);
