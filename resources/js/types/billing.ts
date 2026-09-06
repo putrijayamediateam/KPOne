@@ -83,6 +83,8 @@ export type BillingPage = {
 
 export const myr = (sen: number): string =>
     `RM ${Math.trunc(sen / 100).toLocaleString('en-MY')}.${String(sen % 100).padStart(2, '0')}`;
+export const outstandingSen = (state: BillingState): number =>
+    state.deferred + state.due_now;
 export const toSen = (text: string): string | null => {
     const match = /^(0|[1-9][0-9]{0,9})(?:\.([0-9]{1,2}))?$/.exec(text.trim());
 

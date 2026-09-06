@@ -1,22 +1,32 @@
 <script setup lang="ts">
-import { Head, Link, router, usePage } from '@inertiajs/vue3';
+import { Head, router, usePage } from '@inertiajs/vue3';
 import { computed, onUnmounted, reactive, ref, watch } from 'vue';
+import { ActionLink } from '@/components/ui/action-link';
 import { Button } from '@/components/ui/button';
+import { OperationalSelect } from '@/components/ui/select';
+import { StatusBadge } from '@/components/ui/status';
+import { OperationalTable } from '@/components/ui/table';
+import { OperationalTabs } from '@/components/ui/tabs';
+import { formatDate } from '@/lib/presentation';
 import type {
     BillingPage,
     BillingState,
     Receipt,
     Responsibility,
 } from '@/types/billing';
-import { myr, toSen } from '@/types/billing';
+import { myr, outstandingSen, toSen } from '@/types/billing';
 
 const props = defineProps<{ billing: BillingPage }>();
-const totals: Array<[keyof BillingState, string]> = [
-    ['total', 'Total'],
+const responsibilityTotals: Array<[keyof BillingState, string]> = [
     ['self_pay', 'Self-pay received'],
     ['panel', 'Panel responsibility'],
     ['deferred', 'Approved pay later'],
-    ['due_now', 'Due now'],
+];
+const invoiceTabs = [
+    { value: 'all', label: 'All' },
+    { value: 'items', label: 'Items' },
+    { value: 'services', label: 'Services' },
+    { value: 'documents', label: 'Documents' },
 ];
 const page = usePage();
 const busy = ref(false);
@@ -77,6 +87,21 @@ const base = computed(
 const invoiceBase = computed(
     () => `${base.value}/${props.billing.invoice?.publicId}`,
 );
+const isCompleted = computed(() => props.billing.visit.status === 'completed');
+const methodOptions = computed(() => [
+    { value: '', label: 'Select method' },
+    ...props.billing.methods.map((method) => ({
+        value: method.code,
+        label: method.name,
+    })),
+]);
+const panelOptions = computed(() => [
+    { value: '', label: 'Select Panel' },
+    ...props.billing.panels.map((panel) => ({
+        value: panel.id,
+        label: panel.name,
+    })),
+]);
 const lines = computed(
     () =>
         props.billing.invoice?.lines.filter(
@@ -178,20 +203,41 @@ const complete = () => {
 
 <template>
     <Head title="Patient Billing" />
-    <main v-if="contextCleared" class="p-4 text-sm" role="status">
-        Billing context cleared.
-        <Link href="/workspace" class="underline">Return to workspace</Link>
+    <main
+        v-if="contextCleared"
+        class="mx-auto max-w-3xl space-y-3 p-6 text-sm"
+        role="status"
+    >
+        <p>Billing context cleared.</p>
+        <ActionLink href="/workspace" variant="secondary">
+            Return to Workspace
+        </ActionLink>
     </main>
-    <main v-else class="mx-auto w-full max-w-[1600px] px-4 py-4 text-sm">
-        <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
-            <h1 class="font-medium">
-                {{
-                    billing.visit.status === 'completed'
-                        ? 'Completed Visit'
-                        : 'Patient Billing'
-                }}
-            </h1>
-            <Link href="/registration" class="underline">Registration</Link>
+    <main
+        v-else
+        class="mx-auto w-full max-w-[1600px] space-y-4 px-4 py-6 text-sm"
+    >
+        <div class="flex flex-wrap items-start justify-between gap-3">
+            <div class="space-y-1">
+                <p class="text-xs font-medium text-muted-foreground uppercase">
+                    {{ billing.branch }}
+                </p>
+                <h1 class="text-2xl font-semibold tracking-tight">
+                    {{ isCompleted ? 'Completed Visit' : 'Patient Billing' }}
+                </h1>
+                <div class="flex flex-wrap items-center gap-2">
+                    <StatusBadge :status="billing.visit.status" />
+                    <span
+                        v-if="isCompleted"
+                        class="text-xs text-muted-foreground"
+                    >
+                        Read-only Visit record
+                    </span>
+                </div>
+            </div>
+            <ActionLink href="/registration" variant="secondary">
+                Registration
+            </ActionLink>
         </div>
         <p
             v-if="error"
@@ -201,156 +247,192 @@ const complete = () => {
             {{ error }}
         </p>
         <div
-            class="grid min-w-0 gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,2.5fr)_minmax(0,1.5fr)]"
+            class="grid min-w-0 gap-4 lg:grid-cols-[minmax(220px,0.8fr)_minmax(0,2.2fr)] xl:grid-cols-[minmax(220px,0.8fr)_minmax(0,2.5fr)_minmax(260px,1.4fr)]"
         >
-            <aside class="space-y-3 border-r pr-3">
-                <div>
-                    <h2 class="font-medium">{{ billing.patient.name }}</h2>
-                    <p class="text-xs text-muted-foreground">
-                        {{ billing.patient.patientNumber }}
-                    </p>
-                </div>
-                <p>{{ billing.visit.visitNumber }}<br />{{ billing.branch }}</p>
-                <p>Registration coverage: {{ billing.visit.coverage }}</p>
+            <aside class="self-start rounded-xl border bg-card p-4">
+                <p class="text-xs font-medium text-muted-foreground uppercase">
+                    Patient / Visit
+                </p>
+                <h2 class="mt-2 text-lg font-semibold">
+                    {{ billing.patient.name }}
+                </h2>
+                <dl class="mt-3 space-y-2 text-sm">
+                    <div>
+                        <dt class="text-xs text-muted-foreground">
+                            Patient No.
+                        </dt>
+                        <dd class="font-mono">
+                            {{ billing.patient.patientNumber }}
+                        </dd>
+                    </div>
+                    <div>
+                        <dt class="text-xs text-muted-foreground">Visit No.</dt>
+                        <dd class="font-mono">
+                            {{ billing.visit.visitNumber }}
+                        </dd>
+                    </div>
+                    <div>
+                        <dt class="text-xs text-muted-foreground">Branch</dt>
+                        <dd>{{ billing.branch }}</dd>
+                    </div>
+                    <div>
+                        <dt class="text-xs text-muted-foreground">Coverage</dt>
+                        <dd>{{ billing.visit.coverage }}</dd>
+                    </div>
+                    <div v-if="billing.visit.completedAt">
+                        <dt class="text-xs text-muted-foreground">Completed</dt>
+                        <dd>{{ billing.visit.completedAt }}</dd>
+                    </div>
+                </dl>
                 <p class="text-xs text-muted-foreground">
                     Registration coverage is not financial approval.
                 </p>
-                <p v-if="billing.visit.completedAt">
-                    Completed {{ billing.visit.completedAt }}
-                </p>
-                <div v-if="billing.oldOutstanding.length">
-                    <h2 class="font-medium">Earlier outstanding</h2>
-                    <p
+                <div
+                    v-if="billing.oldOutstanding.length"
+                    class="mt-4 border-t pt-4"
+                >
+                    <h3 class="font-semibold">Earlier outstanding</h3>
+                    <div
                         v-for="debt in billing.oldOutstanding"
                         :key="debt.invoiceNumber"
-                        class="mt-2"
+                        class="mt-3 space-y-1 rounded-lg border bg-muted/20 p-3"
                     >
-                        <Link :href="debt.url" class="underline"
-                            >{{ debt.invoiceNumber }} ·
-                            {{ myr(debt.amountSen) }}</Link
-                        ><br /><span class="text-xs"
-                            >Due {{ debt.dueDate }}. Retained on its originating
-                            Invoice.</span
-                        >
-                    </p>
+                        <p class="font-medium tabular-nums">
+                            {{ myr(debt.amountSen) }}
+                        </p>
+                        <p class="text-xs text-muted-foreground">
+                            {{ debt.invoiceNumber }} · Due
+                            {{ formatDate(debt.dueDate) }}
+                        </p>
+                        <ActionLink :href="debt.url" variant="ghost" size="sm">
+                            Settle Outstanding Balance
+                        </ActionLink>
+                    </div>
                 </div>
             </aside>
             <section class="min-w-0">
-                <nav
-                    aria-label="Invoice content"
-                    class="mb-3 flex gap-4 border-b"
-                >
-                    <button
-                        v-for="value in [
-                            'all',
-                            'items',
-                            'services',
-                            'documents',
-                        ]"
-                        :key="value"
-                        class="border-b px-1 py-2 capitalize focus-visible:outline-2"
-                        :class="
-                            tab === value
-                                ? 'border-foreground'
-                                : 'border-transparent'
-                        "
-                        :aria-pressed="tab === value"
-                        @click="tab = value"
-                    >
-                        {{ value }}
-                    </button>
-                </nav>
+                <OperationalTabs
+                    v-model="tab"
+                    :tabs="invoiceTabs"
+                    label="Invoice content"
+                    class="mb-3"
+                />
                 <template v-if="tab !== 'documents'"
                     ><p
                         v-if="!billing.invoice"
-                        class="py-5 text-muted-foreground"
+                        class="rounded-xl border border-dashed bg-card px-4 py-8 text-center text-muted-foreground"
                     >
                         Awaiting Billing. Build the draft from completed
                         fulfilment and confirmed services. No stock is moved
                         here.
                     </p>
-                    <div v-else class="overflow-x-auto">
-                        <table class="w-full text-left text-xs">
-                            <thead class="border-b text-muted-foreground">
-                                <tr>
-                                    <th class="py-2">Charge</th>
-                                    <th>Quantity</th>
-                                    <th>Unit price</th>
-                                    <th class="text-right">Total</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr
-                                    v-for="(line, index) in lines"
-                                    :key="index"
-                                    class="border-b"
-                                >
-                                    <td class="py-3 pr-2">
-                                        {{ line.name
-                                        }}<span
-                                            class="block text-muted-foreground"
-                                            >{{ line.type }}</span
-                                        >
-                                    </td>
-                                    <td>{{ line.quantity }} {{ line.unit }}</td>
-                                    <td>{{ myr(line.unitPriceSen) }}</td>
-                                    <td class="text-right">
-                                        {{ myr(line.totalSen) }}
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-                        <p
-                            v-if="!lines.length"
-                            class="py-3 text-muted-foreground"
-                        >
-                            No itemized lines in this authorized view.
-                        </p>
-                    </div>
+                    <OperationalTable
+                        v-else
+                        label="Invoice charges"
+                        :columns="4"
+                        :empty="lines.length === 0"
+                        empty-message="No itemized lines in this authorized view."
+                        min-width="640px"
+                    >
+                        <template #head>
+                            <tr>
+                                <th class="py-2">Charge</th>
+                                <th>Quantity</th>
+                                <th class="text-right">Unit price</th>
+                                <th class="text-right">Total</th>
+                            </tr>
+                        </template>
+                        <template #body>
+                            <tr v-for="(line, index) in lines" :key="index">
+                                <td>
+                                    {{ line.name
+                                    }}<span
+                                        class="block text-xs text-muted-foreground"
+                                        >{{ line.type }}</span
+                                    >
+                                </td>
+                                <td>{{ line.quantity }} {{ line.unit }}</td>
+                                <td class="text-right tabular-nums">
+                                    {{ myr(line.unitPriceSen) }}
+                                </td>
+                                <td class="text-right font-medium tabular-nums">
+                                    {{ myr(line.totalSen) }}
+                                </td>
+                            </tr>
+                        </template>
+                    </OperationalTable>
                 </template>
-                <div v-else class="space-y-3">
-                    <a
+                <div v-else class="space-y-3 rounded-xl border bg-card p-4">
+                    <Button
                         v-if="billing.can.print"
-                        :href="`${invoiceBase}/print`"
-                        target="_blank"
-                        rel="noopener"
-                        class="underline"
-                        >Print Invoice</a
+                        as-child
+                        variant="secondary"
+                        size="sm"
                     >
-                    <p
-                        v-for="receipt in billing.payments"
-                        :key="receipt.publicId"
-                    >
-                        {{ receipt.number }} · {{ myr(receipt.amountSen) }} ·
-                        {{ receipt.method }} · {{ receipt.status
-                        }}<a
-                            v-if="billing.can.print"
-                            :href="`${invoiceBase}/receipts/${receipt.publicId}/print`"
+                        <a
+                            :href="`${invoiceBase}/print`"
                             target="_blank"
                             rel="noopener"
-                            class="ml-2 underline"
-                            >Print Receipt</a
-                        ><Button
-                            v-if="
-                                billing.can.reverse &&
-                                receipt.status === 'posted'
-                            "
-                            variant="outline"
-                            size="sm"
-                            :disabled="
-                                busy ||
-                                !form.recording_error_only ||
-                                !form.reason
-                            "
-                            @click="reverse(receipt)"
-                            >Reverse recording error</Button
                         >
-                    </p>
+                            Print Invoice
+                        </a>
+                    </Button>
+                    <div
+                        v-for="receipt in billing.payments"
+                        :key="receipt.publicId"
+                        class="flex flex-wrap items-center justify-between gap-2 border-t pt-3"
+                    >
+                        <div>
+                            <p class="font-medium tabular-nums">
+                                {{ receipt.number }} ·
+                                {{ myr(receipt.amountSen) }}
+                            </p>
+                            <p class="text-xs text-muted-foreground">
+                                {{ receipt.method }} · {{ receipt.receivedAt }}
+                            </p>
+                            <StatusBadge
+                                class="mt-1"
+                                :status="receipt.status"
+                            />
+                        </div>
+                        <div class="flex flex-wrap gap-2">
+                            <Button
+                                v-if="billing.can.print"
+                                as-child
+                                variant="ghost"
+                                size="sm"
+                            >
+                                <a
+                                    :href="`${invoiceBase}/receipts/${receipt.publicId}/print`"
+                                    target="_blank"
+                                    rel="noopener"
+                                >
+                                    Print Receipt
+                                </a>
+                            </Button>
+                            <Button
+                                v-if="
+                                    billing.can.reverse &&
+                                    receipt.status === 'posted'
+                                "
+                                variant="secondary"
+                                size="sm"
+                                :disabled="
+                                    busy ||
+                                    !form.recording_error_only ||
+                                    !form.reason
+                                "
+                                @click="reverse(receipt)"
+                            >
+                                Reverse recording error
+                            </Button>
+                        </div>
+                    </div>
                 </div>
                 <div class="mt-4 flex flex-wrap gap-2">
                     <Button
                         v-if="billing.can.build"
-                        variant="outline"
+                        variant="secondary"
                         size="sm"
                         :disabled="busy"
                         @click="post(`${base}/build`)"
@@ -364,19 +446,56 @@ const complete = () => {
                     >
                 </div>
             </section>
-            <aside class="space-y-3 border-l pl-3">
+            <aside
+                class="self-start rounded-xl border bg-card p-4 lg:col-span-2 xl:col-span-1"
+            >
                 <template v-if="billing.invoice"
-                    ><h2 class="font-medium">
-                        {{ billing.invoice.number ?? 'Draft Invoice' }} ·
-                        {{ billing.invoice.status }}
-                    </h2>
-                    <dl class="grid grid-cols-2 gap-y-1">
-                        <template v-for="[key, label] in totals" :key="key"
-                            ><dt>{{ label }}</dt>
+                    ><div class="flex items-start justify-between gap-3">
+                        <div>
+                            <p class="text-xs text-muted-foreground">
+                                Financial summary
+                            </p>
+                            <h2 class="font-semibold">
+                                {{ billing.invoice.number ?? 'Draft Invoice' }}
+                            </h2>
+                        </div>
+                        <StatusBadge :status="billing.invoice.status" />
+                    </div>
+                    <dl class="mt-4 space-y-2 text-sm">
+                        <div
+                            class="flex items-center justify-between border-b pb-3"
+                        >
+                            <dt class="font-medium">Invoice Total</dt>
+                            <dd class="text-base font-semibold tabular-nums">
+                                {{ myr(billing.invoice.state.total) }}
+                            </dd>
+                        </div>
+                        <div
+                            v-for="[key, label] in responsibilityTotals"
+                            :key="key"
+                            class="flex items-center justify-between gap-4"
+                        >
+                            <dt class="text-muted-foreground">{{ label }}</dt>
                             <dd class="text-right tabular-nums">
                                 {{ myr(billing.invoice.state[key]) }}
-                            </dd></template
+                            </dd>
+                        </div>
+                        <div
+                            class="flex items-center justify-between gap-4 border-t pt-3"
                         >
+                            <dt class="font-medium">Outstanding</dt>
+                            <dd class="text-right font-medium tabular-nums">
+                                {{ myr(outstandingSen(billing.invoice.state)) }}
+                            </dd>
+                        </div>
+                        <div
+                            class="flex items-center justify-between gap-4 rounded-lg bg-muted px-3 py-2"
+                        >
+                            <dt class="font-semibold">Due Now</dt>
+                            <dd class="text-lg font-semibold tabular-nums">
+                                {{ myr(billing.invoice.state.due_now) }}
+                            </dd>
+                        </div>
                     </dl>
                     <p v-if="billing.invoice.correctionHold" role="status">
                         Correction hold — review required.
@@ -390,6 +509,22 @@ const complete = () => {
                     "
                     class="space-y-2 border-t pt-3"
                 >
+                    <div v-if="billing.can.pay">
+                        <h3 class="text-sm font-semibold">
+                            {{
+                                isCompleted
+                                    ? 'Outstanding Receivable'
+                                    : 'Record Payment'
+                            }}
+                        </h3>
+                        <p
+                            v-if="isCompleted"
+                            class="text-xs text-muted-foreground"
+                        >
+                            This governed settlement is separate from the
+                            completed Visit record.
+                        </p>
+                    </div>
                     <label class="block"
                         >Amount (MYR)<input
                             v-model="form.amount"
@@ -398,21 +533,14 @@ const complete = () => {
                             autocomplete="off"
                     /></label>
                     <template v-if="billing.can.pay"
-                        ><label class="block"
-                            >Payment method<select
-                                v-model="form.method"
-                                class="billing-input"
-                            >
-                                <option value="">Select method</option>
-                                <option
-                                    v-for="method in billing.methods"
-                                    :key="method.code"
-                                    :value="method.code"
-                                >
-                                    {{ method.name }}
-                                </option>
-                            </select></label
-                        ><label class="block"
+                        ><label class="block">Payment method</label>
+                        <OperationalSelect
+                            v-model="form.method"
+                            :options="methodOptions"
+                            label="Payment method"
+                            placeholder="Select method"
+                        />
+                        <label class="block"
                             >Transaction reference (no card details)<input
                                 v-model="form.reference"
                                 class="billing-input"
@@ -420,9 +548,18 @@ const complete = () => {
                                 autocomplete="off" /></label
                         ><Button
                             size="sm"
+                            :variant="
+                                !isCompleted && billing.can.complete
+                                    ? 'secondary'
+                                    : 'default'
+                            "
                             :disabled="busy || !form.method"
                             @click="payment"
-                            >Add Payment</Button
+                            >{{
+                                isCompleted
+                                    ? 'Settle Outstanding Balance'
+                                    : 'Add Payment'
+                            }}</Button
                         ></template
                     >
                     <details
@@ -441,27 +578,20 @@ const complete = () => {
                                 class="billing-input"
                             /></label
                         ><template v-if="billing.can.panelPropose"
-                            ><label class="block"
-                                >Verified Panel<select
-                                    v-model="form.panel_id"
-                                    class="billing-input"
-                                >
-                                    <option value="">Select Panel</option>
-                                    <option
-                                        v-for="panel in billing.panels"
-                                        :key="panel.id"
-                                        :value="panel.id"
-                                    >
-                                        {{ panel.name }}
-                                    </option>
-                                </select></label
-                            ><label class="block"
+                            ><label class="block">Verified Panel</label>
+                            <OperationalSelect
+                                v-model="form.panel_id"
+                                :options="panelOptions"
+                                label="Verified Panel"
+                                placeholder="Select Panel"
+                            />
+                            <label class="block"
                                 >Member reference (if required)<input
                                     v-model="form.member_reference"
                                     class="billing-input"
                                     maxlength="100" /></label
                             ><Button
-                                variant="outline"
+                                variant="secondary"
                                 size="sm"
                                 :disabled="busy"
                                 @click="propose('panel')"
@@ -474,7 +604,7 @@ const complete = () => {
                                     type="date"
                                     class="billing-input" /></label
                             ><Button
-                                variant="outline"
+                                variant="secondary"
                                 size="sm"
                                 :disabled="busy"
                                 @click="propose('deferment')"
@@ -488,11 +618,13 @@ const complete = () => {
                     :key="kind"
                 >
                     <template v-if="billing[kind]"
-                        ><p class="text-xs">
-                            {{ kind === 'panel' ? 'Panel' : 'Pay later' }}:
-                            {{ billing[kind]!.status }} ·
-                            {{ myr(billing[kind]!.amountSen) }}
-                        </p>
+                        ><div class="flex items-center justify-between gap-3">
+                            <p class="text-xs font-medium">
+                                {{ kind === 'panel' ? 'Panel' : 'Pay later' }}
+                                · {{ myr(billing[kind]!.amountSen) }}
+                            </p>
+                            <StatusBadge :status="billing[kind]!.status" />
+                        </div>
                         <p class="text-xs text-muted-foreground">
                             {{ billing[kind]!.reason }}
                         </p>
@@ -503,7 +635,7 @@ const complete = () => {
                             >
                         </p>
                         <p v-if="billing[kind]!.dueDate" class="text-xs">
-                            Due {{ billing[kind]!.dueDate }}
+                            Due {{ formatDate(billing[kind]!.dueDate) }}
                         </p>
                         <Button
                             v-if="
@@ -512,7 +644,7 @@ const complete = () => {
                                     ? billing.can.panelApprove
                                     : billing.can.deferApprove)
                             "
-                            variant="outline"
+                            variant="secondary"
                             size="sm"
                             :disabled="busy"
                             @click="approve(kind, billing[kind]!)"
@@ -541,7 +673,7 @@ const complete = () => {
                         />No real refund: recording error only</label
                     ><Button
                         v-if="billing.can.void"
-                        variant="outline"
+                        variant="destructive"
                         size="sm"
                         :disabled="busy || !form.reason"
                         @click="
@@ -572,12 +704,26 @@ const complete = () => {
     width: 100%;
     margin-block: 0.25rem 0.5rem;
     padding: 0.4rem 0.5rem;
-    border: 1px solid var(--border);
-    border-radius: 0.4rem;
-    background: var(--background);
+    min-height: 2.25rem;
+    border: 1px solid var(--input);
+    border-radius: var(--radius-control);
+    background: var(--card);
     font: inherit;
 }
+.billing-input:hover:not(:disabled) {
+    border-color: color-mix(in oklab, var(--foreground) 30%, var(--input));
+}
+.billing-input:disabled,
+.billing-input[readonly] {
+    cursor: not-allowed;
+    background: var(--muted);
+    color: var(--muted-foreground);
+}
+.billing-input:is(textarea) {
+    min-height: 5rem;
+}
 .billing-input:focus-visible {
+    border-color: var(--brand);
     outline: 2px solid var(--ring);
     outline-offset: 2px;
 }
