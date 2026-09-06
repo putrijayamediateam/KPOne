@@ -11,7 +11,9 @@ const source = readFileSync(
 const javascript = ts.transpileModule(source.replaceAll('export ', ''), {
     compilerOptions: { target: ts.ScriptTarget.ES2022 },
 }).outputText;
-const { toSen, myr } = runInNewContext(`${javascript}\n({ toSen, myr })`);
+const { toSen, myr, outstandingSen } = runInNewContext(
+    `${javascript}\n({ toSen, myr, outstandingSen })`,
+);
 
 test('money text becomes exact integer sen without floating arithmetic', () => {
     for (const [text, sen] of [
@@ -40,4 +42,18 @@ test('malformed, negative, exponent, excess precision and overflow stay invalid'
     ]) {
         assert.equal(toSen(text), null);
     }
+});
+
+test('outstanding presentation combines current due and governed deferred receivable without changing either value', () => {
+    const state = {
+        total: 10000,
+        self_pay: 2500,
+        panel: 1500,
+        deferred: 4000,
+        due_now: 2000,
+    };
+
+    assert.equal(outstandingSen(state), 6000);
+    assert.equal(state.deferred, 4000);
+    assert.equal(state.due_now, 2000);
 });

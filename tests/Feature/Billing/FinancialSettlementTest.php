@@ -13,6 +13,7 @@ use App\Domain\Visit\Models\Panel;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use Inertia\Testing\AssertableInertia as Assert;
 
 class FinancialSettlementTest extends BillingTestCase
 {
@@ -105,6 +106,18 @@ class FinancialSettlementTest extends BillingTestCase
         $this->assertSame(0, app(FinancialLedger::class)->state($invoice)['due_now']);
         $this->assertDatabaseCount('payments', 0);
         $this->selectBranch($ca, $visit->branch);
+        app(CompleteVisitationService::class)->complete($ca, $visit, ['expected_branch_id' => $visit->branch_id, 'visit_lock_version' => $visit->lock_version, 'lock_version' => $invoice->refresh()->lock_version]);
+        $this->get(route('billing.show', $visit))->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('billing.visit.status', 'completed')
+            ->where('billing.can.pay', true)
+            ->where('billing.can.build', false)
+            ->where('billing.can.finalize', false)
+            ->where('billing.can.panelPropose', false)
+            ->where('billing.can.deferPropose', false)
+            ->where('billing.can.reverse', false)
+            ->where('billing.can.void', false)
+            ->where('billing.can.complete', false)
+            ->missing('billing.clinicalNote'));
         app(PaymentService::class)->add($ca, $visit, $invoice, ['expected_branch_id' => $visit->branch_id, 'lock_version' => $invoice->refresh()->lock_version, 'amount_sen' => 1000, 'method' => 'cash', 'idempotency_key' => (string) Str::uuid()]);
         $this->assertSame(3000, $proposal->refresh()->remaining_sen);
         $this->assertSame(1000, app(FinancialLedger::class)->state($invoice)['self_pay']);
