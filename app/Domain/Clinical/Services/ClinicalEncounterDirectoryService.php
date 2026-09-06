@@ -38,7 +38,7 @@ class ClinicalEncounterDirectoryService
                 ])->with([
                     'patient:id,organisation_id,patient_number,full_name,date_of_birth,sex',
                     'branch:id,organisation_id,code,name,timezone',
-                    'queueEntry:id,organisation_id,branch_id,visit_id,operational_date,queue_number,status,called_at,removed_at,removal_reason,lock_version',
+                    'queueEntry:id,organisation_id,branch_id,visit_id,operational_date,queue_number,status,queued_at,called_at,removed_at,removal_reason,lock_version',
                     'reasonAssignments.reason:id,public_id,name',
                 ]),
                 'attendingClinician:id,organisation_id,name',
@@ -71,6 +71,7 @@ class ClinicalEncounterDirectoryService
                 'queueNumber' => sprintf('%03d', $encounter->visit->queueEntry->queue_number),
                 'operationalDate' => $encounter->visit->queueEntry->operational_date->toDateString(),
                 'status' => $encounter->visit->queueEntry->status,
+                'queuedAt' => $encounter->visit->queueEntry->queued_at->toIso8601String(),
                 'calledAt' => $encounter->visit->queueEntry->called_at?->toIso8601String(),
                 'lockVersion' => $encounter->visit->queueEntry->lock_version,
             ],

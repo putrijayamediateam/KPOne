@@ -4,6 +4,7 @@ import { ArrowLeft } from '@lucide/vue';
 import { ref } from 'vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
+import { OperationalSelect } from '@/components/ui/select';
 import VisitReasonPicker from '@/components/visit/VisitReasonPicker.vue';
 import type { VisitReasonOption } from '@/components/visit/VisitReasonPicker.vue';
 import type { BranchContext, VisitDetail, VisitOptions } from '@/types';
@@ -12,6 +13,32 @@ defineOptions({
     layout: { breadcrumbs: [{ title: 'Registration', href: '/registration' }] },
 });
 const props = defineProps<{ visit: VisitDetail; options: VisitOptions }>();
+const visitTypeOptions = [
+    { value: 'consultation', label: 'Consultation' },
+    { value: 'otc', label: 'OTC' },
+];
+const coverageOptions = [
+    { value: 'self_pay', label: 'Self-pay' },
+    { value: 'panel', label: 'Panel' },
+];
+const priorityOptions = [
+    { value: 'normal', label: 'Normal' },
+    { value: 'urgent', label: 'Urgent' },
+];
+const doctorOptions = [
+    { value: '', label: 'No doctor' },
+    ...props.options.doctors.map((doctor) => ({
+        value: doctor.id,
+        label: doctor.name,
+    })),
+];
+const panelOptions = [
+    { value: '', label: 'Select Panel' },
+    ...props.options.panels.map((panel) => ({
+        value: panel.id,
+        label: panel.name,
+    })),
+];
 const page = usePage<{ branchContext: BranchContext }>();
 const selectedVisitReasons = ref<VisitReasonOption[]>(
     props.visit.visitReasons.structured.map((reason) => ({
@@ -71,28 +98,17 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
                 <div class="grid gap-4 md:grid-cols-2">
                     <label class="grid gap-1"
                         ><span class="text-sm font-medium">Visit type</span
-                        ><select
+                        ><OperationalSelect
                             v-model="form.visit_type"
-                            class="h-10 rounded-md border bg-background px-3 text-sm"
-                        >
-                            <option value="consultation">Consultation</option>
-                            <option value="otc">OTC</option>
-                        </select></label
-                    >
+                            label="Visit type"
+                            :options="visitTypeOptions"
+                    /></label>
                     <label class="grid gap-1"
                         ><span class="text-sm font-medium">Doctor</span
-                        ><select
+                        ><OperationalSelect
                             v-model="form.assigned_doctor_user_id"
-                            class="h-10 rounded-md border bg-background px-3 text-sm"
-                        >
-                            <option value="">No doctor</option>
-                            <option
-                                v-for="doctor in options.doctors"
-                                :key="doctor.id"
-                                :value="doctor.id"
-                            >
-                                {{ doctor.name }}
-                            </option></select
+                            label="Doctor"
+                            :options="doctorOptions" />
                         ><InputError
                             :message="errorFor('assigned_doctor_user_id')"
                     /></label>
@@ -121,39 +137,25 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
                     </div>
                     <label class="grid gap-1"
                         ><span class="text-sm font-medium">Coverage</span
-                        ><select
+                        ><OperationalSelect
                             v-model="form.coverage_type"
-                            class="h-10 rounded-md border bg-background px-3 text-sm"
-                        >
-                            <option value="self_pay">Self-pay</option>
-                            <option value="panel">Panel</option>
-                        </select></label
-                    >
+                            label="Coverage"
+                            :options="coverageOptions"
+                    /></label>
                     <label class="grid gap-1"
                         ><span class="text-sm font-medium">Priority</span
-                        ><select
+                        ><OperationalSelect
                             v-model="form.priority"
-                            class="h-10 rounded-md border bg-background px-3 text-sm"
-                        >
-                            <option value="normal">Normal</option>
-                            <option value="urgent">Urgent</option>
-                        </select></label
-                    >
+                            label="Priority"
+                            :options="priorityOptions"
+                    /></label>
                     <template v-if="form.coverage_type === 'panel'"
                         ><label class="grid gap-1"
                             ><span class="text-sm font-medium">Panel</span
-                            ><select
+                            ><OperationalSelect
                                 v-model="form.panel_id"
-                                class="h-10 rounded-md border bg-background px-3 text-sm"
-                            >
-                                <option value="">Select Panel</option>
-                                <option
-                                    v-for="panel in options.panels"
-                                    :key="panel.id"
-                                    :value="panel.id"
-                                >
-                                    {{ panel.name }}
-                                </option></select
+                                label="Panel"
+                                :options="panelOptions" />
                             ><InputError
                                 :message="errorFor('panel_id')" /></label
                         ><label class="grid gap-1"

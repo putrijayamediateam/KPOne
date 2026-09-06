@@ -12,6 +12,7 @@ import {
 import { computed, ref } from 'vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
+import { waitedDurationLabel } from '@/lib/r1c2-presentation';
 import AllergyProblemPanel from '@/pages/Clinical/Partials/AllergyProblemPanel.vue';
 import ClinicalHistoryPanel from '@/pages/Clinical/Partials/ClinicalHistoryPanel.vue';
 import DispensaryAttentionPanel from '@/pages/Clinical/Partials/DispensaryAttentionPanel.vue';
@@ -68,6 +69,18 @@ const stateError = computed(
         (form.errors as Record<string, string>).encounter ||
         form.errors.expected_branch_id,
 );
+const waitedMinutes = computed(() => {
+    const queued = props.clinical.queue.queuedAt
+        ? Date.parse(props.clinical.queue.queuedAt)
+        : Number.NaN;
+    const called = props.clinical.queue.calledAt
+        ? Date.parse(props.clinical.queue.calledAt)
+        : Number.NaN;
+
+    return Number.isFinite(queued) && Number.isFinite(called)
+        ? Math.max(0, Math.floor((called - queued) / 60_000))
+        : null;
+});
 
 const addDiagnosis = () => {
     form.diagnoses.push({
@@ -117,7 +130,7 @@ const save = () => {
         >
             <button
                 type="button"
-                class="rounded px-3 py-2 text-sm font-medium focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                class="cursor-pointer rounded px-3 py-2 text-sm font-medium focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
                 :class="
                     workspaceTab === 'current'
                         ? 'bg-muted'
@@ -129,7 +142,7 @@ const save = () => {
             </button>
             <button
                 type="button"
-                class="rounded px-3 py-2 text-sm font-medium focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                class="cursor-pointer rounded px-3 py-2 text-sm font-medium focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
                 :class="
                     workspaceTab === 'history'
                         ? 'bg-muted'
@@ -194,6 +207,7 @@ const save = () => {
                             {{ clinical.encounter.attendingClinician }} · In
                             progress
                         </div>
+                        <div>{{ waitedDurationLabel(waitedMinutes) }}</div>
                     </div>
                 </header>
 
@@ -234,7 +248,7 @@ const save = () => {
                         <div
                             class="text-[11px] font-semibold text-muted-foreground uppercase"
                         >
-                            Registration reason
+                            Visit Reason
                         </div>
                         <div class="text-sm">
                             {{
@@ -282,7 +296,7 @@ const save = () => {
                                     inputmode="numeric"
                                     type="number"
                                     min="1"
-                                    class="mt-1 h-9 w-full rounded-md border bg-background px-3"
+                                    class="mt-1 h-9 w-full rounded-md border border-input bg-card px-3 outline-none hover:border-foreground/25 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/40"
                                 />
                                 <InputError
                                     :message="form.errors['vitals.systolic_bp']"
@@ -295,7 +309,7 @@ const save = () => {
                                     inputmode="numeric"
                                     type="number"
                                     min="1"
-                                    class="mt-1 h-9 w-full rounded-md border bg-background px-3"
+                                    class="mt-1 h-9 w-full rounded-md border border-input bg-card px-3 outline-none hover:border-foreground/25 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/40"
                                 />
                                 <InputError
                                     :message="
@@ -310,7 +324,7 @@ const save = () => {
                                     inputmode="numeric"
                                     type="number"
                                     min="1"
-                                    class="mt-1 h-9 w-full rounded-md border bg-background px-3"
+                                    class="mt-1 h-9 w-full rounded-md border border-input bg-card px-3 outline-none hover:border-foreground/25 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/40"
                                 />
                                 <InputError
                                     :message="form.errors['vitals.pulse_bpm']"
@@ -324,7 +338,7 @@ const save = () => {
                                     type="number"
                                     min="0.01"
                                     step="0.01"
-                                    class="mt-1 h-9 w-full rounded-md border bg-background px-3"
+                                    class="mt-1 h-9 w-full rounded-md border border-input bg-card px-3 outline-none hover:border-foreground/25 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/40"
                                 />
                                 <InputError
                                     :message="
@@ -343,7 +357,7 @@ const save = () => {
                                     min="0"
                                     max="100"
                                     step="0.01"
-                                    class="mt-1 h-9 w-full rounded-md border bg-background px-3"
+                                    class="mt-1 h-9 w-full rounded-md border border-input bg-card px-3 outline-none hover:border-foreground/25 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/40"
                                 />
                                 <InputError
                                     :message="
@@ -359,7 +373,7 @@ const save = () => {
                                     type="number"
                                     min="0.01"
                                     step="0.01"
-                                    class="mt-1 h-9 w-full rounded-md border bg-background px-3"
+                                    class="mt-1 h-9 w-full rounded-md border border-input bg-card px-3 outline-none hover:border-foreground/25 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/40"
                                 />
                                 <InputError
                                     :message="form.errors['vitals.weight_kg']"
@@ -373,7 +387,7 @@ const save = () => {
                                     type="number"
                                     min="0.01"
                                     step="0.01"
-                                    class="mt-1 h-9 w-full rounded-md border bg-background px-3"
+                                    class="mt-1 h-9 w-full rounded-md border border-input bg-card px-3 outline-none hover:border-foreground/25 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/40"
                                 />
                                 <InputError
                                     :message="form.errors['vitals.height_cm']"
@@ -395,14 +409,14 @@ const save = () => {
                             <h2 class="font-semibold">Clinical Note</h2>
                             <p class="text-xs text-muted-foreground">
                                 Consultation findings only. This is separate
-                                from the Registration reason.
+                                from the Visit Reason.
                             </p>
                         </div>
                         <textarea
                             v-model="form.clinical_note"
                             maxlength="20000"
                             rows="9"
-                            class="w-full rounded-md border bg-background p-3 text-sm"
+                            class="w-full rounded-md border border-input bg-card p-3 text-sm outline-none hover:border-foreground/25 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/40"
                             placeholder="Record the clinical consultation note…"
                         />
                         <div
@@ -446,7 +460,7 @@ const save = () => {
                                 <input
                                     v-model="diagnosis.diagnosis_text"
                                     maxlength="500"
-                                    class="mt-1 h-9 w-full rounded-md border bg-background px-3 text-sm"
+                                    class="mt-1 h-9 w-full rounded-md border border-input bg-card px-3 text-sm outline-none hover:border-foreground/25 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/40"
                                 />
                                 <InputError
                                     :message="
@@ -461,7 +475,7 @@ const save = () => {
                                 <input
                                     v-model="diagnosis.diagnosis_code"
                                     maxlength="50"
-                                    class="mt-1 h-9 w-full rounded-md border bg-background px-3 text-sm"
+                                    class="mt-1 h-9 w-full rounded-md border border-input bg-card px-3 text-sm outline-none hover:border-foreground/25 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/40"
                                 />
                                 <InputError
                                     :message="
@@ -476,7 +490,7 @@ const save = () => {
                                 <input
                                     v-model="diagnosis.code_system"
                                     maxlength="50"
-                                    class="mt-1 h-9 w-full rounded-md border bg-background px-3 text-sm"
+                                    class="mt-1 h-9 w-full rounded-md border border-input bg-card px-3 text-sm outline-none hover:border-foreground/25 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/40"
                                 />
                                 <InputError
                                     :message="

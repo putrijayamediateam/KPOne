@@ -1,9 +1,13 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, ref, watch } from 'vue';
+import { computed, onBeforeUnmount, ref, useId, watch } from 'vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 
-export type VisitReasonOption = { publicId: string; name: string };
+export type VisitReasonOption = {
+    publicId: string;
+    name: string;
+    isActive?: boolean;
+};
 
 const props = withDefaults(
     defineProps<{
@@ -25,6 +29,9 @@ const searching = ref(false);
 const adding = ref(false);
 const requestError = ref('');
 const activeIndex = ref(-1);
+const exactMatch = ref<VisitReasonOption | null>(null);
+const open = ref(false);
+const listboxId = `visit-reason-results-${useId()}`;
 let timer: ReturnType<typeof setTimeout> | undefined;
 let controller: AbortController | undefined;
 const csrf = () =>
@@ -33,10 +40,19 @@ const csrf = () =>
 const normalizedQuery = computed(() =>
     query.value.trim().replace(/\s+/g, ' ').toLocaleLowerCase(),
 );
-const exactExists = computed(() =>
-    results.value.some(
-        (item) => item.name.toLocaleLowerCase() === normalizedQuery.value,
-    ),
+const normalizeLabel = (value: string) =>
+    value.trim().replace(/\s+/g, ' ').toLocaleLowerCase();
+const exactExists = computed(() => exactMatch.value !== null);
+const inactiveExactMatch = computed(() =>
+    exactMatch.value?.isActive === false ? exactMatch.value : null,
+);
+const activeOption = computed(() =>
+    open.value && activeIndex.value >= 0
+        ? results.value[activeIndex.value]
+        : undefined,
+);
+const activeDescendant = computed(() =>
+    activeOption.value ? `${listboxId}-option-${activeIndex.value}` : undefined,
 );
 const canAdd = computed(
     () =>
@@ -47,6 +63,18 @@ const canAdd = computed(
 
 const search = async () => {
     controller?.abort();
+    const searchTerm = query.value.trim();
+
+    if (searchTerm === '') {
+        results.value = [];
+        exactMatch.value = null;
+        activeIndex.value = -1;
+        open.value = false;
+        searching.value = false;
+
+        return;
+    }
+
     const current = new AbortController();
     controller = current;
     searching.value = true;
@@ -54,7 +82,7 @@ const search = async () => {
 
     try {
         const response = await fetch(
-            `/visit-reasons?query=${encodeURIComponent(query.value.trim())}`,
+            `/visit-reasons?query=${encodeURIComponent(searchTerm.slice(0, 120))}`,
             { credentials: 'same-origin', signal: current.signal },
         );
         const payload = await response.json();
@@ -63,10 +91,18 @@ const search = async () => {
             throw new Error();
         }
 
-        results.value = (payload.data as VisitReasonOption[]).filter(
-            (item) => !props.modelValue.includes(item.publicId),
+        const available = payload.data as VisitReasonOption[];
+        exactMatch.value =
+            available.find(
+                (item) => normalizeLabel(item.name) === normalizedQuery.value,
+            ) ?? null;
+        results.value = available.filter(
+            (item) =>
+                item.isActive !== false &&
+                !props.modelValue.includes(item.publicId),
         );
-        activeIndex.value = results.value.length ? 0 : -1;
+        open.value = query.value.trim().length > 0;
+        activeIndex.value = open.value && results.value.length ? 0 : -1;
     } catch (error) {
         if (error instanceof DOMException && error.name === 'AbortError') {
             return;
@@ -80,9 +116,14 @@ const search = async () => {
     }
 };
 watch(query, () => {
+    controller?.abort();
+
     if (timer) {
         clearTimeout(timer);
     }
+
+    open.value = false;
+    activeIndex.value = -1;
 
     timer = setTimeout(search, 150);
 });
@@ -109,6 +150,8 @@ const select = (item: VisitReasonOption) => {
     emit('update:selected', selected);
     query.value = '';
     results.value = [];
+    exactMatch.value = null;
+    open.value = false;
 };
 const remove = (publicId: string) => {
     const selected = props.selected.filter(
@@ -165,7 +208,18 @@ const add = async () => {
             return;
         }
 
-        select(payload.data as VisitReasonOption);
+        const created = payload.data as VisitReasonOption;
+
+        if (created.isActive === false) {
+            exactMatch.value = created;
+            results.value = [];
+            activeIndex.value = -1;
+            open.value = true;
+
+            return;
+        }
+
+        select(created);
     } catch {
         requestError.value = 'Visit Reason could not be added.';
     } finally {
@@ -173,18 +227,39 @@ const add = async () => {
     }
 };
 const onKeydown = (event: KeyboardEvent) => {
-    if (event.key === 'ArrowDown' && results.value.length) {
+    if (event.key === 'Enter') {
         event.preventDefault();
-        activeIndex.value = Math.min(
-            activeIndex.value + 1,
-            results.value.length - 1,
-        );
+
+        if (activeOption.value) {
+            select(activeOption.value);
+        }
+    } else if (event.key === 'ArrowDown' && results.value.length) {
+        event.preventDefault();
+        open.value = true;
+        activeIndex.value = (activeIndex.value + 1) % results.value.length;
     } else if (event.key === 'ArrowUp' && results.value.length) {
         event.preventDefault();
-        activeIndex.value = Math.max(activeIndex.value - 1, 0);
-    } else if (event.key === 'Enter' && activeIndex.value >= 0) {
+        open.value = true;
+        activeIndex.value =
+            (activeIndex.value - 1 + results.value.length) %
+            results.value.length;
+    } else if (event.key === 'Home' && results.value.length) {
         event.preventDefault();
-        select(results.value[activeIndex.value]);
+        activeIndex.value = 0;
+    } else if (event.key === 'End' && results.value.length) {
+        event.preventDefault();
+        activeIndex.value = results.value.length - 1;
+    } else if (event.key === 'Escape') {
+        event.preventDefault();
+
+        if (timer) {
+            clearTimeout(timer);
+        }
+
+        controller?.abort();
+        searching.value = false;
+        open.value = false;
+        activeIndex.value = -1;
     }
 };
 </script>
@@ -231,11 +306,14 @@ const onKeydown = (event: KeyboardEvent) => {
                 autocomplete="off"
                 role="combobox"
                 aria-label="Search Visit Reasons"
-                aria-controls="visit-reason-results"
-                :aria-expanded="results.length > 0"
+                :aria-controls="listboxId"
+                :aria-expanded="open"
+                aria-autocomplete="list"
+                :aria-activedescendant="activeDescendant"
                 :aria-invalid="!!error"
                 :disabled="disabled || selected.length >= 5"
-                class="h-10 w-full rounded-md border bg-background px-3 text-sm"
+                maxlength="120"
+                class="h-9 w-full rounded-md border border-input bg-card px-3 text-sm outline-none hover:border-foreground/25 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/40"
                 :placeholder="
                     selected.length >= 5
                         ? 'Maximum 5 reasons selected'
@@ -245,23 +323,32 @@ const onKeydown = (event: KeyboardEvent) => {
                 @keydown="onKeydown"
             />
             <div
-                v-if="query.trim() && (results.length || canAdd || searching)"
-                id="visit-reason-results"
-                role="listbox"
+                v-if="
+                    open &&
+                    query.trim() &&
+                    (results.length ||
+                        canAdd ||
+                        searching ||
+                        inactiveExactMatch)
+                "
                 class="absolute z-20 mt-1 max-h-56 w-full overflow-auto rounded-md border bg-popover p-1 shadow-md"
             >
-                <button
-                    v-for="(item, index) in results"
-                    :key="item.publicId"
-                    type="button"
-                    role="option"
-                    :aria-selected="index === activeIndex"
-                    class="block w-full rounded px-3 py-2 text-left text-sm hover:bg-muted"
-                    :class="index === activeIndex ? 'bg-muted' : ''"
-                    @click="select(item)"
-                >
-                    {{ item.name }}
-                </button>
+                <div :id="listboxId" role="listbox">
+                    <button
+                        v-for="(item, index) in results"
+                        :key="item.publicId"
+                        :id="`${listboxId}-option-${index}`"
+                        type="button"
+                        role="option"
+                        :aria-selected="index === activeIndex"
+                        class="block w-full rounded px-3 py-2 text-left text-sm hover:bg-muted"
+                        :class="index === activeIndex ? 'bg-muted' : ''"
+                        @click="select(item)"
+                        @mouseenter="activeIndex = index"
+                    >
+                        {{ item.name }}
+                    </button>
+                </div>
                 <Button
                     v-if="canAdd"
                     type="button"
@@ -273,6 +360,13 @@ const onKeydown = (event: KeyboardEvent) => {
                     Add &quot;{{ query.trim().replace(/\s+/g, ' ') }}&quot;
                 </Button>
                 <p
+                    v-if="inactiveExactMatch"
+                    class="px-3 py-2 text-xs text-amber-800 dark:text-amber-300"
+                >
+                    This Visit Reason is inactive. Choose another or ask a
+                    Supervisor.
+                </p>
+                <p
                     v-if="searching"
                     class="px-3 py-2 text-xs text-muted-foreground"
                 >
@@ -282,6 +376,13 @@ const onKeydown = (event: KeyboardEvent) => {
         </div>
         <p class="text-xs text-muted-foreground">
             Select up to 5. The first reason is Primary.
+        </p>
+        <p class="sr-only" role="status" aria-live="polite">
+            {{
+                searching
+                    ? 'Searching Visit Reasons.'
+                    : `${results.length} Visit Reason results available.`
+            }}
         </p>
         <InputError :message="error || requestError" />
     </div>

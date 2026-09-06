@@ -12,6 +12,7 @@ import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue';
 import InputError from '@/components/InputError.vue';
 import PhoneInput from '@/components/patient/PhoneInput.vue';
 import { Button } from '@/components/ui/button';
+import { OperationalSelect } from '@/components/ui/select';
 import VisitReasonPicker from '@/components/visit/VisitReasonPicker.vue';
 import type { VisitReasonOption } from '@/components/visit/VisitReasonPicker.vue';
 import {
@@ -33,6 +34,30 @@ const props = defineProps<{
     options: VisitOptions & { idempotencyKey: string };
     recentPatients: PatientRegistrationSummary[];
 }>();
+const identityTypeOptions = [
+    { value: 'nric', label: 'Malaysian IC' },
+    { value: 'passport', label: 'Passport' },
+];
+const genderOptions = [
+    { value: 'unknown', label: 'Unknown' },
+    { value: 'female', label: 'Female' },
+    { value: 'male', label: 'Male' },
+    { value: 'indeterminate', label: 'Indeterminate' },
+];
+const doctorOptions = computed(() => [
+    { value: '', label: 'No doctor' },
+    ...props.options.doctors.map((doctor) => ({
+        value: doctor.id,
+        label: doctor.name,
+    })),
+]);
+const panelOptions = computed(() => [
+    { value: '', label: 'Select Panel' },
+    ...props.options.panels.map((panel) => ({
+        value: panel.id,
+        label: panel.name,
+    })),
+]);
 const patientQuery = ref('');
 const patientResults = ref<PatientRegistrationSummary[]>([
     ...props.recentPatients,
@@ -526,14 +551,12 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
                         >Identity document *</span
                     >
                     <div class="flex">
-                        <select
+                        <OperationalSelect
                             v-model="quickIdentifierType"
-                            aria-label="Identification type"
-                            class="h-10 rounded-l-md border bg-background px-2 text-sm"
-                        >
-                            <option value="nric">Malaysian IC</option>
-                            <option value="passport">Passport</option></select
-                        ><input
+                            label="Identification type"
+                            :options="identityTypeOptions"
+                            trigger-class="h-10 w-40 rounded-r-none"
+                        /><input
                             v-model="quickIdentifierValue"
                             aria-label="IC or Passport number"
                             :aria-invalid="
@@ -598,17 +621,12 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
                 /></label>
                 <label class="grid gap-1"
                     ><span class="text-sm font-medium">Gender</span
-                    ><select
+                    ><OperationalSelect
                         v-model="quick.sex"
-                        :aria-invalid="!!errorFor('quick_patient.sex')"
-                        class="h-10 rounded-md border bg-background px-3 text-sm"
-                    >
-                        <option value="unknown">Unknown</option>
-                        <option value="female">Female</option>
-                        <option value="male">Male</option>
-                        <option value="indeterminate">Indeterminate</option>
-                    </select></label
-                >
+                        label="Gender"
+                        :invalid="!!errorFor('quick_patient.sex')"
+                        :options="genderOptions"
+                /></label>
                 <label
                     v-if="errorFor('quick_patient.duplicate_override')"
                     class="flex items-start gap-2 rounded-md border border-amber-300 bg-amber-50 p-3 text-sm md:col-span-2"
@@ -681,21 +699,11 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
                                 class="font-normal text-muted-foreground"
                                 >(optional)</span
                             ></span
-                        ><select
+                        ><OperationalSelect
                             v-model="form.assigned_doctor_user_id"
-                            :aria-invalid="
-                                !!form.errors.assigned_doctor_user_id
-                            "
-                            class="h-10 rounded-md border bg-background px-3 text-sm focus-visible:ring-2 focus-visible:ring-emerald-600/30 focus-visible:outline-none"
-                        >
-                            <option value="">Select doctor</option>
-                            <option
-                                v-for="doctor in options.doctors"
-                                :key="doctor.id"
-                                :value="doctor.id"
-                            >
-                                {{ doctor.name }}
-                            </option></select
+                            label="Doctor"
+                            :invalid="!!form.errors.assigned_doctor_user_id"
+                            :options="doctorOptions" />
                         ><InputError
                             :message="errorFor('assigned_doctor_user_id')"
                     /></label>
@@ -789,19 +797,11 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
                     <template v-if="form.coverage_type === 'panel'"
                         ><label class="grid gap-1"
                             ><span class="text-sm font-medium">Panel</span
-                            ><select
+                            ><OperationalSelect
                                 v-model="form.panel_id"
-                                :aria-invalid="!!form.errors.panel_id"
-                                class="h-10 rounded-md border bg-background px-3 text-sm focus-visible:ring-2 focus-visible:ring-emerald-600/30 focus-visible:outline-none"
-                            >
-                                <option value="">Select Panel</option>
-                                <option
-                                    v-for="panel in options.panels"
-                                    :key="panel.id"
-                                    :value="panel.id"
-                                >
-                                    {{ panel.name }}
-                                </option></select
+                                label="Panel"
+                                :invalid="!!form.errors.panel_id"
+                                :options="panelOptions" />
                             ><InputError
                                 :message="errorFor('panel_id')" /></label
                         ><label class="grid gap-1"

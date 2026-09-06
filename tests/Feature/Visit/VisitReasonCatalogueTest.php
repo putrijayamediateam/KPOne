@@ -54,6 +54,75 @@ class VisitReasonCatalogueTest extends VisitTestCase
         $this->postJson(route('visit-reasons.store'), ['name' => 'Forbidden'])->assertForbidden();
     }
 
+    public function test_search_reports_an_inactive_exact_match_and_bounds_query_length(): void
+    {
+        $ca = $this->actor();
+        $this->selectBranch($ca);
+        $reason = app(VisitReasonService::class)->create($ca, 'Inactive reason');
+        $reason->forceFill(['is_active' => false])->save();
+
+        $this->getJson(route('visit-reasons.index', ['query' => ' inactive   reason ']))
+            ->assertOk()
+            ->assertJsonPath('data.0.publicId', $reason->public_id)
+            ->assertJsonPath('data.0.isActive', false);
+        $this->getJson(route('visit-reasons.index', ['query' => str_repeat('x', 121)]))
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('query');
+    }
+
+    public function test_exact_matches_are_prioritized_ahead_of_more_than_twenty_partial_matches(): void
+    {
+        $ca = $this->actor();
+        $this->selectBranch($ca);
+        $service = app(VisitReasonService::class);
+        $active = $service->create($ca, 'Pregnancy Scan');
+        foreach (range(1, 25) as $index) {
+            $service->create($ca, sprintf('A Pregnancy Scan %02d', $index));
+        }
+
+        $this->getJson(route('visit-reasons.index', ['query' => ' pregnancy   scan ']))
+            ->assertOk()
+            ->assertJsonCount(20, 'data')
+            ->assertJsonPath('data.0.publicId', $active->public_id)
+            ->assertJsonPath('data.0.isActive', true);
+
+        $inactive = $service->create($ca, 'Inactive Pregnancy Scan');
+        $inactive->forceFill(['is_active' => false])->save();
+        foreach (range(1, 25) as $index) {
+            $service->create($ca, sprintf('A Inactive Pregnancy Scan %02d', $index));
+        }
+
+        $this->getJson(route('visit-reasons.index', ['query' => 'inactive pregnancy scan']))
+            ->assertOk()
+            ->assertJsonCount(20, 'data')
+            ->assertJsonPath('data.0.publicId', $inactive->public_id)
+            ->assertJsonPath('data.0.isActive', false);
+    }
+
+    public function test_inactive_add_response_is_explicit_and_foreign_exact_match_stays_hidden(): void
+    {
+        $ca = $this->actor();
+        $this->selectBranch($ca);
+        $inactive = app(VisitReasonService::class)->create($ca, 'Inactive Add Attempt');
+        $inactive->forceFill(['is_active' => false])->save();
+
+        $this->postJson(route('visit-reasons.store'), ['name' => ' inactive   add attempt '])
+            ->assertOk()
+            ->assertJsonPath('data.publicId', $inactive->public_id)
+            ->assertJsonPath('data.isActive', false);
+        $this->assertDatabaseCount('visit_reason_catalogue_items', 1);
+
+        $otherBranch = $this->otherBranch();
+        $other = $this->actor('ca', $otherBranch);
+        $this->selectBranch($other, $otherBranch);
+        app(VisitReasonService::class)->create($other, 'Foreign Exact Match');
+
+        $this->selectBranch($ca);
+        $this->getJson(route('visit-reasons.index', ['query' => 'foreign exact match']))
+            ->assertOk()
+            ->assertJsonCount(0, 'data');
+    }
+
     public function test_structured_visit_has_one_primary_four_additional_and_immutable_snapshots(): void
     {
         $ca = $this->actor();

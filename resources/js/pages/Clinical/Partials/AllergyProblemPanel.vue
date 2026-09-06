@@ -3,6 +3,7 @@ import { router, useForm } from '@inertiajs/vue3';
 import { AlertTriangle, Check, Plus, ShieldCheck } from '@lucide/vue';
 import { computed, ref } from 'vue';
 import { Button } from '@/components/ui/button';
+import { OperationalSelect } from '@/components/ui/select';
 import type {
     ClinicalAllergyRecord,
     ClinicalAllergySafety,
@@ -27,6 +28,19 @@ const showAllergyForm = ref(false);
 const editingAllergy = ref<string | null>(null);
 const showProblemForm = ref(false);
 const editingProblem = ref<string | null>(null);
+const allergyCategoryOptions = [
+    { value: '', label: 'Not recorded' },
+    { value: 'medication', label: 'Medication' },
+    { value: 'food', label: 'Food' },
+    { value: 'environmental', label: 'Environmental' },
+    { value: 'other', label: 'Other' },
+];
+const allergySeverityOptions = [
+    { value: '', label: 'Not recorded' },
+    { value: 'mild', label: 'Mild' },
+    { value: 'moderate', label: 'Moderate' },
+    { value: 'severe', label: 'Severe' },
+];
 
 const allergyForm = useForm({
     expected_branch_id: props.branchId,
@@ -440,33 +454,26 @@ const transitionProblem = (
                             v-model="allergyForm.allergen_text"
                             maxlength="500"
                             required
-                            class="mt-1 h-9 w-full rounded-md border bg-background px-3"
+                            class="mt-1 h-9 w-full rounded-md border border-input bg-card px-3 outline-none hover:border-foreground/25 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/40"
                         />
                     </label>
                     <label class="text-sm">
                         Category
-                        <select
+                        <OperationalSelect
                             v-model="allergyForm.category"
-                            class="mt-1 h-9 w-full rounded-md border bg-background px-3"
-                        >
-                            <option value="">Not recorded</option>
-                            <option value="medication">Medication</option>
-                            <option value="food">Food</option>
-                            <option value="environmental">Environmental</option>
-                            <option value="other">Other</option>
-                        </select>
+                            class="mt-1"
+                            label="Allergy category"
+                            :options="allergyCategoryOptions"
+                        />
                     </label>
                     <label class="text-sm">
                         Severity
-                        <select
+                        <OperationalSelect
                             v-model="allergyForm.severity"
-                            class="mt-1 h-9 w-full rounded-md border bg-background px-3"
-                        >
-                            <option value="">Not recorded</option>
-                            <option value="mild">Mild</option>
-                            <option value="moderate">Moderate</option>
-                            <option value="severe">Severe</option>
-                        </select>
+                            class="mt-1"
+                            label="Allergy severity"
+                            :options="allergySeverityOptions"
+                        />
                     </label>
                     <label class="text-sm sm:col-span-2">
                         Reaction
@@ -474,7 +481,7 @@ const transitionProblem = (
                             v-model="allergyForm.reaction_text"
                             maxlength="1000"
                             rows="2"
-                            class="mt-1 w-full rounded-md border bg-background px-3 py-2"
+                            class="mt-1 w-full rounded-md border border-input bg-card px-3 py-2 outline-none hover:border-foreground/25 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/40"
                         />
                     </label>
                     <p
@@ -648,7 +655,7 @@ const transitionProblem = (
                             v-model="problemForm.condition_text"
                             maxlength="500"
                             required
-                            class="mt-1 h-9 w-full rounded-md border bg-background px-3"
+                            class="mt-1 h-9 w-full rounded-md border border-input bg-card px-3 outline-none hover:border-foreground/25 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/40"
                         />
                     </label>
                     <label class="text-sm">
@@ -656,7 +663,7 @@ const transitionProblem = (
                         <input
                             v-model="problemForm.condition_code"
                             maxlength="50"
-                            class="mt-1 h-9 w-full rounded-md border bg-background px-3"
+                            class="mt-1 h-9 w-full rounded-md border border-input bg-card px-3 outline-none hover:border-foreground/25 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/40"
                         />
                     </label>
                     <label class="text-sm">
@@ -664,7 +671,7 @@ const transitionProblem = (
                         <input
                             v-model="problemForm.code_system"
                             maxlength="50"
-                            class="mt-1 h-9 w-full rounded-md border bg-background px-3"
+                            class="mt-1 h-9 w-full rounded-md border border-input bg-card px-3 outline-none hover:border-foreground/25 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/40"
                         />
                     </label>
                     <label class="text-sm">
@@ -672,7 +679,7 @@ const transitionProblem = (
                         <input
                             v-model="problemForm.onset_date"
                             type="date"
-                            class="mt-1 h-9 w-full rounded-md border bg-background px-3"
+                            class="mt-1 h-9 w-full rounded-md border border-input bg-card px-3 outline-none hover:border-foreground/25 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/40"
                         />
                     </label>
                     <p

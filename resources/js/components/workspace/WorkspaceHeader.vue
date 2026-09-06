@@ -45,7 +45,6 @@ const clinicItems = computed(() => [
     ...(workspace.value?.navigation.placeholders
         ? [
               { label: 'Reviews', href: '/reviews' },
-              { label: 'Panel Claims', href: '/panel-claims' },
               { label: 'Insight', href: '/insight' },
               { label: 'Purchase', href: '/purchase' },
           ]
