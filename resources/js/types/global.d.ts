@@ -26,9 +26,13 @@ declare module '@inertiajs/core' {
                 navigation: {
                     registration: boolean;
                     consultation: boolean;
-                    placeholders: boolean;
+                    patientRecords: boolean;
                     panelWork: boolean;
                     financeWork: boolean;
+                    staff: boolean;
+                    branches: boolean;
+                    accessControl: boolean;
+                    auditLogs: boolean;
                 };
             } | null;
             sidebarOpen: boolean;

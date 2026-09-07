@@ -44,7 +44,36 @@ class WorkspaceTest extends VisitTestCase
             ->where('workspace.canEnterClinic', true)
             ->where('workspace.navigation.registration', true)
             ->where('workspace.navigation.consultation', true)
-            ->where('workspace.navigation.placeholders', true));
+            ->where('workspace.navigation.patientRecords', true)
+            ->missing('workspace.navigation.placeholders'));
+    }
+
+    public function test_shared_navigation_capabilities_follow_direct_route_permissions(): void
+    {
+        $expectations = [
+            'ca' => [true, true, true, false, false, false, false],
+            'resident_doctor' => [true, true, true, false, false, false, false],
+            'ca_supervisor' => [true, true, true, false, false, false, false],
+            'panel_officer' => [false, false, false, true, false, false, false],
+            'finance_officer' => [false, false, false, false, true, false, false],
+            'technical_admin' => [false, false, false, false, false, true, true],
+            'director' => [true, true, true, true, true, true, true],
+        ];
+
+        foreach ($expectations as $role => [$registration, $consultation, $patients, $panel, $finance, $access, $audit]) {
+            $actor = $this->actor($role);
+            $this->selectBranch($actor);
+
+            $this->get(route('dashboard'))->assertOk()->assertInertia(fn (Assert $page) => $page
+                ->where('workspace.navigation.registration', $registration)
+                ->where('workspace.navigation.consultation', $consultation)
+                ->where('workspace.navigation.patientRecords', $patients)
+                ->where('workspace.navigation.panelWork', $panel)
+                ->where('workspace.navigation.financeWork', $finance)
+                ->where('workspace.navigation.accessControl', $access)
+                ->where('workspace.navigation.auditLogs', $audit)
+                ->missing('workspace.navigation.placeholders'));
+        }
     }
 
     public function test_placeholder_modules_are_lightweight_and_clinic_authority_gated(): void

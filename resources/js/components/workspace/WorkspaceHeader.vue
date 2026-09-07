@@ -19,64 +19,16 @@ import {
 import UserMenuContent from '@/components/UserMenuContent.vue';
 import WorkspaceBranchSwitcher from '@/components/workspace/WorkspaceBranchSwitcher.vue';
 import { getInitials } from '@/composables/useInitials';
+import { headerDestinations } from '@/lib/workspace-navigation';
 
 const props = defineProps<{ context: 'clinic' | 'admin' }>();
 const page = usePage();
 const user = computed(() => page.props.auth.user!);
-const permissions = computed(() => page.props.auth.permissions);
 const workspace = computed(() => page.props.workspace);
-const can = (permission: string) => permissions.value.includes(permission);
-
-const clinicItems = computed(() => [
-    ...(workspace.value?.navigation.panelWork &&
-    !workspace.value?.navigation.placeholders
-        ? [{ label: 'Panel responsibility', href: '/panel-claims' }]
-        : []),
-    ...(workspace.value?.navigation.financeWork &&
-    !workspace.value?.canEnterClinic
-        ? [{ label: 'Finance / Billing', href: '/financial-work' }]
-        : []),
-    ...(workspace.value?.navigation.registration
-        ? [{ label: 'Registration', href: '/registration' }]
-        : []),
-    ...(workspace.value?.navigation.consultation
-        ? [{ label: 'Consultation', href: '/queue' }]
-        : []),
-    ...(workspace.value?.navigation.placeholders
-        ? [
-              { label: 'Reviews', href: '/reviews' },
-              { label: 'Insight', href: '/insight' },
-              { label: 'Purchase', href: '/purchase' },
-          ]
-        : []),
-]);
-
-const adminItems = computed(() => [
-    { label: 'Main Menu', href: '/dashboard' },
-    ...(workspace.value?.navigation.panelWork
-        ? [{ label: 'Panel responsibility', href: '/panel-claims' }]
-        : []),
-    ...(workspace.value?.navigation.financeWork
-        ? [{ label: 'Finance / Billing', href: '/financial-work' }]
-        : []),
-    ...(can('staff.view.own') ||
-    can('staff.view.branch') ||
-    can('staff.view.organisation')
-        ? [{ label: 'Staff', href: '/staff' }]
-        : []),
-    ...(can('branches.view.branch') || can('branches.view.organisation')
-        ? [{ label: 'Branches', href: '/branches' }]
-        : []),
-    ...(can('access.view.organisation')
-        ? [{ label: 'Access Control', href: '/access-control' }]
-        : []),
-    ...(can('audit.view.organisation')
-        ? [{ label: 'Audit Logs', href: '/audit-logs' }]
-        : []),
-]);
-
 const items = computed(() =>
-    props.context === 'clinic' ? clinicItems.value : adminItems.value,
+    workspace.value
+        ? headerDestinations(workspace.value.navigation, props.context)
+        : [],
 );
 const isActive = (href: string) =>
     page.url === href ||
@@ -86,14 +38,14 @@ const isActive = (href: string) =>
 <template>
     <header class="sticky top-0 z-40 border-b bg-background/95 backdrop-blur">
         <div
-            class="mx-auto flex h-13 w-full max-w-[1600px] items-center gap-3 px-3 md:px-5 lg:grid lg:grid-cols-[minmax(180px,1fr)_auto_minmax(180px,1fr)]"
+            class="mx-auto flex h-13 w-full max-w-[1600px] items-center gap-3 px-3 md:px-5 xl:grid xl:grid-cols-[minmax(180px,1fr)_auto_minmax(180px,1fr)]"
         >
             <Sheet>
                 <SheetTrigger as-child>
                     <Button
                         variant="ghost"
                         size="icon"
-                        class="lg:hidden"
+                        class="xl:hidden"
                         aria-label="Open navigation"
                     >
                         <Menu class="size-5" />
@@ -105,16 +57,19 @@ const isActive = (href: string) =>
                     </SheetHeader>
                     <nav
                         class="mt-5 grid gap-1"
-                        aria-label="Primary navigation"
+                        aria-label="Mobile primary navigation"
                     >
                         <Link
                             v-for="item in items"
                             :key="item.href"
                             :href="item.href"
-                            class="rounded-md px-3 py-2 text-sm font-medium hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                            class="cursor-pointer rounded-md border-l-2 border-transparent px-3 py-2 text-sm font-medium hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                            :aria-current="
+                                isActive(item.href) ? 'page' : undefined
+                            "
                             :class="
                                 isActive(item.href)
-                                    ? 'bg-muted text-foreground'
+                                    ? 'border-pink-600 bg-muted text-foreground'
                                     : 'text-muted-foreground'
                             "
                         >
@@ -126,7 +81,7 @@ const isActive = (href: string) =>
 
             <Link
                 href="/dashboard"
-                class="flex shrink-0 items-center gap-2 rounded-md focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                class="flex shrink-0 cursor-pointer items-center gap-2 rounded-md focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
                 aria-label="Open KPOne Main Menu"
             >
                 <img
@@ -141,17 +96,18 @@ const isActive = (href: string) =>
             </Link>
 
             <nav
-                class="hidden min-w-0 items-stretch justify-self-center lg:flex"
-                aria-label="Primary navigation"
+                class="hidden min-w-0 items-stretch justify-self-center xl:flex"
+                aria-label="Desktop primary navigation"
             >
                 <Link
                     v-for="item in items"
                     :key="item.href"
                     :href="item.href"
-                    class="relative flex h-13 items-center px-2.5 text-[13px] font-normal text-muted-foreground transition-colors hover:bg-muted/35 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none focus-visible:ring-inset xl:px-3.5"
+                    class="relative flex h-13 cursor-pointer items-center px-2.5 text-[13px] font-normal text-muted-foreground transition-colors hover:bg-muted/35 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none focus-visible:ring-inset xl:px-3.5"
+                    :aria-current="isActive(item.href) ? 'page' : undefined"
                     :class="
                         isActive(item.href)
-                            ? 'font-medium text-foreground after:absolute after:inset-x-3 after:bottom-0 after:h-px after:bg-foreground/60'
+                            ? 'font-medium text-foreground after:absolute after:inset-x-3 after:bottom-0 after:h-0.5 after:bg-pink-600'
                             : ''
                     "
                 >
@@ -160,7 +116,7 @@ const isActive = (href: string) =>
             </nav>
 
             <div
-                class="ml-auto flex shrink-0 items-center gap-2 lg:ml-0 lg:justify-self-end"
+                class="ml-auto flex shrink-0 items-center gap-2 xl:ml-0 xl:justify-self-end"
             >
                 <Button
                     v-if="context === 'admin' && workspace?.canEnterClinic"

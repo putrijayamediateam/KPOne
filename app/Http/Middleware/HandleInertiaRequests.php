@@ -51,6 +51,7 @@ class HandleInertiaRequests extends Middleware
             $branchContext = [
                 'active' => $activeBranch?->only(['id', 'code', 'name']),
                 'available' => $availableBranches->map->only(['id', 'code', 'name'])->values(),
+                'canSwitch' => $user->can('branch_context.switch.branch') || $user->can('branch_context.switch.organisation'),
             ];
 
             $landing = app(WorkspaceLandingService::class);
@@ -61,9 +62,13 @@ class HandleInertiaRequests extends Middleware
                 'navigation' => [
                     'registration' => $user->can('visits.view.branch'),
                     'consultation' => $user->can('queue.view.own') || $user->can('queue.view.branch'),
-                    'placeholders' => $canEnterClinic,
+                    'patientRecords' => $user->can('patients.search.organisation'),
                     'panelWork' => app(BillingWorkAccess::class)->panel($user),
                     'financeWork' => app(BillingWorkAccess::class)->finance($user),
+                    'staff' => $user->can('staff.view.own') || $user->can('staff.view.branch') || $user->can('staff.view.organisation'),
+                    'branches' => $user->can('branches.view.branch') || $user->can('branches.view.organisation'),
+                    'accessControl' => $user->can('access.view.organisation'),
+                    'auditLogs' => $user->can('audit.view.organisation'),
                 ],
             ];
         }

@@ -272,9 +272,11 @@ test('financial workspace navigation uses only dedicated shared capability flags
     const header = read(
         'resources/js/components/workspace/WorkspaceHeader.vue',
     );
+    const navigation = read('resources/js/lib/workspace-navigation.ts');
 
-    assert.match(header, /navigation\.panelWork/);
-    assert.match(header, /navigation\.financeWork/);
+    assert.match(navigation, /panelWork/);
+    assert.match(navigation, /financeWork/);
+    assert.match(header, /headerDestinations\(workspace\.value\.navigation/);
     assert.doesNotMatch(
         header,
         /navigation\.placeholders[\s\S]*Panel Claims/,
