@@ -17,4 +17,5 @@ export type BranchSummary = {
 export type BranchContext = {
     active: BranchSummary | null;
     available: BranchSummary[];
+    canSwitch: boolean;
 } | null;

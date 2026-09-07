@@ -28,7 +28,7 @@ const changeBranch = (value: unknown) => {
 
 <template>
     <Select
-        v-if="context?.active"
+        v-if="context?.active && context.canSwitch"
         :model-value="String(context.active.id)"
         @update:model-value="changeBranch"
     >
@@ -56,4 +56,15 @@ const changeBranch = (value: unknown) => {
             </SelectItem>
         </SelectContent>
     </Select>
+    <div
+        v-else-if="context?.active"
+        class="flex h-9 max-w-44 items-center gap-2 rounded-lg bg-muted/60 px-2.5 text-xs text-foreground"
+        aria-label="Active branch"
+    >
+        <Building2
+            class="size-3.5 shrink-0 text-muted-foreground"
+            aria-hidden="true"
+        />
+        <span class="truncate">{{ context.active.name }}</span>
+    </div>
 </template>
