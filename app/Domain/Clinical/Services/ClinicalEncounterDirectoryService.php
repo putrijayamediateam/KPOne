@@ -133,6 +133,7 @@ class ClinicalEncounterDirectoryService
             ],
             'branch' => [
                 'name' => $historical->branch->name,
+                'timezone' => $historical->branch->timezone,
             ],
             'encounter' => [
                 'status' => $historical->status,

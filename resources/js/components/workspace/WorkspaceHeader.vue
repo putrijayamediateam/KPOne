@@ -19,7 +19,10 @@ import {
 import UserMenuContent from '@/components/UserMenuContent.vue';
 import WorkspaceBranchSwitcher from '@/components/workspace/WorkspaceBranchSwitcher.vue';
 import { getInitials } from '@/composables/useInitials';
-import { headerDestinations } from '@/lib/workspace-navigation';
+import {
+    headerDestinations,
+    isWorkspaceDestinationActive,
+} from '@/lib/workspace-navigation';
 
 const props = defineProps<{ context: 'clinic' | 'admin' }>();
 const page = usePage();
@@ -30,9 +33,7 @@ const items = computed(() =>
         ? headerDestinations(workspace.value.navigation, props.context)
         : [],
 );
-const isActive = (href: string) =>
-    page.url === href ||
-    (href !== '/dashboard' && page.url.startsWith(`${href}/`));
+const isActive = (href: string) => isWorkspaceDestinationActive(page.url, href);
 </script>
 
 <template>

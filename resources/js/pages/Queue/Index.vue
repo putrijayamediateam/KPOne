@@ -15,6 +15,7 @@ import VisitCancellationDialog from '@/components/patient-board/VisitCancellatio
 import { Button } from '@/components/ui/button';
 import { OperationalSelect } from '@/components/ui/select';
 import OperationalTabs from '@/components/ui/tabs/OperationalTabs.vue';
+import { formatDate } from '@/lib/presentation';
 import {
     queuePresentationLabel,
     servingDurationLabel,
@@ -110,20 +111,6 @@ const sourceRows = computed<QueueRow[]>(() => {
         ...live.value.serving,
     ];
 });
-const compactDate = (value: string) => {
-    const [year, month, day] = value.split('-').map(Number);
-
-    if (!year || !month || !day) {
-        return value;
-    }
-
-    return new Intl.DateTimeFormat('en-MY', {
-        day: 'numeric',
-        month: 'short',
-        year: 'numeric',
-        timeZone: 'UTC',
-    }).format(new Date(Date.UTC(year, month - 1, day)));
-};
 const compactTime = (value: string) => {
     const [hour, minute] = value.split(':').map(Number);
 
@@ -136,7 +123,9 @@ const compactTime = (value: string) => {
         minute: '2-digit',
         hour12: true,
         timeZone: 'UTC',
-    }).format(new Date(Date.UTC(2000, 0, 1, hour, minute)));
+    })
+        .format(new Date(Date.UTC(2000, 0, 1, hour, minute)))
+        .replace(/\b(am|pm)\b/gi, (period) => period.toUpperCase());
 };
 const boardRows = computed<PatientBoardRow[]>(() =>
     sourceRows.value.map((row) => ({
@@ -145,7 +134,7 @@ const boardRows = computed<PatientBoardRow[]>(() =>
         patientNumber: row.patientNumber,
         visitNumber: row.visitNumber,
         queueNumber: row.queueNumber,
-        arrivedDate: compactDate(row.operationalDate),
+        arrivedDate: formatDate(row.operationalDate),
         arrivedTime: compactTime(row.queuedTime),
         visitNotes: row.visitReasonExcerpt,
         doctorName: row.doctorName,

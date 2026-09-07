@@ -4,6 +4,7 @@ import { AlertTriangle, Check, Plus, ShieldCheck } from '@lucide/vue';
 import { computed, ref } from 'vue';
 import { Button } from '@/components/ui/button';
 import { OperationalSelect } from '@/components/ui/select';
+import { formatDateTime } from '@/lib/presentation';
 import type {
     ClinicalAllergyRecord,
     ClinicalAllergySafety,
@@ -14,6 +15,7 @@ import type {
 const props = defineProps<{
     visitNumber: string;
     branchId: number;
+    timeZone: string;
     allergies: ClinicalAllergySafety | null;
     problems: ClinicalProblemList | null;
 }>();
@@ -325,9 +327,10 @@ const transitionProblem = (
                                 >
                                     · Recorded
                                     {{
-                                        new Date(
+                                        formatDateTime(
                                             allergies.reviewedAt,
-                                        ).toLocaleString()
+                                            timeZone,
+                                        )
                                     }}
                                 </span>
                             </p>
@@ -457,18 +460,20 @@ const transitionProblem = (
                             class="mt-1 h-9 w-full rounded-md border border-input bg-card px-3 outline-none hover:border-foreground/25 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/40"
                         />
                     </label>
-                    <label class="text-sm">
+                    <label class="text-sm" for="allergy-category">
                         Category
                         <OperationalSelect
+                            id="allergy-category"
                             v-model="allergyForm.category"
                             class="mt-1"
                             label="Allergy category"
                             :options="allergyCategoryOptions"
                         />
                     </label>
-                    <label class="text-sm">
+                    <label class="text-sm" for="allergy-severity">
                         Severity
                         <OperationalSelect
+                            id="allergy-severity"
                             v-model="allergyForm.severity"
                             class="mt-1"
                             label="Allergy severity"

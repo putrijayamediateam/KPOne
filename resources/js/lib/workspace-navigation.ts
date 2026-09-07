@@ -164,3 +164,19 @@ export const headerDestinations = (
               ],
     ),
 ];
+
+const pathname = (url: string): string => url.split(/[?#]/, 1)[0] ?? '';
+
+export const isWorkspaceDestinationActive = (
+    currentUrl: string,
+    destinationHref: string,
+): boolean => {
+    const currentPath = pathname(currentUrl);
+    const destinationPath = pathname(destinationHref);
+
+    return (
+        currentPath === destinationPath ||
+        (destinationPath !== '/dashboard' &&
+            currentPath.startsWith(`${destinationPath}/`))
+    );
+};

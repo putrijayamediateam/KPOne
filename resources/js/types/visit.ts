@@ -70,7 +70,7 @@ export type VisitDetail = {
         dateOfBirth: string | null;
         sex: string;
     };
-    branch: { code: string; name: string };
+    branch: { code: string; name: string; timezone: string };
     visitType: VisitType;
     status: 'registered' | 'cancelled' | 'completed';
     priority: VisitPriority;

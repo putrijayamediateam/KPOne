@@ -96,16 +96,18 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
         <form class="space-y-4" @submit.prevent="submit">
             <section class="rounded-lg border bg-card p-4">
                 <div class="grid gap-4 md:grid-cols-2">
-                    <label class="grid gap-1"
+                    <label class="grid gap-1" for="visit-type"
                         ><span class="text-sm font-medium">Visit type</span
                         ><OperationalSelect
+                            id="visit-type"
                             v-model="form.visit_type"
                             label="Visit type"
                             :options="visitTypeOptions"
                     /></label>
-                    <label class="grid gap-1"
+                    <label class="grid gap-1" for="assigned-doctor"
                         ><span class="text-sm font-medium">Doctor</span
                         ><OperationalSelect
+                            id="assigned-doctor"
                             v-model="form.assigned_doctor_user_id"
                             label="Doctor"
                             :options="doctorOptions" />
@@ -135,24 +137,27 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
                             </p>
                         </div>
                     </div>
-                    <label class="grid gap-1"
+                    <label class="grid gap-1" for="coverage-type"
                         ><span class="text-sm font-medium">Coverage</span
                         ><OperationalSelect
+                            id="coverage-type"
                             v-model="form.coverage_type"
                             label="Coverage"
                             :options="coverageOptions"
                     /></label>
-                    <label class="grid gap-1"
+                    <label class="grid gap-1" for="visit-priority"
                         ><span class="text-sm font-medium">Priority</span
                         ><OperationalSelect
+                            id="visit-priority"
                             v-model="form.priority"
                             label="Priority"
                             :options="priorityOptions"
                     /></label>
                     <template v-if="form.coverage_type === 'panel'"
-                        ><label class="grid gap-1"
+                        ><label class="grid gap-1" for="panel-id"
                             ><span class="text-sm font-medium">Panel</span
                             ><OperationalSelect
+                                id="panel-id"
                                 v-model="form.panel_id"
                                 label="Panel"
                                 :options="panelOptions" />

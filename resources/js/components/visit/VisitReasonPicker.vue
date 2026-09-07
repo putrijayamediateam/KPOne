@@ -82,7 +82,7 @@ const search = async () => {
 
     try {
         const response = await fetch(
-            `/visit-reasons?query=${encodeURIComponent(searchTerm.slice(0, 120))}`,
+            `/visit-reasons?query=${encodeURIComponent(searchTerm)}`,
             { credentials: 'same-origin', signal: current.signal },
         );
         const payload = await response.json();

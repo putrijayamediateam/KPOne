@@ -4,6 +4,9 @@ import { ArrowLeft, Ban, ListOrdered, Pencil } from '@lucide/vue';
 import { computed, ref } from 'vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
+import { StatusBadge } from '@/components/ui/status';
+import { formatDate, formatDateTime } from '@/lib/presentation';
+import { queuePresentationLabel } from '@/lib/r1c2-presentation';
 import type { BranchContext, VisitDetail } from '@/types';
 
 defineOptions({
@@ -55,15 +58,7 @@ const submitCancel = () => {
                     <h1 class="font-mono text-2xl font-semibold">
                         {{ visit.visitNumber }}
                     </h1>
-                    <span
-                        :class="
-                            visit.status === 'registered'
-                                ? 'bg-emerald-50 text-emerald-800'
-                                : 'bg-muted text-muted-foreground'
-                        "
-                        class="rounded-full px-2.5 py-1 text-xs font-medium capitalize"
-                        >{{ visit.status }}</span
-                    ><span
+                    <StatusBadge :status="visit.status" /><span
                         v-if="visit.priority === 'urgent'"
                         class="rounded-full bg-red-50 px-2.5 py-1 text-xs font-medium text-red-700"
                         >Urgent</span
@@ -71,7 +66,12 @@ const submitCancel = () => {
                 </div>
                 <p class="text-sm text-muted-foreground">
                     {{ visit.branch.name }} ·
-                    {{ new Date(visit.registeredAt).toLocaleString() }}
+                    {{
+                        formatDateTime(
+                            visit.registeredAt,
+                            visit.branch.timezone,
+                        )
+                    }}
                 </p>
             </div>
             <div class="flex gap-2">
@@ -160,8 +160,16 @@ const submitCancel = () => {
                         {{ visit.queue.queueNumber }}
                     </div>
                     <div class="text-xs text-muted-foreground">
-                        {{ visit.queue.operationalDate }} ·
-                        <span class="capitalize">{{ visit.queue.status }}</span>
+                        {{ formatDate(visit.queue.operationalDate) }} ·
+                        <StatusBadge
+                            :status="visit.queue.status"
+                            :label="
+                                queuePresentationLabel({
+                                    status: visit.queue.status,
+                                    visitStatus: visit.status,
+                                })
+                            "
+                        />
                     </div>
                 </div>
             </div>
@@ -214,11 +222,7 @@ const submitCancel = () => {
         >
             <h2 class="font-semibold">Cancelled</h2>
             <p class="mt-1 text-sm text-muted-foreground">
-                {{
-                    visit.cancelledAt
-                        ? new Date(visit.cancelledAt).toLocaleString()
-                        : ''
-                }}
+                {{ formatDateTime(visit.cancelledAt, visit.branch.timezone) }}
             </p>
             <p class="mt-2 text-sm whitespace-pre-wrap">
                 {{ visit.cancellationReason }}

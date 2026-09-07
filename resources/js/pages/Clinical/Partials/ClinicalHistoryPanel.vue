@@ -1,14 +1,15 @@
 <script setup lang="ts">
-import { Link } from '@inertiajs/vue3';
 import { ArrowLeft, LoaderCircle } from '@lucide/vue';
 import { onBeforeUnmount, ref } from 'vue';
+import { ActionLink } from '@/components/ui/action-link';
 import { Button } from '@/components/ui/button';
+import { formatDate, formatDateTime } from '@/lib/presentation';
 import type {
     ClinicalHistoryDetailPage,
     ClinicalHistorySummary,
 } from '@/types';
 
-defineProps<{ history: ClinicalHistorySummary[] }>();
+defineProps<{ history: ClinicalHistorySummary[]; timeZone: string }>();
 const selected = ref<ClinicalHistoryDetailPage | null>(null);
 const selectedUrl = ref<string | null>(null);
 const loadingUrl = ref<string | null>(null);
@@ -96,11 +97,7 @@ onBeforeUnmount(() => controller?.abort());
                     >
                         <div class="min-w-0 flex-1">
                             <div class="text-sm font-medium">
-                                {{
-                                    new Date(
-                                        item.startedAt,
-                                    ).toLocaleDateString()
-                                }}
+                                {{ formatDate(item.startedAt, timeZone) }}
                             </div>
                             <div class="truncate text-xs text-muted-foreground">
                                 {{ item.branch }} ·
@@ -147,11 +144,12 @@ onBeforeUnmount(() => controller?.abort());
                                 Read only
                             </p>
                         </div>
-                        <Link
+                        <ActionLink
                             v-if="selectedUrl"
                             :href="selectedUrl"
-                            class="text-xs font-medium text-emerald-800 hover:underline"
-                            >Open full page</Link
+                            variant="outline"
+                            size="sm"
+                            >Open full page</ActionLink
                         >
                     </div>
                     <dl class="mt-3 grid grid-cols-2 gap-2 text-xs">
@@ -159,9 +157,10 @@ onBeforeUnmount(() => controller?.abort());
                             <dt class="text-muted-foreground">Date</dt>
                             <dd>
                                 {{
-                                    new Date(
+                                    formatDateTime(
                                         selected.encounter.startedAt,
-                                    ).toLocaleString()
+                                        timeZone,
+                                    )
                                 }}
                             </dd>
                         </div>

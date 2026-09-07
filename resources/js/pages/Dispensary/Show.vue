@@ -3,6 +3,7 @@ import { Head, router, usePage } from '@inertiajs/vue3';
 import { CheckCircle2, LoaderCircle, Printer, RotateCcw } from '@lucide/vue';
 import { reactive, ref } from 'vue';
 import { Button } from '@/components/ui/button';
+import { formatStatusLabel } from '@/lib/presentation';
 
 defineOptions({
     layout: { breadcrumbs: [{ title: 'Dispensary', href: '/registration' }] },
@@ -228,7 +229,7 @@ const saveItem = (item: Item) => {
             <span
                 >Allergy safety:
                 <strong>{{
-                    dispensary.allergySafety.status.replaceAll('_', ' ')
+                    formatStatusLabel(dispensary.allergySafety.status)
                 }}</strong></span
             ><span>{{
                 dispensary.allergySafety.isCurrent

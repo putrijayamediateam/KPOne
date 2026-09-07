@@ -729,13 +729,17 @@ const save = () => {
                             >
                         </div>
                     </fieldset>
-                    <label class="text-xs"
-                        >Frequency<OperationalSelect
+                    <div class="text-xs">
+                        <label :for="`medicine-frequency-${index}`"
+                            >Frequency</label
+                        ><OperationalSelect
+                            :id="`medicine-frequency-${index}`"
                             v-model="item.frequency_choice"
                             class="mt-1"
                             label="Frequency"
                             :options="frequencyOptions"
-                            @update:model-value="syncMedicine(item)" />
+                            @update:model-value="syncMedicine(item)"
+                        />
                         <input
                             v-if="item.frequency_choice === customChoice"
                             v-model="item.frequency_custom"
@@ -743,7 +747,8 @@ const save = () => {
                             aria-label="Custom frequency"
                             class="mt-1 h-9 w-full rounded-md border border-input bg-card px-2 text-sm outline-none hover:border-foreground/25 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/40"
                             @input="syncMedicine(item)"
-                    /></label>
+                        />
+                    </div>
                     <fieldset class="text-xs">
                         <legend>
                             Duration
@@ -791,15 +796,17 @@ const save = () => {
                     </fieldset>
                 </div>
                 <div class="grid gap-2 sm:grid-cols-2">
-                    <label class="text-xs"
-                        >Route
-                        <span class="text-muted-foreground">(optional)</span
-                        ><OperationalSelect
+                    <div class="text-xs">
+                        <label :for="`medicine-route-${index}`">Route</label>
+                        <span class="text-muted-foreground"> (optional)</span>
+                        <OperationalSelect
+                            :id="`medicine-route-${index}`"
                             v-model="item.route_choice"
                             class="mt-1"
                             label="Route"
                             :options="routeOptions"
-                            @update:model-value="syncMedicine(item)" />
+                            @update:model-value="syncMedicine(item)"
+                        />
                         <input
                             v-if="item.route_choice === customChoice"
                             v-model="item.route_custom"
@@ -807,7 +814,8 @@ const save = () => {
                             aria-label="Custom route"
                             class="mt-1 h-9 w-full rounded-md border border-input bg-card px-2 text-sm outline-none hover:border-foreground/25 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/40"
                             @input="syncMedicine(item)"
-                    /></label>
+                        />
+                    </div>
                     <label class="text-xs"
                         >Instruction
                         <span class="text-muted-foreground">(optional)</span
@@ -1028,6 +1036,7 @@ const save = () => {
                         >Service disposition</label
                     >
                     <OperationalSelect
+                        :id="`performed-${service.publicId}`"
                         v-model="sendForm.service_deliveries[index].disposition"
                         label="Service disposition"
                         :options="dispositionOptions"
