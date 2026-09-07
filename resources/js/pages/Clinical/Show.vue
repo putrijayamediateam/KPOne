@@ -262,6 +262,7 @@ const save = () => {
                 <AllergyProblemPanel
                     :visit-number="clinical.visit.visitNumber"
                     :branch-id="clinical.branch.id"
+                    :time-zone="clinical.branch.timezone"
                     :allergies="clinical.allergies"
                     :problems="clinical.problems"
                 />
@@ -582,7 +583,10 @@ const save = () => {
                     workspaceTab === 'history' ? 'block' : 'hidden lg:block'
                 "
             >
-                <ClinicalHistoryPanel :history="clinical.history" />
+                <ClinicalHistoryPanel
+                    :history="clinical.history"
+                    :time-zone="clinical.branch.timezone"
+                />
             </aside>
         </div>
     </main>

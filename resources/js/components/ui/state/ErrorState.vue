@@ -13,7 +13,6 @@ withDefaults(
         data-slot="error-state"
         class="rounded-lg border border-destructive/25 bg-destructive/5 px-3 py-2 text-sm text-destructive"
         role="alert"
-        aria-live="polite"
     >
         <p class="font-medium">{{ title }}</p>
         <p class="mt-0.5 text-xs">{{ message }}</p>

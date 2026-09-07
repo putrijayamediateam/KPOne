@@ -22,9 +22,6 @@ defineProps<{
     summary: {
         organisation: string;
         activeBranch: { id: number; code: string; name: string } | null;
-        availableBranches: number;
-        visibleStaff: number;
-        accessScope: string;
     };
 }>();
 

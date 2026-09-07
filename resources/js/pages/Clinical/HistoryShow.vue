@@ -1,6 +1,8 @@
 <script setup lang="ts">
-import { Head, Link } from '@inertiajs/vue3';
+import { Head } from '@inertiajs/vue3';
 import { ArrowLeft, ClipboardList, Stethoscope } from '@lucide/vue';
+import { ActionLink } from '@/components/ui/action-link';
+import { formatDateTime } from '@/lib/presentation';
 import type { ClinicalHistoryDetailPage } from '@/types';
 
 defineOptions({
@@ -20,13 +22,10 @@ const display = (value: number | string | null, suffix = '') =>
     <main class="flex flex-1 flex-col gap-5 p-4 md:p-6">
         <header class="flex flex-wrap items-start justify-between gap-3">
             <div>
-                <Link
-                    :href="historical.navigation.backUrl"
-                    class="mb-2 inline-flex items-center gap-1 text-xs font-medium text-emerald-800 hover:underline"
-                >
+                <ActionLink :href="historical.navigation.backUrl" class="mb-2">
                     <ArrowLeft class="size-3.5" />
                     {{ historical.navigation.backLabel }}
-                </Link>
+                </ActionLink>
                 <div class="flex items-center gap-3">
                     <div class="rounded-lg bg-emerald-100 p-2 text-emerald-800">
                         <Stethoscope class="size-5" />
@@ -54,9 +53,10 @@ const display = (value: number | string | null, suffix = '') =>
                 </div>
                 <div>
                     {{
-                        new Date(
+                        formatDateTime(
                             historical.encounter.startedAt,
-                        ).toLocaleString()
+                            historical.branch.timezone,
+                        )
                     }}
                 </div>
             </div>
@@ -157,9 +157,10 @@ const display = (value: number | string | null, suffix = '') =>
                     <div class="mt-1 font-medium">
                         {{
                             historical.vitals.observedAt
-                                ? new Date(
+                                ? formatDateTime(
                                       historical.vitals.observedAt,
-                                  ).toLocaleString()
+                                      historical.branch.timezone,
+                                  )
                                 : 'Not recorded'
                         }}
                     </div>

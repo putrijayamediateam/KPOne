@@ -18,6 +18,8 @@ const props = withDefaults(
         modelValue: string | number;
         options: OperationalSelectOption[];
         label: string;
+        id?: string;
+        labelledby?: string;
         placeholder?: string;
         disabled?: boolean;
         invalid?: boolean;
@@ -51,9 +53,11 @@ const update = (value: unknown) => {
         @update:model-value="update"
     >
         <SelectTrigger
+            :id="id"
             class="w-full"
             :class="triggerClass"
-            :aria-label="label"
+            :aria-label="labelledby ? undefined : label"
+            :aria-labelledby="labelledby"
             :aria-invalid="invalid || undefined"
         >
             <SelectValue :placeholder="placeholder" />

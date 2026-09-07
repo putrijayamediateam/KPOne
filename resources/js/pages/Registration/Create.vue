@@ -619,9 +619,10 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
                         class="h-10 rounded-md border bg-background px-3 text-sm" /><InputError
                         :message="errorFor('quick_patient.date_of_birth')"
                 /></label>
-                <label class="grid gap-1"
+                <label class="grid gap-1" for="quick-gender"
                     ><span class="text-sm font-medium">Gender</span
                     ><OperationalSelect
+                        id="quick-gender"
                         v-model="quick.sex"
                         label="Gender"
                         :invalid="!!errorFor('quick_patient.sex')"
@@ -691,7 +692,7 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
                             </button>
                         </div>
                     </fieldset>
-                    <label class="grid gap-1"
+                    <label class="grid gap-1" for="assigned-doctor"
                         ><span class="text-sm font-medium"
                             >3. Doctor
                             <span
@@ -700,6 +701,7 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
                                 >(optional)</span
                             ></span
                         ><OperationalSelect
+                            id="assigned-doctor"
                             v-model="form.assigned_doctor_user_id"
                             label="Doctor"
                             :invalid="!!form.errors.assigned_doctor_user_id"
@@ -795,9 +797,10 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
                         </div>
                     </fieldset>
                     <template v-if="form.coverage_type === 'panel'"
-                        ><label class="grid gap-1"
+                        ><label class="grid gap-1" for="panel-id"
                             ><span class="text-sm font-medium">Panel</span
                             ><OperationalSelect
+                                id="panel-id"
                                 v-model="form.panel_id"
                                 label="Panel"
                                 :invalid="!!form.errors.panel_id"

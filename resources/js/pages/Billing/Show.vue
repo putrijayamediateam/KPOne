@@ -533,8 +533,15 @@ const complete = () => {
                             autocomplete="off"
                     /></label>
                     <template v-if="billing.can.pay"
-                        ><label class="block">Payment method</label>
+                        ><label
+                            id="payment-method-label"
+                            class="block"
+                            for="payment-method"
+                            >Payment method</label
+                        >
                         <OperationalSelect
+                            id="payment-method"
+                            labelledby="payment-method-label"
                             v-model="form.method"
                             :options="methodOptions"
                             label="Payment method"
@@ -578,8 +585,15 @@ const complete = () => {
                                 class="billing-input"
                             /></label
                         ><template v-if="billing.can.panelPropose"
-                            ><label class="block">Verified Panel</label>
+                            ><label
+                                id="verified-panel-label"
+                                class="block"
+                                for="verified-panel"
+                                >Verified Panel</label
+                            >
                             <OperationalSelect
+                                id="verified-panel"
+                                labelledby="verified-panel-label"
                                 v-model="form.panel_id"
                                 :options="panelOptions"
                                 label="Verified Panel"

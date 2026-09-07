@@ -177,7 +177,7 @@ export type ClinicalHistoryDetailPage = {
         sex: string;
     };
     visit: { visitNumber: string };
-    branch: { name: string };
+    branch: { name: string; timezone: string };
     encounter: {
         status: 'in_progress';
         clinicalNote: string | null;

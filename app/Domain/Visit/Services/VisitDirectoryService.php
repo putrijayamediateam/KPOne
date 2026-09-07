@@ -144,7 +144,7 @@ class VisitDirectoryService
                 'dateOfBirth' => $visit->patient->date_of_birth?->format('Y-m-d'),
                 'sex' => $visit->patient->sex,
             ],
-            'branch' => $visit->branch->only(['code', 'name']),
+            'branch' => $visit->branch->only(['code', 'name', 'timezone']),
             'visitType' => $visit->visit_type,
             'status' => $visit->status,
             'priority' => $visit->priority,

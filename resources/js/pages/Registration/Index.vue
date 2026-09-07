@@ -15,6 +15,7 @@ import VisitCancellationDialog from '@/components/patient-board/VisitCancellatio
 import { Button } from '@/components/ui/button';
 import { OperationalSelect } from '@/components/ui/select';
 import OperationalTabs from '@/components/ui/tabs/OperationalTabs.vue';
+import { formatDate } from '@/lib/presentation';
 import {
     queuePresentationLabel,
     waitingDurationLabel,
@@ -108,20 +109,6 @@ const visitTypeOptions = [
     { value: 'consultation', label: 'Consultation' },
     { value: 'otc', label: 'OTC' },
 ];
-const compactDate = (value: string) => {
-    const [year, month, day] = value.split('-').map(Number);
-
-    if (!year || !month || !day) {
-        return value;
-    }
-
-    return new Intl.DateTimeFormat('en-MY', {
-        day: 'numeric',
-        month: 'short',
-        year: 'numeric',
-        timeZone: 'UTC',
-    }).format(new Date(Date.UTC(year, month - 1, day)));
-};
 const compactTime = (value: string) => {
     const [hour, minute] = value.split(':').map(Number);
 
@@ -134,12 +121,14 @@ const compactTime = (value: string) => {
         minute: '2-digit',
         hour12: true,
         timeZone: 'UTC',
-    }).format(new Date(Date.UTC(2000, 0, 1, hour, minute)));
+    })
+        .format(new Date(Date.UTC(2000, 0, 1, hour, minute)))
+        .replace(/\b(am|pm)\b/gi, (period) => period.toUpperCase());
 };
 const registrationDateLabel = computed(() =>
     form.date_from === form.date_to
-        ? compactDate(form.date_from)
-        : `${compactDate(form.date_from)}–${compactDate(form.date_to)}`,
+        ? formatDate(form.date_from)
+        : `${formatDate(form.date_from)}–${formatDate(form.date_to)}`,
 );
 const boardRows = computed<PatientBoardRow[]>(() =>
     rows.value.map((visit) => {
@@ -441,9 +430,12 @@ const requestCancellation = (row: PatientBoardRow) => {
                     v-if="showMoreFilters"
                     class="mt-3 flex flex-wrap items-end gap-2 border-t pt-3"
                 >
-                    <label class="grid min-w-40 gap-1 text-xs"
+                    <label
+                        class="grid min-w-40 gap-1 text-xs"
+                        for="registration-visit-type"
                         >Visit type
                         <OperationalSelect
+                            id="registration-visit-type"
                             v-model="form.visit_type"
                             label="Visit type"
                             :options="visitTypeOptions"

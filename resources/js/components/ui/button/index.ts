@@ -9,20 +9,20 @@ export const buttonVariants = cva(
     variants: {
       variant: {
         default:
-          "border border-primary bg-primary text-primary-foreground shadow-xs hover:bg-primary/85",
+          "border border-primary bg-primary text-primary-foreground shadow-xs hover:bg-primary/85 disabled:hover:bg-primary",
         primary:
-          "border border-primary bg-primary text-primary-foreground shadow-xs hover:bg-primary/85",
+          "border border-primary bg-primary text-primary-foreground shadow-xs hover:bg-primary/85 disabled:hover:bg-primary",
         destructive:
-          "bg-destructive text-white hover:bg-destructive/90 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40 dark:bg-destructive/60",
+          "bg-destructive text-white hover:bg-destructive/90 disabled:hover:bg-destructive focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40 dark:bg-destructive/60 dark:disabled:hover:bg-destructive/60",
         outline:
-          "border border-input bg-card text-foreground shadow-xs hover:border-foreground/25 hover:bg-muted dark:bg-input/30 dark:hover:bg-input/50",
+          "border border-input bg-card text-foreground shadow-xs hover:border-foreground/25 hover:bg-muted disabled:hover:border-input disabled:hover:bg-card dark:bg-input/30 dark:hover:bg-input/50 dark:disabled:hover:bg-input/30",
         secondary:
-          "border border-input bg-secondary text-secondary-foreground shadow-xs hover:border-foreground/25 hover:bg-muted",
+          "border border-input bg-secondary text-secondary-foreground shadow-xs hover:border-foreground/25 hover:bg-muted disabled:hover:border-input disabled:hover:bg-secondary",
         ghost:
-          "hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50",
+          "hover:bg-accent disabled:hover:bg-transparent dark:hover:bg-accent/50 dark:disabled:hover:bg-transparent",
         accent:
-          "border border-brand bg-brand text-brand-foreground shadow-xs hover:bg-brand/90 focus-visible:border-brand focus-visible:ring-brand/35",
-        link: "text-primary underline-offset-4 hover:underline",
+          "border border-brand bg-brand text-brand-foreground shadow-xs hover:bg-brand/90 disabled:hover:bg-brand focus-visible:border-brand focus-visible:ring-brand/35",
+        link: "text-primary underline-offset-4 hover:underline disabled:hover:no-underline",
       },
       size: {
         "default": "h-9 px-4 py-2 has-[>svg]:px-3",
