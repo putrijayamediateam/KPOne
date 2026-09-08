@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import { Head, Link, router } from '@inertiajs/vue3';
 import { Plus, Search, Users, X } from '@lucide/vue';
-import { reactive } from 'vue';
+import { computed, reactive } from 'vue';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { OperationalSelect } from '@/components/ui/select';
 import { formatRoleLabel } from '@/lib/displayLabels';
 import type { PaginatedStaff, StaffOptions } from '@/types';
 
@@ -32,6 +33,32 @@ const form = reactive({
     role: props.filters.role ?? '',
     status: props.filters.status ?? '',
 });
+const branchOptions = computed(() => [
+    { value: '', label: 'All branches' },
+    ...props.filterOptions.branches.map((branch) => ({
+        value: String(branch.id),
+        label: branch.name,
+    })),
+]);
+const departmentOptions = computed(() => [
+    { value: '', label: 'All departments' },
+    ...props.filterOptions.departments.map((department) => ({
+        value: String(department.id),
+        label: department.name,
+    })),
+]);
+const roleOptions = computed(() => [
+    { value: '', label: 'All roles' },
+    ...props.filterOptions.roles.map((role) => ({
+        value: role,
+        label: formatRoleLabel(role),
+    })),
+]);
+const statusOptions = [
+    { value: '', label: 'Any status' },
+    { value: 'active', label: 'Active' },
+    { value: 'inactive', label: 'Inactive' },
+];
 
 const applyFilters = () =>
     router.get('/staff', form, {
@@ -84,7 +111,7 @@ const clearFilters = () => {
             >
             <CardContent>
                 <form
-                    class="grid gap-3 lg:grid-cols-[minmax(220px,1.4fr)_repeat(4,minmax(130px,1fr))_auto]"
+                    class="grid gap-3 md:grid-cols-2 xl:grid-cols-[minmax(220px,1.4fr)_repeat(4,minmax(130px,1fr))_auto]"
                     @submit.prevent="applyFilters"
                 >
                     <label class="relative">
@@ -98,54 +125,31 @@ const clearFilters = () => {
                             placeholder="Name, email, staff number"
                         />
                     </label>
-                    <select
+                    <OperationalSelect
+                        id="staff-filter-branch"
                         v-model="form.branch"
-                        class="h-9 rounded-md border bg-background px-3 text-sm"
-                    >
-                        <option value="">All branches</option>
-                        <option
-                            v-for="branch in filterOptions.branches"
-                            :key="branch.id"
-                            :value="String(branch.id)"
-                        >
-                            {{ branch.name }}
-                        </option>
-                    </select>
-                    <select
+                        label="Branch"
+                        :options="branchOptions"
+                    />
+                    <OperationalSelect
+                        id="staff-filter-department"
                         v-model="form.department"
-                        class="h-9 rounded-md border bg-background px-3 text-sm"
-                    >
-                        <option value="">All departments</option>
-                        <option
-                            v-for="department in filterOptions.departments"
-                            :key="department.id"
-                            :value="String(department.id)"
-                        >
-                            {{ department.name }}
-                        </option>
-                    </select>
-                    <select
+                        label="Department"
+                        :options="departmentOptions"
+                    />
+                    <OperationalSelect
+                        id="staff-filter-role"
                         v-model="form.role"
-                        class="h-9 rounded-md border bg-background px-3 text-sm"
-                    >
-                        <option value="">All roles</option>
-                        <option
-                            v-for="role in filterOptions.roles"
-                            :key="role"
-                            :value="role"
-                        >
-                            {{ formatRoleLabel(role) }}
-                        </option>
-                    </select>
-                    <select
+                        label="Role"
+                        :options="roleOptions"
+                    />
+                    <OperationalSelect
+                        id="staff-filter-status"
                         v-model="form.status"
-                        class="h-9 rounded-md border bg-background px-3 text-sm"
-                    >
-                        <option value="">Any status</option>
-                        <option value="active">Active</option>
-                        <option value="inactive">Inactive</option>
-                    </select>
-                    <div class="flex gap-2">
+                        label="Status"
+                        :options="statusOptions"
+                    />
+                    <div class="flex gap-2 md:col-span-2 xl:col-span-1">
                         <Button size="sm" type="submit">Apply</Button>
                         <Button
                             size="sm"

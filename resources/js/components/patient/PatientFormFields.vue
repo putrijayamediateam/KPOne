@@ -2,6 +2,7 @@
 import { reactive } from 'vue';
 import InputError from '@/components/InputError.vue';
 import PhoneInput from '@/components/patient/PhoneInput.vue';
+import { OperationalSelect } from '@/components/ui/select';
 import type { PatientFormValues } from '@/types';
 
 const props = defineProps<{
@@ -11,6 +12,12 @@ const props = defineProps<{
     errors: Partial<Record<keyof PatientFormValues, string>>;
 }>();
 const fields = reactive(props.model);
+const genderOptions = [
+    { value: 'female', label: 'Female' },
+    { value: 'male', label: 'Male' },
+    { value: 'indeterminate', label: 'Indeterminate' },
+    { value: 'unknown', label: 'Unknown' },
+];
 </script>
 
 <template>
@@ -49,20 +56,21 @@ const fields = reactive(props.model);
                     />
                     <InputError :message="errors.date_of_birth" />
                 </label>
-                <label class="grid gap-2">
-                    <span class="text-sm font-medium">Gender</span>
-                    <select
-                        v-model="fields.sex"
-                        :aria-invalid="!!errors.sex"
-                        class="h-10 rounded-md border bg-background px-3 text-sm"
+                <div class="grid gap-2">
+                    <span id="patient-gender-label" class="text-sm font-medium"
+                        >Gender</span
                     >
-                        <option value="female">Female</option>
-                        <option value="male">Male</option>
-                        <option value="indeterminate">Indeterminate</option>
-                        <option value="unknown">Unknown</option>
-                    </select>
+                    <OperationalSelect
+                        id="patient-gender"
+                        v-model="fields.sex"
+                        label="Gender"
+                        labelledby="patient-gender-label"
+                        :options="genderOptions"
+                        :invalid="!!errors.sex"
+                        trigger-class="h-10"
+                    />
                     <InputError :message="errors.sex" />
-                </label>
+                </div>
                 <label class="grid gap-2">
                     <span class="text-sm font-medium"
                         >Nationality country code</span
