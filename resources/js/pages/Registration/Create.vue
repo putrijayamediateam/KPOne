@@ -404,18 +404,31 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
             </div>
             <div
                 v-if="selectedPatient"
-                class="mx-4 mb-4 flex items-center gap-3 rounded-md bg-emerald-50/70 px-3 py-3"
+                class="mx-4 mb-4 flex items-center gap-3 rounded-md border border-emerald-200/70 bg-emerald-50/70 px-3 py-3 dark:border-brand/40 dark:bg-zinc-900/85"
             >
-                <div class="rounded-full bg-emerald-100 p-2 text-emerald-800">
+                <div
+                    class="rounded-full bg-emerald-100 p-2 text-emerald-800 dark:bg-brand/15 dark:text-brand"
+                >
                     <Check class="size-4" />
                 </div>
-                <div>
-                    <div class="font-medium">
+                <div class="min-w-0">
+                    <div class="font-medium text-foreground">
                         {{ selectedPatient.fullName }}
                     </div>
-                    <div class="font-mono text-xs text-muted-foreground">
+                    <div
+                        class="font-mono text-xs text-slate-600 dark:text-slate-300"
+                    >
                         {{ selectedPatient.patientNumber }} ·
                         {{ selectedPatient.dateOfBirth ?? 'DOB not recorded' }}
+                    </div>
+                    <div
+                        class="mt-0.5 text-xs text-slate-600 dark:text-slate-300"
+                    >
+                        {{
+                            selectedPatient.identifier?.maskedValue ??
+                            selectedPatient.maskedPhone ??
+                            'No identifier recorded'
+                        }}
                     </div>
                 </div>
             </div>

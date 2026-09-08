@@ -4,6 +4,7 @@ import { ArrowLeft, UserPlus } from '@lucide/vue';
 import InputError from '@/components/InputError.vue';
 import PatientFormFields from '@/components/patient/PatientFormFields.vue';
 import { Button } from '@/components/ui/button';
+import { OperationalSelect } from '@/components/ui/select';
 import {
     phoneError,
     identityError,
@@ -25,6 +26,10 @@ type IdentifierInput = {
     issuing_country_code: string;
     value: string;
 };
+const identityTypeOptions = [
+    { value: 'nric', label: 'Malaysian IC' },
+    { value: 'passport', label: 'Passport' },
+];
 const form = useForm<
     PatientFormValues & {
         identifiers: IdentifierInput[];
@@ -50,6 +55,16 @@ const form = useForm<
     duplicate_override: false,
 });
 const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
+const updateIdentifierType = (
+    identifier: IdentifierInput,
+    value: string | number,
+) => {
+    identifier.identifier_type = String(value) as 'nric' | 'passport';
+    identifier.issuing_country_code = identifierIssuer(
+        identifier.identifier_type,
+        identifier.issuing_country_code,
+    );
+};
 const submit = () => {
     form.clearErrors();
     const missingName = !form.full_name.trim();
@@ -133,26 +148,26 @@ const submit = () => {
                         :key="index"
                         class="grid gap-3 rounded-md border p-4 md:grid-cols-3"
                     >
-                        <label class="grid gap-2"
-                            ><span class="text-sm font-medium"
+                        <div class="grid gap-2">
+                            <span
+                                :id="'patient-identifier-type-label-' + index"
+                                class="text-sm font-medium"
                                 >Identification type *</span
                             >
-                            <select
-                                v-model="identifier.identifier_type"
-                                @change="
-                                    identifier.issuing_country_code =
-                                        identifierIssuer(
-                                            identifier.identifier_type,
-                                            identifier.issuing_country_code,
-                                        )
+                            <OperationalSelect
+                                :id="'patient-identifier-type-' + index"
+                                :model-value="identifier.identifier_type"
+                                label="Identification type"
+                                :labelledby="
+                                    'patient-identifier-type-label-' + index
                                 "
-                                aria-label="Identification type"
-                                class="h-10 rounded-md border bg-background px-3 text-sm"
-                            >
-                                <option value="nric">Malaysian IC</option>
-                                <option value="passport">Passport</option>
-                            </select>
-                        </label>
+                                :options="identityTypeOptions"
+                                trigger-class="h-10"
+                                @update:model-value="
+                                    updateIdentifierType(identifier, $event)
+                                "
+                            />
+                        </div>
                         <label class="grid gap-2"
                             ><span class="text-sm font-medium"
                                 >Issuing country *</span

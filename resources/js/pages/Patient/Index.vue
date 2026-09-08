@@ -4,6 +4,7 @@ import { Plus, Search, UserRoundSearch } from '@lucide/vue';
 import { reactive, ref } from 'vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
+import { OperationalSelect } from '@/components/ui/select';
 
 defineOptions({
     layout: { breadcrumbs: [{ title: 'Patients', href: '/patients' }] },
@@ -23,6 +24,13 @@ const form = reactive({
     search_type: 'name',
     issuing_country_code: '',
 });
+const searchTypeOptions = [
+    { value: 'name', label: 'Name' },
+    { value: 'patient_number', label: 'Patient number' },
+    { value: 'nric', label: 'NRIC' },
+    { value: 'passport', label: 'Passport' },
+    { value: 'phone', label: 'Phone' },
+];
 const results = ref<Result[]>([]);
 const total = ref(0);
 const currentPage = ref(1);
@@ -119,19 +127,16 @@ const identifierLabel = (result: Result) =>
                 </p>
             </div>
             <form
-                class="grid gap-3 p-5 md:grid-cols-[170px_1fr_110px_auto]"
+                class="grid gap-3 p-5 md:grid-cols-[170px_1fr] lg:grid-cols-[170px_1fr_110px_auto]"
                 @submit.prevent="search(1)"
             >
-                <select
+                <OperationalSelect
+                    id="patient-search-type"
                     v-model="form.search_type"
-                    class="h-10 rounded-md border bg-background px-3 text-sm"
-                >
-                    <option value="name">Name</option>
-                    <option value="patient_number">Patient number</option>
-                    <option value="nric">NRIC</option>
-                    <option value="passport">Passport</option>
-                    <option value="phone">Phone</option>
-                </select>
+                    label="Search type"
+                    :options="searchTypeOptions"
+                    trigger-class="h-10"
+                />
                 <label class="relative"
                     ><Search
                         class="absolute top-3 left-3 size-4 text-muted-foreground" /><input
@@ -153,7 +158,7 @@ const identifierLabel = (result: Result) =>
                 }}</Button>
                 <InputError
                     v-if="error"
-                    class="md:col-span-4"
+                    class="md:col-span-2 lg:col-span-4"
                     :message="error"
                 />
             </form>
