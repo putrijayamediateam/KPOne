@@ -13,6 +13,8 @@ use App\Domain\Visit\Services\VisitReasonService;
 use App\Models\User;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -33,21 +35,43 @@ class QueueDirectoryService
      */
     public function snapshot(User $actor, array $criteria = []): array
     {
+        return $this->buildSnapshot($actor, $criteria, true);
+    }
+
+    /**
+     * @param  array<string, mixed>  $criteria
+     * @return array<string, mixed>
+     */
+    public function poll(User $actor, array $criteria = []): array
+    {
+        return $this->buildSnapshot($actor, $criteria, false);
+    }
+
+    /**
+     * @param  array<string, mixed>  $criteria
+     * @return array<string, mixed>
+     */
+    private function buildSnapshot(User $actor, array $criteria, bool $includeStableMetadata): array
+    {
         Gate::forUser($actor)->authorize('viewAny', QueueEntry::class);
         $branch = $this->activeBranch($actor);
         $now = now()->utc();
         $today = $now->setTimezone($branch->timezone)->toDateString();
-        $eligibleDoctors = $this->doctors->eligibleDoctors($branch, $today);
-        $eligibleDoctorIds = array_values(
-            $eligibleDoctors->pluck('id')->map(fn ($id) => (int) $id)->all(),
-        );
+        $eligibleDoctors = $includeStableMetadata
+            ? $this->doctors->eligibleDoctors($branch, $today)
+            : collect();
+        $eligibleDoctorIds = $includeStableMetadata
+            ? array_values($eligibleDoctors->pluck('id')->map(fn ($id) => (int) $id)->all())
+            : $this->doctors->eligibleDoctorIds($branch, $today);
         $base = $this->baseQuery($actor, $branch, $criteria);
         $status = (string) ($criteria['status'] ?? '');
         $page = (int) ($criteria['page'] ?? 1);
         $carryPage = (int) ($criteria['carry_page'] ?? 1);
         $visitActionHints = [];
 
-        $waiting = ['data' => [], 'total' => 0, 'currentPage' => 1, 'lastPage' => 1];
+        /** @var EloquentCollection<int, QueueEntry> $waitingEntries */
+        $waitingEntries = new EloquentCollection;
+        $waitingMeta = ['total' => 0, 'currentPage' => 1, 'lastPage' => 1];
         if ($status === '' || $status === QueueEntry::STATUS_WAITING) {
             $paginator = (clone $base)
                 ->where('queue_entries.status', QueueEntry::STATUS_WAITING)
@@ -56,19 +80,17 @@ class QueueDirectoryService
                 ->orderBy('queue_entries.queued_at')
                 ->orderBy('queue_entries.id')
                 ->paginate(25, page: $page);
-            $waiting = [
-                'data' => $paginator->getCollection()
-                    ->map(function (QueueEntry $entry) use ($actor, $branch, $now, $eligibleDoctorIds, &$visitActionHints): array {
-                        return $this->row($actor, $entry, $branch, $now, $eligibleDoctorIds, $visitActionHints);
-                    })
-                    ->values(),
+            $waitingEntries = $paginator->getCollection();
+            $waitingMeta = [
                 'total' => $paginator->total(),
                 'currentPage' => $paginator->currentPage(),
                 'lastPage' => $paginator->lastPage(),
             ];
         }
 
-        $carryOver = ['data' => [], 'total' => 0, 'currentPage' => 1, 'lastPage' => 1];
+        /** @var EloquentCollection<int, QueueEntry> $carryOverEntries */
+        $carryOverEntries = new EloquentCollection;
+        $carryOverMeta = ['total' => 0, 'currentPage' => 1, 'lastPage' => 1];
         if ($status === '' || $status === QueueEntry::STATUS_WAITING) {
             $carryPaginator = (clone $base)
                 ->where('queue_entries.status', QueueEntry::STATUS_WAITING)
@@ -78,57 +100,91 @@ class QueueDirectoryService
                 ->orderBy('queue_entries.queued_at')
                 ->orderBy('queue_entries.id')
                 ->paginate(25, pageName: 'carry_page', page: $carryPage);
-            $carryOver = [
-                'data' => $carryPaginator->getCollection()
-                    ->map(function (QueueEntry $entry) use ($actor, $branch, $now, $eligibleDoctorIds, &$visitActionHints): array {
-                        return $this->row($actor, $entry, $branch, $now, $eligibleDoctorIds, $visitActionHints);
-                    })
-                    ->values(),
+            $carryOverEntries = $carryPaginator->getCollection();
+            $carryOverMeta = [
                 'total' => $carryPaginator->total(),
                 'currentPage' => $carryPaginator->currentPage(),
                 'lastPage' => $carryPaginator->lastPage(),
             ];
         }
 
-        $serving = [];
+        /** @var EloquentCollection<int, QueueEntry> $servingEntries */
+        $servingEntries = new EloquentCollection;
         if ($status === '' || $status === QueueEntry::STATUS_SERVING) {
-            $serving = (clone $base)
+            $servingEntries = (clone $base)
                 ->where('queue_entries.status', QueueEntry::STATUS_SERVING)
                 ->latest('queue_entries.called_at')
                 ->limit(25)
-                ->get()
-                ->map(function (QueueEntry $entry) use ($actor, $branch, $now, $eligibleDoctorIds, &$visitActionHints): array {
-                    return $this->row($actor, $entry, $branch, $now, $eligibleDoctorIds, $visitActionHints);
-                })
-                ->values();
+                ->get();
         }
 
-        $removed = [];
+        /** @var EloquentCollection<int, QueueEntry> $removedEntries */
+        $removedEntries = new EloquentCollection;
         if ($status === QueueEntry::STATUS_REMOVED) {
-            $removed = (clone $base)
+            $removedEntries = (clone $base)
                 ->where('queue_entries.status', QueueEntry::STATUS_REMOVED)
                 ->latest('queue_entries.removed_at')
                 ->limit(25)
-                ->get()
-                ->map(function (QueueEntry $entry) use ($actor, $branch, $now, $eligibleDoctorIds, &$visitActionHints): array {
-                    return $this->row($actor, $entry, $branch, $now, $eligibleDoctorIds, $visitActionHints);
-                })
-                ->values();
+                ->get();
+        }
+
+        $entries = new EloquentCollection([
+            ...$waitingEntries->all(),
+            ...$carryOverEntries->all(),
+            ...$servingEntries->all(),
+            ...$removedEntries->all(),
+        ]);
+        $entries->load([
+            'visit' => fn ($visit) => $visit
+                ->select([
+                    'id', 'organisation_id', 'branch_id', 'patient_id', 'visit_number', 'visit_reason', 'priority', 'coverage_type',
+                    'coverage_panel_name_snapshot', 'assigned_doctor_user_id', 'status', 'lock_version',
+                ])
+                ->with(['patient:id,organisation_id,patient_number,full_name', 'assignedDoctor:id,name', 'reasonAssignments.reason:id,public_id,name']),
+        ]);
+
+        $dynamic = [
+            'scope' => $actor->can('queue.view.branch') ? 'branch' : 'own',
+            'serverNow' => $now->toIso8601String(),
+            'operationalDate' => $today,
+            'waiting' => ['data' => $this->rows($actor, $waitingEntries, $branch, $now, $eligibleDoctorIds, $visitActionHints), ...$waitingMeta],
+            'carryOver' => ['data' => $this->rows($actor, $carryOverEntries, $branch, $now, $eligibleDoctorIds, $visitActionHints), ...$carryOverMeta],
+            'serving' => $this->rows($actor, $servingEntries, $branch, $now, $eligibleDoctorIds, $visitActionHints),
+            'removed' => $this->rows($actor, $removedEntries, $branch, $now, $eligibleDoctorIds, $visitActionHints),
+        ];
+
+        if (! $includeStableMetadata) {
+            return $dynamic;
         }
 
         return [
             'branch' => $branch->only(['id', 'code', 'name', 'timezone']),
-            'scope' => $actor->can('queue.view.branch') ? 'branch' : 'own',
-            'serverNow' => $now->toIso8601String(),
-            'operationalDate' => $today,
-            'waiting' => $waiting,
-            'carryOver' => $carryOver,
-            'serving' => $serving,
-            'removed' => $removed,
+            ...$dynamic,
             'doctors' => $actor->can('queue.view.branch')
                 ? $eligibleDoctors->map->only(['id', 'name'])->values()
                 : [],
         ];
+    }
+
+    /**
+     * @param  Collection<int, QueueEntry>  $entries
+     * @param  list<int>  $eligibleDoctorIds
+     * @param  array<string, array{update: bool, cancel: bool}>  $visitActionHints
+     * @return Collection<int, array<string, mixed>>
+     */
+    private function rows(
+        User $actor,
+        Collection $entries,
+        Branch $branch,
+        CarbonInterface $now,
+        array $eligibleDoctorIds,
+        array &$visitActionHints,
+    ): Collection {
+        return $entries
+            ->map(function (QueueEntry $entry) use ($actor, $branch, $now, $eligibleDoctorIds, &$visitActionHints): array {
+                return $this->row($actor, $entry, $branch, $now, $eligibleDoctorIds, $visitActionHints);
+            })
+            ->values();
     }
 
     /**
@@ -155,15 +211,7 @@ class QueueDirectoryService
             ])
             ->join('visits', 'visits.id', '=', 'queue_entries.visit_id')
             ->where('queue_entries.organisation_id', $actor->organisation_id)
-            ->where('queue_entries.branch_id', $branch->id)
-            ->with([
-                'visit' => fn ($visit) => $visit
-                    ->select([
-                        'id', 'organisation_id', 'branch_id', 'patient_id', 'visit_number', 'visit_reason', 'priority', 'coverage_type',
-                        'coverage_panel_name_snapshot', 'assigned_doctor_user_id', 'status', 'lock_version',
-                    ])
-                    ->with(['patient:id,organisation_id,patient_number,full_name', 'assignedDoctor:id,name', 'reasonAssignments.reason:id,public_id,name']),
-            ]);
+            ->where('queue_entries.branch_id', $branch->id);
 
         if (! $actor->can('queue.view.branch')) {
             $query->where('visits.assigned_doctor_user_id', $actor->id);

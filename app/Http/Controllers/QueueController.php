@@ -28,7 +28,7 @@ class QueueController extends Controller
 
     public function search(SearchQueueEntriesRequest $request, QueueDirectoryService $directory): JsonResponse
     {
-        return response()->json($directory->snapshot($request->user(), $request->validated()));
+        return response()->json($directory->poll($request->user(), $request->validated()));
     }
 
     public function store(

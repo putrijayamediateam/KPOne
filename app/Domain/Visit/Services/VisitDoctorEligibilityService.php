@@ -20,6 +20,16 @@ class VisitDoctorEligibilityService
             ->get(['users.id', 'users.name']);
     }
 
+    /** @return list<int> */
+    public function eligibleDoctorIds(Branch $branch, string $effectiveDate): array
+    {
+        return array_values($this->eligibleQuery($branch, $effectiveDate)
+            ->pluck('users.id')
+            ->map(fn ($id): int => (int) $id)
+            ->values()
+            ->all());
+    }
+
     public function lockAndValidate(int $doctorId, Branch $branch, string $effectiveDate): User
     {
         $doctor = User::query()

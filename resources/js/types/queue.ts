@@ -30,8 +30,7 @@ export type QueueRow = {
     };
 };
 
-export type QueueSnapshot = {
-    branch: { id: number; code: string; name: string; timezone: string };
+export type QueuePollSnapshot = {
     scope: 'branch' | 'own';
     serverNow: string;
     operationalDate: string;
@@ -49,5 +48,9 @@ export type QueueSnapshot = {
     };
     serving: QueueRow[];
     removed: QueueRow[];
+};
+
+export type QueueSnapshot = QueuePollSnapshot & {
+    branch: { id: number; code: string; name: string; timezone: string };
     doctors: Array<{ id: number; name: string }>;
 };

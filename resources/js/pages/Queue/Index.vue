@@ -17,11 +17,25 @@ import { OperationalSelect } from '@/components/ui/select';
 import OperationalTabs from '@/components/ui/tabs/OperationalTabs.vue';
 import { formatDate } from '@/lib/presentation';
 import {
+    applyQueueFilters,
+    clearQueueFilters,
+    createQueuePollingLifecycle,
+    emptyQueueFilters,
+    mergeQueuePollSnapshot,
+    queuePollPayload,
+    queueVisibleError,
+} from '@/lib/queue-polling';
+import {
     queuePresentationLabel,
     servingDurationLabel,
     waitingDurationLabel,
 } from '@/lib/r1c2-presentation';
-import type { PatientBoardRow, QueueRow, QueueSnapshot } from '@/types';
+import type {
+    PatientBoardRow,
+    QueuePollSnapshot,
+    QueueRow,
+    QueueSnapshot,
+} from '@/types';
 
 defineOptions({
     layout: { breadcrumbs: [{ title: 'Consultation', href: '/queue' }] },
@@ -39,16 +53,16 @@ const live = ref(props.snapshot);
 const activeTab = ref<QueueTab>('all');
 const isRefreshing = ref(false);
 const isApplyingFilters = ref(false);
-const error = ref('');
+const draftValidationError = ref('');
+const operationalError = ref('');
+const error = computed(() =>
+    queueVisibleError(draftValidationError.value, operationalError.value),
+);
 const busyKey = ref<string | null>(null);
 const cancellationRow = ref<PatientBoardRow | null>(null);
 const cancelOpen = ref(false);
-const filters = reactive({
-    query: '',
-    doctor_id: '',
-    priority: '',
-    status: '',
-});
+const draftFilters = reactive(emptyQueueFilters());
+const appliedFilters = reactive(emptyQueueFilters());
 const csrf = () =>
     document.querySelector<HTMLMetaElement>('meta[name="csrf-token"]')
         ?.content ?? '';
@@ -57,6 +71,7 @@ let clockTimer: ReturnType<typeof setInterval> | undefined;
 let controller: AbortController | undefined;
 let activeRefresh: Promise<void> | undefined;
 let failures = 0;
+const pollingLifecycle = createQueuePollingLifecycle();
 const receivedAt = ref(Date.now());
 const clockNow = ref(Date.now());
 
@@ -173,22 +188,34 @@ const boardRows = computed<PatientBoardRow[]>(() =>
 const schedule = () => {
     if (pollTimer) {
         clearTimeout(pollTimer);
+        pollTimer = undefined;
     }
 
-    if (document.hidden) {
+    if (!pollingLifecycle.canRun() || document.hidden) {
         return;
     }
 
     pollTimer = setTimeout(
-        () =>
+        () => {
+            pollTimer = undefined;
+
+            if (!pollingLifecycle.canRun()) {
+                return;
+            }
+
             refresh(
                 live.value.waiting.currentPage,
                 live.value.carryOver.currentPage,
-            ),
+            );
+        },
         failures ? Math.min(30_000, 3_000 * 2 ** Math.min(failures, 3)) : 3_000,
     );
 };
 const refresh = (page = 1, carryPage = 1, reschedule = true) => {
+    if (!pollingLifecycle.canRun()) {
+        return Promise.resolve();
+    }
+
     if (activeRefresh || document.hidden) {
         if (reschedule) {
             schedule();
@@ -198,9 +225,10 @@ const refresh = (page = 1, carryPage = 1, reschedule = true) => {
     }
 
     const request = new AbortController();
+    const requestGeneration = pollingLifecycle.currentGeneration();
     const operation = (async () => {
         isRefreshing.value = true;
-        error.value = '';
+        operationalError.value = '';
         controller = request;
 
         try {
@@ -213,41 +241,54 @@ const refresh = (page = 1, carryPage = 1, reschedule = true) => {
                     'X-CSRF-TOKEN': csrf(),
                 },
                 signal: request.signal,
-                body: JSON.stringify({
-                    ...filters,
-                    page,
-                    carry_page: carryPage,
-                }),
+                body: JSON.stringify(
+                    queuePollPayload(appliedFilters, page, carryPage),
+                ),
             });
             const payload = await response.json();
+
+            if (!pollingLifecycle.accepts(requestGeneration)) {
+                return;
+            }
 
             if (!response.ok) {
                 const validationErrors = payload.errors as
                     Record<string, string[]> | undefined;
-                error.value = validationErrors
+                operationalError.value = validationErrors
                     ? Object.values(validationErrors)[0]?.[0]
                     : payload.message;
 
                 throw new Error('Queue snapshot rejected.');
             }
 
-            live.value = payload as QueueSnapshot;
+            live.value = mergeQueuePollSnapshot(
+                live.value,
+                payload as QueuePollSnapshot,
+            );
             receivedAt.value = Date.now();
             failures = 0;
         } catch (caught) {
-            if (!(
-                caught instanceof DOMException && caught.name === 'AbortError'
-            )) {
+            if (
+                pollingLifecycle.accepts(requestGeneration) &&
+                !(
+                    caught instanceof DOMException &&
+                    caught.name === 'AbortError'
+                )
+            ) {
                 failures += 1;
-                error.value ||= 'Live Queue could not be refreshed. Retrying…';
+                operationalError.value ||=
+                    'Live Queue could not be refreshed. Retrying…';
             }
         } finally {
             if (controller === request) {
                 controller = undefined;
-                isRefreshing.value = false;
+
+                if (pollingLifecycle.canRun()) {
+                    isRefreshing.value = false;
+                }
             }
 
-            if (reschedule) {
+            if (reschedule && pollingLifecycle.accepts(requestGeneration)) {
                 schedule();
             }
         }
@@ -261,39 +302,64 @@ const refresh = (page = 1, carryPage = 1, reschedule = true) => {
 
     return operation;
 };
-const applyFilters = async () => {
-    if (isApplyingFilters.value) {
-        return;
-    }
-
+const replaceAppliedRefresh = async (prepare: () => void) => {
+    const generation = pollingLifecycle.invalidate();
+    const obsoleteRefresh = activeRefresh;
+    controller?.abort();
+    prepare();
     isApplyingFilters.value = true;
 
     try {
-        if (activeRefresh) {
-            controller?.abort();
-            await activeRefresh;
+        if (obsoleteRefresh) {
+            await obsoleteRefresh;
+        }
+
+        if (!pollingLifecycle.accepts(generation)) {
+            return;
         }
 
         await refresh(1, 1, false);
     } finally {
-        isApplyingFilters.value = false;
-        schedule();
+        if (pollingLifecycle.accepts(generation)) {
+            isApplyingFilters.value = false;
+            schedule();
+        }
     }
+};
+const applyFilters = () => {
+    const candidate = { ...draftFilters };
+    const validationError = applyQueueFilters(candidate, { ...appliedFilters });
+
+    if (validationError) {
+        draftValidationError.value = validationError;
+
+        return;
+    }
+
+    draftValidationError.value = '';
+
+    return replaceAppliedRefresh(() => {
+        applyQueueFilters(draftFilters, appliedFilters);
+    });
 };
 const selectTab = (tab: QueueTab) => {
     activeTab.value = tab;
-    filters.status = tab === 'all' ? '' : tab;
-    void applyFilters();
+    const status = tab === 'all' ? '' : tab;
+    void replaceAppliedRefresh(() => {
+        draftFilters.status = status;
+        appliedFilters.status = status;
+    });
 };
 const selectOperationalTab = (value: string) => selectTab(value as QueueTab);
 const clearFilters = () => {
-    Object.assign(filters, {
-        query: '',
-        doctor_id: '',
-        priority: '',
-        status: activeTab.value === 'all' ? '' : activeTab.value,
+    void replaceAppliedRefresh(() => {
+        draftValidationError.value = '';
+        clearQueueFilters(
+            draftFilters,
+            appliedFilters,
+            activeTab.value === 'all' ? '' : activeTab.value,
+        );
     });
-    void applyFilters();
 };
 const source = (row: PatientBoardRow) => row.source as QueueRow;
 const callIn = (row: PatientBoardRow) => {
@@ -309,7 +375,8 @@ const callIn = (row: PatientBoardRow) => {
         {
             preserveScroll: true,
             onError: (errors) => {
-                error.value = Object.values(errors)[0] ?? 'Call In failed.';
+                operationalError.value =
+                    Object.values(errors)[0] ?? 'Call In failed.';
             },
             onFinish: () => {
                 busyKey.value = null;
@@ -339,7 +406,7 @@ const openConsultation = (row: PatientBoardRow) => {
         {
             preserveScroll: true,
             onError: (errors) => {
-                error.value =
+                operationalError.value =
                     Object.values(errors)[0] ??
                     'The consultation could not be opened.';
             },
@@ -354,30 +421,37 @@ const requestCancellation = (row: PatientBoardRow) => {
     cancelOpen.value = true;
 };
 const handleVisibility = () => {
+    if (!pollingLifecycle.canRun()) {
+        return;
+    }
+
     if (document.hidden) {
+        pollingLifecycle.invalidate();
+
         if (pollTimer) {
             clearTimeout(pollTimer);
+            pollTimer = undefined;
         }
 
         controller?.abort();
     } else {
         failures = 0;
-        void refresh(
-            live.value.waiting.currentPage,
-            live.value.carryOver.currentPage,
-        );
+        void replaceAppliedRefresh(() => undefined);
     }
 };
 onMounted(() => {
+    pollingLifecycle.mount();
     document.addEventListener('visibilitychange', handleVisibility);
     clockTimer = setInterval(() => (clockNow.value = Date.now()), 60_000);
     schedule();
 });
 onBeforeUnmount(() => {
+    pollingLifecycle.dispose();
     document.removeEventListener('visibilitychange', handleVisibility);
 
     if (pollTimer) {
         clearTimeout(pollTimer);
+        pollTimer = undefined;
     }
 
     if (clockTimer) {
@@ -413,19 +487,19 @@ onBeforeUnmount(() => {
             <label class="relative md:col-span-2 xl:col-span-1"
                 ><Search
                     class="absolute top-2.5 left-3 size-4 text-muted-foreground" /><input
-                    v-model="filters.query"
+                    v-model="draftFilters.query"
                     autocomplete="off"
                     class="h-9 w-full rounded-lg border border-transparent bg-muted/45 pr-3 pl-9 text-[13px] transition-colors outline-none hover:bg-muted/65 focus:border-ring/40 focus:bg-background focus:ring-2 focus:ring-ring/25"
                     placeholder="Patient or exact Queue number"
             /></label>
             <OperationalSelect
                 v-if="live.scope === 'branch'"
-                v-model="filters.doctor_id"
+                v-model="draftFilters.doctor_id"
                 label="Doctor"
                 :options="doctorOptions"
             /><span v-else class="hidden xl:block" />
             <OperationalSelect
-                v-model="filters.priority"
+                v-model="draftFilters.priority"
                 label="Urgency"
                 :options="urgencyOptions"
             />
