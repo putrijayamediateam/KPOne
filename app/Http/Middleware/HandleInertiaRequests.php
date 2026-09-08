@@ -38,6 +38,10 @@ class HandleInertiaRequests extends Middleware
      */
     public function share(Request $request): array
     {
+        if ($request->routeIs('queue.search') && $request->expectsJson() && ! $request->header('X-Inertia')) {
+            return parent::share($request);
+        }
+
         $user = $request->user();
         $branchContext = null;
         $workspace = null;
