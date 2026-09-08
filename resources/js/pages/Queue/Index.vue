@@ -12,6 +12,7 @@ import {
 import InputError from '@/components/InputError.vue';
 import PatientBoard from '@/components/patient-board/PatientBoard.vue';
 import VisitCancellationDialog from '@/components/patient-board/VisitCancellationDialog.vue';
+import QueueCallDialog from '@/components/queue/QueueCallDialog.vue';
 import { Button } from '@/components/ui/button';
 import { OperationalSelect } from '@/components/ui/select';
 import OperationalTabs from '@/components/ui/tabs/OperationalTabs.vue';
@@ -61,6 +62,8 @@ const error = computed(() =>
 const busyKey = ref<string | null>(null);
 const cancellationRow = ref<PatientBoardRow | null>(null);
 const cancelOpen = ref(false);
+const callRow = ref<PatientBoardRow | null>(null);
+const callOpen = ref(false);
 const draftFilters = reactive(emptyQueueFilters());
 const appliedFilters = reactive(emptyQueueFilters());
 const csrf = () =>
@@ -362,28 +365,17 @@ const clearFilters = () => {
     });
 };
 const source = (row: PatientBoardRow) => row.source as QueueRow;
-const callIn = (row: PatientBoardRow) => {
-    const entry = source(row);
-    busyKey.value = row.key;
-    router.patch(
-        `/visits/${encodeURIComponent(row.visitNumber)}/queue/call`,
-        {
-            expected_branch_id: live.value.branch.id,
-            visit_lock_version: entry.visitLockVersion,
-            queue_lock_version: entry.queueLockVersion,
-        },
-        {
-            preserveScroll: true,
-            onError: (errors) => {
-                operationalError.value =
-                    Object.values(errors)[0] ?? 'Call In failed.';
-            },
-            onFinish: () => {
-                busyKey.value = null;
-                void refresh(1, 1, false).finally(schedule);
-            },
-        },
-    );
+const requestCall = (row: PatientBoardRow) => {
+    if (busyKey.value !== null) {
+        return;
+    }
+
+    operationalError.value = '';
+    callRow.value = row;
+    callOpen.value = true;
+};
+const finishCall = () => {
+    void refresh(1, 1, false).finally(schedule);
 };
 const openConsultation = (row: PatientBoardRow) => {
     const entry = source(row);
@@ -531,7 +523,7 @@ onBeforeUnmount(() => {
             <PatientBoard
                 :rows="boardRows"
                 :busy-key="busyKey"
-                @call="callIn"
+                @call="requestCall"
                 @open-consultation="openConsultation"
                 @cancel="requestCancellation"
             />
@@ -598,6 +590,14 @@ onBeforeUnmount(() => {
                 >
             </div>
         </section>
+
+        <QueueCallDialog
+            v-model:open="callOpen"
+            :row="callRow"
+            :branch-id="live.branch.id"
+            @processing="busyKey = $event"
+            @finished="finishCall"
+        />
 
         <VisitCancellationDialog
             v-model:open="cancelOpen"
