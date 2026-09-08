@@ -2,6 +2,7 @@
 import { router, useForm } from '@inertiajs/vue3';
 import { AlertTriangle, Check, Plus, ShieldCheck } from '@lucide/vue';
 import { computed, ref } from 'vue';
+import ClinicalSafetyConfirmDialog from '@/components/clinical/ClinicalSafetyConfirmDialog.vue';
 import { Button } from '@/components/ui/button';
 import { OperationalSelect } from '@/components/ui/select';
 import { formatDateTime } from '@/lib/presentation';
@@ -20,6 +21,12 @@ const props = defineProps<{
     problems: ClinicalProblemList | null;
 }>();
 
+type ClinicalSafetyConfirmationKind =
+    | 'declare-no-known'
+    | 'allergy-entered-in-error'
+    | 'problem-resolve'
+    | 'problem-entered-in-error';
+
 const baseUrl = computed(
     () => `/visits/${encodeURIComponent(props.visitNumber)}/encounter`,
 );
@@ -30,6 +37,11 @@ const showAllergyForm = ref(false);
 const editingAllergy = ref<string | null>(null);
 const showProblemForm = ref(false);
 const editingProblem = ref<string | null>(null);
+const confirmationOpen = ref(false);
+const confirmationKind = ref<ClinicalSafetyConfirmationKind | null>(null);
+const confirmationRecord = ref<
+    ClinicalAllergyRecord | ClinicalProblemRecord | null
+>(null);
 const allergyCategoryOptions = [
     { value: '', label: 'Not recorded' },
     { value: 'medication', label: 'Medication' },
@@ -102,62 +114,25 @@ const saveAllergy = () => {
     }
 };
 
-const declareNoKnown = () => {
-    if (
-        !window.confirm(
-            'Confirm that you explicitly reviewed the current Allergy Profile and identified no known allergies at this time.',
-        )
-    ) {
-        return;
-    }
-
+const requestConfirmation = (
+    kind: ClinicalSafetyConfirmationKind,
+    record: ClinicalAllergyRecord | ClinicalProblemRecord | null = null,
+) => {
     actionError.value = null;
-    allergyBusy.value = true;
-    router.post(
-        `${baseUrl.value}/allergies/no-known`,
-        {
-            expected_branch_id: props.branchId,
-            profile_lock_version: props.allergies?.profileLockVersion ?? null,
-        },
-        {
-            preserveScroll: true,
-            onError: (errors) => {
-                actionError.value =
-                    Object.values(errors)[0] ??
-                    'The Allergy action could not be completed. Review the latest information and try again.';
-            },
-            onFinish: () => (allergyBusy.value = false),
-        },
-    );
+    confirmationKind.value = kind;
+    confirmationRecord.value = record;
+    confirmationOpen.value = true;
 };
 
-const enterAllergyInError = (record: ClinicalAllergyRecord) => {
+const handleConfirmationProcessing = (processing: boolean) => {
     if (
-        !window.confirm(
-            'Mark this recorded allergy as entered in error? This means the record itself was erroneous; it does not mean the allergy was cured.',
-        )
+        confirmationKind.value === 'declare-no-known' ||
+        confirmationKind.value === 'allergy-entered-in-error'
     ) {
-        return;
+        allergyBusy.value = processing;
+    } else {
+        problemBusy.value = processing;
     }
-
-    actionError.value = null;
-    allergyBusy.value = true;
-    router.patch(
-        `${baseUrl.value}/allergies/${encodeURIComponent(record.publicId)}/entered-in-error`,
-        {
-            expected_branch_id: props.branchId,
-            profile_lock_version: props.allergies?.profileLockVersion ?? null,
-        },
-        {
-            preserveScroll: true,
-            onError: (errors) => {
-                actionError.value =
-                    Object.values(errors)[0] ??
-                    'The Allergy action could not be completed. Review the latest information and try again.';
-            },
-            onFinish: () => (allergyBusy.value = false),
-        },
-    );
 };
 
 const reviewAllergies = () => {
@@ -228,40 +203,6 @@ const saveProblem = () => {
             onFinish: () => problemForm.transform((data) => data),
         });
     }
-};
-
-const transitionProblem = (
-    record: ClinicalProblemRecord,
-    action: 'resolve' | 'entered-in-error',
-) => {
-    const label =
-        action === 'resolve'
-            ? 'mark this condition as resolved'
-            : 'mark this problem record as entered in error because the record itself was erroneous, not because the condition was resolved';
-
-    if (!window.confirm(`Are you sure you want to ${label}?`)) {
-        return;
-    }
-
-    actionError.value = null;
-    problemBusy.value = true;
-    router.patch(
-        `${baseUrl.value}/problems/${encodeURIComponent(record.publicId)}/${action}`,
-        {
-            expected_branch_id: props.branchId,
-            lock_version: record.lockVersion,
-            ...(action === 'resolve' ? { resolved_date: null } : {}),
-        },
-        {
-            preserveScroll: true,
-            onError: (errors) => {
-                actionError.value =
-                    Object.values(errors)[0] ??
-                    'The Problem List action could not be completed. Review the latest information and try again.';
-            },
-            onFinish: () => (problemBusy.value = false),
-        },
-    );
 };
 </script>
 
@@ -388,7 +329,7 @@ const transitionProblem = (
                             variant="ghost"
                             type="button"
                             :disabled="allergyBusy"
-                            @click="declareNoKnown"
+                            @click="requestConfirmation('declare-no-known')"
                         >
                             Declare no known allergies
                         </Button>
@@ -431,7 +372,12 @@ const transitionProblem = (
                                 type="button"
                                 class="text-red-700 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"
                                 :disabled="allergyBusy"
-                                @click="enterAllergyInError(record)"
+                                @click="
+                                    requestConfirmation(
+                                        'allergy-entered-in-error',
+                                        record,
+                                    )
+                                "
                             >
                                 Entered in error
                             </Button>
@@ -587,7 +533,12 @@ const transitionProblem = (
                                 variant="ghost"
                                 type="button"
                                 :disabled="problemBusy"
-                                @click="transitionProblem(record, 'resolve')"
+                                @click="
+                                    requestConfirmation(
+                                        'problem-resolve',
+                                        record,
+                                    )
+                                "
                             >
                                 Resolve
                             </Button>
@@ -598,9 +549,9 @@ const transitionProblem = (
                                 class="text-red-700 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"
                                 :disabled="problemBusy"
                                 @click="
-                                    transitionProblem(
+                                    requestConfirmation(
+                                        'problem-entered-in-error',
                                         record,
-                                        'entered-in-error',
                                     )
                                 "
                             >
@@ -641,7 +592,10 @@ const transitionProblem = (
                             class="text-red-700 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"
                             :disabled="problemBusy"
                             @click="
-                                transitionProblem(record, 'entered-in-error')
+                                requestConfirmation(
+                                    'problem-entered-in-error',
+                                    record,
+                                )
                             "
                         >
                             Entered in error
@@ -720,5 +674,27 @@ const transitionProblem = (
                 consultation.
             </div>
         </div>
+        <ClinicalSafetyConfirmDialog
+            :open="confirmationOpen"
+            :kind="confirmationKind"
+            :visit-number="visitNumber"
+            :branch-id="branchId"
+            :profile-lock-version="allergies?.profileLockVersion"
+            :record-public-id="confirmationRecord?.publicId"
+            :record-lock-version="
+                confirmationRecord && 'lockVersion' in confirmationRecord
+                    ? confirmationRecord.lockVersion
+                    : null
+            "
+            :record-label="
+                confirmationRecord && 'allergen' in confirmationRecord
+                    ? confirmationRecord.allergen
+                    : confirmationRecord && 'condition' in confirmationRecord
+                      ? confirmationRecord.condition
+                      : undefined
+            "
+            @update:open="confirmationOpen = $event"
+            @processing="handleConfirmationProcessing"
+        />
     </section>
 </template>
