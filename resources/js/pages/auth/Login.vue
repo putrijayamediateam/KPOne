@@ -15,7 +15,7 @@ import { request } from '@/routes/password';
 defineOptions({
     layout: {
         title: 'Welcome to KPOne',
-        description: 'Sign in with your authorised staff account.',
+        description: 'Sign in to continue to your Klinik Putrijaya workspace.',
     },
 });
 
@@ -36,7 +36,8 @@ const googleError = computed(
 
     <div
         v-if="status"
-        class="mb-4 text-center text-sm font-medium text-green-600"
+        role="status"
+        class="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2.5 text-sm font-medium text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-200"
     >
         {{ status }}
     </div>
@@ -47,9 +48,9 @@ const googleError = computed(
         v-bind="store.form()"
         :reset-on-success="['password']"
         v-slot="{ errors, processing }"
-        class="flex flex-col gap-6"
+        class="flex flex-col gap-5"
     >
-        <div class="grid gap-6">
+        <div class="grid gap-5">
             <div class="grid gap-2">
                 <Label for="email">Email address</Label>
                 <Input
@@ -58,52 +59,49 @@ const googleError = computed(
                     name="email"
                     required
                     autofocus
-                    :tabindex="1"
                     autocomplete="email"
-                    placeholder="email@example.com"
+                    inputmode="email"
+                    class="h-11"
+                    placeholder="name@kliniputrajaya.com"
                 />
                 <InputError :message="errors.email" />
             </div>
 
             <div class="grid gap-2">
-                <div class="flex items-center justify-between">
-                    <Label for="password">Password</Label>
-                    <TextLink
-                        v-if="canResetPassword"
-                        :href="request()"
-                        class="text-sm"
-                        :tabindex="5"
-                    >
-                        Forgot your password?
-                    </TextLink>
-                </div>
+                <Label for="password">Password</Label>
                 <PasswordInput
                     id="password"
                     name="password"
                     required
-                    :tabindex="2"
                     autocomplete="current-password"
+                    class="h-11"
                     placeholder="Password"
                 />
                 <InputError :message="errors.password" />
             </div>
 
-            <div class="flex items-center justify-between">
+            <div class="flex flex-wrap items-center justify-between gap-3">
                 <Label for="remember" class="flex items-center space-x-3">
-                    <Checkbox id="remember" name="remember" :tabindex="3" />
+                    <Checkbox id="remember" name="remember" />
                     <span>Remember me</span>
                 </Label>
+                <TextLink
+                    v-if="canResetPassword"
+                    :href="request()"
+                    class="text-sm"
+                >
+                    Forgot password?
+                </TextLink>
             </div>
 
             <Button
                 type="submit"
-                class="mt-4 w-full"
-                :tabindex="4"
+                class="mt-1 h-11 w-full"
                 :disabled="processing"
                 data-test="login-button"
             >
                 <Spinner v-if="processing" />
-                Sign in securely
+                Sign in
             </Button>
         </div>
     </Form>
@@ -113,9 +111,8 @@ const googleError = computed(
             <span class="w-full border-t" />
         </div>
         <div class="relative flex justify-center text-xs uppercase">
-            <span
-                class="bg-slate-50 px-2 text-muted-foreground dark:bg-background"
-                >or</span
+            <span class="bg-white px-3 text-muted-foreground dark:bg-slate-900"
+                >or continue with</span
             >
         </div>
     </div>
@@ -123,8 +120,9 @@ const googleError = computed(
         href="/auth/google/redirect"
         :aria-disabled="!googleEnabled"
         :class="[
-            'flex h-10 w-full items-center justify-center gap-3 rounded-md border bg-white text-sm font-medium shadow-xs transition hover:bg-slate-50 dark:bg-card',
-            !googleEnabled && 'pointer-events-none opacity-50',
+            'flex h-11 w-full cursor-pointer items-center justify-center gap-3 rounded-md border border-input bg-white text-sm font-medium text-slate-800 shadow-xs transition-colors hover:border-slate-300 hover:bg-slate-50 focus-visible:ring-3 focus-visible:ring-ring/40 focus-visible:outline-none dark:bg-slate-950/40 dark:text-slate-100 dark:hover:bg-slate-800',
+            !googleEnabled &&
+                'pointer-events-none cursor-not-allowed opacity-50',
         ]"
     >
         <span
@@ -137,7 +135,6 @@ const googleError = computed(
         Google sign-in is ready for configuration.
     </p>
     <p class="text-center text-xs leading-5 text-muted-foreground">
-        No public registration. Contact an authorised administrator if you need
-        access.
+        KPOne access is limited to authorised Klinik Putrijaya staff.
     </p>
 </template>

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Link, usePage } from '@inertiajs/vue3';
-import { HeartPulse, LockKeyhole, Network } from '@lucide/vue';
+import { Building2, ShieldCheck } from '@lucide/vue';
 import AppLogoIcon from '@/components/AppLogoIcon.vue';
 
 const page = usePage();
@@ -14,47 +14,50 @@ defineProps<{
 
 <template>
     <div
-        class="relative grid h-dvh flex-col items-center justify-center px-8 sm:px-0 lg:max-w-none lg:grid-cols-2 lg:px-0"
+        class="grid min-h-svh bg-slate-100 lg:grid-cols-[minmax(0,1.05fr)_minmax(460px,0.95fr)] dark:bg-slate-950"
     >
         <div
-            class="relative hidden h-full flex-col bg-muted p-10 text-white lg:flex dark:border-r"
+            class="relative hidden min-h-svh overflow-hidden bg-slate-950 p-10 text-white lg:flex lg:flex-col xl:p-14 dark:border-r dark:border-white/10"
         >
             <div
-                class="absolute inset-0 bg-[radial-gradient(circle_at_18%_15%,rgba(16,185,129,0.2),transparent_32%),linear-gradient(145deg,#061a18_0%,#0b2423_45%,#111827_100%)]"
+                class="pointer-events-none absolute -top-32 -left-28 size-96 rounded-full border border-pink-400/10 bg-pink-400/[0.04]"
+            />
+            <div
+                class="pointer-events-none absolute right-[-8rem] bottom-[-10rem] size-[30rem] rounded-full border border-white/[0.05]"
             />
             <Link
                 href="/"
-                class="relative z-20 flex items-center text-lg font-medium"
+                class="relative z-20 inline-flex w-fit items-center gap-3 rounded-lg text-lg font-semibold tracking-tight focus-visible:ring-2 focus-visible:ring-pink-400/70 focus-visible:ring-offset-4 focus-visible:ring-offset-slate-950 focus-visible:outline-none"
             >
-                <AppLogoIcon class="mr-3 size-10 text-emerald-400" />
+                <AppLogoIcon class="size-11 text-pink-500" />
                 {{ name }}
             </Link>
-            <div class="relative z-20 my-auto max-w-xl">
-                <div
-                    class="mb-7 inline-flex items-center gap-2 rounded-full border border-emerald-300/20 bg-emerald-300/10 px-3 py-1 text-xs font-medium text-emerald-200"
+            <div class="relative z-20 my-auto max-w-lg py-16">
+                <div class="mb-8 h-px w-14 bg-pink-500" aria-hidden="true" />
+                <p
+                    class="text-xs font-semibold tracking-[0.18em] text-pink-300 uppercase"
                 >
-                    <HeartPulse class="size-3.5" /> Klinik Putrijaya Digital
-                    Operating System
-                </div>
+                    Klinik Putrijaya workspace
+                </p>
                 <h2
-                    class="text-4xl leading-tight font-semibold tracking-tight text-white"
+                    class="mt-5 text-4xl leading-[1.12] font-semibold tracking-[-0.035em] text-white xl:text-5xl"
                 >
-                    One secure foundation for clinic operations.
+                    Clear, connected clinic operations.
                 </h2>
-                <p class="mt-5 max-w-lg text-base leading-7 text-slate-300">
-                    Staff identity, branch context and responsible access—built
-                    for the way Klinik Putrijaya works.
+                <p class="mt-6 max-w-md text-base leading-7 text-slate-300">
+                    A focused workspace for authorised teams to coordinate care
+                    and daily clinic work.
                 </p>
                 <div
-                    class="mt-10 grid gap-4 text-sm text-slate-300 sm:grid-cols-2"
+                    class="mt-10 flex flex-wrap gap-x-8 gap-y-4 text-sm text-slate-300"
                 >
                     <div class="flex items-center gap-3">
-                        <LockKeyhole class="size-5 text-emerald-400" />
-                        Server-enforced access
+                        <ShieldCheck class="size-4 text-pink-300" />
+                        Permission-aware access
                     </div>
                     <div class="flex items-center gap-3">
-                        <Network class="size-5 text-emerald-400" /> Multi-branch
-                        ready
+                        <Building2 class="size-4 text-pink-300" />
+                        Branch-aware operations
                     </div>
                 </div>
             </div>
@@ -62,20 +65,38 @@ defineProps<{
                 Authorised Klinik Putrijaya staff only
             </p>
         </div>
-        <div class="bg-slate-50 px-6 py-10 lg:p-8 dark:bg-background">
+
+        <main
+            class="flex min-h-svh items-center justify-center px-5 py-8 sm:px-8 lg:px-12"
+        >
             <div
-                class="mx-auto flex w-full flex-col justify-center space-y-7 sm:w-[390px]"
+                class="w-full max-w-md rounded-2xl border border-slate-200/80 bg-white p-6 shadow-xl shadow-slate-950/[0.06] sm:p-9 dark:border-white/10 dark:bg-slate-900 dark:shadow-black/20"
             >
-                <div class="flex flex-col space-y-2 text-center">
-                    <h1 class="text-xl font-medium tracking-tight" v-if="title">
+                <Link
+                    href="/"
+                    class="mb-8 inline-flex items-center gap-3 rounded-lg font-semibold tracking-tight text-slate-950 focus-visible:ring-2 focus-visible:ring-pink-500/60 focus-visible:ring-offset-4 focus-visible:outline-none lg:hidden dark:text-white dark:focus-visible:ring-offset-slate-900"
+                >
+                    <AppLogoIcon
+                        class="size-10 text-pink-600 dark:text-pink-500"
+                    />
+                    {{ name }}
+                </Link>
+                <div class="space-y-2">
+                    <h1
+                        v-if="title"
+                        class="text-2xl font-semibold tracking-[-0.025em] text-slate-950 dark:text-white"
+                    >
                         {{ title }}
                     </h1>
-                    <p class="text-sm text-muted-foreground" v-if="description">
+                    <p
+                        v-if="description"
+                        class="text-sm leading-6 text-slate-600 dark:text-slate-300"
+                    >
                         {{ description }}
                     </p>
                 </div>
-                <slot />
+                <div class="mt-8 space-y-6"><slot /></div>
             </div>
-        </div>
+        </main>
     </div>
 </template>
