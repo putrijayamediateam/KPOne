@@ -13,6 +13,13 @@ class InventoryItem extends Model
     protected static function booted(): void
     {
         static::deleting(fn (): never => throw new LogicException('Inventory Items with governed identity cannot be deleted.'));
+        static::updating(function (self $item): void {
+            foreach (['public_id', 'organisation_id'] as $attribute) {
+                if ($item->isDirty($attribute)) {
+                    throw new LogicException('Inventory Item ownership and public identity are immutable.');
+                }
+            }
+        });
     }
 
     protected function casts(): array

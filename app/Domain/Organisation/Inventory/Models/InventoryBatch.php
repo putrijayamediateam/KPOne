@@ -19,6 +19,13 @@ class InventoryBatch extends Model
     protected static function booted(): void
     {
         static::deleting(fn (): never => throw new LogicException('Inventory Batches are retained ledger identities.'));
+        static::updating(function (self $batch): void {
+            foreach (['public_id', 'organisation_id', 'inventory_sku_id'] as $attribute) {
+                if ($batch->isDirty($attribute)) {
+                    throw new LogicException('Inventory Batch ownership and SKU identity are immutable.');
+                }
+            }
+        });
     }
 
     protected function casts(): array
