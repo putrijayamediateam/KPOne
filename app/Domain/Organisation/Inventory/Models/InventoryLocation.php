@@ -20,6 +20,13 @@ class InventoryLocation extends Model
     protected static function booted(): void
     {
         static::deleting(fn (): never => throw new LogicException('Inventory Locations are retained reference records.'));
+        static::updating(function (self $location): void {
+            foreach (['public_id', 'organisation_id', 'branch_id', 'parent_id'] as $attribute) {
+                if ($location->isDirty($attribute)) {
+                    throw new LogicException('Inventory Location ownership and hierarchy are immutable.');
+                }
+            }
+        });
     }
 
     protected function casts(): array

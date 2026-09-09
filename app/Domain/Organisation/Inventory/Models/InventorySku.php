@@ -13,6 +13,13 @@ class InventorySku extends Model
     protected static function booted(): void
     {
         static::deleting(fn (): never => throw new LogicException('Inventory SKUs cannot be deleted after governance.'));
+        static::updating(function (self $sku): void {
+            foreach (['public_id', 'organisation_id', 'inventory_item_id'] as $attribute) {
+                if ($sku->isDirty($attribute)) {
+                    throw new LogicException('Inventory SKU ownership and Item identity are immutable.');
+                }
+            }
+        });
     }
 
     protected function casts(): array
