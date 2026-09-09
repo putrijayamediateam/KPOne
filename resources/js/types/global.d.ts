@@ -26,6 +26,7 @@ declare module '@inertiajs/core' {
                 navigation: {
                     registration: boolean;
                     consultation: boolean;
+                    inventory: boolean;
                     patientRecords: boolean;
                     panelWork: boolean;
                     financeWork: boolean;
