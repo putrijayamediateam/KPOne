@@ -26,6 +26,7 @@ class MedicineCatalogueItem extends Model
 
     protected static function booted(): void
     {
+        static::deleting(fn (): never => throw new LogicException('Medicine catalogue items must be deactivated, not deleted.'));
         static::updating(function (self $item): void {
             foreach (['public_id', 'organisation_id', 'created_by_user_id'] as $attribute) {
                 if ($item->isDirty($attribute)) {
