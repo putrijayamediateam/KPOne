@@ -14,6 +14,7 @@ use App\Http\Controllers\ClinicPlaceholderController;
 use App\Http\Controllers\ConsultationCheckoutController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DispensaryController;
+use App\Http\Controllers\InventoryController;
 use App\Http\Controllers\InventoryMovementController;
 use App\Http\Controllers\PatientController;
 use App\Http\Controllers\PatientIdentifierController;
@@ -127,6 +128,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     });
 
     Route::middleware(['sensitive.no-store', 'inertia.encrypt'])->group(function () {
+        Route::get('inventory', InventoryController::class)
+            ->middleware('permission:inventory.view.branch')->name('inventory.index');
         Route::post('visits/{visit}/encounter', [ClinicalEncounterController::class, 'store'])
             ->middleware(['permission:encounters.start.own', 'throttle:20,1'])
             ->name('encounters.store');

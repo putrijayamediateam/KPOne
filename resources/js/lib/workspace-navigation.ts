@@ -1,6 +1,7 @@
 export type WorkspaceNavigationCapabilities = {
     registration: boolean;
     consultation: boolean;
+    inventory: boolean;
     patientRecords: boolean;
     panelWork: boolean;
     financeWork: boolean;
@@ -41,6 +42,13 @@ const destinations: Record<
         description: 'Open the doctor queue and consultation workspace.',
         href: '/queue',
         icon: 'activity',
+    },
+    inventory: {
+        key: 'inventory',
+        label: 'Inventory',
+        description: 'Review branch stock, batches, expiry and movements.',
+        href: '/inventory',
+        icon: 'clipboard',
     },
     patientRecords: {
         key: 'patientRecords',
@@ -122,6 +130,7 @@ export const mainMenuGroups = (
             destinations: available(capabilities, [
                 'registration',
                 'consultation',
+                'inventory',
             ]),
         },
         {
@@ -159,6 +168,7 @@ export const headerDestinations = (
             ? [
                   'registration',
                   'consultation',
+                  'inventory',
                   'patientRecords',
                   'panelWork',
                   'financeWork',

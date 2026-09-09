@@ -74,6 +74,7 @@ class HandleInertiaRequests extends Middleware
                 'navigation' => [
                     'registration' => $user->can('visits.view.branch'),
                     'consultation' => $user->can('queue.view.own') || $user->can('queue.view.branch'),
+                    'inventory' => $user->can('inventory.view.branch'),
                     'patientRecords' => $user->can('patients.search.organisation'),
                     'panelWork' => app(BillingWorkAccess::class)->panel($user),
                     'financeWork' => app(BillingWorkAccess::class)->finance($user),

@@ -18,6 +18,7 @@ const navigation = runInNewContext(
 const capabilities = (overrides = {}) => ({
     registration: false,
     consultation: false,
+    inventory: false,
     patientRecords: false,
     panelWork: false,
     financeWork: false,
@@ -25,6 +26,7 @@ const capabilities = (overrides = {}) => ({
     branches: false,
     accessControl: false,
     auditLogs: false,
+    publicCheckInLinks: false,
     ...overrides,
 });
 
@@ -36,22 +38,20 @@ test('Main Menu exposes only permission-backed implemented destinations', () => 
         capabilities({
             registration: true,
             consultation: true,
+            inventory: true,
             patientRecords: true,
         }),
     );
 
     assert.deepEqual(
         [...labels(clinic)],
-        ['Registration', 'Consultation', 'Patient Records'],
+        ['Registration', 'Consultation', 'Inventory', 'Patient Records'],
     );
     assert.deepEqual(
         [...clinic.map((group) => group.label)],
         ['Clinic Operations', 'Patients'],
     );
-    assert.doesNotMatch(
-        source,
-        /Reviews|Insight|Purchase|Dispensary|Inventory/,
-    );
+    assert.doesNotMatch(source, /Reviews|Insight|Purchase|Dispensary/);
 });
 
 test('Panel Finance and technical-administration visibility remains least privilege', () => {
@@ -88,6 +88,7 @@ test('desktop and mobile header share one context-aware destination list', () =>
     const allowed = capabilities({
         registration: true,
         consultation: true,
+        inventory: true,
         patientRecords: true,
         staff: true,
     });
@@ -98,7 +99,13 @@ test('desktop and mobile header share one context-aware destination list', () =>
                 .headerDestinations(allowed, 'clinic')
                 .map((item) => item.label),
         ],
-        ['Main Menu', 'Registration', 'Consultation', 'Patient Records'],
+        [
+            'Main Menu',
+            'Registration',
+            'Consultation',
+            'Inventory',
+            'Patient Records',
+        ],
     );
     assert.deepEqual(
         [

@@ -97,6 +97,7 @@ final class PermissionCatalogue
                 'public_checkin_links.manage.organisation',
                 'medicines.manage.organisation',
                 'inventory.references.manage.organisation',
+                'inventory.view.branch',
                 'access.view.organisation',
                 'access.manage.organisation',
                 'audit.view.organisation',
