@@ -38,6 +38,14 @@ class HandleInertiaRequests extends Middleware
      */
     public function share(Request $request): array
     {
+        if ($request->routeIs('public-checkin.show')) {
+            return [
+                'auth' => null,
+                'branchContext' => null,
+                'workspace' => null,
+            ];
+        }
+
         if ($request->routeIs('queue.search') && $request->expectsJson() && ! $request->header('X-Inertia')) {
             return parent::share($request);
         }
@@ -73,6 +81,7 @@ class HandleInertiaRequests extends Middleware
                     'branches' => $user->can('branches.view.branch') || $user->can('branches.view.organisation'),
                     'accessControl' => $user->can('access.view.organisation'),
                     'auditLogs' => $user->can('audit.view.organisation'),
+                    'publicCheckInLinks' => $user->can('public_checkin_links.manage.organisation'),
                 ],
             ];
         }

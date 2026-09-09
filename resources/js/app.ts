@@ -3,6 +3,7 @@ import { initializeTheme } from '@/composables/useAppearance';
 import AdminLayout from '@/layouts/AdminLayout.vue';
 import AuthLayout from '@/layouts/AuthLayout.vue';
 import ClinicLayout from '@/layouts/ClinicLayout.vue';
+import PublicCheckInLayout from '@/layouts/PublicCheckInLayout.vue';
 import SettingsLayout from '@/layouts/settings/Layout.vue';
 import { initializeFlashToast } from '@/lib/flashToast';
 
@@ -16,6 +17,8 @@ createInertiaApp({
             case name === 'Dispensary/Labels':
             case name === 'Billing/Print':
                 return null;
+            case name.startsWith('PublicCheckIn/'):
+                return PublicCheckInLayout;
             case name.startsWith('auth/'):
                 return AuthLayout;
             case name.startsWith('settings/'):

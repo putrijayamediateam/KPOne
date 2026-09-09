@@ -11,6 +11,7 @@ use App\Domain\Clinical\Models\PatientAllergyRecord;
 use App\Domain\Clinical\Models\PatientProblemRecord;
 use App\Domain\Clinical\Models\TreatmentPlan;
 use App\Domain\Organisation\Inventory\Models\StockMovement;
+use App\Domain\Organisation\Models\PublicCheckInLink;
 use App\Domain\Patient\Models\Patient;
 use App\Domain\Queue\Models\QueueEntry;
 use App\Domain\Visit\Models\Visit;
@@ -64,9 +65,11 @@ class AuditLogController extends Controller
                 $isDispensaryCase = $log->subject_type === (new DispensaryCase)->getMorphClass();
                 $isStockMovement = $log->subject_type === (new StockMovement)->getMorphClass();
                 $isCheckout = $log->subject_type === (new ConsultationCheckout)->getMorphClass();
+                $isPublicCheckInLink = $log->subject_type === (new PublicCheckInLink)->getMorphClass();
                 $isProtectedOperationalRecord = $isFinancialEvent || $isCheckout || $isPatient || $isVisit || $isQueue || $isEncounter
                     || $isAllergyProfile || $isAllergyRecord || $isProblemRecord || $isTreatmentPlan
                     || $isDispensaryCase || $isStockMovement;
+                $isProtectedOperationalRecord = $isProtectedOperationalRecord || $isPublicCheckInLink;
                 $subjectType = match (true) {
                     $isFinancialEvent => 'Financial record',
                     $isCheckout => 'Clinical checkout record',
@@ -79,6 +82,7 @@ class AuditLogController extends Controller
                     $isTreatmentPlan => 'Treatment Plan record',
                     $isDispensaryCase => 'Dispensary record',
                     $isStockMovement => 'Inventory movement',
+                    $isPublicCheckInLink => 'Public check-in link',
                     default => $log->subject_type ? class_basename($log->subject_type) : null,
                 };
 

@@ -18,6 +18,8 @@ use App\Http\Controllers\InventoryMovementController;
 use App\Http\Controllers\PatientController;
 use App\Http\Controllers\PatientIdentifierController;
 use App\Http\Controllers\PatientSearchController;
+use App\Http\Controllers\PublicCheckInController;
+use App\Http\Controllers\PublicCheckInLinkController;
 use App\Http\Controllers\QueueController;
 use App\Http\Controllers\RegistrationController;
 use App\Http\Controllers\StaffBranchAssignmentController;
@@ -35,6 +37,11 @@ use Illuminate\Support\Facades\Route;
 Route::get('/', fn () => Auth::check()
     ? redirect()->route('workspace')
     : redirect()->route('login'))->name('home');
+
+Route::get('check-in/{token}', PublicCheckInController::class)
+    ->where('token', '[A-Za-z0-9_-]{43}')
+    ->middleware(['throttle:public-checkin-view', 'sensitive.no-store'])
+    ->name('public-checkin.show');
 
 Route::middleware(['guest', 'throttle:10,1'])->group(function () {
     Route::get('auth/google/redirect', [GoogleAuthController::class, 'redirect'])->name('google.redirect');
@@ -111,6 +118,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('audit-logs', AuditLogController::class)
         ->middleware('permission:audit.view.organisation')
         ->name('audit-logs.index');
+
+    Route::middleware(['permission:public_checkin_links.manage.organisation', 'sensitive.no-store'])->group(function () {
+        Route::get('public-checkin-links', [PublicCheckInLinkController::class, 'index'])->name('public-checkin-links.index');
+        Route::post('public-checkin-links', [PublicCheckInLinkController::class, 'store'])->name('public-checkin-links.store');
+        Route::post('public-checkin-links/{publicCheckInLink}/rotate', [PublicCheckInLinkController::class, 'rotate'])->name('public-checkin-links.rotate');
+        Route::delete('public-checkin-links/{publicCheckInLink}', [PublicCheckInLinkController::class, 'revoke'])->name('public-checkin-links.revoke');
+    });
 
     Route::middleware(['sensitive.no-store', 'inertia.encrypt'])->group(function () {
         Route::post('visits/{visit}/encounter', [ClinicalEncounterController::class, 'store'])

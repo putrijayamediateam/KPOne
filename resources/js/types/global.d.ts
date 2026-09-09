@@ -33,6 +33,7 @@ declare module '@inertiajs/core' {
                     branches: boolean;
                     accessControl: boolean;
                     auditLogs: boolean;
+                    publicCheckInLinks: boolean;
                 };
             } | null;
             sidebarOpen: boolean;
