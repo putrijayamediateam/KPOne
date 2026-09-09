@@ -8,6 +8,7 @@ export type WorkspaceNavigationCapabilities = {
     branches: boolean;
     accessControl: boolean;
     auditLogs: boolean;
+    publicCheckInLinks: boolean;
 };
 
 export type WorkspaceDestination = {
@@ -90,6 +91,13 @@ const destinations: Record<
         href: '/audit-logs',
         icon: 'file',
     },
+    publicCheckInLinks: {
+        key: 'publicCheckInLinks',
+        label: 'Public Check-In',
+        description: 'Manage branch public check-in links.',
+        href: '/public-checkin-links',
+        icon: 'building',
+    },
 };
 
 const mainMenu: WorkspaceDestination = {
@@ -135,6 +143,7 @@ export const mainMenuGroups = (
                 'branches',
                 'accessControl',
                 'auditLogs',
+                'publicCheckInLinks',
             ]),
         },
     ].filter((group) => group.destinations.length > 0);
@@ -161,6 +170,7 @@ export const headerDestinations = (
                   'branches',
                   'accessControl',
                   'auditLogs',
+                  'publicCheckInLinks',
               ],
     ),
 ];

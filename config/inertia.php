@@ -72,15 +72,23 @@ return [
     | DevTools
     |--------------------------------------------------------------------------
     |
-    | Queue polling is intentionally high-frequency and carries no Inertia page
-    | payload. Excluding it avoids local DevTools disk recording overhead while
-    | preserving recording for normal application requests.
+    | Queue polling is intentionally high-frequency, while public check-in URLs
+    | contain bearer material that must never enter the local recorder archive.
+    | These narrow route families remain excluded from DevTools persistence.
     |
     */
 
     'devtools' => [
         'enabled' => env('INERTIA_DEVTOOLS_ENABLED'),
-        'except' => ['telescope*', 'horizon*', '_inertia/devtools*', 'queue/search'],
+        'except' => [
+            'telescope*',
+            'horizon*',
+            '_inertia/devtools*',
+            'queue/search',
+            'public-checkin-links',
+            'public-checkin-links/*',
+            'check-in/*',
+        ],
         'storage' => [
             'path' => storage_path('inertia-devtools'),
             'ttl' => (int) env('INERTIA_DEVTOOLS_TTL_HOURS', 24),
