@@ -3,6 +3,7 @@
 namespace App\Domain\Visit\Billing\Services;
 
 use App\Domain\Audit\AuditRecorder;
+use App\Domain\Organisation\Models\Organisation;
 use App\Domain\Visit\Billing\Models\Invoice;
 use App\Domain\Visit\Billing\Models\PatientReceivable;
 use App\Domain\Visit\Billing\Models\Payment;
@@ -30,6 +31,7 @@ class PaymentService
 
         return DB::transaction(function () use ($actor, $visit, $invoice, $a, $amount): Payment {
             [$actor, $visit, $branch] = $this->context->lock($actor, $visit, $a['expected_branch_id'] ?? null, 'payments.add.branch');
+            Organisation::query()->whereKey($actor->organisation_id)->sharedLock()->firstOrFail();
             $invoice = Invoice::query()->whereKey($invoice->id)->where('visit_id', $visit->id)->where('organisation_id', $actor->organisation_id)->lockForUpdate()->firstOrFail();
             $this->ledger->lock($invoice);
             $hash = hash('sha256', json_encode([$invoice->public_id, $actor->id, $amount, $a['method'], $a['reference'] ?? null], JSON_THROW_ON_ERROR));
@@ -47,8 +49,8 @@ class PaymentService
                 || ($visit->status === Visit::STATUS_COMPLETED && ($state['due_now'] !== 0 || $amount > $state['deferred']))) {
                 throw ValidationException::withMessages(['amount_sen' => 'Payment exceeds the originating Invoice amount available for collection.']);
             }
-            $method = PaymentMethod::query()->where('organisation_id', $actor->organisation_id)->where('code', $a['method'])->where('is_active', true)->first();
-            if (! $method || ($method->requires_reference && empty($a['reference']))) {
+            $method = PaymentMethod::query()->where('organisation_id', $actor->organisation_id)->where('code', $a['method'])->lockForUpdate()->first();
+            if (! $method || ! $method->is_active || ($method->requires_reference && empty($a['reference']))) {
                 throw ValidationException::withMessages(['method' => 'Select an active governed method and its required reference.']);
             }
             $receiptNumber = $this->numbers->next($actor->organisation_id, 'receipt');

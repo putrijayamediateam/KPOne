@@ -9,10 +9,12 @@ use App\Domain\Clinical\Services\ReopenConsultationCheckoutService;
 use App\Domain\Visit\Billing\Models\ChargeDefinition;
 use App\Domain\Visit\Billing\Models\Invoice;
 use App\Domain\Visit\Billing\Models\Payment;
+use App\Domain\Visit\Billing\Models\PaymentMethod;
 use App\Domain\Visit\Billing\Models\PriceBook;
 use App\Domain\Visit\Billing\Services\BillingBuilderService;
 use App\Domain\Visit\Billing\Services\CompleteVisitationService;
 use App\Domain\Visit\Billing\Services\InvoiceCorrectionService;
+use App\Domain\Visit\Billing\Services\PaymentMethodAdministrationService;
 use App\Domain\Visit\Billing\Services\PaymentService;
 use App\Domain\Visit\Billing\Services\PricePublicationService;
 use App\Domain\Visit\Billing\Services\ResponsibilityService;
@@ -56,6 +58,7 @@ try {
         'bill-build' => app(BillingBuilderService::class)->build($actor, $visit, $a),
         'bill-finalize' => app(BillingBuilderService::class)->finalize($actor, $visit, $invoice, $a),
         'bill-pay' => app(PaymentService::class)->add($actor, $visit, $invoice, $a),
+        'bill-payment-method-deactivate' => app(PaymentMethodAdministrationService::class)->deactivate($actor, PaymentMethod::query()->findOrFail($a['method'])),
         'bill-complete' => app(CompleteVisitationService::class)->complete($actor, $visit, $a),
         'bill-propose' => app(ResponsibilityService::class)->propose($actor, $visit, $invoice, $a['kind'], $a),
         'bill-approve' => app(ResponsibilityService::class)->approve($actor, $visit, $invoice, $a['kind'], $a['proposal'], $a),

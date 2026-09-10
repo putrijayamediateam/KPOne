@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Head, router, usePage } from '@inertiajs/vue3';
 import { computed, onUnmounted, reactive, ref, watch } from 'vue';
+import BillingCompletionDialog from '@/components/billing/BillingCompletionDialog.vue';
 import { ActionLink } from '@/components/ui/action-link';
 import { Button } from '@/components/ui/button';
 import { OperationalSelect } from '@/components/ui/select';
@@ -31,6 +32,7 @@ const invoiceTabs = [
 const page = usePage();
 const busy = ref(false);
 const contextCleared = ref(false);
+const completionOpen = ref(false);
 const error = ref('');
 const tab = ref('all');
 const form = reactive({
@@ -188,17 +190,6 @@ const reverse = (receipt: Receipt) =>
         reason: form.reason,
         recording_error_only: form.recording_error_only,
     });
-const complete = () => {
-    if (
-        window.confirm(
-            'Complete Visitation? This preserves the finalized financial evidence and closes ordinary Visit editing.',
-        )
-    ) {
-        post(`${base.value}/complete`, {
-            visit_lock_version: props.billing.visit.lockVersion,
-        });
-    }
-};
 </script>
 
 <template>
@@ -700,9 +691,17 @@ const complete = () => {
                     v-if="billing.can.complete"
                     class="w-full"
                     :disabled="busy"
-                    @click="complete"
+                    @click="completionOpen = true"
                     >Complete Visitation</Button
                 >
+                <BillingCompletionDialog
+                    v-if="billing.invoice"
+                    v-model:open="completionOpen"
+                    :visit-number="billing.visit.visitNumber"
+                    :branch-id="page.props.branchContext?.active?.id ?? 0"
+                    :visit-lock-version="billing.visit.lockVersion"
+                    :invoice-lock-version="billing.invoice.lockVersion"
+                />
                 <p class="text-xs text-muted-foreground">
                     Billing never deducts stock. Panel and approved pay later
                     are not cash receipts.
