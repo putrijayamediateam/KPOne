@@ -36,6 +36,7 @@ use App\Domain\Visit\Billing\Models\PriceEntry;
 use App\Domain\Visit\Billing\Services\BillingBuilderService;
 use App\Domain\Visit\Billing\Services\CompleteVisitationService;
 use App\Domain\Visit\Billing\Services\FinancialLedger;
+use App\Domain\Visit\Billing\Services\PaymentMethodAdministrationService;
 use App\Domain\Visit\Billing\Services\PaymentService;
 use App\Domain\Visit\Billing\Services\ResponsibilityService;
 use App\Domain\Visit\Models\Visit;
@@ -213,6 +214,52 @@ class PostgresBillingRegressionTest extends TestCase
         $out = $this->leaderThenFollower($this->worker(['revoke', (string) $f['ca']->id, 'payments.add.branch']), $this->billWorker($f, 'bill-pay', $this->payArgs($f, 4000)));
         $this->assertStringContainsString('DENIED', $out);
         $this->assertSame(0, Payment::query()->where('organisation_id', $f['organisation']->id)->count());
+    }
+
+    public function test_payment_method_deactivation_wins_before_payment_without_financial_mutation(): void
+    {
+        $f = $this->billingFixture();
+        $f['manager'] = $this->user($f['organisation'], $f['branch'], null, [PaymentMethodAdministrationService::PERMISSION]);
+        $invoiceVersion = $f['invoice']->lock_version;
+
+        $out = $this->leaderThenFollower(
+            $this->billWorker($f, 'bill-payment-method-deactivate', ['method' => $f['method']->id, 'hold' => true], 'manager'),
+            $this->billWorker($f, 'bill-pay', $this->payArgs($f, 4000)),
+        );
+
+        $this->assertSame(1, substr_count($out, 'SUCCESS'));
+        $this->assertSame(1, substr_count($out, 'STALE'));
+        $this->assertFalse($f['method']->refresh()->is_active);
+        $this->assertSame(0, Payment::query()->where('organisation_id', $f['organisation']->id)->count());
+        $this->assertSame(0, DB::table('payment_allocations')->where('organisation_id', $f['organisation']->id)->count());
+        $this->assertSame(0, DB::table('billing_document_counters')->where('organisation_id', $f['organisation']->id)->where('document_type', 'receipt')->count());
+        $this->assertSame(0, AuditLog::query()->where('organisation_id', $f['organisation']->id)->where('event', 'billing.payment_recorded')->count());
+        $this->assertSame(1, AuditLog::query()->where('organisation_id', $f['organisation']->id)->where('event', 'payment_method.deactivated')->count());
+        $this->assertSame($invoiceVersion, $f['invoice']->refresh()->lock_version);
+        $this->assertSame(['total' => 4000, 'self_pay' => 0, 'panel' => 0, 'deferred' => 0, 'due_now' => 4000], app(FinancialLedger::class)->state($f['invoice']));
+    }
+
+    public function test_payment_wins_before_method_deactivation_and_historical_evidence_remains_readable(): void
+    {
+        $f = $this->billingFixture();
+        $f['manager'] = $this->user($f['organisation'], $f['branch'], null, [PaymentMethodAdministrationService::PERMISSION]);
+
+        $out = $this->leaderThenFollower(
+            $this->billWorker($f, 'bill-pay', [...$this->payArgs($f, 4000), 'hold' => true]),
+            $this->billWorker($f, 'bill-payment-method-deactivate', ['method' => $f['method']->id], 'manager'),
+        );
+
+        $this->assertSame(2, substr_count($out, 'SUCCESS'));
+        $this->assertFalse($f['method']->refresh()->is_active);
+        $payment = Payment::query()->where('organisation_id', $f['organisation']->id)->sole();
+        $this->assertSame($f['method']->id, $payment->payment_method_id);
+        $this->assertSame('Cash', $payment->method_snapshot);
+        $this->assertSame('posted', $payment->status);
+        $this->assertNotEmpty($payment->receipt_number);
+        $this->assertSame(1, DB::table('payment_allocations')->where('payment_id', $payment->id)->count());
+        $this->assertSame(1, AuditLog::query()->where('organisation_id', $f['organisation']->id)->where('event', 'billing.payment_recorded')->count());
+        $this->assertSame(1, AuditLog::query()->where('organisation_id', $f['organisation']->id)->where('event', 'payment_method.deactivated')->count());
+        $this->assertSame(['total' => 4000, 'self_pay' => 4000, 'panel' => 0, 'deferred' => 0, 'due_now' => 0], app(FinancialLedger::class)->state($f['invoice']));
     }
 
     public function test_assignment_loss_fails_closed_before_payment(): void
@@ -442,6 +489,7 @@ class PostgresBillingRegressionTest extends TestCase
         $method = new PaymentMethod;
         $method->forceFill(['organisation_id' => $f['organisation']->id, 'code' => 'cash', 'name' => 'Cash'])->save();
         $f['book'] = $book;
+        $f['method'] = $method;
     }
 
     private function noMedicineFixture(bool $checkout): array

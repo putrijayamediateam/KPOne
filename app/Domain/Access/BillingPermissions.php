@@ -12,9 +12,9 @@ final class BillingPermissions
         return [
             'ca' => $ca,
             'ca_supervisor' => [...$ca, 'coverage.approve.branch', 'outstanding.approve.branch'],
-            'finance_officer' => ['billing.summary.branch', 'finance.work.view.branch', 'pricing.references.manage.organisation', 'prices.publish.organisation', 'payments.add.branch', 'payments.reverse.branch', 'invoices.void.branch', 'coverage.propose.branch', 'coverage.approve.branch', 'outstanding.view.branch', 'outstanding.request.branch', 'outstanding.approve.branch'],
+            'finance_officer' => ['billing.summary.branch', 'finance.work.view.branch', 'pricing.references.manage.organisation', 'payment_methods.manage.organisation', 'prices.publish.organisation', 'payments.add.branch', 'payments.reverse.branch', 'invoices.void.branch', 'coverage.propose.branch', 'coverage.approve.branch', 'outstanding.view.branch', 'outstanding.request.branch', 'outstanding.approve.branch'],
             'panel_officer' => ['billing.summary.branch', 'panel.work.view.branch', 'coverage.propose.branch', 'coverage.approve.branch'],
-            'director' => ['billing.summary.branch', 'panel.work.view.branch', 'finance.work.view.branch', 'pricing.references.manage.organisation', 'coverage.approve.branch', 'outstanding.view.branch', 'outstanding.approve.branch'],
+            'director' => ['billing.summary.branch', 'panel.work.view.branch', 'finance.work.view.branch', 'pricing.references.manage.organisation', 'payment_methods.manage.organisation', 'coverage.approve.branch', 'outstanding.view.branch', 'outstanding.approve.branch'],
         ];
     }
 
