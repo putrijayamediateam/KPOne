@@ -5,12 +5,16 @@ on:
     branches:
       - main
   pull_request:
+  repository_dispatch:
+    types:
+      - exact_sha_validation_requested
 
 permissions:
   contents: read
 
 jobs:
   ci:
+    name: ${{ github.event_name == 'repository_dispatch' && 'exact-SHA candidate validation' || 'ci' }}
     runs-on: ubuntu-latest
 
     services:
@@ -44,10 +48,189 @@ jobs:
       MAIL_MAILER: array
 
     steps:
+      - name: Validate exact-SHA request
+        if: github.event_name == 'repository_dispatch' && github.event.action == 'exact_sha_validation_requested'
+        id: validate_candidate
+        shell: bash
+        env:
+          CANDIDATE_REF_JSON: ${{ toJSON(github.event.client_payload.candidate_ref) }}
+          CANDIDATE_SHA_JSON: ${{ toJSON(github.event.client_payload.candidate_sha) }}
+          CANDIDATE_TREE_JSON: ${{ toJSON(github.event.client_payload.candidate_tree) }}
+          EVENT_ACTION: ${{ github.event.action }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+
+          if [[ "$GITHUB_EVENT_NAME" != 'repository_dispatch' || "$EVENT_ACTION" != 'exact_sha_validation_requested' ]]; then
+            echo 'Exact-SHA validation requires the approved repository_dispatch event type.' >&2
+            exit 1
+          fi
+
+          github_api() {
+            curl --fail-with-body --silent --show-error --location \
+              --header "Authorization: Bearer $GH_TOKEN" \
+              --header 'Accept: application/vnd.github+json' \
+              --header 'X-GitHub-Api-Version: 2022-11-28' \
+              "$1"
+          }
+
+          repository_json="$(github_api "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY")"
+          repository_full_name="$(jq -er '.full_name | select(type == "string" and length > 0)' <<<"$repository_json")"
+          default_branch="$(jq -er '.default_branch | select(type == "string" and length > 0)' <<<"$repository_json")"
+
+          if [[ "$repository_full_name" != "$GITHUB_REPOSITORY" ]]; then
+            echo 'GitHub API repository identity does not match the workflow repository.' >&2
+            exit 1
+          fi
+
+          if ! git check-ref-format --branch "$default_branch" >/dev/null; then
+            echo 'The repository default branch is not a valid Git branch name.' >&2
+            exit 1
+          fi
+
+          if [[ "$GITHUB_REF" != "refs/heads/$default_branch" ]]; then
+            echo 'repository_dispatch is not associated with the repository default branch.' >&2
+            exit 1
+          fi
+
+          if [[ "$GITHUB_WORKFLOW_SHA" != "$GITHUB_SHA" ]]; then
+            echo 'The workflow definition does not match the repository_dispatch commit context.' >&2
+            exit 1
+          fi
+
+          if ! jq -e '
+            type == "string"
+            and test("^validation/[A-Za-z0-9][A-Za-z0-9._/-]*$")
+            and (explode | all(. >= 32 and . < 127))
+          ' <<<"$CANDIDATE_REF_JSON" >/dev/null; then
+            echo 'candidate_ref must be a non-empty validation/* string using only safe Git ref characters.' >&2
+            exit 1
+          fi
+
+          if ! jq -e 'type == "string" and test("^[0-9a-f]{40}$")' <<<"$CANDIDATE_SHA_JSON" >/dev/null; then
+            echo 'candidate_sha must be a full lowercase 40-character hexadecimal string.' >&2
+            exit 1
+          fi
+
+          if ! jq -e 'type == "string" and test("^[0-9a-f]{40}$")' <<<"$CANDIDATE_TREE_JSON" >/dev/null; then
+            echo 'candidate_tree must be a full lowercase 40-character hexadecimal string.' >&2
+            exit 1
+          fi
+
+          CANDIDATE_REF="$(jq -er '.' <<<"$CANDIDATE_REF_JSON")"
+          CANDIDATE_SHA="$(jq -er '.' <<<"$CANDIDATE_SHA_JSON")"
+          CANDIDATE_TREE="$(jq -er '.' <<<"$CANDIDATE_TREE_JSON")"
+
+          if ! git check-ref-format --branch "$CANDIDATE_REF" >/dev/null; then
+            echo 'candidate_ref is not a valid Git branch name.' >&2
+            exit 1
+          fi
+
+          ref_json="$(github_api "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/git/ref/heads/$CANDIDATE_REF")"
+          remote_type="$(jq -er '.object.type' <<<"$ref_json")"
+          remote_sha="$(jq -er '.object.sha' <<<"$ref_json")"
+
+          if [[ "$remote_type" != 'commit' || "$remote_sha" != "$CANDIDATE_SHA" ]]; then
+            echo 'The remote validation branch does not resolve to candidate_sha.' >&2
+            exit 1
+          fi
+
+          commit_json="$(github_api "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/git/commits/$CANDIDATE_SHA")"
+          resolved_sha="$(jq -er '.sha' <<<"$commit_json")"
+          resolved_tree="$(jq -er '.tree.sha' <<<"$commit_json")"
+
+          if [[ "$resolved_sha" != "$CANDIDATE_SHA" ]]; then
+            echo 'candidate_sha did not resolve to the requested commit.' >&2
+            exit 1
+          fi
+
+          if [[ "$resolved_tree" != "$CANDIDATE_TREE" ]]; then
+            echo 'candidate_tree does not match candidate_sha.' >&2
+            exit 1
+          fi
+
+          echo "candidate_sha=$CANDIDATE_SHA" >>"$GITHUB_OUTPUT"
+
+      - name: Checkout exact candidate
+        if: github.event_name == 'repository_dispatch' && github.event.action == 'exact_sha_validation_requested'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ steps.validate_candidate.outputs.candidate_sha }}
+          persist-credentials: false
+
       - name: Checkout code
+        if: github.event_name != 'repository_dispatch'
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+
+      - name: Attest exact checkout
+        if: github.event_name == 'repository_dispatch' && github.event.action == 'exact_sha_validation_requested'
+        shell: bash
+        env:
+          CANDIDATE_REF_JSON: ${{ toJSON(github.event.client_payload.candidate_ref) }}
+          CANDIDATE_SHA_JSON: ${{ toJSON(github.event.client_payload.candidate_sha) }}
+          CANDIDATE_TREE_JSON: ${{ toJSON(github.event.client_payload.candidate_tree) }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+
+          if ! jq -e '
+            type == "string"
+            and test("^validation/[A-Za-z0-9][A-Za-z0-9._/-]*$")
+            and (explode | all(. >= 32 and . < 127))
+          ' <<<"$CANDIDATE_REF_JSON" >/dev/null; then
+            echo 'candidate_ref changed or became invalid before checkout attestation.' >&2
+            exit 1
+          fi
+
+          if ! jq -e 'type == "string" and test("^[0-9a-f]{40}$")' <<<"$CANDIDATE_SHA_JSON" >/dev/null; then
+            echo 'candidate_sha changed or became invalid before checkout attestation.' >&2
+            exit 1
+          fi
+
+          if ! jq -e 'type == "string" and test("^[0-9a-f]{40}$")' <<<"$CANDIDATE_TREE_JSON" >/dev/null; then
+            echo 'candidate_tree changed or became invalid before checkout attestation.' >&2
+            exit 1
+          fi
+
+          CANDIDATE_REF="$(jq -er '.' <<<"$CANDIDATE_REF_JSON")"
+          CANDIDATE_SHA="$(jq -er '.' <<<"$CANDIDATE_SHA_JSON")"
+          CANDIDATE_TREE="$(jq -er '.' <<<"$CANDIDATE_TREE_JSON")"
+
+          actual_sha="$(git rev-parse HEAD)"
+          actual_tree="$(git show -s --format=%T HEAD)"
+          ref_json="$(
+            curl --fail-with-body --silent --show-error --location \
+              --header "Authorization: Bearer $GH_TOKEN" \
+              --header 'Accept: application/vnd.github+json' \
+              --header 'X-GitHub-Api-Version: 2022-11-28' \
+              "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/git/ref/heads/$CANDIDATE_REF"
+          )"
+          remote_type="$(jq -er '.object.type' <<<"$ref_json")"
+          remote_sha="$(jq -er '.object.sha' <<<"$ref_json")"
+
+          printf 'Event: %s\n' "$GITHUB_EVENT_NAME"
+          printf 'Validation ref: %s\n' "$CANDIDATE_REF"
+          printf 'Requested SHA: %s\n' "$CANDIDATE_SHA"
+          printf 'Actual SHA: %s\n' "$actual_sha"
+          printf 'Expected tree: %s\n' "$CANDIDATE_TREE"
+          printf 'Actual tree: %s\n' "$actual_tree"
+
+          if [[ "$actual_sha" != "$CANDIDATE_SHA" ]]; then
+            echo 'Checked-out SHA does not match candidate_sha.' >&2
+            exit 1
+          fi
+
+          if [[ "$actual_tree" != "$CANDIDATE_TREE" ]]; then
+            echo 'Checked-out tree does not match candidate_tree.' >&2
+            exit 1
+          fi
+
+          if [[ "$remote_type" != 'commit' || "$remote_sha" != "$CANDIDATE_SHA" ]]; then
+            echo 'The remote validation branch moved before checkout attestation.' >&2
+            exit 1
+          fi
 
       - name: Setup PHP
         uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # v2
@@ -69,6 +252,12 @@ jobs:
 
       - name: Install frontend dependencies
         run: npm ci
+
+      - name: Run frontend behavior tests
+        shell: bash
+        run: |
+          shopt -s failglob
+          node --test tests/Frontend/*.test.mjs
 
       - name: Migrate isolated test database
         run: php artisan migrate --force
