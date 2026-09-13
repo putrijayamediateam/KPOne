@@ -8,6 +8,7 @@ import {
     DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
 import UserInfo from '@/components/UserInfo.vue';
+import { retireAuthenticationHistoryForLogout } from '@/lib/inertia-auth-history-boundary';
 import { logout } from '@/routes';
 import { edit } from '@/routes/profile';
 import type { User } from '@/types';
@@ -17,6 +18,7 @@ type Props = {
 };
 
 const handleLogout = () => {
+    retireAuthenticationHistoryForLogout(router);
     router.flushAll();
 };
 
@@ -43,7 +45,7 @@ defineProps<Props>();
         <Link
             class="block w-full cursor-pointer"
             :href="logout()"
-            @click="handleLogout"
+            @start="handleLogout"
             as="button"
             data-test="logout-button"
         >

@@ -1,10 +1,16 @@
 <script setup lang="ts">
-import { Form, Head } from '@inertiajs/vue3';
+import { Form, Head, router } from '@inertiajs/vue3';
 import TextLink from '@/components/TextLink.vue';
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
+import { retireAuthenticationHistoryForLogout } from '@/lib/inertia-auth-history-boundary';
 import { logout } from '@/routes';
 import { send } from '@/routes/verification';
+
+const handleLogout = () => {
+    retireAuthenticationHistoryForLogout(router);
+    router.flushAll();
+};
 
 defineOptions({
     layout: {
@@ -40,7 +46,12 @@ defineProps<{
             Resend verification email
         </Button>
 
-        <TextLink :href="logout()" as="button" class="mx-auto block text-sm">
+        <TextLink
+            :href="logout()"
+            as="button"
+            class="mx-auto block text-sm"
+            @start="handleLogout"
+        >
             Log out
         </TextLink>
     </Form>

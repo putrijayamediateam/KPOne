@@ -16,6 +16,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DispensaryController;
 use App\Http\Controllers\InventoryController;
 use App\Http\Controllers\InventoryMovementController;
+use App\Http\Controllers\InventoryOperationsController;
 use App\Http\Controllers\PatientController;
 use App\Http\Controllers\PatientIdentifierController;
 use App\Http\Controllers\PatientSearchController;
@@ -215,6 +216,28 @@ Route::middleware(['auth', 'verified'])->group(function () {
             ->middleware(['permission:inventory.opening_balance.branch', 'throttle:20,1'])->name('inventory.opening-balances.store');
         Route::post('inventory/transfers', [InventoryMovementController::class, 'transfer'])
             ->middleware(['permission:inventory.transfer.branch,inventory.transfer.organisation', 'throttle:30,1'])->name('inventory.transfers.store');
+        Route::post('inventory/suppliers', [InventoryOperationsController::class, 'createSupplier'])->middleware(['permission:inventory.suppliers.manage.organisation', 'throttle:30,1'])->name('inventory.suppliers.store');
+        Route::patch('inventory/suppliers/{supplier}', [InventoryOperationsController::class, 'updateSupplier'])->middleware(['permission:inventory.suppliers.manage.organisation', 'throttle:30,1'])->name('inventory.suppliers.update');
+        Route::patch('inventory/suppliers/{supplier}/status', [InventoryOperationsController::class, 'supplierStatus'])->middleware(['permission:inventory.suppliers.manage.organisation', 'throttle:20,1'])->name('inventory.suppliers.status');
+        Route::post('inventory/purchase-orders', [InventoryOperationsController::class, 'createPurchaseOrder'])->middleware(['permission:inventory.purchase_orders.create.organisation', 'throttle:30,1'])->name('inventory.purchase-orders.store');
+        Route::patch('inventory/purchase-orders/{purchaseOrder}', [InventoryOperationsController::class, 'updatePurchaseOrder'])->middleware(['permission:inventory.purchase_orders.create.organisation', 'throttle:30,1'])->name('inventory.purchase-orders.update');
+        Route::post('inventory/purchase-orders/{purchaseOrder}/submit', [InventoryOperationsController::class, 'submitPurchaseOrder'])->middleware(['permission:inventory.purchase_orders.create.organisation', 'throttle:20,1'])->name('inventory.purchase-orders.submit');
+        Route::post('inventory/purchase-orders/{purchaseOrder}/approve', [InventoryOperationsController::class, 'approvePurchaseOrder'])->middleware(['permission:inventory.purchase_orders.approve.organisation', 'throttle:20,1'])->name('inventory.purchase-orders.approve');
+        Route::post('inventory/purchase-orders/{purchaseOrder}/cancel', [InventoryOperationsController::class, 'cancelPurchaseOrder'])->middleware(['permission:inventory.purchase_orders.create.organisation,inventory.purchase_orders.approve.organisation', 'throttle:20,1'])->name('inventory.purchase-orders.cancel');
+        Route::post('inventory/purchase-orders/{purchaseOrder}/close', [InventoryOperationsController::class, 'closePurchaseOrder'])->middleware(['permission:inventory.purchase_orders.approve.organisation', 'throttle:20,1'])->name('inventory.purchase-orders.close');
+        Route::post('inventory/purchase-orders/{purchaseOrder}/receipts', [InventoryOperationsController::class, 'receivePurchaseOrder'])->middleware(['permission:inventory.receiving.branch', 'throttle:30,1'])->name('inventory.purchase-orders.receipts.store');
+        Route::post('inventory/stock-requests', [InventoryOperationsController::class, 'createStockRequest'])->middleware(['permission:inventory.stock_requests.create.branch', 'throttle:30,1'])->name('inventory.stock-requests.store');
+        Route::post('inventory/stock-requests/{stockRequest}/approve', [InventoryOperationsController::class, 'approveStockRequest'])->middleware(['permission:inventory.stock_requests.approve.branch', 'throttle:20,1'])->name('inventory.stock-requests.approve');
+        Route::post('inventory/stock-requests/{stockRequest}/reject', [InventoryOperationsController::class, 'rejectStockRequest'])->middleware(['permission:inventory.stock_requests.approve.branch', 'throttle:20,1'])->name('inventory.stock-requests.reject');
+        Route::post('inventory/stock-requests/{stockRequest}/dispatch', [InventoryOperationsController::class, 'dispatchStockRequest'])->middleware(['permission:inventory.transfers.dispatch.branch', 'throttle:20,1'])->name('inventory.stock-requests.dispatch');
+        Route::post('inventory/stock-requests/{stockRequest}/receive', [InventoryOperationsController::class, 'receiveStockRequest'])->middleware(['permission:inventory.transfers.receive.branch', 'throttle:20,1'])->name('inventory.stock-requests.receive');
+        Route::post('inventory/stocktakes', [InventoryOperationsController::class, 'createStocktake'])->middleware(['permission:inventory.stocktake.branch', 'throttle:20,1'])->name('inventory.stocktakes.store');
+        Route::post('inventory/stocktakes/{stocktake}/start', [InventoryOperationsController::class, 'startStocktake'])->middleware(['permission:inventory.stocktake.branch', 'throttle:20,1'])->name('inventory.stocktakes.start');
+        Route::post('inventory/stocktakes/{stocktake}/count', [InventoryOperationsController::class, 'countStocktake'])->middleware(['permission:inventory.stocktake.branch', 'throttle:20,1'])->name('inventory.stocktakes.count');
+        Route::post('inventory/stocktakes/{stocktake}/post', [InventoryOperationsController::class, 'postStocktake'])->middleware(['permission:inventory.stocktake.branch', 'throttle:20,1'])->name('inventory.stocktakes.post');
+        Route::post('inventory/stocktakes/{stocktake}/cancel', [InventoryOperationsController::class, 'cancelStocktake'])->middleware(['permission:inventory.stocktake.branch', 'throttle:20,1'])->name('inventory.stocktakes.cancel');
+        Route::post('inventory/adjustments', [InventoryOperationsController::class, 'adjustment'])->middleware(['permission:inventory.adjust.branch', 'throttle:20,1'])->name('inventory.adjustments.store');
+        Route::put('inventory/reorder-levels', [InventoryOperationsController::class, 'reorderLevel'])->middleware(['permission:inventory.reorder.manage.branch', 'throttle:30,1'])->name('inventory.reorder-levels.update');
         Route::post('visits/{visit}/encounter/treatment-plan/catalogue/medicines/search', [TreatmentPlanCatalogueController::class, 'medicines'])
             ->middleware(['permission:treatment_plans.view.own', 'throttle:60,1'])
             ->name('encounters.treatment-plan.catalogue.medicines');

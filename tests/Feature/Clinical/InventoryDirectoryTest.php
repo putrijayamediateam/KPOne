@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Clinical;
 
+use App\Domain\Access\BranchAccessService;
 use App\Domain\Access\PermissionCatalogue;
 use App\Domain\Clinical\Dispensary\Models\DispensaryHandoff;
 use App\Domain\Clinical\Dispensary\Services\DispensaryHandoffService;
@@ -35,17 +36,93 @@ class InventoryDirectoryTest extends ClinicalTestCase
             $this->get(route('dashboard'))->assertOk()->assertInertia(fn (Assert $page) => $page->where('workspace.navigation.inventory', true));
         }
 
-        foreach (['resident_doctor', 'panel_officer', 'finance_officer', 'technical_admin'] as $role) {
+        foreach (['resident_doctor', 'panel_officer', 'technical_admin'] as $role) {
             $actor = $this->actor($role);
             $this->selectBranch($actor);
             $this->get(route('inventory.index'))->assertForbidden();
             $this->get(route('dashboard'))->assertOk()->assertInertia(fn (Assert $page) => $page->where('workspace.navigation.inventory', false));
         }
 
+        $finance = $this->actor('finance_officer');
+        $this->selectBranch($finance);
+        $this->get(route('inventory.index'))->assertOk();
+
         $this->assertContains('inventory.view.branch', PermissionCatalogue::roles()['director']);
         foreach (['inventory.opening_balance.branch', 'inventory.transfer.branch', 'inventory.transfer.organisation'] as $permission) {
             $this->assertNotContains($permission, PermissionCatalogue::roles()['director']);
         }
+    }
+
+    public function test_receipt_memory_scope_is_server_owned_and_rotates_with_the_authenticated_session(): void
+    {
+        $actorA = $this->actor('ca_supervisor');
+        $actorB = $this->actor('ca_supervisor');
+        $loginResponse = $this->get(route('login'))->assertOk();
+
+        $this->post(route('login.store'), ['email' => $actorA->email, 'password' => 'password'])
+            ->assertRedirect(route('workspace', absolute: false));
+        $dashboardResponse = $this->get(route('dashboard'))->assertOk();
+        session([BranchAccessService::SESSION_KEY => $this->branch->id]);
+
+        $firstResponse = $this->get(route('inventory.index'))->assertOk();
+        $firstPage = $firstResponse->inertiaPage();
+        $scopeA = $firstResponse->inertiaProps('receiptMemoryContext');
+        $sessionIdA = $this->app['session']->getId();
+        $serializedFirstPage = json_encode($firstPage, JSON_THROW_ON_ERROR);
+
+        $this->assertTrue(config('inertia.history.encrypt'));
+        $this->assertTrue($loginResponse->inertiaPage()['encryptHistory']);
+        $this->assertTrue($dashboardResponse->inertiaPage()['encryptHistory']);
+        $this->assertTrue($firstPage['encryptHistory']);
+        $this->assertStringNotContainsString($sessionIdA, $serializedFirstPage);
+        $this->assertStringNotContainsString((string) config('app.key'), $serializedFirstPage);
+
+        $this->assertSame(2, $scopeA['version']);
+        foreach (['organisationPublicId', 'actorPublicId', 'branchPublicId'] as $field) {
+            $this->assertMatchesRegularExpression('/\A[0-9a-f]{64}\z/', $scopeA[$field]);
+        }
+        $this->assertTrue(Str::isUuid($scopeA['sessionNonce']));
+        $this->assertNotSame($sessionIdA, $scopeA['sessionNonce']);
+        $this->assertStringNotContainsString($sessionIdA, json_encode($scopeA, JSON_THROW_ON_ERROR));
+        $this->assertNotSame((string) $actorA->id, $scopeA['actorPublicId']);
+        $this->assertNotSame((string) $this->organisation->id, $scopeA['organisationPublicId']);
+        $this->assertNotSame((string) $this->branch->id, $scopeA['branchPublicId']);
+
+        $sameSessionResponse = $this->get(route('inventory.index', [
+            'receiptMemoryContext' => [
+                'organisationPublicId' => str_repeat('f', 64),
+                'actorPublicId' => str_repeat('f', 64),
+                'sessionNonce' => (string) Str::uuid(),
+                'branchPublicId' => str_repeat('f', 64),
+            ],
+            'encryptHistory' => false,
+        ]))->assertOk();
+        $sameSession = $sameSessionResponse->inertiaProps('receiptMemoryContext');
+        $this->assertSame($scopeA, $sameSession);
+        $this->assertTrue($sameSessionResponse->inertiaPage()['encryptHistory']);
+
+        $this->post(route('logout'))->assertRedirect(route('home'));
+        $this->assertGuest();
+        $this->post(route('login.store'), ['email' => $actorB->email, 'password' => 'password'])
+            ->assertRedirect(route('workspace', absolute: false));
+        session([BranchAccessService::SESSION_KEY => $this->branch->id]);
+        $responseB = $this->get(route('inventory.index'))->assertOk();
+        $scopeB = $responseB->inertiaProps('receiptMemoryContext');
+
+        $this->assertSame($scopeA['organisationPublicId'], $scopeB['organisationPublicId']);
+        $this->assertSame($scopeA['branchPublicId'], $scopeB['branchPublicId']);
+        $this->assertNotSame($scopeA['actorPublicId'], $scopeB['actorPublicId']);
+        $this->assertNotSame($scopeA['sessionNonce'], $scopeB['sessionNonce']);
+        $this->assertTrue($responseB->inertiaPage()['encryptHistory']);
+
+        $this->post(route('logout'))->assertRedirect(route('home'));
+        $this->post(route('login.store'), ['email' => $actorA->email, 'password' => 'password'])
+            ->assertRedirect(route('workspace', absolute: false));
+        session([BranchAccessService::SESSION_KEY => $this->branch->id]);
+        $scopeANewSession = $this->get(route('inventory.index'))->assertOk()->inertiaProps('receiptMemoryContext');
+
+        $this->assertSame($scopeA['actorPublicId'], $scopeANewSession['actorPublicId']);
+        $this->assertNotSame($scopeA['sessionNonce'], $scopeANewSession['sessionNonce']);
     }
 
     public function test_stock_batch_and_opening_movement_projections_are_tenant_scoped_and_read_only(): void

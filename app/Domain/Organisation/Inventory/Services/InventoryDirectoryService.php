@@ -3,6 +3,8 @@
 namespace App\Domain\Organisation\Inventory\Services;
 
 use App\Domain\Access\BranchAccessService;
+use App\Domain\Organisation\Inventory\Models\InventoryBatch;
+use App\Domain\Organisation\Inventory\Models\StockMovement;
 use App\Domain\Organisation\Models\Branch;
 use App\Models\User;
 use Carbon\CarbonImmutable;
@@ -13,6 +15,32 @@ use Illuminate\Support\Facades\DB;
 final class InventoryDirectoryService
 {
     private const PER_PAGE = 25;
+
+    public const MOVEMENT_TYPES = [
+        StockMovement::TYPE_OPENING,
+        StockMovement::TYPE_TRANSFER,
+        StockMovement::TYPE_DISPENSE,
+        StockMovement::TYPE_PURCHASE_RECEIPT,
+        StockMovement::TYPE_TRANSFER_DISPATCH,
+        StockMovement::TYPE_TRANSFER_RECEIPT,
+        StockMovement::TYPE_STOCKTAKE_GAIN,
+        StockMovement::TYPE_STOCKTAKE_LOSS,
+        StockMovement::TYPE_ADJUSTMENT_IN,
+        StockMovement::TYPE_ADJUSTMENT_OUT,
+    ];
+
+    private const MOVEMENT_LABELS = [
+        StockMovement::TYPE_OPENING => 'Opening Balance',
+        StockMovement::TYPE_TRANSFER => 'Inventory Transfer',
+        StockMovement::TYPE_DISPENSE => 'Dispense',
+        StockMovement::TYPE_PURCHASE_RECEIPT => 'Purchase Receipt',
+        StockMovement::TYPE_TRANSFER_DISPATCH => 'Transfer Dispatch',
+        StockMovement::TYPE_TRANSFER_RECEIPT => 'Transfer Receipt',
+        StockMovement::TYPE_STOCKTAKE_GAIN => 'Stocktake Gain',
+        StockMovement::TYPE_STOCKTAKE_LOSS => 'Stocktake Loss',
+        StockMovement::TYPE_ADJUSTMENT_IN => 'Adjustment In',
+        StockMovement::TYPE_ADJUSTMENT_OUT => 'Adjustment Out',
+    ];
 
     public function __construct(private BranchAccessService $branches) {}
 
@@ -82,20 +110,27 @@ final class InventoryDirectoryService
     private function stock(User $actor, Branch $branch, array $filters, ?int $locationId): array
     {
         $query = $this->balanceQuery($actor, $branch);
-        $this->applyCommonFilters($query, $filters, $locationId);
+        $localDate = now()->setTimezone($branch->timezone)->toDateString();
+        $this->applyCommonFilters($query, $filters, $locationId, $localDate);
         $results = $query->orderBy('s.sku_code')->orderBy('l.name')->orderBy('batch.expiry_date')->paginate(self::PER_PAGE, page: $filters['page']);
         $medicineNames = $this->medicineNames($actor, $this->skuIds($results->items()));
         $data = [];
         foreach ($results->items() as $row) {
             $values = (array) $row;
+            $expiryDate = CarbonImmutable::parse($values['expiry_date'])->toDateString();
+            $available = (float) $values['quantity'] > 0 && (bool) $values['location_active'] && (bool) $values['item_active'] && (bool) $values['sku_active']
+                && $values['batch_status'] === InventoryBatch::STATUS_AVAILABLE
+                && $expiryDate > $localDate;
             $data[] = [
                 'skuCode' => (string) $values['sku_code'], 'itemName' => $this->itemName($values),
                 'medicineName' => $medicineNames[(int) $values['inventory_sku_id']] ?? null,
                 'location' => (string) $values['location_name'], 'locationType' => $this->label((string) $values['location_type']),
                 'branch' => $branch->name, 'quantity' => $this->quantity((string) $values['quantity']),
                 'stockUnit' => (string) $values['stock_unit'], 'batchNumber' => (string) $values['batch_number'],
-                'expiryDate' => CarbonImmutable::parse($values['expiry_date'])->format('j M Y'),
+                'expiryDate' => CarbonImmutable::parse($expiryDate)->format('j M Y'),
                 'active' => (bool) $values['item_active'] && (bool) $values['sku_active'],
+                'available' => $available,
+                'availabilityStatus' => $available ? 'Available' : 'Unavailable',
             ];
         }
 
@@ -108,11 +143,11 @@ final class InventoryDirectoryService
     private function batches(User $actor, Branch $branch, array $filters, ?int $locationId): array
     {
         $query = $this->balanceQuery($actor, $branch);
-        $this->applyCommonFilters($query, $filters, $locationId);
+        $localDate = now()->setTimezone($branch->timezone)->toDateString();
+        $this->applyCommonFilters($query, $filters, $locationId, $localDate);
         if ($filters['batch']) {
             $query->whereRaw('LOWER(batch.batch_number) LIKE ?', ['%'.mb_strtolower($filters['batch']).'%']);
         }
-        $localDate = now()->setTimezone($branch->timezone)->toDateString();
         $results = $query->orderBy('batch.expiry_date')->orderBy('s.sku_code')->paginate(self::PER_PAGE, page: $filters['page']);
         $medicineNames = $this->medicineNames($actor, $this->skuIds($results->items()));
         $data = [];
@@ -168,19 +203,48 @@ final class InventoryDirectoryService
             $quantity = $this->quantity((string) $values['quantity']);
             $data[] = [
                 'occurredAt' => CarbonImmutable::parse($values['occurred_at'])->setTimezone($branch->timezone)->format('j M Y, g:i A'),
-                'type' => $type, 'typeLabel' => ['opening_balance' => 'Opening Balance', 'transfer' => 'Transfer', 'dispense' => 'Dispense'][$type] ?? $this->label($type),
+                'type' => $type, 'typeLabel' => self::MOVEMENT_LABELS[$type] ?? $this->label($type),
                 'skuCode' => (string) $values['sku_code'], 'itemName' => $this->itemName($values),
                 'medicineName' => $medicineNames[(int) $values['inventory_sku_id']] ?? null,
                 'quantity' => $quantity, 'quantityDisplay' => match ($type) {
-                    'opening_balance' => '+'.$quantity, 'dispense' => '-'.$quantity, default => $quantity
+                    StockMovement::TYPE_OPENING,
+                    StockMovement::TYPE_PURCHASE_RECEIPT,
+                    StockMovement::TYPE_TRANSFER_RECEIPT,
+                    StockMovement::TYPE_STOCKTAKE_GAIN,
+                    StockMovement::TYPE_ADJUSTMENT_IN => '+'.$quantity,
+                    StockMovement::TYPE_DISPENSE,
+                    StockMovement::TYPE_TRANSFER_DISPATCH,
+                    StockMovement::TYPE_STOCKTAKE_LOSS,
+                    StockMovement::TYPE_ADJUSTMENT_OUT => '-'.$quantity,
+                    StockMovement::TYPE_TRANSFER => '-'.$quantity.' / +'.$quantity,
+                    default => $quantity,
                 },
                 'stockUnit' => (string) $values['stock_unit'], 'source' => $values['source_name'], 'destination' => $values['destination_name'],
                 'direction' => match ($type) {
-                    'opening_balance' => 'To '.$values['destination_name'], 'dispense' => 'From '.$values['source_name'], default => $values['source_name'].' → '.$values['destination_name']
+                    StockMovement::TYPE_OPENING,
+                    StockMovement::TYPE_PURCHASE_RECEIPT,
+                    StockMovement::TYPE_TRANSFER_RECEIPT,
+                    StockMovement::TYPE_STOCKTAKE_GAIN,
+                    StockMovement::TYPE_ADJUSTMENT_IN => 'To '.($values['destination_name'] ?? 'inventory'),
+                    StockMovement::TYPE_DISPENSE,
+                    StockMovement::TYPE_TRANSFER_DISPATCH,
+                    StockMovement::TYPE_STOCKTAKE_LOSS,
+                    StockMovement::TYPE_ADJUSTMENT_OUT => 'From '.($values['source_name'] ?? 'inventory'),
+                    StockMovement::TYPE_TRANSFER => ($values['source_name'] ?? 'Inventory').' → '.($values['destination_name'] ?? 'Inventory'),
+                    default => $values['source_name'] && $values['destination_name']
+                        ? $values['source_name'].' → '.$values['destination_name']
+                        : ($values['source_name'] ? 'From '.$values['source_name'] : ($values['destination_name'] ? 'To '.$values['destination_name'] : 'Inventory')),
                 },
                 'batchNumber' => (string) $values['batch_number'],
                 'reference' => match ((string) $values['reference_type']) {
-                    'dispensary_allocation' => 'Dispensary', 'inventory_transfer' => 'Inventory transfer', 'inventory_opening_balance' => 'Opening balance', default => 'Inventory movement'
+                    'dispensary_allocation' => 'Dispensary',
+                    'inventory_transfer' => 'Inventory transfer',
+                    'inventory_opening_balance' => 'Opening balance',
+                    'inventory_goods_receipt' => 'Goods receipt',
+                    'inventory_stock_request' => 'Stock request transfer',
+                    'inventory_stocktake' => 'Stocktake',
+                    'inventory_adjustment' => 'Manual adjustment',
+                    default => 'Inventory movement'
                 },
             ];
         }
@@ -198,20 +262,27 @@ final class InventoryDirectoryService
             ->where('balance.organisation_id', $actor->organisation_id)->where('l.branch_id', $branch->id)
             ->select(['balance.id', 'balance.quantity', 's.id as inventory_sku_id', 's.sku_code', 's.stock_unit', 's.is_active as sku_active',
                 'i.generic_name', 'i.brand_name', 'i.strength', 'i.dosage_form', 'i.is_active as item_active',
-                'l.name as location_name', 'l.type as location_type', 'batch.batch_number', 'batch.expiry_date', 'batch.received_at', 'batch.status as batch_status']);
+                'l.name as location_name', 'l.type as location_type', 'l.is_active as location_active', 'batch.batch_number', 'batch.expiry_date', 'batch.received_at', 'batch.status as batch_status']);
     }
 
     /** @param array{tab:string,search:?string,location:?string,status:?string,movement_type:?string,batch:?string,page:int} $filters */
-    private function applyCommonFilters(Builder $query, array $filters, ?int $locationId): void
+    private function applyCommonFilters(Builder $query, array $filters, ?int $locationId, string $localDate): void
     {
         $this->applySearch($query, $filters['search']);
         if ($locationId) {
             $query->where('balance.inventory_location_id', $locationId);
         }
         if ($filters['status'] === 'active') {
-            $query->where('s.is_active', true)->where('i.is_active', true);
+            $query->where('balance.quantity', '>', 0)->where('l.is_active', true)->where('s.is_active', true)->where('i.is_active', true)
+                ->where('batch.status', InventoryBatch::STATUS_AVAILABLE)->whereDate('batch.expiry_date', '>', $localDate);
         } elseif ($filters['status'] === 'inactive') {
-            $query->where(fn (Builder $inactive) => $inactive->where('s.is_active', false)->orWhere('i.is_active', false));
+            $query->where(fn (Builder $unavailable) => $unavailable
+                ->where('balance.quantity', '<=', 0)
+                ->orWhere('l.is_active', false)
+                ->orWhere('s.is_active', false)
+                ->orWhere('i.is_active', false)
+                ->orWhere('batch.status', '!=', InventoryBatch::STATUS_AVAILABLE)
+                ->orWhereDate('batch.expiry_date', '<=', $localDate));
         }
     }
 
