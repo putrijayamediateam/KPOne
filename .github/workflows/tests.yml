@@ -11,6 +11,7 @@ on:
 
 permissions:
   contents: read
+  pull-requests: read
 
 jobs:
   ci:
@@ -48,6 +49,54 @@ jobs:
       MAIL_MAILER: array
 
     steps:
+      - name: Validate pull-request candidate
+        if: github.event_name == 'pull_request'
+        id: validate_pr_candidate
+        shell: bash
+        env:
+          PR_HEAD_SHA_JSON: ${{ toJSON(github.event.pull_request.head.sha) }}
+          PR_BASE_SHA_JSON: ${{ toJSON(github.event.pull_request.base.sha) }}
+          PR_NUMBER_JSON: ${{ toJSON(github.event.pull_request.number) }}
+          SYNTHETIC_MERGE_SHA_JSON: ${{ toJSON(github.sha) }}
+        run: |
+          set -euo pipefail
+
+          if [[ "$GITHUB_EVENT_NAME" != 'pull_request' ]]; then
+            echo 'Pull-request candidate validation requires a pull_request event.' >&2
+            exit 1
+          fi
+
+          for input in "$PR_HEAD_SHA_JSON" "$PR_BASE_SHA_JSON" "$SYNTHETIC_MERGE_SHA_JSON"; do
+            if ! jq -e 'type == "string" and test("^[0-9a-f]{40}$")' <<<"$input" >/dev/null; then
+              echo 'Pull-request commit identities must be full lowercase 40-character hexadecimal SHAs.' >&2
+              exit 1
+            fi
+          done
+
+          if ! jq -e 'type == "number" and . > 0 and floor == .' <<<"$PR_NUMBER_JSON" >/dev/null; then
+            echo 'Pull-request number must be a positive integer.' >&2
+            exit 1
+          fi
+
+          candidate_sha="$(jq -er '.' <<<"$PR_HEAD_SHA_JSON")"
+          base_sha="$(jq -er '.' <<<"$PR_BASE_SHA_JSON")"
+          pr_number="$(jq -er 'tostring' <<<"$PR_NUMBER_JSON")"
+          synthetic_merge_sha="$(jq -er '.' <<<"$SYNTHETIC_MERGE_SHA_JSON")"
+          synthetic_merge_ref="refs/pull/$pr_number/merge"
+
+          if [[ "$GITHUB_REF" != "$synthetic_merge_ref" ]]; then
+            echo 'The pull_request event is not associated with its expected synthetic merge ref.' >&2
+            exit 1
+          fi
+
+          {
+            echo "candidate_sha=$candidate_sha"
+            echo "base_sha=$base_sha"
+            echo "pr_number=$pr_number"
+            echo "synthetic_merge_sha=$synthetic_merge_sha"
+            echo "synthetic_merge_ref=$synthetic_merge_ref"
+          } >>"$GITHUB_OUTPUT"
+
       - name: Validate exact-SHA request
         if: github.event_name == 'repository_dispatch' && github.event.action == 'exact_sha_validation_requested'
         id: validate_candidate
@@ -158,11 +207,281 @@ jobs:
           ref: ${{ steps.validate_candidate.outputs.candidate_sha }}
           persist-credentials: false
 
+      - name: Checkout exact pull-request candidate
+        if: github.event_name == 'pull_request'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ steps.validate_pr_candidate.outputs.candidate_sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
       - name: Checkout code
-        if: github.event_name != 'repository_dispatch'
+        if: github.event_name != 'repository_dispatch' && github.event_name != 'pull_request'
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+
+      - name: Attest pull-request checkout and integration
+        if: github.event_name == 'pull_request'
+        shell: bash
+        env:
+          EXPECTED_CANDIDATE_SHA: ${{ steps.validate_pr_candidate.outputs.candidate_sha }}
+          EXPECTED_BASE_SHA: ${{ steps.validate_pr_candidate.outputs.base_sha }}
+          EXPECTED_PR_NUMBER: ${{ steps.validate_pr_candidate.outputs.pr_number }}
+          EXPECTED_SYNTHETIC_MERGE_SHA: ${{ steps.validate_pr_candidate.outputs.synthetic_merge_sha }}
+          EXPECTED_SYNTHETIC_MERGE_REF: ${{ steps.validate_pr_candidate.outputs.synthetic_merge_ref }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+
+          for sha in "$EXPECTED_CANDIDATE_SHA" "$EXPECTED_BASE_SHA" "$EXPECTED_SYNTHETIC_MERGE_SHA"; do
+            if [[ ! "$sha" =~ ^[0-9a-f]{40}$ ]]; then
+              echo 'Pull-request attestation received an invalid commit SHA.' >&2
+              exit 1
+            fi
+          done
+
+          if [[ ! "$EXPECTED_SYNTHETIC_MERGE_REF" =~ ^refs/pull/[1-9][0-9]*/merge$ ]]; then
+            echo 'Pull-request attestation received an invalid synthetic merge ref.' >&2
+            exit 1
+          fi
+
+          if [[ ! "$EXPECTED_PR_NUMBER" =~ ^[1-9][0-9]*$ || "$EXPECTED_SYNTHETIC_MERGE_REF" != "refs/pull/$EXPECTED_PR_NUMBER/merge" ]]; then
+            echo 'Pull-request attestation received an invalid or inconsistent pull-request number.' >&2
+            exit 1
+          fi
+
+          actual_sha="$(git rev-parse HEAD)"
+          candidate_tree="$(git show -s --format=%T HEAD)"
+
+          sanitize_api_value() {
+            local value="$1"
+
+            value="$(printf '%s' "$value" | LC_ALL=C tr -d '\000-\037\177')"
+            printf '%s' "${value:0:512}"
+          }
+
+          response_header() {
+            local headers_file="$1"
+            local header_name="$2"
+
+            awk -v sought="$header_name" '
+              {
+                sub(/\r$/, "")
+                separator = index($0, ":")
+
+                if (separator > 0 && tolower(substr($0, 1, separator - 1)) == tolower(sought)) {
+                  value = substr($0, separator + 1)
+                  sub(/^[[:space:]]+/, "", value)
+                  found = value
+                }
+              }
+
+              END {
+                if (found != "") {
+                  print found
+                }
+              }
+            ' "$headers_file"
+          }
+
+          print_api_header() {
+            local headers_file="$1"
+            local output_name="$2"
+            local header_name="$3"
+            local value
+
+            if ! value="$(response_header "$headers_file" "$header_name" 2>/dev/null)"; then
+              value=''
+            fi
+            value="$(sanitize_api_value "$value")"
+
+            if [[ -n "$value" ]]; then
+              printf '%s=%s\n' "$output_name" "$value" >&2
+            fi
+          }
+
+          report_api_failure() {
+            local endpoint_label="$1"
+            local curl_exit="$2"
+            local http_status="$3"
+            local headers_file="$4"
+            local body_file="$5"
+            local message='unavailable-or-non-json'
+            local raw_message
+
+            if raw_message="$(
+              jq -er 'if type == "object" and (.message | type) == "string" then .message else empty end' "$body_file" 2>/dev/null \
+                | LC_ALL=C tr -d '\000-\037\177'
+            )"; then
+              message="$(sanitize_api_value "$raw_message")"
+
+              if [[ -z "$message" ]]; then
+                message='unavailable-or-non-json'
+              fi
+            fi
+
+            printf 'GitHub API request failed\n' >&2
+            printf 'endpoint=%s\n' "$endpoint_label" >&2
+            printf 'curl_exit=%s\n' "$curl_exit" >&2
+            printf 'http_status=%s\n' "$http_status" >&2
+            printf 'message=%s\n' "$message" >&2
+            print_api_header "$headers_file" 'accepted_permissions' 'X-Accepted-GitHub-Permissions'
+            print_api_header "$headers_file" 'oauth_scopes' 'X-OAuth-Scopes'
+            print_api_header "$headers_file" 'rate_limit_limit' 'X-RateLimit-Limit'
+            print_api_header "$headers_file" 'rate_limit_remaining' 'X-RateLimit-Remaining'
+            print_api_header "$headers_file" 'rate_limit_used' 'X-RateLimit-Used'
+            print_api_header "$headers_file" 'rate_limit_reset' 'X-RateLimit-Reset'
+            print_api_header "$headers_file" 'rate_limit_resource' 'X-RateLimit-Resource'
+            print_api_header "$headers_file" 'retry_after' 'Retry-After'
+            print_api_header "$headers_file" 'github_request_id' 'X-GitHub-Request-Id'
+          }
+
+          github_api_request() {
+            local endpoint_label="$1"
+            local request_url="$2"
+            local request_dir
+            local headers_file
+            local body_file
+            local cleanup_trap
+            local curl_exit=0
+            local http_status
+            local response_json
+
+            if ! request_dir="$(mktemp -d)"; then
+              printf 'GitHub API request failed\nendpoint=%s\ncurl_exit=1\nhttp_status=000\nmessage=temporary-storage-unavailable\n' "$endpoint_label" >&2
+              return 1
+            fi
+
+            headers_file="$request_dir/headers"
+            body_file="$request_dir/body"
+            printf -v cleanup_trap 'rm -f -- %q %q; rmdir -- %q 2>/dev/null || true' "$headers_file" "$body_file" "$request_dir"
+            trap "$cleanup_trap" EXIT
+            : >"$headers_file"
+            : >"$body_file"
+
+            http_status="$(
+              curl --fail-with-body --silent --location \
+                --dump-header "$headers_file" \
+                --output "$body_file" \
+                --write-out '%{http_code}' \
+                --header "Authorization: Bearer $GH_TOKEN" \
+                --header 'Accept: application/vnd.github+json' \
+                --header 'X-GitHub-Api-Version: 2022-11-28' \
+                "$request_url"
+            )" || curl_exit=$?
+
+            if [[ ! "$http_status" =~ ^[0-9]{3}$ ]]; then
+              http_status='000'
+            fi
+
+            if [[ "$curl_exit" -ne 0 || ! "$http_status" =~ ^2[0-9]{2}$ ]]; then
+              report_api_failure "$endpoint_label" "$curl_exit" "$http_status" "$headers_file" "$body_file"
+              rm -f -- "$headers_file" "$body_file"
+              rmdir -- "$request_dir"
+              trap - EXIT
+              return 1
+            fi
+
+            if ! response_json="$(jq -c '.' "$body_file" 2>/dev/null)"; then
+              report_api_failure "$endpoint_label" "$curl_exit" "$http_status" "$headers_file" "$body_file"
+              rm -f -- "$headers_file" "$body_file"
+              rmdir -- "$request_dir"
+              trap - EXIT
+              return 1
+            fi
+
+            rm -f -- "$headers_file" "$body_file"
+            rmdir -- "$request_dir"
+            trap - EXIT
+            printf '%s\n' "$response_json"
+          }
+
+          if ! git cat-file -e "$EXPECTED_BASE_SHA^{commit}"; then
+            echo 'The authoritative pull-request base commit is unavailable after checkout.' >&2
+            exit 1
+          fi
+
+          merge_base="$(git merge-base "$actual_sha" "$EXPECTED_BASE_SHA")"
+          pull_request_json="$(github_api_request \
+            'pull-request-metadata' \
+            "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/pulls/$EXPECTED_PR_NUMBER")"
+          current_pr_state="$(jq -er '.state' <<<"$pull_request_json")"
+          if ! jq -e '.merged | type == "boolean"' <<<"$pull_request_json" >/dev/null; then
+            echo 'The current pull-request response does not contain a valid merged state.' >&2
+            exit 1
+          fi
+          current_pr_merged="$(jq -r '.merged | tostring' <<<"$pull_request_json")"
+          current_pr_head_sha="$(jq -er '.head.sha' <<<"$pull_request_json")"
+          current_pr_base_sha="$(jq -er '.base.sha' <<<"$pull_request_json")"
+          current_pr_merge_sha="$(jq -er '.merge_commit_sha' <<<"$pull_request_json")"
+
+          synthetic_merge_json="$(github_api_request \
+            'synthetic-merge-commit' \
+            "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/git/commits/$EXPECTED_SYNTHETIC_MERGE_SHA")"
+          resolved_merge_sha="$(jq -er '.sha' <<<"$synthetic_merge_json")"
+          synthetic_merge_tree="$(jq -er '.tree.sha' <<<"$synthetic_merge_json")"
+          synthetic_parent_count="$(jq -er '.parents | length' <<<"$synthetic_merge_json")"
+          synthetic_parent_one="$(jq -er '.parents[0].sha' <<<"$synthetic_merge_json")"
+          synthetic_parent_two="$(jq -er '.parents[1].sha' <<<"$synthetic_merge_json")"
+
+          for sha in "$actual_sha" "$candidate_tree" "$merge_base" "$current_pr_head_sha" "$current_pr_base_sha" "$current_pr_merge_sha" "$resolved_merge_sha" "$synthetic_merge_tree" "$synthetic_parent_one" "$synthetic_parent_two"; do
+            if [[ ! "$sha" =~ ^[0-9a-f]{40}$ ]]; then
+              echo 'Pull-request attestation resolved an invalid Git object identity.' >&2
+              exit 1
+            fi
+          done
+
+          printf 'Event: %s\n' "$GITHUB_EVENT_NAME"
+          printf 'Expected candidate SHA: %s\n' "$EXPECTED_CANDIDATE_SHA"
+          printf 'Actual checked-out SHA: %s\n' "$actual_sha"
+          printf 'Candidate tree: %s\n' "$candidate_tree"
+          printf 'PR base SHA: %s\n' "$EXPECTED_BASE_SHA"
+          printf 'Merge base: %s\n' "$merge_base"
+          printf 'Current PR head SHA: %s\n' "$current_pr_head_sha"
+          printf 'Current PR base SHA: %s\n' "$current_pr_base_sha"
+          printf 'Synthetic merge ref: %s\n' "$EXPECTED_SYNTHETIC_MERGE_REF"
+          printf 'Synthetic merge SHA: %s\n' "$resolved_merge_sha"
+          printf 'Synthetic merge parent 1: %s\n' "$synthetic_parent_one"
+          printf 'Synthetic merge parent 2: %s\n' "$synthetic_parent_two"
+          printf 'Synthetic merge tree: %s\n' "$synthetic_merge_tree"
+
+          if [[ "$actual_sha" != "$EXPECTED_CANDIDATE_SHA" ]]; then
+            echo 'Checked-out SHA does not match the authoritative pull-request head SHA.' >&2
+            exit 1
+          fi
+
+          if [[ "$merge_base" != "$EXPECTED_BASE_SHA" ]]; then
+            echo 'The authoritative pull-request base is not the candidate merge base.' >&2
+            exit 1
+          fi
+
+          if [[ "$current_pr_state" != 'open' || "$current_pr_merged" != 'false' ]]; then
+            echo 'The pull request is no longer open and unmerged.' >&2
+            exit 1
+          fi
+
+          if [[ "$current_pr_head_sha" != "$EXPECTED_CANDIDATE_SHA" || "$current_pr_base_sha" != "$EXPECTED_BASE_SHA" || "$current_pr_merge_sha" != "$EXPECTED_SYNTHETIC_MERGE_SHA" ]]; then
+            echo 'The pull-request head, base, or synthetic merge moved after the event was created.' >&2
+            exit 1
+          fi
+
+          if [[ "$resolved_merge_sha" != "$EXPECTED_SYNTHETIC_MERGE_SHA" || "$synthetic_parent_count" != '2' ]]; then
+            echo 'The synthetic merge commit is missing or has an unexpected identity or parent count.' >&2
+            exit 1
+          fi
+
+          if [[ "$synthetic_parent_one" != "$EXPECTED_BASE_SHA" || "$synthetic_parent_two" != "$EXPECTED_CANDIDATE_SHA" ]]; then
+            echo 'The synthetic merge parents do not match the authoritative pull-request base and head.' >&2
+            exit 1
+          fi
+
+          if [[ "$synthetic_merge_tree" != "$candidate_tree" ]]; then
+            echo 'The synthetic merge tree is not content-equivalent to the reviewed candidate tree.' >&2
+            exit 1
+          fi
+
+          echo 'Candidate and synthetic merge trees are content-equivalent.'
 
       - name: Attest exact checkout
         if: github.event_name == 'repository_dispatch' && github.event.action == 'exact_sha_validation_requested'
@@ -252,6 +571,9 @@ jobs:
 
       - name: Install frontend dependencies
         run: npm ci
+
+      - name: Generate Wayfinder routes
+        run: php artisan wayfinder:generate --with-form --no-interaction
 
       - name: Run frontend behavior tests
         shell: bash

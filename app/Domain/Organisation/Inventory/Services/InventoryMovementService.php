@@ -86,10 +86,77 @@ class InventoryMovementService
         return $movement;
     }
 
+    public function recordPurchaseReceipt(User $actor, InventoryLocation $location, InventorySku $sku, InventoryBatch $batch, mixed $quantity, string $receiptPublicId): StockMovement
+    {
+        return $this->creditOperation($actor, $location, $sku, $batch, $quantity, StockMovement::TYPE_PURCHASE_RECEIPT, 'inventory_goods_receipt', $receiptPublicId);
+    }
+
+    public function recordTransferDispatch(User $actor, InventoryLocation $location, InventorySku $sku, InventoryBatch $batch, mixed $quantity, string $requestPublicId): StockMovement
+    {
+        return $this->debitOperation($actor, $location, $sku, $batch, $quantity, StockMovement::TYPE_TRANSFER_DISPATCH, 'inventory_stock_request', $requestPublicId);
+    }
+
+    public function recordTransferReceipt(User $actor, InventoryLocation $location, InventorySku $sku, InventoryBatch $batch, mixed $quantity, string $requestPublicId): StockMovement
+    {
+        return $this->creditOperation($actor, $location, $sku, $batch, $quantity, StockMovement::TYPE_TRANSFER_RECEIPT, 'inventory_stock_request', $requestPublicId);
+    }
+
+    public function recordStocktakeVariance(User $actor, InventoryLocation $location, InventorySku $sku, InventoryBatch $batch, mixed $variance, string $stocktakePublicId): ?StockMovement
+    {
+        $quantity = number_format(abs((float) $variance), 3, '.', '');
+        if ((float) $quantity === 0.0) {
+            return null;
+        }
+
+        return (float) $variance > 0
+            ? $this->creditOperation($actor, $location, $sku, $batch, $quantity, StockMovement::TYPE_STOCKTAKE_GAIN, 'inventory_stocktake', $stocktakePublicId)
+            : $this->debitOperation($actor, $location, $sku, $batch, $quantity, StockMovement::TYPE_STOCKTAKE_LOSS, 'inventory_stocktake', $stocktakePublicId);
+    }
+
+    public function recordAdjustment(User $actor, InventoryLocation $location, InventorySku $sku, InventoryBatch $batch, string $direction, mixed $quantity, string $adjustmentPublicId): StockMovement
+    {
+        return $direction === 'in'
+            ? $this->creditOperation($actor, $location, $sku, $batch, $quantity, StockMovement::TYPE_ADJUSTMENT_IN, 'inventory_adjustment', $adjustmentPublicId)
+            : $this->debitOperation($actor, $location, $sku, $batch, $quantity, StockMovement::TYPE_ADJUSTMENT_OUT, 'inventory_adjustment', $adjustmentPublicId);
+    }
+
+    private function creditOperation(User $actor, InventoryLocation $location, InventorySku $sku, InventoryBatch $batch, mixed $quantity, string $type, string $referenceType, string $referencePublicId): StockMovement
+    {
+        $this->assertOperationReferences($actor, $location, $sku, $batch);
+        $value = $this->quantity($quantity);
+        $this->increase($actor->organisation_id, $location->id, $sku->id, $batch->id, $value);
+
+        return $this->movement($actor, $sku, $batch, null, $location, $value, $type, $referenceType, $referencePublicId);
+    }
+
+    private function debitOperation(User $actor, InventoryLocation $location, InventorySku $sku, InventoryBatch $batch, mixed $quantity, string $type, string $referenceType, string $referencePublicId): StockMovement
+    {
+        $this->assertOperationReferences($actor, $location, $sku, $batch);
+        $value = $this->quantity($quantity);
+        $balance = $this->balance($actor->organisation_id, $location->id, $sku->id, $batch->id);
+        $affected = DB::table('inventory_stock_balances')->where('id', $balance->id)->where('lock_version', $balance->lock_version)->where('quantity', '>=', $value)
+            ->decrement('quantity', (float) $value, ['lock_version' => $balance->lock_version + 1, 'updated_at' => now()]);
+        if ($affected !== 1) {
+            throw ValidationException::withMessages(['quantity' => 'Insufficient stock at the source location.']);
+        }
+
+        return $this->movement($actor, $sku, $batch, $location, null, $value, $type, $referenceType, $referencePublicId);
+    }
+
+    private function assertOperationReferences(User $actor, InventoryLocation $location, InventorySku $sku, InventoryBatch $batch): void
+    {
+        abort_unless($location->organisation_id === $actor->organisation_id && $location->is_active, 404);
+        abort_unless($sku->organisation_id === $actor->organisation_id && $sku->is_active, 404);
+        abort_unless($batch->organisation_id === $actor->organisation_id && $batch->inventory_sku_id === $sku->id, 404);
+    }
+
     private function increase(int $organisationId, int $locationId, int $skuId, int $batchId, string $quantity): void
     {
         $balance = $this->balance($organisationId, $locationId, $skuId, $batchId);
-        DB::table('inventory_stock_balances')->where('id', $balance->id)->where('lock_version', $balance->lock_version)->increment('quantity', (float) $quantity, ['lock_version' => $balance->lock_version + 1, 'updated_at' => now()]);
+        $affected = DB::table('inventory_stock_balances')->where('id', $balance->id)->where('lock_version', $balance->lock_version)->increment('quantity', (float) $quantity, ['lock_version' => $balance->lock_version + 1, 'updated_at' => now()]);
+        if ($affected !== 1) {
+            throw ValidationException::withMessages(['quantity' => 'Stock changed while the movement was being posted. Review and retry.']);
+        }
     }
 
     private function move(int $organisationId, int $sourceId, int $destinationId, int $skuId, int $batchId, string $quantity): void

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Head, router } from '@inertiajs/vue3';
 import { computed, ref, watch } from 'vue';
+import InventoryOperationsPanel from '@/components/inventory/InventoryOperationsPanel.vue';
 import { ActionLink } from '@/components/ui/action-link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,6 +12,11 @@ import { EmptyState, ErrorState } from '@/components/ui/state';
 import { StatusBadge } from '@/components/ui/status';
 import { OperationalTable } from '@/components/ui/table';
 import { OperationalTabs } from '@/components/ui/tabs';
+import { inventoryFilterError } from '@/types/inventory-operations';
+import type {
+    InventoryOperations,
+    InventoryReceiptMemoryContext,
+} from '@/types/inventory-operations';
 
 type InventoryRow = Record<string, string | boolean | null>;
 type InventoryDirectory = {
@@ -38,7 +44,9 @@ type InventoryDirectory = {
 
 const props = defineProps<{
     inventory: InventoryDirectory;
-    errors?: Record<string, string>;
+    operations: InventoryOperations;
+    receiptMemoryContext: InventoryReceiptMemoryContext;
+    errors?: Record<string, unknown>;
 }>();
 const search = ref(props.inventory.filters.search);
 const location = ref(props.inventory.filters.location);
@@ -46,9 +54,7 @@ const status = ref(props.inventory.filters.status);
 const movementType = ref(props.inventory.filters.movementType);
 const batch = ref(props.inventory.filters.batch);
 const loading = ref(false);
-const filterError = computed(
-    () => Object.values(props.errors ?? {})[0] ?? null,
-);
+const filterError = computed(() => inventoryFilterError(props.errors ?? {}));
 
 watch(
     () => props.inventory.filters,
@@ -75,14 +81,21 @@ const locationOptions = computed(() => [
 ]);
 const statusOptions = [
     { value: '', label: 'All statuses' },
-    { value: 'active', label: 'Active' },
-    { value: 'inactive', label: 'Inactive' },
+    { value: 'active', label: 'Available' },
+    { value: 'inactive', label: 'Unavailable' },
 ];
 const movementOptions = [
     { value: '', label: 'All movement types' },
     { value: 'opening_balance', label: 'Opening Balance' },
-    { value: 'transfer', label: 'Transfer' },
+    { value: 'transfer', label: 'Inventory Transfer' },
     { value: 'dispense', label: 'Dispense' },
+    { value: 'purchase_receipt', label: 'Purchase Receipt' },
+    { value: 'transfer_dispatch', label: 'Transfer Dispatch' },
+    { value: 'transfer_receipt', label: 'Transfer Receipt' },
+    { value: 'stocktake_gain', label: 'Stocktake Gain' },
+    { value: 'stocktake_loss', label: 'Stocktake Loss' },
+    { value: 'adjustment_in', label: 'Adjustment In' },
+    { value: 'adjustment_out', label: 'Adjustment Out' },
 ];
 
 const visit = (overrides: Record<string, string | number> = {}) => {
@@ -310,7 +323,8 @@ const clearFilters = () => {
                     </td>
                     <td>
                         <StatusBadge
-                            :status="row.active ? 'active' : 'inactive'"
+                            :status="row.available ? 'available' : 'inactive'"
+                            :label="String(row.availabilityStatus)"
                         />
                     </td>
                 </tr>
@@ -448,5 +462,10 @@ const clearFilters = () => {
             Dates and times use {{ inventory.branchTimezone }}. Movement records
             are read-only.
         </p>
+
+        <InventoryOperationsPanel
+            :operations="operations"
+            :receipt-memory-context="receiptMemoryContext"
+        />
     </main>
 </template>

@@ -5,11 +5,21 @@ namespace App\Http\Middleware;
 use App\Domain\Access\BillingWorkAccess;
 use App\Domain\Access\BranchAccessService;
 use App\Domain\Access\WorkspaceLandingService;
+use Closure;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
+use Inertia\Inertia;
 use Inertia\Middleware;
+use Symfony\Component\HttpFoundation\Response;
 
 class HandleInertiaRequests extends Middleware
 {
+    private const AUTHENTICATION_HISTORY_SESSION_KEY = 'inertia.authentication_history_boundary.v2';
+
+    private const AUTHENTICATION_HISTORY_VERSION = 2;
+
+    private const AUTHENTICATION_HISTORY_FINGERPRINT_PURPOSE = 'kpone.inertia.authentication-history.session.v2';
+
     /**
      * The root template that's loaded on the first page visit.
      *
@@ -18,6 +28,13 @@ class HandleInertiaRequests extends Middleware
      * @var string
      */
     protected $rootView = 'app';
+
+    public function handle(Request $request, Closure $next): Response
+    {
+        $this->synchroniseAuthenticationHistoryBoundary($request);
+
+        return parent::handle($request, $next);
+    }
 
     /**
      * Determines the current asset version.
@@ -41,6 +58,7 @@ class HandleInertiaRequests extends Middleware
         if ($request->routeIs('public-checkin.show')) {
             return [
                 'auth' => null,
+                'authHistoryBoundary' => $this->authenticationHistoryBoundaryProp($request),
                 'branchContext' => null,
                 'workspace' => null,
             ];
@@ -103,9 +121,102 @@ class HandleInertiaRequests extends Middleware
                 ] : null,
                 'permissions' => $user?->getAllPermissions()->pluck('name')->values() ?? [],
             ],
+            'authHistoryBoundary' => $this->authenticationHistoryBoundaryProp($request),
             'branchContext' => $branchContext,
             'workspace' => $workspace,
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
         ];
+    }
+
+    public static function currentAuthenticationHistoryEpoch(Request $request): ?string
+    {
+        $state = $request->session()->get(self::AUTHENTICATION_HISTORY_SESSION_KEY);
+
+        return self::validAuthenticationHistoryState($state)
+            ? Str::lower($state['epoch'])
+            : null;
+    }
+
+    private function synchroniseAuthenticationHistoryBoundary(Request $request): void
+    {
+        $current = [
+            'version' => self::AUTHENTICATION_HISTORY_VERSION,
+            'principal' => $request->user() === null
+                ? 'guest'
+                : 'authenticated:'.(string) $request->user()->getAuthIdentifier(),
+            'session_fingerprint' => $this->browserSessionFingerprint($request),
+        ];
+        $previous = $request->session()->get(self::AUTHENTICATION_HISTORY_SESSION_KEY);
+        $validPrevious = self::validAuthenticationHistoryState($previous);
+        $principalStable = $validPrevious
+            && hash_equals($previous['principal'], $current['principal']);
+        $sessionStable = $principalStable
+            && ($previous['session_fingerprint'] === null
+                || (is_string($previous['session_fingerprint'])
+                    && is_string($current['session_fingerprint'])
+                    && hash_equals($previous['session_fingerprint'], $current['session_fingerprint'])));
+
+        if ($sessionStable) {
+            if ($previous['session_fingerprint'] === null && $current['session_fingerprint'] !== null) {
+                $request->session()->put(self::AUTHENTICATION_HISTORY_SESSION_KEY, [
+                    ...$previous,
+                    'session_fingerprint' => $current['session_fingerprint'],
+                ]);
+            }
+
+            return;
+        }
+
+        $request->session()->put(self::AUTHENTICATION_HISTORY_SESSION_KEY, [
+            ...$current,
+            'epoch' => Str::lower((string) Str::uuid7()),
+        ]);
+        Inertia::clearHistory();
+    }
+
+    /** @return array{version:2,epoch:string} */
+    private function authenticationHistoryBoundaryProp(Request $request): array
+    {
+        $epoch = self::currentAuthenticationHistoryEpoch($request);
+        abort_unless($epoch !== null, 500);
+
+        return [
+            'version' => self::AUTHENTICATION_HISTORY_VERSION,
+            'epoch' => $epoch,
+        ];
+    }
+
+    private function browserSessionFingerprint(Request $request): ?string
+    {
+        $cookieName = config('session.cookie');
+        $browserSessionId = is_string($cookieName) && $cookieName !== ''
+            ? $request->cookie($cookieName)
+            : null;
+
+        if (! is_string($browserSessionId) || $browserSessionId === '') {
+            return null;
+        }
+
+        $applicationKey = config('app.key');
+        abort_unless(is_string($applicationKey) && $applicationKey !== '', 500);
+
+        return hash_hmac(
+            'sha256',
+            self::AUTHENTICATION_HISTORY_FINGERPRINT_PURPOSE.':'.$browserSessionId,
+            $applicationKey,
+        );
+    }
+
+    private static function validAuthenticationHistoryState(mixed $state): bool
+    {
+        return is_array($state)
+            && ($state['version'] ?? null) === self::AUTHENTICATION_HISTORY_VERSION
+            && is_string($state['principal'] ?? null)
+            && ($state['principal'] === 'guest' || preg_match('/\Aauthenticated:[1-9]\d*\z/', $state['principal']) === 1)
+            && (($state['session_fingerprint'] ?? null) === null
+                || (is_string($state['session_fingerprint'])
+                    && preg_match('/\A[0-9a-f]{64}\z/', $state['session_fingerprint']) === 1))
+            && is_string($state['epoch'] ?? null)
+            && preg_match('/\A[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\z/i', $state['epoch']) === 1;
     }
 }

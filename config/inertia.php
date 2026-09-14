@@ -69,6 +69,23 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | History
+    |--------------------------------------------------------------------------
+    |
+    | Encrypt every Inertia page before it is stored in browser history so
+    | authenticated page data cannot be restored after logout retires the
+    | browser's history encryption material.
+    |
+    */
+
+    'history' => [
+
+        'encrypt' => true,
+
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | DevTools
     |--------------------------------------------------------------------------
     |

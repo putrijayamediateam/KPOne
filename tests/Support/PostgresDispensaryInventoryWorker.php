@@ -15,7 +15,13 @@ use App\Domain\Clinical\Models\TreatmentPlan;
 use App\Domain\Clinical\Services\TreatmentPlanService;
 use App\Domain\Identity\Models\StaffBranchAssignment;
 use App\Domain\Identity\Models\StaffProfile;
+use App\Domain\Organisation\Inventory\Models\InventoryStocktake;
+use App\Domain\Organisation\Inventory\Models\PurchaseOrder;
+use App\Domain\Organisation\Inventory\Models\StockRequest;
+use App\Domain\Organisation\Inventory\Services\InventoryControlService;
 use App\Domain\Organisation\Inventory\Services\InventoryMovementService;
+use App\Domain\Organisation\Inventory\Services\ProcurementService;
+use App\Domain\Organisation\Inventory\Services\StockRequestService;
 use App\Domain\Patient\Models\Patient;
 use App\Domain\Queue\Models\QueueEntry;
 use App\Domain\Visit\Models\Visit;
@@ -46,6 +52,27 @@ try {
     fflush(STDOUT);
     if (trim((string) fgets(STDIN)) !== 'GO') {
         exit(66);
+    }
+
+    if ($mode === 'adjustment-hold') {
+        $actor = User::query()->findOrFail((int) $argv[2]);
+        app('session')->start();
+        session([BranchAccessService::SESSION_KEY => (int) $argv[3]]);
+        $connection->beginTransaction();
+        app(InventoryControlService::class)->adjust($actor, [
+            'expected_branch_id' => (int) $argv[3], 'location_public_id' => (string) $argv[4],
+            'sku_public_id' => (string) $argv[5], 'batch_public_id' => (string) $argv[6],
+            'direction' => 'in', 'quantity' => '1.000', 'reason_code' => 'found_stock', 'reason_note' => 'Synthetic PostgreSQL contention adjustment.',
+            'idempotency_key' => (string) $argv[7],
+        ]);
+        fwrite(STDOUT, 'LOCKED'.PHP_EOL);
+        fflush(STDOUT);
+        if (trim((string) fgets(STDIN)) !== 'COMMIT') {
+            exit(67);
+        }
+        $connection->commit();
+        fwrite(STDOUT, 'ADJUSTED'.PHP_EOL);
+        exit(0);
     }
 
     if (in_array($mode, ['deactivate', 'revoke', 'end-assignment', 'state-loss', 'plan-version', 'allergy-mutate'], true)) {
@@ -168,6 +195,46 @@ try {
             'batch_public_id' => (string) $argv[7], 'quantity' => (string) $argv[8],
         ]);
         fwrite(STDOUT, 'TRANSFERRED'.PHP_EOL);
+    } elseif ($mode === 'stock-request-dispatch') {
+        $request = StockRequest::query()->where('public_id', (string) $argv[4])->firstOrFail();
+        app(StockRequestService::class)->dispatch($actor, $request, [
+            'expected_branch_id' => $branchId, 'lock_version' => (int) $argv[5], 'dispatch_idempotency_key' => (string) $argv[6],
+            'lines' => [['line_public_id' => (string) $argv[7], 'batch_public_id' => (string) $argv[8], 'quantity' => (string) $argv[9]]],
+        ]);
+        fwrite(STDOUT, 'DISPATCHED'.PHP_EOL);
+    } elseif ($mode === 'purchase-order-approve') {
+        $order = PurchaseOrder::query()->where('public_id', (string) $argv[4])->firstOrFail();
+        app(ProcurementService::class)->approve($actor, $order, ['expected_branch_id' => $branchId, 'lock_version' => (int) $argv[5]]);
+        fwrite(STDOUT, 'APPROVED'.PHP_EOL);
+    } elseif ($mode === 'purchase-order-cancel') {
+        $order = PurchaseOrder::query()->where('public_id', (string) $argv[4])->firstOrFail();
+        app(ProcurementService::class)->cancel($actor, $order, [
+            'expected_branch_id' => $branchId, 'lock_version' => (int) $argv[5],
+            'reason' => 'Synthetic PostgreSQL cancellation race.',
+        ]);
+        fwrite(STDOUT, 'CANCELLED'.PHP_EOL);
+    } elseif ($mode === 'purchase-order-receive') {
+        $order = PurchaseOrder::query()->where('public_id', (string) $argv[4])->firstOrFail();
+        app(ProcurementService::class)->receive($actor, $order, [
+            'expected_branch_id' => $branchId, 'lock_version' => (int) $argv[5], 'idempotency_key' => (string) $argv[6],
+            'lines' => [[
+                'line_public_id' => (string) $argv[7], 'batch_number' => (string) $argv[8],
+                'expiry_date' => (string) $argv[9], 'quantity' => (string) $argv[10],
+            ]],
+        ]);
+        fwrite(STDOUT, 'RECEIVED'.PHP_EOL);
+    } elseif ($mode === 'adjustment-replay') {
+        app(InventoryControlService::class)->adjust($actor, [
+            'expected_branch_id' => $branchId, 'location_public_id' => (string) $argv[4],
+            'sku_public_id' => (string) $argv[5], 'batch_public_id' => (string) $argv[6],
+            'idempotency_key' => (string) $argv[7], 'direction' => 'in', 'quantity' => '1.000',
+            'reason_code' => 'found_stock', 'reason_note' => 'Synthetic PostgreSQL idempotent adjustment.',
+        ]);
+        fwrite(STDOUT, 'ADJUSTED'.PHP_EOL);
+    } elseif ($mode === 'stocktake-post') {
+        $stocktake = InventoryStocktake::query()->where('public_id', (string) $argv[4])->firstOrFail();
+        app(InventoryControlService::class)->postStocktake($actor, $stocktake, ['expected_branch_id' => $branchId, 'lock_version' => (int) $argv[5]]);
+        fwrite(STDOUT, 'STOCKTAKE_POSTED'.PHP_EOL);
     } else {
         exit(68);
     }

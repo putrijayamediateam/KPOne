@@ -14,14 +14,23 @@ use App\Domain\Clinical\Models\TreatmentPlan;
 use App\Domain\Clinical\Services\ClinicalEncounterService;
 use App\Domain\Clinical\Services\PatientAllergyService;
 use App\Domain\Clinical\Services\TreatmentPlanService;
+use App\Domain\Identity\Models\StaffBranchAssignment;
 use App\Domain\Identity\Models\StaffProfile;
+use App\Domain\Organisation\Inventory\Models\GoodsReceipt;
 use App\Domain\Organisation\Inventory\Models\InventoryBatch;
 use App\Domain\Organisation\Inventory\Models\InventoryItem;
 use App\Domain\Organisation\Inventory\Models\InventoryLocation;
 use App\Domain\Organisation\Inventory\Models\InventorySku;
 use App\Domain\Organisation\Inventory\Models\InventoryStockBalance;
+use App\Domain\Organisation\Inventory\Models\InventorySupplier;
 use App\Domain\Organisation\Inventory\Models\MedicineCatalogueInventorySku;
+use App\Domain\Organisation\Inventory\Models\PurchaseOrder;
+use App\Domain\Organisation\Inventory\Models\PurchaseOrderLine;
+use App\Domain\Organisation\Inventory\Models\StockRequest;
+use App\Domain\Organisation\Inventory\Models\StockRequestLine;
+use App\Domain\Organisation\Inventory\Services\InventoryControlService;
 use App\Domain\Organisation\Inventory\Services\InventoryMovementService;
+use App\Domain\Organisation\Inventory\Services\StockRequestService;
 use App\Domain\Organisation\Models\Branch;
 use App\Domain\Organisation\Models\Organisation;
 use App\Domain\Patient\Models\Patient;
@@ -39,6 +48,7 @@ use PDOException;
 use RuntimeException;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Process\InputStream;
 use Symfony\Component\Process\Process;
 use Tests\Support\StaffBranchAssignmentBootstrapper;
@@ -48,6 +58,22 @@ use Tests\TestCase;
 class PostgresDispensaryInventoryRegressionTest extends TestCase
 {
     private const OBSERVER = 'pgsql_dispensary_inventory_observer';
+
+    private const INVENTORY_OPERATIONS_MIGRATION = '2026_09_11_000100_create_inventory_operations';
+
+    private const INVENTORY_OPERATIONS_TABLES = [
+        'inventory_reorder_levels',
+        'inventory_adjustments',
+        'inventory_stocktake_lines',
+        'inventory_stocktakes',
+        'inventory_stock_request_lines',
+        'inventory_stock_requests',
+        'inventory_goods_receipt_lines',
+        'inventory_goods_receipts',
+        'inventory_purchase_order_lines',
+        'inventory_purchase_orders',
+        'inventory_suppliers',
+    ];
 
     /** @var list<int> */
     private array $organisationIds = [];
@@ -195,6 +221,236 @@ class PostgresDispensaryInventoryRegressionTest extends TestCase
         $this->assertGreaterThanOrEqual(0, (float) $f['balance']->refresh()->quantity);
     }
 
+    public function test_approved_stock_request_revalidates_branch_owned_source_before_postgres_debit(): void
+    {
+        $fixture = $this->completableFixture('10.000', '4.000');
+        $requester = $fixture['ca'];
+        $actor = $fixture['inventorySupervisor'];
+        $requester->givePermissionTo(Permission::findOrCreate(StockRequestService::CREATE_PERMISSION, 'web'));
+        $actor->givePermissionTo(Permission::findOrCreate(StockRequestService::APPROVE_PERMISSION, 'web'));
+
+        $requester = $requester->refresh();
+        $actor = $actor->refresh();
+        $requesterProfile = StaffProfile::query()->where('user_id', $requester->id)->sole();
+        $actorProfile = StaffProfile::query()->where('user_id', $actor->id)->sole();
+        $requesterBranchIds = StaffBranchAssignment::query()->where('staff_profile_id', $requesterProfile->id)->effectiveAt()->orderBy('branch_id')->pluck('branch_id')->map(fn ($id): int => (int) $id)->all();
+        $actorBranchIds = StaffBranchAssignment::query()->where('staff_profile_id', $actorProfile->id)->effectiveAt()->orderBy('branch_id')->pluck('branch_id')->map(fn ($id): int => (int) $id)->all();
+
+        $this->assertTrue($requester->is_active);
+        $this->assertTrue($actor->is_active);
+        $this->assertSame($fixture['organisation']->id, $requester->organisation_id);
+        $this->assertSame($fixture['organisation']->id, $actor->organisation_id);
+        $this->assertContains($fixture['branch']->id, $requesterBranchIds);
+        $this->assertSame([$fixture['branch']->id], $actorBranchIds);
+        $this->assertTrue($requester->can(StockRequestService::CREATE_PERMISSION));
+        $this->assertFalse($requester->can(StockRequestService::APPROVE_PERMISSION));
+        $this->assertFalse($requester->can(StockRequestService::DISPATCH_PERMISSION));
+        $this->assertFalse($requester->can(StockRequestService::WAREHOUSE_PERMISSION));
+        $this->assertTrue($actor->can(StockRequestService::APPROVE_PERMISSION));
+        $this->assertTrue($actor->can(StockRequestService::DISPATCH_PERMISSION));
+
+        $service = app(StockRequestService::class);
+        $request = $service->create($requester, [
+            'expected_branch_id' => $fixture['branch']->id,
+            'source_location_public_id' => $fixture['location']->public_id,
+            'destination_location_public_id' => $fixture['destination']->public_id,
+            'lines' => [['sku_public_id' => $fixture['sku']->public_id, 'quantity' => '1.000']],
+        ]);
+        $requestPublicId = (string) $request->public_id;
+        $this->assertTrue(Str::isUuid($requestPublicId));
+        $this->assertDatabaseHas('inventory_stock_requests', ['id' => $request->id, 'public_id' => $requestPublicId]);
+        $this->assertSame(StockRequest::STATUS_REQUESTED, $request->status);
+        $this->assertSame($requester->id, $request->requested_by_user_id);
+        $this->assertSame($fixture['location']->id, $request->source_location_id);
+        $this->assertSame($fixture['destination']->id, $request->destination_location_id);
+
+        $request = $service->approve($actor, $request, [
+            'expected_branch_id' => $fixture['branch']->id,
+            'lock_version' => $request->lock_version,
+        ]);
+        $this->assertSame(StockRequest::STATUS_APPROVED, $request->status);
+        $this->assertSame($actor->id, $request->decided_by_user_id);
+        $this->assertSame($fixture['location']->id, $request->source_location_id);
+        $this->assertSame($fixture['destination']->id, $request->destination_location_id);
+
+        $otherBranch = new Branch;
+        $otherBranch->forceFill([
+            'organisation_id' => $fixture['organisation']->id,
+            'code' => 'PG-SOURCE-'.Str::upper(Str::random(6)),
+            'name' => 'Synthetic PostgreSQL Foreign Source Branch',
+            'timezone' => 'Asia/Kuala_Lumpur',
+            'is_active' => true,
+        ])->save();
+        $otherSource = new InventoryLocation;
+        $otherSource->forceFill([
+            'public_id' => (string) Str::uuid(),
+            'organisation_id' => $fixture['organisation']->id,
+            'branch_id' => $otherBranch->id,
+            'parent_id' => null,
+            'code' => 'PG-OTHER-SOURCE-'.Str::upper(Str::random(6)),
+            'name' => 'Synthetic PostgreSQL Other Branch Store',
+            'type' => InventoryLocation::TYPE_BRANCH_STORE,
+            'is_active' => true,
+        ])->save();
+        $this->assertTrue($otherBranch->is_active);
+        $this->assertTrue($otherSource->is_active);
+        $this->assertSame($fixture['organisation']->id, $otherSource->organisation_id);
+        $this->assertSame($otherBranch->id, $otherSource->branch_id);
+        $this->assertNotSame($fixture['branch']->id, $otherSource->branch_id);
+        $this->assertSame(InventoryLocation::TYPE_BRANCH_STORE, $otherSource->type);
+
+        $this->assertSame(1, DB::table('inventory_stock_requests')->where('id', $request->id)->update(['source_location_id' => $otherSource->id]));
+        $request = $request->refresh();
+        $this->assertSame($requestPublicId, $request->public_id);
+        $this->assertSame(StockRequest::STATUS_APPROVED, $request->status);
+        $this->assertSame($otherSource->id, $request->source_location_id);
+        $actorBranchIds = StaffBranchAssignment::query()->where('staff_profile_id', $actorProfile->id)->effectiveAt()->orderBy('branch_id')->pluck('branch_id')->map(fn ($id): int => (int) $id)->all();
+        $this->assertSame([$fixture['branch']->id], $actorBranchIds);
+        $this->assertNotContains($otherBranch->id, $actorBranchIds);
+        $this->assertTrue($actor->can(StockRequestService::APPROVE_PERMISSION));
+        $this->assertTrue($actor->can(StockRequestService::DISPATCH_PERMISSION));
+
+        $line = $request->lines()->sole();
+        $sku = $fixture['sku']->refresh();
+        $batch = $fixture['batch']->refresh();
+        $destination = $fixture['destination']->refresh();
+        $item = InventoryItem::query()->whereKey($sku->inventory_item_id)->sole();
+        $branchDate = now()->setTimezone($fixture['branch']->timezone)->toDateString();
+        $this->assertSame($sku->id, $line->inventory_sku_id);
+        $this->assertSame('1.000', $line->requested_quantity);
+        $this->assertTrue($item->is_active);
+        $this->assertTrue($sku->is_active);
+        $this->assertSame($fixture['organisation']->id, $sku->organisation_id);
+        $this->assertSame(InventoryBatch::STATUS_AVAILABLE, $batch->status);
+        $this->assertSame($fixture['organisation']->id, $batch->organisation_id);
+        $this->assertSame($sku->id, $batch->inventory_sku_id);
+        $this->assertGreaterThan($branchDate, $batch->expiry_date->toDateString());
+        $this->assertTrue($destination->is_active);
+        $this->assertSame($fixture['organisation']->id, $destination->organisation_id);
+        $this->assertSame($fixture['branch']->id, $destination->branch_id);
+        $this->assertSame(0, DB::table('inventory_stock_balances')
+            ->where('organisation_id', $fixture['organisation']->id)
+            ->where('inventory_location_id', $otherSource->id)
+            ->where('inventory_sku_id', $line->inventory_sku_id)
+            ->where('inventory_batch_id', $batch->id)
+            ->count());
+
+        $balanceTimestamp = now()->utc();
+        // Synthetic positive-control state: dispatch-time source authority, not opening-balance authority, is under test.
+        DB::table('inventory_stock_balances')->insert([
+            'organisation_id' => $fixture['organisation']->id,
+            'inventory_location_id' => $otherSource->id,
+            'inventory_sku_id' => $line->inventory_sku_id,
+            'inventory_batch_id' => $batch->id,
+            'quantity' => '2.000',
+            'lock_version' => 1,
+            'created_at' => $balanceTimestamp,
+            'updated_at' => $balanceTimestamp,
+        ]);
+        $craftedSourceBalanceBefore = InventoryStockBalance::query()
+            ->where('organisation_id', $fixture['organisation']->id)
+            ->where('inventory_location_id', $otherSource->id)
+            ->where('inventory_sku_id', $line->inventory_sku_id)
+            ->where('inventory_batch_id', $batch->id)
+            ->sole();
+        $craftedSourceBalanceId = $craftedSourceBalanceBefore->id;
+        $craftedSourceBalanceQuantityBefore = (string) $craftedSourceBalanceBefore->quantity;
+        $craftedSourceBalanceLockVersionBefore = $craftedSourceBalanceBefore->lock_version;
+        $this->assertSame('2.000', $craftedSourceBalanceQuantityBefore);
+        $this->assertSame(1, $craftedSourceBalanceLockVersionBefore);
+        $this->assertTrue(DB::table('inventory_stock_balances')
+            ->where('id', $craftedSourceBalanceId)
+            ->where('quantity', '>=', $line->requested_quantity)
+            ->exists());
+        $dispatchIdempotencyKey = (string) Str::uuid();
+        $this->assertTrue(Str::isUuid($dispatchIdempotencyKey));
+
+        $lineStateBefore = [$line->inventory_batch_id, $line->dispatched_quantity, $line->received_quantity];
+        $statusBefore = $request->status;
+        $lockVersionBefore = $request->lock_version;
+        $originalSourceBalanceBefore = $fixture['balance']->refresh()->quantity;
+        $destinationBalanceBefore = DB::table('inventory_stock_balances')
+            ->where('organisation_id', $fixture['organisation']->id)
+            ->where('inventory_location_id', $destination->id)
+            ->where('inventory_sku_id', $sku->id)
+            ->where('inventory_batch_id', $batch->id)
+            ->first(['id', 'quantity', 'lock_version']);
+        $movementCount = DB::table('stock_movements')->where('organisation_id', $fixture['organisation']->id)->count();
+        $dispatchMovementCount = DB::table('stock_movements')->where('organisation_id', $fixture['organisation']->id)->where('movement_type', 'transfer_dispatch')->count();
+        $receiptMovementCount = DB::table('stock_movements')->where('organisation_id', $fixture['organisation']->id)->where('movement_type', 'transfer_receipt')->count();
+        $goodsReceiptCount = GoodsReceipt::query()->where('organisation_id', $fixture['organisation']->id)->count();
+        $auditCount = AuditLog::query()->where('organisation_id', $fixture['organisation']->id)->count();
+        $dispatchAuditCount = AuditLog::query()
+            ->where('organisation_id', $fixture['organisation']->id)
+            ->where('event', 'inventory.stock_request.dispatched')
+            ->where('subject_type', $request->getMorphClass())
+            ->where('subject_id', $request->id)
+            ->count();
+
+        try {
+            $service->dispatch($actor, $request, [
+                'expected_branch_id' => $fixture['branch']->id,
+                'lock_version' => $request->lock_version,
+                'dispatch_idempotency_key' => $dispatchIdempotencyKey,
+                'lines' => [[
+                    'line_public_id' => $line->public_id,
+                    'batch_public_id' => $batch->public_id,
+                    'quantity' => '1.000',
+                ]],
+            ]);
+            $this->fail('A PostgreSQL stock debit used a branch-owned source outside the actor assignment.');
+        } catch (NotFoundHttpException $exception) {
+            $this->assertSame(NotFoundHttpException::class, $exception::class);
+            $this->assertSame(404, $exception->getStatusCode());
+            $this->assertNotSame('You may not perform this Inventory operation.', $exception->getMessage());
+            $this->assertTrue(collect($exception->getTrace())->contains(
+                fn (array $frame): bool => ($frame['class'] ?? null) === StockRequestService::class
+                    && ($frame['function'] ?? null) === 'assertSourceAuthority',
+            ));
+        }
+
+        $request = $request->refresh();
+        $this->assertSame($statusBefore, $request->status);
+        $this->assertSame(StockRequest::STATUS_APPROVED, $request->status);
+        $this->assertSame($lockVersionBefore, $request->lock_version);
+        $this->assertSame($otherSource->id, $request->source_location_id);
+        $line = $line->refresh();
+        $this->assertSame($lineStateBefore, [$line->inventory_batch_id, $line->dispatched_quantity, $line->received_quantity]);
+        $this->assertSame($originalSourceBalanceBefore, $fixture['balance']->refresh()->quantity);
+        $craftedSourceBalanceAfter = InventoryStockBalance::query()
+            ->where('organisation_id', $fixture['organisation']->id)
+            ->where('inventory_location_id', $otherSource->id)
+            ->where('inventory_sku_id', $line->inventory_sku_id)
+            ->where('inventory_batch_id', $batch->id)
+            ->sole();
+        $this->assertSame($craftedSourceBalanceId, $craftedSourceBalanceAfter->id);
+        $this->assertSame($craftedSourceBalanceQuantityBefore, (string) $craftedSourceBalanceAfter->quantity);
+        $this->assertSame($craftedSourceBalanceLockVersionBefore, $craftedSourceBalanceAfter->lock_version);
+        $this->assertSame(1, InventoryStockBalance::query()
+            ->where('organisation_id', $fixture['organisation']->id)
+            ->where('inventory_location_id', $otherSource->id)
+            ->where('inventory_sku_id', $line->inventory_sku_id)
+            ->where('inventory_batch_id', $batch->id)
+            ->count());
+        $this->assertEquals($destinationBalanceBefore, DB::table('inventory_stock_balances')
+            ->where('organisation_id', $fixture['organisation']->id)
+            ->where('inventory_location_id', $destination->id)
+            ->where('inventory_sku_id', $sku->id)
+            ->where('inventory_batch_id', $batch->id)
+            ->first(['id', 'quantity', 'lock_version']));
+        $this->assertSame($movementCount, DB::table('stock_movements')->where('organisation_id', $fixture['organisation']->id)->count());
+        $this->assertSame($dispatchMovementCount, DB::table('stock_movements')->where('organisation_id', $fixture['organisation']->id)->where('movement_type', 'transfer_dispatch')->count());
+        $this->assertSame($receiptMovementCount, DB::table('stock_movements')->where('organisation_id', $fixture['organisation']->id)->where('movement_type', 'transfer_receipt')->count());
+        $this->assertSame($goodsReceiptCount, GoodsReceipt::query()->where('organisation_id', $fixture['organisation']->id)->count());
+        $this->assertSame($auditCount, AuditLog::query()->where('organisation_id', $fixture['organisation']->id)->count());
+        $this->assertSame($dispatchAuditCount, AuditLog::query()
+            ->where('organisation_id', $fixture['organisation']->id)
+            ->where('event', 'inventory.stock_request.dispatched')
+            ->where('subject_type', $request->getMorphClass())
+            ->where('subject_id', $request->id)
+            ->count());
+    }
+
     public function test_allergy_mutation_winning_before_complete_rejects_stock_movement(): void
     {
         $f = $this->completableFixture('10.000', '4.000');
@@ -317,6 +573,273 @@ class PostgresDispensaryInventoryRegressionTest extends TestCase
         }
         $this->assertNotSame(DispensaryCase::STATUS_COMPLETED, $f['case']->refresh()->status);
         $this->assertDatabaseCount('stock_movements', 0);
+    }
+
+    public function test_concurrent_stock_request_dispatch_is_idempotent_and_debits_once(): void
+    {
+        $f = $this->completableFixture('10.000', '4.000');
+        $request = new StockRequest;
+        $request->forceFill([
+            'public_id' => (string) Str::uuid(), 'organisation_id' => $f['organisation']->id, 'requesting_branch_id' => $f['branch']->id,
+            'source_location_id' => $f['location']->id, 'destination_location_id' => $f['destination']->id,
+            'request_number' => 'SR-PG-'.Str::upper(Str::random(8)), 'status' => StockRequest::STATUS_APPROVED,
+            'lock_version' => 1, 'requested_by_user_id' => $f['ca']->id, 'requested_at' => now()->utc(),
+            'decided_by_user_id' => $f['inventorySupervisor']->id, 'decided_at' => now()->utc(),
+        ])->save();
+        $line = new StockRequestLine;
+        $line->forceFill(['public_id' => (string) Str::uuid(), 'organisation_id' => $f['organisation']->id, 'stock_request_id' => $request->id, 'inventory_sku_id' => $f['sku']->id, 'requested_quantity' => '6.000'])->save();
+        $key = (string) Str::uuid();
+        $args = ['stock-request-dispatch', (string) $f['inventorySupervisor']->id, (string) $f['branch']->id, $request->public_id, '1', $key, $line->public_id, $f['batch']->public_id, '6.000'];
+
+        $output = $this->race([$this->worker($args), $this->worker($args)], $request);
+
+        $this->assertSame(2, substr_count($output, 'DISPATCHED'));
+        $this->assertSame(1, DB::table('stock_movements')->where('organisation_id', $f['organisation']->id)->where('movement_type', 'transfer_dispatch')->count());
+        $this->assertSame('4.000', (string) DB::table('inventory_stock_balances')->where('id', $f['balance']->id)->value('quantity'));
+        $this->assertSame(StockRequest::STATUS_DISPATCHED, $request->refresh()->status);
+    }
+
+    public function test_inventory_operations_migration_empty_rollback_and_reapply_use_the_laravel_migrator(): void
+    {
+        foreach (self::INVENTORY_OPERATIONS_TABLES as $table) {
+            $this->assertTrue(Schema::hasTable($table));
+            $this->assertSame(0, DB::table($table)->count(), $table);
+        }
+        $this->assertSame(0, DB::table('stock_movements')->whereIn('movement_type', $this->inventoryOperationsMovementTypes())->count());
+
+        $migrator = app('migrator');
+        $path = database_path('migrations/'.self::INVENTORY_OPERATIONS_MIGRATION.'.php');
+        try {
+            $migrator->rollback([$path], ['step' => 1]);
+            foreach (self::INVENTORY_OPERATIONS_TABLES as $table) {
+                $this->assertFalse(Schema::hasTable($table), $table);
+            }
+            $this->assertFalse(DB::table('migrations')->where('migration', self::INVENTORY_OPERATIONS_MIGRATION)->exists());
+        } finally {
+            if (! Schema::hasTable('inventory_suppliers')) {
+                $migrator->run([$path], ['step' => true]);
+            }
+        }
+
+        foreach (self::INVENTORY_OPERATIONS_TABLES as $table) {
+            $this->assertTrue(Schema::hasTable($table), $table);
+        }
+        $this->assertTrue(DB::table('migrations')->where('migration', self::INVENTORY_OPERATIONS_MIGRATION)->exists());
+    }
+
+    public function test_inventory_operations_migration_refuses_every_retained_evidence_table_and_new_movement_without_changing_migrator_evidence(): void
+    {
+        $fixture = $this->completableFixture('10.000', '4.000');
+        $organisationId = $fixture['organisation']->id;
+        $order = $this->purchaseOrderFixture($fixture, PurchaseOrder::STATUS_APPROVED);
+        $orderLine = $order->lines()->sole();
+        $now = now()->utc();
+        $receiptId = DB::table('inventory_goods_receipts')->insertGetId([
+            'public_id' => (string) Str::uuid(), 'organisation_id' => $organisationId, 'purchase_order_id' => $order->id,
+            'idempotency_key' => (string) Str::uuid(), 'request_hash' => str_repeat('a', 64),
+            'received_by_user_id' => $fixture['inventorySupervisor']->id, 'received_at' => $now, 'created_at' => $now, 'updated_at' => $now,
+        ]);
+        DB::table('inventory_goods_receipt_lines')->insert([
+            'organisation_id' => $organisationId, 'goods_receipt_id' => $receiptId, 'purchase_order_line_id' => $orderLine->id,
+            'inventory_sku_id' => $fixture['sku']->id, 'inventory_batch_id' => $fixture['batch']->id,
+            'quantity' => '1.000', 'created_at' => $now, 'updated_at' => $now,
+        ]);
+        $requestId = DB::table('inventory_stock_requests')->insertGetId([
+            'public_id' => (string) Str::uuid(), 'organisation_id' => $organisationId, 'requesting_branch_id' => $fixture['branch']->id,
+            'source_location_id' => $fixture['location']->id, 'destination_location_id' => $fixture['destination']->id,
+            'request_number' => 'SR-ROLLBACK-'.Str::upper(Str::random(6)), 'status' => StockRequest::STATUS_REQUESTED, 'lock_version' => 1,
+            'requested_by_user_id' => $fixture['ca']->id, 'requested_at' => $now, 'created_at' => $now, 'updated_at' => $now,
+        ]);
+        DB::table('inventory_stock_request_lines')->insert([
+            'public_id' => (string) Str::uuid(), 'organisation_id' => $organisationId, 'stock_request_id' => $requestId,
+            'inventory_sku_id' => $fixture['sku']->id, 'inventory_batch_id' => $fixture['batch']->id,
+            'requested_quantity' => '1.000', 'created_at' => $now, 'updated_at' => $now,
+        ]);
+        $stocktakeId = DB::table('inventory_stocktakes')->insertGetId([
+            'public_id' => (string) Str::uuid(), 'organisation_id' => $organisationId, 'inventory_location_id' => $fixture['location']->id,
+            'stocktake_number' => 'ST-ROLLBACK-'.Str::upper(Str::random(6)), 'status' => 'draft', 'lock_version' => 1,
+            'created_by_user_id' => $fixture['inventorySupervisor']->id, 'created_at' => $now, 'updated_at' => $now,
+        ]);
+        DB::table('inventory_stocktake_lines')->insert([
+            'public_id' => (string) Str::uuid(), 'organisation_id' => $organisationId, 'stocktake_id' => $stocktakeId,
+            'inventory_sku_id' => $fixture['sku']->id, 'inventory_batch_id' => $fixture['batch']->id,
+            'expected_quantity' => '10.000', 'expected_balance_lock_version' => $fixture['balance']->lock_version,
+            'created_at' => $now, 'updated_at' => $now,
+        ]);
+        DB::table('inventory_adjustments')->insert([
+            'public_id' => (string) Str::uuid(), 'organisation_id' => $organisationId,
+            'idempotency_key' => (string) Str::uuid(), 'request_hash' => str_repeat('b', 64), 'inventory_location_id' => $fixture['location']->id,
+            'inventory_sku_id' => $fixture['sku']->id, 'inventory_batch_id' => $fixture['batch']->id,
+            'direction' => 'in', 'quantity' => '1.000', 'reason_code' => 'correction',
+            'posted_by_user_id' => $fixture['inventorySupervisor']->id, 'posted_at' => $now, 'created_at' => $now, 'updated_at' => $now,
+        ]);
+        DB::table('inventory_reorder_levels')->insert([
+            'organisation_id' => $organisationId, 'inventory_location_id' => $fixture['location']->id,
+            'inventory_sku_id' => $fixture['sku']->id, 'reorder_level' => '5.000',
+            'updated_by_user_id' => $fixture['inventorySupervisor']->id, 'created_at' => $now, 'updated_at' => $now,
+        ]);
+        $migrationBatch = DB::table('migrations')->where('migration', self::INVENTORY_OPERATIONS_MIGRATION)->value('batch');
+        $migrator = app('migrator');
+        $path = database_path('migrations/'.self::INVENTORY_OPERATIONS_MIGRATION.'.php');
+
+        foreach (self::INVENTORY_OPERATIONS_TABLES as $table) {
+            try {
+                $migrator->rollback([$path], ['step' => 1]);
+                $this->fail("Laravel migrator removed retained evidence from [{$table}].");
+            } catch (RuntimeException $exception) {
+                $this->assertStringContainsString("retained evidence exists in [{$table}]", $exception->getMessage());
+            }
+            foreach (self::INVENTORY_OPERATIONS_TABLES as $expectedTable) {
+                $this->assertTrue(Schema::hasTable($expectedTable), $expectedTable);
+            }
+            $this->assertTrue(DB::table($table)->where('organisation_id', $organisationId)->exists(), $table);
+            $this->assertSame($migrationBatch, DB::table('migrations')->where('migration', self::INVENTORY_OPERATIONS_MIGRATION)->value('batch'));
+            DB::table($table)->where('organisation_id', $organisationId)->delete();
+        }
+
+        DB::table('stock_movements')->insert([
+            'public_id' => (string) Str::uuid(), 'organisation_id' => $organisationId,
+            'inventory_sku_id' => $fixture['sku']->id, 'inventory_batch_id' => $fixture['batch']->id,
+            'source_location_id' => null, 'destination_location_id' => $fixture['location']->id,
+            'dispensary_item_batch_allocation_id' => null, 'quantity' => '1.000', 'movement_type' => 'purchase_receipt',
+            'reference_type' => 'inventory_goods_receipt', 'reference_public_id' => (string) Str::uuid(),
+            'actor_user_id' => $fixture['inventorySupervisor']->id, 'occurred_at' => $now, 'created_at' => $now, 'updated_at' => $now,
+        ]);
+        try {
+            $migrator->rollback([$path], ['step' => 1]);
+            $this->fail('Laravel migrator removed retained Inventory Operations movement evidence.');
+        } catch (RuntimeException $exception) {
+            $this->assertStringContainsString('posted movement evidence cannot be rolled back', $exception->getMessage());
+        }
+        foreach (self::INVENTORY_OPERATIONS_TABLES as $table) {
+            $this->assertTrue(Schema::hasTable($table), $table);
+        }
+        $this->assertSame($migrationBatch, DB::table('migrations')->where('migration', self::INVENTORY_OPERATIONS_MIGRATION)->value('batch'));
+        $this->assertSame(1, DB::table('stock_movements')->where('organisation_id', $organisationId)->where('movement_type', 'purchase_receipt')->count());
+    }
+
+    public function test_concurrent_purchase_order_approval_and_cancellation_have_one_versioned_winner(): void
+    {
+        $f = $this->completableFixture('10.000', '4.000');
+        $order = $this->purchaseOrderFixture($f, PurchaseOrder::STATUS_SUBMITTED);
+        $workers = [
+            $this->worker(['purchase-order-approve', (string) $f['inventorySupervisor']->id, (string) $f['branch']->id, $order->public_id, '1']),
+            $this->worker(['purchase-order-cancel', (string) $f['inventorySupervisor']->id, (string) $f['branch']->id, $order->public_id, '1']),
+        ];
+
+        $output = $this->race($workers, $order);
+
+        $this->assertSame(1, substr_count($output, 'APPROVED') + substr_count($output, 'CANCELLED'));
+        $this->assertSame(1, substr_count($output, 'STALE lock_version'));
+        $this->assertContains($order->refresh()->status, [PurchaseOrder::STATUS_APPROVED, PurchaseOrder::STATUS_CANCELLED]);
+        $this->assertSame(1, AuditLog::query()->where('organisation_id', $f['organisation']->id)->whereIn('event', ['inventory.purchase_order.approved', 'inventory.purchase_order.cancelled'])->count());
+    }
+
+    public function test_concurrent_purchase_receipts_cannot_over_receive_the_order(): void
+    {
+        $f = $this->completableFixture('10.000', '4.000');
+        $order = $this->purchaseOrderFixture($f, PurchaseOrder::STATUS_APPROVED);
+        $line = $order->lines()->sole();
+        $workers = [
+            $this->worker(['purchase-order-receive', (string) $f['inventorySupervisor']->id, (string) $f['branch']->id, $order->public_id, '1', (string) Str::uuid(), $line->public_id, $f['batch']->batch_number, $f['batch']->expiry_date->toDateString(), '6.000']),
+            $this->worker(['purchase-order-receive', (string) $f['inventorySupervisor']->id, (string) $f['branch']->id, $order->public_id, '1', (string) Str::uuid(), $line->public_id, $f['batch']->batch_number, $f['batch']->expiry_date->toDateString(), '6.000']),
+        ];
+
+        $output = $this->race($workers, $order);
+
+        $this->assertSame(1, substr_count($output, 'RECEIVED'));
+        $this->assertSame(1, substr_count($output, 'STALE lock_version'));
+        $this->assertSame(1, GoodsReceipt::query()->where('organisation_id', $f['organisation']->id)->count());
+        $this->assertSame(1, DB::table('stock_movements')->where('organisation_id', $f['organisation']->id)->where('movement_type', 'purchase_receipt')->count());
+        $this->assertSame('16.000', (string) DB::table('inventory_stock_balances')->where('id', $f['balance']->id)->value('quantity'));
+        $this->assertSame('6.000', $line->refresh()->received_quantity);
+        $this->assertSame(PurchaseOrder::STATUS_PARTIALLY_RECEIVED, $order->refresh()->status);
+    }
+
+    public function test_concurrent_cross_purchase_order_receipt_key_has_one_controlled_winner(): void
+    {
+        $f = $this->completableFixture('10.000', '4.000');
+        $otherReceiver = $this->user($f['organisation'], $f['branch'], 'ca_supervisor', $this->inventorySupervisorPermissions());
+        [$secondSku, $secondBatch] = $this->additionalInventoryKey($f);
+        $secondFixture = [...$f, 'sku' => $secondSku, 'batch' => $secondBatch];
+        $first = $this->purchaseOrderFixture($f, PurchaseOrder::STATUS_APPROVED);
+        $second = $this->purchaseOrderFixture($secondFixture, PurchaseOrder::STATUS_APPROVED, $f['destination']);
+        $firstLine = $first->lines()->sole();
+        $secondLine = $second->lines()->sole();
+        $key = (string) Str::uuid();
+        $workers = [
+            $this->worker(['purchase-order-receive', (string) $f['inventorySupervisor']->id, (string) $f['branch']->id, $first->public_id, '1', $key, $firstLine->public_id, $f['batch']->batch_number, $f['batch']->expiry_date->toDateString(), '4.000']),
+            $this->worker(['purchase-order-receive', (string) $otherReceiver->id, (string) $f['branch']->id, $second->public_id, '1', $key, $secondLine->public_id, $secondBatch->batch_number, $secondBatch->expiry_date->toDateString(), '4.000']),
+        ];
+
+        $output = $this->race($workers, $f['organisation']);
+
+        $this->assertSame(1, substr_count($output, 'RECEIVED'));
+        $this->assertSame(1, substr_count($output, 'STALE idempotency_key'));
+        $this->assertSame(1, GoodsReceipt::query()->where('organisation_id', $f['organisation']->id)->where('idempotency_key', $key)->count());
+        $this->assertSame(1, DB::table('stock_movements')->where('organisation_id', $f['organisation']->id)->where('movement_type', 'purchase_receipt')->count());
+        $this->assertSame(1, AuditLog::query()->where('organisation_id', $f['organisation']->id)->where('event', 'inventory.goods_receipt.posted')->count());
+        $this->assertSame('4.000', (string) DB::table('inventory_purchase_order_lines')->whereIn('purchase_order_id', [$first->id, $second->id])->sum('received_quantity'));
+    }
+
+    public function test_concurrent_adjustment_replay_posts_one_adjustment_and_movement(): void
+    {
+        $f = $this->completableFixture('10.000', '4.000');
+        $otherActor = $this->user($f['organisation'], $f['branch'], 'ca_supervisor', $this->inventorySupervisorPermissions());
+        $key = (string) Str::uuid();
+        $arguments = fn (User $actor): array => ['adjustment-replay', (string) $actor->id, (string) $f['branch']->id, $f['location']->public_id, $f['sku']->public_id, $f['batch']->public_id, $key];
+
+        $output = $this->race([$this->worker($arguments($f['inventorySupervisor'])), $this->worker($arguments($otherActor))], $f['organisation']);
+
+        $this->assertSame(2, substr_count($output, 'ADJUSTED'));
+        $this->assertSame(1, DB::table('inventory_adjustments')->where('organisation_id', $f['organisation']->id)->where('idempotency_key', $key)->count());
+        $this->assertSame(1, DB::table('stock_movements')->where('organisation_id', $f['organisation']->id)->where('movement_type', 'adjustment_in')->count());
+        $this->assertSame(1, AuditLog::query()->where('organisation_id', $f['organisation']->id)->where('event', 'inventory.adjustment.posted')->count());
+        $this->assertSame('11.000', (string) DB::table('inventory_stock_balances')->where('id', $f['balance']->id)->value('quantity'));
+    }
+
+    public function test_stocktake_posting_rejects_live_stock_change_after_snapshot(): void
+    {
+        $f = $this->completableFixture('10.000', '4.000');
+        session([BranchAccessService::SESSION_KEY => $f['branch']->id]);
+        $service = app(InventoryControlService::class);
+        $stocktake = $service->createStocktake($f['inventorySupervisor'], ['expected_branch_id' => $f['branch']->id, 'location_public_id' => $f['location']->public_id]);
+        $stocktake = $service->startCounting($f['inventorySupervisor'], $stocktake, ['expected_branch_id' => $f['branch']->id, 'lock_version' => $stocktake->lock_version]);
+        $line = $stocktake->lines()->sole();
+        $stocktake = $service->recordCounts($f['inventorySupervisor'], $stocktake, ['expected_branch_id' => $f['branch']->id, 'lock_version' => $stocktake->lock_version, 'lines' => [['line_public_id' => $line->public_id, 'physical_quantity' => '9.000']]]);
+        $leader = $this->worker(['adjustment-hold', (string) $f['inventorySupervisor']->id, (string) $f['branch']->id, $f['location']->public_id, $f['sku']->public_id, $f['batch']->public_id, (string) Str::uuid()]);
+        $follower = $this->worker(['stocktake-post', (string) $f['inventorySupervisor']->id, (string) $f['branch']->id, $stocktake->public_id, (string) $stocktake->lock_version]);
+
+        $output = $this->leaderThenFollower($leader, $follower);
+
+        $this->assertStringContainsString('ADJUSTED', $output);
+        $this->assertStringContainsString('STALE stocktake', $output);
+        $this->assertSame('11.000', (string) DB::table('inventory_stock_balances')->where('id', $f['balance']->id)->value('quantity'));
+        $this->assertSame('review', $stocktake->refresh()->status);
+        $this->assertSame(0, DB::table('stock_movements')->where('organisation_id', $f['organisation']->id)->whereIn('movement_type', ['stocktake_gain', 'stocktake_loss'])->count());
+    }
+
+    public function test_stocktake_posting_rejects_a_new_balance_key_committed_after_snapshot(): void
+    {
+        $f = $this->completableFixture('10.000', '4.000');
+        session([BranchAccessService::SESSION_KEY => $f['branch']->id]);
+        $service = app(InventoryControlService::class);
+        $stocktake = $service->createStocktake($f['inventorySupervisor'], ['expected_branch_id' => $f['branch']->id, 'location_public_id' => $f['location']->public_id]);
+        $stocktake = $service->startCounting($f['inventorySupervisor'], $stocktake, ['expected_branch_id' => $f['branch']->id, 'lock_version' => $stocktake->lock_version]);
+        $line = $stocktake->lines()->sole();
+        $stocktake = $service->recordCounts($f['inventorySupervisor'], $stocktake, ['expected_branch_id' => $f['branch']->id, 'lock_version' => $stocktake->lock_version, 'lines' => [['line_public_id' => $line->public_id, 'physical_quantity' => '10.000']]]);
+        [$sku, $batch] = $this->additionalInventoryKey($f);
+        $leader = $this->worker(['adjustment-hold', (string) $f['inventorySupervisor']->id, (string) $f['branch']->id, $f['location']->public_id, $sku->public_id, $batch->public_id, (string) Str::uuid()]);
+        $follower = $this->worker(['stocktake-post', (string) $f['inventorySupervisor']->id, (string) $f['branch']->id, $stocktake->public_id, (string) $stocktake->lock_version]);
+
+        $output = $this->leaderThenFollower($leader, $follower);
+
+        $this->assertStringContainsString('ADJUSTED', $output);
+        $this->assertStringContainsString('STALE stocktake', $output);
+        $this->assertSame('10.000', (string) DB::table('inventory_stock_balances')->where('id', $f['balance']->id)->value('quantity'));
+        $this->assertSame('1.000', (string) DB::table('inventory_stock_balances')->where('inventory_location_id', $f['location']->id)->where('inventory_sku_id', $sku->id)->where('inventory_batch_id', $batch->id)->value('quantity'));
+        $this->assertSame('review', $stocktake->refresh()->status);
+        $this->assertSame(0, DB::table('stock_movements')->where('organisation_id', $f['organisation']->id)->whereIn('movement_type', ['stocktake_gain', 'stocktake_loss'])->count());
     }
 
     /** @return array<string, mixed> */
@@ -498,7 +1021,67 @@ class PostgresDispensaryInventoryRegressionTest extends TestCase
     /** @return list<string> */
     private function inventorySupervisorPermissions(): array
     {
-        return [...$this->caPermissions(), 'inventory.opening_balance.branch', 'inventory.transfer.organisation'];
+        return [...$this->caPermissions(), 'inventory.opening_balance.branch', 'inventory.transfer.organisation', 'inventory.purchase_orders.approve.organisation', 'inventory.receiving.branch', 'inventory.transfers.dispatch.branch', 'inventory.stocktake.branch', 'inventory.adjust.branch', 'inventory.warehouse.organisation'];
+    }
+
+    /** @param array<string, mixed> $fixture */
+    private function purchaseOrderFixture(array $fixture, string $status, ?InventoryLocation $destination = null): PurchaseOrder
+    {
+        $supplier = new InventorySupplier;
+        $supplier->forceFill([
+            'public_id' => (string) Str::uuid(), 'organisation_id' => $fixture['organisation']->id,
+            'code' => 'SYN-PG-'.Str::upper(Str::random(6)), 'name' => 'Synthetic PostgreSQL Supplier',
+            'is_active' => true,
+        ])->save();
+        $order = new PurchaseOrder;
+        $order->forceFill([
+            'public_id' => (string) Str::uuid(), 'organisation_id' => $fixture['organisation']->id,
+            'supplier_id' => $supplier->id, 'destination_location_id' => ($destination ?? $fixture['location'])->id,
+            'order_number' => 'PO-PG-'.Str::upper(Str::random(8)), 'status' => $status, 'lock_version' => 1,
+            'created_by_user_id' => $fixture['ca']->id, 'submitted_by_user_id' => $fixture['ca']->id,
+            'submitted_at' => now()->utc(),
+            'approved_by_user_id' => $status === PurchaseOrder::STATUS_APPROVED ? $fixture['inventorySupervisor']->id : null,
+            'approved_at' => $status === PurchaseOrder::STATUS_APPROVED ? now()->utc() : null,
+        ])->save();
+        $line = new PurchaseOrderLine;
+        $line->forceFill([
+            'public_id' => (string) Str::uuid(), 'organisation_id' => $fixture['organisation']->id,
+            'purchase_order_id' => $order->id, 'inventory_sku_id' => $fixture['sku']->id,
+            'ordered_quantity' => '10.000', 'received_quantity' => '0.000',
+        ])->save();
+
+        return $order;
+    }
+
+    /** @param array<string, mixed> $fixture @return array{InventorySku, InventoryBatch} */
+    private function additionalInventoryKey(array $fixture): array
+    {
+        $item = new InventoryItem;
+        $item->forceFill([
+            'public_id' => (string) Str::uuid(), 'organisation_id' => $fixture['organisation']->id,
+            'code' => 'I2-KEY-'.Str::upper(Str::random(6)), 'generic_name' => 'Synthetic Stocktake Key Item', 'is_active' => true,
+        ])->save();
+        $sku = new InventorySku;
+        $sku->forceFill([
+            'public_id' => (string) Str::uuid(), 'organisation_id' => $fixture['organisation']->id, 'inventory_item_id' => $item->id,
+            'sku_code' => 'I2-KEY-SKU-'.Str::upper(Str::random(6)), 'pack_size' => 1, 'purchase_unit' => 'unit', 'stock_unit' => 'unit',
+            'dispensing_unit' => 'unit', 'unit_conversion' => 1, 'storage_type' => 'ambient', 'cold_chain_required' => false,
+            'do_not_freeze' => false, 'protect_from_light' => false, 'batch_tracking_required' => true, 'expiry_tracking_required' => true, 'is_active' => true,
+        ])->save();
+        $batch = new InventoryBatch;
+        $batch->forceFill([
+            'public_id' => (string) Str::uuid(), 'organisation_id' => $fixture['organisation']->id, 'inventory_sku_id' => $sku->id,
+            'batch_number' => 'I2-KEY-BATCH-'.Str::upper(Str::random(6)), 'expiry_date' => now()->addMonth()->toDateString(),
+            'received_at' => now()->subDay()->toDateString(), 'status' => InventoryBatch::STATUS_AVAILABLE,
+        ])->save();
+
+        return [$sku, $batch];
+    }
+
+    /** @return list<string> */
+    private function inventoryOperationsMovementTypes(): array
+    {
+        return ['purchase_receipt', 'transfer_dispatch', 'transfer_receipt', 'stocktake_gain', 'stocktake_loss', 'adjustment_in', 'adjustment_out'];
     }
 
     /** @param list<string> $permissions */
@@ -698,7 +1281,7 @@ class PostgresDispensaryInventoryRegressionTest extends TestCase
         DB::transaction(function () use ($id): void {
             DB::table('service_deliveries')->where('organisation_id', $id)->delete();
             DB::table('consultation_checkouts')->where('organisation_id', $id)->delete();
-            foreach (['stock_movements', 'dispensary_item_batch_allocations', 'dispensary_item_exceptions', 'dispensary_items', 'dispensary_handoffs', 'dispensary_cases', 'inventory_stock_balances', 'medicine_catalogue_inventory_skus', 'medicine_catalogue_aliases', 'inventory_batches', 'inventory_locations', 'inventory_skus', 'inventory_items', 'treatment_plan_service_orders', 'treatment_plan_medicine_orders', 'treatment_plans', 'clinical_service_catalogue_items', 'medicine_catalogue_items', 'clinical_encounter_allergy_reviews', 'patient_allergy_records', 'patient_allergy_profile_versions', 'patient_allergy_profiles', 'audit_logs', 'clinical_encounters', 'queue_entries', 'queue_number_counters', 'visits', 'visit_number_counters', 'patients', 'patient_number_counters'] as $table) {
+            foreach (['stock_movements', 'inventory_goods_receipt_lines', 'inventory_goods_receipts', 'inventory_purchase_order_lines', 'inventory_purchase_orders', 'inventory_suppliers', 'inventory_stocktake_lines', 'inventory_stocktakes', 'inventory_stock_request_lines', 'inventory_stock_requests', 'inventory_adjustments', 'inventory_reorder_levels', 'dispensary_item_batch_allocations', 'dispensary_item_exceptions', 'dispensary_items', 'dispensary_handoffs', 'dispensary_cases', 'inventory_stock_balances', 'medicine_catalogue_inventory_skus', 'medicine_catalogue_aliases', 'inventory_batches', 'inventory_locations', 'inventory_skus', 'inventory_items', 'treatment_plan_service_orders', 'treatment_plan_medicine_orders', 'treatment_plans', 'clinical_service_catalogue_items', 'medicine_catalogue_items', 'clinical_encounter_allergy_reviews', 'patient_allergy_records', 'patient_allergy_profile_versions', 'patient_allergy_profiles', 'audit_logs', 'clinical_encounters', 'queue_entries', 'queue_number_counters', 'visits', 'visit_number_counters', 'patients', 'patient_number_counters'] as $table) {
                 DB::table($table)->where('organisation_id', $id)->delete();
             }
             $branchIds = DB::table('branches')->where('organisation_id', $id)->pluck('id');
