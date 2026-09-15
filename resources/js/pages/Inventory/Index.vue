@@ -280,17 +280,18 @@ const clearFilters = () => {
             :columns="8"
             min-width="1040px"
             :loading="loading"
+            class="[&_tbody_td]:px-4 [&_tbody_td]:py-3 [&_thead_th]:px-4 [&_thead_th]:py-3 [&_thead_th]:text-sm [&_thead_th]:font-semibold [&_thead_th]:tracking-wide [&_thead_th]:text-foreground"
         >
             <template #head
                 ><tr>
-                    <th>SKU / Item</th>
-                    <th>Medicine</th>
-                    <th>Location</th>
-                    <th>Branch</th>
-                    <th>Batch</th>
-                    <th>Expiry</th>
-                    <th class="text-right">Quantity</th>
-                    <th>Status</th>
+                    <th scope="col">SKU / Item</th>
+                    <th scope="col">Medicine</th>
+                    <th scope="col">Location</th>
+                    <th scope="col">Branch</th>
+                    <th scope="col">Batch</th>
+                    <th scope="col">Expiry</th>
+                    <th scope="col" class="min-w-28 text-right">Quantity</th>
+                    <th scope="col" class="min-w-32">Status</th>
                 </tr></template
             >
             <template #body>
@@ -298,30 +299,42 @@ const clearFilters = () => {
                     v-for="(row, index) in inventory.data"
                     :key="`${row.skuCode}-${row.location}-${row.batchNumber}-${index}`"
                 >
-                    <td>
-                        <span class="block font-mono text-xs">{{
-                            row.skuCode
-                        }}</span
+                    <td class="max-w-56 min-w-44 break-words whitespace-normal">
+                        <span
+                            class="block font-mono text-xs"
+                            :title="String(row.skuCode)"
+                            >{{ row.skuCode }}</span
                         ><span class="block font-medium">{{
                             row.itemName
                         }}</span>
                     </td>
-                    <td>{{ row.medicineName ?? 'Not mapped to Medicine' }}</td>
-                    <td>
-                        <span class="block">{{ row.location }}</span
+                    <td class="max-w-64 min-w-44 break-words whitespace-normal">
+                        {{ row.medicineName ?? 'Not mapped to Medicine' }}
+                    </td>
+                    <td class="max-w-56 min-w-44 break-words whitespace-normal">
+                        <span class="block" :title="String(row.location)">{{
+                            row.location
+                        }}</span
                         ><span class="text-xs text-muted-foreground">{{
                             row.locationType
                         }}</span>
                     </td>
-                    <td>{{ row.branch }}</td>
-                    <td class="font-mono text-xs">{{ row.batchNumber }}</td>
+                    <td class="min-w-32 break-words whitespace-normal">
+                        {{ row.branch }}
+                    </td>
+                    <td
+                        class="max-w-56 min-w-44 font-mono text-xs break-words whitespace-normal"
+                        :title="String(row.batchNumber)"
+                    >
+                        {{ row.batchNumber }}
+                    </td>
                     <td class="whitespace-nowrap">{{ row.expiryDate }}</td>
                     <td
-                        class="text-right font-semibold whitespace-nowrap tabular-nums"
+                        class="min-w-28 text-right font-semibold whitespace-nowrap tabular-nums"
                     >
                         {{ row.quantity }} {{ row.stockUnit }}
                     </td>
-                    <td>
+                    <td class="min-w-32">
                         <StatusBadge
                             :status="row.available ? 'available' : 'inactive'"
                             :label="String(row.availabilityStatus)"
@@ -337,18 +350,19 @@ const clearFilters = () => {
             :columns="9"
             min-width="1120px"
             :loading="loading"
+            class="[&_tbody_td]:px-4 [&_tbody_td]:py-3 [&_thead_th]:px-4 [&_thead_th]:py-3 [&_thead_th]:text-sm [&_thead_th]:font-semibold [&_thead_th]:tracking-wide [&_thead_th]:text-foreground"
         >
             <template #head
                 ><tr>
-                    <th>SKU / Item</th>
-                    <th>Medicine</th>
-                    <th>Batch</th>
-                    <th>Location</th>
-                    <th>Received</th>
-                    <th>Expiry</th>
-                    <th>Expiry status</th>
-                    <th>Batch status</th>
-                    <th class="text-right">Quantity</th>
+                    <th scope="col">SKU / Item</th>
+                    <th scope="col">Medicine</th>
+                    <th scope="col">Batch</th>
+                    <th scope="col">Location</th>
+                    <th scope="col">Received</th>
+                    <th scope="col">Expiry</th>
+                    <th scope="col">Expiry status</th>
+                    <th scope="col">Batch status</th>
+                    <th scope="col" class="min-w-28 text-right">Quantity</th>
                 </tr></template
             >
             <template #body>
@@ -356,17 +370,30 @@ const clearFilters = () => {
                     v-for="(row, index) in inventory.data"
                     :key="`${row.skuCode}-${row.location}-${row.batchNumber}-${index}`"
                 >
-                    <td>
-                        <span class="block font-mono text-xs">{{
-                            row.skuCode
-                        }}</span
+                    <td class="max-w-56 min-w-44 break-words whitespace-normal">
+                        <span
+                            class="block font-mono text-xs"
+                            :title="String(row.skuCode)"
+                            >{{ row.skuCode }}</span
                         ><span class="block font-medium">{{
                             row.itemName
                         }}</span>
                     </td>
-                    <td>{{ row.medicineName ?? 'Not mapped to Medicine' }}</td>
-                    <td class="font-mono text-xs">{{ row.batchNumber }}</td>
-                    <td>{{ row.location }}</td>
+                    <td class="max-w-64 min-w-44 break-words whitespace-normal">
+                        {{ row.medicineName ?? 'Not mapped to Medicine' }}
+                    </td>
+                    <td
+                        class="max-w-56 min-w-44 font-mono text-xs break-words whitespace-normal"
+                        :title="String(row.batchNumber)"
+                    >
+                        {{ row.batchNumber }}
+                    </td>
+                    <td
+                        class="max-w-56 min-w-44 break-words whitespace-normal"
+                        :title="String(row.location)"
+                    >
+                        {{ row.location }}
+                    </td>
                     <td class="whitespace-nowrap">
                         {{ row.receivedDate ?? '—' }}
                     </td>
@@ -389,7 +416,7 @@ const clearFilters = () => {
                         />
                     </td>
                     <td
-                        class="text-right font-semibold whitespace-nowrap tabular-nums"
+                        class="min-w-28 text-right font-semibold whitespace-nowrap tabular-nums"
                     >
                         {{ row.quantity }} {{ row.stockUnit }}
                     </td>
@@ -403,17 +430,18 @@ const clearFilters = () => {
             :columns="8"
             min-width="1120px"
             :loading="loading"
+            class="[&_tbody_td]:px-4 [&_tbody_td]:py-3 [&_thead_th]:px-4 [&_thead_th]:py-3 [&_thead_th]:text-sm [&_thead_th]:font-semibold [&_thead_th]:tracking-wide [&_thead_th]:text-foreground"
         >
             <template #head
                 ><tr>
-                    <th>Date / Time</th>
-                    <th>Type</th>
-                    <th>SKU / Item</th>
-                    <th>Medicine</th>
-                    <th>Batch</th>
-                    <th>Direction</th>
-                    <th class="text-right">Quantity</th>
-                    <th>Reference</th>
+                    <th scope="col">Date / Time</th>
+                    <th scope="col">Type</th>
+                    <th scope="col">SKU / Item</th>
+                    <th scope="col">Medicine</th>
+                    <th scope="col">Batch</th>
+                    <th scope="col">Direction</th>
+                    <th scope="col" class="min-w-28 text-right">Quantity</th>
+                    <th scope="col">Reference</th>
                 </tr></template
             >
             <template #body>
@@ -428,23 +456,33 @@ const clearFilters = () => {
                             :label="String(row.typeLabel)"
                         />
                     </td>
-                    <td>
-                        <span class="block font-mono text-xs">{{
-                            row.skuCode
-                        }}</span
+                    <td class="max-w-56 min-w-44 break-words whitespace-normal">
+                        <span
+                            class="block font-mono text-xs"
+                            :title="String(row.skuCode)"
+                            >{{ row.skuCode }}</span
                         ><span class="block font-medium">{{
                             row.itemName
                         }}</span>
                     </td>
-                    <td>{{ row.medicineName ?? 'Not mapped to Medicine' }}</td>
-                    <td class="font-mono text-xs">{{ row.batchNumber }}</td>
+                    <td class="max-w-64 min-w-44 break-words whitespace-normal">
+                        {{ row.medicineName ?? 'Not mapped to Medicine' }}
+                    </td>
+                    <td
+                        class="max-w-56 min-w-44 font-mono text-xs break-words whitespace-normal"
+                        :title="String(row.batchNumber)"
+                    >
+                        {{ row.batchNumber }}
+                    </td>
                     <td>{{ row.direction }}</td>
                     <td
-                        class="text-right font-semibold whitespace-nowrap tabular-nums"
+                        class="min-w-28 text-right font-semibold whitespace-nowrap tabular-nums"
                     >
                         {{ row.quantityDisplay }} {{ row.stockUnit }}
                     </td>
-                    <td>{{ row.reference }}</td>
+                    <td class="max-w-56 min-w-40 break-words whitespace-normal">
+                        {{ row.reference }}
+                    </td>
                 </tr>
             </template>
         </OperationalTable>
