@@ -11,6 +11,7 @@ use App\Domain\Clinical\Models\MedicineCatalogueItem;
 use App\Domain\Clinical\Services\MedicineAdministrationService;
 use App\Domain\Clinical\Services\PatientAllergyService;
 use App\Domain\Clinical\Services\TreatmentPlanService;
+use App\Domain\Identity\Models\StaffBranchAssignment;
 use App\Domain\Organisation\Inventory\Models\InventoryBatch;
 use App\Domain\Organisation\Inventory\Models\InventoryItem;
 use App\Domain\Organisation\Inventory\Models\InventoryLocation;
@@ -18,9 +19,11 @@ use App\Domain\Organisation\Inventory\Models\InventorySku;
 use App\Domain\Organisation\Inventory\Models\MedicineCatalogueInventorySku;
 use App\Domain\Organisation\Inventory\Services\InventoryMovementService;
 use App\Domain\Organisation\Inventory\Services\InventoryReferenceAdministrationService;
+use App\Domain\Organisation\Inventory\Services\ProcurementService;
 use App\Domain\Organisation\Models\Branch;
 use App\Domain\Organisation\Models\Organisation;
 use App\Models\User;
+use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Inertia\Testing\AssertableInertia as Assert;
@@ -50,6 +53,59 @@ class InventoryDirectoryTest extends ClinicalTestCase
         $this->assertContains('inventory.view.branch', PermissionCatalogue::roles()['director']);
         foreach (['inventory.opening_balance.branch', 'inventory.transfer.branch', 'inventory.transfer.organisation'] as $permission) {
             $this->assertNotContains($permission, PermissionCatalogue::roles()['director']);
+        }
+    }
+
+    public function test_inventory_navigation_requires_a_current_branch_assignment_at_the_kuala_lumpur_date_boundary(): void
+    {
+        Date::setTestNow('2026-09-15 16:30:00 UTC');
+
+        try {
+            $branchDate = now()->setTimezone($this->branch->timezone);
+            $this->assertSame('Asia/Kuala_Lumpur', $this->branch->timezone);
+            $this->assertSame('2026-09-16', $branchDate->toDateString());
+
+            $current = $this->actor('ca_supervisor');
+            StaffBranchAssignment::query()->where('staff_profile_id', $current->staffProfile->id)->update([
+                'valid_from' => $branchDate->toDateString(),
+                'valid_until' => $branchDate->toDateString(),
+            ]);
+            $this->selectBranch($current);
+            $this->assertTrue($current->can(ProcurementService::WAREHOUSE_PERMISSION));
+            $this->get(route('dashboard'))->assertOk()->assertInertia(
+                fn (Assert $page) => $page->where('workspace.navigation.inventory', true),
+            );
+            $this->get(route('inventory.index'))->assertOk();
+
+            $expired = $this->actor('ca');
+            StaffBranchAssignment::query()->where('staff_profile_id', $expired->staffProfile->id)->update([
+                'valid_until' => $branchDate->subDay()->toDateString(),
+            ]);
+            $this->selectBranch($expired);
+            $this->get(route('dashboard'))->assertOk()->assertInertia(
+                fn (Assert $page) => $page->where('workspace.navigation.inventory', false),
+            );
+            $this->get(route('inventory.index'))->assertNotFound();
+
+            $future = $this->actor('ca');
+            StaffBranchAssignment::query()->where('staff_profile_id', $future->staffProfile->id)->update([
+                'valid_from' => $branchDate->addDay()->toDateString(),
+                'valid_until' => null,
+            ]);
+            $this->selectBranch($future);
+            $this->get(route('dashboard'))->assertOk()->assertInertia(
+                fn (Assert $page) => $page->where('workspace.navigation.inventory', false),
+            );
+            $this->get(route('inventory.index'))->assertNotFound();
+
+            $technical = $this->actor('technical_admin');
+            $this->selectBranch($technical);
+            $this->get(route('dashboard'))->assertOk()->assertInertia(
+                fn (Assert $page) => $page->where('workspace.navigation.inventory', false),
+            );
+            $this->get(route('inventory.index'))->assertForbidden();
+        } finally {
+            Date::setTestNow();
         }
     }
 
