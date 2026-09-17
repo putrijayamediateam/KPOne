@@ -17,6 +17,7 @@ use App\Domain\Organisation\Inventory\Models\InventoryItem;
 use App\Domain\Organisation\Inventory\Models\InventoryLocation;
 use App\Domain\Organisation\Inventory\Models\InventorySku;
 use App\Domain\Organisation\Inventory\Models\MedicineCatalogueInventorySku;
+use App\Domain\Organisation\Inventory\Models\StockMovement;
 use App\Domain\Organisation\Inventory\Services\InventoryMovementService;
 use App\Domain\Organisation\Inventory\Services\InventoryReferenceAdministrationService;
 use App\Domain\Organisation\Inventory\Services\ProcurementService;
@@ -236,6 +237,68 @@ class InventoryDirectoryTest extends ClinicalTestCase
             DB::table('medicine_catalogue_inventory_skus')->orderBy('id')->get()->toJson(),
         ];
         $this->assertSame($before, $after);
+    }
+
+    public function test_movement_dates_are_inclusive_in_kuala_lumpur_and_combine_with_scoped_filters(): void
+    {
+        Date::setTestNow('2026-09-17 04:00:00 UTC');
+
+        try {
+            $actor = $this->actor('ca_supervisor');
+            $this->selectBranch($actor);
+            $fixture = $this->inventoryFixture($actor, 'DATED', null);
+            $otherLocation = app(InventoryReferenceAdministrationService::class)->createLocation($actor, $this->branch, null, [
+                'code' => 'DATED-OTHER', 'name' => 'Synthetic Other Cheras Store', 'type' => InventoryLocation::TYPE_BRANCH_STORE,
+            ]);
+
+            $insert = function (string $occurredAt, string $type, InventoryLocation $location) use ($actor, $fixture): void {
+                $movement = new StockMovement;
+                $movement->forceFill([
+                    'public_id' => (string) Str::uuid(), 'organisation_id' => $actor->organisation_id,
+                    'inventory_sku_id' => $fixture['sku']->id, 'inventory_batch_id' => $fixture['batch']->id,
+                    'source_location_id' => null, 'destination_location_id' => $location->id,
+                    'quantity' => '1.000', 'movement_type' => $type, 'reference_type' => 'inventory_opening_balance',
+                    'reference_public_id' => (string) Str::uuid(), 'actor_user_id' => $actor->id, 'occurred_at' => $occurredAt,
+                ])->save();
+            };
+
+            for ($index = 0; $index < 26; $index++) {
+                $insert('2026-09-17 00:00:00+08:00', StockMovement::TYPE_OPENING, $fixture['location']);
+            }
+            $insert('2026-09-16 12:00:00+08:00', StockMovement::TYPE_ADJUSTMENT_IN, $otherLocation);
+            $insert('2026-09-18 12:00:00+08:00', StockMovement::TYPE_ADJUSTMENT_IN, $otherLocation);
+
+            $this->foreignInventoryFixture();
+            $this->selectBranch($actor);
+            $movementCount = DB::table('stock_movements')->count();
+
+            $this->get(route('inventory.index', ['tab' => 'movements', 'date_from' => '2026-09-18']))
+                ->assertOk()->assertInertia(fn (Assert $page) => $page->where('inventory.total', 1));
+            $this->get(route('inventory.index', ['tab' => 'movements', 'date_to' => '2026-09-16']))
+                ->assertOk()->assertInertia(fn (Assert $page) => $page->where('inventory.total', 1));
+            $this->get(route('inventory.index', [
+                'tab' => 'movements', 'date_from' => '2026-09-17', 'date_to' => '2026-09-17',
+                'movement_type' => StockMovement::TYPE_OPENING, 'location' => $fixture['location']->public_id,
+            ]))->assertOk()->assertInertia(fn (Assert $page) => $page
+                ->where('inventory.total', 26)
+                ->where('inventory.filters.dateFrom', '2026-09-17')
+                ->where('inventory.filters.dateTo', '2026-09-17')
+                ->where('inventory.filters.movementType', StockMovement::TYPE_OPENING)
+                ->where('inventory.filters.location', $fixture['location']->public_id));
+            $this->get(route('inventory.index', [
+                'tab' => 'movements', 'date_from' => '2026-09-17', 'date_to' => '2026-09-17', 'page' => 2,
+            ]))->assertOk()->assertInertia(fn (Assert $page) => $page
+                ->where('inventory.total', 26)->where('inventory.currentPage', 2)->has('inventory.data', 1)
+                ->where('inventory.filters.dateFrom', '2026-09-17')->where('inventory.filters.dateTo', '2026-09-17'));
+            $this->get(route('inventory.index', ['tab' => 'movements', 'date_from' => '2026-09-20', 'date_to' => '2026-09-20']))
+                ->assertOk()->assertInertia(fn (Assert $page) => $page->where('inventory.total', 0)->has('inventory.data', 0));
+            $this->get(route('inventory.index', ['tab' => 'movements', 'date_from' => '2026-09-18', 'date_to' => '2026-09-17']))
+                ->assertSessionHasErrors('date_to');
+
+            $this->assertSame($movementCount, DB::table('stock_movements')->count());
+        } finally {
+            Date::setTestNow();
+        }
     }
 
     public function test_workspace_reflects_released_dispense_ledger_result_without_a_second_deduction(): void

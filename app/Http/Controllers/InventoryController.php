@@ -28,6 +28,8 @@ class InventoryController extends Controller
             'location' => ['nullable', 'uuid'],
             'status' => ['nullable', Rule::in(['active', 'inactive'])],
             'movement_type' => ['nullable', Rule::in(InventoryDirectoryService::MOVEMENT_TYPES)],
+            'date_from' => ['nullable', 'date_format:Y-m-d'],
+            'date_to' => ['nullable', 'date_format:Y-m-d', 'after_or_equal:date_from'],
             'batch' => ['nullable', 'string', 'max:100'],
             'page' => ['sometimes', 'integer', 'min:1', 'max:10000'],
         ]);
@@ -38,6 +40,8 @@ class InventoryController extends Controller
             'location' => $data['location'] ?? null,
             'status' => $data['status'] ?? null,
             'movement_type' => $data['movement_type'] ?? null,
+            'date_from' => $data['date_from'] ?? null,
+            'date_to' => $data['date_to'] ?? null,
             'batch' => isset($data['batch']) ? trim($data['batch']) : null,
             'page' => (int) ($data['page'] ?? 1),
         ];

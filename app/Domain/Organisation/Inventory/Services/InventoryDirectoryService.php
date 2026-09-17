@@ -45,7 +45,7 @@ final class InventoryDirectoryService
     public function __construct(private BranchAccessService $branches) {}
 
     /**
-     * @param  array{tab:string,search:?string,location:?string,status:?string,movement_type:?string,batch:?string,page:int}  $filters
+     * @param  array{tab:string,search:?string,location:?string,status:?string,movement_type:?string,date_from:?string,date_to:?string,batch:?string,page:int}  $filters
      * @return array<string, mixed>
      */
     public function directory(User $actor, array $filters): array
@@ -70,6 +70,8 @@ final class InventoryDirectoryService
                 'location' => $filters['location'] ?? '',
                 'status' => $filters['status'] ?? '',
                 'movementType' => $filters['movement_type'] ?? '',
+                'dateFrom' => $filters['date_from'] ?? '',
+                'dateTo' => $filters['date_to'] ?? '',
                 'batch' => $filters['batch'] ?? '',
             ],
             'locations' => $this->locations($actor, $branch),
@@ -104,7 +106,7 @@ final class InventoryDirectoryService
         return $locations;
     }
 
-    /** @param array{tab:string,search:?string,location:?string,status:?string,movement_type:?string,batch:?string,page:int} $filters
+    /** @param array{tab:string,search:?string,location:?string,status:?string,movement_type:?string,date_from:?string,date_to:?string,batch:?string,page:int} $filters
      * @return array{data:list<array<string, mixed>>,total:int,currentPage:int,lastPage:int}
      */
     private function stock(User $actor, Branch $branch, array $filters, ?int $locationId): array
@@ -137,7 +139,7 @@ final class InventoryDirectoryService
         return $this->page($results, $data);
     }
 
-    /** @param array{tab:string,search:?string,location:?string,status:?string,movement_type:?string,batch:?string,page:int} $filters
+    /** @param array{tab:string,search:?string,location:?string,status:?string,movement_type:?string,date_from:?string,date_to:?string,batch:?string,page:int} $filters
      * @return array{data:list<array<string, mixed>>,total:int,currentPage:int,lastPage:int}
      */
     private function batches(User $actor, Branch $branch, array $filters, ?int $locationId): array
@@ -168,7 +170,7 @@ final class InventoryDirectoryService
         return $this->page($results, $data);
     }
 
-    /** @param array{tab:string,search:?string,location:?string,status:?string,movement_type:?string,batch:?string,page:int} $filters
+    /** @param array{tab:string,search:?string,location:?string,status:?string,movement_type:?string,date_from:?string,date_to:?string,batch:?string,page:int} $filters
      * @return array{data:list<array<string, mixed>>,total:int,currentPage:int,lastPage:int}
      */
     private function movements(User $actor, Branch $branch, array $filters, ?int $locationId): array
@@ -187,6 +189,12 @@ final class InventoryDirectoryService
         $this->applySearch($query, $filters['search']);
         if ($filters['movement_type']) {
             $query->where('movement.movement_type', $filters['movement_type']);
+        }
+        if ($filters['date_from']) {
+            $query->where('movement.occurred_at', '>=', CarbonImmutable::parse($filters['date_from'], $branch->timezone)->startOfDay()->utc());
+        }
+        if ($filters['date_to']) {
+            $query->where('movement.occurred_at', '<=', CarbonImmutable::parse($filters['date_to'], $branch->timezone)->endOfDay()->utc());
         }
         if ($filters['batch']) {
             $query->whereRaw('LOWER(batch.batch_number) LIKE ?', ['%'.mb_strtolower($filters['batch']).'%']);
@@ -265,7 +273,7 @@ final class InventoryDirectoryService
                 'l.name as location_name', 'l.type as location_type', 'l.is_active as location_active', 'batch.batch_number', 'batch.expiry_date', 'batch.received_at', 'batch.status as batch_status']);
     }
 
-    /** @param array{tab:string,search:?string,location:?string,status:?string,movement_type:?string,batch:?string,page:int} $filters */
+    /** @param array{tab:string,search:?string,location:?string,status:?string,movement_type:?string,date_from:?string,date_to:?string,batch:?string,page:int} $filters */
     private function applyCommonFilters(Builder $query, array $filters, ?int $locationId, string $localDate): void
     {
         $this->applySearch($query, $filters['search']);
