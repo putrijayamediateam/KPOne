@@ -1197,13 +1197,17 @@ const saveReorder = () =>
                 >
                     No available branch batch is nearing expiry.
                 </p>
-                <p
+                <div
                     v-for="row in operations.expiringBatches"
-                    :key="`${row.sku}-${row.batch}`"
-                    class="text-xs"
+                    :key="`${row.sku}-${row.batch}-${row.location}`"
+                    class="space-y-1 rounded-lg border bg-muted/30 p-2 text-xs break-words whitespace-normal"
                 >
                     {{ row.sku }} · {{ row.batch }} · {{ row.expiryDate }}
-                </p>
+                    <span class="block break-words whitespace-normal">
+                        Location: {{ row.location }} · {{ row.quantity }} in
+                        stock
+                    </span>
+                </div>
             </section>
         </div>
 

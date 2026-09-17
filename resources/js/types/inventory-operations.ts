@@ -571,6 +571,8 @@ export const inventoryFilterError = (
         'location',
         'status',
         'movement_type',
+        'date_from',
+        'date_to',
         'batch',
         'page',
     ]) {

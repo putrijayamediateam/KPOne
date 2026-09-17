@@ -28,6 +28,8 @@ type InventoryDirectory = {
         location: string;
         status: string;
         movementType: string;
+        dateFrom: string;
+        dateTo: string;
         batch: string;
     };
     locations: Array<{ publicId: string; name: string; type: string }>;
@@ -52,6 +54,8 @@ const search = ref(props.inventory.filters.search);
 const location = ref(props.inventory.filters.location);
 const status = ref(props.inventory.filters.status);
 const movementType = ref(props.inventory.filters.movementType);
+const dateFrom = ref(props.inventory.filters.dateFrom);
+const dateTo = ref(props.inventory.filters.dateTo);
 const batch = ref(props.inventory.filters.batch);
 const loading = ref(false);
 const filterError = computed(() => inventoryFilterError(props.errors ?? {}));
@@ -63,6 +67,8 @@ watch(
         location.value = filters.location;
         status.value = filters.status;
         movementType.value = filters.movementType;
+        dateFrom.value = filters.dateFrom;
+        dateTo.value = filters.dateTo;
         batch.value = filters.batch;
     },
 );
@@ -113,6 +119,14 @@ const visit = (overrides: Record<string, string | number> = {}) => {
                 props.inventory.tab === 'movements'
                     ? movementType.value || undefined
                     : undefined,
+            date_from:
+                props.inventory.tab === 'movements'
+                    ? dateFrom.value || undefined
+                    : undefined,
+            date_to:
+                props.inventory.tab === 'movements'
+                    ? dateTo.value || undefined
+                    : undefined,
             batch:
                 props.inventory.tab === 'stock'
                     ? undefined
@@ -134,6 +148,8 @@ const clearFilters = () => {
     location.value = '';
     status.value = '';
     movementType.value = '';
+    dateFrom.value = '';
+    dateTo.value = '';
     batch.value = '';
     visit({ page: 1 });
 };
@@ -186,7 +202,12 @@ const clearFilters = () => {
             />
 
             <form
-                class="grid gap-3 md:grid-cols-2 xl:grid-cols-5"
+                class="grid gap-3 md:grid-cols-2"
+                :class="
+                    inventory.tab === 'movements'
+                        ? 'xl:grid-cols-7'
+                        : 'xl:grid-cols-5'
+                "
                 aria-label="Inventory filters"
                 @submit.prevent="applyFilters"
             >
@@ -232,6 +253,28 @@ const clearFilters = () => {
                         v-model="movementType"
                         label="Movement type"
                         :options="movementOptions"
+                    />
+                </div>
+                <div v-if="inventory.tab === 'movements'" class="space-y-1">
+                    <label for="movement-date-from" class="text-xs font-medium">
+                        Date from
+                    </label>
+                    <Input
+                        id="movement-date-from"
+                        v-model="dateFrom"
+                        type="date"
+                        :max="dateTo || undefined"
+                    />
+                </div>
+                <div v-if="inventory.tab === 'movements'" class="space-y-1">
+                    <label for="movement-date-to" class="text-xs font-medium">
+                        Date to
+                    </label>
+                    <Input
+                        id="movement-date-to"
+                        v-model="dateTo"
+                        type="date"
+                        :min="dateFrom || undefined"
                     />
                 </div>
                 <div v-if="inventory.tab !== 'stock'" class="space-y-1">
