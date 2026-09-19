@@ -21,6 +21,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property int $created_by_user_id
  * @property int|null $revoked_by_user_id
  * @property CarbonImmutable|null $revoked_at
+ * @property CarbonImmutable|null $expires_at
  * @property int|null $rotated_from_id
  * @property CarbonImmutable|null $created_at
  * @property CarbonImmutable|null $updated_at
@@ -41,6 +42,7 @@ class PublicCheckInLink extends Model
         return [
             'is_active' => 'boolean',
             'revoked_at' => 'immutable_datetime',
+            'expires_at' => 'immutable_datetime',
         ];
     }
 

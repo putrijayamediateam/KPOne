@@ -6,6 +6,7 @@ import {
     LayoutDashboard,
     ListOrdered,
     ClipboardPlus,
+    ClipboardCheck,
     ShieldCheck,
     Users,
     UserRoundSearch,
@@ -38,6 +39,15 @@ const mainNavItems = computed<NavItem[]>(() => [
                   title: 'Registration',
                   href: '/registration',
                   icon: ClipboardPlus,
+              },
+          ]
+        : []),
+    ...(can('visits.create.branch')
+        ? [
+              {
+                  title: 'Registration Review',
+                  href: '/registration-review',
+                  icon: ClipboardCheck,
               },
           ]
         : []),

@@ -91,6 +91,8 @@ class PublicCheckInLinkService
             ->where('token_hash', hash('sha256', $rawToken))
             ->where('is_active', true)
             ->whereNull('revoked_at')
+            ->whereNotNull('expires_at')
+            ->where('expires_at', '>', now()->utc())
             ->whereHas('branch', fn ($query) => $query->where('is_active', true))
             ->firstOrFail();
     }
@@ -115,6 +117,7 @@ class PublicCheckInLinkService
             'label' => Str::limit(trim($label), 120, ''),
             'is_active' => true,
             'active_branch_guard' => 'branch:'.$branch->id,
+            'expires_at' => now()->utc()->addDays((int) config('public-intake.link_ttl_days', 90)),
             'created_by_user_id' => $actor->id,
             'rotated_from_id' => $rotatedFromId,
         ]);

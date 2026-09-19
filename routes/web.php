@@ -22,6 +22,7 @@ use App\Http\Controllers\PatientIdentifierController;
 use App\Http\Controllers\PatientSearchController;
 use App\Http\Controllers\PublicCheckInController;
 use App\Http\Controllers\PublicCheckInLinkController;
+use App\Http\Controllers\PublicIntakeReviewController;
 use App\Http\Controllers\QueueController;
 use App\Http\Controllers\RegistrationController;
 use App\Http\Controllers\StaffBranchAssignmentController;
@@ -42,8 +43,20 @@ Route::get('/', fn () => Auth::check()
 
 Route::get('check-in/{token}', PublicCheckInController::class)
     ->where('token', '[A-Za-z0-9_-]{43}')
-    ->middleware(['throttle:public-checkin-view', 'sensitive.no-store'])
+    ->middleware(['public-intake.proxy', 'throttle:public-checkin-view', 'sensitive.no-store'])
     ->name('public-checkin.show');
+Route::post('check-in/{token}/session', [PublicCheckInController::class, 'session'])
+    ->where('token', '[A-Za-z0-9_-]{43}')
+    ->middleware(['public-intake.proxy', 'throttle:public-intake-session', 'sensitive.no-store'])
+    ->name('public-intake.session');
+Route::post('check-in/{token}/intakes', [PublicCheckInController::class, 'submit'])
+    ->where('token', '[A-Za-z0-9_-]{43}')
+    ->middleware(['public-intake.proxy', 'throttle:public-intake-submit', 'sensitive.no-store'])
+    ->name('public-intake.submit');
+Route::get('check-in/status/{receipt}', [PublicCheckInController::class, 'status'])
+    ->where('receipt', '[A-Za-z0-9_-]{43}')
+    ->middleware(['public-intake.proxy', 'throttle:public-intake-status', 'sensitive.no-store'])
+    ->name('public-intake.status');
 
 Route::middleware(['guest', 'throttle:10,1'])->group(function () {
     Route::get('auth/google/redirect', [GoogleAuthController::class, 'redirect'])->name('google.redirect');
@@ -129,6 +142,17 @@ Route::middleware(['auth', 'verified'])->group(function () {
     });
 
     Route::middleware(['sensitive.no-store', 'inertia.encrypt'])->group(function () {
+        Route::prefix('registration-review')->controller(PublicIntakeReviewController::class)
+            ->middleware('permission:visits.create.branch')->group(function () {
+                Route::get('/', 'index')->name('registration-review.index');
+                Route::get('{publicIntake}', 'show')->whereUuid('publicIntake')->name('registration-review.show');
+                Route::post('{publicIntake}/start', 'start')->whereUuid('publicIntake')->middleware('throttle:30,1')->name('registration-review.start');
+                Route::patch('{publicIntake}/correct', 'correct')->whereUuid('publicIntake')->middleware('throttle:30,1')->name('registration-review.correct');
+                Route::post('{publicIntake}/correction-required', 'correctionRequired')->whereUuid('publicIntake')->middleware('throttle:30,1')->name('registration-review.correction-required');
+                Route::post('{publicIntake}/reject', 'reject')->whereUuid('publicIntake')->middleware('throttle:30,1')->name('registration-review.reject');
+                Route::post('{publicIntake}/accept', 'accept')->whereUuid('publicIntake')->middleware('throttle:20,1')->name('registration-review.accept');
+            });
+
         Route::get('inventory', InventoryController::class)
             ->middleware('permission:inventory.view.branch')->name('inventory.index');
         Route::post('visits/{visit}/encounter', [ClinicalEncounterController::class, 'store'])

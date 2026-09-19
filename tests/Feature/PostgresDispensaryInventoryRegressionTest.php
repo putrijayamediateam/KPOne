@@ -609,8 +609,9 @@ class PostgresDispensaryInventoryRegressionTest extends TestCase
 
         $migrator = app('migrator');
         $path = database_path('migrations/'.self::INVENTORY_OPERATIONS_MIGRATION.'.php');
+        $migrationBatch = DB::table('migrations')->where('migration', self::INVENTORY_OPERATIONS_MIGRATION)->value('batch');
         try {
-            $migrator->rollback([$path], ['step' => 1]);
+            $migrator->rollback([$path], ['batch' => $migrationBatch]);
             foreach (self::INVENTORY_OPERATIONS_TABLES as $table) {
                 $this->assertFalse(Schema::hasTable($table), $table);
             }
@@ -684,7 +685,7 @@ class PostgresDispensaryInventoryRegressionTest extends TestCase
 
         foreach (self::INVENTORY_OPERATIONS_TABLES as $table) {
             try {
-                $migrator->rollback([$path], ['step' => 1]);
+                $migrator->rollback([$path], ['batch' => $migrationBatch]);
                 $this->fail("Laravel migrator removed retained evidence from [{$table}].");
             } catch (RuntimeException $exception) {
                 $this->assertStringContainsString("retained evidence exists in [{$table}]", $exception->getMessage());
@@ -706,7 +707,7 @@ class PostgresDispensaryInventoryRegressionTest extends TestCase
             'actor_user_id' => $fixture['inventorySupervisor']->id, 'occurred_at' => $now, 'created_at' => $now, 'updated_at' => $now,
         ]);
         try {
-            $migrator->rollback([$path], ['step' => 1]);
+            $migrator->rollback([$path], ['batch' => $migrationBatch]);
             $this->fail('Laravel migrator removed retained Inventory Operations movement evidence.');
         } catch (RuntimeException $exception) {
             $this->assertStringContainsString('posted movement evidence cannot be rolled back', $exception->getMessage());

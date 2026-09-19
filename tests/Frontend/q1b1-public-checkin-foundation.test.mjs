@@ -18,13 +18,11 @@ test('admin surface supports lifecycle and one-time URL without reconstructing s
     assert.doesNotMatch(admin, /token_hash|tokenHash/);
 });
 
-test('public landing is branch-only and contains no patient intake form', () => {
+test('public landing remains branch-bound and isolated from staff chrome', () => {
     assert.match(publicPage, /branch\.name/);
-    assert.match(publicPage, /No Patient information is collected/);
-    assert.doesNotMatch(
-        publicPage,
-        /<form|NRIC|Passport|Phone|Gender|Panel|Visit Reason/,
-    );
+    assert.match(publicPage, /Mula Daftar/);
+    assert.match(publicPage, /status_receipt/);
+    assert.doesNotMatch(publicPage, /organisationId|patientId|visitId/);
     assert.doesNotMatch(
         layout,
         /WorkspaceHeader|BranchSwitcher|NavUser|AppSidebar/,
@@ -34,7 +32,7 @@ test('public landing is branch-only and contains no patient intake form', () => 
 test('public and admin pages retain responsive and accessible semantics', () => {
     assert.match(publicPage, /<main/);
     assert.match(publicPage, /<h1/);
-    assert.match(publicPage, /sm:px-8/);
+    assert.match(publicPage, /sm:px-6/);
     assert.match(admin, /Label id="checkin-branch-label"/);
     assert.match(admin, /labelledby="checkin-branch-label"/);
     assert.match(admin, /role="alert"/);

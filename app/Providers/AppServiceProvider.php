@@ -13,6 +13,7 @@ use App\Domain\Clinical\Models\ClinicalEncounter;
 use App\Domain\Clinical\Policies\ClinicalEncounterPolicy;
 use App\Domain\Identity\Policies\StaffPolicy;
 use App\Domain\Organisation\Models\Branch;
+use App\Domain\Organisation\Models\PublicCheckInLink;
 use App\Domain\Organisation\Policies\BranchPolicy;
 use App\Domain\Patient\Models\Patient;
 use App\Domain\Patient\Policies\PatientPolicy;
@@ -60,6 +61,10 @@ class AppServiceProvider extends ServiceProvider
         $this->configureAuthorization();
         $this->configureAuditListeners();
         $this->configurePublicCheckInRateLimiting();
+        if (! $this->app->environment(['local', 'testing'])
+            && in_array('*', config('public-intake.trusted_proxies', []), true)) {
+            throw new \LogicException('Wildcard trusted proxies are forbidden for public patient intake.');
+        }
 
         Route::bind('patient', function (string $value): Patient {
             $actor = request()->user();
@@ -117,6 +122,40 @@ class AppServiceProvider extends ServiceProvider
                 Limit::perMinute(1000)->by($linkKey),
             ];
         });
+
+        RateLimiter::for('public-intake-session', fn (Request $request): array => $this->publicIntakeLimits($request, 20, 10, 100));
+        RateLimiter::for('public-intake-submit', function (Request $request): array {
+            $limits = $this->publicIntakeLimits($request, 10, 5, 60);
+            $limits[] = Limit::perMinute(3)->by('submission:'.hash('sha256', (string) $request->input('nonce')));
+
+            return $limits;
+        });
+        RateLimiter::for('public-intake-status', function (Request $request): array {
+            $receiptKey = hash('sha256', (string) $request->route('receipt'));
+
+            return [
+                Limit::perMinute(120)->by((string) $request->ip()),
+                Limit::perMinute(30)->by((string) $request->ip().'|'.$receiptKey),
+                Limit::perMinute(120)->by($receiptKey),
+            ];
+        });
+    }
+
+    /** @return array<int, Limit> */
+    private function publicIntakeLimits(Request $request, int $perIp, int $perIpToken, int $perBranch): array
+    {
+        $tokenKey = hash('sha256', (string) $request->route('token'));
+        $ip = (string) $request->ip();
+        $branchId = PublicCheckInLink::query()
+            ->where('token_hash', $tokenKey)
+            ->value('branch_id');
+        $branchKey = $branchId ? 'branch:'.$branchId : 'invalid:'.$tokenKey;
+
+        return [
+            Limit::perMinute($perIp)->by($ip),
+            Limit::perMinute($perIpToken)->by($ip.'|'.$tokenKey),
+            Limit::perMinute($perBranch)->by($branchKey),
+        ];
     }
 
     protected function configureAuthorization(): void

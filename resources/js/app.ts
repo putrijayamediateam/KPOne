@@ -11,8 +11,11 @@ import { installAuthenticationHistoryBoundary } from '@/lib/inertia-auth-history
 
 const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
 const initialPageElement = document.getElementById('app');
+const initialPageScript = document.querySelector<HTMLScriptElement>(
+    'script[data-page="app"]',
+);
 const initialPage = JSON.parse(
-    initialPageElement?.dataset.page ?? '{}',
+    initialPageElement?.dataset.page ?? initialPageScript?.textContent ?? '{}',
 ) as Page;
 const authenticationHistory = installAuthenticationHistoryBoundary(
     router,

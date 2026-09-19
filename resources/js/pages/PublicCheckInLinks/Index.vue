@@ -28,9 +28,10 @@ type LinkRow = {
     publicId: string;
     branch: { code: string; name: string };
     label: string;
-    status: 'active' | 'revoked';
+    status: 'active' | 'revoked' | 'expired';
     createdAt: string | null;
     revokedAt: string | null;
+    expiresAt: string | null;
 };
 const props = defineProps<{
     links: LinkRow[];
@@ -44,7 +45,12 @@ const pending = ref<{ type: 'rotate' | 'revoke'; link: LinkRow } | null>(null);
 const creating = ref(false);
 const actionProcessing = ref(false);
 const actionError = ref('');
-const issuedLink = ref<{ publicId: string; url: string } | null>(null);
+const issuedLink = ref<{
+    publicId: string;
+    url: string;
+    qrDataUri: string;
+    expiresAt: string | null;
+} | null>(null);
 const branchOptions = computed(() =>
     props.branches.map((branch) => ({ value: branch.id, label: branch.name })),
 );
@@ -75,7 +81,12 @@ const request = async (
     }
 
     return data as {
-        issuedLink?: { publicId: string; url: string };
+        issuedLink?: {
+            publicId: string;
+            url: string;
+            qrDataUri: string;
+            expiresAt: string | null;
+        };
         errors?: Record<string, string[]>;
     } | null;
 };
@@ -157,7 +168,7 @@ const copyLink = async () => {
             </h1>
             <p class="text-sm text-muted-foreground">
                 Issue and revoke branch-bound public landing links. No Patient
-                information is collected in this phase.
+                information is staged until staff review and confirmation.
             </p>
         </header>
 
@@ -172,34 +183,43 @@ const copyLink = async () => {
                     cannot display it again after refresh.</CardDescription
                 ></CardHeader
             >
-            <CardContent class="space-y-3">
-                <div class="flex flex-col gap-2 sm:flex-row">
-                    <Input
-                        readonly
-                        :model-value="issuedLink.url"
-                        aria-label="New public check-in URL"
-                    /><Button
-                        type="button"
-                        variant="outline"
-                        class="cursor-pointer"
-                        @click="copyLink"
-                        ><Clipboard class="size-4" />{{ copyLabel }}</Button
-                    ><Button as-child
-                        ><a
-                            :href="issuedLink.url"
-                            target="_blank"
-                            rel="noreferrer"
-                            ><ExternalLink class="size-4" />Open</a
-                        ></Button
+            <CardContent class="grid gap-5 md:grid-cols-[12rem_1fr]">
+                <img
+                    :src="issuedLink.qrDataUri"
+                    alt="Branch public patient intake QR code"
+                    class="aspect-square w-48 rounded-xl border bg-white p-2"
+                />
+                <div class="space-y-3">
+                    <div class="flex flex-col gap-2 sm:flex-row">
+                        <Input
+                            readonly
+                            :model-value="issuedLink.url"
+                            aria-label="New public check-in URL"
+                        /><Button
+                            type="button"
+                            variant="outline"
+                            class="cursor-pointer"
+                            @click="copyLink"
+                            ><Clipboard class="size-4" />{{ copyLabel }}</Button
+                        ><Button as-child
+                            ><a
+                                :href="issuedLink.url"
+                                target="_blank"
+                                rel="noreferrer"
+                                ><ExternalLink class="size-4" />Open</a
+                            ></Button
+                        >
+                    </div>
+                    <p
+                        class="flex items-center gap-2 text-xs text-muted-foreground"
                     >
+                        <QrCode class="size-4" />Generated locally. No URL or
+                        token is sent to an external QR service.
+                    </p>
+                    <p class="text-xs text-muted-foreground">
+                        Expires {{ formatDateTime(issuedLink.expiresAt) }}.
+                    </p>
                 </div>
-                <p
-                    class="flex items-center gap-2 text-xs text-muted-foreground"
-                >
-                    <QrCode class="size-4" />QR generation is pending an
-                    approved local renderer. No token is sent to an external QR
-                    service.
-                </p>
             </CardContent>
         </Card>
 
@@ -277,7 +297,11 @@ const copyLink = async () => {
                                     : 'outline'
                             "
                             >{{
-                                link.status === 'active' ? 'Active' : 'Revoked'
+                                link.status === 'active'
+                                    ? 'Active'
+                                    : link.status === 'expired'
+                                      ? 'Expired'
+                                      : 'Revoked'
                             }}</Badge
                         >
                     </div></CardHeader
@@ -294,6 +318,12 @@ const copyLink = async () => {
                             <dt>Revoked</dt>
                             <dd class="mt-1 text-foreground">
                                 {{ formatDateTime(link.revokedAt) }}
+                            </dd>
+                        </div>
+                        <div>
+                            <dt>Expires</dt>
+                            <dd class="mt-1 text-foreground">
+                                {{ formatDateTime(link.expiresAt) }}
                             </dd>
                         </div>
                     </dl>
