@@ -718,8 +718,7 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
                             v-model="form.assigned_doctor_user_id"
                             label="Doctor"
                             :invalid="!!form.errors.assigned_doctor_user_id"
-                            :options="doctorOptions" />
-                        ><InputError
+                            :options="doctorOptions" /><InputError
                             :message="errorFor('assigned_doctor_user_id')"
                     /></label>
                     <div class="grid gap-1 md:col-span-2">

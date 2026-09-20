@@ -54,7 +54,7 @@ const update = (value: unknown) => {
     >
         <SelectTrigger
             :id="id"
-            class="w-full"
+            class="min-w-0 w-full"
             :class="triggerClass"
             :aria-label="labelledby ? undefined : label"
             :aria-labelledby="labelledby"

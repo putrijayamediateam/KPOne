@@ -9,6 +9,7 @@ use App\Domain\Identity\Models\StaffProfile;
 use App\Domain\Organisation\Models\Branch;
 use App\Domain\Patient\Models\Patient;
 use App\Domain\Patient\Services\PatientAdministrationService;
+use App\Domain\Patient\Services\PublicIntakePayloadValidator;
 use App\Domain\Visit\Models\Panel;
 use App\Domain\Visit\Models\Visit;
 use App\Models\User;
@@ -110,6 +111,12 @@ class VisitRegistrationService
                     'status' => Visit::STATUS_REGISTERED,
                     'priority' => $validated['priority'],
                     'visit_reason' => $reasons->first()?->name,
+                    'intake_purpose' => $validated['intake_purpose'],
+                    'encrypted_presenting_information' => $validated['chief_complaint'] === null
+                        ? null : [
+                            'chief_complaint' => $validated['chief_complaint'],
+                            'duration' => $validated['complaint_duration'],
+                        ],
                     'assigned_doctor_user_id' => $doctor?->id,
                     'coverage_type' => $validated['coverage_type'],
                     'panel_id' => $panel?->id,
@@ -191,6 +198,9 @@ class VisitRegistrationService
             'panel_id' => ['nullable', 'integer', 'required_if:coverage_type,panel'],
             'coverage_member_reference' => ['nullable', 'string', 'max:100'],
             'confirm_repeat' => ['nullable', 'boolean'],
+            'intake_purpose' => ['nullable', Rule::in(PublicIntakePayloadValidator::VISIT_PURPOSES)],
+            'chief_complaint' => ['nullable', 'string', 'max:500'],
+            'complaint_duration' => ['nullable', 'string', 'max:120'],
         ])->validate();
 
         $validated['visit_reason_public_ids'] = array_values($validated['visit_reason_public_ids'] ?? []);
@@ -199,6 +209,9 @@ class VisitRegistrationService
             ? (int) $validated['assigned_doctor_user_id'] : null;
         $validated['panel_id'] = isset($validated['panel_id']) ? (int) $validated['panel_id'] : null;
         $validated['confirm_repeat'] = (bool) ($validated['confirm_repeat'] ?? false);
+        $validated['intake_purpose'] = $validated['intake_purpose'] ?? null;
+        $validated['chief_complaint'] = $this->nullableTrim($validated['chief_complaint'] ?? null);
+        $validated['complaint_duration'] = $this->nullableTrim($validated['complaint_duration'] ?? null);
 
         if ($validated['coverage_type'] === 'self_pay') {
             $validated['panel_id'] = null;

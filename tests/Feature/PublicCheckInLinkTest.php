@@ -8,6 +8,7 @@ use App\Domain\Organisation\Models\Organisation;
 use App\Domain\Organisation\Models\PublicCheckInLink;
 use App\Domain\Organisation\Services\PublicCheckInLinkService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\ValidationException;
 use Inertia\DevTools\DevTools;
@@ -16,7 +17,7 @@ use Tests\Feature\Visit\VisitTestCase;
 
 class PublicCheckInLinkTest extends VisitTestCase
 {
-    public function test_director_can_issue_digest_only_branch_bound_link_and_public_landing_is_minimal(): void
+    public function test_director_can_issue_encrypted_recoverable_branch_bound_link_and_public_landing_is_minimal(): void
     {
         $director = $this->actor('director');
         $this->selectBranch($director);
@@ -38,6 +39,7 @@ class PublicCheckInLinkTest extends VisitTestCase
 
         $this->assertSame(hash('sha256', $rawToken), $link->token_hash);
         $this->assertStringNotContainsString($rawToken, json_encode($link->getAttributes(), JSON_THROW_ON_ERROR));
+        $this->assertSame($rawToken, $link->encrypted_token);
         $this->assertSame($this->organisation->id, $link->organisation_id);
         $this->assertSame($this->branch->id, $link->branch_id);
 
@@ -60,15 +62,32 @@ class PublicCheckInLinkTest extends VisitTestCase
         $this->assertStringNotContainsString($rawToken, json_encode($audit->metadata, JSON_THROW_ON_ERROR));
     }
 
-    public function test_issued_url_is_not_recoverable_from_the_management_page(): void
+    public function test_active_qr_is_recoverable_without_rotation_and_legacy_link_requires_one_rotation(): void
     {
         $director = $this->actor('director');
         $this->selectBranch($director);
+        $this->assertTrue($director->can('public_checkin_links.manage.organisation'));
         $response = $this->postJson(route('public-checkin-links.store'), ['branch_id' => $this->branch->id, 'label' => 'Once'])->assertCreated();
         $rawUrl = $response->json('issuedLink.url');
 
-        $this->get(route('public-checkin-links.index'))->assertInertia(fn (Assert $page) => $page->missing('issuedLink'));
+        $firstPage = $this->get(route('public-checkin-links.index'))->assertOk();
+        $firstPage->assertInertia(fn (Assert $page) => $page
+            ->where('links.0.activeQr.url', $rawUrl)
+            ->where('links.0.requiresRotation', false));
+        $secondPage = $this->get(route('public-checkin-links.index'))->assertOk();
+        $secondPage->assertInertia(fn (Assert $page) => $page
+            ->where('links.0.activeQr.url', $rawUrl));
+
+        $firstActiveQr = $firstPage->inertiaPage()['props']['links'][0]['activeQr'];
+        $secondActiveQr = $secondPage->inertiaPage()['props']['links'][0]['activeQr'];
+        $this->assertSame($firstActiveQr['url'], $secondActiveQr['url']);
+        $this->assertSame($firstActiveQr['qrDataUri'], $secondActiveQr['qrDataUri']);
         $this->assertStringNotContainsString($rawUrl, json_encode(PublicCheckInLink::query()->sole()->getAttributes(), JSON_THROW_ON_ERROR));
+
+        PublicCheckInLink::query()->sole()->forceFill(['encrypted_token' => null])->save();
+        $this->get(route('public-checkin-links.index'))->assertInertia(fn (Assert $page) => $page
+            ->where('links.0.activeQr', null)
+            ->where('links.0.requiresRotation', true));
     }
 
     public function test_rotation_invalidates_old_token_and_revoke_invalidates_current_token(): void
@@ -84,6 +103,21 @@ class PublicCheckInLinkTest extends VisitTestCase
         app(PublicCheckInLinkService::class)->revoke($director, $rotated['link']);
         $this->postJson(route('public-intake.exchange'), ['link_token' => $rotated['rawToken']])->assertNotFound();
         $this->assertDatabaseHas('audit_logs', ['event' => 'public_checkin_link.revoked']);
+    }
+
+    public function test_encrypted_token_failure_is_fail_closed_and_requires_controlled_rotation(): void
+    {
+        $director = $this->actor('director');
+        $this->selectBranch($director);
+        $issued = app(PublicCheckInLinkService::class)->issue($director, $this->branch, 'QR');
+        DB::table('public_checkin_links')->where('id', $issued['link']->id)
+            ->update(['encrypted_token' => 'not-valid-ciphertext']);
+
+        $this->actingAs($director)->get(route('public-checkin-links.index'))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('links.0.activeQr', null)
+                ->where('links.0.requiresRotation', true));
     }
 
     public function test_random_malformed_and_revoked_tokens_fail_with_the_same_public_status(): void
@@ -108,17 +142,41 @@ class PublicCheckInLinkTest extends VisitTestCase
 
     public function test_permission_and_tenant_boundaries_are_server_enforced(): void
     {
-        foreach (['ca', 'ca_supervisor', 'resident_doctor', 'panel_officer', 'finance_officer', 'technical_admin'] as $role) {
+        foreach (['ca', 'resident_doctor', 'panel_officer', 'finance_officer', 'technical_admin'] as $role) {
             $actor = $this->actor($role);
             $this->actingAs($actor)->get(route('public-checkin-links.index'))->assertForbidden();
         }
 
+        $supervisor = $this->actor('ca_supervisor');
+        $this->selectBranch($supervisor);
+        $this->actingAs($supervisor)->get(route('public-checkin-links.index'))->assertOk();
         $director = $this->actor('director');
+
+        $foreignAssignedBranch = new Branch;
+        $foreignAssignedBranch->forceFill([
+            'organisation_id' => $this->organisation->id,
+            'code' => 'OTHER',
+            'name' => 'Other Synthetic Branch',
+            'timezone' => 'Asia/Kuala_Lumpur',
+            'is_active' => true,
+        ])->save();
+        $foreignLink = app(PublicCheckInLinkService::class)->issue($director, $foreignAssignedBranch, 'Other QR');
+        $this->actingAs($supervisor)->get(route('public-checkin-links.index'))
+            ->assertInertia(fn (Assert $page) => $page->has('links', 0));
+        $this->post(route('public-checkin-links.rotate', $foreignLink['link']->public_id))->assertForbidden();
+
+        $supervisor->assignRole('panel_officer');
+        $this->assertTrue($supervisor->can('branch_context.switch.organisation'));
+        $this->actingAs($supervisor)->get(route('public-checkin-links.index'))
+            ->assertInertia(fn (Assert $page) => $page->has('links', 0));
+        $this->post(route('public-checkin-links.rotate', $foreignLink['link']->public_id))->assertForbidden();
+
         $foreignOrganisation = Organisation::query()->create(['code' => 'FOREIGN', 'name' => 'Foreign Synthetic Org', 'is_active' => true]);
         $foreignBranch = new Branch;
         $foreignBranch->forceFill(['organisation_id' => $foreignOrganisation->id, 'code' => 'FOREIGN', 'name' => 'Foreign', 'timezone' => 'Asia/Kuala_Lumpur', 'is_active' => true])->save();
+        $before = PublicCheckInLink::query()->count();
         $this->actingAs($director)->post(route('public-checkin-links.store'), ['branch_id' => $foreignBranch->id, 'label' => 'No'])->assertSessionHasErrors('branch_id');
-        $this->assertDatabaseCount('public_checkin_links', 0);
+        $this->assertSame($before, PublicCheckInLink::query()->count());
     }
 
     public function test_public_link_schema_contains_no_patient_or_intake_fields(): void

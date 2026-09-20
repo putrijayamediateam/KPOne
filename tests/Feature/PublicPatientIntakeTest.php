@@ -370,6 +370,25 @@ class PublicPatientIntakeTest extends VisitTestCase
         ]);
     }
 
+    public function test_visit_purpose_and_complaint_are_required_while_duration_is_optional(): void
+    {
+        [, $session] = $this->publicSession();
+        $invalid = $this->payload($session, [
+            'visit_purpose' => '',
+            'chief_complaint' => '',
+            'complaint_duration' => null,
+        ]);
+
+        $this->postJson(route('public-intake.submit'), $invalid)
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['visit_purpose', 'chief_complaint']);
+        $this->assertDatabaseCount('public_patient_intakes', 0);
+
+        $valid = $this->payload($session, ['complaint_duration' => null]);
+        $this->postJson(route('public-intake.submit'), $valid)->assertCreated();
+        $this->assertNull(PublicPatientIntake::query()->sole()->encrypted_payload['visit']['duration']);
+    }
+
     public function test_authorized_staff_acceptance_atomically_creates_patient_visit_and_one_queue_entry(): void
     {
         [$token, $session] = $this->publicSession();
@@ -382,8 +401,6 @@ class PublicPatientIntakeTest extends VisitTestCase
         $this->selectBranch($ca);
         $reason = app(VisitReasonService::class)->create($ca, 'Synthetic public intake review');
 
-        $this->post(route('registration-review.start', $intake->public_id), ['lock_version' => 1])->assertRedirect();
-        $intake->refresh();
         $accept = [
             'lock_version' => $intake->lock_version,
             'idempotency_key' => (string) Str::uuid(),
@@ -403,12 +420,21 @@ class PublicPatientIntakeTest extends VisitTestCase
         $this->assertSame([$before[0] + 1, $before[1] + 1, $before[2] + 1], [Patient::count(), Visit::count(), QueueEntry::count()]);
 
         $intake->refresh();
+        $visit = Visit::query()->whereKey($intake->visit_id)->firstOrFail();
         $this->assertSame(PublicPatientIntake::STATUS_ACCEPTED, $intake->status);
         $this->assertNotNull($intake->patient_id);
         $this->assertNotNull($intake->visit_id);
         $this->assertNotNull($intake->queue_entry_id);
         $this->assertSame($ca->id, $intake->accepted_by_user_id);
+        $this->assertSame('doctor_illness', $visit->intake_purpose);
+        $this->assertSame('Synthetic fever and cough since yesterday', $visit->encrypted_presenting_information['chief_complaint']);
+        $this->assertNotSame('Synthetic fever and cough since yesterday', $visit->visit_reason);
         $this->assertDatabaseHas('audit_logs', ['event' => 'public_intake.accepted', 'actor_user_id' => $ca->id]);
+        $this->assertDatabaseHas('audit_logs', ['event' => 'public_intake.review_started', 'actor_user_id' => $ca->id]);
+        $this->assertStringNotContainsString(
+            'Synthetic fever and cough since yesterday',
+            AuditLog::query()->get()->pluck('metadata')->map(fn ($metadata) => json_encode($metadata))->implode('\n'),
+        );
 
         $this->post(route('registration-review.accept', $intake->public_id), $accept)->assertRedirect();
         $this->assertSame([$before[0] + 1, $before[1] + 1, $before[2] + 1], [Patient::count(), Visit::count(), QueueEntry::count()]);
@@ -575,6 +601,68 @@ SQL);
         $this->assertSame('patient', $intake->submission_type);
     }
 
+    public function test_failed_staff_correction_does_not_flash_clinical_intake_fields(): void
+    {
+        [, $session] = $this->publicSession();
+        $this->postJson(route('public-intake.submit'), $this->payload($session))->assertCreated();
+        $intake = PublicPatientIntake::query()->sole();
+        $reviewer = $this->actor('ca');
+        $this->selectBranch($reviewer);
+
+        $this->from(route('registration-review.show', $intake->public_id))
+            ->patch(route('registration-review.correct', $intake->public_id), $this->payload($session, [
+                'lock_version' => $intake->lock_version,
+                'full_name' => '',
+                'visit_purpose' => 'pregnancy_check',
+                'chief_complaint' => 'Synthetic sensitive correction text',
+                'complaint_duration' => 'Synthetic duration',
+            ]))
+            ->assertRedirect(route('registration-review.show', $intake->public_id))
+            ->assertSessionHasErrors('full_name')
+            ->assertSessionMissing('_old_input.visit_purpose')
+            ->assertSessionMissing('_old_input.chief_complaint')
+            ->assertSessionMissing('_old_input.complaint_duration');
+    }
+
+    public function test_acceptance_rejects_idempotency_key_already_bound_to_another_visit(): void
+    {
+        [, $session] = $this->publicSession();
+        $this->postJson(route('public-intake.submit'), $this->payload($session))->assertCreated();
+        $intake = PublicPatientIntake::query()->sole();
+        $reviewer = $this->actor('ca');
+        $doctor = $this->actor('resident_doctor');
+        $existingPatient = $this->patient($reviewer);
+        $key = (string) Str::uuid();
+        $this->register($reviewer, $existingPatient, [
+            'idempotency_key' => $key,
+            'visit_type' => 'consultation',
+            'assigned_doctor_user_id' => $doctor->id,
+            'visit_reason' => 'Synthetic unrelated registration',
+        ]);
+        $this->selectBranch($reviewer);
+        $reason = app(VisitReasonService::class)->create($reviewer, 'Synthetic intake collision review');
+        $before = [Patient::count(), Visit::count(), QueueEntry::count()];
+
+        $this->post(route('registration-review.accept', $intake->public_id), [
+            'lock_version' => $intake->lock_version,
+            'idempotency_key' => $key,
+            'resolution' => 'create',
+            'patient_number' => null,
+            'duplicate_override' => true,
+            'assigned_doctor_user_id' => $doctor->id,
+            'visit_reason_public_ids' => [$reason->public_id],
+            'priority' => 'normal',
+            'coverage_type' => 'self_pay',
+            'confirm_repeat' => false,
+        ])->assertSessionHasErrors('idempotency_key');
+
+        $this->assertSame($before, [Patient::count(), Visit::count(), QueueEntry::count()]);
+        $this->assertSame(PublicPatientIntake::STATUS_PENDING, $intake->refresh()->status);
+        $this->assertNull($intake->patient_id);
+        $this->assertNull($intake->visit_id);
+        $this->assertNull($intake->queue_entry_id);
+    }
+
     public function test_cleanup_expires_and_purges_payload_idempotently(): void
     {
         [$token, $session] = $this->publicSession();
@@ -662,6 +750,9 @@ SQL);
             'identifier_type' => 'passport',
             'identifier_value' => 'SYNQ1B2'.Str::upper(Str::random(8)),
             'identifier_issuing_country_code' => 'MY',
+            'visit_purpose' => 'doctor_illness',
+            'chief_complaint' => 'Synthetic fever and cough since yesterday',
+            'complaint_duration' => 'One day',
             'guardian_name' => null,
             'guardian_relationship' => null,
             'guardian_contact_number' => null,

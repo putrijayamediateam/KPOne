@@ -7,6 +7,7 @@ import {
     ListOrdered,
     ClipboardPlus,
     ClipboardCheck,
+    QrCode,
     ShieldCheck,
     Users,
     UserRoundSearch,
@@ -42,12 +43,23 @@ const mainNavItems = computed<NavItem[]>(() => [
               },
           ]
         : []),
-    ...(can('visits.create.branch')
+    ...(can('public_intakes.review.branch')
         ? [
               {
-                  title: 'Registration Review',
+                  title: 'Pendaftaran QR',
                   href: '/registration-review',
                   icon: ClipboardCheck,
+                  badge: Number(page.props.workspace?.pendingIntakes ?? 0),
+              },
+          ]
+        : []),
+    ...(can('public_checkin_links.manage.organisation') ||
+    can('public_checkin_links.manage.branch')
+        ? [
+              {
+                  title: 'QR Cawangan',
+                  href: '/public-checkin-links',
+                  icon: QrCode,
               },
           ]
         : []),

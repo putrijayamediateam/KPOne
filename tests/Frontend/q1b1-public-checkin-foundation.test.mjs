@@ -9,13 +9,16 @@ const publicPage = read('resources/js/pages/PublicCheckIn/Show.vue');
 const layout = read('resources/js/layouts/PublicCheckInLayout.vue');
 const documentShell = read('resources/views/app.blade.php');
 
-test('admin surface supports lifecycle and one-time URL without reconstructing stored tokens', () => {
+test('admin surface supports lifecycle and securely recoverable active QR controls', () => {
     assert.match(admin, /Create link/);
     assert.match(admin, /Rotate/);
     assert.match(admin, /Revoke/);
-    assert.match(admin, /available once/);
-    assert.match(admin, /cannot be reconstructed/);
+    assert.match(admin, /remains available to/);
+    assert.match(admin, /requiresRotation/);
+    assert.match(admin, /Sila rotate sekali/);
     assert.match(admin, /navigator\.clipboard\.writeText/);
+    assert.match(admin, /downloadQr/);
+    assert.match(admin, /printQr/);
     assert.doesNotMatch(admin, /token_hash|tokenHash/);
 });
 
@@ -24,7 +27,10 @@ test('public landing remains branch-bound and isolated from staff chrome', () =>
     assert.match(publicPage, /Mula Daftar/);
     assert.match(publicPage, /\/check-in\/exchange/);
     assert.match(documentShell, /history\.replaceState/);
-    assert.ok(documentShell.indexOf('history.replaceState') < documentShell.indexOf('@vite'));
+    assert.ok(
+        documentShell.indexOf('history.replaceState') <
+            documentShell.indexOf('@vite'),
+    );
     assert.doesNotMatch(publicPage, /status_receipt|statusReceipt/);
     assert.doesNotMatch(publicPage, /organisationId|patientId|visitId/);
     assert.doesNotMatch(

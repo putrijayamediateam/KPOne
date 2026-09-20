@@ -11,6 +11,16 @@ use Illuminate\Validation\ValidationException;
 
 class PublicIntakePayloadValidator
 {
+    public const VISIT_PURPOSES = [
+        'doctor_illness',
+        'pregnancy_check',
+        'scan',
+        'vaccination',
+        'medical_checkup',
+        'procedure',
+        'other',
+    ];
+
     public function __construct(private PatientIdentityService $identity) {}
 
     /** @param array<string, mixed> $attributes
@@ -30,6 +40,9 @@ class PublicIntakePayloadValidator
             'identifier_type' => ['required', Rule::in(['nric', 'passport'])],
             'identifier_value' => ['required', 'string', 'max:100'],
             'identifier_issuing_country_code' => ['nullable', 'string', 'size:2'],
+            'visit_purpose' => ['required', Rule::in(self::VISIT_PURPOSES)],
+            'chief_complaint' => ['required', 'string', 'max:500'],
+            'complaint_duration' => ['nullable', 'string', 'max:120'],
             'guardian_name' => ['nullable', 'required_if:submission_type,guardian', 'string', 'max:255'],
             'guardian_relationship' => [
                 'nullable', 'required_if:submission_type,guardian',
@@ -109,6 +122,12 @@ class PublicIntakePayloadValidator
                 ]],
             ],
             'guardian' => $guardian,
+            'visit' => [
+                'purpose' => $validated['visit_purpose'],
+                'chief_complaint' => Str::squish((string) $validated['chief_complaint']),
+                'duration' => filled($validated['complaint_duration'] ?? null)
+                    ? Str::squish((string) $validated['complaint_duration']) : null,
+            ],
             'consent' => [
                 'confirmed' => true,
                 'privacy_notice_version' => $privacyVersion,
@@ -124,6 +143,7 @@ class PublicIntakePayloadValidator
         $patient = Arr::wrap($payload['patient'] ?? []);
         $identifier = Arr::wrap($patient['identifiers'][0] ?? []);
         $guardian = Arr::wrap($payload['guardian'] ?? []);
+        $visit = Arr::wrap($payload['visit'] ?? []);
 
         return [
             'submission_type' => $payload['submission_type'] ?? 'patient',
@@ -140,6 +160,9 @@ class PublicIntakePayloadValidator
             'guardian_relationship' => $guardian['relationship'] ?? null,
             'guardian_contact_number' => $guardian['contact_number'] ?? null,
             'guardian_attestation' => $guardian['attested'] ?? false,
+            'visit_purpose' => $visit['purpose'] ?? '',
+            'chief_complaint' => $visit['chief_complaint'] ?? '',
+            'complaint_duration' => $visit['duration'] ?? null,
             'consent_confirmed' => true,
             'privacy_notice_version' => $payload['consent']['privacy_notice_version'] ?? config('public-intake.privacy_notice_version'),
         ];

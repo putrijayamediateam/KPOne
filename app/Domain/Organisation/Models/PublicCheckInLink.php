@@ -15,6 +15,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property int $organisation_id
  * @property int $branch_id
  * @property string $token_hash
+ * @property string|null $encrypted_token
  * @property string $label
  * @property bool $is_active
  * @property string|null $active_branch_guard
@@ -32,7 +33,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property-read PublicCheckInLink|null $rotatedFrom
  */
 #[Guarded([])]
-#[Hidden(['token_hash', 'active_branch_guard'])]
+#[Hidden(['token_hash', 'encrypted_token', 'active_branch_guard'])]
 class PublicCheckInLink extends Model
 {
     protected $table = 'public_checkin_links';
@@ -41,6 +42,7 @@ class PublicCheckInLink extends Model
     {
         return [
             'is_active' => 'boolean',
+            'encrypted_token' => 'encrypted',
             'revoked_at' => 'immutable_datetime',
             'expires_at' => 'immutable_datetime',
         ];

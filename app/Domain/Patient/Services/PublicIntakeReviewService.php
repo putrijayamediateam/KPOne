@@ -56,6 +56,7 @@ class PublicIntakeReviewService
                 'publicId' => $intake->public_id,
                 'status' => $intake->status,
                 'submissionType' => $intake->submission_type,
+                'summary' => $this->summary($actor, $intake),
                 'submittedAt' => $intake->submitted_at->toIso8601String(),
                 'expiresAt' => $intake->expires_at->toIso8601String(),
                 'lockVersion' => $intake->lock_version,
@@ -130,7 +131,7 @@ class PublicIntakeReviewService
                 'reviewing_user_id' => $actor->id,
                 'lock_version' => $intake->lock_version + 1,
             ])->save();
-            $this->record('public_intake.corrected', $intake, $actor, $from, ['changed_groups' => ['patient', 'guardian']]);
+            $this->record('public_intake.corrected', $intake, $actor, $from, ['changed_groups' => ['patient', 'guardian', 'visit']]);
         });
     }
 
@@ -229,6 +230,28 @@ class PublicIntakeReviewService
                 throw ValidationException::withMessages(['intake' => 'Maklumat ini telah tamat dan tidak boleh diterima.']);
             }
 
+            if ($intake->status === PublicPatientIntake::STATUS_PENDING) {
+                $from = $intake->status;
+                $intake->forceFill([
+                    'status' => PublicPatientIntake::STATUS_UNDER_REVIEW,
+                    'review_started_at' => now()->utc(),
+                    'reviewing_user_id' => $actor->id,
+                    'lock_version' => $intake->lock_version + 1,
+                ])->save();
+                $this->record('public_intake.review_started', $intake, $actor, $from);
+            }
+
+            $collidingVisit = Visit::query()
+                ->where('organisation_id', $actor->organisation_id)
+                ->where('idempotency_key', $validated['idempotency_key'])
+                ->lockForUpdate()
+                ->first();
+            if ($collidingVisit !== null) {
+                throw ValidationException::withMessages([
+                    'idempotency_key' => 'Kunci penerimaan ini telah digunakan untuk pendaftaran lain. Muat semula dan cuba semula.',
+                ]);
+            }
+
             $payload = Arr::wrap($intake->encrypted_payload);
             if ($validated['resolution'] === 'match') {
                 $patient = Patient::query()
@@ -256,6 +279,9 @@ class PublicIntakeReviewService
                 'panel_id' => $validated['panel_id'] ?? null,
                 'coverage_member_reference' => $validated['coverage_member_reference'] ?? null,
                 'confirm_repeat' => (bool) ($validated['confirm_repeat'] ?? false),
+                'intake_purpose' => data_get($payload, 'visit.purpose'),
+                'chief_complaint' => data_get($payload, 'visit.chief_complaint'),
+                'complaint_duration' => data_get($payload, 'visit.duration'),
             ]);
             $this->record('public_intake.visit_created', $intake, $actor, $intake->status, ['visit_id' => $visit->id]);
 
@@ -292,7 +318,8 @@ class PublicIntakeReviewService
     private function authorizedBranch(User $actor): Branch
     {
         if (! $actor->is_active || ! $actor->can('visits.create.branch')
-            || ! $actor->can('queue.enter.branch') || ! $actor->can('patients.search.organisation')) {
+            || ! $actor->can('queue.enter.branch') || ! $actor->can('patients.search.organisation')
+            || ! $actor->can('public_intakes.review.branch')) {
             throw new AuthorizationException;
         }
         $branch = $this->branches->activeBranch($actor);
@@ -409,5 +436,21 @@ class PublicIntakeReviewService
     private function invalidState(): never
     {
         throw ValidationException::withMessages(['status' => 'Tindakan ini tidak dibenarkan untuk status semasa.']);
+    }
+
+    /** @return array{name: string, age: int|null, purpose: string|null, complaint: string|null, duplicateStatus: string} */
+    private function summary(User $actor, PublicPatientIntake $intake): array
+    {
+        $payload = Arr::wrap($intake->encrypted_payload);
+        $dateOfBirth = data_get($payload, 'patient.date_of_birth');
+
+        return [
+            'name' => (string) data_get($payload, 'patient.full_name', ''),
+            'age' => is_string($dateOfBirth) ? (int) now()->diffInYears($dateOfBirth) : null,
+            'purpose' => data_get($payload, 'visit.purpose'),
+            'complaint' => data_get($payload, 'visit.chief_complaint'),
+            'duplicateStatus' => $this->duplicateCandidates($actor, $payload) === []
+                ? 'none' : 'possible',
+        ];
     }
 }

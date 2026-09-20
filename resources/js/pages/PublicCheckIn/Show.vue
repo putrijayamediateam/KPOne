@@ -46,6 +46,9 @@ const form = reactive({
     identifier_type: 'nric',
     identifier_value: '',
     identifier_issuing_country_code: 'MY',
+    visit_purpose: '',
+    chief_complaint: '',
+    complaint_duration: '',
     guardian_name: '',
     guardian_relationship: '',
     guardian_contact_number: '',
@@ -273,6 +276,13 @@ onMounted(exchangeFragment);
                             >.
                         </p>
                     </div>
+                    <p
+                        class="rounded-2xl border border-amber-300 bg-amber-50 p-4 text-sm font-medium text-amber-950"
+                    >
+                        Jika anda mengalami sesak nafas teruk, sakit dada,
+                        pengsan atau pendarahan banyak, sila terus maklumkan
+                        staff di kaunter.
+                    </p>
                     <button
                         type="button"
                         class="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-pink-700 px-5 py-3 font-semibold text-white focus-visible:ring-4 focus-visible:ring-pink-200 disabled:opacity-60"
@@ -490,6 +500,66 @@ onMounted(exchangeFragment);
                                 >{{ errorFor('identifier_value') }}</span
                             >
                         </fieldset>
+                        <label class="grid gap-1.5" for="visit-purpose"
+                            ><span class="text-sm font-medium"
+                                >Tujuan lawatan *</span
+                            ><select
+                                id="visit-purpose"
+                                v-model="form.visit_purpose"
+                                class="min-h-12 rounded-xl border px-3"
+                                :aria-invalid="!!errorFor('visit_purpose')"
+                            >
+                                <option value="" disabled>Pilih tujuan</option>
+                                <option value="doctor_illness">
+                                    Jumpa doktor / sakit
+                                </option>
+                                <option value="pregnancy_check">
+                                    Pemeriksaan kehamilan
+                                </option>
+                                <option value="scan">Scan</option>
+                                <option value="vaccination">Vaksin</option>
+                                <option value="medical_checkup">
+                                    Medical check-up
+                                </option>
+                                <option value="procedure">Prosedur</option>
+                                <option value="other">Lain-lain</option></select
+                            ><span
+                                v-if="errorFor('visit_purpose')"
+                                class="text-sm text-red-700"
+                                role="alert"
+                                >{{ errorFor('visit_purpose') }}</span
+                            ></label
+                        >
+                        <label class="grid gap-1.5" for="chief-complaint"
+                            ><span class="text-sm font-medium"
+                                >Apa masalah atau tujuan utama anda datang hari
+                                ini? *</span
+                            ><textarea
+                                id="chief-complaint"
+                                v-model="form.chief_complaint"
+                                rows="3"
+                                maxlength="500"
+                                class="rounded-xl border px-3 py-3"
+                                placeholder="Contoh: Demam dan batuk sejak semalam."
+                                :aria-invalid="!!errorFor('chief_complaint')"
+                            ></textarea
+                            ><span
+                                v-if="errorFor('chief_complaint')"
+                                class="text-sm text-red-700"
+                                role="alert"
+                                >{{ errorFor('chief_complaint') }}</span
+                            ></label
+                        >
+                        <label class="grid gap-1.5" for="complaint-duration"
+                            ><span class="text-sm font-medium"
+                                >Sejak bila? (pilihan)</span
+                            ><input
+                                id="complaint-duration"
+                                v-model="form.complaint_duration"
+                                maxlength="120"
+                                class="min-h-12 rounded-xl border px-3"
+                                placeholder="Contoh: Sejak semalam"
+                        /></label>
                     </div>
                     <div class="flex gap-3">
                         <button

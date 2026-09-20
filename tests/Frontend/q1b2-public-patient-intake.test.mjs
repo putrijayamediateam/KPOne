@@ -25,6 +25,10 @@ test('mobile intake has the approved patient and guardian journey', () => {
         'Maklumat pesakit',
         'consent_confirmed',
         'guardian_attestation',
+        'visit_purpose',
+        'chief_complaint',
+        'complaint_duration',
+        'Jika anda mengalami sesak nafas teruk',
         'min-h-svh',
         'validationSummary',
         'aria-live="assertive"',
@@ -62,9 +66,18 @@ test('public bearers are exchanged without entering request targets or browser s
             "window.location.hash !== '' || window.location.search !== ''",
         ),
     );
-    assert.ok(documentShell.indexOf('window.history.replaceState') < documentShell.indexOf('@vite'));
-    assert.ok(publicForm.includes('delete window.__KPOnePublicIntakeExchangeToken'));
-    assert.ok(publicForm.includes('delete window.__KPOnePublicIntakeExchangeAttempted'));
+    assert.ok(
+        documentShell.indexOf('window.history.replaceState') <
+            documentShell.indexOf('@vite'),
+    );
+    assert.ok(
+        publicForm.includes('delete window.__KPOnePublicIntakeExchangeToken'),
+    );
+    assert.ok(
+        publicForm.includes(
+            'delete window.__KPOnePublicIntakeExchangeAttempted',
+        ),
+    );
     assert.ok(publicForm.includes("exchangeAttempted && rawToken === ''"));
     assert.ok(
         publicForm.indexOf('session.value = null') <
@@ -80,7 +93,9 @@ test('public bearers are exchanged without entering request targets or browser s
     );
     assert.ok(publicForm.includes("request('/check-in/exchange'"));
     assert.ok(publicForm.includes("request('/check-in/intakes'"));
-    assert.ok(publicForm.includes("window.location.replace('/check-in/status')"));
+    assert.ok(
+        publicForm.includes("window.location.replace('/check-in/status')"),
+    );
     assert.ok(!publicForm.includes('/status/'));
     assert.ok(!publicForm.includes('status_receipt'));
     assert.ok(!publicForm.includes('idempotency_key'));
@@ -115,4 +130,26 @@ test('branch link management renders QR locally and reports expiry', () => {
             'external QR service.</p>\n                    QR generation',
         ),
     );
+});
+
+test('registration navigation and visit controls remain operationally compact', () => {
+    const sidebar = read('resources/js/components/AppSidebar.vue');
+    const registrationCreate = read(
+        'resources/js/pages/Registration/Create.vue',
+    );
+    const registrationEdit = read('resources/js/pages/Registration/Edit.vue');
+    const operationalSelect = read(
+        'resources/js/components/ui/select/OperationalSelect.vue',
+    );
+
+    assert.ok(sidebar.includes('Pendaftaran QR'));
+    assert.ok(sidebar.includes('pendingIntakes'));
+
+    for (const source of [registrationCreate, registrationEdit]) {
+        assert.doesNotMatch(source, /:options="doctorOptions"\s*\/>\s*>/);
+        assert.match(source, /OperationalSelect/);
+    }
+
+    assert.match(registrationCreate, /class="h-9 rounded-sm px-3/);
+    assert.match(operationalSelect, /class="min-w-0 w-full"/);
 });

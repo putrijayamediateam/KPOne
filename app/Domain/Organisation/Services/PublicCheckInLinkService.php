@@ -2,13 +2,13 @@
 
 namespace App\Domain\Organisation\Services;
 
+use App\Domain\Access\BranchAccessService;
 use App\Domain\Audit\AuditRecorder;
 use App\Domain\Organisation\Models\Branch;
 use App\Domain\Organisation\Models\PublicCheckInLink;
 use App\Models\User;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
@@ -97,10 +97,41 @@ class PublicCheckInLinkService
             ->firstOrFail();
     }
 
+    public function recover(User $actor, PublicCheckInLink $link): ?string
+    {
+        $this->authorize($actor, $link->branch);
+
+        if (! $link->is_active || $link->revoked_at !== null || ! $link->expires_at?->isFuture()) {
+            return null;
+        }
+
+        $rawToken = rescue(
+            fn (): string => (string) $link->encrypted_token,
+            report: false,
+        );
+
+        if (! is_string($rawToken)) {
+            return null;
+        }
+
+        if ($rawToken === '' || preg_match('/\A[A-Za-z0-9_-]{43}\z/', $rawToken) !== 1
+            || ! hash_equals($link->token_hash, hash('sha256', $rawToken))) {
+            return null;
+        }
+
+        return $rawToken;
+    }
+
     private function authorize(User $actor, Branch $branch): void
     {
-        Gate::forUser($actor)->authorize('public_checkin_links.manage.organisation');
-        if ($actor->organisation_id !== $branch->organisation_id || ! $branch->is_active) {
+        $canManageOrganisation = $actor->can('public_checkin_links.manage.organisation');
+        $canManageBranch = $actor->can('public_checkin_links.manage.branch');
+        if (! $canManageOrganisation && ! $canManageBranch) {
+            throw new AuthorizationException;
+        }
+        if ($actor->organisation_id !== $branch->organisation_id || ! $branch->is_active
+            || (! $canManageOrganisation
+                && ! app(BranchAccessService::class)->hasEffectiveAssignment($actor, $branch))) {
             throw new AuthorizationException;
         }
     }
@@ -114,6 +145,7 @@ class PublicCheckInLinkService
             'organisation_id' => $branch->organisation_id,
             'branch_id' => $branch->id,
             'token_hash' => hash('sha256', $rawToken),
+            'encrypted_token' => $rawToken,
             'label' => Str::limit(trim($label), 120, ''),
             'is_active' => true,
             'active_branch_guard' => 'branch:'.$branch->id,

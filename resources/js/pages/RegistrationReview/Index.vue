@@ -15,6 +15,13 @@ defineProps<{
         submittedAt: string;
         expiresAt: string;
         lockVersion: number;
+        summary: {
+            name: string;
+            age: number | null;
+            purpose: string | null;
+            complaint: string | null;
+            duplicateStatus: 'none' | 'possible';
+        };
     }>;
 }>();
 const statusLabel: Record<string, string> = {
@@ -22,16 +29,25 @@ const statusLabel: Record<string, string> = {
     under_review: 'Under review',
     correction_required: 'Correction required',
 };
+const purposeLabel: Record<string, string> = {
+    doctor_illness: 'Jumpa doktor / sakit',
+    pregnancy_check: 'Pemeriksaan kehamilan',
+    scan: 'Scan',
+    vaccination: 'Vaksin',
+    medical_checkup: 'Medical check-up',
+    procedure: 'Prosedur',
+    other: 'Lain-lain',
+};
 </script>
 
 <template>
-    <Head title="Registration Review" />
+    <Head title="Pendaftaran QR" />
     <main class="flex flex-1 flex-col gap-6 p-4 md:p-7">
         <header class="space-y-1">
             <div class="flex items-center gap-2">
                 <ClipboardCheck class="size-6 text-pink-700" />
                 <h1 class="text-2xl font-semibold tracking-tight">
-                    Registration Review
+                    Pendaftaran QR
                 </h1>
             </div>
             <p class="text-sm text-muted-foreground">
@@ -46,15 +62,16 @@ const statusLabel: Record<string, string> = {
                         <div>
                             <CardTitle class="flex items-center gap-2 text-base"
                                 ><UserRound class="size-4" />{{
-                                    item.submissionType === 'guardian'
-                                        ? 'Guardian submission'
-                                        : 'Patient submission'
+                                    item.summary.name
                                 }}</CardTitle
                             >
-                            <p
-                                class="mt-1 font-mono text-xs text-muted-foreground"
-                            >
-                                {{ item.publicId }}
+                            <p class="mt-1 text-xs text-muted-foreground">
+                                {{ item.summary.age ?? 'â€”' }} tahun Â·
+                                {{
+                                    item.submissionType === 'guardian'
+                                        ? 'Penjaga'
+                                        : 'Pesakit'
+                                }}
                             </p>
                         </div>
                         <Badge variant="outline">{{
@@ -64,6 +81,21 @@ const statusLabel: Record<string, string> = {
                 >
                 <CardContent class="space-y-4"
                     ><dl class="grid grid-cols-2 gap-3 text-sm">
+                        <div class="col-span-2">
+                            <dt class="text-muted-foreground">Tujuan</dt>
+                            <dd>
+                                {{
+                                    purposeLabel[item.summary.purpose ?? ''] ??
+                                    'Belum dinyatakan'
+                                }}
+                            </dd>
+                        </div>
+                        <div class="col-span-2">
+                            <dt class="text-muted-foreground">Aduan ringkas</dt>
+                            <dd class="line-clamp-2">
+                                {{ item.summary.complaint }}
+                            </dd>
+                        </div>
                         <div>
                             <dt class="text-muted-foreground">Submitted</dt>
                             <dd>{{ formatDateTime(item.submittedAt) }}</dd>
@@ -72,10 +104,20 @@ const statusLabel: Record<string, string> = {
                             <dt class="text-muted-foreground">Expires</dt>
                             <dd>{{ formatDateTime(item.expiresAt) }}</dd>
                         </div>
+                        <div>
+                            <dt class="text-muted-foreground">Duplikasi</dt>
+                            <dd>
+                                {{
+                                    item.summary.duplicateStatus === 'possible'
+                                        ? 'Semakan diperlukan'
+                                        : 'Tiada calon'
+                                }}
+                            </dd>
+                        </div>
                     </dl>
                     <Button as-child class="w-full"
                         ><Link :href="`/registration-review/${item.publicId}`"
-                            >Open review</Link
+                            >Semak pendaftaran</Link
                         ></Button
                     ></CardContent
                 >

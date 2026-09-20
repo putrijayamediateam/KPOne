@@ -130,7 +130,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->middleware('permission:audit.view.organisation')
         ->name('audit-logs.index');
 
-    Route::middleware(['permission:public_checkin_links.manage.organisation', 'sensitive.no-store'])->group(function () {
+    Route::middleware(['permission:public_checkin_links.manage.organisation,public_checkin_links.manage.branch', 'sensitive.no-store'])->group(function () {
         Route::get('public-checkin-links', [PublicCheckInLinkController::class, 'index'])->name('public-checkin-links.index');
         Route::post('public-checkin-links', [PublicCheckInLinkController::class, 'store'])->name('public-checkin-links.store');
         Route::post('public-checkin-links/{publicCheckInLink}/rotate', [PublicCheckInLinkController::class, 'rotate'])->name('public-checkin-links.rotate');
@@ -139,7 +139,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::middleware(['sensitive.no-store', 'inertia.encrypt'])->group(function () {
         Route::prefix('registration-review')->controller(PublicIntakeReviewController::class)
-            ->middleware('permission:visits.create.branch')->group(function () {
+            ->middleware('permission:public_intakes.review.branch')->group(function () {
                 Route::get('/', 'index')->name('registration-review.index');
                 Route::get('{publicIntake}', 'show')->whereUuid('publicIntake')->name('registration-review.show');
                 Route::post('{publicIntake}/start', 'start')->whereUuid('publicIntake')->middleware('throttle:30,1')->name('registration-review.start');

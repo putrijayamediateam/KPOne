@@ -44,6 +44,9 @@ type Intake = {
         guardian_relationship: string | null;
         guardian_contact_number: string | null;
         guardian_attestation: boolean;
+        visit_purpose: string;
+        chief_complaint: string;
+        complaint_duration: string | null;
         consent_confirmed: boolean;
         privacy_notice_version: string;
     };
@@ -94,9 +97,6 @@ const doctorOptions = computed(() =>
 const panelOptions = computed(() =>
     props.visitOptions.panels.map((p) => ({ value: p.id, label: p.name })),
 );
-const canReview = computed(() =>
-    ['pending', 'correction_required'].includes(props.intake.status),
-);
 const canMutate = computed(() =>
     ['pending', 'under_review', 'correction_required'].includes(
         props.intake.status,
@@ -113,10 +113,6 @@ const postAction = (path: string, data: Parameters<typeof router.post>[1]) => {
         onFinish: () => (actionProcessing.value = false),
     });
 };
-const start = () =>
-    postAction(`/registration-review/${props.intake.publicId}/start`, {
-        lock_version: props.intake.lockVersion,
-    });
 const requireCorrection = () =>
     postAction(
         `/registration-review/${props.intake.publicId}/correction-required`,
@@ -169,21 +165,6 @@ const selectCandidate = (patientNumber: string) => {
         >
             {{ actionError }}
         </div>
-        <div
-            v-if="canReview"
-            class="rounded-xl border border-amber-300 bg-amber-50 p-4"
-        >
-            <p class="text-sm font-medium text-amber-900">
-                Start review to claim this intake at the current record version.
-            </p>
-            <Button class="mt-3" :disabled="actionProcessing" @click="start"
-                ><LoaderCircle
-                    v-if="actionProcessing"
-                    class="size-4 animate-spin"
-                />Start review</Button
-            >
-        </div>
-
         <form
             class="grid gap-5 xl:grid-cols-2"
             @submit.prevent="saveCorrection"
@@ -266,6 +247,44 @@ const selectCandidate = (patientNumber: string) => {
                                 type="tel"
                                 class="h-10 rounded-md border bg-background px-3" /></label
                     ></template>
+                    <label class="grid gap-1"
+                        ><span class="text-sm font-medium">Tujuan lawatan</span
+                        ><select
+                            v-model="correction.visit_purpose"
+                            class="h-10 rounded-md border bg-background px-3"
+                        >
+                            <option value="doctor_illness">
+                                Jumpa doktor / sakit
+                            </option>
+                            <option value="pregnancy_check">
+                                Pemeriksaan kehamilan
+                            </option>
+                            <option value="scan">Scan</option>
+                            <option value="vaccination">Vaksin</option>
+                            <option value="medical_checkup">
+                                Medical check-up
+                            </option>
+                            <option value="procedure">Prosedur</option>
+                            <option value="other">Lain-lain</option>
+                        </select></label
+                    >
+                    <label class="grid gap-1"
+                        ><span class="text-sm font-medium"
+                            >Aduan / tujuan utama</span
+                        ><textarea
+                            v-model="correction.chief_complaint"
+                            rows="3"
+                            maxlength="500"
+                            class="rounded-md border bg-background px-3 py-2"
+                        ></textarea>
+                    </label>
+                    <label class="grid gap-1"
+                        ><span class="text-sm font-medium">Sejak bila?</span
+                        ><input
+                            v-model="correction.complaint_duration"
+                            maxlength="120"
+                            class="h-10 rounded-md border bg-background px-3"
+                    /></label>
                     <div
                         class="rounded-md bg-muted p-3 text-xs text-muted-foreground"
                     >

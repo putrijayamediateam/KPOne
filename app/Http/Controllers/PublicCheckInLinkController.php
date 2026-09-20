@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Domain\Access\BranchAccessService;
 use App\Domain\Organisation\Models\Branch;
 use App\Domain\Organisation\Models\PublicCheckInLink;
 use App\Domain\Organisation\Services\PublicCheckInLinkService;
@@ -14,27 +15,45 @@ use Inertia\Response;
 
 class PublicCheckInLinkController extends Controller
 {
-    public function index(Request $request): Response
-    {
+    public function index(
+        Request $request,
+        BranchAccessService $branchAccess,
+        PublicCheckInLinkService $service,
+        PublicCheckInQrCodeService $qr,
+    ): Response {
         $organisationId = $request->user()->organisation_id;
+        $canManageOrganisation = $request->user()->can('public_checkin_links.manage.organisation');
+        $branches = $canManageOrganisation
+            ? Branch::query()->where('organisation_id', $organisationId)->where('is_active', true)->orderBy('name')->get()
+            : $branchAccess->availableBranches($request->user())
+                ->filter(fn (Branch $branch): bool => $branch->is_active
+                    && $branchAccess->hasEffectiveAssignment($request->user(), $branch))
+                ->values();
+        $branchIds = $branches->pluck('id');
         $links = PublicCheckInLink::query()
             ->where('organisation_id', $organisationId)
-            ->with('branch:id,organisation_id,name,code')
+            ->whereIn('branch_id', $branchIds)
+            ->with('branch:id,organisation_id,name,code,is_active')
             ->latest()->get()
-            ->map(fn (PublicCheckInLink $link): array => [
-                'publicId' => $link->public_id,
-                'branch' => $link->branch->only(['code', 'name']),
-                'label' => $link->label,
-                'status' => ! $link->is_active ? 'revoked' : ($link->expires_at?->isFuture() ? 'active' : 'expired'),
-                'createdAt' => $link->created_at?->toIso8601String(),
-                'expiresAt' => $link->expires_at?->toIso8601String(),
-                'revokedAt' => $link->revoked_at?->toIso8601String(),
-            ]);
+            ->map(function (PublicCheckInLink $link) use ($request, $service, $qr): array {
+                $rawToken = $service->recover($request->user(), $link);
+
+                return [
+                    'publicId' => $link->public_id,
+                    'branch' => $link->branch->only(['code', 'name']),
+                    'label' => $link->label,
+                    'status' => ! $link->is_active ? 'revoked' : ($link->expires_at?->isFuture() ? 'active' : 'expired'),
+                    'createdAt' => $link->created_at?->toIso8601String(),
+                    'expiresAt' => $link->expires_at?->toIso8601String(),
+                    'revokedAt' => $link->revoked_at?->toIso8601String(),
+                    'activeQr' => $rawToken === null ? null : $this->issuedLink($link, $rawToken, $qr),
+                    'requiresRotation' => $link->is_active && $link->expires_at?->isFuture() && $rawToken === null,
+                ];
+            });
 
         return Inertia::render('PublicCheckInLinks/Index', [
             'links' => $links,
-            'branches' => Branch::query()->where('organisation_id', $organisationId)
-                ->where('is_active', true)->orderBy('name')->get(['id', 'name']),
+            'branches' => $branches->map->only(['id', 'name'])->values(),
         ]);
     }
 
