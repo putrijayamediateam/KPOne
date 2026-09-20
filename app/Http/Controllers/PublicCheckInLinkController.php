@@ -82,10 +82,11 @@ class PublicCheckInLinkController extends Controller
     /** @return array{publicId: string, url: string, qrDataUri: string, expiresAt: string|null} */
     private function issuedLink(
         PublicCheckInLink $link,
-        string $rawToken,
+        #[\SensitiveParameter] string $rawToken,
         PublicCheckInQrCodeService $qr,
     ): array {
-        $url = route('public-checkin.show', ['token' => $rawToken]);
+        // URL fragments are handled only by the browser and are never part of an HTTP request target.
+        $url = route('public-checkin.show').'#'.$rawToken;
 
         return [
             'publicId' => $link->public_id,

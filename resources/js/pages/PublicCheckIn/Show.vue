@@ -10,25 +10,29 @@ import {
     UserRound,
     UsersRound,
 } from '@lucide/vue';
-import { computed, reactive, ref } from 'vue';
+import { computed, onMounted, reactive, ref } from 'vue';
 
 const props = defineProps<{
     clinicName: string;
-    branch: { name: string };
+    branch: { name: string } | null;
+    intakeSession: { expiresAt: string } | null;
+    statusAvailable: boolean;
     privacyNoticeVersion: string;
     minorAge: number;
 }>();
-type IntakeSession = {
-    nonce: string;
-    statusReceipt: string;
-    idempotencyKey: string;
-    expiresAt: string;
-};
+declare global {
+    interface Window {
+        __KPOnePublicIntakeExchangeToken?: string;
+        __KPOnePublicIntakeExchangeAttempted?: boolean;
+    }
+}
+type IntakeSession = { expiresAt: string };
 
 const step = ref(0);
-const loading = ref(false);
+const loading = ref(!props.intakeSession);
 const submitting = ref(false);
-const session = ref<IntakeSession | null>(null);
+const session = ref<IntakeSession | null>(props.intakeSession);
+const branch = ref<{ name: string } | null>(props.branch);
 const errors = ref<Record<string, string[]>>({});
 const generalError = ref('');
 const form = reactive({
@@ -52,7 +56,7 @@ const form = reactive({
 const csrfToken = () =>
     document.querySelector<HTMLMetaElement>('meta[name="csrf-token"]')
         ?.content ?? '';
-const token = computed(() => window.location.pathname.split('/').pop() ?? '');
+const branchName = computed(() => branch.value?.name ?? 'Klinik Putrijaya');
 const errorFor = (field: string) => errors.value[field]?.[0] ?? '';
 const validationSummary = computed(() =>
     Object.values(errors.value).flat().filter(Boolean),
@@ -76,25 +80,72 @@ const request = async (url: string, body?: object) => {
 
     return data;
 };
-const begin = async () => {
-    if (loading.value) {
+const exchangeFragment = async () => {
+    let rawToken = window.__KPOnePublicIntakeExchangeToken ?? '';
+    const exchangeAttempted =
+        window.__KPOnePublicIntakeExchangeAttempted === true;
+    delete window.__KPOnePublicIntakeExchangeToken;
+    delete window.__KPOnePublicIntakeExchangeAttempted;
+
+    if (exchangeAttempted) {
+        session.value = null;
+        branch.value = null;
+    }
+
+    if (exchangeAttempted && rawToken === '') {
+        loading.value = false;
+        generalError.value =
+            'Pautan pendaftaran tidak sah atau telah tamat. Sila imbas semula kod QR atau hadir ke kaunter.';
+
         return;
+    }
+
+    if (rawToken === '') {
+        if (session.value) {
+            return;
+        }
+
+        if (props.statusAvailable) {
+            window.location.replace('/check-in/status');
+
+            return;
+        }
     }
 
     loading.value = true;
     generalError.value = '';
 
     try {
-        session.value = (await request(
-            `/check-in/${token.value}/session`,
-        )) as IntakeSession;
-        step.value = 1;
+        if (!/^[A-Za-z0-9_-]{43}$/.test(rawToken)) {
+            throw new Error('invalid public link token');
+        }
+
+        const exchanged = (await request('/check-in/exchange', {
+            link_token: rawToken,
+        })) as {
+            branch: { name: string };
+            intakeSession: IntakeSession;
+        };
+        branch.value = exchanged.branch;
+        session.value = exchanged.intakeSession;
     } catch {
         generalError.value =
-            'Pendaftaran tidak dapat dimulakan. Sila imbas semula kod QR atau hadir ke kaunter.';
+            'Pautan pendaftaran tidak sah atau telah tamat. Sila imbas semula kod QR atau hadir ke kaunter.';
     } finally {
+        rawToken = '';
         loading.value = false;
     }
+};
+const begin = () => {
+    if (!session.value || loading.value) {
+        generalError.value =
+            'Pendaftaran tidak dapat dimulakan. Sila imbas semula kod QR atau hadir ke kaunter.';
+
+        return;
+    }
+
+    generalError.value = '';
+    step.value = 1;
 };
 const next = () => {
     errors.value = {};
@@ -116,12 +167,7 @@ const submit = async () => {
     generalError.value = '';
 
     try {
-        const result = await request(`/check-in/${token.value}/intakes`, {
-            ...form,
-            nonce: session.value.nonce,
-            status_receipt: session.value.statusReceipt,
-            idempotency_key: session.value.idempotencyKey,
-        });
+        const result = await request('/check-in/intakes', { ...form });
         window.location.assign(result.statusUrl as string);
     } catch (error) {
         const response = error as { errors?: Record<string, string[]> };
@@ -139,10 +185,11 @@ const submit = async () => {
         submitting.value = false;
     }
 };
+onMounted(exchangeFragment);
 </script>
 
 <template>
-    <Head :title="`Daftar di ${branch.name}`"
+    <Head :title="`Daftar di ${branchName}`"
         ><meta name="referrer" content="no-referrer"
     /></Head>
     <main class="mx-auto min-h-svh max-w-xl px-4 py-5 sm:px-6 sm:py-8">
@@ -164,7 +211,7 @@ const submit = async () => {
                         <p
                             class="truncate text-sm text-zinc-600 dark:text-zinc-300"
                         >
-                            {{ branch.name }}
+                            {{ branchName }}
                         </p>
                     </div>
                 </header>
@@ -256,7 +303,7 @@ const submit = async () => {
                         class="flex items-center justify-between text-xs font-medium text-zinc-500"
                     >
                         <span>Langkah {{ step }} daripada 4</span
-                        ><span>{{ branch.name }}</span>
+                        ><span>{{ branchName }}</span>
                     </div>
                     <div class="h-2 overflow-hidden rounded-full bg-zinc-100">
                         <div
@@ -590,7 +637,7 @@ const submit = async () => {
                             class="mt-1 size-5"
                         /><span
                             >Saya bersetuju maklumat ini digunakan untuk
-                            pendaftaran lawatan di {{ branch.name }}.</span
+                            pendaftaran lawatan di {{ branchName }}.</span
                         ></label
                     >
                     <span

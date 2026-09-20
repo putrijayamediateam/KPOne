@@ -28,9 +28,12 @@ class PublicCheckInLinkTest extends VisitTestCase
 
         $issued = $response->json('issuedLink');
         $this->assertIsArray($issued);
-        $this->assertMatchesRegularExpression('#/check-in/[A-Za-z0-9_-]{43}$#', $issued['url']);
-        preg_match('#/check-in/([A-Za-z0-9_-]{43})$#', $issued['url'], $matches);
+        $this->assertMatchesRegularExpression('#/check-in\#[A-Za-z0-9_-]{43}$#', $issued['url']);
+        preg_match('#/check-in\#([A-Za-z0-9_-]{43})$#', $issued['url'], $matches);
         $rawToken = $matches[1];
+        $this->assertSame('/check-in', parse_url($issued['url'], PHP_URL_PATH));
+        $this->assertNull(parse_url($issued['url'], PHP_URL_QUERY));
+        $this->assertSame($rawToken, parse_url($issued['url'], PHP_URL_FRAGMENT));
         $link = PublicCheckInLink::query()->sole();
 
         $this->assertSame(hash('sha256', $rawToken), $link->token_hash);
@@ -38,14 +41,20 @@ class PublicCheckInLinkTest extends VisitTestCase
         $this->assertSame($this->organisation->id, $link->organisation_id);
         $this->assertSame($this->branch->id, $link->branch_id);
 
-        $publicResponse = $this->get($issued['url'])->assertOk();
+        $publicResponse = $this->get(parse_url($issued['url'], PHP_URL_PATH))->assertOk();
         $this->assertStringContainsString('no-store', (string) $publicResponse->headers->get('Cache-Control'));
         $publicResponse->assertInertia(fn (Assert $page) => $page
             ->component('PublicCheckIn/Show')
             ->where('clinicName', 'Klinik Putrijaya')
-            ->where('branch.name', $this->branch->name)
+            ->where('branch', null)
+            ->where('intakeSession', null)
             ->where('auth', null)->where('branchContext', null)->where('workspace', null)
             ->missing('patient')->missing('organisationId')->missing('branch.id'));
+
+        $this->postJson(route('public-intake.exchange'), ['link_token' => $rawToken])
+            ->assertCreated()
+            ->assertJsonPath('branch.name', $this->branch->name)
+            ->assertJsonMissing(['link_token' => $rawToken]);
 
         $audit = AuditLog::query()->where('event', 'public_checkin_link.created')->sole();
         $this->assertStringNotContainsString($rawToken, json_encode($audit->metadata, JSON_THROW_ON_ERROR));
@@ -66,17 +75,14 @@ class PublicCheckInLinkTest extends VisitTestCase
     {
         $director = $this->actor('director');
         $first = app(PublicCheckInLinkService::class)->issue($director, $this->branch, 'QR');
-        $oldUrl = route('public-checkin.show', ['token' => $first['rawToken']]);
-
         $rotated = app(PublicCheckInLinkService::class)->rotate($director, $first['link']);
-        $newUrl = route('public-checkin.show', ['token' => $rotated['rawToken']]);
-        $this->get($oldUrl)->assertNotFound();
-        $this->get($newUrl)->assertOk();
+        $this->postJson(route('public-intake.exchange'), ['link_token' => $first['rawToken']])->assertNotFound();
+        $this->postJson(route('public-intake.exchange'), ['link_token' => $rotated['rawToken']])->assertCreated();
         $this->assertSame($first['link']->id, $rotated['link']->rotated_from_id);
         $this->assertDatabaseHas('audit_logs', ['event' => 'public_checkin_link.rotated']);
 
         app(PublicCheckInLinkService::class)->revoke($director, $rotated['link']);
-        $this->get($newUrl)->assertNotFound();
+        $this->postJson(route('public-intake.exchange'), ['link_token' => $rotated['rawToken']])->assertNotFound();
         $this->assertDatabaseHas('audit_logs', ['event' => 'public_checkin_link.revoked']);
     }
 
@@ -86,7 +92,7 @@ class PublicCheckInLinkTest extends VisitTestCase
         $issued = app(PublicCheckInLinkService::class)->issue($director, $this->branch, 'QR');
         app(PublicCheckInLinkService::class)->revoke($director, $issued['link']);
 
-        $this->get(route('public-checkin.show', ['token' => $issued['rawToken']]))->assertNotFound();
+        $this->postJson(route('public-intake.exchange'), ['link_token' => $issued['rawToken']])->assertNotFound();
         $this->get('/check-in/'.str_repeat('x', 43))->assertNotFound();
         $this->get('/check-in/malformed')->assertNotFound();
     }
@@ -124,26 +130,22 @@ class PublicCheckInLinkTest extends VisitTestCase
 
     public function test_public_landing_rate_limit_is_active_without_exposing_token_state(): void
     {
-        $director = $this->actor('director');
-        $issued = app(PublicCheckInLinkService::class)->issue($director, $this->branch, 'Rate test');
-        $url = route('public-checkin.show', ['token' => $issued['rawToken']]);
-
-        for ($request = 1; $request <= 120; $request++) {
-            $this->get($url)->assertOk();
+        for ($request = 1; $request <= 300; $request++) {
+            $this->get(route('public-checkin.show'))->assertOk();
         }
 
-        $this->get($url)->assertTooManyRequests();
+        $this->get(route('public-checkin.show'))->assertTooManyRequests();
     }
 
     public function test_distinct_tokens_cannot_bypass_the_global_source_ip_limit(): void
     {
-        for ($request = 1; $request <= 300; $request++) {
+        for ($request = 1; $request <= 20; $request++) {
             $token = str_pad((string) $request, 43, '0', STR_PAD_LEFT);
 
-            $this->get('/check-in/'.$token)->assertNotFound();
+            $this->postJson(route('public-intake.exchange'), ['link_token' => $token])->assertNotFound();
         }
 
-        $this->get('/check-in/'.str_pad('301', 43, '0', STR_PAD_LEFT))
+        $this->postJson(route('public-intake.exchange'), ['link_token' => str_pad('21', 43, '0', STR_PAD_LEFT)])
             ->assertTooManyRequests();
     }
 
@@ -151,16 +153,14 @@ class PublicCheckInLinkTest extends VisitTestCase
     {
         $director = $this->actor('director');
         $issued = app(PublicCheckInLinkService::class)->issue($director, $this->branch, 'Link-wide rate test');
-        $url = route('public-checkin.show', ['token' => $issued['rawToken']]);
-
-        for ($request = 1; $request <= 1000; $request++) {
+        for ($request = 1; $request <= 100; $request++) {
             $this->withServerVariables(['REMOTE_ADDR' => '2001:db8::'.$request])
-                ->get($url)
-                ->assertOk();
+                ->postJson(route('public-intake.exchange'), ['link_token' => $issued['rawToken']])
+                ->assertCreated();
         }
 
-        $this->withServerVariables(['REMOTE_ADDR' => '2001:db8::1001'])
-            ->get($url)
+        $this->withServerVariables(['REMOTE_ADDR' => '2001:db8::101'])
+            ->postJson(route('public-intake.exchange'), ['link_token' => $issued['rawToken']])
             ->assertTooManyRequests();
     }
 
@@ -174,7 +174,8 @@ class PublicCheckInLinkTest extends VisitTestCase
             Request::create('/public-checkin-links', 'POST'),
             Request::create('/public-checkin-links/'.$publicId.'/rotate', 'POST'),
             Request::create('/public-checkin-links/'.$publicId, 'DELETE'),
-            Request::create('/check-in/'.$token, 'GET'),
+            Request::create('/check-in', 'GET'),
+            Request::create('/check-in/exchange', 'POST', ['link_token' => $token]),
             Request::create('/queue/search', 'POST'),
         ] as $sensitiveRequest) {
             $this->assertFalse(DevTools::enabledForRequest($sensitiveRequest));

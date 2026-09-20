@@ -9,7 +9,7 @@ use BaconQrCode\Writer;
 
 class PublicCheckInQrCodeService
 {
-    public function svg(string $url): string
+    public function svg(#[\SensitiveParameter] string $url): string
     {
         $renderer = new ImageRenderer(new RendererStyle(320, 2), new SvgImageBackEnd);
 

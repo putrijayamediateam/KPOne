@@ -7,6 +7,7 @@ const read = (path) =>
 const admin = read('resources/js/pages/PublicCheckInLinks/Index.vue');
 const publicPage = read('resources/js/pages/PublicCheckIn/Show.vue');
 const layout = read('resources/js/layouts/PublicCheckInLayout.vue');
+const documentShell = read('resources/views/app.blade.php');
 
 test('admin surface supports lifecycle and one-time URL without reconstructing stored tokens', () => {
     assert.match(admin, /Create link/);
@@ -19,9 +20,12 @@ test('admin surface supports lifecycle and one-time URL without reconstructing s
 });
 
 test('public landing remains branch-bound and isolated from staff chrome', () => {
-    assert.match(publicPage, /branch\.name/);
+    assert.match(publicPage, /branchName/);
     assert.match(publicPage, /Mula Daftar/);
-    assert.match(publicPage, /status_receipt/);
+    assert.match(publicPage, /\/check-in\/exchange/);
+    assert.match(documentShell, /history\.replaceState/);
+    assert.ok(documentShell.indexOf('history.replaceState') < documentShell.indexOf('@vite'));
+    assert.doesNotMatch(publicPage, /status_receipt|statusReceipt/);
     assert.doesNotMatch(publicPage, /organisationId|patientId|visitId/);
     assert.doesNotMatch(
         layout,

@@ -55,7 +55,7 @@ class HandleInertiaRequests extends Middleware
      */
     public function share(Request $request): array
     {
-        if ($request->routeIs('public-checkin.show')) {
+        if ($request->routeIs('public-checkin.show', 'public-intake.status')) {
             return [
                 'auth' => null,
                 'authHistoryBoundary' => $this->authenticationHistoryBoundaryProp($request),

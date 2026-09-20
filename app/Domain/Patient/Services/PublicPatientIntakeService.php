@@ -18,7 +18,7 @@ class PublicPatientIntakeService
         private AuditRecorder $audit,
     ) {}
 
-    /** @return array{nonce: string, statusReceipt: string, idempotencyKey: string, expiresAt: string} */
+    /** @return array{session: PublicIntakeSession, nonce: string, statusReceipt: string, expiresAt: string} */
     public function openSession(PublicCheckInLink $link): array
     {
         $this->ensureEnabled();
@@ -27,7 +27,7 @@ class PublicPatientIntakeService
         $idempotencyKey = (string) Str::uuid();
         $expiresAt = now()->utc()->addMinutes((int) config('public-intake.submission_session_ttl_minutes', 15));
 
-        PublicIntakeSession::query()->create([
+        $session = PublicIntakeSession::query()->create([
             'public_id' => (string) Str::uuid(),
             'organisation_id' => $link->organisation_id,
             'branch_id' => $link->branch_id,
@@ -39,37 +39,91 @@ class PublicPatientIntakeService
         ]);
 
         return [
+            'session' => $session,
             'nonce' => $nonce,
             'statusReceipt' => $receipt,
-            'idempotencyKey' => $idempotencyKey,
             'expiresAt' => $expiresAt->toIso8601String(),
         ];
     }
 
-    /** @param array<string, mixed> $attributes */
-    public function submit(PublicCheckInLink $link, array $attributes): PublicPatientIntake
+    public function resumableSession(
+        #[\SensitiveParameter] ?string $nonce,
+        #[\SensitiveParameter] ?string $receipt,
+    ): ?PublicIntakeSession {
+        $this->ensureEnabled();
+        if (! $this->isOpaqueToken($nonce) || ! $this->isOpaqueToken($receipt)) {
+            return null;
+        }
+
+        return PublicIntakeSession::query()
+            ->where('nonce_digest', hash('sha256', $nonce))
+            ->where('status_receipt_digest', hash('sha256', $receipt))
+            ->whereNull('consumed_at')
+            ->where('expires_at', '>', now()->utc())
+            ->whereHas('link', fn ($query) => $query
+                ->where('is_active', true)
+                ->whereNull('revoked_at')
+                ->whereNotNull('expires_at')
+                ->where('expires_at', '>', now()->utc()))
+            ->whereHas('branch', fn ($query) => $query->where('is_active', true))
+            ->with(['branch:id,organisation_id,name,is_active'])
+            ->first();
+    }
+
+    public function statusSession(#[\SensitiveParameter] ?string $receipt): PublicIntakeSession
     {
         $this->ensureEnabled();
-        $validated = validator($attributes, [
-            'nonce' => ['required', 'regex:/\A[A-Za-z0-9_-]{43}\z/'],
-            'status_receipt' => ['required', 'regex:/\A[A-Za-z0-9_-]{43}\z/'],
-            'idempotency_key' => ['required', 'uuid'],
-        ])->validate();
+        abort_unless($this->isOpaqueToken($receipt), 404);
+
+        return PublicIntakeSession::query()
+            ->where('status_receipt_digest', hash('sha256', $receipt))
+            ->where('expires_at', '>', now()->utc())
+            ->with(['branch:id,organisation_id,name'])
+            ->firstOrFail();
+    }
+
+    /** @return array{session: PublicIntakeSession, allowsCreation: bool} */
+    public function submissionSession(
+        #[\SensitiveParameter] ?string $nonce,
+        #[\SensitiveParameter] ?string $receipt,
+    ): array {
+        $this->ensureEnabled();
+
+        if ($this->isOpaqueToken($nonce) && $this->isOpaqueToken($receipt)) {
+            $session = PublicIntakeSession::query()
+                ->where('nonce_digest', hash('sha256', $nonce))
+                ->where('status_receipt_digest', hash('sha256', $receipt))
+                ->where('expires_at', '>', now()->utc())
+                ->first();
+            if ($session !== null) {
+                return ['session' => $session, 'allowsCreation' => true];
+            }
+        }
+
+        if ($this->isOpaqueToken($receipt)) {
+            $session = PublicIntakeSession::query()
+                ->where('status_receipt_digest', hash('sha256', $receipt))
+                ->where('expires_at', '>', now()->utc())
+                ->whereHas('intake')
+                ->first();
+            if ($session !== null) {
+                return ['session' => $session, 'allowsCreation' => false];
+            }
+        }
+
+        abort(404);
+    }
+
+    /** @param array<string, mixed> $attributes */
+    public function submit(PublicIntakeSession $boundSession, array $attributes, bool $allowsCreation): PublicPatientIntake
+    {
+        $this->ensureEnabled();
         $payload = $this->payloads->validate($attributes);
         $fingerprint = $this->fingerprint($payload);
 
-        return DB::transaction(function () use ($link, $validated, $payload, $fingerprint): PublicPatientIntake {
-            $lockedLink = PublicCheckInLink::query()->whereKey($link->id)->lockForUpdate()->firstOrFail();
-            if (! $lockedLink->is_active || $lockedLink->revoked_at !== null
-                || $lockedLink->expires_at === null || ! $lockedLink->expires_at->isFuture()) {
-                abort(404);
-            }
-
+        return DB::transaction(function () use ($boundSession, $allowsCreation, $payload, $fingerprint): PublicPatientIntake {
             $session = PublicIntakeSession::query()
-                ->where('public_checkin_link_id', $lockedLink->id)
-                ->where('nonce_digest', hash('sha256', $validated['nonce']))
-                ->where('status_receipt_digest', hash('sha256', $validated['status_receipt']))
-                ->where('submission_idempotency_key', $validated['idempotency_key'])
+                ->whereKey($boundSession->id)
                 ->lockForUpdate()
                 ->firstOrFail();
 
@@ -80,14 +134,27 @@ class PublicPatientIntakeService
             if ($existing) {
                 if (! hash_equals($existing->payload_fingerprint, $fingerprint)) {
                     throw ValidationException::withMessages([
-                        'idempotency_key' => 'Maklumat penghantaran telah berubah. Mulakan semula pendaftaran.',
+                        'submission' => 'Maklumat penghantaran telah berubah. Mulakan semula pendaftaran.',
                     ]);
                 }
 
                 return $existing;
             }
+            if (! $allowsCreation) {
+                abort(404);
+            }
             if ($session->consumed_at !== null || ! $session->expires_at->isFuture()) {
                 throw ValidationException::withMessages(['nonce' => 'Sesi borang telah tamat. Mulakan semula.']);
+            }
+
+            $lockedLink = PublicCheckInLink::query()
+                ->whereKey($session->public_checkin_link_id)
+                ->lockForUpdate()
+                ->firstOrFail();
+            if (! $lockedLink->is_active || $lockedLink->revoked_at !== null
+                || $lockedLink->expires_at === null || ! $lockedLink->expires_at->isFuture()
+                || ! $lockedLink->branch()->where('is_active', true)->exists()) {
+                abort(404);
             }
 
             $now = now()->utc();
@@ -128,12 +195,12 @@ class PublicPatientIntakeService
     }
 
     /** @return array{state: string, message: string, branch: string, queueNumber: string|null} */
-    public function status(string $receipt): array
+    public function status(PublicIntakeSession $boundSession): array
     {
         $this->ensureEnabled();
-        abort_unless(preg_match('/\A[A-Za-z0-9_-]{43}\z/', $receipt) === 1, 404);
         $session = PublicIntakeSession::query()
-            ->where('status_receipt_digest', hash('sha256', $receipt))
+            ->whereKey($boundSession->id)
+            ->where('expires_at', '>', now()->utc())
             ->with(['branch:id,organisation_id,name'])
             ->firstOrFail();
         $intake = PublicPatientIntake::query()
@@ -181,6 +248,11 @@ class PublicPatientIntakeService
     private function opaqueToken(): string
     {
         return rtrim(strtr(base64_encode(random_bytes(32)), '+/', '-_'), '=');
+    }
+
+    private function isOpaqueToken(?string $token): bool
+    {
+        return is_string($token) && preg_match('/\A[A-Za-z0-9_-]{43}\z/', $token) === 1;
     }
 
     /** @param array<mixed> $value

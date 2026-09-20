@@ -89,8 +89,8 @@ return [
     | DevTools
     |--------------------------------------------------------------------------
     |
-    | Queue polling is intentionally high-frequency, while public check-in URLs
-    | contain bearer material that must never enter the local recorder archive.
+    | Queue polling is intentionally high-frequency, while public check-in
+    | responses contain private intake state that must not enter the recorder.
     | These narrow route families remain excluded from DevTools persistence.
     |
     */
@@ -104,6 +104,7 @@ return [
             'queue/search',
             'public-checkin-links',
             'public-checkin-links/*',
+            'check-in',
             'check-in/*',
         ],
         'storage' => [

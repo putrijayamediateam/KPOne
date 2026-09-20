@@ -41,20 +41,16 @@ Route::get('/', fn () => Auth::check()
     ? redirect()->route('workspace')
     : redirect()->route('login'))->name('home');
 
-Route::get('check-in/{token}', PublicCheckInController::class)
-    ->where('token', '[A-Za-z0-9_-]{43}')
+Route::get('check-in', PublicCheckInController::class)
     ->middleware(['public-intake.proxy', 'throttle:public-checkin-view', 'sensitive.no-store'])
     ->name('public-checkin.show');
-Route::post('check-in/{token}/session', [PublicCheckInController::class, 'session'])
-    ->where('token', '[A-Za-z0-9_-]{43}')
-    ->middleware(['public-intake.proxy', 'throttle:public-intake-session', 'sensitive.no-store'])
-    ->name('public-intake.session');
-Route::post('check-in/{token}/intakes', [PublicCheckInController::class, 'submit'])
-    ->where('token', '[A-Za-z0-9_-]{43}')
+Route::post('check-in/exchange', [PublicCheckInController::class, 'exchange'])
+    ->middleware(['public-intake.proxy', 'throttle:public-intake-exchange', 'sensitive.no-store'])
+    ->name('public-intake.exchange');
+Route::post('check-in/intakes', [PublicCheckInController::class, 'submit'])
     ->middleware(['public-intake.proxy', 'throttle:public-intake-submit', 'sensitive.no-store'])
     ->name('public-intake.submit');
-Route::get('check-in/status/{receipt}', [PublicCheckInController::class, 'status'])
-    ->where('receipt', '[A-Za-z0-9_-]{43}')
+Route::get('check-in/status', [PublicCheckInController::class, 'status'])
     ->middleware(['public-intake.proxy', 'throttle:public-intake-status', 'sensitive.no-store'])
     ->name('public-intake.status');
 

@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Attributes\Guarded;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 /**
  * @property CarbonImmutable $expires_at
@@ -48,5 +49,11 @@ class PublicIntakeSession extends Model
     public function link(): BelongsTo
     {
         return $this->belongsTo(PublicCheckInLink::class, 'public_checkin_link_id');
+    }
+
+    /** @return HasOne<PublicPatientIntake, $this> */
+    public function intake(): HasOne
+    {
+        return $this->hasOne(PublicPatientIntake::class, 'public_intake_session_id');
     }
 }

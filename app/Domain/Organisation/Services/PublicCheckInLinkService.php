@@ -82,7 +82,7 @@ class PublicCheckInLinkService
         }, 3);
     }
 
-    public function resolve(string $rawToken): PublicCheckInLink
+    public function resolve(#[\SensitiveParameter] string $rawToken): PublicCheckInLink
     {
         abort_unless(preg_match('/\A[A-Za-z0-9_-]{43}\z/', $rawToken) === 1, 404);
 
