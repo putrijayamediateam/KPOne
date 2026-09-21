@@ -12,6 +12,7 @@ use App\Domain\Visit\Models\Visit;
 use App\Domain\Visit\Services\VisitReasonService;
 use App\Models\User;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Str;
 
 class ClinicalEncounterDirectoryService
 {
@@ -44,12 +45,18 @@ class ClinicalEncounterDirectoryService
                 'attendingClinician:id,organisation_id,name',
                 'vitalObservation',
                 'diagnoses',
+                'holds',
             ])
             ->firstOrFail();
         Gate::forUser($actor)->authorize('view', $encounter);
 
         $vitals = $encounter->vitalObservation;
         $isActiveConsultation = $encounter->visit->queueEntry?->status === QueueEntry::STATUS_SERVING;
+        $activeHold = $encounter->holds->first(fn ($hold): bool => $hold->resumed_at === null);
+        $heldSeconds = $encounter->holds->sum(fn ($hold): float => $hold->held_at->diffInSeconds(
+            $hold->resumed_at ?? now()->utc(),
+        ));
+        $elapsedSeconds = $encounter->started_at->diffInSeconds(now()->utc());
 
         return [
             'branch' => $encounter->visit->branch->only(['id', 'code', 'name', 'timezone']),
@@ -82,6 +89,16 @@ class ClinicalEncounterDirectoryService
                 'attendingClinician' => $encounter->attendingClinician->name,
                 'lockVersion' => $encounter->lock_version,
                 'updatedAt' => $encounter->updated_at->toIso8601String(),
+            ],
+            'hold' => [
+                'isHeld' => $activeHold !== null,
+                'startedAt' => $activeHold?->held_at->toIso8601String(),
+                'heldMinutes' => (int) floor($heldSeconds / 60),
+                'activeMinutes' => (int) floor(max(0, $elapsedSeconds - $heldSeconds) / 60),
+                'holdIdempotencyKey' => (string) Str::uuid(),
+                'resumeIdempotencyKey' => (string) Str::uuid(),
+                'canHold' => $activeHold === null && $actor->can('consultations.hold.own'),
+                'canResume' => $activeHold !== null && $actor->can('consultations.hold.own'),
             ],
             'vitals' => $this->vitals($vitals),
             'diagnoses' => $encounter->diagnoses->map(fn (EncounterDiagnosis $diagnosis): array => [

@@ -140,6 +140,20 @@ class PublicCheckInLinkTest extends VisitTestCase
         app(PublicCheckInLinkService::class)->issue($director, $this->branch, 'Second');
     }
 
+    public function test_branch_supervisor_can_refresh_recoverable_link_without_losing_branch_timezone(): void
+    {
+        $supervisor = $this->actor('ca_supervisor');
+        $this->selectBranch($supervisor);
+        app(PublicCheckInLinkService::class)->issue($supervisor, $this->branch, 'Supervisor D3 QR');
+
+        $this->actingAs($supervisor)->get(route('public-checkin-links.index'))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->has('links', 1)
+                ->where('links.0.branch.name', $this->branch->name)
+                ->where('links.0.requiresRotation', false));
+    }
+
     public function test_permission_and_tenant_boundaries_are_server_enforced(): void
     {
         foreach (['ca', 'resident_doctor', 'panel_officer', 'finance_officer', 'technical_admin'] as $role) {

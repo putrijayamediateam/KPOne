@@ -12,6 +12,7 @@ use App\Http\Controllers\ClinicalEncounterController;
 use App\Http\Controllers\ClinicalProblemController;
 use App\Http\Controllers\ClinicPlaceholderController;
 use App\Http\Controllers\ConsultationCheckoutController;
+use App\Http\Controllers\ConsultationHoldController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DispensaryController;
 use App\Http\Controllers\InventoryController;
@@ -199,6 +200,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
         Route::post('visits/{visit}/encounter/complete-consultation', [ConsultationCheckoutController::class, 'complete'])
             ->middleware(['permission:consultations.complete.own', 'throttle:20,1'])->name('encounters.checkout');
+        Route::post('visits/{visit}/encounter/hold', [ConsultationHoldController::class, 'hold'])
+            ->middleware(['permission:consultations.hold.own', 'throttle:20,1'])->name('encounters.hold');
+        Route::post('visits/{visit}/encounter/resume', [ConsultationHoldController::class, 'resume'])
+            ->middleware(['permission:consultations.hold.own', 'throttle:20,1'])->name('encounters.resume');
         Route::post('visits/{visit}/encounter/reopen-checkout', [ConsultationCheckoutController::class, 'reopen'])
             ->middleware(['permission:consultations.reopen.own', 'throttle:20,1'])->name('encounters.checkout.reopen');
 

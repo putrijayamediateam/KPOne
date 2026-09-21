@@ -1,11 +1,13 @@
 <script setup lang="ts">
-import { Head, Link, useForm } from '@inertiajs/vue3';
+import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import {
     AlertTriangle,
     ArrowLeft,
     ClipboardCheck,
     LoaderCircle,
     Plus,
+    PauseCircle,
+    PlayCircle,
     Stethoscope,
     Trash2,
 } from '@lucide/vue';
@@ -25,6 +27,8 @@ defineOptions({
 
 const props = defineProps<{ clinical: ClinicalEncounterPage }>();
 const workspaceTab = ref<'current' | 'history'>('current');
+const holdProcessing = ref(false);
+const holdError = ref('');
 type NumericInput = number | string | null;
 type DiagnosisInput = {
     diagnosis_text: string;
@@ -117,6 +121,33 @@ const save = () => {
         },
     );
 };
+const changeHoldState = (action: 'hold' | 'resume') => {
+    holdProcessing.value = true;
+    holdError.value = '';
+    router.post(
+        `/visits/${encodeURIComponent(props.clinical.visit.visitNumber)}/encounter/${action}`,
+        {
+            expected_branch_id: props.clinical.branch.id,
+            visit_lock_version: props.clinical.visit.lockVersion,
+            queue_lock_version: props.clinical.queue.lockVersion,
+            encounter_lock_version: props.clinical.encounter.lockVersion,
+            idempotency_key:
+                action === 'hold'
+                    ? props.clinical.hold.holdIdempotencyKey
+                    : props.clinical.hold.resumeIdempotencyKey,
+        },
+        {
+            preserveScroll: true,
+            preserveState: true,
+            onError: (errors) => {
+                holdError.value =
+                    Object.values(errors)[0] ??
+                    'The consultation state could not be changed.';
+            },
+            onFinish: () => (holdProcessing.value = false),
+        },
+    );
+};
 </script>
 
 <template>
@@ -198,7 +229,15 @@ const save = () => {
                             </div>
                         </div>
                     </div>
-                    <div class="text-right text-xs text-muted-foreground">
+                    <div
+                        class="flex flex-col items-end gap-2 text-right text-xs text-muted-foreground"
+                    >
+                        <span
+                            v-if="clinical.hold.isHeld"
+                            class="inline-flex items-center gap-1 rounded-md bg-amber-100 px-2 py-1 font-semibold text-amber-900"
+                        >
+                            <PauseCircle class="size-3.5" /> On Hold
+                        </span>
                         <div class="font-medium text-foreground">
                             {{ clinical.branch.name }} · Queue
                             {{ clinical.queue.queueNumber }}
@@ -208,6 +247,29 @@ const save = () => {
                             progress
                         </div>
                         <div>{{ waitedDurationLabel(waitedMinutes) }}</div>
+                        <div>
+                            Active {{ clinical.hold.activeMinutes }} min · Held
+                            {{ clinical.hold.heldMinutes }} min
+                        </div>
+                        <Button
+                            v-if="clinical.hold.canHold"
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            :disabled="holdProcessing"
+                            @click="changeHoldState('hold')"
+                        >
+                            <PauseCircle class="size-4" /> On Hold
+                        </Button>
+                        <Button
+                            v-if="clinical.hold.canResume"
+                            type="button"
+                            size="sm"
+                            :disabled="holdProcessing"
+                            @click="changeHoldState('resume')"
+                        >
+                            <PlayCircle class="size-4" /> Resume Consultation
+                        </Button>
                     </div>
                 </header>
 
@@ -278,6 +340,20 @@ const save = () => {
                 >
                     <AlertTriangle class="mt-0.5 size-4 shrink-0" />
                     {{ stateError }}
+                </div>
+                <div
+                    v-if="holdError"
+                    role="alert"
+                    class="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-900"
+                >
+                    {{ holdError }}
+                </div>
+                <div
+                    v-if="clinical.hold.isHeld"
+                    class="rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-950"
+                >
+                    This patient remains in Serving Now. Resume the consultation
+                    before saving or completing clinical work.
                 </div>
 
                 <form class="space-y-5" @submit.prevent="save">
@@ -551,7 +627,12 @@ const save = () => {
                                     >Clinical record is up to date.</template
                                 >
                             </span>
-                            <Button type="submit" :disabled="form.processing">
+                            <Button
+                                type="submit"
+                                :disabled="
+                                    form.processing || clinical.hold.isHeld
+                                "
+                            >
                                 <LoaderCircle
                                     v-if="form.processing"
                                     class="size-4 animate-spin"

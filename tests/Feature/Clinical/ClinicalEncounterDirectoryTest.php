@@ -46,6 +46,7 @@ class ClinicalEncounterDirectoryTest extends ClinicalTestCase
     {
         [$doctor, $ca, $currentVisit, $currentQueue] = $this->servingFixture();
         $current = $this->startEncounter($doctor, $currentVisit, $currentQueue);
+        $this->holdEncounter($doctor, $currentVisit, $currentQueue, $current);
         for ($index = 0; $index < 18; $index++) {
             $visit = $this->consultationVisit($ca, $doctor);
             $visit->forceFill(['patient_id' => $currentVisit->patient_id])->save();
@@ -60,6 +61,7 @@ class ClinicalEncounterDirectoryTest extends ClinicalTestCase
             app(ClinicalEncounterService::class)->update($doctor, $visit, $this->aggregate($history, [
                 'clinical_note' => 'Synthetic historical private note '.$index,
             ]));
+            $this->holdEncounter($doctor, $visit, $queue, $history);
         }
 
         $detail = app(ClinicalEncounterDirectoryService::class)->detail($doctor, $currentVisit);

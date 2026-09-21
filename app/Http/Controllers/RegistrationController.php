@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Domain\Patient\Services\PublicIntakeReviewService;
 use App\Domain\Visit\Models\Visit;
 use App\Domain\Visit\Services\VisitDirectoryService;
 use App\Domain\Visit\Services\VisitRegistrationService;
@@ -15,14 +16,19 @@ use Inertia\Response;
 
 class RegistrationController extends Controller
 {
-    public function index(Request $request, VisitDirectoryService $directory): Response
-    {
+    public function index(
+        Request $request,
+        VisitDirectoryService $directory,
+        PublicIntakeReviewService $reviews,
+    ): Response {
         $this->authorize('viewAny', Visit::class);
 
         return Inertia::render('Registration/Index', [
             'visits' => $directory->search($request->user(), []),
             'options' => $directory->consoleOptions($request->user()),
             'canCreate' => $request->user()->can('create', Visit::class),
+            'qrIntakes' => $request->user()->can('public_intakes.review.branch')
+                ? $reviews->listing($request->user()) : null,
         ]);
     }
 

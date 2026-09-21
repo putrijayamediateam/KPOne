@@ -108,4 +108,16 @@ class ClinicalEncounter extends Model
     {
         return $this->hasOne(TreatmentPlan::class);
     }
+
+    /** @return HasMany<ConsultationHold, $this> */
+    public function holds(): HasMany
+    {
+        return $this->hasMany(ConsultationHold::class)->orderBy('held_at');
+    }
+
+    /** @return HasOne<ConsultationHold, $this> */
+    public function activeHold(): HasOne
+    {
+        return $this->hasOne(ConsultationHold::class)->whereNull('resumed_at');
+    }
 }

@@ -33,6 +33,7 @@ class TreatmentPlanDirectoryService
             ->first();
 
         $checkout = ConsultationCheckout::query()->where('current_visit_guard', $encounter->visit_id)->first();
+        $isHeld = $encounter->activeHold()->exists();
 
         return [
             'present' => $plan !== null,
@@ -43,11 +44,13 @@ class TreatmentPlanDirectoryService
             'services' => $plan ? $plan->serviceOrders->where('status', TreatmentPlanServiceOrder::STATUS_ACTIVE)->map(fn (TreatmentPlanServiceOrder $order): array => $this->service($order))->values()->all() : [],
             'withdrawnServices' => $plan ? $plan->serviceOrders->where('status', TreatmentPlanServiceOrder::STATUS_WITHDRAWN)->map(fn (TreatmentPlanServiceOrder $order): array => $this->withdrawnService($order))->values()->all() : [],
             'canSave' => ($plan === null || $plan->status === TreatmentPlan::STATUS_IN_PROGRESS)
+                && ! $isHeld
                 && $encounter->visit->status === Visit::STATUS_REGISTERED
                 && $encounter->visit->queueEntry?->status === 'serving'
                 && Gate::forUser($actor)->allows($plan ? 'updateTreatmentPlan' : 'createTreatmentPlan', $encounter),
             'canSendToDispensary' => $this->canSend($actor, $encounter, $plan),
             'canCompleteConsultation' => $actor->can('consultations.complete.own') && $checkout === null
+                && ! $isHeld
                 && $encounter->visit->status === Visit::STATUS_REGISTERED && $encounter->visit->queueEntry?->status === 'serving'
                 && (($plan === null || $plan->medicineOrders->where('status', 'active')->isEmpty()) || $this->canSend($actor, $encounter, $plan)),
             'checkout' => $checkout ? ['route' => $checkout->route, 'lockVersion' => $checkout->lock_version,
@@ -63,7 +66,7 @@ class TreatmentPlanDirectoryService
     {
         return DB::transaction(function () use ($actor, $visit, $attributes): array {
             $branch = $this->currentCare->activeBranch($actor, $visit, $attributes);
-            $this->currentCare->lock($actor, $visit, $branch, 'treatment_plans.view.own');
+            $this->currentCare->lock($actor, $visit, $branch, 'treatment_plans.view.own', allowHeld: true);
             $term = '%'.$this->escapeLike(Str::lower(trim($attributes['query']))).'%';
 
             return array_values(MedicineCatalogueItem::query()
@@ -93,7 +96,7 @@ class TreatmentPlanDirectoryService
     {
         return DB::transaction(function () use ($actor, $visit, $attributes): array {
             $branch = $this->currentCare->activeBranch($actor, $visit, $attributes);
-            $this->currentCare->lock($actor, $visit, $branch, 'treatment_plans.view.own');
+            $this->currentCare->lock($actor, $visit, $branch, 'treatment_plans.view.own', allowHeld: true);
             $term = '%'.$this->escapeLike(Str::lower(trim($attributes['query']))).'%';
 
             return array_values(ClinicalServiceCatalogueItem::query()
@@ -167,7 +170,8 @@ class TreatmentPlanDirectoryService
 
     private function canSend(User $actor, ClinicalEncounter $encounter, ?TreatmentPlan $plan): bool
     {
-        if (! $plan || $plan->status !== TreatmentPlan::STATUS_IN_PROGRESS || ! $actor->hasRole('resident_doctor') || ! $actor->can('treatment_plans.send_to_dispensary.own')) {
+        if (! $plan || $plan->status !== TreatmentPlan::STATUS_IN_PROGRESS || ! $actor->hasRole('resident_doctor') || ! $actor->can('treatment_plans.send_to_dispensary.own')
+            || $encounter->activeHold()->exists()) {
             return false;
         }
         $orders = $plan->medicineOrders->where('status', TreatmentPlanMedicineOrder::STATUS_ACTIVE);

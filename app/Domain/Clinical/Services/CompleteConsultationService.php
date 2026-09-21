@@ -7,6 +7,7 @@ use App\Domain\Clinical\Dispensary\Models\DispensaryCase;
 use App\Domain\Clinical\Dispensary\Services\DispensaryHandoffService;
 use App\Domain\Clinical\Models\ClinicalEncounterAllergyReview;
 use App\Domain\Clinical\Models\ConsultationCheckout;
+use App\Domain\Clinical\Models\ConsultationHold;
 use App\Domain\Clinical\Models\PatientAllergyProfile;
 use App\Domain\Clinical\Models\PatientAllergyRecord;
 use App\Domain\Clinical\Models\TreatmentPlan;
@@ -33,7 +34,15 @@ class CompleteConsultationService
         $branch = $this->care->activeBranch($actor, $visit, $a);
 
         return DB::transaction(function () use ($actor, $visit, $a, $branch): ConsultationCheckout {
-            $care = $this->care->lock($actor, $visit, $branch, 'consultations.complete.own');
+            $care = $this->care->lock($actor, $visit, $branch, 'consultations.complete.own', allowHeld: true);
+            $activeHold = ConsultationHold::query()
+                ->where('clinical_encounter_id', $care->encounter->id)
+                ->whereNull('resumed_at')
+                ->lockForUpdate()
+                ->first();
+            if ($activeHold) {
+                throw ValidationException::withMessages(['checkout' => 'Resume this consultation before completing it.']);
+            }
             if ($care->visit->lock_version !== (int) $a['visit_lock_version'] || $care->queue->lock_version !== (int) $a['queue_lock_version'] || $care->encounter->lock_version !== (int) $a['encounter_lock_version']) {
                 throw ValidationException::withMessages(['checkout' => 'The consultation changed. Reload before completing it.']);
             }

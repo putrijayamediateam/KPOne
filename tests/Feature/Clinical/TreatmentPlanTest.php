@@ -12,6 +12,7 @@ use App\Domain\Clinical\Dispensary\Services\DispensaryHandoffService;
 use App\Domain\Clinical\Dispensary\Services\DispensaryService;
 use App\Domain\Clinical\Dispensary\Services\DoctorDispensaryAttentionService;
 use App\Domain\Clinical\Models\ClinicalServiceCatalogueItem;
+use App\Domain\Clinical\Models\ConsultationHold;
 use App\Domain\Clinical\Models\MedicineCatalogueItem;
 use App\Domain\Clinical\Models\PatientAllergyProfile;
 use App\Domain\Clinical\Models\TreatmentPlan;
@@ -31,6 +32,7 @@ use App\Domain\Organisation\Inventory\Services\InventoryMovementService;
 use App\Domain\Organisation\Models\Branch;
 use App\Domain\Organisation\Models\Organisation;
 use App\Domain\Queue\Services\QueueDirectoryService;
+use App\Domain\Queue\Services\QueueEntryService;
 use App\Domain\Visit\Billing\Models\ChargeDefinition;
 use App\Domain\Visit\Billing\Models\InvoiceLine;
 use App\Domain\Visit\Billing\Models\PriceBook;
@@ -683,6 +685,63 @@ class TreatmentPlanTest extends ClinicalTestCase
         $this->assertFalse(app(QueueDirectoryService::class)->snapshot($doctor, ['status' => 'removed'])['removed'][0]['returnedFromDispensary']);
         $this->selectBranch($ca, $visit->branch);
         $this->assertSame('Sakit tekak', app(DispensaryDirectoryService::class)->board($ca, [])['data'][0]['visitReasonExcerpt']);
+        $this->assertDatabaseCount('consultation_holds', 0);
+    }
+
+    public function test_held_consultation_cannot_save_plan_or_send_to_dispensary(): void
+    {
+        [$doctor, , $visit, $queue] = $this->servingFixture();
+        $encounter = $this->startEncounter($doctor, $visit, $queue);
+        $this->reviewNoKnown($doctor, $visit);
+        $medicine = $this->medicineCatalogue($doctor);
+        $plan = app(TreatmentPlanService::class)->save($doctor, $visit, $this->payload(null, [$this->medicinePayload($medicine)]));
+        $this->holdEncounter($doctor, $visit, $queue, $encounter);
+
+        $this->assertFalse(app(ClinicalEncounterDirectoryService::class)->detail($doctor, $visit)['treatmentPlan']['canSendToDispensary']);
+        foreach ([
+            fn () => app(TreatmentPlanService::class)->save($doctor, $visit, $this->payload($plan->refresh()->lock_version, [$this->medicinePayload($medicine, $plan->medicineOrders()->sole()->public_id)])),
+            fn () => app(DispensaryHandoffService::class)->send($doctor, $visit, ['expected_branch_id' => $visit->branch_id, 'lock_version' => $plan->lock_version]),
+        ] as $attempt) {
+            try {
+                $attempt();
+                $this->fail('A held consultation unexpectedly changed clinical state.');
+            } catch (ValidationException $exception) {
+                $this->assertArrayHasKey('encounter', $exception->errors());
+            }
+        }
+
+        $this->assertDatabaseCount('dispensary_handoffs', 0);
+        $this->assertSame('serving', $queue->refresh()->status);
+    }
+
+    public function test_dispensary_return_places_patient_on_hold_while_doctor_serves_another(): void
+    {
+        [$doctor, $ca, $visit, $queue] = $this->servingFixture();
+        $this->startEncounter($doctor, $visit, $queue);
+        $this->reviewNoKnown($doctor, $visit);
+        $medicine = $this->medicineCatalogue($doctor);
+        $plan = app(TreatmentPlanService::class)->save($doctor, $visit, $this->payload(null, [$this->medicinePayload($medicine)]));
+        $case = app(DispensaryHandoffService::class)->send($doctor, $visit, ['expected_branch_id' => $visit->branch_id, 'lock_version' => $plan->lock_version]);
+
+        $nextVisit = $this->consultationVisit($ca, $doctor);
+        $nextQueue = $this->send($ca, $nextVisit);
+        $this->selectBranch($doctor, $visit->branch);
+        $nextQueue = app(QueueEntryService::class)->call($doctor, $nextVisit, [
+            'expected_branch_id' => $nextVisit->branch_id,
+            'visit_lock_version' => $nextVisit->lock_version,
+            'queue_lock_version' => $nextQueue->lock_version,
+        ]);
+
+        $this->selectBranch($ca, $visit->branch);
+        $case = app(DispensaryService::class)->start($ca, $case, ['expected_branch_id' => $visit->branch_id, 'case_lock_version' => $case->lock_version]);
+        app(DispensaryService::class)->returnToDoctor($ca, $case, ['expected_branch_id' => $visit->branch_id, 'case_lock_version' => $case->lock_version]);
+
+        $this->assertSame('serving', $queue->refresh()->status);
+        $this->assertSame(1, ConsultationHold::query()->whereNull('resumed_at')->count());
+        $this->assertTrue($queue->visit->clinicalEncounter->activeHold()->exists());
+        $this->assertFalse($nextQueue->refresh()->visit->clinicalEncounter?->activeHold()->exists() ?? false);
+        $this->assertSame(1, AuditLog::query()->where('event', 'consultation.held')->count());
+        $this->assertDatabaseCount('stock_movements', 0);
     }
 
     public function test_authorized_http_first_save_accepts_explicit_null_plan_version(): void

@@ -9,12 +9,15 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
+use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
 
 class PublicIntakeReviewController extends Controller
 {
-    public function index(Request $request, PublicIntakeReviewService $reviews): Response
+    public function index(Request $request, PublicIntakeReviewService $reviews): SymfonyResponse
     {
-        return Inertia::render('RegistrationReview/Index', $reviews->listing($request->user()));
+        $reviews->listing($request->user());
+
+        return Inertia::location(route('registration.index', ['tab' => 'qr-intake']));
     }
 
     public function show(
@@ -66,7 +69,7 @@ class PublicIntakeReviewController extends Controller
         $reviews->reject($request->user(), $publicIntake, (int) $validated['lock_version'], $validated['category']);
         Inertia::flash('toast', ['type' => 'success', 'message' => 'Intake ditolak dengan kategori terkawal.']);
 
-        return to_route('registration-review.index');
+        return to_route('registration.index', ['tab' => 'qr-intake']);
     }
 
     public function accept(Request $request, string $publicIntake, PublicIntakeReviewService $reviews): RedirectResponse
@@ -77,6 +80,6 @@ class PublicIntakeReviewController extends Controller
             'message' => 'Pendaftaran disahkan dan nombor queue '.sprintf('%03d', $result['queue']->queue_number).' diberikan.',
         ]);
 
-        return to_route('visits.show', $result['visit']);
+        return to_route('registration.index', ['tab' => 'qr-intake']);
     }
 }

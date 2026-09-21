@@ -39,6 +39,7 @@ const statusClass = (tone: PatientBoardRow['statusTone']) =>
         neutral: 'bg-muted/55 text-muted-foreground',
         waiting: 'bg-amber-100/70 text-amber-800',
         serving: 'bg-emerald-100/65 text-emerald-800',
+        held: 'bg-amber-100/80 text-amber-900',
         cancelled: 'bg-muted/70 text-muted-foreground',
         removed: 'bg-muted/40 text-muted-foreground',
     })[tone];

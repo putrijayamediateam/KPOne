@@ -435,6 +435,17 @@ class PublicPatientIntakeTest extends VisitTestCase
             'Synthetic fever and cough since yesterday',
             AuditLog::query()->get()->pluck('metadata')->map(fn ($metadata) => json_encode($metadata))->implode('\n'),
         );
+        $listing = app(PublicIntakeReviewService::class)->listing($ca);
+        $this->assertSame(0, $listing['pendingCount']);
+        $this->assertSame('reviewed', $listing['items'][0]['displayStatus']);
+        $this->assertNotNull($listing['items'][0]['visitUrl']);
+
+        $this->get(route('registration.index', ['tab' => 'qr-intake']))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Registration/Index')
+                ->where('qrIntakes.pendingCount', 0)
+                ->where('qrIntakes.items.0.displayStatus', 'reviewed'));
 
         $this->post(route('registration-review.accept', $intake->public_id), $accept)->assertRedirect();
         $this->assertSame([$before[0] + 1, $before[1] + 1, $before[2] + 1], [Patient::count(), Visit::count(), QueueEntry::count()]);
@@ -678,9 +689,52 @@ SQL);
         $this->assertSame(1, AuditLog::query()->where('event', 'public_intake.expired')->count());
         $this->assertSame(1, AuditLog::query()->where('event', 'public_intake.payload_purged')->count());
 
+        $reviewer = $this->actor('ca');
+        $this->selectBranch($reviewer);
+        $listing = app(PublicIntakeReviewService::class)->listing($reviewer);
+        $this->assertSame('data_purged', $listing['items'][0]['displayStatus']);
+        $this->assertNull($listing['items'][0]['summary']);
+        $this->assertFalse($listing['items'][0]['canVerify']);
+
         $this->artisan('public-intakes:cleanup')->assertSuccessful();
         $this->assertSame(1, AuditLog::query()->where('event', 'public_intake.expired')->count());
         $this->assertSame(1, AuditLog::query()->where('event', 'public_intake.payload_purged')->count());
+    }
+
+    public function test_qr_intake_listing_is_branch_scoped_pending_first_and_fifo(): void
+    {
+        [$token, $firstSession] = $this->publicSession();
+        $this->postJson(route('public-intake.submit'), $this->payload($firstSession, [
+            'identifier_value' => 'SYNQ1B2-FIRST',
+        ]))->assertCreated();
+        $first = PublicPatientIntake::query()->sole();
+        $first->forceFill(['submitted_at' => now()->subMinutes(5)])->save();
+
+        $this->withServerVariables(['REMOTE_ADDR' => '198.18.0.'.self::$publicIpSequence++]);
+        $secondSession = $this->installPublicCookies(
+            $this->postJson(route('public-intake.exchange'), ['link_token' => $token])->assertCreated(),
+        );
+        $this->postJson(route('public-intake.submit'), $this->payload($secondSession, [
+            'identifier_value' => 'SYNQ1B2-SECOND',
+        ]))->assertCreated();
+        $second = PublicPatientIntake::query()->latest('id')->firstOrFail();
+
+        $reviewer = $this->actor('ca');
+        $this->selectBranch($reviewer);
+        app(PublicIntakeReviewService::class)->reject(
+            $reviewer,
+            $second->public_id,
+            $second->lock_version,
+            'insufficient_information',
+        );
+
+        $listing = app(PublicIntakeReviewService::class)->listing($reviewer);
+        $this->assertSame(1, $listing['pendingCount']);
+        $this->assertSame($first->public_id, $listing['items'][0]['publicId']);
+        $this->assertSame('pending', $listing['items'][0]['displayStatus']);
+        $this->assertSame(36, $listing['items'][0]['summary']['age']);
+        $this->assertSame($second->public_id, $listing['items'][1]['publicId']);
+        $this->assertSame('rejected', $listing['items'][1]['displayStatus']);
     }
 
     public function test_feature_flag_disables_public_intake_outside_the_workflow(): void

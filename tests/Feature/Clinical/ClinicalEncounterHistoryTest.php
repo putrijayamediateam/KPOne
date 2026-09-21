@@ -25,7 +25,7 @@ class ClinicalEncounterHistoryTest extends ClinicalTestCase
         $doctor = $this->doctor();
         $ca = $this->actor('ca');
         $patient = $this->patient($ca, ['full_name' => 'Synthetic History Patient']);
-        [$historicalVisit, , $historical] = $this->servingEncounterForPatient($ca, $doctor, $patient);
+        [$historicalVisit, $historicalQueue, $historical] = $this->servingEncounterForPatient($ca, $doctor, $patient);
         $historical = app(ClinicalEncounterService::class)->update($doctor, $historicalVisit, $this->aggregate($historical, [
             'clinical_note' => 'Synthetic historical clinical note',
             'diagnoses' => [[
@@ -36,6 +36,7 @@ class ClinicalEncounterHistoryTest extends ClinicalTestCase
             ]],
         ]));
         $historical->forceFill(['started_at' => now()->subDay()])->save();
+        $this->holdEncounter($doctor, $historicalVisit, $historicalQueue, $historical);
         [$currentVisit] = $this->servingEncounterForPatient($ca, $doctor, $patient, confirmRepeat: true);
 
         $this->selectBranch($doctor);
@@ -68,11 +69,12 @@ class ClinicalEncounterHistoryTest extends ClinicalTestCase
         $doctor = $this->doctor();
         $ca = $this->actor('ca');
         $patient = $this->patient($ca);
-        [$historicalVisit, , $historical] = $this->servingEncounterForPatient($ca, $doctor, $patient);
+        [$historicalVisit, $historicalQueue, $historical] = $this->servingEncounterForPatient($ca, $doctor, $patient);
         app(ClinicalEncounterService::class)->update($doctor, $historicalVisit, $this->aggregate($historical, [
             'clinical_note' => 'Synthetic on-demand note',
         ]));
         $historical->forceFill(['started_at' => now()->subDay()])->save();
+        $this->holdEncounter($doctor, $historicalVisit, $historicalQueue, $historical);
         $this->servingEncounterForPatient($ca, $doctor, $patient, confirmRepeat: true);
         $this->selectBranch($doctor);
 

@@ -15,6 +15,7 @@ use App\Domain\Visit\Services\VisitRegistrationService;
 use App\Models\User;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Validator;
@@ -38,28 +39,43 @@ class PublicIntakeReviewService
     public function listing(User $actor): array
     {
         $branch = $this->authorizedBranch($actor);
+        $reviewableStatuses = [
+            PublicPatientIntake::STATUS_PENDING,
+            PublicPatientIntake::STATUS_UNDER_REVIEW,
+            PublicPatientIntake::STATUS_CORRECTION_REQUIRED,
+        ];
         $items = PublicPatientIntake::query()
             ->where('organisation_id', $actor->organisation_id)
             ->where('branch_id', $branch->id)
-            ->whereIn('status', [
-                PublicPatientIntake::STATUS_PENDING,
-                PublicPatientIntake::STATUS_UNDER_REVIEW,
-                PublicPatientIntake::STATUS_CORRECTION_REQUIRED,
-            ])
-            ->latest('submitted_at')
-            ->limit(100)
+            ->with('visit:id,organisation_id,branch_id,visit_number')
+            ->orderByRaw("CASE status WHEN 'pending' THEN 0 WHEN 'under_review' THEN 0 WHEN 'correction_required' THEN 0 WHEN 'accepted' THEN 1 WHEN 'rejected' THEN 2 ELSE 3 END")
+            ->orderByRaw("CASE WHEN status IN ('pending', 'under_review', 'correction_required') THEN submitted_at END ASC")
+            ->orderByRaw("CASE WHEN status NOT IN ('pending', 'under_review', 'correction_required') THEN submitted_at END DESC")
+            ->orderBy('id')
             ->get();
 
         return [
             'branch' => $branch->only(['id', 'code', 'name']),
+            'pendingCount' => $items->whereIn('status', $reviewableStatuses)->count(),
             'items' => $items->map(fn (PublicPatientIntake $intake): array => [
                 'publicId' => $intake->public_id,
                 'status' => $intake->status,
+                'displayStatus' => $intake->payload_purged_at !== null ? 'data_purged' : match ($intake->status) {
+                    PublicPatientIntake::STATUS_ACCEPTED => 'reviewed',
+                    PublicPatientIntake::STATUS_PENDING,
+                    PublicPatientIntake::STATUS_UNDER_REVIEW,
+                    PublicPatientIntake::STATUS_CORRECTION_REQUIRED => 'pending',
+                    default => $intake->status,
+                },
                 'submissionType' => $intake->submission_type,
-                'summary' => $this->summary($actor, $intake),
+                'summary' => $intake->encrypted_payload === null ? null : $this->summary($actor, $intake),
                 'submittedAt' => $intake->submitted_at->toIso8601String(),
                 'expiresAt' => $intake->expires_at->toIso8601String(),
                 'lockVersion' => $intake->lock_version,
+                'canVerify' => in_array($intake->status, $reviewableStatuses, true)
+                    && $intake->encrypted_payload !== null,
+                'visitUrl' => $intake->visit && Gate::forUser($actor)->allows('view', $intake->visit)
+                    ? route('visits.show', $intake->visit) : null,
             ])->values()->all(),
         ];
     }
@@ -438,7 +454,7 @@ class PublicIntakeReviewService
         throw ValidationException::withMessages(['status' => 'Tindakan ini tidak dibenarkan untuk status semasa.']);
     }
 
-    /** @return array{name: string, age: int|null, purpose: string|null, complaint: string|null, duplicateStatus: string} */
+    /** @return array{name: string, age: int|null, purpose: string|null, complaint: string|null, duration: string|null, duplicateStatus: string} */
     private function summary(User $actor, PublicPatientIntake $intake): array
     {
         $payload = Arr::wrap($intake->encrypted_payload);
@@ -446,9 +462,10 @@ class PublicIntakeReviewService
 
         return [
             'name' => (string) data_get($payload, 'patient.full_name', ''),
-            'age' => is_string($dateOfBirth) ? (int) now()->diffInYears($dateOfBirth) : null,
+            'age' => is_string($dateOfBirth) ? Carbon::parse($dateOfBirth)->age : null,
             'purpose' => data_get($payload, 'visit.purpose'),
             'complaint' => data_get($payload, 'visit.chief_complaint'),
+            'duration' => data_get($payload, 'visit.duration'),
             'duplicateStatus' => $this->duplicateCandidates($actor, $payload) === []
                 ? 'none' : 'possible',
         ];

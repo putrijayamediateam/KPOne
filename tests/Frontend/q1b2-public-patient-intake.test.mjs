@@ -142,8 +142,19 @@ test('registration navigation and visit controls remain operationally compact', 
         'resources/js/components/ui/select/OperationalSelect.vue',
     );
 
-    assert.ok(sidebar.includes('Pendaftaran QR'));
-    assert.ok(sidebar.includes('pendingIntakes'));
+    const registration = read('resources/js/pages/Registration/Index.vue');
+    const qrTable = read(
+        'resources/js/components/registration/QrIntakeTable.vue',
+    );
+
+    assert.ok(!sidebar.includes("href: '/registration-review'"));
+    assert.ok(registration.includes("label: 'QR Intake'"));
+    assert.ok(registration.includes('props.qrIntakes.pendingCount'));
+    assert.ok(qrTable.includes('>Verify</Link'));
+    assert.ok(!qrTable.includes('Ellipsis'));
+    assert.ok(qrTable.includes('Data Purged'));
+    assert.ok(qrTable.includes('TooltipTrigger'));
+    assert.ok(qrTable.includes('<details'));
 
     for (const source of [registrationCreate, registrationEdit]) {
         assert.doesNotMatch(source, /:options="doctorOptions"\s*\/>\s*>/);

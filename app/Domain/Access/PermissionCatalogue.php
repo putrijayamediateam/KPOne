@@ -81,6 +81,7 @@ final class PermissionCatalogue
             'inventory.reorder.manage.branch',
             'inventory.warehouse.organisation',
             'consultations.complete.own',
+            'consultations.hold.own',
             'consultations.reopen.own',
             'services.confirm.own',
         ];
@@ -154,6 +155,7 @@ final class PermissionCatalogue
                 'treatment_plans.send_to_dispensary.own',
                 'dispensary.acknowledge_partial.own',
                 'consultations.complete.own',
+                'consultations.hold.own',
                 'consultations.reopen.own',
                 'services.confirm.own',
             ],

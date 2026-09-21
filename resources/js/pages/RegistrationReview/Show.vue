@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { Head, router, useForm } from '@inertiajs/vue3';
+import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import {
+    ArrowLeft,
     CheckCircle2,
     LoaderCircle,
     ShieldAlert,
@@ -68,6 +69,14 @@ const props = defineProps<{
     };
     rejectionCategories: string[];
 }>();
+defineOptions({
+    layout: {
+        breadcrumbs: [
+            { title: 'Registration', href: '/registration' },
+            { title: 'QR Intake', href: '/registration?tab=qr-intake' },
+        ],
+    },
+});
 const selectedReasons = ref<VisitReasonOption[]>([]);
 const actionProcessing = ref(false);
 const actionError = ref('');
@@ -144,6 +153,12 @@ const selectCandidate = (patientNumber: string) => {
             class="flex flex-col justify-between gap-3 md:flex-row md:items-start"
         >
             <div>
+                <Link
+                    href="/registration?tab=qr-intake"
+                    class="mb-2 inline-flex items-center gap-1 text-xs font-medium text-pink-800 hover:underline"
+                >
+                    <ArrowLeft class="size-3.5" /> Registration · QR Intake
+                </Link>
                 <p class="text-sm text-muted-foreground">
                     {{ visitOptions.branch.name }}
                 </p>
@@ -485,6 +500,7 @@ const selectCandidate = (patientNumber: string) => {
                 ><CardTitle>Controlled alternatives</CardTitle></CardHeader
             ><CardContent class="flex flex-wrap items-end gap-3"
                 ><Button
+                    type="button"
                     variant="outline"
                     :disabled="actionProcessing"
                     @click="requireCorrection"
@@ -505,6 +521,7 @@ const selectCandidate = (patientNumber: string) => {
                         </option>
                     </select></label
                 ><Button
+                    type="button"
                     variant="destructive"
                     :disabled="actionProcessing"
                     @click="reject"

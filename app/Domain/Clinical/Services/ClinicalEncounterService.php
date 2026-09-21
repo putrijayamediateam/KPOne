@@ -5,6 +5,7 @@ namespace App\Domain\Clinical\Services;
 use App\Domain\Access\BranchAccessService;
 use App\Domain\Audit\AuditRecorder;
 use App\Domain\Clinical\Models\ClinicalEncounter;
+use App\Domain\Clinical\Models\ConsultationHold;
 use App\Domain\Clinical\Models\EncounterDiagnosis;
 use App\Domain\Clinical\Models\EncounterVitalObservation;
 use App\Domain\Identity\Models\StaffBranchAssignment;
@@ -136,6 +137,11 @@ class ClinicalEncounterService
                 ->where('visit_id', $lockedVisit->id)
                 ->lockForUpdate()
                 ->firstOrFail();
+            $activeHold = ConsultationHold::query()
+                ->where('clinical_encounter_id', $lockedEncounter->id)
+                ->whereNull('resumed_at')
+                ->lockForUpdate()
+                ->first();
             $vitals = EncounterVitalObservation::query()
                 ->where('clinical_encounter_id', $lockedEncounter->id)
                 ->lockForUpdate()
@@ -148,6 +154,11 @@ class ClinicalEncounterService
 
             $this->assertServingConsultation($lockedActor, $lockedVisit, $lockedQueue);
             $this->assertEncounterOwner($lockedEncounter, $lockedActor);
+            if ($activeHold) {
+                throw ValidationException::withMessages([
+                    'encounter' => 'Resume this consultation before changing the clinical record.',
+                ]);
+            }
             if ($lockedEncounter->status !== ClinicalEncounter::STATUS_IN_PROGRESS) {
                 throw ValidationException::withMessages([
                     'encounter' => 'This clinical Encounter is no longer in progress.',

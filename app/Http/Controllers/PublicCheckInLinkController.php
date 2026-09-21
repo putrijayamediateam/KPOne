@@ -33,7 +33,7 @@ class PublicCheckInLinkController extends Controller
         $links = PublicCheckInLink::query()
             ->where('organisation_id', $organisationId)
             ->whereIn('branch_id', $branchIds)
-            ->with('branch:id,organisation_id,name,code,is_active')
+            ->with('branch:id,organisation_id,name,code,timezone,is_active')
             ->latest()->get()
             ->map(function (PublicCheckInLink $link) use ($request, $service, $qr): array {
                 $rawToken = $service->recover($request->user(), $link);

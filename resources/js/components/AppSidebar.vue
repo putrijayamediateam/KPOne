@@ -6,7 +6,6 @@ import {
     LayoutDashboard,
     ListOrdered,
     ClipboardPlus,
-    ClipboardCheck,
     QrCode,
     ShieldCheck,
     Users,
@@ -40,16 +39,6 @@ const mainNavItems = computed<NavItem[]>(() => [
                   title: 'Registration',
                   href: '/registration',
                   icon: ClipboardPlus,
-              },
-          ]
-        : []),
-    ...(can('public_intakes.review.branch')
-        ? [
-              {
-                  title: 'Pendaftaran QR',
-                  href: '/registration-review',
-                  icon: ClipboardCheck,
-                  badge: Number(page.props.workspace?.pendingIntakes ?? 0),
               },
           ]
         : []),

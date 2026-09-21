@@ -142,6 +142,12 @@ class QueueEntryService
                 'queue.call.branch',
                 'queue.call.own',
             ]);
+            $assignedDoctorId = $visit->assigned_doctor_user_id;
+            $lockedDoctor = $assignedDoctorId === null ? null : User::query()
+                ->whereKey($assignedDoctorId)
+                ->where('organisation_id', $lockedActor->organisation_id)
+                ->lockForUpdate()
+                ->first();
             $lockedVisit = Visit::query()
                 ->whereKey($visit->id)
                 ->where('organisation_id', $lockedActor->organisation_id)
@@ -173,6 +179,11 @@ class QueueEntryService
                     'doctor' => 'Assign an eligible doctor before calling this Patient.',
                 ]);
             }
+            if (! $lockedDoctor || $lockedDoctor->id !== $lockedVisit->assigned_doctor_user_id) {
+                throw ValidationException::withMessages([
+                    'doctor' => 'The assigned doctor changed. Reload before calling this Patient.',
+                ]);
+            }
 
             $effectiveDate = now()->setTimezone($branch->timezone)->toDateString();
             $this->doctors->lockAndValidate(
@@ -180,6 +191,20 @@ class QueueEntryService
                 $branch,
                 $effectiveDate,
             );
+
+            $hasActiveConsultation = QueueEntry::query()
+                ->where('organisation_id', $lockedActor->organisation_id)
+                ->where('branch_id', $branch->id)
+                ->where('status', QueueEntry::STATUS_SERVING)
+                ->whereHas('visit', fn ($query) => $query
+                    ->where('assigned_doctor_user_id', $lockedDoctor->id))
+                ->whereDoesntHave('visit.clinicalEncounter.activeHold')
+                ->exists();
+            if ($hasActiveConsultation) {
+                throw ValidationException::withMessages([
+                    'queue' => 'This doctor is already serving another patient. Place that consultation On Hold or complete it first.',
+                ]);
+            }
 
             $lockedEntry->forceFill([
                 'status' => QueueEntry::STATUS_SERVING,

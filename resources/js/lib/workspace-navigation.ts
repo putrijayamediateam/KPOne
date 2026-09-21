@@ -137,7 +137,6 @@ export const mainMenuGroups = (
             label: 'Clinic Operations',
             destinations: available(capabilities, [
                 'registration',
-                'registrationReview',
                 'consultation',
                 'inventory',
             ]),
@@ -176,7 +175,6 @@ export const headerDestinations = (
         context === 'clinic'
             ? [
                   'registration',
-                  'registrationReview',
                   'consultation',
                   'inventory',
                   'patientRecords',
