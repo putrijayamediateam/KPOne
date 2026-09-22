@@ -15,7 +15,7 @@ class PublicIntakeReviewController extends Controller
 {
     public function index(Request $request, PublicIntakeReviewService $reviews): SymfonyResponse
     {
-        $reviews->listing($request->user());
+        $reviews->authorizeReview($request->user());
 
         return Inertia::location(route('registration.index', ['tab' => 'qr-intake']));
     }

@@ -1,13 +1,9 @@
 <script setup lang="ts">
 import { Link } from '@inertiajs/vue3';
-import { ChevronDown } from '@lucide/vue';
+import { computed } from 'vue';
 import { Button } from '@/components/ui/button';
-import {
-    Tooltip,
-    TooltipContent,
-    TooltipProvider,
-    TooltipTrigger,
-} from '@/components/ui/tooltip';
+import { DisclosureText } from '@/components/ui/disclosure';
+import { CompactPagination } from '@/components/ui/pagination';
 import { formatDateTime } from '@/lib/presentation';
 
 type QrIntakeItem = {
@@ -27,13 +23,17 @@ type QrIntakeItem = {
         purpose: string | null;
         complaint: string | null;
         duration: string | null;
-        duplicateStatus: 'none' | 'possible';
     } | null;
 };
 
-defineProps<{
+const props = defineProps<{
     branch: { id: number; code: string; name: string };
     items: QrIntakeItem[];
+    history: { total: number; currentPage: number; lastPage: number };
+}>();
+
+defineEmits<{
+    'history-page-change': [page: number];
 }>();
 
 const purposeLabel: Record<string, string> = {
@@ -59,6 +59,20 @@ const statusClass: Record<QrIntakeItem['displayStatus'], string> = {
     expired: 'bg-muted text-muted-foreground',
     data_purged: 'bg-muted text-muted-foreground',
 };
+const purpose = (item: QrIntakeItem) =>
+    item.summary
+        ? (purposeLabel[item.summary.purpose ?? ''] ?? 'Not stated')
+        : null;
+
+// The pending/under_review/correction_required queue is always shown in full,
+// FIFO order — it is never paginated. Only the reviewed/rejected/expired
+// history tier is (R1-05); `history` describes that tier's page only.
+const pendingItems = computed(() =>
+    props.items.filter((item) => item.displayStatus === 'pending'),
+);
+const historyItems = computed(() =>
+    props.items.filter((item) => item.displayStatus !== 'pending'),
+);
 </script>
 
 <template>
@@ -71,7 +85,9 @@ const statusClass: Record<QrIntakeItem['displayStatus'], string> = {
                 >{{ branch.name }} · Pending first, earliest arrival first</span
             >
         </div>
-        <div class="overflow-x-auto">
+
+        <!-- Desktop: table -->
+        <div class="hidden overflow-x-auto md:block">
             <table
                 class="w-full min-w-[820px] table-fixed text-left text-[13px] leading-5"
             >
@@ -89,8 +105,88 @@ const statusClass: Record<QrIntakeItem['displayStatus'], string> = {
                     </tr>
                 </thead>
                 <tbody>
+                    <template v-for="item in pendingItems" :key="item.publicId">
+                        <tr class="border-b border-border/60 hover:bg-muted/20">
+                            <td class="px-3 py-2.5 align-middle">
+                                <div v-if="item.summary" class="min-w-0">
+                                    <div class="truncate font-medium">
+                                        {{ item.summary.name }}
+                                    </div>
+                                    <div
+                                        class="text-[11px] text-muted-foreground"
+                                    >
+                                        {{ item.summary.age ?? '—' }} years ·
+                                        {{
+                                            item.submissionType === 'guardian'
+                                                ? 'Guardian'
+                                                : 'Patient'
+                                        }}
+                                    </div>
+                                </div>
+                                <span v-else class="text-muted-foreground"
+                                    >Redacted after retention period</span
+                                >
+                            </td>
+                            <td class="px-3 py-2.5 align-middle tabular-nums">
+                                {{ formatDateTime(item.submittedAt) }}
+                            </td>
+                            <td class="px-3 py-2.5 align-middle">
+                                {{ purpose(item) ?? '—' }}
+                            </td>
+                            <td class="px-3 py-2.5 align-middle">
+                                <DisclosureText
+                                    :text="item.summary?.complaint"
+                                />
+                            </td>
+                            <td class="px-3 py-2.5 align-middle">
+                                {{ item.summary?.duration ?? '—' }}
+                            </td>
+                            <td class="px-3 py-2.5 align-middle">
+                                <span
+                                    class="inline-flex rounded-md px-2 py-0.5 text-[11px] font-medium"
+                                    :class="statusClass[item.displayStatus]"
+                                    >{{ statusLabel[item.displayStatus] }}</span
+                                >
+                            </td>
+                            <td class="px-3 py-2.5 text-right align-middle">
+                                <Button
+                                    v-if="item.canVerify"
+                                    as-child
+                                    size="sm"
+                                    class="h-8"
+                                >
+                                    <Link
+                                        :href="`/registration-review/${item.publicId}`"
+                                        >Verify</Link
+                                    >
+                                </Button>
+                                <Button
+                                    v-else-if="item.visitUrl"
+                                    as-child
+                                    size="sm"
+                                    variant="outline"
+                                    class="h-8"
+                                >
+                                    <Link :href="item.visitUrl"
+                                        >View Visit</Link
+                                    >
+                                </Button>
+                                <span v-else class="text-muted-foreground"
+                                    >—</span
+                                >
+                            </td>
+                        </tr>
+                    </template>
+                    <tr v-if="historyItems.length" class="border-b bg-muted/10">
+                        <td
+                            colspan="7"
+                            class="px-3 py-1.5 text-[11px] font-semibold tracking-wide text-muted-foreground uppercase"
+                        >
+                            History · reviewed, rejected and expired
+                        </td>
+                    </tr>
                     <tr
-                        v-for="item in items"
+                        v-for="item in historyItems"
                         :key="item.publicId"
                         class="border-b border-border/60 last:border-0 hover:bg-muted/20"
                     >
@@ -116,59 +212,13 @@ const statusClass: Record<QrIntakeItem['displayStatus'], string> = {
                             {{ formatDateTime(item.submittedAt) }}
                         </td>
                         <td class="px-3 py-2.5 align-middle">
-                            {{
-                                item.summary
-                                    ? (purposeLabel[
-                                          item.summary.purpose ?? ''
-                                      ] ?? 'Not stated')
-                                    : 'â€”'
-                            }}
+                            {{ purpose(item) ?? '—' }}
                         </td>
                         <td class="px-3 py-2.5 align-middle">
-                            <template v-if="item.summary?.complaint">
-                                <TooltipProvider :delay-duration="300">
-                                    <Tooltip>
-                                        <TooltipTrigger as-child>
-                                            <button
-                                                type="button"
-                                                class="hidden w-full truncate rounded text-left text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none md:block"
-                                            >
-                                                {{ item.summary.complaint }}
-                                            </button>
-                                        </TooltipTrigger>
-                                        <TooltipContent
-                                            side="top"
-                                            class="max-w-sm break-words whitespace-normal"
-                                        >
-                                            {{ item.summary.complaint }}
-                                        </TooltipContent>
-                                    </Tooltip>
-                                </TooltipProvider>
-                                <details class="group md:hidden">
-                                    <summary
-                                        class="flex cursor-pointer list-none items-center gap-1 rounded focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-                                    >
-                                        <span
-                                            class="min-w-0 flex-1 truncate text-muted-foreground"
-                                            >{{ item.summary.complaint }}</span
-                                        >
-                                        <ChevronDown
-                                            class="size-3.5 shrink-0 group-open:rotate-180"
-                                        />
-                                    </summary>
-                                    <p
-                                        class="mt-1 max-w-full break-words whitespace-normal"
-                                    >
-                                        {{ item.summary.complaint }}
-                                    </p>
-                                </details>
-                            </template>
-                            <span v-else class="text-muted-foreground"
-                                >â€”</span
-                            >
+                            <DisclosureText :text="item.summary?.complaint" />
                         </td>
                         <td class="px-3 py-2.5 align-middle">
-                            {{ item.summary?.duration ?? 'â€”' }}
+                            {{ item.summary?.duration ?? '—' }}
                         </td>
                         <td class="px-3 py-2.5 align-middle">
                             <span
@@ -198,9 +248,7 @@ const statusClass: Record<QrIntakeItem['displayStatus'], string> = {
                             >
                                 <Link :href="item.visitUrl">View Visit</Link>
                             </Button>
-                            <span v-else class="text-muted-foreground"
-                                >â€”</span
-                            >
+                            <span v-else class="text-muted-foreground">—</span>
                         </td>
                     </tr>
                     <tr v-if="items.length === 0">
@@ -213,6 +261,157 @@ const statusClass: Record<QrIntakeItem['displayStatus'], string> = {
                     </tr>
                 </tbody>
             </table>
+        </div>
+
+        <!-- Mobile: stacked cards, no horizontal scroll -->
+        <div class="divide-y md:hidden">
+            <article
+                v-for="item in pendingItems"
+                :key="item.publicId"
+                class="flex flex-col gap-1.5 px-3 py-3 text-sm"
+            >
+                <div class="flex items-start justify-between gap-2">
+                    <div class="min-w-0">
+                        <p v-if="item.summary" class="truncate font-medium">
+                            {{ item.summary.name }}
+                        </p>
+                        <p v-else class="text-muted-foreground">
+                            Redacted after retention period
+                        </p>
+                        <p class="text-xs text-muted-foreground">
+                            {{ formatDateTime(item.submittedAt) }}
+                            <template v-if="item.summary">
+                                · {{ item.summary.age ?? '—' }} years ·
+                                {{
+                                    item.submissionType === 'guardian'
+                                        ? 'Guardian'
+                                        : 'Patient'
+                                }}
+                            </template>
+                        </p>
+                    </div>
+                    <span
+                        class="inline-flex shrink-0 rounded-md px-2 py-0.5 text-[11px] font-medium"
+                        :class="statusClass[item.displayStatus]"
+                        >{{ statusLabel[item.displayStatus] }}</span
+                    >
+                </div>
+                <p v-if="purpose(item)" class="text-xs text-muted-foreground">
+                    {{ purpose(item) }}
+                    <template v-if="item.summary?.duration">
+                        · {{ item.summary.duration }}</template
+                    >
+                </p>
+                <DisclosureText
+                    :text="item.summary?.complaint"
+                    variant="clamp-2"
+                />
+                <div class="pt-1">
+                    <Button
+                        v-if="item.canVerify"
+                        as-child
+                        size="sm"
+                        class="h-8 w-full"
+                    >
+                        <Link :href="`/registration-review/${item.publicId}`"
+                            >Verify</Link
+                        >
+                    </Button>
+                    <Button
+                        v-else-if="item.visitUrl"
+                        as-child
+                        size="sm"
+                        variant="outline"
+                        class="h-8 w-full"
+                    >
+                        <Link :href="item.visitUrl">View Visit</Link>
+                    </Button>
+                </div>
+            </article>
+            <p
+                v-if="historyItems.length"
+                class="border-t bg-muted/10 px-3 py-1.5 text-[11px] font-semibold tracking-wide text-muted-foreground uppercase"
+            >
+                History · reviewed, rejected and expired
+            </p>
+            <article
+                v-for="item in historyItems"
+                :key="item.publicId"
+                class="flex flex-col gap-1.5 px-3 py-3 text-sm"
+            >
+                <div class="flex items-start justify-between gap-2">
+                    <div class="min-w-0">
+                        <p v-if="item.summary" class="truncate font-medium">
+                            {{ item.summary.name }}
+                        </p>
+                        <p v-else class="text-muted-foreground">
+                            Redacted after retention period
+                        </p>
+                        <p class="text-xs text-muted-foreground">
+                            {{ formatDateTime(item.submittedAt) }}
+                            <template v-if="item.summary">
+                                · {{ item.summary.age ?? '—' }} years ·
+                                {{
+                                    item.submissionType === 'guardian'
+                                        ? 'Guardian'
+                                        : 'Patient'
+                                }}
+                            </template>
+                        </p>
+                    </div>
+                    <span
+                        class="inline-flex shrink-0 rounded-md px-2 py-0.5 text-[11px] font-medium"
+                        :class="statusClass[item.displayStatus]"
+                        >{{ statusLabel[item.displayStatus] }}</span
+                    >
+                </div>
+                <p v-if="purpose(item)" class="text-xs text-muted-foreground">
+                    {{ purpose(item) }}
+                    <template v-if="item.summary?.duration">
+                        · {{ item.summary.duration }}</template
+                    >
+                </p>
+                <DisclosureText
+                    :text="item.summary?.complaint"
+                    variant="clamp-2"
+                />
+                <div v-if="item.canVerify || item.visitUrl" class="pt-1">
+                    <Button
+                        v-if="item.canVerify"
+                        as-child
+                        size="sm"
+                        class="h-8 w-full"
+                    >
+                        <Link :href="`/registration-review/${item.publicId}`"
+                            >Verify</Link
+                        >
+                    </Button>
+                    <Button
+                        v-else-if="item.visitUrl"
+                        as-child
+                        size="sm"
+                        variant="outline"
+                        class="h-8 w-full"
+                    >
+                        <Link :href="item.visitUrl">View Visit</Link>
+                    </Button>
+                </div>
+            </article>
+            <p
+                v-if="items.length === 0"
+                class="px-4 py-12 text-center text-sm text-muted-foreground"
+            >
+                No QR intake records are available for this branch.
+            </p>
+        </div>
+
+        <div v-if="history.lastPage > 1" class="border-t px-3 py-2">
+            <CompactPagination
+                :current-page="history.currentPage"
+                :last-page="history.lastPage"
+                :total="history.total"
+                @change="(page) => $emit('history-page-change', page)"
+            />
         </div>
     </section>
 </template>

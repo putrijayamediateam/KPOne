@@ -17,6 +17,7 @@ use App\Domain\Visit\Models\Visit;
 use App\Domain\Visit\Services\VisitReasonService;
 use App\Http\Controllers\PublicCheckInController;
 use App\Http\Middleware\ValidatePublicIntakeProxy;
+use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -123,7 +124,11 @@ class PublicPatientIntakeTest extends VisitTestCase
         $director = $this->actor('director');
         $issued = app(PublicCheckInLinkService::class)->issue($director, $this->branch, 'Bearer-free test');
         $rawToken = $issued['rawToken'];
-        config(['public-intake.trusted_proxies' => ['127.0.0.1']]);
+        // This test proves the request-scheme fallback (R1-09); pin session.secure
+        // to unset so the assertion below is independent of the ambient deployment
+        // config. test_protected_cookie_secure_flag_follows_the_deployment_session_config_when_set
+        // covers the explicitly-configured cases.
+        config(['session.secure' => null, 'public-intake.trusted_proxies' => ['127.0.0.1']]);
         $this->withServerVariables(['REMOTE_ADDR' => '127.0.0.1'])
             ->withHeaders(['X-Forwarded-Proto' => 'https']);
 
@@ -169,6 +174,43 @@ class PublicPatientIntakeTest extends VisitTestCase
         $auditBytes = AuditLog::query()->get()->toJson();
         $this->assertStringNotContainsString($rawToken, $auditBytes);
         $this->assertStringNotContainsString($statusReceipt, $auditBytes);
+    }
+
+    public function test_protected_cookie_secure_flag_follows_the_deployment_session_config_when_set(): void
+    {
+        $director = $this->actor('director');
+        $cookieName = (string) config('public-intake.submission_cookie');
+        $rawToken = app(PublicCheckInLinkService::class)->issue($director, $this->branch, 'Secure-flag test')['rawToken'];
+        $exchangeOverPlainRequest = function () use ($rawToken) {
+            return $this->postJson(route('public-intake.exchange'), ['link_token' => $rawToken])
+                ->assertCreated();
+        };
+
+        // Deployment explicitly requires Secure cookies: honoured even over a
+        // plain request (a load balancer terminates TLS upstream, so the
+        // application process itself never sees an HTTPS request).
+        config(['session.secure' => true]);
+        $secureConfigured = $exchangeOverPlainRequest()->getCookie($cookieName, false);
+        $this->assertNotNull($secureConfigured);
+        $this->assertTrue($secureConfigured->isSecure(), 'session.secure=true must force Secure regardless of request scheme.');
+
+        // Deployment leaves it unset: falls back to the request's own (plain,
+        // non-HTTPS) scheme. The reverse fallback direction — an unset config
+        // deferring to a genuinely HTTPS request — is proven by
+        // test_public_bearers_are_confined_to_fragment_exchange_and_protected_cookies.
+        config(['session.secure' => null]);
+        $fallback = $exchangeOverPlainRequest()->getCookie($cookieName, false);
+        $this->assertNotNull($fallback);
+        $this->assertFalse($fallback->isSecure(), 'an unset session.secure must fall back to the plain request scheme.');
+
+        // Deployment explicitly disables Secure (local/dev over HTTP): honoured
+        // even when the request itself reports HTTPS.
+        config(['session.secure' => false, 'public-intake.trusted_proxies' => ['127.0.0.1']]);
+        $this->withServerVariables(['REMOTE_ADDR' => '127.0.0.1'])
+            ->withHeaders(['X-Forwarded-Proto' => 'https']);
+        $forcedInsecureCookie = $exchangeOverPlainRequest()->getCookie($cookieName, false);
+        $this->assertNotNull($forcedInsecureCookie);
+        $this->assertFalse($forcedInsecureCookie->isSecure(), 'session.secure=false must force non-Secure even over HTTPS.');
     }
 
     public function test_json_exchange_removes_the_bearer_from_the_active_request_input_source(): void
@@ -612,6 +654,38 @@ SQL);
         $this->assertSame('patient', $intake->submission_type);
     }
 
+    public function test_staff_correction_survives_a_privacy_notice_version_change_and_keeps_the_original_consent(): void
+    {
+        config(['public-intake.privacy_notice_version' => 'version-a']);
+        [$token, $session] = $this->publicSession();
+        $this->postJson(route('public-intake.submit'), $this->payload($session))->assertCreated();
+        $intake = PublicPatientIntake::query()->sole();
+        $this->assertSame('version-a', $intake->encrypted_payload['consent']['privacy_notice_version']);
+
+        // The privacy notice changes after this Patient already consented and
+        // submitted. Staff must still be able to correct the pending intake.
+        config(['public-intake.privacy_notice_version' => 'version-b']);
+        $correction = $this->payload($session, [
+            'lock_version' => $intake->lock_version,
+            'full_name' => 'Corrected After Version Change',
+            'privacy_notice_version' => 'version-b',
+        ]);
+
+        $reviewer = $this->actor('ca');
+        $this->selectBranch($reviewer);
+        $this->patch(route('registration-review.correct', $intake->public_id), $correction)
+            ->assertRedirect()
+            ->assertSessionDoesntHaveErrors();
+
+        $intake->refresh();
+        $this->assertSame('Corrected After Version Change', $intake->encrypted_payload['patient']['full_name']);
+        $this->assertSame(
+            'version-a',
+            $intake->encrypted_payload['consent']['privacy_notice_version'],
+            'A correction must never rewrite the Patient\'s originally consented privacy notice version.',
+        );
+    }
+
     public function test_failed_staff_correction_does_not_flash_clinical_intake_fields(): void
     {
         [, $session] = $this->publicSession();
@@ -701,6 +775,62 @@ SQL);
         $this->assertSame(1, AuditLog::query()->where('event', 'public_intake.payload_purged')->count());
     }
 
+    public function test_cleanup_is_scheduled_daily_without_overlap_or_multi_server_duplication(): void
+    {
+        $events = app(Schedule::class)->events();
+        $event = collect($events)->first(
+            fn ($event) => str_contains($event->command ?? '', 'public-intakes:cleanup'),
+        );
+
+        $this->assertNotNull($event, 'public-intakes:cleanup must be registered on the schedule.');
+        $this->assertSame('0 0 * * *', $event->expression);
+        $this->assertTrue($event->withoutOverlapping);
+        $this->assertNotNull($event->mutex, 'onOneServer() must be set so a multi-server deployment runs this once.');
+    }
+
+    public function test_cleanup_prunes_only_expired_and_unreferenced_public_intake_sessions(): void
+    {
+        // (1) Abandoned: exchanged, never submitted, now expired — prunable.
+        [$token] = $this->publicSession();
+        $exchange = function () use ($token): array {
+            $this->withServerVariables(['REMOTE_ADDR' => '198.18.0.'.self::$publicIpSequence++]);
+
+            return $this->installPublicCookies(
+                $this->postJson(route('public-intake.exchange'), ['link_token' => $token])->assertCreated(),
+            );
+        };
+        $prunableId = PublicIntakeSession::query()->sole()->id;
+        PublicIntakeSession::query()->whereKey($prunableId)->update(['expires_at' => now()->subMinutes(5)]);
+
+        // (2) Referenced: exchanged, submitted (has an intake), also expired —
+        // must never be pruned, matching the FK's restrictOnDelete() safety net.
+        $referencedSession = $exchange();
+        $this->postJson(route('public-intake.submit'), $this->payload($referencedSession, [
+            'identifier_value' => 'SYNQ1B2-KEEP-REFERENCED',
+        ]))->assertCreated();
+        $referencedId = PublicIntakeSession::query()->where('id', '!=', $prunableId)->sole()->id;
+        PublicIntakeSession::query()->whereKey($referencedId)->update(['expires_at' => now()->subMinutes(5)]);
+
+        // (3) Fresh: exchanged, never submitted, but not yet expired — kept.
+        $exchange();
+        $freshId = PublicIntakeSession::query()
+            ->where('id', '!=', $prunableId)->where('id', '!=', $referencedId)->sole()->id;
+
+        $this->assertSame(3, PublicIntakeSession::query()->count());
+        $this->artisan('public-intakes:cleanup')->assertSuccessful();
+
+        $this->assertSame(2, PublicIntakeSession::query()->count());
+        $this->assertDatabaseMissing('public_intake_sessions', ['id' => $prunableId]);
+        $this->assertDatabaseHas('public_intake_sessions', ['id' => $referencedId]);
+        $this->assertDatabaseHas('public_intake_sessions', ['id' => $freshId]);
+        $this->assertSame(1, AuditLog::query()->where('event', 'public_intake.session_pruned')->count());
+
+        // Idempotent: nothing left to prune, and no duplicate audit trail.
+        $this->artisan('public-intakes:cleanup')->assertSuccessful();
+        $this->assertSame(2, PublicIntakeSession::query()->count());
+        $this->assertSame(1, AuditLog::query()->where('event', 'public_intake.session_pruned')->count());
+    }
+
     public function test_qr_intake_listing_is_branch_scoped_pending_first_and_fifo(): void
     {
         [$token, $firstSession] = $this->publicSession();
@@ -735,6 +865,124 @@ SQL);
         $this->assertSame(36, $listing['items'][0]['summary']['age']);
         $this->assertSame($second->public_id, $listing['items'][1]['publicId']);
         $this->assertSame('rejected', $listing['items'][1]['displayStatus']);
+    }
+
+    public function test_qr_intake_listing_query_count_does_not_grow_with_pending_intake_count(): void
+    {
+        [$token] = $this->publicSession();
+        $submit = function (string $suffix) use ($token): void {
+            $this->withServerVariables(['REMOTE_ADDR' => '198.18.0.'.self::$publicIpSequence++]);
+            $session = $this->installPublicCookies(
+                $this->postJson(route('public-intake.exchange'), ['link_token' => $token])->assertCreated(),
+            );
+            $this->postJson(route('public-intake.submit'), $this->payload($session, [
+                'identifier_value' => 'SYNQ1B2-PERF-'.$suffix,
+            ]))->assertCreated();
+        };
+        foreach (range(1, 5) as $i) {
+            $submit('a'.$i);
+        }
+
+        $reviewer = $this->actor('ca');
+        $this->selectBranch($reviewer);
+        // Warm up one-time per-request costs (e.g. permission-cache hydration)
+        // that are unrelated to row count, so the comparison below isolates only
+        // the cost that actually scales with the number of intakes.
+        app(PublicIntakeReviewService::class)->listing($reviewer);
+
+        DB::enableQueryLog();
+        DB::flushQueryLog();
+        $small = app(PublicIntakeReviewService::class)->listing($reviewer);
+        $smallQueryCount = count(DB::getQueryLog());
+        $this->assertSame(5, $small['pendingCount']);
+
+        foreach (range(1, 45) as $i) {
+            $submit('b'.$i);
+        }
+        DB::flushQueryLog();
+        $large = app(PublicIntakeReviewService::class)->listing($reviewer);
+        $largeQueryCount = count(DB::getQueryLog());
+        DB::disableQueryLog();
+        $this->assertSame(50, $large['pendingCount']);
+
+        $this->assertSame(
+            $smallQueryCount,
+            $largeQueryCount,
+            "Query count grew from {$smallQueryCount} (5 pending intakes) to {$largeQueryCount} (50 pending intakes); the QR intake listing must not query per row (R1-05).",
+        );
+    }
+
+    public function test_qr_intake_listing_paginates_history_but_never_the_pending_queue(): void
+    {
+        [$token] = $this->publicSession();
+        $submit = function (string $suffix) use ($token): void {
+            $this->withServerVariables(['REMOTE_ADDR' => '198.18.0.'.self::$publicIpSequence++]);
+            $session = $this->installPublicCookies(
+                $this->postJson(route('public-intake.exchange'), ['link_token' => $token])->assertCreated(),
+            );
+            $this->postJson(route('public-intake.submit'), $this->payload($session, [
+                'identifier_value' => 'SYNQ1B2-HIST-'.$suffix,
+            ]))->assertCreated();
+        };
+        $reviewer = $this->actor('ca');
+        $this->selectBranch($reviewer);
+
+        foreach (range(1, 3) as $i) {
+            $submit('pending'.$i);
+        }
+        foreach (range(1, 30) as $i) {
+            $submit('rej'.$i);
+            $rejected = PublicPatientIntake::query()->latest('id')->firstOrFail();
+            app(PublicIntakeReviewService::class)->reject($reviewer, $rejected->public_id, $rejected->lock_version, 'insufficient_information');
+        }
+
+        $firstPage = app(PublicIntakeReviewService::class)->listing($reviewer, 1);
+        $this->assertSame(3, $firstPage['pendingCount']);
+        $this->assertSame(30, $firstPage['history']['total']);
+        $this->assertSame(1, $firstPage['history']['currentPage']);
+        $this->assertSame(2, $firstPage['history']['lastPage']);
+        // Every pending row plus one full history page: the pending queue is
+        // never truncated by pagination, only the history tier is.
+        $this->assertCount(3 + 25, $firstPage['items']);
+        $this->assertSame(
+            ['pending', 'pending', 'pending'],
+            array_column(array_slice($firstPage['items'], 0, 3), 'displayStatus'),
+        );
+
+        $secondPage = app(PublicIntakeReviewService::class)->listing($reviewer, 2);
+        $this->assertSame(3, $secondPage['pendingCount']);
+        $this->assertSame(2, $secondPage['history']['currentPage']);
+        $this->assertCount(3 + 5, $secondPage['items']);
+    }
+
+    public function test_qr_intake_listing_shows_no_age_for_an_implausible_stored_date_of_birth(): void
+    {
+        [, $session] = $this->publicSession();
+        $this->postJson(route('public-intake.submit'), $this->payload($session))->assertCreated();
+        $intake = PublicPatientIntake::query()->sole();
+
+        // Simulates legacy/synthetic data whose stored date of birth predates or
+        // bypassed submission validation (`date_format:Y-m-d`, `before_or_equal:today`).
+        // The public submission path already rejects this at the edge; this proves
+        // the review listing is also defensive about what is already on record.
+        $payload = $intake->encrypted_payload;
+        data_set($payload, 'patient.date_of_birth', '2023');
+        $intake->forceFill(['encrypted_payload' => $payload])->save();
+
+        $reviewer = $this->actor('ca');
+        $this->selectBranch($reviewer);
+        $listing = app(PublicIntakeReviewService::class)->listing($reviewer);
+        $this->assertNull($listing['items'][0]['summary']['age']);
+
+        data_set($payload, 'patient.date_of_birth', now()->addYear()->toDateString());
+        $intake->forceFill(['encrypted_payload' => $payload])->save();
+        $listing = app(PublicIntakeReviewService::class)->listing($reviewer);
+        $this->assertNull($listing['items'][0]['summary']['age']);
+
+        data_set($payload, 'patient.date_of_birth', now()->subYears(131)->toDateString());
+        $intake->forceFill(['encrypted_payload' => $payload])->save();
+        $listing = app(PublicIntakeReviewService::class)->listing($reviewer);
+        $this->assertNull($listing['items'][0]['summary']['age']);
     }
 
     public function test_feature_flag_disables_public_intake_outside_the_workflow(): void

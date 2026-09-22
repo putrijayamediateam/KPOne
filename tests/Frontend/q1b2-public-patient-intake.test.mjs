@@ -153,8 +153,15 @@ test('registration navigation and visit controls remain operationally compact', 
     assert.ok(qrTable.includes('>Verify</Link'));
     assert.ok(!qrTable.includes('Ellipsis'));
     assert.ok(qrTable.includes('Data Purged'));
-    assert.ok(qrTable.includes('TooltipTrigger'));
-    assert.ok(qrTable.includes('<details'));
+    // The tooltip/focus/mobile-expand disclosure (R1-07) is the shared
+    // DisclosureText component, reused here rather than duplicated; its own
+    // TooltipTrigger/<details> markup is covered by disclosure-text.test.mjs.
+    assert.ok(qrTable.includes('DisclosureText'));
+    // R1-06: below md, the horizontally-scrolling table is replaced by a
+    // stacked card list so the tab, Status and Verify stay reachable without
+    // horizontal scroll; the table stays for md and up.
+    assert.match(qrTable, /class="hidden overflow-x-auto md:block"/);
+    assert.match(qrTable, /class="divide-y md:hidden"/);
 
     for (const source of [registrationCreate, registrationEdit]) {
         assert.doesNotMatch(source, /:options="doctorOptions"\s*\/>\s*>/);

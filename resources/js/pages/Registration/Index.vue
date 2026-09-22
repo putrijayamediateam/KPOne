@@ -57,9 +57,9 @@ const props = defineProps<{
                 purpose: string | null;
                 complaint: string | null;
                 duration: string | null;
-                duplicateStatus: 'none' | 'possible';
             } | null;
         }>;
+        history: { total: number; currentPage: number; lastPage: number };
     } | null;
 }>();
 const page = usePage();
@@ -393,6 +393,14 @@ const requestCancellation = (row: PatientBoardRow) => {
     cancellationRow.value = row;
     cancelOpen.value = true;
 };
+const changeQrHistoryPage = (qrHistoryPage: number) => {
+    // router.reload() always preserves scroll and component state; that is the
+    // point of "reload" versus a full visit.
+    router.reload({
+        only: ['qrIntakes'],
+        data: { qr_history_page: qrHistoryPage },
+    });
+};
 </script>
 
 <template>
@@ -419,6 +427,8 @@ const requestCancellation = (row: PatientBoardRow) => {
             v-if="isQrIntake && qrIntakes"
             :branch="qrIntakes.branch"
             :items="qrIntakes.items"
+            :history="qrIntakes.history"
+            @history-page-change="changeQrHistoryPage"
         />
 
         <div v-else-if="plannedTab" class="border-y px-4 py-12 text-center">

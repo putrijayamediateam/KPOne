@@ -208,7 +208,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
             ->middleware(['permission:consultations.reopen.own', 'throttle:20,1'])->name('encounters.checkout.reopen');
 
         Route::get('dispensary/{dispensaryCase}', [DispensaryController::class, 'show'])
-            ->middleware('permission:dispensary.view.branch')->name('dispensary.show');
+            ->whereUuid('dispensaryCase')->middleware('permission:dispensary.view.branch')->name('dispensary.show');
 
         Route::prefix('visits/{visit}/billing')->controller(BillingController::class)->group(function () {
             Route::get('/', 'show')->middleware('permission:billing.view.branch,billing.summary.branch')->name('billing.show');
@@ -224,19 +224,19 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::get('{invoice}/receipts/{payment}/print', 'printReceipt')->middleware('permission:billing.print.branch')->name('billing.receipt');
         });
         Route::get('dispensary/{dispensaryCase}/labels', [DispensaryController::class, 'labels'])
-            ->middleware('permission:dispensary.view.branch')->name('dispensary.labels');
+            ->whereUuid('dispensaryCase')->middleware('permission:dispensary.view.branch')->name('dispensary.labels');
         Route::get('dispensary/{dispensaryCase}/items/{itemPublicId}/label', [DispensaryController::class, 'labels'])
-            ->middleware('permission:dispensary.view.branch')->whereUuid('itemPublicId')->name('dispensary.items.label');
+            ->whereUuid('dispensaryCase')->middleware('permission:dispensary.view.branch')->whereUuid('itemPublicId')->name('dispensary.items.label');
         Route::post('dispensary/{dispensaryCase}/start', [DispensaryController::class, 'start'])
-            ->middleware(['permission:dispensary.start.branch', 'throttle:30,1'])->name('dispensary.start');
+            ->whereUuid('dispensaryCase')->middleware(['permission:dispensary.start.branch', 'throttle:30,1'])->name('dispensary.start');
         Route::patch('dispensary/{dispensaryCase}/items/{item}', [DispensaryController::class, 'updateItem'])
-            ->middleware(['permission:dispensary.update.branch', 'throttle:60,1'])->name('dispensary.items.update');
+            ->whereUuid('dispensaryCase')->whereUuid('item')->middleware(['permission:dispensary.update.branch', 'throttle:60,1'])->name('dispensary.items.update');
         Route::post('dispensary/{dispensaryCase}/return-to-doctor', [DispensaryController::class, 'returnToDoctor'])
-            ->middleware(['permission:dispensary.return_to_doctor.branch', 'throttle:20,1'])->name('dispensary.return-to-doctor');
+            ->whereUuid('dispensaryCase')->middleware(['permission:dispensary.return_to_doctor.branch', 'throttle:20,1'])->name('dispensary.return-to-doctor');
         Route::post('dispensary/{dispensaryCase}/complete', [DispensaryController::class, 'complete'])
-            ->middleware(['permission:dispensary.complete.branch', 'throttle:20,1'])->name('dispensary.complete');
+            ->whereUuid('dispensaryCase')->middleware(['permission:dispensary.complete.branch', 'throttle:20,1'])->name('dispensary.complete');
         Route::post('dispensary-exceptions/{exception}/acknowledge', [DispensaryController::class, 'acknowledge'])
-            ->middleware(['permission:dispensary.acknowledge_partial.own', 'throttle:20,1'])->name('dispensary.exceptions.acknowledge');
+            ->whereUuid('exception')->middleware(['permission:dispensary.acknowledge_partial.own', 'throttle:20,1'])->name('dispensary.exceptions.acknowledge');
         Route::post('inventory/opening-balances', [InventoryMovementController::class, 'openingBalance'])
             ->middleware(['permission:inventory.opening_balance.branch', 'throttle:20,1'])->name('inventory.opening-balances.store');
         Route::post('inventory/transfers', [InventoryMovementController::class, 'transfer'])

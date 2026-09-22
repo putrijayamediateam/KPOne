@@ -52,6 +52,13 @@ class ClinicalEncounterDirectoryService
 
         $vitals = $encounter->vitalObservation;
         $isActiveConsultation = $encounter->visit->queueEntry?->status === QueueEntry::STATUS_SERVING;
+        // Mirrors ConsultationHoldService::assertActiveConsultation() exactly: On Hold
+        // and Resume are offered only while the backend would actually allow them, so
+        // they never appear on an Awaiting Billing or completed consultation.
+        $canActOnConsultation = $isActiveConsultation
+            && $encounter->visit->status === Visit::STATUS_REGISTERED
+            && $encounter->visit->visit_type === 'consultation'
+            && $encounter->status === ClinicalEncounter::STATUS_IN_PROGRESS;
         $activeHold = $encounter->holds->first(fn ($hold): bool => $hold->resumed_at === null);
         $heldSeconds = $encounter->holds->sum(fn ($hold): float => $hold->held_at->diffInSeconds(
             $hold->resumed_at ?? now()->utc(),
@@ -97,8 +104,8 @@ class ClinicalEncounterDirectoryService
                 'activeMinutes' => (int) floor(max(0, $elapsedSeconds - $heldSeconds) / 60),
                 'holdIdempotencyKey' => (string) Str::uuid(),
                 'resumeIdempotencyKey' => (string) Str::uuid(),
-                'canHold' => $activeHold === null && $actor->can('consultations.hold.own'),
-                'canResume' => $activeHold !== null && $actor->can('consultations.hold.own'),
+                'canHold' => $canActOnConsultation && $activeHold === null && $actor->can('consultations.hold.own'),
+                'canResume' => $canActOnConsultation && $activeHold !== null && $actor->can('consultations.hold.own'),
             ],
             'vitals' => $this->vitals($vitals),
             'diagnoses' => $encounter->diagnoses->map(fn (EncounterDiagnosis $diagnosis): array => [

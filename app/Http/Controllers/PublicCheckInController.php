@@ -138,13 +138,18 @@ class PublicCheckInController extends Controller
         #[\SensitiveParameter] string $value,
         int $minutes,
     ): HttpCookie {
+        // config('session.secure') reflects the deployment's own TLS-termination
+        // decision (SESSION_SECURE_COOKIE); only fall back to the request's own
+        // scheme when that has not been explicitly configured.
+        $secure = config('session.secure');
+
         return Cookie::make(
             $name,
             $value,
             $minutes,
             $this->cookiePath(),
             null,
-            $request->isSecure(),
+            $secure === null ? $request->isSecure() : (bool) $secure,
             true,
             false,
             HttpCookie::SAMESITE_LAX,

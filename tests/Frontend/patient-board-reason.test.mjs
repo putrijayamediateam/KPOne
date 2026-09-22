@@ -1,8 +1,13 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
-import { runInNewContext } from 'node:vm';
 
+// R1-07: the null-vs-authoritative Visit notes fallback used to live in a
+// template mustache expression here (`row.visitNotes ?? 'No reason
+// recorded'`), evaluated directly as JS. It now lives inside the shared
+// DisclosureText component (see disclosure-text.test.mjs for its own
+// fallback/tooltip/mobile-expand coverage); this file instead proves Patient
+// Board wires the same, un-mutated Visit notes value and fallback into it.
 const source = readFileSync(
     new URL(
         '../../resources/js/components/patient-board/PatientBoard.vue',
@@ -10,26 +15,14 @@ const source = readFileSync(
     ),
     'utf8',
 );
-// Execute the actual presentation expression, without persisting an invalid
-// null-reason Consultation fixture or duplicating the fallback implementation.
-const expression = source.match(
-    /\{\{\s*(row\.visitNotes\s*\?\?[^}]+)\}\}/,
-)?.[1];
-assert.ok(expression, 'Patient Board must expose its Visit notes presentation');
 
-test('explicit null Visit notes render the existing fallback without a database mutation', () => {
-    assert.equal(
-        runInNewContext(expression, { row: { visitNotes: null } }),
-        'No reason recorded',
-    );
+test('Patient Board passes the authoritative Visit notes value to the shared disclosure, unmodified', () => {
+    assert.match(source, /<DisclosureText\b[^>]*\s:text="row\.visitNotes"/);
 });
 
-test('authoritative Visit notes are retained instead of the null fallback', () => {
-    assert.equal(
-        runInNewContext(expression, { row: { visitNotes: 'Sakit tekak' } }),
-        'Sakit tekak',
+test('Patient Board keeps the existing "No reason recorded" fallback text', () => {
+    assert.match(
+        source,
+        /<DisclosureText\b[^>]*\sfallback="No reason recorded"/,
     );
-    assert.equal(runInNewContext(expression, { row: { visitNotes: '' } }), '');
-    // The separate server lifecycle test requires the actual projected value at
-    // every handoff stage; an omitted projection key cannot satisfy that test.
 });

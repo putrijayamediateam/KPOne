@@ -28,7 +28,7 @@ class RegistrationController extends Controller
             'options' => $directory->consoleOptions($request->user()),
             'canCreate' => $request->user()->can('create', Visit::class),
             'qrIntakes' => $request->user()->can('public_intakes.review.branch')
-                ? $reviews->listing($request->user()) : null,
+                ? $reviews->listing($request->user(), max(1, $request->integer('qr_history_page', 1))) : null,
         ]);
     }
 

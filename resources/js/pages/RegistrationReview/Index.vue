@@ -66,7 +66,7 @@ const purposeLabel: Record<string, string> = {
                                 }}</CardTitle
                             >
                             <p class="mt-1 text-xs text-muted-foreground">
-                                {{ item.summary.age ?? 'â€”' }} tahun Â·
+                                {{ item.summary.age ?? '—' }} tahun ·
                                 {{
                                     item.submissionType === 'guardian'
                                         ? 'Penjaga'

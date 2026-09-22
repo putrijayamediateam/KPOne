@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Domain\Audit\AuditRecorder;
+use App\Domain\Patient\Models\PublicIntakeSession;
 use App\Domain\Patient\Models\PublicPatientIntake;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
@@ -81,7 +82,38 @@ class CleanupPublicPatientIntakes extends Command
                 }
             });
 
-        $this->components->info("Expired {$expired}; purged {$purged}.");
+        $prunedSessions = 0;
+        PublicIntakeSession::query()
+            ->where('expires_at', '<=', $now)
+            ->whereDoesntHave('intake')
+            ->select('id')
+            ->orderBy('id')
+            ->chunkById(100, function ($rows) use ($audit, &$prunedSessions): void {
+                foreach ($rows as $row) {
+                    DB::transaction(function () use ($row, $audit, &$prunedSessions): void {
+                        $session = PublicIntakeSession::query()->whereKey($row->id)->lockForUpdate()->first();
+                        if (! $session || $session->expires_at->isFuture()) {
+                            return;
+                        }
+                        // Re-check under lock: a submission could have consumed this
+                        // session (creating its intake) between the outer scan above
+                        // and this row lock being acquired.
+                        if (PublicPatientIntake::query()->where('public_intake_session_id', $session->id)->exists()) {
+                            return;
+                        }
+                        $branch = $session->branch;
+                        $organisationId = $session->organisation_id;
+                        $sessionPublicId = $session->public_id;
+                        $session->delete();
+                        $audit->record('public_intake.session_pruned', null, [
+                            'public_intake_session_public_id' => $sessionPublicId,
+                        ], branch: $branch, organisationId: $organisationId);
+                        $prunedSessions++;
+                    }, 3);
+                }
+            });
+
+        $this->components->info("Expired {$expired}; purged {$purged}; pruned {$prunedSessions} unused sessions.");
 
         return self::SUCCESS;
     }

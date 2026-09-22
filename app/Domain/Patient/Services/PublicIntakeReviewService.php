@@ -35,49 +35,86 @@ class PublicIntakeReviewService
         private AuditRecorder $audit,
     ) {}
 
-    /** @return array<string, mixed> */
-    public function listing(User $actor): array
+    private const REVIEWABLE_STATUSES = [
+        PublicPatientIntake::STATUS_PENDING,
+        PublicPatientIntake::STATUS_UNDER_REVIEW,
+        PublicPatientIntake::STATUS_CORRECTION_REQUIRED,
+    ];
+
+    private const HISTORY_PER_PAGE = 25;
+
+    /**
+     * Every reviewable (pending/under_review/correction_required) intake is always
+     * returned in full, FIFO order — that queue must never be hidden by pagination.
+     * Reviewed/rejected/expired/purged rows are the "history" tier and are paginated,
+     * since that set is unbounded and can grow indefinitely. Each visible pending row
+     * is one query plus this fixed set of eager loads; nothing scales per row, so the
+     * query count stays constant as the branch's intake history grows.
+     *
+     * @return array<string, mixed>
+     */
+    public function listing(User $actor, int $historyPage = 1): array
     {
         $branch = $this->authorizedBranch($actor);
-        $reviewableStatuses = [
-            PublicPatientIntake::STATUS_PENDING,
-            PublicPatientIntake::STATUS_UNDER_REVIEW,
-            PublicPatientIntake::STATUS_CORRECTION_REQUIRED,
-        ];
-        $items = PublicPatientIntake::query()
+        $base = fn () => PublicPatientIntake::query()
             ->where('organisation_id', $actor->organisation_id)
             ->where('branch_id', $branch->id)
-            ->with('visit:id,organisation_id,branch_id,visit_number')
-            ->orderByRaw("CASE status WHEN 'pending' THEN 0 WHEN 'under_review' THEN 0 WHEN 'correction_required' THEN 0 WHEN 'accepted' THEN 1 WHEN 'rejected' THEN 2 ELSE 3 END")
-            ->orderByRaw("CASE WHEN status IN ('pending', 'under_review', 'correction_required') THEN submitted_at END ASC")
-            ->orderByRaw("CASE WHEN status NOT IN ('pending', 'under_review', 'correction_required') THEN submitted_at END DESC")
+            ->with('visit:id,organisation_id,branch_id,visit_number');
+
+        $pending = $base()
+            ->whereIn('status', self::REVIEWABLE_STATUSES)
+            ->orderBy('submitted_at')
             ->orderBy('id')
             ->get();
+        $history = $base()
+            ->whereNotIn('status', self::REVIEWABLE_STATUSES)
+            ->orderByDesc('submitted_at')
+            ->orderByDesc('id')
+            ->paginate(self::HISTORY_PER_PAGE, page: max(1, $historyPage));
+
+        $row = fn (PublicPatientIntake $intake): array => [
+            'publicId' => $intake->public_id,
+            'status' => $intake->status,
+            'displayStatus' => $intake->payload_purged_at !== null ? 'data_purged' : match ($intake->status) {
+                PublicPatientIntake::STATUS_ACCEPTED => 'reviewed',
+                PublicPatientIntake::STATUS_PENDING,
+                PublicPatientIntake::STATUS_UNDER_REVIEW,
+                PublicPatientIntake::STATUS_CORRECTION_REQUIRED => 'pending',
+                default => $intake->status,
+            },
+            'submissionType' => $intake->submission_type,
+            'summary' => $intake->encrypted_payload === null ? null : $this->summary($intake),
+            'submittedAt' => $intake->submitted_at->toIso8601String(),
+            'expiresAt' => $intake->expires_at->toIso8601String(),
+            'lockVersion' => $intake->lock_version,
+            'canVerify' => in_array($intake->status, self::REVIEWABLE_STATUSES, true)
+                && $intake->encrypted_payload !== null,
+            'visitUrl' => $intake->visit && Gate::forUser($actor)->allows('view', $intake->visit)
+                ? route('visits.show', $intake->visit) : null,
+        ];
 
         return [
             'branch' => $branch->only(['id', 'code', 'name']),
-            'pendingCount' => $items->whereIn('status', $reviewableStatuses)->count(),
-            'items' => $items->map(fn (PublicPatientIntake $intake): array => [
-                'publicId' => $intake->public_id,
-                'status' => $intake->status,
-                'displayStatus' => $intake->payload_purged_at !== null ? 'data_purged' : match ($intake->status) {
-                    PublicPatientIntake::STATUS_ACCEPTED => 'reviewed',
-                    PublicPatientIntake::STATUS_PENDING,
-                    PublicPatientIntake::STATUS_UNDER_REVIEW,
-                    PublicPatientIntake::STATUS_CORRECTION_REQUIRED => 'pending',
-                    default => $intake->status,
-                },
-                'submissionType' => $intake->submission_type,
-                'summary' => $intake->encrypted_payload === null ? null : $this->summary($actor, $intake),
-                'submittedAt' => $intake->submitted_at->toIso8601String(),
-                'expiresAt' => $intake->expires_at->toIso8601String(),
-                'lockVersion' => $intake->lock_version,
-                'canVerify' => in_array($intake->status, $reviewableStatuses, true)
-                    && $intake->encrypted_payload !== null,
-                'visitUrl' => $intake->visit && Gate::forUser($actor)->allows('view', $intake->visit)
-                    ? route('visits.show', $intake->visit) : null,
-            ])->values()->all(),
+            'pendingCount' => $pending->count(),
+            'items' => $pending->map($row)
+                ->concat($history->getCollection()->map($row))
+                ->values()->all(),
+            'history' => [
+                'total' => $history->total(),
+                'currentPage' => $history->currentPage(),
+                'lastPage' => $history->lastPage(),
+            ],
         ];
+    }
+
+    /**
+     * Authorizes access to the branch's review workspace without building the
+     * (potentially large) listing — used by routes that only need to gate access
+     * before redirecting elsewhere (R1-05).
+     */
+    public function authorizeReview(User $actor): void
+    {
+        $this->authorizedBranch($actor);
     }
 
     /** @return array<string, mixed> */
@@ -124,11 +161,15 @@ class PublicIntakeReviewService
         $current = $this->scoped($actor, $publicId);
         abort_if($current->encrypted_payload === null, 410);
         $currentPayload = $current->encrypted_payload;
+        $originalPrivacyNoticeVersion = (string) $currentPayload['consent']['privacy_notice_version'];
         $attributes['submission_type'] = $currentPayload['submission_type'];
         $attributes['guardian_attestation'] = $currentPayload['guardian']['attested'] ?? false;
         $attributes['consent_confirmed'] = true;
-        $attributes['privacy_notice_version'] = $currentPayload['consent']['privacy_notice_version'];
-        $payload = $this->payloads->validate($attributes);
+        $attributes['privacy_notice_version'] = $originalPrivacyNoticeVersion;
+        // A staff correction must never be blocked by, or silently rewritten to, a
+        // privacy notice version that changed after this Patient consented; it is
+        // validated and re-stamped against the intake's own original version.
+        $payload = $this->payloads->validate($attributes, $originalPrivacyNoticeVersion);
 
         return $this->transition($actor, $publicId, $expectedVersion, function (PublicPatientIntake $intake) use ($actor, $payload): void {
             if (! in_array($intake->status, [
@@ -454,20 +495,52 @@ class PublicIntakeReviewService
         throw ValidationException::withMessages(['status' => 'Tindakan ini tidak dibenarkan untuk status semasa.']);
     }
 
-    /** @return array{name: string, age: int|null, purpose: string|null, complaint: string|null, duration: string|null, duplicateStatus: string} */
-    private function summary(User $actor, PublicPatientIntake $intake): array
+    /**
+     * The list never surfaces a duplicate-candidate hint (the frontend never
+     * renders one), so this intentionally omits the {@see duplicateCandidates()}
+     * query — computing it per row was the listing's N+1 (R1-05). Duplicate
+     * candidates remain available, computed once, on the single-intake Verify
+     * page via {@see detail()}.
+     *
+     * @return array{name: string, age: int|null, purpose: string|null, complaint: string|null, duration: string|null}
+     */
+    private function summary(PublicPatientIntake $intake): array
     {
         $payload = Arr::wrap($intake->encrypted_payload);
         $dateOfBirth = data_get($payload, 'patient.date_of_birth');
 
         return [
             'name' => (string) data_get($payload, 'patient.full_name', ''),
-            'age' => is_string($dateOfBirth) ? Carbon::parse($dateOfBirth)->age : null,
+            'age' => $this->ageOrNull($dateOfBirth),
             'purpose' => data_get($payload, 'visit.purpose'),
             'complaint' => data_get($payload, 'visit.chief_complaint'),
             'duration' => data_get($payload, 'visit.duration'),
-            'duplicateStatus' => $this->duplicateCandidates($actor, $payload) === []
-                ? 'none' : 'possible',
         ];
+    }
+
+    /**
+     * Displayed age is derived, never trusted verbatim: a malformed, future or
+     * implausible stored date of birth (legacy or synthetic data) must show as
+     * unavailable rather than an impossible age such as "2023 years".
+     */
+    private function ageOrNull(mixed $dateOfBirth): ?int
+    {
+        if (! is_string($dateOfBirth) || $dateOfBirth === '') {
+            return null;
+        }
+
+        try {
+            $parsed = Carbon::parse($dateOfBirth);
+        } catch (\Exception) {
+            return null;
+        }
+
+        if ($parsed->isFuture()) {
+            return null;
+        }
+
+        $age = $parsed->age;
+
+        return $age >= 0 && $age <= 130 ? $age : null;
     }
 }

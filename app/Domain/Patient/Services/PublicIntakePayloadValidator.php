@@ -23,12 +23,19 @@ class PublicIntakePayloadValidator
 
     public function __construct(private PatientIdentityService $identity) {}
 
-    /** @param array<string, mixed> $attributes
+    /**
+     * @param  array<string, mixed>  $attributes
+     * @param  string|null  $lockedPrivacyNoticeVersion  The intake's own already-consented
+     *                                                   version, passed only when validating a staff correction of an existing intake.
+     *                                                   A correction must be checked and stamped against that original version, never
+     *                                                   the version currently configured, or a version change would silently retract
+     *                                                   or rewrite the patient's prior consent. Left null for a new public submission,
+     *                                                   which must always consent to the currently configured version.
      * @return array<string, mixed>
      */
-    public function validate(array $attributes): array
+    public function validate(array $attributes, ?string $lockedPrivacyNoticeVersion = null): array
     {
-        $privacyVersion = (string) config('public-intake.privacy_notice_version');
+        $privacyVersion = $lockedPrivacyNoticeVersion ?? (string) config('public-intake.privacy_notice_version');
         $validated = Validator::make($attributes, [
             'submission_type' => ['required', Rule::in(['patient', 'guardian'])],
             'full_name' => ['required', 'string', 'max:255'],
