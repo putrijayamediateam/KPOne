@@ -2,6 +2,7 @@
 import { computed, onBeforeUnmount, ref, useId, watch } from 'vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
+import { JsonRequestError, requestJson } from '@/lib/json-client';
 
 export type VisitReasonOption = {
     publicId: string;
@@ -81,17 +82,13 @@ const search = async () => {
     requestError.value = '';
 
     try {
-        const response = await fetch(
-            `/visit-reasons?query=${encodeURIComponent(searchTerm)}`,
-            { credentials: 'same-origin', signal: current.signal },
+        const parameters = new URLSearchParams({ query: searchTerm });
+        const payload = await requestJson<{ data: VisitReasonOption[] }>(
+            `/visit-reasons?${parameters.toString()}`,
+            { signal: current.signal },
         );
-        const payload = await response.json();
 
-        if (!response.ok) {
-            throw new Error();
-        }
-
-        const available = payload.data as VisitReasonOption[];
+        const available = payload.data;
         exactMatch.value =
             available.find(
                 (item) => normalizeLabel(item.name) === normalizedQuery.value,
@@ -189,26 +186,19 @@ const add = async () => {
     requestError.value = '';
 
     try {
-        const response = await fetch('/visit-reasons', {
-            method: 'POST',
-            credentials: 'same-origin',
-            headers: {
-                Accept: 'application/json',
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': csrf(),
+        const payload = await requestJson<{ data: VisitReasonOption }>(
+            '/visit-reasons',
+            {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': csrf(),
+                },
+                body: JSON.stringify({ name: query.value }),
             },
-            body: JSON.stringify({ name: query.value }),
-        });
-        const payload = await response.json();
+        );
 
-        if (!response.ok) {
-            requestError.value =
-                payload.errors?.name?.[0] ?? 'Visit Reason could not be added.';
-
-            return;
-        }
-
-        const created = payload.data as VisitReasonOption;
+        const created = payload.data;
 
         if (created.isActive === false) {
             exactMatch.value = created;
@@ -220,8 +210,17 @@ const add = async () => {
         }
 
         select(created);
-    } catch {
-        requestError.value = 'Visit Reason could not be added.';
+    } catch (error) {
+        const validationError =
+            error instanceof JsonRequestError &&
+            typeof error.payload === 'object' &&
+            error.payload !== null &&
+            'errors' in error.payload
+                ? (error.payload as { errors?: { name?: string[] } }).errors
+                      ?.name?.[0]
+                : undefined;
+        requestError.value =
+            validationError ?? 'Visit Reason could not be added.';
     } finally {
         adding.value = false;
     }
@@ -344,6 +343,7 @@ const onKeydown = (event: KeyboardEvent) => {
                         class="block w-full rounded px-3 py-2 text-left text-sm hover:bg-muted"
                         :class="index === activeIndex ? 'bg-muted' : ''"
                         @click="select(item)"
+                        @mousedown.prevent
                         @mouseenter="activeIndex = index"
                     >
                         {{ item.name }}

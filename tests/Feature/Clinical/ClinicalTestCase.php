@@ -4,10 +4,12 @@ namespace Tests\Feature\Clinical;
 
 use App\Domain\Clinical\Models\ClinicalEncounter;
 use App\Domain\Clinical\Services\ClinicalEncounterService;
+use App\Domain\Clinical\Services\ConsultationHoldService;
 use App\Domain\Queue\Models\QueueEntry;
 use App\Domain\Queue\Services\QueueEntryService;
 use App\Domain\Visit\Models\Visit;
 use App\Models\User;
+use Illuminate\Support\Str;
 use Tests\Feature\Queue\QueueTestCase;
 
 abstract class ClinicalTestCase extends QueueTestCase
@@ -37,6 +39,22 @@ abstract class ClinicalTestCase extends QueueTestCase
             'expected_branch_id' => $visit->branch_id,
             'visit_lock_version' => $visit->lock_version,
             'queue_lock_version' => $queue->lock_version,
+        ]);
+    }
+
+    protected function holdEncounter(
+        User $doctor,
+        Visit $visit,
+        QueueEntry $queue,
+        ClinicalEncounter $encounter,
+    ): void {
+        $this->selectBranch($doctor, $visit->branch);
+        app(ConsultationHoldService::class)->hold($doctor, $visit->refresh(), [
+            'expected_branch_id' => $visit->branch_id,
+            'visit_lock_version' => $visit->refresh()->lock_version,
+            'queue_lock_version' => $queue->refresh()->lock_version,
+            'encounter_lock_version' => $encounter->refresh()->lock_version,
+            'idempotency_key' => (string) Str::uuid(),
         ]);
     }
 

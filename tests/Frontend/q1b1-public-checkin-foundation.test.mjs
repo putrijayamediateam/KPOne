@@ -7,24 +7,32 @@ const read = (path) =>
 const admin = read('resources/js/pages/PublicCheckInLinks/Index.vue');
 const publicPage = read('resources/js/pages/PublicCheckIn/Show.vue');
 const layout = read('resources/js/layouts/PublicCheckInLayout.vue');
+const documentShell = read('resources/views/app.blade.php');
 
-test('admin surface supports lifecycle and one-time URL without reconstructing stored tokens', () => {
+test('admin surface supports lifecycle and securely recoverable active QR controls', () => {
     assert.match(admin, /Create link/);
     assert.match(admin, /Rotate/);
     assert.match(admin, /Revoke/);
-    assert.match(admin, /available once/);
-    assert.match(admin, /cannot be reconstructed/);
+    assert.match(admin, /remains available to/);
+    assert.match(admin, /requiresRotation/);
+    assert.match(admin, /Sila rotate sekali/);
     assert.match(admin, /navigator\.clipboard\.writeText/);
+    assert.match(admin, /downloadQr/);
+    assert.match(admin, /printQr/);
     assert.doesNotMatch(admin, /token_hash|tokenHash/);
 });
 
-test('public landing is branch-only and contains no patient intake form', () => {
-    assert.match(publicPage, /branch\.name/);
-    assert.match(publicPage, /No Patient information is collected/);
-    assert.doesNotMatch(
-        publicPage,
-        /<form|NRIC|Passport|Phone|Gender|Panel|Visit Reason/,
+test('public landing remains branch-bound and isolated from staff chrome', () => {
+    assert.match(publicPage, /branchName/);
+    assert.match(publicPage, /Mula Daftar/);
+    assert.match(publicPage, /\/check-in\/exchange/);
+    assert.match(documentShell, /history\.replaceState/);
+    assert.ok(
+        documentShell.indexOf('history.replaceState') <
+            documentShell.indexOf('@vite'),
     );
+    assert.doesNotMatch(publicPage, /status_receipt|statusReceipt/);
+    assert.doesNotMatch(publicPage, /organisationId|patientId|visitId/);
     assert.doesNotMatch(
         layout,
         /WorkspaceHeader|BranchSwitcher|NavUser|AppSidebar/,
@@ -34,7 +42,7 @@ test('public landing is branch-only and contains no patient intake form', () => 
 test('public and admin pages retain responsive and accessible semantics', () => {
     assert.match(publicPage, /<main/);
     assert.match(publicPage, /<h1/);
-    assert.match(publicPage, /sm:px-8/);
+    assert.match(publicPage, /sm:px-6/);
     assert.match(admin, /Label id="checkin-branch-label"/);
     assert.match(admin, /labelledby="checkin-branch-label"/);
     assert.match(admin, /role="alert"/);

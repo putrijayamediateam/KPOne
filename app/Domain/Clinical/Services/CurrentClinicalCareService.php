@@ -4,6 +4,7 @@ namespace App\Domain\Clinical\Services;
 
 use App\Domain\Access\BranchAccessService;
 use App\Domain\Clinical\Models\ClinicalEncounter;
+use App\Domain\Clinical\Models\ConsultationHold;
 use App\Domain\Identity\Models\StaffBranchAssignment;
 use App\Domain\Identity\Models\StaffProfile;
 use App\Domain\Organisation\Models\Branch;
@@ -39,8 +40,13 @@ class CurrentClinicalCareService
         return $branch;
     }
 
-    public function lock(User $actor, Visit $visit, Branch $branch, string $permission): CurrentClinicalCareContext
-    {
+    public function lock(
+        User $actor,
+        Visit $visit,
+        Branch $branch,
+        string $permission,
+        bool $allowHeld = false,
+    ): CurrentClinicalCareContext {
         $lockedActor = User::query()
             ->whereKey($actor->id)
             ->where('organisation_id', $branch->organisation_id)
@@ -99,6 +105,16 @@ class CurrentClinicalCareService
             || $encounter->status !== ClinicalEncounter::STATUS_IN_PROGRESS
             || $encounter->attending_clinician_user_id !== $lockedActor->id) {
             throw new AuthorizationException('You may not access this clinical safety record.');
+        }
+
+        if (! $allowHeld && ConsultationHold::query()
+            ->where('clinical_encounter_id', $encounter->id)
+            ->whereNull('resumed_at')
+            ->lockForUpdate()
+            ->exists()) {
+            throw ValidationException::withMessages([
+                'encounter' => 'Resume this consultation before changing the clinical record.',
+            ]);
         }
 
         return new CurrentClinicalCareContext(

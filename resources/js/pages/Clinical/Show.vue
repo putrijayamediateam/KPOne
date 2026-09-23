@@ -1,15 +1,18 @@
 <script setup lang="ts">
-import { Head, Link, useForm } from '@inertiajs/vue3';
+import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import {
     AlertTriangle,
     ArrowLeft,
     ClipboardCheck,
     LoaderCircle,
     Plus,
+    PauseCircle,
+    PlayCircle,
     Stethoscope,
     Trash2,
 } from '@lucide/vue';
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
+import UnsavedClinicalWorkDialog from '@/components/clinical/UnsavedClinicalWorkDialog.vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import { waitedDurationLabel } from '@/lib/r1c2-presentation';
@@ -25,6 +28,8 @@ defineOptions({
 
 const props = defineProps<{ clinical: ClinicalEncounterPage }>();
 const workspaceTab = ref<'current' | 'history'>('current');
+const holdProcessing = ref(false);
+const holdError = ref('');
 type NumericInput = number | string | null;
 type DiagnosisInput = {
     diagnosis_text: string;
@@ -33,27 +38,198 @@ type DiagnosisInput = {
     is_primary: boolean;
 };
 
-const form = useForm({
-    expected_branch_id: props.clinical.branch.id,
-    lock_version: props.clinical.encounter.lockVersion,
-    clinical_note: props.clinical.encounter.clinicalNote ?? '',
-    vitals: {
-        systolic_bp: props.clinical.vitals.systolicBp as NumericInput,
-        diastolic_bp: props.clinical.vitals.diastolicBp as NumericInput,
-        pulse_bpm: props.clinical.vitals.pulseBpm as NumericInput,
-        temperature_celsius: props.clinical.vitals
-            .temperatureCelsius as NumericInput,
-        spo2_percent: props.clinical.vitals.spo2Percent as NumericInput,
-        weight_kg: props.clinical.vitals.weightKg as NumericInput,
-        height_cm: props.clinical.vitals.heightCm as NumericInput,
-    },
-    diagnoses: props.clinical.diagnoses.map((diagnosis): DiagnosisInput => ({
+// Shared with the initial useForm() seed below and with the prop-resync
+// watcher (OH-06), so the two can never drift into different shapes.
+const vitalsFromProps = () => ({
+    systolic_bp: props.clinical.vitals.systolicBp as NumericInput,
+    diastolic_bp: props.clinical.vitals.diastolicBp as NumericInput,
+    pulse_bpm: props.clinical.vitals.pulseBpm as NumericInput,
+    temperature_celsius: props.clinical.vitals
+        .temperatureCelsius as NumericInput,
+    spo2_percent: props.clinical.vitals.spo2Percent as NumericInput,
+    weight_kg: props.clinical.vitals.weightKg as NumericInput,
+    height_cm: props.clinical.vitals.heightCm as NumericInput,
+});
+const diagnosesFromProps = (): DiagnosisInput[] =>
+    props.clinical.diagnoses.map((diagnosis): DiagnosisInput => ({
         diagnosis_text: diagnosis.diagnosisText,
         diagnosis_code: diagnosis.diagnosisCode ?? '',
         code_system: diagnosis.codeSystem ?? '',
         is_primary: diagnosis.isPrimary,
-    })),
+    }));
+
+const form = useForm({
+    expected_branch_id: props.clinical.branch.id,
+    lock_version: props.clinical.encounter.lockVersion,
+    clinical_note: props.clinical.encounter.clinicalNote ?? '',
+    vitals: vitalsFromProps(),
+    diagnoses: diagnosesFromProps(),
 });
+
+// OH-06: Hold and Resume intentionally use `preserveState: true` (see
+// changeHoldState below) so a doctor's in-progress edits are never disturbed
+// by a hold/resume click. That means this component is never remounted by
+// those actions, so nothing else re-seeds `form` from the fresh `clinical`
+// prop that DOES arrive with the hold/resume response - `form` would
+// silently drift from what the server (and the database) actually hold.
+//
+// Safety rule: lock_version must only ever move together with the content it
+// guards, in the same assignment, never on its own - an update sent with a
+// lock_version that no longer matches its content would defeat the backend's
+// optimistic-concurrency check.
+//
+// - Clean form (no unsaved edits): safe to adopt the fresh values wholesale.
+// - Dirty form (doctor mid-edit): never touch content or lock_version. The
+//   next Save will be sent with the OLD lock_version and the backend will
+//   reject it (ValidationException on `lock_version`) rather than silently
+//   overwriting whatever changed elsewhere - surfaced here as a clear banner
+//   with an explicit Reload action instead of a silent failure.
+const recordDrifted = ref(false);
+
+const adoptLatestRecord = () => {
+    form.clinical_note = props.clinical.encounter.clinicalNote ?? '';
+    form.vitals = vitalsFromProps();
+    form.diagnoses = diagnosesFromProps();
+    form.lock_version = props.clinical.encounter.lockVersion;
+    form.clearErrors();
+    form.defaults();
+    recordDrifted.value = false;
+};
+
+watch(
+    () => props.clinical.encounter.lockVersion,
+    () => {
+        if (form.isDirty) {
+            recordDrifted.value = true;
+
+            return;
+        }
+
+        adoptLatestRecord();
+    },
+);
+
+// OH-06c: pressing On Hold while there is unsaved clinical work (this form,
+// or the sibling Treatment Plan draft) must never silently strand that work
+// - clinical save is disabled for the rest of the time this consultation is
+// held, so Reload (the drift banner's own recovery path) is the only way
+// back, and it discards exactly what the doctor was trying to protect. The
+// drift banner above stays for the separate, genuine concurrent-edit case;
+// this is a distinct guard that runs before a hold is ever requested.
+const treatmentPlanPanelRef = ref<InstanceType<
+    typeof TreatmentPlanPanel
+> | null>(null);
+const noteDirty = computed(
+    () => form.clinical_note !== (props.clinical.encounter.clinicalNote ?? ''),
+);
+const vitalsDirty = computed(
+    () => JSON.stringify(form.vitals) !== JSON.stringify(vitalsFromProps()),
+);
+const diagnosesDirty = computed(
+    () =>
+        JSON.stringify(form.diagnoses) !== JSON.stringify(diagnosesFromProps()),
+);
+const treatmentPlanDirty = computed(
+    () => treatmentPlanPanelRef.value?.isDirty() ?? false,
+);
+const unsavedItems = computed(() => {
+    const items: string[] = [];
+
+    if (noteDirty.value) {
+        items.push('clinical note');
+    }
+
+    if (vitalsDirty.value) {
+        items.push('vitals');
+    }
+
+    if (diagnosesDirty.value) {
+        items.push('diagnoses');
+    }
+
+    if (treatmentPlanDirty.value) {
+        items.push('treatment plan');
+    }
+
+    return items;
+});
+const hasUnsavedWork = computed(() => form.isDirty || treatmentPlanDirty.value);
+const unsavedWorkOpen = ref(false);
+const unsavedWorkProcessing = ref(false);
+const unsavedWorkAction = ref<'confirm' | 'secondary'>('confirm');
+const unsavedWorkError = ref('');
+
+const requestHold = () => {
+    if (!hasUnsavedWork.value) {
+        changeHoldState('hold');
+
+        return;
+    }
+
+    unsavedWorkError.value = '';
+    unsavedWorkOpen.value = true;
+};
+const saveAndHold = () => {
+    unsavedWorkAction.value = 'confirm';
+    unsavedWorkProcessing.value = true;
+    unsavedWorkError.value = '';
+
+    const proceedToHold = () => {
+        unsavedWorkOpen.value = false;
+        unsavedWorkProcessing.value = false;
+        changeHoldState('hold');
+    };
+    // A dirty Treatment Plan draft would become unsavable the moment this
+    // encounter is held (its own `canSave` excludes a held consultation), so
+    // it must be saved here too - not just the clinical note/vitals/
+    // diagnoses form - or "Save and hold" would strand exactly the work it
+    // is meant to protect.
+    const saveTreatmentPlanThenHold = () => {
+        const panel = treatmentPlanPanelRef.value;
+
+        if (!panel) {
+            proceedToHold();
+
+            return;
+        }
+
+        panel.saveForHold(proceedToHold, (message) => {
+            unsavedWorkError.value = message;
+            unsavedWorkProcessing.value = false;
+        });
+    };
+
+    if (!form.isDirty) {
+        saveTreatmentPlanThenHold();
+
+        return;
+    }
+
+    form.patch(
+        `/visits/${encodeURIComponent(props.clinical.visit.visitNumber)}/encounter`,
+        {
+            preserveScroll: true,
+            onSuccess: () => {
+                adoptLatestRecord();
+                saveTreatmentPlanThenHold();
+            },
+            onError: () => {
+                unsavedWorkError.value =
+                    Object.values(form.errors)[0] ??
+                    'The clinical record could not be saved. Review the latest information and try again.';
+                unsavedWorkProcessing.value = false;
+            },
+        },
+    );
+};
+const holdWithoutSaving = () => {
+    unsavedWorkAction.value = 'secondary';
+    form.reset();
+    form.clearErrors();
+    treatmentPlanPanelRef.value?.discardDraft();
+    unsavedWorkOpen.value = false;
+    changeHoldState('hold');
+};
 
 const bmi = computed(() => {
     const weight = Number(form.vitals.weight_kg);
@@ -111,9 +287,38 @@ const save = () => {
         {
             preserveScroll: true,
             onSuccess: () => {
-                form.lock_version = props.clinical.encounter.lockVersion;
-                form.defaults();
+                // The content just saved now matches the server; adopt the
+                // fresh props (including the bumped lock_version) as one
+                // atomic operation and re-baseline the form as clean.
+                adoptLatestRecord();
             },
+        },
+    );
+};
+const changeHoldState = (action: 'hold' | 'resume') => {
+    holdProcessing.value = true;
+    holdError.value = '';
+    router.post(
+        `/visits/${encodeURIComponent(props.clinical.visit.visitNumber)}/encounter/${action}`,
+        {
+            expected_branch_id: props.clinical.branch.id,
+            visit_lock_version: props.clinical.visit.lockVersion,
+            queue_lock_version: props.clinical.queue.lockVersion,
+            encounter_lock_version: props.clinical.encounter.lockVersion,
+            idempotency_key:
+                action === 'hold'
+                    ? props.clinical.hold.holdIdempotencyKey
+                    : props.clinical.hold.resumeIdempotencyKey,
+        },
+        {
+            preserveScroll: true,
+            preserveState: true,
+            onError: (errors) => {
+                holdError.value =
+                    Object.values(errors)[0] ??
+                    'The consultation state could not be changed.';
+            },
+            onFinish: () => (holdProcessing.value = false),
         },
     );
 };
@@ -198,7 +403,15 @@ const save = () => {
                             </div>
                         </div>
                     </div>
-                    <div class="text-right text-xs text-muted-foreground">
+                    <div
+                        class="flex flex-col items-end gap-2 text-right text-xs text-muted-foreground"
+                    >
+                        <span
+                            v-if="clinical.hold.isHeld"
+                            class="inline-flex items-center gap-1 rounded-md bg-amber-100 px-2 py-1 font-semibold text-amber-900"
+                        >
+                            <PauseCircle class="size-3.5" /> On Hold
+                        </span>
                         <div class="font-medium text-foreground">
                             {{ clinical.branch.name }} · Queue
                             {{ clinical.queue.queueNumber }}
@@ -208,6 +421,29 @@ const save = () => {
                             progress
                         </div>
                         <div>{{ waitedDurationLabel(waitedMinutes) }}</div>
+                        <div>
+                            Active {{ clinical.hold.activeMinutes }} min · Held
+                            {{ clinical.hold.heldMinutes }} min
+                        </div>
+                        <Button
+                            v-if="clinical.hold.canHold"
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            :disabled="holdProcessing"
+                            @click="requestHold"
+                        >
+                            <PauseCircle class="size-4" /> On Hold
+                        </Button>
+                        <Button
+                            v-if="clinical.hold.canResume"
+                            type="button"
+                            size="sm"
+                            :disabled="holdProcessing"
+                            @click="changeHoldState('resume')"
+                        >
+                            <PlayCircle class="size-4" /> Resume Consultation
+                        </Button>
                     </div>
                 </header>
 
@@ -278,6 +514,39 @@ const save = () => {
                 >
                     <AlertTriangle class="mt-0.5 size-4 shrink-0" />
                     {{ stateError }}
+                </div>
+                <div
+                    v-if="holdError"
+                    role="alert"
+                    class="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-900"
+                >
+                    {{ holdError }}
+                </div>
+                <div
+                    v-if="clinical.hold.isHeld"
+                    class="rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-950"
+                >
+                    This patient remains in Serving Now. Resume the consultation
+                    before saving or completing clinical work.
+                </div>
+                <div
+                    v-if="recordDrifted"
+                    role="alert"
+                    class="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-950"
+                >
+                    <span class="flex items-start gap-2">
+                        <AlertTriangle class="mt-0.5 size-4 shrink-0" />
+                        This record has changed elsewhere. Reload to see the
+                        latest version - your edits have not been saved.
+                    </span>
+                    <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        @click="adoptLatestRecord"
+                    >
+                        Reload
+                    </Button>
                 </div>
 
                 <form class="space-y-5" @submit.prevent="save">
@@ -551,7 +820,12 @@ const save = () => {
                                     >Clinical record is up to date.</template
                                 >
                             </span>
-                            <Button type="submit" :disabled="form.processing">
+                            <Button
+                                type="submit"
+                                :disabled="
+                                    form.processing || clinical.hold.isHeld
+                                "
+                            >
                                 <LoaderCircle
                                     v-if="form.processing"
                                     class="size-4 animate-spin"
@@ -568,6 +842,7 @@ const save = () => {
                 </form>
 
                 <TreatmentPlanPanel
+                    ref="treatmentPlanPanelRef"
                     :visit-number="clinical.visit.visitNumber"
                     :branch-id="clinical.branch.id"
                     :plan="clinical.treatmentPlan"
@@ -589,5 +864,16 @@ const save = () => {
                 />
             </aside>
         </div>
+
+        <UnsavedClinicalWorkDialog
+            :open="unsavedWorkOpen"
+            :unsaved-items="unsavedItems"
+            :processing="unsavedWorkProcessing"
+            :processing-action="unsavedWorkAction"
+            :error="unsavedWorkError"
+            @update:open="unsavedWorkOpen = $event"
+            @save-and-hold="saveAndHold"
+            @hold-without-saving="holdWithoutSaving"
+        />
     </main>
 </template>

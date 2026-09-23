@@ -52,6 +52,7 @@ class ReopenConsultationCheckoutService
             }
             $this->evidence->supersede($checkout);
             $queue->forceFill(['status' => QueueEntry::STATUS_SERVING, 'removed_at' => null, 'removal_reason' => null, 'updated_by_user_id' => $actor->id, 'lock_version' => $queue->lock_version + 1])->save();
+            app(ConsultationHoldService::class)->holdReturningConsultation($actor, $branch, $visit, $queue, $encounter);
             $this->audit->record('consultation.checkout_reopened', $checkout, ['record_version' => $checkout->lock_version], $actor, $branch);
         }, 3);
     }

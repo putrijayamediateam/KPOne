@@ -1,5 +1,5 @@
 export type PatientBoardStatusTone =
-    'neutral' | 'waiting' | 'serving' | 'cancelled' | 'removed';
+    'neutral' | 'waiting' | 'serving' | 'held' | 'cancelled' | 'removed';
 
 export type PatientBoardRow = {
     key: string;

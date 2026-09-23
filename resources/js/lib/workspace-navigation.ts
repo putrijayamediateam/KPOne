@@ -1,5 +1,6 @@
 export type WorkspaceNavigationCapabilities = {
     registration: boolean;
+    registrationReview: boolean;
     consultation: boolean;
     inventory: boolean;
     patientRecords: boolean;
@@ -34,6 +35,13 @@ const destinations: Record<
         label: 'Registration',
         description: 'Register visits and manage the active clinic board.',
         href: '/registration',
+        icon: 'clipboard',
+    },
+    registrationReview: {
+        key: 'registrationReview',
+        label: 'Pendaftaran QR',
+        description: 'Semak pendaftaran QR dan masukkan pesakit ke queue.',
+        href: '/registration-review',
         icon: 'clipboard',
     },
     consultation: {

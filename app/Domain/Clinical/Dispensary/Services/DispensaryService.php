@@ -16,6 +16,7 @@ use App\Domain\Clinical\Models\PatientAllergyRecord;
 use App\Domain\Clinical\Models\TreatmentPlan;
 use App\Domain\Clinical\Models\TreatmentPlanMedicineOrder;
 use App\Domain\Clinical\Services\CheckoutEvidenceService;
+use App\Domain\Clinical\Services\ConsultationHoldService;
 use App\Domain\Identity\Models\StaffBranchAssignment;
 use App\Domain\Identity\Models\StaffProfile;
 use App\Domain\Organisation\Inventory\Models\InventoryBatch;
@@ -106,6 +107,7 @@ class DispensaryService
             }
             $queue->forceFill(['status' => QueueEntry::STATUS_SERVING, 'removed_at' => null, 'removal_reason' => null, 'returned_from_dispensary_at' => now()->utc(), 'updated_by_user_id' => $actor->id, 'lock_version' => $queue->lock_version + 1])->save();
             app(CheckoutEvidenceService::class)->supersede(ConsultationCheckout::query()->where('current_visit_guard', $visit->id)->first());
+            app(ConsultationHoldService::class)->holdReturningConsultation($actor, $branch, $visit, $queue, $encounter);
             $this->audit->record('dispensary.returned_to_doctor', $case, ['record_version' => $case->lock_version, 'plan_version' => $plan->lock_version], $actor, $branch);
         });
     }

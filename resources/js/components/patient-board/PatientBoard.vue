@@ -2,6 +2,7 @@
 import { Link } from '@inertiajs/vue3';
 import { Clock3, Ellipsis, LoaderCircle, UserRound } from '@lucide/vue';
 import { Button } from '@/components/ui/button';
+import { DisclosureText } from '@/components/ui/disclosure';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -39,6 +40,7 @@ const statusClass = (tone: PatientBoardRow['statusTone']) =>
         neutral: 'bg-muted/55 text-muted-foreground',
         waiting: 'bg-amber-100/70 text-amber-800',
         serving: 'bg-emerald-100/65 text-emerald-800',
+        held: 'bg-amber-100/80 text-amber-900',
         cancelled: 'bg-muted/70 text-muted-foreground',
         removed: 'bg-muted/40 text-muted-foreground',
     })[tone];
@@ -110,10 +112,12 @@ const statusClass = (tone: PatientBoardRow['statusTone']) =>
                         >
                     </td>
                     <td class="px-3 py-2.5 align-middle">
-                        <div
-                            class="line-clamp-2 text-xs leading-5 text-muted-foreground"
-                        >
-                            {{ row.visitNotes ?? 'No reason recorded' }}
+                        <div class="text-xs leading-5">
+                            <DisclosureText
+                                :text="row.visitNotes"
+                                variant="clamp-2"
+                                fallback="No reason recorded"
+                            />
                         </div>
                     </td>
                     <td class="px-3 py-2.5 align-middle">

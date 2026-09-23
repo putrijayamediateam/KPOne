@@ -40,6 +40,8 @@ export type VisitRow = {
     queueNumber: string | null;
     queueStatus: 'waiting' | 'serving' | 'removed' | null;
     queueRemovalReason?: string | null;
+    isHeld: boolean;
+    holdStartedAt: string | null;
     durationMinutes: number | null;
     visitLockVersion: number;
     queueLockVersion: number | null;

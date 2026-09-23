@@ -5,6 +5,36 @@
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="csrf-token" content="{{ csrf_token() }}">
 
+        {{-- Scrub the QR fragment before any application asset or follow-up request. --}}
+        <script>
+            (function() {
+                if (window.location.pathname !== '/check-in') {
+                    return;
+                }
+
+                const exchangeAttempted = window.location.hash !== '' || window.location.search !== '';
+                const token = window.location.hash.startsWith('#')
+                    ? window.location.hash.slice(1)
+                    : '';
+
+                if (window.location.hash || window.location.search) {
+                    window.history.replaceState(window.history.state, '', window.location.pathname);
+                }
+
+                if (exchangeAttempted) {
+                    const secure = window.location.protocol === 'https:' ? '; Secure' : '';
+                    document.cookie = @json(config('public-intake.exchange_attempt_cookie'))
+                        + '=1; Path=/check-in; Max-Age=300; SameSite=Lax'
+                        + secure;
+                }
+
+                if (/^[A-Za-z0-9_-]{43}$/.test(token)) {
+                    window.__KPOnePublicIntakeExchangeToken = token;
+                }
+                window.__KPOnePublicIntakeExchangeAttempted = exchangeAttempted;
+            })();
+        </script>
+
         {{-- Inline script to detect system dark mode preference and apply it immediately --}}
         <script>
             (function() {

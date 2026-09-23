@@ -15,6 +15,10 @@ export type QueueRow = {
     queuedAt: string;
     queuedTime: string;
     calledAt: string | null;
+    isHeld: boolean;
+    holdStartedAt: string | null;
+    heldMinutes: number;
+    activeMinutes: number;
     removalReason: string | null;
     visitStatus: 'registered' | 'cancelled' | 'completed';
     returnedFromDispensary: boolean;

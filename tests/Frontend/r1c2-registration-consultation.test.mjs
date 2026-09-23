@@ -345,6 +345,13 @@ test('Visit Reason picker selects only a rendered active option and clears ARIA 
             {
                 '@/components/InputError.vue': { default: InputErrorStub },
                 '@/components/ui/button': { Button: ButtonStub },
+                '@/lib/json-client': {
+                    requestJson: async (url, options) => {
+                        const response = await globalThis.fetch(url, options);
+
+                        return response.json();
+                    },
+                },
             },
         );
         const selected = ref([]);

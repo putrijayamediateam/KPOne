@@ -160,6 +160,16 @@ export type ClinicalEncounterPage = {
         lockVersion: number;
         updatedAt: string;
     };
+    hold: {
+        isHeld: boolean;
+        startedAt: string | null;
+        heldMinutes: number;
+        activeMinutes: number;
+        holdIdempotencyKey: string;
+        resumeIdempotencyKey: string;
+        canHold: boolean;
+        canResume: boolean;
+    };
     vitals: ClinicalVitals;
     diagnoses: ClinicalDiagnosis[];
     allergies: ClinicalAllergySafety | null;

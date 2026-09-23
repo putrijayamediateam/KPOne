@@ -12,6 +12,7 @@ use App\Domain\Visit\Models\Visit;
 use App\Domain\Visit\Services\VisitReasonService;
 use App\Models\User;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Str;
 
 class ClinicalEncounterDirectoryService
 {
@@ -44,12 +45,25 @@ class ClinicalEncounterDirectoryService
                 'attendingClinician:id,organisation_id,name',
                 'vitalObservation',
                 'diagnoses',
+                'holds',
             ])
             ->firstOrFail();
         Gate::forUser($actor)->authorize('view', $encounter);
 
         $vitals = $encounter->vitalObservation;
         $isActiveConsultation = $encounter->visit->queueEntry?->status === QueueEntry::STATUS_SERVING;
+        // Mirrors ConsultationHoldService::assertActiveConsultation() exactly: On Hold
+        // and Resume are offered only while the backend would actually allow them, so
+        // they never appear on an Awaiting Billing or completed consultation.
+        $canActOnConsultation = $isActiveConsultation
+            && $encounter->visit->status === Visit::STATUS_REGISTERED
+            && $encounter->visit->visit_type === 'consultation'
+            && $encounter->status === ClinicalEncounter::STATUS_IN_PROGRESS;
+        $activeHold = $encounter->holds->first(fn ($hold): bool => $hold->resumed_at === null);
+        $heldSeconds = $encounter->holds->sum(fn ($hold): float => $hold->held_at->diffInSeconds(
+            $hold->resumed_at ?? now()->utc(),
+        ));
+        $elapsedSeconds = $encounter->started_at->diffInSeconds(now()->utc());
 
         return [
             'branch' => $encounter->visit->branch->only(['id', 'code', 'name', 'timezone']),
@@ -82,6 +96,16 @@ class ClinicalEncounterDirectoryService
                 'attendingClinician' => $encounter->attendingClinician->name,
                 'lockVersion' => $encounter->lock_version,
                 'updatedAt' => $encounter->updated_at->toIso8601String(),
+            ],
+            'hold' => [
+                'isHeld' => $activeHold !== null,
+                'startedAt' => $activeHold?->held_at->toIso8601String(),
+                'heldMinutes' => (int) floor($heldSeconds / 60),
+                'activeMinutes' => (int) floor(max(0, $elapsedSeconds - $heldSeconds) / 60),
+                'holdIdempotencyKey' => (string) Str::uuid(),
+                'resumeIdempotencyKey' => (string) Str::uuid(),
+                'canHold' => $canActOnConsultation && $activeHold === null && $actor->can('consultations.hold.own'),
+                'canResume' => $canActOnConsultation && $activeHold !== null && $actor->can('consultations.hold.own'),
             ],
             'vitals' => $this->vitals($vitals),
             'diagnoses' => $encounter->diagnoses->map(fn (EncounterDiagnosis $diagnosis): array => [

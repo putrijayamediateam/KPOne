@@ -5,6 +5,7 @@ namespace App\Http\Middleware;
 use App\Domain\Access\BillingWorkAccess;
 use App\Domain\Access\BranchAccessService;
 use App\Domain\Access\WorkspaceLandingService;
+use App\Domain\Patient\Models\PublicPatientIntake;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -55,7 +56,7 @@ class HandleInertiaRequests extends Middleware
      */
     public function share(Request $request): array
     {
-        if ($request->routeIs('public-checkin.show')) {
+        if ($request->routeIs('public-checkin.show', 'public-intake.status')) {
             return [
                 'auth' => null,
                 'authHistoryBoundary' => $this->authenticationHistoryBoundaryProp($request),
@@ -91,6 +92,7 @@ class HandleInertiaRequests extends Middleware
                 'canEnterClinic' => $canEnterClinic,
                 'navigation' => [
                     'registration' => $user->can('visits.view.branch'),
+                    'registrationReview' => $user->can('public_intakes.review.branch'),
                     'consultation' => $user->can('queue.view.own') || $user->can('queue.view.branch'),
                     'inventory' => $user->can('inventory.view.branch') && $activeBranch !== null,
                     'patientRecords' => $user->can('patients.search.organisation'),
@@ -100,8 +102,19 @@ class HandleInertiaRequests extends Middleware
                     'branches' => $user->can('branches.view.branch') || $user->can('branches.view.organisation'),
                     'accessControl' => $user->can('access.view.organisation'),
                     'auditLogs' => $user->can('audit.view.organisation'),
-                    'publicCheckInLinks' => $user->can('public_checkin_links.manage.organisation'),
+                    'publicCheckInLinks' => $user->can('public_checkin_links.manage.organisation')
+                        || $user->can('public_checkin_links.manage.branch'),
                 ],
+                'pendingIntakes' => $activeBranch && $user->can('public_intakes.review.branch')
+                    ? PublicPatientIntake::query()
+                        ->where('organisation_id', $user->organisation_id)
+                        ->where('branch_id', $activeBranch->id)
+                        ->whereIn('status', [
+                            PublicPatientIntake::STATUS_PENDING,
+                            PublicPatientIntake::STATUS_UNDER_REVIEW,
+                            PublicPatientIntake::STATUS_CORRECTION_REQUIRED,
+                        ])->count()
+                    : 0,
             ];
         }
 

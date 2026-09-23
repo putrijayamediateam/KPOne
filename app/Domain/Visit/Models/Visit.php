@@ -11,6 +11,7 @@ use App\Models\User;
 use Carbon\CarbonImmutable;
 use Database\Factories\VisitFactory;
 use Illuminate\Database\Eloquent\Attributes\Guarded;
+use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -29,6 +30,8 @@ use Illuminate\Support\Carbon;
  * @property string $status
  * @property string $priority
  * @property string|null $visit_reason
+ * @property string|null $intake_purpose
+ * @property array<string,mixed>|null $encrypted_presenting_information
  * @property int|null $assigned_doctor_user_id
  * @property string $coverage_type
  * @property int|null $panel_id
@@ -52,6 +55,7 @@ use Illuminate\Support\Carbon;
  * @property-read ClinicalEncounter|null $clinicalEncounter
  */
 #[Guarded(['*'])]
+#[Hidden(['encrypted_presenting_information'])]
 class Visit extends Model
 {
     /** @use HasFactory<VisitFactory> */
@@ -75,6 +79,7 @@ class Visit extends Model
             'cancelled_at' => 'immutable_datetime',
             'completed_at' => 'immutable_datetime',
             'completion_evidence' => 'array',
+            'encrypted_presenting_information' => 'encrypted:array',
             'lock_version' => 'integer',
             'created_at' => 'immutable_datetime',
             'updated_at' => 'immutable_datetime',

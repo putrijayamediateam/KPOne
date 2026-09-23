@@ -140,7 +140,12 @@ class QueueDirectoryService
                     'id', 'organisation_id', 'branch_id', 'patient_id', 'visit_number', 'visit_reason', 'priority', 'coverage_type',
                     'coverage_panel_name_snapshot', 'assigned_doctor_user_id', 'status', 'lock_version',
                 ])
-                ->with(['patient:id,organisation_id,patient_number,full_name', 'assignedDoctor:id,name', 'reasonAssignments.reason:id,public_id,name']),
+                ->with([
+                    'patient:id,organisation_id,patient_number,full_name',
+                    'assignedDoctor:id,name',
+                    'reasonAssignments.reason:id,public_id,name',
+                    'clinicalEncounter.holds',
+                ]),
         ]);
 
         $dynamic = [
@@ -275,6 +280,12 @@ class QueueDirectoryService
                 || app(CheckoutReopenEligibility::class)->allows($actor, $visit);
         }
         $actions = $visitActionHints[$entry->status] ??= $this->visitPolicy->actionHints($actor, $visit);
+        $activeHold = $visit->clinicalEncounter?->holds
+            ->first(fn ($hold): bool => $hold->resumed_at === null);
+        $heldSeconds = $visit->clinicalEncounter?->holds->sum(
+            fn ($hold): float => $hold->held_at->diffInSeconds($hold->resumed_at ?? $now),
+        ) ?? 0;
+        $elapsedSeconds = $entry->called_at ? $entry->called_at->diffInSeconds($now) : 0;
 
         return [
             'queueNumber' => sprintf('%03d', $entry->queue_number),
@@ -292,6 +303,10 @@ class QueueDirectoryService
             'queuedAt' => $entry->queued_at->toIso8601String(),
             'queuedTime' => $entry->queued_at->setTimezone($branch->timezone)->format('H:i'),
             'calledAt' => $entry->called_at?->toIso8601String(),
+            'isHeld' => $activeHold !== null,
+            'holdStartedAt' => $activeHold?->held_at->toIso8601String(),
+            'heldMinutes' => (int) floor($heldSeconds / 60),
+            'activeMinutes' => (int) floor(max(0, $elapsedSeconds - $heldSeconds) / 60),
             'removalReason' => $entry->removal_reason,
             'visitStatus' => $visit->status,
             'returnedFromDispensary' => $entry->status === QueueEntry::STATUS_SERVING

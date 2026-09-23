@@ -157,25 +157,28 @@ const boardRows = computed<PatientBoardRow[]>(() =>
         visitNotes: row.visitReasonExcerpt,
         doctorName: row.doctorName,
         coverageLabel: row.coverageLabel,
-        durationLabel:
-            row.status === 'serving'
-                ? servingDurationLabel(elapsedMinutes(row))
-                : row.status === 'waiting'
-                  ? waitingDurationLabel(elapsedMinutes(row))
-                  : '—',
+        durationLabel: row.isHeld
+            ? `Held ${row.heldMinutes} min`
+            : row.status === 'serving'
+              ? servingDurationLabel(elapsedMinutes(row))
+              : row.status === 'waiting'
+                ? waitingDurationLabel(elapsedMinutes(row))
+                : '—',
         priority: row.priority,
         returnedFromDispensary: row.returnedFromDispensary,
-        statusLabel:
-            row.status === 'waiting' &&
-            row.operationalDate !== live.value.operationalDate
-                ? 'Waiting · carry-over'
-                : queuePresentationLabel(row),
-        statusTone:
-            row.status === 'serving'
-                ? 'serving'
-                : row.status === 'waiting'
-                  ? 'waiting'
-                  : 'removed',
+        statusLabel: row.isHeld
+            ? 'On Hold'
+            : row.status === 'waiting' &&
+                row.operationalDate !== live.value.operationalDate
+              ? 'Waiting · carry-over'
+              : queuePresentationLabel(row),
+        statusTone: row.isHeld
+            ? 'held'
+            : row.status === 'serving'
+              ? 'serving'
+              : row.status === 'waiting'
+                ? 'waiting'
+                : 'removed',
         can: {
             viewPatient: row.can.viewPatient,
             update: row.can.update,

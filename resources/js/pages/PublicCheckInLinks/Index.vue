@@ -2,9 +2,11 @@
 import { Head, router, useForm } from '@inertiajs/vue3';
 import {
     Clipboard,
+    Download,
     ExternalLink,
     Link2,
     QrCode,
+    Printer,
     RotateCw,
     ShieldOff,
 } from '@lucide/vue';
@@ -28,9 +30,18 @@ type LinkRow = {
     publicId: string;
     branch: { code: string; name: string };
     label: string;
-    status: 'active' | 'revoked';
+    status: 'active' | 'revoked' | 'expired';
     createdAt: string | null;
     revokedAt: string | null;
+    expiresAt: string | null;
+    activeQr: IssuedLink | null;
+    requiresRotation: boolean;
+};
+type IssuedLink = {
+    publicId: string;
+    url: string;
+    qrDataUri: string;
+    expiresAt: string | null;
 };
 const props = defineProps<{
     links: LinkRow[];
@@ -44,11 +55,11 @@ const pending = ref<{ type: 'rotate' | 'revoke'; link: LinkRow } | null>(null);
 const creating = ref(false);
 const actionProcessing = ref(false);
 const actionError = ref('');
-const issuedLink = ref<{ publicId: string; url: string } | null>(null);
+const issuedLink = ref<IssuedLink | null>(null);
 const branchOptions = computed(() =>
     props.branches.map((branch) => ({ value: branch.id, label: branch.name })),
 );
-const copyLabel = ref('Copy link');
+const copiedPublicId = ref<string | null>(null);
 
 const csrfToken = () =>
     document.querySelector<HTMLMetaElement>('meta[name="csrf-token"]')
@@ -75,7 +86,12 @@ const request = async (
     }
 
     return data as {
-        issuedLink?: { publicId: string; url: string };
+        issuedLink?: {
+            publicId: string;
+            url: string;
+            qrDataUri: string;
+            expiresAt: string | null;
+        };
         errors?: Record<string, string[]>;
     } | null;
 };
@@ -138,13 +154,49 @@ const confirmAction = async () => {
         actionProcessing.value = false;
     }
 };
-const copyLink = async () => {
-    if (!issuedLink.value) {
+const copyLink = async (activeQr: IssuedLink) => {
+    await navigator.clipboard.writeText(activeQr.url);
+    copiedPublicId.value = activeQr.publicId;
+};
+const downloadQr = (link: LinkRow) => {
+    if (!link.activeQr) {
         return;
     }
 
-    await navigator.clipboard.writeText(issuedLink.value.url);
-    copyLabel.value = 'Copied';
+    const anchor = document.createElement('a');
+    anchor.href = link.activeQr.qrDataUri;
+    anchor.download = `kpone-check-in-${link.branch.code}.svg`;
+    anchor.click();
+};
+const printQr = (link: LinkRow) => {
+    if (!link.activeQr) {
+        return;
+    }
+
+    const printWindow = window.open('', '_blank');
+
+    if (!printWindow) {
+        return;
+    }
+
+    printWindow.opener = null;
+    printWindow.document.title = 'KPOne Check-in QR';
+    const main = printWindow.document.createElement('main');
+    main.style.cssText =
+        'font-family:sans-serif;text-align:center;padding:2rem';
+    const heading = printWindow.document.createElement('h1');
+    heading.textContent = link.branch.name;
+    const image = printWindow.document.createElement('img');
+    image.alt = 'Branch check-in QR';
+    image.src = link.activeQr.qrDataUri;
+    image.style.cssText = 'width:22rem;max-width:90vw';
+    image.addEventListener('load', () => printWindow.print(), { once: true });
+    const label = printWindow.document.createElement('p');
+    label.textContent = link.label;
+    const expiry = printWindow.document.createElement('p');
+    expiry.textContent = `Expires ${formatDateTime(link.expiresAt)}`;
+    main.append(heading, image, label, expiry);
+    printWindow.document.body.append(main);
 };
 </script>
 
@@ -157,7 +209,7 @@ const copyLink = async () => {
             </h1>
             <p class="text-sm text-muted-foreground">
                 Issue and revoke branch-bound public landing links. No Patient
-                information is collected in this phase.
+                information is staged until staff review and confirmation.
             </p>
         </header>
 
@@ -166,40 +218,53 @@ const copyLink = async () => {
             class="border-pink-200 bg-pink-50/50 dark:border-pink-900 dark:bg-pink-950/20"
         >
             <CardHeader
-                ><CardTitle class="text-base">New link available once</CardTitle
+                ><CardTitle class="text-base">Active QR ready</CardTitle
                 ><CardDescription
-                    >Copy this URL now. KPOne stores only its secure digest and
-                    cannot display it again after refresh.</CardDescription
+                    >The link is encrypted at rest and remains available to
+                    authorised staff after refresh.</CardDescription
                 ></CardHeader
             >
-            <CardContent class="space-y-3">
-                <div class="flex flex-col gap-2 sm:flex-row">
-                    <Input
-                        readonly
-                        :model-value="issuedLink.url"
-                        aria-label="New public check-in URL"
-                    /><Button
-                        type="button"
-                        variant="outline"
-                        class="cursor-pointer"
-                        @click="copyLink"
-                        ><Clipboard class="size-4" />{{ copyLabel }}</Button
-                    ><Button as-child
-                        ><a
-                            :href="issuedLink.url"
-                            target="_blank"
-                            rel="noreferrer"
-                            ><ExternalLink class="size-4" />Open</a
-                        ></Button
+            <CardContent class="grid gap-5 md:grid-cols-[12rem_1fr]">
+                <img
+                    :src="issuedLink.qrDataUri"
+                    alt="Branch public patient intake QR code"
+                    class="aspect-square w-48 rounded-xl border bg-white p-2"
+                />
+                <div class="space-y-3">
+                    <div class="flex flex-col gap-2 sm:flex-row">
+                        <Input
+                            readonly
+                            :model-value="issuedLink.url"
+                            aria-label="New public check-in URL"
+                        /><Button
+                            type="button"
+                            variant="outline"
+                            class="cursor-pointer"
+                            @click="copyLink(issuedLink)"
+                            ><Clipboard class="size-4" />{{
+                                copiedPublicId === issuedLink.publicId
+                                    ? 'Copied'
+                                    : 'Copy link'
+                            }}</Button
+                        ><Button as-child
+                            ><a
+                                :href="issuedLink.url"
+                                target="_blank"
+                                rel="noreferrer"
+                                ><ExternalLink class="size-4" />Open</a
+                            ></Button
+                        >
+                    </div>
+                    <p
+                        class="flex items-center gap-2 text-xs text-muted-foreground"
                     >
+                        <QrCode class="size-4" />Generated locally. No URL or
+                        token is sent to an external QR service.
+                    </p>
+                    <p class="text-xs text-muted-foreground">
+                        Expires {{ formatDateTime(issuedLink.expiresAt) }}.
+                    </p>
                 </div>
-                <p
-                    class="flex items-center gap-2 text-xs text-muted-foreground"
-                >
-                    <QrCode class="size-4" />QR generation is pending an
-                    approved local renderer. No token is sent to an external QR
-                    service.
-                </p>
             </CardContent>
         </Card>
 
@@ -277,7 +342,11 @@ const copyLink = async () => {
                                     : 'outline'
                             "
                             >{{
-                                link.status === 'active' ? 'Active' : 'Revoked'
+                                link.status === 'active'
+                                    ? 'Active'
+                                    : link.status === 'expired'
+                                      ? 'Expired'
+                                      : 'Revoked'
                             }}</Badge
                         >
                     </div></CardHeader
@@ -296,10 +365,65 @@ const copyLink = async () => {
                                 {{ formatDateTime(link.revokedAt) }}
                             </dd>
                         </div>
+                        <div>
+                            <dt>Expires</dt>
+                            <dd class="mt-1 text-foreground">
+                                {{ formatDateTime(link.expiresAt) }}
+                            </dd>
+                        </div>
                     </dl>
-                    <p class="text-xs text-muted-foreground">
-                        The original public URL cannot be reconstructed from
-                        stored data.
+                    <div
+                        v-if="link.activeQr"
+                        class="grid gap-4 rounded-xl border bg-muted/20 p-4 sm:grid-cols-[9rem_1fr]"
+                    >
+                        <img
+                            :src="link.activeQr.qrDataUri"
+                            :alt="`Public intake QR for ${link.branch.name}`"
+                            class="aspect-square w-36 rounded-lg border bg-white p-2"
+                        />
+                        <div class="min-w-0 space-y-3">
+                            <p class="text-sm font-medium">Current active QR</p>
+                            <p class="text-xs text-muted-foreground">
+                                Viewing, copying, downloading, or printing does
+                                not rotate this link.
+                            </p>
+                            <div class="flex flex-wrap gap-2">
+                                <Button
+                                    type="button"
+                                    size="sm"
+                                    variant="outline"
+                                    @click="copyLink(link.activeQr)"
+                                    ><Clipboard class="size-4" />{{
+                                        copiedPublicId === link.publicId
+                                            ? 'Copied'
+                                            : 'Copy link'
+                                    }}</Button
+                                ><Button
+                                    type="button"
+                                    size="sm"
+                                    variant="outline"
+                                    @click="downloadQr(link)"
+                                    ><Download class="size-4" />Download</Button
+                                ><Button
+                                    type="button"
+                                    size="sm"
+                                    variant="outline"
+                                    @click="printQr(link)"
+                                    ><Printer class="size-4" />Print</Button
+                                >
+                            </div>
+                        </div>
+                    </div>
+                    <p
+                        v-else-if="link.requiresRotation"
+                        class="rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900"
+                    >
+                        QR lama ini tidak boleh dipaparkan semula kerana ia
+                        dicipta sebelum fungsi simpanan selamat diperkenalkan.
+                        Sila rotate sekali untuk menghasilkan QR baharu.
+                    </p>
+                    <p v-else class="text-xs text-muted-foreground">
+                        Historical link retained for audit. It cannot be used.
                     </p>
                     <div
                         v-if="link.status === 'active'"
@@ -338,7 +462,7 @@ const copyLink = async () => {
             "
             :description="
                 pending?.type === 'rotate'
-                    ? 'The current public URL will stop working immediately and a new URL will be shown once.'
+                    ? 'The current public URL will stop working immediately. The replacement QR will remain securely available after refresh.'
                     : 'The public URL will stop working immediately. This action does not delete its audit history.'
             "
             :confirm-label="

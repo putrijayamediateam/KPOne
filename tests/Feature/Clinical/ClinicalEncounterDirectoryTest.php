@@ -4,6 +4,7 @@ namespace Tests\Feature\Clinical;
 
 use App\Domain\Clinical\Services\ClinicalEncounterDirectoryService;
 use App\Domain\Clinical\Services\ClinicalEncounterService;
+use App\Domain\Clinical\Services\CompleteConsultationService;
 use App\Domain\Queue\Services\QueueEntryService;
 use Inertia\Testing\AssertableInertia as Assert;
 use Spatie\Permission\Models\Permission;
@@ -34,6 +35,8 @@ class ClinicalEncounterDirectoryTest extends ClinicalTestCase
                 ->where('clinical.allergies.profileLockVersion', null)
                 ->where('clinical.allergies.records', [])
                 ->where('clinical.problems.active', [])
+                ->where('clinical.hold.canHold', true)
+                ->where('clinical.hold.canResume', false)
                 ->missing('clinical.limitations')
                 ->missing('clinical.patient.mobilePhone')
                 ->missing('clinical.patient.identifiers')
@@ -42,10 +45,37 @@ class ClinicalEncounterDirectoryTest extends ClinicalTestCase
                 ->missing('clinical.encounter.id'));
     }
 
+    public function test_hold_and_resume_are_not_offered_once_the_consultation_reaches_awaiting_billing(): void
+    {
+        [$doctor, , $visit, $queue] = $this->servingFixture();
+        $encounter = $this->startEncounter($doctor, $visit, $queue);
+
+        app(CompleteConsultationService::class)->complete($doctor, $visit, [
+            'expected_branch_id' => $visit->branch_id,
+            'visit_lock_version' => $visit->refresh()->lock_version,
+            'queue_lock_version' => $queue->refresh()->lock_version,
+            'encounter_lock_version' => $encounter->refresh()->lock_version,
+            'lock_version' => null,
+            'service_deliveries' => [],
+        ]);
+        $this->assertSame('removed', $queue->refresh()->status);
+        $this->assertSame('sent_to_billing', $queue->removal_reason);
+
+        $this->selectBranch($doctor);
+        $this->get(route('encounters.show', $visit))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Clinical/Show')
+                ->where('clinical.hold.isHeld', false)
+                ->where('clinical.hold.canHold', false)
+                ->where('clinical.hold.canResume', false));
+    }
+
     public function test_history_is_bounded_and_contains_structural_metadata_only(): void
     {
         [$doctor, $ca, $currentVisit, $currentQueue] = $this->servingFixture();
         $current = $this->startEncounter($doctor, $currentVisit, $currentQueue);
+        $this->holdEncounter($doctor, $currentVisit, $currentQueue, $current);
         for ($index = 0; $index < 18; $index++) {
             $visit = $this->consultationVisit($ca, $doctor);
             $visit->forceFill(['patient_id' => $currentVisit->patient_id])->save();
@@ -60,6 +90,7 @@ class ClinicalEncounterDirectoryTest extends ClinicalTestCase
             app(ClinicalEncounterService::class)->update($doctor, $visit, $this->aggregate($history, [
                 'clinical_note' => 'Synthetic historical private note '.$index,
             ]));
+            $this->holdEncounter($doctor, $visit, $queue, $history);
         }
 
         $detail = app(ClinicalEncounterDirectoryService::class)->detail($doctor, $currentVisit);

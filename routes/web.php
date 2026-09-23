@@ -12,6 +12,7 @@ use App\Http\Controllers\ClinicalEncounterController;
 use App\Http\Controllers\ClinicalProblemController;
 use App\Http\Controllers\ClinicPlaceholderController;
 use App\Http\Controllers\ConsultationCheckoutController;
+use App\Http\Controllers\ConsultationHoldController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DispensaryController;
 use App\Http\Controllers\InventoryController;
@@ -22,6 +23,7 @@ use App\Http\Controllers\PatientIdentifierController;
 use App\Http\Controllers\PatientSearchController;
 use App\Http\Controllers\PublicCheckInController;
 use App\Http\Controllers\PublicCheckInLinkController;
+use App\Http\Controllers\PublicIntakeReviewController;
 use App\Http\Controllers\QueueController;
 use App\Http\Controllers\RegistrationController;
 use App\Http\Controllers\StaffBranchAssignmentController;
@@ -40,10 +42,18 @@ Route::get('/', fn () => Auth::check()
     ? redirect()->route('workspace')
     : redirect()->route('login'))->name('home');
 
-Route::get('check-in/{token}', PublicCheckInController::class)
-    ->where('token', '[A-Za-z0-9_-]{43}')
-    ->middleware(['throttle:public-checkin-view', 'sensitive.no-store'])
+Route::get('check-in', PublicCheckInController::class)
+    ->middleware(['public-intake.proxy', 'throttle:public-checkin-view', 'sensitive.no-store'])
     ->name('public-checkin.show');
+Route::post('check-in/exchange', [PublicCheckInController::class, 'exchange'])
+    ->middleware(['public-intake.proxy', 'throttle:public-intake-exchange', 'sensitive.no-store'])
+    ->name('public-intake.exchange');
+Route::post('check-in/intakes', [PublicCheckInController::class, 'submit'])
+    ->middleware(['public-intake.proxy', 'throttle:public-intake-submit', 'sensitive.no-store'])
+    ->name('public-intake.submit');
+Route::get('check-in/status', [PublicCheckInController::class, 'status'])
+    ->middleware(['public-intake.proxy', 'throttle:public-intake-status', 'sensitive.no-store'])
+    ->name('public-intake.status');
 
 Route::middleware(['guest', 'throttle:10,1'])->group(function () {
     Route::get('auth/google/redirect', [GoogleAuthController::class, 'redirect'])->name('google.redirect');
@@ -121,7 +131,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->middleware('permission:audit.view.organisation')
         ->name('audit-logs.index');
 
-    Route::middleware(['permission:public_checkin_links.manage.organisation', 'sensitive.no-store'])->group(function () {
+    Route::middleware(['permission:public_checkin_links.manage.organisation,public_checkin_links.manage.branch', 'sensitive.no-store'])->group(function () {
         Route::get('public-checkin-links', [PublicCheckInLinkController::class, 'index'])->name('public-checkin-links.index');
         Route::post('public-checkin-links', [PublicCheckInLinkController::class, 'store'])->name('public-checkin-links.store');
         Route::post('public-checkin-links/{publicCheckInLink}/rotate', [PublicCheckInLinkController::class, 'rotate'])->name('public-checkin-links.rotate');
@@ -129,6 +139,17 @@ Route::middleware(['auth', 'verified'])->group(function () {
     });
 
     Route::middleware(['sensitive.no-store', 'inertia.encrypt'])->group(function () {
+        Route::prefix('registration-review')->controller(PublicIntakeReviewController::class)
+            ->middleware('permission:public_intakes.review.branch')->group(function () {
+                Route::get('/', 'index')->name('registration-review.index');
+                Route::get('{publicIntake}', 'show')->whereUuid('publicIntake')->name('registration-review.show');
+                Route::post('{publicIntake}/start', 'start')->whereUuid('publicIntake')->middleware('throttle:30,1')->name('registration-review.start');
+                Route::patch('{publicIntake}/correct', 'correct')->whereUuid('publicIntake')->middleware('throttle:30,1')->name('registration-review.correct');
+                Route::post('{publicIntake}/correction-required', 'correctionRequired')->whereUuid('publicIntake')->middleware('throttle:30,1')->name('registration-review.correction-required');
+                Route::post('{publicIntake}/reject', 'reject')->whereUuid('publicIntake')->middleware('throttle:30,1')->name('registration-review.reject');
+                Route::post('{publicIntake}/accept', 'accept')->whereUuid('publicIntake')->middleware('throttle:20,1')->name('registration-review.accept');
+            });
+
         Route::get('inventory', InventoryController::class)
             ->middleware('permission:inventory.view.branch')->name('inventory.index');
         Route::post('visits/{visit}/encounter', [ClinicalEncounterController::class, 'store'])
@@ -179,11 +200,15 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
         Route::post('visits/{visit}/encounter/complete-consultation', [ConsultationCheckoutController::class, 'complete'])
             ->middleware(['permission:consultations.complete.own', 'throttle:20,1'])->name('encounters.checkout');
+        Route::post('visits/{visit}/encounter/hold', [ConsultationHoldController::class, 'hold'])
+            ->middleware(['permission:consultations.hold.own', 'throttle:20,1'])->name('encounters.hold');
+        Route::post('visits/{visit}/encounter/resume', [ConsultationHoldController::class, 'resume'])
+            ->middleware(['permission:consultations.hold.own', 'throttle:20,1'])->name('encounters.resume');
         Route::post('visits/{visit}/encounter/reopen-checkout', [ConsultationCheckoutController::class, 'reopen'])
             ->middleware(['permission:consultations.reopen.own', 'throttle:20,1'])->name('encounters.checkout.reopen');
 
         Route::get('dispensary/{dispensaryCase}', [DispensaryController::class, 'show'])
-            ->middleware('permission:dispensary.view.branch')->name('dispensary.show');
+            ->whereUuid('dispensaryCase')->middleware('permission:dispensary.view.branch')->name('dispensary.show');
 
         Route::prefix('visits/{visit}/billing')->controller(BillingController::class)->group(function () {
             Route::get('/', 'show')->middleware('permission:billing.view.branch,billing.summary.branch')->name('billing.show');
@@ -199,19 +224,19 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::get('{invoice}/receipts/{payment}/print', 'printReceipt')->middleware('permission:billing.print.branch')->name('billing.receipt');
         });
         Route::get('dispensary/{dispensaryCase}/labels', [DispensaryController::class, 'labels'])
-            ->middleware('permission:dispensary.view.branch')->name('dispensary.labels');
+            ->whereUuid('dispensaryCase')->middleware('permission:dispensary.view.branch')->name('dispensary.labels');
         Route::get('dispensary/{dispensaryCase}/items/{itemPublicId}/label', [DispensaryController::class, 'labels'])
-            ->middleware('permission:dispensary.view.branch')->whereUuid('itemPublicId')->name('dispensary.items.label');
+            ->whereUuid('dispensaryCase')->middleware('permission:dispensary.view.branch')->whereUuid('itemPublicId')->name('dispensary.items.label');
         Route::post('dispensary/{dispensaryCase}/start', [DispensaryController::class, 'start'])
-            ->middleware(['permission:dispensary.start.branch', 'throttle:30,1'])->name('dispensary.start');
+            ->whereUuid('dispensaryCase')->middleware(['permission:dispensary.start.branch', 'throttle:30,1'])->name('dispensary.start');
         Route::patch('dispensary/{dispensaryCase}/items/{item}', [DispensaryController::class, 'updateItem'])
-            ->middleware(['permission:dispensary.update.branch', 'throttle:60,1'])->name('dispensary.items.update');
+            ->whereUuid('dispensaryCase')->whereUuid('item')->middleware(['permission:dispensary.update.branch', 'throttle:60,1'])->name('dispensary.items.update');
         Route::post('dispensary/{dispensaryCase}/return-to-doctor', [DispensaryController::class, 'returnToDoctor'])
-            ->middleware(['permission:dispensary.return_to_doctor.branch', 'throttle:20,1'])->name('dispensary.return-to-doctor');
+            ->whereUuid('dispensaryCase')->middleware(['permission:dispensary.return_to_doctor.branch', 'throttle:20,1'])->name('dispensary.return-to-doctor');
         Route::post('dispensary/{dispensaryCase}/complete', [DispensaryController::class, 'complete'])
-            ->middleware(['permission:dispensary.complete.branch', 'throttle:20,1'])->name('dispensary.complete');
+            ->whereUuid('dispensaryCase')->middleware(['permission:dispensary.complete.branch', 'throttle:20,1'])->name('dispensary.complete');
         Route::post('dispensary-exceptions/{exception}/acknowledge', [DispensaryController::class, 'acknowledge'])
-            ->middleware(['permission:dispensary.acknowledge_partial.own', 'throttle:20,1'])->name('dispensary.exceptions.acknowledge');
+            ->whereUuid('exception')->middleware(['permission:dispensary.acknowledge_partial.own', 'throttle:20,1'])->name('dispensary.exceptions.acknowledge');
         Route::post('inventory/opening-balances', [InventoryMovementController::class, 'openingBalance'])
             ->middleware(['permission:inventory.opening_balance.branch', 'throttle:20,1'])->name('inventory.opening-balances.store');
         Route::post('inventory/transfers', [InventoryMovementController::class, 'transfer'])

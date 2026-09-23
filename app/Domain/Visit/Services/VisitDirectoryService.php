@@ -68,6 +68,7 @@ class VisitDirectoryService
                 'assignedDoctor:id,name',
                 'reasonAssignments.reason:id,public_id,name',
                 'queueEntry:id,organisation_id,branch_id,visit_id,operational_date,queue_number,status,queued_at,called_at,returned_from_dispensary_at,lock_version',
+                'clinicalEncounter.holds',
             ]);
 
         $boardStatus = (string) ($criteria['board_status'] ?? 'all');
@@ -320,6 +321,8 @@ class VisitDirectoryService
             default => null,
         };
         $actions = $actionHints[$actionKey] ??= $this->visitPolicy->actionHints($actor, $visit);
+        $activeHold = $visit->clinicalEncounter?->holds
+            ->first(fn ($hold): bool => $hold->resumed_at === null);
         $checkout = ConsultationCheckout::query()->where('current_visit_guard', $visit->id)->first(['route']);
         $canBilling = $actor->can('billing.view.branch') && ($visit->status === Visit::STATUS_COMPLETED || ($checkout !== null && ($checkout->route === 'billing'
             || DispensaryCase::query()->where('visit_id', $visit->id)->where('status', 'completed')->exists())));
@@ -339,6 +342,8 @@ class VisitDirectoryService
             'queueNumber' => $visibleQueueEntry ? sprintf('%03d', $visibleQueueEntry->queue_number) : null,
             'queueStatus' => $visibleQueueEntry?->status,
             'queueRemovalReason' => $visibleQueueEntry?->removal_reason,
+            'isHeld' => $activeHold !== null,
+            'holdStartedAt' => $activeHold?->held_at->toIso8601String(),
             'durationMinutes' => $durationMinutes,
             'visitLockVersion' => $visit->lock_version,
             'billingUrl' => $canBilling ? route('billing.show', $visit) : null,

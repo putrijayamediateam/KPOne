@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Head, Link, router } from '@inertiajs/vue3';
+import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import {
     ChevronDown,
     LoaderCircle,
@@ -12,6 +12,7 @@ import { computed, reactive, ref } from 'vue';
 import InputError from '@/components/InputError.vue';
 import PatientBoard from '@/components/patient-board/PatientBoard.vue';
 import VisitCancellationDialog from '@/components/patient-board/VisitCancellationDialog.vue';
+import QrIntakeTable from '@/components/registration/QrIntakeTable.vue';
 import { Button } from '@/components/ui/button';
 import { OperationalSelect } from '@/components/ui/select';
 import OperationalTabs from '@/components/ui/tabs/OperationalTabs.vue';
@@ -36,7 +37,32 @@ const props = defineProps<{
     };
     options: Pick<VisitOptions, 'branch' | 'doctors'>;
     canCreate: boolean;
+    qrIntakes: {
+        branch: { id: number; code: string; name: string };
+        pendingCount: number;
+        items: Array<{
+            publicId: string;
+            status: string;
+            displayStatus:
+                'pending' | 'reviewed' | 'rejected' | 'expired' | 'data_purged';
+            submissionType: 'patient' | 'guardian';
+            submittedAt: string;
+            expiresAt: string;
+            lockVersion: number;
+            canVerify: boolean;
+            visitUrl: string | null;
+            summary: {
+                name: string;
+                age: number | null;
+                purpose: string | null;
+                complaint: string | null;
+                duration: string | null;
+            } | null;
+        }>;
+        history: { total: number; currentPage: number; lastPage: number };
+    } | null;
 }>();
+const page = usePage();
 
 type BoardTab =
     | 'all'
@@ -45,8 +71,11 @@ type BoardTab =
     | 'dispensary'
     | 'billing'
     | 'completed'
-    | 'cancelled';
-const tabs: Array<{ value: BoardTab; label: string; planned?: boolean }> = [
+    | 'cancelled'
+    | 'qr-intake';
+const tabs = computed<
+    Array<{ value: BoardTab; label: string; count?: number }>
+>(() => [
     { value: 'all', label: 'All' },
     { value: 'waiting', label: 'Waiting' },
     { value: 'serving', label: 'Serving Now' },
@@ -54,8 +83,22 @@ const tabs: Array<{ value: BoardTab; label: string; planned?: boolean }> = [
     { value: 'billing', label: 'Awaiting Billing' },
     { value: 'completed', label: 'Completed' },
     { value: 'cancelled', label: 'Cancelled' },
-];
-const activeTab = ref<BoardTab>('all');
+    ...(props.qrIntakes
+        ? [
+              {
+                  value: 'qr-intake' as const,
+                  label: 'QR Intake',
+                  count: props.qrIntakes.pendingCount,
+              },
+          ]
+        : []),
+]);
+const activeTab = ref<BoardTab>(
+    new URLSearchParams(page.url.split('?', 2)[1] ?? '').get('tab') ===
+        'qr-intake' && props.qrIntakes
+        ? 'qr-intake'
+        : 'all',
+);
 const rows = ref(props.visits.data);
 const total = ref(props.visits.total);
 const currentPage = ref(props.visits.currentPage);
@@ -87,6 +130,7 @@ const csrf = () =>
         ?.content ?? '';
 let searchGeneration = 0;
 const plannedTab = computed(() => false);
+const isQrIntake = computed(() => activeTab.value === 'qr-intake');
 const doctorOptions = computed(() => [
     { value: '', label: 'All doctors' },
     ...props.options.doctors.map((doctor) => ({
@@ -176,19 +220,20 @@ const boardRows = computed<PatientBoardRow[]>(() =>
             visitNotes: visit.visitReasonExcerpt,
             doctorName: visit.doctorName,
             coverageLabel: visit.coverageLabel,
-            durationLabel:
-                visit.queueStatus === 'serving'
-                    ? servingDurationLabel(visit.durationMinutes)
-                    : visit.queueStatus === 'waiting'
-                      ? waitingDurationLabel(visit.durationMinutes)
-                      : '—',
+            durationLabel: visit.isHeld
+                ? 'On Hold'
+                : visit.queueStatus === 'serving'
+                  ? servingDurationLabel(visit.durationMinutes)
+                  : visit.queueStatus === 'waiting'
+                    ? waitingDurationLabel(visit.durationMinutes)
+                    : '—',
             priority: visit.priority,
             returnedFromDispensary: visit.returnedFromDispensary,
             dispensaryUrl: visit.dispensaryUrl,
             billingUrl: visit.billingUrl,
             completedAt: visit.completedAt,
-            statusLabel: status.label,
-            statusTone: status.tone,
+            statusLabel: visit.isHeld ? 'On Hold' : status.label,
+            statusTone: visit.isHeld ? ('held' as const) : status.tone,
             can: visit.can,
             source: visit,
         };
@@ -258,6 +303,17 @@ const search = async (page = 1) => {
 };
 const selectTab = (tab: BoardTab) => {
     activeTab.value = tab;
+
+    if (tab === 'qr-intake') {
+        window.history.replaceState({}, '', '/registration?tab=qr-intake');
+
+        return;
+    }
+
+    if (window.location.search !== '') {
+        window.history.replaceState({}, '', '/registration');
+    }
+
     form.board_status = tab;
     void search(1);
 };
@@ -337,6 +393,14 @@ const requestCancellation = (row: PatientBoardRow) => {
     cancellationRow.value = row;
     cancelOpen.value = true;
 };
+const changeQrHistoryPage = (qrHistoryPage: number) => {
+    // router.reload() always preserves scroll and component state; that is the
+    // point of "reload" versus a full visit.
+    router.reload({
+        only: ['qrIntakes'],
+        data: { qr_history_page: qrHistoryPage },
+    });
+};
 </script>
 
 <template>
@@ -359,7 +423,15 @@ const requestCancellation = (row: PatientBoardRow) => {
             >
         </div>
 
-        <div v-if="plannedTab" class="border-y px-4 py-12 text-center">
+        <QrIntakeTable
+            v-if="isQrIntake && qrIntakes"
+            :branch="qrIntakes.branch"
+            :items="qrIntakes.items"
+            :history="qrIntakes.history"
+            @history-page-change="changeQrHistoryPage"
+        />
+
+        <div v-else-if="plannedTab" class="border-y px-4 py-12 text-center">
             <h2 class="font-semibold">
                 {{
                     activeTab === 'dispensary'

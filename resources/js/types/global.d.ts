@@ -25,6 +25,7 @@ declare module '@inertiajs/core' {
                 canEnterClinic: boolean;
                 navigation: {
                     registration: boolean;
+                    registrationReview: boolean;
                     consultation: boolean;
                     inventory: boolean;
                     patientRecords: boolean;
@@ -36,6 +37,7 @@ declare module '@inertiajs/core' {
                     auditLogs: boolean;
                     publicCheckInLinks: boolean;
                 };
+                pendingIntakes: number;
             } | null;
             sidebarOpen: boolean;
             [key: string]: unknown;

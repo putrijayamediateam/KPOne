@@ -6,6 +6,7 @@ import {
     LayoutDashboard,
     ListOrdered,
     ClipboardPlus,
+    QrCode,
     ShieldCheck,
     Users,
     UserRoundSearch,
@@ -38,6 +39,16 @@ const mainNavItems = computed<NavItem[]>(() => [
                   title: 'Registration',
                   href: '/registration',
                   icon: ClipboardPlus,
+              },
+          ]
+        : []),
+    ...(can('public_checkin_links.manage.organisation') ||
+    can('public_checkin_links.manage.branch')
+        ? [
+              {
+                  title: 'QR Cawangan',
+                  href: '/public-checkin-links',
+                  icon: QrCode,
               },
           ]
         : []),

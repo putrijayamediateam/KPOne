@@ -6,6 +6,7 @@ use App\Http\Middleware\HandleAppearance;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\PreventSensitiveResponseCaching;
 use App\Http\Middleware\RequireAnyPermission;
+use App\Http\Middleware\ValidatePublicIntakeProxy;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -23,7 +24,7 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         // Preserve raw contact/IC input until domain validation rejects control characters.
         $middleware->trimStrings(except: ['mobile_phone', 'quick_patient.mobile_phone', 'value', 'identifiers.*.value', 'quick_patient.identifiers.*.value']);
-        $middleware->encryptCookies(except: ['appearance', 'sidebar_state']);
+        $middleware->encryptCookies(except: ['appearance', 'sidebar_state', 'kpone_public_intake_exchange_attempt']);
 
         $middleware->web(append: [
             EnsureActiveUser::class,
@@ -35,6 +36,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'permission' => RequireAnyPermission::class,
             'sensitive.no-store' => PreventSensitiveResponseCaching::class,
+            'public-intake.proxy' => ValidatePublicIntakeProxy::class,
         ]);
 
         $middleware->prependToPriorityList(SubstituteBindings::class, RequireAnyPermission::class);
@@ -62,9 +64,26 @@ return Application::configure(basePath: dirname(__DIR__))
             'state',
             'country_code',
             'visit_reason',
+            'visit_purpose',
+            'chief_complaint',
+            'complaint_duration',
             'cancellation_reason',
             'coverage_member_reference',
             'patient_number',
+            'submission_type',
+            'guardian_name',
+            'guardian_relationship',
+            'guardian_contact_number',
+            'guardian_attestation',
+            'consent_confirmed',
+            'privacy_notice_version',
+            'link_token',
+            'identifier_type',
+            'identifier_value',
+            'identifier_issuing_country_code',
+            'nonce',
+            'status_receipt',
+            'idempotency_key',
             'quick_patient',
             'queue_query',
             'clinical_note',

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { useForm } from '@inertiajs/vue3';
 import {
+    AlertTriangle,
     ArrowDown,
     ArrowUp,
     ChevronDown,
@@ -299,6 +300,46 @@ const form = useForm({
     services: props.plan.services.map(serviceRow),
 });
 
+// OH-06b: this panel is embedded in Clinical/Show.vue, whose Hold/Resume
+// actions use `preserveState: true` (so a doctor's in-progress edits are
+// never disturbed by a hold/resume click elsewhere on the page). That means
+// this component is never remounted by those actions, so nothing re-seeded
+// `form` (a `useForm()` instance seeded once from props at setup) from the
+// fresh `plan` prop that DOES arrive with the hold/resume response - the
+// treatment-plan draft (medicines/services) would silently drift from what
+// the server actually holds, exactly the pattern fixed for the clinical
+// note in Show.vue.
+//
+// Same safety rule: lock_version only ever moves together with the content
+// it guards, in the same assignment, never on its own.
+// - Clean form (no unsaved edits): safe to adopt the fresh values wholesale.
+// - Dirty form (doctor mid-draft): never touch content or lock_version - the
+//   next Save is left to fail safely at the backend (stale lock_version ->
+//   rejected) instead of silently overwriting whatever changed elsewhere.
+const recordDrifted = ref(false);
+
+const adoptLatestRecord = () => {
+    form.lock_version = props.plan.lockVersion;
+    form.medicines = props.plan.medicines.map(medicineRow);
+    form.services = props.plan.services.map(serviceRow);
+    form.clearErrors();
+    form.defaults();
+    recordDrifted.value = false;
+};
+
+watch(
+    () => props.plan.lockVersion,
+    () => {
+        if (form.isDirty) {
+            recordDrifted.value = true;
+
+            return;
+        }
+
+        adoptLatestRecord();
+    },
+);
+
 const medicineQuery = ref('');
 const serviceQuery = ref('');
 const medicineResults = ref<MedicineSearch[]>([]);
@@ -501,7 +542,10 @@ const addService = (item: ServiceSearch) => {
     serviceResults.value = [];
     serviceQuery.value = '';
 };
-const save = () => {
+// OH-06c: also called (with callbacks) from Show.vue's "Save and hold" guard
+// via the exposed `saveForHold`, so a dirty treatment plan draft is never
+// silently stranded once On Hold makes canSave false.
+const save = (onSuccess?: () => void, onError?: (message: string) => void) => {
     form.clearErrors();
 
     for (const row of form.medicines) {
@@ -510,10 +554,10 @@ const save = () => {
                 composer.mode === 'structured' &&
                 normalizeAmount(composer.amount) === null
             ) {
-                form.setError(
-                    'medicines',
-                    'Enter a finite dosage or duration amount, or use Custom text.',
-                );
+                const message =
+                    'Enter a finite dosage or duration amount, or use Custom text.';
+                form.setError('medicines', message);
+                onError?.(message);
 
                 return;
             }
@@ -547,14 +591,46 @@ const save = () => {
         {
             preserveScroll: true,
             onSuccess: () => {
-                form.lock_version = props.plan.lockVersion;
-                form.medicines = props.plan.medicines.map(medicineRow);
-                form.services = props.plan.services.map(serviceRow);
-                form.defaults();
+                // The content just saved now matches the server; adopt the
+                // fresh props (including the bumped lock_version) as one
+                // atomic operation and re-baseline the form as clean.
+                adoptLatestRecord();
+                onSuccess?.();
+            },
+            onError: () => {
+                onError?.(
+                    Object.values(form.errors as Record<string, string>)[0] ??
+                        'The Treatment Plan could not be saved. Review the latest information and try again.',
+                );
             },
         },
     );
 };
+
+// OH-06c: Clinical/Show.vue's On Hold guard needs to know whether this
+// sibling panel's own draft has unsaved edits, and - if the doctor chooses
+// "Hold without saving" - needs a way to discard them. Exposed as plain
+// functions (not refs) so the parent's own computed properties can call them
+// directly without unwrapping.
+defineExpose({
+    isDirty: () => form.isDirty,
+    discardDraft: () => {
+        form.reset();
+        form.clearErrors();
+    },
+    saveForHold: (
+        onSuccess: () => void,
+        onError: (message: string) => void,
+    ) => {
+        if (!form.isDirty) {
+            onSuccess();
+
+            return;
+        }
+
+        save(onSuccess, onError);
+    },
+});
 </script>
 
 <template>
@@ -572,6 +648,26 @@ const save = () => {
                     ? 'Sent to Dispensary'
                     : 'In progress'
             }}</span>
+        </div>
+
+        <div
+            v-if="recordDrifted"
+            role="alert"
+            class="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-950"
+        >
+            <span class="flex items-start gap-2">
+                <AlertTriangle class="mt-0.5 size-4 shrink-0" />
+                This Treatment Plan has changed elsewhere. Reload to see the
+                latest version - your draft has not been saved.
+            </span>
+            <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                @click="adoptLatestRecord"
+            >
+                Reload
+            </Button>
         </div>
 
         <div
@@ -998,7 +1094,7 @@ const save = () => {
                     treatmentSaveButtonVariant(plan.canCompleteConsultation)
                 "
                 :disabled="form.processing || !plan.canSave"
-                @click="save"
+                @click="save()"
                 ><LoaderCircle
                     v-if="form.processing"
                     class="size-4 animate-spin"

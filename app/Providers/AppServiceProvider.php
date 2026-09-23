@@ -13,8 +13,10 @@ use App\Domain\Clinical\Models\ClinicalEncounter;
 use App\Domain\Clinical\Policies\ClinicalEncounterPolicy;
 use App\Domain\Identity\Policies\StaffPolicy;
 use App\Domain\Organisation\Models\Branch;
+use App\Domain\Organisation\Models\PublicCheckInLink;
 use App\Domain\Organisation\Policies\BranchPolicy;
 use App\Domain\Patient\Models\Patient;
+use App\Domain\Patient\Models\PublicIntakeSession;
 use App\Domain\Patient\Policies\PatientPolicy;
 use App\Domain\Queue\Models\QueueEntry;
 use App\Domain\Queue\Policies\QueueEntryPolicy;
@@ -60,6 +62,10 @@ class AppServiceProvider extends ServiceProvider
         $this->configureAuthorization();
         $this->configureAuditListeners();
         $this->configurePublicCheckInRateLimiting();
+        if (! $this->app->environment(['local', 'testing'])
+            && in_array('*', config('public-intake.trusted_proxies', []), true)) {
+            throw new \LogicException('Wildcard trusted proxies are forbidden for public patient intake.');
+        }
 
         Route::bind('patient', function (string $value): Patient {
             $actor = request()->user();
@@ -108,15 +114,81 @@ class AppServiceProvider extends ServiceProvider
     private function configurePublicCheckInRateLimiting(): void
     {
         RateLimiter::for('public-checkin-view', function (Request $request): array {
-            $linkKey = hash('sha256', (string) $request->route('token'));
             $ip = (string) $request->ip();
 
             return [
                 Limit::perMinute(300)->by($ip),
-                Limit::perMinute(120)->by($ip.'|'.$linkKey),
-                Limit::perMinute(1000)->by($linkKey),
             ];
         });
+
+        RateLimiter::for('public-intake-exchange', fn (Request $request): array => $this->publicLinkExchangeLimits($request));
+        RateLimiter::for('public-intake-submit', function (Request $request): array {
+            $context = $this->publicIntakeSessionContext($request);
+            $ip = (string) $request->ip();
+
+            return [
+                Limit::perMinute(10)->by($ip),
+                Limit::perMinute(5)->by($ip.'|'.$context['key']),
+                Limit::perMinute(60)->by($context['branch']),
+                Limit::perMinute(3)->by('submission:'.$context['key']),
+            ];
+        });
+        RateLimiter::for('public-intake-status', function (Request $request): array {
+            $context = $this->publicIntakeSessionContext($request, statusOnly: true);
+            $ip = (string) $request->ip();
+
+            return [
+                Limit::perMinute(120)->by($ip),
+                Limit::perMinute(30)->by($ip.'|'.$context['key']),
+                Limit::perMinute(120)->by($context['key']),
+                Limit::perMinute(1000)->by($context['branch']),
+            ];
+        });
+    }
+
+    /** @return array<int, Limit> */
+    private function publicLinkExchangeLimits(Request $request): array
+    {
+        $rawToken = $request->input('link_token');
+        $tokenKey = hash('sha256', is_string($rawToken) ? $rawToken : '');
+        $ip = (string) $request->ip();
+        $branchId = PublicCheckInLink::query()
+            ->where('token_hash', $tokenKey)
+            ->value('branch_id');
+        $branchKey = $branchId ? 'branch:'.$branchId : 'invalid:'.$tokenKey;
+
+        return [
+            Limit::perMinute(20)->by($ip),
+            Limit::perMinute(10)->by($ip.'|'.$tokenKey),
+            Limit::perMinute(100)->by($branchKey),
+        ];
+    }
+
+    /** @return array{key: string, branch: string} */
+    private function publicIntakeSessionContext(Request $request, bool $statusOnly = false): array
+    {
+        $statusCookieName = config('public-intake.status_cookie');
+        $submissionCookieName = config('public-intake.submission_cookie');
+        $statusCookie = is_string($statusCookieName) ? $request->cookie($statusCookieName) : null;
+        $submissionCookie = is_string($submissionCookieName) ? $request->cookie($submissionCookieName) : null;
+        $statusReceipt = is_string($statusCookie) ? $statusCookie : '';
+        $nonce = ! $statusOnly && is_string($submissionCookie) ? $submissionCookie : '';
+        $digest = hash('sha256', $nonce !== '' ? $nonce : $statusReceipt);
+        $session = null;
+        if ($nonce !== '') {
+            $session = PublicIntakeSession::query()->where('nonce_digest', $digest)->first(['id', 'branch_id']);
+        }
+        if ($session === null && $statusReceipt !== '') {
+            $digest = hash('sha256', $statusReceipt);
+            $session = PublicIntakeSession::query()
+                ->where('status_receipt_digest', $digest)
+                ->first(['id', 'branch_id']);
+        }
+
+        return [
+            'key' => 'intake-session:'.($session ? $session->id : 'invalid:'.$digest),
+            'branch' => $session ? 'branch:'.$session->branch_id : 'invalid:'.$digest,
+        ];
     }
 
     protected function configureAuthorization(): void
