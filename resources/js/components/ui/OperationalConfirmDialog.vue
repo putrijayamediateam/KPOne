@@ -21,6 +21,12 @@ const props = withDefaults(
         processing?: boolean;
         destructive?: boolean;
         error?: string;
+        /** Optional third choice, rendered between Cancel and Confirm. Omit for the classic two-choice dialog. */
+        secondaryLabel?: string;
+        secondaryProcessingLabel?: string;
+        secondaryVariant?: 'outline' | 'destructive';
+        /** Which button is currently in flight, so only that one shows its spinner/processing label. */
+        processingAction?: 'confirm' | 'secondary';
     }>(),
     {
         cancelLabel: 'Cancel',
@@ -28,12 +34,17 @@ const props = withDefaults(
         processing: false,
         destructive: false,
         error: '',
+        secondaryLabel: undefined,
+        secondaryProcessingLabel: 'Working…',
+        secondaryVariant: 'outline',
+        processingAction: 'confirm',
     },
 );
 
 const emit = defineEmits<{
     'update:open': [value: boolean];
     confirm: [];
+    secondary: [];
 }>();
 
 const updateOpen = (open: boolean) => {
@@ -45,6 +56,12 @@ const updateOpen = (open: boolean) => {
 const confirm = () => {
     if (!props.processing) {
         emit('confirm');
+    }
+};
+
+const secondaryAction = () => {
+    if (!props.processing) {
+        emit('secondary');
     }
 };
 </script>
@@ -90,13 +107,37 @@ const confirm = () => {
                     {{ cancelLabel }}
                 </Button>
                 <Button
+                    v-if="secondaryLabel"
+                    type="button"
+                    :variant="secondaryVariant"
+                    :disabled="processing"
+                    @click="secondaryAction"
+                >
+                    <LoaderCircle
+                        v-if="processing && processingAction === 'secondary'"
+                        class="size-4 animate-spin"
+                    />
+                    {{
+                        processing && processingAction === 'secondary'
+                            ? secondaryProcessingLabel
+                            : secondaryLabel
+                    }}
+                </Button>
+                <Button
                     type="button"
                     :variant="destructive ? 'destructive' : 'default'"
                     :disabled="processing"
                     @click="confirm"
                 >
-                    <LoaderCircle v-if="processing" class="size-4 animate-spin" />
-                    {{ processing ? processingLabel : confirmLabel }}
+                    <LoaderCircle
+                        v-if="processing && processingAction === 'confirm'"
+                        class="size-4 animate-spin"
+                    />
+                    {{
+                        processing && processingAction === 'confirm'
+                            ? processingLabel
+                            : confirmLabel
+                    }}
                 </Button>
             </DialogFooter>
         </DialogContent>

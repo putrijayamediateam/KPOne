@@ -12,6 +12,7 @@ import {
     Trash2,
 } from '@lucide/vue';
 import { computed, ref, watch } from 'vue';
+import UnsavedClinicalWorkDialog from '@/components/clinical/UnsavedClinicalWorkDialog.vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import { waitedDurationLabel } from '@/lib/r1c2-presentation';
@@ -107,6 +108,128 @@ watch(
         adoptLatestRecord();
     },
 );
+
+// OH-06c: pressing On Hold while there is unsaved clinical work (this form,
+// or the sibling Treatment Plan draft) must never silently strand that work
+// - clinical save is disabled for the rest of the time this consultation is
+// held, so Reload (the drift banner's own recovery path) is the only way
+// back, and it discards exactly what the doctor was trying to protect. The
+// drift banner above stays for the separate, genuine concurrent-edit case;
+// this is a distinct guard that runs before a hold is ever requested.
+const treatmentPlanPanelRef = ref<InstanceType<
+    typeof TreatmentPlanPanel
+> | null>(null);
+const noteDirty = computed(
+    () => form.clinical_note !== (props.clinical.encounter.clinicalNote ?? ''),
+);
+const vitalsDirty = computed(
+    () => JSON.stringify(form.vitals) !== JSON.stringify(vitalsFromProps()),
+);
+const diagnosesDirty = computed(
+    () =>
+        JSON.stringify(form.diagnoses) !== JSON.stringify(diagnosesFromProps()),
+);
+const treatmentPlanDirty = computed(
+    () => treatmentPlanPanelRef.value?.isDirty() ?? false,
+);
+const unsavedItems = computed(() => {
+    const items: string[] = [];
+
+    if (noteDirty.value) {
+        items.push('clinical note');
+    }
+
+    if (vitalsDirty.value) {
+        items.push('vitals');
+    }
+
+    if (diagnosesDirty.value) {
+        items.push('diagnoses');
+    }
+
+    if (treatmentPlanDirty.value) {
+        items.push('treatment plan');
+    }
+
+    return items;
+});
+const hasUnsavedWork = computed(() => form.isDirty || treatmentPlanDirty.value);
+const unsavedWorkOpen = ref(false);
+const unsavedWorkProcessing = ref(false);
+const unsavedWorkAction = ref<'confirm' | 'secondary'>('confirm');
+const unsavedWorkError = ref('');
+
+const requestHold = () => {
+    if (!hasUnsavedWork.value) {
+        changeHoldState('hold');
+
+        return;
+    }
+
+    unsavedWorkError.value = '';
+    unsavedWorkOpen.value = true;
+};
+const saveAndHold = () => {
+    unsavedWorkAction.value = 'confirm';
+    unsavedWorkProcessing.value = true;
+    unsavedWorkError.value = '';
+
+    const proceedToHold = () => {
+        unsavedWorkOpen.value = false;
+        unsavedWorkProcessing.value = false;
+        changeHoldState('hold');
+    };
+    // A dirty Treatment Plan draft would become unsavable the moment this
+    // encounter is held (its own `canSave` excludes a held consultation), so
+    // it must be saved here too - not just the clinical note/vitals/
+    // diagnoses form - or "Save and hold" would strand exactly the work it
+    // is meant to protect.
+    const saveTreatmentPlanThenHold = () => {
+        const panel = treatmentPlanPanelRef.value;
+
+        if (!panel) {
+            proceedToHold();
+
+            return;
+        }
+
+        panel.saveForHold(proceedToHold, (message) => {
+            unsavedWorkError.value = message;
+            unsavedWorkProcessing.value = false;
+        });
+    };
+
+    if (!form.isDirty) {
+        saveTreatmentPlanThenHold();
+
+        return;
+    }
+
+    form.patch(
+        `/visits/${encodeURIComponent(props.clinical.visit.visitNumber)}/encounter`,
+        {
+            preserveScroll: true,
+            onSuccess: () => {
+                adoptLatestRecord();
+                saveTreatmentPlanThenHold();
+            },
+            onError: () => {
+                unsavedWorkError.value =
+                    Object.values(form.errors)[0] ??
+                    'The clinical record could not be saved. Review the latest information and try again.';
+                unsavedWorkProcessing.value = false;
+            },
+        },
+    );
+};
+const holdWithoutSaving = () => {
+    unsavedWorkAction.value = 'secondary';
+    form.reset();
+    form.clearErrors();
+    treatmentPlanPanelRef.value?.discardDraft();
+    unsavedWorkOpen.value = false;
+    changeHoldState('hold');
+};
 
 const bmi = computed(() => {
     const weight = Number(form.vitals.weight_kg);
@@ -308,7 +431,7 @@ const changeHoldState = (action: 'hold' | 'resume') => {
                             size="sm"
                             variant="outline"
                             :disabled="holdProcessing"
-                            @click="changeHoldState('hold')"
+                            @click="requestHold"
                         >
                             <PauseCircle class="size-4" /> On Hold
                         </Button>
@@ -719,6 +842,7 @@ const changeHoldState = (action: 'hold' | 'resume') => {
                 </form>
 
                 <TreatmentPlanPanel
+                    ref="treatmentPlanPanelRef"
                     :visit-number="clinical.visit.visitNumber"
                     :branch-id="clinical.branch.id"
                     :plan="clinical.treatmentPlan"
@@ -740,5 +864,16 @@ const changeHoldState = (action: 'hold' | 'resume') => {
                 />
             </aside>
         </div>
+
+        <UnsavedClinicalWorkDialog
+            :open="unsavedWorkOpen"
+            :unsaved-items="unsavedItems"
+            :processing="unsavedWorkProcessing"
+            :processing-action="unsavedWorkAction"
+            :error="unsavedWorkError"
+            @update:open="unsavedWorkOpen = $event"
+            @save-and-hold="saveAndHold"
+            @hold-without-saving="holdWithoutSaving"
+        />
     </main>
 </template>

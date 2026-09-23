@@ -542,7 +542,10 @@ const addService = (item: ServiceSearch) => {
     serviceResults.value = [];
     serviceQuery.value = '';
 };
-const save = () => {
+// OH-06c: also called (with callbacks) from Show.vue's "Save and hold" guard
+// via the exposed `saveForHold`, so a dirty treatment plan draft is never
+// silently stranded once On Hold makes canSave false.
+const save = (onSuccess?: () => void, onError?: (message: string) => void) => {
     form.clearErrors();
 
     for (const row of form.medicines) {
@@ -551,10 +554,10 @@ const save = () => {
                 composer.mode === 'structured' &&
                 normalizeAmount(composer.amount) === null
             ) {
-                form.setError(
-                    'medicines',
-                    'Enter a finite dosage or duration amount, or use Custom text.',
-                );
+                const message =
+                    'Enter a finite dosage or duration amount, or use Custom text.';
+                form.setError('medicines', message);
+                onError?.(message);
 
                 return;
             }
@@ -592,10 +595,42 @@ const save = () => {
                 // fresh props (including the bumped lock_version) as one
                 // atomic operation and re-baseline the form as clean.
                 adoptLatestRecord();
+                onSuccess?.();
+            },
+            onError: () => {
+                onError?.(
+                    Object.values(form.errors as Record<string, string>)[0] ??
+                        'The Treatment Plan could not be saved. Review the latest information and try again.',
+                );
             },
         },
     );
 };
+
+// OH-06c: Clinical/Show.vue's On Hold guard needs to know whether this
+// sibling panel's own draft has unsaved edits, and - if the doctor chooses
+// "Hold without saving" - needs a way to discard them. Exposed as plain
+// functions (not refs) so the parent's own computed properties can call them
+// directly without unwrapping.
+defineExpose({
+    isDirty: () => form.isDirty,
+    discardDraft: () => {
+        form.reset();
+        form.clearErrors();
+    },
+    saveForHold: (
+        onSuccess: () => void,
+        onError: (message: string) => void,
+    ) => {
+        if (!form.isDirty) {
+            onSuccess();
+
+            return;
+        }
+
+        save(onSuccess, onError);
+    },
+});
 </script>
 
 <template>
@@ -1059,7 +1094,7 @@ const save = () => {
                     treatmentSaveButtonVariant(plan.canCompleteConsultation)
                 "
                 :disabled="form.processing || !plan.canSave"
-                @click="save"
+                @click="save()"
                 ><LoaderCircle
                     v-if="form.processing"
                     class="size-4 animate-spin"
