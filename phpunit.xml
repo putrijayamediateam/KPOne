@@ -33,5 +33,7 @@
         <env name="PULSE_ENABLED" value="false"/>
         <env name="TELESCOPE_ENABLED" value="false"/>
         <env name="NIGHTWATCH_ENABLED" value="false"/>
+        <env name="PUBLIC_PATIENT_INTAKE_ENABLED" value="true" force="true"/>
+        <server name="PUBLIC_PATIENT_INTAKE_ENABLED" value="true"/>
     </php>
 </phpunit>
