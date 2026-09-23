@@ -169,6 +169,7 @@ const compactTime = (value: string) => {
         .format(new Date(Date.UTC(2000, 0, 1, hour, minute)))
         .replace(/\b(am|pm)\b/gi, (period) => period.toUpperCase());
 };
+const boardEmptyMessage = computed(() => error.value || undefined);
 const registrationDateLabel = computed(() =>
     form.date_from === form.date_to
         ? formatDate(form.date_from)
@@ -240,14 +241,17 @@ const boardRows = computed<PatientBoardRow[]>(() =>
     }),
 );
 
+const clearBoard = () => {
+    rows.value = [];
+    total.value = 0;
+    currentPage.value = 1;
+    lastPage.value = 1;
+};
 const search = async (page = 1) => {
     const generation = ++searchGeneration;
 
     if (plannedTab.value) {
-        rows.value = [];
-        total.value = 0;
-        currentPage.value = 1;
-        lastPage.value = 1;
+        clearBoard();
         loading.value = false;
         error.value = '';
 
@@ -283,6 +287,10 @@ const search = async (page = 1) => {
                     ? Object.values(validationErrors)[0]?.[0]
                     : undefined) ??
                 'Registration search could not be completed.';
+            clearBoard();
+            console.error(
+                `Registration search failed with status ${response.status}`,
+            );
 
             return;
         }
@@ -291,9 +299,11 @@ const search = async (page = 1) => {
         total.value = payload.total;
         currentPage.value = payload.currentPage;
         lastPage.value = payload.lastPage;
-    } catch {
+    } catch (thrown) {
         if (generation === searchGeneration) {
             error.value = 'Registration search could not be completed.';
+            clearBoard();
+            console.error('Registration search request failed', thrown);
         }
     } finally {
         if (generation === searchGeneration) {
@@ -546,6 +556,7 @@ const changeQrHistoryPage = (qrHistoryPage: number) => {
                 <PatientBoard
                     :rows="boardRows"
                     :busy-key="busyKey"
+                    :empty-message="boardEmptyMessage"
                     @send-to-waiting="sendToWaiting"
                     @call="callIn"
                     @open-consultation="openConsultation"
