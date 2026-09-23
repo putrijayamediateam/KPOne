@@ -11,10 +11,23 @@ const links = read('resources/js/pages/PublicCheckInLinks/Index.vue');
 const appBootstrap = read('resources/js/app.ts');
 const documentShell = read('resources/views/app.blade.php');
 
-test('frontend bootstrap accepts both supported Inertia initial-page markup formats', () => {
-    assert.ok(appBootstrap.includes('initialPageElement?.dataset.page'));
-    assert.ok(appBootstrap.includes('script[data-page="app"]'));
-    assert.ok(appBootstrap.includes('initialPageScript?.textContent'));
+test('frontend bootstrap reads the initial Inertia page via the shared helper', () => {
+    assert.ok(
+        appBootstrap.includes(
+            "import { readInitialInertiaPage } from '@/lib/inertia-bootstrap';",
+        ),
+    );
+    assert.ok(
+        appBootstrap.includes('const initialPage = readInitialInertiaPage();'),
+    );
+    // The old dual-markup parsing this bootstrap used to do inline (a
+    // `dataset.page` attribute on #app, or a `script[data-page="app"]` text
+    // node) is gone - `@inertiajs/core`'s own getInitialPageFromDOM() is now
+    // the single source of truth, and it only recognises the current
+    // `<script data-page="..." type="application/json">` markup that
+    // `<x-inertia::app />` renders.
+    assert.ok(!appBootstrap.includes('initialPageElement?.dataset.page'));
+    assert.ok(!appBootstrap.includes('initialPageScript?.textContent'));
 });
 
 test('mobile intake has the approved patient and guardian journey', () => {

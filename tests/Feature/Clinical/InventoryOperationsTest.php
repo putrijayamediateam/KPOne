@@ -803,7 +803,22 @@ class InventoryOperationsTest extends ClinicalTestCase
             ->has('operations.expiringBatches', 0));
 
         DB::table('inventory_stock_balances')->where('inventory_location_id', $fixture['location']->id)->update(['quantity' => '1.000']);
-        $this->get(route('inventory.index'))->assertOk()->assertInertia(fn ($page) => $page->has('operations.expiringBatches', 1));
+        $otherLocation = $this->location($supervisor, 'P2-ADJ-OTHER', InventoryLocation::TYPE_BRANCH_STORE);
+        app(InventoryMovementService::class)->openingBalance($supervisor, [
+            'expected_branch_id' => $this->branch->id,
+            'location_public_id' => $otherLocation->public_id,
+            'sku_public_id' => $fixture['sku']->public_id,
+            'batch_public_id' => $fixture['batch']->public_id,
+            'quantity' => '1.000',
+        ]);
+        $expiring = $this->get(route('inventory.index'))->assertOk()->inertiaProps('operations.expiringBatches');
+        $this->assertCount(2, $expiring);
+        $this->assertEqualsCanonicalizing(
+            [$fixture['location']->name, $otherLocation->name],
+            array_column($expiring, 'location'),
+        );
+        $this->assertSame([$fixture['sku']->sku_code], array_values(array_unique(array_column($expiring, 'sku'))));
+        $this->assertSame([$fixture['batch']->batch_number], array_values(array_unique(array_column($expiring, 'batch'))));
         DB::table('inventory_items')->where('id', $fixture['sku']->inventory_item_id)->update(['is_active' => false]);
         $this->get(route('inventory.index'))->assertOk()->assertInertia(fn ($page) => $page
             ->has('operations.batches', 0)

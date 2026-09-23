@@ -668,12 +668,12 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
                     </p>
                 </div>
                 <div class="grid gap-4 px-4 pb-4 md:grid-cols-2">
-                    <fieldset class="grid gap-1">
+                    <fieldset class="grid gap-1 md:justify-self-start">
                         <legend class="mb-1 text-sm font-medium">
                             2. Visit type
                         </legend>
                         <div
-                            class="grid grid-cols-2 gap-1 rounded-md bg-muted/70 p-1"
+                            class="grid w-full grid-cols-2 gap-1 rounded-md bg-muted/70 p-1 sm:w-72"
                         >
                             <button
                                 type="button"
@@ -685,7 +685,7 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
                                         ? 'bg-background text-foreground shadow-sm'
                                         : 'text-muted-foreground hover:text-foreground'
                                 "
-                                class="h-9 rounded-sm px-3 text-sm font-medium transition-colors"
+                                class="min-h-10 rounded-sm px-3 text-sm font-medium transition-colors focus-visible:ring-2 focus-visible:ring-emerald-600/30 focus-visible:outline-none"
                                 @click="form.visit_type = 'consultation'"
                             >
                                 Consultation
@@ -698,7 +698,7 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
                                         ? 'bg-background text-foreground shadow-sm'
                                         : 'text-muted-foreground hover:text-foreground'
                                 "
-                                class="h-9 rounded-sm px-3 text-sm font-medium transition-colors"
+                                class="min-h-10 rounded-sm px-3 text-sm font-medium transition-colors focus-visible:ring-2 focus-visible:ring-emerald-600/30 focus-visible:outline-none"
                                 @click="form.visit_type = 'otc'"
                             >
                                 OTC
@@ -808,28 +808,41 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
                             </button>
                         </div>
                     </fieldset>
-                    <template v-if="form.coverage_type === 'panel'"
-                        ><label class="grid gap-1" for="panel-id"
+                    <div
+                        v-if="form.coverage_type === 'panel'"
+                        class="grid gap-4 md:col-span-2 md:grid-cols-2 md:items-start"
+                    >
+                        <label
+                            class="grid min-w-0 content-start gap-1"
+                            for="panel-id"
                             ><span class="text-sm font-medium">Panel</span
                             ><OperationalSelect
                                 id="panel-id"
                                 v-model="form.panel_id"
                                 label="Panel"
                                 :invalid="!!form.errors.panel_id"
-                                :options="panelOptions" />
-                            ><InputError
-                                :message="errorFor('panel_id')" /></label
-                        ><label class="grid gap-1"
+                                :options="panelOptions"
+                                trigger-class="h-10" /><InputError
+                                :message="errorFor('panel_id')"
+                        /></label>
+                        <label
+                            class="grid min-w-0 content-start gap-1"
+                            for="coverage-member-reference"
                             ><span class="text-sm font-medium"
                                 >Member/staff reference (optional)</span
                             ><input
+                                id="coverage-member-reference"
                                 v-model="form.coverage_member_reference"
                                 :aria-invalid="
                                     !!form.errors.coverage_member_reference
                                 "
                                 autocomplete="off"
-                                class="h-10 rounded-md border bg-background px-3 text-sm focus-visible:ring-2 focus-visible:ring-emerald-600/30 focus-visible:outline-none" /></label
-                    ></template>
+                                class="h-10 w-full rounded-md border border-input bg-background px-3 text-sm focus-visible:ring-2 focus-visible:ring-emerald-600/30 focus-visible:outline-none" /><InputError
+                                :message="
+                                    errorFor('coverage_member_reference')
+                                "
+                        /></label>
+                    </div>
                 </div>
             </section>
             <label

@@ -1,4 +1,3 @@
-import type { Page } from '@inertiajs/core';
 import { createInertiaApp, router } from '@inertiajs/vue3';
 import { initializeTheme } from '@/composables/useAppearance';
 import AdminLayout from '@/layouts/AdminLayout.vue';
@@ -8,15 +7,10 @@ import PublicCheckInLayout from '@/layouts/PublicCheckInLayout.vue';
 import SettingsLayout from '@/layouts/settings/Layout.vue';
 import { initializeFlashToast } from '@/lib/flashToast';
 import { installAuthenticationHistoryBoundary } from '@/lib/inertia-auth-history-boundary';
+import { readInitialInertiaPage } from '@/lib/inertia-bootstrap';
 
 const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
-const initialPageElement = document.getElementById('app');
-const initialPageScript = document.querySelector<HTMLScriptElement>(
-    'script[data-page="app"]',
-);
-const initialPage = JSON.parse(
-    initialPageElement?.dataset.page ?? initialPageScript?.textContent ?? '{}',
-) as Page;
+const initialPage = readInitialInertiaPage();
 const authenticationHistory = installAuthenticationHistoryBoundary(
     router,
     initialPage,
