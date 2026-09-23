@@ -51,7 +51,7 @@ test('(1) a clean form holds directly on click, no dialog', () => {
     assert.match(
         fn[1],
         /if\s*\(\s*!hasUnsavedWork\.value\s*\)\s*\{[\s\S]*?changeHoldState\('hold'\)/,
-        'A clean form must call changeHoldState(\'hold\') directly, without opening the dialog.',
+        "A clean form must call changeHoldState('hold') directly, without opening the dialog.",
     );
     assert.match(show, /@click="requestHold"/);
 });
@@ -79,7 +79,7 @@ test('the dialog names what is unsaved', () => {
     assert.match(show, /items\.push\('diagnoses'\)/);
     assert.match(show, /items\.push\('treatment plan'\)/);
     assert.match(dialog, /unsavedItems/);
-    assert.match(dialog, /You have unsaved/);
+    assert.match(dialog, /not saved yet/);
 });
 
 test('(3) "Save and hold" saves first and only holds on success, including a dirty treatment plan draft', () => {
@@ -117,7 +117,7 @@ test('(4) a failing save never holds, surfaces the error, and never resets the f
     assert.doesNotMatch(
         onError[1],
         /form\.reset\(\)/,
-        'A failed save must never discard the doctor\'s edits.',
+        "A failed save must never discard the doctor's edits.",
     );
 });
 
@@ -136,7 +136,7 @@ test('(6) closing the dialog (Cancel) only changes the open flag', () => {
     assert.match(show, /@update:open="unsavedWorkOpen = \$event"/);
 });
 
-test('OperationalConfirmDialog\'s new secondary action stays backward compatible for existing single-choice dialogs', () => {
+test("OperationalConfirmDialog's new secondary action stays backward compatible for existing single-choice dialogs", () => {
     assert.match(confirmDialog, /secondaryLabel\?:\s*string/);
     assert.match(confirmDialog, /processingAction:\s*'confirm'/);
     assert.match(confirmDialog, /v-if="secondaryLabel"/);

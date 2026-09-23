@@ -27,19 +27,22 @@ const emit = defineEmits<{
 
 const joinWithAnd = (items: string[]): string => {
     if (items.length === 0) {
-        return 'work';
+        return 'Work';
     }
 
     if (items.length === 1) {
-        return items[0];
+        return items[0].charAt(0).toUpperCase() + items[0].slice(1);
     }
 
-    return `${items.slice(0, -1).join(', ')} and ${items[items.length - 1]}`;
+    const list = `${items.slice(0, -1).join(', ')} and ${items[items.length - 1]}`;
+
+    return list.charAt(0).toUpperCase() + list.slice(1);
 };
 
+// OH-06d: one short line naming what is unsaved - the three buttons are the
+// choices, so the description does not need to restate them.
 const description = computed(
-    () =>
-        `You have unsaved ${joinWithAnd(props.unsavedItems)} for this consultation. Choose how to proceed before placing this patient On Hold.`,
+    () => `${joinWithAnd(props.unsavedItems)} not saved yet.`,
 );
 </script>
 
@@ -50,9 +53,9 @@ const description = computed(
         :description="description"
         confirm-label="Save and hold"
         processing-label="Saving…"
-        secondary-label="Hold without saving (discard edits)"
+        secondary-label="Discard and hold"
         secondary-processing-label="Holding…"
-        secondary-variant="destructive"
+        secondary-variant="ghost"
         :processing="processing"
         :processing-action="processingAction"
         :error="error"

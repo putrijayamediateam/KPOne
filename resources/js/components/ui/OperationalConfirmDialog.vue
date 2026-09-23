@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { LoaderCircle } from '@lucide/vue';
+import { useTemplateRef } from 'vue';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -24,7 +25,7 @@ const props = withDefaults(
         /** Optional third choice, rendered between Cancel and Confirm. Omit for the classic two-choice dialog. */
         secondaryLabel?: string;
         secondaryProcessingLabel?: string;
-        secondaryVariant?: 'outline' | 'destructive';
+        secondaryVariant?: 'outline' | 'ghost' | 'destructive';
         /** Which button is currently in flight, so only that one shows its spinner/processing label. */
         processingAction?: 'confirm' | 'secondary';
     }>(),
@@ -64,6 +65,20 @@ const secondaryAction = () => {
         emit('secondary');
     }
 };
+
+// OH-06d: the primary action (Confirm - e.g. "Save and hold") must receive
+// focus by default, not whatever Reka UI's own focus trap would pick first
+// (the first DOM-order focusable element, which is Cancel here). Reka UI's
+// Dialog content emits `openAutoFocus` right before applying its own
+// default; preventing it and focusing explicitly overrides that default
+// without disabling the focus trap itself.
+const confirmButtonRef = useTemplateRef<InstanceType<typeof Button>>(
+    'confirmButton',
+);
+const onOpenAutoFocus = (event: Event) => {
+    event.preventDefault();
+    (confirmButtonRef.value?.$el as HTMLElement | undefined)?.focus();
+};
 </script>
 
 <template>
@@ -71,6 +86,7 @@ const secondaryAction = () => {
         <DialogContent
             class="gap-5 border-border/80 p-5 shadow-2xl shadow-black/15 sm:max-w-md sm:p-6 dark:bg-slate-900"
             :show-close-button="!processing"
+            @open-auto-focus="onOpenAutoFocus"
         >
             <DialogHeader class="gap-3 text-left">
                 <div class="flex items-start gap-3.5">
@@ -124,6 +140,7 @@ const secondaryAction = () => {
                     }}
                 </Button>
                 <Button
+                    ref="confirmButton"
                     type="button"
                     :variant="destructive ? 'destructive' : 'default'"
                     :disabled="processing"
