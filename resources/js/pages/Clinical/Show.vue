@@ -11,7 +11,7 @@ import {
     Stethoscope,
     Trash2,
 } from '@lucide/vue';
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import { waitedDurationLabel } from '@/lib/r1c2-presentation';
@@ -37,27 +37,76 @@ type DiagnosisInput = {
     is_primary: boolean;
 };
 
-const form = useForm({
-    expected_branch_id: props.clinical.branch.id,
-    lock_version: props.clinical.encounter.lockVersion,
-    clinical_note: props.clinical.encounter.clinicalNote ?? '',
-    vitals: {
-        systolic_bp: props.clinical.vitals.systolicBp as NumericInput,
-        diastolic_bp: props.clinical.vitals.diastolicBp as NumericInput,
-        pulse_bpm: props.clinical.vitals.pulseBpm as NumericInput,
-        temperature_celsius: props.clinical.vitals
-            .temperatureCelsius as NumericInput,
-        spo2_percent: props.clinical.vitals.spo2Percent as NumericInput,
-        weight_kg: props.clinical.vitals.weightKg as NumericInput,
-        height_cm: props.clinical.vitals.heightCm as NumericInput,
-    },
-    diagnoses: props.clinical.diagnoses.map((diagnosis): DiagnosisInput => ({
+// Shared with the initial useForm() seed below and with the prop-resync
+// watcher (OH-06), so the two can never drift into different shapes.
+const vitalsFromProps = () => ({
+    systolic_bp: props.clinical.vitals.systolicBp as NumericInput,
+    diastolic_bp: props.clinical.vitals.diastolicBp as NumericInput,
+    pulse_bpm: props.clinical.vitals.pulseBpm as NumericInput,
+    temperature_celsius: props.clinical.vitals
+        .temperatureCelsius as NumericInput,
+    spo2_percent: props.clinical.vitals.spo2Percent as NumericInput,
+    weight_kg: props.clinical.vitals.weightKg as NumericInput,
+    height_cm: props.clinical.vitals.heightCm as NumericInput,
+});
+const diagnosesFromProps = (): DiagnosisInput[] =>
+    props.clinical.diagnoses.map((diagnosis): DiagnosisInput => ({
         diagnosis_text: diagnosis.diagnosisText,
         diagnosis_code: diagnosis.diagnosisCode ?? '',
         code_system: diagnosis.codeSystem ?? '',
         is_primary: diagnosis.isPrimary,
-    })),
+    }));
+
+const form = useForm({
+    expected_branch_id: props.clinical.branch.id,
+    lock_version: props.clinical.encounter.lockVersion,
+    clinical_note: props.clinical.encounter.clinicalNote ?? '',
+    vitals: vitalsFromProps(),
+    diagnoses: diagnosesFromProps(),
 });
+
+// OH-06: Hold and Resume intentionally use `preserveState: true` (see
+// changeHoldState below) so a doctor's in-progress edits are never disturbed
+// by a hold/resume click. That means this component is never remounted by
+// those actions, so nothing else re-seeds `form` from the fresh `clinical`
+// prop that DOES arrive with the hold/resume response - `form` would
+// silently drift from what the server (and the database) actually hold.
+//
+// Safety rule: lock_version must only ever move together with the content it
+// guards, in the same assignment, never on its own - an update sent with a
+// lock_version that no longer matches its content would defeat the backend's
+// optimistic-concurrency check.
+//
+// - Clean form (no unsaved edits): safe to adopt the fresh values wholesale.
+// - Dirty form (doctor mid-edit): never touch content or lock_version. The
+//   next Save will be sent with the OLD lock_version and the backend will
+//   reject it (ValidationException on `lock_version`) rather than silently
+//   overwriting whatever changed elsewhere - surfaced here as a clear banner
+//   with an explicit Reload action instead of a silent failure.
+const recordDrifted = ref(false);
+
+const adoptLatestRecord = () => {
+    form.clinical_note = props.clinical.encounter.clinicalNote ?? '';
+    form.vitals = vitalsFromProps();
+    form.diagnoses = diagnosesFromProps();
+    form.lock_version = props.clinical.encounter.lockVersion;
+    form.clearErrors();
+    form.defaults();
+    recordDrifted.value = false;
+};
+
+watch(
+    () => props.clinical.encounter.lockVersion,
+    () => {
+        if (form.isDirty) {
+            recordDrifted.value = true;
+
+            return;
+        }
+
+        adoptLatestRecord();
+    },
+);
 
 const bmi = computed(() => {
     const weight = Number(form.vitals.weight_kg);
@@ -115,8 +164,10 @@ const save = () => {
         {
             preserveScroll: true,
             onSuccess: () => {
-                form.lock_version = props.clinical.encounter.lockVersion;
-                form.defaults();
+                // The content just saved now matches the server; adopt the
+                // fresh props (including the bumped lock_version) as one
+                // atomic operation and re-baseline the form as clean.
+                adoptLatestRecord();
             },
         },
     );
@@ -354,6 +405,25 @@ const changeHoldState = (action: 'hold' | 'resume') => {
                 >
                     This patient remains in Serving Now. Resume the consultation
                     before saving or completing clinical work.
+                </div>
+                <div
+                    v-if="recordDrifted"
+                    role="alert"
+                    class="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-950"
+                >
+                    <span class="flex items-start gap-2">
+                        <AlertTriangle class="mt-0.5 size-4 shrink-0" />
+                        This record has changed elsewhere. Reload to see the
+                        latest version - your edits have not been saved.
+                    </span>
+                    <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        @click="adoptLatestRecord"
+                    >
+                        Reload
+                    </Button>
                 </div>
 
                 <form class="space-y-5" @submit.prevent="save">
