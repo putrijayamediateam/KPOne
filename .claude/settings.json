@@ -1,0 +1,60 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "permissions": {
+    "deny": [
+      "Read(.env)",
+      "Read(.env.*)",
+      "Read(!.env.example)",
+      "Edit(.env)",
+      "Edit(.env.*)",
+      "Edit(!.env.example)",
+      "Read(//c/Users/User/Herd/**/.env)",
+      "Read(//c/Users/User/Herd/KPOne-*UAT*/**)",
+      "Edit(//c/Users/User/Herd/KPOne-*UAT*/**)",
+      "Read(//c/Users/User/Herd/KPOne-*Secrets*/**)",
+      "Edit(//c/Users/User/Herd/KPOne-*Secrets*/**)",
+      "Edit(//c/Users/User/Herd/KPOne-*Evidence*/**)",
+      "Edit(//c/Users/User/Herd/KPOne-Preview*/**)",
+      "Bash(git push --force*)",
+      "Bash(git push -f*)",
+      "Bash(git push --force-with-lease*)",
+      "Bash(git reset --hard*)",
+      "Bash(git clean*)",
+      "Bash(git checkout -- *)",
+      "Bash(git restore .*)",
+      "Bash(git stash drop*)",
+      "Bash(git stash clear*)",
+      "Bash(php artisan db:wipe*)",
+      "Bash(php artisan migrate:reset*)"
+    ],
+    "ask": [
+      "Bash(git push*)",
+      "Bash(git merge*)",
+      "Bash(git rebase*)",
+      "Bash(git commit*)",
+      "Bash(git branch -D*)",
+      "Bash(git tag*)",
+      "Bash(gh pr*)",
+      "Bash(gh release*)",
+      "Bash(gh workflow run*)",
+      "Bash(php artisan migrate:fresh*)",
+      "Bash(php artisan migrate:rollback*)",
+      "Bash(composer require*)",
+      "Bash(composer update*)",
+      "Bash(composer remove*)",
+      "Bash(npm install *)",
+      "Bash(npm update*)",
+      "Bash(npm uninstall*)",
+      "Bash(npm audit fix*)",
+      "Bash(pnpm add*)",
+      "Bash(pnpm update*)",
+      "PowerShell(git push *)",
+      "PowerShell(git merge *)",
+      "PowerShell(git rebase *)",
+      "PowerShell(git commit *)"
+    ],
+    "allow": [
+      "Read(.env.example)"
+    ]
+  }
+}
