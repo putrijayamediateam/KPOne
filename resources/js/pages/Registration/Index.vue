@@ -169,10 +169,14 @@ const compactTime = (value: string) => {
         .format(new Date(Date.UTC(2000, 0, 1, hour, minute)))
         .replace(/\b(am|pm)\b/gi, (period) => period.toUpperCase());
 };
+const boardEmptyMessage = computed(() => error.value || undefined);
 const registrationDateLabel = computed(() =>
     form.date_from === form.date_to
         ? formatDate(form.date_from)
         : `${formatDate(form.date_from)}–${formatDate(form.date_to)}`,
+);
+const isCustomDateFilter = computed(
+    () => form.date_from !== today || form.date_to !== today,
 );
 const boardRows = computed<PatientBoardRow[]>(() =>
     rows.value.map((visit) => {
@@ -215,7 +219,10 @@ const boardRows = computed<PatientBoardRow[]>(() =>
             patientNumber: visit.patientNumber,
             visitNumber: visit.visitNumber,
             queueNumber: visit.queueNumber,
-            arrivedDate: registrationDateLabel.value,
+            arrivedDate: formatDate(
+                visit.registeredAtDate,
+                props.options.branch.timezone,
+            ),
             arrivedTime: compactTime(visit.registeredAt),
             visitNotes: visit.visitReasonExcerpt,
             doctorName: visit.doctorName,
@@ -240,14 +247,17 @@ const boardRows = computed<PatientBoardRow[]>(() =>
     }),
 );
 
+const clearBoard = () => {
+    rows.value = [];
+    total.value = 0;
+    currentPage.value = 1;
+    lastPage.value = 1;
+};
 const search = async (page = 1) => {
     const generation = ++searchGeneration;
 
     if (plannedTab.value) {
-        rows.value = [];
-        total.value = 0;
-        currentPage.value = 1;
-        lastPage.value = 1;
+        clearBoard();
         loading.value = false;
         error.value = '';
 
@@ -283,6 +293,10 @@ const search = async (page = 1) => {
                     ? Object.values(validationErrors)[0]?.[0]
                     : undefined) ??
                 'Registration search could not be completed.';
+            clearBoard();
+            console.error(
+                `Registration search failed with status ${response.status}`,
+            );
 
             return;
         }
@@ -291,9 +305,11 @@ const search = async (page = 1) => {
         total.value = payload.total;
         currentPage.value = payload.currentPage;
         lastPage.value = payload.lastPage;
-    } catch {
+    } catch (thrown) {
         if (generation === searchGeneration) {
             error.value = 'Registration search could not be completed.';
+            clearBoard();
+            console.error('Registration search request failed', thrown);
         }
     } finally {
         if (generation === searchGeneration) {
@@ -540,12 +556,19 @@ const changeQrHistoryPage = (qrHistoryPage: number) => {
                 <div
                     class="flex items-center justify-between px-3 py-2 text-xs text-muted-foreground"
                 >
-                    <span>{{ total }} Visit{{ total === 1 ? '' : 's' }}</span
+                    <span
+                        >{{ total }} Visit{{ total === 1 ? '' : 's' }}
+                        <span
+                            v-if="isCustomDateFilter"
+                            class="text-foreground/70"
+                            >· {{ registrationDateLabel }}</span
+                        ></span
                     ><span>25 per page</span>
                 </div>
                 <PatientBoard
                     :rows="boardRows"
                     :busy-key="busyKey"
+                    :empty-message="boardEmptyMessage"
                     @send-to-waiting="sendToWaiting"
                     @call="callIn"
                     @open-consultation="openConsultation"

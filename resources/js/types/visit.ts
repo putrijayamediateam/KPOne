@@ -32,6 +32,7 @@ export type VisitRow = {
     patientName: string;
     visitType: VisitType;
     registeredAt: string;
+    registeredAtDate: string;
     visitReasonExcerpt: string | null;
     doctorName: string | null;
     coverageLabel: string;
