@@ -18,6 +18,7 @@ use RuntimeException;
 use Spatie\Permission\Models\Permission;
 use Symfony\Component\Process\InputStream;
 use Symfony\Component\Process\Process;
+use Tests\Support\ContentionTimeouts;
 use Tests\TestCase;
 
 class PostgresPatientMasterRegressionTest extends TestCase
@@ -248,7 +249,7 @@ class PostgresPatientMasterRegressionTest extends TestCase
         $name = 'kpone-patient-pg-'.Str::lower(Str::random(12));
         $process = new Process([PHP_BINARY, base_path('tests/Support/PostgresPatientCreationWorker.php'), ...$arguments, $name], base_path());
         $process->setInput($input);
-        $process->setTimeout(30);
+        $process->setTimeout(ContentionTimeouts::processTimeoutSeconds());
         $this->workers[] = $process;
         $this->workerInputs[] = $input;
 
@@ -257,26 +258,30 @@ class PostgresPatientMasterRegressionTest extends TestCase
 
     private function waitReady(array $workers): void
     {
-        $deadline = microtime(true) + 10;
+        $timeoutSeconds = ContentionTimeouts::readyTimeoutSeconds();
+        $started = microtime(true);
+        $deadline = $started + $timeoutSeconds;
         do {
             if (collect($workers)->every(fn ($worker) => str_contains($worker['process']->getOutput(), 'READY '))) {
                 return;
             }
             usleep(50_000);
         } while (microtime(true) < $deadline);
-        throw new RuntimeException('Patient workers did not report ready.');
+        throw new RuntimeException(sprintf('Patient workers did not report ready within %ds (elapsed %.2fs). %s', $timeoutSeconds, microtime(true) - $started, $this->diagnostics($workers)));
     }
 
     private function waitForOutput(Process $process, string $needle): void
     {
-        $deadline = microtime(true) + 10;
+        $timeoutSeconds = ContentionTimeouts::protocolTimeoutSeconds();
+        $started = microtime(true);
+        $deadline = $started + $timeoutSeconds;
         do {
             if (str_contains($process->getOutput(), $needle)) {
                 return;
             }
             usleep(50_000);
         } while (microtime(true) < $deadline);
-        throw new RuntimeException('Patient worker protocol timeout.');
+        throw new RuntimeException(sprintf('Patient worker protocol timeout for %s within %ds (elapsed %.2fs). %s', $needle, $timeoutSeconds, microtime(true) - $started, $this->processDiagnostics($process)));
     }
 
     private function protocolPid(string $output): int
@@ -292,7 +297,9 @@ class PostgresPatientMasterRegressionTest extends TestCase
             throw new RuntimeException('Patient worker did not report a valid PostgreSQL backend PID.');
         }
 
-        $deadline = microtime(true) + 10;
+        $timeoutSeconds = ContentionTimeouts::protocolTimeoutSeconds();
+        $started = microtime(true);
+        $deadline = $started + $timeoutSeconds;
         do {
             $blocked = DB::selectOne('select cardinality(pg_blocking_pids(?)) as blocker_count', [$pid]);
             if ((int) ($blocked->blocker_count ?? 0) > 0) {
@@ -300,6 +307,17 @@ class PostgresPatientMasterRegressionTest extends TestCase
             }
             usleep(50_000);
         } while (microtime(true) < $deadline);
-        throw new RuntimeException('PostgreSQL unique-index contention was not observed.');
+        throw new RuntimeException(sprintf('PostgreSQL unique-index contention was not observed within %ds (elapsed %.2fs) for backend pid %d.', $timeoutSeconds, microtime(true) - $started, $pid));
+    }
+
+    /** @param list<array{process: Process, input: InputStream}> $workers */
+    private function diagnostics(array $workers): string
+    {
+        return implode(' | ', array_map(fn ($worker) => $this->processDiagnostics($worker['process']), $workers));
+    }
+
+    private function processDiagnostics(Process $process): string
+    {
+        return 'exit='.var_export($process->getExitCode(), true).' stdout='.trim($process->getOutput()).' stderr='.trim($process->getErrorOutput());
     }
 }

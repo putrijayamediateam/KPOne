@@ -22,6 +22,7 @@ use RuntimeException;
 use Spatie\Permission\Models\Permission;
 use Symfony\Component\Process\InputStream;
 use Symfony\Component\Process\Process;
+use Tests\Support\ContentionTimeouts;
 use Tests\TestCase;
 
 class PostgresBranchAssignmentRegressionTest extends TestCase
@@ -342,7 +343,7 @@ class PostgresBranchAssignmentRegressionTest extends TestCase
             $applicationName,
         ], base_path());
         $process->setInput($input);
-        $process->setTimeout(30);
+        $process->setTimeout(ContentionTimeouts::processTimeoutSeconds());
 
         return compact('process', 'input');
     }
@@ -350,7 +351,9 @@ class PostgresBranchAssignmentRegressionTest extends TestCase
     /** @return array{int, int} */
     private function waitUntilWorkersAreReady(): array
     {
-        $deadline = microtime(true) + 10;
+        $timeoutSeconds = ContentionTimeouts::readyTimeoutSeconds();
+        $started = microtime(true);
+        $deadline = $started + $timeoutSeconds;
 
         do {
             $backendPids = [];
@@ -370,7 +373,7 @@ class PostgresBranchAssignmentRegressionTest extends TestCase
             usleep(50_000);
         } while (microtime(true) < $deadline);
 
-        throw new RuntimeException('PostgreSQL workers did not report READY. '.$this->workerDiagnostics());
+        throw new RuntimeException(sprintf('PostgreSQL workers did not report READY within %ds (elapsed %.2fs). %s', $timeoutSeconds, microtime(true) - $started, $this->workerDiagnostics()));
     }
 
     /**
@@ -405,7 +408,9 @@ class PostgresBranchAssignmentRegressionTest extends TestCase
      */
     private function waitUntilWorkersAreBlocked(array $workerBackendPids, array $workerNames): array
     {
-        $deadline = microtime(true) + 15;
+        $timeoutSeconds = ContentionTimeouts::protocolTimeoutSeconds();
+        $started = microtime(true);
+        $deadline = $started + $timeoutSeconds;
         $lastObserved = [];
 
         do {
@@ -457,10 +462,13 @@ class PostgresBranchAssignmentRegressionTest extends TestCase
             usleep(50_000);
         } while (microtime(true) < $deadline);
 
-        throw new RuntimeException(
-            'PostgreSQL workers did not reach concurrent row-lock contention. '
-            .$this->workerDiagnostics().' observed='.json_encode($lastObserved, JSON_THROW_ON_ERROR),
-        );
+        throw new RuntimeException(sprintf(
+            'PostgreSQL workers did not reach concurrent row-lock contention within %ds (elapsed %.2fs). %s observed=%s',
+            $timeoutSeconds,
+            microtime(true) - $started,
+            $this->workerDiagnostics(),
+            json_encode($lastObserved, JSON_THROW_ON_ERROR),
+        ));
     }
 
     private function failIfWorkerTerminated(Process $worker, string $phase): void

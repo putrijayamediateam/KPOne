@@ -15,6 +15,7 @@ use RuntimeException;
 use Spatie\Permission\Models\Permission;
 use Symfony\Component\Process\InputStream;
 use Symfony\Component\Process\Process;
+use Tests\Support\ContentionTimeouts;
 use Tests\Support\StaffBranchAssignmentBootstrapper;
 use Tests\TestCase;
 
@@ -172,7 +173,7 @@ class PostgresVisitReasonRegressionTest extends TestCase
         $application = 'kpone-r1b-pg-'.Str::lower(Str::random(8));
         $process = new Process([PHP_BINARY, base_path('tests/Support/PostgresVisitReasonWorker.php'), (string) $actor->id, (string) $branch->id, $name, $application], base_path());
         $process->setInput($input);
-        $process->setTimeout(30);
+        $process->setTimeout(ContentionTimeouts::processTimeoutSeconds());
         $this->workers[] = $process;
         $this->inputs[] = $input;
 
@@ -207,17 +208,19 @@ class PostgresVisitReasonRegressionTest extends TestCase
 
     private function waitFor(Process $process, string $needle): void
     {
-        $deadline = microtime(true) + 10;
+        $timeoutSeconds = ContentionTimeouts::protocolTimeoutSeconds();
+        $started = microtime(true);
+        $deadline = $started + $timeoutSeconds;
         do {
             if (str_contains($process->getOutput(), $needle)) {
                 return;
             }
             if ($process->isTerminated()) {
-                throw new RuntimeException('Visit Reason worker exited early: '.$process->getErrorOutput());
+                throw new RuntimeException('Visit Reason worker exited early: '.$this->processDiagnostics($process));
             }
             usleep(50_000);
         } while (microtime(true) < $deadline);
-        throw new RuntimeException('Visit Reason worker protocol timeout.');
+        throw new RuntimeException(sprintf('Visit Reason worker protocol timeout for %s within %ds (elapsed %.2fs). %s', $needle, $timeoutSeconds, microtime(true) - $started, $this->processDiagnostics($process)));
     }
 
     private function pid(Process $process): int
@@ -231,12 +234,14 @@ class PostgresVisitReasonRegressionTest extends TestCase
     {
         $pid = $this->pid($process);
         if ($pid <= 0 || $expectedBlockerPid <= 0) {
-            throw new RuntimeException('Workers did not report valid backend PIDs.');
+            throw new RuntimeException('Workers did not report valid backend PIDs. '.$this->processDiagnostics($process));
         }
-        $deadline = microtime(true) + 10;
+        $timeoutSeconds = ContentionTimeouts::protocolTimeoutSeconds();
+        $started = microtime(true);
+        $deadline = $started + $timeoutSeconds;
         do {
             if ($process->isTerminated()) {
-                throw new RuntimeException('Worker exited before required contention.');
+                throw new RuntimeException('Worker exited before required contention. '.$this->processDiagnostics($process));
             }
             $blocked = $this->observer()->scalar(<<<'SQL'
                 with recursive blockers(pid) as (
@@ -251,7 +256,12 @@ class PostgresVisitReasonRegressionTest extends TestCase
             }
             usleep(50_000);
         } while (microtime(true) < $deadline);
-        throw new RuntimeException('Required Visit Reason unique-key contention was not observed.');
+        throw new RuntimeException(sprintf('Required Visit Reason unique-key contention was not observed within %ds (elapsed %.2fs). %s', $timeoutSeconds, microtime(true) - $started, $this->processDiagnostics($process)));
+    }
+
+    private function processDiagnostics(Process $process): string
+    {
+        return 'exit='.var_export($process->getExitCode(), true).' stdout='.trim($process->getOutput()).' stderr='.trim($process->getErrorOutput());
     }
 
     private function observer(): Connection
