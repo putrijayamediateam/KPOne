@@ -30,6 +30,7 @@ use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 use Symfony\Component\Process\InputStream;
 use Symfony\Component\Process\Process;
+use Tests\Support\ContentionTimeouts;
 use Tests\Support\StaffBranchAssignmentBootstrapper;
 use Tests\TestCase;
 
@@ -450,7 +451,7 @@ class PostgresVisitRegistrationRegressionTest extends TestCase
         $name = 'kpone-visit-pg-'.Str::lower(Str::random(10));
         $process = new Process([PHP_BINARY, base_path('tests/Support/PostgresVisitRegistrationWorker.php'), ...$arguments, $name], base_path());
         $process->setInput($input);
-        $process->setTimeout(30);
+        $process->setTimeout(ContentionTimeouts::processTimeoutSeconds());
         $this->workers[] = $process;
         $this->inputs[] = $input;
 
@@ -528,26 +529,30 @@ class PostgresVisitRegistrationRegressionTest extends TestCase
 
     private function waitReady(array $workers): void
     {
-        $deadline = microtime(true) + 10;
+        $timeoutSeconds = ContentionTimeouts::readyTimeoutSeconds();
+        $started = microtime(true);
+        $deadline = $started + $timeoutSeconds;
         do {
             if (collect($workers)->every(fn ($worker) => str_contains($worker['process']->getOutput(), 'READY '))) {
                 return;
             }
             usleep(50_000);
         } while (microtime(true) < $deadline);
-        throw new RuntimeException('Visit worker did not report ready.');
+        throw new RuntimeException(sprintf('Visit worker did not report ready within %ds (elapsed %.2fs). %s', $timeoutSeconds, microtime(true) - $started, $this->diagnostics($workers)));
     }
 
     private function waitForOutput(Process $process, string $needle): void
     {
-        $deadline = microtime(true) + 10;
+        $timeoutSeconds = ContentionTimeouts::protocolTimeoutSeconds();
+        $started = microtime(true);
+        $deadline = $started + $timeoutSeconds;
         do {
             if (str_contains($process->getOutput(), $needle)) {
                 return;
             }
             usleep(50_000);
         } while (microtime(true) < $deadline);
-        throw new RuntimeException('Visit worker protocol timeout.');
+        throw new RuntimeException(sprintf('Visit worker protocol timeout for %s within %ds (elapsed %.2fs). %s', $needle, $timeoutSeconds, microtime(true) - $started, $this->processDiagnostics($process)));
     }
 
     private function pid(string $output): int
@@ -561,15 +566,17 @@ class PostgresVisitRegistrationRegressionTest extends TestCase
     {
         $pid = $this->pid($process->getOutput());
         if ($pid <= 0) {
-            throw new RuntimeException('Visit worker did not report a valid PostgreSQL backend PID.');
+            throw new RuntimeException('Visit worker did not report a valid PostgreSQL backend PID. '.$this->processDiagnostics($process));
         }
 
-        $deadline = microtime(true) + 10;
+        $timeoutSeconds = ContentionTimeouts::protocolTimeoutSeconds();
+        $started = microtime(true);
+        $deadline = $started + $timeoutSeconds;
         $lastObserved = null;
         do {
             if ($process->isTerminated()) {
                 throw new RuntimeException(
-                    'Visit worker exited before PostgreSQL blocking was observed. exit='.(string) $process->getExitCode(),
+                    'Visit worker exited before PostgreSQL blocking was observed. '.$this->processDiagnostics($process),
                 );
             }
 
@@ -612,10 +619,24 @@ class PostgresVisitRegistrationRegressionTest extends TestCase
             }
             usleep(50_000);
         } while (microtime(true) < $deadline);
-        throw new RuntimeException(
-            'Expected PostgreSQL in-flight blocking was not observed. observed='
-            .json_encode($lastObserved, JSON_THROW_ON_ERROR),
-        );
+        throw new RuntimeException(sprintf(
+            'Expected PostgreSQL in-flight blocking was not observed within %ds (elapsed %.2fs). observed=%s %s',
+            $timeoutSeconds,
+            microtime(true) - $started,
+            json_encode($lastObserved, JSON_THROW_ON_ERROR),
+            $this->processDiagnostics($process),
+        ));
+    }
+
+    /** @param list<array{process: Process, input: InputStream}> $workers */
+    private function diagnostics(array $workers): string
+    {
+        return implode(' | ', array_map(fn ($worker) => $this->processDiagnostics($worker['process']), $workers));
+    }
+
+    private function processDiagnostics(Process $process): string
+    {
+        return 'exit='.var_export($process->getExitCode(), true).' stdout='.trim($process->getOutput()).' stderr='.trim($process->getErrorOutput());
     }
 
     private function observerConnection(): Connection

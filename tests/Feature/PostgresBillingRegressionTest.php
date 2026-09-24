@@ -54,6 +54,7 @@ use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 use Symfony\Component\Process\InputStream;
 use Symfony\Component\Process\Process;
+use Tests\Support\ContentionTimeouts;
 use Tests\Support\StaffBranchAssignmentBootstrapper;
 use Tests\TestCase;
 
@@ -739,7 +740,7 @@ class PostgresBillingRegressionTest extends TestCase
         $input = new InputStream;
         $process = new Process([PHP_BINARY, base_path(str_starts_with($arguments[0], 'bill-') ? 'tests/Support/PostgresBillingWorker.php' : 'tests/Support/PostgresDispensaryInventoryWorker.php'), ...$arguments, 'kpone-dispensary-pg-'.Str::lower(Str::random(8))], base_path());
         $process->setInput($input);
-        $process->setTimeout(40);
+        $process->setTimeout(ContentionTimeouts::processTimeoutSeconds());
         $this->workers[] = $process;
         $this->inputs[] = $input;
 
@@ -823,19 +824,23 @@ class PostgresBillingRegressionTest extends TestCase
     /** @param list<Worker> $workers */
     private function waitReady(array $workers): void
     {
-        $deadline = microtime(true) + 12;
+        $timeoutSeconds = ContentionTimeouts::readyTimeoutSeconds();
+        $started = microtime(true);
+        $deadline = $started + $timeoutSeconds;
         do {
             if (collect($workers)->every(fn ($worker) => str_contains(str_replace("\r\n", "\n", $worker['process']->getOutput()), 'READY '))) {
                 return;
             }
             usleep(50_000);
         } while (microtime(true) < $deadline);
-        throw new RuntimeException('Phase 3A worker did not report READY. '.$this->diagnostics($workers));
+        throw new RuntimeException(sprintf('Phase 3A worker did not report READY within %ds (elapsed %.2fs). %s', $timeoutSeconds, microtime(true) - $started, $this->diagnostics($workers)));
     }
 
     private function waitForOutput(Process $process, string $needle): void
     {
-        $deadline = microtime(true) + 12;
+        $timeoutSeconds = ContentionTimeouts::protocolTimeoutSeconds();
+        $started = microtime(true);
+        $deadline = $started + $timeoutSeconds;
         do {
             if (str_contains(str_replace("\r\n", "\n", $process->getOutput()), $needle)) {
                 return;
@@ -845,7 +850,7 @@ class PostgresBillingRegressionTest extends TestCase
             }
             usleep(50_000);
         } while (microtime(true) < $deadline);
-        throw new RuntimeException('Phase 3A worker protocol timeout for '.$needle.'. '.$this->processDiagnostics($process));
+        throw new RuntimeException(sprintf('Phase 3A worker protocol timeout for %s within %ds (elapsed %.2fs). %s', $needle, $timeoutSeconds, microtime(true) - $started, $this->processDiagnostics($process)));
     }
 
     private function workerPid(Process $process): int
@@ -862,7 +867,9 @@ class PostgresBillingRegressionTest extends TestCase
     private function waitForDatabaseBlock(Process $process, int $expectedBlockerPid): void
     {
         $pid = $this->workerPid($process);
-        $deadline = microtime(true) + 12;
+        $timeoutSeconds = ContentionTimeouts::protocolTimeoutSeconds();
+        $started = microtime(true);
+        $deadline = $started + $timeoutSeconds;
         do {
             if ($process->isTerminated()) {
                 throw new RuntimeException('Required Phase 3A contention was not reached. '.$this->processDiagnostics($process));
@@ -882,7 +889,7 @@ class PostgresBillingRegressionTest extends TestCase
             }
             usleep(50_000);
         } while (microtime(true) < $deadline);
-        throw new RuntimeException('Expected Phase 3A PostgreSQL blocker chain was not observed. '.$this->processDiagnostics($process));
+        throw new RuntimeException(sprintf('Expected Phase 3A PostgreSQL blocker chain was not observed within %ds (elapsed %.2fs). %s', $timeoutSeconds, microtime(true) - $started, $this->processDiagnostics($process)));
     }
 
     private function observer(): Connection

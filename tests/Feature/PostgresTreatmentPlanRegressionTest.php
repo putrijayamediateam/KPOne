@@ -33,6 +33,7 @@ use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 use Symfony\Component\Process\InputStream;
 use Symfony\Component\Process\Process;
+use Tests\Support\ContentionTimeouts;
 use Tests\Support\StaffBranchAssignmentBootstrapper;
 use Tests\TestCase;
 
@@ -646,7 +647,7 @@ class PostgresTreatmentPlanRegressionTest extends TestCase
         $input = new InputStream;
         $process = new Process([PHP_BINARY, base_path('tests/Support/PostgresTreatmentPlanWorker.php'), ...$arguments, 'kpone-treatment-pg-'.Str::lower(Str::random(8))], base_path());
         $process->setInput($input);
-        $process->setTimeout(30);
+        $process->setTimeout(ContentionTimeouts::processTimeoutSeconds());
         $this->workers[] = $process;
         $this->inputs[] = $input;
 
@@ -704,29 +705,33 @@ class PostgresTreatmentPlanRegressionTest extends TestCase
     /** @param list<Worker> $workers */
     private function waitReady(array $workers): void
     {
-        $deadline = microtime(true) + 10;
+        $timeoutSeconds = ContentionTimeouts::readyTimeoutSeconds();
+        $started = microtime(true);
+        $deadline = $started + $timeoutSeconds;
         do {
             if (collect($workers)->every(fn ($worker) => str_contains(str_replace("\r\n", "\n", $worker['process']->getOutput()), 'READY '))) {
                 return;
             }
             usleep(50_000);
         } while (microtime(true) < $deadline);
-        throw new RuntimeException('Treatment Plan worker did not report READY.');
+        throw new RuntimeException(sprintf('Treatment Plan worker did not report READY within %ds (elapsed %.2fs). %s', $timeoutSeconds, microtime(true) - $started, $this->diagnostics($workers)));
     }
 
     private function waitForOutput(Process $process, string $needle): void
     {
-        $deadline = microtime(true) + 10;
+        $timeoutSeconds = ContentionTimeouts::protocolTimeoutSeconds();
+        $started = microtime(true);
+        $deadline = $started + $timeoutSeconds;
         do {
             if (str_contains(str_replace("\r\n", "\n", $process->getOutput()), $needle)) {
                 return;
             }
             if ($process->isTerminated()) {
-                throw new RuntimeException('Treatment Plan worker exited before reporting '.$needle.'. Output: '.$process->getOutput().' Error: '.$process->getErrorOutput());
+                throw new RuntimeException('Treatment Plan worker exited before reporting '.$needle.'. '.$this->processDiagnostics($process));
             }
             usleep(50_000);
         } while (microtime(true) < $deadline);
-        throw new RuntimeException('Treatment Plan worker protocol timeout waiting for '.$needle.'. Output: '.$process->getOutput().' Error: '.$process->getErrorOutput());
+        throw new RuntimeException(sprintf('Treatment Plan worker protocol timeout waiting for %s within %ds (elapsed %.2fs). %s', $needle, $timeoutSeconds, microtime(true) - $started, $this->processDiagnostics($process)));
     }
 
     private function workerPid(Process $process): int
@@ -734,7 +739,7 @@ class PostgresTreatmentPlanRegressionTest extends TestCase
         preg_match('/READY ([1-9][0-9]*)/', str_replace("\r\n", "\n", $process->getOutput()), $matches);
         $pid = (int) ($matches[1] ?? 0);
         if ($pid <= 0) {
-            throw new RuntimeException('Treatment Plan worker did not report a valid backend PID.');
+            throw new RuntimeException('Treatment Plan worker did not report a valid backend PID. '.$this->processDiagnostics($process));
         }
 
         return $pid;
@@ -743,10 +748,12 @@ class PostgresTreatmentPlanRegressionTest extends TestCase
     private function waitForDatabaseBlock(Process $process, int $expectedBlockerPid): void
     {
         $pid = $this->workerPid($process);
-        $deadline = microtime(true) + 10;
+        $timeoutSeconds = ContentionTimeouts::protocolTimeoutSeconds();
+        $started = microtime(true);
+        $deadline = $started + $timeoutSeconds;
         do {
             if ($process->isTerminated()) {
-                throw new RuntimeException('Treatment Plan worker exited before blocking was observed. Output: '.$process->getOutput().' Error: '.$process->getErrorOutput());
+                throw new RuntimeException('Treatment Plan worker exited before blocking was observed. '.$this->processDiagnostics($process));
             }
             $result = $this->observer()->selectOne(<<<'SQL'
                 select exists (
@@ -763,7 +770,18 @@ class PostgresTreatmentPlanRegressionTest extends TestCase
             }
             usleep(50_000);
         } while (microtime(true) < $deadline);
-        throw new RuntimeException('Expected Treatment Plan PostgreSQL blocking was not observed. Output: '.$process->getOutput().' Error: '.$process->getErrorOutput());
+        throw new RuntimeException(sprintf('Expected Treatment Plan PostgreSQL blocking was not observed within %ds (elapsed %.2fs). %s', $timeoutSeconds, microtime(true) - $started, $this->processDiagnostics($process)));
+    }
+
+    /** @param list<Worker> $workers */
+    private function diagnostics(array $workers): string
+    {
+        return implode(' | ', array_map(fn ($worker) => $this->processDiagnostics($worker['process']), $workers));
+    }
+
+    private function processDiagnostics(Process $process): string
+    {
+        return 'exit='.var_export($process->getExitCode(), true).' stdout='.trim(str_replace("\r\n", "\n", $process->getOutput())).' stderr='.trim(str_replace("\r\n", "\n", $process->getErrorOutput()));
     }
 
     private function observer(): Connection

@@ -26,6 +26,7 @@ use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 use Symfony\Component\Process\InputStream;
 use Symfony\Component\Process\Process;
+use Tests\Support\ContentionTimeouts;
 use Tests\Support\StaffBranchAssignmentBootstrapper;
 use Tests\TestCase;
 
@@ -492,7 +493,7 @@ class PostgresClinicalEncounterRegressionTest extends TestCase
         $name = 'kpone-clinical-pg-'.Str::lower(Str::random(10));
         $process = new Process([PHP_BINARY, $script, ...$arguments, $name], base_path());
         $process->setInput($input);
-        $process->setTimeout(30);
+        $process->setTimeout(ContentionTimeouts::processTimeoutSeconds());
         $this->workers[] = $process;
         $this->inputs[] = $input;
 
@@ -547,26 +548,30 @@ class PostgresClinicalEncounterRegressionTest extends TestCase
 
     private function waitReady(array $workers): void
     {
-        $deadline = microtime(true) + 10;
+        $timeoutSeconds = ContentionTimeouts::readyTimeoutSeconds();
+        $started = microtime(true);
+        $deadline = $started + $timeoutSeconds;
         do {
             if (collect($workers)->every(fn ($worker) => str_contains($worker['process']->getOutput(), 'READY '))) {
                 return;
             }
             usleep(50_000);
         } while (microtime(true) < $deadline);
-        throw new RuntimeException('Clinical worker did not report ready.');
+        throw new RuntimeException(sprintf('Clinical worker did not report ready within %ds (elapsed %.2fs). %s', $timeoutSeconds, microtime(true) - $started, $this->diagnostics($workers)));
     }
 
     private function waitForOutput(Process $process, string $needle): void
     {
-        $deadline = microtime(true) + 10;
+        $timeoutSeconds = ContentionTimeouts::protocolTimeoutSeconds();
+        $started = microtime(true);
+        $deadline = $started + $timeoutSeconds;
         do {
             if (str_contains($process->getOutput(), $needle)) {
                 return;
             }
             usleep(50_000);
         } while (microtime(true) < $deadline);
-        throw new RuntimeException('Clinical worker protocol timeout.');
+        throw new RuntimeException(sprintf('Clinical worker protocol timeout for %s within %ds (elapsed %.2fs). %s', $needle, $timeoutSeconds, microtime(true) - $started, $this->processDiagnostics($process)));
     }
 
     private function waitForDatabaseBlock(Process $process, ?int $expectedBlockerPid = null): void
@@ -574,12 +579,14 @@ class PostgresClinicalEncounterRegressionTest extends TestCase
         preg_match('/READY ([1-9][0-9]*)/', $process->getOutput(), $matches);
         $pid = (int) ($matches[1] ?? 0);
         if ($pid <= 0) {
-            throw new RuntimeException('Clinical worker did not report a valid PostgreSQL backend PID.');
+            throw new RuntimeException('Clinical worker did not report a valid PostgreSQL backend PID. '.$this->processDiagnostics($process));
         }
-        $deadline = microtime(true) + 10;
+        $timeoutSeconds = ContentionTimeouts::protocolTimeoutSeconds();
+        $started = microtime(true);
+        $deadline = $started + $timeoutSeconds;
         do {
             if ($process->isTerminated()) {
-                throw new RuntimeException('Clinical worker exited before PostgreSQL blocking was observed.');
+                throw new RuntimeException('Clinical worker exited before PostgreSQL blocking was observed. '.$this->processDiagnostics($process));
             }
             $result = $this->observer()->selectOne(
                 <<<'SQL'
@@ -602,7 +609,18 @@ class PostgresClinicalEncounterRegressionTest extends TestCase
             }
             usleep(50_000);
         } while (microtime(true) < $deadline);
-        throw new RuntimeException('Expected PostgreSQL Clinical blocking was not observed.');
+        throw new RuntimeException(sprintf('Expected PostgreSQL Clinical blocking was not observed within %ds (elapsed %.2fs). %s', $timeoutSeconds, microtime(true) - $started, $this->processDiagnostics($process)));
+    }
+
+    /** @param list<array{process: Process, input: InputStream}> $workers */
+    private function diagnostics(array $workers): string
+    {
+        return implode(' | ', array_map(fn ($worker) => $this->processDiagnostics($worker['process']), $workers));
+    }
+
+    private function processDiagnostics(Process $process): string
+    {
+        return 'exit='.var_export($process->getExitCode(), true).' stdout='.trim($process->getOutput()).' stderr='.trim($process->getErrorOutput());
     }
 
     private function observer(): Connection

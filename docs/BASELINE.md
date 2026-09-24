@@ -1,6 +1,6 @@
 # KPOne Baseline
 
-Snapshot date: 2026-09-24 · `main` at `bc29c28` (PR #31) · supersedes the status line in `PROJECT.md`.
+Snapshot date: 2026-09-24 · `main` at `1cdc9b7` (PR #32) · supersedes the status line in `PROJECT.md`.
 Phase status confirmed by the owner on 2026-09-21.
 
 Yezza remains the operational source of truth. Nothing below is production-approved; all data is synthetic.
@@ -90,8 +90,8 @@ dispensary UUID route, age guard, cookie `secure`; release notes in `docs/releas
 
 Still open:
 
-1. Commit the Claude setup files (`CLAUDE.md`, `docs/BASELINE.md`, `.claude/settings.json`) on a
-   `docs/claude-setup` branch so the office PC gets the same rules. **Next in the queue.**
+1. ~~Commit the Claude setup files~~ **Done.** `CLAUDE.md`, `docs/BASELINE.md` and `.claude/settings.json`
+   merged in PR #32 as `1cdc9b7`; the office PC and any other clone now inherit them as tracked files.
 2. HC-01 — hold cap of three per doctor plus a held-too-long warning, from the owner decision below.
    Authorised, not yet built; its own branch off the updated `main`.
 3. Production gate before any go-live: set `PUBLIC_PATIENT_INTAKE_ENABLED=true` deliberately, set
@@ -141,6 +141,27 @@ tab switching keeps rows matching the active tab.
 **Shipped: PR #31 merged into `main` as `bc29c28` (merge commit, no squash) on 2026-09-24. Post-merge CI green.**
 Branch `fix/registration-board-stale-rows-and-dates` kept; `validation/rb-01-rb-02-registration-board` kept, in
 line with all 21 earlier `validation/*` branches, which are retained permanently as release evidence.
+
+### PostgreSQL contention harness (TH-01)
+
+Ten `tests/Feature/Postgres*RegressionTest.php` files run worker subprocesses, each with its own copy of the
+wait helpers; there is no shared trait. Roughly 30 hardcoded deadlines existed between them. Nine files used
+10 seconds; `PostgresBillingRegressionTest` used 12, the most generous in the codebase, and it is the one that
+errored during the `docs/claude-setup` PostgreSQL gate on 2026-09-24 ("Phase 3A worker did not report READY",
+both workers alive). Measured startup on a rested, idle machine: 10.63s cold, then 6.91s and 5.40s warm — about
+1.4 seconds of margin against the 12-second deadline when cold. The failure occurred on a loaded machine, after
+a full suite run and a build. The project history already held five commits spent stabilising this harness;
+this was the sixth occurrence.
+
+TH-01 replaced every hardcoded deadline and worker process timeout with `Tests\Support\ContentionTimeouts`, a
+single source of truth: `readyTimeoutSeconds()` and `protocolTimeoutSeconds()` each default to 45 seconds,
+overridable via `KPONE_CONTENTION_READY_TIMEOUT` and `KPONE_CONTENTION_PROTOCOL_TIMEOUT`; `processTimeoutSeconds()`
+is enforced in code to be at least 3x both. No assertion, test name or contention protocol step changed.
+
+Still open, not acted on: the ten duplicated worker classes in `tests/Support/` (`PostgresBillingWorker`,
+`PostgresClinicalEncounterWorker`, `PostgresClinicalSafetyWorker`, `PostgresDispensaryInventoryWorker`,
+`PostgresPatientCreationWorker`, `PostgresPrimaryChangeWorker`, `PostgresQueueWorker`, `PostgresTreatmentPlanWorker`,
+`PostgresVisitReasonWorker`, `PostgresVisitRegistrationWorker`) remain unconsolidated.
 
 Owner decisions (settled 2026-09-24):
 
