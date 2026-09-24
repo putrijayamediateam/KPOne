@@ -333,6 +333,7 @@ class VisitDirectoryService
             'patientName' => $visit->patient->full_name,
             'visitType' => $visit->visit_type,
             'registeredAt' => $visit->registered_at->setTimezone($branch->timezone)->format('H:i'),
+            'registeredAtDate' => $visit->registered_at->setTimezone($branch->timezone)->format('Y-m-d'),
             'visitReasonExcerpt' => ($summary = $this->reasons->summary($visit)) ? Str::limit($summary, 80) : null,
             'doctorName' => $visit->assignedDoctor?->name,
             'coverageLabel' => $visit->coverage_type === 'panel'

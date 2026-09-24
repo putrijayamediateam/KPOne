@@ -131,6 +131,34 @@ class VisitDirectoryTest extends VisitTestCase
                 ->missing('visits.data.0.email'));
     }
 
+    public function test_search_row_carries_its_own_branch_local_registration_date(): void
+    {
+        try {
+            Date::setTestNow('2026-09-20 03:00:00 UTC');
+            $ca = $this->actor();
+            $earlier = $this->register($ca, $this->patient());
+
+            Date::setTestNow('2026-09-22 03:00:00 UTC');
+            $later = $this->register($ca, $this->patient());
+
+            $response = $this->actingAs($ca)->postJson(route('registration.search'), [
+                'date_from' => '2026-09-20',
+                'date_to' => '2026-09-22',
+            ])->assertOk()->assertJsonPath('total', 2);
+
+            $rows = collect($response->json('data'))->keyBy('visitNumber');
+            $this->assertSame('2026-09-20', $rows[$earlier->visit_number]['registeredAtDate']);
+            $this->assertSame('2026-09-22', $rows[$later->visit_number]['registeredAtDate']);
+            $this->assertNotSame(
+                $rows[$earlier->visit_number]['registeredAtDate'],
+                $rows[$later->visit_number]['registeredAtDate'],
+                'Two visits registered on different branch-local days must not share one date.',
+            );
+        } finally {
+            Date::setTestNow();
+        }
+    }
+
     public function test_server_filters_escape_like_metacharacters_and_accept_exact_patient_number(): void
     {
         $ca = $this->actor();

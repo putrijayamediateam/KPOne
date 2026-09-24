@@ -103,7 +103,7 @@ const statusClass = (tone: PatientBoardRow['statusTone']) =>
                     <td
                         class="px-3 py-2.5 align-middle font-normal tabular-nums"
                     >
-                        <span class="block whitespace-nowrap">{{
+                        <span class="block truncate" :title="row.arrivedDate">{{
                             row.arrivedDate
                         }}</span>
                         <span

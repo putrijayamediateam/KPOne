@@ -175,6 +175,9 @@ const registrationDateLabel = computed(() =>
         ? formatDate(form.date_from)
         : `${formatDate(form.date_from)}–${formatDate(form.date_to)}`,
 );
+const isCustomDateFilter = computed(
+    () => form.date_from !== today || form.date_to !== today,
+);
 const boardRows = computed<PatientBoardRow[]>(() =>
     rows.value.map((visit) => {
         const status =
@@ -216,7 +219,10 @@ const boardRows = computed<PatientBoardRow[]>(() =>
             patientNumber: visit.patientNumber,
             visitNumber: visit.visitNumber,
             queueNumber: visit.queueNumber,
-            arrivedDate: registrationDateLabel.value,
+            arrivedDate: formatDate(
+                visit.registeredAtDate,
+                props.options.branch.timezone,
+            ),
             arrivedTime: compactTime(visit.registeredAt),
             visitNotes: visit.visitReasonExcerpt,
             doctorName: visit.doctorName,
@@ -550,7 +556,13 @@ const changeQrHistoryPage = (qrHistoryPage: number) => {
                 <div
                     class="flex items-center justify-between px-3 py-2 text-xs text-muted-foreground"
                 >
-                    <span>{{ total }} Visit{{ total === 1 ? '' : 's' }}</span
+                    <span
+                        >{{ total }} Visit{{ total === 1 ? '' : 's' }}
+                        <span
+                            v-if="isCustomDateFilter"
+                            class="text-foreground/70"
+                            >· {{ registrationDateLabel }}</span
+                        ></span
                     ><span>25 per page</span>
                 </div>
                 <PatientBoard
