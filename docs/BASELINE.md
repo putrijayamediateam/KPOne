@@ -158,6 +158,12 @@ single source of truth: `readyTimeoutSeconds()` and `protocolTimeoutSeconds()` e
 overridable via `KPONE_CONTENTION_READY_TIMEOUT` and `KPONE_CONTENTION_PROTOCOL_TIMEOUT`; `processTimeoutSeconds()`
 is enforced in code to be at least 3x both. No assertion, test name or contention protocol step changed.
 
+On 2026-09-24, the same test on the same machine measured 10.63s worker boot when cold that morning, and under
+1 second once the machine had run dozens of suites that day and was warm. A forced-failure check using a
+1-second `KPONE_CONTENTION_READY_TIMEOUT` override could not be made to fail on demand as a result. More than
+ten times variance within one day is why the old 10-12 second deadlines sat inside the noise band rather than
+above it.
+
 Still open, not acted on: the ten duplicated worker classes in `tests/Support/` (`PostgresBillingWorker`,
 `PostgresClinicalEncounterWorker`, `PostgresClinicalSafetyWorker`, `PostgresDispensaryInventoryWorker`,
 `PostgresPatientCreationWorker`, `PostgresPrimaryChangeWorker`, `PostgresQueueWorker`, `PostgresTreatmentPlanWorker`,
