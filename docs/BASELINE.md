@@ -40,6 +40,7 @@ Yezza remains the operational source of truth. Nothing below is production-appro
 | **Q1-B2-D3 shipped** | PR #30 merged into `main` as `8ef519b` (merge commit, no squash). Post-merge CI green. Branch `fix/q1-b2-d3-registration-qr-hold` kept | **Merged 2026-09-24** |
 | OH-06 / OH-06b | Inertia `preserveState` left `useForm` state stale after Hold/Resume. Data was never lost in the database; the form was not re-synced. Fixed in `Clinical/Show.vue` (`e796620`) and `TreatmentPlanPanel.vue` (`a376069`): clean form adopts content and lock version together, dirty form is never overwritten and shows a drift banner | Merged in PR #30 |
 | **RB-01 / RB-02 shipped** | Registration board: stale rows after a failed or thrown search cleared; each visit's own registered date projected. PR #31 merged into `main` as `bc29c28` (merge commit). Post-merge CI green | **Merged 2026-09-24** |
+| AC-01 | Staff authority: no role could provision or administer a `ca_supervisor`. Administrative authority changed from a `.manage.` substring match to a declared set (staff, branches, access); `canAssignRoles` untouched. Found by human walkthrough of UI-1 at step 2 | Implemented on `fix/ac-01-staff-authority` (base `e8751b6`); not merged — see section 6 |
 
 End-to-end synthetic flow working on `main`: Registration → Queue → Consultation → Treatment Plan →
 Dispensary → Billing/payment → Completed Visit.
@@ -180,6 +181,79 @@ Owner decisions (settled 2026-09-24):
   HR and is accepted deliberately; it is directory data only (name, role, branch) and never clinical or
   patient content. Revisit if the group grows or if a Marketing module changes what those roles can see.
 
+
+### AC-01 — staff authority — branch `fix/ac-01-staff-authority` (base `main` `e8751b6`)
+
+**The defect.** A `director` could not provision a `ca_supervisor`: creating the account and assigning a branch
+failed with HTTP 403 ("You may not change this staff member's branch access."), and the transaction rolled back.
+The same rule blocked every later action on such an account — profile edit, branch assignment, role change and
+deactivation — for every role. **An existing `ca_supervisor` could not be deactivated by anyone**, which is an
+offboarding hazard, not just a provisioning inconvenience.
+
+**Why.** `StaffAuthorityService::canManage()` allowed an actor to administer a target only if the actor held every
+permission the target held that `PermissionCatalogue::isAdministrativeAuthority()` classified as administrative.
+That method matched any permission containing `.manage.`. `ca_supervisor` holds `inventory.reorder.manage.branch`
+and `public_checkin_links.manage.branch`, which `director` does not, and `technical_admin` additionally lacked four
+organisation-level ones. Nobody covered the set, so nobody could manage the role.
+
+**It predated UI-1 by three phases.** The rule dates from Phase 0B (`4490c72`, 2026-08-20); the two permissions
+that locked out `director` arrived later, in I2 (`b756154`, 2026-09-13) and Q1-B2 remediation (`dbbad27`,
+2026-09-20). UI-1 changed no outcome: `director` already held every other permission UI-1 added.
+
+**Why 682 tests never saw it.** No staff test file mentioned `ca_supervisor`, so no test provisioned or
+administered one. It was found by a human walkthrough of UI-1, at step 2, account provisioning.
+
+**The rule as changed.** Administrative authority is no longer a substring match. It is a declared set,
+`PermissionCatalogue::AUTHORITY_OVER_PEOPLE_AND_ACCESS`: `staff.manage.organisation`,
+`branches.manage.organisation`, `access.manage.organisation` — authority over people, access and branches, not
+capability over records. `canManage()` is otherwise unchanged (same organisation check, same protected-director
+check, same subset comparison). The substring never matched the intent stated in `StaffAuthorityService`'s own
+docblock: `director` and `technical_admin` hold an identical administrative set, and everything else they manage
+(medicines, clinical services, inventory references and suppliers, reorder levels, pricing references, payment
+methods, patient identifiers, check-in links) is operational. It is an allowlist by design: a substring silently
+classifies every future permission, an allowlist forces a decision, and no new operational `.manage.` permission
+can ever again change who can administer whom. A permission becomes administrative only by being added to the
+declared set on purpose.
+
+**Who can administer whom now.** Every role except `director` is administrable by `director`, `technical_admin`
+and `hr_manager`. `hr_manager` (administrative set `staff.manage.organisation`) is administrable by `director`,
+`technical_admin` and a peer `hr_manager`; `technical_admin` by `director` and a peer `technical_admin`;
+`director` by `director` only. Self-management is refused for every ability. `hr_manager` gains profile edit and
+activate/deactivate only: `manageAccess` and `manageRoles` also require `access.manage.organisation`, which
+`hr_manager` does not hold, so HR cannot change branches or roles.
+
+**Peer management — owner decision.** Peer `hr_manager` management is accepted, not blocked. Peer management was
+already accepted for `technical_admin`, so blocking it for `hr_manager` alone would be arbitrary; and a
+consistent peer-blocking rule would stop one `technical_admin` deactivating another — exactly the offboarding
+hazard this change closes. It is recoverable denial, not escalation: no permission is gained, and a `director` or
+`technical_admin` can reverse it.
+
+**Owner decision — provisioning and administration are deliberately asymmetric.**
+- **Provisioning a `ca_supervisor` stays with `director` alone.** `canAssignRoles` is unchanged and correct:
+  `technical_admin` does not hold `medicines.manage.organisation` and the rest, and letting it grant that role
+  would let it mint an account with clinical reach it does not have. That would be privilege escalation and would
+  collide with the standing rule that technical admin never gains clinical or patient access by implication.
+- **Administering an existing `ca_supervisor`** — profile, status, branch assignment, role sync — extends to
+  `technical_admin` (and profile/status to `hr_manager`). This grants nothing and creates nothing.
+- **Technical admin can demote, never promote.** Stripping a `ca_supervisor` to a role `technical_admin` may itself
+  assign is one action; restoring it requires a `director`. Demotion is audited (`access.role.detached` /
+  `access.role.attached`) with the acting user. This follows from `canAssignRoles` being unchanged. **No future
+  phase should "fix" the asymmetry by loosening `canAssignRoles`.**
+
+**Pinned by** `tests/Feature/StaffAuthorityBoundaryTest.php` (11 tests). Two guards: an *authority-set pin* (the
+declared set equals exactly the three permissions; every other catalogue permission is non-administrative; it
+fails closed for any permission added or removed at any scope) and an *administrability invariant* (a `director`
+can provision and then administer every role except `director`; a `technical_admin` can administer every role whose
+administrative set is empty — the test that would have caught AC-01 the day `inventory.reorder.manage.branch` was
+added). Escalation tests: `technical_admin` cannot re-assign `ca_supervisor` after demoting it; cannot demote or
+manage a `director` on either the manage or the demotion path; can demote a peer `technical_admin`; a peer
+`hr_manager` can edit and deactivate another `hr_manager` but **cannot change that account's roles or branch
+assignments**; an actor holding only operational `.manage.` permissions gains no authority over anyone; a
+directly-granted `staff.manage.organisation` makes an account administrable only by actors holding it; and
+self-management is refused for all four abilities. The tests were confirmed red against the old substring rule
+(3 failures, 3 errors, including `director` provisioning `ca_supervisor`) and green against the new one.
+`BillingBoundaryTest` asserts the outcome (`prices.publish.organisation` is not administrative), not the
+mechanism, and is unchanged.
 
 ## 7. Updating this file
 

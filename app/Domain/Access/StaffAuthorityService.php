@@ -12,6 +12,11 @@ use Spatie\Permission\Models\Role;
  * Director is an explicit protected authority role because the Phase 0 catalogue
  * intentionally gives director and technical_admin the same administrative
  * permissions while preserving director governance over technical accounts.
+ *
+ * canManage compares only PermissionCatalogue::AUTHORITY_OVER_PEOPLE_AND_ACCESS.
+ * Who may grant a role is a separate question answered by canAssignRoles, which is
+ * deliberately stricter: administering an account never lets an actor mint permissions
+ * it does not hold.
  */
 class StaffAuthorityService
 {
