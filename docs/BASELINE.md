@@ -200,8 +200,15 @@ organisation-level ones. Nobody covered the set, so nobody could manage the role
 that locked out `director` arrived later, in I2 (`b756154`, 2026-09-13) and Q1-B2 remediation (`dbbad27`,
 2026-09-20). UI-1 changed no outcome: `director` already held every other permission UI-1 added.
 
-**Why 682 tests never saw it.** No staff test file mentioned `ca_supervisor`, so no test provisioned or
-administered one. It was found by a human walkthrough of UI-1, at step 2, account provisioning.
+**Why the existing tests never saw it.** The 656 tests on `main` at `e8751b6` (654 passed, 2 skipped; the
+figure recorded above for `0191d6f`, and re-measured on this branch as 667 tests, 665 passed, 2 skipped, with
+its 11 new tests) never covered it. The 2 skips, named from a PostgreSQL 18 run of the Auth tests, are
+`Tests\Feature\Auth\RegistrationTest::test_registration_screen_can_be_rendered` and
+`::test_new_users_can_register`: `setUp()` calls `skipUnlessFortifyHas(Features::registration())`, and
+`config/fortify.php` deliberately omits the registration feature, so public registration stays disabled.
+No other test skips on PostgreSQL. The gap was that no staff test file mentioned `ca_supervisor`, so no
+test provisioned or administered one. It was found by a human walkthrough of UI-1, at step 2, account
+provisioning.
 
 **The rule as changed.** Administrative authority is no longer a substring match. It is a declared set,
 `PermissionCatalogue::AUTHORITY_OVER_PEOPLE_AND_ACCESS`: `staff.manage.organisation`,
