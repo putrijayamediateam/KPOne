@@ -41,6 +41,11 @@ class MedicineCatalogueItem extends Model
         return ['is_active' => 'boolean'];
     }
 
+    public function getRouteKeyName(): string
+    {
+        return 'public_id';
+    }
+
     /** @return BelongsTo<Organisation, $this> */
     public function organisation(): BelongsTo
     {

@@ -10,6 +10,7 @@ use App\Http\Controllers\BranchController;
 use App\Http\Controllers\ClinicalAllergyController;
 use App\Http\Controllers\ClinicalEncounterController;
 use App\Http\Controllers\ClinicalProblemController;
+use App\Http\Controllers\ClinicalServiceCatalogueController;
 use App\Http\Controllers\ClinicPlaceholderController;
 use App\Http\Controllers\ConsultationCheckoutController;
 use App\Http\Controllers\ConsultationHoldController;
@@ -18,9 +19,12 @@ use App\Http\Controllers\DispensaryController;
 use App\Http\Controllers\InventoryController;
 use App\Http\Controllers\InventoryMovementController;
 use App\Http\Controllers\InventoryOperationsController;
+use App\Http\Controllers\InventoryReferenceController;
+use App\Http\Controllers\MedicineCatalogueController;
 use App\Http\Controllers\PatientController;
 use App\Http\Controllers\PatientIdentifierController;
 use App\Http\Controllers\PatientSearchController;
+use App\Http\Controllers\PricingController;
 use App\Http\Controllers\PublicCheckInController;
 use App\Http\Controllers\PublicCheckInLinkController;
 use App\Http\Controllers\PublicIntakeReviewController;
@@ -263,6 +267,45 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('inventory/stocktakes/{stocktake}/cancel', [InventoryOperationsController::class, 'cancelStocktake'])->middleware(['permission:inventory.stocktake.branch', 'throttle:20,1'])->name('inventory.stocktakes.cancel');
         Route::post('inventory/adjustments', [InventoryOperationsController::class, 'adjustment'])->middleware(['permission:inventory.adjust.branch', 'throttle:20,1'])->name('inventory.adjustments.store');
         Route::put('inventory/reorder-levels', [InventoryOperationsController::class, 'reorderLevel'])->middleware(['permission:inventory.reorder.manage.branch', 'throttle:30,1'])->name('inventory.reorder-levels.update');
+
+        Route::middleware(['permission:medicines.manage.organisation'])->prefix('medicines')->group(function () {
+            Route::get('/', [MedicineCatalogueController::class, 'index'])->name('medicines.index');
+            Route::post('/', [MedicineCatalogueController::class, 'store'])->middleware('throttle:30,1')->name('medicines.store');
+            Route::patch('{medicine}', [MedicineCatalogueController::class, 'update'])->whereUuid('medicine')->middleware('throttle:30,1')->name('medicines.update');
+            Route::post('{medicine}/activate', [MedicineCatalogueController::class, 'activate'])->whereUuid('medicine')->middleware('throttle:20,1')->name('medicines.activate');
+            Route::post('{medicine}/deactivate', [MedicineCatalogueController::class, 'deactivate'])->whereUuid('medicine')->middleware('throttle:20,1')->name('medicines.deactivate');
+        });
+
+        Route::middleware(['permission:clinical_services.manage.organisation'])->prefix('clinical-services')->group(function () {
+            Route::get('/', [ClinicalServiceCatalogueController::class, 'index'])->name('clinical-services.index');
+            Route::post('/', [ClinicalServiceCatalogueController::class, 'store'])->middleware('throttle:30,1')->name('clinical-services.store');
+            Route::patch('{clinicalService}', [ClinicalServiceCatalogueController::class, 'update'])->whereUuid('clinicalService')->middleware('throttle:30,1')->name('clinical-services.update');
+            Route::post('{clinicalService}/activate', [ClinicalServiceCatalogueController::class, 'activate'])->whereUuid('clinicalService')->middleware('throttle:20,1')->name('clinical-services.activate');
+            Route::post('{clinicalService}/deactivate', [ClinicalServiceCatalogueController::class, 'deactivate'])->whereUuid('clinicalService')->middleware('throttle:20,1')->name('clinical-services.deactivate');
+        });
+
+        Route::prefix('pricing')->group(function () {
+            Route::middleware(['permission:pricing.references.manage.organisation'])->group(function () {
+                Route::get('/', [PricingController::class, 'index'])->name('pricing.index');
+                Route::post('charges', [PricingController::class, 'storeCharge'])->middleware('throttle:30,1')->name('pricing.charges.store');
+                Route::post('charges/{charge}/activate', [PricingController::class, 'activateCharge'])->whereUuid('charge')->middleware('throttle:20,1')->name('pricing.charges.activate');
+                Route::post('charges/{charge}/deactivate', [PricingController::class, 'deactivateCharge'])->whereUuid('charge')->middleware('throttle:20,1')->name('pricing.charges.deactivate');
+                Route::post('price-books', [PricingController::class, 'storePriceBook'])->middleware('throttle:30,1')->name('pricing.price-books.store');
+                Route::post('price-books/{priceBook}/activate', [PricingController::class, 'activatePriceBook'])->whereUuid('priceBook')->middleware('throttle:20,1')->name('pricing.price-books.activate');
+                Route::post('price-books/{priceBook}/deactivate', [PricingController::class, 'deactivatePriceBook'])->whereUuid('priceBook')->middleware('throttle:20,1')->name('pricing.price-books.deactivate');
+            });
+            Route::post('charges/{charge}/publish', [PricingController::class, 'publish'])
+                ->whereUuid('charge')->middleware(['permission:prices.publish.organisation', 'throttle:20,1'])->name('pricing.charges.publish');
+        });
+
+        Route::middleware(['permission:inventory.references.manage.organisation'])->prefix('inventory-references')->group(function () {
+            Route::post('items', [InventoryReferenceController::class, 'storeItem'])->middleware('throttle:30,1')->name('inventory-references.items.store');
+            Route::post('skus', [InventoryReferenceController::class, 'storeSku'])->middleware('throttle:30,1')->name('inventory-references.skus.store');
+            Route::post('locations', [InventoryReferenceController::class, 'storeLocation'])->middleware('throttle:30,1')->name('inventory-references.locations.store');
+            Route::get('skus/{sku}/batches', [InventoryReferenceController::class, 'skuBatches'])->whereUuid('sku')->middleware('throttle:60,1')->name('inventory-references.skus.batches');
+            Route::post('batches', [InventoryReferenceController::class, 'storeBatch'])->middleware('throttle:30,1')->name('inventory-references.batches.store');
+            Route::post('mappings', [InventoryReferenceController::class, 'storeMapping'])->middleware('throttle:30,1')->name('inventory-references.mappings.store');
+        });
         Route::post('visits/{visit}/encounter/treatment-plan/catalogue/medicines/search', [TreatmentPlanCatalogueController::class, 'medicines'])
             ->middleware(['permission:treatment_plans.view.own', 'throttle:60,1'])
             ->name('encounters.treatment-plan.catalogue.medicines');

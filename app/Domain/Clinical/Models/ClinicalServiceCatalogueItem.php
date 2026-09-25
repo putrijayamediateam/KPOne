@@ -24,6 +24,7 @@ class ClinicalServiceCatalogueItem extends Model
 
     protected static function booted(): void
     {
+        static::deleting(fn (): never => throw new LogicException('Clinical service catalogue items must be deactivated, not deleted.'));
         static::updating(function (self $item): void {
             foreach (['public_id', 'organisation_id', 'created_by_user_id'] as $attribute) {
                 if ($item->isDirty($attribute)) {
@@ -36,6 +37,11 @@ class ClinicalServiceCatalogueItem extends Model
     protected function casts(): array
     {
         return ['is_active' => 'boolean'];
+    }
+
+    public function getRouteKeyName(): string
+    {
+        return 'public_id';
     }
 
     /** @return BelongsTo<Organisation, $this> */

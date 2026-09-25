@@ -3,6 +3,9 @@ export type WorkspaceNavigationCapabilities = {
     registrationReview: boolean;
     consultation: boolean;
     inventory: boolean;
+    medicineCatalogue: boolean;
+    clinicalServiceCatalogue: boolean;
+    pricing: boolean;
     patientRecords: boolean;
     panelWork: boolean;
     financeWork: boolean;
@@ -57,6 +60,29 @@ const destinations: Record<
         description: 'Review branch stock, batches, expiry and movements.',
         href: '/inventory',
         icon: 'clipboard',
+    },
+    medicineCatalogue: {
+        key: 'medicineCatalogue',
+        label: 'Medicine Catalogue',
+        description: 'Create and manage the organisation Medicine Catalogue.',
+        href: '/medicines',
+        icon: 'clipboard',
+    },
+    clinicalServiceCatalogue: {
+        key: 'clinicalServiceCatalogue',
+        label: 'Clinical Service Catalogue',
+        description:
+            'Create and manage clinical services available for ordering.',
+        href: '/clinical-services',
+        icon: 'clipboard',
+    },
+    pricing: {
+        key: 'pricing',
+        label: 'Pricing',
+        description:
+            'Manage Charge Definitions, Price Books and published prices.',
+        href: '/pricing',
+        icon: 'file',
     },
     patientRecords: {
         key: 'patientRecords',
@@ -139,6 +165,14 @@ export const mainMenuGroups = (
                 'registration',
                 'consultation',
                 'inventory',
+            ]),
+        },
+        {
+            label: 'Reference Data',
+            destinations: available(capabilities, [
+                'medicineCatalogue',
+                'clinicalServiceCatalogue',
+                'pricing',
             ]),
         },
         {

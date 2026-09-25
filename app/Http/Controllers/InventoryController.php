@@ -3,8 +3,13 @@
 namespace App\Http\Controllers;
 
 use App\Domain\Access\BranchAccessService;
+use App\Domain\Clinical\Models\MedicineCatalogueItem;
+use App\Domain\Organisation\Inventory\Models\InventoryItem;
+use App\Domain\Organisation\Inventory\Models\InventoryLocation;
+use App\Domain\Organisation\Inventory\Models\InventorySku;
 use App\Domain\Organisation\Inventory\Services\InventoryDirectoryService;
 use App\Domain\Organisation\Inventory\Services\InventoryOperationsDirectoryService;
+use App\Domain\Organisation\Inventory\Services\InventoryReferenceAdministrationService;
 use App\Domain\Organisation\Models\Branch;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Models\User;
@@ -55,7 +60,52 @@ class InventoryController extends Controller
             'inventory' => $directory->directory($actor, $filters),
             'operations' => $operationDirectory,
             'receiptMemoryContext' => $this->receiptMemoryContext($request, $actor, $activeBranch),
+            'referenceData' => $this->referenceData($actor, $activeBranch),
         ]);
+    }
+
+    /** @return array<string, mixed> */
+    private function referenceData(User $actor, Branch $activeBranch): array
+    {
+        return [
+            'canManage' => $actor->can(InventoryReferenceAdministrationService::PERMISSION),
+            'items' => InventoryItem::query()
+                ->where('organisation_id', $actor->organisation_id)
+                ->where('is_active', true)
+                ->orderBy('generic_name')
+                ->get()
+                ->map(fn (InventoryItem $item): array => ['publicId' => $item->public_id, 'code' => $item->code, 'genericName' => $item->generic_name])
+                ->values(),
+            'skus' => InventorySku::query()
+                ->where('organisation_id', $actor->organisation_id)
+                ->where('is_active', true)
+                ->orderBy('sku_code')
+                ->get()
+                ->map(fn (InventorySku $sku): array => ['publicId' => $sku->public_id, 'skuCode' => $sku->sku_code, 'inventoryItemId' => $sku->inventory_item_id])
+                ->values(),
+            'locations' => InventoryLocation::query()
+                ->where('organisation_id', $actor->organisation_id)
+                ->where('is_active', true)
+                ->where(fn ($query) => $query->where('branch_id', $activeBranch->id)->orWhereNull('branch_id'))
+                ->orderBy('name')
+                ->get()
+                ->map(fn (InventoryLocation $location): array => ['publicId' => $location->public_id, 'name' => $location->name, 'type' => $location->type])
+                ->values(),
+            'medicines' => MedicineCatalogueItem::query()
+                ->where('organisation_id', $actor->organisation_id)
+                ->where('is_active', true)
+                ->orderBy('display_name')
+                ->get()
+                ->map(fn (MedicineCatalogueItem $medicine): array => ['publicId' => $medicine->public_id, 'code' => $medicine->code, 'displayName' => $medicine->display_name])
+                ->values(),
+            'branches' => Branch::query()
+                ->where('organisation_id', $actor->organisation_id)
+                ->where('is_active', true)
+                ->orderBy('name')
+                ->get()
+                ->map(fn (Branch $branch): array => ['id' => $branch->id, 'name' => $branch->name])
+                ->values(),
+        ];
     }
 
     /** @return array{version:2,organisationPublicId:string,actorPublicId:string,sessionNonce:string,branchPublicId:string} */
