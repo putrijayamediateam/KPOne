@@ -41,13 +41,15 @@ Yezza remains the operational source of truth. Nothing below is production-appro
 | OH-06 / OH-06b | Inertia `preserveState` left `useForm` state stale after Hold/Resume. Data was never lost in the database; the form was not re-synced. Fixed in `Clinical/Show.vue` (`e796620`) and `TreatmentPlanPanel.vue` (`a376069`): clean form adopts content and lock version together, dirty form is never overwritten and shows a drift banner | Merged in PR #30 |
 | **RB-01 / RB-02 shipped** | Registration board: stale rows after a failed or thrown search cleared; each visit's own registered date projected. PR #31 merged into `main` as `bc29c28` (merge commit). Post-merge CI green | **Merged 2026-09-24** |
 | TH-01 | PostgreSQL contention harness: replaced ~30 hardcoded worker deadlines/timeouts across 10 `Postgres*RegressionTest.php` files with `Tests\Support\ContentionTimeouts` (overridable via `KPONE_CONTENTION_READY_TIMEOUT`/`KPONE_CONTENTION_PROTOCOL_TIMEOUT`). No assertion or contention protocol step changed | Merged PR #33 as `e8751b6` (merge commit); post-merge CI green; branch kept |
-| UI-1 | Reference Data UI so the patient journey is walkable by a person: Medicine Catalogue and Clinical Service Catalogue screens (the latter backed by a new `ClinicalServiceCatalogueAdministrationService`, mirroring `MedicineAdministrationService`, and one new additive permission `clinical_services.manage.organisation`), Pricing (Charge Definition, Price Book, versioned publish), and thin stock-setup screens (Inventory Item/SKU/Location/Batch/medicine↔SKU mapping, plus an Opening Balance form) over the existing, previously UI-less Inventory Reference and Movement routes. Frontend and thin-controller work only; the one schema-adjacent change is the authorised permission migration | Implemented on `feature/ui-1-reference-data-ui` (base `e8751b6`); all automated gates green; human acceptance walkthrough pending — see section 6 |
+| AC-01 | Staff authority: no role could provision or administer a `ca_supervisor`. Administrative authority changed from a `.manage.` substring match to a declared set (staff, branches, access); `canAssignRoles` untouched. Found by human walkthrough of UI-1 at step 2 | Merged PR #34 as `ac9a0e5` (merge commit); post-merge CI green; branch kept |
+| UI-1 | Reference Data UI so the patient journey is walkable by a person: Medicine Catalogue and Clinical Service Catalogue screens (the latter backed by a new `ClinicalServiceCatalogueAdministrationService`, mirroring `MedicineAdministrationService`, and one new additive permission `clinical_services.manage.organisation`), Pricing (Charge Definition, Price Book, versioned publish), and thin stock-setup screens (Inventory Item/SKU/Location/Batch/medicine↔SKU mapping, plus an Opening Balance form) over the existing, previously UI-less Inventory Reference and Movement routes. Frontend and thin-controller work only; the one schema-adjacent change is the authorised permission migration | Committed as `903d929` on `feature/ui-1-reference-data-ui` (base `e8751b6`), then merged with `main` at `ac9a0e5`; not pushed, not merged to `main`; all automated gates green; human acceptance walkthrough pending — see section 6 |
+
 
 End-to-end synthetic flow: proven by tests via factories on `main`. Before UI-1, no screen anywhere could
 create a medicine, a clinical service, a price, or branch stock, so a person could not actually walk
 Registration → Queue → Consultation → Treatment Plan → Dispensary → Billing/payment → Completed Visit through
 the UI alone — only an automated test with factory-seeded data could reach Billing with a non-empty invoice.
-UI-1 (uncommitted on `feature/ui-1-reference-data-ui` as of this snapshot) adds that missing UI; whether the
+UI-1 (committed on `feature/ui-1-reference-data-ui`, not yet merged to `main`) adds that missing UI; whether the
 flow is now walkable by a person is pending the owner's own manual walkthrough (section 6).
 
 ## 2. Domain map (`app/Domain`)
@@ -236,11 +238,12 @@ remain out of scope, backend-only, pending UI-2. A new "Reference Data" main-men
 screens reachable for the roles holding their permissions; `Clinic/Placeholder.vue` was confirmed to be the
 generic "not built yet" stub and was not used as a home for any of this.
 
-**Verification.** All automated gates green on this branch: Pint, PHPStan/Larastan (0 errors), `vue-tsc`,
-ESLint, Prettier, `npm run build`, `git diff --check`. PostgreSQL 18 (disposable `kpone_ui1c_test`, port
-55493, dropped after use, final code including the SKU-batches endpoint): 682 tests, 680 passed, 0 failures,
+**Verification, on the UI-1 tree at `903d929` (before `main` was merged in).** All automated gates green: Pint,
+PHPStan/Larastan (0 errors), `vue-tsc`, ESLint, Prettier, `npm run build`, `git diff --check`. PostgreSQL 18
+(disposable `kpone_ui1c_test`, port 55493, dropped after use, final code including the SKU-batches endpoint):
+682 tests (`main` at `e8751b6` is 656, plus UI-1's 26 new tests), 680 passed, 0 failures,
 7,691 assertions, 2 skipped (the two `RegistrationTest` cases named above) — no PostgreSQL contention test
-skipped. `node --test tests/Frontend/*.mjs`: 171 tests, 171 passed, 0 failures. New coverage added: the permission-mapping, create/update/audit, duplicate/foreign-tenant,
+skipped. `node --test tests/Frontend/*.mjs` on that tree: 171 tests, 171 passed, 0 failures. New coverage added: the permission-mapping, create/update/audit, duplicate/foreign-tenant,
 unauthorised/inactive-actor, identity-lock, and hard-delete-guard tests for
 `ClinicalServiceCatalogueAdministrationService`; the SKU-batches endpoint's 403, cross-tenant 404, happy-path
 and no-batches-in-props tests; the permission migration's fresh-grant, already-seeded,
@@ -274,8 +277,88 @@ factory data and no manual SQL, creating a medicine and a clinical service, pric
 into a branch, and walking a patient from Registration through to a paid, completed visit with both lines on
 the invoice at the price that was set — has not been run. Automated gates prove the code is wired correctly;
 they do not prove the click-through itself. This is deliberately left to the owner's own manual walkthrough
-(script handed over separately) rather than claimed here. **No commit has been made on this branch yet** pending
-that confirmation.
+(script handed over separately) rather than claimed here. UI-1 is committed locally as `903d929` (not pushed) so the change set is
+not at risk; pushing it and opening its PR wait on that confirmation.
+
+### AC-01 — staff authority — branch `fix/ac-01-staff-authority` (base `main` `e8751b6`)
+
+**The defect.** A `director` could not provision a `ca_supervisor`: creating the account and assigning a branch
+failed with HTTP 403 ("You may not change this staff member's branch access."), and the transaction rolled back.
+The same rule blocked every later action on such an account — profile edit, branch assignment, role change and
+deactivation — for every role. **An existing `ca_supervisor` could not be deactivated by anyone**, which is an
+offboarding hazard, not just a provisioning inconvenience.
+
+**Why.** `StaffAuthorityService::canManage()` allowed an actor to administer a target only if the actor held every
+permission the target held that `PermissionCatalogue::isAdministrativeAuthority()` classified as administrative.
+That method matched any permission containing `.manage.`. `ca_supervisor` holds `inventory.reorder.manage.branch`
+and `public_checkin_links.manage.branch`, which `director` does not, and `technical_admin` additionally lacked four
+organisation-level ones. Nobody covered the set, so nobody could manage the role.
+
+**It predated UI-1 by three phases.** The rule dates from Phase 0B (`4490c72`, 2026-08-20); the two permissions
+that locked out `director` arrived later, in I2 (`b756154`, 2026-09-13) and Q1-B2 remediation (`dbbad27`,
+2026-09-20). UI-1 changed no outcome: `director` already held every other permission UI-1 added.
+
+**Why the existing tests never saw it.** The 656 tests on `main` at `e8751b6` (654 passed, 2 skipped; the
+figure recorded above for `0191d6f`, and re-measured on this branch as 667 tests, 665 passed, 2 skipped, with
+its 11 new tests) never covered it. The 2 skips, named from a PostgreSQL 18 run of the Auth tests, are
+`Tests\Feature\Auth\RegistrationTest::test_registration_screen_can_be_rendered` and
+`::test_new_users_can_register`: `setUp()` calls `skipUnlessFortifyHas(Features::registration())`, and
+`config/fortify.php` deliberately omits the registration feature, so public registration stays disabled.
+No other test skips on PostgreSQL. The gap was that no staff test file mentioned `ca_supervisor`, so no
+test provisioned or administered one. It was found by a human walkthrough of UI-1, at step 2, account
+provisioning.
+
+**The rule as changed.** Administrative authority is no longer a substring match. It is a declared set,
+`PermissionCatalogue::AUTHORITY_OVER_PEOPLE_AND_ACCESS`: `staff.manage.organisation`,
+`branches.manage.organisation`, `access.manage.organisation` — authority over people, access and branches, not
+capability over records. `canManage()` is otherwise unchanged (same organisation check, same protected-director
+check, same subset comparison). The substring never matched the intent stated in `StaffAuthorityService`'s own
+docblock: `director` and `technical_admin` hold an identical administrative set, and everything else they manage
+(medicines, clinical services, inventory references and suppliers, reorder levels, pricing references, payment
+methods, patient identifiers, check-in links) is operational. It is an allowlist by design: a substring silently
+classifies every future permission, an allowlist forces a decision, and no new operational `.manage.` permission
+can ever again change who can administer whom. A permission becomes administrative only by being added to the
+declared set on purpose.
+
+**Who can administer whom now.** Every role except `director` is administrable by `director`, `technical_admin`
+and `hr_manager`. `hr_manager` (administrative set `staff.manage.organisation`) is administrable by `director`,
+`technical_admin` and a peer `hr_manager`; `technical_admin` by `director` and a peer `technical_admin`;
+`director` by `director` only. Self-management is refused for every ability. `hr_manager` gains profile edit and
+activate/deactivate only: `manageAccess` and `manageRoles` also require `access.manage.organisation`, which
+`hr_manager` does not hold, so HR cannot change branches or roles.
+
+**Peer management — owner decision.** Peer `hr_manager` management is accepted, not blocked. Peer management was
+already accepted for `technical_admin`, so blocking it for `hr_manager` alone would be arbitrary; and a
+consistent peer-blocking rule would stop one `technical_admin` deactivating another — exactly the offboarding
+hazard this change closes. It is recoverable denial, not escalation: no permission is gained, and a `director` or
+`technical_admin` can reverse it.
+
+**Owner decision — provisioning and administration are deliberately asymmetric.**
+- **Provisioning a `ca_supervisor` stays with `director` alone.** `canAssignRoles` is unchanged and correct:
+  `technical_admin` does not hold `medicines.manage.organisation` and the rest, and letting it grant that role
+  would let it mint an account with clinical reach it does not have. That would be privilege escalation and would
+  collide with the standing rule that technical admin never gains clinical or patient access by implication.
+- **Administering an existing `ca_supervisor`** — profile, status, branch assignment, role sync — extends to
+  `technical_admin` (and profile/status to `hr_manager`). This grants nothing and creates nothing.
+- **Technical admin can demote, never promote.** Stripping a `ca_supervisor` to a role `technical_admin` may itself
+  assign is one action; restoring it requires a `director`. Demotion is audited (`access.role.detached` /
+  `access.role.attached`) with the acting user. This follows from `canAssignRoles` being unchanged. **No future
+  phase should "fix" the asymmetry by loosening `canAssignRoles`.**
+
+**Pinned by** `tests/Feature/StaffAuthorityBoundaryTest.php` (11 tests). Two guards: an *authority-set pin* (the
+declared set equals exactly the three permissions; every other catalogue permission is non-administrative; it
+fails closed for any permission added or removed at any scope) and an *administrability invariant* (a `director`
+can provision and then administer every role except `director`; a `technical_admin` can administer every role whose
+administrative set is empty — the test that would have caught AC-01 the day `inventory.reorder.manage.branch` was
+added). Escalation tests: `technical_admin` cannot re-assign `ca_supervisor` after demoting it; cannot demote or
+manage a `director` on either the manage or the demotion path; can demote a peer `technical_admin`; a peer
+`hr_manager` can edit and deactivate another `hr_manager` but **cannot change that account's roles or branch
+assignments**; an actor holding only operational `.manage.` permissions gains no authority over anyone; a
+directly-granted `staff.manage.organisation` makes an account administrable only by actors holding it; and
+self-management is refused for all four abilities. The tests were confirmed red against the old substring rule
+(3 failures, 3 errors, including `director` provisioning `ca_supervisor`) and green against the new one.
+`BillingBoundaryTest` asserts the outcome (`prices.publish.organisation` is not administrative), not the
+mechanism, and is unchanged.
 
 ## 7. Updating this file
 
