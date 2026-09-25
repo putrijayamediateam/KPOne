@@ -6,6 +6,21 @@ final class PermissionCatalogue
 {
     public const PROTECTED_AUTHORITY_ROLE = 'director';
 
+    /**
+     * Authority over people and access, not capability over records. Holding all of a
+     * target's permissions in this set is what lets one account administer another.
+     * Operational `.manage.` permissions (catalogues, references, pricing, check-in links,
+     * reorder levels) are deliberately absent. A new permission is never administrative
+     * until it is added here on purpose.
+     *
+     * @var list<string>
+     */
+    public const AUTHORITY_OVER_PEOPLE_AND_ACCESS = [
+        'staff.manage.organisation',
+        'branches.manage.organisation',
+        'access.manage.organisation',
+    ];
+
     /** @return list<string> */
     public static function all(): array
     {
@@ -254,6 +269,6 @@ final class PermissionCatalogue
 
     public static function isAdministrativeAuthority(string $permission): bool
     {
-        return str_contains($permission, '.manage.');
+        return in_array($permission, self::AUTHORITY_OVER_PEOPLE_AND_ACCESS, true);
     }
 }
