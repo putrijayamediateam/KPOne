@@ -111,7 +111,16 @@ Still open:
 7. Reported, not fixed: hold/resume lock-order inversion (PostgreSQL retries it, `DB::transaction(..., 3)`);
    single-branch "doctor busy" check; `resident_doctor` hard-coded in hold; minors must supply their own mobile
    number.
-8. Housekeeping: stray root file `toArray())`; add `.pnpm-store/` to `.gitignore`; refresh `PROJECT.md` and the
+8. **No role can create a `director` or an operational account from a freshly migrated database.** Found
+   while walking UI-1 step 2 against the merged tree. The only account `KPOneDevelopmentSeeder` creates is a
+   `technical_admin`, and `canAssignRoles` (correctly, and unchanged by AC-01) lets a `technical_admin` grant only
+   `business_development`, `marketing`, `hr_manager` and `technical_admin`. From the seeded account, provisioning
+   `director`, `ca_supervisor`, `finance_officer`, `resident_doctor` or `ca` returns HTTP 403, and the create form
+   does not offer those roles. A `director` can provision all of them. So the UI-1 acceptance test as literally
+   worded ("freshly migrated database, no seeder, no manual SQL") cannot be met: someone must first create a
+   `director` outside the UI. Not fixed here; it is an owner decision about how the first director is bootstrapped,
+   and it must not be solved by loosening `canAssignRoles`.
+9. Housekeeping: stray root file `toArray())`; add `.pnpm-store/` to `.gitignore`; refresh `PROJECT.md` and the
    "not yet authorised" list in `AGENTS.md`; `PREVIEW_README.txt` release marker still says D3.
 
 ### Registration board — branch `fix/registration-board-stale-rows-and-dates` (base `main` `8ef519b`)
@@ -250,6 +259,14 @@ and no-batches-in-props tests; the permission migration's fresh-grant, already-s
 up→down→up idempotency, and (director/ca_supervisor)-hold/other-roles-do-not-hold tests; and 403-without-permission
 plus happy-path HTTP feature tests for all four new controller areas, including a direct test that `director`
 can reach Pricing but is refused at `publish` while `finance_officer` is not.
+
+**Test counts, by tree.** `main` at `e8751b6`: 656 tests (the figure recorded above). `main` at `ac9a0e5`
+(AC-01 merged): 667 (656 plus AC-01's 11). The UI-1 tree at `903d929`, before `main` was merged in: 682 (656 plus
+UI-1's 26). **The merged tree, `a23d177` (UI-1 plus `main` at `ac9a0e5`), measured on PostgreSQL 18 on
+2026-09-25: 693 tests, 691 passed, 2 skipped, 8,045 assertions, 0 failures** — exactly 656 + 26 + 11. The two
+skips are the two `RegistrationTest` cases named in the AC-01 section. `node --test tests/Frontend/*.mjs` on the
+merged tree: 171 tests (163 from `main` plus UI-1's 8), all passing. Pint, PHPStan, `vue-tsc`, ESLint, Prettier,
+`npm run build` and `git diff --check` all pass on the merged tree.
 
 **Opening Balance Batch picker.** The first build asked the operator to paste a Batch UUID; review rejected
 that as unusable. Batch is now a picker scoped to the selected SKU, loaded on demand from one read-only
