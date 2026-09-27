@@ -522,16 +522,24 @@ class PublicIntakeReviewService
      * Displayed age is derived, never trusted verbatim: a malformed, future or
      * implausible stored date of birth (legacy or synthetic data) must show as
      * unavailable rather than an impossible age such as "2023 years".
+     *
+     * The date is parsed strictly as Y-m-d. A lenient parser reads text such as
+     * '2023' as a clock time, which produces a plausible-looking age that depends
+     * on the hour, so anything that is not exactly a real Y-m-d date is unavailable.
      */
     private function ageOrNull(mixed $dateOfBirth): ?int
     {
-        if (! is_string($dateOfBirth) || $dateOfBirth === '') {
+        if (! is_string($dateOfBirth) || preg_match('/^\d{4}-\d{2}-\d{2}$/D', $dateOfBirth) !== 1) {
             return null;
         }
 
         try {
-            $parsed = Carbon::parse($dateOfBirth);
-        } catch (\Exception) {
+            $parsed = Carbon::createFromFormat('!Y-m-d', $dateOfBirth);
+        } catch (\Throwable) {
+            return null;
+        }
+
+        if (! $parsed instanceof Carbon || $parsed->format('Y-m-d') !== $dateOfBirth) {
             return null;
         }
 
