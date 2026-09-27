@@ -41,6 +41,7 @@ Yezza remains the operational source of truth. Nothing below is production-appro
 | OH-06 / OH-06b | Inertia `preserveState` left `useForm` state stale after Hold/Resume. Data was never lost in the database; the form was not re-synced. Fixed in `Clinical/Show.vue` (`e796620`) and `TreatmentPlanPanel.vue` (`a376069`): clean form adopts content and lock version together, dirty form is never overwritten and shows a drift banner | Merged in PR #30 |
 | **RB-01 / RB-02 shipped** | Registration board: stale rows after a failed or thrown search cleared; each visit's own registered date projected. PR #31 merged into `main` as `bc29c28` (merge commit). Post-merge CI green | **Merged 2026-09-24** |
 | AC-01 | Staff authority: no role could provision or administer a `ca_supervisor`. Administrative authority changed from a `.manage.` substring match to a declared set (staff, branches, access); `canAssignRoles` untouched. Found by human walkthrough of UI-1 at step 2 | Implemented on `fix/ac-01-staff-authority` (base `e8751b6`); not merged — see section 6 |
+| DOB-01 | `PublicIntakeReviewService::ageOrNull()` parsed a stored date of birth with the lenient `Carbon::parse()`, so text such as `'2023'` (read as the clock time 20:23) produced an age of 0 for the last 3 h 37 min of every UTC day. Now parsed strictly as `Y-m-d`; anything else is unavailable. Frozen-clock regression test added | Committed on `fix/dob-01-strict-date-parse` (base `ac9a0e5`); not pushed — see section 6 |
 
 End-to-end synthetic flow working on `main`: Registration → Queue → Consultation → Treatment Plan →
 Dispensary → Billing/payment → Completed Visit.
@@ -261,6 +262,58 @@ self-management is refused for all four abilities. The tests were confirmed red 
 (3 failures, 3 errors, including `director` provisioning `ca_supervisor`) and green against the new one.
 `BillingBoundaryTest` asserts the outcome (`prices.publish.organisation` is not administrative), not the
 mechanism, and is unchanged.
+
+### DOB-01 — strict date parse — branch `fix/dob-01-strict-date-parse` (base `main` `ac9a0e5`)
+
+**The bug.** `PublicIntakeReviewService::ageOrNull()` turned a stored date of birth into an age with
+`Carbon::parse($dateOfBirth)`. A lenient parser reads the string `'2023'` as a clock time, 20:23 today, not a year.
+That value counted as "future", so the age was correctly unavailable, only before 20:23 in the app timezone (UTC).
+From 20:23 to 24:00 UTC it counted as already past and the age came out as 0. So a malformed stored date of birth
+showed an age of 0 instead of "unavailable" **for 3 hours 37 minutes of every day** (20:23 to 24:00 UTC, which is
+04:23 to 08:00 in Kuala Lumpur). Age drives clinical judgement, and a silently misparsed date can produce a
+plausible-looking wrong age rather than an obviously wrong one, which is why a lenient parser on a date of birth is
+the real defect and not the one string the test happened to use.
+
+**How it was found: by the PX-01 gate, not by any test written for it.** The existing test
+`test_qr_intake_listing_shows_no_age_for_an_implausible_stored_date_of_birth` stores `'2023'`, and it passed in every
+run until the PX-01 full-suite gate happened to run at about 22:30 UTC and failed with "Failed asserting that 0 is
+null". Earlier runs all fell inside the passing hours. The same test then failed identically on the unmodified base
+(`ac5bdda`, no PX-01 change) when run at that hour, which is how it was shown to pre-date PX-01. Waiting for a
+convenient hour was refused: a green obtained by choosing the hour is not evidence.
+
+**The fix.** `ageOrNull()` now accepts only a string that matches `^\d{4}-\d{2}-\d{2}$`, parses it with
+`Carbon::createFromFormat('!Y-m-d', …)`, and rejects any value that does not round-trip to itself (so
+`2000-02-30` does not roll over into March). Everything else is unavailable. The strict pattern already existed in
+`PublicIntakePayloadValidator` (`createFromFormat('!Y-m-d', …)`); this function was the outlier. The existing test and
+its assertions are unchanged.
+
+**The regression test does not depend on the hour.**
+`test_a_malformed_stored_date_of_birth_never_yields_an_age_at_any_time_of_day` freezes the clock at five UTC times
+(00:01, 10:00, 20:22, 20:24 and 21:00) and, at each, asserts that 13 malformed stored values
+(`'2023'`, `'2026'`, `'1230'`, `'0930'`, `'20'`, `'today'`, `'tomorrow'`, `'not a date'`, `'2023-9-5'`, `'2000-02-30'`,
+`'1990-01-01 10:00'`, `' 1990-01-01'`, `'1990/01/01'`) are unavailable, while `1990-01-01` is age 36, a date of birth of
+today is age 0 and tomorrow is unavailable. Proven red first, against the unchanged code, at a real clock of
+04:16 UTC (an hour at which the old test passes): `'2023' must be unavailable at 2026-09-26 21:00:00 — Failed
+asserting that 0 is null.` Green after the fix (88 assertions), at any real hour.
+
+**One bug, not a pattern.** Every other use of a lenient parser in `app/` reads a database value or a request value
+already validated as `date_format:Y-m-d` at the edge (inventory expiry and received dates, movement filters,
+dispensary and billing timestamps). No date of birth entry point (`PatientAdministrationService`,
+`PublicIntakePayloadValidator`, `StorePatientRequest`, `UpdatePatientRequest`, `StoreVisitRequest`,
+`CheckPatientDuplicatesRequest`) accepts unvalidated text. `ageOrNull()` was the one place that re-read stored data
+without re-validating it. The lenient parsers that remain rely on validation happening earlier; that is a design
+dependency worth knowing, not a defect found here.
+
+**Closes open item 10** (the clock-dependent `PublicPatientIntakeTest` failure recorded on
+`feature/px-01-supervisor-pricing`). That item lives on the PX-01 branch, not on `main`, so it is struck when this
+change reaches `main` and PX-01 merges it in.
+
+**Verification, on the DOB-01 tree (`ac9a0e5` plus this change).** PostgreSQL 18 (disposable `kpone_dob01_test`, port
+55498, dropped after use): **668 tests, 666 passed, 2 skipped, 0 failed, 7,857 assertions** — `main` at `ac9a0e5` is 667,
+plus the 1 new test. The 2 skips are the two `RegistrationTest` cases. Pint, PHPStan, `vue-tsc`, ESLint, Prettier,
+`npm run build` and `git diff --check` pass, and `node --test tests/Frontend/*.mjs` is 163 of 163. That suite ran at
+about 04:20 UTC, an hour at which the old defect was invisible, so the full run alone is not evidence of the fix; the
+frozen-clock test above is.
 
 ## 7. Updating this file
 
