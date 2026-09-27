@@ -60,6 +60,13 @@ const submitBook = () => {
         onSuccess: () => bookForm.reset(),
     });
 };
+// The domain service rejects a duplicate Price Book scope with a
+// ValidationException keyed on a synthetic 'scope' field, which has no
+// corresponding form input, so it is read via a loose cast rather than
+// bookForm.errors (typed strictly to branch_id/name/currency).
+const bookScopeError = () =>
+    (bookForm.errors as Record<string, string | undefined>).scope ??
+    bookForm.errors.branch_id;
 
 const chargeTypeOptions = [
     { value: 'consultation', label: 'Consultation' },
@@ -86,10 +93,19 @@ const sourceOptions = () =>
             }))
           : [];
 const submitCharge = () => {
-    chargeForm.post('/pricing/charges', {
-        preserveScroll: true,
-        onSuccess: () => chargeForm.reset(),
-    });
+    chargeForm
+        .transform(
+            ({ type, medicine_public_id, service_public_id, ...rest }) => ({
+                type,
+                ...rest,
+                ...(type === 'medicine' ? { medicine_public_id } : {}),
+                ...(type === 'service' ? { service_public_id } : {}),
+            }),
+        )
+        .post('/pricing/charges', {
+            preserveScroll: true,
+            onSuccess: () => chargeForm.reset(),
+        });
 };
 
 const publishForms = reactive<
@@ -186,6 +202,7 @@ const toggleCharge = (charge: ChargeRow) => {
                             })),
                         ]"
                     />
+                    <InputError :message="bookScopeError()" />
                     <label class="grid gap-1 text-xs">
                         Name
                         <Input
@@ -212,18 +229,27 @@ const toggleCharge = (charge: ChargeRow) => {
                         label="Type"
                         :options="chargeTypeOptions"
                     />
-                    <OperationalSelect
-                        v-if="chargeForm.type === 'medicine'"
-                        v-model="chargeForm.medicine_public_id"
-                        label="Medicine"
-                        :options="sourceOptions()"
-                    />
-                    <OperationalSelect
-                        v-else-if="chargeForm.type === 'service'"
-                        v-model="chargeForm.service_public_id"
-                        label="Clinical Service"
-                        :options="sourceOptions()"
-                    />
+                    <InputError :message="chargeForm.errors.type" />
+                    <template v-if="chargeForm.type === 'medicine'">
+                        <OperationalSelect
+                            v-model="chargeForm.medicine_public_id"
+                            label="Medicine"
+                            :options="sourceOptions()"
+                        />
+                        <InputError
+                            :message="chargeForm.errors.medicine_public_id"
+                        />
+                    </template>
+                    <template v-else-if="chargeForm.type === 'service'">
+                        <OperationalSelect
+                            v-model="chargeForm.service_public_id"
+                            label="Clinical Service"
+                            :options="sourceOptions()"
+                        />
+                        <InputError
+                            :message="chargeForm.errors.service_public_id"
+                        />
+                    </template>
                     <label class="grid gap-1 text-xs">
                         Code
                         <Input

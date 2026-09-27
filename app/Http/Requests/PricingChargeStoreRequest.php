@@ -17,8 +17,8 @@ class PricingChargeStoreRequest extends FormRequest
     {
         return [
             'type' => ['required', Rule::in(['consultation', 'medicine', 'service'])],
-            'medicine_public_id' => ['required_if:type,medicine', 'uuid'],
-            'service_public_id' => ['required_if:type,service', 'uuid'],
+            'medicine_public_id' => ['nullable', 'required_if:type,medicine', 'uuid'],
+            'service_public_id' => ['nullable', 'required_if:type,service', 'uuid'],
             'code' => ['required', 'string', 'max:64'],
             'display_name' => ['required', 'string', 'max:500'],
         ];

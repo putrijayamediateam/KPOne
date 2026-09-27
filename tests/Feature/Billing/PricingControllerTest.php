@@ -25,10 +25,10 @@ class PricingControllerTest extends ClinicalTestCase
             $this->actingAs($actor);
 
             $this->get(route('pricing.index'))->assertForbidden();
-            $this->post(route('pricing.charges.store'), ['type' => 'consultation', 'code' => 'DENY-'.$role, 'display_name' => 'Denied'])->assertForbidden();
+            $this->post(route('pricing.charges.store'), ['type' => 'consultation', 'medicine_public_id' => '', 'service_public_id' => '', 'code' => 'DENY-'.$role, 'display_name' => 'Denied'])->assertForbidden();
             $this->post(route('pricing.charges.activate', $charge))->assertForbidden();
             $this->post(route('pricing.charges.deactivate', $charge))->assertForbidden();
-            $this->post(route('pricing.price-books.store'), ['name' => 'Denied book'])->assertForbidden();
+            $this->post(route('pricing.price-books.store'), ['branch_id' => '', 'name' => 'Denied book', 'currency' => 'MYR'])->assertForbidden();
             $this->post(route('pricing.price-books.activate', $book))->assertForbidden();
             $this->post(route('pricing.price-books.deactivate', $book))->assertForbidden();
         }
@@ -73,14 +73,15 @@ class PricingControllerTest extends ClinicalTestCase
 
         $this->get(route('pricing.index'))->assertOk()->assertInertia(fn ($page) => $page->component('Pricing/Index'));
 
+        // Real browser shape: chargeForm always posts both id fields, only one relevant.
         $this->post(route('pricing.charges.store'), [
-            'type' => 'medicine', 'medicine_public_id' => $medicine->public_id,
+            'type' => 'medicine', 'medicine_public_id' => $medicine->public_id, 'service_public_id' => '',
             'code' => 'HTTP-PRICE-CHARGE', 'display_name' => 'Synthetic priced charge',
         ])->assertRedirect(route('pricing.index'));
         $charge = ChargeDefinition::query()->where('code', 'HTTP-PRICE-CHARGE')->sole();
         $this->assertSame('medicine:'.$medicine->id, $charge->source_key);
 
-        $this->post(route('pricing.price-books.store'), ['name' => 'Synthetic HTTP price book', 'currency' => 'MYR'])
+        $this->post(route('pricing.price-books.store'), ['branch_id' => '', 'name' => 'Synthetic HTTP price book', 'currency' => 'MYR'])
             ->assertRedirect(route('pricing.index'));
         $book = PriceBook::query()->where('name', 'Synthetic HTTP price book')->sole();
 
