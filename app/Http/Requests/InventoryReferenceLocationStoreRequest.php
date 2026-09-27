@@ -2,11 +2,14 @@
 
 namespace App\Http\Requests;
 
+use App\Http\Requests\Concerns\RedirectsInventoryValidationFailuresToIndex;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
 class InventoryReferenceLocationStoreRequest extends FormRequest
 {
+    use RedirectsInventoryValidationFailuresToIndex;
+
     public function authorize(): bool
     {
         return true;

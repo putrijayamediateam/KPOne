@@ -17,16 +17,21 @@ use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 
 class InventoryReferenceController extends Controller
 {
     public function storeItem(InventoryReferenceItemStoreRequest $request, InventoryReferenceAdministrationService $service): RedirectResponse
     {
-        $service->createItem($request->user(), $request->validated());
+        try {
+            $service->createItem($request->user(), $request->validated());
+        } catch (ValidationException $exception) {
+            throw $this->stayOnInventory($exception);
+        }
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Inventory Item created.')]);
 
-        return back();
+        return to_route('inventory.index');
     }
 
     public function storeSku(InventoryReferenceSkuStoreRequest $request, InventoryReferenceAdministrationService $service): RedirectResponse
@@ -37,10 +42,14 @@ class InventoryReferenceController extends Controller
             ->where('organisation_id', $actor->organisation_id)
             ->where('public_id', $data['inventory_item_public_id'])
             ->firstOrFail();
-        $service->createSku($actor, $item, collect($data)->except('inventory_item_public_id')->all());
+        try {
+            $service->createSku($actor, $item, collect($data)->except('inventory_item_public_id')->all());
+        } catch (ValidationException $exception) {
+            throw $this->stayOnInventory($exception);
+        }
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Inventory SKU created.')]);
 
-        return back();
+        return to_route('inventory.index');
     }
 
     public function storeLocation(InventoryReferenceLocationStoreRequest $request, InventoryReferenceAdministrationService $service): RedirectResponse
@@ -50,10 +59,14 @@ class InventoryReferenceController extends Controller
         $branch = filled($data['branch_id'] ?? null)
             ? Branch::query()->where('organisation_id', $actor->organisation_id)->where('id', (int) $data['branch_id'])->firstOrFail()
             : null;
-        $service->createLocation($actor, $branch, null, ['code' => $data['code'], 'name' => $data['name'], 'type' => $data['type']]);
+        try {
+            $service->createLocation($actor, $branch, null, ['code' => $data['code'], 'name' => $data['name'], 'type' => $data['type']]);
+        } catch (ValidationException $exception) {
+            throw $this->stayOnInventory($exception);
+        }
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Inventory Location created.')]);
 
-        return back();
+        return to_route('inventory.index');
     }
 
     public function storeBatch(InventoryReferenceBatchStoreRequest $request, InventoryReferenceAdministrationService $service): RedirectResponse
@@ -64,14 +77,18 @@ class InventoryReferenceController extends Controller
             ->where('organisation_id', $actor->organisation_id)
             ->where('public_id', $data['inventory_sku_public_id'])
             ->firstOrFail();
-        $service->createBatch($actor, $sku, [
-            'batch_number' => $data['batch_number'],
-            'expiry_date' => $data['expiry_date'],
-            'received_at' => $data['received_at'] ?? null,
-        ]);
+        try {
+            $service->createBatch($actor, $sku, [
+                'batch_number' => $data['batch_number'],
+                'expiry_date' => $data['expiry_date'],
+                'received_at' => $data['received_at'] ?? null,
+            ]);
+        } catch (ValidationException $exception) {
+            throw $this->stayOnInventory($exception);
+        }
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Inventory Batch created.')]);
 
-        return back();
+        return to_route('inventory.index');
     }
 
     public function skuBatches(Request $request, string $sku): JsonResponse
@@ -109,9 +126,26 @@ class InventoryReferenceController extends Controller
             ->where('organisation_id', $actor->organisation_id)
             ->where('public_id', $data['inventory_sku_public_id'])
             ->firstOrFail();
-        $service->createMapping($actor, $medicine, $sku);
+        try {
+            $service->createMapping($actor, $medicine, $sku);
+        } catch (ValidationException $exception) {
+            throw $this->stayOnInventory($exception);
+        }
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Medicine linked to the Inventory SKU.')]);
 
-        return back();
+        return to_route('inventory.index');
+    }
+
+    /**
+     * NAV-01: these forms are only ever submitted from the Inventory Stock Setup
+     * panel, so a failed create must land back there - never Laravel's default
+     * `back()` resolution, which (for an Inertia SPA where almost all navigation
+     * is client-side XHR, not a full page load) can land on a much older page
+     * from earlier in the session rather than the page the request came from.
+     * This is the same fix OH-06d already made for the hold/resume path.
+     */
+    private function stayOnInventory(ValidationException $exception): ValidationException
+    {
+        return $exception->redirectTo(route('inventory.index'));
     }
 }

@@ -43,6 +43,7 @@ Yezza remains the operational source of truth. Nothing below is production-appro
 | TH-01 | PostgreSQL contention harness: replaced ~30 hardcoded worker deadlines/timeouts across 10 `Postgres*RegressionTest.php` files with `Tests\Support\ContentionTimeouts` (overridable via `KPONE_CONTENTION_READY_TIMEOUT`/`KPONE_CONTENTION_PROTOCOL_TIMEOUT`). No assertion or contention protocol step changed | Merged PR #33 as `e8751b6` (merge commit); post-merge CI green; branch kept |
 | AC-01 | Staff authority: no role could provision or administer a `ca_supervisor`. Administrative authority changed from a `.manage.` substring match to a declared set (staff, branches, access); `canAssignRoles` untouched. Found by human walkthrough of UI-1 at step 2 | Merged PR #34 as `ac9a0e5` (merge commit); post-merge CI green; branch kept |
 | UI-1 | Reference Data UI so the patient journey is walkable by a person: Medicine Catalogue and Clinical Service Catalogue screens (the latter backed by a new `ClinicalServiceCatalogueAdministrationService`, mirroring `MedicineAdministrationService`, and one new additive permission `clinical_services.manage.organisation`), Pricing (Charge Definition, Price Book, versioned publish), and thin stock-setup screens (Inventory Item/SKU/Location/Batch/medicine↔SKU mapping, plus an Opening Balance form) over the existing, previously UI-less Inventory Reference and Movement routes. Frontend and thin-controller work only; the one schema-adjacent change is the authorised permission migration | Committed as `903d929` on `feature/ui-1-reference-data-ui` (base `e8751b6`), then merged with `main` at `ac9a0e5`; not pushed, not merged to `main`; all automated gates green; human acceptance walkthrough pending — see section 6 |
+| NAV-01 | Reference-data and operational Inventory forms redirected via bare `back()`, which for an Inertia SPA resolves to the last *full page* GET the session recorded, not the page the request came from — the owner hit it at step 12 of the UI-1 walkthrough (creating a Medicine sent her to Pricing). Recurrence of OH-06d. Fixed with explicit `to_route('inventory.index')`, both for success and for a caught validation failure, across 30 actions in 3 controllers | Committed on `fix/nav-01-explicit-redirects` (base `ac5bdda`); not pushed — see section 6 |
 
 
 End-to-end synthetic flow: proven by tests via factories on `main`. Before UI-1, no screen anywhere could
@@ -296,6 +297,91 @@ the invoice at the price that was set — has not been run. Automated gates prov
 they do not prove the click-through itself. This is deliberately left to the owner's own manual walkthrough
 (script handed over separately) rather than claimed here. UI-1 is committed locally as `903d929` (not pushed) so the change set is
 not at risk; pushing it and opening its PR wait on that confirmation.
+
+### NAV-01 — explicit Inventory redirects — branch `fix/nav-01-explicit-redirects` (base `feature/ui-1-reference-data-ui` `ac5bdda`)
+
+**The defect, found by the owner's hand at step 12 of the UI-1 walkthrough, while 700 tests passed.** Creating a
+Medicine Catalogue reference record (an Inventory Item, then a Location) in the Stock Setup panel sent her to the
+Pricing page instead of back to Inventory. The records were created correctly — this was never a data-loss bug —
+but the resulting confusion led her to use the browser Back button to return to Inventory, and the SKU-creation
+dropdown then showed only the pre-existing catalogue, not the item she had just created.
+
+**The mechanism, traced rather than guessed.** `Illuminate\Session\Middleware\StartSession::storeCurrentUrl()`
+only records the session's `_previous.url` for a `GET` request that is **not** AJAX. Inertia sends
+`X-Requested-With: XMLHttpRequest` on every navigation, so almost none of an Inertia SPA's browsing ever updates
+`_previous.url` — it stays wherever it was last set by a genuine full/hard page load. Laravel's `back()` resolves
+to that frozen value, which is very often not the page the request actually came from. The owner's own session row
+(decrypted read-only, with her explicit authorisation for that one read) showed `_previous.url` pinned at
+`/pricing`, confirming the mechanism directly rather than by inference.
+
+**Why the stale dropdown was a second symptom of the same bug, not a separate one.** Inertia's browser Back/Forward
+handling (`handlePopstateEvent` in `@inertiajs/core`) restores the page snapshot cached in `history.state`, without
+a network request. Landing unexpectedly on Pricing led her to press Back to return to Inventory; Back therefore
+restored the *pre-creation* snapshot of the Inventory page — a client-side cache read, not a stale query.
+
+**A recurrence, not a new defect class.** OH-06d (2026-09-23, already in this document) fixed the identical
+`back()` problem for the Hold/Resume path with `to_route('encounters.show', ...)`. UI-1 reintroduced the same
+pattern in five new actions without knowing that history. NAV-01 follows OH-06d's exact shape rather than inventing
+a new one: an explicit `to_route()` on success, and a caught `ValidationException` re-thrown with an explicit
+`->redirectTo()` on failure, so a blocked or invalid attempt lands on the same page too.
+
+**The invisible-validation-error risk, proven and closed.** A failed create has two distinct failure stages, both
+of which defaulted to `back()`'s broken resolution before this fix: the request's own field validation (handled by
+Laravel *before* the controller method runs, via `FormRequest::failedValidation()`) and a business-rule failure
+thrown by the domain service *inside* the controller method. Both are now redirected explicitly to
+`inventory.index` — the request-level failures via a small shared trait
+(`App\Http\Requests\Concerns\RedirectsInventoryValidationFailuresToIndex`, applied to all 7 affected
+`FormRequest` classes), the service-level failures via a private `stayOnInventory()` helper on each controller,
+mirroring OH-06d's `stayOnConsultation()`. Because the redirect target is the same page the form lives on (unlike
+OH-06d's target, a different page with no form), the existing per-field `InputError` bindings already display the
+message once the redirect lands correctly — no separate error toast was needed.
+
+**Scope: fixed in reference-data and operational Inventory forms; everything else surveyed and left.** Every
+`return back();` in `app/` was found and classified — file, line, its intended target, and whether it is reached
+by an Inertia (AJAX) request, which every one of them is:
+
+| File:line | Trying to return to | Fixed |
+|---|---|---|
+| `InventoryReferenceController.php`:29,43,56,74,115 | Inventory Stock Setup panel | **Yes** |
+| `InventoryMovementController.php`:18,26 | Inventory Stock Setup panel (Opening Balance / Transfer) | **Yes** |
+| `InventoryOperationsController.php`:192 (shared `success()`, 23 actions) | Inventory Operations panel | **Yes** |
+| `BranchContextController.php`:23 | wherever the branch switcher was opened (global header, every page) | No — reported |
+| `DispensaryController.php`:72 (`acknowledge`) | the clinical page embedding `DispensaryAttentionPanel.vue` | No — reported |
+| `PublicIntakeReviewController.php`:42,51,60 (`start`/`correct`/`correctionRequired`) | the Registration Review page | No — reported |
+| `Settings\SecurityController.php`:35 | the Security settings page | No — reported |
+
+One finding worth flagging on its own: **`PublicIntakeReviewController` already carries a partial fix.** Its
+`reject` and `accept` actions were already changed to `to_route('registration.index', ['tab' => 'qr-intake'])`
+at some earlier point, while `start`, `correct` and `correctionRequired` in the very same file were not. This is
+the clearest evidence that the lesson from OH-06d did not travel with the pattern - the fix landed in some call
+sites and not their neighbours in the same class.
+
+**Guarded so a fourth occurrence is caught immediately, not by a human at step 12 again.**
+`tests/Feature/Clinical/NAV01ExplicitRedirectsTest.php` (9 tests) asserts the exact redirect target -
+`assertRedirect(route('inventory.index'))` - for every one of the five reference-data actions (success and a
+domain-thrown duplicate-code failure), both movement actions, and a representative Operations action on both its
+success and its inline-`validate()` failure path. **Proven red first**: with the fix's ten tracked files stashed
+back to their original `back()` code (the new test and trait files left in place), 8 of 9 failed on the exact
+assertion the fix repairs, for example:
+
+    Failed asserting that two strings are equal.
+    --- Expected
+    +++ Actual
+    @@ @@
+    -'http://localhost/inventory'
+    +'http://localhost'
+
+This is exactly the failure item 4 predicted: a feature test's session carries no `_previous.url` at all, so
+`back()` resolves to `/` even in the test environment, not merely to the wrong page in the browser. The ninth
+test (the `FormRequest`-level validation-failure case) also failed, with a different symptom (an internal
+`TypeError` from asserting session errors against the unfixed code's response shape) - a second, independent
+piece of evidence that the old code was broken on that path too. The existing `InventoryReferenceControllerTest`
+and `PricingControllerTest`-style assertions only ever called `assertRedirect()` with no argument, which accepts
+any 3xx response and therefore could never have caught this - the gap the new tests close.
+
+**A cheap build-time guard was considered, not built, as instructed.** A PHP-CS-Fixer or a small static-analysis
+rule could flag any new bare `return back();` inside `app/Http/Controllers`, forcing a reviewer to either name an
+explicit route or add a suppression with a reason. This is not implemented here and would need its own approval.
 
 ### AC-01 — staff authority — branch `fix/ac-01-staff-authority` (base `main` `e8751b6`)
 

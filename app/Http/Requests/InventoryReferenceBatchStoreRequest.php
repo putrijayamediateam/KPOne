@@ -2,10 +2,13 @@
 
 namespace App\Http\Requests;
 
+use App\Http\Requests\Concerns\RedirectsInventoryValidationFailuresToIndex;
 use Illuminate\Foundation\Http\FormRequest;
 
 class InventoryReferenceBatchStoreRequest extends FormRequest
 {
+    use RedirectsInventoryValidationFailuresToIndex;
+
     public function authorize(): bool
     {
         return true;
