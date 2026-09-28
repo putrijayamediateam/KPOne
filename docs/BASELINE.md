@@ -1,6 +1,6 @@
 # KPOne Baseline
 
-Snapshot date: 2026-09-24 · `main` at `1cdc9b7` (PR #32) · supersedes the status line in `PROJECT.md`.
+Snapshot date: 2026-09-28 · `main` at `8a9bd4c` (PR #37) · supersedes the status line in `PROJECT.md`.
 Phase status confirmed by the owner on 2026-09-21.
 
 Yezza remains the operational source of truth. Nothing below is production-approved; all data is synthetic.
