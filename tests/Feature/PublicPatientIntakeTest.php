@@ -17,6 +17,7 @@ use App\Domain\Visit\Models\Visit;
 use App\Domain\Visit\Services\VisitReasonService;
 use App\Http\Controllers\PublicCheckInController;
 use App\Http\Middleware\ValidatePublicIntakeProxy;
+use Carbon\Carbon;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
@@ -983,6 +984,58 @@ SQL);
         $intake->forceFill(['encrypted_payload' => $payload])->save();
         $listing = app(PublicIntakeReviewService::class)->listing($reviewer);
         $this->assertNull($listing['items'][0]['summary']['age']);
+    }
+
+    /**
+     * A lenient date parser reads text such as '2023' as a clock time (20:23 today), so a stored
+     * value that is not a Y-m-d date can look like a valid age depending on the hour. The clock is
+     * frozen on both sides of that hour so the result can never depend on when the suite runs.
+     */
+    public function test_a_malformed_stored_date_of_birth_never_yields_an_age_at_any_time_of_day(): void
+    {
+        [, $session] = $this->publicSession();
+        $this->postJson(route('public-intake.submit'), $this->payload($session))->assertCreated();
+        $intake = PublicPatientIntake::query()->sole();
+
+        // Freeze before creating the actor so the branch assignment's
+        // valid_from (real now()->subDay() at creation time) is anchored to
+        // the same frozen day as the assertions below, not to whatever day
+        // the suite actually runs on.
+        Carbon::setTestNow(Carbon::parse('2026-09-26 00:00:00', 'UTC'));
+        $reviewer = $this->actor('ca');
+        $this->selectBranch($reviewer);
+        Carbon::setTestNow();
+
+        $ageWhen = function (string $storedDateOfBirth, string $frozenAtUtc) use ($intake, $reviewer): ?int {
+            $payload = $intake->encrypted_payload;
+            data_set($payload, 'patient.date_of_birth', $storedDateOfBirth);
+            $intake->forceFill(['encrypted_payload' => $payload])->save();
+
+            Carbon::setTestNow(Carbon::parse($frozenAtUtc, 'UTC'));
+
+            try {
+                return app(PublicIntakeReviewService::class)->listing($reviewer)['items'][0]['summary']['age'];
+            } finally {
+                Carbon::setTestNow();
+            }
+        };
+
+        $malformed = [
+            '2023', '2026', '1230', '0930', '20', 'today', 'tomorrow', 'not a date',
+            '2023-9-5', '2000-02-30', '1990-01-01 10:00', ' 1990-01-01', '1990/01/01',
+        ];
+
+        // 21:00 UTC is inside the hours in which the lenient parser misread '2023' as already past;
+        // 20:22 and 10:00 are before it. 20:24 and 00:01 sit either side of the boundary.
+        foreach (['2026-09-26 21:00:00', '2026-09-26 20:24:00', '2026-09-26 20:22:00', '2026-09-26 10:00:00', '2026-09-26 00:01:00'] as $frozenAt) {
+            foreach ($malformed as $stored) {
+                $this->assertNull($ageWhen($stored, $frozenAt), "'{$stored}' must be unavailable at {$frozenAt}");
+            }
+
+            $this->assertSame(36, $ageWhen('1990-01-01', $frozenAt), "well-formed date at {$frozenAt}");
+            $this->assertSame(0, $ageWhen('2026-09-26', $frozenAt), "born today at {$frozenAt}");
+            $this->assertNull($ageWhen('2026-09-27', $frozenAt), "born tomorrow at {$frozenAt}");
+        }
     }
 
     public function test_feature_flag_disables_public_intake_outside_the_workflow(): void

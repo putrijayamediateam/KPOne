@@ -1,6 +1,6 @@
 # KPOne Baseline
 
-Snapshot date: 2026-09-24 · `main` at `1cdc9b7` (PR #32) · supersedes the status line in `PROJECT.md`.
+Snapshot date: 2026-09-28 · `main` at `8a9bd4c` (PR #37) · supersedes the status line in `PROJECT.md`.
 Phase status confirmed by the owner on 2026-09-21.
 
 Yezza remains the operational source of truth. Nothing below is production-approved; all data is synthetic.
@@ -43,6 +43,8 @@ Yezza remains the operational source of truth. Nothing below is production-appro
 | TH-01 | PostgreSQL contention harness: replaced ~30 hardcoded worker deadlines/timeouts across 10 `Postgres*RegressionTest.php` files with `Tests\Support\ContentionTimeouts` (overridable via `KPONE_CONTENTION_READY_TIMEOUT`/`KPONE_CONTENTION_PROTOCOL_TIMEOUT`). No assertion or contention protocol step changed | Merged PR #33 as `e8751b6` (merge commit); post-merge CI green; branch kept |
 | AC-01 | Staff authority: no role could provision or administer a `ca_supervisor`. Administrative authority changed from a `.manage.` substring match to a declared set (staff, branches, access); `canAssignRoles` untouched. Found by human walkthrough of UI-1 at step 2 | Merged PR #34 as `ac9a0e5` (merge commit); post-merge CI green; branch kept |
 | UI-1 | Reference Data UI so the patient journey is walkable by a person: Medicine Catalogue and Clinical Service Catalogue screens (the latter backed by a new `ClinicalServiceCatalogueAdministrationService`, mirroring `MedicineAdministrationService`, and one new additive permission `clinical_services.manage.organisation`), Pricing (Charge Definition, Price Book, versioned publish), and thin stock-setup screens (Inventory Item/SKU/Location/Batch/medicine↔SKU mapping, plus an Opening Balance form) over the existing, previously UI-less Inventory Reference and Movement routes. Frontend and thin-controller work only; the one schema-adjacent change is the authorised permission migration | Committed as `903d929` on `feature/ui-1-reference-data-ui` (base `e8751b6`), then merged with `main` at `ac9a0e5`; not pushed, not merged to `main`; all automated gates green; human acceptance walkthrough pending — see section 6 |
+| **DOB-01 shipped** | `PublicIntakeReviewService::ageOrNull()` parsed a stored date of birth with the lenient `Carbon::parse()`, so text such as `'2023'` (read as the clock time 20:23) produced an age of 0 for the last 3 h 37 min of every UTC day. Now parsed strictly as `Y-m-d`; anything else is unavailable. Frozen-clock regression test added. PR #35 merged into `main` as `da3c66a` (merge commit, no squash). Post-merge CI green. Branch `fix/dob-01-strict-date-parse` kept | **Merged 2026-09-28** |
+| PX-01 Part 1 | Supervisor pricing: `ca_supervisor` granted `pricing.references.manage.organisation` and `prices.publish.organisation` (owner decision 2026-09-27, reversing an earlier separation of duties); additive migration; two existing assertions changed to encode the new rule | Committed on `feature/px-01-supervisor-pricing` (base `ac5bdda`); not pushed — see section 6 |
 
 
 End-to-end synthetic flow: proven by tests via factories on `main`. Before UI-1, no screen anywhere could
@@ -122,6 +124,11 @@ Still open:
    and it must not be solved by loosening `canAssignRoles`.
 9. Housekeeping: stray root file `toArray())`; add `.pnpm-store/` to `.gitignore`; refresh `PROJECT.md` and the
    "not yet authorised" list in `AGENTS.md`; `PREVIEW_README.txt` release marker still says D3.
+
+10. **Clock-dependent failure in `PublicPatientIntakeTest`, from a latent defect in `PublicIntakeReviewService::ageOrNull()`.**
+    `Carbon::parse()` accepts any string, and `'2023'` parses as 20:23 today, so a malformed stored date of birth shows
+    an age of 0 after 20:23 UTC instead of "unavailable". The fix belongs in the code (parse strictly as `Y-m-d` and
+    treat anything else as unavailable), not in the test. Found while running the PX-01 gate; not fixed there.
 
 ### Registration board — branch `fix/registration-board-stale-rows-and-dates` (base `main` `8ef519b`)
 
@@ -227,9 +234,9 @@ a narrow, explicitly scoped exception (UI-1A) to UI-1's own "frontend and thin c
 **How pricing reaches the invoice, and why the UI keeps two permissions separate.** `ChargeDefinition` (a
 charge's identity — code, type, source) and `PriceEntry` (its amount) are already modelled separately, with
 `PriceEntry` append-only/immutable and versioned per `PriceBook`. Reference management
-(`pricing.references.manage.organisation`, held by `finance_officer` and `director`) creates Charge Definitions
-and Price Books; publishing an amount (`prices.publish.organisation`) is a **separate** permission held only by
-`finance_officer` — `director` can reach the Pricing screen and manage references but cannot publish a price.
+(`pricing.references.manage.organisation`, held by `finance_officer` and `director` and, since PX-01, `ca_supervisor`) creates Charge Definitions
+and Price Books; publishing an amount (`prices.publish.organisation`) is a **separate** permission held by
+`finance_officer` and, since PX-01, `ca_supervisor` (originally `finance_officer` only) — `director` can reach the Pricing screen and manage references but cannot publish a price.
 The new `Pricing/Index.vue` reflects this: the publish column and action are gated by a server-computed
 `canPublish`, distinct from page access, and publication carries the existing optimistic-concurrency
 `expected_version`/`expected_branch_id` exactly as `PricePublicationService::publish()` already required. No
@@ -281,7 +288,8 @@ holding `inventory.references.manage.organisation`. To be bounded in their own c
 the one projection it introduced.
 
 **Director and price publishing — reviewed, deliberate.** Publishing an amount (`prices.publish.organisation`) is
-an execution permission held only by `finance_officer`, consistent with roughly ten permissions that split
+an execution permission held by `finance_officer` and, since PX-01, `ca_supervisor` (originally `finance_officer`
+only — see the PX-01 section), consistent with roughly ten permissions that split
 oversight (`director`) from execution. An owner who needs to publish holds the `finance_officer` role rather
 than widening the permission.
 
@@ -376,6 +384,123 @@ self-management is refused for all four abilities. The tests were confirmed red 
 (3 failures, 3 errors, including `director` provisioning `ca_supervisor`) and green against the new one.
 `BillingBoundaryTest` asserts the outcome (`prices.publish.organisation` is not administrative), not the
 mechanism, and is unchanged.
+
+### PX-01 — supervisor pricing — branch `feature/px-01-supervisor-pricing` (base `ac5bdda`, the UI-1 tip)
+
+**Owner decision, 2026-09-27.** `ca_supervisor` now holds `pricing.references.manage.organisation` and
+`prices.publish.organisation`, and so manages price books, charge definitions and published prices, exactly as
+`finance_officer` does. No permission was invented (both already existed) and no role lost one.
+
+**This is a deliberate reversal, not an oversight.** UI-1 recorded that publishing a price was an execution
+permission held only by `finance_officer`, part of a separation of duties between oversight and execution. The
+owner has since chosen the Yezza pricing model, in which price lives on the item and whoever manages the catalogue
+sets it. Withholding the Pricing menu from the role that manages the Medicine and Clinical Service catalogues
+contradicts that direction, so the earlier separation is reversed for `ca_supervisor`. It is unchanged for every
+other role: `director` can still reach Pricing and manage references but cannot publish, and `ca`,
+`resident_doctor`, `panel_officer`, `technical_admin`, `hr_manager`, `marketing` and `business_development`
+hold neither permission.
+
+**What changed.** `BillingPermissions::roles()`, the file that owns both permissions and `finance_officer`'s grant
+of them, gains the two permissions on `ca_supervisor`, so a fresh install and `PermissionCatalogue::roles()` agree.
+An additive migration, `2026_09_27_000100_grant_ca_supervisor_pricing_permissions_additively`, brings an existing
+database into line: `firstOrCreate` per permission, `givePermissionTo` on the difference, a missing role logged and
+skipped, never `syncPermissions`, `down()` a no-op. It is scoped to this one role and these two permissions on
+purpose, so it cannot change any other role as a side effect. `ca_supervisor` goes from 53 to 55 permissions
+(fresh-install catalogue); every other role's count is unchanged; the catalogue total stays 93.
+
+**Staff administration is unchanged, and pinned.** Neither permission is in
+`PermissionCatalogue::AUTHORITY_OVER_PEOPLE_AND_ACCESS`, so `canManage`, `canAssignRoles` and the AC-01 model are
+untouched: `technical_admin` can still administer but not assign a `ca_supervisor`.
+
+**TWO EXISTING ASSERTIONS WERE CHANGED to encode the new rule — this is a deliberate policy change, not a test
+weakened to go green.** Both encoded the old separation of duties, and each now asserts the new rule positively:
+- `Tests\Feature\Billing\PricingReferenceAdministrationServiceTest` — renamed from
+  `test_permission_mapping_is_limited_to_director_and_finance_officer` to
+  `test_permission_mapping_is_limited_to_director_finance_officer_and_ca_supervisor`. `ca_supervisor` moved from the
+  "must not hold" list to the "must hold" list, and a `ca_supervisor` calling `createConsultationCharge` is now asserted
+  to **succeed** (previously asserted to throw `AuthorizationException`). The denied list for every other role is
+  unchanged.
+- `Tests\Feature\Billing\PricingControllerTest::test_reference_routes_require_pricing_permission` (added in UI-1) —
+  `ca_supervisor` removed from the 403 loop and a positive block added asserting it reaches `/pricing` and can create
+  and toggle a charge and a price book. No other role's assertions changed.
+
+The principle applied: a test failing because the code is wrong is fixed in the code, never in the test; a test
+failing because the owner changed the rule it encodes is updated to state the new rule, and the change is recorded
+here with the reason.
+
+**New coverage:** `tests/Feature/Billing/SupervisorPricingTest.php` (7 tests) — exactly which roles hold each
+permission, the Pricing menu flag, a `ca_supervisor` creating a price book and charge and publishing a price
+(audited), `finance_officer` and `director` unchanged, the grant not touching staff administration, and the migration
+(restores a legacy database, idempotent, up→down→up, never removes, creates a missing permission but never a missing
+role).
+
+**Verification — the gate is NOT fully green, for one unrelated reason.** On the PX-01 tree (`ac5bdda` plus this
+change), PostgreSQL 18, disposable `kpone_px01_test`: **700 tests, 697 passed, 2 skipped, 1 failed, 8,151
+assertions**. 700 is the merged UI-1 tree's 693 plus the 7 new tests. The 2 skips are the two `RegistrationTest`
+cases. Pint, PHPStan, `vue-tsc`, ESLint, Prettier, `npm run build`, `git diff --check` pass, and
+`node --test tests/Frontend/*.mjs` is 171 of 171.
+
+The one failure is `Tests\Feature\PublicPatientIntakeTest::test_qr_intake_listing_shows_no_age_for_an_implausible_stored_date_of_birth`
+("Failed asserting that 0 is null"). It is **not caused by PX-01**: it fails identically on the unmodified base
+(`ac5bdda`, no PX-01 change) when run at the same time. It is clock-dependent. The test stores the string `'2023'`
+as a date of birth, and `PublicIntakeReviewService::ageOrNull()` passes it to `Carbon::parse()`, which reads `'2023'`
+as the clock time 20:23 today rather than a year. That counts as "future" (so the age is correctly unavailable) only
+before 20:23 in the app timezone (UTC); after it the parsed value is in the past, the age is 0, and the assertion
+fails. It therefore passes from 00:00 to 20:22 UTC and fails from 20:23 to 23:59 UTC (04:23 to 08:00 in Kuala
+Lumpur), every day. Earlier runs in this document passed because they ran inside the passing window. It is a
+latent defect in existing code, recorded as open item 10 in section 6; it was not fixed in this change.
+
+### DOB-01 — strict date parse — branch `fix/dob-01-strict-date-parse` (base `main` `ac9a0e5`)
+
+**The bug.** `PublicIntakeReviewService::ageOrNull()` turned a stored date of birth into an age with
+`Carbon::parse($dateOfBirth)`. A lenient parser reads the string `'2023'` as a clock time, 20:23 today, not a year.
+That value counted as "future", so the age was correctly unavailable, only before 20:23 in the app timezone (UTC).
+From 20:23 to 24:00 UTC it counted as already past and the age came out as 0. So a malformed stored date of birth
+showed an age of 0 instead of "unavailable" **for 3 hours 37 minutes of every day** (20:23 to 24:00 UTC, which is
+04:23 to 08:00 in Kuala Lumpur). Age drives clinical judgement, and a silently misparsed date can produce a
+plausible-looking wrong age rather than an obviously wrong one, which is why a lenient parser on a date of birth is
+the real defect and not the one string the test happened to use.
+
+**How it was found: by the PX-01 gate, not by any test written for it.** The existing test
+`test_qr_intake_listing_shows_no_age_for_an_implausible_stored_date_of_birth` stores `'2023'`, and it passed in every
+run until the PX-01 full-suite gate happened to run at about 22:30 UTC and failed with "Failed asserting that 0 is
+null". Earlier runs all fell inside the passing hours. The same test then failed identically on the unmodified base
+(`ac5bdda`, no PX-01 change) when run at that hour, which is how it was shown to pre-date PX-01. Waiting for a
+convenient hour was refused: a green obtained by choosing the hour is not evidence.
+
+**The fix.** `ageOrNull()` now accepts only a string that matches `^\d{4}-\d{2}-\d{2}$`, parses it with
+`Carbon::createFromFormat('!Y-m-d', …)`, and rejects any value that does not round-trip to itself (so
+`2000-02-30` does not roll over into March). Everything else is unavailable. The strict pattern already existed in
+`PublicIntakePayloadValidator` (`createFromFormat('!Y-m-d', …)`); this function was the outlier. The existing test and
+its assertions are unchanged.
+
+**The regression test does not depend on the hour.**
+`test_a_malformed_stored_date_of_birth_never_yields_an_age_at_any_time_of_day` freezes the clock at five UTC times
+(00:01, 10:00, 20:22, 20:24 and 21:00) and, at each, asserts that 13 malformed stored values
+(`'2023'`, `'2026'`, `'1230'`, `'0930'`, `'20'`, `'today'`, `'tomorrow'`, `'not a date'`, `'2023-9-5'`, `'2000-02-30'`,
+`'1990-01-01 10:00'`, `' 1990-01-01'`, `'1990/01/01'`) are unavailable, while `1990-01-01` is age 36, a date of birth of
+today is age 0 and tomorrow is unavailable. Proven red first, against the unchanged code, at a real clock of
+04:16 UTC (an hour at which the old test passes): `'2023' must be unavailable at 2026-09-26 21:00:00 — Failed
+asserting that 0 is null.` Green after the fix (88 assertions), at any real hour.
+
+**One bug, not a pattern.** Every other use of a lenient parser in `app/` reads a database value or a request value
+already validated as `date_format:Y-m-d` at the edge (inventory expiry and received dates, movement filters,
+dispensary and billing timestamps). No date of birth entry point (`PatientAdministrationService`,
+`PublicIntakePayloadValidator`, `StorePatientRequest`, `UpdatePatientRequest`, `StoreVisitRequest`,
+`CheckPatientDuplicatesRequest`) accepts unvalidated text. `ageOrNull()` was the one place that re-read stored data
+without re-validating it. The lenient parsers that remain rely on validation happening earlier; that is a design
+dependency worth knowing, not a defect found here.
+
+**Closes open item 10** (the clock-dependent `PublicPatientIntakeTest` failure recorded on
+`feature/px-01-supervisor-pricing`). That item lives on the PX-01 branch, not on `main`, so it is struck when this
+change reaches `main` and PX-01 merges it in.
+
+**Verification, on the DOB-01 tree (`ac9a0e5` plus this change).** PostgreSQL 18 (disposable `kpone_dob01_test`, port
+55498, dropped after use): **668 tests, 666 passed, 2 skipped, 0 failed, 7,857 assertions** — `main` at `ac9a0e5` is 667,
+plus the 1 new test. The 2 skips are the two `RegistrationTest` cases. Pint, PHPStan, `vue-tsc`, ESLint, Prettier,
+`npm run build` and `git diff --check` pass, and `node --test tests/Frontend/*.mjs` is 163 of 163. That suite ran at
+about 04:20 UTC, an hour at which the old defect was invisible, so the full run alone is not evidence of the fix; the
+frozen-clock test above is.
 
 ## 7. Updating this file
 
