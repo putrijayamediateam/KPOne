@@ -24,18 +24,26 @@ use Tests\Feature\Clinical\ClinicalTestCase;
 
 class PricingReferenceAdministrationServiceTest extends ClinicalTestCase
 {
-    public function test_permission_mapping_is_limited_to_director_and_finance_officer(): void
+    public function test_permission_mapping_is_limited_to_director_finance_officer_and_ca_supervisor(): void
     {
         $roles = PermissionCatalogue::roles();
         $this->assertContains(PricingReferenceAdministrationService::PERMISSION, PermissionCatalogue::all());
-        foreach (['director', 'finance_officer'] as $role) {
+        // PX-01 (owner decision, 2026-09-27): ca_supervisor joins director and finance_officer.
+        foreach (['director', 'finance_officer', 'ca_supervisor'] as $role) {
             $this->assertContains(PricingReferenceAdministrationService::PERMISSION, $roles[$role]);
         }
-        foreach (['ca_supervisor', 'ca', 'resident_doctor', 'panel_officer', 'business_development', 'marketing', 'hr_manager', 'technical_admin'] as $role) {
+        foreach (['ca', 'resident_doctor', 'panel_officer', 'business_development', 'marketing', 'hr_manager', 'technical_admin'] as $role) {
             $this->assertNotContains(PricingReferenceAdministrationService::PERMISSION, $roles[$role]);
         }
 
-        foreach (['ca_supervisor', 'ca', 'resident_doctor', 'panel_officer', 'technical_admin'] as $role) {
+        $charge = $this->service()->createConsultationCharge($this->actor('ca_supervisor'), [
+            'code' => 'sup-consult',
+            'display_name' => 'Synthetic supervisor consultation',
+        ]);
+        $this->assertSame('SUP-CONSULT', $charge->code);
+        $this->assertDatabaseHas('charge_definitions', ['code' => 'SUP-CONSULT', 'type' => 'consultation']);
+
+        foreach (['ca', 'resident_doctor', 'panel_officer', 'technical_admin'] as $role) {
             try {
                 $this->service()->createConsultationCharge($this->actor($role), [
                     'code' => 'DENY-'.$role,
