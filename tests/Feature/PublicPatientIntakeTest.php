@@ -996,8 +996,15 @@ SQL);
         [, $session] = $this->publicSession();
         $this->postJson(route('public-intake.submit'), $this->payload($session))->assertCreated();
         $intake = PublicPatientIntake::query()->sole();
+
+        // Freeze before creating the actor so the branch assignment's
+        // valid_from (real now()->subDay() at creation time) is anchored to
+        // the same frozen day as the assertions below, not to whatever day
+        // the suite actually runs on.
+        Carbon::setTestNow(Carbon::parse('2026-09-26 00:00:00', 'UTC'));
         $reviewer = $this->actor('ca');
         $this->selectBranch($reviewer);
+        Carbon::setTestNow();
 
         $ageWhen = function (string $storedDateOfBirth, string $frozenAtUtc) use ($intake, $reviewer): ?int {
             $payload = $intake->encrypted_payload;
