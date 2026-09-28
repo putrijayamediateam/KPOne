@@ -2,6 +2,7 @@
 import { Head, router } from '@inertiajs/vue3';
 import { computed, ref, watch } from 'vue';
 import InventoryOperationsPanel from '@/components/inventory/InventoryOperationsPanel.vue';
+import InventoryReferenceDataPanel from '@/components/inventory/InventoryReferenceDataPanel.vue';
 import { ActionLink } from '@/components/ui/action-link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -48,6 +49,22 @@ const props = defineProps<{
     inventory: InventoryDirectory;
     operations: InventoryOperations;
     receiptMemoryContext: InventoryReceiptMemoryContext;
+    referenceData: {
+        canManage: boolean;
+        items: Array<{ publicId: string; code: string; genericName: string }>;
+        skus: Array<{
+            publicId: string;
+            skuCode: string;
+            inventoryItemId: number;
+        }>;
+        locations: Array<{ publicId: string; name: string; type: string }>;
+        medicines: Array<{
+            publicId: string;
+            code: string;
+            displayName: string;
+        }>;
+        branches: Array<{ id: number; name: string }>;
+    };
     errors?: Record<string, unknown>;
 }>();
 const search = ref(props.inventory.filters.search);
@@ -543,6 +560,8 @@ const clearFilters = () => {
             Dates and times use {{ inventory.branchTimezone }}. Movement records
             are read-only.
         </p>
+
+        <InventoryReferenceDataPanel :reference-data="referenceData" />
 
         <InventoryOperationsPanel
             :operations="operations"

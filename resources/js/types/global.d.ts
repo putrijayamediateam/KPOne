@@ -28,6 +28,9 @@ declare module '@inertiajs/core' {
                     registrationReview: boolean;
                     consultation: boolean;
                     inventory: boolean;
+                    medicineCatalogue: boolean;
+                    clinicalServiceCatalogue: boolean;
+                    pricing: boolean;
                     patientRecords: boolean;
                     panelWork: boolean;
                     financeWork: boolean;

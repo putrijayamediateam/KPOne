@@ -40,11 +40,18 @@ Yezza remains the operational source of truth. Nothing below is production-appro
 | **Q1-B2-D3 shipped** | PR #30 merged into `main` as `8ef519b` (merge commit, no squash). Post-merge CI green. Branch `fix/q1-b2-d3-registration-qr-hold` kept | **Merged 2026-09-24** |
 | OH-06 / OH-06b | Inertia `preserveState` left `useForm` state stale after Hold/Resume. Data was never lost in the database; the form was not re-synced. Fixed in `Clinical/Show.vue` (`e796620`) and `TreatmentPlanPanel.vue` (`a376069`): clean form adopts content and lock version together, dirty form is never overwritten and shows a drift banner | Merged in PR #30 |
 | **RB-01 / RB-02 shipped** | Registration board: stale rows after a failed or thrown search cleared; each visit's own registered date projected. PR #31 merged into `main` as `bc29c28` (merge commit). Post-merge CI green | **Merged 2026-09-24** |
-| AC-01 | Staff authority: no role could provision or administer a `ca_supervisor`. Administrative authority changed from a `.manage.` substring match to a declared set (staff, branches, access); `canAssignRoles` untouched. Found by human walkthrough of UI-1 at step 2 | Implemented on `fix/ac-01-staff-authority` (base `e8751b6`); not merged — see section 6 |
-| DOB-01 | `PublicIntakeReviewService::ageOrNull()` parsed a stored date of birth with the lenient `Carbon::parse()`, so text such as `'2023'` (read as the clock time 20:23) produced an age of 0 for the last 3 h 37 min of every UTC day. Now parsed strictly as `Y-m-d`; anything else is unavailable. Frozen-clock regression test added | Committed on `fix/dob-01-strict-date-parse` (base `ac9a0e5`); not pushed — see section 6 |
+| TH-01 | PostgreSQL contention harness: replaced ~30 hardcoded worker deadlines/timeouts across 10 `Postgres*RegressionTest.php` files with `Tests\Support\ContentionTimeouts` (overridable via `KPONE_CONTENTION_READY_TIMEOUT`/`KPONE_CONTENTION_PROTOCOL_TIMEOUT`). No assertion or contention protocol step changed | Merged PR #33 as `e8751b6` (merge commit); post-merge CI green; branch kept |
+| AC-01 | Staff authority: no role could provision or administer a `ca_supervisor`. Administrative authority changed from a `.manage.` substring match to a declared set (staff, branches, access); `canAssignRoles` untouched. Found by human walkthrough of UI-1 at step 2 | Merged PR #34 as `ac9a0e5` (merge commit); post-merge CI green; branch kept |
+| UI-1 | Reference Data UI so the patient journey is walkable by a person: Medicine Catalogue and Clinical Service Catalogue screens (the latter backed by a new `ClinicalServiceCatalogueAdministrationService`, mirroring `MedicineAdministrationService`, and one new additive permission `clinical_services.manage.organisation`), Pricing (Charge Definition, Price Book, versioned publish), and thin stock-setup screens (Inventory Item/SKU/Location/Batch/medicine↔SKU mapping, plus an Opening Balance form) over the existing, previously UI-less Inventory Reference and Movement routes. Frontend and thin-controller work only; the one schema-adjacent change is the authorised permission migration | Committed as `903d929` on `feature/ui-1-reference-data-ui` (base `e8751b6`), then merged with `main` at `ac9a0e5`; not pushed, not merged to `main`; all automated gates green; human acceptance walkthrough pending — see section 6 |
+| **DOB-01 shipped** | `PublicIntakeReviewService::ageOrNull()` parsed a stored date of birth with the lenient `Carbon::parse()`, so text such as `'2023'` (read as the clock time 20:23) produced an age of 0 for the last 3 h 37 min of every UTC day. Now parsed strictly as `Y-m-d`; anything else is unavailable. Frozen-clock regression test added. PR #35 merged into `main` as `da3c66a` (merge commit, no squash). Post-merge CI green. Branch `fix/dob-01-strict-date-parse` kept | **Merged 2026-09-28** |
 
-End-to-end synthetic flow working on `main`: Registration → Queue → Consultation → Treatment Plan →
-Dispensary → Billing/payment → Completed Visit.
+
+End-to-end synthetic flow: proven by tests via factories on `main`. Before UI-1, no screen anywhere could
+create a medicine, a clinical service, a price, or branch stock, so a person could not actually walk
+Registration → Queue → Consultation → Treatment Plan → Dispensary → Billing/payment → Completed Visit through
+the UI alone — only an automated test with factory-seeded data could reach Billing with a non-empty invoice.
+UI-1 (committed on `feature/ui-1-reference-data-ui`, not yet merged to `main`) adds that missing UI; whether the
+flow is now walkable by a person is pending the owner's own manual walkthrough (section 6).
 
 ## 2. Domain map (`app/Domain`)
 
@@ -105,7 +112,16 @@ Still open:
 7. Reported, not fixed: hold/resume lock-order inversion (PostgreSQL retries it, `DB::transaction(..., 3)`);
    single-branch "doctor busy" check; `resident_doctor` hard-coded in hold; minors must supply their own mobile
    number.
-8. Housekeeping: stray root file `toArray())`; add `.pnpm-store/` to `.gitignore`; refresh `PROJECT.md` and the
+8. **No role can create a `director` or an operational account from a freshly migrated database.** Found
+   while walking UI-1 step 2 against the merged tree. The only account `KPOneDevelopmentSeeder` creates is a
+   `technical_admin`, and `canAssignRoles` (correctly, and unchanged by AC-01) lets a `technical_admin` grant only
+   `business_development`, `marketing`, `hr_manager` and `technical_admin`. From the seeded account, provisioning
+   `director`, `ca_supervisor`, `finance_officer`, `resident_doctor` or `ca` returns HTTP 403, and the create form
+   does not offer those roles. A `director` can provision all of them. So the UI-1 acceptance test as literally
+   worded ("freshly migrated database, no seeder, no manual SQL") cannot be met: someone must first create a
+   `director` outside the UI. Not fixed here; it is an owner decision about how the first director is bootstrapped,
+   and it must not be solved by loosening `canAssignRoles`.
+9. Housekeeping: stray root file `toArray())`; add `.pnpm-store/` to `.gitignore`; refresh `PROJECT.md` and the
    "not yet authorised" list in `AGENTS.md`; `PREVIEW_README.txt` release marker still says D3.
 
 ### Registration board — branch `fix/registration-board-stale-rows-and-dates` (base `main` `8ef519b`)
@@ -182,6 +198,105 @@ Owner decisions (settled 2026-09-24):
   HR and is accepted deliberately; it is directory data only (name, role, branch) and never clinical or
   patient content. Revisit if the group grows or if a Marketing module changes what those roles can see.
 
+### UI-1 — Reference Data UI — branch `feature/ui-1-reference-data-ui` (base `main` `e8751b6`)
+
+**The finding that started this phase.** No UI anywhere in the application could create a medicine, a clinical
+service, or a price. A doctor had nothing to prescribe, so the Treatment Plan had no orders, so Dispensary had
+nothing to hand over, so Billing's Build step produced an empty invoice. The entire synthetic end-to-end flow
+that tests exercised (Registration → Queue → Consultation → Treatment Plan → Dispensary → Billing → Completed
+Visit) only ever worked because tests supplied their own factory data; it was not reachable by a person. This
+had not been identified as a go-live blocker in the original roadmap.
+
+**A deeper gap surfaced during the survey: the Clinical Service Catalogue had no creation path at all.**
+`ClinicalServiceCatalogueItem` existed as a schema and was already priced (phase P0) and already orderable on a
+Treatment Plan (phase 2B), but nothing outside its test factory could ever construct one — a gap between
+phases 2B and P0 that went unnoticed because both phases' tests supplied their own data. This was authorised as
+a narrow, explicitly scoped exception (UI-1A) to UI-1's own "frontend and thin controller only" boundary:
+
+- A new `ClinicalServiceCatalogueAdministrationService`, built by mirroring `MedicineAdministrationService`
+  exactly (`create`/`update`/`activate`/`deactivate`, no delete method; organisation locking, case-insensitive
+  uniqueness, an identity lock once operational/pricing dependents exist, and an audit record on every write).
+  It deliberately omits `MedicineAdministrationService`'s case-preservation special case for an already-corrected
+  code, since Clinical Service codes are always created uppercase — the one place the mirror intentionally
+  differs, and it is behaviourally equivalent.
+- A hard-delete guard added to `ClinicalServiceCatalogueItem`, mirroring `MedicineCatalogueItem::booted()`.
+- One new permission, `clinical_services.manage.organisation`, shipped by an additive migration following the
+  exact R1-02 pattern (`firstOrCreate` per permission, `givePermissionTo` on the diff per existing role, a
+  missing catalogue role logged and skipped, `down()` a no-op). Granted to exactly the same roles as
+  `medicines.manage.organisation` — `director` and `ca_supervisor`, confirmed by test, not by inspection alone.
+
+**How pricing reaches the invoice, and why the UI keeps two permissions separate.** `ChargeDefinition` (a
+charge's identity — code, type, source) and `PriceEntry` (its amount) are already modelled separately, with
+`PriceEntry` append-only/immutable and versioned per `PriceBook`. Reference management
+(`pricing.references.manage.organisation`, held by `finance_officer` and `director`) creates Charge Definitions
+and Price Books; publishing an amount (`prices.publish.organisation`) is a **separate** permission held only by
+`finance_officer` — `director` can reach the Pricing screen and manage references but cannot publish a price.
+The new `Pricing/Index.vue` reflects this: the publish column and action are gated by a server-computed
+`canPublish`, distinct from page access, and publication carries the existing optimistic-concurrency
+`expected_version`/`expected_branch_id` exactly as `PricePublicationService::publish()` already required. No
+plain overwrite was added; the existing versioned-publish design was followed as found.
+
+**What UI-1 delivered:** Medicine Catalogue and Clinical Service Catalogue list/create/edit/activate/deactivate
+screens (never a hard delete); a Pricing screen for Charge Definitions, Price Books and publish; and thin
+stock-setup screens added to the existing `Inventory/Index.vue` (`InventoryReferenceDataPanel.vue`) — new Item,
+new SKU, new Location, new Batch, and medicine↔SKU mapping forms over the already-existing, already-permissioned
+`InventoryReferenceAdministrationService`, plus the first-ever frontend form for the pre-existing Opening
+Balance route. Create-only for the deeper inventory reference records (item/SKU/location/batch/mapping) was
+judged sufficient to pass the acceptance test; update/activate/deactivate UI for those was not built and is a
+disclosed scope limitation, not an oversight. Purchase orders, goods receipts, stock requests and stocktake UI
+remain out of scope, backend-only, pending UI-2. A new "Reference Data" main-menu group makes all three new
+screens reachable for the roles holding their permissions; `Clinic/Placeholder.vue` was confirmed to be the
+generic "not built yet" stub and was not used as a home for any of this.
+
+**Verification, on the UI-1 tree at `903d929` (before `main` was merged in).** All automated gates green: Pint,
+PHPStan/Larastan (0 errors), `vue-tsc`, ESLint, Prettier, `npm run build`, `git diff --check`. PostgreSQL 18
+(disposable `kpone_ui1c_test`, port 55493, dropped after use, final code including the SKU-batches endpoint):
+682 tests (`main` at `e8751b6` is 656, plus UI-1's 26 new tests), 680 passed, 0 failures,
+7,691 assertions, 2 skipped (the two `RegistrationTest` cases named above) — no PostgreSQL contention test
+skipped. `node --test tests/Frontend/*.mjs` on that tree: 171 tests, 171 passed, 0 failures. New coverage added: the permission-mapping, create/update/audit, duplicate/foreign-tenant,
+unauthorised/inactive-actor, identity-lock, and hard-delete-guard tests for
+`ClinicalServiceCatalogueAdministrationService`; the SKU-batches endpoint's 403, cross-tenant 404, happy-path
+and no-batches-in-props tests; the permission migration's fresh-grant, already-seeded,
+up→down→up idempotency, and (director/ca_supervisor)-hold/other-roles-do-not-hold tests; and 403-without-permission
+plus happy-path HTTP feature tests for all four new controller areas, including a direct test that `director`
+can reach Pricing but is refused at `publish` while `finance_officer` is not.
+
+**Test counts, by tree.** `main` at `e8751b6`: 656 tests (the figure recorded above). `main` at `ac9a0e5`
+(AC-01 merged): 667 (656 plus AC-01's 11). The UI-1 tree at `903d929`, before `main` was merged in: 682 (656 plus
+UI-1's 26). **The merged tree, `a23d177` (UI-1 plus `main` at `ac9a0e5`), measured on PostgreSQL 18 on
+2026-09-25: 693 tests, 691 passed, 2 skipped, 8,045 assertions, 0 failures** — exactly 656 + 26 + 11. The two
+skips are the two `RegistrationTest` cases named in the AC-01 section. `node --test tests/Frontend/*.mjs` on the
+merged tree: 171 tests (163 from `main` plus UI-1's 8), all passing. Pint, PHPStan, `vue-tsc`, ESLint, Prettier,
+`npm run build` and `git diff --check` all pass on the merged tree.
+
+**Opening Balance Batch picker.** The first build asked the operator to paste a Batch UUID; review rejected
+that as unusable. Batch is now a picker scoped to the selected SKU, loaded on demand from one read-only
+endpoint, `GET /inventory-references/skus/{sku}/batches` (permission `inventory.references.manage.organisation`;
+a SKU from another organisation returns 404, not 403; no status or expiry filtering — the domain service stays
+the authority). Batches are not in the Inventory page props: an interim version that shipped every batch in
+`referenceData` was unbounded and was removed, not kept alongside.
+
+**Known issue, pre-dates UI-1, not fixed here.** `InventoryController::referenceData()` projects `items`, `skus`
+and `locations` organisation-wide with no limit, so every Inventory page load ships all of them to anyone
+holding `inventory.references.manage.organisation`. To be bounded in their own change. UI-1 fixed only `batches`,
+the one projection it introduced.
+
+**Director and price publishing — reviewed, deliberate.** Publishing an amount (`prices.publish.organisation`) is
+an execution permission held only by `finance_officer`, consistent with roughly ten permissions that split
+oversight (`director`) from execution. An owner who needs to publish holds the `finance_officer` role rather
+than widening the permission.
+
+**Test skips.** The two skipped tests are `Tests\Feature\Auth\RegistrationTest`, both cases (Fortify
+registration is intentionally disabled). Named by the TH-01 verbose run and unchanged at 2 in every run since;
+the UI-1 run outputs record only the count.
+
+**Not yet confirmed:** the acceptance test — a person, using only the UI on a freshly migrated database with no
+factory data and no manual SQL, creating a medicine and a clinical service, pricing the service, getting stock
+into a branch, and walking a patient from Registration through to a paid, completed visit with both lines on
+the invoice at the price that was set — has not been run. Automated gates prove the code is wired correctly;
+they do not prove the click-through itself. This is deliberately left to the owner's own manual walkthrough
+(script handed over separately) rather than claimed here. UI-1 is committed locally as `903d929` (not pushed) so the change set is
+not at risk; pushing it and opening its PR wait on that confirmation.
 
 ### AC-01 — staff authority — branch `fix/ac-01-staff-authority` (base `main` `e8751b6`)
 
