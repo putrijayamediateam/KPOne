@@ -43,6 +43,7 @@ Yezza remains the operational source of truth. Nothing below is production-appro
 | TH-01 | PostgreSQL contention harness: replaced ~30 hardcoded worker deadlines/timeouts across 10 `Postgres*RegressionTest.php` files with `Tests\Support\ContentionTimeouts` (overridable via `KPONE_CONTENTION_READY_TIMEOUT`/`KPONE_CONTENTION_PROTOCOL_TIMEOUT`). No assertion or contention protocol step changed | Merged PR #33 as `e8751b6` (merge commit); post-merge CI green; branch kept |
 | AC-01 | Staff authority: no role could provision or administer a `ca_supervisor`. Administrative authority changed from a `.manage.` substring match to a declared set (staff, branches, access); `canAssignRoles` untouched. Found by human walkthrough of UI-1 at step 2 | Merged PR #34 as `ac9a0e5` (merge commit); post-merge CI green; branch kept |
 | UI-1 | Reference Data UI so the patient journey is walkable by a person: Medicine Catalogue and Clinical Service Catalogue screens (the latter backed by a new `ClinicalServiceCatalogueAdministrationService`, mirroring `MedicineAdministrationService`, and one new additive permission `clinical_services.manage.organisation`), Pricing (Charge Definition, Price Book, versioned publish), and thin stock-setup screens (Inventory Item/SKU/Location/Batch/medicine↔SKU mapping, plus an Opening Balance form) over the existing, previously UI-less Inventory Reference and Movement routes. Frontend and thin-controller work only; the one schema-adjacent change is the authorised permission migration | Committed as `903d929` on `feature/ui-1-reference-data-ui` (base `e8751b6`), then merged with `main` at `ac9a0e5`; not pushed, not merged to `main`; all automated gates green; human acceptance walkthrough pending — see section 6 |
+| **DOB-01 shipped** | `PublicIntakeReviewService::ageOrNull()` parsed a stored date of birth with the lenient `Carbon::parse()`, so text such as `'2023'` (read as the clock time 20:23) produced an age of 0 for the last 3 h 37 min of every UTC day. Now parsed strictly as `Y-m-d`; anything else is unavailable. Frozen-clock regression test added. PR #35 merged into `main` as `da3c66a` (merge commit, no squash). Post-merge CI green. Branch `fix/dob-01-strict-date-parse` kept | **Merged 2026-09-28** |
 | PX-01 Part 1 | Supervisor pricing: `ca_supervisor` granted `pricing.references.manage.organisation` and `prices.publish.organisation` (owner decision 2026-09-27, reversing an earlier separation of duties); additive migration; two existing assertions changed to encode the new rule | Committed on `feature/px-01-supervisor-pricing` (base `ac5bdda`); not pushed — see section 6 |
 
 
@@ -448,6 +449,58 @@ before 20:23 in the app timezone (UTC); after it the parsed value is in the past
 fails. It therefore passes from 00:00 to 20:22 UTC and fails from 20:23 to 23:59 UTC (04:23 to 08:00 in Kuala
 Lumpur), every day. Earlier runs in this document passed because they ran inside the passing window. It is a
 latent defect in existing code, recorded as open item 10 in section 6; it was not fixed in this change.
+
+### DOB-01 — strict date parse — branch `fix/dob-01-strict-date-parse` (base `main` `ac9a0e5`)
+
+**The bug.** `PublicIntakeReviewService::ageOrNull()` turned a stored date of birth into an age with
+`Carbon::parse($dateOfBirth)`. A lenient parser reads the string `'2023'` as a clock time, 20:23 today, not a year.
+That value counted as "future", so the age was correctly unavailable, only before 20:23 in the app timezone (UTC).
+From 20:23 to 24:00 UTC it counted as already past and the age came out as 0. So a malformed stored date of birth
+showed an age of 0 instead of "unavailable" **for 3 hours 37 minutes of every day** (20:23 to 24:00 UTC, which is
+04:23 to 08:00 in Kuala Lumpur). Age drives clinical judgement, and a silently misparsed date can produce a
+plausible-looking wrong age rather than an obviously wrong one, which is why a lenient parser on a date of birth is
+the real defect and not the one string the test happened to use.
+
+**How it was found: by the PX-01 gate, not by any test written for it.** The existing test
+`test_qr_intake_listing_shows_no_age_for_an_implausible_stored_date_of_birth` stores `'2023'`, and it passed in every
+run until the PX-01 full-suite gate happened to run at about 22:30 UTC and failed with "Failed asserting that 0 is
+null". Earlier runs all fell inside the passing hours. The same test then failed identically on the unmodified base
+(`ac5bdda`, no PX-01 change) when run at that hour, which is how it was shown to pre-date PX-01. Waiting for a
+convenient hour was refused: a green obtained by choosing the hour is not evidence.
+
+**The fix.** `ageOrNull()` now accepts only a string that matches `^\d{4}-\d{2}-\d{2}$`, parses it with
+`Carbon::createFromFormat('!Y-m-d', …)`, and rejects any value that does not round-trip to itself (so
+`2000-02-30` does not roll over into March). Everything else is unavailable. The strict pattern already existed in
+`PublicIntakePayloadValidator` (`createFromFormat('!Y-m-d', …)`); this function was the outlier. The existing test and
+its assertions are unchanged.
+
+**The regression test does not depend on the hour.**
+`test_a_malformed_stored_date_of_birth_never_yields_an_age_at_any_time_of_day` freezes the clock at five UTC times
+(00:01, 10:00, 20:22, 20:24 and 21:00) and, at each, asserts that 13 malformed stored values
+(`'2023'`, `'2026'`, `'1230'`, `'0930'`, `'20'`, `'today'`, `'tomorrow'`, `'not a date'`, `'2023-9-5'`, `'2000-02-30'`,
+`'1990-01-01 10:00'`, `' 1990-01-01'`, `'1990/01/01'`) are unavailable, while `1990-01-01` is age 36, a date of birth of
+today is age 0 and tomorrow is unavailable. Proven red first, against the unchanged code, at a real clock of
+04:16 UTC (an hour at which the old test passes): `'2023' must be unavailable at 2026-09-26 21:00:00 — Failed
+asserting that 0 is null.` Green after the fix (88 assertions), at any real hour.
+
+**One bug, not a pattern.** Every other use of a lenient parser in `app/` reads a database value or a request value
+already validated as `date_format:Y-m-d` at the edge (inventory expiry and received dates, movement filters,
+dispensary and billing timestamps). No date of birth entry point (`PatientAdministrationService`,
+`PublicIntakePayloadValidator`, `StorePatientRequest`, `UpdatePatientRequest`, `StoreVisitRequest`,
+`CheckPatientDuplicatesRequest`) accepts unvalidated text. `ageOrNull()` was the one place that re-read stored data
+without re-validating it. The lenient parsers that remain rely on validation happening earlier; that is a design
+dependency worth knowing, not a defect found here.
+
+**Closes open item 10** (the clock-dependent `PublicPatientIntakeTest` failure recorded on
+`feature/px-01-supervisor-pricing`). That item lives on the PX-01 branch, not on `main`, so it is struck when this
+change reaches `main` and PX-01 merges it in.
+
+**Verification, on the DOB-01 tree (`ac9a0e5` plus this change).** PostgreSQL 18 (disposable `kpone_dob01_test`, port
+55498, dropped after use): **668 tests, 666 passed, 2 skipped, 0 failed, 7,857 assertions** — `main` at `ac9a0e5` is 667,
+plus the 1 new test. The 2 skips are the two `RegistrationTest` cases. Pint, PHPStan, `vue-tsc`, ESLint, Prettier,
+`npm run build` and `git diff --check` pass, and `node --test tests/Frontend/*.mjs` is 163 of 163. That suite ran at
+about 04:20 UTC, an hour at which the old defect was invisible, so the full run alone is not evidence of the fix; the
+frozen-clock test above is.
 
 ## 7. Updating this file
 
