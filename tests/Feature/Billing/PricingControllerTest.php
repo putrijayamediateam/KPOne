@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Billing;
 
+use App\Domain\Clinical\Services\ClinicalServiceCatalogueAdministrationService;
 use App\Domain\Clinical\Services\MedicineAdministrationService;
 use App\Domain\Visit\Billing\Models\ChargeDefinition;
 use App\Domain\Visit\Billing\Models\PriceBook;
@@ -19,19 +20,38 @@ class PricingControllerTest extends ClinicalTestCase
         ]);
         $book = app(PricingReferenceAdministrationService::class)->createPriceBook($finance, null, ['name' => 'Synthetic denied book']);
 
-        foreach (['ca_supervisor', 'ca', 'resident_doctor', 'panel_officer', 'technical_admin'] as $role) {
+        foreach (['ca', 'resident_doctor', 'panel_officer', 'technical_admin'] as $role) {
             $actor = $this->actor($role);
             $this->selectBranch($actor);
             $this->actingAs($actor);
 
             $this->get(route('pricing.index'))->assertForbidden();
-            $this->post(route('pricing.charges.store'), ['type' => 'consultation', 'code' => 'DENY-'.$role, 'display_name' => 'Denied'])->assertForbidden();
+            $this->post(route('pricing.charges.store'), ['type' => 'consultation', 'medicine_public_id' => '', 'service_public_id' => '', 'code' => 'DENY-'.$role, 'display_name' => 'Denied'])->assertForbidden();
             $this->post(route('pricing.charges.activate', $charge))->assertForbidden();
             $this->post(route('pricing.charges.deactivate', $charge))->assertForbidden();
-            $this->post(route('pricing.price-books.store'), ['name' => 'Denied book'])->assertForbidden();
+            $this->post(route('pricing.price-books.store'), ['branch_id' => '', 'name' => 'Denied book', 'currency' => 'MYR'])->assertForbidden();
             $this->post(route('pricing.price-books.activate', $book))->assertForbidden();
             $this->post(route('pricing.price-books.deactivate', $book))->assertForbidden();
         }
+
+        // PX-01 (owner decision, 2026-09-27): ca_supervisor manages pricing references like finance_officer.
+        $supervisor = $this->actor('ca_supervisor');
+        $this->selectBranch($supervisor);
+        $this->actingAs($supervisor);
+
+        $this->get(route('pricing.index'))->assertOk();
+        $service = app(ClinicalServiceCatalogueAdministrationService::class)->create($this->actor('director'), [
+            'code' => 'SUP-REACH-SVC', 'display_name' => 'Supervisor reach service', 'order_unit' => 'session',
+        ]);
+        $this->selectBranch($supervisor);
+        $this->post(route('pricing.charges.store'), ['type' => 'service', 'service_public_id' => $service->public_id, 'code' => 'SUP-REACH-CHARGE', 'display_name' => 'Supervisor reach'])->assertRedirect(route('pricing.index'));
+        $this->assertDatabaseHas('charge_definitions', ['code' => 'SUP-REACH-CHARGE', 'type' => 'service']);
+        $this->post(route('pricing.charges.deactivate', $charge))->assertRedirect(route('pricing.index'));
+        $this->post(route('pricing.charges.activate', $charge))->assertRedirect(route('pricing.index'));
+        $this->post(route('pricing.price-books.store'), ['branch_id' => $this->branch->id, 'name' => 'Supervisor reach book', 'currency' => 'MYR'])->assertRedirect(route('pricing.index'));
+        $this->assertDatabaseHas('price_books', ['name' => 'Supervisor reach book', 'branch_id' => $this->branch->id]);
+        $this->post(route('pricing.price-books.deactivate', $book))->assertRedirect(route('pricing.index'));
+        $this->post(route('pricing.price-books.activate', $book))->assertRedirect(route('pricing.index'));
     }
 
     public function test_publish_requires_its_own_permission_separate_from_reference_management(): void
@@ -73,14 +93,15 @@ class PricingControllerTest extends ClinicalTestCase
 
         $this->get(route('pricing.index'))->assertOk()->assertInertia(fn ($page) => $page->component('Pricing/Index'));
 
+        // Real browser shape: chargeForm always posts both id fields, only one relevant.
         $this->post(route('pricing.charges.store'), [
-            'type' => 'medicine', 'medicine_public_id' => $medicine->public_id,
+            'type' => 'medicine', 'medicine_public_id' => $medicine->public_id, 'service_public_id' => '',
             'code' => 'HTTP-PRICE-CHARGE', 'display_name' => 'Synthetic priced charge',
         ])->assertRedirect(route('pricing.index'));
         $charge = ChargeDefinition::query()->where('code', 'HTTP-PRICE-CHARGE')->sole();
         $this->assertSame('medicine:'.$medicine->id, $charge->source_key);
 
-        $this->post(route('pricing.price-books.store'), ['name' => 'Synthetic HTTP price book', 'currency' => 'MYR'])
+        $this->post(route('pricing.price-books.store'), ['branch_id' => '', 'name' => 'Synthetic HTTP price book', 'currency' => 'MYR'])
             ->assertRedirect(route('pricing.index'));
         $book = PriceBook::query()->where('name', 'Synthetic HTTP price book')->sole();
 
