@@ -42,6 +42,17 @@ These rules apply to the entire repository.
 - Keep audit records append-oriented; system-event state transitions must remain explicit and auditable.
 - Reference staffing counts are documentation, not identities or generated user records.
 
+## Worktrees
+
+- The served tree at `C:\Users\User\Herd\KPOne` stays checked out on `main`, always. UAT runs from a detached
+  checkout of the exact candidate SHA or a dedicated disposable UAT branch, never from the served tree switched
+  onto a feature branch.
+- A branch checked out in the served tree must never also be a worktree target for merge work elsewhere. Why:
+  on 2026-09-28, the served tree was left on a feature branch for UAT while that same branch advanced from
+  commits made in a sibling worktree; the served tree's index never refreshed, which blocked a plain
+  `git checkout` and cost three rounds of investigation to characterise as safe. Nothing was lost, but the
+  convention exists so it costs nothing next time.
+
 ## Quality gate
 
 Before handoff, run backend tests, PHP formatting/static analysis, frontend type/lint/format checks, production build, migration/seed verification with dummy data, and `git diff --check`. Report failures honestly.

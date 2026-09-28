@@ -58,6 +58,14 @@ Nothing reaches `main` without validation.
 
 ## Environment notes
 
-- Developer laptop repo: `C:\Users\User\Herd\KPOne` (Laravel Herd, Windows). Canonical repo is on the office PC;
-  GitHub owner `putrijayamediateam`.
+- Developer laptop repo: `C:\Users\User\Herd\KPOne` (Laravel Herd, Windows). `main` on
+  `github.com/putrijayamediateam/KPOne` is canonical. Every machine — this laptop, the office PC, the MacBook
+  being set up — holds a working copy, not the source of truth.
 - Sibling folders `KPOne-*` are UAT/evidence worktrees — do not edit them unless asked.
+- The served tree at `C:\Users\User\Herd\KPOne` stays checked out on `main`, always. UAT runs from a detached
+  checkout of the exact candidate SHA or a dedicated disposable UAT branch, never from the served tree switched
+  onto a feature branch. A branch checked out in the served tree must never also be a worktree target for merge
+  work elsewhere. Why: on 2026-09-28, the served tree was left on a feature branch for UAT while the same
+  branch advanced from commits made in a sibling worktree; the served tree's index never refreshed, which
+  blocked a plain `git checkout` and cost three rounds of investigation to characterise as safe. Nothing was
+  lost, but the convention exists so it costs nothing next time.

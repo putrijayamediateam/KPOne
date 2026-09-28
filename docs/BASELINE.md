@@ -1,7 +1,7 @@
 # KPOne Baseline
 
-Snapshot date: 2026-09-28 · `main` at `4381e94` (PR #39) · supersedes the status line in `PROJECT.md`.
-Phase status confirmed by the owner on 2026-09-21.
+This file supersedes the status line in `PROJECT.md`. Phase status confirmed by the owner on 2026-09-21.
+For `main`'s current tip, run `git log -1` — a line here recording it goes stale the instant it is committed.
 
 Yezza remains the operational source of truth. Nothing below is production-approved; all data is synthetic.
 
@@ -42,19 +42,25 @@ Yezza remains the operational source of truth. Nothing below is production-appro
 | **RB-01 / RB-02 shipped** | Registration board: stale rows after a failed or thrown search cleared; each visit's own registered date projected. PR #31 merged into `main` as `bc29c28` (merge commit). Post-merge CI green | **Merged 2026-09-24** |
 | TH-01 | PostgreSQL contention harness: replaced ~30 hardcoded worker deadlines/timeouts across 10 `Postgres*RegressionTest.php` files with `Tests\Support\ContentionTimeouts` (overridable via `KPONE_CONTENTION_READY_TIMEOUT`/`KPONE_CONTENTION_PROTOCOL_TIMEOUT`). No assertion or contention protocol step changed | Merged PR #33 as `e8751b6` (merge commit); post-merge CI green; branch kept |
 | AC-01 | Staff authority: no role could provision or administer a `ca_supervisor`. Administrative authority changed from a `.manage.` substring match to a declared set (staff, branches, access); `canAssignRoles` untouched. Found by human walkthrough of UI-1 at step 2 | Merged PR #34 as `ac9a0e5` (merge commit); post-merge CI green; branch kept |
-| UI-1 | Reference Data UI so the patient journey is walkable by a person: Medicine Catalogue and Clinical Service Catalogue screens (the latter backed by a new `ClinicalServiceCatalogueAdministrationService`, mirroring `MedicineAdministrationService`, and one new additive permission `clinical_services.manage.organisation`), Pricing (Charge Definition, Price Book, versioned publish), and thin stock-setup screens (Inventory Item/SKU/Location/Batch/medicine↔SKU mapping, plus an Opening Balance form) over the existing, previously UI-less Inventory Reference and Movement routes. Frontend and thin-controller work only; the one schema-adjacent change is the authorised permission migration | Committed as `903d929` on `feature/ui-1-reference-data-ui` (base `e8751b6`), then merged with `main` at `ac9a0e5`; not pushed, not merged to `main`; all automated gates green; human acceptance walkthrough pending — see section 6 |
+| **UI-1 shipped** | Reference Data UI so the patient journey is walkable by a person: Medicine Catalogue and Clinical Service Catalogue screens (the latter backed by a new `ClinicalServiceCatalogueAdministrationService`, mirroring `MedicineAdministrationService`, and one new additive permission `clinical_services.manage.organisation`), Pricing (Charge Definition, Price Book, versioned publish), and thin stock-setup screens (Inventory Item/SKU/Location/Batch/medicine↔SKU mapping, plus an Opening Balance form) over the existing, previously UI-less Inventory Reference and Movement routes. Frontend and thin-controller work only; the one schema-adjacent change is the authorised permission migration. PR #36 merged into `main` as `0a26449` (merge commit, no squash) | **Merged 2026-09-28** |
 | **DOB-01 shipped** | `PublicIntakeReviewService::ageOrNull()` parsed a stored date of birth with the lenient `Carbon::parse()`, so text such as `'2023'` (read as the clock time 20:23) produced an age of 0 for the last 3 h 37 min of every UTC day. Now parsed strictly as `Y-m-d`; anything else is unavailable. Frozen-clock regression test added. PR #35 merged into `main` as `da3c66a` (merge commit, no squash). Post-merge CI green. Branch `fix/dob-01-strict-date-parse` kept | **Merged 2026-09-28** |
-| PX-01 Part 1 | Supervisor pricing: `ca_supervisor` granted `pricing.references.manage.organisation` and `prices.publish.organisation` (owner decision 2026-09-27, reversing an earlier separation of duties); additive migration; two existing assertions changed to encode the new rule | Committed on `feature/px-01-supervisor-pricing` (base `ac5bdda`); not pushed — see section 6 |
-| PRICE-01 | Charge definitions could not be created through the real UI for any type: `PricingChargeStoreRequest` validated `medicine_public_id`/`service_public_id` with `uuid` but no `nullable`, so the id irrelevant to the selected type (always sent by `chargeForm`) failed silently; `Pricing/Index.vue` bound no `InputError` to those fields or to the synthetic `scope` key from the one-Price-Book-per-scope rule. Fixed with `nullable`, a payload transform sending only the relevant id, and the missing `InputError` bindings. Human UAT passed in the browser 2026-09-27: charge created, RM 30.00 published, draft invoice on KPV-00000002 built at RM 65.00 across consultation, service and medicine lines | Committed on `fix/PRICE-01-silent-create-failure` (base `ac5bdda`); not merged — see section 6 |
-| NAV-01 | Reference-data and operational Inventory forms redirected via bare `back()`, which for an Inertia SPA resolves to the last *full page* GET the session recorded, not the page the request came from — the owner hit it at step 12 of the UI-1 walkthrough (creating a Medicine sent her to Pricing). Recurrence of OH-06d. Fixed with explicit `to_route('inventory.index')`, both for success and for a caught validation failure, across 30 actions in 3 controllers | Committed on `fix/nav-01-explicit-redirects` (base `ac5bdda`); not pushed — see section 6 |
+| **PX-01 shipped** | Supervisor pricing: `ca_supervisor` granted `pricing.references.manage.organisation` and `prices.publish.organisation` (owner decision 2026-09-27, reversing an earlier separation of duties); additive migration; two existing assertions changed to encode the new rule. PR #38 merged into `main` as `c5e96a5` (merge commit, no squash) | **Merged 2026-09-28** |
+| **PRICE-01 shipped** | Charge definitions could not be created through the real UI for any type: `PricingChargeStoreRequest` validated `medicine_public_id`/`service_public_id` with `uuid` but no `nullable`, so the id irrelevant to the selected type (always sent by `chargeForm`) failed silently; `Pricing/Index.vue` bound no `InputError` to those fields or to the synthetic `scope` key from the one-Price-Book-per-scope rule. Fixed with `nullable`, a payload transform sending only the relevant id, and the missing `InputError` bindings. Human UAT passed in the browser 2026-09-27: charge created, RM 30.00 published, draft invoice on KPV-00000002 built at RM 65.00 across consultation, service and medicine lines. PR #39 merged into `main` as `4381e94` (merge commit, no squash) | **Merged 2026-09-28** |
+| **NAV-01 shipped** | Reference-data and operational Inventory forms redirected via bare `back()`, which for an Inertia SPA resolves to the last *full page* GET the session recorded, not the page the request came from — the owner hit it at step 12 of the UI-1 walkthrough (creating a Medicine sent her to Pricing). Recurrence of OH-06d. Fixed with explicit `to_route('inventory.index')`, both for success and for a caught validation failure, across 30 actions in 3 controllers. PR #40 merged into `main` as `9a4aabb` (merge commit, no squash) | **Merged 2026-09-28** |
 
 
 End-to-end synthetic flow: proven by tests via factories on `main`. Before UI-1, no screen anywhere could
 create a medicine, a clinical service, a price, or branch stock, so a person could not actually walk
 Registration → Queue → Consultation → Treatment Plan → Dispensary → Billing/payment → Completed Visit through
 the UI alone — only an automated test with factory-seeded data could reach Billing with a non-empty invoice.
-UI-1 (committed on `feature/ui-1-reference-data-ui`, not yet merged to `main`) adds that missing UI; whether the
-flow is now walkable by a person is pending the owner's own manual walkthrough (section 6).
+UI-1 (merged into `main` as `0a26449`, PR #36) adds that missing UI. Walked by a person twice since, in two
+pieces, not yet as one pass: the clinic flow was walked end to end on 2026-09-27 — register, call in, consult,
+prescribe, dispense, invoice, pay, complete — producing invoice KPI-00000002 at RM 30.50 on visit
+KPV-00000004, ordering a medicine only. PRICE-01's UAT on 2026-09-28 covered the clinical-service path
+separately: charge created, RM 30.00 published, draft built on visit KPV-00000002 at RM 65.00 across
+consultation, service and medicine lines. UI-1's own acceptance script — medicine, service, price, stock and a
+full patient walk, from a freshly migrated database, in one sitting — has never been run as one pass. **BT-01**
+covers that gap.
 
 ## 2. Domain map (`app/Domain`)
 
@@ -124,13 +130,17 @@ Still open:
    worded ("freshly migrated database, no seeder, no manual SQL") cannot be met: someone must first create a
    `director` outside the UI. Not fixed here; it is an owner decision about how the first director is bootstrapped,
    and it must not be solved by loosening `canAssignRoles`.
-9. Housekeeping: stray root file `toArray())`; add `.pnpm-store/` to `.gitignore`; refresh `PROJECT.md` and the
-   "not yet authorised" list in `AGENTS.md`; `PREVIEW_README.txt` release marker still says D3.
+9. Housekeeping: stray root file `toArray())` — **resolved**, confirmed gone from the repository root.
+   `.pnpm-store/` in `.gitignore` — **resolved**, confirmed present (line 32). `PREVIEW_README.txt` release
+   marker still says D3 — out of scope for this repository; the file does not exist here (it lives, if at all,
+   in a `KPOne-Preview*` folder, which BASE-01's audit did not enter). Refresh `PROJECT.md` and the "not yet
+   authorised" list in `AGENTS.md` — **not verified either way in this audit**; left exactly as found rather
+   than marked done.
 
-10. **Clock-dependent failure in `PublicPatientIntakeTest`, from a latent defect in `PublicIntakeReviewService::ageOrNull()`.**
-    `Carbon::parse()` accepts any string, and `'2023'` parses as 20:23 today, so a malformed stored date of birth shows
-    an age of 0 after 20:23 UTC instead of "unavailable". The fix belongs in the code (parse strictly as `Y-m-d` and
-    treat anything else as unavailable), not in the test. Found while running the PX-01 gate; not fixed there.
+10. ~~Clock-dependent failure in `PublicPatientIntakeTest`, from a latent defect in
+    `PublicIntakeReviewService::ageOrNull()`.~~ **Struck.** DOB-01 fixed this (merged into `main` as `da3c66a`,
+    PR #35), and PX-01 has since merged (`c5e96a5`, PR #38) — both conditions the DOB-01 section itself named
+    for striking this item are now met.
 
 ### Registration board — branch `fix/registration-board-stale-rows-and-dates` (base `main` `8ef519b`)
 
@@ -302,10 +312,11 @@ the UI-1 run outputs record only the count.
 **Not yet confirmed:** the acceptance test — a person, using only the UI on a freshly migrated database with no
 factory data and no manual SQL, creating a medicine and a clinical service, pricing the service, getting stock
 into a branch, and walking a patient from Registration through to a paid, completed visit with both lines on
-the invoice at the price that was set — has not been run. Automated gates prove the code is wired correctly;
-they do not prove the click-through itself. This is deliberately left to the owner's own manual walkthrough
-(script handed over separately) rather than claimed here. UI-1 is committed locally as `903d929` (not pushed) so the change set is
-not at risk; pushing it and opening its PR wait on that confirmation.
+the invoice at the price that was set — has not been run as one pass. Automated gates prove the code is wired
+correctly; they do not prove the click-through itself. Two separate, partial walkthroughs have since happened
+(the clinic-flow run on 2026-09-27, medicine only; PRICE-01's UAT on 2026-09-28, the clinical-service path) —
+see the end-to-end-flow note in section 1 — but neither is this script run in one sitting from a fresh database.
+**BT-01** covers that gap. UI-1 itself merged into `main` as `0a26449` (PR #36).
 
 ### NAV-01 — explicit Inventory redirects — branch `fix/nav-01-explicit-redirects` (base `feature/ui-1-reference-data-ui` `ac5bdda`)
 
