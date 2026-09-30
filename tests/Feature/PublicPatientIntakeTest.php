@@ -183,7 +183,9 @@ class PublicPatientIntakeTest extends VisitTestCase
         $cookieName = (string) config('public-intake.submission_cookie');
         $rawToken = app(PublicCheckInLinkService::class)->issue($director, $this->branch, 'Secure-flag test')['rawToken'];
         $exchangeOverPlainRequest = function () use ($rawToken) {
-            return $this->postJson(route('public-intake.exchange'), ['link_token' => $rawToken])
+            $plainUrl = preg_replace('/^https:/', 'http:', route('public-intake.exchange'));
+
+            return $this->postJson($plainUrl, ['link_token' => $rawToken])
                 ->assertCreated();
         };
 
