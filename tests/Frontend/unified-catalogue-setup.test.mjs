@@ -29,6 +29,11 @@ test('Medicine setup joins catalogue identity, linked inventory, tariffs, and op
 
     assert.match(source, /toSen\(data\.prices\.self_pay_rm\)/);
     assert.match(source, /toSen\(row\.unit_cost_rm\)/);
+    assert.match(source, /amount: string \| number/);
+    assert.match(
+        source,
+        /typeof amount === 'number' \? String\(amount\) : amount\.trim\(\)/,
+    );
     assert.match(source, /<PanelTariffEditor/);
     assert.match(source, /<CatalogueOptionPicker/);
     assert.match(source, /CatalogueFormSectionHeading/);

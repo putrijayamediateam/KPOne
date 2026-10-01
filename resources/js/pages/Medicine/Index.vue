@@ -176,8 +176,12 @@ const openEdit = (row: MedicineRow) => {
     form.default_indication = row.defaultIndication ?? '';
     dialogOpen.value = true;
 };
-const toSen = (amount: string) =>
-    amount.trim() === '' ? null : Math.round(Number(amount) * 100);
+const toSen = (amount: string | number) => {
+    const normalized =
+        typeof amount === 'number' ? String(amount) : amount.trim();
+
+    return normalized === '' ? null : Math.round(Number(normalized) * 100);
+};
 const formError = (key: string) => form.errors[key as keyof typeof form.errors];
 const addStockLocation = () => {
     const branchId = props.setup.activeBranchId;
