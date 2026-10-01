@@ -16,12 +16,35 @@ class PriceResolutionService
     public function price(Visit $visit, array $lines): array
     {
         $charges = ChargeDefinition::query()->where('organisation_id', $visit->organisation_id)->whereIn('source_key', array_column($lines, 'charge_key'))->where('is_active', true)->orderBy('id')->lockForUpdate()->get()->keyBy('source_key');
-        $books = PriceBook::query()->where('organisation_id', $visit->organisation_id)->where('currency', 'MYR')->where('is_active', true)->where(fn ($q) => $q->whereNull('branch_id')->orWhere('branch_id', $visit->branch_id))->orderBy('id')->lockForUpdate()->get();
+        $books = PriceBook::query()->where('organisation_id', $visit->organisation_id)->where('currency', 'MYR')->where('is_active', true)
+            ->where(function ($query) use ($visit): void {
+                $query->where(function ($selfPay) use ($visit): void {
+                    $selfPay->where('price_tier', 'self_pay')
+                        ->where(fn ($scope) => $scope->whereNull('branch_id')->orWhere('branch_id', $visit->branch_id));
+                })->orWhere(function ($panel) use ($visit): void {
+                    $panel->where('price_tier', 'panel')->whereNull('branch_id')
+                        ->where(function ($scope) use ($visit): void {
+                            $scope->whereNull('panel_id');
+                            if ($visit->panel_id !== null) {
+                                $scope->orWhere('panel_id', $visit->panel_id);
+                            }
+                        });
+                });
+            })->orderBy('id')->lockForUpdate()->get();
         $entries = PriceEntry::query()->where('organisation_id', $visit->organisation_id)->whereIn('price_book_id', $books->pluck('id'))->whereIn('charge_definition_id', $charges->pluck('id'))->where('effective_at', '<=', now()->utc())->orderBy('id')->lockForUpdate()->get();
         foreach ($lines as &$line) {
             $charge = $charges->get($line['charge_key']);
             $price = null;
-            foreach ([$books->firstWhere('branch_id', $visit->branch_id), $books->firstWhere('branch_id', null)] as $book) {
+            $candidates = $visit->coverage_type === 'panel'
+                ? [
+                    $visit->panel_id === null ? null : $books->first(fn (PriceBook $book): bool => $book->price_tier === 'panel' && $book->panel_id === $visit->panel_id),
+                    $books->first(fn (PriceBook $book): bool => $book->price_tier === 'panel' && $book->panel_id === null),
+                ]
+                : [
+                    $books->first(fn (PriceBook $book): bool => $book->price_tier === 'self_pay' && $book->branch_id === $visit->branch_id),
+                    $books->first(fn (PriceBook $book): bool => $book->price_tier === 'self_pay' && $book->branch_id === null),
+                ];
+            foreach ($candidates as $book) {
                 if ($book && $charge) {
                     $price = $entries->where('price_book_id', $book->id)->where('charge_definition_id', $charge->id)->sortByDesc('version')->first();
                     if ($price) {

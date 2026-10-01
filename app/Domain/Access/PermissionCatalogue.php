@@ -45,6 +45,7 @@ final class PermissionCatalogue
             'access.view.organisation',
             'access.manage.organisation',
             'audit.view.organisation',
+            'insights.view.organisation',
             'system_events.view.organisation',
             'patients.search.organisation',
             'patients.view.organisation',
@@ -265,6 +266,10 @@ final class PermissionCatalogue
         ];
         foreach (BillingPermissions::roles() as $role => $permissions) {
             $roles[$role] = [...$roles[$role], ...$permissions];
+        }
+
+        foreach ($roles as $role => $permissions) {
+            $roles[$role] = [...$permissions, 'insights.view.organisation'];
         }
 
         return $roles;

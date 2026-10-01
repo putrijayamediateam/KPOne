@@ -20,6 +20,7 @@ class InventoryReferenceSkuStoreRequest extends FormRequest
         return [
             'inventory_item_public_id' => ['required', 'uuid'],
             'sku_code' => ['required', 'string', 'max:64'],
+            'barcode' => ['nullable', 'string', 'max:100'],
             'pack_size' => ['required', 'regex:/^\d{1,9}(?:\.\d{1,3})?$/'],
             'purchase_unit' => ['required', 'string', 'max:100'],
             'stock_unit' => ['required', 'string', 'max:100'],

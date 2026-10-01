@@ -17,6 +17,14 @@ class InventoryOpeningBalanceRequest extends FormRequest
     /** @return array<string, list<string>> */
     public function rules(): array
     {
-        return ['expected_branch_id' => ['required', 'integer', 'min:1'], 'location_public_id' => ['required', 'uuid'], 'sku_public_id' => ['required', 'uuid'], 'batch_public_id' => ['required', 'uuid'], 'quantity' => ['required', 'regex:/^\d{1,12}(?:\.\d{1,3})?$/']];
+        return [
+            'expected_branch_id' => ['required', 'integer', 'min:1'],
+            'location_public_id' => ['required', 'uuid'],
+            'sku_public_id' => ['required', 'uuid'],
+            'batch_public_id' => ['required', 'uuid'],
+            'quantity' => ['required', 'regex:/^\d{1,12}(?:\.\d{1,3})?$/'],
+            'unit_cost_sen' => ['nullable', 'integer', 'min:0'],
+            'supplier_public_id' => ['nullable', 'uuid'],
+        ];
     }
 }

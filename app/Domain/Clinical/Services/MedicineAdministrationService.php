@@ -42,10 +42,7 @@ class MedicineAdministrationService
 
             $this->audit->record('medicine_catalogue.created', $medicine, [
                 'medicine_public_id' => $medicine->public_id,
-                'changed_fields' => [
-                    'code', 'display_name', 'strength_text', 'dosage_form', 'order_unit',
-                    'authorisation_class', 'is_active',
-                ],
+                'changed_fields' => [...array_keys($values), 'authorisation_class', 'is_active'],
             ], $actor, organisationId: $actor->organisation_id);
 
             return $medicine;
@@ -199,7 +196,7 @@ class MedicineAdministrationService
     }
 
     /** @param array<string, mixed> $attributes
-     * @return array{code:string,display_name:string,strength_text:?string,dosage_form:?string,order_unit:string}
+     * @return array<string, mixed>
      */
     private function createValues(array $attributes): array
     {
@@ -209,11 +206,21 @@ class MedicineAdministrationService
             'strength_text' => $this->nullableText($attributes['strength_text'] ?? null, 'strength_text', 100),
             'dosage_form' => $this->nullableText($attributes['dosage_form'] ?? null, 'dosage_form', 100),
             'order_unit' => $this->requiredText($attributes['order_unit'] ?? null, 'order_unit', 100),
+            'generic_name' => $this->nullableText($attributes['generic_name'] ?? null, 'generic_name', 300),
+            'category' => $this->nullableText($attributes['category'] ?? null, 'category', 120),
+            'group_name' => $this->nullableText($attributes['group_name'] ?? null, 'group_name', 120),
+            'default_dosage_amount' => $this->nullableDecimal($attributes['default_dosage_amount'] ?? null, 'default_dosage_amount'),
+            'default_dosage_unit' => $this->nullableText($attributes['default_dosage_unit'] ?? null, 'default_dosage_unit', 100),
+            'default_instruction' => $this->nullableText($attributes['default_instruction'] ?? null, 'default_instruction', 200),
+            'default_precaution' => $this->nullableText($attributes['default_precaution'] ?? null, 'default_precaution', 500),
+            'default_frequency' => $this->nullableText($attributes['default_frequency'] ?? null, 'default_frequency', 200),
+            'default_duration' => $this->nullableText($attributes['default_duration'] ?? null, 'default_duration', 100),
+            'default_indication' => $this->nullableText($attributes['default_indication'] ?? null, 'default_indication', 300),
         ];
     }
 
     /** @param array<string, mixed> $attributes
-     * @return array<string, string|null>
+     * @return array<string, mixed>
      */
     private function updateValues(MedicineCatalogueItem $medicine, array $attributes): array
     {
@@ -225,7 +232,12 @@ class MedicineAdministrationService
         }
 
         $values = [];
-        foreach (['code', 'display_name', 'strength_text', 'dosage_form', 'order_unit'] as $field) {
+        foreach ([
+            'code', 'display_name', 'strength_text', 'dosage_form', 'order_unit',
+            'generic_name', 'category', 'group_name', 'default_dosage_amount',
+            'default_dosage_unit', 'default_instruction', 'default_precaution',
+            'default_frequency', 'default_duration', 'default_indication',
+        ] as $field) {
             if (! array_key_exists($field, $attributes)) {
                 continue;
             }
@@ -234,6 +246,16 @@ class MedicineAdministrationService
                 'display_name' => $this->requiredText($attributes[$field], $field, 500, collapseWhitespace: true),
                 'strength_text', 'dosage_form' => $this->nullableText($attributes[$field], $field, 100),
                 'order_unit' => $this->requiredText($attributes[$field], $field, 100),
+                'generic_name' => $this->nullableText($attributes[$field], $field, 300),
+                'category' => $this->nullableText($attributes[$field], $field, 120),
+                'group_name' => $this->nullableText($attributes[$field], $field, 120),
+                'default_dosage_amount' => $this->nullableDecimal($attributes[$field], $field),
+                'default_dosage_unit' => $this->nullableText($attributes[$field], $field, 100),
+                'default_instruction' => $this->nullableText($attributes[$field], $field, 200),
+                'default_precaution' => $this->nullableText($attributes[$field], $field, 500),
+                'default_frequency' => $this->nullableText($attributes[$field], $field, 200),
+                'default_duration' => $this->nullableText($attributes[$field], $field, 100),
+                'default_indication' => $this->nullableText($attributes[$field], $field, 300),
             };
         }
 
@@ -281,5 +303,17 @@ class MedicineAdministrationService
         }
 
         return $this->requiredText($value, $field, $maximum);
+    }
+
+    private function nullableDecimal(mixed $value, string $field): ?string
+    {
+        if ($value === null || (is_string($value) && trim($value) === '')) {
+            return null;
+        }
+        if (! is_numeric($value) || (float) $value <= 0 || (float) $value > 1000000) {
+            throw ValidationException::withMessages([$field => 'Enter a positive amount.']);
+        }
+
+        return number_format((float) $value, 3, '.', '');
     }
 }

@@ -27,6 +27,7 @@ const capabilities = (overrides = {}) => ({
     accessControl: false,
     auditLogs: false,
     publicCheckInLinks: false,
+    insights: false,
     ...overrides,
 });
 
@@ -51,7 +52,24 @@ test('Main Menu exposes only permission-backed implemented destinations', () => 
         [...clinic.map((group) => group.label)],
         ['Clinic Operations', 'Patients'],
     );
-    assert.doesNotMatch(source, /Reviews|Insight|Purchase|Dispensary/);
+    assert.doesNotMatch(source, /Reviews|Purchase|Dispensary/);
+});
+
+test('Insights is exposed only as the implemented, permission-backed Today destination', () => {
+    const groups = navigation.mainMenuGroups(capabilities({ insights: true }));
+    const destinations = navigation.headerDestinations(
+        capabilities({ insights: true }),
+        'clinic',
+    );
+    const sidebar = read('resources/js/components/AppSidebar.vue');
+
+    assert.deepEqual([...labels(groups)], ['Insights']);
+    assert.deepEqual(
+        [...destinations.map((item) => item.label)],
+        ['Main Menu', 'Insights'],
+    );
+    assert.match(source, /href: '\/insights\/today'/);
+    assert.match(sidebar, /can\('insights\.view\.organisation'\)/);
 });
 
 test('Panel Finance and technical-administration visibility remains least privilege', () => {
@@ -134,5 +152,5 @@ test('Main Menu cards and header navigation retain semantic link and focus contr
     assert.match(header, /aria-label="Mobile primary navigation"/);
     assert.match(header, /aria-label="Desktop primary navigation"/);
     assert.match(header, /:aria-current=/);
-    assert.doesNotMatch(header, /Reviews|Insight|Purchase/);
+    assert.doesNotMatch(header, /Reviews|Purchase/);
 });

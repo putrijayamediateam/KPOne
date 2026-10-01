@@ -38,7 +38,10 @@ class MedicineCatalogueItem extends Model
 
     protected function casts(): array
     {
-        return ['is_active' => 'boolean'];
+        return [
+            'is_active' => 'boolean',
+            'default_dosage_amount' => 'decimal:3',
+        ];
     }
 
     public function getRouteKeyName(): string

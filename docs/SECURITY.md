@@ -45,6 +45,12 @@ Route middleware checks coarse permissions, policies check model access, and dom
 
 Permissions have explicit `own`, `branch`, or `organisation` scope. New permissions are not inherited by an existing role unless a reviewed seed/migration change adds them. In particular, `technical_admin` must never receive future clinical-content access automatically.
 
+Insights uses the explicit `insights.view.organisation` permission for its currently authorised all-role,
+read-only reports. Its projections are aggregate-only: they do not expose patient identities, patient-level
+outstanding debt, or record drill-down. Branch selection changes the aggregate scope but does not grant access
+to Patient or clinical detail. Appointment reporting, export, and package billing are not included. The reports
+remain synthetic and are not production-approved.
+
 Patient Master search is organisation-wide only for explicitly authorised operational roles because returning patients may attend any branch. It is not branch ownership. Search, view, create, update, and identifier-correction permissions are separate. Existing NRIC/passport retirement or replacement requires `patients.identifiers.manage.organisation`; normal CAs may only supply an initial identifier or add the first identifier of a type.
 
 Visits require explicit `.branch` view/create/update/cancel permissions plus active branch context and effective branch authority. The server derives Visit ownership; `expected_branch_id` detects stale forms but cannot select another branch. Resident doctors are read-only. Technical and non-operational roles receive no Visit permission. Cancelled Visits are immutable and no Visit delete/reopen route exists.

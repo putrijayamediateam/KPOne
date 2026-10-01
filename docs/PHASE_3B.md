@@ -2,6 +2,9 @@
 
 Implementation working tree based on Phase 3A-Core (`6cb764f3f11edb5f73869cba6b1b6947ab19e3bc`). This is not a release or production approval. Yezza remains the operational source of truth. See `PHASE_3B_DESIGN.md` for the approved design.
 
+**Delivery status:** merged as PR #6 according to [BASELINE.md](./BASELINE.md). The verification and UAT statements
+below describe the original implementation run and must be read with later baseline updates.
+
 ## Operational path
 
 Complete Consultation now records immutable, version-bound `ConsultationCheckout` evidence. An active medicine uses the existing atomic Dispensary handoff and records the **post-transition** Plan version. Return supersedes checkout; re-handoff creates new evidence. Every active Service Order requires an explicit attending-doctor performed quantity or not-performed disposition; an order alone is never billable.

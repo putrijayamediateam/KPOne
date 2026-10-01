@@ -44,6 +44,21 @@ const props = defineProps<{
 const busy = ref(false);
 const operationError = ref<string | null>(null);
 const operationErrorContext = ref('Inventory operation');
+const rmToSen = (value: string): number | null => {
+    if (value === '') {
+        return null;
+    }
+
+    const match = /^(\d{1,10})(?:\.(\d{1,2}))?$/.exec(value);
+
+    if (!match) {
+        return null;
+    }
+
+    return Number(
+        BigInt(match[1]) * 100n + BigInt((match[2] ?? '').padEnd(2, '0')),
+    );
+};
 type PendingConfirmation = {
     title: string;
     description: string;
@@ -63,7 +78,12 @@ const confirmPendingAction = () => {
     action?.();
 };
 const supplier = reactive({ code: '', name: '' });
-const blankLine = () => ({ key: crypto.randomUUID(), sku: '', quantity: '' });
+const blankLine = () => ({
+    key: crypto.randomUUID(),
+    sku: '',
+    quantity: '',
+    estimatedUnitCostRm: '',
+});
 const purchaseOrder = reactive({
     supplier: '',
     destination: '',
@@ -72,7 +92,12 @@ const purchaseOrder = reactive({
 const receipt = reactive<
     Record<
         string,
-        { batchNumber: string; expiryDate: string; quantity: string }
+        {
+            batchNumber: string;
+            expiryDate: string;
+            quantity: string;
+            unitCostRm: string;
+        }
     >
 >({});
 const receiptRememberContext = () =>
@@ -219,6 +244,7 @@ watchEffect(() => {
                 batchNumber: '',
                 expiryDate: '',
                 quantity: '',
+                unitCostRm: '',
             };
         }
 
@@ -229,7 +255,12 @@ watchEffect(() => {
                 restoredDrafts[row.publicId] ?? {},
             )) {
                 if (receipt[linePublicId]) {
-                    Object.assign(receipt[linePublicId], values);
+                    Object.assign(receipt[linePublicId], values, {
+                        unitCostRm:
+                            values.unitCostSen === undefined
+                                ? ''
+                                : `${Math.floor(values.unitCostSen / 100)}.${String(values.unitCostSen % 100).padStart(2, '0')}`,
+                    });
                 }
             }
 
@@ -328,6 +359,7 @@ const createPurchaseOrder = () =>
             lines: purchaseOrder.lines.map((line) => ({
                 sku_public_id: line.sku,
                 quantity: line.quantity,
+                unit_cost_sen: rmToSen(line.estimatedUnitCostRm),
             })),
         },
         () => {
@@ -384,6 +416,7 @@ const receiptPayload = (row: DocumentRow) =>
         quantity: receipt[line.publicId]?.quantity ?? '',
         batch_number: receipt[line.publicId]?.batchNumber ?? null,
         expiry_date: receipt[line.publicId]?.expiryDate ?? null,
+        unit_cost_rm: receipt[line.publicId]?.unitCostRm ?? '',
     }));
 const receivePurchaseOrder = (row: DocumentRow) => {
     const context = receiptRememberContext();
@@ -455,6 +488,7 @@ const receivePurchaseOrder = (row: DocumentRow) => {
                     batchNumber: '',
                     expiryDate: '',
                     quantity: '',
+                    unitCostRm: '',
                 });
             }
         },
@@ -719,7 +753,7 @@ const saveReorder = () =>
                     <fieldset
                         v-for="(line, index) in purchaseOrder.lines"
                         :key="line.key"
-                        class="grid gap-2 rounded-lg border p-2 sm:col-span-2 sm:grid-cols-[1fr_1fr_auto]"
+                        class="grid gap-2 rounded-lg border p-2 sm:col-span-2 sm:grid-cols-[1fr_1fr_1fr_auto]"
                     >
                         <legend class="px-1 text-xs font-medium">
                             Order line {{ index + 1 }}
@@ -735,6 +769,14 @@ const saveReorder = () =>
                             placeholder="Quantity"
                             inputmode="decimal"
                             required
+                        />
+                        <Input
+                            v-model="line.estimatedUnitCostRm"
+                            :aria-label="`Estimated purchase unit cost RM ${index + 1}`"
+                            placeholder="Estimated unit cost (RM)"
+                            type="number"
+                            min="0"
+                            step="0.01"
                         />
                         <Button
                             type="button"
@@ -863,7 +905,7 @@ const saveReorder = () =>
                         <fieldset
                             v-for="line in row.lines"
                             :key="line.publicId"
-                            class="grid gap-2 rounded-lg border p-2 sm:grid-cols-4"
+                            class="grid gap-2 rounded-lg border p-2 sm:grid-cols-5"
                         >
                             <legend class="px-1 text-xs font-medium">
                                 {{ line.sku }} · {{ line.receivedQuantity }}/{{
@@ -885,6 +927,14 @@ const saveReorder = () =>
                                 :aria-label="`${line.sku} receipt quantity`"
                                 placeholder="Quantity this receipt"
                                 inputmode="decimal"
+                            />
+                            <Input
+                                v-model="receipt[line.publicId].unitCostRm"
+                                :aria-label="`${line.sku} actual purchase unit cost RM`"
+                                placeholder="Actual unit cost (RM)"
+                                type="number"
+                                min="0"
+                                step="0.01"
                             />
                         </fieldset>
                         <Button type="submit" :disabled="busy"

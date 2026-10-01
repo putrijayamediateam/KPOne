@@ -92,12 +92,12 @@ class HandleInertiaRequests extends Middleware
                 'canEnterClinic' => $canEnterClinic,
                 'navigation' => [
                     'registration' => $user->can('visits.view.branch'),
+                    'insights' => $user->can('insights.view.organisation'),
                     'registrationReview' => $user->can('public_intakes.review.branch'),
                     'consultation' => $user->can('queue.view.own') || $user->can('queue.view.branch'),
                     'inventory' => $user->can('inventory.view.branch') && $activeBranch !== null,
                     'medicineCatalogue' => $user->can('medicines.manage.organisation'),
                     'clinicalServiceCatalogue' => $user->can('clinical_services.manage.organisation'),
-                    'pricing' => $user->can('pricing.references.manage.organisation') || $user->can('prices.publish.organisation'),
                     'patientRecords' => $user->can('patients.search.organisation'),
                     'panelWork' => app(BillingWorkAccess::class)->panel($user),
                     'financeWork' => app(BillingWorkAccess::class)->finance($user),

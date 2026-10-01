@@ -9,6 +9,7 @@ use App\Domain\Organisation\Models\Branch;
 use App\Domain\Organisation\Models\Organisation;
 use App\Domain\Visit\Billing\Models\ChargeDefinition;
 use App\Domain\Visit\Billing\Models\PriceBook;
+use App\Domain\Visit\Models\Panel;
 use App\Models\User;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\Eloquent\Model;
@@ -81,14 +82,39 @@ class PricingReferenceAdministrationService
     public function createPriceBook(User $actor, ?Branch $branch, array $attributes): PriceBook
     {
         $this->authorize($actor);
-        $this->assertOnly($attributes, ['name', 'currency']);
+        $this->assertOnly($attributes, ['name', 'currency', 'price_tier', 'panel_id']);
         $name = $this->text($attributes['name'] ?? null, 'name', 150, true);
         $currency = $this->currency($attributes['currency'] ?? 'MYR');
+        $priceTier = $attributes['price_tier'] ?? 'self_pay';
+        if (! is_string($priceTier) || ! in_array($priceTier, ['self_pay', 'panel'], true)) {
+            $this->invalid('price_tier', 'Select Self-pay or Panel pricing.');
+        }
+        $panelId = $attributes['panel_id'] ?? null;
+        if ($priceTier === 'self_pay' && $panelId !== null) {
+            $this->invalid('panel_id', 'Self-pay Price Books cannot be assigned to a Panel.');
+        }
+        if ($priceTier === 'panel' && $branch !== null) {
+            $this->invalid('branch_id', 'Panel tariffs are organisation-wide; use a Panel-specific override where needed.');
+        }
+        if ($panelId !== null && (! is_int($panelId) && ! ctype_digit((string) $panelId))) {
+            $this->invalid('panel_id', 'Select an active Panel.');
+        }
+        $panelId = $panelId === null ? null : (int) $panelId;
 
-        return DB::transaction(function () use ($actor, $branch, $name, $currency): PriceBook {
+        return DB::transaction(function () use ($actor, $branch, $name, $currency, $priceTier, $panelId): PriceBook {
             $this->lockOrganisation($actor);
             $lockedBranch = $branch === null ? null : $this->lockBranch($actor, $branch);
-            $scopeKey = $lockedBranch === null ? 'organisation' : 'branch:'.$lockedBranch->id;
+            $panel = null;
+            if ($priceTier === 'panel' && $panelId !== null) {
+                $panel = Panel::query()->whereKey($panelId)->where('organisation_id', $actor->organisation_id)
+                    ->where('is_active', true)->lockForUpdate()->first();
+                if ($panel === null) {
+                    $this->invalid('panel_id', 'Select an active Panel in this organisation.');
+                }
+            }
+            $scopeKey = $priceTier === 'self_pay'
+                ? ($lockedBranch === null ? 'organisation' : 'branch:'.$lockedBranch->id)
+                : ($panel === null ? 'panel:default' : 'panel:'.$panel->id);
             if (PriceBook::query()->where('organisation_id', $actor->organisation_id)->where('scope_key', $scopeKey)->exists()) {
                 $this->invalid('scope', 'A Price Book already exists for this scope. Reactivate or update the retained book instead.');
             }
@@ -101,11 +127,13 @@ class PricingReferenceAdministrationService
                 'scope_key' => $scopeKey,
                 'name' => $name,
                 'currency' => $currency,
+                'price_tier' => $priceTier,
+                'panel_id' => $panel?->id,
                 'is_active' => true,
             ])->save();
             $this->record('price_book.created', $book, $actor, [
-                'branch_id', 'scope_key', 'name', 'currency', 'is_active',
-            ], ['scope' => $scopeKey, 'currency' => $currency]);
+                'branch_id', 'scope_key', 'name', 'currency', 'price_tier', 'panel_id', 'is_active',
+            ], ['scope' => $scopeKey, 'currency' => $currency, 'price_tier' => $priceTier, 'panel_id' => $panel?->id]);
 
             return $book;
         }, 3);

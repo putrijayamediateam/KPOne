@@ -8,6 +8,7 @@ use App\Domain\Organisation\Inventory\Models\InventoryBatch;
 use App\Domain\Organisation\Inventory\Models\InventoryLocation;
 use App\Domain\Organisation\Inventory\Models\InventorySku;
 use App\Domain\Organisation\Inventory\Models\InventoryStockBalance;
+use App\Domain\Organisation\Inventory\Models\InventorySupplier;
 use App\Domain\Organisation\Inventory\Models\StockMovement;
 use App\Models\User;
 use Illuminate\Auth\Access\AuthorizationException;
@@ -32,8 +33,27 @@ class InventoryMovementService
             [$location, $sku, $batch] = $this->lockReferences($lockedActor, $attributes['location_public_id'], $attributes['sku_public_id'], $attributes['batch_public_id']);
             abort_unless($location->branch_id === $branch->id, 404);
             $quantity = $this->quantity($attributes['quantity']);
+            $unitCostSen = $this->unitCostSen($attributes['unit_cost_sen'] ?? null);
+            $supplier = null;
+            if (filled($attributes['supplier_public_id'] ?? null)) {
+                $supplier = InventorySupplier::query()->where('organisation_id', $lockedActor->organisation_id)
+                    ->where('public_id', $attributes['supplier_public_id'])->where('is_active', true)
+                    ->lockForUpdate()->firstOrFail();
+            }
             $this->increase($lockedActor->organisation_id, $location->id, $sku->id, $batch->id, $quantity);
-            $movement = $this->movement($lockedActor, $sku, $batch, null, $location, $quantity, StockMovement::TYPE_OPENING, 'inventory_opening_balance', (string) Str::uuid());
+            $movement = $this->movement(
+                $lockedActor,
+                $sku,
+                $batch,
+                null,
+                $location,
+                $quantity,
+                StockMovement::TYPE_OPENING,
+                'inventory_opening_balance',
+                (string) Str::uuid(),
+                unitCostSen: $unitCostSen,
+                supplierId: $supplier?->id,
+            );
             $this->audit->record('inventory.opening_balance', $movement, ['movement_type' => StockMovement::TYPE_OPENING], $lockedActor, $branch);
 
             return $movement;
@@ -86,9 +106,34 @@ class InventoryMovementService
         return $movement;
     }
 
-    public function recordPurchaseReceipt(User $actor, InventoryLocation $location, InventorySku $sku, InventoryBatch $batch, mixed $quantity, string $receiptPublicId): StockMovement
-    {
-        return $this->creditOperation($actor, $location, $sku, $batch, $quantity, StockMovement::TYPE_PURCHASE_RECEIPT, 'inventory_goods_receipt', $receiptPublicId);
+    public function recordPurchaseReceipt(
+        User $actor,
+        InventoryLocation $location,
+        InventorySku $sku,
+        InventoryBatch $batch,
+        mixed $quantity,
+        string $receiptPublicId,
+        mixed $unitCostSen = null,
+        ?int $supplierId = null,
+    ): StockMovement {
+        $this->assertOperationReferences($actor, $location, $sku, $batch);
+        $value = $this->quantity($quantity);
+        $cost = $this->unitCostSen($unitCostSen);
+        $this->increase($actor->organisation_id, $location->id, $sku->id, $batch->id, $value);
+
+        return $this->movement(
+            $actor,
+            $sku,
+            $batch,
+            null,
+            $location,
+            $value,
+            StockMovement::TYPE_PURCHASE_RECEIPT,
+            'inventory_goods_receipt',
+            $receiptPublicId,
+            unitCostSen: $cost,
+            supplierId: $supplierId,
+        );
     }
 
     public function recordTransferDispatch(User $actor, InventoryLocation $location, InventorySku $sku, InventoryBatch $batch, mixed $quantity, string $requestPublicId): StockMovement
@@ -203,10 +248,38 @@ class InventoryMovementService
         return [$sku, $batch];
     }
 
-    private function movement(User $actor, InventorySku $sku, InventoryBatch $batch, ?InventoryLocation $source, ?InventoryLocation $destination, string $quantity, string $type, string $referenceType, string $referencePublicId, ?int $allocationId = null): StockMovement
-    {
+    private function movement(
+        User $actor,
+        InventorySku $sku,
+        InventoryBatch $batch,
+        ?InventoryLocation $source,
+        ?InventoryLocation $destination,
+        string $quantity,
+        string $type,
+        string $referenceType,
+        string $referencePublicId,
+        ?int $allocationId = null,
+        ?int $unitCostSen = null,
+        ?int $supplierId = null,
+    ): StockMovement {
         $movement = new StockMovement;
-        $movement->forceFill(['public_id' => (string) Str::uuid(), 'organisation_id' => $actor->organisation_id, 'inventory_sku_id' => $sku->id, 'inventory_batch_id' => $batch->id, 'source_location_id' => $source?->id, 'destination_location_id' => $destination?->id, 'quantity' => $quantity, 'movement_type' => $type, 'dispensary_item_batch_allocation_id' => $allocationId, 'reference_type' => $referenceType, 'reference_public_id' => $referencePublicId, 'actor_user_id' => $actor->id, 'occurred_at' => now()->utc()])->save();
+        $movement->forceFill([
+            'public_id' => (string) Str::uuid(),
+            'organisation_id' => $actor->organisation_id,
+            'inventory_sku_id' => $sku->id,
+            'inventory_batch_id' => $batch->id,
+            'source_location_id' => $source?->id,
+            'destination_location_id' => $destination?->id,
+            'quantity' => $quantity,
+            'movement_type' => $type,
+            'dispensary_item_batch_allocation_id' => $allocationId,
+            'reference_type' => $referenceType,
+            'reference_public_id' => $referencePublicId,
+            'actor_user_id' => $actor->id,
+            'occurred_at' => now()->utc(),
+            'unit_cost_sen' => $unitCostSen,
+            'supplier_id' => $supplierId,
+        ])->save();
 
         return $movement;
     }
@@ -219,5 +292,17 @@ class InventoryMovementService
         }
 
         return number_format((float) $value, 3, '.', '');
+    }
+
+    private function unitCostSen(mixed $value): ?int
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+        if (! is_numeric($value) || (float) $value < 0 || floor((float) $value) !== (float) $value) {
+            throw ValidationException::withMessages(['unit_cost_sen' => 'Unit cost must be entered as whole sen.']);
+        }
+
+        return (int) $value;
     }
 }

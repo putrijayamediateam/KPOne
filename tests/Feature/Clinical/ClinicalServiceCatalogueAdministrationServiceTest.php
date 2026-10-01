@@ -60,7 +60,7 @@ class ClinicalServiceCatalogueAdministrationServiceTest extends ClinicalTestCase
         $this->assertSame($director->organisation_id, $audit->organisation_id);
         $this->assertSame($service->id, $audit->subject_id);
         $this->assertEqualsCanonicalizing(
-            ['code', 'display_name', 'order_unit', 'is_active'],
+            ['code', 'display_name', 'order_unit', 'category', 'is_active'],
             $audit->metadata['changed_fields'],
         );
     }

@@ -611,7 +611,11 @@ class PostgresDispensaryInventoryRegressionTest extends TestCase
         $migrator = app('migrator');
         $path = database_path('migrations/'.self::INVENTORY_OPERATIONS_MIGRATION.'.php');
         $migrationBatch = DB::table('migrations')->where('migration', self::INVENTORY_OPERATIONS_MIGRATION)->value('batch');
+        $catalogueCostMigration = '2026_10_01_000200_add_unified_catalogue_setup_and_costing';
+        $catalogueCostPath = database_path('migrations/'.$catalogueCostMigration.'.php');
+        $catalogueCostBatch = DB::table('migrations')->where('migration', $catalogueCostMigration)->value('batch');
         try {
+            $migrator->rollback([$catalogueCostPath], ['batch' => $catalogueCostBatch]);
             $migrator->rollback([$path], ['batch' => $migrationBatch]);
             foreach (self::INVENTORY_OPERATIONS_TABLES as $table) {
                 $this->assertFalse(Schema::hasTable($table), $table);
@@ -621,12 +625,19 @@ class PostgresDispensaryInventoryRegressionTest extends TestCase
             if (! Schema::hasTable('inventory_suppliers')) {
                 $migrator->run([$path], ['step' => true]);
             }
+            if (! DB::table('migrations')->where('migration', $catalogueCostMigration)->exists()) {
+                $migrator->run([$catalogueCostPath], ['step' => true]);
+            }
         }
 
         foreach (self::INVENTORY_OPERATIONS_TABLES as $table) {
             $this->assertTrue(Schema::hasTable($table), $table);
         }
         $this->assertTrue(DB::table('migrations')->where('migration', self::INVENTORY_OPERATIONS_MIGRATION)->exists());
+        $this->assertTrue(DB::table('migrations')->where('migration', $catalogueCostMigration)->exists());
+        $this->assertTrue(Schema::hasColumn('inventory_purchase_order_lines', 'estimated_unit_cost_sen'));
+        $this->assertTrue(Schema::hasColumn('inventory_goods_receipt_lines', 'unit_cost_sen'));
+        $this->assertTrue(Schema::hasColumn('stock_movements', 'unit_cost_sen'));
     }
 
     public function test_inventory_operations_migration_refuses_every_retained_evidence_table_and_new_movement_without_changing_migrator_evidence(): void

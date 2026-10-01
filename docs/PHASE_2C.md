@@ -2,6 +2,10 @@
 
 Phase 2C is a presentation and navigation refactor. It does not add or change Patient, Visit, Queue, Encounter, Allergy, Problem, or Treatment Plan state.
 
+This document records the Phase 2C scope at delivery. Its `/insight` placeholder was subsequently replaced by the
+separately authorised read-only Insights reports documented in [INSIGHTS.md](./INSIGHTS.md). Other placeholders
+remain subject to their own phase authorization.
+
 ## Product contexts
 
 - **Clinic workspace:** header-led Registration, Consultation and planned-module navigation for authorized clinic actors. It has no persistent sidebar.

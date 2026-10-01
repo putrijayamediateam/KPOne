@@ -83,7 +83,6 @@ class WorkspaceTest extends VisitTestCase
 
         foreach ([
             'clinic.reviews' => 'Reviews',
-            'clinic.insight' => 'Insight',
             'clinic.purchase' => 'Purchase',
         ] as $route => $module) {
             $this->get(route($route))->assertOk()->assertInertia(fn (Assert $page) => $page
@@ -92,6 +91,8 @@ class WorkspaceTest extends VisitTestCase
                 ->missing('records')
                 ->missing('analytics'));
         }
+
+        $this->get(route('clinic.insight'))->assertRedirectToRoute('insights.today');
 
         $technical = $this->actor('technical_admin');
         $this->selectBranch($technical);

@@ -702,6 +702,15 @@ test('receipt quantities use the backend decimal grammar without numeric coercio
         batch_number: null,
         expiry_date: null,
     });
+    const costed = validate([
+        { ...rawLine(lineA, '1'), unit_cost_rm: '12.35' },
+    ]);
+    assert.equal(costed.valid, true);
+    assert.equal(costed.payload[0].unit_cost_sen, 1235);
+    assert.equal(
+        validate([{ ...rawLine(lineA, '1'), unit_cost_rm: '12.345' }]).valid,
+        false,
+    );
 
     for (const [raw, canonical] of [
         ['1', '1.000'],
@@ -884,6 +893,7 @@ test('receipt remembered state survives serialization and remount without rotati
             quantity: '3',
             batch_number: ' BATCH-A ',
             expiry_date: '2028-12-31',
+            unit_cost_rm: '1.25',
         },
     ];
 
@@ -891,6 +901,7 @@ test('receipt remembered state survives serialization and remount without rotati
     assert.equal(first.entry.idempotencyKey, keyA);
     assert.equal(first.entry.payload[0].quantity, '3.000');
     assert.equal(first.entry.payload[0].batch_number, 'BATCH-A');
+    assert.equal(first.entry.payload[0].unit_cost_sen, 125);
 
     // The request became ambiguous: no success consumption occurred. Simulate
     // destruction, JSON history serialization, and a fresh component owner.
@@ -903,6 +914,7 @@ test('receipt remembered state survives serialization and remount without rotati
     );
     assert.equal(remounted.entries[poA].idempotencyKey, keyA);
     assert.equal(drafts(remounted)[poA][lineA].quantity, '3.000');
+    assert.equal(drafts(remounted)[poA][lineA].unitCostSen, 125);
 
     const ambiguousRetry = remember(
         remounted,

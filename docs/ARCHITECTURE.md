@@ -1,6 +1,10 @@
 # Architecture
 
-Phase 3A-Core adds `Clinical/Dispensary` and `Organisation/Inventory` inside the modular monolith. Clinical handoff and inventory remain separate aggregates joined only in the atomic completion transaction.
+Phase 3A-Core adds `Clinical/Dispensary` and `Organisation/Inventory` inside the modular monolith. Phase 3B adds
+checkout, billing, payment, and Visit completion. The separately authorised Insights implementation adds
+read-only aggregate projections across existing domains; it does not merge their write models or introduce new
+business transactions. Clinical handoff and inventory remain separate aggregates joined only in the atomic
+completion transaction.
 
 ## Decision: modular monolith
 
@@ -10,7 +14,7 @@ KPOne is one Laravel deployment and one PostgreSQL database. Domain boundaries o
 - `app/Domain/Identity`: staff profiles, branch assignments, staff policy, and identity administration
 - `app/Domain/Access`: permission catalogue and branch/staff scope services
 - `app/Domain/Audit`: append-oriented records, recorder, and security-event listeners
-- `app/Domain/Shared`: reserved for genuinely cross-domain primitives; it should not become a miscellaneous folder
+- `app/Domain/Shared`: genuinely cross-domain primitives and read-only aggregate reporting; it should not become a miscellaneous folder or bypass domain-owned mutation services
 - `app/Domain/Patient`: organisation-level Patient Master models, policy, number allocation, identity normalisation, directory, and administration
 - `app/Domain/Visit`: branch operational Visits, Registration, doctor eligibility, Visit number allocation, directory, administration, and policy
 - `app/Domain/Queue`: one-to-one branch Queue Entries, branch/day numbering, live projection, and Waiting/Serving transitions

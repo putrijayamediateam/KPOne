@@ -126,7 +126,7 @@ class InventoryOperationsTest extends ClinicalTestCase
         $supplier = app(SupplierAdministrationService::class)->create($finance, $this->supplierAttributes('P0'));
         $fixture = $this->inventoryFixture($finance, 'P0');
         $service = app(ProcurementService::class);
-        $order = $service->create($finance, $this->purchaseOrderAttributes($supplier, $fixture, '10.000'));
+        $order = $service->create($finance, $this->purchaseOrderAttributes($supplier, $fixture, '10.000', 125));
         $this->assertSame(PurchaseOrder::STATUS_DRAFT, $order->status);
         $this->assertSame(0, DB::table('stock_movements')->count());
         $order = $service->submit($finance, $order, $this->transition($order));
@@ -138,9 +138,10 @@ class InventoryOperationsTest extends ClinicalTestCase
         $this->assertSame(0, DB::table('stock_movements')->count());
 
         $line = $order->lines()->sole();
+        $this->assertSame(125, $line->estimated_unit_cost_sen);
         $this->selectBranch($receiver);
         $firstKey = (string) Str::uuid();
-        $firstInput = $this->receiptAttributes($order, $line->public_id, '4.000', $firstKey);
+        $firstInput = $this->receiptAttributes($order, $line->public_id, '4.000', $firstKey, 150);
         $first = $service->receive($receiver, $order, $firstInput);
         $this->assertSame(PurchaseOrder::STATUS_PARTIALLY_RECEIVED, $order->refresh()->status);
         $this->assertSame('4.000', $order->lines()->sole()->received_quantity);
@@ -149,6 +150,14 @@ class InventoryOperationsTest extends ClinicalTestCase
         $this->assertSame($first->id, $again->id);
         $this->assertSame(1, GoodsReceipt::query()->count());
         $this->assertSame(1, DB::table('stock_movements')->count());
+        $this->assertDatabaseHas('inventory_goods_receipt_lines', [
+            'goods_receipt_id' => $first->id,
+            'unit_cost_sen' => 150,
+        ]);
+        $this->assertDatabaseHas('stock_movements', [
+            'movement_type' => StockMovement::TYPE_PURCHASE_RECEIPT,
+            'unit_cost_sen' => 150,
+        ]);
 
         $second = $service->receive($receiver, $order->refresh(), $this->receiptAttributes($order->refresh(), $line->public_id, '6.000', (string) Str::uuid()));
         $this->assertNotSame($first->id, $second->id);
@@ -156,6 +165,14 @@ class InventoryOperationsTest extends ClinicalTestCase
         $this->assertSame('10.000', $order->lines()->sole()->received_quantity);
         $this->assertDatabaseHas('inventory_stock_balances', ['inventory_location_id' => $fixture['location']->id, 'inventory_sku_id' => $fixture['sku']->id, 'quantity' => 10]);
         $this->assertSame(2, DB::table('stock_movements')->where('movement_type', StockMovement::TYPE_PURCHASE_RECEIPT)->count());
+        $this->assertDatabaseHas('inventory_goods_receipt_lines', [
+            'goods_receipt_id' => $second->id,
+            'unit_cost_sen' => 125,
+        ]);
+        $this->assertDatabaseHas('stock_movements', [
+            'movement_type' => StockMovement::TYPE_PURCHASE_RECEIPT,
+            'unit_cost_sen' => 125,
+        ]);
         $this->assertDatabaseHas('audit_logs', ['event' => 'inventory.goods_receipt.posted', 'subject_id' => $second->id]);
     }
 
@@ -954,9 +971,9 @@ class InventoryOperationsTest extends ClinicalTestCase
     }
 
     /** @param array{sku:mixed,location:InventoryLocation} $fixture @return array<string, mixed> */
-    private function purchaseOrderAttributes(InventorySupplier $supplier, array $fixture, string $quantity = '10.000'): array
+    private function purchaseOrderAttributes(InventorySupplier $supplier, array $fixture, string $quantity = '10.000', ?int $unitCostSen = null): array
     {
-        return ['expected_branch_id' => $this->branch->id, 'supplier_public_id' => $supplier->public_id, 'destination_location_public_id' => $fixture['location']->public_id, 'lines' => [['sku_public_id' => $fixture['sku']->public_id, 'quantity' => $quantity]]];
+        return ['expected_branch_id' => $this->branch->id, 'supplier_public_id' => $supplier->public_id, 'destination_location_public_id' => $fixture['location']->public_id, 'lines' => [['sku_public_id' => $fixture['sku']->public_id, 'quantity' => $quantity, 'unit_cost_sen' => $unitCostSen]]];
     }
 
     /** @return array<string, mixed> */
@@ -966,9 +983,9 @@ class InventoryOperationsTest extends ClinicalTestCase
     }
 
     /** @return array<string, mixed> */
-    private function receiptAttributes(PurchaseOrder $order, string $linePublicId, string $quantity, string $key): array
+    private function receiptAttributes(PurchaseOrder $order, string $linePublicId, string $quantity, string $key, ?int $unitCostSen = null): array
     {
-        return [...$this->transition($order), 'idempotency_key' => $key, 'lines' => [['line_public_id' => $linePublicId, 'quantity' => $quantity, 'batch_number' => 'SYN-RECEIPT-BATCH', 'expiry_date' => '2028-12-31']]];
+        return [...$this->transition($order), 'idempotency_key' => $key, 'lines' => [['line_public_id' => $linePublicId, 'quantity' => $quantity, 'batch_number' => 'SYN-RECEIPT-BATCH', 'expiry_date' => '2028-12-31', 'unit_cost_sen' => $unitCostSen]]];
     }
 
     /** @return array<string, mixed> */

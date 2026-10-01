@@ -1,6 +1,7 @@
 # Development
 
-Phase 3A PostgreSQL contention tests must run only against a disposable database recognisably named for testing. A local PostgreSQL skip is not release evidence.
+PostgreSQL-only regression and contention tests must run only against a disposable database recognisably named
+for testing. A local SQLite skip is not PostgreSQL release evidence.
 
 ## Prerequisites
 
@@ -59,6 +60,23 @@ PostgreSQL-specific regression tests skip explicitly on SQLite. In PostgreSQL CI
 
 Production environments must not use this identity. The seeder does not create staff from planning headcounts.
 
+## Presentation data
+
+For an isolated local demonstration, first migrate and seed the database, then run:
+
+```bash
+php artisan db:seed --class=KPOnePresentationSeeder
+```
+
+This local/testing-only seeder creates one synthetic account for each of the ten roles, including a Director,
+plus ten fictional Patient Master records. Demo staff are distributed across the three branches, with the
+Director assigned access to all three. Staff accounts use `demo.director@kpone.test` for the Director and
+`demo.<role>@kpone.test` for each remaining role; all use the seeder's local-only presentation password. The
+records are idempotently reused on rerun. The patient records use fictional identifiers, `.test` emails, and the
+same synthetic test phone number. The seeder does not create visits, clinical content, appointments, catalogue
+items, prices, stock, or billing transactions: those must be created through the authorised UI before walking
+those workflows. Never run this seeder with real data or in production.
+
 Seeding is controlled bootstrap, not a runtime administration path. Runtime branch-assignment mutations must use `BranchAssignmentService` so validation, locking, and audit guarantees apply. A synthetic local/testing seeder or test fixture may use explicit guarded writes to establish initial fictional state when routing it through runtime services would create misleading operational audit history.
 
 ## Google sign-in
@@ -96,6 +114,7 @@ npm run types:check
 npm run lint:check
 npm run format:check
 npm run build
+node --test tests/Frontend/*.mjs
 ```
 
 Migration verification with dummy data:
@@ -105,6 +124,40 @@ php artisan migrate:fresh --seed
 ```
 
 Run destructive migration commands only against a confirmed local/test database. Laravel prohibits destructive database commands in production.
+
+## Insights
+
+The current authorised Insights reports are read-only and aggregate-only. See [INSIGHTS.md](./INSIGHTS.md) for
+the report list, permission and privacy boundary, filters, calculations, and release gates. Keep development
+fixtures synthetic; do not populate local reports with real patient or staff data. Before release consideration,
+run the full tests against disposable PostgreSQL 18 as well as the normal frontend checks, then complete
+independent review and human UAT.
+
+## Unified Catalogue Setup
+
+The authorised catalogue setup workflow is implemented in the current unmerged worktree and is not
+production-approved. Medicine setup orchestrates catalogue metadata, an existing or newly created linked
+Inventory Item/SKU, self-pay and Panel tariffs, and optional batch/opening stock with its branch, location,
+supplier, and purchase unit cost. Clinical Service setup supports its category and the same tariff tiers.
+Persisted descriptive dropdowns use organisation-scoped catalogue options; inline Panel, supplier, and location
+creation calls the existing permissioned administration services. Do not bypass those services or create
+duplicate stock references when a matching catalogue-to-SKU mapping already exists.
+
+Both catalogue forms are single-page workflows, not multi-step wizards. Keep their stacked, numbered sections,
+descriptive guidance, default-pricing table, and separately listed Panel overrides consistent across Medicine
+and Clinical Service. Do not add screenshot-only stock metrics or fields unless they have a governed source of
+truth and an authorised backend workflow.
+
+The Clinical Service Catalogue screen also contains a Consultation tariff section. It maintains the dedicated
+`consultation` Charge Definition and versioned Self-pay, default Panel, and Panel-specific prices consumed by
+Billing; it does not create a separately ordered Clinical Service. The Pricing link is hidden from workspace
+navigation, but its permissioned route and backend records remain intact, so hiding the link does not change
+Billing, existing prices, or other workflows.
+
+Purchase-order lines may retain an estimated unit cost; goods receipt lines and resulting stock movements retain
+the actual received unit cost, falling back to the estimate only when no actual cost is supplied. These costs
+are audit-relevant historical facts, not catalogue prices. Existing records are not backfilled or recreated.
+Complete owner-led synthetic UAT of the setup and receiving flows before treating this workflow as release-ready.
 
 ## Working conventions
 
