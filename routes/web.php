@@ -283,6 +283,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
         Route::middleware(['permission:medicines.manage.organisation'])->prefix('medicines')->group(function () {
             Route::get('/', [MedicineCatalogueController::class, 'index'])->name('medicines.index');
+            Route::get('{medicine}/setup', [MedicineCatalogueController::class, 'editSetup'])
+                ->whereUuid('medicine')->name('medicines.setup');
             Route::get('inventory-skus', [MedicineCatalogueController::class, 'searchInventorySkus'])
                 ->middleware('throttle:60,1')->name('medicines.inventory-skus');
             Route::post('/', [MedicineCatalogueController::class, 'store'])->middleware('throttle:30,1')->name('medicines.store');

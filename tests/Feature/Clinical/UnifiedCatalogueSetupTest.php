@@ -135,6 +135,68 @@ class UnifiedCatalogueSetupTest extends ClinicalTestCase
         ]);
     }
 
+    public function test_medicine_edit_setup_loads_and_updates_all_saved_sections(): void
+    {
+        $actor = $this->actor('ca_supervisor');
+        $this->selectBranch($actor);
+        $this->actingAs($actor);
+
+        $this->post(route('medicines.store'), [
+            'code' => 'EDIT-MED',
+            'display_name' => 'Synthetic editable medicine',
+            'generic_name' => 'Synthetic edit ingredient',
+            'category' => 'Synthetic category',
+            'order_unit' => 'tablet',
+            'expected_branch_id' => $this->branch->id,
+            'sku' => [
+                'sku_code' => 'EDIT-MED-SKU',
+                'barcode' => 'EDIT-BARCODE-1',
+                'pack_size' => '1',
+                'purchase_unit' => 'tablet',
+                'stock_unit' => 'tablet',
+                'dispensing_unit' => 'tablet',
+                'unit_conversion' => '1',
+            ],
+            'prices' => [
+                'self_pay_sen' => 100,
+                'panel_default_sen' => 120,
+                'panel_overrides' => [],
+            ],
+        ])->assertRedirect(route('medicines.index'));
+
+        $medicine = MedicineCatalogueItem::query()->where('code', 'EDIT-MED')->sole();
+        $sku = InventorySku::query()->where('sku_code', 'EDIT-MED-SKU')->sole();
+
+        $this->getJson(route('medicines.setup', $medicine->public_id))
+            ->assertOk()
+            ->assertJsonPath('medicine.category', 'Synthetic category')
+            ->assertJsonPath('sku.public_id', $sku->public_id)
+            ->assertJsonPath('sku.barcode', 'EDIT-BARCODE-1')
+            ->assertJsonPath('prices.self_pay_rm', '1.00')
+            ->assertJsonPath('prices.panel_default_rm', '1.20');
+
+        $this->patch(route('medicines.update', $medicine->public_id), [
+            'category' => 'Synthetic updated category',
+            'expected_branch_id' => $this->branch->id,
+            'sku' => ['barcode' => 'EDIT-BARCODE-2'],
+            'prices' => [
+                'self_pay_sen' => 150,
+                'panel_default_sen' => 120,
+                'panel_overrides' => [],
+            ],
+        ])->assertRedirect(route('medicines.index'));
+
+        $this->assertSame('Synthetic updated category', $medicine->fresh()->category);
+        $this->assertSame('EDIT-BARCODE-2', $sku->fresh()->barcode);
+        $this->assertDatabaseHas('price_entries', [
+            'price_book_id' => PriceBook::query()->where('scope_key', 'organisation')->value('id'),
+            'charge_definition_id' => DB::table('charge_definitions')
+                ->where('medicine_catalogue_item_id', $medicine->id)->value('id'),
+            'unit_price_sen' => 150,
+            'version' => 2,
+        ]);
+    }
+
     public function test_price_publication_failure_rolls_back_the_entire_medicine_setup(): void
     {
         $director = $this->actor('director');

@@ -40,6 +40,17 @@ test('Medicine setup joins catalogue identity, linked inventory, tariffs, and op
     assert.match(source, /<InventorySkuPicker/);
     assert.match(source, /<LocationPicker/);
     assert.match(source, /<SupplierPicker/);
+    assert.match(source, /\/medicines\/\$\{row\.publicId\}\/setup/);
+    assert.match(source, /v-if="setup\.canManagePrices"/);
+    assert.match(source, /v-if="setup\.canReceiveStock"/);
+    assert.match(
+        read('resources/js/components/catalogue/CatalogueOptionPicker.vue'),
+        /@click="toggleOptions"/,
+    );
+    assert.match(
+        read('resources/js/components/catalogue/CatalogueOptionPicker.vue'),
+        /@blur="closeOptions"/,
+    );
 });
 
 test('Clinical Service setup offers reusable categories, self-pay and panel tariffs without medicine stock fields', () => {

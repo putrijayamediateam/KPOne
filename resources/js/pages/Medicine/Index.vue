@@ -25,6 +25,7 @@ import { CompactPagination } from '@/components/ui/pagination';
 import { OperationalSelect } from '@/components/ui/select';
 import { StatusBadge } from '@/components/ui/status';
 import { OperationalTable } from '@/components/ui/table';
+import { JsonRequestError, requestJson } from '@/lib/json-client';
 
 type MedicineRow = {
     publicId: string;
@@ -97,6 +98,9 @@ const visit = (overrides: Record<string, string | number> = {}) => {
 
 const dialogOpen = ref(false);
 const editing = ref<MedicineRow | null>(null);
+const editingSkuLabel = ref('');
+const editLoading = ref(false);
+const editLoadError = ref('');
 const form = useForm({
     code: '',
     display_name: '',
@@ -149,6 +153,8 @@ const form = useForm({
 
 const openCreate = () => {
     editing.value = null;
+    editingSkuLabel.value = '';
+    editLoadError.value = '';
     form.reset();
     form.clearErrors();
     form.expected_branch_id = props.setup.activeBranchId
@@ -156,25 +162,79 @@ const openCreate = () => {
         : '';
     dialogOpen.value = true;
 };
-const openEdit = (row: MedicineRow) => {
-    editing.value = row;
-    form.clearErrors();
-    form.code = row.code;
-    form.display_name = row.displayName;
-    form.strength_text = row.strengthText ?? '';
-    form.dosage_form = row.dosageForm ?? '';
-    form.order_unit = row.orderUnit;
-    form.generic_name = row.genericName ?? '';
-    form.category = row.category ?? '';
-    form.group_name = row.groupName ?? '';
-    form.default_dosage_amount = row.defaultDosageAmount ?? '';
-    form.default_dosage_unit = row.defaultDosageUnit ?? '';
-    form.default_instruction = row.defaultInstruction ?? '';
-    form.default_precaution = row.defaultPrecaution ?? '';
-    form.default_frequency = row.defaultFrequency ?? '';
-    form.default_duration = row.defaultDuration ?? '';
-    form.default_indication = row.defaultIndication ?? '';
+const openEdit = async (row: MedicineRow) => {
+    editLoading.value = true;
+    editLoadError.value = '';
     dialogOpen.value = true;
+    editing.value = row;
+    form.reset();
+    form.clearErrors();
+
+    try {
+        const details = await requestJson<{
+            medicine: Record<string, string>;
+            sku: null | {
+                public_id: string;
+                sku_code: string;
+                barcode: string;
+                pack_size: string;
+                purchase_unit: string;
+                stock_unit: string;
+                dispensing_unit: string;
+                unit_conversion: string;
+                storage_type: string;
+                minimum_temperature: string | null;
+                maximum_temperature: string | null;
+                cold_chain_required: boolean;
+                do_not_freeze: boolean;
+                protect_from_light: boolean;
+                batch_tracking_required: boolean;
+                expiry_tracking_required: boolean;
+                route: string;
+                manufacturer: string;
+                mal_number: string;
+                generic_name: string;
+            };
+            prices: {
+                self_pay_rm: string | null;
+                panel_default_rm: string | null;
+                panel_overrides: {
+                    panel_id: string;
+                    panel_name: string;
+                    amount_rm: string;
+                    version: number;
+                }[];
+            };
+        }>(`/medicines/${row.publicId}/setup`);
+        Object.assign(form, details.medicine);
+        form.prices.self_pay_rm = details.prices.self_pay_rm ?? '';
+        form.prices.panel_default_rm = details.prices.panel_default_rm ?? '';
+        form.prices.panel_overrides = details.prices.panel_overrides.map(
+            ({ panel_id, amount_rm }) => ({ panel_id, amount_rm }),
+        );
+
+        if (details.sku) {
+            Object.assign(form.sku, details.sku);
+            form.inventory_sku_public_id = details.sku.public_id;
+            form.route = details.sku.route;
+            form.manufacturer = details.sku.manufacturer;
+            form.mal_number = details.sku.mal_number;
+            editingSkuLabel.value = `${details.sku.sku_code} · ${details.sku.generic_name}`;
+        } else {
+            editingSkuLabel.value = '';
+        }
+
+        form.expected_branch_id = props.setup.activeBranchId
+            ? String(props.setup.activeBranchId)
+            : '';
+    } catch (error) {
+        editLoadError.value =
+            error instanceof JsonRequestError
+                ? 'Medicine setup details could not be loaded. Refresh the page and try again.'
+                : 'Medicine setup details could not be loaded. Check your connection and try again.';
+    } finally {
+        editLoading.value = false;
+    }
 };
 const toSen = (amount: string | number) => {
     const normalized =
@@ -204,20 +264,31 @@ const submit = () => {
     form.transform((data) => ({
         ...data,
         expected_branch_id: data.expected_branch_id || null,
-        prices: {
-            self_pay_sen: toSen(data.prices.self_pay_rm),
-            panel_default_sen: toSen(data.prices.panel_default_rm),
-            panel_overrides: data.prices.panel_overrides.map((override) => ({
-                panel_id: override.panel_id,
-                amount_sen: toSen(override.amount_rm),
-            })),
-        },
-        opening_stock: data.opening_stock.map((row) => ({
-            branch_id: row.branch_id,
-            location_public_id: row.location_public_id,
-            quantity: row.quantity,
-            unit_cost_sen: toSen(row.unit_cost_rm),
-        })),
+        ...(props.setup.canManageInventory ? { sku: data.sku } : {}),
+        ...(props.setup.canPublishPrices
+            ? {
+                  prices: {
+                      self_pay_sen: toSen(data.prices.self_pay_rm),
+                      panel_default_sen: toSen(data.prices.panel_default_rm),
+                      panel_overrides: data.prices.panel_overrides.map(
+                          (override) => ({
+                              panel_id: override.panel_id,
+                              amount_sen: toSen(override.amount_rm),
+                          }),
+                      ),
+                  },
+              }
+            : {}),
+        ...(props.setup.canReceiveStock
+            ? {
+                  opening_stock: data.opening_stock.map((row) => ({
+                      branch_id: row.branch_id,
+                      location_public_id: row.location_public_id,
+                      quantity: row.quantity,
+                      unit_cost_sen: toSen(row.unit_cost_rm),
+                  })),
+              }
+            : {}),
     }));
 
     if (editing.value) {
@@ -381,9 +452,17 @@ const toggleDescription = computed(() => {
                     </DialogDescription>
                 </DialogHeader>
                 <form
+                    v-if="!editLoading"
                     class="grid gap-4 rounded-xl bg-muted/30 p-2 sm:p-4"
                     @submit.prevent="submit"
                 >
+                    <p
+                        v-if="editLoadError"
+                        class="rounded-md border border-destructive/40 bg-destructive/5 p-3 text-sm text-destructive"
+                        role="alert"
+                    >
+                        {{ editLoadError }}
+                    </p>
                     <section
                         class="grid gap-4 rounded-lg border bg-background p-4 shadow-sm sm:p-5"
                     >
@@ -542,7 +621,7 @@ const toggleDescription = computed(() => {
                     </section>
 
                     <section
-                        v-if="!editing && setup.canManageInventory"
+                        v-if="setup.canManageInventory"
                         class="grid gap-4 rounded-lg border bg-background p-4 shadow-sm sm:p-5"
                     >
                         <CatalogueFormSectionHeading
@@ -550,12 +629,23 @@ const toggleDescription = computed(() => {
                             title="Unit of measurement and stock link"
                             description="Reuse an existing SKU to avoid duplicate stock records, or create the linked Inventory Item and SKU here. Enter the purchase, stock and dispensing units used by your team."
                         />
+                        <p
+                            v-if="editing && editingSkuLabel"
+                            class="rounded-md bg-muted/40 p-3 text-sm text-muted-foreground"
+                        >
+                            Currently linked inventory SKU:
+                            <span class="font-medium text-foreground">{{
+                                editingSkuLabel
+                            }}</span
+                            >. Existing stock history stays unchanged.
+                        </p>
                         <InventorySkuPicker
+                            v-if="!editing || !editingSkuLabel"
                             v-model="form.inventory_sku_public_id"
                             :error="form.errors.inventory_sku_public_id"
                         />
                         <div
-                            v-if="!form.inventory_sku_public_id"
+                            v-if="editing || !form.inventory_sku_public_id"
                             class="grid gap-3 md:grid-cols-2"
                         >
                             <label class="grid gap-1 text-xs"
@@ -611,7 +701,7 @@ const toggleDescription = computed(() => {
                     </section>
 
                     <section
-                        v-if="!editing && setup.canManagePrices"
+                        v-if="setup.canManagePrices"
                         class="grid gap-4 rounded-lg border bg-background p-4 shadow-sm sm:p-5"
                     >
                         <CatalogueFormSectionHeading
@@ -711,6 +801,15 @@ const toggleDescription = computed(() => {
                                     v-model="form.prices.panel_overrides"
                                     :panels="setup.panels"
                                 />
+                                <p
+                                    v-if="editing"
+                                    class="text-xs text-muted-foreground"
+                                >
+                                    Published Panel rates are versioned.
+                                    Removing a row here does not erase its
+                                    existing price history or disable that Panel
+                                    rate.
+                                </p>
                             </div>
                             <label class="grid gap-1 text-xs">
                                 Branch used for price publication
@@ -737,13 +836,17 @@ const toggleDescription = computed(() => {
                     </section>
 
                     <section
-                        v-if="!editing && setup.canReceiveStock"
+                        v-if="setup.canReceiveStock"
                         class="grid gap-4 rounded-lg border bg-background p-4 shadow-sm sm:p-5"
                     >
                         <CatalogueFormSectionHeading
                             number="05"
                             title="Stock details"
-                            description="Optional. Enter an initial quantity, its branch and location, and the batch details. Purchase cost is tracked separately from the selling prices above."
+                            :description="
+                                editing
+                                    ? 'Add a new opening-stock movement if needed. Existing stock movements and purchase costs are historical records and will not be changed.'
+                                    : 'Optional. Enter an initial quantity, its branch and location, and the batch details. Purchase cost is tracked separately from the selling prices above.'
+                            "
                         />
                         <div
                             v-for="(stock, index) in form.opening_stock"
@@ -857,16 +960,25 @@ const toggleDescription = computed(() => {
                         <Button
                             type="button"
                             variant="outline"
-                            :disabled="form.processing"
+                            :disabled="form.processing || editLoading"
                             @click="dialogOpen = false"
                         >
                             Cancel
                         </Button>
-                        <Button type="submit" :disabled="form.processing">
+                        <Button
+                            type="submit"
+                            :disabled="form.processing || editLoading"
+                        >
                             {{ editing ? 'Save' : 'Add Medicine' }}
                         </Button>
                     </DialogFooter>
                 </form>
+                <p
+                    v-else
+                    class="py-10 text-center text-sm text-muted-foreground"
+                >
+                    Loading the saved Medicine, inventory and tariff details…
+                </p>
             </DialogContent>
         </Dialog>
 

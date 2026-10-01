@@ -146,6 +146,26 @@ const select = (option: Option) => {
     errorMessage.value = '';
 };
 
+const toggleOptions = () => {
+    if (open.value) {
+        controller?.abort();
+        open.value = false;
+        loading.value = false;
+        activeIndex.value = -1;
+
+        return;
+    }
+
+    void search();
+};
+
+const closeOptions = () => {
+    controller?.abort();
+    open.value = false;
+    loading.value = false;
+    activeIndex.value = -1;
+};
+
 const add = async () => {
     if (!canAdd.value || adding.value) {
         return;
@@ -229,6 +249,7 @@ const onKeydown = (event: KeyboardEvent) => {
                 autocomplete="off"
                 class="h-9 w-full rounded-md border border-input bg-background px-3 pr-10 text-sm shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
                 @focus="void search()"
+                @blur="closeOptions"
                 @keydown="onKeydown"
             />
             <button
@@ -237,7 +258,7 @@ const onKeydown = (event: KeyboardEvent) => {
                 :disabled="disabled"
                 class="absolute inset-y-0 right-0 flex w-9 items-center justify-center text-muted-foreground hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
                 @mousedown.prevent
-                @click="void search()"
+                @click="toggleOptions"
             >
                 <ChevronDown class="size-4" aria-hidden="true" />
             </button>

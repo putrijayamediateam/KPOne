@@ -9,7 +9,11 @@ use App\Domain\Clinical\Services\UnifiedCatalogueSetupService;
 use App\Domain\Organisation\Inventory\Models\InventoryLocation;
 use App\Domain\Organisation\Inventory\Models\InventorySku;
 use App\Domain\Organisation\Inventory\Models\InventorySupplier;
+use App\Domain\Organisation\Inventory\Models\MedicineCatalogueInventorySku;
 use App\Domain\Organisation\Inventory\Services\InventoryReferenceAdministrationService;
+use App\Domain\Visit\Billing\Models\ChargeDefinition;
+use App\Domain\Visit\Billing\Models\PriceBook;
+use App\Domain\Visit\Billing\Models\PriceEntry;
 use App\Domain\Visit\Billing\Services\PricingReferenceAdministrationService;
 use App\Domain\Visit\Models\Panel;
 use App\Http\Requests\MedicineCatalogueStoreRequest;
@@ -155,6 +159,127 @@ class MedicineCatalogueController extends Controller
             ])->values()]);
     }
 
+    public function editSetup(Request $request, MedicineCatalogueItem $medicine): JsonResponse
+    {
+        $actor = $request->user();
+        abort_unless($medicine->organisation_id === $actor->organisation_id, 404);
+
+        $mapping = MedicineCatalogueInventorySku::query()
+            ->where('organisation_id', $actor->organisation_id)
+            ->where('medicine_catalogue_item_id', $medicine->id)
+            ->where('is_active', true)
+            ->with('sku.item')
+            ->first();
+        $sku = $mapping?->sku;
+        $charge = ChargeDefinition::query()
+            ->where('organisation_id', $actor->organisation_id)
+            ->where('medicine_catalogue_item_id', $medicine->id)
+            ->first();
+        $books = PriceBook::query()
+            ->where('organisation_id', $actor->organisation_id)
+            ->whereNull('branch_id')
+            ->where(function ($query) use ($actor, $charge): void {
+                if (! $actor->can(PricingReferenceAdministrationService::PERMISSION)) {
+                    $query->whereRaw('1 = 0');
+
+                    return;
+                }
+                $query->whereIn('scope_key', ['organisation', 'panel:default']);
+                if ($charge !== null) {
+                    $query->orWhereIn('id', PriceEntry::query()
+                        ->select('price_book_id')
+                        ->where('organisation_id', $actor->organisation_id)
+                        ->where('charge_definition_id', $charge->id));
+                }
+            })
+            ->orderBy('id')
+            ->get();
+        $entries = $charge === null
+            ? collect()
+            : PriceEntry::query()
+                ->where('organisation_id', $actor->organisation_id)
+                ->where('charge_definition_id', $charge->id)
+                ->orderByDesc('version')
+                ->get()
+                ->unique('price_book_id')
+                ->keyBy('price_book_id');
+        $latestFor = static fn (PriceBook $book): ?PriceEntry => $entries->get($book->id) instanceof PriceEntry
+            ? $entries->get($book->id)
+            : null;
+        $toRm = static fn (?PriceEntry $entry): ?string => $entry === null
+            ? null
+            : intdiv($entry->unit_price_sen, 100).'.'.str_pad((string) ($entry->unit_price_sen % 100), 2, '0', STR_PAD_LEFT);
+        $selfPay = $books->firstWhere('scope_key', 'organisation');
+        $panelDefault = $books->firstWhere('scope_key', 'panel:default');
+        $overrides = $books
+            ->filter(fn (PriceBook $book): bool => preg_match('/^panel:\d+$/', $book->scope_key) === 1)
+            ->map(function (PriceBook $book) use ($latestFor, $toRm, $actor): ?array {
+                $entry = $latestFor($book);
+                if ($entry === null) {
+                    return null;
+                }
+                $panel = Panel::query()
+                    ->where('organisation_id', $actor->organisation_id)
+                    ->find($book->panel_id);
+
+                return [
+                    'panel_id' => (string) $book->panel_id,
+                    'panel_name' => $panel->name ?? 'Inactive Panel',
+                    'amount_rm' => $toRm($entry) ?? '',
+                    'version' => $entry->version,
+                ];
+            })
+            ->filter()
+            ->values();
+
+        return response()->json([
+            'medicine' => [
+                'code' => $medicine->code,
+                'display_name' => $medicine->display_name,
+                'strength_text' => $medicine->strength_text ?? '',
+                'dosage_form' => $medicine->dosage_form ?? '',
+                'order_unit' => $medicine->order_unit,
+                'generic_name' => $medicine->generic_name ?? '',
+                'category' => $medicine->category ?? '',
+                'group_name' => $medicine->group_name ?? '',
+                'default_dosage_amount' => $medicine->default_dosage_amount ?? '',
+                'default_dosage_unit' => $medicine->default_dosage_unit ?? '',
+                'default_instruction' => $medicine->default_instruction ?? '',
+                'default_precaution' => $medicine->default_precaution ?? '',
+                'default_frequency' => $medicine->default_frequency ?? '',
+                'default_duration' => $medicine->default_duration ?? '',
+                'default_indication' => $medicine->default_indication ?? '',
+            ],
+            'sku' => $sku === null ? null : [
+                'public_id' => $sku->public_id,
+                'sku_code' => $sku->sku_code,
+                'barcode' => $sku->barcode ?? '',
+                'pack_size' => $sku->pack_size,
+                'purchase_unit' => $sku->purchase_unit,
+                'stock_unit' => $sku->stock_unit,
+                'dispensing_unit' => $sku->dispensing_unit,
+                'unit_conversion' => $sku->unit_conversion,
+                'storage_type' => $sku->storage_type,
+                'minimum_temperature' => $sku->minimum_temperature,
+                'maximum_temperature' => $sku->maximum_temperature,
+                'cold_chain_required' => $sku->cold_chain_required,
+                'do_not_freeze' => $sku->do_not_freeze,
+                'protect_from_light' => $sku->protect_from_light,
+                'batch_tracking_required' => $sku->batch_tracking_required,
+                'expiry_tracking_required' => $sku->expiry_tracking_required,
+                'route' => $sku->item->route ?? '',
+                'manufacturer' => $sku->item->manufacturer ?? '',
+                'mal_number' => $sku->item->mal_number ?? '',
+                'generic_name' => $sku->item->generic_name,
+            ],
+            'prices' => [
+                'self_pay_rm' => $selfPay instanceof PriceBook ? $toRm($latestFor($selfPay)) : null,
+                'panel_default_rm' => $panelDefault instanceof PriceBook ? $toRm($latestFor($panelDefault)) : null,
+                'panel_overrides' => $overrides,
+            ],
+        ]);
+    }
+
     public function store(MedicineCatalogueStoreRequest $request, UnifiedCatalogueSetupService $service): RedirectResponse
     {
         $service->createMedicine($request->user(), $request->validated());
@@ -163,9 +288,9 @@ class MedicineCatalogueController extends Controller
         return to_route('medicines.index');
     }
 
-    public function update(MedicineCatalogueUpdateRequest $request, MedicineCatalogueItem $medicine, MedicineAdministrationService $service): RedirectResponse
+    public function update(MedicineCatalogueUpdateRequest $request, MedicineCatalogueItem $medicine, UnifiedCatalogueSetupService $service): RedirectResponse
     {
-        $service->update($request->user(), $medicine, $request->validated());
+        $service->updateMedicine($request->user(), $medicine, $request->validated());
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Medicine updated.')]);
 
         return to_route('medicines.index');

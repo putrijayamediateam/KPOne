@@ -52,6 +52,49 @@ final class UnifiedCatalogueSetupService
     }
 
     /** @param array<string, mixed> $attributes */
+    public function updateMedicine(User $actor, MedicineCatalogueItem $medicine, array $attributes): MedicineCatalogueItem
+    {
+        return DB::transaction(function () use ($actor, $medicine, $attributes): MedicineCatalogueItem {
+            $updated = $this->medicines->update($actor, $medicine, Arr::only($attributes, [
+                'code', 'display_name', 'strength_text', 'dosage_form', 'order_unit',
+                'generic_name', 'category', 'group_name', 'default_dosage_amount',
+                'default_dosage_unit', 'default_instruction', 'default_precaution',
+                'default_frequency', 'default_duration', 'default_indication',
+            ]));
+
+            $mapping = MedicineCatalogueInventorySku::query()
+                ->where('organisation_id', $actor->organisation_id)
+                ->where('medicine_catalogue_item_id', $updated->id)
+                ->where('is_active', true)
+                ->with('sku.item')
+                ->first();
+            $sku = $mapping?->sku;
+
+            if (is_array($attributes['sku'] ?? null)) {
+                if ($mapping === null) {
+                    $sku = $this->ensureMedicineSku($actor, $updated, $attributes);
+                } else {
+                    $sku = $mapping->sku;
+                    $this->inventory->updateItem($actor, $sku->item, Arr::only($attributes, [
+                        'route', 'manufacturer', 'mal_number',
+                    ]));
+                    $this->inventory->updateSku($actor, $sku, $attributes['sku']);
+                }
+            }
+
+            if (is_array($attributes['prices'] ?? null)) {
+                $this->publishPrices($actor, $updated, $attributes['prices'], $attributes['expected_branch_id'] ?? null);
+            }
+
+            if ($sku !== null && is_array($attributes['opening_stock'] ?? null)) {
+                $this->recordOpeningStock($actor, $sku, array_values($attributes['opening_stock']), $attributes['batch'] ?? [], $attributes['supplier_public_id'] ?? null);
+            }
+
+            return $updated->refresh();
+        }, 3);
+    }
+
+    /** @param array<string, mixed> $attributes */
     public function createClinicalService(User $actor, array $attributes): ClinicalServiceCatalogueItem
     {
         return DB::transaction(function () use ($actor, $attributes): ClinicalServiceCatalogueItem {
@@ -144,7 +187,9 @@ final class UnifiedCatalogueSetupService
         }
         foreach ($prices['panel_overrides'] ?? [] as $override) {
             if (! filled($override['panel_id'] ?? null)
-                || ! array_key_exists('amount_sen', $override) || $override['amount_sen'] === '') {
+                || ! array_key_exists('amount_sen', $override)
+                || $override['amount_sen'] === null
+                || $override['amount_sen'] === '') {
                 continue;
             }
             $panel = Panel::query()->where('organisation_id', $actor->organisation_id)
@@ -196,6 +241,14 @@ final class UnifiedCatalogueSetupService
 
             $latestVersion = (int) PriceEntry::query()->where('price_book_id', $book->id)
                 ->where('charge_definition_id', $charge->id)->max('version');
+            $latestAmount = PriceEntry::query()
+                ->where('price_book_id', $book->id)
+                ->where('charge_definition_id', $charge->id)
+                ->where('version', $latestVersion)
+                ->value('unit_price_sen');
+            if ($latestVersion > 0 && (int) $latestAmount === $entry['amount_sen']) {
+                continue;
+            }
             $this->publication->publish($actor, $book, $charge, $entry['amount_sen'], $latestVersion, (int) $branchId);
         }
     }
