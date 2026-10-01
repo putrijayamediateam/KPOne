@@ -108,6 +108,22 @@ final class UnifiedCatalogueSetupService
     }
 
     /** @param array<string, mixed> $attributes */
+    public function updateClinicalService(User $actor, ClinicalServiceCatalogueItem $service, array $attributes): ClinicalServiceCatalogueItem
+    {
+        return DB::transaction(function () use ($actor, $service, $attributes): ClinicalServiceCatalogueItem {
+            $updated = $this->services->update($actor, $service, Arr::only($attributes, [
+                'code', 'display_name', 'order_unit', 'category',
+            ]));
+
+            if (is_array($attributes['prices'] ?? null)) {
+                $this->publishPrices($actor, $updated, $attributes['prices'], $attributes['expected_branch_id'] ?? null);
+            }
+
+            return $updated->refresh();
+        }, 3);
+    }
+
+    /** @param array<string, mixed> $attributes */
     private function ensureMedicineSku(User $actor, MedicineCatalogueItem $medicine, array $attributes): InventorySku
     {
         $selected = $attributes['inventory_sku_public_id'] ?? null;

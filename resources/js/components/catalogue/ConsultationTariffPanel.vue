@@ -6,6 +6,7 @@ import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { OperationalSelect } from '@/components/ui/select';
+import { rmToSen } from '@/lib/money';
 
 type PanelOverride = {
     panelId: string;
@@ -35,8 +36,6 @@ const props = defineProps<{
     panels: { id: number; name: string }[];
 }>();
 
-const toSen = (amount: string) =>
-    amount.trim() === '' ? null : Math.round(Number(amount) * 100);
 const form = useForm({
     code: props.tariff.code,
     display_name: props.tariff.displayName,
@@ -116,11 +115,11 @@ const submit = () => {
         ...data,
         expected_branch_id: data.expected_branch_id || null,
         prices: {
-            self_pay_sen: toSen(data.prices.self_pay_rm),
-            panel_default_sen: toSen(data.prices.panel_default_rm),
+            self_pay_sen: rmToSen(data.prices.self_pay_rm),
+            panel_default_sen: rmToSen(data.prices.panel_default_rm),
             panel_overrides: data.prices.panel_overrides.map((override) => ({
                 panel_id: Number(override.panel_id),
-                amount_sen: toSen(override.amount_rm),
+                amount_sen: rmToSen(override.amount_rm),
             })),
         },
     }));

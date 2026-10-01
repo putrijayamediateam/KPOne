@@ -26,6 +26,7 @@ import { OperationalSelect } from '@/components/ui/select';
 import { StatusBadge } from '@/components/ui/status';
 import { OperationalTable } from '@/components/ui/table';
 import { JsonRequestError, requestJson } from '@/lib/json-client';
+import { rmToSen } from '@/lib/money';
 
 type MedicineRow = {
     publicId: string;
@@ -45,6 +46,8 @@ type MedicineRow = {
     defaultFrequency?: string | null;
     defaultDuration?: string | null;
     defaultIndication?: string | null;
+    selfPayAmountRm: string | null;
+    panelDefaultAmountRm: string | null;
 };
 
 type SetupOptions = {
@@ -236,12 +239,6 @@ const openEdit = async (row: MedicineRow) => {
         editLoading.value = false;
     }
 };
-const toSen = (amount: string | number) => {
-    const normalized =
-        typeof amount === 'number' ? String(amount) : amount.trim();
-
-    return normalized === '' ? null : Math.round(Number(normalized) * 100);
-};
 const formError = (key: string) => form.errors[key as keyof typeof form.errors];
 const addStockLocation = () => {
     const branchId = props.setup.activeBranchId;
@@ -250,15 +247,30 @@ const addStockLocation = () => {
         return;
     }
 
-    const location = props.setup.locations.find(
+    const defaultLocation = props.setup.locations.find(
         (option) => option.branchId === branchId,
     );
+    const location =
+        defaultLocation &&
+        form.opening_stock.some(
+            (row) => row.location_public_id === defaultLocation.publicId,
+        )
+            ? undefined
+            : defaultLocation;
     form.opening_stock.push({
         branch_id: String(branchId),
         location_public_id: location?.publicId ?? '',
         quantity: '',
         unit_cost_rm: '',
     });
+};
+const removeStockLocation = (index: number) => {
+    form.opening_stock.splice(index, 1);
+
+    if (form.opening_stock.length === 0) {
+        form.batch = { batch_number: '', expiry_date: '' };
+        form.supplier_public_id = '';
+    }
 };
 const submit = () => {
     form.transform((data) => ({
@@ -268,12 +280,12 @@ const submit = () => {
         ...(props.setup.canPublishPrices
             ? {
                   prices: {
-                      self_pay_sen: toSen(data.prices.self_pay_rm),
-                      panel_default_sen: toSen(data.prices.panel_default_rm),
+                      self_pay_sen: rmToSen(data.prices.self_pay_rm),
+                      panel_default_sen: rmToSen(data.prices.panel_default_rm),
                       panel_overrides: data.prices.panel_overrides.map(
                           (override) => ({
                               panel_id: override.panel_id,
-                              amount_sen: toSen(override.amount_rm),
+                              amount_sen: rmToSen(override.amount_rm),
                           }),
                       ),
                   },
@@ -285,7 +297,7 @@ const submit = () => {
                       branch_id: row.branch_id,
                       location_public_id: row.location_public_id,
                       quantity: row.quantity,
-                      unit_cost_sen: toSen(row.unit_cost_rm),
+                      unit_cost_sen: rmToSen(row.unit_cost_rm),
                   })),
               }
             : {}),
@@ -363,8 +375,8 @@ const toggleDescription = computed(() => {
             </template>
         </PageHeader>
 
-        <form class="flex flex-wrap items-end gap-2" @submit.prevent="visit()">
-            <label class="grid min-w-56 gap-1 text-xs">
+        <form class="flex flex-wrap items-end gap-3" @submit.prevent="visit()">
+            <label class="grid w-full max-w-xs gap-1 text-xs">
                 Search
                 <Input
                     v-model="search"
@@ -372,43 +384,89 @@ const toggleDescription = computed(() => {
                     autocomplete="off"
                 />
             </label>
-            <OperationalSelect
-                v-model="status"
-                label="Status"
-                :options="statusOptions"
-            />
+            <div class="w-full max-w-44">
+                <OperationalSelect
+                    v-model="status"
+                    label="Status"
+                    :options="statusOptions"
+                />
+            </div>
             <Button size="sm" type="submit">Apply</Button>
         </form>
 
         <OperationalTable
             label="Medicine Catalogue"
-            :columns="6"
+            variant="catalogue"
+            :columns="setup.canManagePrices ? 8 : 7"
+            min-width="1040px"
             :empty="medicines.data.length === 0"
             empty-message="No medicines match this filter."
         >
             <template #head>
                 <tr>
-                    <th>Code</th>
-                    <th>Name</th>
+                    <th class="min-w-32">Code</th>
+                    <th class="min-w-56">Name</th>
                     <th>Strength</th>
                     <th>Dosage form</th>
                     <th>Order unit</th>
-                    <th class="text-right">Status</th>
+                    <th v-if="setup.canManagePrices">Prices</th>
+                    <th>Status</th>
+                    <th class="text-right">Actions</th>
                 </tr>
             </template>
             <template #body>
                 <tr v-for="row in medicines.data" :key="row.publicId">
-                    <td class="font-medium tabular-nums">{{ row.code }}</td>
+                    <td class="font-medium whitespace-nowrap tabular-nums">
+                        {{ row.code }}
+                    </td>
                     <td>{{ row.displayName }}</td>
                     <td>{{ row.strengthText ?? '—' }}</td>
                     <td>{{ row.dosageForm ?? '—' }}</td>
                     <td>{{ row.orderUnit }}</td>
+                    <td v-if="setup.canManagePrices" class="min-w-44">
+                        <div class="grid gap-1">
+                            <div
+                                class="flex items-center justify-between gap-3"
+                            >
+                                <span class="text-muted-foreground"
+                                    >Self-pay</span
+                                >
+                                <span
+                                    class="font-medium whitespace-nowrap tabular-nums"
+                                >
+                                    {{
+                                        row.selfPayAmountRm
+                                            ? `RM ${row.selfPayAmountRm}`
+                                            : '—'
+                                    }}
+                                </span>
+                            </div>
+                            <div
+                                class="flex items-center justify-between gap-3"
+                            >
+                                <span class="text-muted-foreground"
+                                    >Default Panel</span
+                                >
+                                <span
+                                    class="font-medium whitespace-nowrap tabular-nums"
+                                >
+                                    {{
+                                        row.panelDefaultAmountRm
+                                            ? `RM ${row.panelDefaultAmountRm}`
+                                            : '—'
+                                    }}
+                                </span>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="whitespace-nowrap">
+                        <StatusBadge
+                            :status="row.isActive ? 'active' : 'inactive'"
+                            :tone="row.isActive ? 'success' : 'neutral'"
+                        />
+                    </td>
                     <td class="text-right">
-                        <div class="flex items-center justify-end gap-2">
-                            <StatusBadge
-                                :status="row.isActive ? 'active' : 'inactive'"
-                                :tone="row.isActive ? 'success' : 'neutral'"
-                            />
+                        <div class="flex items-center justify-end gap-1">
                             <Button
                                 size="sm"
                                 variant="outline"
@@ -909,6 +967,15 @@ const toggleDescription = computed(() => {
                                         )
                                     "
                             /></label>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                class="w-fit md:col-span-2"
+                                @click="removeStockLocation(index)"
+                            >
+                                Remove opening stock row
+                            </Button>
                         </div>
                         <div
                             v-if="form.opening_stock.length"
@@ -949,7 +1016,11 @@ const toggleDescription = computed(() => {
                                 variant="outline"
                                 size="sm"
                                 @click="addStockLocation"
-                                >Add opening stock</Button
+                                >{{
+                                    form.opening_stock.length
+                                        ? 'Add another stock location'
+                                        : 'Add opening stock'
+                                }}</Button
                             >
                         </div>
                         <InputError :message="form.errors.batch" />
@@ -967,7 +1038,11 @@ const toggleDescription = computed(() => {
                         </Button>
                         <Button
                             type="submit"
-                            :disabled="form.processing || editLoading"
+                            :disabled="
+                                form.processing ||
+                                editLoading ||
+                                !!editLoadError
+                            "
                         >
                             {{ editing ? 'Save' : 'Add Medicine' }}
                         </Button>

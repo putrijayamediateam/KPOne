@@ -63,7 +63,7 @@ class MedicineCatalogueStoreRequest extends FormRequest
             'supplier_public_id' => ['nullable', 'uuid'],
             'opening_stock' => ['nullable', 'array', 'max:10'],
             'opening_stock.*.branch_id' => ['required', 'integer', 'min:1'],
-            'opening_stock.*.location_public_id' => ['required', 'uuid'],
+            'opening_stock.*.location_public_id' => ['required', 'uuid', 'distinct'],
             'opening_stock.*.quantity' => ['required', 'regex:/^\d{1,12}(?:\.\d{1,3})?$/'],
             'opening_stock.*.unit_cost_sen' => ['nullable', 'integer', 'min:0', 'max:999999999999'],
         ];

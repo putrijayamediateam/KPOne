@@ -14,6 +14,7 @@ use App\Domain\Organisation\Inventory\Services\InventoryReferenceAdministrationS
 use App\Domain\Visit\Billing\Models\ChargeDefinition;
 use App\Domain\Visit\Billing\Models\PriceBook;
 use App\Domain\Visit\Billing\Models\PriceEntry;
+use App\Domain\Visit\Billing\Services\CurrentCatalogueTariffReader;
 use App\Domain\Visit\Billing\Services\PricingReferenceAdministrationService;
 use App\Domain\Visit\Models\Panel;
 use App\Http\Requests\MedicineCatalogueStoreRequest;
@@ -28,7 +29,7 @@ use Inertia\Response;
 
 class MedicineCatalogueController extends Controller
 {
-    public function index(Request $request, BranchAccessService $branches): Response
+    public function index(Request $request, BranchAccessService $branches, CurrentCatalogueTariffReader $tariffs): Response
     {
         $data = $request->validate([
             'search' => ['nullable', 'string', 'max:100'],
@@ -53,10 +54,15 @@ class MedicineCatalogueController extends Controller
         }
 
         $paginator = $query->orderBy('display_name')->paginate(25, page: (int) ($data['page'] ?? 1));
+        $medicineRows = $paginator->getCollection();
+        $catalogueTariffs = $tariffs->forMedicines(
+            $actor,
+            array_values($medicineRows->pluck('id')->map(fn (mixed $id): int => (int) $id)->all()),
+        );
 
         return Inertia::render('Medicine/Index', [
             'medicines' => [
-                'data' => $paginator->getCollection()->map(fn (MedicineCatalogueItem $medicine): array => [
+                'data' => $medicineRows->map(fn (MedicineCatalogueItem $medicine): array => [
                     'publicId' => $medicine->public_id,
                     'code' => $medicine->code,
                     'displayName' => $medicine->display_name,
@@ -73,6 +79,8 @@ class MedicineCatalogueController extends Controller
                     'defaultFrequency' => $medicine->default_frequency,
                     'defaultDuration' => $medicine->default_duration,
                     'defaultIndication' => $medicine->default_indication,
+                    'selfPayAmountRm' => $catalogueTariffs[$medicine->id]['selfPayAmountRm'] ?? null,
+                    'panelDefaultAmountRm' => $catalogueTariffs[$medicine->id]['panelDefaultAmountRm'] ?? null,
                     'isActive' => $medicine->is_active,
                 ])->values(),
                 'total' => $paginator->total(),

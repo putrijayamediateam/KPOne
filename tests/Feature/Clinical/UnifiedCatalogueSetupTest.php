@@ -135,6 +135,61 @@ class UnifiedCatalogueSetupTest extends ClinicalTestCase
         ]);
     }
 
+    public function test_medicine_edit_rejects_duplicate_opening_stock_locations_before_posting_movements(): void
+    {
+        $actor = $this->actor('ca_supervisor');
+        $this->selectBranch($actor);
+        $this->actingAs($actor);
+        $location = $this->location($actor);
+        $item = app(InventoryReferenceAdministrationService::class)->createItem($actor, [
+            'code' => 'DUPLICATE-ROW-MED',
+            'generic_name' => 'Synthetic duplicate-row ingredient',
+            'brand_name' => 'Synthetic duplicate-row medicine',
+        ]);
+        $sku = app(InventoryReferenceAdministrationService::class)->createSku($actor, $item, [
+            'sku_code' => 'DUPLICATE-ROW-MED-SKU',
+            'pack_size' => '1',
+            'purchase_unit' => 'unit',
+            'stock_unit' => 'unit',
+            'dispensing_unit' => 'unit',
+            'unit_conversion' => '1',
+        ]);
+
+        $this->post(route('medicines.store'), [
+            'code' => 'DUPLICATE-ROW-MED',
+            'display_name' => 'Synthetic duplicate-row medicine',
+            'order_unit' => 'unit',
+            'inventory_sku_public_id' => $sku->public_id,
+        ])->assertRedirect(route('medicines.index'));
+        $medicine = MedicineCatalogueItem::query()
+            ->where('code', 'DUPLICATE-ROW-MED')
+            ->sole();
+
+        $this->from(route('medicines.index'))
+            ->patch(route('medicines.update', $medicine->public_id), [
+                'expected_branch_id' => $this->branch->id,
+                'batch' => [
+                    'batch_number' => 'DUPLICATE-ROW-BATCH',
+                    'expiry_date' => now()->addYear()->toDateString(),
+                ],
+                'opening_stock' => [
+                    [
+                        'branch_id' => $this->branch->id,
+                        'location_public_id' => $location->public_id,
+                        'quantity' => '1',
+                    ],
+                    [
+                        'branch_id' => $this->branch->id,
+                        'location_public_id' => $location->public_id,
+                        'quantity' => '1',
+                    ],
+                ],
+            ])
+            ->assertSessionHasErrors('opening_stock.1.location_public_id');
+
+        $this->assertDatabaseCount('stock_movements', 0);
+    }
+
     public function test_medicine_edit_setup_loads_and_updates_all_saved_sections(): void
     {
         $actor = $this->actor('ca_supervisor');
@@ -188,6 +243,10 @@ class UnifiedCatalogueSetupTest extends ClinicalTestCase
 
         $this->assertSame('Synthetic updated category', $medicine->fresh()->category);
         $this->assertSame('EDIT-BARCODE-2', $sku->fresh()->barcode);
+
+        $this->get(route('medicines.index'))->assertInertia(fn ($page) => $page
+            ->where('medicines.data.0.selfPayAmountRm', '1.50')
+            ->where('medicines.data.0.panelDefaultAmountRm', '1.20'));
         $this->assertDatabaseHas('price_entries', [
             'price_book_id' => PriceBook::query()->where('scope_key', 'organisation')->value('id'),
             'charge_definition_id' => DB::table('charge_definitions')

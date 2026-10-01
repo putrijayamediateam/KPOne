@@ -24,6 +24,7 @@ class ClinicalServiceCatalogueControllerTest extends ClinicalTestCase
             $this->actingAs($actor);
 
             $this->get(route('clinical-services.index'))->assertForbidden();
+            $this->get(route('clinical-services.edit-setup', $service))->assertForbidden();
             $this->post(route('clinical-services.store'), $this->attributes())->assertForbidden();
             $this->post(route('clinical-services.consultation-tariffs.store'), [])->assertForbidden();
             $this->patch(route('clinical-services.update', $service), ['display_name' => 'Denied update'])->assertForbidden();
@@ -60,6 +61,84 @@ class ClinicalServiceCatalogueControllerTest extends ClinicalTestCase
         $this->assertTrue($service->refresh()->is_active);
     }
 
+    public function test_edit_setup_loads_current_prices_and_updates_them_as_new_versions(): void
+    {
+        $actor = $this->actor('ca_supervisor');
+        $this->selectBranch($actor);
+        $this->actingAs($actor);
+        $panel = Panel::factory()->create([
+            'organisation_id' => $actor->organisation_id,
+            'code' => 'EDIT-SERVICE-PANEL',
+            'name' => 'Synthetic Edit Service Panel',
+        ]);
+        $this->post(route('clinical-services.store'), [
+            ...$this->attributes(['code' => 'EDIT-PRICED-SVC']),
+            'expected_branch_id' => $this->branch->id,
+            'prices' => [
+                'self_pay_sen' => 100,
+                'panel_default_sen' => 120,
+                'panel_overrides' => [[
+                    'panel_id' => $panel->id,
+                    'amount_sen' => 110,
+                ]],
+            ],
+        ])->assertRedirect(route('clinical-services.index'));
+        $service = ClinicalServiceCatalogueItem::query()
+            ->where('code', 'EDIT-PRICED-SVC')
+            ->sole();
+
+        $this->get(route('clinical-services.edit-setup', $service))
+            ->assertOk()
+            ->assertJsonPath('service.code', 'EDIT-PRICED-SVC')
+            ->assertJsonPath('prices.self_pay_rm', '1.00')
+            ->assertJsonPath('prices.panel_default_rm', '1.20')
+            ->assertJsonPath('prices.panel_overrides.0.panel_id', (string) $panel->id)
+            ->assertJsonPath('prices.panel_overrides.0.amount_rm', '1.10');
+
+        $this->patch(route('clinical-services.update', $service), [
+            'expected_branch_id' => $this->branch->id,
+            'prices' => [
+                'self_pay_sen' => 150,
+                'panel_default_sen' => 120,
+                'panel_overrides' => [[
+                    'panel_id' => $panel->id,
+                    'amount_sen' => 115,
+                ]],
+            ],
+        ])->assertRedirect(route('clinical-services.index'));
+
+        $charge = ChargeDefinition::query()
+            ->where('clinical_service_catalogue_item_id', $service->id)
+            ->sole();
+        $selfPayBook = PriceBook::query()->where('scope_key', 'organisation')->sole();
+        $panelDefaultBook = PriceBook::query()->where('scope_key', 'panel:default')->sole();
+        $overrideBook = PriceBook::query()->where('scope_key', 'panel:'.$panel->id)->sole();
+
+        $this->assertDatabaseHas('price_entries', [
+            'charge_definition_id' => $charge->id,
+            'price_book_id' => $selfPayBook->id,
+            'unit_price_sen' => 150,
+            'version' => 2,
+        ]);
+        $this->assertDatabaseHas('price_entries', [
+            'charge_definition_id' => $charge->id,
+            'price_book_id' => $panelDefaultBook->id,
+            'unit_price_sen' => 120,
+            'version' => 1,
+        ]);
+        $this->assertDatabaseHas('price_entries', [
+            'charge_definition_id' => $charge->id,
+            'price_book_id' => $overrideBook->id,
+            'unit_price_sen' => 115,
+            'version' => 2,
+        ]);
+        $this->assertSame(5, PriceEntry::query()->where('charge_definition_id', $charge->id)->count());
+
+        $this->get(route('clinical-services.index'))->assertInertia(fn ($page) => $page
+            ->where('services.data.0.selfPayAmountRm', '1.50')
+            ->where('services.data.0.panelDefaultAmountRm', '1.20'));
+    }
+
     public function test_a_foreign_organisation_service_is_not_found(): void
     {
         $director = $this->actor('director');
@@ -70,6 +149,7 @@ class ClinicalServiceCatalogueControllerTest extends ClinicalTestCase
         $foreignService = app(ClinicalServiceCatalogueAdministrationService::class)->create($foreignOrganisationDirector, $this->attributes(['code' => 'FOREIGN-HTTP']));
 
         $this->patch(route('clinical-services.update', $foreignService), ['display_name' => 'Cross tenant'])->assertNotFound();
+        $this->get(route('clinical-services.edit-setup', $foreignService))->assertNotFound();
     }
 
     public function test_consultation_tariff_is_managed_from_the_clinical_service_screen_and_billing_records(): void

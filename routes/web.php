@@ -298,6 +298,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::post('consultation-tariffs', [ClinicalServiceCatalogueController::class, 'storeConsultationTariff'])
                 ->middleware('throttle:20,1')->name('clinical-services.consultation-tariffs.store');
             Route::post('/', [ClinicalServiceCatalogueController::class, 'store'])->middleware('throttle:30,1')->name('clinical-services.store');
+            Route::get('{clinicalService}/setup', [ClinicalServiceCatalogueController::class, 'editSetup'])->whereUuid('clinicalService')->middleware('throttle:60,1')->name('clinical-services.edit-setup');
             Route::patch('{clinicalService}', [ClinicalServiceCatalogueController::class, 'update'])->whereUuid('clinicalService')->middleware('throttle:30,1')->name('clinical-services.update');
             Route::post('{clinicalService}/activate', [ClinicalServiceCatalogueController::class, 'activate'])->whereUuid('clinicalService')->middleware('throttle:20,1')->name('clinical-services.activate');
             Route::post('{clinicalService}/deactivate', [ClinicalServiceCatalogueController::class, 'deactivate'])->whereUuid('clinicalService')->middleware('throttle:20,1')->name('clinical-services.deactivate');

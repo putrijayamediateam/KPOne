@@ -3,12 +3,14 @@ withDefaults(
     defineProps<{
         label: string;
         columns: number;
+        variant?: 'default' | 'catalogue';
         empty?: boolean;
         emptyMessage?: string;
         loading?: boolean;
         minWidth?: string;
     }>(),
     {
+        variant: 'default',
         empty: false,
         emptyMessage: 'No records are available.',
         loading: false,
@@ -19,13 +21,15 @@ withDefaults(
 
 <template>
     <div
-        class="max-w-full overflow-x-auto rounded-xl border bg-card"
+        class="max-w-full overflow-x-auto border bg-card"
+        :class="variant === 'catalogue' ? 'rounded-lg shadow-sm' : 'rounded-xl'"
         role="region"
         :aria-label="label"
         tabindex="0"
     >
         <table
-            class="w-full text-left text-sm"
+            class="w-full text-left"
+            :class="variant === 'catalogue' ? 'text-xs' : 'text-sm'"
             :style="{ minWidth }"
             :aria-busy="loading"
         >
@@ -33,12 +37,22 @@ withDefaults(
                 {{ label }}
             </caption>
             <thead
-                class="border-b bg-muted/60 text-xs font-medium text-muted-foreground"
+                class="border-b text-xs font-medium text-muted-foreground"
+                :class="
+                    variant === 'catalogue'
+                        ? 'bg-muted/40 uppercase tracking-wide [&_th]:px-3 [&_th]:py-2 [&_th]:whitespace-nowrap'
+                        : 'bg-muted/60 [&_th]:px-3 [&_th]:py-2.5'
+                "
             >
                 <slot name="head" />
             </thead>
             <tbody
                 class="[&_tr]:min-h-10 [&_tr]:border-b [&_tr]:border-border/70 [&_tr:last-child]:border-0 [&_tr:not([data-empty-row])]:transition-colors [&_tr:not([data-empty-row])]:hover:bg-muted/40 [&_th]:px-3 [&_th]:py-2.5 [&_td]:px-3 [&_td]:py-2.5"
+                :class="
+                    variant === 'catalogue'
+                        ? '[&_tr]:border-border/60 [&_tr:not([data-empty-row])]:hover:bg-muted/30 [&_td]:py-2'
+                        : ''
+                "
             >
                 <tr v-if="loading" data-empty-row>
                     <td

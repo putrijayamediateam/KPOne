@@ -148,10 +148,14 @@ descriptive guidance, default-pricing table, and separately listed Panel overrid
 and Clinical Service. Do not add screenshot-only stock metrics or fields unless they have a governed source of
 truth and an authorised backend workflow.
 
-Medicine editing loads the saved catalogue, linked SKU, and current tariffs into the same numbered sections.
-Updates must use the governed catalogue, inventory, and price-publication services; existing stock movements and
-published price history are append-only and must not be rewritten. Catalogue option pickers close from their
-arrow button, Escape, or when focus leaves the picker, so an unused dropdown does not remain over other fields.
+Medicine and Clinical Service editing load saved catalogue details and current tariffs into the same numbered
+sections. Updates must use the governed catalogue, inventory, and price-publication services; existing stock
+movements and published price history are append-only and must not be rewritten. Catalogue option pickers close
+from their arrow button, Escape, or when focus leaves the picker, so an unused dropdown does not remain over
+other fields. Both catalogue lists show the current Self-pay and default Panel tariffs only to staff with pricing
+reference access; Panel-specific overrides remain in Edit. Medicine opening-stock rows can be removed before
+saving, and the server rejects duplicate locations in one submission so an accidental extra row cannot add the
+same opening balance twice.
 
 The Clinical Service Catalogue screen also contains a Consultation tariff section. It maintains the dedicated
 `consultation` Charge Definition and versioned Self-pay, default Panel, and Panel-specific prices consumed by
