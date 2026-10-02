@@ -52,6 +52,7 @@ Yezza remains the operational source of truth. Nothing below is production-appro
 | **BS-01 shipped** | Adds `DirectorBootstrapService` for one-time, actorless creation of the first Director from existing organisation, department, branch, and role records; creates a permanent primary-branch assignment and writes an audit event. The service is not exposed through a UI route or Artisan command; `KPOneDevelopmentSeeder` remains a local/testing technical-admin bootstrap. PR #42 is present in this worktree at merge commit `4f5506f` | **Merged** |
 | **Insights (authorised 2026-10-01)** | Read-only aggregate reports for Today, Sales, In-clinic, Payments, Inventory, and Patients. All staff roles receive the explicit organisation-scoped view permission. Current worktree includes branch/doctor filters where supported, date presets/custom calendar, comparisons, charts, and per-table ranking search. No appointments, exports, package billing, patient drill-down, or patient-level debt ranking | **Implemented in current worktree; not merged. PostgreSQL 18 suite, fresh migration/seeding, and browser smoke UAT on an empty synthetic database passed; formal owner UAT with synthetic transactions remains outstanding** |
 | **Unified Catalogue Setup (authorised 2026-10-01)** | One Medicine setup flow creates or reuses its linked Inventory Item/SKU, supports default and per-Panel tariffs, and optionally records a batch, branch opening stock, location, supplier, and purchase unit cost. Clinical Services receive categories and the same tariff tiers. The Clinical Service Catalogue also manages the dedicated Consultation tariff consumed by Billing, so the separate Pricing link is removed from workspace navigation while the permissioned Pricing route and backend pricing records remain available. Descriptive dropdown values persist; governed Panel, supplier, and location can be added inline. Purchase orders retain estimated unit cost and goods receipts retain actual unit cost. Existing catalogue and inventory records are reused; no historical stock or catalogue backfill is performed | **Implemented in current worktree; not merged. Targeted Consultation tariff feature tests: 12 passed, 190 assertions. Frontend suite: 180 passed. Latest full SQLite suite: 740 tests, 634 passed, 106 skipped; this is not PostgreSQL 18 release evidence. PostgreSQL 18 validation and owner UAT remain outstanding; not production-approved** |
+| **HC-01 (authorised)** | A doctor may have at most three active held consultations. A fourth manual or automatic hold is refused with a Bahasa Melayu validation message; the queue board flags a patient held for more than 30 minutes | **Implemented on `fix/hc-01-held-patient-cap`, based on `main` `a08d099`; not merged or production-approved. Full PostgreSQL 18.6 suite: 746 tests, 744 passed, 2 expected Fortify skips, 0 failures, 8,753 assertions. Full SQLite suite: 746 tests, 640 passed, 106 skipped. Hold/queue targeted tests pass; fresh SQLite and PostgreSQL migration/seeding, Pint, PHPStan, frontend types/lint/format, frontend 182/182, build, and `git diff --check` pass. Independent review and owner UAT remain outstanding.** |
 
 
 End-to-end synthetic flow: proven by tests via factories on `main`. Before UI-1, no screen anywhere could
@@ -128,8 +129,8 @@ Still open:
 
 1. ~~Commit the Claude setup files~~ **Done.** `CLAUDE.md`, `docs/BASELINE.md` and `.claude/settings.json`
    merged in PR #32 as `1cdc9b7`; the office PC and any other clone now inherit them as tracked files.
-2. HC-01 — hold cap of three per doctor plus a held-too-long warning, from the owner decision below.
-   Authorised, not yet built; its own branch off the updated `main`.
+2. HC-01 — hold cap of three per doctor plus a held-too-long warning. Implemented on its own branch from
+   `main`; independent review and owner UAT remain outstanding.
 3. Production gate before any go-live: set `PUBLIC_PATIENT_INTAKE_ENABLED=true` deliberately, set
    `PUBLIC_PATIENT_INTAKE_TRUSTED_PROXIES`, run the scheduler, rotate and reprint every QR code, and
    replace the `uat-draft` privacy-notice version.
@@ -249,10 +250,10 @@ Still open, not acted on: the ten duplicated worker classes in `tests/Support/` 
 
 Owner decisions (settled 2026-09-24):
 
-- **Held patients per doctor: maximum 3, plus an age warning.** A doctor may hold at most three patients at a
-  time; a fourth Hold is refused by the backend with a clear Bahasa Melayu message, and a patient held beyond
-  the warning threshold is flagged on the queue board so nobody is forgotten. At most one active consultation
-  stays unchanged. Authorised as its own scoped branch; not yet built.
+- **Held patients per doctor: maximum 3, plus a 30-minute warning (owner decision, 2026-10-03).** A doctor may
+  hold at most three patients at a time; a fourth Hold is refused by the backend with a clear Bahasa Melayu
+  message, and a patient held for more than 30 minutes is flagged on the queue board so nobody is forgotten.
+  At most one active consultation stays unchanged. Authorised as its own scoped branch.
 - **Marketing and Business Development keep organisation-wide staff-directory access.** The clinic group is
   small and BD genuinely coordinates across all three branches. This is the widest people-data grant outside
   HR and is accepted deliberately; it is directory data only (name, role, branch) and never clinical or

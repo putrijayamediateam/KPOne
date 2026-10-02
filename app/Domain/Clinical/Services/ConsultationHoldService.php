@@ -22,6 +22,8 @@ use Illuminate\Validation\ValidationException;
 
 class ConsultationHoldService
 {
+    private const MAX_HELD_PATIENTS_PER_DOCTOR = 3;
+
     public function __construct(
         private BranchAccessService $branches,
         private AuditRecorder $audit,
@@ -59,6 +61,7 @@ class ConsultationHoldService
                 if ($holds->contains(fn (ConsultationHold $hold): bool => $hold->resumed_at === null)) {
                     throw ValidationException::withMessages(['hold' => 'This consultation is already On Hold.']);
                 }
+                $this->assertDoctorHoldCapacity($doctor);
 
                 $now = now()->utc();
                 $hold = new ConsultationHold;
@@ -176,6 +179,7 @@ class ConsultationHoldService
                 ->whereNull('resumed_at')->lockForUpdate()->exists()) {
             return false;
         }
+        $this->assertDoctorHoldCapacity($doctor);
 
         $hold = new ConsultationHold;
         $hold->forceFill([
@@ -202,6 +206,20 @@ class ConsultationHoldService
         ], $actor, $branch, $actor->organisation_id);
 
         return true;
+    }
+
+    private function assertDoctorHoldCapacity(User $doctor): void
+    {
+        $activeHolds = ConsultationHold::query()
+            ->whereNull('resumed_at')
+            ->whereHas('visit', fn ($query) => $query->where('assigned_doctor_user_id', $doctor->id))
+            ->count();
+
+        if ($activeHolds >= self::MAX_HELD_PATIENTS_PER_DOCTOR) {
+            throw ValidationException::withMessages([
+                'hold' => 'Doktor sudah mempunyai 3 pesakit On Hold. Sambung semula atau selesaikan pesakit yang ditahan sebelum menahan pesakit lain.',
+            ]);
+        }
     }
 
     /** @param array<string, mixed> $attributes
