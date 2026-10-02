@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Domain\Access\BranchAccessService;
 use App\Domain\Audit\Models\AuditLog;
 use App\Domain\Organisation\Models\Branch;
+use App\Domain\Organisation\Models\Organisation;
 use App\Domain\Organisation\Models\PublicCheckInLink;
 use App\Domain\Organisation\Services\PublicCheckInLinkService;
 use App\Domain\Patient\Models\Patient;
@@ -13,6 +14,7 @@ use App\Domain\Patient\Models\PublicPatientIntake;
 use App\Domain\Patient\Services\PublicIntakeReviewService;
 use App\Domain\Patient\Services\PublicPatientIntakeService;
 use App\Domain\Queue\Models\QueueEntry;
+use App\Domain\Visit\Models\Panel;
 use App\Domain\Visit\Models\Visit;
 use App\Domain\Visit\Services\VisitReasonService;
 use App\Http\Controllers\PublicCheckInController;
@@ -32,6 +34,168 @@ use Tests\Feature\Visit\VisitTestCase;
 class PublicPatientIntakeTest extends VisitTestCase
 {
     private static int $publicIpSequence = 10;
+
+    public function test_public_exchange_only_exposes_active_panels_for_the_link_organisation(): void
+    {
+        $active = Panel::factory()->create([
+            'organisation_id' => $this->organisation->id,
+            'name' => 'Synthetic Active Panel',
+        ]);
+        $inactive = Panel::factory()->create([
+            'organisation_id' => $this->organisation->id,
+            'is_active' => false,
+        ]);
+        $otherOrganisation = Organisation::query()->create([
+            'code' => 'SYN-PANEL-'.Str::upper(Str::random(6)),
+            'name' => 'Synthetic Other Panel Organisation',
+            'is_active' => true,
+        ]);
+        $foreign = Panel::factory()->create([
+            'organisation_id' => $otherOrganisation->id,
+        ]);
+
+        [, $session] = $this->publicSession();
+        $options = $session['panelOptions'];
+
+        $this->assertContains(['id' => $active->id, 'name' => $active->name], $options);
+        $this->assertNotContains(['id' => $inactive->id, 'name' => $inactive->name], $options);
+        $this->assertNotContains(['id' => $foreign->id, 'name' => $foreign->name], $options);
+        foreach ($options as $option) {
+            $this->assertSame(['id', 'name'], array_keys($option));
+        }
+    }
+
+    public function test_patient_reported_panel_coverage_stays_encrypted_until_ca_confirms_visit_coverage(): void
+    {
+        $reportedPanel = Panel::factory()->create([
+            'organisation_id' => $this->organisation->id,
+            'name' => 'Synthetic Reported Panel',
+        ]);
+        $verifiedPanel = Panel::factory()->create([
+            'organisation_id' => $this->organisation->id,
+            'name' => 'Synthetic Verified Panel',
+        ]);
+        [, $session] = $this->publicSession();
+        $before = [Patient::count(), Visit::count(), QueueEntry::count()];
+
+        $this->postJson(route('public-intake.submit'), $this->payload($session, [
+            'coverage_type' => 'panel',
+            'panel_id' => $reportedPanel->id,
+            'coverage_member_reference' => '  SYNTH-MEMBER-01 ',
+        ]))->assertCreated();
+
+        $intake = PublicPatientIntake::query()->sole();
+        $this->assertSame($before, [Patient::count(), Visit::count(), QueueEntry::count()]);
+        $this->assertSame([
+            'type' => 'panel',
+            'panel_id' => $reportedPanel->id,
+            'member_reference' => 'SYNTH-MEMBER-01',
+        ], $intake->encrypted_payload['coverage']);
+        $storedPayload = (string) DB::table('public_patient_intakes')
+            ->where('id', $intake->id)
+            ->value('encrypted_payload');
+        $this->assertStringNotContainsString('SYNTH-MEMBER-01', $storedPayload);
+
+        $reviewer = $this->actor('ca');
+        $this->selectBranch($reviewer);
+        $detail = app(PublicIntakeReviewService::class)->detail($reviewer, $intake->public_id);
+        $this->assertSame('panel', $detail['fields']['coverage_type']);
+        $this->assertSame($reportedPanel->id, $detail['fields']['panel_id']);
+        $this->assertSame('SYNTH-MEMBER-01', $detail['fields']['coverage_member_reference']);
+
+        $this->patch(route('registration-review.correct', $intake->public_id), $this->payload($session, [
+            'lock_version' => $intake->lock_version,
+            'coverage_type' => 'panel',
+            'panel_id' => $reportedPanel->id,
+            'coverage_member_reference' => 'SYNTH-MEMBER-CORRECTED',
+        ]))->assertRedirect();
+
+        $intake->refresh();
+        $this->assertSame('SYNTH-MEMBER-CORRECTED', $intake->encrypted_payload['coverage']['member_reference']);
+        $this->assertSame($before, [Patient::count(), Visit::count(), QueueEntry::count()]);
+
+        $doctor = $this->actor('resident_doctor');
+        $reason = app(VisitReasonService::class)->create($reviewer, 'Synthetic coverage verification');
+        $this->post(route('registration-review.accept', $intake->public_id), [
+            'lock_version' => $intake->lock_version,
+            'idempotency_key' => (string) Str::uuid(),
+            'resolution' => 'create',
+            'patient_number' => null,
+            'duplicate_override' => true,
+            'assigned_doctor_user_id' => $doctor->id,
+            'visit_reason_public_ids' => [$reason->public_id],
+            'priority' => 'normal',
+            'coverage_type' => 'panel',
+            'panel_id' => $verifiedPanel->id,
+            'coverage_member_reference' => 'SYNTH-CA-VERIFIED-01',
+            'confirm_repeat' => false,
+        ])->assertSessionHasErrors('coverage_verified');
+        $this->assertSame($before, [Patient::count(), Visit::count(), QueueEntry::count()]);
+
+        $this->post(route('registration-review.accept', $intake->public_id), [
+            'lock_version' => $intake->lock_version,
+            'idempotency_key' => (string) Str::uuid(),
+            'resolution' => 'create',
+            'patient_number' => null,
+            'duplicate_override' => true,
+            'assigned_doctor_user_id' => $doctor->id,
+            'visit_reason_public_ids' => [$reason->public_id],
+            'priority' => 'normal',
+            'coverage_type' => 'panel',
+            'panel_id' => $verifiedPanel->id,
+            'coverage_member_reference' => 'SYNTH-CA-VERIFIED-01',
+            'coverage_verified' => true,
+            'confirm_repeat' => false,
+        ])->assertRedirect();
+
+        $intake->refresh();
+        $visit = Visit::query()->findOrFail($intake->visit_id);
+        $this->assertSame($verifiedPanel->id, $visit->panel_id);
+        $this->assertSame('Synthetic Verified Panel', $visit->coverage_panel_name_snapshot);
+        $this->assertSame('SYNTH-CA-VERIFIED-01', $visit->coverage_member_reference);
+        $acceptedAudit = AuditLog::query()
+            ->where('event', 'public_intake.accepted')
+            ->sole();
+        $this->assertStringNotContainsString(
+            'SYNTH-CA-VERIFIED-01',
+            json_encode($acceptedAudit->metadata, JSON_THROW_ON_ERROR),
+        );
+        $this->assertSame([
+            $before[0] + 1,
+            $before[1] + 1,
+            $before[2] + 1,
+        ], [Patient::count(), Visit::count(), QueueEntry::count()]);
+    }
+
+    public function test_public_intake_rejects_inactive_and_foreign_organisation_panels(): void
+    {
+        $inactive = Panel::factory()->create([
+            'organisation_id' => $this->organisation->id,
+            'is_active' => false,
+        ]);
+        $otherOrganisation = Organisation::query()->create([
+            'code' => 'SYN-PANEL-'.Str::upper(Str::random(6)),
+            'name' => 'Synthetic Foreign Panel Organisation',
+            'is_active' => true,
+        ]);
+        $foreign = Panel::factory()->create([
+            'organisation_id' => $otherOrganisation->id,
+        ]);
+        [, $session] = $this->publicSession();
+
+        foreach ([$inactive, $foreign] as $panel) {
+            $this->postJson(route('public-intake.submit'), $this->payload($session, [
+                'coverage_type' => 'panel',
+                'panel_id' => $panel->id,
+                'coverage_member_reference' => 'SYNTH-MEMBER-02',
+            ]))
+                ->assertUnprocessable()
+                ->assertJsonValidationErrors('panel_id');
+        }
+
+        $this->assertDatabaseCount('public_patient_intakes', 0);
+        $this->assertSame([0, 0, 0], [Patient::count(), Visit::count(), QueueEntry::count()]);
+    }
 
     public function test_public_proxy_policy_is_request_scoped_even_when_downstream_throws(): void
     {
@@ -458,6 +622,7 @@ class PublicPatientIntakeTest extends VisitTestCase
             'coverage_type' => 'self_pay',
             'panel_id' => null,
             'coverage_member_reference' => null,
+            'coverage_verified' => true,
             'confirm_repeat' => false,
         ];
         $before = [Patient::count(), Visit::count(), QueueEntry::count()];
@@ -527,6 +692,7 @@ class PublicPatientIntakeTest extends VisitTestCase
             'visit_reason_public_ids' => [$reason->public_id],
             'priority' => 'normal',
             'coverage_type' => 'self_pay',
+            'coverage_verified' => true,
         ];
         $this->post(route('registration-review.accept', $intake->public_id), $match)->assertNotFound();
         $this->assertSame($before, [Patient::count(), Visit::count(), QueueEntry::count()]);
@@ -581,6 +747,7 @@ SQL);
                 'coverage_type' => 'self_pay',
                 'panel_id' => null,
                 'coverage_member_reference' => null,
+                'coverage_verified' => true,
                 'confirm_repeat' => false,
             ]);
             $this->fail('The synthetic queue insert failure was not raised.');
@@ -741,6 +908,7 @@ SQL);
             'visit_reason_public_ids' => [$reason->public_id],
             'priority' => 'normal',
             'coverage_type' => 'self_pay',
+            'coverage_verified' => true,
             'confirm_repeat' => false,
         ])->assertSessionHasErrors('idempotency_key');
 
@@ -1110,6 +1278,9 @@ SQL);
             'visit_purpose' => 'doctor_illness',
             'chief_complaint' => 'Synthetic fever and cough since yesterday',
             'complaint_duration' => 'One day',
+            'coverage_type' => 'self_pay',
+            'panel_id' => null,
+            'coverage_member_reference' => null,
             'guardian_name' => null,
             'guardian_relationship' => null,
             'guardian_contact_number' => null,

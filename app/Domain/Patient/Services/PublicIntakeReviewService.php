@@ -169,7 +169,11 @@ class PublicIntakeReviewService
         // A staff correction must never be blocked by, or silently rewritten to, a
         // privacy notice version that changed after this Patient consented; it is
         // validated and re-stamped against the intake's own original version.
-        $payload = $this->payloads->validate($attributes, $originalPrivacyNoticeVersion);
+        $payload = $this->payloads->validate(
+            $attributes,
+            $current->organisation_id,
+            $originalPrivacyNoticeVersion,
+        );
 
         return $this->transition($actor, $publicId, $expectedVersion, function (PublicPatientIntake $intake) use ($actor, $payload): void {
             if (! in_array($intake->status, [
@@ -254,6 +258,7 @@ class PublicIntakeReviewService
             'coverage_type' => ['required', Rule::in(['self_pay', 'panel'])],
             'panel_id' => ['nullable', 'required_if:coverage_type,panel', 'integer'],
             'coverage_member_reference' => ['nullable', 'string', 'max:100'],
+            'coverage_verified' => ['accepted'],
             'confirm_repeat' => ['nullable', 'boolean'],
         ])->validate();
         $branch = $this->authorizedBranch($actor);
@@ -271,7 +276,7 @@ class PublicIntakeReviewService
                 if (! hash_equals((string) $intake->acceptance_idempotency_key, $validated['idempotency_key'])
                     || ! hash_equals((string) $intake->acceptance_fingerprint, $fingerprint)) {
                     throw ValidationException::withMessages([
-                        'idempotency_key' => 'Penerimaan ini telah selesai dengan maklumat lain. Muat semula rekod.',
+                        'idempotency_key' => 'This intake was already accepted with different details. Reload the record.',
                     ]);
                 }
 
@@ -284,7 +289,7 @@ class PublicIntakeReviewService
                 $this->stale();
             }
             if ($intake->encrypted_payload === null || ! $intake->expires_at->isFuture()) {
-                throw ValidationException::withMessages(['intake' => 'Maklumat ini telah tamat dan tidak boleh diterima.']);
+                throw ValidationException::withMessages(['intake' => 'This intake has expired and can no longer be accepted.']);
             }
 
             if ($intake->status === PublicPatientIntake::STATUS_PENDING) {
@@ -305,7 +310,7 @@ class PublicIntakeReviewService
                 ->first();
             if ($collidingVisit !== null) {
                 throw ValidationException::withMessages([
-                    'idempotency_key' => 'Kunci penerimaan ini telah digunakan untuk pendaftaran lain. Muat semula dan cuba semula.',
+                    'idempotency_key' => 'This acceptance key has already been used for another registration. Reload and try again.',
                 ]);
             }
 
@@ -366,6 +371,8 @@ class PublicIntakeReviewService
                 'patient_id' => $patient->id,
                 'visit_id' => $visit->id,
                 'queue_entry_id' => $queue->id,
+                'coverage_type' => $validated['coverage_type'],
+                'panel_id' => $validated['panel_id'] ?? null,
             ]);
 
             return compact('intake', 'patient', 'visit', 'queue');
@@ -487,12 +494,12 @@ class PublicIntakeReviewService
 
     private function stale(): never
     {
-        throw ValidationException::withMessages(['lock_version' => 'Rekod ini telah berubah. Muat semula dan semak semula.']);
+        throw ValidationException::withMessages(['lock_version' => 'This record has changed. Reload and review it again.']);
     }
 
     private function invalidState(): never
     {
-        throw ValidationException::withMessages(['status' => 'Tindakan ini tidak dibenarkan untuk status semasa.']);
+        throw ValidationException::withMessages(['status' => 'This action is not allowed for the current status.']);
     }
 
     /**

@@ -10,12 +10,13 @@ import {
     UserRound,
     UsersRound,
 } from '@lucide/vue';
-import { computed, onMounted, reactive, ref } from 'vue';
+import { computed, onMounted, reactive, ref, watch } from 'vue';
 
 const props = defineProps<{
     clinicName: string;
     branch: { name: string } | null;
     intakeSession: { expiresAt: string } | null;
+    panelOptions: Array<{ id: number; name: string }>;
     statusAvailable: boolean;
     privacyNoticeVersion: string;
     minorAge: number;
@@ -33,6 +34,7 @@ const loading = ref(!props.intakeSession);
 const submitting = ref(false);
 const session = ref<IntakeSession | null>(props.intakeSession);
 const branch = ref<{ name: string } | null>(props.branch);
+const panelOptions = ref(props.panelOptions);
 const errors = ref<Record<string, string[]>>({});
 const generalError = ref('');
 const form = reactive({
@@ -49,6 +51,9 @@ const form = reactive({
     visit_purpose: '',
     chief_complaint: '',
     complaint_duration: '',
+    coverage_type: '',
+    panel_id: '' as string | number,
+    coverage_member_reference: '',
     guardian_name: '',
     guardian_relationship: '',
     guardian_contact_number: '',
@@ -93,6 +98,7 @@ const exchangeFragment = async () => {
     if (exchangeAttempted) {
         session.value = null;
         branch.value = null;
+        panelOptions.value = [];
     }
 
     if (exchangeAttempted && rawToken === '') {
@@ -128,9 +134,11 @@ const exchangeFragment = async () => {
         })) as {
             branch: { name: string };
             intakeSession: IntakeSession;
+            panelOptions: Array<{ id: number; name: string }>;
         };
         branch.value = exchanged.branch;
         session.value = exchanged.intakeSession;
+        panelOptions.value = exchanged.panelOptions;
     } catch {
         generalError.value =
             'Pautan pendaftaran tidak sah atau telah tamat. Sila imbas semula kod QR atau hadir ke kaunter.';
@@ -153,7 +161,7 @@ const begin = () => {
 const next = () => {
     errors.value = {};
     generalError.value = '';
-    step.value = Math.min(4, step.value + 1);
+    step.value = Math.min(5, step.value + 1);
     window.scrollTo({ top: 0, behavior: 'smooth' });
 };
 const back = () => {
@@ -180,7 +188,25 @@ const submit = async () => {
             : 'Maklumat tidak dapat dihantar. Jangan tutup halaman ini; cuba semula dengan maklumat yang sama.';
 
         if (response.errors) {
-            step.value = 2;
+            const fields = Object.keys(response.errors);
+            step.value = fields.some((field) =>
+                [
+                    'coverage_type',
+                    'panel_id',
+                    'coverage_member_reference',
+                ].includes(field),
+            )
+                ? 4
+                : fields.some((field) =>
+                        [
+                            'guardian_name',
+                            'guardian_relationship',
+                            'guardian_contact_number',
+                            'guardian_attestation',
+                        ].includes(field),
+                    )
+                  ? 3
+                  : 2;
         }
 
         window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -188,6 +214,15 @@ const submit = async () => {
         submitting.value = false;
     }
 };
+watch(
+    () => form.coverage_type,
+    (coverageType) => {
+        if (coverageType !== 'panel') {
+            form.panel_id = '';
+            form.coverage_member_reference = '';
+        }
+    },
+);
 onMounted(exchangeFragment);
 </script>
 
@@ -312,13 +347,13 @@ onMounted(exchangeFragment);
                     ><div
                         class="flex items-center justify-between text-xs font-medium text-zinc-500"
                     >
-                        <span>Langkah {{ step }} daripada 4</span
+                        <span>Langkah {{ step }} daripada 5</span
                         ><span>{{ branchName }}</span>
                     </div>
                     <div class="h-2 overflow-hidden rounded-full bg-zinc-100">
                         <div
                             class="h-full rounded-full bg-pink-600 transition-all"
-                            :style="{ width: `${step * 25}%` }"
+                            :style="{ width: `${step * 20}%` }"
                         ></div></div
                 ></template>
 
@@ -573,7 +608,7 @@ onMounted(exchangeFragment);
                             /></button
                         ><button
                             type="button"
-                            class="flex min-h-12 flex-1 items-center justify-center gap-2 rounded-xl bg-pink-700 px-5 font-semibold text-white"
+                            class="flex min-h-12 flex-1 items-center justify-center gap-2 rounded-xl bg-pink-700 px-5 font-semibold text-white disabled:opacity-60"
                             @click="next"
                         >
                             Seterusnya <ArrowRight class="size-5" />
@@ -654,7 +689,8 @@ onMounted(exchangeFragment);
                         v-else
                         class="flex items-center gap-3 rounded-2xl bg-emerald-50 p-4 text-sm text-emerald-800"
                     >
-                        <CheckCircle2 class="size-5" />Teruskan ke persetujuan.
+                        <CheckCircle2 class="size-5" />Teruskan ke maklumat
+                        perlindungan.
                     </div>
                     <div class="flex gap-3">
                         <button
@@ -671,13 +707,123 @@ onMounted(exchangeFragment);
                             class="flex min-h-12 flex-1 items-center justify-center gap-2 rounded-xl bg-pink-700 px-5 font-semibold text-white"
                             @click="next"
                         >
+                            Seterusnya <ArrowRight class="size-5" />
+                        </button>
+                    </div>
+                </section>
+
+                <section v-if="step === 4" class="space-y-5">
+                    <div>
+                        <h1 class="text-2xl font-semibold">
+                            Maklumat perlindungan
+                        </h1>
+                        <p class="mt-1 text-sm text-zinc-600">
+                            Maklumat ini diberikan oleh anda dan akan disahkan
+                            oleh staf sebelum pendaftaran.
+                        </p>
+                    </div>
+                    <label class="grid gap-1.5" for="coverage-type"
+                        ><span class="text-sm font-medium">Jenis bayaran *</span
+                        ><select
+                            id="coverage-type"
+                            v-model="form.coverage_type"
+                            class="min-h-12 rounded-xl border px-3"
+                            :aria-invalid="!!errorFor('coverage_type')"
+                        >
+                            <option value="" disabled>Pilih satu</option>
+                            <option value="self_pay">Bayar sendiri</option>
+                            <option value="panel">Panel</option>
+                        </select>
+                        <span
+                            v-if="errorFor('coverage_type')"
+                            class="text-sm text-red-700"
+                            role="alert"
+                            >{{ errorFor('coverage_type') }}</span
+                        ></label
+                    >
+                    <template v-if="form.coverage_type === 'panel'">
+                        <label class="grid gap-1.5" for="panel-id"
+                            ><span class="text-sm font-medium">Panel *</span
+                            ><select
+                                id="panel-id"
+                                v-model="form.panel_id"
+                                class="min-h-12 rounded-xl border px-3"
+                                :aria-invalid="!!errorFor('panel_id')"
+                            >
+                                <option value="" disabled>Pilih panel</option>
+                                <option
+                                    v-for="panel in panelOptions"
+                                    :key="panel.id"
+                                    :value="panel.id"
+                                >
+                                    {{ panel.name }}
+                                </option>
+                            </select>
+                            <span
+                                v-if="panelOptions.length === 0"
+                                class="text-sm text-amber-700"
+                                >Tiada panel tersedia. Sila maklumkan kepada
+                                staf di kaunter.</span
+                            >
+                            <span
+                                v-if="errorFor('panel_id')"
+                                class="text-sm text-red-700"
+                                role="alert"
+                                >{{ errorFor('panel_id') }}</span
+                            ></label
+                        >
+                        <label
+                            class="grid gap-1.5"
+                            for="coverage-member-reference"
+                            ><span class="text-sm font-medium"
+                                >Nombor ahli panel (jika ada)</span
+                            ><input
+                                id="coverage-member-reference"
+                                v-model="form.coverage_member_reference"
+                                maxlength="100"
+                                autocomplete="off"
+                                class="min-h-12 rounded-xl border px-3"
+                                :aria-invalid="
+                                    !!errorFor('coverage_member_reference')
+                                "
+                            />
+                            <span
+                                v-if="errorFor('coverage_member_reference')"
+                                class="text-sm text-red-700"
+                                role="alert"
+                                >{{
+                                    errorFor('coverage_member_reference')
+                                }}</span
+                            ></label
+                        >
+                    </template>
+                    <div class="flex gap-3">
+                        <button
+                            type="button"
+                            class="min-h-12 rounded-xl border px-4"
+                            @click="back"
+                        >
+                            <ArrowLeft
+                                class="size-5"
+                                aria-label="Kembali"
+                            /></button
+                        ><button
+                            type="button"
+                            class="flex min-h-12 flex-1 items-center justify-center gap-2 rounded-xl bg-pink-700 px-5 font-semibold text-white disabled:opacity-60"
+                            :disabled="
+                                !form.coverage_type ||
+                                (form.coverage_type === 'panel' &&
+                                    !form.panel_id)
+                            "
+                            @click="next"
+                        >
                             Semak persetujuan <ArrowRight class="size-5" />
                         </button>
                     </div>
                 </section>
 
                 <form
-                    v-if="step === 4"
+                    v-if="step === 5"
                     class="space-y-5"
                     @submit.prevent="submit"
                 >

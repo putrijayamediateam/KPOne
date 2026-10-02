@@ -83,7 +83,36 @@ class FinancialSettlementTest extends BillingTestCase
         $this->assertDatabaseHas('payments', ['method_snapshot' => 'Cash', 'amount_sen' => 4000]);
     }
 
-    public function test_deferment_requires_independent_approval_and_payment_reduces_original_debt(): void
+    public function test_ca_can_approve_panel_with_configured_limit(): void
+    {
+        [, $ca, $visit, $invoice] = $this->finalizedFixture();
+        $panel = Panel::factory()->create(['organisation_id' => $visit->organisation_id]);
+        $service = app(ResponsibilityService::class);
+        $proposal = $service->propose($ca, $visit, $invoice, 'panel', [
+            'expected_branch_id' => $visit->branch_id,
+            'lock_version' => $invoice->lock_version,
+            'amount_sen' => 3000,
+            'panel_id' => $panel->id,
+            'reason' => 'Synthetic CA approval policy',
+        ]);
+        DB::table('billing_approval_limits')->insert([
+            'organisation_id' => $visit->organisation_id,
+            'branch_id' => $visit->branch_id,
+            'user_id' => $ca->id,
+            'capability' => 'panel',
+            'limit_sen' => 3000,
+        ]);
+        $service->approve($ca, $visit, $invoice, 'panel', $proposal->public_id, [
+            'expected_branch_id' => $visit->branch_id,
+            'lock_version' => $invoice->refresh()->lock_version,
+            'proposal_lock_version' => $proposal->lock_version,
+        ]);
+
+        $this->assertSame('approved', $proposal->refresh()->status);
+        $this->assertSame(3000, app(FinancialLedger::class)->state($invoice)['panel']);
+    }
+
+    public function test_deferment_approval_allows_same_actor_within_limit_and_payment_reduces_original_debt(): void
     {
         [, $ca, $visit, $invoice] = $this->finalizedFixture();
         $this->method($visit->organisation_id);
@@ -93,16 +122,7 @@ class FinancialSettlementTest extends BillingTestCase
         $service = app(ResponsibilityService::class);
         $proposal = $service->propose($supervisor, $visit, $invoice, 'deferment', ['expected_branch_id' => $visit->branch_id, 'lock_version' => $invoice->lock_version, 'amount_sen' => 4000, 'due_date' => now()->addDay()->toDateString(), 'reason' => 'Synthetic pay later request']);
         $a = ['expected_branch_id' => $visit->branch_id, 'lock_version' => $invoice->refresh()->lock_version, 'proposal_lock_version' => $proposal->lock_version];
-        try {
-            $service->approve($supervisor, $visit, $invoice, 'deferment', $proposal->public_id, $a);
-            $this->fail('Self approval accepted.');
-        } catch (ValidationException) {
-            $this->assertSame('proposed', $proposal->refresh()->status);
-        }
-        $other = $this->actor('ca_supervisor');
-        $this->selectBranch($other, $visit->branch);
-        DB::table('billing_approval_limits')->insert(['organisation_id' => $visit->organisation_id, 'branch_id' => $visit->branch_id, 'user_id' => $other->id, 'capability' => 'deferment', 'limit_sen' => 5000]);
-        $service->approve($other, $visit, $invoice, 'deferment', $proposal->public_id, $a);
+        $service->approve($supervisor, $visit, $invoice, 'deferment', $proposal->public_id, $a);
         $this->assertSame(0, app(FinancialLedger::class)->state($invoice)['due_now']);
         $this->assertDatabaseCount('payments', 0);
         $this->selectBranch($ca, $visit->branch);

@@ -1,8 +1,8 @@
 # KPOne Baseline
 
 This file is the authoritative delivery status and supersedes the overview in `PROJECT.md`. Merged milestones
-below reflect the latest recorded `main` baseline; Insights and Unified Catalogue Setup are owner-authorised
-implementations in the current unmerged worktree and are not yet merged or production-approved.
+below reflect the latest recorded `main` baseline. Insights and Unified Catalogue Setup were merged by PR #43
+as `a08d099`; they are not production-approved.
 For `main`'s current tip, run `git log -1` — a line here recording it goes stale the instant it is committed.
 
 Yezza remains the operational source of truth. Nothing below is production-approved; all data is synthetic.
@@ -50,22 +50,25 @@ Yezza remains the operational source of truth. Nothing below is production-appro
 | **PRICE-01 shipped** | Charge definitions could not be created through the real UI for any type: `PricingChargeStoreRequest` validated `medicine_public_id`/`service_public_id` with `uuid` but no `nullable`, so the id irrelevant to the selected type (always sent by `chargeForm`) failed silently; `Pricing/Index.vue` bound no `InputError` to those fields or to the synthetic `scope` key from the one-Price-Book-per-scope rule. Fixed with `nullable`, a payload transform sending only the relevant id, and the missing `InputError` bindings. Human UAT passed in the browser 2026-09-27: charge created, RM 30.00 published, draft invoice on KPV-00000002 built at RM 65.00 across consultation, service and medicine lines. PR #39 merged into `main` as `4381e94` (merge commit, no squash) | **Merged 2026-09-28** |
 | **NAV-01 shipped** | Reference-data and operational Inventory forms redirected via bare `back()`, which for an Inertia SPA resolves to the last *full page* GET the session recorded, not the page the request came from — the owner hit it at step 12 of the UI-1 walkthrough (creating a Medicine sent her to Pricing). Recurrence of OH-06d. Fixed with explicit `to_route('inventory.index')`, both for success and for a caught validation failure, across 30 actions in 3 controllers. PR #40 merged into `main` as `9a4aabb` (merge commit, no squash) | **Merged 2026-09-28** |
 | **BS-01 shipped** | Adds `DirectorBootstrapService` for one-time, actorless creation of the first Director from existing organisation, department, branch, and role records; creates a permanent primary-branch assignment and writes an audit event. The service is not exposed through a UI route or Artisan command; `KPOneDevelopmentSeeder` remains a local/testing technical-admin bootstrap. PR #42 is present in this worktree at merge commit `4f5506f` | **Merged** |
-| **Insights (authorised 2026-10-01)** | Read-only aggregate reports for Today, Sales, In-clinic, Payments, Inventory, and Patients. All staff roles receive the explicit organisation-scoped view permission. Current worktree includes branch/doctor filters where supported, date presets/custom calendar, comparisons, charts, and per-table ranking search. No appointments, exports, package billing, patient drill-down, or patient-level debt ranking | **Implemented in current worktree; not merged. PostgreSQL 18 suite, fresh migration/seeding, and browser smoke UAT on an empty synthetic database passed; formal owner UAT with synthetic transactions remains outstanding** |
-| **Unified Catalogue Setup (authorised 2026-10-01)** | One Medicine setup flow creates or reuses its linked Inventory Item/SKU, supports default and per-Panel tariffs, and optionally records a batch, branch opening stock, location, supplier, and purchase unit cost. Clinical Services receive categories and the same tariff tiers. The Clinical Service Catalogue also manages the dedicated Consultation tariff consumed by Billing, so the separate Pricing link is removed from workspace navigation while the permissioned Pricing route and backend pricing records remain available. Descriptive dropdown values persist; governed Panel, supplier, and location can be added inline. Purchase orders retain estimated unit cost and goods receipts retain actual unit cost. Existing catalogue and inventory records are reused; no historical stock or catalogue backfill is performed | **Implemented in current worktree; not merged. Targeted Consultation tariff feature tests: 12 passed, 190 assertions. Frontend suite: 180 passed. Latest full SQLite suite: 740 tests, 634 passed, 106 skipped; this is not PostgreSQL 18 release evidence. PostgreSQL 18 validation and owner UAT remain outstanding; not production-approved** |
+| **Insights shipped** | Read-only aggregate reports for Today, Sales, In-clinic, Payments, Inventory, and Patients. All staff roles receive the explicit organisation-scoped view permission. Supports branch/doctor filters where available, date presets/custom calendar, comparisons, charts, and per-table ranking search. No appointments, exports, package billing, patient drill-down, or patient-level debt ranking | **Merged in PR #43 as `a08d099`; merged candidate `f1dac42` passed PostgreSQL 18.6 (743 tests, 741 passed, 2 expected Fortify skips, 0 failures, 8,747 assertions), fresh migration/seeding, and post-merge CI. Owner browser walkthrough with one completed synthetic visit and non-zero data across all six reports completed 2026-10-02. The current worktree's full PostgreSQL 18.6 suite, including Payment Method UI tests, passed (751 tests, 749 passed, 2 expected Fortify skips, 0 failures, 8,849 assertions); final independent review remains; not production-approved** |
+| **Unified Catalogue Setup shipped** | One Medicine setup flow creates or reuses its linked Inventory Item/SKU, supports default and per-Panel tariffs, and optionally records a batch, branch opening stock, location, supplier, and purchase unit cost. Clinical Services receive categories and the same tariff tiers. The Clinical Service Catalogue manages the dedicated Consultation tariff consumed by Billing, while the Pricing route and governed records remain available. Descriptive dropdown values persist; governed Panel, supplier, and location can be added inline. Purchase orders retain estimated unit cost and goods receipts retain actual unit cost. Existing catalogue and inventory records are reused; no historical stock or catalogue backfill is performed. Catalogue lists show Self-pay and default Panel prices | **Merged in PR #43 as `a08d099`; merged candidate `f1dac42` passed PostgreSQL 18.6, all frontend checks, and post-merge CI. Owner confirmed catalogue editing, stock setup, compact table design, and a fresh-database end-to-end UI walkthrough on 2026-10-02. The current worktree's full PostgreSQL 18.6 suite also passed (751 tests, 749 passed, 2 expected Fortify skips, 0 failures, 8,849 assertions); final independent review remains; not production-approved** |
+| **BS-02 (authorised 2026-10-02)** | Controlled interactive Artisan invocation of `DirectorBootstrapService` for the first Director; hidden optional password input, verified-Google-email guidance, no unauthenticated web setup route, and a disposable-database UI acceptance procedure | **Implemented on `feature/bs-02-first-director-bootstrap-command`. Fresh-database UI walkthrough completed 2026-10-02 with synthetic data; owner confirmed the Insights results. Current full PostgreSQL 18.6 suite, including Payment Method UI tests, passed (751 tests, 749 passed, 2 expected Fortify skips, 0 failures, 8,849 assertions); final independent review remains; do not weaken staff-authority rules** |
+| **Manual terminal reconciliation (authorised in current session)** | Branch-scoped manual daily close compares terminal-reported approved sales count/gross total with already-posted KPOne receipts by local business date and payment method. Captures reported refund/void figures, requires an explanation for count/amount variances, retains immutable revisions, and grants access only to Director, Finance Officer, CA, and CA Supervisor. It does not integrate with a terminal, create payments, issue refunds, or confirm settlement | **Implemented in the current unmerged worktree; targeted SQLite feature and frontend checks are in progress. PostgreSQL 18.6 validation, independent review, and browser smoke/UAT remain outstanding. No production approval** |
+| **QR coverage handoff (authorised next slice)** | Public QR intake lets a patient report self-pay or select an active Panel and optionally provide a member reference. The pending payload remains encrypted and patient-supplied; CA corrections remain unverified until a separate explicit coverage confirmation at acceptance. Only the CA-selected coverage, canonical Panel, and verified member reference are projected to the Visit. No Patient, Visit, or Queue exists before acceptance; existing Insights continue to use aggregate Visit coverage | **Implemented in the current unmerged worktree. Full SQLite suite: 759 tests, 653 passed, 106 skipped; the QR feature suite has 32 passed and 1 PostgreSQL-only skip. Fresh in-memory SQLite migration/seeding, PHP/frontend checks, frontend tests, and production build pass. Browser smoke UAT on 2026-10-02 submitted one synthetic self-pay intake and confirmed it appears in the CA review page as Pending; it was not accepted and no Patient, Visit, or Queue was created. PostgreSQL 18.6 validation, independent review, and owner UAT remain outstanding. Not production-approved** |
+| **BP-01 (authorised in current session)** | Billing responsibility policy update: CA now holds Panel approval permission, same-actor approval is permitted within configured limits, and Director-only branch-level approval-limit administration is available in-app (`/billing-approval-limits`) with audit events for set/clear actions. Billing UI now shows Approve only when the actor has a configured limit for that capability | **Implemented in the current unmerged worktree. Includes additive permission migration and PostgreSQL constraint update to remove the self-approval prohibition while preserving approval-limit checks. PostgreSQL 18.6 validation, independent review, and owner UAT remain outstanding. Not production-approved** Synthetic browser UAT 2026-10-03 on the local acceptance database: Director set a RM100 Panel limit, then approved the RM55 Panel responsibility on KPV-00000003 (allocation approved, 5500 sen). The CA then completed the visit (due now RM0, no cash payment needed). PostgreSQL 18.6 on a disposable database: 763 tests, 761 passed, 2 expected Fortify skips, 0 failures, 9,031 assertions; fresh migrate+seed, Pint, PHPStan, type/lint/format checks and frontend 186/186 pass. Independent review and owner UAT remain outstanding. |
 
 
 End-to-end synthetic flow: proven by tests via factories on `main`. Before UI-1, no screen anywhere could
 create a medicine, a clinical service, a price, or branch stock, so a person could not actually walk
 Registration → Queue → Consultation → Treatment Plan → Dispensary → Billing/payment → Completed Visit through
 the UI alone — only an automated test with factory-seeded data could reach Billing with a non-empty invoice.
-UI-1 (merged into `main` as `0a26449`, PR #36) adds that missing UI. Walked by a person twice since, in two
-pieces, not yet as one pass: the clinic flow was walked end to end on 2026-09-27 — register, call in, consult,
-prescribe, dispense, invoice, pay, complete — producing invoice KPI-00000002 at RM 30.50 on visit
-KPV-00000004, ordering a medicine only. PRICE-01's UAT on 2026-09-28 covered the clinical-service path
-separately: charge created, RM 30.00 published, draft built on visit KPV-00000002 at RM 65.00 across
-consultation, service and medicine lines. UI-1's own acceptance script — medicine, service, price, stock and a
-full patient walk, from a freshly migrated database, in one sitting — has never been run as one pass. **BT-01**
-covers that gap.
+UI-1 (merged into `main` as `0a26449`, PR #36) adds that missing UI. Earlier partial walkthroughs covered the
+clinic flow on 2026-09-27 and clinical-service pricing on 2026-09-28. On 2026-10-02, the owner completed the
+fresh-database acceptance walk in one sitting using a dedicated PostgreSQL 18.6 database, not the presentation
+database: Director bootstrap, synthetic staff and catalogue setup, stock, one synthetic visit through payment and
+completion, then all six Insights reports with branch/date filters. The RM 35 invoice comprised Consultation
+RM 20, Service RM 10, and Medicine RM 5; payment left RM 0 outstanding. The owner confirmed the report results.
+This records a successful synthetic UI walkthrough, not production approval or exact-candidate release validation.
 
 ## 2. Domain map (`app/Domain`)
 
@@ -96,13 +99,12 @@ Do not build or store data for these without an explicitly approved phase:
 The owner authorised aggregate-only reports for **Today**, **Sales**, **In-clinic**, **Payments**, **Inventory**,
 and **Patients**. The dedicated `insights.view.organisation` permission is granted to every catalogue role.
 Appointments, exports, package billing, patient drill-down, and patient-level financial rankings are outside the
-approved scope. The implementation status, filter behavior, metric definitions, privacy limits, and unavailable
-measures are maintained in [INSIGHTS.md](./INSIGHTS.md). The current worktree implementation is not merged or
-production-approved. SQLite validation recorded 734 tests (628 passed, 106 skipped, 0 failed). Isolated
-PostgreSQL 18.6 validation recorded 734 tests (732 passed, 2 expected Fortify-registration skips, 0 failures,
-8,592 assertions); fresh PostgreSQL migration and synthetic seeding also pass. Frontend typecheck, lint,
-formatting, build, and all 176 frontend tests pass. Browser smoke UAT on a freshly seeded database and formal
-owner UAT with synthetic transactions remain outstanding.
+approved scope. The implementation, filter behavior, metric definitions, privacy limits, and unavailable
+measures are maintained in [INSIGHTS.md](./INSIGHTS.md). PR #43 merged the reports on 2026-10-02 as `a08d099`.
+The exact candidate `f1dac42` passed the full PostgreSQL 18.6 suite (743 tests, 741 passed, 2 expected
+Fortify-registration skips, 0 failures, 8,747 assertions), fresh PostgreSQL migration/seeding, frontend checks,
+and GitHub Actions. Browser checks and owner review confirmed the report tabs and filters, but formal end-to-end
+owner UAT with non-zero synthetic transactions remains outstanding. This delivery is not production-approved.
 
 ## 5. Key decisions
 
@@ -139,13 +141,12 @@ Still open:
 7. Reported, not fixed: hold/resume lock-order inversion (PostgreSQL retries it, `DB::transaction(..., 3)`);
    single-branch "doctor busy" check; `resident_doctor` hard-coded in hold; minors must supply their own mobile
    number.
-8. **Fresh-database staff onboarding still has no operator-facing bootstrap path.** BS-01 (merged PR #42,
-   `4f5506f`) adds `DirectorBootstrapService` as the governed one-time first-Director creation path; it does not
-   add a UI route or Artisan command. `KPOneDevelopmentSeeder` still creates only a `technical_admin`, whose
-   `canAssignRoles` boundary correctly does not permit assigning `director`, `ca_supervisor`, `finance_officer`,
-   `resident_doctor`, or `ca`. The service can be invoked by application code, but an operator-facing way to
-   invoke it and the full freshly migrated UI acceptance path remain unresolved. Do not solve this by loosening
-   `canAssignRoles`.
+8. **Fresh-database first-Director path and full UI acceptance.** BS-01 (merged PR #42, `4f5506f`) added the
+   governed `DirectorBootstrapService`; BS-02 adds a controlled interactive Artisan entry point without a
+   public web route. The command and the synthetic fresh-database UI acceptance walk are complete in this
+   worktree; the owner confirmed the report results. `KPOneDevelopmentSeeder` still creates only a
+   `technical_admin`, whose `canAssignRoles` boundary correctly does not permit assigning `director`,
+   `ca_supervisor`, `finance_officer`, `resident_doctor`, or `ca`. Do not solve this by loosening `canAssignRoles`.
 9. Housekeeping: stray root file `toArray())` — **resolved**, confirmed gone from the repository root.
    `.pnpm-store/` in `.gitignore` — **resolved**, confirmed present (line 32). `PREVIEW_README.txt` release
    marker still says D3 — out of scope for this repository; the file does not exist here (it lives, if at all,
@@ -157,26 +158,51 @@ Still open:
     `PublicIntakeReviewService::ageOrNull()`.~~ **Struck.** DOB-01 fixed this (merged into `main` as `da3c66a`,
     PR #35), and PX-01 has since merged (`c5e96a5`, PR #38) — both conditions the DOB-01 section itself named
     for striking this item are now met.
-11. **Insights release validation:** the authorised read-only reports and the date-picker/ranking-search UI are
-    implemented in the current worktree but are not merged. PostgreSQL 18 validation, independent review, and
-    formal human UAT remain outstanding. Local browser checks used only the isolated synthetic preview database.
-12. **QR registration does not collect patient coverage details.** The public form currently omits self-pay/panel
-    choice and panel/member reference from its accepted payload. CA review can set coverage and panel, and the
-    backend accepts a member reference, but the review UI does not expose that reference field. The regular
-    Registration form already collects these details. This is the owner's requested next workflow improvement;
-    design the public capture, privacy-minimised encrypted pending-intake handoff, CA verification/correction,
-    accepted Visit projection, and aggregate Insights reporting together. No Patient, Visit, or Queue record may
-    exist before CA acceptance.
+11. **Insights release validation:** the authorised read-only reports and the date-picker/ranking-search UI
+    merged in PR #43 as `a08d099`. Exact-candidate PostgreSQL 18.6 validation and post-merge CI passed.
+    The owner completed the fresh-database browser walkthrough on 2026-10-02 with a non-zero synthetic visit,
+    reviewed all six reports and branch/date filters, and confirmed the results. The current worktree passed the
+    full PostgreSQL 18.6 suite including Payment Method UI tests (751 tests, 749 passed, 2 expected Fortify skips,
+    0 failures, 8,849 assertions). Final independent review remains before release consideration.
+12. **QR coverage handoff (implemented in the current worktree; not merged).** The public form offers self-pay
+    or an active Panel from the QR link's organisation, plus an optional patient-supplied member reference.
+    These values stay in the encrypted Pending Intake; the public numeric Panel selection is validated against
+    the link organisation and active catalogue. CA correction can amend the reported details, but acceptance
+    requires a separate explicit coverage confirmation and independently entered verified values. Only those
+    values are projected to the Visit; patient-reported member references are never copied automatically or
+    written to audit metadata. Existing aggregate Insights read coverage from accepted Visits, with no new
+    patient-level reporting. No Patient, Visit, or Queue record exists before CA acceptance. Synthetic browser
+    UAT on 2026-10-02 confirmed the review page is in English and keeps patient-reported coverage, CA verification,
+    and its confirmation together under Patient information, with no coverage duplicate under Visit and Queue.
+    The synthetic self-pay intake was accepted after duplicate review, doctor and Visit Reason selection, and
+    explicit coverage confirmation; the resulting Patient, Visit `KPV-00000002`, and Waiting Queue Entry `002`
+    were verified in the UI, with Self-pay on the Visit. A second synthetic Panel intake was submitted against a
+    clearly labelled `Synthetic UAT Panel` created in the local acceptance database, then accepted after CA
+    selected the Panel, confirmed duplicate review, and explicitly verified coverage; its synthetic patient-
+    reported member reference was intentionally omitted from the verified Visit data. The resulting Visit
+    `KPV-00000003` showed `Synthetic UAT Panel` and Waiting Queue Entry `003` was verified in the UI. Billing
+    initially had no Panel price book; to finish this local synthetic UAT only, Panel-specific rates matching
+    the existing synthetic self-pay catalogue rates were published for the consultation (RM 20), demo service
+    (RM 10), and demo medicine (RM 5 per unit). Billing then successfully built a RM 55 draft invoice from the
+    completed synthetic fulfilment. It remains a draft; no Panel responsibility, payment, or finalization was
+    recorded. PostgreSQL 18.6 validation and independent review remain outstanding; this local synthetic UAT is
+    not production approval.
+13. **Fresh-database Billing Payment Method setup path.** Resolved by owner decision on 2026-10-02: an
+    organisation-scoped admin screen uses the existing audited `PaymentMethodAdministrationService`, gated by
+    `payment_methods.manage.organisation` (Director and Finance Officer). Methods are created inactive and must
+    be explicitly published before checkout can use them. Fresh seeding continues to create no payment methods.
+    Feature tests cover the role boundary and full lifecycle. Use synthetic method details only in local/test
+    environments.
 
 ### Recommended delivery order
 
-1. Add the minimum catalogue, pricing, and stock references through the authorised UI, walk one synthetic
-   end-to-end visit, then complete an independent review and human UAT of Insights with non-zero synthetic
-   transactions. The presentation seeder intentionally does not fabricate visits, clinical content, stock, or
-   sales.
-2. Implement the QR coverage handoff as one separately reviewed slice. Keep the submission Pending Intake,
-   mark panel/member details as patient-supplied until a CA verifies them, and ensure the accepted Visit stores
-   only the structured coverage fields needed for operations and aggregate reporting.
+1. Complete final independent review for the Payment Method UI and remaining worktree changes. The BS-02
+   first-Director command, fresh-database synthetic UI acceptance walk, and current-candidate PostgreSQL 18.6
+   suite are complete. The owner chose an audited, permissioned Payment Method setup screen; the presentation
+   seeder intentionally does not fabricate visits, clinical content, stock, sales, or default payment methods.
+2. Complete QR coverage release evidence: run the exact-candidate PostgreSQL 18.6 suite, obtain independent
+   review, and perform browser smoke/owner UAT with synthetic intake. Confirm that patient-reported values remain
+   unverified until the CA independently selects coverage, enters any verified member reference, and confirms it.
 3. Resolve the operator-facing first-Director bootstrap path from BS-01 without weakening `canAssignRoles`; this
    remains a fresh-database onboarding blocker even though the guarded domain service exists.
 4. Deliver HC-01 (three-held-patient cap and held-too-long warning), already authorised in the owner decision

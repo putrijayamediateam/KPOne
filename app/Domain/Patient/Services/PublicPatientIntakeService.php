@@ -118,7 +118,7 @@ class PublicPatientIntakeService
     public function submit(PublicIntakeSession $boundSession, array $attributes, bool $allowsCreation): PublicPatientIntake
     {
         $this->ensureEnabled();
-        $payload = $this->payloads->validate($attributes);
+        $payload = $this->payloads->validate($attributes, $boundSession->organisation_id);
         $fingerprint = $this->fingerprint($payload);
 
         return DB::transaction(function () use ($boundSession, $allowsCreation, $payload, $fingerprint): PublicPatientIntake {

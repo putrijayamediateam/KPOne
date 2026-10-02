@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Domain\Organisation\Services\PublicCheckInLinkService;
 use App\Domain\Patient\Models\PublicPatientIntake;
 use App\Domain\Patient\Services\PublicPatientIntakeService;
+use App\Domain\Visit\Models\Panel;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -51,6 +52,7 @@ class PublicCheckInController extends Controller
             'clinicName' => 'Klinik Putrijaya',
             'branch' => $session?->branch?->is_active ? ['name' => $session->branch->name] : null,
             'intakeSession' => $session ? ['expiresAt' => $session->expires_at->toIso8601String()] : null,
+            'panelOptions' => $session ? $this->panelOptions($session->organisation_id) : [],
             'statusAvailable' => $statusAvailable,
             'privacyNoticeVersion' => config('public-intake.privacy_notice_version'),
             'minorAge' => (int) config('public-intake.minor_age', 18),
@@ -77,6 +79,7 @@ class PublicCheckInController extends Controller
         return response()->json([
             'branch' => ['name' => $link->branch->name],
             'intakeSession' => ['expiresAt' => $opened['expiresAt']],
+            'panelOptions' => $this->panelOptions($link->organisation_id),
             'privacyNoticeVersion' => config('public-intake.privacy_notice_version'),
             'minorAge' => (int) config('public-intake.minor_age', 18),
         ], 201)
@@ -181,5 +184,20 @@ class PublicCheckInController extends Controller
     private function cookiePath(): string
     {
         return (string) config('public-intake.cookie_path', '/check-in');
+    }
+
+    /** @return list<array{id: int, name: string}> */
+    private function panelOptions(int $organisationId): array
+    {
+        return array_values(Panel::query()
+            ->where('organisation_id', $organisationId)
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->get(['id', 'name'])
+            ->map(static fn (Panel $panel): array => [
+                'id' => $panel->id,
+                'name' => $panel->name,
+            ])
+            ->all());
     }
 }

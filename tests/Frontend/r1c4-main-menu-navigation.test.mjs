@@ -19,6 +19,10 @@ const capabilities = (overrides = {}) => ({
     registration: false,
     consultation: false,
     inventory: false,
+    medicineCatalogue: false,
+    clinicalServiceCatalogue: false,
+    paymentMethods: false,
+    paymentReconciliations: false,
     patientRecords: false,
     panelWork: false,
     financeWork: false,
@@ -100,6 +104,43 @@ test('Panel Finance and technical-administration visibility remains least privil
     assert.ok(!technical.includes('Patient Records'));
     assert.ok(!technical.includes('Panel Responsibility'));
     assert.ok(!technical.includes('Finance / Billing'));
+    assert.ok(!technical.includes('Payment Methods'));
+});
+
+test('Payment Method setup is permission-backed and grouped with Finance', () => {
+    const finance = navigation.mainMenuGroups(
+        capabilities({ paymentMethods: true }),
+    );
+    const destinations = navigation.headerDestinations(
+        capabilities({ paymentMethods: true }),
+        'clinic',
+    );
+    const middleware = read('app/Http/Middleware/HandleInertiaRequests.php');
+
+    assert.deepEqual([...labels(finance)], ['Payment Methods']);
+    assert.deepEqual(
+        [...destinations.map((item) => item.label)],
+        ['Main Menu', 'Payment Methods'],
+    );
+    assert.match(source, /href: '\/payment-methods'/);
+    assert.match(
+        middleware,
+        /'paymentMethods' => \$user->can\('payment_methods\.manage\.organisation'\)/,
+    );
+});
+
+test('Terminal Reconciliation is permission-backed and kept in the Finance menu', () => {
+    const finance = navigation.mainMenuGroups(
+        capabilities({ paymentReconciliations: true }),
+    );
+    const middleware = read('app/Http/Middleware/HandleInertiaRequests.php');
+
+    assert.deepEqual([...labels(finance)], ['Terminal Reconciliation']);
+    assert.match(source, /href: '\/payment-reconciliations'/);
+    assert.match(
+        middleware,
+        /'paymentReconciliations' => \$user->can\('payments\.reconcile\.branch'\)/,
+    );
 });
 
 test('desktop and mobile header share one context-aware destination list', () => {
@@ -151,6 +192,18 @@ test('Main Menu cards and header navigation retain semantic link and focus contr
     assert.match(header, /aria-label="Open KPOne Main Menu"/);
     assert.match(header, /aria-label="Mobile primary navigation"/);
     assert.match(header, /aria-label="Desktop primary navigation"/);
+    assert.match(
+        header,
+        /class="hidden min-w-0 flex-1 overflow-x-auto xl:flex"[\s\S]*?<div class="flex w-max min-w-full justify-center">/,
+    );
+    assert.match(
+        header,
+        /class="relative flex h-13 shrink-0 cursor-pointer items-center/,
+    );
+    assert.doesNotMatch(
+        header,
+        /xl:grid-cols-\[minmax\(180px,1fr\)_auto_minmax\(180px,1fr\)\]/,
+    );
     assert.match(header, /:aria-current=/);
     assert.doesNotMatch(header, /Reviews|Purchase/);
 });

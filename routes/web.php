@@ -3,6 +3,7 @@
 use App\Http\Controllers\AccessControlController;
 use App\Http\Controllers\AuditLogController;
 use App\Http\Controllers\Auth\GoogleAuthController;
+use App\Http\Controllers\BillingApprovalLimitController;
 use App\Http\Controllers\BillingController;
 use App\Http\Controllers\BillingWorkController;
 use App\Http\Controllers\BranchContextController;
@@ -28,6 +29,8 @@ use App\Http\Controllers\MedicineCatalogueController;
 use App\Http\Controllers\PatientController;
 use App\Http\Controllers\PatientIdentifierController;
 use App\Http\Controllers\PatientSearchController;
+use App\Http\Controllers\PaymentMethodController;
+use App\Http\Controllers\PaymentReconciliationController;
 use App\Http\Controllers\PricingController;
 use App\Http\Controllers\PublicCheckInController;
 use App\Http\Controllers\PublicCheckInLinkController;
@@ -327,6 +330,23 @@ Route::middleware(['auth', 'verified'])->group(function () {
             });
             Route::post('charges/{charge}/publish', [PricingController::class, 'publish'])
                 ->whereUuid('charge')->middleware(['permission:prices.publish.organisation', 'throttle:20,1'])->name('pricing.charges.publish');
+        });
+
+        Route::middleware(['permission:payment_methods.manage.organisation'])->prefix('payment-methods')->group(function () {
+            Route::get('/', [PaymentMethodController::class, 'index'])->name('payment-methods.index');
+            Route::post('/', [PaymentMethodController::class, 'store'])->middleware('throttle:30,1')->name('payment-methods.store');
+            Route::patch('{method}', [PaymentMethodController::class, 'update'])->whereNumber('method')->middleware('throttle:30,1')->name('payment-methods.update');
+            Route::post('{method}/publish', [PaymentMethodController::class, 'publish'])->whereNumber('method')->middleware('throttle:20,1')->name('payment-methods.publish');
+            Route::post('{method}/deactivate', [PaymentMethodController::class, 'deactivate'])->whereNumber('method')->middleware('throttle:20,1')->name('payment-methods.deactivate');
+        });
+        Route::middleware(['permission:billing.approval_limits.manage.organisation'])->prefix('billing-approval-limits')->group(function () {
+            Route::get('/', [BillingApprovalLimitController::class, 'index'])->name('billing-approval-limits.index');
+            Route::post('/', [BillingApprovalLimitController::class, 'store'])->middleware('throttle:30,1')->name('billing-approval-limits.store');
+            Route::post('clear', [BillingApprovalLimitController::class, 'clear'])->middleware('throttle:30,1')->name('billing-approval-limits.clear');
+        });
+        Route::middleware(['permission:payments.reconcile.branch', 'sensitive.no-store'])->prefix('payment-reconciliations')->group(function () {
+            Route::get('/', [PaymentReconciliationController::class, 'index'])->name('payment-reconciliations.index');
+            Route::post('/', [PaymentReconciliationController::class, 'store'])->middleware('throttle:20,1')->name('payment-reconciliations.store');
         });
 
         Route::middleware(['permission:inventory.references.manage.organisation'])->prefix('inventory-references')->group(function () {

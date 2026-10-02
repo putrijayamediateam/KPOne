@@ -30,6 +30,9 @@ declare module '@inertiajs/core' {
                     inventory: boolean;
                     medicineCatalogue: boolean;
                     clinicalServiceCatalogue: boolean;
+                    paymentMethods: boolean;
+                    billingApprovalLimits: boolean;
+                    paymentReconciliations: boolean;
                     patientRecords: boolean;
                     panelWork: boolean;
                     financeWork: boolean;

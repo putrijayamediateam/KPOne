@@ -7,7 +7,7 @@ import {
     ShieldAlert,
     UserCheck,
 } from '@lucide/vue';
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import InputError from '@/components/InputError.vue';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -48,6 +48,9 @@ type Intake = {
         visit_purpose: string;
         chief_complaint: string;
         complaint_duration: string | null;
+        coverage_type: string;
+        panel_id: number | null;
+        coverage_member_reference: string | null;
         consent_confirmed: boolean;
         privacy_notice_version: string;
     };
@@ -93,9 +96,10 @@ const acceptance = useForm({
     assigned_doctor_user_id: '' as string | number,
     visit_reason_public_ids: [] as string[],
     priority: 'normal',
-    coverage_type: 'self_pay',
+    coverage_type: '',
     panel_id: '' as string | number,
     coverage_member_reference: '',
+    coverage_verified: false,
     confirm_repeat: false,
     status: '',
 });
@@ -105,6 +109,17 @@ const doctorOptions = computed(() =>
 );
 const panelOptions = computed(() =>
     props.visitOptions.panels.map((p) => ({ value: p.id, label: p.name })),
+);
+const intakeStatus = computed(
+    () =>
+        ({
+            pending: 'Pending',
+            under_review: 'Under review',
+            correction_required: 'Correction required',
+            accepted: 'Accepted',
+            rejected: 'Rejected',
+            expired: 'Expired',
+        })[props.intake.status] ?? props.intake.status.replaceAll('_', ' '),
 );
 const canMutate = computed(() =>
     ['pending', 'under_review', 'correction_required'].includes(
@@ -144,6 +159,49 @@ const selectCandidate = (patientNumber: string) => {
     acceptance.resolution = 'match';
     acceptance.patient_number = patientNumber;
 };
+watch(
+    () => correction.coverage_type,
+    (coverageType) => {
+        if (coverageType !== 'panel') {
+            correction.panel_id = null;
+            correction.coverage_member_reference = null;
+        }
+    },
+);
+watch(
+    () => correction.panel_id,
+    (panelId, previousPanelId) => {
+        if (panelId !== previousPanelId) {
+            correction.coverage_member_reference = null;
+        }
+    },
+);
+watch(
+    () => acceptance.coverage_type,
+    (coverageType) => {
+        acceptance.coverage_verified = false;
+
+        if (coverageType !== 'panel') {
+            acceptance.panel_id = '';
+            acceptance.coverage_member_reference = '';
+        }
+    },
+);
+watch(
+    () => acceptance.panel_id,
+    (panelId, previousPanelId) => {
+        if (panelId !== previousPanelId) {
+            acceptance.coverage_member_reference = '';
+            acceptance.coverage_verified = false;
+        }
+    },
+);
+watch(
+    () => acceptance.coverage_member_reference,
+    () => {
+        acceptance.coverage_verified = false;
+    },
+);
 </script>
 
 <template>
@@ -169,9 +227,7 @@ const selectCandidate = (patientNumber: string) => {
                     {{ intake.publicId }}
                 </p>
             </div>
-            <Badge variant="outline">{{
-                intake.status.replace('_', ' ')
-            }}</Badge>
+            <Badge variant="outline">{{ intakeStatus }}</Badge>
         </header>
         <div
             v-if="actionError"
@@ -263,29 +319,29 @@ const selectCandidate = (patientNumber: string) => {
                                 class="h-10 rounded-md border bg-background px-3" /></label
                     ></template>
                     <label class="grid gap-1"
-                        ><span class="text-sm font-medium">Tujuan lawatan</span
+                        ><span class="text-sm font-medium">Visit purpose</span
                         ><select
                             v-model="correction.visit_purpose"
                             class="h-10 rounded-md border bg-background px-3"
                         >
                             <option value="doctor_illness">
-                                Jumpa doktor / sakit
+                                See a doctor / illness
                             </option>
                             <option value="pregnancy_check">
-                                Pemeriksaan kehamilan
+                                Pregnancy check
                             </option>
                             <option value="scan">Scan</option>
-                            <option value="vaccination">Vaksin</option>
+                            <option value="vaccination">Vaccination</option>
                             <option value="medical_checkup">
                                 Medical check-up
                             </option>
-                            <option value="procedure">Prosedur</option>
-                            <option value="other">Lain-lain</option>
+                            <option value="procedure">Procedure</option>
+                            <option value="other">Other</option>
                         </select></label
                     >
                     <label class="grid gap-1"
                         ><span class="text-sm font-medium"
-                            >Aduan / tujuan utama</span
+                            >Chief complaint / main reason</span
                         ><textarea
                             v-model="correction.chief_complaint"
                             rows="3"
@@ -294,24 +350,150 @@ const selectCandidate = (patientNumber: string) => {
                         ></textarea>
                     </label>
                     <label class="grid gap-1"
-                        ><span class="text-sm font-medium">Sejak bila?</span
+                        ><span class="text-sm font-medium">Duration</span
                         ><input
                             v-model="correction.complaint_duration"
                             maxlength="120"
                             class="h-10 rounded-md border bg-background px-3"
                     /></label>
                     <div
+                        class="rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-950 md:col-span-2"
+                    >
+                        <p class="font-semibold">
+                            Patient-reported coverage — not verified
+                        </p>
+                        <p class="mt-1">
+                            Review or correct the patient's selection. It will
+                            not be used for the Visit until you verify it below.
+                        </p>
+                    </div>
+                    <label class="grid gap-1"
+                        ><span class="text-sm font-medium"
+                            >Patient-reported coverage</span
+                        ><select
+                            v-model="correction.coverage_type"
+                            class="h-10 rounded-md border bg-background px-3"
+                        >
+                            <option value="self_pay">Self-pay</option>
+                            <option value="panel">Panel</option>
+                        </select>
+                        <InputError :message="correction.errors.coverage_type"
+                    /></label>
+                    <label
+                        v-if="correction.coverage_type === 'panel'"
+                        class="grid gap-1"
+                        ><span class="text-sm font-medium"
+                            >Patient-reported Panel</span
+                        ><select
+                            v-model="correction.panel_id"
+                            class="h-10 rounded-md border bg-background px-3"
+                        >
+                            <option :value="null">Select a Panel</option>
+                            <option
+                                v-for="panel in visitOptions.panels"
+                                :key="panel.id"
+                                :value="panel.id"
+                            >
+                                {{ panel.name }}
+                            </option>
+                        </select>
+                        <InputError :message="correction.errors.panel_id" />
+                    </label>
+                    <div class="grid gap-4 rounded-lg border p-4 md:col-span-2">
+                        <div>
+                            <h3 class="font-semibold">
+                                CA coverage verification
+                            </h3>
+                            <p class="mt-1 text-sm text-muted-foreground">
+                                Select the verified coverage and Panel, if
+                                applicable. Do not copy an unverified member
+                                reference.
+                            </p>
+                        </div>
+                        <label class="grid gap-1"
+                            ><span class="text-sm font-medium"
+                                >Verified coverage *</span
+                            ><select
+                                v-model="acceptance.coverage_type"
+                                class="h-10 rounded-md border bg-background px-3"
+                            >
+                                <option value="" disabled>
+                                    Select after verification
+                                </option>
+                                <option value="self_pay">Self-pay</option>
+                                <option value="panel">Panel</option>
+                            </select>
+                            <InputError
+                                :message="acceptance.errors.coverage_type"
+                        /></label>
+                        <label
+                            v-if="acceptance.coverage_type === 'panel'"
+                            class="grid gap-1"
+                            ><span class="text-sm font-medium"
+                                >Verified Panel *</span
+                            ><OperationalSelect
+                                v-model="acceptance.panel_id"
+                                :options="panelOptions"
+                                label="Panel" /><InputError
+                                :message="acceptance.errors.panel_id"
+                        /></label>
+                        <label
+                            v-if="acceptance.coverage_type === 'panel'"
+                            class="grid gap-1"
+                            ><span class="text-sm font-medium"
+                                >Verified member reference (if available)</span
+                            ><input
+                                v-model="acceptance.coverage_member_reference"
+                                maxlength="100"
+                                autocomplete="off"
+                                class="h-10 rounded-md border bg-background px-3" /><InputError
+                                :message="
+                                    acceptance.errors.coverage_member_reference
+                                "
+                        /></label>
+                        <label
+                            class="flex items-start gap-2 rounded-lg border p-3 text-sm"
+                            ><input
+                                v-model="acceptance.coverage_verified"
+                                type="checkbox"
+                                class="mt-1"
+                            /><span
+                                >I confirmed the coverage above. Any member
+                                reference entered here has been checked;
+                                unverified patient-reported references have been
+                                omitted.</span
+                            ></label
+                        >
+                        <InputError
+                            :message="acceptance.errors.coverage_verified"
+                        />
+                    </div>
+                    <label
+                        v-if="correction.coverage_type === 'panel'"
+                        class="grid gap-1"
+                        ><span class="text-sm font-medium"
+                            >Patient-reported member reference</span
+                        ><input
+                            v-model="correction.coverage_member_reference"
+                            maxlength="100"
+                            class="h-10 rounded-md border bg-background px-3" />
+                        <InputError
+                            :message="
+                                correction.errors.coverage_member_reference
+                            "
+                    /></label>
+                    <div
                         class="rounded-md bg-muted p-3 text-xs text-muted-foreground"
                     >
                         Consent {{ intake.privacyNoticeVersion }} recorded
-                        {{ intake.consentedAt }}. Consent fields cannot be
+                        {{ intake.consentedAt }}. Consent details cannot be
                         edited here.
                     </div>
                     <Button
                         type="submit"
                         variant="outline"
                         :disabled="!canMutate || correction.processing"
-                        >Save permitted corrections</Button
+                        >Save corrections</Button
                     >
                 </CardContent></Card
             >
@@ -409,8 +591,9 @@ const selectCandidate = (patientNumber: string) => {
             ><CardHeader
                 ><CardTitle>Visit and Queue</CardTitle
                 ><CardDescription
-                    >One transaction creates or matches Patient, creates Visit
-                    and Queue Entry, then accepts the intake.</CardDescription
+                    >One transaction creates or matches a Patient, creates the
+                    Visit and Queue Entry, then accepts the
+                    intake.</CardDescription
                 ></CardHeader
             ><CardContent
                 ><form
@@ -444,25 +627,6 @@ const selectCandidate = (patientNumber: string) => {
                             :error="acceptance.errors.visit_reason_public_ids"
                         />
                     </div>
-                    <label class="grid gap-1"
-                        ><span class="text-sm font-medium">Coverage</span
-                        ><select
-                            v-model="acceptance.coverage_type"
-                            class="h-10 rounded-md border bg-background px-3"
-                        >
-                            <option value="self_pay">Self-pay</option>
-                            <option value="panel">Panel</option>
-                        </select></label
-                    >
-                    <label
-                        v-if="acceptance.coverage_type === 'panel'"
-                        class="grid gap-1"
-                        ><span class="text-sm font-medium">Panel</span
-                        ><OperationalSelect
-                            v-model="acceptance.panel_id"
-                            :options="panelOptions"
-                            label="Panel"
-                    /></label>
                     <label
                         v-if="acceptance.errors.confirm_repeat"
                         class="flex items-start gap-2 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm md:col-span-2"
@@ -488,8 +652,8 @@ const selectCandidate = (patientNumber: string) => {
                         ><LoaderCircle
                             v-if="acceptance.processing"
                             class="size-4 animate-spin"
-                        /><UserCheck v-else class="size-4" />Sahkan &amp;
-                        Masukkan Queue</Button
+                        /><UserCheck v-else class="size-4" />Accept and add to
+                        Queue</Button
                     >
                 </form></CardContent
             ></Card
@@ -532,8 +696,8 @@ const selectCandidate = (patientNumber: string) => {
         <div
             class="flex items-center gap-2 rounded-lg bg-emerald-50 p-3 text-sm text-emerald-800"
         >
-            <CheckCircle2 class="size-5" />No Patient, Visit or Queue record is
-            created until the confirmation action commits.
+            <CheckCircle2 class="size-5" />No Patient, Visit, or Queue record is
+            created until acceptance commits.
         </div>
     </main>
 </template>

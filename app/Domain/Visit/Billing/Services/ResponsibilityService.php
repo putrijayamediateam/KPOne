@@ -76,7 +76,7 @@ class ResponsibilityService
             $this->ledger->lock($invoice);
             $proposal = $class::query()->where('public_id', $publicId)->where('invoice_id', $invoice->id)->firstOrFail();
             $state = $this->ledger->state($invoice);
-            if ($visit->status !== Visit::STATUS_REGISTERED || ! $limit || ! $panelActive || $proposal->status !== 'proposed' || $proposal->requested_by_user_id === $actor->id
+            if ($visit->status !== Visit::STATUS_REGISTERED || ! $limit || ! $panelActive || $proposal->status !== 'proposed'
                 || $proposal->lock_version !== filter_var($a['proposal_lock_version'] ?? null, FILTER_VALIDATE_INT)
                 || $proposal->expected_invoice_version !== $invoice->lock_version || $proposal->amount_sen > (int) $limit->limit_sen || $proposal->amount_sen > $state['due_now']) {
                 $this->invalid();
@@ -98,6 +98,6 @@ class ResponsibilityService
 
     private function invalid(): never
     {
-        throw ValidationException::withMessages(['responsibility' => 'Current independent approval within configured authority is required; reload the Invoice and proposal.']);
+        throw ValidationException::withMessages(['responsibility' => 'Current approval within configured authority is required; reload the Invoice and proposal.']);
     }
 }

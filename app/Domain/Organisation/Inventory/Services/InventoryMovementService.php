@@ -32,6 +32,18 @@ class InventoryMovementService
             }
             [$location, $sku, $batch] = $this->lockReferences($lockedActor, $attributes['location_public_id'], $attributes['sku_public_id'], $attributes['batch_public_id']);
             abort_unless($location->branch_id === $branch->id, 404);
+            $openingBalanceExists = StockMovement::query()
+                ->where('organisation_id', $lockedActor->organisation_id)
+                ->where('destination_location_id', $location->id)
+                ->where('inventory_sku_id', $sku->id)
+                ->where('inventory_batch_id', $batch->id)
+                ->where('movement_type', StockMovement::TYPE_OPENING)
+                ->exists();
+            if ($openingBalanceExists) {
+                throw ValidationException::withMessages([
+                    'opening_balance' => 'An opening balance has already been recorded for this location, SKU, and batch. Use a stock transfer or manual adjustment to change the balance.',
+                ]);
+            }
             $quantity = $this->quantity($attributes['quantity']);
             $unitCostSen = $this->unitCostSen($attributes['unit_cost_sen'] ?? null);
             $supplier = null;

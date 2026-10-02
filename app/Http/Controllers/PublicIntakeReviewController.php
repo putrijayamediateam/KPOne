@@ -37,7 +37,7 @@ class PublicIntakeReviewController extends Controller
     {
         $validated = $request->validate(['lock_version' => ['required', 'integer', 'min:1']]);
         $reviews->startReview($request->user(), $publicIntake, (int) $validated['lock_version']);
-        Inertia::flash('toast', ['type' => 'success', 'message' => 'Semakan dimulakan.']);
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'Review started.']);
 
         return back();
     }
@@ -46,7 +46,7 @@ class PublicIntakeReviewController extends Controller
     {
         $request->validate(['lock_version' => ['required', 'integer', 'min:1']]);
         $reviews->correct($request->user(), $publicIntake, $request->all());
-        Inertia::flash('toast', ['type' => 'success', 'message' => 'Maklumat intake dikemas kini.']);
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'Intake details updated.']);
 
         return back();
     }
@@ -55,7 +55,7 @@ class PublicIntakeReviewController extends Controller
     {
         $validated = $request->validate(['lock_version' => ['required', 'integer', 'min:1']]);
         $reviews->requireCorrection($request->user(), $publicIntake, (int) $validated['lock_version']);
-        Inertia::flash('toast', ['type' => 'success', 'message' => 'Intake ditanda untuk pembetulan di kaunter.']);
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'Intake marked for correction at the front desk.']);
 
         return back();
     }
@@ -67,7 +67,7 @@ class PublicIntakeReviewController extends Controller
             'category' => ['required', 'string'],
         ]);
         $reviews->reject($request->user(), $publicIntake, (int) $validated['lock_version'], $validated['category']);
-        Inertia::flash('toast', ['type' => 'success', 'message' => 'Intake ditolak dengan kategori terkawal.']);
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'Intake rejected.']);
 
         return to_route('registration.index', ['tab' => 'qr-intake']);
     }
@@ -77,7 +77,7 @@ class PublicIntakeReviewController extends Controller
         $result = $reviews->accept($request->user(), $publicIntake, $request->all());
         Inertia::flash('toast', [
             'type' => 'success',
-            'message' => 'Pendaftaran disahkan dan nombor queue '.sprintf('%03d', $result['queue']->queue_number).' diberikan.',
+            'message' => 'Registration accepted and Queue number '.sprintf('%03d', $result['queue']->queue_number).' assigned.',
         ]);
 
         return to_route('registration.index', ['tab' => 'qr-intake']);

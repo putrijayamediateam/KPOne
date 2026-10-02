@@ -37,6 +37,13 @@ class BillingDirectoryService
             $mutable = $visit->status === Visit::STATUS_REGISTERED && $invoice?->status === 'finalized' && ! $invoice->correction_hold;
             $state = $invoice ? $this->ledger->state($invoice) : null;
             $payments = $invoice ? Payment::query()->whereIn('id', PaymentAllocation::query()->where('invoice_id', $invoice->id)->select('payment_id'))->orderBy('id')->get() : collect();
+            $approvalCapabilities = DB::table('billing_approval_limits')
+                ->where('organisation_id', $actor->organisation_id)
+                ->where('branch_id', $branch->id)
+                ->where('user_id', $actor->id)
+                ->whereIn('capability', ['panel', 'deferment'])
+                ->pluck('capability')
+                ->all();
             $proposal = function (string $class) use ($invoice): ?array {
                 $record = $invoice ? $class::query()->where('current_invoice_guard', $invoice->id)->first() : null;
 
@@ -64,8 +71,8 @@ class BillingDirectoryService
                 'can' => ['build' => $actor->can('billing.build.branch') && $visit->status === Visit::STATUS_REGISTERED && $checkout !== null && ($checkout->route === 'billing' || $case?->status === DispensaryCase::STATUS_COMPLETED) && (! $invoice || $invoice->status === 'draft'),
                     'finalize' => $visit->status === Visit::STATUS_REGISTERED && $actor->can('billing.finalize.branch') && $invoice?->status === 'draft' && ! $invoice->source_stale,
                     'pay' => in_array($visit->status, [Visit::STATUS_REGISTERED, Visit::STATUS_COMPLETED], true) && $actor->can('payments.add.branch') && $invoice?->status === 'finalized' && ! $invoice->correction_hold && ($state['due_now'] + $state['deferred']) > 0,
-                    'panelPropose' => $mutable && $actor->can('coverage.propose.branch'), 'panelApprove' => $mutable && $actor->can('coverage.approve.branch'),
-                    'deferPropose' => $mutable && $actor->can('outstanding.request.branch'), 'deferApprove' => $mutable && $actor->can('outstanding.approve.branch'),
+                    'panelPropose' => $mutable && $actor->can('coverage.propose.branch'), 'panelApprove' => $mutable && $actor->can('coverage.approve.branch') && in_array('panel', $approvalCapabilities, true),
+                    'deferPropose' => $mutable && $actor->can('outstanding.request.branch'), 'deferApprove' => $mutable && $actor->can('outstanding.approve.branch') && in_array('deferment', $approvalCapabilities, true),
                     'reverse' => $mutable && $actor->can('payments.reverse.branch'), 'void' => $mutable && $actor->can('invoices.void.branch'),
                     'complete' => $mutable && $actor->can('visits.complete.branch') && $state['due_now'] === 0, 'print' => $invoice !== null && $invoice->status !== 'draft' && $actor->can('billing.print.branch')]];
         });

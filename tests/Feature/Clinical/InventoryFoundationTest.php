@@ -13,6 +13,7 @@ use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use LogicException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Tests\Feature\Queue\QueueTestCase;
@@ -48,6 +49,38 @@ class InventoryFoundationTest extends QueueTestCase
         $this->assertDatabaseCount('stock_movements', 2);
         $this->expectException(LogicException::class);
         $opening->delete();
+    }
+
+    public function test_opening_balance_cannot_be_recorded_twice_for_the_same_stock_location(): void
+    {
+        $supervisor = $this->actor('ca_supervisor');
+        $this->selectBranch($supervisor, $this->branch);
+        [$sku, $batch, $store] = $this->inventoryFixture($supervisor);
+        $attributes = [
+            'expected_branch_id' => $this->branch->id,
+            'location_public_id' => $store->public_id,
+            'sku_public_id' => $sku->public_id,
+            'batch_public_id' => $batch->public_id,
+            'quantity' => '10.000',
+        ];
+        $service = app(InventoryMovementService::class);
+
+        $service->openingBalance($supervisor, $attributes);
+
+        try {
+            $service->openingBalance($supervisor, $attributes);
+            $this->fail('A second opening balance for the same stock location should be rejected.');
+        } catch (ValidationException $exception) {
+            $this->assertArrayHasKey('opening_balance', $exception->errors());
+        }
+
+        $this->assertDatabaseHas('inventory_stock_balances', [
+            'inventory_location_id' => $store->id,
+            'inventory_sku_id' => $sku->id,
+            'inventory_batch_id' => $batch->id,
+            'quantity' => 10,
+        ]);
+        $this->assertDatabaseCount('stock_movements', 1);
     }
 
     public function test_ordinary_ca_cannot_establish_opening_stock_even_with_direct_permission(): void

@@ -25,6 +25,7 @@ class PublicIntakePayloadValidator
 
     /**
      * @param  array<string, mixed>  $attributes
+     * @param  int  $organisationId  Organisation bound to the QR session or staff intake scope.
      * @param  string|null  $lockedPrivacyNoticeVersion  The intake's own already-consented
      *                                                   version, passed only when validating a staff correction of an existing intake.
      *                                                   A correction must be checked and stamped against that original version, never
@@ -33,8 +34,11 @@ class PublicIntakePayloadValidator
      *                                                   which must always consent to the currently configured version.
      * @return array<string, mixed>
      */
-    public function validate(array $attributes, ?string $lockedPrivacyNoticeVersion = null): array
-    {
+    public function validate(
+        array $attributes,
+        int $organisationId,
+        ?string $lockedPrivacyNoticeVersion = null,
+    ): array {
         $privacyVersion = $lockedPrivacyNoticeVersion ?? (string) config('public-intake.privacy_notice_version');
         $validated = Validator::make($attributes, [
             'submission_type' => ['required', Rule::in(['patient', 'guardian'])],
@@ -50,6 +54,19 @@ class PublicIntakePayloadValidator
             'visit_purpose' => ['required', Rule::in(self::VISIT_PURPOSES)],
             'chief_complaint' => ['required', 'string', 'max:500'],
             'complaint_duration' => ['nullable', 'string', 'max:120'],
+            'coverage_type' => ['required', Rule::in(['self_pay', 'panel'])],
+            'panel_id' => [
+                'nullable',
+                'required_if:coverage_type,panel',
+                'prohibited_unless:coverage_type,panel',
+                'integer',
+                Rule::exists('panels', 'id')->where(fn ($query) => $query
+                    ->where('organisation_id', $organisationId)
+                    ->where('is_active', true)),
+            ],
+            'coverage_member_reference' => [
+                'nullable', 'prohibited_unless:coverage_type,panel', 'string', 'max:100',
+            ],
             'guardian_name' => ['nullable', 'required_if:submission_type,guardian', 'string', 'max:255'],
             'guardian_relationship' => [
                 'nullable', 'required_if:submission_type,guardian',
@@ -115,6 +132,14 @@ class PublicIntakePayloadValidator
             ];
         }
 
+        $coverageType = $validated['coverage_type'];
+        $panelId = $coverageType === 'panel' ? (int) $validated['panel_id'] : null;
+        $memberReference = $coverageType === 'panel'
+            ? (filled($validated['coverage_member_reference'] ?? null)
+                ? Str::squish((string) $validated['coverage_member_reference'])
+                : null)
+            : null;
+
         return [
             'submission_type' => $validated['submission_type'],
             'patient' => [
@@ -135,6 +160,11 @@ class PublicIntakePayloadValidator
                 'duration' => filled($validated['complaint_duration'] ?? null)
                     ? Str::squish((string) $validated['complaint_duration']) : null,
             ],
+            'coverage' => [
+                'type' => $coverageType,
+                'panel_id' => $panelId,
+                'member_reference' => $memberReference,
+            ],
             'consent' => [
                 'confirmed' => true,
                 'privacy_notice_version' => $privacyVersion,
@@ -151,6 +181,7 @@ class PublicIntakePayloadValidator
         $identifier = Arr::wrap($patient['identifiers'][0] ?? []);
         $guardian = Arr::wrap($payload['guardian'] ?? []);
         $visit = Arr::wrap($payload['visit'] ?? []);
+        $coverage = Arr::wrap($payload['coverage'] ?? []);
 
         return [
             'submission_type' => $payload['submission_type'] ?? 'patient',
@@ -170,6 +201,9 @@ class PublicIntakePayloadValidator
             'visit_purpose' => $visit['purpose'] ?? '',
             'chief_complaint' => $visit['chief_complaint'] ?? '',
             'complaint_duration' => $visit['duration'] ?? null,
+            'coverage_type' => $coverage['type'] ?? 'self_pay',
+            'panel_id' => $coverage['panel_id'] ?? null,
+            'coverage_member_reference' => $coverage['member_reference'] ?? null,
             'consent_confirmed' => true,
             'privacy_notice_version' => $payload['consent']['privacy_notice_version'] ?? config('public-intake.privacy_notice_version'),
         ];

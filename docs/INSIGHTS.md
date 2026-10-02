@@ -4,8 +4,8 @@ Insights is a read-only, aggregate reporting area. The currently authorised repo
 **In-clinic**, **Payments**, **Inventory**, and **Patients**. They use existing KPOne records and introduce no
 new patient, appointment, payment, inventory, or clinical workflow.
 
-The implementation is in the current isolated worktree and is not yet merged or production-approved. The
-authoritative project status and outstanding release gates are in [BASELINE.md](./BASELINE.md).
+The implementation merged in PR #43 as `a08d099`; it is not production-approved. The authoritative project
+status and outstanding release gates are in [BASELINE.md](./BASELINE.md).
 
 ## Access and privacy
 
@@ -60,8 +60,9 @@ feature.
 
 ## Release gates
 
-Before release consideration, run the full quality gate and PostgreSQL 18 suite against a disposable test
-database, complete an independent review, and perform browser UAT against synthetic transactions. A browser
-smoke check on the freshly seeded empty database confirms the screens, filters, charts, and empty states render;
-it does not replace owner UAT with non-zero synthetic data. Production use also requires the project's security,
-privacy/PDPA, legal, recovery, and access-governance gates.
+The owner completed a browser walkthrough on 2026-10-02 against a dedicated PostgreSQL 18.6 acceptance database,
+using one completed synthetic visit and non-zero data across the six reports. All report tabs and the branch/date
+filters were reviewed, and the owner confirmed the results. The current worktree's full suite has also passed on
+PostgreSQL 18.6 (751 tests, 749 passed, 2 expected Fortify skips, 0 failures, 8,849 assertions). Final independent
+review remains before release consideration. Production use also requires the project's security, privacy/PDPA,
+legal, recovery, and access-governance gates.
