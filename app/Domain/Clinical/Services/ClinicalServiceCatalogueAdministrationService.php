@@ -41,7 +41,7 @@ class ClinicalServiceCatalogueAdministrationService
 
             $this->audit->record('clinical_service_catalogue.created', $service, [
                 'service_public_id' => $service->public_id,
-                'changed_fields' => ['code', 'display_name', 'order_unit', 'is_active'],
+                'changed_fields' => [...array_keys($values), 'is_active'],
             ], $actor, organisationId: $actor->organisation_id);
 
             return $service;
@@ -193,7 +193,7 @@ class ClinicalServiceCatalogueAdministrationService
     }
 
     /** @param array<string, mixed> $attributes
-     * @return array{code:string,display_name:string,order_unit:string}
+     * @return array{code:string,display_name:string,order_unit:string,category:?string}
      */
     private function createValues(array $attributes): array
     {
@@ -201,16 +201,17 @@ class ClinicalServiceCatalogueAdministrationService
             'code' => $this->code($attributes['code'] ?? null),
             'display_name' => $this->requiredText($attributes['display_name'] ?? null, 'display_name', 500, collapseWhitespace: true),
             'order_unit' => $this->requiredText($attributes['order_unit'] ?? null, 'order_unit', 100),
+            'category' => $this->nullableText($attributes['category'] ?? null, 'category', 120),
         ];
     }
 
     /** @param array<string, mixed> $attributes
-     * @return array<string, string>
+     * @return array<string, string|null>
      */
     private function updateValues(array $attributes): array
     {
         $values = [];
-        foreach (['code', 'display_name', 'order_unit'] as $field) {
+        foreach (['code', 'display_name', 'order_unit', 'category'] as $field) {
             if (! array_key_exists($field, $attributes)) {
                 continue;
             }
@@ -218,6 +219,7 @@ class ClinicalServiceCatalogueAdministrationService
                 'code' => $this->code($attributes[$field]),
                 'display_name' => $this->requiredText($attributes[$field], $field, 500, collapseWhitespace: true),
                 'order_unit' => $this->requiredText($attributes[$field], $field, 100),
+                'category' => $this->nullableText($attributes[$field], $field, 120),
             };
         }
 
@@ -247,5 +249,14 @@ class ClinicalServiceCatalogueAdministrationService
         }
 
         return $value;
+    }
+
+    private function nullableText(mixed $value, string $field, int $maximum): ?string
+    {
+        if ($value === null || (is_string($value) && trim($value) === '')) {
+            return null;
+        }
+
+        return $this->requiredText($value, $field, $maximum);
     }
 }

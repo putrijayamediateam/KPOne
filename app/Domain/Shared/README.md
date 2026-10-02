@@ -1,5 +1,8 @@
 # Shared domain
 
-This namespace is reserved for small, genuinely cross-domain primitives and contracts.
+This namespace is reserved for genuinely cross-domain primitives, contracts, and read-only aggregate
+projections such as Insights reporting.
 
-Domain-specific behaviour stays in its owning Organisation, Identity, Access, or Audit boundary. Do not use this namespace as a generic dumping ground or to bypass those boundaries.
+Domain-specific behavior and all mutations stay in their owning Organisation, Identity, Access, Patient, Visit,
+Queue, Clinical, or Audit boundary. Cross-domain reports may aggregate authorized, minimized data but must not
+become a generic dumping ground, duplicate domain write models, or bypass domain services and policies.

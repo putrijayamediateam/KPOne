@@ -5,7 +5,6 @@ export type WorkspaceNavigationCapabilities = {
     inventory: boolean;
     medicineCatalogue: boolean;
     clinicalServiceCatalogue: boolean;
-    pricing: boolean;
     patientRecords: boolean;
     panelWork: boolean;
     financeWork: boolean;
@@ -14,6 +13,7 @@ export type WorkspaceNavigationCapabilities = {
     accessControl: boolean;
     auditLogs: boolean;
     publicCheckInLinks: boolean;
+    insights: boolean;
 };
 
 export type WorkspaceDestination = {
@@ -76,14 +76,6 @@ const destinations: Record<
         href: '/clinical-services',
         icon: 'clipboard',
     },
-    pricing: {
-        key: 'pricing',
-        label: 'Pricing',
-        description:
-            'Manage Charge Definitions, Price Books and published prices.',
-        href: '/pricing',
-        icon: 'file',
-    },
     patientRecords: {
         key: 'patientRecords',
         label: 'Patient Records',
@@ -140,6 +132,13 @@ const destinations: Record<
         href: '/public-checkin-links',
         icon: 'building',
     },
+    insights: {
+        key: 'insights',
+        label: 'Insights',
+        description: 'Review today’s clinic sales and operations overview.',
+        href: '/insights/today',
+        icon: 'activity',
+    },
 };
 
 const mainMenu: WorkspaceDestination = {
@@ -160,6 +159,10 @@ export const mainMenuGroups = (
 ): WorkspaceDestinationGroup[] =>
     [
         {
+            label: 'Insights',
+            destinations: available(capabilities, ['insights']),
+        },
+        {
             label: 'Clinic Operations',
             destinations: available(capabilities, [
                 'registration',
@@ -172,7 +175,6 @@ export const mainMenuGroups = (
             destinations: available(capabilities, [
                 'medicineCatalogue',
                 'clinicalServiceCatalogue',
-                'pricing',
             ]),
         },
         {
@@ -208,6 +210,7 @@ export const headerDestinations = (
         capabilities,
         context === 'clinic'
             ? [
+                  'insights',
                   'registration',
                   'consultation',
                   'inventory',
@@ -216,6 +219,7 @@ export const headerDestinations = (
                   'financeWork',
               ]
             : [
+                  'insights',
                   'panelWork',
                   'financeWork',
                   'staff',

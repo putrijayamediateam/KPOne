@@ -206,8 +206,26 @@ final class ProcurementService
                 abort_unless($sku !== null, 404);
                 $batch = $this->resolveBatch($lockedActor, $branch, $sku, $input);
                 $receiptLine = new GoodsReceiptLine;
-                $receiptLine->forceFill(['organisation_id' => $lockedActor->organisation_id, 'goods_receipt_id' => $receipt->id, 'purchase_order_line_id' => $line->id, 'inventory_sku_id' => $sku->id, 'inventory_batch_id' => $batch->id, 'quantity' => $input['quantity']])->save();
-                $this->movements->recordPurchaseReceipt($lockedActor, $destination, $sku, $batch, $input['quantity'], $receipt->public_id);
+                $unitCostSen = $input['unit_cost_sen'] ?? $line->estimated_unit_cost_sen;
+                $receiptLine->forceFill([
+                    'organisation_id' => $lockedActor->organisation_id,
+                    'goods_receipt_id' => $receipt->id,
+                    'purchase_order_line_id' => $line->id,
+                    'inventory_sku_id' => $sku->id,
+                    'inventory_batch_id' => $batch->id,
+                    'quantity' => $input['quantity'],
+                    'unit_cost_sen' => $unitCostSen,
+                ])->save();
+                $this->movements->recordPurchaseReceipt(
+                    $lockedActor,
+                    $destination,
+                    $sku,
+                    $batch,
+                    $input['quantity'],
+                    $receipt->public_id,
+                    $unitCostSen,
+                    $locked->supplier_id,
+                );
                 $line->forceFill(['received_quantity' => number_format((float) $line->received_quantity + (float) $input['quantity'], 3, '.', '')])->save();
             }
             $hasRemaining = $locked->lines()->whereColumn('received_quantity', '<', 'ordered_quantity')->exists();
@@ -300,35 +318,56 @@ final class ProcurementService
     }
 
     /**
-     * @param  list<array{sku_public_id:string,quantity:string}>  $lines
+     * @param  list<array{sku_public_id:string,quantity:string,unit_cost_sen:int|null}>  $lines
      * @param  array<string, InventorySku>  $skus
      */
     private function replaceDraftLines(PurchaseOrder $order, array $lines, array $skus): void
     {
         foreach ($lines as $input) {
             $line = new PurchaseOrderLine;
-            $line->forceFill(['public_id' => (string) Str::uuid(), 'organisation_id' => $order->organisation_id, 'purchase_order_id' => $order->id, 'inventory_sku_id' => $skus[$input['sku_public_id']]->id, 'ordered_quantity' => $input['quantity'], 'received_quantity' => '0.000'])->save();
+            $line->forceFill([
+                'public_id' => (string) Str::uuid(),
+                'organisation_id' => $order->organisation_id,
+                'purchase_order_id' => $order->id,
+                'inventory_sku_id' => $skus[$input['sku_public_id']]->id,
+                'ordered_quantity' => $input['quantity'],
+                'received_quantity' => '0.000',
+                'estimated_unit_cost_sen' => $input['unit_cost_sen'],
+            ])->save();
         }
     }
 
-    /** @return list<array{sku_public_id:string,quantity:string}> */
+    /** @return list<array{sku_public_id:string,quantity:string,unit_cost_sen:int|null}> */
     private function validateLines(mixed $lines): array
     {
-        $values = validator(['lines' => $lines], ['lines' => ['required', 'array', 'min:1', 'max:100'], 'lines.*.sku_public_id' => ['required', 'uuid', 'distinct'], 'lines.*.quantity' => ['required', 'regex:/^\d{1,12}(?:\.\d{1,3})?$/']])->validate()['lines'];
+        $values = validator(['lines' => $lines], [
+            'lines' => ['required', 'array', 'min:1', 'max:100'],
+            'lines.*.sku_public_id' => ['required', 'uuid', 'distinct'],
+            'lines.*.quantity' => ['required', 'regex:/^\d{1,12}(?:\.\d{1,3})?$/'],
+            'lines.*.unit_cost_sen' => ['nullable', 'integer', 'min:0'],
+        ])->validate()['lines'];
         foreach ($values as &$line) {
             if ((float) $line['quantity'] <= 0) {
                 throw ValidationException::withMessages(['lines' => 'Ordered quantities must be positive.']);
             }
             $line['quantity'] = number_format((float) $line['quantity'], 3, '.', '');
+            $line['unit_cost_sen'] = isset($line['unit_cost_sen']) ? (int) $line['unit_cost_sen'] : null;
         }
 
         return $values;
     }
 
-    /** @return list<array{line_public_id:string,quantity:string,batch_number:?string,expiry_date:?string}> */
+    /** @return list<array{line_public_id:string,quantity:string,batch_number:?string,expiry_date:?string,unit_cost_sen:int|null}> */
     private function validateReceiptLines(mixed $lines): array
     {
-        $values = validator(['lines' => $lines], ['lines' => ['required', 'array', 'min:1', 'max:100'], 'lines.*.line_public_id' => ['required', 'uuid', 'distinct'], 'lines.*.quantity' => ['required', 'regex:/^\d{1,12}(?:\.\d{1,3})?$/'], 'lines.*.batch_number' => ['nullable', 'string', 'max:100'], 'lines.*.expiry_date' => ['nullable', 'date_format:Y-m-d']])->validate()['lines'];
+        $values = validator(['lines' => $lines], [
+            'lines' => ['required', 'array', 'min:1', 'max:100'],
+            'lines.*.line_public_id' => ['required', 'uuid', 'distinct'],
+            'lines.*.quantity' => ['required', 'regex:/^\d{1,12}(?:\.\d{1,3})?$/'],
+            'lines.*.batch_number' => ['nullable', 'string', 'max:100'],
+            'lines.*.expiry_date' => ['nullable', 'date_format:Y-m-d'],
+            'lines.*.unit_cost_sen' => ['nullable', 'integer', 'min:0'],
+        ])->validate()['lines'];
         foreach ($values as &$line) {
             if ((float) $line['quantity'] <= 0) {
                 throw ValidationException::withMessages(['lines' => 'Received quantities must be positive.']);
@@ -336,6 +375,7 @@ final class ProcurementService
             $line['quantity'] = number_format((float) $line['quantity'], 3, '.', '');
             $line['batch_number'] = filled($line['batch_number'] ?? null) ? trim((string) $line['batch_number']) : null;
             $line['expiry_date'] = $line['expiry_date'] ?? null;
+            $line['unit_cost_sen'] = isset($line['unit_cost_sen']) ? (int) $line['unit_cost_sen'] : null;
         }
         usort($values, fn (array $a, array $b): int => $a['line_public_id'] <=> $b['line_public_id']);
 

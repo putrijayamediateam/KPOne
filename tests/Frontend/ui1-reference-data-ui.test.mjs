@@ -22,7 +22,6 @@ const capabilities = (overrides = {}) => ({
     inventory: false,
     medicineCatalogue: false,
     clinicalServiceCatalogue: false,
-    pricing: false,
     patientRecords: false,
     panelWork: false,
     financeWork: false,
@@ -37,7 +36,7 @@ const capabilities = (overrides = {}) => ({
 const labels = (groups) =>
     groups.flatMap((group) => group.destinations.map((item) => item.label));
 
-test('Reference Data group appears only for the three new catalogue/pricing permissions', () => {
+test('Reference Data shows catalogue destinations without a separate Pricing menu link', () => {
     const none = navigation.mainMenuGroups(capabilities());
     assert.ok(!none.some((group) => group.label === 'Reference Data'));
 
@@ -45,18 +44,17 @@ test('Reference Data group appears only for the three new catalogue/pricing perm
         capabilities({
             medicineCatalogue: true,
             clinicalServiceCatalogue: true,
-            pricing: true,
         }),
     );
     const group = all.find((group) => group.label === 'Reference Data');
     assert.ok(group, 'Reference Data group must be present.');
     assert.deepEqual(
         [...group.destinations.map((item) => item.label)],
-        ['Medicine Catalogue', 'Clinical Service Catalogue', 'Pricing'],
+        ['Medicine Catalogue', 'Clinical Service Catalogue'],
     );
     assert.deepEqual(
         [...group.destinations.map((item) => item.href)],
-        ['/medicines', '/clinical-services', '/pricing'],
+        ['/medicines', '/clinical-services'],
     );
 
     const medicineOnly = labels(
@@ -69,7 +67,6 @@ test('Reference Data destinations are not promoted into the header navigation', 
     const allowed = capabilities({
         medicineCatalogue: true,
         clinicalServiceCatalogue: true,
-        pricing: true,
         registration: true,
     });
 
@@ -92,7 +89,10 @@ test('Medicine Catalogue page exposes search, create, edit and activate/deactiva
 
     assert.match(source, /router\.get\(\s*'\/medicines'/);
     assert.match(source, /form\.post\('\/medicines'/);
-    assert.match(source, /form\.patch\(`\/medicines\/\$\{editing\.value\.publicId\}`/);
+    assert.match(
+        source,
+        /form\.patch\(`\/medicines\/\$\{editing\.value\.publicId\}`/,
+    );
     assert.match(
         source,
         /`\/medicines\/\$\{row\.publicId\}\/\$\{row\.isActive \? 'deactivate' : 'activate'\}`/,
@@ -102,9 +102,13 @@ test('Medicine Catalogue page exposes search, create, edit and activate/deactiva
 
 test('Clinical Service Catalogue page mirrors the Medicine Catalogue page shape', () => {
     const source = read('resources/js/pages/ClinicalService/Index.vue');
+    const tariffPanel = read(
+        'resources/js/components/catalogue/ConsultationTariffPanel.vue',
+    );
 
     assert.match(source, /router\.get\(\s*'\/clinical-services'/);
     assert.match(source, /form\.post\('\/clinical-services'/);
+    assert.match(source, /<ConsultationTariffPanel/);
     assert.match(
         source,
         /form\.patch\(`\/clinical-services\/\$\{editing\.value\.publicId\}`/,
@@ -116,16 +120,27 @@ test('Clinical Service Catalogue page mirrors the Medicine Catalogue page shape'
     assert.doesNotMatch(source, /router\.delete/);
     // No strength/dosage-form fields: clinical services are not medicines.
     assert.doesNotMatch(source, /strength_text|dosage_form/);
+    assert.match(tariffPanel, /dedicated Consultation line on billing/);
+    assert.match(tariffPanel, /\/clinical-services\/consultation-tariffs/);
+    assert.match(tariffPanel, /expected_versions/);
 });
 
 test('Pricing page keeps publication gated separately from reference management', () => {
     const source = read('resources/js/pages/Pricing/Index.vue');
+    const navigation = read('resources/js/lib/workspace-navigation.ts');
 
     assert.match(source, /canPublish: boolean/);
     assert.match(source, /v-if="canPublish"/);
-    assert.match(source, /expected_version: charge\.currentPrice\?\.version \?\? 0/);
+    assert.match(
+        source,
+        /expected_version: charge\.currentPrice\?\.version \?\? 0/,
+    );
     assert.match(source, /expected_branch_id: activeBranchId/);
-    assert.match(source, /`\/pricing\/charges\/\$\{charge\.publicId\}\/publish`/);
+    assert.match(
+        source,
+        /`\/pricing\/charges\/\$\{charge\.publicId\}\/publish`/,
+    );
+    assert.doesNotMatch(navigation, /label: 'Pricing'|href: '\/pricing'/);
 });
 
 test('Inventory reference data panel is gated behind canManage and covers the stock-setup chain', () => {
@@ -191,7 +206,10 @@ test('Inventory Index renders the reference data panel ahead of existing operati
     const referenceIndex = source.indexOf('InventoryReferenceDataPanel');
     const operationsIndex = source.indexOf('InventoryOperationsPanel');
 
-    assert.ok(referenceIndex > -1, 'Inventory/Index.vue must render InventoryReferenceDataPanel.');
+    assert.ok(
+        referenceIndex > -1,
+        'Inventory/Index.vue must render InventoryReferenceDataPanel.',
+    );
     assert.ok(operationsIndex > -1);
     assert.ok(
         source.indexOf(':reference-data="referenceData"') <

@@ -2,6 +2,10 @@
 
 Status: architecture recommendation for implementation authorization; no Phase 3B runtime is implemented by this document.
 
+This is the historical design record; Phase 3B was subsequently implemented and merged. See
+[BASELINE.md](./BASELINE.md) for current delivery status and [PHASE_3B.md](./PHASE_3B.md) for the implementation
+record. Requirements below explain the design decision and are not a live inventory of current schema state.
+
 Reviewed on 2026-09-03 against `main`, `origin/main`, and `phase-3a-core`, all resolving locally to `6cb764f3f11edb5f73869cba6b1b6947ab19e3bc`. The initial working tree was clean. This document is the only intended repository change. Remote refs were not refreshed in this design-only run.
 
 ## 1. Objective and existing boundaries

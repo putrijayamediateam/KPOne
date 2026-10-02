@@ -1,6 +1,13 @@
 # KPOne project
 
-Current unreleased milestone: Phase 3A-Core Dispensary and Minimal Inventory Foundation. Quick Treatment Sets and Phase 3B remain deferred.
+Latest merged delivery: Phase 3B — Completed Patient v1. Phase 3A-Core Dispensary and minimal inventory are also
+merged. Quick Treatment Sets remain deferred.
+
+Current in-progress worktree: separately authorised read-only Insights reports (Today, Sales, In-clinic,
+Payments, Inventory, and Patients), including a shared branch selector, date presets/custom calendar, and
+ranking search. This work is not yet merged. PostgreSQL 18 validation and human UAT remain outstanding; it is
+not production-approved. See [docs/BASELINE.md](docs/BASELINE.md) for the authoritative delivery state and
+[docs/INSIGHTS.md](docs/INSIGHTS.md) for report behavior and limitations.
 
 ## Vision
 
@@ -26,6 +33,10 @@ Phase 2B.0 adds the clinical safety prerequisite for later medicine ordering: a 
 
 Phase 2B adds one in-progress Treatment Plan per current Clinical Encounter. The attending resident doctor may atomically maintain governed catalogue-backed medicine and clinical service/procedure orders under a separate optimistic version. Medicine mutations require the exact current Encounter Allergy review. Orders retain immutable identity snapshots and persisted removals are withdrawn rather than deleted. There is no stock, fulfilment, performed-service state, pricing, billing, signing, finalisation, Visit/Queue completion, or Phase 3 workflow. Real-patient production approval remains not granted.
 
+Phase 3A-Core adds a version-bound doctor-to-Dispensary handoff, branch fulfilment, safe stock allocation, and immutable inventory movements. Phase 3B adds checkout, service performance evidence, governed pricing, invoices, receipts, payment and responsibility handling, and controlled Visit completion. These milestones are merged, but their delivery does not by itself authorise production use or go-live.
+
+The current Insights work provides aggregate-only operational and financial reports. It does not introduce appointments, packages, patient-level financial rankings, exports, or new business transactions. Unsupported figures are identified rather than estimated.
+
 The current public website remains a separate system. Its current website administration remains the production administration path during migration. KPOne Phase 0A contains no website integration.
 
 Yezza remains outside this delivery. No replacement, integration, or migration from Yezza is being implemented yet.
@@ -34,13 +45,17 @@ Yezza remains outside this delivery. No replacement, integration, or migration f
 
 The order below is directional and requires a separately approved scope for each phase:
 
-1. Production deployment, recovery, access review, and staff-governance hardening.
-2. Appointment design and later Queue refinements after separately approved phases.
-3. Treatment planning, prescribing, completion, and dispensary workflows after the Phase 2A clinical foundation receives its production safety gates.
-4. Billing, panel/corporate, and inventory operations.
-5. HR and finance operations.
-6. Website management, marketing, and controlled external integrations.
-7. Patient portal, messaging, and management analytics.
+1. Define a controlled operator-facing invocation for the merged first-Director bootstrap service without
+   weakening staff-authority rules, then complete the outstanding fresh-database UI acceptance path.
+2. Complete release evidence for current Insights work: independent review, browser smoke checks, and formal
+   owner UAT with synthetic transactions.
+3. Complete production deployment, recovery, access review, staff-governance hardening, security/privacy/PDPA
+   and legal gates before any go-live decision.
+4. Design and separately authorise Appointments and any later Queue refinements.
+5. Expand inventory operations (including procurement, receiving, and stocktake) only after their own safety,
+   reconciliation, and authorisation decisions.
+6. Panel claims/advanced finance, HR workflows and staff roster, each under an approved scope.
+7. Website management, marketing, controlled external integrations, patient portal, and patient messaging.
 8. Deliberate legacy/Yezza migration planning after data, safety, and reconciliation design.
 
 Roadmap placement is not authorisation to build or store data for a later phase.

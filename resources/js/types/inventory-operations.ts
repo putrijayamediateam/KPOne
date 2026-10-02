@@ -63,6 +63,7 @@ export type InventoryReceiptLineIntent = {
     quantity: string;
     batch_number: string | null;
     expiry_date: string | null;
+    unit_cost_sen?: number;
 };
 
 export type InventoryReceiptMemoryContext = {
@@ -97,6 +98,7 @@ type InventoryReceiptDraft = {
     batchNumber: string;
     expiryDate: string;
     quantity: string;
+    unitCostSen?: number;
 };
 
 export type InventoryReceiptPayloadValidation =
@@ -118,6 +120,7 @@ const receiptRememberContextPattern =
     /^v2:organisation:[0-9a-f]{64}:actor:[0-9a-f]{64}:session:[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}:branch:[0-9a-f]{64}$/;
 const maximumRememberedReceiptContexts = 8;
 const receiptQuantityPattern = /^(\d{1,12})(?:\.(\d{1,3}))?$/;
+const receiptCostPattern = /^(\d{1,10})(?:\.(\d{1,2}))?$/;
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
     typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -182,6 +185,8 @@ export const validateInventoryReceiptPayload = (
         quantity: string;
         batch_number: string | null;
         expiry_date: string | null;
+        unit_cost_rm?: string;
+        unit_cost_sen?: number | null;
     }>,
 ): InventoryReceiptPayloadValidation => {
     const payload: InventoryReceiptLineIntent[] = [];
@@ -200,12 +205,57 @@ export const validateInventoryReceiptPayload = (
             };
         }
 
-        payload.push({
+        const normalizedLine: InventoryReceiptLineIntent = {
             line_public_id: line.line_public_id,
             quantity,
             batch_number: line.batch_number?.trim() || null,
             expiry_date: line.expiry_date?.trim() || null,
-        });
+        };
+
+        if (line.unit_cost_sen !== undefined) {
+            if (
+                line.unit_cost_sen !== null &&
+                (!Number.isSafeInteger(line.unit_cost_sen) ||
+                    line.unit_cost_sen < 0 ||
+                    line.unit_cost_sen > 999999999999)
+            ) {
+                return {
+                    valid: false,
+                    error: 'Purchase unit cost must be a non-negative amount with up to 2 decimal places.',
+                };
+            }
+
+            if (line.unit_cost_sen !== null) {
+                normalizedLine.unit_cost_sen = line.unit_cost_sen;
+            }
+        } else if (
+            line.unit_cost_rm !== undefined &&
+            line.unit_cost_rm !== ''
+        ) {
+            const match = receiptCostPattern.exec(line.unit_cost_rm);
+
+            if (!match) {
+                return {
+                    valid: false,
+                    error: 'Purchase unit cost must be a non-negative RM amount with up to 2 decimal places.',
+                };
+            }
+
+            const sen =
+                BigInt(match[1]) * 100n +
+                BigInt((match[2] ?? '').padEnd(2, '0'));
+
+            if (sen > 999999999999n) {
+                return {
+                    valid: false,
+                    error: 'Purchase unit cost exceeds the supported maximum.',
+                };
+            }
+
+            normalizedLine.unit_cost_sen = Number(sen);
+        }
+
+        payload.push(normalizedLine);
     }
 
     if (payload.length === 0) {
@@ -341,7 +391,11 @@ export const restoreInventoryReceiptRememberedState = (
                 (line.batch_number === null ||
                     typeof line.batch_number === 'string') &&
                 (line.expiry_date === null ||
-                    typeof line.expiry_date === 'string'),
+                    typeof line.expiry_date === 'string') &&
+                (line.unit_cost_sen === undefined ||
+                    line.unit_cost_sen === null ||
+                    (typeof line.unit_cost_sen === 'number' &&
+                        Number.isSafeInteger(line.unit_cost_sen))),
         );
 
         if (!validPayloadShape) {
@@ -349,13 +403,27 @@ export const restoreInventoryReceiptRememberedState = (
         }
 
         const rawPayload = candidate.payload.map((line) => {
-            const record = line as Record<string, string | null>;
+            const record = line as Record<string, unknown>;
 
             return {
-                line_public_id: record.line_public_id ?? '',
-                quantity: record.quantity ?? '',
-                batch_number: record.batch_number,
-                expiry_date: record.expiry_date,
+                line_public_id:
+                    typeof record.line_public_id === 'string'
+                        ? record.line_public_id
+                        : '',
+                quantity:
+                    typeof record.quantity === 'string' ? record.quantity : '',
+                batch_number:
+                    typeof record.batch_number === 'string'
+                        ? record.batch_number
+                        : null,
+                expiry_date:
+                    typeof record.expiry_date === 'string'
+                        ? record.expiry_date
+                        : null,
+                ...(typeof record.unit_cost_sen === 'number' ||
+                record.unit_cost_sen === null
+                    ? { unit_cost_sen: record.unit_cost_sen }
+                    : {}),
             };
         });
         const validation = validateInventoryReceiptPayload(rawPayload);
@@ -447,6 +515,8 @@ export const prepareInventoryReceiptSubmission = (
         quantity: string;
         batch_number: string | null;
         expiry_date: string | null;
+        unit_cost_rm?: string;
+        unit_cost_sen?: number | null;
     }>,
     createKey: () => string,
 ): InventoryReceiptSubmissionPreparation => {
@@ -507,6 +577,9 @@ export const inventoryReceiptDrafts = (
                         batchNumber: line.batch_number ?? '',
                         expiryDate: line.expiry_date ?? '',
                         quantity: line.quantity,
+                        ...(line.unit_cost_sen !== undefined
+                            ? { unitCostSen: line.unit_cost_sen }
+                            : {}),
                     },
                 ]),
             ),

@@ -7,10 +7,14 @@ use App\Http\Controllers\BillingController;
 use App\Http\Controllers\BillingWorkController;
 use App\Http\Controllers\BranchContextController;
 use App\Http\Controllers\BranchController;
+use App\Http\Controllers\CatalogueOptionController;
+use App\Http\Controllers\CataloguePanelController;
+use App\Http\Controllers\CatalogueSetupReferenceController;
 use App\Http\Controllers\ClinicalAllergyController;
 use App\Http\Controllers\ClinicalEncounterController;
 use App\Http\Controllers\ClinicalProblemController;
 use App\Http\Controllers\ClinicalServiceCatalogueController;
+use App\Http\Controllers\ClinicInsightsController;
 use App\Http\Controllers\ClinicPlaceholderController;
 use App\Http\Controllers\ConsultationCheckoutController;
 use App\Http\Controllers\ConsultationHoldController;
@@ -73,9 +77,18 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::middleware('permission:visits.view.branch,queue.view.own,queue.view.branch')->group(function () {
         Route::get('reviews', ClinicPlaceholderController::class)->name('clinic.reviews');
-        Route::get('insight', ClinicPlaceholderController::class)->name('clinic.insight');
         Route::get('purchase', ClinicPlaceholderController::class)->name('clinic.purchase');
     });
+    Route::get('insight', fn () => to_route('insights.today'))
+        ->middleware('permission:insights.view.organisation')
+        ->name('clinic.insight');
+    Route::get('insights/today', [ClinicInsightsController::class, 'today'])
+        ->middleware(['permission:insights.view.organisation', 'sensitive.no-store'])
+        ->name('insights.today');
+    Route::get('insights/{section}', [ClinicInsightsController::class, 'report'])
+        ->whereIn('section', ['sales', 'in-clinic', 'payments', 'inventory', 'patients'])
+        ->middleware(['permission:insights.view.organisation', 'sensitive.no-store'])
+        ->name('insights.report');
 
     Route::get('panel-claims', [BillingWorkController::class, 'panel'])->middleware('sensitive.no-store')->name('clinic.panel-claims');
     Route::get('financial-work', [BillingWorkController::class, 'finance'])->middleware('sensitive.no-store')->name('billing.work');
@@ -270,6 +283,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
         Route::middleware(['permission:medicines.manage.organisation'])->prefix('medicines')->group(function () {
             Route::get('/', [MedicineCatalogueController::class, 'index'])->name('medicines.index');
+            Route::get('{medicine}/setup', [MedicineCatalogueController::class, 'editSetup'])
+                ->whereUuid('medicine')->name('medicines.setup');
+            Route::get('inventory-skus', [MedicineCatalogueController::class, 'searchInventorySkus'])
+                ->middleware('throttle:60,1')->name('medicines.inventory-skus');
             Route::post('/', [MedicineCatalogueController::class, 'store'])->middleware('throttle:30,1')->name('medicines.store');
             Route::patch('{medicine}', [MedicineCatalogueController::class, 'update'])->whereUuid('medicine')->middleware('throttle:30,1')->name('medicines.update');
             Route::post('{medicine}/activate', [MedicineCatalogueController::class, 'activate'])->whereUuid('medicine')->middleware('throttle:20,1')->name('medicines.activate');
@@ -278,11 +295,25 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
         Route::middleware(['permission:clinical_services.manage.organisation'])->prefix('clinical-services')->group(function () {
             Route::get('/', [ClinicalServiceCatalogueController::class, 'index'])->name('clinical-services.index');
+            Route::post('consultation-tariffs', [ClinicalServiceCatalogueController::class, 'storeConsultationTariff'])
+                ->middleware('throttle:20,1')->name('clinical-services.consultation-tariffs.store');
             Route::post('/', [ClinicalServiceCatalogueController::class, 'store'])->middleware('throttle:30,1')->name('clinical-services.store');
+            Route::get('{clinicalService}/setup', [ClinicalServiceCatalogueController::class, 'editSetup'])->whereUuid('clinicalService')->middleware('throttle:60,1')->name('clinical-services.edit-setup');
             Route::patch('{clinicalService}', [ClinicalServiceCatalogueController::class, 'update'])->whereUuid('clinicalService')->middleware('throttle:30,1')->name('clinical-services.update');
             Route::post('{clinicalService}/activate', [ClinicalServiceCatalogueController::class, 'activate'])->whereUuid('clinicalService')->middleware('throttle:20,1')->name('clinical-services.activate');
             Route::post('{clinicalService}/deactivate', [ClinicalServiceCatalogueController::class, 'deactivate'])->whereUuid('clinicalService')->middleware('throttle:20,1')->name('clinical-services.deactivate');
         });
+
+        Route::get('catalogue-options/{type}', [CatalogueOptionController::class, 'index'])
+            ->where('type', '[a-z_]+')->middleware('throttle:60,1')->name('catalogue-options.index');
+        Route::post('catalogue-options/{type}', [CatalogueOptionController::class, 'store'])
+            ->where('type', '[a-z_]+')->middleware('throttle:30,1')->name('catalogue-options.store');
+        Route::post('catalogue-panels', [CataloguePanelController::class, 'store'])
+            ->middleware(['permission:pricing.references.manage.organisation', 'throttle:30,1'])->name('catalogue-panels.store');
+        Route::post('catalogue-setup/suppliers', [CatalogueSetupReferenceController::class, 'storeSupplier'])
+            ->middleware(['permission:inventory.suppliers.manage.organisation', 'throttle:30,1'])->name('catalogue-setup.suppliers.store');
+        Route::post('catalogue-setup/locations', [CatalogueSetupReferenceController::class, 'storeLocation'])
+            ->middleware(['permission:inventory.references.manage.organisation', 'throttle:30,1'])->name('catalogue-setup.locations.store');
 
         Route::prefix('pricing')->group(function () {
             Route::middleware(['permission:pricing.references.manage.organisation'])->group(function () {

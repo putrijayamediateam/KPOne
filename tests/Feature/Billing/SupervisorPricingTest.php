@@ -70,13 +70,17 @@ class SupervisorPricingTest extends ClinicalTestCase
         $this->assertFalse(app(StaffAuthorityService::class)->canAssignRoles($technical, ['ca_supervisor']));
     }
 
-    public function test_a_supervisor_sees_the_pricing_menu(): void
+    public function test_pricing_is_not_in_workspace_navigation_but_remains_permissioned(): void
     {
         $supervisor = $this->actor('ca_supervisor');
         $this->selectBranch($supervisor);
 
         $this->get('/dashboard')->assertOk()
-            ->assertInertia(fn ($page) => $page->where('workspace.navigation.pricing', true));
+            ->assertInertia(fn ($page) => $page
+                ->missing('workspace.navigation.pricing')
+                ->where('workspace.navigation.clinicalServiceCatalogue', true));
+
+        $this->get(route('pricing.index'))->assertOk();
     }
 
     public function test_a_supervisor_can_create_a_price_book_and_a_charge_and_publish_a_price(): void

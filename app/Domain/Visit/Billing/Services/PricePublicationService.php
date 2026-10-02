@@ -7,6 +7,7 @@ use App\Domain\Audit\AuditRecorder;
 use App\Domain\Visit\Billing\Models\ChargeDefinition;
 use App\Domain\Visit\Billing\Models\PriceBook;
 use App\Domain\Visit\Billing\Models\PriceEntry;
+use App\Domain\Visit\Models\Panel;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -25,6 +26,15 @@ class PricePublicationService
             $charge = ChargeDefinition::query()->whereKey($charge->id)->where('organisation_id', $actor->organisation_id)->where('is_active', true)->lockForUpdate()->firstOrFail();
             $book = PriceBook::query()->whereKey($book->id)->where('organisation_id', $actor->organisation_id)->where('is_active', true)->where('currency', 'MYR')->lockForUpdate()->firstOrFail();
             abort_unless($book->branch_id === null || $book->branch_id === $branch->id, 404);
+            if ($book->price_tier === 'panel') {
+                abort_unless($book->branch_id === null, 404);
+                if ($book->panel_id !== null) {
+                    Panel::query()->whereKey($book->panel_id)->where('organisation_id', $actor->organisation_id)
+                        ->where('is_active', true)->firstOrFail();
+                }
+            } elseif ($book->panel_id !== null) {
+                abort(404);
+            }
             $version = (int) PriceEntry::query()->where('price_book_id', $book->id)->where('charge_definition_id', $charge->id)->max('version');
             if ($version !== $expectedVersion) {
                 throw ValidationException::withMessages(['price' => 'The published price changed. Review before publishing.']);

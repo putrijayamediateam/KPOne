@@ -4,9 +4,15 @@ KPOne is the Klinik Putrijaya Digital Operating System: a production healthcare 
 
 This repository is a new, independent Laravel application. It does not modify or depend on `MiniWeb_KlinikPutrijaya_Fullstack`.
 
-## Current scope: Phase 0A through Phase 2C, with Phase 3A-Core under implementation
+## Current scope: Phase 0A through Phase 3B delivered; Insights in progress
 
-The unreleased Dispensary and minimal inventory foundation is documented in [docs/PHASE_3A.md](docs/PHASE_3A.md).
+The merged project baseline includes Phase 3A-Core Dispensary and minimal inventory, followed by Phase 3B
+checkout, billing, payments, and visit completion. The current isolated worktree adds the separately authorised,
+read-only Insights reports; they are implemented but are not yet merged or production-approved. The
+[current delivery baseline](docs/BASELINE.md) is authoritative for exact status and validation.
+
+The detailed phase documents are scoped design and implementation records, not a substitute for the current
+baseline.
 
 Phase 0A provides the platform foundation, and Phase 0B adds internal operational staff identity administration:
 
@@ -28,6 +34,9 @@ Phase 0A provides the platform foundation, and Phase 0B adds internal operationa
 - one in-progress own-doctor Clinical Encounter per Serving Consultation, with one current vitals observation, one clinical note, ordered diagnoses, bounded care-related history summaries, and optimistic locking
 - an organisation-level structured Allergy Profile/version ledger, explicit per-Encounter Allergy review, longitudinal Problem List, current-care-only clinical safety access, and a reusable stale-review gate for future medicine ordering
 - one in-progress own-clinician Treatment Plan with governed medicine/service catalogue selection, immutable order snapshots, exact stale-write protection, mandatory current Allergy review for medicine mutations, and retained withdrawn orders
+- doctor checkout, Dispensary handoff and fulfilment, minimal stock operations, finalized invoices, patient receipts and visit completion
+- governed Medicine and Clinical Service catalogues, price books and published prices, with the human end-to-end UI acceptance pass still outstanding
+- read-only aggregate Insights reports for Today, Sales, In-clinic, Payments, Inventory and Patients (current worktree; validation and release gates pending)
 
 Phase 1A answers “Who is this patient?”. Phase 1B registers that Patient into a canonical branch Visit. Phase 1C places Consultation Visits into Waiting and ends when the Patient is Serving. Phase 2A records an in-progress clinical assessment. Phase 2B.0 adds structured Allergy and Problem List safety. Phase 2B adds in-progress medicine and service/procedure orders but stops before prescription signing, finalization, handover, completion, fulfilment, stock, dispensing, billing, claims, patient login, QR/OTP, or legacy integration.
 
@@ -71,6 +80,13 @@ npm run types:check
 npm run lint:check
 npm run format:check
 npm run build
+node --test tests/Frontend/*.mjs
+```
+
+For migration/seed verification, use a confirmed local or disposable test database only:
+
+```bash
+php artisan migrate:fresh --seed
 ```
 
 Architecture, security, phase boundaries, and contributor rules are in [`docs/`](docs) and [AGENTS.md](AGENTS.md).
@@ -82,3 +98,5 @@ Phase 1C Queue architecture, permissions, polling, concurrency, and the Phase 2 
 Phase 2A Clinical Encounter ownership, privacy, aggregate concurrency, and production limitations are documented in [docs/PHASE_2A.md](docs/PHASE_2A.md).
 Phase 2B.0 Allergy/Profile review, Problem List, stale-review safety, privacy, and future medicine/catalogue contracts are documented in [docs/PHASE_2B_0.md](docs/PHASE_2B_0.md).
 Phase 2B Treatment Plan ownership, catalogue snapshots, Allergy gate, concurrency, privacy, and downstream boundaries are documented in [docs/PHASE_2B.md](docs/PHASE_2B.md).
+Phase 3A-Core Dispensary and minimal inventory behavior are documented in [docs/PHASE_3A.md](docs/PHASE_3A.md); Phase 3B checkout, billing, payment, and Visit completion are documented in [docs/PHASE_3B.md](docs/PHASE_3B.md), with its design record in [docs/PHASE_3B_DESIGN.md](docs/PHASE_3B_DESIGN.md).
+The Insights metrics, filter semantics, privacy limits, and unsupported data are documented in [docs/INSIGHTS.md](docs/INSIGHTS.md).

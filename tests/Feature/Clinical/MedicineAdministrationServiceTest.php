@@ -62,7 +62,13 @@ class MedicineAdministrationServiceTest extends ClinicalTestCase
         $this->assertSame($director->organisation_id, $audit->organisation_id);
         $this->assertSame($medicine->id, $audit->subject_id);
         $this->assertEqualsCanonicalizing(
-            ['code', 'display_name', 'strength_text', 'dosage_form', 'order_unit', 'authorisation_class', 'is_active'],
+            [
+                'code', 'display_name', 'strength_text', 'dosage_form', 'order_unit',
+                'generic_name', 'category', 'group_name', 'default_dosage_amount',
+                'default_dosage_unit', 'default_instruction', 'default_precaution',
+                'default_frequency', 'default_duration', 'default_indication',
+                'authorisation_class', 'is_active',
+            ],
             $audit->metadata['changed_fields'],
         );
     }

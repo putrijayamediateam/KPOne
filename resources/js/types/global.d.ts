@@ -30,7 +30,6 @@ declare module '@inertiajs/core' {
                     inventory: boolean;
                     medicineCatalogue: boolean;
                     clinicalServiceCatalogue: boolean;
-                    pricing: boolean;
                     patientRecords: boolean;
                     panelWork: boolean;
                     financeWork: boolean;
@@ -39,6 +38,7 @@ declare module '@inertiajs/core' {
                     accessControl: boolean;
                     auditLogs: boolean;
                     publicCheckInLinks: boolean;
+                    insights: boolean;
                 };
                 pendingIntakes: number;
             } | null;

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Link, usePage } from '@inertiajs/vue3';
 import {
+    Activity,
     Building2,
     FileText,
     LayoutDashboard,
@@ -33,6 +34,9 @@ const can = (permission: string) =>
 
 const mainNavItems = computed<NavItem[]>(() => [
     { title: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
+    ...(can('insights.view.organisation')
+        ? [{ title: 'Insights', href: '/insights/today', icon: Activity }]
+        : []),
     ...(can('visits.view.branch')
         ? [
               {

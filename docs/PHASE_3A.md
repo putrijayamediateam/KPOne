@@ -2,6 +2,10 @@
 
 Phase 3A-Core adds an explicit, auditable handoff from a doctor-owned Treatment Plan to branch Dispensary fulfilment. It excludes Quick Treatment Sets, procurement, receiving, stocktake, billing, payment, claims, and production stock migration.
 
+**Delivery status:** Phase 3A-Core was merged as PR #5; Phase 3B subsequently added checkout, billing, payment,
+and Visit completion. This file preserves the Phase 3A scope boundary. Quick Treatment Sets remain deferred.
+See [BASELINE.md](./BASELINE.md) for current project status.
+
 ## Lifecycle and safety
 
 An attending resident doctor may send an `in_progress` Treatment Plan only when current care, the exact Plan version, active Medicine Orders, Allergy Profile, Encounter Allergy Review, and every Medicine Order safety version are current. Sending changes the Plan to `ready_for_dispensing`, increments it once, records that post-transition version in a new immutable handoff attempt, snapshots active Medicine Orders, and moves the serving Queue entry to the structural `sent_to_dispensary` removed state. No stock moves on send.
