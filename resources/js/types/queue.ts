@@ -16,6 +16,7 @@ export type QueueRow = {
     queuedTime: string;
     calledAt: string | null;
     isHeld: boolean;
+    isHeldTooLong: boolean;
     holdStartedAt: string | null;
     heldMinutes: number;
     activeMinutes: number;
