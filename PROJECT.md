@@ -1,7 +1,10 @@
 # KPOne project
 
-Latest merged delivery: PR #47 — QR status Phase B, merged as `92decc3`. Recent merges, newest first:
+Latest merged delivery: PR #49 — QR intake form polish (Phase C), merged as `aba4ab9`. Recent merges, newest first:
 
+- PR #49 (`aba4ab9`) — QR intake form polish (Phase C): per-step checks mirroring server validation before each
+  step, a review-before-submit summary with edit links, and a visible 15-minute session countdown. Frontend only;
+  the server remains the validation authority and nothing is kept in browser storage.
 - PR #47 (`92decc3`) — QR status Phase B: patients ahead, a labelled wait range from recent branch history,
   aggregate waiting counts per branch, public branch address/map links, and optional browser-only nearby-branch
   sorting.
@@ -55,7 +58,7 @@ The order below is directional and requires a separately approved scope for each
 
 1. Keep the first-Director bootstrap path governed without weakening staff-authority rules.
 2. Close the remaining feature-level owner UAT recorded in `docs/BASELINE.md` (QR status Phase B browser GPS
-   flow, Payment Method setup screen; BP-01 deferred at the owner's direction).
+   flow, QR intake form polish (Phase C), Payment Method setup screen; BP-01 deferred at the owner's direction).
 3. Complete production deployment, recovery, access review, staff-governance hardening, security/privacy/PDPA
    and legal gates before any go-live decision.
 4. Design and separately authorise Appointments and any later Queue refinements.
