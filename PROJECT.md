@@ -1,17 +1,21 @@
 # KPOne project
 
-Latest merged delivery: PR #43 — authorised Insights reports and Unified Catalogue Setup, merged as `a08d099`.
-Phase 3B — Completed Patient v1 and Phase 3A-Core Dispensary/minimal inventory are also merged. Quick Treatment
-Sets remain deferred.
+Latest merged delivery: PR #47 — QR status Phase B, merged as `92decc3`. Recent merges, newest first:
 
-Current in-progress worktree: BS-02's controlled interactive Artisan invocation for the first-Director bootstrap
-service and the fresh-database UI acceptance walk are complete. The walk used one synthetic visit and verified
-non-zero data across all six Insights reports. Payment Method setup is now available through an audited,
-permissioned administration screen. The current worktree passed the full PostgreSQL 18.6 suite (751 tests, 749
-passed, 2 expected skips); final independent review of the added Payment Method screen remains. Insights behavior,
-metric definitions, and limitations are documented in
-[docs/INSIGHTS.md](docs/INSIGHTS.md). See [docs/BASELINE.md](docs/BASELINE.md) for authoritative delivery status
-and remaining release gates. No production approval is implied.
+- PR #47 (`92decc3`) — QR status Phase B: patients ahead, a labelled wait range from recent branch history,
+  aggregate waiting counts per branch, public branch address/map links, and optional browser-only nearby-branch
+  sorting.
+- PR #46 (`dae30a1`) — QR status Phase A: status polling, first name and queue number after CA acceptance,
+  progress stepper, call-in banner, opt-in chime and vibration.
+- PR #45 (`99c5c93`) — BS-02 first-Director Artisan command, QR coverage handoff, manual terminal
+  reconciliation, BP-01 Panel approval limits, and the Payment Method setup screen.
+- PR #44 (`c566530`) — HC-01: at most three held consultations per doctor, with a 30-minute held warning.
+- PR #43 (`a08d099`) — authorised Insights reports and Unified Catalogue Setup.
+
+Phase 3B — Completed Patient v1 and Phase 3A-Core Dispensary/minimal inventory are also merged. Quick Treatment
+Sets remain deferred. Insights behavior, metric definitions, and limitations are documented in
+[docs/INSIGHTS.md](docs/INSIGHTS.md). See [docs/BASELINE.md](docs/BASELINE.md) for authoritative delivery status,
+owner UAT, and remaining release gates. No production approval is implied.
 
 ## Vision
 
@@ -49,11 +53,9 @@ Yezza remains outside this delivery. No replacement, integration, or migration f
 
 The order below is directional and requires a separately approved scope for each phase:
 
-1. Keep the first-Director bootstrap path governed without weakening staff-authority rules; verify the new
-   permissioned Payment Method setup screen and complete its final-candidate release gates.
-2. Complete remaining release evidence for Insights, catalogue, and Payment Method changes. The owner walkthrough
-   with non-zero synthetic transactions and the PostgreSQL 18.6 run for the current worktree are complete; final
-   independent review remains.
+1. Keep the first-Director bootstrap path governed without weakening staff-authority rules.
+2. Close the remaining feature-level owner UAT recorded in `docs/BASELINE.md` (QR status Phase B browser GPS
+   flow, Payment Method setup screen; BP-01 deferred at the owner's direction).
 3. Complete production deployment, recovery, access review, staff-governance hardening, security/privacy/PDPA
    and legal gates before any go-live decision.
 4. Design and separately authorise Appointments and any later Queue refinements.
