@@ -126,6 +126,22 @@ test('secure status surface exposes queue state without internal identifiers', (
     assert.ok(!status.includes('localStorage'));
 });
 
+test('status page card cannot be widened by a truncated branch address on a phone', () => {
+    const main = status.match(/<main\s+class="([^"]+)"/)[1].split(/\s+/);
+    assert.ok(main.includes('grid'));
+    assert.ok(
+        main.includes('grid-cols-1'),
+        'the centred grid needs a shrinkable minmax(0, 1fr) column',
+    );
+    const card = status
+        .split('<main')[1]
+        .match(/<section\s+class="([^"]+)"/)[1]
+        .split(/\s+/);
+    assert.ok(card.includes('w-full'));
+    assert.ok(card.includes('min-w-0'));
+    assert.match(status, /class="truncate text-xs text-zinc-500"/);
+});
+
 test('staff review makes conversion explicit and keeps duplicate candidates internal', () => {
     assert.ok(review.includes('Duplicate resolution'));
     assert.ok(review.includes('duplicateCandidates'));

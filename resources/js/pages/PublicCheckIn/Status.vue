@@ -198,9 +198,11 @@ onBeforeUnmount(() => {
     <Head title="Status pendaftaran"
         ><meta name="referrer" content="no-referrer"
     /></Head>
-    <main class="mx-auto grid min-h-svh max-w-xl place-items-center px-4 py-8">
+    <main
+        class="mx-auto grid min-h-svh max-w-xl grid-cols-1 place-items-center px-4 py-8"
+    >
         <section
-            class="w-full space-y-6 rounded-3xl border bg-white p-6 shadow-xl sm:p-9 dark:bg-zinc-900"
+            class="w-full min-w-0 space-y-6 rounded-3xl border bg-white p-6 shadow-xl sm:p-9 dark:bg-zinc-900"
             aria-live="polite"
         >
             <header class="flex items-center gap-3">
