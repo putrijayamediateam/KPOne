@@ -6,6 +6,8 @@ use App\Domain\Audit\AuditRecorder;
 use App\Domain\Organisation\Models\PublicCheckInLink;
 use App\Domain\Patient\Models\PublicIntakeSession;
 use App\Domain\Patient\Models\PublicPatientIntake;
+use App\Domain\Queue\Models\QueueEntry;
+use App\Domain\Queue\Services\PublicQueueInsightService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -194,7 +196,7 @@ class PublicPatientIntakeService
         }, 3);
     }
 
-    /** @return array{state: string, message: string, branch: string, queueNumber: string|null, queueState: string|null, firstName: string|null} */
+    /** @return array{state: string, message: string, branch: string, queueNumber: string|null, queueState: string|null, firstName: string|null, ahead: int|null, waitRange: array{minMinutes: int, maxMinutes: int}|null, branches: list<array{name: string, address: string|null, mapUrl: string|null, latitude: float|null, longitude: float|null, waiting: int, current: bool}>} */
     public function status(PublicIntakeSession $boundSession): array
     {
         $this->ensureEnabled();
@@ -205,7 +207,7 @@ class PublicPatientIntakeService
             ->firstOrFail();
         $intake = PublicPatientIntake::query()
             ->where('public_intake_session_id', $session->id)
-            ->with('queueEntry:id,queue_number,status')
+            ->with('queueEntry:id,branch_id,operational_date,queue_number,status,queued_at')
             ->firstOrFail();
 
         $state = $intake->status;
@@ -213,6 +215,11 @@ class PublicPatientIntakeService
             && ! $intake->expires_at->isFuture()) {
             $state = PublicPatientIntake::STATUS_EXPIRED;
         }
+
+        $waitingEntry = $state === PublicPatientIntake::STATUS_ACCEPTED && $intake->queueEntry?->status === QueueEntry::STATUS_WAITING
+            ? $intake->queueEntry : null;
+        $insight = app(PublicQueueInsightService::class);
+        $ahead = $waitingEntry ? $insight->patientsAhead($waitingEntry) : null;
 
         return [
             'state' => $state,
@@ -229,6 +236,9 @@ class PublicPatientIntakeService
             'queueState' => $state === PublicPatientIntake::STATUS_ACCEPTED && $intake->queueEntry
                 ? (string) $intake->queueEntry->status : null,
             'firstName' => $state === PublicPatientIntake::STATUS_ACCEPTED ? $this->firstName($intake) : null,
+            'ahead' => $ahead,
+            'waitRange' => $waitingEntry ? $insight->waitRange($waitingEntry->branch_id, (int) $ahead) : null,
+            'branches' => $insight->branches($session->branch->organisation_id, $session->branch_id),
         ];
     }
 

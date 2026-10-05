@@ -18,9 +18,25 @@ const props = defineProps<{
         queueNumber: string | null;
         queueState: string | null;
         firstName: string | null;
+        ahead: number | null;
+        waitRange: { minMinutes: number; maxMinutes: number } | null;
+        branches: {
+            name: string;
+            address: string | null;
+            mapUrl: string | null;
+            latitude: number | null;
+            longitude: number | null;
+            waiting: number;
+            current: boolean;
+        }[];
     };
 }>();
+type Coordinates = { latitude: number; longitude: number };
+type Branch = (typeof props.status.branches)[number];
 const refreshing = ref(false);
+const patientLocation = ref<Coordinates | null>(null);
+const locationMessage = ref('');
+const locating = ref(false);
 let timer: number | undefined;
 const called = computed(() => props.status.queueState === 'serving');
 const terminal = computed(
@@ -43,6 +59,88 @@ const currentStep = computed(() => {
 });
 const soundOn = ref(false);
 let audio: AudioContext | undefined;
+const distanceKm = (from: Coordinates, to: Coordinates): number => {
+    const radians = (degrees: number) => (degrees * Math.PI) / 180;
+    const latitudeDelta = radians(to.latitude - from.latitude);
+    const longitudeDelta = radians(to.longitude - from.longitude);
+    const a =
+        Math.sin(latitudeDelta / 2) ** 2 +
+        Math.cos(radians(from.latitude)) *
+            Math.cos(radians(to.latitude)) *
+            Math.sin(longitudeDelta / 2) ** 2;
+
+    return 6371 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+};
+const branchDistance = (branch: Branch): number | null => {
+    if (
+        !patientLocation.value ||
+        branch.latitude === null ||
+        branch.longitude === null
+    ) {
+        return null;
+    }
+
+    return distanceKm(patientLocation.value, {
+        latitude: branch.latitude,
+        longitude: branch.longitude,
+    });
+};
+const sortedBranches = computed(() => {
+    const branches = props.status.branches.map((branch) => ({
+        ...branch,
+        distance: branchDistance(branch),
+    }));
+
+    if (!patientLocation.value) {
+        return branches;
+    }
+
+    return branches.sort(
+        (left, right) =>
+            (left.distance ?? Number.POSITIVE_INFINITY) -
+            (right.distance ?? Number.POSITIVE_INFINITY),
+    );
+});
+const nearestBranch = computed(() => {
+    const nearest = sortedBranches.value.find(
+        (branch) => branch.distance !== null,
+    );
+
+    return nearest?.name ?? null;
+});
+const findNearbyBranches = () => {
+    locationMessage.value = '';
+
+    if (!navigator.geolocation) {
+        locationMessage.value =
+            'Pelayar ini tidak menyokong perkongsian lokasi.';
+
+        return;
+    }
+
+    locating.value = true;
+    navigator.geolocation.getCurrentPosition(
+        ({ coords }) => {
+            patientLocation.value = {
+                latitude: coords.latitude,
+                longitude: coords.longitude,
+            };
+            locationMessage.value =
+                'Jarak ialah anggaran garis lurus, bukan jarak perjalanan.';
+            locating.value = false;
+        },
+        (error) => {
+            locationMessage.value =
+                error.code === error.PERMISSION_DENIED
+                    ? 'Kebenaran lokasi tidak diberikan. Anda masih boleh melihat cawangan dan peta.'
+                    : 'Lokasi tidak dapat diperoleh. Sila cuba lagi atau buka peta.';
+            locating.value = false;
+        },
+        { enableHighAccuracy: false, maximumAge: 300_000, timeout: 10_000 },
+    );
+};
+const formatDistance = (distance: number | null) =>
+    distance === null ? null : `${distance.toFixed(1)} km`;
 const chime = () => {
     if (!audio) {
         return;
@@ -169,6 +267,33 @@ onBeforeUnmount(() => {
                 </p>
             </div>
             <div
+                v-if="status.ahead !== null"
+                class="rounded-2xl bg-zinc-50 p-4 text-center dark:bg-zinc-800"
+            >
+                <p class="text-sm text-zinc-600 dark:text-zinc-300">
+                    <template v-if="status.ahead > 0"
+                        >Pesakit di hadapan anda:
+                        <strong>{{ status.ahead }}</strong></template
+                    ><template v-else>Anda seterusnya dalam giliran.</template>
+                </p>
+                <p
+                    v-if="status.waitRange"
+                    class="mt-1 text-sm text-zinc-600 dark:text-zinc-300"
+                >
+                    Anggaran masa menunggu: kira-kira
+                    <strong
+                        >{{ status.waitRange.minMinutes }}–{{
+                            status.waitRange.maxMinutes
+                        }}
+                        minit</strong
+                    >
+                    <span class="block text-xs text-zinc-500"
+                        >Anggaran berdasarkan purata terkini, bukan
+                        jaminan.</span
+                    >
+                </p>
+            </div>
+            <div
                 v-if="called"
                 class="flex items-center gap-3 rounded-2xl bg-emerald-600 p-4 text-white"
                 role="alert"
@@ -226,6 +351,94 @@ onBeforeUnmount(() => {
                     :class="{ 'animate-spin': refreshing }"
                 />Semak status
             </button>
+            <section
+                v-if="status.branches.length > 1"
+                class="space-y-2"
+                aria-label="Cawangan lain"
+            >
+                <h2 class="text-sm font-semibold">Cawangan Klinik Putrijaya</h2>
+                <button
+                    v-if="!patientLocation"
+                    type="button"
+                    class="flex min-h-11 w-full items-center justify-center rounded-xl border border-pink-300 font-semibold text-pink-800"
+                    :disabled="locating"
+                    @click="findNearbyBranches"
+                >
+                    {{
+                        locating
+                            ? 'Mendapatkan lokasi…'
+                            : 'Cari cawangan terdekat'
+                    }}
+                </button>
+                <p
+                    v-if="locationMessage"
+                    class="text-xs text-zinc-500"
+                    role="status"
+                >
+                    {{ locationMessage }}
+                </p>
+                <p
+                    v-if="patientLocation && nearestBranch"
+                    class="text-sm font-medium text-emerald-700"
+                >
+                    Cawangan paling dekat: {{ nearestBranch }}
+                </p>
+                <ul class="space-y-2">
+                    <li
+                        v-for="branch in sortedBranches"
+                        :key="branch.name"
+                        class="flex items-center justify-between gap-3 rounded-xl border p-3 text-sm"
+                        :class="
+                            branch.current
+                                ? 'border-pink-300 bg-pink-50 dark:bg-pink-950/30'
+                                : ''
+                        "
+                    >
+                        <div class="min-w-0">
+                            <p class="font-medium">
+                                {{ branch.name
+                                }}<span
+                                    v-if="branch.current"
+                                    class="ml-2 text-xs text-pink-700"
+                                    >Cawangan anda</span
+                                >
+                            </p>
+                            <p
+                                v-if="branch.distance !== null"
+                                class="text-xs font-medium text-emerald-700"
+                            >
+                                Kira-kira
+                                {{ formatDistance(branch.distance) }}
+                                (garis lurus)
+                            </p>
+                            <p
+                                v-if="branch.address"
+                                class="truncate text-xs text-zinc-500"
+                            >
+                                {{ branch.address }}
+                            </p>
+                            <a
+                                v-if="branch.mapUrl"
+                                :href="branch.mapUrl"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                class="text-xs font-medium text-pink-700 underline"
+                                >Buka peta</a
+                            >
+                        </div>
+                        <p class="shrink-0 text-right">
+                            <strong>{{ branch.waiting }}</strong>
+                            <span class="block text-xs text-zinc-500"
+                                >menunggu</span
+                            >
+                        </p>
+                    </li>
+                </ul>
+            </section>
+            <p v-if="patientLocation" class="text-center text-xs text-zinc-500">
+                Lokasi anda hanya digunakan pada peranti ini untuk mengira jarak
+                dan tidak dihantar atau disimpan.
+            </p>
             <p class="text-center text-xs text-zinc-500">
                 Halaman ini tidak menyimpan maklumat anda dalam storan pelayar.
             </p>
