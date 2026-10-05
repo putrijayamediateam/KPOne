@@ -62,7 +62,10 @@ feature.
 
 The owner completed a browser walkthrough on 2026-10-02 against a dedicated PostgreSQL 18.6 acceptance database,
 using one completed synthetic visit and non-zero data across the six reports. All report tabs and the branch/date
-filters were reviewed, and the owner confirmed the results. The current worktree's full suite has also passed on
-PostgreSQL 18.6 (751 tests, 749 passed, 2 expected Fortify skips, 0 failures, 8,849 assertions). Final independent
-review remains before release consideration. Production use also requires the project's security, privacy/PDPA,
-legal, recovery, and access-governance gates.
+filters were reviewed, and the owner confirmed the results. The exact merged candidate `f1dac42` passed
+PostgreSQL 18.6 (743 tests, 741 passed, 2 expected Fortify skips, 0 failures, 8,747 assertions), fresh
+migration/seeding, and post-merge CI after PR #43. Production use also requires the project's security,
+privacy/PDPA, legal, recovery, and access-governance gates.
+
+The aggregate queue figures on the public QR status page (PR #47) are a separate patient-facing feature, not an
+Insights report; they are recorded in [BASELINE.md](./BASELINE.md).
