@@ -39,6 +39,89 @@ for testing. A local SQLite skip is not PostgreSQL release evidence.
 
 The repository defaults to PostgreSQL. The default local PHPUnit configuration overrides the connection to an in-memory SQLite database to keep the routine test workflow fast and isolated; SQLite is not a supported deployed database. GitHub Actions deliberately supplies `DB_CONNECTION=pgsql` and an isolated PostgreSQL 18 service database, so the complete suite also covers production-database semantics.
 
+## First Director bootstrap
+
+On a freshly migrated database with reference data and no active Director, run:
+
+```bash
+php artisan kpone:bootstrap-director
+```
+
+This command requires an interactive terminal and creates the first Director through `DirectorBootstrapService`.
+It asks for the account identity, staff number, primary branch, and sign-in method. Google-only sign-in requires
+the Director to use a verified Google email matching the account email. Passwords, when selected, are entered
+twice through hidden prompts, hashed immediately by the service, and never accepted as command arguments.
+The command refuses to run non-interactively or when an active Director already exists; it does not replace
+normal staff provisioning, role administration, or branch-assignment workflows.
+
+Use this only as an explicitly controlled first-install operation. Never run destructive database preparation
+against a shared, served, or production database.
+
+## Fresh-database UI acceptance
+
+Run this acceptance path only against a disposable local or test database containing synthetic data. Confirm the
+database host, port, and name before starting the application; do not point this procedure at the served or a
+production database.
+
+1. Create the empty database, then run `php artisan migrate:fresh --seed`.
+2. Run `php artisan kpone:bootstrap-director` in a terminal and choose an appropriate sign-in method.
+3. Sign in as the Director and provision synthetic `.test` staff accounts needed for the walk: a `ca_supervisor`,
+   a `ca`, and a `resident_doctor`. Confirm each has the intended primary branch.
+4. Sign in as the `ca_supervisor` and create a synthetic Medicine and Clinical Service with Self-pay tariffs;
+   set the Consultation tariff and add a synthetic inventory location, batch, and opening stock for the Medicine.
+5. Walk one synthetic Self-pay Visit through registration, queue, consultation, treatment plan, dispensing,
+   invoice, payment, and completion on the same local calendar day.
+6. Review Today and all five range reports (Sales, In-clinic, Payments, Inventory, and Patients) with the
+   resulting non-zero aggregate data. For range reports, select a range that includes the Visit date rather than
+   relying on the default Yesterday range. Check the branch controls, supported filters, ranking search, and empty
+   or unsupported-value disclosures as applicable. Reports must not reveal patient-identifiable or patient-level
+   financial data.
+7. Confirm the visit appears in the aggregate reports and the invoice uses the catalogue tariffs set during the
+   walk. Record any discrepancies for correction; do not use real patient or staff data.
+
+This walk is acceptance evidence for a synthetic local setup only. It does not grant production approval.
+
+## QR intake coverage verification
+
+Run this check only with a synthetic QR intake and Panel on a disposable local or test database. The public
+check-in form lists active Panels from the organisation linked to the QR session. A patient's coverage choice and
+optional member reference remain patient-supplied inside the encrypted Pending Intake; submitting the form must
+not create a Patient, Visit, or Queue Entry.
+
+In the authorised CA review page, confirm the interface is in English and that patient-reported coverage,
+verified coverage, any verified member reference, and the coverage-confirmation checkbox are grouped under
+**Patient information** only; **Visit and Queue** must not repeat those details. Inspect or correct the
+patient-reported fields, then separately select the verified coverage and canonical Panel, enter a member
+reference only if it has been verified, and tick the confirmation checkbox. Acceptance without that
+confirmation must fail. The Visit must contain only the values selected in the CA verification form, not values
+copied from the encrypted intake. Use synthetic Panel names and member references; this workflow is not
+production approval.
+
+## Payment Method setup
+
+Fresh databases intentionally start without Payment Methods. A Director or Finance Officer with
+`payment_methods.manage.organisation` can open **Payment Methods** from Main Menu → Finance, create an
+organisation-level method, and explicitly publish it before staff can select it during checkout. Creating a
+method does not activate it. Method codes are immutable and retained; deactivate an obsolete method instead of
+deleting it. Use synthetic method names and codes in local/test environments; never enter credentials, account
+numbers, or real payment details.
+
+## Manual terminal close
+
+The **Terminal Reconciliation** screen is a manual, branch-scoped closing record for Director, Finance Officer,
+CA, and CA Supervisor. Staff continue to record each real customer payment against its invoice in KPOne and
+take payment on the terminal separately. At closing, use the terminal/acquirer summary to enter approved sales
+count and gross total, plus the report's refund and void summaries, for the branch, payment method, and
+business-local date.
+
+KPOne compares terminal approved sales with posted KPOne receipts for that same branch, payment method, and
+business day. A count or amount difference requires an explanation. A recorded close is immutable; corrections
+and receipts added after a close are captured by creating a new revision, retaining the earlier evidence. The
+close record never creates, edits, reverses, or refunds a KPOne payment. Terminal refunds and voids are stored as
+reported figures only, are not subtracted from approved sales, and do not establish acquirer/bank settlement.
+The screen does not connect to the terminal, retrieve receipts, calculate fees, or confirm the bank payout.
+Terminal integration and processor refund handling require separate provider, API, security, and owner approval.
+
 Phase 1A adds no patient development seeder. Local and automated Patient Master records must remain obviously synthetic; never copy production patient data into local, test, screenshots, fixtures, backups, or debugging tools. The PostgreSQL Patient Master regression uses separate PHP processes to prove counter initialization/allocation and identifier unique-index contention.
 
 Phase 1B likewise adds no Panel, Patient, or Visit seeder. `PanelFactory`, `PatientFactory`, and `VisitFactory` are test-only synthetic fixtures. The separate-process PostgreSQL Visit regression covers idempotency, Visit-counter allocation, repeat-attendance serialization, cross-branch attendance, and update/cancel contention. SQLite remains the routine workflow and explicitly skips PostgreSQL-only process tests.
@@ -155,7 +238,8 @@ from their arrow button, Escape, or when focus leaves the picker, so an unused d
 other fields. Both catalogue lists show the current Self-pay and default Panel tariffs only to staff with pricing
 reference access; Panel-specific overrides remain in Edit. Medicine opening-stock rows can be removed before
 saving, and the server rejects duplicate locations in one submission so an accidental extra row cannot add the
-same opening balance twice.
+same opening balance twice. An opening balance can also be recorded only once for each location, SKU, and batch
+across submissions; use a governed transfer or manual adjustment to move or correct stock afterward.
 
 The Clinical Service Catalogue screen also contains a Consultation tariff section. It maintains the dedicated
 `consultation` Charge Definition and versioned Self-pay, default Panel, and Panel-specific prices consumed by

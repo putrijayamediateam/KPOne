@@ -124,6 +124,12 @@ const openingBalanceForm = useForm({
     batch_public_id: '',
     quantity: '',
 });
+const openingBalanceError = computed(
+    () =>
+        Object.entries(openingBalanceForm.errors).find(
+            ([key]) => key === 'opening_balance',
+        )?.[1],
+);
 watch(
     () => openingBalanceForm.sku_public_id,
     (skuPublicId) => {
@@ -284,6 +290,7 @@ const submitMapping = () => {
                     :disabled="openingBalanceForm.processing"
                     >Record Opening Balance</Button
                 >
+                <InputError :message="openingBalanceError" />
             </div>
         </form>
 

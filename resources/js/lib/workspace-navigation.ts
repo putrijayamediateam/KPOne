@@ -5,6 +5,9 @@ export type WorkspaceNavigationCapabilities = {
     inventory: boolean;
     medicineCatalogue: boolean;
     clinicalServiceCatalogue: boolean;
+    paymentMethods: boolean;
+    billingApprovalLimits: boolean;
+    paymentReconciliations: boolean;
     patientRecords: boolean;
     panelWork: boolean;
     financeWork: boolean;
@@ -75,6 +78,30 @@ const destinations: Record<
             'Create and manage clinical services available for ordering.',
         href: '/clinical-services',
         icon: 'clipboard',
+    },
+    paymentMethods: {
+        key: 'paymentMethods',
+        label: 'Payment Methods',
+        description:
+            'Configure organisation payment methods available at checkout.',
+        href: '/payment-methods',
+        icon: 'file',
+    },
+    billingApprovalLimits: {
+        key: 'billingApprovalLimits',
+        label: 'Billing Approval Limits',
+        description:
+            'Set branch-specific approval limits for Panel and Pay later.',
+        href: '/billing-approval-limits',
+        icon: 'file',
+    },
+    paymentReconciliations: {
+        key: 'paymentReconciliations',
+        label: 'Terminal Reconciliation',
+        description:
+            'Compare the terminal closing summary with recorded KPOne payments.',
+        href: '/payment-reconciliations',
+        icon: 'file',
     },
     patientRecords: {
         key: 'patientRecords',
@@ -187,7 +214,12 @@ export const mainMenuGroups = (
         },
         {
             label: 'Finance',
-            destinations: available(capabilities, ['financeWork']),
+            destinations: available(capabilities, [
+                'financeWork',
+                'paymentMethods',
+                'billingApprovalLimits',
+                'paymentReconciliations',
+            ]),
         },
         {
             label: 'Administration',
@@ -217,11 +249,15 @@ export const headerDestinations = (
                   'patientRecords',
                   'panelWork',
                   'financeWork',
+                  'paymentMethods',
+                  'billingApprovalLimits',
               ]
             : [
                   'insights',
                   'panelWork',
                   'financeWork',
+                  'paymentMethods',
+                  'billingApprovalLimits',
                   'staff',
                   'branches',
                   'accessControl',

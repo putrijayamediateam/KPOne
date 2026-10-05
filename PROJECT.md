@@ -1,13 +1,17 @@
 # KPOne project
 
-Latest merged delivery: Phase 3B — Completed Patient v1. Phase 3A-Core Dispensary and minimal inventory are also
-merged. Quick Treatment Sets remain deferred.
+Latest merged delivery: PR #43 — authorised Insights reports and Unified Catalogue Setup, merged as `a08d099`.
+Phase 3B — Completed Patient v1 and Phase 3A-Core Dispensary/minimal inventory are also merged. Quick Treatment
+Sets remain deferred.
 
-Current in-progress worktree: separately authorised read-only Insights reports (Today, Sales, In-clinic,
-Payments, Inventory, and Patients), including a shared branch selector, date presets/custom calendar, and
-ranking search. This work is not yet merged. PostgreSQL 18 validation and human UAT remain outstanding; it is
-not production-approved. See [docs/BASELINE.md](docs/BASELINE.md) for the authoritative delivery state and
-[docs/INSIGHTS.md](docs/INSIGHTS.md) for report behavior and limitations.
+Current in-progress worktree: BS-02's controlled interactive Artisan invocation for the first-Director bootstrap
+service and the fresh-database UI acceptance walk are complete. The walk used one synthetic visit and verified
+non-zero data across all six Insights reports. Payment Method setup is now available through an audited,
+permissioned administration screen. The current worktree passed the full PostgreSQL 18.6 suite (751 tests, 749
+passed, 2 expected skips); final independent review of the added Payment Method screen remains. Insights behavior,
+metric definitions, and limitations are documented in
+[docs/INSIGHTS.md](docs/INSIGHTS.md). See [docs/BASELINE.md](docs/BASELINE.md) for authoritative delivery status
+and remaining release gates. No production approval is implied.
 
 ## Vision
 
@@ -45,10 +49,11 @@ Yezza remains outside this delivery. No replacement, integration, or migration f
 
 The order below is directional and requires a separately approved scope for each phase:
 
-1. Define a controlled operator-facing invocation for the merged first-Director bootstrap service without
-   weakening staff-authority rules, then complete the outstanding fresh-database UI acceptance path.
-2. Complete release evidence for current Insights work: independent review, browser smoke checks, and formal
-   owner UAT with synthetic transactions.
+1. Keep the first-Director bootstrap path governed without weakening staff-authority rules; verify the new
+   permissioned Payment Method setup screen and complete its final-candidate release gates.
+2. Complete remaining release evidence for Insights, catalogue, and Payment Method changes. The owner walkthrough
+   with non-zero synthetic transactions and the PostgreSQL 18.6 run for the current worktree are complete; final
+   independent review remains.
 3. Complete production deployment, recovery, access review, staff-governance hardening, security/privacy/PDPA
    and legal gates before any go-live decision.
 4. Design and separately authorise Appointments and any later Queue refinements.

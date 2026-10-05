@@ -39,7 +39,7 @@ const isActive = (href: string) => isWorkspaceDestinationActive(page.url, href);
 <template>
     <header class="sticky top-0 z-40 border-b bg-background/95 backdrop-blur">
         <div
-            class="mx-auto flex h-13 w-full max-w-[1600px] items-center gap-3 px-3 md:px-5 xl:grid xl:grid-cols-[minmax(180px,1fr)_auto_minmax(180px,1fr)]"
+            class="mx-auto flex h-13 w-full max-w-[1600px] items-center gap-3 px-3 md:px-5"
         >
             <Sheet>
                 <SheetTrigger as-child>
@@ -97,28 +97,28 @@ const isActive = (href: string) => isWorkspaceDestinationActive(page.url, href);
             </Link>
 
             <nav
-                class="hidden min-w-0 items-stretch justify-self-center xl:flex"
+                class="hidden min-w-0 flex-1 overflow-x-auto xl:flex"
                 aria-label="Desktop primary navigation"
             >
-                <Link
-                    v-for="item in items"
-                    :key="item.href"
-                    :href="item.href"
-                    class="relative flex h-13 cursor-pointer items-center px-2.5 text-[13px] font-normal text-muted-foreground transition-colors hover:bg-muted/35 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none focus-visible:ring-inset xl:px-3.5"
-                    :aria-current="isActive(item.href) ? 'page' : undefined"
-                    :class="
-                        isActive(item.href)
-                            ? 'font-medium text-foreground after:absolute after:inset-x-3 after:bottom-0 after:h-0.5 after:bg-pink-600'
-                            : ''
-                    "
-                >
-                    {{ item.label }}
-                </Link>
+                <div class="flex w-max min-w-full justify-center">
+                    <Link
+                        v-for="item in items"
+                        :key="item.href"
+                        :href="item.href"
+                        class="relative flex h-13 shrink-0 cursor-pointer items-center px-1.5 text-[13px] font-normal text-muted-foreground transition-colors hover:bg-muted/35 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none focus-visible:ring-inset"
+                        :aria-current="isActive(item.href) ? 'page' : undefined"
+                        :class="
+                            isActive(item.href)
+                                ? 'font-medium text-foreground after:absolute after:inset-x-3 after:bottom-0 after:h-0.5 after:bg-pink-600'
+                                : ''
+                        "
+                    >
+                        {{ item.label }}
+                    </Link>
+                </div>
             </nav>
 
-            <div
-                class="ml-auto flex shrink-0 items-center gap-2 xl:ml-0 xl:justify-self-end"
-            >
+            <div class="ml-auto flex shrink-0 items-center gap-2">
                 <Button
                     v-if="context === 'admin' && workspace?.canEnterClinic"
                     as-child

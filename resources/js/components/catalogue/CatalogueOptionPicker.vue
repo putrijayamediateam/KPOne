@@ -6,6 +6,8 @@ import { JsonRequestError, requestJson } from '@/lib/json-client';
 
 type Option = { value: string; label: string };
 
+const OPTION_SEARCH_DEBOUNCE_MS = 400;
+
 const props = withDefaults(
     defineProps<{
         modelValue: string;
@@ -128,7 +130,7 @@ watch(query, () => {
 
     open.value = false;
     activeIndex.value = -1;
-    timer = setTimeout(() => void search(), 150);
+    timer = setTimeout(() => void search(), OPTION_SEARCH_DEBOUNCE_MS);
 });
 
 onBeforeUnmount(() => {
@@ -154,6 +156,11 @@ const toggleOptions = () => {
         activeIndex.value = -1;
 
         return;
+    }
+
+    if (timer) {
+        clearTimeout(timer);
+        timer = undefined;
     }
 
     void search();
@@ -248,7 +255,6 @@ const onKeydown = (event: KeyboardEvent) => {
                 :disabled="disabled"
                 autocomplete="off"
                 class="h-9 w-full rounded-md border border-input bg-background px-3 pr-10 text-sm shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
-                @focus="void search()"
                 @blur="closeOptions"
                 @keydown="onKeydown"
             />

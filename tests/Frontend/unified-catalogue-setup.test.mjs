@@ -136,6 +136,21 @@ test('Panel tariff and descriptive dropdowns persist new options through permiss
     );
 });
 
+test('Catalogue option lookup avoids focus requests and debounces text searches', () => {
+    const optionPicker = read(
+        'resources/js/components/catalogue/CatalogueOptionPicker.vue',
+    );
+
+    assert.match(optionPicker, /const OPTION_SEARCH_DEBOUNCE_MS = 400/);
+    assert.match(optionPicker, /OPTION_SEARCH_DEBOUNCE_MS/);
+    assert.doesNotMatch(optionPicker, /@focus="void search\(\)"/);
+    assert.match(
+        optionPicker,
+        /const toggleOptions = \(\) => \{[\s\S]*?clearTimeout\(timer\);[\s\S]*?void search\(\);/,
+        'Opening the option list must cancel a pending debounced request.',
+    );
+});
+
 test('Purchase orders and receipt submissions carry estimated and actual unit costs', () => {
     const source = read(
         'resources/js/components/inventory/InventoryOperationsPanel.vue',

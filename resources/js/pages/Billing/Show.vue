@@ -653,7 +653,7 @@ const reverse = (receipt: Receipt) =>
                             size="sm"
                             :disabled="busy"
                             @click="approve(kind, billing[kind]!)"
-                            >Independently approve</Button
+                            >Approve</Button
                         ></template
                     >
                 </div>

@@ -129,9 +129,56 @@ test('secure status surface exposes queue state without internal identifiers', (
 test('staff review makes conversion explicit and keeps duplicate candidates internal', () => {
     assert.ok(review.includes('Duplicate resolution'));
     assert.ok(review.includes('duplicateCandidates'));
-    assert.match(review, /Sahkan &amp;\s+Masukkan Queue/);
-    assert.match(review, /Patient, creates Visit\s+and Queue Entry/);
+    assert.match(review, /Accept and add to\s+Queue/);
+    assert.match(review, /creates the\s+Visit and Queue Entry/);
     assert.ok(review.includes('Correction required'));
+});
+
+test('QR coverage stays patient-reported until the CA separately confirms it', () => {
+    assert.ok(
+        publicForm.includes(
+            'panelOptions: Array<{ id: number; name: string }>',
+        ),
+    );
+    assert.ok(publicForm.includes('Maklumat ini diberikan oleh anda'));
+    assert.ok(publicForm.includes('coverage_member_reference'));
+    const patientDetailsStep = publicForm
+        .split('<section v-if="step === 2"')[1]
+        .split('<section v-if="step === 3"')[0];
+    const guardianStep = publicForm
+        .split('<section v-if="step === 3"')[1]
+        .split('<section v-if="step === 4"')[0];
+    const coverageStep = publicForm
+        .split('<section v-if="step === 4"')[1]
+        .split('<form\n                    v-if="step === 5"')[0];
+    assert.ok(patientDetailsStep);
+    assert.ok(guardianStep);
+    assert.ok(coverageStep);
+    assert.doesNotMatch(patientDetailsStep, /form\.coverage_type/);
+    assert.doesNotMatch(guardianStep, /form\.coverage_type/);
+    assert.match(coverageStep, /:disabled=/);
+    assert.match(coverageStep, /!form\.coverage_type/);
+    const patientInformation = review
+        .split('Patient information')[1]
+        .split('Duplicate resolution')[0];
+    const visitAndQueue = review
+        .split('Visit and Queue')[1]
+        .split('Controlled alternatives')[0];
+    assert.ok(patientInformation);
+    assert.ok(visitAndQueue);
+    assert.ok(patientInformation.includes('Patient-reported coverage'));
+    assert.ok(patientInformation.includes('CA coverage verification'));
+    assert.ok(patientInformation.includes('coverage_verified'));
+    assert.doesNotMatch(visitAndQueue, /coverage|member reference|Panel/i);
+    assert.doesNotMatch(
+        review,
+        /Maklumat|Tujuan lawatan|Sahkan &amp;|Vaksin|Lain-lain/,
+    );
+    assert.ok(review.includes('Select after verification'));
+    assert.ok(review.includes('Verified member reference (if available)'));
+    assert.ok(review.includes('I confirmed the coverage above'));
+    assert.ok(review.includes('acceptance.errors.coverage_verified'));
+    assert.match(review, /coverage_type:\s*''/);
 });
 
 test('branch link management renders QR locally and reports expiry', () => {

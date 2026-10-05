@@ -191,6 +191,11 @@ test('Opening Balance offers Batch as a picker scoped to the selected SKU, not f
         source,
         /watch\(\s*\n?\s*\(\) => openingBalanceForm\.sku_public_id,[\s\S]{0,120}openingBalanceForm\.batch_public_id = '';[\s\S]{0,80}loadSkuBatches\(skuPublicId\)/,
     );
+    assert.ok(source.includes("key === 'opening_balance'"));
+    assert.ok(
+        source.includes('<InputError :message="openingBalanceError"'),
+        'Opening Balance business-rule errors must be visible in the form.',
+    );
     // A superseded response must not overwrite a newer SKU's batches.
     assert.match(source, /request === batchesRequest/);
     assert.doesNotMatch(

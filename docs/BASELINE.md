@@ -130,17 +130,17 @@ Still open:
 3. **Known operational defects, not fixed:** hold/resume lock-order inversion (PostgreSQL retries it with
    `DB::transaction(..., 3)`); single-branch "doctor busy" check; `resident_doctor` hard-coded in Hold; and
    minors must supply their own mobile number. Assess and authorise each separately before changing behaviour.
-4. **Feature-specific owner UAT:** terminal reconciliation UAT remains outstanding. BP-01 owner UAT is deferred
-   at the owner's direction after agent-run synthetic UAT; HC-01 owner UAT is also deferred at the owner's
+4. **Feature-specific owner UAT:** terminal reconciliation owner UAT passed on 2026-10-05 (synthetic data, local acceptance database). BP-01 owner UAT is deferred
+   at the owner's direction after agent-run synthetic UAT; HC-01 owner UAT passed on 2026-10-05 (fourth hold refused); the earlier deferral note is retained for history: it was deferred at the owner's
    direction. These deferrals are not production sign-offs.
 5. Housekeeping: `PREVIEW_README.txt` release marker still says D3 — outside this repository and out of scope.
    `AGENTS.md` remains the governing authorisation boundary; this file is the authoritative delivery status.
 
 ### Recommended delivery order
 
-1. Complete review and release coordination for the unmerged BP-01 and HC-01 branches. Keep them separate until
-   an approved integration plan says otherwise.
-2. Complete owner UAT for terminal reconciliation. BP-01 and HC-01 owner UAT may remain deferred as directed,
+1. HC-01 is merged (PR #44). Complete release coordination for the BP-01 branch (PR #45): independent review found no
+   actionable issue; PostgreSQL 18.6 validation of the merged SHA and CI remain.
+2. Terminal reconciliation and HC-01 owner UAT are done. BP-01 owner UAT may remain deferred as directed,
    but the deferral is not acceptance evidence.
 3. Resolve the reported operational defects above under separately approved scopes.
 4. Keep production deployment last, after all security, privacy/legal, access, recovery, trusted-proxy,
