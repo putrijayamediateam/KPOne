@@ -13,7 +13,7 @@ class PublicQueueInsightService
 
     private const MIN_SAMPLES = 5;
 
-    /** @return list<array{name: string, address: string|null, mapUrl: string|null, waiting: int, current: bool}> */
+    /** @return list<array{name: string, address: string|null, mapUrl: string|null, latitude: float|null, longitude: float|null, waiting: int, current: bool}> */
     public function branches(int $organisationId, int $currentBranchId): array
     {
         $waiting = QueueEntry::query()
@@ -27,11 +27,13 @@ class PublicQueueInsightService
             ->where('organisation_id', $organisationId)
             ->where('is_active', true)
             ->orderBy('name')
-            ->get(['id', 'name', 'public_address', 'public_map_url'])
+            ->get(['id', 'name', 'public_address', 'public_map_url', 'public_latitude', 'public_longitude'])
             ->map(fn (Branch $branch): array => [
                 'name' => $branch->name,
                 'address' => $branch->public_address,
                 'mapUrl' => $branch->public_map_url,
+                'latitude' => $branch->public_latitude === null ? null : (float) $branch->public_latitude,
+                'longitude' => $branch->public_longitude === null ? null : (float) $branch->public_longitude,
                 'waiting' => (int) ($waiting[$branch->id] ?? 0),
                 'current' => $branch->id === $currentBranchId,
             ])->all());
@@ -69,7 +71,7 @@ class PublicQueueInsightService
         }
 
         $average = $rows->avg(fn (QueueEntry $row): float => max(0, $row->called_at->diffInSeconds($row->queued_at, true)) / 60);
-        $estimate = max(1.0, (float) $average);
+        $estimate = max(1.0, (float) $average * $ahead);
 
         return [
             'minMinutes' => max(1, (int) floor($estimate * 0.7)),

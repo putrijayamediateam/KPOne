@@ -196,7 +196,7 @@ class PublicPatientIntakeService
         }, 3);
     }
 
-    /** @return array{state: string, message: string, branch: string, queueNumber: string|null, queueState: string|null, firstName: string|null, ahead: int|null, waitRange: array{minMinutes: int, maxMinutes: int}|null, branches: list<array{name: string, address: string|null, mapUrl: string|null, waiting: int, current: bool}>} */
+    /** @return array{state: string, message: string, branch: string, queueNumber: string|null, queueState: string|null, firstName: string|null, ahead: int|null, waitRange: array{minMinutes: int, maxMinutes: int}|null, branches: list<array{name: string, address: string|null, mapUrl: string|null, latitude: float|null, longitude: float|null, waiting: int, current: bool}>} */
     public function status(PublicIntakeSession $boundSession): array
     {
         $this->ensureEnabled();

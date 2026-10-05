@@ -31,7 +31,17 @@ class PublicQueueInsightTest extends QueueTestCase
         $branches = $service->branches($first->organisation_id, $first->branch_id);
         $current = collect($branches)->firstWhere('current', true);
         $this->assertSame(2, $current['waiting']);
-        $this->assertSame(['name', 'address', 'mapUrl', 'waiting', 'current'], array_keys($current));
+        $this->assertSame(
+            ['name', 'address', 'mapUrl', 'latitude', 'longitude', 'waiting', 'current'],
+            array_keys($current),
+        );
+        $cheras = collect($branches)->firstWhere('name', 'Cheras');
+        $this->assertSame(
+            'No. 19 G, Jalan Dwitasik 1, Dataran Dwitasik, 56000 Cheras, Kuala Lumpur',
+            $cheras['address'],
+        );
+        $this->assertSame(3.0993644, $cheras['latitude']);
+        $this->assertSame(101.7122966, $cheras['longitude']);
     }
 
     public function test_wait_range_needs_enough_recent_history_and_is_a_range(): void
@@ -52,7 +62,7 @@ class PublicQueueInsightTest extends QueueTestCase
         }
 
         $range = $service->waitRange($entry->branch_id, 2);
-        $this->assertSame(['minMinutes' => 14, 'maxMinutes' => 26], $range);
+        $this->assertSame(['minMinutes' => 28, 'maxMinutes' => 52], $range);
         $this->assertNull($service->waitRange($entry->branch_id, 0));
     }
 }
