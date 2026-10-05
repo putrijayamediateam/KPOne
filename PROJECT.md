@@ -1,7 +1,11 @@
 # KPOne project
 
-Latest merged delivery: PR #49 — QR intake form polish (Phase C), merged as `aba4ab9`. Recent merges, newest first:
+Latest merged delivery: PR #54 — cloud session start hook (tooling), merged as `c93af4a`. Recent merges, newest first:
 
+- PR #54 (`c93af4a`) — cloud session start hook: Claude Code cloud sessions get PHP 8.4 via Docker (`kphp`),
+  Composer and Node packages and generated routes, so tests and linters run there. Development tooling only.
+- PR #52 (`36c6078`) — QR status page overflow fix: the public status page no longer scrolls sideways on phones.
+  Found by the agent-run QR UAT on 2026-10-05, which passed 27 of 27 cases after the fix.
 - PR #49 (`aba4ab9`) — QR intake form polish (Phase C): per-step checks mirroring server validation before each
   step, a review-before-submit summary with edit links, and a visible 15-minute session countdown. Frontend only;
   the server remains the validation authority and nothing is kept in browser storage.
