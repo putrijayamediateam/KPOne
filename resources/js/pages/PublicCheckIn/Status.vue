@@ -1,7 +1,14 @@
 <script setup lang="ts">
 import { Head, router } from '@inertiajs/vue3';
-import { CheckCircle2, Clock3, RefreshCw, ShieldAlert } from '@lucide/vue';
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
+import {
+    BellRing,
+    CheckCircle2,
+    Clock3,
+    RefreshCw,
+    ShieldAlert,
+    Volume2,
+} from '@lucide/vue';
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
 const props = defineProps<{
     status: {
@@ -9,13 +16,63 @@ const props = defineProps<{
         message: string;
         branch: string;
         queueNumber: string | null;
+        queueState: string | null;
+        firstName: string | null;
     };
 }>();
 const refreshing = ref(false);
 let timer: number | undefined;
-const terminal = computed(() =>
-    ['accepted', 'rejected', 'expired'].includes(props.status.state),
+const called = computed(() => props.status.queueState === 'serving');
+const terminal = computed(
+    () =>
+        ['rejected', 'expired'].includes(props.status.state) ||
+        (props.status.state === 'accepted' &&
+            ['serving', 'removed'].includes(props.status.queueState ?? '')),
 );
+const steps = ['Dihantar', 'Disemak', 'Disahkan', 'Dipanggil'];
+const currentStep = computed(() => {
+    if (called.value) {
+        return 3;
+    }
+
+    if (props.status.state === 'accepted') {
+        return 2;
+    }
+
+    return props.status.state === 'under_review' ? 1 : 0;
+});
+const soundOn = ref(false);
+let audio: AudioContext | undefined;
+const chime = () => {
+    if (!audio) {
+        return;
+    }
+
+    [660, 880, 1100].forEach((freq, i) => {
+        const osc = audio!.createOscillator();
+        const gain = audio!.createGain();
+        const t = audio!.currentTime + i * 0.35;
+        osc.frequency.value = freq;
+        gain.gain.setValueAtTime(0.0001, t);
+        gain.gain.exponentialRampToValueAtTime(0.4, t + 0.05);
+        gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.3);
+        osc.connect(gain).connect(audio!.destination);
+        osc.start(t);
+        osc.stop(t + 0.32);
+    });
+};
+const enableSound = () => {
+    audio ??= new AudioContext();
+    void audio.resume();
+    soundOn.value = true;
+    chime();
+};
+watch(called, (value) => {
+    if (value) {
+        chime();
+        navigator.vibrate?.([300, 150, 300, 150, 300]);
+    }
+});
 const refresh = () => {
     if (refreshing.value) {
         return;
@@ -87,6 +144,12 @@ onBeforeUnmount(() => {
                     <Clock3 v-else class="size-8" />
                 </div>
                 <div v-if="status.queueNumber" class="space-y-1">
+                    <p
+                        v-if="status.firstName"
+                        class="text-lg font-semibold text-zinc-800 dark:text-zinc-100"
+                    >
+                        {{ status.firstName }}
+                    </p>
                     <p class="text-sm font-medium text-zinc-500">
                         Nombor queue anda
                     </p>
@@ -105,6 +168,52 @@ onBeforeUnmount(() => {
                     {{ status.message }}
                 </p>
             </div>
+            <div
+                v-if="called"
+                class="flex items-center gap-3 rounded-2xl bg-emerald-600 p-4 text-white"
+                role="alert"
+            >
+                <BellRing class="size-7 shrink-0 animate-pulse" />
+                <p class="font-semibold">
+                    Giliran anda! Sila masuk ke bilik doktor.
+                </p>
+            </div>
+            <ol
+                v-if="
+                    ['pending', 'under_review', 'accepted'].includes(
+                        status.state,
+                    )
+                "
+                class="grid grid-cols-4 gap-2 text-center text-xs"
+                aria-label="Kemajuan pendaftaran"
+            >
+                <li v-for="(label, i) in steps" :key="label" class="space-y-1">
+                    <span
+                        class="mx-auto block h-1.5 rounded-full"
+                        :class="
+                            i <= currentStep
+                                ? 'bg-emerald-500'
+                                : 'bg-zinc-200 dark:bg-zinc-700'
+                        "
+                    ></span>
+                    <span
+                        :class="
+                            i === currentStep
+                                ? 'font-semibold text-zinc-900 dark:text-zinc-100'
+                                : 'text-zinc-500'
+                        "
+                        >{{ label }}</span
+                    >
+                </li>
+            </ol>
+            <button
+                v-if="status.state === 'accepted' && !terminal && !soundOn"
+                type="button"
+                class="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-pink-700 font-semibold text-white"
+                @click="enableSound"
+            >
+                <Volume2 class="size-5" />Aktifkan bunyi pemberitahuan
+            </button>
             <button
                 v-if="!terminal"
                 type="button"

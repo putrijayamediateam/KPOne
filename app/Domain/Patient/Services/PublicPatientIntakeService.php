@@ -194,7 +194,7 @@ class PublicPatientIntakeService
         }, 3);
     }
 
-    /** @return array{state: string, message: string, branch: string, queueNumber: string|null} */
+    /** @return array{state: string, message: string, branch: string, queueNumber: string|null, queueState: string|null, firstName: string|null} */
     public function status(PublicIntakeSession $boundSession): array
     {
         $this->ensureEnabled();
@@ -205,7 +205,7 @@ class PublicPatientIntakeService
             ->firstOrFail();
         $intake = PublicPatientIntake::query()
             ->where('public_intake_session_id', $session->id)
-            ->with('queueEntry:id,queue_number')
+            ->with('queueEntry:id,queue_number,status')
             ->firstOrFail();
 
         $state = $intake->status;
@@ -226,7 +226,18 @@ class PublicPatientIntakeService
             'branch' => $session->branch->name,
             'queueNumber' => $state === PublicPatientIntake::STATUS_ACCEPTED && $intake->queueEntry
                 ? sprintf('%03d', $intake->queueEntry->queue_number) : null,
+            'queueState' => $state === PublicPatientIntake::STATUS_ACCEPTED && $intake->queueEntry
+                ? (string) $intake->queueEntry->status : null,
+            'firstName' => $state === PublicPatientIntake::STATUS_ACCEPTED ? $this->firstName($intake) : null,
         ];
+    }
+
+    private function firstName(PublicPatientIntake $intake): ?string
+    {
+        $name = is_array($intake->encrypted_payload) ? ($intake->encrypted_payload['patient']['full_name'] ?? null) : null;
+        $first = is_string($name) ? Str::of($name)->squish()->before(' ')->limit(40, '')->toString() : '';
+
+        return $first !== '' ? $first : null;
     }
 
     /** @param array<string, mixed> $value */
