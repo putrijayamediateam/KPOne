@@ -5,12 +5,29 @@ import {
     ArrowRight,
     Building2,
     CheckCircle2,
+    Clock3,
     LoaderCircle,
+    Pencil,
     ShieldCheck,
     UserRound,
     UsersRound,
 } from '@lucide/vue';
-import { computed, onMounted, reactive, ref, watch } from 'vue';
+import {
+    computed,
+    onBeforeUnmount,
+    onMounted,
+    reactive,
+    ref,
+    watch,
+} from 'vue';
+import {
+    SESSION_WARNING_SECONDS,
+    formatCountdown,
+    localToday,
+    reviewRows,
+    secondsRemaining,
+    validateIntakeStep,
+} from '@/lib/public-intake-form';
 
 const props = defineProps<{
     clinicName: string;
@@ -69,6 +86,29 @@ const errorFor = (field: string) => errors.value[field]?.[0] ?? '';
 const validationSummary = computed(() =>
     Object.values(errors.value).flat().filter(Boolean),
 );
+const now = ref(new Date());
+let clock: number | undefined;
+const sessionSecondsLeft = computed(() =>
+    session.value ? secondsRemaining(session.value.expiresAt, now.value) : 0,
+);
+const sessionWarning = computed(
+    () =>
+        sessionSecondsLeft.value > 0 &&
+        sessionSecondsLeft.value <= SESSION_WARNING_SECONDS,
+);
+const sessionLapsed = computed(
+    () => !!session.value && sessionSecondsLeft.value === 0,
+);
+const summaryRows = computed(() => reviewRows(form, panelOptions.value));
+const checkStep = (target: number) => {
+    const found = validateIntakeStep(target, form, {
+        minorAge: props.minorAge,
+        today: localToday(new Date()),
+    });
+    errors.value = found;
+
+    return Object.keys(found).length === 0;
+};
 const request = async (url: string, body?: object) => {
     const response = await fetch(url, {
         method: 'POST',
@@ -159,9 +199,21 @@ const begin = () => {
     step.value = 1;
 };
 const next = () => {
+    generalError.value = '';
+
+    if (!checkStep(step.value)) {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+
+        return;
+    }
+
+    step.value = Math.min(5, step.value + 1);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+};
+const goTo = (target: number) => {
     errors.value = {};
     generalError.value = '';
-    step.value = Math.min(5, step.value + 1);
+    step.value = Math.min(5, Math.max(1, target));
     window.scrollTo({ top: 0, behavior: 'smooth' });
 };
 const back = () => {
@@ -170,6 +222,10 @@ const back = () => {
 };
 const submit = async () => {
     if (!session.value || submitting.value) {
+        return;
+    }
+
+    if (!checkStep(5)) {
         return;
     }
 
@@ -223,7 +279,39 @@ watch(
         }
     },
 );
-onMounted(exchangeFragment);
+watch(
+    () => ({ ...form }),
+    (current, previous) => {
+        const changed = (Object.keys(current) as Array<keyof typeof form>)
+            .filter((field) => current[field] !== previous[field])
+            .map(String);
+        const remaining = Object.fromEntries(
+            Object.entries(errors.value).filter(
+                ([field]) =>
+                    !changed.includes(field) &&
+                    !(
+                        field === 'identifier_value' &&
+                        changed.includes('identifier_issuing_country_code')
+                    ),
+            ),
+        );
+
+        if (
+            Object.keys(remaining).length !== Object.keys(errors.value).length
+        ) {
+            errors.value = remaining;
+        }
+    },
+);
+onMounted(() => {
+    void exchangeFragment();
+    clock = window.setInterval(() => (now.value = new Date()), 1_000);
+});
+onBeforeUnmount(() => {
+    if (clock) {
+        window.clearInterval(clock);
+    }
+});
 </script>
 
 <template>
@@ -348,8 +436,38 @@ onMounted(exchangeFragment);
                         class="flex items-center justify-between text-xs font-medium text-zinc-500"
                     >
                         <span>Langkah {{ step }} daripada 5</span
-                        ><span>{{ branchName }}</span>
+                        ><span
+                            v-if="session"
+                            class="flex items-center gap-1"
+                            :class="
+                                sessionWarning || sessionLapsed
+                                    ? 'font-semibold text-amber-700'
+                                    : ''
+                            "
+                            role="timer"
+                            :aria-label="`Masa sesi berbaki ${formatCountdown(sessionSecondsLeft)}`"
+                            ><Clock3 class="size-3.5" aria-hidden="true" />{{
+                                formatCountdown(sessionSecondsLeft)
+                            }}</span
+                        >
                     </div>
+                    <p
+                        v-if="sessionWarning"
+                        class="rounded-2xl border border-amber-300 bg-amber-50 p-3 text-sm text-amber-950"
+                        role="status"
+                    >
+                        Sesi pendaftaran akan tamat tidak lama lagi. Sila
+                        lengkapkan dan hantar borang ini.
+                    </p>
+                    <p
+                        v-if="sessionLapsed"
+                        class="rounded-2xl border border-amber-300 bg-amber-50 p-3 text-sm text-amber-950"
+                        role="status"
+                    >
+                        Masa sesi mungkin telah tamat. Anda masih boleh cuba
+                        menghantar; jika gagal, sila imbas semula kod QR atau
+                        hadir ke kaunter.
+                    </p>
                     <div class="h-2 overflow-hidden rounded-full bg-zinc-100">
                         <div
                             class="h-full rounded-full bg-pink-600 transition-all"
@@ -594,7 +712,14 @@ onMounted(exchangeFragment);
                                 maxlength="120"
                                 class="min-h-12 rounded-xl border px-3"
                                 placeholder="Contoh: Sejak semalam"
-                        /></label>
+                                :aria-invalid="!!errorFor('complaint_duration')"
+                            /><span
+                                v-if="errorFor('complaint_duration')"
+                                class="text-sm text-red-700"
+                                role="alert"
+                                >{{ errorFor('complaint_duration') }}</span
+                            ></label
+                        >
                     </div>
                     <div class="flex gap-3">
                         <button
@@ -638,9 +763,11 @@ onMounted(exchangeFragment);
                                 v-model="form.guardian_name"
                                 autocomplete="name"
                                 class="min-h-12 rounded-xl border px-3"
+                                :aria-invalid="!!errorFor('guardian_name')"
                             /><span
                                 v-if="errorFor('guardian_name')"
                                 class="text-sm text-red-700"
+                                role="alert"
                                 >{{ errorFor('guardian_name') }}</span
                             ></label
                         >
@@ -649,6 +776,9 @@ onMounted(exchangeFragment);
                             ><select
                                 v-model="form.guardian_relationship"
                                 class="min-h-12 rounded-xl border px-3"
+                                :aria-invalid="
+                                    !!errorFor('guardian_relationship')
+                                "
                             >
                                 <option value="" disabled>
                                     Pilih hubungan
@@ -660,8 +790,13 @@ onMounted(exchangeFragment);
                                 <option value="spouse">Suami / Isteri</option>
                                 <option value="adult_child">Anak dewasa</option>
                                 <option value="sibling">Adik-beradik</option>
-                                <option value="other">Lain-lain</option>
-                            </select></label
+                                <option value="other">Lain-lain</option></select
+                            ><span
+                                v-if="errorFor('guardian_relationship')"
+                                class="text-sm text-red-700"
+                                role="alert"
+                                >{{ errorFor('guardian_relationship') }}</span
+                            ></label
                         >
                         <label class="grid gap-1.5"
                             ><span class="text-sm font-medium"
@@ -672,7 +807,16 @@ onMounted(exchangeFragment);
                                 inputmode="tel"
                                 autocomplete="tel"
                                 class="min-h-12 rounded-xl border px-3"
-                        /></label>
+                                :aria-invalid="
+                                    !!errorFor('guardian_contact_number')
+                                "
+                            /><span
+                                v-if="errorFor('guardian_contact_number')"
+                                class="text-sm text-red-700"
+                                role="alert"
+                                >{{ errorFor('guardian_contact_number') }}</span
+                            ></label
+                        >
                         <label
                             class="flex items-start gap-3 rounded-2xl border p-4 text-sm"
                             ><input
@@ -683,6 +827,11 @@ onMounted(exchangeFragment);
                                 >Saya mengesahkan bahawa saya diberi kuasa untuk
                                 menghantar maklumat pesakit ini.</span
                             ></label
+                        ><span
+                            v-if="errorFor('guardian_attestation')"
+                            class="text-sm text-red-700"
+                            role="alert"
+                            >{{ errorFor('guardian_attestation') }}</span
                         >
                     </div>
                     <div
@@ -836,6 +985,44 @@ onMounted(exchangeFragment);
                             pendaftaran dan queue dicipta.
                         </p>
                     </div>
+                    <section
+                        aria-labelledby="review-heading"
+                        class="rounded-2xl border p-4"
+                    >
+                        <h2 id="review-heading" class="font-semibold">
+                            Semak maklumat anda
+                        </h2>
+                        <p class="mt-1 text-sm text-zinc-600">
+                            Pastikan semua maklumat betul sebelum dihantar.
+                        </p>
+                        <dl class="mt-3 divide-y text-sm">
+                            <div
+                                v-for="row in summaryRows"
+                                :key="row.label"
+                                class="flex items-start justify-between gap-3 py-2"
+                            >
+                                <div class="min-w-0">
+                                    <dt class="text-zinc-500">
+                                        {{ row.label }}
+                                    </dt>
+                                    <dd class="font-medium break-words">
+                                        {{ row.value }}
+                                    </dd>
+                                </div>
+                                <button
+                                    type="button"
+                                    class="flex min-h-10 shrink-0 items-center gap-1 rounded-lg px-2 text-pink-700 focus-visible:ring-4 focus-visible:ring-pink-200"
+                                    :aria-label="`Ubah ${row.label}`"
+                                    @click="goTo(row.step)"
+                                >
+                                    <Pencil
+                                        class="size-4"
+                                        aria-hidden="true"
+                                    />Ubah
+                                </button>
+                            </div>
+                        </dl>
+                    </section>
                     <div
                         class="rounded-2xl border bg-zinc-50 p-4 text-sm leading-6 dark:bg-zinc-800"
                     >
