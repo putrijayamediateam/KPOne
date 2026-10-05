@@ -1,7 +1,7 @@
 # KPOne Baseline
 
 This file is the authoritative delivery status and supersedes the overview in `PROJECT.md`. Merged milestones
-below reflect the latest recorded `main` baseline, through PR #47 (QR status Phase B). Every row marked merged is
+below reflect the latest recorded `main` baseline, through PR #49 (QR intake form polish, Phase C). Every row marked merged is
 merged only; none is production-approved.
 For `main`'s current tip, run `git log -1` — a line here recording it goes stale the instant it is committed.
 
@@ -60,7 +60,7 @@ Yezza remains the operational source of truth. Nothing below is production-appro
 | **HC-01 (authorised)** | A doctor may have at most three active held consultations. A fourth manual or automatic hold is refused with a Bahasa Melayu validation message; the queue board flags a patient held for more than 30 minutes | **Merged in PR #44 as `c566530` (implementation commit `dfee85e`); post-merge CI green. Pre-merge full PostgreSQL 18.6 suite: 746 tests, 744 passed, 2 expected Fortify skips, 0 failures, 8,753 assertions. Independent review completed with no actionable findings. Owner UAT passed on 2026-10-05 (fourth hold refused). Not production-approved.** |
 | **QR status Phase A** | Accepted-intake status page polls every 10 seconds and shows, only after CA acceptance, the patient's first name (first word of the submitted name, max 40 characters), queue number and queue state; progress stepper; call-in banner when the queue entry is called; opt-in browser chime (Web Audio) and vibration. No new public data before acceptance; no messaging, SMS or push notification | **Merged in PR #46 as `dae30a1` (commit `988d732`); post-merge CI green. Owner saw the call-in alert in the laptop preview on 2026-10-05 (synthetic data). Not production-approved.** |
 | **QR status Phase B** | `PublicQueueInsightService`: patients ahead (same branch and operational day, Waiting, queued earlier); a labelled wait range (average queued-to-called time over the last 14 days, needs at least 5 samples, multiplied by patients ahead, widened to 70–130%; otherwise unavailable); aggregate Waiting counts per active branch; branch public address and map link. Optional nearby-branch sorting: browser geolocation only after a user action, straight-line distance computed in the browser, coordinates never sent to KPOne, persisted or sent to a geolocation service. Choosing another branch does not transfer the registration or queue. Additive migration `2026_10_05_000100_add_public_location_to_branches` (nullable address, map URL, latitude, longitude) populates the three branches' owner-supplied public details, mirrored in `KPOneReferenceSeeder` | **Merged in PR #47 as `92decc3` (commits `b214cf9`, `88f75e0`, `40a9f39`); PR CI and post-merge CI green. Previewed on the laptop; no explicit owner confirmation of the browser GPS permission flow is recorded. Not production-approved.** |
-| **QR intake form polish (Phase C)** | Public QR intake form: per-step client-side checks mirroring `PublicIntakePayloadValidator` (required fields, length limits, strict non-future date of birth, minor-requires-guardian, Panel requires a panel) before moving to the next step; every guardian field shows its own error; a read-only review summary with per-row edit links before consent; a visible 15-minute session countdown with a 3-minute warning. An elapsed client clock warns but never blocks submission; the server remains the only validation authority. No draft or patient data is kept in browser storage. Frontend only (`resources/js/lib/public-intake-form.ts`, `PublicCheckIn/Show.vue`) | **On `feature/qr-intake-form-polish`; not merged or production-approved. Frontend tests 198, 197 passed; the one failure (`i2-inventory-operations` #19, missing Wayfinder-generated routes) fails identically on `main` in the same environment. PHP suite, Pint, PHPStan and `npm run build` were not run locally (PHP dependencies unavailable in the cloud session); CI on PostgreSQL 18 is the gate. Owner browser UAT outstanding.** |
+| **QR intake form polish (Phase C)** | Public QR intake form: per-step client-side checks mirroring `PublicIntakePayloadValidator` (required fields, length limits, strict non-future date of birth, minor-requires-guardian, Panel requires a panel) before moving to the next step; every guardian field shows its own error; a read-only review summary with per-row edit links before consent; a visible 15-minute session countdown with a 3-minute warning. An elapsed client clock warns but never blocks submission; the server remains the only validation authority. No draft or patient data is kept in browser storage. Frontend only (`resources/js/lib/public-intake-form.ts`, `PublicCheckIn/Show.vue`) | **Merged in PR #49 as `aba4ab9` (commit `bf75bb0`); PR CI and post-merge CI green on PostgreSQL 18. Local frontend tests 198, 197 passed; the one failure (`i2-inventory-operations` #19, missing Wayfinder-generated routes) fails identically on `main` in the same environment. PHP suite, Pint, PHPStan and `npm run build` ran only in CI. Owner browser UAT outstanding; not production-approved.** |
 
 
 End-to-end synthetic UI flow: on 2026-10-02 the owner completed a fresh-database walkthrough in one sitting:
@@ -142,16 +142,19 @@ Still open:
    at the owner's direction after agent-run synthetic UAT; HC-01 owner UAT passed on 2026-10-05 (fourth hold
    refused). QR status Phase A call-in alert was seen by the owner on 2026-10-05; the Phase B browser GPS
    permission and nearby-branch sorting flow has no explicit owner confirmation yet. The Payment Method setup
-   screen has no dedicated owner UAT recorded. Deferrals and synthetic UAT are not production sign-offs.
+   screen has no dedicated owner UAT recorded. QR intake form polish (Phase C, PR #49) owner browser UAT is
+   outstanding. Deferrals and synthetic UAT are not production sign-offs.
 5. Housekeeping: `PREVIEW_README.txt` release marker still says D3 — outside this repository and out of scope.
    `AGENTS.md` remains the governing authorisation boundary; this file is the authoritative delivery status.
 
 ### Recommended delivery order
 
 1. HC-01 (PR #44), BS-02/QR coverage/terminal reconciliation/BP-01/Payment Method setup (PR #45), and QR status
-   Phases A and B (PRs #46, #47) are merged with post-merge CI green on PostgreSQL 18.
+   Phases A and B (PRs #46, #47) and QR intake form polish (PR #49) are merged with post-merge CI green on
+   PostgreSQL 18.
 2. Terminal reconciliation and HC-01 owner UAT are done. Confirm the QR Phase B browser GPS permission flow with
-   the owner. BP-01 owner UAT may remain deferred as directed, but the deferral is not acceptance evidence.
+   the owner, and walk the Phase C intake form (step checks, review summary, session countdown). BP-01 owner UAT
+   may remain deferred as directed, but the deferral is not acceptance evidence.
 3. Resolve the reported operational defects above under separately approved scopes.
 4. Keep production deployment last, after all security, privacy/legal, access, recovery, trusted-proxy,
    scheduler, QR-rotation, and privacy-notice gates are closed.
