@@ -167,7 +167,9 @@ const boardRows = computed<PatientBoardRow[]>(() =>
         priority: row.priority,
         returnedFromDispensary: row.returnedFromDispensary,
         statusLabel: row.isHeld
-            ? 'On Hold'
+            ? row.isHeldTooLong
+                ? 'On Hold · 30+ min'
+                : 'On Hold'
             : row.status === 'waiting' &&
                 row.operationalDate !== live.value.operationalDate
               ? 'Waiting · carry-over'

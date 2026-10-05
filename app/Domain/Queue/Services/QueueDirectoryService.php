@@ -4,6 +4,7 @@ namespace App\Domain\Queue\Services;
 
 use App\Domain\Access\BranchAccessService;
 use App\Domain\Clinical\Dispensary\Services\DoctorDispensaryAttentionService;
+use App\Domain\Clinical\Models\ConsultationHold;
 use App\Domain\Clinical\Services\CheckoutReopenEligibility;
 use App\Domain\Organisation\Models\Branch;
 use App\Domain\Queue\Models\QueueEntry;
@@ -304,6 +305,8 @@ class QueueDirectoryService
             'queuedTime' => $entry->queued_at->setTimezone($branch->timezone)->format('H:i'),
             'calledAt' => $entry->called_at?->toIso8601String(),
             'isHeld' => $activeHold !== null,
+            'isHeldTooLong' => $activeHold !== null
+                && $activeHold->held_at->lt($now->copy()->subMinutes(ConsultationHold::HELD_TOO_LONG_WARNING_MINUTES)),
             'holdStartedAt' => $activeHold?->held_at->toIso8601String(),
             'heldMinutes' => (int) floor($heldSeconds / 60),
             'activeMinutes' => (int) floor(max(0, $elapsedSeconds - $heldSeconds) / 60),

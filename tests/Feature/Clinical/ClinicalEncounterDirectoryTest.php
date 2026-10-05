@@ -5,7 +5,10 @@ namespace Tests\Feature\Clinical;
 use App\Domain\Clinical\Services\ClinicalEncounterDirectoryService;
 use App\Domain\Clinical\Services\ClinicalEncounterService;
 use App\Domain\Clinical\Services\CompleteConsultationService;
+use App\Domain\Clinical\Services\ConsultationHoldService;
+use App\Domain\Queue\Models\QueueEntry;
 use App\Domain\Queue\Services\QueueEntryService;
+use Illuminate\Support\Str;
 use Inertia\Testing\AssertableInertia as Assert;
 use Spatie\Permission\Models\Permission;
 
@@ -91,6 +94,19 @@ class ClinicalEncounterDirectoryTest extends ClinicalTestCase
                 'clinical_note' => 'Synthetic historical private note '.$index,
             ]));
             $this->holdEncounter($doctor, $visit, $queue, $history);
+            app(ConsultationHoldService::class)->resume($doctor, $visit, [
+                'expected_branch_id' => $visit->branch_id,
+                'visit_lock_version' => $visit->refresh()->lock_version,
+                'queue_lock_version' => $queue->refresh()->lock_version,
+                'encounter_lock_version' => $history->refresh()->lock_version,
+                'idempotency_key' => (string) Str::uuid(),
+            ]);
+            $queue->refresh()->forceFill([
+                'status' => QueueEntry::STATUS_REMOVED,
+                'removed_at' => now()->utc(),
+                'removal_reason' => 'sent_to_billing',
+                'lock_version' => $queue->lock_version + 1,
+            ])->save();
         }
 
         $detail = app(ClinicalEncounterDirectoryService::class)->detail($doctor, $currentVisit);

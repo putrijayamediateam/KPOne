@@ -19,6 +19,8 @@ use Illuminate\Support\Carbon;
 #[Guarded(['*'])]
 class ConsultationHold extends Model
 {
+    public const HELD_TOO_LONG_WARNING_MINUTES = 30;
+
     protected function casts(): array
     {
         return [

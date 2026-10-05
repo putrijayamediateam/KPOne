@@ -10,6 +10,8 @@ use App\Domain\Queue\Models\QueueEntry;
 use App\Domain\Queue\Services\QueueDirectoryService;
 use App\Domain\Queue\Services\QueueEntryService;
 use App\Domain\Visit\Models\Visit;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
@@ -34,6 +36,110 @@ class ConsultationHoldTest extends ClinicalTestCase
         $snapshot = app(QueueDirectoryService::class)->snapshot($doctor);
         $this->assertTrue($snapshot['serving'][0]['isHeld']);
         $this->assertSame($visit->visit_number, $snapshot['serving'][0]['visitNumber']);
+    }
+
+    public function test_doctor_cannot_hold_a_fourth_patient_at_once(): void
+    {
+        $doctor = $this->doctor();
+
+        for ($index = 0; $index < 3; $index++) {
+            [$doctor, , $visit, $queue] = $this->servingFixture($doctor);
+            $encounter = $this->startEncounter($doctor, $visit, $queue);
+
+            app(ConsultationHoldService::class)->hold(
+                $doctor,
+                $visit,
+                $this->holdAttributes($visit, $queue, $encounter),
+            );
+        }
+
+        [$doctor, , $visit, $queue] = $this->servingFixture($doctor);
+        $encounter = $this->startEncounter($doctor, $visit, $queue);
+
+        try {
+            app(ConsultationHoldService::class)->hold(
+                $doctor,
+                $visit,
+                $this->holdAttributes($visit, $queue, $encounter),
+            );
+            $this->fail('The fourth active hold should be refused.');
+        } catch (ValidationException $exception) {
+            $this->assertStringContainsString('3 pesakit On Hold', $exception->errors()['hold'][0]);
+        }
+
+        $this->assertDatabaseCount('consultation_holds', 3);
+    }
+
+    public function test_automatic_return_cannot_create_a_fourth_hold_for_the_doctor(): void
+    {
+        $doctor = $this->doctor();
+
+        for ($index = 0; $index < 3; $index++) {
+            [$doctor, $ca, $visit, $queue] = $this->servingFixture($doctor);
+            $encounter = $this->startEncounter($doctor, $visit, $queue);
+
+            app(ConsultationHoldService::class)->hold(
+                $doctor,
+                $visit,
+                $this->holdAttributes($visit, $queue, $encounter),
+            );
+        }
+
+        [$doctor, $ca, $activeVisit, $activeQueue] = $this->servingFixture($doctor, $ca);
+        $this->startEncounter($doctor, $activeVisit, $activeQueue);
+
+        $returnVisit = $this->consultationVisit($ca, $doctor);
+        $returnQueue = $this->send($ca, $returnVisit);
+        $returnQueue->forceFill([
+            'status' => QueueEntry::STATUS_SERVING,
+            'called_at' => now()->utc(),
+            'called_by_user_id' => $doctor->id,
+            'updated_by_user_id' => $doctor->id,
+        ])->save();
+        $returnEncounter = $this->startEncounter($doctor, $returnVisit, $returnQueue);
+
+        try {
+            app(ConsultationHoldService::class)->holdReturningConsultation(
+                $ca,
+                $returnVisit->branch,
+                $returnVisit,
+                $returnQueue,
+                $returnEncounter,
+            );
+            $this->fail('The automatic fourth hold should be refused.');
+        } catch (ValidationException $exception) {
+            $this->assertStringContainsString('3 pesakit On Hold', $exception->errors()['hold'][0]);
+        }
+
+        $this->assertDatabaseCount('consultation_holds', 3);
+    }
+
+    public function test_queue_board_flags_a_hold_only_after_thirty_minutes(): void
+    {
+        $now = Carbon::parse('2026-10-03 00:00:00', 'UTC');
+        Date::setTestNow($now);
+
+        try {
+            [$doctor, , $visit, $queue] = $this->servingFixture();
+            $encounter = $this->startEncounter($doctor, $visit, $queue);
+            $hold = app(ConsultationHoldService::class)->hold(
+                $doctor,
+                $visit,
+                $this->holdAttributes($visit, $queue, $encounter),
+            );
+            $hold->forceFill(['held_at' => $now->copy()->subMinutes(30)])->save();
+
+            $snapshot = app(QueueDirectoryService::class)->snapshot($doctor);
+            $row = collect($snapshot['serving'])->firstWhere('visitNumber', $visit->visit_number);
+            $this->assertFalse($row['isHeldTooLong']);
+
+            Date::setTestNow($now->copy()->addSecond());
+            $snapshot = app(QueueDirectoryService::class)->snapshot($doctor);
+            $row = collect($snapshot['serving'])->firstWhere('visitNumber', $visit->visit_number);
+            $this->assertTrue($row['isHeldTooLong']);
+        } finally {
+            Date::setTestNow();
+        }
     }
 
     public function test_changed_hold_replay_fails_without_another_transition(): void
