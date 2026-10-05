@@ -18,6 +18,15 @@ const props = defineProps<{
         queueNumber: string | null;
         queueState: string | null;
         firstName: string | null;
+        ahead: number | null;
+        waitRange: { minMinutes: number; maxMinutes: number } | null;
+        branches: {
+            name: string;
+            address: string | null;
+            mapUrl: string | null;
+            waiting: number;
+            current: boolean;
+        }[];
     };
 }>();
 const refreshing = ref(false);
@@ -169,6 +178,33 @@ onBeforeUnmount(() => {
                 </p>
             </div>
             <div
+                v-if="status.ahead !== null"
+                class="rounded-2xl bg-zinc-50 p-4 text-center dark:bg-zinc-800"
+            >
+                <p class="text-sm text-zinc-600 dark:text-zinc-300">
+                    <template v-if="status.ahead > 0"
+                        >Pesakit di hadapan anda:
+                        <strong>{{ status.ahead }}</strong></template
+                    ><template v-else>Anda seterusnya dalam giliran.</template>
+                </p>
+                <p
+                    v-if="status.waitRange"
+                    class="mt-1 text-sm text-zinc-600 dark:text-zinc-300"
+                >
+                    Anggaran masa menunggu: kira-kira
+                    <strong
+                        >{{ status.waitRange.minMinutes }}–{{
+                            status.waitRange.maxMinutes
+                        }}
+                        minit</strong
+                    >
+                    <span class="block text-xs text-zinc-500"
+                        >Anggaran berdasarkan purata terkini, bukan
+                        jaminan.</span
+                    >
+                </p>
+            </div>
+            <div
                 v-if="called"
                 class="flex items-center gap-3 rounded-2xl bg-emerald-600 p-4 text-white"
                 role="alert"
@@ -226,6 +262,56 @@ onBeforeUnmount(() => {
                     :class="{ 'animate-spin': refreshing }"
                 />Semak status
             </button>
+            <section
+                v-if="status.branches.length > 1"
+                class="space-y-2"
+                aria-label="Cawangan lain"
+            >
+                <h2 class="text-sm font-semibold">Cawangan Klinik Putrijaya</h2>
+                <ul class="space-y-2">
+                    <li
+                        v-for="branch in status.branches"
+                        :key="branch.name"
+                        class="flex items-center justify-between gap-3 rounded-xl border p-3 text-sm"
+                        :class="
+                            branch.current
+                                ? 'border-pink-300 bg-pink-50 dark:bg-pink-950/30'
+                                : ''
+                        "
+                    >
+                        <div class="min-w-0">
+                            <p class="font-medium">
+                                {{ branch.name
+                                }}<span
+                                    v-if="branch.current"
+                                    class="ml-2 text-xs text-pink-700"
+                                    >Cawangan anda</span
+                                >
+                            </p>
+                            <p
+                                v-if="branch.address"
+                                class="truncate text-xs text-zinc-500"
+                            >
+                                {{ branch.address }}
+                            </p>
+                            <a
+                                v-if="branch.mapUrl"
+                                :href="branch.mapUrl"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                class="text-xs font-medium text-pink-700 underline"
+                                >Buka peta</a
+                            >
+                        </div>
+                        <p class="shrink-0 text-right">
+                            <strong>{{ branch.waiting }}</strong>
+                            <span class="block text-xs text-zinc-500"
+                                >menunggu</span
+                            >
+                        </p>
+                    </li>
+                </ul>
+            </section>
             <p class="text-center text-xs text-zinc-500">
                 Halaman ini tidak menyimpan maklumat anda dalam storan pelayar.
             </p>
