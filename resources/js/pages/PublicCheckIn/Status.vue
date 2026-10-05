@@ -110,9 +110,11 @@ const nearestBranch = computed(() => {
 });
 const findNearbyBranches = () => {
     locationMessage.value = '';
+
     if (!navigator.geolocation) {
         locationMessage.value =
             'Pelayar ini tidak menyokong perkongsian lokasi.';
+
         return;
     }
 
