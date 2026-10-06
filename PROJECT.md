@@ -1,7 +1,12 @@
 # KPOne project
 
-Latest merged delivery: PR #54 — cloud session start hook (tooling), merged as `c93af4a`. Recent merges, newest first:
+Latest merged delivery: PR #57 — TV-1 queue display, merged as `3a32c1a`. Recent merges, newest first:
 
+- PR #57 (`3a32c1a`) — TV-1 queue display (consultation calls): branch rooms, each doctor's room for the day
+  (Call In needs it once a branch has rooms), immutable call records with no patient data, Call Again /
+  Panggil semula, and a `queue_display` role whose branch TV shows and announces called numbers and rooms
+  alongside posters, a YouTube video and scrolling text. TV accounts stay signed in. Dispensary and
+  treatment-room calls are the next slice.
 - PR #54 (`c93af4a`) — cloud session start hook: Claude Code cloud sessions get PHP 8.4 via Docker (`kphp`),
   Composer and Node packages and generated routes, so tests and linters run there. Development tooling only.
 - PR #52 (`36c6078`) — QR status page overflow fix: the public status page no longer scrolls sideways on phones.
@@ -50,6 +55,10 @@ Phase 2B adds one in-progress Treatment Plan per current Clinical Encounter. The
 
 Phase 3A-Core adds a version-bound doctor-to-Dispensary handoff, branch fulfilment, safe stock allocation, and immutable inventory movements. Phase 3B adds checkout, service performance evidence, governed pricing, invoices, receipts, payment and responsibility handling, and controlled Visit completion. These milestones are merged, but their delivery does not by itself authorise production use or go-live.
 
+The TV-1 queue display (PR #57) puts each branch's consultation calls on a waiting-room TV. The TV account sees only
+called numbers, rooms and times for its own branch, never patient, clinical or financial data, and does not receive
+Insights.
+
 The current Insights work provides aggregate-only operational and financial reports. It does not introduce appointments, packages, patient-level financial rankings, exports, or new business transactions. Unsupported figures are identified rather than estimated.
 
 The current public website remains a separate system. Its current website administration remains the production administration path during migration. KPOne Phase 0A contains no website integration.
@@ -62,7 +71,8 @@ The order below is directional and requires a separately approved scope for each
 
 1. Keep the first-Director bootstrap path governed without weakening staff-authority rules.
 2. Close the remaining feature-level owner UAT recorded in `docs/BASELINE.md` (QR status Phase B browser GPS
-   flow, QR intake form polish (Phase C), Payment Method setup screen; BP-01 deferred at the owner's direction).
+   flow, QR intake form polish (Phase C), Payment Method setup screen, TV-1 queue display on a real branch TV;
+   BP-01 deferred at the owner's direction).
 3. Complete production deployment, recovery, access review, staff-governance hardening, security/privacy/PDPA
    and legal gates before any go-live decision.
 4. Design and separately authorise Appointments and any later Queue refinements.
