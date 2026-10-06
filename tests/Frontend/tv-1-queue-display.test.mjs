@@ -265,3 +265,13 @@ test('the consultation page offers Panggil semula and returns to the consultatio
     assert.ok(consultation.includes("from: 'consultation'"));
     assert.ok(consultation.includes('/queue/recall'));
 });
+
+test('the current call room label wraps long room names instead of clipping them', () => {
+    const match = screen.match(
+        /<p\s+class="([^"]*)"\s+data-testid="current-room"/,
+    );
+    assert.ok(match, 'current room label not found');
+    assert.ok(match[1].includes('text-balance'));
+    assert.ok(match[1].includes('break-words'));
+    assert.ok(!match[1].includes('truncate'));
+});

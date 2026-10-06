@@ -473,7 +473,10 @@ onBeforeUnmount(() => {
                         >
                             {{ current.number }}
                         </p>
-                        <p class="mt-3 truncate text-3xl font-bold lg:text-5xl">
+                        <p
+                            class="mt-3 text-3xl font-bold text-balance break-words lg:text-5xl"
+                            data-testid="current-room"
+                        >
                             {{ roomLabel(current.room, current.service) }}
                         </p>
                     </template>
