@@ -16,6 +16,7 @@ export type WorkspaceNavigationCapabilities = {
     accessControl: boolean;
     auditLogs: boolean;
     publicCheckInLinks: boolean;
+    queueDisplay: boolean;
     insights: boolean;
 };
 
@@ -159,6 +160,14 @@ const destinations: Record<
         href: '/public-checkin-links',
         icon: 'building',
     },
+    queueDisplay: {
+        key: 'queueDisplay',
+        label: 'Queue Display (TV)',
+        description:
+            'Rooms, posters, video and scrolling text for the waiting-room TV.',
+        href: '/queue-display-settings',
+        icon: 'building',
+    },
     insights: {
         key: 'insights',
         label: 'Insights',
@@ -229,6 +238,7 @@ export const mainMenuGroups = (
                 'accessControl',
                 'auditLogs',
                 'publicCheckInLinks',
+                'queueDisplay',
             ]),
         },
     ].filter((group) => group.destinations.length > 0);
@@ -263,6 +273,7 @@ export const headerDestinations = (
                   'accessControl',
                   'auditLogs',
                   'publicCheckInLinks',
+                  'queueDisplay',
               ],
     ),
 ];

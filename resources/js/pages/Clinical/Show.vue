@@ -5,6 +5,7 @@ import {
     ArrowLeft,
     ClipboardCheck,
     LoaderCircle,
+    Megaphone,
     Plus,
     PauseCircle,
     PlayCircle,
@@ -159,6 +160,30 @@ const unsavedWorkProcessing = ref(false);
 const unsavedWorkAction = ref<'confirm' | 'secondary'>('confirm');
 const unsavedWorkError = ref('');
 
+const recallProcessing = ref(false);
+const recallError = ref('');
+const recallPatient = () => {
+    recallProcessing.value = true;
+    recallError.value = '';
+    router.patch(
+        `/visits/${encodeURIComponent(props.clinical.visit.visitNumber)}/queue/recall`,
+        {
+            expected_branch_id: props.clinical.branch.id,
+            queue_lock_version: props.clinical.queue.lockVersion,
+            from: 'consultation',
+        },
+        {
+            preserveScroll: true,
+            preserveState: true,
+            onError: (errors) => {
+                recallError.value =
+                    Object.values(errors)[0] ??
+                    'Pesakit tidak dapat dipanggil semula.';
+            },
+            onFinish: () => (recallProcessing.value = false),
+        },
+    );
+};
 const requestHold = () => {
     if (!hasUnsavedWork.value) {
         changeHoldState('hold');
@@ -425,6 +450,22 @@ const changeHoldState = (action: 'hold' | 'resume') => {
                             Active {{ clinical.hold.activeMinutes }} min · Held
                             {{ clinical.hold.heldMinutes }} min
                         </div>
+                        <Button
+                            v-if="clinical.queue.canRecall"
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            :disabled="recallProcessing"
+                            data-testid="recall-patient"
+                            @click="recallPatient"
+                        >
+                            <Megaphone class="size-4" /> Panggil semula
+                        </Button>
+                        <InputError
+                            v-if="recallError"
+                            class="max-w-56 text-right"
+                            :message="recallError"
+                        />
                         <Button
                             v-if="clinical.hold.canHold"
                             type="button"

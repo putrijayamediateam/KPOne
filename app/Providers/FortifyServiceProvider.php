@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Actions\Fortify\ResetUserPassword;
+use App\Domain\Access\PermissionCatalogue;
 use App\Models\User;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
@@ -50,7 +51,16 @@ class FortifyServiceProvider extends ServiceProvider
                 return null;
             }
 
-            return Hash::check((string) $request->input('password'), $user->password) ? $user : null;
+            if (! Hash::check((string) $request->input('password'), $user->password)) {
+                return null;
+            }
+
+            // A waiting-room TV must stay signed in through session expiry and overnight power-off.
+            if ($user->hasRole(PermissionCatalogue::QUEUE_DISPLAY_ROLE)) {
+                $request->merge(['remember' => true]);
+            }
+
+            return $user;
         });
     }
 

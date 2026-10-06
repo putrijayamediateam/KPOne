@@ -88,6 +88,10 @@ class ClinicalEncounterDirectoryService
                 'queuedAt' => $encounter->visit->queueEntry->queued_at->toIso8601String(),
                 'calledAt' => $encounter->visit->queueEntry->called_at?->toIso8601String(),
                 'lockVersion' => $encounter->visit->queueEntry->lock_version,
+                // UI hint only; the recall service re-authorizes under lock.
+                'canRecall' => $canActOnConsultation && $activeHold === null
+                    && $encounter->visit->queueEntry->status === QueueEntry::STATUS_SERVING
+                    && ($actor->can('queue.call.own') || $actor->can('queue.call.branch')),
             ],
             'encounter' => [
                 'status' => $encounter->status,

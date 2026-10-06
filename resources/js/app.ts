@@ -29,6 +29,7 @@ if (authenticationHistory.ready) {
                 case name === 'Welcome':
                 case name === 'Dispensary/Labels':
                 case name === 'Billing/Print':
+                case name === 'QueueDisplay/Screen':
                     return null;
                 case name.startsWith('PublicCheckIn/'):
                     return PublicCheckInLayout;

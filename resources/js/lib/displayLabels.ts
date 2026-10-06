@@ -2,6 +2,7 @@ const roleLabels: Record<string, string> = {
     ca: 'CA',
     ca_supervisor: 'CA Supervisor',
     hr_manager: 'HR Manager',
+    queue_display: 'Queue Display (TV)',
 };
 
 export const formatRoleLabel = (role: string): string =>

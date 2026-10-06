@@ -26,6 +26,7 @@ export type PatientBoardRow = {
         cancel: boolean;
         sendToWaiting: boolean;
         call: boolean;
+        recall?: boolean;
         openConsultation: boolean;
         openDispensary?: boolean;
         openBilling?: boolean;

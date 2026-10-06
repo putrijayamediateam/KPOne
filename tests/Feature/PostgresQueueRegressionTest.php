@@ -75,6 +75,7 @@ class PostgresQueueRegressionTest extends TestCase
         }
         if ($this->organisationId !== null) {
             DB::table('audit_logs')->where('organisation_id', $this->organisationId)->delete();
+            DB::table('queue_calls')->where('organisation_id', $this->organisationId)->delete();
             DB::table('queue_entries')->where('organisation_id', $this->organisationId)->delete();
             DB::table('visit_reason_assignments')->where('organisation_id', $this->organisationId)->delete();
             DB::table('queue_number_counters')->where('organisation_id', $this->organisationId)->delete();
@@ -554,6 +555,7 @@ class PostgresQueueRegressionTest extends TestCase
         }
         $id = $this->organisationId;
         DB::table('audit_logs')->where('organisation_id', $id)->delete();
+        DB::table('queue_calls')->where('organisation_id', $id)->delete();
         DB::table('queue_entries')->where('organisation_id', $id)->delete();
         DB::table('visit_reason_assignments')->where('organisation_id', $id)->delete();
         DB::table('queue_number_counters')->where('organisation_id', $id)->delete();

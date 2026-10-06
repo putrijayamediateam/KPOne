@@ -30,6 +30,7 @@ class KPOnePresentationSeeder extends Seeder
         'marketing' => ['department' => 'MARKETING', 'title' => 'Marketing'],
         'hr_manager' => ['department' => 'HR_MANAGEMENT', 'title' => 'HR Manager'],
         'technical_admin' => ['department' => 'TECHNOLOGY', 'title' => 'Technical Administrator'],
+        'queue_display' => ['department' => 'CLINIC_OPERATIONS', 'title' => 'Waiting Room TV'],
     ];
 
     public function run(): void

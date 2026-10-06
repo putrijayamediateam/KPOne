@@ -21,6 +21,8 @@ final class PermissionCatalogue
         'access.manage.organisation',
     ];
 
+    public const QUEUE_DISPLAY_ROLE = 'queue_display';
+
     /** @return list<string> */
     public static function all(): array
     {
@@ -61,6 +63,10 @@ final class PermissionCatalogue
             'queue.enter.branch',
             'queue.call.own',
             'queue.call.branch',
+            'queue.room.select.own',
+            'queue.display.branch',
+            'queue_display.manage.organisation',
+            'queue_display.manage.branch',
             'encounters.view.own',
             'encounters.start.own',
             'encounters.update.own',
@@ -149,6 +155,7 @@ final class PermissionCatalogue
                 'queue.view.branch',
                 'queue.enter.branch',
                 'queue.call.branch',
+                'queue_display.manage.organisation',
                 'public_intakes.review.branch',
             ],
             'resident_doctor' => [
@@ -158,6 +165,7 @@ final class PermissionCatalogue
                 'visits.view.branch',
                 'queue.view.own',
                 'queue.call.own',
+                'queue.room.select.own',
                 'encounters.view.own',
                 'encounters.start.own',
                 'encounters.update.own',
@@ -215,6 +223,7 @@ final class PermissionCatalogue
                 'queue.enter.branch',
                 'queue.call.branch',
                 'public_checkin_links.manage.branch',
+                'queue_display.manage.branch',
                 'public_intakes.review.branch',
                 'dispensary.view.branch',
                 'dispensary.start.branch',
@@ -271,6 +280,15 @@ final class PermissionCatalogue
         foreach ($roles as $role => $permissions) {
             $roles[$role] = [...$permissions, 'insights.view.organisation'];
         }
+
+        // A shared waiting-room TV account: it sees only the called numbers and rooms of its own
+        // branch, never patient, clinical or financial data, and so is deliberately left out of Insights.
+        $roles[self::QUEUE_DISPLAY_ROLE] = [
+            ...$own,
+            'branches.view.branch',
+            'branch_context.switch.branch',
+            'queue.display.branch',
+        ];
 
         return $roles;
     }
