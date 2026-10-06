@@ -36,7 +36,7 @@ class QueueDisplayController extends Controller
         abort_unless($branch->organisation_id === $request->user()->organisation_id, 404);
         abort_unless($access->canView($request->user(), $branch), 403);
         $settings = BranchDisplaySetting::query()->where('branch_id', $branch->id)->first();
-        $entry = collect($settings?->posters ?? [])->firstWhere('id', $poster);
+        $entry = collect($settings->posters ?? [])->firstWhere('id', $poster);
         abort_unless(is_array($entry), 404);
         $disk = Storage::disk(QueueDisplayAdministrationService::POSTER_DISK);
         abort_unless($disk->exists($entry['path']), 404);

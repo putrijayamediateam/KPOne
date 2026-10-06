@@ -56,7 +56,11 @@ class QueueDisplaySettingsController extends Controller
             'name' => ['required', 'string', 'max:60'],
             'sort_order' => ['required', 'integer', 'min:0', 'max:999'],
         ]);
-        $this->stay($branch, fn () => $service->createRoom($request->user(), $branch, $validated));
+        $this->stay($branch, fn () => $service->createRoom($request->user(), $branch, [
+            'kind' => (string) $validated['kind'],
+            'name' => (string) $validated['name'],
+            'sort_order' => (int) $validated['sort_order'],
+        ]));
 
         return $this->done($branch, 'Room added.');
     }
@@ -69,7 +73,11 @@ class QueueDisplaySettingsController extends Controller
             'sort_order' => ['required', 'integer', 'min:0', 'max:999'],
             'lock_version' => ['required', 'integer', 'min:1'],
         ]);
-        $this->stay($room->branch, fn () => $service->updateRoom($request->user(), $room, $validated));
+        $this->stay($room->branch, fn () => $service->updateRoom($request->user(), $room, [
+            'name' => (string) $validated['name'],
+            'sort_order' => (int) $validated['sort_order'],
+            'lock_version' => (int) $validated['lock_version'],
+        ]));
 
         return $this->done($room->branch, 'Room updated.');
     }

@@ -54,7 +54,7 @@ class DoctorRoomService
         $current = $this->roomFor($actor->id, $branch, $date);
 
         return [
-            'rooms' => BranchRoom::query()
+            'rooms' => array_values(BranchRoom::query()
                 ->where('branch_id', $branch->id)
                 ->where('kind', BranchRoom::KIND_CONSULTATION)
                 ->where('is_active', true)
@@ -62,8 +62,7 @@ class DoctorRoomService
                 ->orderBy('name')
                 ->get(['id', 'name'])
                 ->map(fn (BranchRoom $room): array => ['id' => $room->id, 'name' => $room->name])
-                ->values()
-                ->all(),
+                ->all()),
             'currentRoomId' => $current?->id,
             'operationalDate' => $date,
         ];

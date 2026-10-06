@@ -54,15 +54,14 @@ class QueueDisplayFeedService
         return [
             'tickerText' => $settings?->ticker_text,
             'youtubeVideoId' => $settings?->youtube_video_id,
-            'posterSeconds' => $settings?->poster_seconds ?? 10,
-            'posters' => collect($settings?->posters ?? [])
+            'posterSeconds' => $settings->poster_seconds ?? 10,
+            'posters' => array_values(collect($settings->posters ?? [])
                 ->map(fn (array $poster): array => [
                     'id' => $poster['id'],
                     'url' => route('queue-display.posters.show', [$branch->id, $poster['id']], absolute: false),
                 ])
-                ->values()
-                ->all(),
-            'lockVersion' => $settings?->lock_version ?? 0,
+                ->all()),
+            'lockVersion' => $settings->lock_version ?? 0,
         ];
     }
 }

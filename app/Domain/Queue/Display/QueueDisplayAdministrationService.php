@@ -289,7 +289,7 @@ class QueueDisplayAdministrationService
     private function lockSettings(Branch $branch, int $lockVersion): BranchDisplaySetting
     {
         $settings = BranchDisplaySetting::query()->where('branch_id', $branch->id)->lockForUpdate()->first();
-        if (($settings?->lock_version ?? 0) !== $lockVersion) {
+        if (($settings->lock_version ?? 0) !== $lockVersion) {
             $this->stale();
         }
 
@@ -309,7 +309,7 @@ class QueueDisplayAdministrationService
         return $settings;
     }
 
-    /** @param list<BranchRoom> $rooms */
+    /** @param array<int, BranchRoom> $rooms */
     private function assertUniqueName(array $rooms, string $name): void
     {
         foreach ($rooms as $room) {
