@@ -151,6 +151,7 @@ export type ClinicalEncounterPage = {
         queuedAt: string;
         calledAt: string | null;
         lockVersion: number;
+        canRecall: boolean;
     };
     encounter: {
         status: 'in_progress';

@@ -8,6 +8,10 @@ final class WorkspaceLandingService
 {
     public function routeName(User $actor): string
     {
+        if ($actor->hasRole(PermissionCatalogue::QUEUE_DISPLAY_ROLE) && $actor->can('queue.display.branch')) {
+            return 'queue-display.screen';
+        }
+
         if ($actor->hasRole('resident_doctor') && $actor->can('queue.view.own')) {
             return 'queue.index';
         }

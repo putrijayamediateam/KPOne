@@ -797,6 +797,7 @@ class PostgresClinicalSafetyRegressionTest extends TestCase
         DB::table('encounter_diagnoses')->where('organisation_id', $id)->delete();
         DB::table('encounter_vital_observations')->where('organisation_id', $id)->delete();
         DB::table('clinical_encounters')->where('organisation_id', $id)->delete();
+        DB::table('queue_calls')->where('organisation_id', $id)->delete();
         DB::table('queue_entries')->where('organisation_id', $id)->delete();
         DB::table('queue_number_counters')->where('organisation_id', $id)->delete();
         DB::table('visits')->where('organisation_id', $id)->delete();

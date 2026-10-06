@@ -7,12 +7,17 @@ use App\Domain\Audit\AuditRecorder;
 use App\Domain\Identity\Models\StaffBranchAssignment;
 use App\Domain\Identity\Models\StaffProfile;
 use App\Domain\Organisation\Models\Branch;
+use App\Domain\Queue\Display\DoctorRoomService;
+use App\Domain\Queue\Models\BranchRoom;
+use App\Domain\Queue\Models\QueueCall;
 use App\Domain\Queue\Models\QueueEntry;
 use App\Domain\Visit\Models\Visit;
 use App\Domain\Visit\Services\VisitDoctorEligibilityService;
 use App\Models\User;
+use DateTimeInterface;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\QueryException;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Validator;
@@ -25,6 +30,7 @@ class QueueEntryService
         private VisitDoctorEligibilityService $doctors,
         private QueueNumberGenerator $numbers,
         private AuditRecorder $audit,
+        private DoctorRoomService $rooms,
     ) {}
 
     /** @param array<string, mixed> $attributes */
@@ -206,21 +212,136 @@ class QueueEntryService
                 ]);
             }
 
+            $room = $this->requiredRoom($lockedDoctor, $branch, $effectiveDate);
+            $calledAt = now()->utc();
             $lockedEntry->forceFill([
                 'status' => QueueEntry::STATUS_SERVING,
-                'called_at' => now()->utc(),
+                'called_at' => $calledAt,
                 'called_by_user_id' => $lockedActor->id,
                 'updated_by_user_id' => $lockedActor->id,
                 'lock_version' => $lockedEntry->lock_version + 1,
             ])->save();
+            $this->recordCall($lockedEntry, $room, $lockedActor, $effectiveDate, $calledAt, false);
             $this->audit->record('queue.called', $lockedEntry, [
                 'from_state' => QueueEntry::STATUS_WAITING,
                 'to_state' => QueueEntry::STATUS_SERVING,
                 'record_version' => $lockedEntry->lock_version,
+                'branch_room_id' => $room?->id,
             ], $lockedActor, $branch, $lockedActor->organisation_id);
 
             return $lockedEntry->refresh();
         }, 3);
+    }
+
+    /**
+     * Call the patient being served again, for the waiting-room TV, without changing the Queue entry.
+     *
+     * @param  array<string, mixed>  $attributes
+     */
+    public function recall(User $actor, Visit $visit, array $attributes): QueueCall
+    {
+        $entry = QueueEntry::query()
+            ->where('organisation_id', $actor->organisation_id)
+            ->where('branch_id', $visit->branch_id)
+            ->where('visit_id', $visit->id)
+            ->firstOrFail();
+        Gate::forUser($actor)->authorize('call', $entry);
+        $branch = $this->activeBranch($actor, $visit, $attributes);
+        $validated = Validator::make($attributes, [
+            'expected_branch_id' => ['required', 'integer'],
+            'queue_lock_version' => ['required', 'integer', 'min:1'],
+        ])->validate();
+
+        return DB::transaction(function () use ($actor, $visit, $branch, $validated): QueueCall {
+            $lockedActor = $this->lockActor($actor, $branch, ['queue.call.branch', 'queue.call.own']);
+            $lockedVisit = Visit::query()
+                ->whereKey($visit->id)
+                ->where('organisation_id', $lockedActor->organisation_id)
+                ->where('branch_id', $branch->id)
+                ->lockForUpdate()
+                ->firstOrFail();
+            $lockedEntry = QueueEntry::query()
+                ->where('visit_id', $lockedVisit->id)
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            $ownsQueue = $lockedActor->can('queue.call.own')
+                && $lockedVisit->assigned_doctor_user_id === $lockedActor->id;
+            if (! $lockedActor->can('queue.call.branch') && ! $ownsQueue) {
+                throw new AuthorizationException('You may not call this Patient again.');
+            }
+            if ($lockedEntry->lock_version !== (int) $validated['queue_lock_version']) {
+                $this->stale();
+            }
+            $held = $lockedVisit->clinicalEncounter()->whereHas('activeHold')->exists();
+            if ($lockedEntry->status !== QueueEntry::STATUS_SERVING || $held
+                || $lockedVisit->assigned_doctor_user_id === null) {
+                throw ValidationException::withMessages([
+                    'queue' => 'Only a patient being served now can be called again. Reload the Queue.',
+                ]);
+            }
+
+            $lastCalledAt = QueueCall::query()->where('queue_entry_id', $lockedEntry->id)->max('called_at');
+            if ($lastCalledAt !== null
+                && now()->utc()->lt(Carbon::parse($lastCalledAt, 'UTC')->addSeconds(QueueCall::RECALL_COOLDOWN_SECONDS))) {
+                throw ValidationException::withMessages([
+                    'queue' => 'This patient was just called. Wait a few seconds before calling again.',
+                ]);
+            }
+
+            $doctor = User::query()->whereKey($lockedVisit->assigned_doctor_user_id)->firstOrFail();
+            $effectiveDate = now()->setTimezone($branch->timezone)->toDateString();
+            $room = $this->requiredRoom($doctor, $branch, $effectiveDate);
+            $call = $this->recordCall($lockedEntry, $room, $lockedActor, $effectiveDate, now()->utc(), true);
+            $this->audit->record('queue.recalled', $lockedEntry, [
+                'record_version' => $lockedEntry->lock_version,
+                'branch_room_id' => $room?->id,
+            ], $lockedActor, $branch, $lockedActor->organisation_id);
+
+            return $call;
+        }, 3);
+    }
+
+    /**
+     * A branch that has set up consultation rooms needs the doctor's room for today before a call goes to the TV.
+     * A branch without rooms still calls, and the TV sends the patient to the counter.
+     */
+    private function requiredRoom(User $doctor, Branch $branch, string $operationalDate): ?BranchRoom
+    {
+        $room = $this->rooms->roomFor($doctor->id, $branch, $operationalDate);
+        if ($room === null && $this->rooms->branchHasConsultationRooms($branch)) {
+            throw ValidationException::withMessages([
+                'doctor' => 'The doctor has not chosen a consultation room for today. Choose "My room today" in the Consultation queue, then call again.',
+            ]);
+        }
+
+        return $room;
+    }
+
+    private function recordCall(
+        QueueEntry $entry,
+        ?BranchRoom $room,
+        User $actor,
+        string $operationalDate,
+        DateTimeInterface $calledAt,
+        bool $isRecall,
+    ): QueueCall {
+        $call = new QueueCall;
+        $call->forceFill([
+            'organisation_id' => $entry->organisation_id,
+            'branch_id' => $entry->branch_id,
+            'queue_entry_id' => $entry->id,
+            'service' => QueueCall::SERVICE_CONSULTATION,
+            'is_recall' => $isRecall,
+            'branch_room_id' => $room?->id,
+            'room_name' => $room?->name,
+            'queue_number' => $entry->queue_number,
+            'operational_date' => $operationalDate,
+            'called_by_user_id' => $actor->id,
+            'called_at' => $calledAt,
+        ])->save();
+
+        return $call;
     }
 
     /** @param array<string, mixed> $attributes */

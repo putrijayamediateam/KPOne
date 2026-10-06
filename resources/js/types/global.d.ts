@@ -41,6 +41,7 @@ declare module '@inertiajs/core' {
                     accessControl: boolean;
                     auditLogs: boolean;
                     publicCheckInLinks: boolean;
+                    queueDisplay: boolean;
                     insights: boolean;
                 };
                 pendingIntakes: number;

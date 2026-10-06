@@ -42,7 +42,49 @@ defineOptions({
     layout: { breadcrumbs: [{ title: 'Consultation', href: '/queue' }] },
 });
 
-const props = defineProps<{ snapshot: QueueSnapshot }>();
+const props = defineProps<{
+    snapshot: QueueSnapshot;
+    roomChoice?: {
+        rooms: Array<{ id: number; name: string }>;
+        currentRoomId: number | null;
+        operationalDate: string;
+    } | null;
+}>();
+const roomSaving = ref(false);
+const roomError = ref('');
+const roomOptions = computed(() => [
+    { value: '', label: 'Not chosen' },
+    ...(props.roomChoice?.rooms ?? []).map((room) => ({
+        value: room.id,
+        label: room.name,
+    })),
+]);
+const chooseRoom = (value: string | number) => {
+    if (value === (props.roomChoice?.currentRoomId ?? '')) {
+        return;
+    }
+
+    roomSaving.value = true;
+    roomError.value = '';
+    router.put(
+        '/queue/room',
+        {
+            branch_room_id: value === '' ? null : Number(value),
+            expected_branch_id: live.value.branch.id,
+        },
+        {
+            preserveScroll: true,
+            preserveState: true,
+            onError: (errors) => {
+                roomError.value =
+                    errors.branch_room_id ??
+                    errors.expected_branch_id ??
+                    'The room could not be saved. Reload and try again.';
+            },
+            onFinish: () => (roomSaving.value = false),
+        },
+    );
+};
 type QueueTab = 'all' | 'waiting' | 'serving' | 'removed';
 const tabs: Array<{ value: QueueTab; label: string }> = [
     { value: 'all', label: 'All active' },
@@ -187,6 +229,7 @@ const boardRows = computed<PatientBoardRow[]>(() =>
             cancel: row.can.cancel,
             sendToWaiting: false,
             call: row.canCall && row.status === 'waiting',
+            recall: row.canCall && row.status === 'serving' && !row.isHeld,
             openConsultation: row.canOpenEncounter,
         },
         source: row,
@@ -379,6 +422,33 @@ const requestCall = (row: PatientBoardRow) => {
     callRow.value = row;
     callOpen.value = true;
 };
+const recall = (row: PatientBoardRow) => {
+    if (busyKey.value !== null) {
+        return;
+    }
+
+    busyKey.value = row.key;
+    operationalError.value = '';
+    router.patch(
+        `/visits/${encodeURIComponent(row.visitNumber)}/queue/recall`,
+        {
+            expected_branch_id: live.value.branch.id,
+            queue_lock_version: source(row).queueLockVersion,
+        },
+        {
+            preserveScroll: true,
+            preserveState: true,
+            onError: (errors) => {
+                operationalError.value =
+                    Object.values(errors)[0] ??
+                    'The patient could not be called again.';
+            },
+            onFinish: () => {
+                busyKey.value = null;
+            },
+        },
+    );
+};
 const finishCall = () => {
     void refresh(1, 1, false).finally(schedule);
 };
@@ -464,6 +534,43 @@ onBeforeUnmount(() => {
     <main
         class="mx-auto flex w-full max-w-[1600px] flex-1 flex-col gap-2 px-3 py-2 md:px-5"
     >
+        <div
+            v-if="roomChoice"
+            class="flex flex-wrap items-center gap-2 rounded-lg border px-3 py-2 text-[13px]"
+            :class="
+                roomChoice.currentRoomId === null
+                    ? 'border-amber-300 bg-amber-50 text-amber-950 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-100'
+                    : 'bg-muted/30'
+            "
+            data-testid="doctor-room-choice"
+        >
+            <span id="doctor-room-label" class="font-medium"
+                >My room today</span
+            >
+            <OperationalSelect
+                :model-value="roomChoice.currentRoomId ?? ''"
+                label="My room today"
+                labelledby="doctor-room-label"
+                :options="roomOptions"
+                :disabled="roomSaving || roomChoice.rooms.length === 0"
+                trigger-class="h-8 w-48"
+                @update:model-value="chooseRoom"
+            />
+            <span
+                v-if="roomChoice.rooms.length === 0"
+                class="text-xs text-muted-foreground"
+                >No consultation rooms are set up for this branch yet. Ask a
+                supervisor to add them in Queue Display (TV).</span
+            >
+            <span v-else-if="roomChoice.currentRoomId === null" class="text-xs"
+                >Choose your room before calling. Call In stays blocked until
+                you do, so the TV can tell patients where to go.</span
+            >
+            <span v-else class="text-xs text-muted-foreground"
+                >The TV shows this room when you call a patient in.</span
+            >
+            <InputError :message="roomError" />
+        </div>
         <div class="flex items-center gap-2 border-b">
             <OperationalTabs
                 :model-value="activeTab"
@@ -529,6 +636,7 @@ onBeforeUnmount(() => {
                 :rows="boardRows"
                 :busy-key="busyKey"
                 @call="requestCall"
+                @recall="recall"
                 @open-consultation="openConsultation"
                 @cancel="requestCancellation"
             />

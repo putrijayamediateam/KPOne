@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Auth;
 
+use App\Domain\Access\PermissionCatalogue;
 use App\Domain\Audit\AuditRecorder;
 use App\Http\Controllers\Controller;
 use App\Models\User;
@@ -74,7 +75,8 @@ class GoogleAuthController extends Controller
             return $this->denied();
         }
 
-        Auth::login($user);
+        // A waiting-room TV must stay signed in through session expiry and overnight power-off.
+        Auth::login($user, $user->hasRole(PermissionCatalogue::QUEUE_DISPLAY_ROLE));
         $request->session()->regenerate();
 
         return redirect()->intended(route('workspace', absolute: false));

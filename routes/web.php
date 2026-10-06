@@ -36,6 +36,8 @@ use App\Http\Controllers\PublicCheckInController;
 use App\Http\Controllers\PublicCheckInLinkController;
 use App\Http\Controllers\PublicIntakeReviewController;
 use App\Http\Controllers\QueueController;
+use App\Http\Controllers\QueueDisplayController;
+use App\Http\Controllers\QueueDisplaySettingsController;
 use App\Http\Controllers\RegistrationController;
 use App\Http\Controllers\StaffBranchAssignmentController;
 use App\Http\Controllers\StaffController;
@@ -156,6 +158,32 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('public-checkin-links', [PublicCheckInLinkController::class, 'store'])->name('public-checkin-links.store');
         Route::post('public-checkin-links/{publicCheckInLink}/rotate', [PublicCheckInLinkController::class, 'rotate'])->name('public-checkin-links.rotate');
         Route::delete('public-checkin-links/{publicCheckInLink}', [PublicCheckInLinkController::class, 'revoke'])->name('public-checkin-links.revoke');
+    });
+
+    Route::middleware('permission:queue.display.branch,queue_display.manage.organisation,queue_display.manage.branch')->group(function () {
+        Route::get('queue-display', [QueueDisplayController::class, 'screen'])->name('queue-display.screen');
+        Route::get('queue-display/feed', [QueueDisplayController::class, 'feed'])
+            ->middleware('throttle:120,1')->name('queue-display.feed');
+        Route::get('queue-display/branches/{branch}/posters/{poster}', [QueueDisplayController::class, 'poster'])
+            ->whereNumber('branch')->whereUuid('poster')->middleware('throttle:240,1')->name('queue-display.posters.show');
+    });
+
+    Route::middleware('permission:queue_display.manage.organisation,queue_display.manage.branch')->prefix('queue-display-settings')->group(function () {
+        Route::get('/', [QueueDisplaySettingsController::class, 'index'])->name('queue-display.settings');
+        Route::post('branches/{branch}/rooms', [QueueDisplaySettingsController::class, 'storeRoom'])
+            ->whereNumber('branch')->middleware('throttle:30,1')->name('queue-display.rooms.store');
+        Route::patch('rooms/{room}', [QueueDisplaySettingsController::class, 'updateRoom'])
+            ->whereNumber('room')->middleware('throttle:30,1')->name('queue-display.rooms.update');
+        Route::post('rooms/{room}/activate', [QueueDisplaySettingsController::class, 'activateRoom'])
+            ->whereNumber('room')->middleware('throttle:30,1')->name('queue-display.rooms.activate');
+        Route::post('rooms/{room}/deactivate', [QueueDisplaySettingsController::class, 'deactivateRoom'])
+            ->whereNumber('room')->middleware('throttle:30,1')->name('queue-display.rooms.deactivate');
+        Route::patch('branches/{branch}', [QueueDisplaySettingsController::class, 'updateSettings'])
+            ->whereNumber('branch')->middleware('throttle:30,1')->name('queue-display.settings.update');
+        Route::post('branches/{branch}/posters', [QueueDisplaySettingsController::class, 'storePoster'])
+            ->whereNumber('branch')->middleware('throttle:20,1')->name('queue-display.posters.store');
+        Route::post('branches/{branch}/posters/{poster}/remove', [QueueDisplaySettingsController::class, 'destroyPoster'])
+            ->whereNumber('branch')->whereUuid('poster')->middleware('throttle:20,1')->name('queue-display.posters.destroy');
     });
 
     Route::middleware(['sensitive.no-store', 'inertia.encrypt'])->group(function () {
@@ -376,6 +404,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::patch('visits/{visit}/queue/call', [QueueController::class, 'call'])
             ->middleware(['permission:queue.call.own,queue.call.branch', 'throttle:30,1'])
             ->name('queue.call');
+        Route::patch('visits/{visit}/queue/recall', [QueueController::class, 'recall'])
+            ->middleware(['permission:queue.call.own,queue.call.branch', 'throttle:30,1'])
+            ->name('queue.recall');
+        Route::put('queue/room', [QueueController::class, 'room'])
+            ->middleware(['permission:queue.room.select.own', 'throttle:30,1'])
+            ->name('queue.room');
 
         Route::get('registration', [RegistrationController::class, 'index'])
             ->middleware('permission:visits.view.branch')
