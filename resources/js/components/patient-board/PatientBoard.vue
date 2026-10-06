@@ -28,6 +28,7 @@ defineEmits<{
     sendToWaiting: [row: PatientBoardRow];
     call: [row: PatientBoardRow];
     recall: [row: PatientBoardRow];
+    callTreatment: [row: PatientBoardRow];
     openConsultation: [row: PatientBoardRow];
     cancel: [row: PatientBoardRow];
 }>();
@@ -235,6 +236,7 @@ const statusClass = (tone: PatientBoardRow['statusTone']) =>
                                         row.can.sendToWaiting ||
                                         row.can.call ||
                                         row.can.recall ||
+                                        row.can.callTreatment ||
                                         row.can.openConsultation ||
                                         row.can.openDispensary ||
                                         row.can.cancel
@@ -257,6 +259,12 @@ const statusClass = (tone: PatientBoardRow['statusTone']) =>
                                     class="min-h-8 rounded-lg px-2.5 text-[13px]"
                                     @select="$emit('recall', row)"
                                     >Call Again</DropdownMenuItem
+                                >
+                                <DropdownMenuItem
+                                    v-if="row.can.callTreatment"
+                                    class="min-h-8 rounded-lg px-2.5 text-[13px]"
+                                    @select="$emit('callTreatment', row)"
+                                    >Call to Treatment Room</DropdownMenuItem
                                 >
                                 <DropdownMenuItem
                                     v-if="row.can.openConsultation"

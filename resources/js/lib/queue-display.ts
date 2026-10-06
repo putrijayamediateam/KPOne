@@ -2,9 +2,12 @@ export type DisplayCall = {
     id: number;
     number: string;
     room: string | null;
+    service?: CallService;
     calledAt: string;
     isRecall: boolean;
 };
+
+export type CallService = 'consultation' | 'dispensary' | 'treatment';
 
 export type DisplaySettings = {
     tickerText: string | null;
@@ -27,8 +30,25 @@ export const HIGHLIGHT_MILLISECONDS = 12_000;
 /** Shown when a call has no room: the doctor did not choose one for today. */
 export const ROOM_FALLBACK = 'Sila ke kaunter';
 
-export const roomLabel = (room: string | null): string =>
-    room && room.trim() !== '' ? room : ROOM_FALLBACK;
+/** What the TV shows and says when a call has no room, per service. */
+const SERVICE_FALLBACK: Record<
+    CallService,
+    { display: string; ms: string; en: string }
+> = {
+    consultation: { display: ROOM_FALLBACK, ms: 'Kaunter', en: 'Counter' },
+    dispensary: { display: 'Farmasi', ms: 'Farmasi', en: 'Pharmacy' },
+    treatment: {
+        display: 'Bilik rawatan',
+        ms: 'Bilik rawatan',
+        en: 'Treatment room',
+    },
+};
+
+export const roomLabel = (
+    room: string | null,
+    service: CallService = 'consultation',
+): string =>
+    room && room.trim() !== '' ? room : SERVICE_FALLBACK[service].display;
 
 /**
  * Calls the screen has not announced yet, oldest first. The first feed after the page opens only
@@ -156,15 +176,13 @@ export const spokenQueueNumber = (
 
 /** The number one character at a time, then the room exactly as named in settings. */
 export const announcementText = (
-    call: Pick<DisplayCall, 'number' | 'room'>,
+    call: Pick<DisplayCall, 'number' | 'room' | 'service'>,
     language: AnnouncementLanguage,
 ): string => {
     const room =
         call.room && call.room.trim() !== ''
             ? call.room.trim()
-            : language === 'ms'
-              ? 'Kaunter'
-              : 'Counter';
+            : SERVICE_FALLBACK[call.service ?? 'consultation'][language];
 
     return `${spokenQueueNumber(call.number, language)}. ${room}.`;
 };

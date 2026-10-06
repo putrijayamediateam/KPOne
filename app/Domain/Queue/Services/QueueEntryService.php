@@ -8,16 +8,15 @@ use App\Domain\Identity\Models\StaffBranchAssignment;
 use App\Domain\Identity\Models\StaffProfile;
 use App\Domain\Organisation\Models\Branch;
 use App\Domain\Queue\Display\DoctorRoomService;
+use App\Domain\Queue\Display\QueueCallRecorder;
 use App\Domain\Queue\Models\BranchRoom;
 use App\Domain\Queue\Models\QueueCall;
 use App\Domain\Queue\Models\QueueEntry;
 use App\Domain\Visit\Models\Visit;
 use App\Domain\Visit\Services\VisitDoctorEligibilityService;
 use App\Models\User;
-use DateTimeInterface;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\QueryException;
-use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Validator;
@@ -31,6 +30,7 @@ class QueueEntryService
         private QueueNumberGenerator $numbers,
         private AuditRecorder $audit,
         private DoctorRoomService $rooms,
+        private QueueCallRecorder $calls,
     ) {}
 
     /** @param array<string, mixed> $attributes */
@@ -221,7 +221,7 @@ class QueueEntryService
                 'updated_by_user_id' => $lockedActor->id,
                 'lock_version' => $lockedEntry->lock_version + 1,
             ])->save();
-            $this->recordCall($lockedEntry, $room, $lockedActor, $effectiveDate, $calledAt, false);
+            $this->calls->record($lockedEntry, QueueCall::SERVICE_CONSULTATION, $room, $lockedActor, $effectiveDate, $calledAt, false);
             $this->audit->record('queue.called', $lockedEntry, [
                 'from_state' => QueueEntry::STATUS_WAITING,
                 'to_state' => QueueEntry::STATUS_SERVING,
@@ -281,18 +281,12 @@ class QueueEntryService
                 ]);
             }
 
-            $lastCalledAt = QueueCall::query()->where('queue_entry_id', $lockedEntry->id)->max('called_at');
-            if ($lastCalledAt !== null
-                && now()->utc()->lt(Carbon::parse($lastCalledAt, 'UTC')->addSeconds(QueueCall::RECALL_COOLDOWN_SECONDS))) {
-                throw ValidationException::withMessages([
-                    'queue' => 'This patient was just called. Wait a few seconds before calling again.',
-                ]);
-            }
+            $this->calls->assertCooldown($lockedEntry, QueueCall::SERVICE_CONSULTATION);
 
             $doctor = User::query()->whereKey($lockedVisit->assigned_doctor_user_id)->firstOrFail();
             $effectiveDate = now()->setTimezone($branch->timezone)->toDateString();
             $room = $this->requiredRoom($doctor, $branch, $effectiveDate);
-            $call = $this->recordCall($lockedEntry, $room, $lockedActor, $effectiveDate, now()->utc(), true);
+            $call = $this->calls->record($lockedEntry, QueueCall::SERVICE_CONSULTATION, $room, $lockedActor, $effectiveDate, now()->utc(), true);
             $this->audit->record('queue.recalled', $lockedEntry, [
                 'record_version' => $lockedEntry->lock_version,
                 'branch_room_id' => $room?->id,
@@ -316,32 +310,6 @@ class QueueEntryService
         }
 
         return $room;
-    }
-
-    private function recordCall(
-        QueueEntry $entry,
-        ?BranchRoom $room,
-        User $actor,
-        string $operationalDate,
-        DateTimeInterface $calledAt,
-        bool $isRecall,
-    ): QueueCall {
-        $call = new QueueCall;
-        $call->forceFill([
-            'organisation_id' => $entry->organisation_id,
-            'branch_id' => $entry->branch_id,
-            'queue_entry_id' => $entry->id,
-            'service' => QueueCall::SERVICE_CONSULTATION,
-            'is_recall' => $isRecall,
-            'branch_room_id' => $room?->id,
-            'room_name' => $room?->name,
-            'queue_number' => $entry->queue_number,
-            'operational_date' => $operationalDate,
-            'called_by_user_id' => $actor->id,
-            'called_at' => $calledAt,
-        ])->save();
-
-        return $call;
     }
 
     /** @param array<string, mixed> $attributes */

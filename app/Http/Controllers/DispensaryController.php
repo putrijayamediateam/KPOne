@@ -7,6 +7,9 @@ use App\Domain\Clinical\Dispensary\Models\DispensaryItem;
 use App\Domain\Clinical\Dispensary\Models\DispensaryItemException;
 use App\Domain\Clinical\Dispensary\Services\DispensaryDirectoryService;
 use App\Domain\Clinical\Dispensary\Services\DispensaryService;
+use App\Domain\Organisation\Models\Branch;
+use App\Domain\Queue\Display\RoomCallService;
+use App\Domain\Queue\Models\BranchRoom;
 use App\Http\Requests\AcknowledgeDispensaryPartialRequest;
 use App\Http\Requests\DispensaryCaseActionRequest;
 use App\Http\Requests\UpdateDispensaryItemRequest;
@@ -17,9 +20,16 @@ use Inertia\Response;
 
 class DispensaryController extends Controller
 {
-    public function show(Request $request, DispensaryCase $dispensaryCase, DispensaryDirectoryService $directory): Response
+    public function show(Request $request, DispensaryCase $dispensaryCase, DispensaryDirectoryService $directory, RoomCallService $calls): Response
     {
         $detail = $directory->detail($request->user(), $dispensaryCase);
+        if ($detail['status'] !== DispensaryCase::STATUS_COMPLETED) {
+            $detail['tvCall'] = [
+                'canCall' => $request->user()->can('dispensary.start.branch')
+                    && in_array($detail['status'], [DispensaryCase::STATUS_PENDING, DispensaryCase::STATUS_DISPENSING], true),
+                'rooms' => $calls->rooms(Branch::query()->findOrFail($dispensaryCase->branch_id), BranchRoom::KIND_DISPENSARY),
+            ];
+        }
         if ($detail['status'] === DispensaryCase::STATUS_COMPLETED && $request->user()->can('billing.view.branch')) {
             $detail['billingUrl'] = route('billing.show', $dispensaryCase->visit);
         }

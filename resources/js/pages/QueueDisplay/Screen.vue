@@ -299,7 +299,7 @@ onBeforeUnmount(() => {
                             {{ current.number }}
                         </p>
                         <p class="mt-3 truncate text-3xl font-bold lg:text-5xl">
-                            {{ roomLabel(current.room) }}
+                            {{ roomLabel(current.room, current.service) }}
                         </p>
                     </template>
                     <p v-else class="py-8 text-2xl text-slate-500">
@@ -332,7 +332,7 @@ onBeforeUnmount(() => {
                             >
                             <span
                                 class="truncate text-xl font-semibold lg:text-3xl"
-                                >{{ roomLabel(call.room) }}</span
+                                >{{ roomLabel(call.room, call.service) }}</span
                             >
                             <span
                                 class="text-base text-slate-400 tabular-nums lg:text-xl"

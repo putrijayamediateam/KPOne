@@ -141,7 +141,7 @@ class QueueDisplayTest extends QueueTestCase
             ->assertJsonPath('calls.0.number', sprintf('%03d', $entry->queue_number))
             ->assertJsonPath('calls.0.room', 'Bilik Rawatan 2')
             ->assertJsonPath('branch.id', $this->branch->id);
-        $this->assertSame(['id', 'number', 'room', 'calledAt', 'isRecall'], array_keys($response->json('calls.0')));
+        $this->assertSame(['id', 'number', 'room', 'service', 'calledAt', 'isRecall'], array_keys($response->json('calls.0')));
         $body = $response->getContent();
         $patient = $visit->patient()->firstOrFail();
         $this->assertStringNotContainsString($patient->full_name, $body);

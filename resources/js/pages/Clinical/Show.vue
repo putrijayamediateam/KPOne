@@ -16,6 +16,7 @@ import { computed, ref, watch } from 'vue';
 import UnsavedClinicalWorkDialog from '@/components/clinical/UnsavedClinicalWorkDialog.vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
+import { OperationalSelect } from '@/components/ui/select';
 import { waitedDurationLabel } from '@/lib/r1c2-presentation';
 import AllergyProblemPanel from '@/pages/Clinical/Partials/AllergyProblemPanel.vue';
 import ClinicalHistoryPanel from '@/pages/Clinical/Partials/ClinicalHistoryPanel.vue';
@@ -27,7 +28,10 @@ defineOptions({
     layout: { breadcrumbs: [{ title: 'Queue', href: '/queue' }] },
 });
 
-const props = defineProps<{ clinical: ClinicalEncounterPage }>();
+const props = defineProps<{
+    clinical: ClinicalEncounterPage;
+    treatmentRooms?: Array<{ id: number; name: string }>;
+}>();
 const workspaceTab = ref<'current' | 'history'>('current');
 const holdProcessing = ref(false);
 const holdError = ref('');
@@ -179,6 +183,39 @@ const recallPatient = () => {
                 recallError.value =
                     Object.values(errors)[0] ??
                     'Pesakit tidak dapat dipanggil semula.';
+            },
+            onFinish: () => (recallProcessing.value = false),
+        },
+    );
+};
+// Calls the patient to a treatment room on the TV; the consultation stays with this doctor.
+const treatmentRoomId = ref<string | number>(
+    props.treatmentRooms?.length === 1 ? props.treatmentRooms[0].id : '',
+);
+const callToTreatment = () => {
+    if (treatmentRoomId.value === '') {
+        recallError.value = 'Pilih bilik rawatan dahulu.';
+
+        return;
+    }
+
+    recallProcessing.value = true;
+    recallError.value = '';
+    router.patch(
+        `/visits/${encodeURIComponent(props.clinical.visit.visitNumber)}/queue/treatment-call`,
+        {
+            expected_branch_id: props.clinical.branch.id,
+            queue_lock_version: props.clinical.queue.lockVersion,
+            branch_room_id: treatmentRoomId.value,
+            from: 'consultation',
+        },
+        {
+            preserveScroll: true,
+            preserveState: true,
+            onError: (errors) => {
+                recallError.value =
+                    Object.values(errors)[0] ??
+                    'Pesakit tidak dapat dipanggil ke bilik rawatan.';
             },
             onFinish: () => (recallProcessing.value = false),
         },
@@ -461,6 +498,37 @@ const changeHoldState = (action: 'hold' | 'resume') => {
                         >
                             <Megaphone class="size-4" /> Panggil semula
                         </Button>
+                        <div
+                            v-if="
+                                clinical.queue.canRecall &&
+                                (treatmentRooms?.length ?? 0) > 0
+                            "
+                            class="flex items-center gap-2"
+                        >
+                            <OperationalSelect
+                                v-if="(treatmentRooms?.length ?? 0) > 1"
+                                v-model="treatmentRoomId"
+                                label="Treatment room"
+                                placeholder="Bilik rawatan"
+                                trigger-class="h-8 w-40"
+                                :options="
+                                    (treatmentRooms ?? []).map((room) => ({
+                                        value: room.id,
+                                        label: room.name,
+                                    }))
+                                "
+                            />
+                            <Button
+                                type="button"
+                                size="sm"
+                                variant="outline"
+                                :disabled="recallProcessing"
+                                data-testid="call-treatment"
+                                @click="callToTreatment"
+                            >
+                                <Megaphone class="size-4" /> Ke bilik rawatan
+                            </Button>
+                        </div>
                         <InputError
                             v-if="recallError"
                             class="max-w-56 text-right"
