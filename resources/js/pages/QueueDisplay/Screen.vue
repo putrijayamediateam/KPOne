@@ -24,6 +24,8 @@ const now = ref(new Date());
 const offline = ref(false);
 const sessionEnded = ref(false);
 const soundOn = ref(false);
+const theme = ref<'light' | 'dark'>('light');
+const isFullscreen = ref(false);
 const highlightId = ref<number | null>(null);
 const posterIndex = ref(0);
 const AUTH_RETRY_MILLISECONDS = 30_000;
@@ -43,8 +45,38 @@ const poster = computed(
 const ticker = computed(
     () =>
         feed.value.settings.tickerText ??
-        'Selamat datang ke Klinik Putrijaya. Sila tunggu nombor anda dipanggil.',
+        'Welcome to Klinik Putrijaya. Please wait for your number to be called.',
 );
+
+const syncFullscreen = () => {
+    isFullscreen.value = document.fullscreenElement !== null;
+};
+
+const requestFullscreen = async () => {
+    try {
+        await document.documentElement.requestFullscreen?.();
+    } catch {
+        // Fullscreen is optional; some TV browsers refuse it.
+    }
+};
+
+const toggleFullscreen = async () => {
+    if (!document.fullscreenElement) {
+        await requestFullscreen();
+
+        return;
+    }
+
+    try {
+        await document.exitFullscreen();
+    } catch {
+        // Fullscreen is optional; some TV browsers refuse it.
+    }
+};
+
+const toggleTheme = () => {
+    theme.value = theme.value === 'light' ? 'dark' : 'light';
+};
 
 let audio: AudioContext | undefined;
 const chime = () => {
@@ -115,11 +147,7 @@ const start = async () => {
     loadVoices();
     void keepAwake();
 
-    try {
-        await document.documentElement.requestFullscreen?.();
-    } catch {
-        // Fullscreen is optional; some TV browsers refuse it.
-    }
+    await requestFullscreen();
 };
 
 let highlightTimer: number | undefined;
@@ -182,7 +210,7 @@ const poll = async () => {
 };
 
 const signOut = () => {
-    if (window.confirm('Log keluar dari paparan TV ini?')) {
+    if (window.confirm('Sign out of this TV display?')) {
         router.post('/logout');
     }
 };
@@ -211,6 +239,8 @@ const onVisibility = () => {
 };
 
 onMounted(() => {
+    syncFullscreen();
+    document.addEventListener('fullscreenchange', syncFullscreen);
     // Some TV browsers allow sound without a tap (kiosk or site setting); use it when they do.
     audio = new AudioContext();
     soundOn.value = audio.state === 'running';
@@ -228,6 +258,7 @@ onBeforeUnmount(() => {
     window.clearInterval(posterTimer);
     window.clearTimeout(highlightTimer);
     document.removeEventListener('visibilitychange', onVisibility);
+    document.removeEventListener('fullscreenchange', syncFullscreen);
     window.speechSynthesis?.removeEventListener('voiceschanged', loadVoices);
     window.speechSynthesis?.cancel();
     void wakeLock?.release();
@@ -236,35 +267,181 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-    <Head title="Paparan Giliran" />
+    <Head title="Queue Display" />
     <div
-        class="flex h-svh min-h-0 flex-col overflow-hidden bg-slate-950 text-white"
+        class="flex h-svh min-h-0 flex-col overflow-hidden"
+        :class="
+            theme === 'dark'
+                ? 'bg-zinc-950 text-white'
+                : 'bg-white text-zinc-950'
+        "
         data-testid="queue-display"
     >
         <header
-            class="flex items-center justify-between gap-4 bg-teal-700 px-6 py-3 lg:px-10"
+            class="flex flex-wrap items-center justify-between gap-3 border-b px-4 py-3 lg:px-10"
+            :class="
+                theme === 'dark'
+                    ? 'border-zinc-800 bg-zinc-950'
+                    : 'border-zinc-200 bg-white'
+            "
         >
-            <div class="min-w-0">
-                <p
-                    class="truncate text-2xl font-bold tracking-wide lg:text-4xl"
-                >
-                    Klinik Putrijaya
-                </p>
-                <p class="truncate text-base text-teal-100 lg:text-2xl">
-                    Cawangan {{ feed.branch.name }}
-                </p>
+            <div class="flex min-w-0 items-center gap-3">
+                <img
+                    src="/kp-mark.png"
+                    alt="Klinik Putrijaya logo"
+                    class="size-11 shrink-0 object-contain lg:size-14"
+                />
+                <div class="min-w-0">
+                    <p
+                        class="truncate text-xl font-bold tracking-wide lg:text-4xl"
+                        :class="
+                            theme === 'dark' ? 'text-pink-400' : 'text-pink-700'
+                        "
+                    >
+                        Klinik Putrijaya
+                    </p>
+                    <p
+                        class="truncate text-sm lg:text-xl"
+                        :class="
+                            theme === 'dark' ? 'text-zinc-300' : 'text-zinc-600'
+                        "
+                    >
+                        Branch {{ feed.branch.name }}
+                    </p>
+                </div>
             </div>
-            <div class="shrink-0 text-right">
-                <p
-                    class="font-mono text-3xl font-bold tabular-nums lg:text-5xl"
-                    role="timer"
-                    aria-live="off"
-                >
-                    {{ formatDisplayTime(now, timeZone) }}
-                </p>
-                <p class="text-sm text-teal-100 lg:text-xl">
-                    {{ formatDisplayDate(now, timeZone) }}
-                </p>
+            <div
+                class="flex shrink-0 items-center gap-3 sm:gap-5"
+                :class="theme === 'dark' ? 'text-white' : 'text-zinc-950'"
+            >
+                <div class="flex items-center gap-2">
+                    <button
+                        type="button"
+                        class="inline-flex min-h-10 items-center gap-2 rounded-lg border px-2.5 text-sm font-semibold transition-colors focus-visible:ring-2 focus-visible:ring-pink-500 focus-visible:outline-none"
+                        :class="
+                            theme === 'dark'
+                                ? 'border-zinc-700 hover:bg-zinc-800'
+                                : 'border-zinc-300 hover:bg-zinc-100'
+                        "
+                        :aria-label="
+                            isFullscreen
+                                ? 'Exit full screen'
+                                : 'Enter full screen'
+                        "
+                        :aria-pressed="isFullscreen"
+                        :title="
+                            isFullscreen
+                                ? 'Exit full screen'
+                                : 'Enter full screen'
+                        "
+                        @click="toggleFullscreen"
+                    >
+                        <svg
+                            v-if="!isFullscreen"
+                            aria-hidden="true"
+                            viewBox="0 0 24 24"
+                            class="size-4"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                        >
+                            <path
+                                d="M8 3H5a2 2 0 0 0-2 2v3m13-5h3a2 2 0 0 1 2 2v3M3 16v3a2 2 0 0 0 2 2h3m13-5v3a2 2 0 0 1-2 2h-3"
+                            />
+                        </svg>
+                        <svg
+                            v-else
+                            aria-hidden="true"
+                            viewBox="0 0 24 24"
+                            class="size-4"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                        >
+                            <path d="M8 3v5H3m13-5v5h5M3 16h5v5m13-5h-5v5" />
+                        </svg>
+                        <span class="hidden xl:inline">{{
+                            isFullscreen ? 'Exit full screen' : 'Full screen'
+                        }}</span>
+                    </button>
+                    <button
+                        type="button"
+                        class="inline-flex min-h-10 items-center gap-2 rounded-lg border px-2.5 text-sm font-semibold transition-colors focus-visible:ring-2 focus-visible:ring-pink-500 focus-visible:outline-none"
+                        :class="
+                            theme === 'dark'
+                                ? 'border-zinc-700 hover:bg-zinc-800'
+                                : 'border-zinc-300 hover:bg-zinc-100'
+                        "
+                        :aria-label="
+                            theme === 'light'
+                                ? 'Switch to dark theme'
+                                : 'Switch to light theme'
+                        "
+                        :aria-pressed="theme === 'dark'"
+                        :title="
+                            theme === 'light'
+                                ? 'Switch to dark theme'
+                                : 'Switch to light theme'
+                        "
+                        @click="toggleTheme"
+                    >
+                        <svg
+                            v-if="theme === 'light'"
+                            aria-hidden="true"
+                            viewBox="0 0 24 24"
+                            class="size-4"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                        >
+                            <circle cx="12" cy="12" r="4" />
+                            <path
+                                d="M12 2v2m0 16v2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M2 12h2m16 0h2M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42"
+                            />
+                        </svg>
+                        <svg
+                            v-else
+                            aria-hidden="true"
+                            viewBox="0 0 24 24"
+                            class="size-4"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                        >
+                            <path
+                                d="M20.9 13A9 9 0 0 1 11 3.1 9 9 0 1 0 20.9 13Z"
+                            />
+                        </svg>
+                        <span class="hidden sm:inline">{{
+                            theme === 'light' ? 'Light' : 'Dark'
+                        }}</span>
+                    </button>
+                </div>
+                <div class="text-right">
+                    <p
+                        class="font-mono text-2xl font-bold tabular-nums lg:text-5xl"
+                        role="timer"
+                        aria-live="off"
+                    >
+                        {{ formatDisplayTime(now, timeZone) }}
+                    </p>
+                    <p
+                        class="text-xs lg:text-xl"
+                        :class="
+                            theme === 'dark' ? 'text-zinc-300' : 'text-zinc-600'
+                        "
+                    >
+                        {{ formatDisplayDate(now, timeZone) }}
+                    </p>
+                </div>
             </div>
         </header>
 
@@ -273,24 +450,22 @@ onBeforeUnmount(() => {
         >
             <section
                 class="flex min-h-0 min-w-0 flex-col gap-4"
-                aria-label="Panggilan giliran"
+                aria-label="Queue calls"
             >
                 <div
                     class="rounded-2xl p-5 text-center transition-colors lg:p-8"
                     :class="
                         current && highlightId === current.id
-                            ? 'animate-pulse bg-amber-400 text-slate-950'
-                            : 'bg-white text-slate-950'
+                            ? 'animate-pulse bg-pink-600 text-white'
+                            : theme === 'dark'
+                              ? 'border border-zinc-800 bg-zinc-900 text-white'
+                              : 'border border-zinc-200 bg-white text-zinc-950 shadow-sm'
                     "
                     aria-live="assertive"
                     data-testid="current-call"
                 >
                     <p class="text-lg font-semibold uppercase lg:text-2xl">
-                        {{
-                            current?.isRecall
-                                ? 'Panggilan semula'
-                                : 'Sedang dipanggil'
-                        }}
+                        {{ current?.isRecall ? 'Recall' : 'Now calling' }}
                     </p>
                     <template v-if="current">
                         <p
@@ -302,28 +477,50 @@ onBeforeUnmount(() => {
                             {{ roomLabel(current.room, current.service) }}
                         </p>
                     </template>
-                    <p v-else class="py-8 text-2xl text-slate-500">
-                        Belum ada panggilan hari ini
+                    <p
+                        v-else
+                        class="py-8 text-2xl"
+                        :class="
+                            theme === 'dark' ? 'text-zinc-400' : 'text-zinc-500'
+                        "
+                    >
+                        No calls yet today
                     </p>
                 </div>
 
                 <div
-                    class="min-h-0 flex-1 overflow-hidden rounded-2xl bg-slate-900"
+                    class="min-h-0 flex-1 overflow-hidden rounded-2xl"
+                    :class="
+                        theme === 'dark'
+                            ? 'bg-zinc-900'
+                            : 'border border-zinc-200 bg-white'
+                    "
                 >
                     <div
-                        class="grid grid-cols-[minmax(0,1fr)_minmax(0,2fr)_auto] gap-3 border-b border-slate-700 px-5 py-3 text-sm font-semibold text-slate-300 uppercase lg:text-lg"
+                        class="grid grid-cols-[minmax(0,1fr)_minmax(0,2fr)_auto] gap-3 border-b px-5 py-3 text-sm font-semibold uppercase lg:text-lg"
+                        :class="
+                            theme === 'dark'
+                                ? 'border-zinc-700 text-zinc-300'
+                                : 'border-zinc-200 text-zinc-600'
+                        "
                     >
-                        <span>Nombor</span>
-                        <span>Bilik</span>
-                        <span>Masa</span>
+                        <span>Number</span>
+                        <span>Room</span>
+                        <span>Time</span>
                     </div>
                     <ol>
                         <li
                             v-for="call in previous"
                             :key="call.id"
-                            class="grid grid-cols-[minmax(0,1fr)_minmax(0,2fr)_auto] items-center gap-3 border-b border-slate-800 px-5 py-3 last:border-0"
+                            class="grid grid-cols-[minmax(0,1fr)_minmax(0,2fr)_auto] items-center gap-3 border-b px-5 py-3 last:border-0"
                             :class="
-                                highlightId === call.id ? 'bg-amber-400/20' : ''
+                                highlightId === call.id
+                                    ? theme === 'dark'
+                                        ? 'border-zinc-800 bg-pink-950/50 text-pink-100'
+                                        : 'border-zinc-200 bg-pink-100 text-pink-950'
+                                    : theme === 'dark'
+                                      ? 'border-zinc-800'
+                                      : 'border-zinc-200'
                             "
                         >
                             <span
@@ -335,7 +532,12 @@ onBeforeUnmount(() => {
                                 >{{ roomLabel(call.room, call.service) }}</span
                             >
                             <span
-                                class="text-base text-slate-400 tabular-nums lg:text-xl"
+                                class="text-base tabular-nums lg:text-xl"
+                                :class="
+                                    theme === 'dark'
+                                        ? 'text-zinc-400'
+                                        : 'text-zinc-500'
+                                "
                                 >{{
                                     formatCallTime(call.calledAt, timeZone)
                                 }}</span
@@ -347,7 +549,7 @@ onBeforeUnmount(() => {
 
             <section
                 class="hidden min-h-0 min-w-0 flex-col gap-4 lg:flex"
-                aria-label="Maklumat klinik"
+                aria-label="Clinic information"
             >
                 <div
                     v-if="videoUrl"
@@ -357,7 +559,7 @@ onBeforeUnmount(() => {
                     <iframe
                         :src="videoUrl"
                         class="h-full w-full"
-                        title="Video klinik"
+                        title="Clinic video"
                         allow="autoplay; encrypted-media; picture-in-picture"
                         referrerpolicy="strict-origin-when-cross-origin"
                         sandbox="allow-scripts allow-same-origin allow-presentation"
@@ -365,25 +567,35 @@ onBeforeUnmount(() => {
                 </div>
                 <div
                     v-if="poster"
-                    class="flex min-h-0 flex-1 items-center justify-center overflow-hidden rounded-2xl bg-slate-900"
+                    class="flex min-h-0 flex-1 items-center justify-center overflow-hidden rounded-2xl"
+                    :class="
+                        theme === 'dark'
+                            ? 'bg-zinc-900'
+                            : 'border border-zinc-200 bg-zinc-100'
+                    "
                 >
                     <img
                         :key="poster.id"
                         :src="poster.url"
-                        alt="Poster klinik"
+                        alt="Clinic poster"
                         class="h-full w-full object-contain"
                     />
                 </div>
                 <div
                     v-if="!videoUrl && !poster"
-                    class="flex flex-1 items-center justify-center rounded-2xl bg-slate-900 p-10 text-center text-3xl text-slate-300"
+                    class="flex flex-1 items-center justify-center rounded-2xl p-10 text-center text-3xl"
+                    :class="
+                        theme === 'dark'
+                            ? 'bg-zinc-900 text-zinc-300'
+                            : 'border border-zinc-200 bg-zinc-100 text-zinc-600'
+                    "
                 >
-                    Terima kasih kerana memilih Klinik Putrijaya.
+                    Thank you for choosing Klinik Putrijaya.
                 </div>
             </section>
         </main>
 
-        <footer class="overflow-hidden bg-amber-400 py-2 text-slate-950">
+        <footer class="overflow-hidden bg-pink-700 py-2 text-white">
             <p
                 class="queue-display-ticker text-xl font-semibold whitespace-nowrap lg:text-3xl"
             >
@@ -394,26 +606,28 @@ onBeforeUnmount(() => {
         <button
             v-if="!soundOn && !sessionEnded"
             type="button"
-            class="fixed bottom-14 left-3 z-40 rounded-xl bg-teal-600 px-5 py-3 text-lg font-bold text-white shadow-xl focus:ring-4 focus:ring-amber-300 focus:outline-none lg:bottom-16 lg:text-2xl"
+            class="fixed bottom-14 left-3 z-40 rounded-xl bg-pink-700 px-5 py-3 text-lg font-bold text-white shadow-xl focus:ring-4 focus:ring-pink-300 focus:outline-none lg:bottom-16 lg:text-2xl"
             autofocus
             @click="start"
         >
-            Ketik untuk aktifkan bunyi
+            Click to enable sound
         </button>
 
         <div
             v-if="sessionEnded"
-            class="fixed inset-0 z-50 flex flex-col items-center justify-center gap-6 bg-slate-950 p-6 text-center"
+            class="fixed inset-0 z-50 flex flex-col items-center justify-center gap-6 bg-zinc-950 p-6 text-center text-white"
             role="alert"
         >
-            <p class="text-3xl font-bold lg:text-5xl">Sesi paparan tamat</p>
-            <p class="text-xl text-slate-300 lg:text-2xl">
-                Sila log masuk semula dengan akaun paparan TV cawangan ini.
+            <p class="text-3xl font-bold lg:text-5xl">
+                Display session expired
+            </p>
+            <p class="text-xl text-zinc-300 lg:text-2xl">
+                Please sign in again with this branch's TV display account.
             </p>
             <a
                 href="/login"
-                class="rounded-xl bg-teal-600 px-8 py-4 text-2xl font-bold"
-                >Log masuk</a
+                class="rounded-xl bg-pink-700 px-8 py-4 text-2xl font-bold"
+                >Sign in</a
             >
         </div>
 
@@ -424,14 +638,19 @@ onBeforeUnmount(() => {
                 v-if="offline"
                 class="rounded bg-red-600 px-2 py-1 font-semibold"
                 role="status"
-                >Sambungan terputus — mencuba semula</span
+                >Connection lost — retrying</span
             >
             <button
                 type="button"
-                class="rounded bg-slate-800/70 px-2 py-1 text-slate-300 hover:bg-slate-700"
+                class="rounded px-2 py-1 transition-colors"
+                :class="
+                    theme === 'dark'
+                        ? 'bg-zinc-800/90 text-zinc-300 hover:bg-zinc-700'
+                        : 'bg-zinc-100 text-zinc-700 hover:bg-zinc-200'
+                "
                 @click="signOut"
             >
-                Log keluar
+                Sign out
             </button>
         </div>
     </div>

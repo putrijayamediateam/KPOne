@@ -32,9 +32,9 @@ const board = read('resources/js/components/patient-board/PatientBoard.vue');
 const screen = read('resources/js/pages/QueueDisplay/Screen.vue');
 
 test('a call without a room names the place for its service', () => {
-    assert.equal(roomLabel(null), 'Sila ke kaunter');
-    assert.equal(roomLabel(null, 'dispensary'), 'Farmasi');
-    assert.equal(roomLabel(null, 'treatment'), 'Bilik rawatan');
+    assert.equal(roomLabel(null), 'Please go to the counter');
+    assert.equal(roomLabel(null, 'dispensary'), 'Pharmacy');
+    assert.equal(roomLabel(null, 'treatment'), 'Treatment Room');
     assert.equal(roomLabel('Farmasi 2', 'dispensary'), 'Farmasi 2');
     assert.equal(
         announcementText(
