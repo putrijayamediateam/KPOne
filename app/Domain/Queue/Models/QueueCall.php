@@ -29,6 +29,10 @@ class QueueCall extends Model
 {
     public const SERVICE_CONSULTATION = 'consultation';
 
+    public const SERVICE_DISPENSARY = 'dispensary';
+
+    public const SERVICE_TREATMENT = 'treatment';
+
     /** How soon the same patient may be called again on the TV. */
     public const RECALL_COOLDOWN_SECONDS = 20;
 

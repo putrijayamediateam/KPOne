@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Domain\Clinical\Services\ClinicalEncounterDirectoryService;
 use App\Domain\Clinical\Services\ClinicalEncounterService;
+use App\Domain\Queue\Display\RoomCallService;
+use App\Domain\Queue\Models\BranchRoom;
 use App\Domain\Visit\Models\Visit;
 use App\Http\Requests\StartClinicalEncounterRequest;
 use App\Http\Requests\UpdateClinicalEncounterRequest;
@@ -29,9 +31,11 @@ class ClinicalEncounterController extends Controller
         Request $request,
         Visit $visit,
         ClinicalEncounterDirectoryService $directory,
+        RoomCallService $calls,
     ): Response {
         return Inertia::render('Clinical/Show', [
             'clinical' => $directory->detail($request->user(), $visit),
+            'treatmentRooms' => $calls->rooms($visit->branch, BranchRoom::KIND_TREATMENT),
         ]);
     }
 

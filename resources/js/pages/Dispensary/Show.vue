@@ -1,8 +1,15 @@
 <script setup lang="ts">
 import { Head, router, usePage } from '@inertiajs/vue3';
-import { CheckCircle2, LoaderCircle, Printer, RotateCcw } from '@lucide/vue';
+import {
+    CheckCircle2,
+    LoaderCircle,
+    Megaphone,
+    Printer,
+    RotateCcw,
+} from '@lucide/vue';
 import { reactive, ref } from 'vue';
 import { Button } from '@/components/ui/button';
+import { OperationalSelect } from '@/components/ui/select';
 import { formatStatusLabel } from '@/lib/presentation';
 
 defineOptions({
@@ -63,6 +70,10 @@ type Page = {
         complete: boolean;
         return: boolean;
     };
+    tvCall?: {
+        canCall: boolean;
+        rooms: Array<{ id: number; name: string }>;
+    };
 };
 const props = defineProps<{ dispensary: Page }>();
 const busy = ref(false);
@@ -106,6 +117,29 @@ const caseAction = (suffix: string) => {
         },
         {
             preserveScroll: true,
+            onError: showActionError,
+            onFinish: () => (busy.value = false),
+        },
+    );
+};
+// Calls the patient to the dispensary on the waiting-room TV; the case itself is unchanged.
+const callRoomId = ref<string | number>(
+    props.dispensary.tvCall?.rooms.length === 1
+        ? props.dispensary.tvCall.rooms[0].id
+        : '',
+);
+const callPatient = () => {
+    busy.value = true;
+    actionError.value = null;
+    router.post(
+        `/dispensary/${props.dispensary.publicId}/call`,
+        {
+            expected_branch_id: branchId(),
+            branch_room_id: callRoomId.value === '' ? null : callRoomId.value,
+        },
+        {
+            preserveScroll: true,
+            preserveState: true,
             onError: showActionError,
             onFinish: () => (busy.value = false),
         },
@@ -191,6 +225,35 @@ const saveItem = (item: Item) => {
                         >
                     </a>
                 </Button>
+                <OperationalSelect
+                    v-if="
+                        dispensary.tvCall?.canCall &&
+                        dispensary.tvCall.rooms.length > 1
+                    "
+                    v-model="callRoomId"
+                    label="Dispensary room"
+                    placeholder="Choose room"
+                    trigger-class="h-8 w-40"
+                    :options="
+                        dispensary.tvCall.rooms.map((room) => ({
+                            value: room.id,
+                            label: room.name,
+                        }))
+                    "
+                />
+                <Button
+                    v-if="dispensary.tvCall?.canCall"
+                    variant="outline"
+                    size="sm"
+                    :disabled="
+                        busy ||
+                        (dispensary.tvCall.rooms.length > 1 &&
+                            callRoomId === '')
+                    "
+                    data-testid="dispensary-call"
+                    @click="callPatient"
+                    ><Megaphone class="size-4" />Panggil</Button
+                >
                 <Button
                     v-if="dispensary.can.start"
                     :disabled="busy"

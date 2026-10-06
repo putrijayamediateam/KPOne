@@ -39,6 +39,7 @@ use App\Http\Controllers\QueueController;
 use App\Http\Controllers\QueueDisplayController;
 use App\Http\Controllers\QueueDisplaySettingsController;
 use App\Http\Controllers\RegistrationController;
+use App\Http\Controllers\RoomCallController;
 use App\Http\Controllers\StaffBranchAssignmentController;
 use App\Http\Controllers\StaffController;
 use App\Http\Controllers\StaffRoleController;
@@ -275,6 +276,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
             ->whereUuid('dispensaryCase')->middleware('permission:dispensary.view.branch')->name('dispensary.labels');
         Route::get('dispensary/{dispensaryCase}/items/{itemPublicId}/label', [DispensaryController::class, 'labels'])
             ->whereUuid('dispensaryCase')->middleware('permission:dispensary.view.branch')->whereUuid('itemPublicId')->name('dispensary.items.label');
+        Route::post('dispensary/{dispensaryCase}/call', [RoomCallController::class, 'dispensary'])
+            ->whereUuid('dispensaryCase')->middleware(['permission:dispensary.start.branch', 'throttle:30,1'])->name('dispensary.call');
         Route::post('dispensary/{dispensaryCase}/start', [DispensaryController::class, 'start'])
             ->whereUuid('dispensaryCase')->middleware(['permission:dispensary.start.branch', 'throttle:30,1'])->name('dispensary.start');
         Route::patch('dispensary/{dispensaryCase}/items/{item}', [DispensaryController::class, 'updateItem'])
@@ -404,6 +407,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::patch('visits/{visit}/queue/call', [QueueController::class, 'call'])
             ->middleware(['permission:queue.call.own,queue.call.branch', 'throttle:30,1'])
             ->name('queue.call');
+        Route::patch('visits/{visit}/queue/treatment-call', [RoomCallController::class, 'treatment'])
+            ->middleware(['permission:queue.call.own,queue.call.branch', 'throttle:30,1'])
+            ->name('queue.treatment-call');
         Route::patch('visits/{visit}/queue/recall', [QueueController::class, 'recall'])
             ->middleware(['permission:queue.call.own,queue.call.branch', 'throttle:30,1'])
             ->name('queue.recall');

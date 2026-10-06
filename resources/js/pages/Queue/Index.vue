@@ -44,6 +44,7 @@ defineOptions({
 
 const props = defineProps<{
     snapshot: QueueSnapshot;
+    treatmentRooms?: Array<{ id: number; name: string }>;
     roomChoice?: {
         rooms: Array<{ id: number; name: string }>;
         currentRoomId: number | null;
@@ -230,6 +231,11 @@ const boardRows = computed<PatientBoardRow[]>(() =>
             sendToWaiting: false,
             call: row.canCall && row.status === 'waiting',
             recall: row.canCall && row.status === 'serving' && !row.isHeld,
+            callTreatment:
+                row.canCall &&
+                row.status === 'serving' &&
+                !row.isHeld &&
+                (props.treatmentRooms?.length ?? 0) > 0,
             openConsultation: row.canOpenEncounter,
         },
         source: row,
@@ -449,6 +455,48 @@ const recall = (row: PatientBoardRow) => {
         },
     );
 };
+// Calls a serving patient to a treatment room on the TV; the consultation stays with the doctor.
+const treatmentRow = ref<PatientBoardRow | null>(null);
+const treatmentRoomId = ref<string | number>('');
+const treatmentError = ref('');
+const openTreatmentCall = (row: PatientBoardRow) => {
+    treatmentRow.value = row;
+    treatmentError.value = '';
+    treatmentRoomId.value =
+        props.treatmentRooms?.length === 1 ? props.treatmentRooms[0].id : '';
+};
+const submitTreatmentCall = () => {
+    const row = treatmentRow.value;
+
+    if (row === null || treatmentRoomId.value === '') {
+        treatmentError.value = 'Choose a treatment room.';
+
+        return;
+    }
+
+    busyKey.value = row.key;
+    router.patch(
+        `/visits/${encodeURIComponent(row.visitNumber)}/queue/treatment-call`,
+        {
+            expected_branch_id: live.value.branch.id,
+            queue_lock_version: source(row).queueLockVersion,
+            branch_room_id: treatmentRoomId.value,
+        },
+        {
+            preserveScroll: true,
+            preserveState: true,
+            onSuccess: () => (treatmentRow.value = null),
+            onError: (errors) => {
+                treatmentError.value =
+                    Object.values(errors)[0] ??
+                    'The patient could not be called to the treatment room.';
+            },
+            onFinish: () => {
+                busyKey.value = null;
+            },
+        },
+    );
+};
 const finishCall = () => {
     void refresh(1, 1, false).finally(schedule);
 };
@@ -637,6 +685,7 @@ onBeforeUnmount(() => {
                 :busy-key="busyKey"
                 @call="requestCall"
                 @recall="recall"
+                @call-treatment="openTreatmentCall"
                 @open-consultation="openConsultation"
                 @cancel="requestCancellation"
             />
@@ -728,5 +777,54 @@ onBeforeUnmount(() => {
             "
             @completed="refresh(1, 1, false)"
         />
+        <div
+            v-if="treatmentRow"
+            class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+            role="presentation"
+            @keydown.esc="treatmentRow = null"
+        >
+            <section
+                class="w-full max-w-sm rounded-xl border bg-card p-5 shadow-xl"
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="treatment-call-title"
+            >
+                <h2 id="treatment-call-title" class="text-sm font-semibold">
+                    Call {{ treatmentRow.queueNumber }} to a treatment room
+                </h2>
+                <p class="mt-1 text-xs text-muted-foreground">
+                    The waiting-room TV shows and announces it. The consultation
+                    stays with the doctor.
+                </p>
+                <div class="mt-4">
+                    <OperationalSelect
+                        v-model="treatmentRoomId"
+                        label="Treatment room"
+                        placeholder="Choose room"
+                        :options="
+                            (treatmentRooms ?? []).map((room) => ({
+                                value: room.id,
+                                label: room.name,
+                            }))
+                        "
+                    />
+                    <InputError class="mt-2" :message="treatmentError" />
+                </div>
+                <div class="mt-4 flex justify-end gap-2">
+                    <Button
+                        size="sm"
+                        variant="outline"
+                        @click="treatmentRow = null"
+                        >Cancel</Button
+                    >
+                    <Button
+                        size="sm"
+                        :disabled="busyKey !== null"
+                        @click="submitTreatmentCall"
+                        >Call to room</Button
+                    >
+                </div>
+            </section>
+        </div>
     </main>
 </template>

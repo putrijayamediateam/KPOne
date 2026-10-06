@@ -29,7 +29,7 @@ class QueueDisplayFeedService
                 ->orderByDesc('called_at')
                 ->orderByDesc('id')
                 ->limit(self::RECENT_CALLS * 4)
-                ->get(['id', 'queue_entry_id', 'queue_number', 'room_name', 'called_at', 'is_recall'])
+                ->get(['id', 'queue_entry_id', 'service', 'queue_number', 'room_name', 'called_at', 'is_recall'])
                 // A recall is announced again but shown once, at its newest call.
                 ->unique('queue_entry_id')
                 ->take(self::RECENT_CALLS)
@@ -37,6 +37,7 @@ class QueueDisplayFeedService
                     'id' => $call->id,
                     'number' => sprintf('%03d', $call->queue_number),
                     'room' => $call->room_name,
+                    'service' => $call->service,
                     'calledAt' => $call->called_at->toIso8601String(),
                     'isRecall' => $call->is_recall,
                 ])

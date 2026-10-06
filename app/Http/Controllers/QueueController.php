@@ -2,7 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Domain\Access\BranchAccessService;
 use App\Domain\Queue\Display\DoctorRoomService;
+use App\Domain\Queue\Display\RoomCallService;
+use App\Domain\Queue\Models\BranchRoom;
 use App\Domain\Queue\Models\QueueEntry;
 use App\Domain\Queue\Services\QueueDirectoryService;
 use App\Domain\Queue\Services\QueueEntryService;
@@ -20,13 +23,21 @@ use Inertia\Response;
 
 class QueueController extends Controller
 {
-    public function index(Request $request, QueueDirectoryService $directory, DoctorRoomService $rooms): Response
-    {
+    public function index(
+        Request $request,
+        QueueDirectoryService $directory,
+        DoctorRoomService $rooms,
+        RoomCallService $calls,
+        BranchAccessService $branches,
+    ): Response {
         $this->authorize('viewAny', QueueEntry::class);
+        $branch = $branches->activeBranch($request->user());
+        $canCall = $request->user()->can('queue.call.own') || $request->user()->can('queue.call.branch');
 
         return Inertia::render('Queue/Index', [
             'snapshot' => $directory->snapshot($request->user()),
             'roomChoice' => $rooms->choice($request->user()),
+            'treatmentRooms' => $branch && $canCall ? $calls->rooms($branch, BranchRoom::KIND_TREATMENT) : [],
         ]);
     }
 
