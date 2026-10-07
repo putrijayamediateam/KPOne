@@ -35,7 +35,7 @@ onBeforeUnmount(() => timers.forEach((id) => window.clearTimeout(id)));
 </script>
 
 <template>
-    <Head title="Delightful error" />
+    <Head title="KPOne Dispensary hacked" />
     <div class="de">
         <div
             class="de-dialog"
@@ -51,20 +51,21 @@ onBeforeUnmount(() => timers.forEach((id) => window.clearTimeout(id)));
                 <div class="de-icon" aria-hidden="true">!</div>
                 <div>
                     <p class="de-head">
-                        KPOne has experienced a delightful error.
+                        KPOne Dispensary has been hacked by the Stock Goblins.
                     </p>
-                    <p>Error code: 0xPRANK404 (Boss Not Found)</p>
+                    <p>
+                        Error code: 0xPARACETAMOL (Medicine Cabinet Compromised)
+                    </p>
                     <p class="de-count" data-testid="prank-countdown">
-                        Your boss will be informed in {{ seconds }} second{{
-                            seconds === 1 ? '' : 's'
-                        }}...
+                        All stock will be converted to jelly beans in
+                        {{ seconds }} second{{ seconds === 1 ? '' : 's' }}...
                     </p>
                 </div>
             </div>
             <div class="de-buttons">
                 <button type="button" @click="nope">OK</button>
                 <button type="button" @click="nope">Cancel</button>
-                <button type="button" @click="nope">Retry</button>
+                <button type="button" @click="nope">Call IT</button>
                 <button type="button" @click="nope">Panic</button>
             </div>
         </div>

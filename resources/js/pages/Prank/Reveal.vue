@@ -30,7 +30,10 @@ const confetti = Array.from({ length: 40 }, (_, i) => ({
         <h1 class="rv-title" data-testid="prank-reveal">
             Its a PRANKKKKK!!!!!
         </h1>
-        <p class="rv-sub">Nothing was dispensed. No data was harmed.</p>
+        <p class="rv-sub">
+            KPOne Dispensary was never hacked. Nothing was dispensed and no data
+            was harmed.
+        </p>
         <Link
             :href="`/dispensary/${caseId}`"
             class="rv-button"

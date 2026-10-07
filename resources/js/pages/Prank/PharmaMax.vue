@@ -23,7 +23,7 @@ onMounted(() => {
         progress.value = Math.min(99, progress.value + 3);
     }, 180);
     timers.push(climb);
-    // The bar stays at 99% for 20 seconds before the "delightful error".
+    // The bar stays at 99% for 20 seconds before the fake error.
     timers.push(window.setTimeout(toError, 26_000));
     timers.push(window.setTimeout(() => (showEscape.value = true), 10_000));
 });
@@ -32,22 +32,25 @@ onBeforeUnmount(() => timers.forEach((id) => window.clearTimeout(id)));
 </script>
 
 <template>
-    <Head title="PharmaMax 2003 Ultra Edition" />
+    <Head title="KPOne Dispensary compromised" />
     <div class="pm">
         <div class="pm-ticker" aria-hidden="true">
             <span
-                >WELCOME TO PHARMAMAX 2003 ULTRA EDITION!!! NOW WITH 100% MORE
-                LOADING!!! YOUR MEDICINE IS IMPORTANT TO US!!! PLEASE DO NOT
-                TOUCH ANYTHING!!!</span
+                >KPOne EXPRESS DISPENSE HAS TAKEN OVER THIS DISPENSARY!!! THE
+                PARACETAMOL SHELF IS NOW PROTECTED BY THE STOCK GOBLINS!!! DO
+                NOT TOUCH THE DISPENSARY!!!</span
             >
         </div>
 
         <main class="pm-window">
-            <h1 class="pm-title">PharmaMax 2003 Ultra Edition&trade;</h1>
-            <p class="pm-sub">The world's most express dispensing experience</p>
+            <h1 class="pm-title">KPOne Dispensary has been HACKED!!!</h1>
+            <p class="pm-sub">
+                A totally real cyber incident, brought to you by the Stock
+                Goblins
+            </p>
 
             <p class="pm-loading">
-                Loading express dispense engine... {{ progress }}%
+                Injecting Express Dispense into KPOne... {{ progress }}%
             </p>
             <div
                 class="pm-bar"
@@ -59,7 +62,7 @@ onBeforeUnmount(() => timers.forEach((id) => window.clearTimeout(id)));
                 <div class="pm-bar-fill" :style="{ width: `${progress}%` }" />
             </div>
             <p v-if="progress >= 99" class="pm-stuck">
-                Almost there... (this is normal)
+                Bypassing the pharmacist firewall... (this is normal)
             </p>
 
             <button
@@ -68,10 +71,10 @@ onBeforeUnmount(() => timers.forEach((id) => window.clearTimeout(id)));
                 data-testid="prank-speed-up"
                 @click="toError"
             >
-                CLICK HERE TO SPEED UP YOUR DOWNLOAD!!!
+                CLICK HERE TO UNLOCK YOUR MEDICINE FASTER!!!
             </button>
             <p class="pm-fine">
-                Best viewed in Internet Explorer 6 at 800 x 600.
+                Best experienced while pretending to stay calm.
             </p>
         </main>
 
