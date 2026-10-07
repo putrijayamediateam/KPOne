@@ -84,17 +84,22 @@ const chime = () => {
         return;
     }
 
-    [784, 988, 1175].forEach((freq, i) => {
+    // A soft two-note ding-dong; the spoken call starts after it has faded.
+    [
+        { freq: 659, start: 0, length: 1.0 },
+        { freq: 523, start: 0.5, length: 1.1 },
+    ].forEach(({ freq, start, length }) => {
         const osc = audio!.createOscillator();
         const gain = audio!.createGain();
-        const t = audio!.currentTime + i * 0.4;
+        const t = audio!.currentTime + start;
+        osc.type = 'triangle';
         osc.frequency.value = freq;
         gain.gain.setValueAtTime(0.0001, t);
-        gain.gain.exponentialRampToValueAtTime(0.5, t + 0.05);
-        gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.35);
+        gain.gain.exponentialRampToValueAtTime(0.45, t + 0.04);
+        gain.gain.exponentialRampToValueAtTime(0.0001, t + length);
         osc.connect(gain).connect(audio!.destination);
         osc.start(t);
-        osc.stop(t + 0.37);
+        osc.stop(t + length + 0.02);
     });
 };
 

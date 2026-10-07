@@ -283,3 +283,12 @@ test('the theme button is labelled with the theme it switches to', () => {
     assert.ok(!screen.includes("theme === 'light' ? 'Light' : 'Dark'"));
     assert.ok(screen.includes("? 'Switch to dark theme'"));
 });
+
+test('the call chime is a soft two-note ding-dong that fades before the spoken call', () => {
+    assert.ok(screen.includes('{ freq: 659, start: 0, length: 1.0 }'));
+    assert.ok(screen.includes('{ freq: 523, start: 0.5, length: 1.1 }'));
+    assert.ok(screen.includes("osc.type = 'triangle'"));
+    assert.ok(!screen.includes('[784, 988, 1175]'));
+    // Speech starts 1.4 s after the chime; the last note ends by 1.6 s and is quiet well before that.
+    assert.ok(screen.includes('window.setTimeout(() => speak(calls), 1_400)'));
+});
