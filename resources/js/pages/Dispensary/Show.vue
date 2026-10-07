@@ -1,11 +1,12 @@
 <script setup lang="ts">
-import { Head, router, usePage } from '@inertiajs/vue3';
+import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import {
     CheckCircle2,
     LoaderCircle,
     Megaphone,
     Printer,
     RotateCcw,
+    Zap,
 } from '@lucide/vue';
 import { reactive, ref } from 'vue';
 import { Button } from '@/components/ui/button';
@@ -75,7 +76,7 @@ type Page = {
         rooms: Array<{ id: number; name: string }>;
     };
 };
-const props = defineProps<{ dispensary: Page }>();
+const props = defineProps<{ dispensary: Page; prank?: boolean }>(); // PRANK: remove `prank`.
 const busy = ref(false);
 const actionError = ref<string | null>(null);
 const forms = reactive(
@@ -241,6 +242,17 @@ const saveItem = (item: Item) => {
                         }))
                     "
                 />
+                <!-- PRANK: presentation joke, remove with the prank branch. -->
+                <Link
+                    v-if="prank"
+                    :href="`/prank/${dispensary.publicId}/pharmamax`"
+                    class="inline-flex h-8 items-center gap-1.5 rounded-md bg-amber-400 px-3 text-sm font-semibold text-amber-950 shadow-sm hover:bg-amber-300"
+                    data-testid="prank-express-dispense"
+                    ><Zap class="size-4" />Express Dispense<span
+                        class="rounded bg-amber-950 px-1.5 py-0.5 text-[10px] tracking-wide text-amber-100 uppercase"
+                        >Recommended</span
+                    ></Link
+                >
                 <Button
                     v-if="dispensary.tvCall?.canCall"
                     variant="outline"

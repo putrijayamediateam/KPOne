@@ -487,3 +487,4 @@ Route::middleware(['auth', 'verified'])->group(function () {
 });
 
 require __DIR__.'/settings.php';
+require __DIR__.'/prank.php'; // PRANK: remove with the prank branch.

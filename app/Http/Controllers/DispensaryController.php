@@ -34,7 +34,7 @@ class DispensaryController extends Controller
             $detail['billingUrl'] = route('billing.show', $dispensaryCase->visit);
         }
 
-        return Inertia::render($detail['status'] === DispensaryCase::STATUS_COMPLETED ? 'Dispensary/Completed' : 'Dispensary/Show', ['dispensary' => $detail]);
+        return Inertia::render($detail['status'] === DispensaryCase::STATUS_COMPLETED ? 'Dispensary/Completed' : 'Dispensary/Show', ['dispensary' => $detail, 'prank' => (bool) config('prank.enabled')]); // PRANK: remove with the prank branch.
     }
 
     public function labels(Request $request, DispensaryCase $dispensaryCase, DispensaryDirectoryService $directory, ?string $itemPublicId = null): Response
