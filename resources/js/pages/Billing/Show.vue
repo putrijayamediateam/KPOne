@@ -37,6 +37,7 @@ const error = ref('');
 const tab = ref('all');
 const form = reactive({
     amount: '',
+    responsibility_amount: '',
     method: '',
     reference: '',
     reason: '',
@@ -49,6 +50,7 @@ let paymentKey = crypto.randomUUID();
 const clearEntry = () => {
     Object.assign(form, {
         amount: '',
+        responsibility_amount: '',
         method: '',
         reference: '',
         reason: '',
@@ -90,6 +92,12 @@ const invoiceBase = computed(
     () => `${base.value}/${props.billing.invoice?.publicId}`,
 );
 const isCompleted = computed(() => props.billing.visit.status === 'completed');
+// The exact amount due now as a plain MYR figure, for the "Use amount due" shortcuts.
+const dueNowText = computed(() =>
+    props.billing.invoice
+        ? (props.billing.invoice.state.due_now / 100).toFixed(2)
+        : '',
+);
 const methodOptions = computed(() => [
     { value: '', label: 'Select method' },
     ...props.billing.methods.map((method) => ({
@@ -137,6 +145,7 @@ const post = (
             onSuccess: () => {
                 paymentKey = crypto.randomUUID();
                 form.amount = '';
+                form.responsibility_amount = '';
                 form.reference = '';
             },
             onFinish: () => {
@@ -163,10 +172,11 @@ const payment = () => {
     });
 };
 const propose = (kind: string) => {
-    const sen = toSen(form.amount);
+    const sen = toSen(form.responsibility_amount);
 
     if (sen === null) {
-        error.value = 'Enter an exact MYR amount.';
+        error.value =
+            'Enter the amount the Panel or pay later will cover, in MYR with at most two decimal places.';
 
         return;
     }
@@ -490,6 +500,19 @@ const reverse = (receipt: Receipt) =>
                     </dl>
                     <p v-if="billing.invoice.correctionHold" role="status">
                         Correction hold — review required.
+                    </p>
+                    <p
+                        v-if="billing.can.pay || billing.can.panelPropose"
+                        class="mt-3 rounded-lg bg-muted/40 p-3 text-xs text-muted-foreground"
+                        data-testid="billing-howto"
+                    >
+                        <span class="font-semibold text-foreground"
+                            >How to settle this invoice.</span
+                        >
+                        Money the patient pays now goes under Record Payment. If
+                        a Panel pays part or all of it, use Pay by Panel or pay
+                        later, then collect any remaining balance from the
+                        patient.
                     </p></template
                 >
                 <div
@@ -516,15 +539,27 @@ const reverse = (receipt: Receipt) =>
                             completed Visit record.
                         </p>
                     </div>
-                    <label class="block"
-                        >Amount (MYR)<input
-                            v-model="form.amount"
-                            inputmode="decimal"
-                            class="billing-input"
-                            autocomplete="off"
-                    /></label>
                     <template v-if="billing.can.pay"
-                        ><label
+                        ><p class="text-xs text-muted-foreground">
+                            For money the patient pays now. Panel is entered
+                            separately below.
+                        </p>
+                        <label class="block"
+                            >Amount received (MYR)<input
+                                v-model="form.amount"
+                                inputmode="decimal"
+                                class="billing-input"
+                                autocomplete="off"
+                        /></label>
+                        <button
+                            v-if="dueNowText && !isCompleted"
+                            type="button"
+                            class="text-xs font-medium text-primary"
+                            @click="form.amount = dueNowText"
+                        >
+                            Use amount due (RM {{ dueNowText }})
+                        </button>
+                        <label
                             id="payment-method-label"
                             class="block"
                             for="payment-method"
@@ -558,7 +593,13 @@ const reverse = (receipt: Receipt) =>
                                     ? 'Settle Outstanding Balance'
                                     : 'Add Payment'
                             }}</Button
-                        ></template
+                        >
+                        <p
+                            v-if="!form.method"
+                            class="text-xs text-muted-foreground"
+                        >
+                            Choose a payment method to enable Add Payment.
+                        </p></template
                     >
                     <details
                         v-if="
@@ -566,9 +607,49 @@ const reverse = (receipt: Receipt) =>
                         "
                         class="border-t pt-2"
                     >
-                        <summary class="cursor-pointer py-1">
-                            Panel / pay later request
+                        <summary class="cursor-pointer py-1 font-medium">
+                            Pay by Panel or pay later
                         </summary>
+                        <ol
+                            v-if="billing.can.panelPropose"
+                            class="my-2 list-decimal space-y-1 pl-5 text-xs text-muted-foreground"
+                            data-testid="panel-steps"
+                        >
+                            <li>Enter the amount the Panel will cover.</li>
+                            <li>
+                                Add the reason or the Panel confirmation
+                                reference.
+                            </li>
+                            <li>
+                                Choose the verified Panel and add the member
+                                reference if the Panel needs one.
+                            </li>
+                            <li>Press Propose Panel responsibility.</li>
+                            <li>
+                                Someone with Panel approval rights presses
+                                Approve. Due Now then drops by the Panel amount.
+                            </li>
+                            <li>
+                                Collect any remaining balance under Record
+                                Payment, then Complete Visitation.
+                            </li>
+                        </ol>
+                        <label class="block"
+                            >Amount the Panel or pay later will cover
+                            (MYR)<input
+                                v-model="form.responsibility_amount"
+                                inputmode="decimal"
+                                class="billing-input"
+                                autocomplete="off"
+                        /></label>
+                        <button
+                            v-if="dueNowText && !isCompleted"
+                            type="button"
+                            class="mb-2 text-xs font-medium text-primary"
+                            @click="form.responsibility_amount = dueNowText"
+                        >
+                            Use amount due (RM {{ dueNowText }})
+                        </button>
                         <label class="block"
                             >Reason / verification evidence<textarea
                                 v-model="form.reason"
@@ -601,9 +682,17 @@ const reverse = (receipt: Receipt) =>
                                 :disabled="busy"
                                 @click="propose('panel')"
                                 >Propose Panel responsibility</Button
-                            ></template
+                            >
+                            <p class="mt-1 text-xs text-muted-foreground">
+                                This only sends the request for approval. The
+                                Panel amount counts after it is approved.
+                            </p></template
                         ><template v-if="billing.can.deferPropose"
-                            ><label class="mt-2 block"
+                            ><p class="mt-3 text-xs text-muted-foreground">
+                                Pay later: the patient pays on the due date. It
+                                needs approval and is not a cash receipt.
+                            </p>
+                            <label class="mt-2 block"
                                 >Pay later due date<input
                                     v-model="form.due_date"
                                     type="date"
@@ -641,6 +730,21 @@ const reverse = (receipt: Receipt) =>
                         </p>
                         <p v-if="billing[kind]!.dueDate" class="text-xs">
                             Due {{ formatDate(billing[kind]!.dueDate) }}
+                        </p>
+                        <p
+                            v-if="billing[kind]!.status === 'proposed'"
+                            class="text-xs text-muted-foreground"
+                            data-testid="proposal-hint"
+                        >
+                            {{
+                                (
+                                    kind === 'panel'
+                                        ? billing.can.panelApprove
+                                        : billing.can.deferApprove
+                                )
+                                    ? 'Check the details, then press Approve.'
+                                    : 'Waiting for approval. Someone with approval rights must press Approve before this counts.'
+                            }}
                         </p>
                         <Button
                             v-if="
