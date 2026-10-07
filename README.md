@@ -1,18 +1,19 @@
 # KPOne
 
-KPOne is the Klinik Putrijaya Digital Operating System: a production healthcare operations platform intended to become the shared foundation for Klinik Putrijaya's staff-facing workflows.
+KPOne is Klinik Putrijaya's internal digital operations platform. It is being developed as a shared foundation for staff workflows; it is not approved for production use.
 
 This repository is a new, independent Laravel application. It does not modify or depend on `MiniWeb_KlinikPutrijaya_Fullstack`.
 
-## Current scope: Phase 0A through Phase 3B delivered; Insights in progress
+## Current scope: operational workflows, Insights, and waiting-room display
 
-The merged project baseline includes Phase 3A-Core Dispensary and minimal inventory, followed by Phase 3B
-checkout, billing, payments, and visit completion. The current isolated worktree adds the separately authorised,
-read-only Insights reports; they are implemented but are not yet merged or production-approved. The
-[current delivery baseline](docs/BASELINE.md) is authoritative for exact status and validation.
+The merged system supports the staff journey from patient registration and consultation through clinical
+documentation, dispensary, billing, payment, and visit completion. It also includes aggregate-only Insights,
+governed catalogues and prices, public QR check-in with staff review, and a waiting-room display for consultation
+and treatment-room calls.
 
-The detailed phase documents are scoped design and implementation records, not a substitute for the current
-baseline.
+All data used for development and UAT is synthetic. Yezza remains the operational source of truth, and no
+delivered feature or successful walkthrough implies production approval. The
+[current delivery baseline](docs/BASELINE.md) records exact status, limitations, and release gates.
 
 Phase 0A provides the platform foundation, and Phase 0B adds internal operational staff identity administration:
 
@@ -35,10 +36,17 @@ Phase 0A provides the platform foundation, and Phase 0B adds internal operationa
 - an organisation-level structured Allergy Profile/version ledger, explicit per-Encounter Allergy review, longitudinal Problem List, current-care-only clinical safety access, and a reusable stale-review gate for future medicine ordering
 - one in-progress own-clinician Treatment Plan with governed medicine/service catalogue selection, immutable order snapshots, exact stale-write protection, mandatory current Allergy review for medicine mutations, and retained withdrawn orders
 - doctor checkout, Dispensary handoff and fulfilment, minimal stock operations, finalized invoices, patient receipts and visit completion
-- governed Medicine and Clinical Service catalogues, price books and published prices, with the human end-to-end UI acceptance pass still outstanding
-- read-only aggregate Insights reports for Today, Sales, In-clinic, Payments, Inventory and Patients (current worktree; validation and release gates pending)
+- governed Medicine and Clinical Service catalogues, price books, published prices, and organisation-scoped Payment Method setup
+- read-only aggregate Insights reports for Today, Sales, In-clinic, Payments, Inventory, and Patients; no patient-level financial rankings or exports
+- public QR intake that remains pending until authorised staff review and accept it
+- a waiting-room display with consultation queue numbers, rooms, posters/video, scrolling announcements, chimes, and spoken calls; its full-screen mode can be re-entered after Escape, and the screen includes light/dark themes and Klinik Putrijaya branding
+- dispensary and treatment-room calls to the waiting-room display; these announce a call without changing the visit or treatment state
 
-Phase 1A answers “Who is this patient?”. Phase 1B registers that Patient into a canonical branch Visit. Phase 1C places Consultation Visits into Waiting and ends when the Patient is Serving. Phase 2A records an in-progress clinical assessment. Phase 2B.0 adds structured Allergy and Problem List safety. Phase 2B adds in-progress medicine and service/procedure orders but stops before prescription signing, finalization, handover, completion, fulfilment, stock, dispensing, billing, claims, patient login, QR/OTP, or legacy integration.
+The phases define separate domain boundaries even when later phases add downstream workflows: Patient Master,
+Registration and Queue; clinical Encounter, Allergy and Problem List, and Treatment Plan; then Dispensary,
+inventory, checkout, billing, payment, and Visit completion. Appointment scheduling, patient login, messaging,
+Panel claims, expanded inventory operations, website integration, and Yezza migration are not part of the
+delivered scope.
 
 ## Stack
 

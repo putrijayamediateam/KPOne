@@ -28,7 +28,7 @@ export const POLL_MILLISECONDS = 5_000;
 export const HIGHLIGHT_MILLISECONDS = 12_000;
 
 /** Shown when a call has no room: the doctor did not choose one for today. */
-export const ROOM_FALLBACK = 'Sila ke kaunter';
+export const ROOM_FALLBACK = 'Please go to the counter';
 
 /** What the TV shows and says when a call has no room, per service. */
 const SERVICE_FALLBACK: Record<
@@ -36,9 +36,9 @@ const SERVICE_FALLBACK: Record<
     { display: string; ms: string; en: string }
 > = {
     consultation: { display: ROOM_FALLBACK, ms: 'Kaunter', en: 'Counter' },
-    dispensary: { display: 'Farmasi', ms: 'Farmasi', en: 'Pharmacy' },
+    dispensary: { display: 'Pharmacy', ms: 'Farmasi', en: 'Pharmacy' },
     treatment: {
-        display: 'Bilik rawatan',
+        display: 'Treatment Room',
         ms: 'Bilik rawatan',
         en: 'Treatment room',
     },
@@ -84,7 +84,7 @@ export const nextPosterIndex = (current: number, count: number): number =>
     count <= 0 ? 0 : (current + 1) % count;
 
 export const formatDisplayDate = (now: Date, timeZone: string): string =>
-    new Intl.DateTimeFormat('ms-MY', {
+    new Intl.DateTimeFormat('en-GB', {
         timeZone,
         weekday: 'long',
         day: 'numeric',
@@ -93,7 +93,7 @@ export const formatDisplayDate = (now: Date, timeZone: string): string =>
     }).format(now);
 
 export const formatDisplayTime = (now: Date, timeZone: string): string =>
-    new Intl.DateTimeFormat('ms-MY', {
+    new Intl.DateTimeFormat('en-GB', {
         timeZone,
         hour: '2-digit',
         minute: '2-digit',
@@ -102,7 +102,7 @@ export const formatDisplayTime = (now: Date, timeZone: string): string =>
     }).format(now);
 
 export const formatCallTime = (iso: string, timeZone: string): string =>
-    new Intl.DateTimeFormat('ms-MY', {
+    new Intl.DateTimeFormat('en-GB', {
         timeZone,
         hour: '2-digit',
         minute: '2-digit',

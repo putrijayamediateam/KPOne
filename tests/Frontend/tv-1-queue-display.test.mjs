@@ -29,6 +29,7 @@ const {
     ROOM_FALLBACK,
     unannouncedCalls,
     youtubeEmbedUrl,
+    formatDisplayDate,
     formatDisplayTime,
     announcementText,
     pickAnnouncementVoice,
@@ -67,6 +68,8 @@ test('a call without a room tells the patient to go to the counter', () => {
     assert.equal(roomLabel('Bilik Rawatan 3'), 'Bilik Rawatan 3');
     assert.equal(roomLabel(null), ROOM_FALLBACK);
     assert.equal(roomLabel('  '), ROOM_FALLBACK);
+    assert.equal(roomLabel(null, 'dispensary'), 'Pharmacy');
+    assert.equal(roomLabel(null, 'treatment'), 'Treatment Room');
 });
 
 test('YouTube plays from the privacy-enhanced domain, muted and looping, and rejects anything but a video id', () => {
@@ -88,12 +91,19 @@ test('posters rotate and wrap around', () => {
     assert.equal(nextPosterIndex(4, 0), 0);
 });
 
-test('the clock is shown in the branch time zone on a 24-hour clock', () => {
+test('the clock and date are shown in English in the branch time zone', () => {
     const time = formatDisplayTime(
         new Date(Date.UTC(2026, 9, 5, 13, 4, 9)),
         'Asia/Kuala_Lumpur',
     );
-    assert.match(time, /^21.04.09$/);
+    assert.equal(time, '21:04:09');
+    assert.equal(
+        formatDisplayDate(
+            new Date(Date.UTC(2026, 9, 5, 13, 4, 9)),
+            'Asia/Kuala_Lumpur',
+        ),
+        'Monday, 5 October 2026',
+    );
 });
 
 test('the TV screen shows no patient data, needs a tap for sound, keeps the screen awake and stops on a lost session', () => {
@@ -109,11 +119,11 @@ test('the TV screen shows no patient data, needs a tap for sound, keeps the scre
         assert.ok(!screen.includes(forbidden), forbidden);
     }
 
-    assert.ok(screen.includes('Ketik untuk aktifkan bunyi'));
+    assert.ok(screen.includes('Click to enable sound'));
     assert.ok(screen.includes("wakeLock?.request('screen')"));
     assert.ok(screen.includes('[401, 403, 419].includes(error.status)'));
-    assert.ok(screen.includes('Sesi paparan tamat'));
-    assert.ok(screen.includes('Sedang dipanggil'));
+    assert.ok(screen.includes('Display session expired'));
+    assert.ok(screen.includes('Now calling'));
     assert.ok(screen.includes('window.clearInterval(pollTimer)'));
     assert.match(
         screen,
@@ -184,13 +194,53 @@ test('the TV keeps running unattended: sound prompt does not cover the calls, lo
     assert.ok(screen.includes('AUTH_RETRY_MILLISECONDS'));
     assert.ok(screen.includes('sessionEnded.value = false;'));
     assert.ok(
-        screen.includes("window.confirm('Log keluar dari paparan TV ini?')"),
+        screen.includes("window.confirm('Sign out of this TV display?')"),
     );
     assert.doesNotMatch(
         screen,
         /v-if="!soundOn && !sessionEnded"\s+class="fixed inset-0/,
     );
-    assert.ok(screen.includes('Ketik untuk aktifkan bunyi'));
+    assert.ok(screen.includes('Click to enable sound'));
+});
+
+test('the display has re-enterable fullscreen, a light/dark theme control and clinic branding', () => {
+    assert.ok(
+        screen.includes(
+            "document.addEventListener('fullscreenchange', syncFullscreen)",
+        ),
+    );
+    assert.ok(
+        screen.includes(
+            "document.removeEventListener('fullscreenchange', syncFullscreen)",
+        ),
+    );
+    assert.ok(screen.includes('document.exitFullscreen()'));
+    assert.ok(screen.includes('@click="toggleFullscreen"'));
+    assert.match(screen, /:aria-label="\s*isFullscreen\s*\?/);
+    assert.ok(screen.includes('@click="toggleTheme"'));
+    assert.ok(screen.includes(':aria-pressed="theme === \'dark\'"'));
+    assert.ok(screen.includes('src="/kp-mark.png"'));
+    assert.ok(screen.includes('bg-pink-700'));
+    assert.ok(screen.includes('bg-zinc-950'));
+
+    for (const visibleMalayCopy of [
+        'Paparan Giliran',
+        'Cawangan',
+        'Panggilan semula',
+        'Sedang dipanggil',
+        'Belum ada panggilan hari ini',
+        'Nombor',
+        'Bilik',
+        'Maklumat klinik',
+        'Video klinik',
+        'Poster klinik',
+        'Ketik untuk aktifkan bunyi',
+        'Sesi paparan tamat',
+        'Sambungan terputus',
+        'Log keluar',
+    ]) {
+        assert.ok(!screen.includes(visibleMalayCopy), visibleMalayCopy);
+    }
 });
 
 test('a patient being served can be called again from the queue board, and the TV labels it', () => {
@@ -205,7 +255,7 @@ test('a patient being served can be called again from the queue board, and the T
         ),
     );
     assert.ok(queue.includes('/queue/recall'));
-    assert.ok(screen.includes("'Panggilan semula'"));
+    assert.ok(screen.includes("'Recall'"));
 });
 
 test('the consultation page offers Panggil semula and returns to the consultation', () => {
@@ -214,4 +264,22 @@ test('the consultation page offers Panggil semula and returns to the consultatio
     assert.ok(consultation.includes('Panggil semula'));
     assert.ok(consultation.includes("from: 'consultation'"));
     assert.ok(consultation.includes('/queue/recall'));
+});
+
+test('the current call room label wraps long room names instead of clipping them', () => {
+    const match = screen.match(
+        /<p\s+class="([^"]*)"\s+data-testid="current-room"/,
+    );
+    assert.ok(match, 'current room label not found');
+    assert.ok(match[1].includes('text-balance'));
+    assert.ok(match[1].includes('break-words'));
+    assert.ok(!match[1].includes('truncate'));
+});
+
+test('the theme button is labelled with the theme it switches to', () => {
+    assert.ok(
+        screen.includes("theme === 'light' ? 'Dark mode' : 'Light mode'"),
+    );
+    assert.ok(!screen.includes("theme === 'light' ? 'Light' : 'Dark'"));
+    assert.ok(screen.includes("? 'Switch to dark theme'"));
 });
