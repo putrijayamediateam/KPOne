@@ -65,6 +65,33 @@ class PublicPatientIntakeTest extends VisitTestCase
         }
     }
 
+    public function test_review_actions_return_to_the_review_page_not_the_last_full_page(): void
+    {
+        [, $session] = $this->publicSession();
+        $this->postJson(route('public-intake.submit'), $this->payload($session))->assertCreated();
+        $intake = PublicPatientIntake::query()->sole();
+        $review = route('registration-review.show', $intake->public_id);
+
+        $reviewer = $this->actor('ca');
+        $this->selectBranch($reviewer);
+        // The session's last recorded full page is the patient's own status page, as when both are open in one browser.
+        $this->withSession(['_previous' => ['url' => route('public-intake.status')]]);
+
+        $this->patch(route('registration-review.correct', $intake->public_id), $this->payload($session, [
+            'lock_version' => $intake->lock_version,
+        ]))->assertRedirect($review);
+
+        // An accept that is refused (no doctor, no visit reason) stays on the review page and shows the errors.
+        $this->post(route('registration-review.accept', $intake->public_id), [
+            'lock_version' => $intake->refresh()->lock_version,
+            'idempotency_key' => (string) Str::uuid(),
+            'resolution' => 'create',
+            'priority' => 'normal',
+            'coverage_type' => 'self_pay',
+        ])->assertRedirect($review)->assertSessionHasErrors();
+        $this->assertSame(0, Visit::count());
+    }
+
     public function test_patient_reported_panel_coverage_stays_encrypted_until_ca_confirms_visit_coverage(): void
     {
         $reportedPanel = Panel::factory()->create([
