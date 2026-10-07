@@ -275,3 +275,11 @@ test('the current call room label wraps long room names instead of clipping them
     assert.ok(match[1].includes('break-words'));
     assert.ok(!match[1].includes('truncate'));
 });
+
+test('the theme button is labelled with the theme it switches to', () => {
+    assert.ok(
+        screen.includes("theme === 'light' ? 'Dark mode' : 'Light mode'"),
+    );
+    assert.ok(!screen.includes("theme === 'light' ? 'Light' : 'Dark'"));
+    assert.ok(screen.includes("? 'Switch to dark theme'"));
+});

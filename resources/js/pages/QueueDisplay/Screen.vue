@@ -390,7 +390,7 @@ onBeforeUnmount(() => {
                         @click="toggleTheme"
                     >
                         <svg
-                            v-if="theme === 'light'"
+                            v-if="theme === 'dark'"
                             aria-hidden="true"
                             viewBox="0 0 24 24"
                             class="size-4"
@@ -421,7 +421,7 @@ onBeforeUnmount(() => {
                             />
                         </svg>
                         <span class="hidden sm:inline">{{
-                            theme === 'light' ? 'Light' : 'Dark'
+                            theme === 'light' ? 'Dark mode' : 'Light mode'
                         }}</span>
                     </button>
                 </div>
