@@ -104,7 +104,17 @@ class QueueController extends Controller
         Visit $visit,
         QueueEntryService $queue,
     ): RedirectResponse {
-        $queue->call($request->user(), $visit, $request->validated());
+        // A refused Call In (for example, the doctor has not chosen a room) must come back to the page it was
+        // pressed on, not to whatever full page the session last recorded.
+        $target = $request->validated('from') === 'registration'
+            ? route('registration.index')
+            : route('queue.index');
+
+        try {
+            $queue->call($request->user(), $visit, $request->validated());
+        } catch (ValidationException $exception) {
+            throw $exception->redirectTo($target);
+        }
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Patient called in.')]);
 
         return to_route('queue.index');

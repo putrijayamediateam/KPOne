@@ -193,6 +193,33 @@ class QueueDisplayTest extends QueueTestCase
         $this->assertSame('Consultation Room 2', QueueCall::query()->sole()->room_name);
     }
 
+    public function test_a_refused_call_in_returns_to_the_page_it_was_pressed_on_not_the_last_full_page(): void
+    {
+        app(QueueDisplayAdministrationService::class)->createRoom($this->actor('director'), $this->branch, [
+            'kind' => 'consultation', 'name' => 'Consultation Room 2', 'sort_order' => 2,
+        ]);
+        $ca = $this->actor('ca_supervisor');
+        $doctor = $this->doctor();
+        $visit = $this->consultationVisit($ca, $doctor);
+        $entry = $this->send($ca, $visit);
+        $this->selectBranch($ca);
+        $payload = fn (array $extra = []): array => [
+            'expected_branch_id' => $this->branch->id,
+            'visit_lock_version' => $visit->refresh()->lock_version,
+            'queue_lock_version' => $entry->refresh()->lock_version,
+            ...$extra,
+        ];
+
+        // The session's last recorded full page is somewhere unrelated, as after visiting a Dispensary page.
+        $this->withSession(['_previous' => ['url' => route('workspace')]]);
+
+        $this->patch(route('queue.call', $visit->visit_number), $payload(['from' => 'registration']))
+            ->assertRedirect(route('registration.index'))->assertSessionHasErrors('doctor');
+        $this->patch(route('queue.call', $visit->visit_number), $payload())
+            ->assertRedirect(route('queue.index'))->assertSessionHasErrors('doctor');
+        $this->assertSame(QueueEntry::STATUS_WAITING, $entry->refresh()->status);
+    }
+
     public function test_call_again_announces_the_serving_patient_once_more_without_changing_the_queue(): void
     {
         $director = $this->actor('director');

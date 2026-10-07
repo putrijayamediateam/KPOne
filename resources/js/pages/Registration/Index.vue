@@ -358,7 +358,7 @@ const runMutation = (
     row: PatientBoardRow,
     method: 'post' | 'patch',
     url: string,
-    data: Record<string, number>,
+    data: Record<string, number | string>,
 ) => {
     busyKey.value = row.key;
     router[method](url, data, {
@@ -392,6 +392,7 @@ const callIn = (row: PatientBoardRow) =>
             expected_branch_id: props.options.branch.id,
             visit_lock_version: source(row).visitLockVersion,
             queue_lock_version: source(row).queueLockVersion!,
+            from: 'registration',
         },
     );
 const openConsultation = (row: PatientBoardRow) =>

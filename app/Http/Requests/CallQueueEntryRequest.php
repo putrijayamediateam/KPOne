@@ -18,6 +18,7 @@ class CallQueueEntryRequest extends FormRequest
             'expected_branch_id' => ['required', 'integer'],
             'visit_lock_version' => ['required', 'integer', 'min:1'],
             'queue_lock_version' => ['required', 'integer', 'min:1'],
+            'from' => ['nullable', 'in:registration,queue'],
             'organisation_id' => ['prohibited'],
             'branch_id' => ['prohibited'],
             'visit_id' => ['prohibited'],
