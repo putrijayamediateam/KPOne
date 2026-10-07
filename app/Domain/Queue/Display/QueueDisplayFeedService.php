@@ -30,8 +30,9 @@ class QueueDisplayFeedService
                 ->orderByDesc('id')
                 ->limit(self::RECENT_CALLS * 4)
                 ->get(['id', 'queue_entry_id', 'service', 'queue_number', 'room_name', 'called_at', 'is_recall'])
-                // A recall is announced again but shown once, at its newest call.
-                ->unique('queue_entry_id')
+                // A recall is announced again but shown once, at its newest call. A call to a different service
+                // or room stays in the list, so the TV keeps the patient's earlier call as history.
+                ->unique(fn (QueueCall $call): string => $call->queue_entry_id.'|'.$call->service.'|'.$call->room_name)
                 ->take(self::RECENT_CALLS)
                 ->map(fn (QueueCall $call): array => [
                     'id' => $call->id,
