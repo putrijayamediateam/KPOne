@@ -50,9 +50,10 @@ class RoomCallTest extends ClinicalTestCase
         $display = $this->actor('queue_display', $visit->branch);
         $this->selectBranch($display, $visit->branch);
         $this->getJson(route('queue-display.feed'))->assertOk()
-            ->assertJsonCount(1, 'calls')
+            ->assertJsonCount(2, 'calls')
             ->assertJsonPath('calls.0.service', 'dispensary')
-            ->assertJsonPath('calls.0.room', 'Farmasi');
+            ->assertJsonPath('calls.0.room', 'Farmasi')
+            ->assertJsonPath('calls.1.service', 'consultation');
     }
 
     public function test_a_choice_of_dispensary_room_is_needed_when_the_branch_has_several(): void
@@ -108,9 +109,42 @@ class RoomCallTest extends ClinicalTestCase
         $display = $this->actor('queue_display', $visit->branch);
         $this->selectBranch($display, $visit->branch);
         $this->getJson(route('queue-display.feed'))->assertOk()
-            ->assertJsonCount(1, 'calls')
+            ->assertJsonCount(2, 'calls')
             ->assertJsonPath('calls.0.service', 'treatment')
-            ->assertJsonPath('calls.0.room', 'Treatment Room 1');
+            ->assertJsonPath('calls.0.room', 'Treatment Room 1')
+            ->assertJsonPath('calls.1.service', 'consultation');
+    }
+
+    public function test_the_tv_keeps_the_earlier_call_when_the_same_patient_is_called_to_another_room(): void
+    {
+        [$doctor, , $visit, $queue] = $this->servingFixture();
+        $this->startEncounter($doctor, $visit, $queue);
+        $room = $this->room('treatment', 'Treatment Room 1');
+        $this->selectBranch($doctor, $visit->branch);
+        $this->travel(QueueCall::RECALL_COOLDOWN_SECONDS + 1)->seconds();
+
+        $this->patch(route('queue.treatment-call', $visit->visit_number), [
+            'expected_branch_id' => $visit->branch_id,
+            'queue_lock_version' => $queue->refresh()->lock_version,
+            'branch_room_id' => $room->id,
+        ])->assertSessionHasNoErrors();
+        $this->travel(QueueCall::RECALL_COOLDOWN_SECONDS + 1)->seconds();
+        $this->patch(route('queue.treatment-call', $visit->visit_number), [
+            'expected_branch_id' => $visit->branch_id,
+            'queue_lock_version' => $queue->refresh()->lock_version,
+            'branch_room_id' => $room->id,
+        ])->assertSessionHasNoErrors();
+
+        $number = sprintf('%03d', $queue->refresh()->queue_number);
+        $display = $this->actor('queue_display', $visit->branch);
+        $this->selectBranch($display, $visit->branch);
+        $this->getJson(route('queue-display.feed'))->assertOk()
+            ->assertJsonCount(2, 'calls')
+            ->assertJsonPath('calls.0.service', 'treatment')
+            ->assertJsonPath('calls.0.isRecall', true)
+            ->assertJsonPath('calls.1.service', 'consultation')
+            ->assertJsonPath('calls.0.number', $number)
+            ->assertJsonPath('calls.1.number', $number);
     }
 
     public function test_treatment_call_needs_a_treatment_room_a_serving_unheld_patient_and_call_authority(): void
