@@ -159,6 +159,16 @@ const selectCandidate = (patientNumber: string) => {
     acceptance.resolution = 'match';
     acceptance.patient_number = patientNumber;
 };
+// A saved correction or a started review bumps the intake's lock version and the page re-renders in place with
+// the new props. Both forms captured the version once, so keep them on the current one or the next save or
+// accept is refused as stale. Only the version moves; anything the reviewer has typed is left alone.
+watch(
+    () => props.intake.lockVersion,
+    (lockVersion) => {
+        correction.lock_version = lockVersion;
+        acceptance.lock_version = lockVersion;
+    },
+);
 watch(
     () => correction.coverage_type,
     (coverageType) => {
