@@ -21,7 +21,7 @@ class BillingDirectoryService
 {
     public function __construct(private BillingContextService $context, private FinancialLedger $ledger) {}
 
-    /** Explicit projection: financial-only actors never receive medicine line descriptions.
+    /** Explicit projection: summary-only actors never receive medicine line descriptions; the owner-granted billing.lines.view.branch (finance_officer, 2026-10-08) adds them.
      * @return array<string,mixed>
      */
     public function detail(User $actor, Visit $visit, ?Invoice $document = null, bool $printing = false): array
@@ -62,7 +62,7 @@ class BillingDirectoryService
                 'clinic' => $branch->organisation->name, 'branch' => $branch->name, 'oldOutstanding' => $oldOutstanding,
                 'invoice' => $invoice ? ['publicId' => $invoice->public_id, 'number' => $invoice->invoice_number, 'status' => $invoice->status, 'lockVersion' => $invoice->lock_version, 'currency' => $invoice->currency,
                     'finalizedAt' => $invoice->finalized_at?->setTimezone($branch->timezone)->format('j M Y, g:i A'), 'correctionHold' => $invoice->correction_hold, 'state' => $state,
-                    'lines' => $actor->can('billing.view.branch') ? InvoiceLine::query()->where('invoice_id', $invoice->id)->orderBy('id')->get()->map(fn ($l): array => ['type' => $l->line_type, 'name' => $l->display_name, 'unit' => $l->unit_snapshot, 'quantity' => $l->quantity, 'unitPriceSen' => $l->unit_price_sen, 'totalSen' => $l->line_total_sen])->all() : []] : null,
+                    'lines' => ($actor->can('billing.view.branch') || $actor->can('billing.lines.view.branch')) ? InvoiceLine::query()->where('invoice_id', $invoice->id)->orderBy('id')->get()->map(fn ($l): array => ['type' => $l->line_type, 'name' => $l->display_name, 'unit' => $l->unit_snapshot, 'quantity' => $l->quantity, 'unitPriceSen' => $l->unit_price_sen, 'totalSen' => $l->line_total_sen])->all() : []] : null,
                 'panel' => ($actor->can('coverage.propose.branch') || $actor->can('coverage.approve.branch')) ? $proposal(CoverageAllocation::class) : null,
                 'deferment' => ($actor->can('outstanding.view.branch') || $actor->can('outstanding.request.branch') || $actor->can('outstanding.approve.branch')) ? $proposal(PatientReceivable::class) : null,
                 'payments' => $payments->map(fn (Payment $p): array => ['publicId' => $p->public_id, 'number' => $p->receipt_number, 'amountSen' => $p->amount_sen, 'method' => $p->method_snapshot, 'status' => $p->status, 'lockVersion' => $p->lock_version, 'receivedAt' => $p->received_at->setTimezone($branch->timezone)->format('j M Y, g:i A')])->all(),
