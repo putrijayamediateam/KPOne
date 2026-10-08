@@ -1,8 +1,20 @@
 # KPOne project
 
-Latest merged delivery: PR #60 — TV-2 dispensary and treatment-room calls, merged as `cf8574d`. Recent merges,
-newest first:
+Latest merged delivery: PR #70 — billing payment guidance, merged as `8fd95c5`. Recent merges, newest first
+(documentation-only PRs omitted):
 
+- PR #70 (`8fd95c5`) — billing page guidance: separate "Amount received" and Panel or pay later amount fields, a
+  "How to settle this invoice" note, a six-step Panel guide, and hints under a waiting proposal and a disabled
+  Add Payment. Wording and layout only; amounts, approval limits and permissions are unchanged.
+- PR #69 (`915733d`) — QR intake review forms keep the current lock version, so Accept is no longer refused after
+  Save corrections.
+- PR #67 (`c547578`) — QR intake review actions (start, correct, correction required, reject, accept) stay on the
+  intake's own review page instead of the patient status page.
+- PR #66 (`49a335e`) — a refused Call In returns to the Registration board or queue it was pressed on.
+- PR #65 (`af0ee62`) — TV-4: soft two-note ding-dong call chime (owner choice).
+- PR #64 (`3c16156`) — TV-3: earlier calls stay on the TV list, one row per patient, service and room.
+- PR #62 (`8344037`) — TV display polish: separate Full screen button, light/dark theme button, Klinik Putrijaya
+  logo, English on-screen text, wrapping room names.
 - PR #60 (`cf8574d`) — TV-2: dispensary staff press Panggil to call a patient to the dispensary room, and the
   doctor or a supervisor calls a patient being served to a treatment room. Calls only announce on the TV; the
   queue, consultation and dispensary case are unchanged.
