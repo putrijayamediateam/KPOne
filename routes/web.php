@@ -57,16 +57,16 @@ Route::get('/', fn () => Auth::check()
     : redirect()->route('login'))->name('home');
 
 Route::get('check-in', PublicCheckInController::class)
-    ->middleware(['public-intake.proxy', 'throttle:public-checkin-view', 'sensitive.no-store'])
+    ->middleware(['public-intake.proxy', 'throttle:public-checkin-view', 'sensitive.no-store:no-referrer'])
     ->name('public-checkin.show');
 Route::post('check-in/exchange', [PublicCheckInController::class, 'exchange'])
-    ->middleware(['public-intake.proxy', 'throttle:public-intake-exchange', 'sensitive.no-store'])
+    ->middleware(['public-intake.proxy', 'throttle:public-intake-exchange', 'sensitive.no-store:no-referrer'])
     ->name('public-intake.exchange');
 Route::post('check-in/intakes', [PublicCheckInController::class, 'submit'])
-    ->middleware(['public-intake.proxy', 'throttle:public-intake-submit', 'sensitive.no-store'])
+    ->middleware(['public-intake.proxy', 'throttle:public-intake-submit', 'sensitive.no-store:no-referrer'])
     ->name('public-intake.submit');
 Route::get('check-in/status', [PublicCheckInController::class, 'status'])
-    ->middleware(['public-intake.proxy', 'throttle:public-intake-status', 'sensitive.no-store'])
+    ->middleware(['public-intake.proxy', 'throttle:public-intake-status', 'sensitive.no-store:no-referrer'])
     ->name('public-intake.status');
 
 Route::middleware(['guest', 'throttle:10,1'])->group(function () {
