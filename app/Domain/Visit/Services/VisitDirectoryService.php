@@ -28,6 +28,7 @@ class VisitDirectoryService
         private VisitPolicy $visitPolicy,
         private DispensaryDirectoryService $dispensary,
         private VisitReasonService $reasons,
+        private VisitHistoryService $history,
     ) {}
 
     /**
@@ -348,6 +349,7 @@ class VisitDirectoryService
             'durationMinutes' => $durationMinutes,
             'visitLockVersion' => $visit->lock_version,
             'billingUrl' => $canBilling ? route('billing.show', $visit) : null,
+            'historyUrl' => $this->history->available($actor, $visit) ? route('visits.history', $visit) : null,
             'awaitingBilling' => $canBilling && $visit->status === Visit::STATUS_REGISTERED,
             'completedAt' => $visit->completed_at?->setTimezone($branch->timezone)->format('j M Y, g:i A'),
             'queueLockVersion' => $visibleQueueEntry?->lock_version,

@@ -238,6 +238,7 @@ const boardRows = computed<PatientBoardRow[]>(() =>
             returnedFromDispensary: visit.returnedFromDispensary,
             dispensaryUrl: visit.dispensaryUrl,
             billingUrl: visit.billingUrl,
+            historyUrl: visit.historyUrl,
             completedAt: visit.completedAt,
             statusLabel: visit.isHeld ? 'On Hold' : status.label,
             statusTone: visit.isHeld ? ('held' as const) : status.tone,
