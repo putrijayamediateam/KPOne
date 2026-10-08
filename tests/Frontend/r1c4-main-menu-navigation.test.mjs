@@ -31,6 +31,7 @@ const capabilities = (overrides = {}) => ({
     accessControl: false,
     auditLogs: false,
     publicCheckInLinks: false,
+    queueDisplayScreen: false,
     insights: false,
     ...overrides,
 });
@@ -68,10 +69,7 @@ test('Insights is exposed only as the implemented, permission-backed Today desti
     const sidebar = read('resources/js/components/AppSidebar.vue');
 
     assert.deepEqual([...labels(groups)], ['Insights']);
-    assert.deepEqual(
-        [...destinations.map((item) => item.label)],
-        ['Main Menu', 'Insights'],
-    );
+    assert.deepEqual([...destinations.map((item) => item.label)], ['Insights']);
     assert.match(source, /href: '\/insights\/today'/);
     assert.match(sidebar, /can\('insights\.view\.organisation'\)/);
 });
@@ -120,7 +118,7 @@ test('Payment Method setup is permission-backed and grouped with Finance', () =>
     assert.deepEqual([...labels(finance)], ['Payment Methods']);
     assert.deepEqual(
         [...destinations.map((item) => item.label)],
-        ['Main Menu', 'Payment Methods'],
+        ['Payment Methods'],
     );
     assert.match(source, /href: '\/payment-methods'/);
     assert.match(
@@ -158,13 +156,7 @@ test('desktop and mobile header share one context-aware destination list', () =>
                 .headerDestinations(allowed, 'clinic')
                 .map((item) => item.label),
         ],
-        [
-            'Main Menu',
-            'Registration',
-            'Consultation',
-            'Inventory',
-            'Patient Records',
-        ],
+        ['Registration', 'Consultation', 'Inventory', 'Patient Records'],
     );
     assert.deepEqual(
         [
@@ -172,7 +164,7 @@ test('desktop and mobile header share one context-aware destination list', () =>
                 .headerDestinations(allowed, 'admin')
                 .map((item) => item.label),
         ],
-        ['Main Menu', 'Staff'],
+        ['Staff'],
     );
 });
 
@@ -194,7 +186,7 @@ test('Main Menu cards and header navigation retain semantic link and focus contr
     assert.match(header, /aria-label="Desktop primary navigation"/);
     assert.match(
         header,
-        /class="hidden min-w-0 flex-1 overflow-x-auto xl:flex"[\s\S]*?<div class="flex w-max min-w-full justify-center">/,
+        /class="hidden min-w-0 flex-1 overflow-x-auto xl:flex"[\s\S]*?<div class="mx-auto flex w-max">/,
     );
     assert.match(
         header,
@@ -206,4 +198,43 @@ test('Main Menu cards and header navigation retain semantic link and focus contr
     );
     assert.match(header, /:aria-current=/);
     assert.doesNotMatch(header, /Reviews|Purchase/);
+});
+
+test('the header never repeats Main Menu and never clips its first item', () => {
+    const every = capabilities({
+        registration: true,
+        staff: true,
+        queueDisplay: true,
+        queueDisplayScreen: true,
+    });
+    const header = read(
+        'resources/js/components/workspace/WorkspaceHeader.vue',
+    );
+
+    for (const context of ['clinic', 'admin']) {
+        const labelsInHeader = navigation
+            .headerDestinations(every, context)
+            .map((item) => item.label);
+
+        assert.ok(!labelsInHeader.includes('Main Menu'));
+        assert.ok(labelsInHeader.includes('TV Screen'));
+    }
+
+    // A centred overflowing flex row clips its first item, which showed as a lone "u".
+    assert.doesNotMatch(header, /min-w-full justify-center/);
+});
+
+test('the TV account can reach its screen from the menu', () => {
+    const tvOnly = capabilities({ queueDisplayScreen: true });
+    const middleware = read('app/Http/Middleware/HandleInertiaRequests.php');
+
+    assert.deepEqual(
+        [...labels(navigation.mainMenuGroups(tvOnly))],
+        ['TV Screen'],
+    );
+    assert.match(source, /href: '\/queue-display'/);
+    assert.match(
+        middleware,
+        /'queueDisplayScreen' => \$user->can\('queue\.display\.branch'\)/,
+    );
 });

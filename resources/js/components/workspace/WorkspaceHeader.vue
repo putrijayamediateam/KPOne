@@ -100,7 +100,7 @@ const isActive = (href: string) => isWorkspaceDestinationActive(page.url, href);
                 class="hidden min-w-0 flex-1 overflow-x-auto xl:flex"
                 aria-label="Desktop primary navigation"
             >
-                <div class="flex w-max min-w-full justify-center">
+                <div class="mx-auto flex w-max">
                     <Link
                         v-for="item in items"
                         :key="item.href"

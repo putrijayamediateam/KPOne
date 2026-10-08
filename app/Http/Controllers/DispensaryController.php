@@ -15,6 +15,7 @@ use App\Http\Requests\DispensaryCaseActionRequest;
 use App\Http\Requests\UpdateDispensaryItemRequest;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -44,7 +45,7 @@ class DispensaryController extends Controller
 
     public function start(DispensaryCaseActionRequest $request, DispensaryCase $dispensaryCase, DispensaryService $service): RedirectResponse
     {
-        $service->start($request->user(), $dispensaryCase, $request->validated());
+        $this->stayOnCase($dispensaryCase, fn () => $service->start($request->user(), $dispensaryCase, $request->validated()));
         Inertia::flash('toast', ['type' => 'success', 'message' => 'Dispensing started.']);
 
         return to_route('dispensary.show', $dispensaryCase);
@@ -52,7 +53,7 @@ class DispensaryController extends Controller
 
     public function updateItem(UpdateDispensaryItemRequest $request, DispensaryCase $dispensaryCase, DispensaryItem $item, DispensaryService $service): RedirectResponse
     {
-        $service->updateItem($request->user(), $dispensaryCase, $item, $request->validated());
+        $this->stayOnCase($dispensaryCase, fn () => $service->updateItem($request->user(), $dispensaryCase, $item, $request->validated()));
         Inertia::flash('toast', ['type' => 'success', 'message' => 'Fulfilment updated.']);
 
         return to_route('dispensary.show', $dispensaryCase);
@@ -60,7 +61,7 @@ class DispensaryController extends Controller
 
     public function returnToDoctor(DispensaryCaseActionRequest $request, DispensaryCase $dispensaryCase, DispensaryService $service): RedirectResponse
     {
-        $service->returnToDoctor($request->user(), $dispensaryCase, $request->validated());
+        $this->stayOnCase($dispensaryCase, fn () => $service->returnToDoctor($request->user(), $dispensaryCase, $request->validated()));
         Inertia::flash('toast', ['type' => 'success', 'message' => 'Case returned to the attending doctor.']);
 
         return to_route('registration.index');
@@ -68,7 +69,7 @@ class DispensaryController extends Controller
 
     public function complete(DispensaryCaseActionRequest $request, DispensaryCase $dispensaryCase, DispensaryService $service): RedirectResponse
     {
-        $service->complete($request->user(), $dispensaryCase, $request->validated());
+        $this->stayOnCase($dispensaryCase, fn () => $service->complete($request->user(), $dispensaryCase, $request->validated()));
         Inertia::flash('toast', ['type' => 'success', 'message' => 'Dispensary completed.']);
 
         return $request->user()->can('billing.view.branch') ? to_route('billing.show', $dispensaryCase->visit) : to_route('registration.index');
@@ -80,5 +81,18 @@ class DispensaryController extends Controller
         Inertia::flash('toast', ['type' => 'success', 'message' => 'Partial fulfilment acknowledged.']);
 
         return back();
+    }
+
+    /**
+     * NAV-02: a refused action must land back on this Dispensary case, not on whatever
+     * full page the session last recorded (the app sends Referrer-Policy: no-referrer).
+     */
+    private function stayOnCase(DispensaryCase $dispensaryCase, \Closure $action): void
+    {
+        try {
+            $action();
+        } catch (ValidationException $exception) {
+            throw $exception->redirectTo(route('dispensary.show', $dispensaryCase));
+        }
     }
 }

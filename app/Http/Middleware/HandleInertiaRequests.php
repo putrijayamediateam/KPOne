@@ -112,6 +112,9 @@ class HandleInertiaRequests extends Middleware
                         || $user->can('public_checkin_links.manage.branch'),
                     'queueDisplay' => $user->can('queue_display.manage.organisation')
                         || $user->can('queue_display.manage.branch'),
+                    'queueDisplayScreen' => $user->can('queue.display.branch')
+                        || $user->can('queue_display.manage.organisation')
+                        || $user->can('queue_display.manage.branch'),
                 ],
                 'pendingIntakes' => $activeBranch && $user->can('public_intakes.review.branch')
                     ? PublicPatientIntake::query()

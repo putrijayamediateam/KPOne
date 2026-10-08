@@ -17,11 +17,12 @@ export type WorkspaceNavigationCapabilities = {
     auditLogs: boolean;
     publicCheckInLinks: boolean;
     queueDisplay: boolean;
+    queueDisplayScreen: boolean;
     insights: boolean;
 };
 
 export type WorkspaceDestination = {
-    key: keyof WorkspaceNavigationCapabilities | 'mainMenu';
+    key: keyof WorkspaceNavigationCapabilities;
     label: string;
     description: string;
     href: string;
@@ -168,6 +169,13 @@ const destinations: Record<
         href: '/queue-display-settings',
         icon: 'building',
     },
+    queueDisplayScreen: {
+        key: 'queueDisplayScreen',
+        label: 'TV Screen',
+        description: 'Open the waiting-room TV screen for this branch.',
+        href: '/queue-display',
+        icon: 'activity',
+    },
     insights: {
         key: 'insights',
         label: 'Insights',
@@ -175,14 +183,6 @@ const destinations: Record<
         href: '/insights/today',
         icon: 'activity',
     },
-};
-
-const mainMenu: WorkspaceDestination = {
-    key: 'mainMenu',
-    label: 'Main Menu',
-    description: 'Open the KPOne module hub.',
-    href: '/dashboard',
-    icon: 'activity',
 };
 
 const available = (
@@ -204,6 +204,7 @@ export const mainMenuGroups = (
                 'registration',
                 'consultation',
                 'inventory',
+                'queueDisplayScreen',
             ]),
         },
         {
@@ -246,9 +247,9 @@ export const mainMenuGroups = (
 export const headerDestinations = (
     capabilities: WorkspaceNavigationCapabilities,
     context: 'clinic' | 'admin',
-): WorkspaceDestination[] => [
-    mainMenu,
-    ...available(
+): WorkspaceDestination[] =>
+    // The logo and KPOne name already open the Main Menu, so it is not repeated here.
+    available(
         capabilities,
         context === 'clinic'
             ? [
@@ -261,6 +262,7 @@ export const headerDestinations = (
                   'financeWork',
                   'paymentMethods',
                   'billingApprovalLimits',
+                  'queueDisplayScreen',
               ]
             : [
                   'insights',
@@ -274,9 +276,9 @@ export const headerDestinations = (
                   'auditLogs',
                   'publicCheckInLinks',
                   'queueDisplay',
+                  'queueDisplayScreen',
               ],
-    ),
-];
+    );
 
 const pathname = (url: string): string => url.split(/[?#]/, 1)[0] ?? '';
 
