@@ -9,11 +9,13 @@ use Spatie\Permission\PermissionRegistrar;
 use Tests\Feature\Clinical\ClinicalTestCase;
 
 /**
- * FIN-01 (owner decision, 2026-10-08): finance officers see invoice lines.
+ * FIN-01 (owner decision, 2026-10-08): finance officers, panel officers and directors see invoice lines.
  */
 class FinanceLinesMigrationTest extends ClinicalTestCase
 {
     private const PERMISSION = 'billing.lines.view.branch';
+
+    private const ROLES = ['finance_officer', 'panel_officer', 'director'];
 
     private function migration(): object
     {
@@ -30,9 +32,11 @@ class FinanceLinesMigrationTest extends ClinicalTestCase
             ->pluck('c', 'name')->map(fn ($c) => (int) $c)->all();
     }
 
-    public function test_migration_grants_an_existing_database_finance_officer_only_and_never_removes(): void
+    public function test_migration_grants_an_existing_database_only_the_three_roles_and_never_removes(): void
     {
-        Role::query()->where('name', 'finance_officer')->firstOrFail()->revokePermissionTo(self::PERMISSION);
+        foreach (self::ROLES as $name) {
+            Role::query()->where('name', $name)->firstOrFail()->revokePermissionTo(self::PERMISSION);
+        }
         app(PermissionRegistrar::class)->forgetCachedPermissions();
         $this->assertFalse($this->actor('finance_officer')->can(self::PERMISSION));
         $before = $this->counts();
@@ -41,11 +45,13 @@ class FinanceLinesMigrationTest extends ClinicalTestCase
 
         $after = $this->counts();
         foreach ($before as $name => $count) {
-            $this->assertSame($count + ($name === 'finance_officer' ? 1 : 0), $after[$name], "{$name} changed unexpectedly");
+            $this->assertSame($count + (in_array($name, self::ROLES, true) ? 1 : 0), $after[$name], "{$name} changed unexpectedly");
         }
         $this->assertTrue($this->actor('finance_officer')->can(self::PERMISSION));
-        $this->assertFalse($this->actor('director')->can(self::PERMISSION));
-        $this->assertFalse($this->actor('panel_officer')->can(self::PERMISSION));
+        $this->assertTrue($this->actor('director')->can(self::PERMISSION));
+        $this->assertTrue($this->actor('panel_officer')->can(self::PERMISSION));
+        $this->assertFalse($this->actor('technical_admin')->can(self::PERMISSION));
+        $this->assertFalse($this->actor('marketing')->can(self::PERMISSION));
 
         $this->migration()->up();
         $this->migration()->down();
@@ -56,14 +62,14 @@ class FinanceLinesMigrationTest extends ClinicalTestCase
     public function test_migration_creates_a_missing_permission_but_never_a_missing_role(): void
     {
         DB::table('permissions')->where('name', self::PERMISSION)->delete();
-        Role::query()->where('name', 'finance_officer')->delete();
+        Role::query()->whereIn('name', self::ROLES)->delete();
         app(PermissionRegistrar::class)->forgetCachedPermissions();
         Log::spy();
 
         $this->migration()->up();
 
         $this->assertSame(1, DB::table('permissions')->where('name', self::PERMISSION)->count());
-        $this->assertTrue(Role::query()->where('name', 'finance_officer')->doesntExist());
-        Log::shouldHaveReceived('warning')->withArgs(fn (string $message, array $context) => ($context['role'] ?? null) === 'finance_officer')->once();
+        $this->assertTrue(Role::query()->whereIn('name', self::ROLES)->doesntExist());
+        Log::shouldHaveReceived('warning')->times(3);
     }
 }

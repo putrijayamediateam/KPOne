@@ -30,7 +30,7 @@ class BillingWorkTest extends BillingTestCase
             ->missing('work.data.0.state')->missing('work.data.0.reason')->missing('work.data.0.dueDate')->missing('work.data.0.lines'));
         $this->assertStringContainsString('no-store', $response->headers->get('Cache-Control'));
         $response->assertDontSee('Synthetic private reason')->assertDontSee('SYNTHETIC-PRIVATE');
-        $this->get(route('billing.show', $visit))->assertOk()->assertInertia(fn (Assert $p) => $p->where('billing.invoice.lines', [])->where('billing.deferment', null)->where('billing.can.pay', false)->where('billing.can.complete', false));
+        $this->get(route('billing.show', $visit))->assertOk()->assertInertia(fn (Assert $p) => $p->has('billing.invoice.lines', 1)->where('billing.deferment', null)->where('billing.can.pay', false)->where('billing.can.complete', false));
         $this->post(route('billing.payment', [$visit, $invoice]), [])->assertForbidden();
         $this->post(route('billing.complete', $visit), [])->assertForbidden();
         $this->get(route('billing.work'))->assertForbidden();
@@ -156,19 +156,21 @@ class BillingWorkTest extends BillingTestCase
         }
     }
 
-    public function test_only_finance_officer_gains_invoice_lines_and_the_grant_is_not_a_clinical_or_operational_authority(): void
+    public function test_invoice_lines_go_to_finance_panel_and_director_only_and_the_grant_is_not_an_operational_authority(): void
     {
-        // FIN-01 (owner decision, 2026-10-08): finance officers see invoice lines. Panel Officer and
-        // Director stay summary-only, and the permission carries no operational authority.
+        // FIN-01 (owner decision, 2026-10-08): finance officers, panel officers and directors see
+        // invoice lines. No other role gains them, and the permission is not people/access authority.
         $holders = collect(BillingPermissions::roles())
             ->filter(fn (array $permissions): bool => in_array('billing.lines.view.branch', $permissions, true))
-            ->keys()->all();
-        $this->assertSame(['finance_officer'], $holders);
+            ->keys()->sort()->values()->all();
+        $this->assertSame(['director', 'finance_officer', 'panel_officer'], $holders);
         $this->assertNotContains('billing.lines.view.branch', PermissionCatalogue::AUTHORITY_OVER_PEOPLE_AND_ACCESS);
 
         [, , $visit] = $this->finalizedFixture();
-        $panelOfficer = $this->actor('panel_officer');
-        $this->selectBranch($panelOfficer);
-        $this->get(route('billing.show', $visit))->assertOk()->assertInertia(fn (Assert $p) => $p->where('billing.invoice.lines', []));
+        foreach (['panel_officer', 'director'] as $role) {
+            $actor = $this->actor($role);
+            $this->selectBranch($actor);
+            $this->get(route('billing.show', $visit))->assertOk()->assertInertia(fn (Assert $p) => $p->has('billing.invoice.lines', 1));
+        }
     }
 }

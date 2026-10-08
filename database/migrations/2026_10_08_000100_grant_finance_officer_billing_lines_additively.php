@@ -8,15 +8,15 @@ use Spatie\Permission\PermissionRegistrar;
 
 return new class extends Migration
 {
-    private const ROLE = 'finance_officer';
+    /** @var list<string> */
+    private const ROLES = ['finance_officer', 'panel_officer', 'director'];
 
     private const PERMISSION = 'billing.lines.view.branch';
 
     /**
-     * FIN-01 (owner decision, 2026-10-08): a finance officer sees the invoice line items
-     * (charge name, quantity, unit price, total) on the billing page, not only totals.
-     * Scoped to exactly this role and permission; the line projection stays closed for
-     * Director and Panel Officer.
+     * FIN-01 (owner decision, 2026-10-08): finance officers, panel officers and directors see
+     * the invoice line items (charge name, quantity, unit price, total) on the billing page,
+     * not only totals. Scoped to exactly these roles and this permission.
      *
      * Additive only, like 2026_09_27_000100_grant_ca_supervisor_pricing_permissions_additively:
      * a missing Permission is created, the role is given only what it lacks, a role that does
@@ -28,14 +28,16 @@ return new class extends Migration
 
         Permission::query()->firstOrCreate(['name' => self::PERMISSION, 'guard_name' => 'web']);
 
-        $role = Role::query()->where('name', self::ROLE)->where('guard_name', 'web')->first();
+        foreach (self::ROLES as $name) {
+            $role = Role::query()->where('name', $name)->where('guard_name', 'web')->first();
 
-        if (! $role) {
-            Log::warning('FIN-01 migration: role not present in database, skipped (never auto-created).', [
-                'role' => self::ROLE,
-            ]);
-        } elseif (! $role->hasPermissionTo(self::PERMISSION)) {
-            $role->givePermissionTo(self::PERMISSION);
+            if (! $role) {
+                Log::warning('FIN-01 migration: role not present in database, skipped (never auto-created).', [
+                    'role' => $name,
+                ]);
+            } elseif (! $role->hasPermissionTo(self::PERMISSION)) {
+                $role->givePermissionTo(self::PERMISSION);
+            }
         }
 
         app(PermissionRegistrar::class)->forgetCachedPermissions();
