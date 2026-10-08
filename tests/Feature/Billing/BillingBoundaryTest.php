@@ -37,7 +37,7 @@ class BillingBoundaryTest extends BillingTestCase
         $this->selectBranch($panel, $visit->branch);
         $this->get(route('billing.show', $visit))->assertOk()->assertInertia(fn (Assert $page) => $page
             ->where('billing.deferment', null)->where('billing.oldOutstanding', [])
-            ->where('billing.invoice.lines', [])->where('billing.can.deferApprove', false));
+            ->has('billing.invoice.lines', 1)->where('billing.can.deferApprove', false));
     }
 
     public function test_branch_price_override_is_explicit_and_future_draft_version_rejects(): void

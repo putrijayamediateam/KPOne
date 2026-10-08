@@ -2,6 +2,8 @@
 
 namespace Tests\Feature\Billing;
 
+use App\Domain\Access\BillingPermissions;
+use App\Domain\Access\PermissionCatalogue;
 use App\Domain\Organisation\Models\Branch;
 use App\Domain\Organisation\Models\Organisation;
 use App\Domain\Visit\Billing\Services\ResponsibilityService;
@@ -28,7 +30,7 @@ class BillingWorkTest extends BillingTestCase
             ->missing('work.data.0.state')->missing('work.data.0.reason')->missing('work.data.0.dueDate')->missing('work.data.0.lines'));
         $this->assertStringContainsString('no-store', $response->headers->get('Cache-Control'));
         $response->assertDontSee('Synthetic private reason')->assertDontSee('SYNTHETIC-PRIVATE');
-        $this->get(route('billing.show', $visit))->assertOk()->assertInertia(fn (Assert $p) => $p->where('billing.invoice.lines', [])->where('billing.deferment', null)->where('billing.can.pay', false)->where('billing.can.complete', false));
+        $this->get(route('billing.show', $visit))->assertOk()->assertInertia(fn (Assert $p) => $p->has('billing.invoice.lines', 1)->where('billing.deferment', null)->where('billing.can.pay', false)->where('billing.can.complete', false));
         $this->post(route('billing.payment', [$visit, $invoice]), [])->assertForbidden();
         $this->post(route('billing.complete', $visit), [])->assertForbidden();
         $this->get(route('billing.work'))->assertForbidden();
@@ -41,7 +43,7 @@ class BillingWorkTest extends BillingTestCase
         $this->selectBranch($finance);
         $this->get(route('dashboard'))->assertOk()->assertInertia(fn (Assert $p) => $p->where('workspace.navigation.financeWork', true)->where('workspace.navigation.registration', false)->where('workspace.navigation.consultation', false));
         $this->get(route('billing.work'))->assertOk()->assertInertia(fn (Assert $p) => $p->component('FinancialWork/Index')->has('work.data', 1)->where('work.data.0.state.total', 4000)->where('work.data.0.state.due_now', 4000)->where('work.data.0.reviewUrl', route('billing.show', $visit))->missing('work.data.0.lines')->missing('work.data.0.payments')->missing('work.data.0.reason'));
-        $this->get(route('billing.show', $visit))->assertOk()->assertInertia(fn (Assert $p) => $p->where('billing.invoice.lines', [])->where('billing.can.complete', false));
+        $this->get(route('billing.show', $visit))->assertOk()->assertInertia(fn (Assert $p) => $p->has('billing.invoice.lines', 1)->where('billing.can.complete', false));
         foreach (['visits.complete.branch', 'encounters.view.own', 'dispensary.complete.branch'] as $permission) {
             $this->assertFalse($finance->can($permission));
         }
@@ -151,6 +153,24 @@ class BillingWorkTest extends BillingTestCase
                 $this->get(route($route, ['branch_id' => $visit->branch_id, 'organisation_id' => $visit->organisation_id, 'scope' => 'organisation']))->assertOk()->assertInertia(fn (Assert $p) => $p->has('work.data', 0));
                 $this->get(route('billing.show', $visit))->assertNotFound();
             }
+        }
+    }
+
+    public function test_invoice_lines_go_to_finance_panel_and_director_only_and_the_grant_is_not_an_operational_authority(): void
+    {
+        // FIN-01 (owner decision, 2026-10-08): finance officers, panel officers and directors see
+        // invoice lines. No other role gains them, and the permission is not people/access authority.
+        $holders = collect(BillingPermissions::roles())
+            ->filter(fn (array $permissions): bool => in_array('billing.lines.view.branch', $permissions, true))
+            ->keys()->sort()->values()->all();
+        $this->assertSame(['director', 'finance_officer', 'panel_officer'], $holders);
+        $this->assertNotContains('billing.lines.view.branch', PermissionCatalogue::AUTHORITY_OVER_PEOPLE_AND_ACCESS);
+
+        [, , $visit] = $this->finalizedFixture();
+        foreach (['panel_officer', 'director'] as $role) {
+            $actor = $this->actor($role);
+            $this->selectBranch($actor);
+            $this->get(route('billing.show', $visit))->assertOk()->assertInertia(fn (Assert $p) => $p->has('billing.invoice.lines', 1));
         }
     }
 }

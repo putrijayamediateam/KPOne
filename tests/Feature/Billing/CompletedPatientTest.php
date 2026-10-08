@@ -50,6 +50,6 @@ class CompletedPatientTest extends BillingTestCase
         }
         $finance = $this->actor('finance_officer');
         $this->selectBranch($finance, $visit->branch);
-        $this->get(route('billing.show', $visit))->assertOk()->assertInertia(fn (Assert $page) => $page->where('billing.invoice.lines', [])->where('billing.can.complete', false));
+        $this->get(route('billing.show', $visit))->assertOk()->assertInertia(fn (Assert $page) => $page->has('billing.invoice.lines', 1)->where('billing.can.complete', false));
     }
 }
