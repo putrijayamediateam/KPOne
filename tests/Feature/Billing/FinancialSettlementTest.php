@@ -83,6 +83,24 @@ class FinancialSettlementTest extends BillingTestCase
         $this->assertDatabaseHas('payments', ['method_snapshot' => 'Cash', 'amount_sen' => 4000]);
     }
 
+    public function test_a_refused_billing_action_returns_to_the_billing_page_not_the_last_full_page(): void
+    {
+        [, $ca, $visit, $invoice] = $this->finalizedFixture(44800);
+        $panel = Panel::factory()->create(['organisation_id' => $visit->organisation_id]);
+        $proposal = app(ResponsibilityService::class)->propose($ca, $visit, $invoice, 'panel', ['expected_branch_id' => $visit->branch_id, 'lock_version' => $invoice->lock_version, 'amount_sen' => 40800, 'panel_id' => $panel->id, 'reason' => 'Synthetic verified responsibility']);
+        $supervisor = $this->actor('ca_supervisor');
+        $this->selectBranch($supervisor, $visit->branch);
+
+        // NAV-02: no configured limit, so approval is refused. The session still points at the
+        // patient's QR status page, as it does when the same browser also hosted the patient flow.
+        $this->actingAs($supervisor)
+            ->withSession(['_previous' => ['url' => 'http://localhost/check-in/status']])
+            ->post(route('billing.approve', [$visit, $invoice, 'panel', $proposal->public_id]), ['expected_branch_id' => $visit->branch_id, 'lock_version' => $invoice->refresh()->lock_version, 'proposal_lock_version' => $proposal->lock_version])
+            ->assertRedirect(route('billing.show', $visit))
+            ->assertSessionHasErrors();
+        $this->assertSame('proposed', $proposal->refresh()->status);
+    }
+
     public function test_ca_can_approve_panel_with_configured_limit(): void
     {
         [, $ca, $visit, $invoice] = $this->finalizedFixture();

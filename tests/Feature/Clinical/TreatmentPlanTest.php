@@ -354,6 +354,27 @@ class TreatmentPlanTest extends ClinicalTestCase
         $this->assertSame($before, $this->fulfilmentSnapshot());
     }
 
+    public function test_a_refused_dispensary_save_returns_to_the_case_not_the_last_full_page(): void
+    {
+        $fixture = $this->stockedPartialFixture();
+        $url = route('dispensary.items.update', [$fixture['case'], $fixture['item']]);
+        $payload = [
+            'expected_branch_id' => $fixture['visit']->branch_id,
+            'case_lock_version' => $fixture['case']->refresh()->lock_version,
+            'item_lock_version' => $fixture['item']->refresh()->lock_version,
+        ];
+
+        // NAV-02: the session still points at the patient's QR status page, as it does when the
+        // same browser also hosted the patient flow. A failed request-level check (no status) and a
+        // failed domain rule (dispensed without an actual quantity) must both stay on the Dispensary case.
+        foreach ([[], ['status' => 'dispensed', 'allocations' => []]] as $extra) {
+            $this->withSession(['_previous' => ['url' => 'http://localhost/check-in/status']])
+                ->patch($url, $payload + $extra)
+                ->assertRedirect(route('dispensary.show', $fixture['case']))
+                ->assertSessionHasErrors();
+        }
+    }
+
     public function test_dispensary_print_and_consultation_copy_have_explicit_non_mutating_ui_contracts(): void
     {
         $panel = preg_replace('/\s+/', ' ', file_get_contents(resource_path('js/pages/Clinical/Partials/TreatmentPlanPanel.vue')));
