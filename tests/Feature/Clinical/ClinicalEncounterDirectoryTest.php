@@ -113,7 +113,7 @@ class ClinicalEncounterDirectoryTest extends ClinicalTestCase
 
         $this->assertCount(15, $detail['history']);
         $this->assertSame(
-            ['startedAt', 'branch', 'attendingClinician', 'status', 'visitReason', 'viewUrl'],
+            ['startedAt', 'branch', 'attendingClinician', 'status', 'visitReason', 'viewUrl', 'invoiceUrl'],
             array_keys($detail['history'][0]),
         );
         $this->assertSame('Synthetic Queue reason', $detail['history'][0]['visitReason']);

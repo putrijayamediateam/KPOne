@@ -17,6 +17,7 @@ use App\Models\User;
 use Illuminate\Support\Facades\Route;
 use Inertia\Testing\AssertableInertia as Assert;
 use Tests\Support\StaffBranchAssignmentBootstrapper;
+use Tests\Support\SyntheticVisitCompletion;
 
 class ClinicalEncounterHistoryTest extends ClinicalTestCase
 {
@@ -62,6 +63,26 @@ class ClinicalEncounterHistoryTest extends ClinicalTestCase
             ->missing('historical.visit.id')
             ->missing('historical.visit.registrationReason')
             ->missing('historical.actions'));
+    }
+
+    public function test_a_completed_previous_visit_links_to_the_invoices_page_as_its_full_page(): void
+    {
+        $doctor = $this->doctor();
+        $ca = $this->actor('ca');
+        $patient = $this->patient($ca);
+        [$historicalVisit, $historicalQueue, $historical] = $this->servingEncounterForPatient($ca, $doctor, $patient);
+        $this->holdEncounter($doctor, $historicalVisit, $historicalQueue, $historical);
+        [$currentVisit] = $this->servingEncounterForPatient($ca, $doctor, $patient, confirmRepeat: true);
+        $this->selectBranch($doctor);
+
+        $this->get(route('encounters.show', $currentVisit))->assertOk()
+            ->assertInertia(fn (Assert $page) => $page->where('clinical.history.0.invoiceUrl', null));
+
+        SyntheticVisitCompletion::complete($historicalVisit);
+        $this->get(route('encounters.show', $currentVisit))->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('clinical.history.0.invoiceUrl', route('visits.history', $historicalVisit))
+                ->where('clinical.history.0.viewUrl', route('encounters.history.show', $historicalVisit)));
     }
 
     public function test_authorized_history_can_be_loaded_on_demand_as_an_explicit_json_projection(): void

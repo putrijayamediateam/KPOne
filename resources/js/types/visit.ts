@@ -51,6 +51,7 @@ export type VisitRow = {
     medicineCount?: number;
     dispensaryUrl?: string;
     billingUrl?: string | null;
+    historyUrl?: string | null;
     awaitingBilling?: boolean;
     completedAt?: string | null;
     can: {

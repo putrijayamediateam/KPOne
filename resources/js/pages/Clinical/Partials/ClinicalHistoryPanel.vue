@@ -12,6 +12,7 @@ import type {
 defineProps<{ history: ClinicalHistorySummary[]; timeZone: string }>();
 const selected = ref<ClinicalHistoryDetailPage | null>(null);
 const selectedUrl = ref<string | null>(null);
+const selectedInvoiceUrl = ref<string | null>(null);
 const loadingUrl = ref<string | null>(null);
 const error = ref('');
 let controller: AbortController | null = null;
@@ -40,10 +41,12 @@ const load = async (item: ClinicalHistorySummary) => {
 
         selected.value = (await response.json()) as ClinicalHistoryDetailPage;
         selectedUrl.value = item.viewUrl;
+        selectedInvoiceUrl.value = item.invoiceUrl ?? null;
     } catch (caught) {
         if (!(caught instanceof DOMException && caught.name === 'AbortError')) {
             selected.value = null;
             selectedUrl.value = null;
+            selectedInvoiceUrl.value = null;
             error.value = 'This previous consultation is unavailable.';
         }
     } finally {
@@ -73,6 +76,7 @@ onBeforeUnmount(() => controller?.abort());
                 @click="
                     selected = null;
                     selectedUrl = null;
+                    selectedInvoiceUrl = null;
                 "
             >
                 <ArrowLeft class="size-4" /> Recent visits
@@ -146,7 +150,7 @@ onBeforeUnmount(() => controller?.abort());
                         </div>
                         <ActionLink
                             v-if="selectedUrl"
-                            :href="selectedUrl"
+                            :href="selectedInvoiceUrl ?? selectedUrl"
                             variant="outline"
                             size="sm"
                             >Open full page</ActionLink

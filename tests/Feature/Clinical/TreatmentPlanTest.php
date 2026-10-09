@@ -41,6 +41,7 @@ use App\Domain\Visit\Billing\Models\PriceEntry;
 use App\Domain\Visit\Billing\Services\BillingBuilderService;
 use App\Domain\Visit\Models\Visit;
 use App\Domain\Visit\Services\VisitDirectoryService;
+use App\Domain\Visit\Services\VisitHistoryService;
 use App\Domain\Visit\Services\VisitReasonService;
 use App\Models\User;
 use Carbon\CarbonImmutable;
@@ -53,6 +54,7 @@ use Illuminate\Validation\ValidationException;
 use Inertia\Testing\AssertableInertia as Assert;
 use LogicException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+use Tests\Support\SyntheticVisitCompletion;
 
 class TreatmentPlanTest extends ClinicalTestCase
 {
@@ -1571,6 +1573,39 @@ class TreatmentPlanTest extends ClinicalTestCase
         $this->assertSame(['2.000', '3.000'], $lines->pluck('quantity')->all());
         $this->assertSame(4000 + 2 * 100 + 3 * 200, $invoice->total_sen);
         $builder->finalize($f['ca'], $f['visit'], $invoice, ['expected_branch_id' => $f['visit']->branch_id, 'lock_version' => $invoice->lock_version]);
+    }
+
+    public function test_the_invoices_page_shows_ordered_beside_dispensed(): void
+    {
+        $f = $this->stockedPartialFixture();
+        $extra = $this->stockedExtraMedicine($f);
+        $service = app(DispensaryService::class);
+        $service->editItem($f['ca'], $f['case']->refresh(), $f['item']->refresh(), $this->editPayload($f, '2.000', ['dosage' => 'Two tablets']));
+        $case = $f['case']->refresh();
+        $service->addItem($f['ca'], $case, [
+            'expected_branch_id' => $f['visit']->branch_id, 'case_lock_version' => $case->lock_version, 'medicine_public_id' => $extra['medicine']->public_id,
+            'quantity_dispensed' => '3.000', 'dosage' => 'One sachet', 'frequency' => 'Once daily', 'duration' => null, 'route' => null,
+            'administration_instruction' => null, 'precaution' => null,
+            'allocations' => [['location_public_id' => $f['location']->public_id, 'sku_public_id' => $extra['sku']->public_id, 'batch_public_id' => $extra['batch']->public_id, 'quantity' => '3.000']],
+        ]);
+        $visit = $f['visit']->refresh();
+        SyntheticVisitCompletion::complete($visit);
+        $case->forceFill(['status' => DispensaryCase::STATUS_COMPLETED])->save();
+        $case->handoffs()->update(['status' => 'completed', 'open_case_guard' => null]);
+
+        $history = app(VisitHistoryService::class)->detail($f['ca'], $visit);
+
+        $this->assertCount(2, $history['medicines']);
+        [$doctorLine, $caLine] = $history['medicines'];
+        $this->assertSame('doctor', $doctorLine['source']);
+        $this->assertSame('edited', $doctorLine['changeState']);
+        $this->assertSame('Synthetic dosage', $doctorLine['dosage'], 'the ordered side is the doctor original');
+        $this->assertSame('Two tablets', $doctorLine['dispensed']['dosage'], 'the dispensed side is the CA version');
+        $this->assertSame('2.000', $doctorLine['dispensedQuantity']);
+        $this->assertSame('ca', $caLine['source']);
+        $this->assertSame('added', $caLine['changeState']);
+        $this->assertNull($caLine['quantityOrdered']);
+        $this->assertSame('3.000', $caLine['dispensedQuantity']);
     }
 
     public function test_labels_print_the_cas_final_text_and_skip_removed_lines(): void

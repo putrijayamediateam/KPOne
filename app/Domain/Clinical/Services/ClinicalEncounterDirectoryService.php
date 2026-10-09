@@ -203,7 +203,7 @@ class ClinicalEncounterDirectoryService
                 ->where('patient_id', $current->visit->patient_id))
             ->with([
                 'visit' => fn ($query) => $query->select([
-                    'id', 'organisation_id', 'branch_id', 'visit_number', 'patient_id', 'visit_reason',
+                    'id', 'organisation_id', 'branch_id', 'visit_number', 'patient_id', 'visit_reason', 'status',
                 ])->with('reasonAssignments.reason:id,public_id,name'),
                 'branch:id,organisation_id,code,name',
                 'attendingClinician:id,organisation_id,name',
@@ -221,6 +221,8 @@ class ClinicalEncounterDirectoryService
                 'status' => $encounter->status,
                 'visitReason' => $this->visitReasons->summary($encounter->visit),
                 'viewUrl' => route('encounters.history.show', $encounter->visit),
+                // DS-01c: the full page for a completed visit of this branch is the Invoices page (ordered vs dispensed, payment).
+                'invoiceUrl' => $encounter->visit->status === Visit::STATUS_COMPLETED && $encounter->visit->branch_id === $current->branch_id && $actor->can('visits.history.view.branch') ? route('visits.history', $encounter->visit) : null,
             ])->values()->all();
 
         return array_values($history);

@@ -47,6 +47,7 @@ use App\Http\Controllers\StaffStatusController;
 use App\Http\Controllers\TreatmentPlanCatalogueController;
 use App\Http\Controllers\TreatmentPlanController;
 use App\Http\Controllers\VisitController;
+use App\Http\Controllers\VisitHistoryController;
 use App\Http\Controllers\VisitReasonController;
 use App\Http\Controllers\WorkspaceController;
 use Illuminate\Support\Facades\Auth;
@@ -440,6 +441,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('registration', [RegistrationController::class, 'index'])
             ->middleware('permission:visits.view.branch')
             ->name('registration.index');
+        Route::get('visits/{visit}/history', VisitHistoryController::class)
+            ->middleware(['permission:visits.history.view.branch', 'sensitive.no-store'])
+            ->name('visits.history');
         Route::post('registration/search', [RegistrationController::class, 'search'])
             ->middleware(['permission:visits.view.branch', 'throttle:60,1'])
             ->name('registration.search');
