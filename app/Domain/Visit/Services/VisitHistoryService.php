@@ -20,7 +20,7 @@ use App\Domain\Visit\Billing\Models\PaymentAllocation;
 use App\Domain\Visit\Billing\Services\FinancialLedger;
 use App\Domain\Visit\Models\Visit;
 use App\Models\User;
-use Carbon\CarbonImmutable;
+use Carbon\CarbonInterface;
 
 /**
  * VH-01: read-only history of a completed visit, for every role that can see Registration and
@@ -126,7 +126,7 @@ class VisitHistoryService
         return [
             'status' => $encounter->status,
             'startedAt' => $encounter->started_at->setTimezone($timezone)->format('j M Y, g:i A'),
-            'doctor' => $encounter->attendingClinician?->name,
+            'doctor' => $encounter->attendingClinician->name,
             'note' => $encounter->clinical_note,
             'vitals' => [
                 'systolicBp' => $vitals?->systolic_bp,
@@ -168,7 +168,7 @@ class VisitHistoryService
         $rows = [];
         $orders = $plan ? $plan->medicineOrders->where('status', TreatmentPlanMedicineOrder::STATUS_ACTIVE) : collect();
         foreach ($orders as $order) {
-            $item = $byOrder->get($order->id);
+            $item = $byOrder->has($order->id) ? $byOrder->get($order->id) : null;
             $rows[] = [
                 'name' => $order->medicine_name_snapshot,
                 'strength' => $order->strength_snapshot,
@@ -238,8 +238,8 @@ class VisitHistoryService
         $byOrder = $lines->whereNotNull('treatment_plan_service_order_id')->keyBy('treatment_plan_service_order_id');
         $rows = [];
         foreach ($orders as $order) {
-            $delivery = $deliveries->get($order->id);
-            $line = $byOrder->get($order->id);
+            $delivery = $deliveries->has($order->id) ? $deliveries->get($order->id) : null;
+            $line = $byOrder->has($order->id) ? $byOrder->get($order->id) : null;
             $rows[] = [
                 'name' => $order->service_name_snapshot,
                 'unit' => $order->unit_snapshot,
@@ -306,7 +306,7 @@ class VisitHistoryService
         ];
     }
 
-    private function age(?CarbonImmutable $dateOfBirth): ?string
+    private function age(?CarbonInterface $dateOfBirth): ?string
     {
         if ($dateOfBirth === null) {
             return null;
