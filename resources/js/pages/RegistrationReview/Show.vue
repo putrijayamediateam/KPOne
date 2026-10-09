@@ -45,6 +45,7 @@ type Intake = {
         guardian_relationship: string | null;
         guardian_contact_number: string | null;
         guardian_attestation: boolean;
+        visit_kind?: string;
         visit_purpose: string;
         chief_complaint: string;
         complaint_duration: string | null;
@@ -104,6 +105,7 @@ const acceptance = useForm({
     status: '',
 });
 const rejectionCategory = ref('insufficient_information');
+const medicineOnly = computed(() => props.intake.fields.visit_kind === 'otc');
 const doctorOptions = computed(() =>
     props.visitOptions.doctors.map((d) => ({ value: d.id, label: d.name })),
 );
@@ -328,7 +330,15 @@ watch(
                                 type="tel"
                                 class="h-10 rounded-md border bg-background px-3" /></label
                     ></template>
-                    <label class="grid gap-1"
+                    <p
+                        v-if="medicineOnly"
+                        class="rounded-md border border-sky-300 bg-sky-50 p-2 text-sm text-sky-950 md:col-span-2"
+                        data-testid="medicine-only-note"
+                    >
+                        The patient chose "Buy medicine only". Accepting adds
+                        them to the OTC waiting list with a B number.
+                    </p>
+                    <label v-if="!medicineOnly" class="grid gap-1"
                         ><span class="text-sm font-medium">Visit purpose</span
                         ><select
                             v-model="correction.visit_purpose"
@@ -350,8 +360,11 @@ watch(
                         </select></label
                     >
                     <label class="grid gap-1"
-                        ><span class="text-sm font-medium"
-                            >Chief complaint / main reason</span
+                        ><span class="text-sm font-medium">{{
+                            medicineOnly
+                                ? 'Medicine needed (optional)'
+                                : 'Chief complaint / main reason'
+                        }}</span
                         ><textarea
                             v-model="correction.chief_complaint"
                             rows="3"
@@ -359,7 +372,7 @@ watch(
                             class="rounded-md border bg-background px-3 py-2"
                         ></textarea>
                     </label>
-                    <label class="grid gap-1"
+                    <label v-if="!medicineOnly" class="grid gap-1"
                         ><span class="text-sm font-medium">Duration</span
                         ><input
                             v-model="correction.complaint_duration"
@@ -610,7 +623,7 @@ watch(
                     class="grid gap-4 md:grid-cols-2"
                     @submit.prevent="accept"
                 >
-                    <label class="grid gap-1"
+                    <label v-if="!medicineOnly" class="grid gap-1"
                         ><span class="text-sm font-medium">Doctor</span
                         ><OperationalSelect
                             v-model="acceptance.assigned_doctor_user_id"
@@ -630,7 +643,7 @@ watch(
                             <option value="urgent">Urgent</option>
                         </select></label
                     >
-                    <div class="md:col-span-2">
+                    <div v-if="!medicineOnly" class="md:col-span-2">
                         <VisitReasonPicker
                             v-model="acceptance.visit_reason_public_ids"
                             v-model:selected="selectedReasons"
