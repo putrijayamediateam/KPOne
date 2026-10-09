@@ -145,7 +145,7 @@ class DispensaryService
                 'strength_snapshot' => $medicine->strength_text, 'dosage_form_snapshot' => $medicine->dosage_form, 'unit_snapshot' => $medicine->order_unit,
                 'quantity_ordered' => $quantity, 'dosage' => $text['dosage'], 'frequency' => $text['frequency'], 'duration' => $text['duration'], 'route' => $text['route'],
                 'administration_instruction' => $text['administration_instruction'], 'precaution' => $text['precaution'],
-                'allergy_profile_version_validated' => $profile?->lock_version ?? 0, 'quantity_dispensed' => $quantity, 'status' => DispensaryItem::STATUS_DISPENSED,
+                'allergy_profile_version_validated' => $profile->lock_version ?? 0, 'quantity_dispensed' => $quantity, 'status' => DispensaryItem::STATUS_DISPENSED,
                 'reason' => null, 'source' => DispensaryItem::SOURCE_CA, 'change_state' => DispensaryItem::CHANGE_ADDED,
                 'edited_by_user_id' => $actor->id, 'edited_at' => now()->utc(), 'handled_by_user_id' => $actor->id, 'handled_at' => now()->utc(), 'lock_version' => 1,
             ])->save();
