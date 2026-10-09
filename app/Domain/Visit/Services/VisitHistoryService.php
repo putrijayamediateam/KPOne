@@ -164,11 +164,11 @@ class VisitHistoryService
     private function medicines(?TreatmentPlan $plan, ?DispensaryHandoff $handoff): array
     {
         $items = $handoff ? DispensaryItem::query()->where('dispensary_handoff_id', $handoff->id)->orderBy('id')->get() : collect();
-        $byOrder = $items->whereNotNull('treatment_plan_medicine_order_id')->keyBy('treatment_plan_medicine_order_id');
+        $byOrder = $items->whereNotNull('treatment_plan_medicine_order_id')->keyBy('treatment_plan_medicine_order_id')->all();
         $rows = [];
         $orders = $plan ? $plan->medicineOrders->where('status', TreatmentPlanMedicineOrder::STATUS_ACTIVE) : collect();
         foreach ($orders as $order) {
-            $item = $byOrder->has($order->id) ? $byOrder->get($order->id) : null;
+            $item = $byOrder[$order->id] ?? null;
             $rows[] = [
                 'name' => $order->medicine_name_snapshot,
                 'strength' => $order->strength_snapshot,
@@ -234,12 +234,12 @@ class VisitHistoryService
         $lines = $handoff ? DispensaryServiceLine::query()->where('dispensary_handoff_id', $handoff->id)->orderBy('id')->get() : collect();
         $deliveries = ServiceDelivery::query()
             ->whereIn('treatment_plan_service_order_id', $orders->pluck('id'))
-            ->get()->keyBy('treatment_plan_service_order_id');
-        $byOrder = $lines->whereNotNull('treatment_plan_service_order_id')->keyBy('treatment_plan_service_order_id');
+            ->get()->keyBy('treatment_plan_service_order_id')->all();
+        $byOrder = $lines->whereNotNull('treatment_plan_service_order_id')->keyBy('treatment_plan_service_order_id')->all();
         $rows = [];
         foreach ($orders as $order) {
-            $delivery = $deliveries->has($order->id) ? $deliveries->get($order->id) : null;
-            $line = $byOrder->has($order->id) ? $byOrder->get($order->id) : null;
+            $delivery = $deliveries[$order->id] ?? null;
+            $line = $byOrder[$order->id] ?? null;
             $rows[] = [
                 'name' => $order->service_name_snapshot,
                 'unit' => $order->unit_snapshot,
