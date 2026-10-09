@@ -180,4 +180,13 @@ name) across TV, voice and phone; **DS-02c** QR "Buy medicine only" and the OTC 
 - **Dispense does not need a call first.** Opening the OTC case takes the patient off the list (reason
   `dispensing`); cancelling the visit takes them off with reason `cancelled`. A patient who never joined the list
   can still be dispensed.
-- Not yet built: the number-or-name setting (DS-02b) and QR "Buy medicine only" with the phone call-in (DS-02c).
+
+### 10.2 DS-02b and DS-02c (built)
+
+- **DS-02b (PR #86):** `branch_display_settings.call_display_mode` is `number` (default) or `name`. In name mode the
+  TV feed adds the patient's full registered name to each call, read at display time (the call record stays free
+  of patient data); the TV list and spoken call use it, with the number as fallback. The phone status page keeps
+  showing the number, since it is the patient's own page. Name mode still needs the privacy review above.
+- **DS-02c (PR #87):** the QR form's "Buy medicine only" choice is stored as `visit.kind = otc` in the encrypted
+  payload; accepting registers an OTC visit (no doctor or visit reason) and joins the OTC list. The status page
+  shows the B number, patients ahead (no wait estimate) and the pharmacy call-in banner.
