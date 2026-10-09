@@ -8,6 +8,7 @@ use App\Domain\Clinical\Models\ClinicalEncounter;
 use App\Domain\Clinical\Models\EncounterDiagnosis;
 use App\Domain\Clinical\Models\EncounterVitalObservation;
 use App\Domain\Queue\Models\QueueEntry;
+use App\Domain\Queue\QueueNumberFormat;
 use App\Domain\Visit\Models\Visit;
 use App\Domain\Visit\Services\VisitReasonService;
 use App\Models\User;
@@ -82,7 +83,7 @@ class ClinicalEncounterDirectoryService
                 'lockVersion' => $encounter->visit->lock_version,
             ],
             'queue' => [
-                'queueNumber' => sprintf('%03d', $encounter->visit->queueEntry->queue_number),
+                'queueNumber' => QueueNumberFormat::format($encounter->visit->queueEntry->queue_number),
                 'operationalDate' => $encounter->visit->queueEntry->operational_date->toDateString(),
                 'status' => $encounter->visit->queueEntry->status,
                 'queuedAt' => $encounter->visit->queueEntry->queued_at->toIso8601String(),

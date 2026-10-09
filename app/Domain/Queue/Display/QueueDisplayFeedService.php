@@ -5,6 +5,7 @@ namespace App\Domain\Queue\Display;
 use App\Domain\Organisation\Models\Branch;
 use App\Domain\Queue\Models\BranchDisplaySetting;
 use App\Domain\Queue\Models\QueueCall;
+use App\Domain\Queue\QueueNumberFormat;
 
 /**
  * What a waiting-room TV may show: called queue numbers with their room and time, plus the branch's
@@ -29,14 +30,14 @@ class QueueDisplayFeedService
                 ->orderByDesc('called_at')
                 ->orderByDesc('id')
                 ->limit(self::RECENT_CALLS * 4)
-                ->get(['id', 'queue_entry_id', 'service', 'queue_number', 'room_name', 'called_at', 'is_recall'])
+                ->get(['id', 'queue_entry_id', 'otc_queue_entry_id', 'queue_series', 'service', 'queue_number', 'room_name', 'called_at', 'is_recall'])
                 // A recall is announced again but shown once, at its newest call. A call to a different service
                 // or room stays in the list, so the TV keeps the patient's earlier call as history.
-                ->unique(fn (QueueCall $call): string => $call->queue_entry_id.'|'.$call->service.'|'.$call->room_name)
+                ->unique(fn (QueueCall $call): string => ($call->queue_entry_id ?? 'o'.$call->otc_queue_entry_id).'|'.$call->service.'|'.$call->room_name)
                 ->take(self::RECENT_CALLS)
                 ->map(fn (QueueCall $call): array => [
                     'id' => $call->id,
-                    'number' => sprintf('%03d', $call->queue_number),
+                    'number' => QueueNumberFormat::format($call->queue_number, $call->queue_series),
                     'room' => $call->room_name,
                     'service' => $call->service,
                     'calledAt' => $call->called_at->toIso8601String(),

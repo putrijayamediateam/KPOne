@@ -64,6 +64,7 @@ export type VisitRow = {
         openDispensary?: boolean;
         openBilling?: boolean;
         dispense?: boolean;
+        callDispensary?: boolean;
     };
 };
 

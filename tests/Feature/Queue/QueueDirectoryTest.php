@@ -45,8 +45,8 @@ class QueueDirectoryTest extends QueueTestCase
 
             $this->assertSame($previous->visit->visit_number, $snapshot['carryOver']['data'][0]['visitNumber']);
             $this->assertSame($today->visit->visit_number, $snapshot['waiting']['data'][0]['visitNumber']);
-            $this->assertSame('001', $snapshot['carryOver']['data'][0]['queueNumber']);
-            $this->assertSame('001', $snapshot['waiting']['data'][0]['queueNumber']);
+            $this->assertSame('A-001', $snapshot['carryOver']['data'][0]['queueNumber']);
+            $this->assertSame('A-001', $snapshot['waiting']['data'][0]['queueNumber']);
         } finally {
             Date::setTestNow();
         }

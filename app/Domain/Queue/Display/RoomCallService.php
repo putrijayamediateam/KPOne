@@ -8,6 +8,7 @@ use App\Domain\Clinical\Dispensary\Models\DispensaryCase;
 use App\Domain\Clinical\Dispensary\Services\DispensaryAuthorityService;
 use App\Domain\Organisation\Models\Branch;
 use App\Domain\Queue\Models\BranchRoom;
+use App\Domain\Queue\Models\OtcQueueEntry;
 use App\Domain\Queue\Models\QueueCall;
 use App\Domain\Queue\Models\QueueEntry;
 use App\Domain\Visit\Models\Visit;
@@ -53,6 +54,38 @@ class RoomCallService
             $call = $this->announce($entry, QueueCall::SERVICE_DISPENSARY, $room, $lockedActor, $branch);
             $this->audit->record('queue.dispensary_called', $entry, [
                 'dispensary_case_public_id' => $lockedCase->public_id,
+                'branch_room_id' => $room?->id,
+                'is_recall' => $call->is_recall,
+            ], $lockedActor, $branch, $lockedActor->organisation_id);
+
+            return $call;
+        }, 3);
+    }
+
+    /**
+     * DS-02a: calls a waiting OTC patient (B number) to the dispensary on the TV. A call only announces: the waiting
+     * entry is unchanged, and dispensing never requires a call first.
+     *
+     * @param  array<string, mixed>  $attributes
+     */
+    public function callOtcToDispensary(User $actor, Visit $visit, ?int $roomId, array $attributes): QueueCall
+    {
+        $branch = $this->dispensary->activeBranch($actor, $attributes);
+        if ($branch->id !== $visit->branch_id) {
+            throw ValidationException::withMessages(['expected_branch_id' => 'The active branch does not own this Visit. Review and retry.']);
+        }
+
+        return DB::transaction(function () use ($actor, $visit, $roomId, $branch): QueueCall {
+            $lockedActor = $this->dispensary->lock($actor, $branch, 'dispensary.start.branch');
+            $lockedVisit = Visit::query()->whereKey($visit->id)->where('organisation_id', $lockedActor->organisation_id)->where('branch_id', $branch->id)->lockForUpdate()->firstOrFail();
+            $entry = OtcQueueEntry::query()->where('visit_id', $lockedVisit->id)->lockForUpdate()->first();
+            if (! $entry || $entry->status !== OtcQueueEntry::STATUS_WAITING || $lockedVisit->status !== Visit::STATUS_REGISTERED) {
+                throw ValidationException::withMessages(['queue' => 'Only an OTC patient who is waiting can be called. Reload the board.']);
+            }
+
+            $room = $this->dispensaryRoom($branch, $roomId);
+            $call = $this->announce($entry, QueueCall::SERVICE_DISPENSARY, $room, $lockedActor, $branch);
+            $this->audit->record('otc_queue.dispensary_called', $entry, [
                 'branch_room_id' => $room?->id,
                 'is_recall' => $call->is_recall,
             ], $lockedActor, $branch, $lockedActor->organisation_id);
@@ -130,7 +163,7 @@ class RoomCallService
             ->all());
     }
 
-    private function announce(QueueEntry $entry, string $service, ?BranchRoom $room, User $actor, Branch $branch): QueueCall
+    private function announce(QueueEntry|OtcQueueEntry $entry, string $service, ?BranchRoom $room, User $actor, Branch $branch): QueueCall
     {
         $this->calls->assertCooldown($entry, $service);
 

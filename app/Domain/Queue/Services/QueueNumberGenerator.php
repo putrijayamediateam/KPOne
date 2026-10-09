@@ -9,7 +9,7 @@ use RuntimeException;
 
 class QueueNumberGenerator
 {
-    public function next(Branch $branch, string $operationalDate): int
+    public function next(Branch $branch, string $operationalDate, string $series = 'A'): int
     {
         if (DB::connection()->transactionLevel() < 1) {
             throw new RuntimeException('Queue numbers must be allocated inside a database transaction.');
@@ -20,6 +20,7 @@ class QueueNumberGenerator
             'organisation_id' => $branch->organisation_id,
             'branch_id' => $branch->id,
             'operational_date' => $operationalDate,
+            'series' => $series,
             'next_value' => 1,
             'created_at' => $now,
             'updated_at' => $now,
@@ -28,6 +29,7 @@ class QueueNumberGenerator
             ->where('organisation_id', $branch->organisation_id)
             ->where('branch_id', $branch->id)
             ->where('operational_date', $operationalDate)
+            ->where('series', $series)
             ->lockForUpdate()
             ->first();
 

@@ -37,3 +37,14 @@ test('the OTC routes are permission-gated', () => {
     assert.match(routes, /Route::post\('visits\/\{visit\}\/dispense'[\s\S]*?permission:dispensary\.otc\.create\.branch/);
     assert.match(routes, /Route::post\('dispensary\/\{dispensaryCase\}\/otc-allergy'[\s\S]*?permission:dispensary\.update\.branch/);
 });
+
+test('an OTC row on the Registration board can be called to the dispensary on the TV', () => {
+    assert.match(board, /v-if="row\.can\.callDispensary"/);
+    assert.match(board, /data-action="call-dispensary"/);
+    assert.match(board, />Call to Dispensary</);
+    assert.match(registration, /@call-dispensary="callOtcToDispensary"/);
+    assert.match(
+        registration,
+        /\/visits\/\$\{encodeURIComponent\(row\.visitNumber\)\}\/otc-queue\/call/,
+    );
+});

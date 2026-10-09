@@ -33,6 +33,7 @@ export type PatientBoardRow = {
         openDispensary?: boolean;
         openBilling?: boolean;
         dispense?: boolean;
+        callDispensary?: boolean;
     };
     source: unknown;
 };

@@ -9,6 +9,7 @@ use App\Domain\Identity\Models\StaffProfile;
 use App\Domain\Organisation\Models\Branch;
 use App\Domain\Patient\Models\Patient;
 use App\Domain\Queue\Models\QueueEntry;
+use App\Domain\Queue\Services\OtcQueueService;
 use App\Domain\Visit\Models\Panel;
 use App\Domain\Visit\Models\Visit;
 use App\Models\User;
@@ -146,6 +147,9 @@ class VisitAdministrationService
                     'to_state' => QueueEntry::STATUS_REMOVED,
                     'record_version' => $queueEntry->lock_version,
                 ], $actor, $branch);
+            }
+            if ($locked->visit_type === 'otc') {
+                app(OtcQueueService::class)->leaveForCancellation($locked, $actor, $branch);
             }
             $this->audit->record('visit.cancelled', $locked, [
                 'record_version' => $locked->lock_version,
