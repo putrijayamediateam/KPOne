@@ -11,6 +11,7 @@ use App\Domain\Clinical\Dispensary\Models\DispensaryItemException;
 use App\Domain\Clinical\Models\ClinicalEncounter;
 use App\Domain\Clinical\Models\ClinicalEncounterAllergyReview;
 use App\Domain\Clinical\Models\ConsultationCheckout;
+use App\Domain\Clinical\Models\MedicineCatalogueItem;
 use App\Domain\Clinical\Models\PatientAllergyProfile;
 use App\Domain\Clinical\Models\PatientAllergyRecord;
 use App\Domain\Clinical\Models\TreatmentPlan;
@@ -24,12 +25,14 @@ use App\Domain\Organisation\Inventory\Models\InventoryLocation;
 use App\Domain\Organisation\Inventory\Models\InventorySku;
 use App\Domain\Organisation\Inventory\Models\MedicineCatalogueInventorySku;
 use App\Domain\Organisation\Inventory\Services\InventoryMovementService;
+use App\Domain\Organisation\Models\Branch;
 use App\Domain\Patient\Models\Patient;
 use App\Domain\Queue\Models\QueueEntry;
 use App\Domain\Visit\Models\Visit;
 use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -83,6 +86,196 @@ class DispensaryService
         });
 
         return $item->fresh(['allocations', 'exceptions']);
+    }
+
+    /**
+     * DS-01a: the CA saves the final version of one line: quantity, the text fields and the batches.
+     * The doctor's order is never touched; the CA's version is stored beside it.
+     *
+     * @param  array<string,mixed>  $attributes
+     */
+    public function editItem(User $actor, DispensaryCase $case, DispensaryItem $item, array $attributes): DispensaryItem
+    {
+        $this->caTransaction($actor, $case, $attributes, 'dispensary.update.branch', function ($context) use ($item, $attributes): void {
+            [$actor,$branch,$case,$handoff,$items] = $context;
+            $locked = $this->lockedLine($actor, $case, $handoff, $items, $item, $attributes);
+            $this->saveLine($actor, $branch, $case, $locked, $attributes, $locked->source === DispensaryItem::SOURCE_CA);
+            $case->forceFill(['lock_version' => $case->lock_version + 1])->save();
+            $this->audit->record('dispensary.item_edited', $case, ['record_version' => $case->lock_version, 'change_state' => $locked->change_state], $actor, $branch);
+        });
+
+        return $item->fresh(['allocations']);
+    }
+
+    /**
+     * DS-01a: the CA adds a medicine the doctor did not order. It has no treatment-plan order.
+     *
+     * @param  array<string,mixed>  $attributes
+     */
+    public function addItem(User $actor, DispensaryCase $case, array $attributes): DispensaryItem
+    {
+        $created = null;
+        $this->caTransaction($actor, $case, $attributes, 'dispensary.update.branch', function ($context) use ($attributes, &$created): void {
+            [$actor,$branch,$case,$handoff,$items,,,,,$profile] = $context;
+            $this->assertEditable($actor, $case);
+            if (! $profile || $profile->status === PatientAllergyProfile::STATUS_UNKNOWN) {
+                throw ValidationException::withMessages(['allergy_safety' => 'The Allergy Profile is unknown. Return this case to the attending doctor before adding a medicine.']);
+            }
+            $medicine = MedicineCatalogueItem::query()->where('public_id', (string) ($attributes['medicine_public_id'] ?? ''))->where('organisation_id', $actor->organisation_id)->where('is_active', true)->first();
+            if (! $medicine) {
+                throw ValidationException::withMessages(['medicine_public_id' => 'Choose an active medicine from the catalogue.']);
+            }
+            if ($items->contains(fn (DispensaryItem $line): bool => $line->medicine_catalogue_item_id === $medicine->id && $line->change_state !== DispensaryItem::CHANGE_REMOVED)) {
+                throw ValidationException::withMessages(['medicine_public_id' => 'This medicine is already on the list. Edit the existing line instead.']);
+            }
+            $quantity = $this->positiveQuantity($attributes['quantity_dispensed'] ?? null);
+            $text = $this->cleanText($attributes);
+            if ($text['dosage'] === null || $text['frequency'] === null) {
+                throw ValidationException::withMessages(['dosage' => 'Dosage and frequency are required.']);
+            }
+            $line = new DispensaryItem;
+            $line->forceFill([
+                'public_id' => (string) Str::uuid(), 'organisation_id' => $actor->organisation_id, 'branch_id' => $branch->id,
+                'dispensary_handoff_id' => $handoff->id, 'treatment_plan_medicine_order_id' => null, 'medicine_order_public_id' => null,
+                'medicine_catalogue_item_id' => $medicine->id, 'medicine_code_snapshot' => $medicine->code, 'medicine_name_snapshot' => $medicine->display_name,
+                'strength_snapshot' => $medicine->strength_text, 'dosage_form_snapshot' => $medicine->dosage_form, 'unit_snapshot' => $medicine->order_unit,
+                'quantity_ordered' => $quantity, 'dosage' => $text['dosage'], 'frequency' => $text['frequency'], 'duration' => $text['duration'], 'route' => $text['route'],
+                'administration_instruction' => $text['administration_instruction'], 'precaution' => $text['precaution'],
+                'allergy_profile_version_validated' => $profile->lock_version, 'quantity_dispensed' => $quantity, 'status' => DispensaryItem::STATUS_DISPENSED,
+                'reason' => null, 'source' => DispensaryItem::SOURCE_CA, 'change_state' => DispensaryItem::CHANGE_ADDED,
+                'edited_by_user_id' => $actor->id, 'edited_at' => now()->utc(), 'handled_by_user_id' => $actor->id, 'handled_at' => now()->utc(), 'lock_version' => 1,
+            ])->save();
+            $this->replaceAllocations($actor, $case, $line, $quantity, $attributes['allocations'] ?? []);
+            $case->forceFill(['lock_version' => $case->lock_version + 1])->save();
+            $this->audit->record('dispensary.item_added', $case, ['record_version' => $case->lock_version], $actor, $branch);
+            $created = $line;
+        });
+
+        return $created->fresh(['allocations']);
+    }
+
+    /**
+     * DS-01a: the CA takes a line off the final list. The row stays, marked removed, so the record shows it.
+     *
+     * @param  array<string,mixed>  $attributes
+     */
+    public function removeItem(User $actor, DispensaryCase $case, DispensaryItem $item, array $attributes): DispensaryItem
+    {
+        $this->caTransaction($actor, $case, $attributes, 'dispensary.update.branch', function ($context) use ($item, $attributes): void {
+            [$actor,$branch,$case,$handoff,$items] = $context;
+            $locked = $this->lockedLine($actor, $case, $handoff, $items, $item, $attributes);
+            $this->supersedeExceptions($locked);
+            DB::table('dispensary_item_batch_allocations')->where('dispensary_item_id', $locked->id)->delete();
+            $locked->forceFill([
+                'quantity_dispensed' => '0.000', 'status' => DispensaryItem::STATUS_NOT_DISPENSED, 'reason' => DispensaryItem::REASON_CA_REMOVED,
+                'change_state' => DispensaryItem::CHANGE_REMOVED, 'edited_by_user_id' => $actor->id, 'edited_at' => now()->utc(),
+                'handled_by_user_id' => $actor->id, 'handled_at' => now()->utc(), 'lock_version' => $locked->lock_version + 1,
+            ])->save();
+            $case->forceFill(['lock_version' => $case->lock_version + 1])->save();
+            $this->audit->record('dispensary.item_removed', $case, ['record_version' => $case->lock_version, 'source' => $locked->source], $actor, $branch);
+        });
+
+        return $item->fresh(['allocations']);
+    }
+
+    /**
+     * @param  Collection<int,DispensaryItem>  $items
+     * @param  array<string,mixed>  $attributes
+     */
+    private function lockedLine(User $actor, DispensaryCase $case, DispensaryHandoff $handoff, $items, DispensaryItem $item, array $attributes): DispensaryItem
+    {
+        $locked = $items->firstWhere('id', $item->id);
+        abort_unless($locked && $locked->dispensary_handoff_id === $handoff->id, 404);
+        $this->assertEditable($actor, $case);
+        if ($locked->lock_version !== (int) ($attributes['item_lock_version'] ?? 0)) {
+            $this->stale('item_lock_version');
+        }
+
+        return $locked;
+    }
+
+    private function assertEditable(User $actor, DispensaryCase $case): void
+    {
+        if ($case->status !== DispensaryCase::STATUS_DISPENSING || $case->current_handler_user_id !== $actor->id) {
+            throw new AuthorizationException('Start and own this Dispensary case before updating it.');
+        }
+    }
+
+    /** @param array<string,mixed> $attributes */
+    private function saveLine(User $actor, Branch $branch, DispensaryCase $case, DispensaryItem $line, array $attributes, bool $caLine): void
+    {
+        $quantity = $this->positiveQuantity($attributes['quantity_dispensed'] ?? null);
+        $text = $this->cleanText($attributes);
+        if ($text['dosage'] === null || $text['frequency'] === null) {
+            throw ValidationException::withMessages(['dosage' => 'Dosage and frequency are required.']);
+        }
+        $changed = (float) $quantity !== (float) $line->quantity_ordered;
+        $finals = [];
+        foreach (DispensaryItem::EDITABLE_TEXT as $field => $final) {
+            $differs = $text[$field] !== $this->cleanValue($line->getAttribute($field));
+            $finals[$final] = $differs ? $text[$field] : null;
+            $changed = $changed || $differs;
+        }
+        $this->supersedeExceptions($line);
+        $this->replaceAllocations($actor, $case, $line, $quantity, $attributes['allocations'] ?? []);
+        $line->forceFill([
+            ...$finals, 'quantity_dispensed' => $quantity, 'status' => DispensaryItem::STATUS_DISPENSED, 'reason' => null,
+            'change_state' => $caLine ? DispensaryItem::CHANGE_ADDED : ($changed ? DispensaryItem::CHANGE_EDITED : DispensaryItem::CHANGE_UNCHANGED),
+            'edited_by_user_id' => $actor->id, 'edited_at' => now()->utc(), 'handled_by_user_id' => $actor->id, 'handled_at' => now()->utc(),
+            'lock_version' => $line->lock_version + 1,
+        ])->save();
+    }
+
+    private function supersedeExceptions(DispensaryItem $line): void
+    {
+        DispensaryItemException::query()->where('dispensary_item_id', $line->id)->whereIn('status', [DispensaryItemException::STATUS_AWAITING, DispensaryItemException::STATUS_ACKNOWLEDGED])->each(function ($exception): void {
+            $exception->forceFill(['status' => DispensaryItemException::STATUS_SUPERSEDED])->save();
+        });
+    }
+
+    /** @param array<int,array<string,mixed>> $allocations */
+    private function replaceAllocations(User $actor, DispensaryCase $case, DispensaryItem $line, string $quantity, array $allocations): void
+    {
+        DB::table('dispensary_item_batch_allocations')->where('dispensary_item_id', $line->id)->delete();
+        $sum = 0.0;
+        foreach ($allocations as $allocation) {
+            $this->allocation($actor, $case, $line, $allocation);
+            $sum += (float) $allocation['quantity'];
+        }
+        if (number_format($sum, 3, '.', '') !== $quantity) {
+            throw ValidationException::withMessages(['allocations' => 'Choose batches that add up to the quantity to dispense.']);
+        }
+    }
+
+    private function positiveQuantity(mixed $raw): string
+    {
+        $quantity = is_numeric($raw) ? number_format((float) $raw, 3, '.', '') : null;
+        if ($quantity === null || (float) $quantity <= 0) {
+            throw ValidationException::withMessages(['quantity_dispensed' => 'Enter a quantity above zero, or remove the medicine from the list.']);
+        }
+
+        return $quantity;
+    }
+
+    private function cleanValue(mixed $value): ?string
+    {
+        $text = trim((string) ($value ?? ''));
+
+        return $text === '' ? null : $text;
+    }
+
+    /**
+     * @param  array<string,mixed>  $attributes
+     * @return array<string, ?string>
+     */
+    private function cleanText(array $attributes): array
+    {
+        $clean = [];
+        foreach (array_keys(DispensaryItem::EDITABLE_TEXT) as $field) {
+            $clean[$field] = $this->cleanValue($attributes[$field] ?? null);
+        }
+
+        return $clean;
     }
 
     /** @param array<string,mixed> $attributes */
@@ -159,6 +352,8 @@ class DispensaryService
     {
         return $this->caTransaction($actor, $case, $attributes, 'dispensary.complete.branch', function ($context): void {
             [$actor,$branch,$case,$handoff,$items,$visit,$queue,$encounter,$plan,$profile,$review] = $context;
+            // DS-01a: pressing Complete is the CA's own verification of the final list, after the doctor's;
+            // it is stamped on the handoff below. The doctor's allergy confirmation stands (owner decision).
             if ($case->status !== DispensaryCase::STATUS_DISPENSING || $case->current_handler_user_id !== $actor->id || $handoff->status !== DispensaryHandoff::STATUS_OPEN || $visit->status !== Visit::STATUS_REGISTERED || $queue->status !== QueueEntry::STATUS_REMOVED || $queue->removal_reason !== 'sent_to_dispensary' || $encounter->status !== ClinicalEncounter::STATUS_IN_PROGRESS) {
                 $this->stale('case');
             }
@@ -170,7 +365,7 @@ class DispensaryService
                 if (in_array($item->reason, ['out_of_stock', 'clarification_required', 'other'], true)) {
                     throw ValidationException::withMessages(['items' => 'Stock shortage or clarification requires Return to Doctor.']);
                 }
-                if (in_array($item->status, [DispensaryItem::STATUS_PARTIAL, DispensaryItem::STATUS_NOT_DISPENSED], true)) {
+                if (in_array($item->status, [DispensaryItem::STATUS_PARTIAL, DispensaryItem::STATUS_NOT_DISPENSED], true) && $item->change_state !== DispensaryItem::CHANGE_REMOVED) {
                     $ack = DispensaryItemException::query()->where('dispensary_item_id', $item->id)->where('status', DispensaryItemException::STATUS_ACKNOWLEDGED)->lockForUpdate()->latest('id')->first();
                     if (! $ack || $ack->proposed_quantity_dispensed !== $item->quantity_dispensed || $ack->expected_item_lock_version !== $item->lock_version) {
                         throw ValidationException::withMessages(['items' => 'The attending doctor must acknowledge the current patient-declined quantity.']);
@@ -246,9 +441,14 @@ class DispensaryService
                 $movement = $this->inventory->debitForDispense($actor, $location, $sku, $batch, (string) $allocation->quantity, $allocation->id, $allocation->public_id);
                 $this->audit->record('inventory.dispensed', $movement, ['movement_type' => 'dispense'], $actor, $branch);
             }
-            $handoff->forceFill(['status' => DispensaryHandoff::STATUS_COMPLETED, 'open_case_guard' => null, 'completed_by_user_id' => $actor->id, 'completed_at' => now()->utc()])->save();
+            $handoff->forceFill(['status' => DispensaryHandoff::STATUS_COMPLETED, 'open_case_guard' => null, 'completed_by_user_id' => $actor->id, 'completed_at' => now()->utc(), 'ca_verified_at' => now()->utc()])->save();
             $case->forceFill(['status' => DispensaryCase::STATUS_COMPLETED, 'completed_at' => now()->utc(), 'lock_version' => $case->lock_version + 1])->save();
-            $this->audit->record('dispensary.completed', $case, ['record_version' => $case->lock_version], $actor, $branch);
+            $this->audit->record('dispensary.completed', $case, [
+                'record_version' => $case->lock_version, 'ca_verified' => true,
+                'edited_lines' => $items->where('change_state', DispensaryItem::CHANGE_EDITED)->count(),
+                'added_lines' => $items->where('change_state', DispensaryItem::CHANGE_ADDED)->count(),
+                'removed_lines' => $items->where('change_state', DispensaryItem::CHANGE_REMOVED)->count(),
+            ], $actor, $branch);
         });
     }
 

@@ -282,6 +282,14 @@ Route::middleware(['auth', 'verified'])->group(function () {
             ->whereUuid('dispensaryCase')->middleware(['permission:dispensary.start.branch', 'throttle:30,1'])->name('dispensary.start');
         Route::patch('dispensary/{dispensaryCase}/items/{item}', [DispensaryController::class, 'updateItem'])
             ->whereUuid('dispensaryCase')->whereUuid('item')->middleware(['permission:dispensary.update.branch', 'throttle:60,1'])->name('dispensary.items.update');
+        Route::post('dispensary/{dispensaryCase}/items', [DispensaryController::class, 'addItem'])
+            ->whereUuid('dispensaryCase')->middleware(['permission:dispensary.update.branch', 'throttle:60,1'])->name('dispensary.items.add');
+        Route::put('dispensary/{dispensaryCase}/items/{item}/final', [DispensaryController::class, 'editItem'])
+            ->whereUuid('dispensaryCase')->whereUuid('item')->middleware(['permission:dispensary.update.branch', 'throttle:60,1'])->name('dispensary.items.edit');
+        Route::post('dispensary/{dispensaryCase}/items/{item}/remove', [DispensaryController::class, 'removeItem'])
+            ->whereUuid('dispensaryCase')->whereUuid('item')->middleware(['permission:dispensary.update.branch', 'throttle:60,1'])->name('dispensary.items.remove');
+        Route::post('dispensary/{dispensaryCase}/medicines/search', [DispensaryController::class, 'searchMedicines'])
+            ->whereUuid('dispensaryCase')->middleware(['permission:dispensary.update.branch', 'throttle:60,1'])->name('dispensary.medicines.search');
         Route::post('dispensary/{dispensaryCase}/return-to-doctor', [DispensaryController::class, 'returnToDoctor'])
             ->whereUuid('dispensaryCase')->middleware(['permission:dispensary.return_to_doctor.branch', 'throttle:20,1'])->name('dispensary.return-to-doctor');
         Route::post('dispensary/{dispensaryCase}/complete', [DispensaryController::class, 'complete'])
