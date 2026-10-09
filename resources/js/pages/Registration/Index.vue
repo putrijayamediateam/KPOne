@@ -406,6 +406,14 @@ const openConsultation = (row: PatientBoardRow) =>
             queue_lock_version: source(row).queueLockVersion!,
         },
     );
+// OTC: the CA opens the Dispensary case of an OTC visit (no doctor, queue or consultation).
+const dispenseOtc = (row: PatientBoardRow) =>
+    runMutation(
+        row,
+        'post',
+        `/visits/${encodeURIComponent(row.visitNumber)}/dispense`,
+        { expected_branch_id: props.options.branch.id },
+    );
 const requestCancellation = (row: PatientBoardRow) => {
     cancellationRow.value = row;
     cancelOpen.value = true;
@@ -573,6 +581,7 @@ const changeQrHistoryPage = (qrHistoryPage: number) => {
                     @send-to-waiting="sendToWaiting"
                     @call="callIn"
                     @open-consultation="openConsultation"
+                    @dispense="dispenseOtc"
                     @cancel="requestCancellation"
                 />
                 <div

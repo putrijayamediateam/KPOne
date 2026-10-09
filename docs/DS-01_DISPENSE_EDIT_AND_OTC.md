@@ -106,7 +106,11 @@ Visit History); it is a one-line change.
      functions are patched in place by exact-match replacement (the migration refuses to run if a replacement
      does not match exactly once). Known limit: Insights reports that join invoices to consultation checkouts
      (doctor-based tables) still count consultation invoices only. No routes or screens yet.
-   - **DS-01b-3**: the Dispense action on the Registration board and the OTC screens.
+   - **DS-01b-3** *(built)*: the **Dispense** action on an OTC row of the Registration board (`visits.dispense`,
+     `dispensary.otc.create.branch`) opens the OTC case and lands the CA on the Dispensary page, which for OTC shows
+     "OTC · no doctor", an "Ask the patient about allergies" step (`dispensary.otc-allergy`) that must be recorded
+     before Complete, and no services panel, Return to Doctor or TV call. After Complete the Registration board
+     offers Open Billing for the OTC visit. Flow: Registration -> Dispense -> Billing -> Complete.
 3. **DS-01c** Visit Record: Ordered vs Dispensed, OTC, doctor's previous-consultation link.
 4. **DS-01d** New Dispensary page design (the editable layout) and removal of the Pending/Partial/Not
    dispensed controls.

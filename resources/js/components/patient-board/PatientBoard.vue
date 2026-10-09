@@ -30,6 +30,7 @@ defineEmits<{
     recall: [row: PatientBoardRow];
     callTreatment: [row: PatientBoardRow];
     openConsultation: [row: PatientBoardRow];
+    dispense: [row: PatientBoardRow];
     cancel: [row: PatientBoardRow];
 }>();
 
@@ -271,6 +272,13 @@ const statusClass = (tone: PatientBoardRow['statusTone']) =>
                                     class="min-h-8 rounded-lg px-2.5 text-[13px]"
                                     @select="$emit('openConsultation', row)"
                                     >Open Consultation</DropdownMenuItem
+                                >
+                                <DropdownMenuItem
+                                    v-if="row.can.dispense"
+                                    class="min-h-8 rounded-lg px-2.5 text-[13px]"
+                                    data-action="dispense"
+                                    @select="$emit('dispense', row)"
+                                    >Dispense</DropdownMenuItem
                                 >
                                 <DropdownMenuItem
                                     v-if="
