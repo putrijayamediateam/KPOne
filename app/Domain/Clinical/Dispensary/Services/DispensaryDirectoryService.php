@@ -130,7 +130,7 @@ class DispensaryDirectoryService
      * DS-01a: medicines the CA may add to this case: active catalogue items with a mapped SKU, with
      * the dispensary stock that could be allocated. Read only; the domain service re-checks on add.
      *
-     * @return list<array<string, mixed>>
+     * @return array<int, array<string, mixed>>
      */
     public function searchMedicines(User $actor, DispensaryCase $case, string $query): array
     {

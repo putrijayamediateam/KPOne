@@ -180,7 +180,10 @@ class DispensaryService
         return $item->fresh(['allocations']);
     }
 
-    /** @param Collection<int,DispensaryItem> $items */
+    /**
+     * @param  Collection<int,DispensaryItem>  $items
+     * @param  array<string,mixed>  $attributes
+     */
     private function lockedLine(User $actor, DispensaryCase $case, DispensaryHandoff $handoff, $items, DispensaryItem $item, array $attributes): DispensaryItem
     {
         $locked = $items->firstWhere('id', $item->id);
