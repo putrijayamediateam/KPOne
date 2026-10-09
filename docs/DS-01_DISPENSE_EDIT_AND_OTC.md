@@ -90,7 +90,16 @@ Visit History); it is a one-line change.
    started from the doctor's confirmation; the doctor's order and `service_deliveries` evidence are untouched;
    billing reads the CA's lines for visits that go through Dispensary (`invoice_lines.dispensary_service_line_id`,
    PostgreSQL reconciliation updated). A visit that bypasses Dispensary still bills the doctor's confirmation.
-2. **DS-01b** OTC dispense case, Registration action, OTC billing source, OTC completion.
+2. **DS-01b** OTC (owner decisions 2026-10-09: three PRs, medicines only).
+   - **DS-01b-1** *(built)*: an OTC visit gets a Dispensary case of its own (`case_type = otc`, no encounter, plan,
+     queue entry or services), opened by `OtcDispensaryService` under the new `dispensary.otc.create.branch`
+     (`ca`, `ca_supervisor`). It reuses items, batch allocation, labels, CA edit/add/remove and the stock debit at
+     Complete. The CA records what the patient said about allergies (`none` / `has_allergy`, an enum, no free text)
+     and must confirm it before Complete; there is no automatic drug-allergy blocking. At least one dispensed
+     medicine is required. Doctor-only actions (return to doctor, services, partial/not-dispensed) are refused.
+     No billing and no UI yet.
+   - **DS-01b-2**: OTC invoice anchor and billing source, reconciliation and completion guards, visit completion.
+   - **DS-01b-3**: the Dispense action on the Registration board and the OTC screens.
 3. **DS-01c** Visit Record: Ordered vs Dispensed, OTC, doctor's previous-consultation link.
 4. **DS-01d** New Dispensary page design (the editable layout) and removal of the Pending/Partial/Not
    dispensed controls.
