@@ -14,7 +14,8 @@ use LogicException;
  * @property int $branch_id
  * @property int $patient_id
  * @property int $visit_id
- * @property int $consultation_checkout_id
+ * @property int|null $consultation_checkout_id
+ * @property int|null $dispensary_case_id
  * @property int|null $current_visit_guard
  * @property string|null $replaces_public_id
  * @property string|null $invoice_number

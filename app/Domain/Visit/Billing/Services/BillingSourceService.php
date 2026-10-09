@@ -20,10 +20,13 @@ use Illuminate\Validation\ValidationException;
 class BillingSourceService
 {
     /** Called only after the actor/Patient/Visit locks, before commercial or Invoice locks.
-     * @return array{checkout: ConsultationCheckout, manifest: array<string, mixed>, lines: list<array<string, mixed>>}
+     * @return array{checkout: ConsultationCheckout|null, dispensaryCase: DispensaryCase|null, manifest: array<string, mixed>, lines: list<array<string, mixed>>}
      */
     public function locked(Visit $visit): array
     {
+        if ($visit->visit_type === 'otc' && $visit->status === Visit::STATUS_REGISTERED) {
+            return $this->lockedOtc($visit);
+        }
         if ($visit->visit_type !== 'consultation' || $visit->status !== Visit::STATUS_REGISTERED) {
             $this->invalid();
         }
@@ -106,7 +109,39 @@ class BillingSourceService
             $this->invalid();
         }
 
-        return ['checkout' => $checkout, 'manifest' => ['checkout' => $checkout->id, 'checkout_version' => $checkout->lock_version, 'encounter_version' => $encounter->lock_version, 'plan_version' => $plan?->lock_version, 'handoff' => $handoff?->id, 'case_version' => $case?->lock_version], 'lines' => $lines];
+        return ['checkout' => $checkout, 'dispensaryCase' => null, 'manifest' => ['checkout' => $checkout->id, 'checkout_version' => $checkout->lock_version, 'encounter_version' => $encounter->lock_version, 'plan_version' => $plan?->lock_version, 'handoff' => $handoff?->id, 'case_version' => $case?->lock_version], 'lines' => $lines];
+    }
+
+    /**
+     * DS-01b-2: an OTC visit is billed from its completed OTC Dispensary case: the CA's dispensed medicines
+     * only. There is no consultation line, no doctor, no queue entry and no service.
+     *
+     * @return array{checkout: null, dispensaryCase: DispensaryCase, manifest: array<string, mixed>, lines: list<array<string, mixed>>}
+     */
+    private function lockedOtc(Visit $visit): array
+    {
+        $case = DispensaryCase::query()->where('visit_id', $visit->id)->lockForUpdate()->first();
+        if (! $case || $case->case_type !== DispensaryCase::TYPE_OTC || $case->status !== DispensaryCase::STATUS_COMPLETED || $case->organisation_id !== $visit->organisation_id || $case->branch_id !== $visit->branch_id) {
+            $this->invalid();
+        }
+        $handoff = DispensaryHandoff::query()->where('dispensary_case_id', $case->id)->orderByDesc('attempt_number')->lockForUpdate()->first();
+        if (! $handoff || $handoff->status !== DispensaryHandoff::STATUS_COMPLETED || $handoff->ca_verified_at === null || $handoff->otc_allergy_confirmed_at === null) {
+            $this->invalid();
+        }
+        $lines = [];
+        foreach (DispensaryItem::query()->where('dispensary_handoff_id', $handoff->id)->orderBy('id')->lockForUpdate()->get() as $item) {
+            if (! in_array($item->status, ['dispensed', 'partial', 'not_dispensed'], true) || $item->quantity_dispensed === null || $item->source !== DispensaryItem::SOURCE_CA) {
+                $this->invalid();
+            }
+            if (ExactMoney::quantity($item->quantity_dispensed) > 0) {
+                $lines[] = $this->line('medicine', $item->id, 'medicine:'.$item->medicine_catalogue_item_id, $item->medicine_name_snapshot, $item->medicine_code_snapshot, $item->unit_snapshot, $item->quantity_dispensed, (string) $item->lock_version);
+            }
+        }
+        if ($lines === []) {
+            $this->invalid();
+        }
+
+        return ['checkout' => null, 'dispensaryCase' => $case, 'manifest' => ['dispensary_case' => $case->id, 'case_version' => $case->lock_version, 'handoff' => $handoff->id], 'lines' => $lines];
     }
 
     /** @return array<string, mixed> */
