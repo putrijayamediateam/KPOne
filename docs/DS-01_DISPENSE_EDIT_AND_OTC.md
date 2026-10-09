@@ -111,7 +111,12 @@ Visit History); it is a one-line change.
      "OTC · no doctor", an "Ask the patient about allergies" step (`dispensary.otc-allergy`) that must be recorded
      before Complete, and no services panel, Return to Doctor or TV call. After Complete the Registration board
      offers Open Billing for the OTC visit. Flow: Registration -> Dispense -> Billing -> Complete.
-3. **DS-01c** Visit Record: Ordered vs Dispensed, OTC, doctor's previous-consultation link.
+3. **DS-01c** *(built)* the **Invoices** page (VH-01, read only, `visits.history.view.branch`): medicines and
+   services show **Ordered** (the doctor's original) beside **Dispensed** (the CA's final line) with "Edited by CA",
+   "Added by CA" and "Removed by CA" labels; a line the CA added shows "Not ordered by a doctor". An OTC visit
+   shows only what was dispensed and the invoice. The Registration board menu says "Invoices". The doctor's
+   "Previous consultation" panel opens this page as its full page when the previous visit is completed at the
+   same branch (otherwise the earlier encounter page).
 4. **DS-01d** New Dispensary page design (the editable layout) and removal of the Pending/Partial/Not
    dispensed controls.
 

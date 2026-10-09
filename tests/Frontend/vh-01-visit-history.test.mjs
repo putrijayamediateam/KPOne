@@ -24,7 +24,7 @@ test('a completed Registration row opens the visit history, without hijacking it
     // keyboard users get the same destination from the actions menu
     assert.match(
         board,
-        /v-if="row\.historyUrl"[^>]*as-child[\s\S]*?Visit History/,
+        /v-if="row\.historyUrl"[^>]*as-child[\s\S]*?Invoices/,
     );
 });
 

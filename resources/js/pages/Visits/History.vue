@@ -35,6 +35,25 @@ const medicineLine = (
     [medicine.dosage, medicine.frequency, medicine.duration, medicine.route]
         .filter(Boolean)
         .join(' | ');
+const dispensedLine = (
+    medicine: VisitHistoryPage['medicines'][number],
+): string =>
+    [
+        medicine.dispensed?.dosage,
+        medicine.dispensed?.frequency,
+        medicine.dispensed?.duration,
+        medicine.dispensed?.route,
+    ]
+        .filter(Boolean)
+        .join(' | ');
+const changeLabel = (state: string, source: string) =>
+    state === 'removed'
+        ? 'Removed by CA'
+        : source === 'ca'
+          ? 'Added by CA'
+          : state === 'edited'
+            ? 'Edited by CA'
+            : '';
 const statusLabel = (value: string | null) =>
     value ? value.replaceAll('_', ' ') : 'Not recorded';
 const totals = computed(() => {
@@ -60,7 +79,7 @@ const totals = computed(() => {
                 Registration
             </ActionLink>
             <h1 class="text-xl font-semibold tracking-tight">
-                Visit {{ history.visit.visitNumber }}
+                Invoice · Visit {{ history.visit.visitNumber }}
             </h1>
             <StatusBadge
                 status="completed"
@@ -71,7 +90,7 @@ const totals = computed(() => {
                 <ActionLink
                     v-if="history.links.consultation"
                     :href="history.links.consultation"
-                    >Previous consultation page</ActionLink
+                    >Consultation notes</ActionLink
                 >
                 <ActionLink
                     v-if="history.links.billing"
@@ -308,7 +327,7 @@ const totals = computed(() => {
                         v-if="!history.medicines.length"
                         class="text-sm text-muted-foreground"
                     >
-                        No medicines were ordered.
+                        No medicines were ordered or dispensed.
                     </p>
                     <ul v-else class="divide-y rounded-lg border">
                         <li
@@ -327,29 +346,99 @@ const totals = computed(() => {
                                         >{{ medicine.strength }}</span
                                     >
                                 </span>
-                                <span class="text-xs text-muted-foreground">
-                                    Ordered {{ medicine.quantityOrdered }}
-                                    {{ medicine.unit }} · Dispensed
-                                    {{ text(medicine.dispensedQuantity) }}
-                                    ({{
-                                        statusLabel(medicine.dispensedStatus)
-                                    }})
-                                </span>
-                            </div>
-                            <div class="text-xs text-muted-foreground">
-                                {{ medicineLine(medicine) }}
+                                <span
+                                    v-if="
+                                        changeLabel(
+                                            medicine.changeState,
+                                            medicine.source,
+                                        )
+                                    "
+                                    class="rounded bg-pink-100 px-1.5 py-0.5 text-xs text-pink-900"
+                                    data-testid="change-label"
+                                    >{{
+                                        changeLabel(
+                                            medicine.changeState,
+                                            medicine.source,
+                                        )
+                                    }}</span
+                                >
                             </div>
                             <div
-                                v-if="medicine.instruction"
-                                class="text-xs text-muted-foreground"
+                                class="grid gap-2 sm:grid-cols-2"
+                                data-testid="ordered-vs-dispensed"
                             >
-                                {{ medicine.instruction }}
-                            </div>
-                            <div
-                                v-if="medicine.precaution"
-                                class="text-xs text-muted-foreground"
-                            >
-                                Precaution: {{ medicine.precaution }}
+                                <div
+                                    class="rounded-md bg-muted/40 p-2 text-xs"
+                                    data-testid="ordered-side"
+                                >
+                                    <div class="font-medium">Ordered</div>
+                                    <template
+                                        v-if="medicine.quantityOrdered !== null"
+                                    >
+                                        <div>
+                                            {{ medicine.quantityOrdered }}
+                                            {{ medicine.unit }}
+                                        </div>
+                                        <div class="text-muted-foreground">
+                                            {{ medicineLine(medicine) }}
+                                        </div>
+                                        <div
+                                            v-if="medicine.instruction"
+                                            class="text-muted-foreground"
+                                        >
+                                            {{ medicine.instruction }}
+                                        </div>
+                                        <div
+                                            v-if="medicine.precaution"
+                                            class="text-muted-foreground"
+                                        >
+                                            Precaution:
+                                            {{ medicine.precaution }}
+                                        </div>
+                                    </template>
+                                    <div v-else class="text-muted-foreground">
+                                        Not ordered by a doctor
+                                    </div>
+                                </div>
+                                <div
+                                    class="rounded-md bg-muted/40 p-2 text-xs"
+                                    data-testid="dispensed-side"
+                                >
+                                    <div class="font-medium">Dispensed</div>
+                                    <template v-if="medicine.dispensed">
+                                        <div>
+                                            {{
+                                                text(medicine.dispensedQuantity)
+                                            }}
+                                            {{ medicine.unit }} ({{
+                                                statusLabel(
+                                                    medicine.dispensedStatus,
+                                                )
+                                            }})
+                                        </div>
+                                        <div class="text-muted-foreground">
+                                            {{ dispensedLine(medicine) }}
+                                        </div>
+                                        <div
+                                            v-if="
+                                                medicine.dispensed.instruction
+                                            "
+                                            class="text-muted-foreground"
+                                        >
+                                            {{ medicine.dispensed.instruction }}
+                                        </div>
+                                        <div
+                                            v-if="medicine.dispensed.precaution"
+                                            class="text-muted-foreground"
+                                        >
+                                            Precaution:
+                                            {{ medicine.dispensed.precaution }}
+                                        </div>
+                                    </template>
+                                    <div v-else class="text-muted-foreground">
+                                        Not recorded
+                                    </div>
+                                </div>
                             </div>
                         </li>
                     </ul>
@@ -365,7 +454,7 @@ const totals = computed(() => {
                         v-if="!history.services.length"
                         class="text-sm text-muted-foreground"
                     >
-                        No services were ordered.
+                        No services were ordered or performed.
                     </p>
                     <ul v-else class="divide-y rounded-lg border">
                         <li
@@ -379,20 +468,49 @@ const totals = computed(() => {
                                 <span class="font-medium">{{
                                     service.name
                                 }}</span>
-                                <span class="text-xs text-muted-foreground">
-                                    Ordered {{ service.quantityOrdered }}
-                                    {{ service.unit }} ·
-                                    {{ statusLabel(service.disposition) }}
-                                    <template v-if="service.performedAt">
-                                        · {{ service.performedAt }}
-                                    </template>
-                                </span>
+                                <span
+                                    v-if="
+                                        changeLabel(
+                                            service.changeState,
+                                            service.source,
+                                        )
+                                    "
+                                    class="rounded bg-pink-100 px-1.5 py-0.5 text-xs text-pink-900"
+                                    data-testid="service-change-label"
+                                    >{{
+                                        changeLabel(
+                                            service.changeState,
+                                            service.source,
+                                        )
+                                    }}</span
+                                >
+                            </div>
+                            <div class="text-xs text-muted-foreground">
+                                <template
+                                    v-if="service.quantityOrdered !== null"
+                                    >Ordered {{ service.quantityOrdered }}
+                                    {{ service.unit }} · </template
+                                ><template v-else
+                                    >Not ordered by a doctor · </template
+                                >Performed
+                                {{ text(service.quantityPerformed) }}
+                                {{ service.unit }} ·
+                                {{ statusLabel(service.disposition) }}
+                                <template v-if="service.performedAt">
+                                    · {{ service.performedAt }}
+                                </template>
                             </div>
                             <div
-                                v-if="service.instruction"
+                                v-if="
+                                    service.finalInstruction ??
+                                    service.instruction
+                                "
                                 class="text-xs text-muted-foreground"
                             >
-                                {{ service.instruction }}
+                                {{
+                                    service.finalInstruction ??
+                                    service.instruction
+                                }}
                             </div>
                         </li>
                     </ul>

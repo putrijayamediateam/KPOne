@@ -180,4 +180,27 @@ class OtcBillingTest extends VisitTestCase
         $this->expectException(QueryException::class);
         DB::table('visits')->where('id', $f['visit']->id)->update(['status' => 'completed', 'completed_at' => now(), 'completion_evidence' => json_encode([])]);
     }
+
+    public function test_the_invoices_page_shows_an_otc_visit_with_only_what_was_dispensed(): void
+    {
+        $f = $this->fixture();
+        $this->price($f, 250);
+        $this->dispensed($f, '2.000');
+        $this->finalized($f);
+        $visit = $f['visit']->refresh();
+        $visit->forceFill(['status' => Visit::STATUS_COMPLETED, 'completed_at' => now()])->save();
+
+        $this->get(route('visits.history', $visit))->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->component('Visits/History')
+            ->where('history.visit.type', 'otc')
+            ->where('history.consultation', null)
+            ->has('history.medicines', 1)
+            ->where('history.medicines.0.source', 'ca')
+            ->where('history.medicines.0.changeState', 'added')
+            ->where('history.medicines.0.quantityOrdered', null)
+            ->where('history.medicines.0.dispensedQuantity', '2.000')
+            ->where('history.medicines.0.dispensed.dosage', 'One tablet')
+            ->where('history.services', [])
+            ->where('history.financial.state.total', 500));
+    }
 }

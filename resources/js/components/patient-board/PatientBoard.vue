@@ -322,9 +322,7 @@ const statusClass = (tone: PatientBoardRow['statusTone']) =>
                                     as-child
                                     class="min-h-8 rounded-lg px-2.5 text-[13px]"
                                 >
-                                    <Link :href="row.historyUrl"
-                                        >Visit History</Link
-                                    >
+                                    <Link :href="row.historyUrl">Invoices</Link>
                                 </DropdownMenuItem>
                                 <DropdownMenuItem
                                     v-if="row.can.openBilling && row.billingUrl"

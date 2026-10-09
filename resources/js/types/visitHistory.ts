@@ -1,29 +1,48 @@
 import type { BillingState } from '@/types/billing';
 
+export type VisitHistoryChangeState =
+    'unchanged' | 'edited' | 'added' | 'removed';
+
+// The ordered side is what the doctor sent (all null for a line the CA added);
+// the dispensed side is the CA's final line.
 export type VisitHistoryMedicine = {
     name: string;
     strength: string | null;
     dosageForm: string | null;
     unit: string;
-    quantityOrdered: string;
-    dosage: string;
-    frequency: string;
+    quantityOrdered: string | null;
+    dosage: string | null;
+    frequency: string | null;
     duration: string | null;
     route: string | null;
     instruction: string | null;
     indication: string | null;
     precaution: string | null;
+    source: 'doctor' | 'ca';
+    changeState: VisitHistoryChangeState;
     dispensedQuantity: string | null;
     dispensedStatus: string | null;
+    dispensed: {
+        dosage: string | null;
+        frequency: string | null;
+        duration: string | null;
+        route: string | null;
+        instruction: string | null;
+        precaution: string | null;
+    } | null;
 };
 
 export type VisitHistoryService = {
     name: string;
     unit: string;
-    quantityOrdered: string;
+    quantityOrdered: string | null;
     instruction: string | null;
+    source: 'doctor' | 'ca';
+    changeState: VisitHistoryChangeState;
     disposition: string | null;
     quantityPerformed: string | null;
+    doctorQuantityPerformed: string | null;
+    finalInstruction: string | null;
     performedAt: string | null;
 };
 

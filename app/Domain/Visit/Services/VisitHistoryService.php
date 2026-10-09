@@ -3,7 +3,10 @@
 namespace App\Domain\Visit\Services;
 
 use App\Domain\Access\BranchAccessService;
+use App\Domain\Clinical\Dispensary\Models\DispensaryCase;
+use App\Domain\Clinical\Dispensary\Models\DispensaryHandoff;
 use App\Domain\Clinical\Dispensary\Models\DispensaryItem;
+use App\Domain\Clinical\Dispensary\Models\DispensaryServiceLine;
 use App\Domain\Clinical\Models\ClinicalEncounter;
 use App\Domain\Clinical\Models\EncounterDiagnosis;
 use App\Domain\Clinical\Models\ServiceDelivery;
@@ -70,6 +73,8 @@ class VisitHistoryService
             ->with(['medicineOrders', 'serviceOrders'])
             ->first() : null;
 
+        $handoff = $this->completedHandoff($visit);
+
         $canFinance = $actor->can('billing.view.branch') || $actor->can('billing.summary.branch');
         $canLines = $actor->can('billing.view.branch') || $actor->can('billing.lines.view.branch');
         $invoice = $canFinance ? Invoice::query()
@@ -98,8 +103,8 @@ class VisitHistoryService
                 'completedAt' => $visit->completed_at?->setTimezone($timezone)->format('j M Y, g:i A'),
             ],
             'consultation' => $encounter ? $this->consultation($encounter, $timezone) : null,
-            'medicines' => $plan ? $this->medicines($plan) : [],
-            'services' => $plan ? $this->services($plan, $timezone) : [],
+            'medicines' => $this->medicines($plan, $handoff),
+            'services' => $this->services($plan, $handoff, $timezone),
             'financial' => $invoice ? $this->financial($actor, $visit, $invoice, $canLines) : null,
             'canSeeFinancial' => $canFinance,
             'links' => [
@@ -142,18 +147,29 @@ class VisitHistoryService
         ];
     }
 
-    /** @return list<array<string, mixed>> */
-    private function medicines(TreatmentPlan $plan): array
+    /** The completed Dispensary handoff of this visit (consultation or OTC), if it went through Dispensary. */
+    private function completedHandoff(Visit $visit): ?DispensaryHandoff
     {
-        $orders = $plan->medicineOrders->where('status', TreatmentPlanMedicineOrder::STATUS_ACTIVE);
-        $dispensed = DispensaryItem::query()
-            ->whereIn('treatment_plan_medicine_order_id', $orders->pluck('id'))
-            ->get()->keyBy('treatment_plan_medicine_order_id');
+        $case = DispensaryCase::query()->where('visit_id', $visit->id)->where('status', DispensaryCase::STATUS_COMPLETED)->first();
 
-        return $orders->map(function (TreatmentPlanMedicineOrder $order) use ($dispensed): array {
-            $item = $dispensed->get($order->id);
+        return $case ? DispensaryHandoff::query()->where('dispensary_case_id', $case->id)->where('status', DispensaryHandoff::STATUS_COMPLETED)->orderByDesc('attempt_number')->first() : null;
+    }
 
-            return [
+    /**
+     * DS-01c: "ordered" is what the doctor sent; "dispensed" is the CA's final line. A line the CA added has
+     * no ordered side, and a line the CA removed is kept and marked, so the record shows every change.
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function medicines(?TreatmentPlan $plan, ?DispensaryHandoff $handoff): array
+    {
+        $items = $handoff ? DispensaryItem::query()->where('dispensary_handoff_id', $handoff->id)->orderBy('id')->get() : collect();
+        $byOrder = $items->whereNotNull('treatment_plan_medicine_order_id')->keyBy('treatment_plan_medicine_order_id');
+        $rows = [];
+        $orders = $plan ? $plan->medicineOrders->where('status', TreatmentPlanMedicineOrder::STATUS_ACTIVE) : collect();
+        foreach ($orders as $order) {
+            $item = $byOrder->get($order->id);
+            $rows[] = [
                 'name' => $order->medicine_name_snapshot,
                 'strength' => $order->strength_snapshot,
                 'dosageForm' => $order->dosage_form_snapshot,
@@ -166,33 +182,95 @@ class VisitHistoryService
                 'instruction' => $order->administration_instruction,
                 'indication' => $order->indication,
                 'precaution' => $order->precaution,
+                'source' => 'doctor',
+                'changeState' => $item?->change_state ?? 'unchanged',
                 'dispensedQuantity' => $item?->quantity_dispensed,
                 'dispensedStatus' => $item?->status,
+                'dispensed' => $item ? $this->dispensedText($item) : null,
             ];
-        })->values()->all();
+        }
+        foreach ($items->whereNull('treatment_plan_medicine_order_id') as $item) {
+            $rows[] = [
+                'name' => $item->medicine_name_snapshot,
+                'strength' => $item->strength_snapshot,
+                'dosageForm' => $item->dosage_form_snapshot,
+                'unit' => $item->unit_snapshot,
+                'quantityOrdered' => null,
+                'dosage' => null,
+                'frequency' => null,
+                'duration' => null,
+                'route' => null,
+                'instruction' => null,
+                'indication' => null,
+                'precaution' => null,
+                'source' => 'ca',
+                'changeState' => $item->change_state,
+                'dispensedQuantity' => $item->quantity_dispensed,
+                'dispensedStatus' => $item->status,
+                'dispensed' => $this->dispensedText($item),
+            ];
+        }
+
+        return $rows;
+    }
+
+    /** @return array<string, string|null> */
+    private function dispensedText(DispensaryItem $item): array
+    {
+        return [
+            'dosage' => $item->effective('dosage'),
+            'frequency' => $item->effective('frequency'),
+            'duration' => $item->effective('duration'),
+            'route' => $item->effective('route'),
+            'instruction' => $item->effective('administration_instruction'),
+            'precaution' => $item->effective('precaution'),
+        ];
     }
 
     /** @return list<array<string, mixed>> */
-    private function services(TreatmentPlan $plan, string $timezone): array
+    private function services(?TreatmentPlan $plan, ?DispensaryHandoff $handoff, string $timezone): array
     {
-        $orders = $plan->serviceOrders->where('status', TreatmentPlanServiceOrder::STATUS_ACTIVE);
+        $orders = $plan ? $plan->serviceOrders->where('status', TreatmentPlanServiceOrder::STATUS_ACTIVE) : collect();
+        $lines = $handoff ? DispensaryServiceLine::query()->where('dispensary_handoff_id', $handoff->id)->orderBy('id')->get() : collect();
         $deliveries = ServiceDelivery::query()
             ->whereIn('treatment_plan_service_order_id', $orders->pluck('id'))
             ->get()->keyBy('treatment_plan_service_order_id');
-
-        return $orders->map(function (TreatmentPlanServiceOrder $order) use ($deliveries, $timezone): array {
+        $byOrder = $lines->whereNotNull('treatment_plan_service_order_id')->keyBy('treatment_plan_service_order_id');
+        $rows = [];
+        foreach ($orders as $order) {
             $delivery = $deliveries->get($order->id);
-
-            return [
+            $line = $byOrder->get($order->id);
+            $rows[] = [
                 'name' => $order->service_name_snapshot,
                 'unit' => $order->unit_snapshot,
                 'quantityOrdered' => $order->quantity_ordered,
                 'instruction' => $order->clinical_instruction,
-                'disposition' => $delivery?->disposition,
-                'quantityPerformed' => $delivery?->quantity_performed,
-                'performedAt' => $delivery?->performed_at?->setTimezone($timezone)->format('j M Y, g:i A'),
+                'source' => 'doctor',
+                'changeState' => $line?->change_state ?? 'unchanged',
+                'disposition' => $line?->disposition ?? $delivery?->disposition,
+                'quantityPerformed' => $line?->quantity_performed ?? $delivery?->quantity_performed,
+                'doctorQuantityPerformed' => $delivery?->quantity_performed,
+                'finalInstruction' => $line?->effectiveInstruction(),
+                'performedAt' => ($line?->performed_at ?? $delivery?->performed_at)?->setTimezone($timezone)->format('j M Y, g:i A'),
             ];
-        })->values()->all();
+        }
+        foreach ($lines->whereNull('treatment_plan_service_order_id') as $line) {
+            $rows[] = [
+                'name' => $line->service_name_snapshot,
+                'unit' => $line->unit_snapshot,
+                'quantityOrdered' => null,
+                'instruction' => null,
+                'source' => 'ca',
+                'changeState' => $line->change_state,
+                'disposition' => $line->disposition,
+                'quantityPerformed' => $line->quantity_performed,
+                'doctorQuantityPerformed' => null,
+                'finalInstruction' => $line->effectiveInstruction(),
+                'performedAt' => $line->performed_at?->setTimezone($timezone)->format('j M Y, g:i A'),
+            ];
+        }
+
+        return $rows;
     }
 
     /** @return array<string, mixed> */
