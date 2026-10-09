@@ -98,7 +98,14 @@ Visit History); it is a one-line change.
      and must confirm it before Complete; there is no automatic drug-allergy blocking. At least one dispensed
      medicine is required. Doctor-only actions (return to doctor, services, partial/not-dispensed) are refused.
      No billing and no UI yet.
-   - **DS-01b-2**: OTC invoice anchor and billing source, reconciliation and completion guards, visit completion.
+   - **DS-01b-2** *(built)*: an invoice is anchored to exactly one source, a consultation checkout or an OTC
+     Dispensary case (`invoices.dispensary_case_id`, PostgreSQL `invoice_anchor_check`). `BillingSourceService`
+     bills a completed OTC case: the CA's dispensed medicines only, no consultation line, no service, no doctor.
+     The PostgreSQL reconciliation function proves each OTC line against a dispensed item of that case, and the
+     completed-visit trigger accepts an OTC visit only with a finalized invoice and a completed OTC case. Both
+     functions are patched in place by exact-match replacement (the migration refuses to run if a replacement
+     does not match exactly once). Known limit: Insights reports that join invoices to consultation checkouts
+     (doctor-based tables) still count consultation invoices only. No routes or screens yet.
    - **DS-01b-3**: the Dispense action on the Registration board and the OTC screens.
 3. **DS-01c** Visit Record: Ordered vs Dispensed, OTC, doctor's previous-consultation link.
 4. **DS-01d** New Dispensary page design (the editable layout) and removal of the Pending/Partial/Not

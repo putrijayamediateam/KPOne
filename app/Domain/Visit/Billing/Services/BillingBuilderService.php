@@ -49,7 +49,7 @@ class BillingBuilderService
                 $invoice = new Invoice;
                 $invoice->forceFill(['public_id' => (string) Str::uuid(), 'organisation_id' => $actor->organisation_id, 'branch_id' => $branch->id, 'patient_id' => $visit->patient_id, 'visit_id' => $visit->id, 'current_visit_guard' => $visit->id, 'replaces_public_id' => $previous?->public_id, 'currency' => 'MYR', 'status' => 'draft', 'lock_version' => 0, 'created_by_user_id' => $actor->id]);
             }
-            $invoice->forceFill(['consultation_checkout_id' => $source['checkout']->id, 'source_manifest' => $source['manifest'], 'source_hash' => $hash, 'source_stale' => false, 'subtotal_sen' => $total, 'total_sen' => $total, 'lock_version' => $invoice->lock_version + 1])->save();
+            $invoice->forceFill(['consultation_checkout_id' => $source['checkout']?->id, 'dispensary_case_id' => $source['dispensaryCase']?->id, 'source_manifest' => $source['manifest'], 'source_hash' => $hash, 'source_stale' => false, 'subtotal_sen' => $total, 'total_sen' => $total, 'lock_version' => $invoice->lock_version + 1])->save();
             DB::table('invoice_lines')->where('invoice_id', $invoice->id)->delete();
             foreach ($lines as $line) {
                 $record = new InvoiceLine;
