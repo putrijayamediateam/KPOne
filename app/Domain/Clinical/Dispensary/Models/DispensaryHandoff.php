@@ -35,7 +35,7 @@ class DispensaryHandoff extends Model
 
     protected function casts(): array
     {
-        return ['attempt_number' => 'integer', 'treatment_plan_lock_version_received' => 'integer', 'sent_at' => 'immutable_datetime', 'started_at' => 'immutable_datetime', 'returned_at' => 'immutable_datetime', 'completed_at' => 'immutable_datetime'];
+        return ['attempt_number' => 'integer', 'treatment_plan_lock_version_received' => 'integer', 'sent_at' => 'immutable_datetime', 'started_at' => 'immutable_datetime', 'returned_at' => 'immutable_datetime', 'completed_at' => 'immutable_datetime', 'ca_verified_at' => 'immutable_datetime', 'otc_allergy_confirmed_at' => 'immutable_datetime'];
     }
 
     public function getRouteKeyName(): string

@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Domain\Patient\Models\PublicPatientIntake;
 use App\Domain\Patient\Services\PublicIntakeReviewService;
+use App\Domain\Queue\Models\OtcQueueEntry;
+use App\Domain\Queue\QueueNumberFormat;
 use App\Domain\Visit\Services\VisitDirectoryService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -86,7 +88,10 @@ class PublicIntakeReviewController extends Controller
         }
         Inertia::flash('toast', [
             'type' => 'success',
-            'message' => 'Registration accepted and Queue number '.sprintf('%03d', $result['queue']->queue_number).' assigned.',
+            'message' => 'Registration accepted and Queue number '.QueueNumberFormat::format(
+                (int) $result['queue']?->queue_number,
+                $result['queue'] instanceof OtcQueueEntry ? QueueNumberFormat::OTC : QueueNumberFormat::CONSULTATION,
+            ).' assigned.',
         ]);
 
         return to_route('registration.index', ['tab' => 'qr-intake']);

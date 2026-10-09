@@ -8,7 +8,9 @@ use App\Domain\Organisation\Models\Branch;
 use App\Domain\Patient\Models\Patient;
 use App\Domain\Patient\Models\PatientIdentifier;
 use App\Domain\Patient\Models\PublicPatientIntake;
+use App\Domain\Queue\Models\OtcQueueEntry;
 use App\Domain\Queue\Models\QueueEntry;
+use App\Domain\Queue\Services\OtcQueueService;
 use App\Domain\Queue\Services\QueueEntryService;
 use App\Domain\Visit\Models\Visit;
 use App\Domain\Visit\Services\VisitRegistrationService;
@@ -32,6 +34,7 @@ class PublicIntakeReviewService
         private PatientAdministrationService $patients,
         private VisitRegistrationService $visits,
         private QueueEntryService $queue,
+        private OtcQueueService $otcQueue,
         private AuditRecorder $audit,
     ) {}
 
@@ -241,7 +244,7 @@ class PublicIntakeReviewService
     }
 
     /** @param array<string, mixed> $attributes
-     * @return array{intake: PublicPatientIntake, patient: Patient, visit: Visit, queue: QueueEntry}
+     * @return array{intake: PublicPatientIntake, patient: Patient|null, visit: Visit|null, queue: QueueEntry|OtcQueueEntry|null}
      */
     public function accept(User $actor, string $publicId, array $attributes): array
     {
@@ -251,8 +254,8 @@ class PublicIntakeReviewService
             'resolution' => ['required', Rule::in(['match', 'create'])],
             'patient_number' => ['nullable', 'required_if:resolution,match', 'string', 'max:20'],
             'duplicate_override' => ['nullable', 'boolean'],
-            'assigned_doctor_user_id' => ['required', 'integer'],
-            'visit_reason_public_ids' => ['required', 'array', 'min:1', 'max:5'],
+            'assigned_doctor_user_id' => ['nullable', 'integer'],
+            'visit_reason_public_ids' => ['nullable', 'array', 'max:5'],
             'visit_reason_public_ids.*' => ['required', 'uuid', 'distinct'],
             'priority' => ['required', Rule::in(['normal', 'urgent'])],
             'coverage_type' => ['required', Rule::in(['self_pay', 'panel'])],
@@ -315,6 +318,12 @@ class PublicIntakeReviewService
             }
 
             $payload = Arr::wrap($intake->encrypted_payload);
+            $isOtc = data_get($payload, 'visit.kind') === 'otc';
+            if (! $isOtc && (blank($validated['assigned_doctor_user_id'] ?? null) || blank($validated['visit_reason_public_ids'] ?? null))) {
+                throw ValidationException::withMessages([
+                    'assigned_doctor_user_id' => 'Choose the doctor and at least one visit reason for a consultation.',
+                ]);
+            }
             if ($validated['resolution'] === 'match') {
                 $patient = Patient::query()
                     ->where('organisation_id', $actor->organisation_id)
@@ -333,9 +342,9 @@ class PublicIntakeReviewService
                 'idempotency_key' => $validated['idempotency_key'],
                 'expected_branch_id' => $branch->id,
                 'patient_number' => $patient->patient_number,
-                'visit_type' => 'consultation',
-                'assigned_doctor_user_id' => $validated['assigned_doctor_user_id'],
-                'visit_reason_public_ids' => $validated['visit_reason_public_ids'],
+                'visit_type' => $isOtc ? 'otc' : 'consultation',
+                'assigned_doctor_user_id' => $isOtc ? null : $validated['assigned_doctor_user_id'],
+                'visit_reason_public_ids' => $isOtc ? [] : $validated['visit_reason_public_ids'],
                 'priority' => $validated['priority'],
                 'coverage_type' => $validated['coverage_type'],
                 'panel_id' => $validated['panel_id'] ?? null,
@@ -347,11 +356,15 @@ class PublicIntakeReviewService
             ]);
             $this->record('public_intake.visit_created', $intake, $actor, $intake->status, ['visit_id' => $visit->id]);
 
-            $queue = $this->queue->enter($actor, $visit, [
-                'expected_branch_id' => $branch->id,
-                'visit_lock_version' => $visit->lock_version,
+            $queue = $isOtc
+                ? $this->otcQueue->enter($actor, $visit, ['expected_branch_id' => $branch->id])
+                : $this->queue->enter($actor, $visit, [
+                    'expected_branch_id' => $branch->id,
+                    'visit_lock_version' => $visit->lock_version,
+                ]);
+            $this->record('public_intake.queue_created', $intake, $actor, $intake->status, [
+                $isOtc ? 'otc_queue_entry_id' : 'queue_entry_id' => $queue->id,
             ]);
-            $this->record('public_intake.queue_created', $intake, $actor, $intake->status, ['queue_entry_id' => $queue->id]);
 
             $from = $intake->status;
             $now = now()->utc();
@@ -363,14 +376,15 @@ class PublicIntakeReviewService
                 'acceptance_fingerprint' => $fingerprint,
                 'patient_id' => $patient->id,
                 'visit_id' => $visit->id,
-                'queue_entry_id' => $queue->id,
+                'queue_entry_id' => $queue instanceof QueueEntry ? $queue->id : null,
+                'otc_queue_entry_id' => $queue instanceof OtcQueueEntry ? $queue->id : null,
                 'payload_purge_at' => $now->copy()->addDays((int) config('public-intake.retention_days', 30)),
                 'lock_version' => $intake->lock_version + 1,
             ])->save();
             $this->record('public_intake.accepted', $intake, $actor, $from, [
                 'patient_id' => $patient->id,
                 'visit_id' => $visit->id,
-                'queue_entry_id' => $queue->id,
+                ($isOtc ? 'otc_queue_entry_id' : 'queue_entry_id') => $queue->id,
                 'coverage_type' => $validated['coverage_type'],
                 'panel_id' => $validated['panel_id'] ?? null,
             ]);
@@ -468,16 +482,16 @@ class PublicIntakeReviewService
         return array_values($results);
     }
 
-    /** @return array{intake: PublicPatientIntake, patient: Patient, visit: Visit, queue: QueueEntry} */
+    /** @return array{intake: PublicPatientIntake, patient: Patient|null, visit: Visit|null, queue: QueueEntry|OtcQueueEntry|null} */
     private function acceptedResult(PublicPatientIntake $intake): array
     {
-        $intake->loadMissing(['patient', 'visit', 'queueEntry']);
+        $intake->loadMissing(['patient', 'visit', 'queueEntry', 'otcQueueEntry']);
 
         return [
             'intake' => $intake,
             'patient' => $intake->patient,
             'visit' => $intake->visit,
-            'queue' => $intake->queueEntry,
+            'queue' => $intake->queueEntry ?? $intake->otcQueueEntry,
         ];
     }
 

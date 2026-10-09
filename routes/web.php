@@ -47,6 +47,7 @@ use App\Http\Controllers\StaffStatusController;
 use App\Http\Controllers\TreatmentPlanCatalogueController;
 use App\Http\Controllers\TreatmentPlanController;
 use App\Http\Controllers\VisitController;
+use App\Http\Controllers\VisitHistoryController;
 use App\Http\Controllers\VisitReasonController;
 use App\Http\Controllers\WorkspaceController;
 use Illuminate\Support\Facades\Auth;
@@ -256,6 +257,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('visits/{visit}/encounter/reopen-checkout', [ConsultationCheckoutController::class, 'reopen'])
             ->middleware(['permission:consultations.reopen.own', 'throttle:20,1'])->name('encounters.checkout.reopen');
 
+        Route::post('visits/{visit}/dispense', [DispensaryController::class, 'openOtc'])
+            ->middleware(['permission:dispensary.otc.create.branch', 'throttle:30,1'])->name('visits.dispense');
+        Route::post('dispensary/{dispensaryCase}/otc-allergy', [DispensaryController::class, 'confirmOtcAllergy'])
+            ->whereUuid('dispensaryCase')->middleware(['permission:dispensary.update.branch', 'throttle:30,1'])->name('dispensary.otc-allergy');
         Route::get('dispensary/{dispensaryCase}', [DispensaryController::class, 'show'])
             ->whereUuid('dispensaryCase')->middleware('permission:dispensary.view.branch')->name('dispensary.show');
 
@@ -282,6 +287,22 @@ Route::middleware(['auth', 'verified'])->group(function () {
             ->whereUuid('dispensaryCase')->middleware(['permission:dispensary.start.branch', 'throttle:30,1'])->name('dispensary.start');
         Route::patch('dispensary/{dispensaryCase}/items/{item}', [DispensaryController::class, 'updateItem'])
             ->whereUuid('dispensaryCase')->whereUuid('item')->middleware(['permission:dispensary.update.branch', 'throttle:60,1'])->name('dispensary.items.update');
+        Route::post('dispensary/{dispensaryCase}/items', [DispensaryController::class, 'addItem'])
+            ->whereUuid('dispensaryCase')->middleware(['permission:dispensary.update.branch', 'throttle:60,1'])->name('dispensary.items.add');
+        Route::put('dispensary/{dispensaryCase}/items/{item}/final', [DispensaryController::class, 'editItem'])
+            ->whereUuid('dispensaryCase')->whereUuid('item')->middleware(['permission:dispensary.update.branch', 'throttle:60,1'])->name('dispensary.items.edit');
+        Route::post('dispensary/{dispensaryCase}/items/{item}/remove', [DispensaryController::class, 'removeItem'])
+            ->whereUuid('dispensaryCase')->whereUuid('item')->middleware(['permission:dispensary.update.branch', 'throttle:60,1'])->name('dispensary.items.remove');
+        Route::post('dispensary/{dispensaryCase}/medicines/search', [DispensaryController::class, 'searchMedicines'])
+            ->whereUuid('dispensaryCase')->middleware(['permission:dispensary.update.branch', 'throttle:60,1'])->name('dispensary.medicines.search');
+        Route::post('dispensary/{dispensaryCase}/services', [DispensaryController::class, 'addService'])
+            ->whereUuid('dispensaryCase')->middleware(['permission:dispensary.update.branch', 'throttle:60,1'])->name('dispensary.services.add');
+        Route::put('dispensary/{dispensaryCase}/services/{line}/final', [DispensaryController::class, 'editService'])
+            ->whereUuid('dispensaryCase')->whereUuid('line')->middleware(['permission:dispensary.update.branch', 'throttle:60,1'])->name('dispensary.services.edit');
+        Route::post('dispensary/{dispensaryCase}/services/{line}/remove', [DispensaryController::class, 'removeService'])
+            ->whereUuid('dispensaryCase')->whereUuid('line')->middleware(['permission:dispensary.update.branch', 'throttle:60,1'])->name('dispensary.services.remove');
+        Route::post('dispensary/{dispensaryCase}/services/search', [DispensaryController::class, 'searchServices'])
+            ->whereUuid('dispensaryCase')->middleware(['permission:dispensary.update.branch', 'throttle:60,1'])->name('dispensary.services.search');
         Route::post('dispensary/{dispensaryCase}/return-to-doctor', [DispensaryController::class, 'returnToDoctor'])
             ->whereUuid('dispensaryCase')->middleware(['permission:dispensary.return_to_doctor.branch', 'throttle:20,1'])->name('dispensary.return-to-doctor');
         Route::post('dispensary/{dispensaryCase}/complete', [DispensaryController::class, 'complete'])
@@ -407,6 +428,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::patch('visits/{visit}/queue/call', [QueueController::class, 'call'])
             ->middleware(['permission:queue.call.own,queue.call.branch', 'throttle:30,1'])
             ->name('queue.call');
+        Route::post('visits/{visit}/otc-queue/call', [RoomCallController::class, 'otcDispensary'])
+            ->middleware(['permission:dispensary.start.branch', 'throttle:30,1'])->name('otc-queue.call');
         Route::patch('visits/{visit}/queue/treatment-call', [RoomCallController::class, 'treatment'])
             ->middleware(['permission:queue.call.own,queue.call.branch', 'throttle:30,1'])
             ->name('queue.treatment-call');
@@ -420,6 +443,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('registration', [RegistrationController::class, 'index'])
             ->middleware('permission:visits.view.branch')
             ->name('registration.index');
+        Route::get('visits/{visit}/history', VisitHistoryController::class)
+            ->middleware(['permission:visits.history.view.branch', 'sensitive.no-store'])
+            ->name('visits.history');
         Route::post('registration/search', [RegistrationController::class, 'search'])
             ->middleware(['permission:visits.view.branch', 'throttle:60,1'])
             ->name('registration.search');

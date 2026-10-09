@@ -21,6 +21,8 @@ class PublicIntakePayloadValidator
         'other',
     ];
 
+    public const VISIT_KINDS = ['consultation', 'otc'];
+
     public function __construct(private PatientIdentityService $identity) {}
 
     /**
@@ -51,8 +53,9 @@ class PublicIntakePayloadValidator
             'identifier_type' => ['required', Rule::in(['nric', 'passport'])],
             'identifier_value' => ['required', 'string', 'max:100'],
             'identifier_issuing_country_code' => ['nullable', 'string', 'size:2'],
-            'visit_purpose' => ['required', Rule::in(self::VISIT_PURPOSES)],
-            'chief_complaint' => ['required', 'string', 'max:500'],
+            'visit_kind' => ['nullable', Rule::in(self::VISIT_KINDS)],
+            'visit_purpose' => ['required_unless:visit_kind,otc', 'nullable', Rule::in(self::VISIT_PURPOSES)],
+            'chief_complaint' => ['required_unless:visit_kind,otc', 'nullable', 'string', 'max:500'],
             'complaint_duration' => ['nullable', 'string', 'max:120'],
             'coverage_type' => ['required', Rule::in(['self_pay', 'panel'])],
             'panel_id' => [
@@ -81,6 +84,7 @@ class PublicIntakePayloadValidator
             'patient_id' => ['prohibited'],
             'visit_id' => ['prohibited'],
             'queue_entry_id' => ['prohibited'],
+            'otc_queue_entry_id' => ['prohibited'],
         ], [
             'guardian_name.required_if' => 'Nama penjaga diperlukan.',
             'guardian_relationship.required_if' => 'Hubungan penjaga diperlukan.',
@@ -155,8 +159,9 @@ class PublicIntakePayloadValidator
             ],
             'guardian' => $guardian,
             'visit' => [
-                'purpose' => $validated['visit_purpose'],
-                'chief_complaint' => Str::squish((string) $validated['chief_complaint']),
+                'kind' => $validated['visit_kind'] ?? 'consultation',
+                'purpose' => $validated['visit_purpose'] ?? 'other',
+                'chief_complaint' => Str::squish((string) ($validated['chief_complaint'] ?? '')),
                 'duration' => filled($validated['complaint_duration'] ?? null)
                     ? Str::squish((string) $validated['complaint_duration']) : null,
             ],
@@ -198,6 +203,7 @@ class PublicIntakePayloadValidator
             'guardian_relationship' => $guardian['relationship'] ?? null,
             'guardian_contact_number' => $guardian['contact_number'] ?? null,
             'guardian_attestation' => $guardian['attested'] ?? false,
+            'visit_kind' => $visit['kind'] ?? 'consultation',
             'visit_purpose' => $visit['purpose'] ?? '',
             'chief_complaint' => $visit['chief_complaint'] ?? '',
             'complaint_duration' => $visit['duration'] ?? null,

@@ -1,8 +1,27 @@
 # KPOne project
 
-Latest merged delivery: PR #70 — billing payment guidance, merged as `8fd95c5`. Recent merges, newest first
+Latest merged delivery: PR #89 — Dispensary three-column layout, merged as `d03c03e`. Recent merges, newest first
 (documentation-only PRs omitted):
 
+- PR #89 (`d03c03e`) — DS-01d: the Dispensary page uses the Invoices three-column layout (patient and allergies |
+  editable medicines and services | summary and actions). Layout only.
+- PR #87 (`de4e496`) — DS-02c: the QR form offers "Buy medicine only"; accepting joins the OTC list and the patient's
+  phone shows the B number and the pharmacy call.
+- PR #86 (`10f94b6`) — DS-02b: per-branch setting to call patients by queue number (default) or full registered name,
+  on the TV list and spoken call.
+- PR #85 (`12f2f6b`) — DS-02a: OTC waiting list with its own B numbers (consultation numbers now `A-001`), called to the
+  dispensary on the TV.
+- PR #84 (`b80f491`) — DS-02 design decisions (documentation only).
+- PR #83 (`5643adf`) — DS-01c: Invoices page showing ordered beside dispensed.
+- PR #82 (`c23b65f`) — DS-01b-3: Dispense from the Registration board.
+- PR #81 (`fe1a959`) — DS-01b-2: OTC billing.
+- PR #80 (`fa68e58`) — DS-01b-1: OTC dispensary case.
+- PR #78 (`1cdd1a7`) — DS-01a-services: the CA edits, adds, removes and confirms services at Dispensary; the doctor's
+  service order stays as the original and billing uses the CA-confirmed lines.
+- PR #77 (`55594bf`) — DS-01a: the CA edits, adds and removes medicines at Dispensary with the doctor's original
+  order kept beside it, and completing is the CA's own verification (no CA allergy tick).
+- PR #75 (`2252f3d`) — finance officers, panel officers and directors see invoice lines.
+- PR #74 (`843e61c`) — refused Dispensary and Billing actions stay on their page; TV Screen menu link; header cleanup.
 - PR #70 (`8fd95c5`) — billing page guidance: separate "Amount received" and Panel or pay later amount fields, a
   "How to settle this invoice" note, a six-step Panel guide, and hints under a waiting proposal and a disabled
   Add Payment. Wording and layout only; amounts, approval limits and permissions are unchanged.

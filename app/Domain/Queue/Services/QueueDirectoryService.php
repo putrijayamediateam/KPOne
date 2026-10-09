@@ -8,6 +8,7 @@ use App\Domain\Clinical\Models\ConsultationHold;
 use App\Domain\Clinical\Services\CheckoutReopenEligibility;
 use App\Domain\Organisation\Models\Branch;
 use App\Domain\Queue\Models\QueueEntry;
+use App\Domain\Queue\QueueNumberFormat;
 use App\Domain\Visit\Policies\VisitPolicy;
 use App\Domain\Visit\Services\VisitDoctorEligibilityService;
 use App\Domain\Visit\Services\VisitReasonService;
@@ -231,8 +232,8 @@ class QueueDirectoryService
 
         $search = trim((string) ($criteria['query'] ?? ''));
         if ($search !== '') {
-            if (preg_match('/\A\d+\z/', $search) === 1) {
-                $query->where('queue_entries.queue_number', (int) $search);
+            if (preg_match('/\A(?:A-?)?(\d+)\z/i', $search, $number) === 1) {
+                $query->where('queue_entries.queue_number', (int) $number[1]);
             } else {
                 $query->whereHas('visit.patient', function ($patient) use ($search): void {
                     if (preg_match('/\AKP-\d{8}\z/i', $search) === 1) {
@@ -289,7 +290,7 @@ class QueueDirectoryService
         $elapsedSeconds = $entry->called_at ? $entry->called_at->diffInSeconds($now) : 0;
 
         return [
-            'queueNumber' => sprintf('%03d', $entry->queue_number),
+            'queueNumber' => QueueNumberFormat::format($entry->queue_number),
             'operationalDate' => $entry->operational_date->toDateString(),
             'patientNumber' => $visit->patient->patient_number,
             'patientName' => $visit->patient->full_name,

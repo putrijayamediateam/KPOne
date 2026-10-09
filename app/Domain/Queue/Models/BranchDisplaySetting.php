@@ -14,6 +14,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property string|null $ticker_text
  * @property string|null $youtube_video_id
  * @property int $poster_seconds
+ * @property string $call_display_mode
  * @property list<array{id: string, path: string, mime: string}> $posters
  * @property int $lock_version
  * @property int $updated_by_user_id
@@ -23,6 +24,13 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class BranchDisplaySetting extends Model
 {
     public const MAX_POSTERS = 8;
+
+    /** How a called patient is shown and spoken: by queue number or by full registered name. */
+    public const MODE_NUMBER = 'number';
+
+    public const MODE_NAME = 'name';
+
+    public const MODES = [self::MODE_NUMBER, self::MODE_NAME];
 
     protected function casts(): array
     {

@@ -3,8 +3,10 @@
 namespace App\Domain\Queue\Display;
 
 use App\Domain\Queue\Models\BranchRoom;
+use App\Domain\Queue\Models\OtcQueueEntry;
 use App\Domain\Queue\Models\QueueCall;
 use App\Domain\Queue\Models\QueueEntry;
+use App\Domain\Queue\QueueNumberFormat;
 use App\Models\User;
 use DateTimeInterface;
 use Illuminate\Support\Carbon;
@@ -14,7 +16,7 @@ use Illuminate\Validation\ValidationException;
 class QueueCallRecorder
 {
     public function record(
-        QueueEntry $entry,
+        QueueEntry|OtcQueueEntry $entry,
         string $service,
         ?BranchRoom $room,
         User $actor,
@@ -26,7 +28,9 @@ class QueueCallRecorder
         $call->forceFill([
             'organisation_id' => $entry->organisation_id,
             'branch_id' => $entry->branch_id,
-            'queue_entry_id' => $entry->id,
+            'queue_entry_id' => $entry instanceof QueueEntry ? $entry->id : null,
+            'otc_queue_entry_id' => $entry instanceof OtcQueueEntry ? $entry->id : null,
+            'queue_series' => $entry instanceof OtcQueueEntry ? QueueNumberFormat::OTC : QueueNumberFormat::CONSULTATION,
             'service' => $service,
             'is_recall' => $isRecall,
             'branch_room_id' => $room?->id,
@@ -40,19 +44,19 @@ class QueueCallRecorder
         return $call;
     }
 
-    public function hasBeenCalled(QueueEntry $entry, string $service): bool
+    public function hasBeenCalled(QueueEntry|OtcQueueEntry $entry, string $service): bool
     {
         return QueueCall::query()
-            ->where('queue_entry_id', $entry->id)
+            ->where($this->column($entry), $entry->id)
             ->where('service', $service)
             ->exists();
     }
 
     /** The same patient is called to the same place at most once per cooldown. */
-    public function assertCooldown(QueueEntry $entry, string $service): void
+    public function assertCooldown(QueueEntry|OtcQueueEntry $entry, string $service): void
     {
         $lastCalledAt = QueueCall::query()
-            ->where('queue_entry_id', $entry->id)
+            ->where($this->column($entry), $entry->id)
             ->where('service', $service)
             ->max('called_at');
         if ($lastCalledAt !== null
@@ -61,5 +65,10 @@ class QueueCallRecorder
                 'queue' => 'This patient was just called. Wait a few seconds before calling again.',
             ]);
         }
+    }
+
+    private function column(QueueEntry|OtcQueueEntry $entry): string
+    {
+        return $entry instanceof OtcQueueEntry ? 'otc_queue_entry_id' : 'queue_entry_id';
     }
 }

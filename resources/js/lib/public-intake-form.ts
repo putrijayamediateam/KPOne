@@ -11,6 +11,7 @@ export type IntakeFormValues = {
     identifier_type: string;
     identifier_value: string;
     identifier_issuing_country_code: string;
+    visit_kind?: string;
     visit_purpose: string;
     chief_complaint: string;
     complaint_duration: string;
@@ -123,11 +124,17 @@ export const validateIntakeStep = (
             );
         }
 
-        if (!filled(form.visit_purpose)) {
+        const medicineOnly = form.visit_kind === 'otc';
+
+        if (!medicineOnly && !filled(form.visit_purpose)) {
             add('visit_purpose', 'Sila pilih tujuan lawatan.');
         }
 
-        if (!filled(form.chief_complaint)) {
+        if (medicineOnly) {
+            if (tooLong(form.chief_complaint, 500)) {
+                add('chief_complaint', 'Maklumat ini terlalu panjang.');
+            }
+        } else if (!filled(form.chief_complaint)) {
             add('chief_complaint', 'Sila nyatakan masalah atau tujuan utama.');
         } else if (tooLong(form.chief_complaint, 500)) {
             add('chief_complaint', 'Maklumat ini terlalu panjang.');
@@ -259,19 +266,26 @@ export const reviewRows = (
             value: text(form.identifier_value),
             step: 2,
         },
+        form.visit_kind === 'otc'
+            ? {
+                  label: 'Tujuan lawatan',
+                  value: 'Beli ubat sahaja',
+                  step: 2,
+              }
+            : {
+                  label: 'Tujuan lawatan',
+                  value: PURPOSE_LABELS[form.visit_purpose] ?? '—',
+                  step: 2,
+              },
         {
-            label: 'Tujuan lawatan',
-            value: PURPOSE_LABELS[form.visit_purpose] ?? '—',
-            step: 2,
-        },
-        {
-            label: 'Masalah utama',
+            label:
+                form.visit_kind === 'otc' ? 'Ubat diperlukan' : 'Masalah utama',
             value: text(form.chief_complaint),
             step: 2,
         },
     ];
 
-    if (filled(form.complaint_duration)) {
+    if (form.visit_kind !== 'otc' && filled(form.complaint_duration)) {
         rows.push({
             label: 'Sejak bila',
             value: text(form.complaint_duration),

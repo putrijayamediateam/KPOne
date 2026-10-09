@@ -65,6 +65,7 @@ const form = reactive({
     identifier_type: 'nric',
     identifier_value: '',
     identifier_issuing_country_code: 'MY',
+    visit_kind: 'consultation',
     visit_purpose: '',
     chief_complaint: '',
     complaint_duration: '',
@@ -653,7 +654,31 @@ onBeforeUnmount(() => {
                                 >{{ errorFor('identifier_value') }}</span
                             >
                         </fieldset>
-                        <label class="grid gap-1.5" for="visit-purpose"
+                        <fieldset class="grid gap-2" data-testid="visit-kind">
+                            <legend class="text-sm font-medium">
+                                Apa yang anda perlukan hari ini? *
+                            </legend>
+                            <label
+                                class="flex min-h-12 items-center gap-3 rounded-xl border px-3"
+                                ><input
+                                    v-model="form.visit_kind"
+                                    type="radio"
+                                    value="consultation"
+                                />Jumpa doktor</label
+                            >
+                            <label
+                                class="flex min-h-12 items-center gap-3 rounded-xl border px-3"
+                                ><input
+                                    v-model="form.visit_kind"
+                                    type="radio"
+                                    value="otc"
+                                />Beli ubat sahaja</label
+                            >
+                        </fieldset>
+                        <label
+                            v-if="form.visit_kind !== 'otc'"
+                            class="grid gap-1.5"
+                            for="visit-purpose"
                             ><span class="text-sm font-medium"
                                 >Tujuan lawatan *</span
                             ><select
@@ -684,9 +709,11 @@ onBeforeUnmount(() => {
                             ></label
                         >
                         <label class="grid gap-1.5" for="chief-complaint"
-                            ><span class="text-sm font-medium"
-                                >Apa masalah atau tujuan utama anda datang hari
-                                ini? *</span
+                            ><span class="text-sm font-medium">{{
+                                form.visit_kind === 'otc'
+                                    ? 'Ubat apa yang anda perlukan? (pilihan)'
+                                    : 'Apa masalah atau tujuan utama anda datang hari ini? *'
+                            }}</span
                             ><textarea
                                 id="chief-complaint"
                                 v-model="form.chief_complaint"
@@ -703,7 +730,10 @@ onBeforeUnmount(() => {
                                 >{{ errorFor('chief_complaint') }}</span
                             ></label
                         >
-                        <label class="grid gap-1.5" for="complaint-duration"
+                        <label
+                            v-if="form.visit_kind !== 'otc'"
+                            class="grid gap-1.5"
+                            for="complaint-duration"
                             ><span class="text-sm font-medium"
                                 >Sejak bila? (pilihan)</span
                             ><input

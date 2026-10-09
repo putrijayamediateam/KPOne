@@ -14,6 +14,7 @@ export type ClinicalHistorySummary = {
     status: 'in_progress';
     visitReason: string | null;
     viewUrl: string;
+    invoiceUrl?: string | null;
 };
 
 export type ClinicalVitals = {

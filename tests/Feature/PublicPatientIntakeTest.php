@@ -13,6 +13,7 @@ use App\Domain\Patient\Models\PublicIntakeSession;
 use App\Domain\Patient\Models\PublicPatientIntake;
 use App\Domain\Patient\Services\PublicIntakeReviewService;
 use App\Domain\Patient\Services\PublicPatientIntakeService;
+use App\Domain\Queue\Display\RoomCallService;
 use App\Domain\Queue\Models\QueueEntry;
 use App\Domain\Visit\Models\Panel;
 use App\Domain\Visit\Models\Visit;
@@ -696,7 +697,7 @@ class PublicPatientIntakeTest extends VisitTestCase
         $this->get(route('public-intake.status'))
             ->assertInertia(fn (Assert $page) => $page
                 ->where('status.state', 'accepted')
-                ->where('status.queueNumber', '001')
+                ->where('status.queueNumber', 'A-001')
                 ->where('status.queueState', 'waiting')
                 ->where('status.firstName', fn ($name) => is_string($name) && $name !== '' && ! str_contains($name, ' '))
                 ->missing('status.patientId')->missing('status.visitId'));
@@ -1246,6 +1247,63 @@ SQL);
     }
 
     /** @return array{0: string, 1: array<string, mixed>, 2?: PublicCheckInLink} */
+    public function test_a_medicine_only_intake_joins_the_otc_list_and_the_phone_shows_the_b_number_and_the_call(): void
+    {
+        [$token, $session] = $this->publicSession();
+        $this->postJson(route('public-intake.submit'), $this->payload($session, [
+            'visit_kind' => 'otc', 'visit_purpose' => null, 'chief_complaint' => null, 'complaint_duration' => null,
+        ]))->assertCreated();
+        $intake = PublicPatientIntake::query()->sole();
+        $ca = $this->actor('ca');
+        $this->selectBranch($ca);
+        $accept = [
+            'lock_version' => $intake->lock_version, 'idempotency_key' => (string) Str::uuid(), 'resolution' => 'create',
+            'duplicate_override' => true, 'priority' => 'normal', 'coverage_type' => 'self_pay', 'coverage_verified' => true,
+        ];
+
+        $this->post(route('registration-review.accept', $intake->public_id), $accept)->assertSessionHasNoErrors();
+
+        $intake->refresh();
+        $visit = Visit::query()->whereKey($intake->visit_id)->firstOrFail();
+        $this->assertSame('otc', $visit->visit_type);
+        $this->assertNull($visit->assigned_doctor_user_id);
+        $this->assertNull($intake->queue_entry_id);
+        $this->assertNotNull($intake->otc_queue_entry_id);
+        $this->assertSame(0, QueueEntry::query()->count(), 'no consultation queue entry');
+        $this->get(route('public-intake.status'))->assertInertia(fn (Assert $page) => $page
+            ->where('status.visitKind', 'otc')->where('status.queueNumber', 'B-001')
+            ->where('status.queueState', 'waiting')->where('status.called', false));
+
+        app(RoomCallService::class)->callOtcToDispensary($ca, $visit, null, ['expected_branch_id' => $this->branch->id]);
+
+        $this->get(route('public-intake.status'))->assertInertia(fn (Assert $page) => $page
+            ->where('status.called', true)->where('status.queueNumber', 'B-001'));
+        $this->post(route('registration-review.accept', $intake->public_id), $accept)->assertSessionHasNoErrors();
+        $this->assertSame(1, Visit::query()->where('visit_type', 'otc')->count(), 'a retry does not register twice');
+    }
+
+    public function test_a_consultation_intake_still_needs_a_doctor_and_reason_at_acceptance(): void
+    {
+        [$token, $session] = $this->publicSession();
+        $this->postJson(route('public-intake.submit'), $this->payload($session))->assertCreated();
+        $intake = PublicPatientIntake::query()->sole();
+        $this->selectBranch($this->actor('ca'));
+
+        $this->post(route('registration-review.accept', $intake->public_id), [
+            'lock_version' => $intake->lock_version, 'idempotency_key' => (string) Str::uuid(), 'resolution' => 'create',
+            'duplicate_override' => true, 'priority' => 'normal', 'coverage_type' => 'self_pay', 'coverage_verified' => true,
+        ])->assertSessionHasErrors('assigned_doctor_user_id');
+        $this->assertSame(0, Visit::query()->count());
+    }
+
+    public function test_a_consultation_intake_still_requires_purpose_and_complaint(): void
+    {
+        [$token, $session] = $this->publicSession();
+        $this->postJson(route('public-intake.submit'), $this->payload($session, [
+            'visit_kind' => 'consultation', 'visit_purpose' => null, 'chief_complaint' => null,
+        ]))->assertUnprocessable()->assertJsonValidationErrors(['visit_purpose', 'chief_complaint']);
+    }
+
     private function publicSession(bool $includeLink = false): array
     {
         $director = $this->actor('director');

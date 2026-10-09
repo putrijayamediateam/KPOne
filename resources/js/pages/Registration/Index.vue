@@ -238,6 +238,7 @@ const boardRows = computed<PatientBoardRow[]>(() =>
             returnedFromDispensary: visit.returnedFromDispensary,
             dispensaryUrl: visit.dispensaryUrl,
             billingUrl: visit.billingUrl,
+            historyUrl: visit.historyUrl,
             completedAt: visit.completedAt,
             statusLabel: visit.isHeld ? 'On Hold' : status.label,
             statusTone: visit.isHeld ? ('held' as const) : status.tone,
@@ -406,6 +407,22 @@ const openConsultation = (row: PatientBoardRow) =>
             queue_lock_version: source(row).queueLockVersion!,
         },
     );
+// OTC: the CA opens the Dispensary case of an OTC visit (no doctor, queue or consultation).
+const dispenseOtc = (row: PatientBoardRow) =>
+    runMutation(
+        row,
+        'post',
+        `/visits/${encodeURIComponent(row.visitNumber)}/dispense`,
+        { expected_branch_id: props.options.branch.id },
+    );
+// OTC: announce the waiting patient's B number to the dispensary on the TV. Dispense does not need a call first.
+const callOtcToDispensary = (row: PatientBoardRow) =>
+    runMutation(
+        row,
+        'post',
+        `/visits/${encodeURIComponent(row.visitNumber)}/otc-queue/call`,
+        { expected_branch_id: props.options.branch.id },
+    );
 const requestCancellation = (row: PatientBoardRow) => {
     cancellationRow.value = row;
     cancelOpen.value = true;
@@ -573,6 +590,8 @@ const changeQrHistoryPage = (qrHistoryPage: number) => {
                     @send-to-waiting="sendToWaiting"
                     @call="callIn"
                     @open-consultation="openConsultation"
+                    @dispense="dispenseOtc"
+                    @call-dispensary="callOtcToDispensary"
                     @cancel="requestCancellation"
                 />
                 <div

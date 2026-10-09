@@ -5,6 +5,7 @@ namespace App\Domain\Visit\Billing\Services;
 use App\Domain\Clinical\Dispensary\Models\DispensaryCase;
 use App\Domain\Clinical\Dispensary\Models\DispensaryHandoff;
 use App\Domain\Clinical\Dispensary\Models\DispensaryItem;
+use App\Domain\Clinical\Dispensary\Models\DispensaryServiceLine;
 use App\Domain\Clinical\Models\ClinicalEncounter;
 use App\Domain\Clinical\Models\ConsultationCheckout;
 use App\Domain\Clinical\Models\ServiceDelivery;
@@ -19,10 +20,13 @@ use Illuminate\Validation\ValidationException;
 class BillingSourceService
 {
     /** Called only after the actor/Patient/Visit locks, before commercial or Invoice locks.
-     * @return array{checkout: ConsultationCheckout, manifest: array<string, mixed>, lines: list<array<string, mixed>>}
+     * @return array{checkout: ConsultationCheckout|null, dispensaryCase: DispensaryCase|null, manifest: array<string, mixed>, lines: list<array<string, mixed>>}
      */
     public function locked(Visit $visit): array
     {
+        if ($visit->visit_type === 'otc' && $visit->status === Visit::STATUS_REGISTERED) {
+            return $this->lockedOtc($visit);
+        }
         if ($visit->visit_type !== 'consultation' || $visit->status !== Visit::STATUS_REGISTERED) {
             $this->invalid();
         }
@@ -44,15 +48,17 @@ class BillingSourceService
             $this->invalid();
         }
         $lines = [$this->line('consultation', $checkout->id, 'consultation', 'Consultation', 'CONSULTATION', 'consultation', '1.000', (string) $checkout->lock_version)];
+        // The doctor's service evidence is always validated. When the visit goes through Dispensary, what is billed
+        // is the CA's confirmed list (below); otherwise it is the doctor's confirmation, as before.
         foreach ($services as $order) {
             $delivery = $deliveries->firstWhere('treatment_plan_service_order_id', $order->id);
             if (! $delivery || $delivery->source_plan_version !== $plan?->lock_version || $delivery->source_fingerprint !== CheckoutEvidenceService::fingerprint($order)
                 || $delivery->confirmed_by_user_id !== $encounter->attending_clinician_user_id || ExactMoney::quantity($delivery->quantity_performed) > ExactMoney::quantity($order->quantity_ordered)) {
                 $this->invalid();
             }
-            if ($delivery->disposition === 'performed' && ExactMoney::quantity($delivery->quantity_performed) > 0) {
+            if ($checkout->route === 'billing' && $delivery->disposition === 'performed' && ExactMoney::quantity($delivery->quantity_performed) > 0) {
                 $lines[] = $this->line('service', $delivery->id, 'service:'.$order->clinical_service_catalogue_item_id, $order->service_name_snapshot, $order->service_code_snapshot, $order->unit_snapshot, $delivery->quantity_performed, $delivery->source_fingerprint);
-            } elseif ($delivery->disposition !== 'not_performed' || ExactMoney::quantity($delivery->quantity_performed) !== 0) {
+            } elseif ($delivery->disposition === 'performed' ? ExactMoney::quantity($delivery->quantity_performed) <= 0 : ExactMoney::quantity($delivery->quantity_performed) !== 0) {
                 $this->invalid();
             }
         }
@@ -67,12 +73,32 @@ class BillingSourceService
                 $this->invalid();
             }
             $items = DispensaryItem::query()->where('dispensary_handoff_id', $handoff->id)->orderBy('id')->lockForUpdate()->get();
-            if ($items->count() !== $medicines->count()) {
+            // DS-01a: every active doctor order still has exactly one line (never deleted), and the CA may have
+            // added lines of its own (no order). The CA's final list is what is billed; the plan is the comparison.
+            $orderedLines = $items->whereNotNull('treatment_plan_medicine_order_id');
+            if ($orderedLines->count() !== $medicines->count()
+                || $orderedLines->pluck('treatment_plan_medicine_order_id')->sort()->values()->all() !== $medicines->pluck('id')->sort()->values()->all()
+                || $items->contains(fn (DispensaryItem $item): bool => ($item->treatment_plan_medicine_order_id === null) !== ($item->source === DispensaryItem::SOURCE_CA))) {
                 $this->invalid();
             }
+            $serviceLines = DispensaryServiceLine::query()->where('dispensary_handoff_id', $handoff->id)->orderBy('id')->lockForUpdate()->get();
+            $orderedServiceLines = $serviceLines->whereNotNull('treatment_plan_service_order_id');
+            if ($orderedServiceLines->count() !== $services->count()
+                || $orderedServiceLines->pluck('treatment_plan_service_order_id')->sort()->values()->all() !== $services->pluck('id')->sort()->values()->all()
+                || $serviceLines->contains(fn (DispensaryServiceLine $line): bool => ($line->treatment_plan_service_order_id === null) !== ($line->source === DispensaryServiceLine::SOURCE_CA))) {
+                $this->invalid();
+            }
+            foreach ($serviceLines as $line) {
+                $quantity = ExactMoney::quantity($line->quantity_performed);
+                if ($line->disposition === DispensaryServiceLine::DISPOSITION_PERFORMED ? $quantity <= 0 : $quantity !== 0) {
+                    $this->invalid();
+                }
+                if ($quantity > 0) {
+                    $lines[] = $this->serviceLine($line);
+                }
+            }
             foreach ($items as $item) {
-                $order = $medicines->firstWhere('id', $item->treatment_plan_medicine_order_id);
-                if (! $order || ! in_array($item->status, ['dispensed', 'partial', 'not_dispensed'], true) || $item->quantity_dispensed === null) {
+                if (! in_array($item->status, ['dispensed', 'partial', 'not_dispensed'], true) || $item->quantity_dispensed === null) {
                     $this->invalid();
                 }
                 if (ExactMoney::quantity($item->quantity_dispensed) > 0) {
@@ -83,14 +109,53 @@ class BillingSourceService
             $this->invalid();
         }
 
-        return ['checkout' => $checkout, 'manifest' => ['checkout' => $checkout->id, 'checkout_version' => $checkout->lock_version, 'encounter_version' => $encounter->lock_version, 'plan_version' => $plan?->lock_version, 'handoff' => $handoff?->id, 'case_version' => $case?->lock_version], 'lines' => $lines];
+        return ['checkout' => $checkout, 'dispensaryCase' => null, 'manifest' => ['checkout' => $checkout->id, 'checkout_version' => $checkout->lock_version, 'encounter_version' => $encounter->lock_version, 'plan_version' => $plan?->lock_version, 'handoff' => $handoff?->id, 'case_version' => $case?->lock_version], 'lines' => $lines];
+    }
+
+    /**
+     * DS-01b-2: an OTC visit is billed from its completed OTC Dispensary case: the CA's dispensed medicines
+     * only. There is no consultation line, no doctor, no queue entry and no service.
+     *
+     * @return array{checkout: null, dispensaryCase: DispensaryCase, manifest: array<string, mixed>, lines: list<array<string, mixed>>}
+     */
+    private function lockedOtc(Visit $visit): array
+    {
+        $case = DispensaryCase::query()->where('visit_id', $visit->id)->lockForUpdate()->first();
+        if (! $case || $case->case_type !== DispensaryCase::TYPE_OTC || $case->status !== DispensaryCase::STATUS_COMPLETED || $case->organisation_id !== $visit->organisation_id || $case->branch_id !== $visit->branch_id) {
+            $this->invalid();
+        }
+        $handoff = DispensaryHandoff::query()->where('dispensary_case_id', $case->id)->orderByDesc('attempt_number')->lockForUpdate()->first();
+        if (! $handoff || $handoff->status !== DispensaryHandoff::STATUS_COMPLETED || $handoff->ca_verified_at === null || $handoff->otc_allergy_confirmed_at === null) {
+            $this->invalid();
+        }
+        $lines = [];
+        foreach (DispensaryItem::query()->where('dispensary_handoff_id', $handoff->id)->orderBy('id')->lockForUpdate()->get() as $item) {
+            if (! in_array($item->status, ['dispensed', 'partial', 'not_dispensed'], true) || $item->quantity_dispensed === null || $item->source !== DispensaryItem::SOURCE_CA) {
+                $this->invalid();
+            }
+            if (ExactMoney::quantity($item->quantity_dispensed) > 0) {
+                $lines[] = $this->line('medicine', $item->id, 'medicine:'.$item->medicine_catalogue_item_id, $item->medicine_name_snapshot, $item->medicine_code_snapshot, $item->unit_snapshot, $item->quantity_dispensed, (string) $item->lock_version);
+            }
+        }
+        if ($lines === []) {
+            $this->invalid();
+        }
+
+        return ['checkout' => null, 'dispensaryCase' => $case, 'manifest' => ['dispensary_case' => $case->id, 'case_version' => $case->lock_version, 'handoff' => $handoff->id], 'lines' => $lines];
+    }
+
+    /** @return array<string, mixed> */
+    private function serviceLine(DispensaryServiceLine $line): array
+    {
+        return [...$this->line('service', $line->id, 'service:'.$line->clinical_service_catalogue_item_id, $line->service_name_snapshot, $line->service_code_snapshot, $line->unit_snapshot, $line->quantity_performed, (string) $line->lock_version),
+            'source_key' => 'dservice:'.$line->id, 'service_delivery_id' => null, 'dispensary_service_line_id' => $line->id];
     }
 
     /** @return array<string, mixed> */
     private function line(string $type, int $id, string $chargeKey, string $name, string $code, string $unit, string $quantity, string $version): array
     {
         return ['line_type' => $type, 'source_key' => $type.':'.$id, 'charge_key' => $chargeKey,
-            'dispensary_item_id' => $type === 'medicine' ? $id : null, 'service_delivery_id' => $type === 'service' ? $id : null,
+            'dispensary_item_id' => $type === 'medicine' ? $id : null, 'service_delivery_id' => $type === 'service' ? $id : null, 'dispensary_service_line_id' => null,
             'consultation_checkout_id' => $type === 'consultation' ? $id : null,
             'display_name' => $name, 'code_snapshot' => $code, 'unit_snapshot' => $unit, 'quantity' => $quantity,
             'source_fingerprint' => hash('sha256', json_encode([$type, $id, $quantity, $version], JSON_THROW_ON_ERROR))];

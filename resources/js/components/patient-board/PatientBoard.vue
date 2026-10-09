@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Link } from '@inertiajs/vue3';
+import { Link, router } from '@inertiajs/vue3';
 import { Clock3, Ellipsis, LoaderCircle, UserRound } from '@lucide/vue';
 import { Button } from '@/components/ui/button';
 import { DisclosureText } from '@/components/ui/disclosure';
@@ -30,8 +30,26 @@ defineEmits<{
     recall: [row: PatientBoardRow];
     callTreatment: [row: PatientBoardRow];
     openConsultation: [row: PatientBoardRow];
+    dispense: [row: PatientBoardRow];
+    callDispensary: [row: PatientBoardRow];
     cancel: [row: PatientBoardRow];
 }>();
+
+// A completed visit opens its read-only history when its row is clicked. Clicks on links,
+// buttons and the actions menu keep their own behaviour.
+const openHistory = (event: MouseEvent, row: PatientBoardRow) => {
+    if (!row.historyUrl) {
+        return;
+    }
+
+    const target = event.target as HTMLElement | null;
+
+    if (target?.closest('a, button, [role="menuitem"], [role="menu"]')) {
+        return;
+    }
+
+    router.visit(row.historyUrl);
+};
 
 const patientHref = (number: string) =>
     `/patients/${encodeURIComponent(number)}`;
@@ -73,6 +91,9 @@ const statusClass = (tone: PatientBoardRow['statusTone']) =>
                     v-for="row in rows"
                     :key="row.key"
                     class="border-b border-border/60 transition-colors last:border-0 hover:bg-muted/20"
+                    :class="row.historyUrl ? 'cursor-pointer' : ''"
+                    :data-history-url="row.historyUrl ?? undefined"
+                    @click="openHistory($event, row)"
                 >
                     <td class="px-3 py-2.5 align-middle">
                         <div class="flex min-w-0 items-center gap-2.5">
@@ -273,6 +294,20 @@ const statusClass = (tone: PatientBoardRow['statusTone']) =>
                                     >Open Consultation</DropdownMenuItem
                                 >
                                 <DropdownMenuItem
+                                    v-if="row.can.callDispensary"
+                                    class="min-h-8 rounded-lg px-2.5 text-[13px]"
+                                    data-action="call-dispensary"
+                                    @select="$emit('callDispensary', row)"
+                                    >Call to Dispensary</DropdownMenuItem
+                                >
+                                <DropdownMenuItem
+                                    v-if="row.can.dispense"
+                                    class="min-h-8 rounded-lg px-2.5 text-[13px]"
+                                    data-action="dispense"
+                                    @select="$emit('dispense', row)"
+                                    >Dispense</DropdownMenuItem
+                                >
+                                <DropdownMenuItem
                                     v-if="
                                         row.can.openDispensary &&
                                         row.dispensaryUrl
@@ -290,6 +325,13 @@ const statusClass = (tone: PatientBoardRow['statusTone']) =>
                                     @select="$emit('cancel', row)"
                                     >Cancel Visit</DropdownMenuItem
                                 >
+                                <DropdownMenuItem
+                                    v-if="row.historyUrl"
+                                    as-child
+                                    class="min-h-8 rounded-lg px-2.5 text-[13px]"
+                                >
+                                    <Link :href="row.historyUrl">Invoices</Link>
+                                </DropdownMenuItem>
                                 <DropdownMenuItem
                                     v-if="row.can.openBilling && row.billingUrl"
                                     as-child

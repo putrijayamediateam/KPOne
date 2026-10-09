@@ -7,6 +7,7 @@ use App\Domain\Queue\Display\DoctorRoomService;
 use App\Domain\Queue\Display\RoomCallService;
 use App\Domain\Queue\Models\BranchRoom;
 use App\Domain\Queue\Models\QueueEntry;
+use App\Domain\Queue\Services\OtcQueueService;
 use App\Domain\Queue\Services\QueueDirectoryService;
 use App\Domain\Queue\Services\QueueEntryService;
 use App\Domain\Visit\Models\Visit;
@@ -92,7 +93,19 @@ class QueueController extends Controller
         SendToWaitingRequest $request,
         Visit $visit,
         QueueEntryService $queue,
+        OtcQueueService $otc,
     ): RedirectResponse {
+        if ($visit->visit_type === 'otc') {
+            // DS-02a: an OTC patient waits in the OTC list (B series), not the consultation queue.
+            try {
+                $otc->enter($request->user(), $visit, $request->validated());
+            } catch (ValidationException $exception) {
+                throw $exception->redirectTo(route('registration.index'));
+            }
+            Inertia::flash('toast', ['type' => 'success', 'message' => __('OTC patient sent to Waiting.')]);
+
+            return to_route('registration.index');
+        }
         $queue->enter($request->user(), $visit, $request->validated());
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Patient sent to Waiting.')]);
 

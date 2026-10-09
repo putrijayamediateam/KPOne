@@ -6,6 +6,7 @@ use App\Domain\Audit\AuditRecorder;
 use App\Domain\Clinical\Dispensary\Models\DispensaryCase;
 use App\Domain\Clinical\Dispensary\Models\DispensaryHandoff;
 use App\Domain\Clinical\Dispensary\Models\DispensaryItem;
+use App\Domain\Clinical\Dispensary\Models\DispensaryServiceLine;
 use App\Domain\Clinical\Models\ClinicalEncounterAllergyReview;
 use App\Domain\Clinical\Models\ConsultationCheckout;
 use App\Domain\Clinical\Models\PatientAllergyProfile;
@@ -84,6 +85,23 @@ class DispensaryHandoffService
             foreach ($orders as $order) {
                 $item = new DispensaryItem;
                 $item->forceFill(['public_id' => (string) Str::uuid(), 'organisation_id' => $care->actor->organisation_id, 'branch_id' => $care->branch->id, 'dispensary_handoff_id' => $handoff->id, 'treatment_plan_medicine_order_id' => $order->id, 'medicine_catalogue_item_id' => $order->medicine_catalogue_item_id, 'medicine_order_public_id' => $order->public_id, 'medicine_code_snapshot' => $order->medicine_code_snapshot, 'medicine_name_snapshot' => $order->medicine_name_snapshot, 'strength_snapshot' => $order->strength_snapshot, 'dosage_form_snapshot' => $order->dosage_form_snapshot, 'unit_snapshot' => $order->unit_snapshot, 'quantity_ordered' => $order->quantity_ordered, 'dosage' => $order->dosage, 'frequency' => $order->frequency, 'duration' => $order->duration, 'route' => $order->route, 'administration_instruction' => $order->administration_instruction, 'precaution' => $order->precaution, 'allergy_profile_version_validated' => $order->allergy_profile_version_validated, 'status' => DispensaryItem::STATUS_PENDING, 'lock_version' => 1])->save();
+            }
+            // DS-01a-services: the CA's service list starts from what the doctor confirmed. The doctor's
+            // order and delivery evidence are recorded below and never change.
+            foreach ($services as $order) {
+                $doctor = $confirmed[$order->id];
+                $line = new DispensaryServiceLine;
+                $line->forceFill([
+                    'public_id' => (string) Str::uuid(), 'organisation_id' => $care->actor->organisation_id, 'branch_id' => $care->branch->id,
+                    'dispensary_handoff_id' => $handoff->id, 'treatment_plan_service_order_id' => $order->id,
+                    'clinical_service_catalogue_item_id' => $order->clinical_service_catalogue_item_id, 'service_code_snapshot' => $order->service_code_snapshot,
+                    'service_name_snapshot' => $order->service_name_snapshot, 'unit_snapshot' => $order->unit_snapshot, 'quantity_ordered' => $order->quantity_ordered,
+                    'clinical_instruction' => $order->clinical_instruction, 'doctor_quantity_performed' => $doctor['quantity'],
+                    'disposition' => $doctor['disposition'], 'quantity_performed' => $doctor['quantity'],
+                    'performed_at' => $doctor['disposition'] === 'performed' ? now()->utc() : null,
+                    'source' => DispensaryServiceLine::SOURCE_DOCTOR, 'change_state' => DispensaryServiceLine::CHANGE_UNCHANGED,
+                    'confirmed_by_user_id' => $care->actor->id, 'confirmed_at' => now()->utc(), 'lock_version' => 1,
+                ])->save();
             }
             $care->queue->forceFill(['status' => QueueEntry::STATUS_REMOVED, 'removed_at' => now()->utc(), 'removal_reason' => 'sent_to_dispensary', 'updated_by_user_id' => $care->actor->id, 'lock_version' => $care->queue->lock_version + 1])->save();
             $this->checkoutEvidence->record($care, $plan, $services, $confirmed, $handoff);

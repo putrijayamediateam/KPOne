@@ -5,6 +5,7 @@ namespace App\Domain\Patient\Models;
 use App\Domain\Organisation\Models\Branch;
 use App\Domain\Organisation\Models\Organisation;
 use App\Domain\Organisation\Models\PublicCheckInLink;
+use App\Domain\Queue\Models\OtcQueueEntry;
 use App\Domain\Queue\Models\QueueEntry;
 use App\Domain\Visit\Models\Visit;
 use App\Models\User;
@@ -33,6 +34,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property-read Patient|null $patient
  * @property-read Visit|null $visit
  * @property-read QueueEntry|null $queueEntry
+ * @property int|null $otc_queue_entry_id
+ * @property-read OtcQueueEntry|null $otcQueueEntry
  */
 #[Guarded([])]
 #[Hidden(['encrypted_payload', 'payload_fingerprint', 'acceptance_idempotency_key', 'acceptance_fingerprint'])]
@@ -117,6 +120,12 @@ class PublicPatientIntake extends Model
     public function visit(): BelongsTo
     {
         return $this->belongsTo(Visit::class);
+    }
+
+    /** @return BelongsTo<OtcQueueEntry, $this> */
+    public function otcQueueEntry(): BelongsTo
+    {
+        return $this->belongsTo(OtcQueueEntry::class);
     }
 
     /** @return BelongsTo<QueueEntry, $this> */
