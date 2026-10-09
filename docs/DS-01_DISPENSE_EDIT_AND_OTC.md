@@ -165,3 +165,19 @@ Open points to settle before building:
 Proposed slices (each its own PR with red-green tests and a PostgreSQL run): **DS-02a** OTC queue series and
 prefixes, waiting list and Panggil to the Dispensary; **DS-02b** per-branch display mode setting (number or
 name) across TV, voice and phone; **DS-02c** QR "Buy medicine only" and the OTC number on the phone status page.
+
+### 10.1 DS-02a (built): the OTC waiting list and the TV call
+
+- An OTC visit is sent to Waiting with the same **Send to Waiting** action as a consultation visit, but it takes a
+  **B number** in its own list (`otc_queue_entries`), so the consultation queue, the doctor queue and the reports
+  that read `queue_entries` are untouched. Numbers are `A-001` (consultation) and `B-001` (OTC), per branch per
+  clinic day; each series has its own counter, a number is never reused on the same day, and both start again at
+  001 the next clinic day. Consultation numbers now show with the `A-` prefix on the queue board, Registration
+  board, consultation page, QR status page and the TV.
+- The CA calls a waiting OTC patient with **Call to Dispensary** (`dispensary.start.branch`); the TV announces the
+  B number for the dispensary (a `queue_calls` record with `queue_series = B`, service `dispensary`, no patient
+  data). A call only announces and repeats follow the existing 20-second cooldown and recall rule.
+- **Dispense does not need a call first.** Opening the OTC case takes the patient off the list (reason
+  `dispensing`); cancelling the visit takes them off with reason `cancelled`. A patient who never joined the list
+  can still be dispensed.
+- Not yet built: the number-or-name setting (DS-02b) and QR "Buy medicine only" with the phone call-in (DS-02c).

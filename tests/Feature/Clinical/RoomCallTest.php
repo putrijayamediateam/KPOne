@@ -13,6 +13,7 @@ use App\Domain\Queue\Display\RoomCallService;
 use App\Domain\Queue\Models\BranchRoom;
 use App\Domain\Queue\Models\QueueCall;
 use App\Domain\Queue\Models\QueueEntry;
+use App\Domain\Queue\QueueNumberFormat;
 use App\Domain\Visit\Models\Visit;
 use App\Models\User;
 use Illuminate\Support\Str;
@@ -135,7 +136,7 @@ class RoomCallTest extends ClinicalTestCase
             'branch_room_id' => $room->id,
         ])->assertSessionHasNoErrors();
 
-        $number = sprintf('%03d', $queue->refresh()->queue_number);
+        $number = QueueNumberFormat::format($queue->refresh()->queue_number);
         $display = $this->actor('queue_display', $visit->branch);
         $this->selectBranch($display, $visit->branch);
         $this->getJson(route('queue-display.feed'))->assertOk()

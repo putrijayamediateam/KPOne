@@ -428,6 +428,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::patch('visits/{visit}/queue/call', [QueueController::class, 'call'])
             ->middleware(['permission:queue.call.own,queue.call.branch', 'throttle:30,1'])
             ->name('queue.call');
+        Route::post('visits/{visit}/otc-queue/call', [RoomCallController::class, 'otcDispensary'])
+            ->middleware(['permission:dispensary.start.branch', 'throttle:30,1'])->name('otc-queue.call');
         Route::patch('visits/{visit}/queue/treatment-call', [RoomCallController::class, 'treatment'])
             ->middleware(['permission:queue.call.own,queue.call.branch', 'throttle:30,1'])
             ->name('queue.treatment-call');

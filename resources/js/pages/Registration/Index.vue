@@ -415,6 +415,14 @@ const dispenseOtc = (row: PatientBoardRow) =>
         `/visits/${encodeURIComponent(row.visitNumber)}/dispense`,
         { expected_branch_id: props.options.branch.id },
     );
+// OTC: announce the waiting patient's B number to the dispensary on the TV. Dispense does not need a call first.
+const callOtcToDispensary = (row: PatientBoardRow) =>
+    runMutation(
+        row,
+        'post',
+        `/visits/${encodeURIComponent(row.visitNumber)}/otc-queue/call`,
+        { expected_branch_id: props.options.branch.id },
+    );
 const requestCancellation = (row: PatientBoardRow) => {
     cancellationRow.value = row;
     cancelOpen.value = true;
@@ -583,6 +591,7 @@ const changeQrHistoryPage = (qrHistoryPage: number) => {
                     @call="callIn"
                     @open-consultation="openConsultation"
                     @dispense="dispenseOtc"
+                    @call-dispensary="callOtcToDispensary"
                     @cancel="requestCancellation"
                 />
                 <div

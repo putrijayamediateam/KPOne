@@ -36,6 +36,29 @@ class RoomCallController extends Controller
         return redirect($target);
     }
 
+    public function otcDispensary(Request $request, Visit $visit, RoomCallService $calls): RedirectResponse
+    {
+        $target = route('registration.index');
+
+        try {
+            $validated = Validator::make($request->all(), [
+                'expected_branch_id' => ['required', 'integer'],
+                'branch_room_id' => ['nullable', 'integer'],
+            ])->validate();
+            $calls->callOtcToDispensary(
+                $request->user(),
+                $visit,
+                isset($validated['branch_room_id']) ? (int) $validated['branch_room_id'] : null,
+                $validated,
+            );
+        } catch (ValidationException $exception) {
+            throw $exception->redirectTo($target);
+        }
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('OTC patient called to the dispensary on the TV.')]);
+
+        return redirect($target);
+    }
+
     public function treatment(Request $request, Visit $visit, RoomCallService $calls): RedirectResponse
     {
         // Return to the page it was pressed on: the queue board or the consultation.

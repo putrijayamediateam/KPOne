@@ -7,6 +7,7 @@ use App\Domain\Organisation\Models\PublicCheckInLink;
 use App\Domain\Patient\Models\PublicIntakeSession;
 use App\Domain\Patient\Models\PublicPatientIntake;
 use App\Domain\Queue\Models\QueueEntry;
+use App\Domain\Queue\QueueNumberFormat;
 use App\Domain\Queue\Services\PublicQueueInsightService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -232,7 +233,7 @@ class PublicPatientIntakeService
             },
             'branch' => $session->branch->name,
             'queueNumber' => $state === PublicPatientIntake::STATUS_ACCEPTED && $intake->queueEntry
-                ? sprintf('%03d', $intake->queueEntry->queue_number) : null,
+                ? QueueNumberFormat::format($intake->queueEntry->queue_number) : null,
             'queueState' => $state === PublicPatientIntake::STATUS_ACCEPTED && $intake->queueEntry
                 ? (string) $intake->queueEntry->status : null,
             'firstName' => $state === PublicPatientIntake::STATUS_ACCEPTED ? $this->firstName($intake) : null,

@@ -6,6 +6,7 @@ use App\Domain\Audit\AuditRecorder;
 use App\Domain\Clinical\Dispensary\Models\DispensaryCase;
 use App\Domain\Clinical\Dispensary\Models\DispensaryHandoff;
 use App\Domain\Patient\Models\Patient;
+use App\Domain\Queue\Services\OtcQueueService;
 use App\Domain\Visit\Models\Visit;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
@@ -18,7 +19,7 @@ use Illuminate\Validation\ValidationException;
  */
 class OtcDispensaryService
 {
-    public function __construct(private DispensaryAuthorityService $authority, private AuditRecorder $audit) {}
+    public function __construct(private DispensaryAuthorityService $authority, private AuditRecorder $audit, private OtcQueueService $queue) {}
 
     /**
      * Idempotent: pressing Dispense again on a visit whose case is still open returns that case.
@@ -37,6 +38,7 @@ class OtcDispensaryService
                 throw ValidationException::withMessages(['visit' => 'Only a registered OTC visit can be dispensed here.']);
             }
             $case = DispensaryCase::query()->where('visit_id', $visit->id)->lockForUpdate()->first();
+            $this->queue->leaveForDispensing($visit, $actor, $branch);
             if ($case) {
                 if ($case->status === DispensaryCase::STATUS_COMPLETED) {
                     throw ValidationException::withMessages(['visit' => 'This OTC visit has already been dispensed.']);

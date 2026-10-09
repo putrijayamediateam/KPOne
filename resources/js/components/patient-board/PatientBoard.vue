@@ -31,6 +31,7 @@ defineEmits<{
     callTreatment: [row: PatientBoardRow];
     openConsultation: [row: PatientBoardRow];
     dispense: [row: PatientBoardRow];
+    callDispensary: [row: PatientBoardRow];
     cancel: [row: PatientBoardRow];
 }>();
 
@@ -291,6 +292,13 @@ const statusClass = (tone: PatientBoardRow['statusTone']) =>
                                     class="min-h-8 rounded-lg px-2.5 text-[13px]"
                                     @select="$emit('openConsultation', row)"
                                     >Open Consultation</DropdownMenuItem
+                                >
+                                <DropdownMenuItem
+                                    v-if="row.can.callDispensary"
+                                    class="min-h-8 rounded-lg px-2.5 text-[13px]"
+                                    data-action="call-dispensary"
+                                    @select="$emit('callDispensary', row)"
+                                    >Call to Dispensary</DropdownMenuItem
                                 >
                                 <DropdownMenuItem
                                     v-if="row.can.dispense"

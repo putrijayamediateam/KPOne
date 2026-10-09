@@ -9,7 +9,9 @@ use App\Domain\Clinical\Models\ConsultationCheckout;
 use App\Domain\Organisation\Models\Branch;
 use App\Domain\Patient\Models\Patient;
 use App\Domain\Patient\Services\PatientDirectoryService;
+use App\Domain\Queue\Models\OtcQueueEntry;
 use App\Domain\Queue\Models\QueueEntry;
+use App\Domain\Queue\QueueNumberFormat;
 use App\Domain\Visit\Models\Panel;
 use App\Domain\Visit\Models\Visit;
 use App\Domain\Visit\Policies\VisitPolicy;
@@ -164,7 +166,7 @@ class VisitDirectoryService
             'cancellationReason' => $visit->cancellation_reason,
             'lockVersion' => $visit->lock_version,
             'queue' => $visibleQueueEntry ? [
-                'queueNumber' => sprintf('%03d', $visibleQueueEntry->queue_number),
+                'queueNumber' => QueueNumberFormat::format($visibleQueueEntry->queue_number),
                 'operationalDate' => $visibleQueueEntry->operational_date->toDateString(),
                 'status' => $visibleQueueEntry->status,
                 'queuedAt' => $visibleQueueEntry->queued_at->toIso8601String(),
@@ -328,6 +330,8 @@ class VisitDirectoryService
         // DS-01b-3: an OTC visit has no checkout; its Dispensary case is the source Billing reads.
         $otcCase = $visit->visit_type === 'otc' ? DispensaryCase::query()->where('visit_id', $visit->id)->where('case_type', DispensaryCase::TYPE_OTC)->first(['public_id', 'status']) : null;
         $otcOpen = $otcCase !== null && $otcCase->status !== DispensaryCase::STATUS_COMPLETED;
+        $otcEntry = $visit->visit_type === 'otc' ? OtcQueueEntry::query()->where('visit_id', $visit->id)->first(['queue_number', 'status']) : null;
+        $otcWaiting = $otcEntry !== null && $otcEntry->status === OtcQueueEntry::STATUS_WAITING;
         $canBilling = $actor->can('billing.view.branch') && ($visit->status === Visit::STATUS_COMPLETED || ($otcCase !== null && ! $otcOpen) || ($checkout !== null && ($checkout->route === 'billing'
             || DispensaryCase::query()->where('visit_id', $visit->id)->where('status', 'completed')->exists())));
 
@@ -344,8 +348,8 @@ class VisitDirectoryService
                 ? $visit->coverage_panel_name_snapshot : 'Self-pay',
             'priority' => $visit->priority,
             'status' => $visit->status,
-            'queueNumber' => $visibleQueueEntry ? sprintf('%03d', $visibleQueueEntry->queue_number) : null,
-            'queueStatus' => $visibleQueueEntry?->status,
+            'queueNumber' => $visibleQueueEntry ? QueueNumberFormat::format($visibleQueueEntry->queue_number) : ($otcEntry ? QueueNumberFormat::format($otcEntry->queue_number, QueueNumberFormat::OTC) : null),
+            'queueStatus' => $visibleQueueEntry?->status ?? ($otcWaiting ? OtcQueueEntry::STATUS_WAITING : null),
             'queueRemovalReason' => $visibleQueueEntry?->removal_reason,
             'isHeld' => $activeHold !== null,
             'holdStartedAt' => $activeHold?->held_at->toIso8601String(),
@@ -365,9 +369,9 @@ class VisitDirectoryService
                 'update' => $actions['update'],
                 'cancel' => $actions['cancel'],
                 'sendToWaiting' => $visit->status === Visit::STATUS_REGISTERED
-                    && $visit->visit_type === 'consultation'
-                    && $visit->queueEntry === null
+                    && (($visit->visit_type === 'consultation' && $visit->queueEntry === null) || ($visit->visit_type === 'otc' && $otcEntry === null && $otcCase === null))
                     && Gate::forUser($actor)->allows('create', QueueEntry::class),
+                'callDispensary' => $otcWaiting && $actor->can('dispensary.start.branch'),
                 'call' => $canCall,
                 'openConsultation' => $canOpenEncounter,
                 'openBilling' => $canBilling,

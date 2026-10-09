@@ -14,7 +14,9 @@ use LogicException;
  * @property int $id
  * @property int $organisation_id
  * @property int $branch_id
- * @property int $queue_entry_id
+ * @property int|null $queue_entry_id
+ * @property int|null $otc_queue_entry_id
+ * @property string $queue_series
  * @property string $service
  * @property bool $is_recall
  * @property int|null $branch_room_id

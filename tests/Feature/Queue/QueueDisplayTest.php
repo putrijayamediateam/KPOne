@@ -10,6 +10,7 @@ use App\Domain\Queue\Display\QueueDisplayAdministrationService;
 use App\Domain\Queue\Models\BranchDisplaySetting;
 use App\Domain\Queue\Models\QueueCall;
 use App\Domain\Queue\Models\QueueEntry;
+use App\Domain\Queue\QueueNumberFormat;
 use App\Domain\Queue\Services\QueueEntryService;
 use App\Domain\Visit\Models\Visit;
 use App\Models\User;
@@ -138,7 +139,7 @@ class QueueDisplayTest extends QueueTestCase
         $display = $this->actor('queue_display');
         $this->selectBranch($display);
         $response = $this->getJson(route('queue-display.feed'))->assertOk()
-            ->assertJsonPath('calls.0.number', sprintf('%03d', $entry->queue_number))
+            ->assertJsonPath('calls.0.number', QueueNumberFormat::format($entry->queue_number))
             ->assertJsonPath('calls.0.room', 'Bilik Rawatan 2')
             ->assertJsonPath('branch.id', $this->branch->id);
         $this->assertSame(['id', 'number', 'room', 'service', 'calledAt', 'isRecall'], array_keys($response->json('calls.0')));

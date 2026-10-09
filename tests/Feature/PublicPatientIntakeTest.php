@@ -696,7 +696,7 @@ class PublicPatientIntakeTest extends VisitTestCase
         $this->get(route('public-intake.status'))
             ->assertInertia(fn (Assert $page) => $page
                 ->where('status.state', 'accepted')
-                ->where('status.queueNumber', '001')
+                ->where('status.queueNumber', 'A-001')
                 ->where('status.queueState', 'waiting')
                 ->where('status.firstName', fn ($name) => is_string($name) && $name !== '' && ! str_contains($name, ' '))
                 ->missing('status.patientId')->missing('status.visitId'));
