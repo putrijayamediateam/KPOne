@@ -1,8 +1,10 @@
 # KPOne project
 
-Latest merged delivery: PR #89 — Dispensary three-column layout, merged as `d03c03e`. Recent merges, newest first
+Latest merged delivery: PR #91 — REF-01 same-origin referrer policy, merged as `8547ef7`. Recent merges, newest first
 (documentation-only PRs omitted):
 
+- PR #91 (`8547ef7`) — REF-01: staff pages send `Referrer-Policy: same-origin` so `back()` and refused-action redirects
+  know the source page; the public QR pages keep `no-referrer`.
 - PR #89 (`d03c03e`) — DS-01d: the Dispensary page uses the Invoices three-column layout (patient and allergies |
   editable medicines and services | summary and actions). Layout only.
 - PR #87 (`de4e496`) — DS-02c: the QR form offers "Buy medicine only"; accepting joins the OTC list and the patient's
