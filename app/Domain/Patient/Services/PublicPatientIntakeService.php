@@ -6,6 +6,8 @@ use App\Domain\Audit\AuditRecorder;
 use App\Domain\Organisation\Models\PublicCheckInLink;
 use App\Domain\Patient\Models\PublicIntakeSession;
 use App\Domain\Patient\Models\PublicPatientIntake;
+use App\Domain\Queue\Models\OtcQueueEntry;
+use App\Domain\Queue\Models\QueueCall;
 use App\Domain\Queue\Models\QueueEntry;
 use App\Domain\Queue\QueueNumberFormat;
 use App\Domain\Queue\Services\PublicQueueInsightService;
@@ -197,7 +199,7 @@ class PublicPatientIntakeService
         }, 3);
     }
 
-    /** @return array{state: string, message: string, branch: string, queueNumber: string|null, queueState: string|null, firstName: string|null, ahead: int|null, waitRange: array{minMinutes: int, maxMinutes: int}|null, branches: list<array{name: string, address: string|null, mapUrl: string|null, latitude: float|null, longitude: float|null, waiting: int, current: bool}>} */
+    /** @return array{state: string, message: string, branch: string, visitKind: string, called: bool, queueNumber: string|null, queueState: string|null, firstName: string|null, ahead: int|null, waitRange: array{minMinutes: int, maxMinutes: int}|null, branches: list<array{name: string, address: string|null, mapUrl: string|null, latitude: float|null, longitude: float|null, waiting: int, current: bool}>} */
     public function status(PublicIntakeSession $boundSession): array
     {
         $this->ensureEnabled();
@@ -208,7 +210,7 @@ class PublicPatientIntakeService
             ->firstOrFail();
         $intake = PublicPatientIntake::query()
             ->where('public_intake_session_id', $session->id)
-            ->with('queueEntry:id,branch_id,operational_date,queue_number,status,queued_at')
+            ->with(['queueEntry:id,branch_id,operational_date,queue_number,status,queued_at', 'otcQueueEntry:id,branch_id,operational_date,queue_number,status,queued_at'])
             ->firstOrFail();
 
         $state = $intake->status;
@@ -217,10 +219,19 @@ class PublicPatientIntakeService
             $state = PublicPatientIntake::STATUS_EXPIRED;
         }
 
-        $waitingEntry = $state === PublicPatientIntake::STATUS_ACCEPTED && $intake->queueEntry?->status === QueueEntry::STATUS_WAITING
+        $accepted = $state === PublicPatientIntake::STATUS_ACCEPTED;
+        $otc = $accepted ? $intake->otcQueueEntry : null;
+        $entry = $accepted ? ($intake->queueEntry ?? $otc) : null;
+        $waitingEntry = $accepted && $intake->queueEntry?->status === QueueEntry::STATUS_WAITING
             ? $intake->queueEntry : null;
         $insight = app(PublicQueueInsightService::class);
-        $ahead = $waitingEntry ? $insight->patientsAhead($waitingEntry) : null;
+        $otcWaiting = $otc !== null && $otc->status === OtcQueueEntry::STATUS_WAITING ? $otc : null;
+        $ahead = $waitingEntry ? $insight->patientsAhead($waitingEntry) : ($otcWaiting ? $insight->patientsAheadOtc($otcWaiting) : null);
+        // A walk-in medicine buyer is called to the dispensary: the entry stays waiting until the CA dispenses.
+        $calledToDispensary = $otcWaiting !== null && QueueCall::query()
+            ->where('otc_queue_entry_id', $otcWaiting->id)
+            ->where('service', QueueCall::SERVICE_DISPENSARY)
+            ->exists();
 
         return [
             'state' => $state,
@@ -232,10 +243,13 @@ class PublicPatientIntakeService
                 default => 'Pautan status ini telah tamat. Sila hadir ke kaunter klinik.',
             },
             'branch' => $session->branch->name,
-            'queueNumber' => $state === PublicPatientIntake::STATUS_ACCEPTED && $intake->queueEntry
-                ? QueueNumberFormat::format($intake->queueEntry->queue_number) : null,
-            'queueState' => $state === PublicPatientIntake::STATUS_ACCEPTED && $intake->queueEntry
-                ? (string) $intake->queueEntry->status : null,
+            'visitKind' => $otc !== null ? 'otc' : 'consultation',
+            'called' => $calledToDispensary || ($intake->queueEntry?->status === QueueEntry::STATUS_SERVING && $accepted),
+            'queueNumber' => $entry === null ? null : QueueNumberFormat::format(
+                $entry->queue_number,
+                $otc !== null ? QueueNumberFormat::OTC : QueueNumberFormat::CONSULTATION,
+            ),
+            'queueState' => $entry === null ? null : (string) $entry->status,
             'firstName' => $state === PublicPatientIntake::STATUS_ACCEPTED ? $this->firstName($intake) : null,
             'ahead' => $ahead,
             'waitRange' => $waitingEntry ? $insight->waitRange($waitingEntry->branch_id, (int) $ahead) : null,

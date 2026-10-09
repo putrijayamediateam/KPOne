@@ -15,6 +15,8 @@ const props = defineProps<{
         state: string;
         message: string;
         branch: string;
+        visitKind?: string;
+        called?: boolean;
         queueNumber: string | null;
         queueState: string | null;
         firstName: string | null;
@@ -38,7 +40,10 @@ const patientLocation = ref<Coordinates | null>(null);
 const locationMessage = ref('');
 const locating = ref(false);
 let timer: number | undefined;
-const called = computed(() => props.status.queueState === 'serving');
+const medicineOnly = computed(() => props.status.visitKind === 'otc');
+const called = computed(
+    () => props.status.called ?? props.status.queueState === 'serving',
+);
 const terminal = computed(
     () =>
         ['rejected', 'expired'].includes(props.status.state) ||
@@ -302,7 +307,11 @@ onBeforeUnmount(() => {
             >
                 <BellRing class="size-7 shrink-0 animate-pulse" />
                 <p class="font-semibold">
-                    Giliran anda! Sila masuk ke bilik doktor.
+                    {{
+                        medicineOnly
+                            ? 'Giliran anda! Sila ke kaunter farmasi.'
+                            : 'Giliran anda! Sila masuk ke bilik doktor.'
+                    }}
                 </p>
             </div>
             <ol

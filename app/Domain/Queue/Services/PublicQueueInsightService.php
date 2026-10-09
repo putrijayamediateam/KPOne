@@ -3,6 +3,7 @@
 namespace App\Domain\Queue\Services;
 
 use App\Domain\Organisation\Models\Branch;
+use App\Domain\Queue\Models\OtcQueueEntry;
 use App\Domain\Queue\Models\QueueEntry;
 use Carbon\CarbonImmutable;
 
@@ -45,6 +46,16 @@ class PublicQueueInsightService
             ->where('branch_id', $entry->branch_id)
             ->where('operational_date', $entry->operational_date)
             ->where('status', QueueEntry::STATUS_WAITING)
+            ->where('queued_at', '<', $entry->queued_at)
+            ->count();
+    }
+
+    public function patientsAheadOtc(OtcQueueEntry $entry): int
+    {
+        return OtcQueueEntry::query()
+            ->where('branch_id', $entry->branch_id)
+            ->where('operational_date', $entry->operational_date)
+            ->where('status', OtcQueueEntry::STATUS_WAITING)
             ->where('queued_at', '<', $entry->queued_at)
             ->count();
     }
