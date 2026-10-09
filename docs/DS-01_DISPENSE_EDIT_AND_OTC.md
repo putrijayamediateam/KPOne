@@ -129,3 +129,34 @@ Visit History); it is a one-line change.
 - None. (I4 and the name were settled on 2026-10-09: the CA confirms services; the page is called Invoices.)
 - Whether a doctor may see the CA's changes on the Consultation side after completion (proposed: yes, read only
   on the visit record, not on the Consultation page).
+
+## 10. DS-02: OTC patients wait and are called like consultation patients (owner decisions, 2026-10-09)
+
+A patient who only buys medicine still waits their turn, so the CA must be able to call them to the Dispensary,
+the TV must show the call, and a patient who registered through the QR form must see it on their phone.
+
+Owner decisions:
+
+1. **Own OTC number.** Registering an OTC visit puts it in a waiting list with its own number series. Consultation
+   numbers are not affected.
+2. **Number prefixes.** Consultation `A-001`, OTC `B-001`, per branch per day. A number is never reused on the
+   same day, even after the patient is completed; the series starts again at 001 the next clinic day. (The
+   existing branch/day counter already behaves this way; the prefix and a second series are new.)
+3. **Display mode setting.** A per-branch setting chooses how patients are called: **by queue number** or **by
+   patient name** (the name the CA registered). It applies to everything at once: the TV, the spoken call and
+   the phone status page. Number is the default.
+4. **QR.** The QR check-in form offers "See a doctor" or "Buy medicine only". The CA reviews and accepts as
+   usual; the visit becomes OTC and takes a `B` number, and the patient's phone shows it and the call-in banner.
+5. **Calling.** The CA presses Panggil on a waiting OTC entry, which announces it on the TV for the Dispensary;
+   Dispense then opens the case (as built in DS-01b) and the entry leaves the waiting list.
+
+Open points to settle before building:
+
+- **Privacy.** The TV was designed to show numbers only, never patient names (TV-1, PR #57). Name mode is the
+  owner's decision as a setting, but it puts patient names on a public screen and in a spoken announcement;
+  the PDPA/privacy review for go-live should cover it, and name mode should default to off.
+- **Name format.** Full registered name, or first name only (as the phone status page does today)?
+
+Proposed slices (each its own PR with red-green tests and a PostgreSQL run): **DS-02a** OTC queue series and
+prefixes, waiting list and Panggil to the Dispensary; **DS-02b** per-branch display mode setting (number or
+name) across TV, voice and phone; **DS-02c** QR "Buy medicine only" and the OTC number on the phone status page.
