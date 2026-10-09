@@ -11,8 +11,13 @@ use App\Domain\Organisation\Models\Branch;
 use App\Domain\Queue\Display\RoomCallService;
 use App\Domain\Queue\Models\BranchRoom;
 use App\Http\Requests\AcknowledgeDispensaryPartialRequest;
+use App\Http\Requests\AddDispensaryItemRequest;
 use App\Http\Requests\DispensaryCaseActionRequest;
+use App\Http\Requests\EditDispensaryItemRequest;
+use App\Http\Requests\RemoveDispensaryItemRequest;
+use App\Http\Requests\SearchDispensaryMedicinesRequest;
 use App\Http\Requests\UpdateDispensaryItemRequest;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
@@ -57,6 +62,35 @@ class DispensaryController extends Controller
         Inertia::flash('toast', ['type' => 'success', 'message' => 'Fulfilment updated.']);
 
         return to_route('dispensary.show', $dispensaryCase);
+    }
+
+    public function addItem(AddDispensaryItemRequest $request, DispensaryCase $dispensaryCase, DispensaryService $service): RedirectResponse
+    {
+        $this->stayOnCase($dispensaryCase, fn () => $service->addItem($request->user(), $dispensaryCase, $request->validated()));
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'Medicine added to the list.']);
+
+        return to_route('dispensary.show', $dispensaryCase);
+    }
+
+    public function editItem(EditDispensaryItemRequest $request, DispensaryCase $dispensaryCase, DispensaryItem $item, DispensaryService $service): RedirectResponse
+    {
+        $this->stayOnCase($dispensaryCase, fn () => $service->editItem($request->user(), $dispensaryCase, $item, $request->validated()));
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'Medicine saved.']);
+
+        return to_route('dispensary.show', $dispensaryCase);
+    }
+
+    public function removeItem(RemoveDispensaryItemRequest $request, DispensaryCase $dispensaryCase, DispensaryItem $item, DispensaryService $service): RedirectResponse
+    {
+        $this->stayOnCase($dispensaryCase, fn () => $service->removeItem($request->user(), $dispensaryCase, $item, $request->validated()));
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'Medicine removed from the list.']);
+
+        return to_route('dispensary.show', $dispensaryCase);
+    }
+
+    public function searchMedicines(SearchDispensaryMedicinesRequest $request, DispensaryCase $dispensaryCase, DispensaryDirectoryService $directory): JsonResponse
+    {
+        return response()->json(['data' => $directory->searchMedicines($request->user(), $dispensaryCase, $request->validated('query'))]);
     }
 
     public function returnToDoctor(DispensaryCaseActionRequest $request, DispensaryCase $dispensaryCase, DispensaryService $service): RedirectResponse

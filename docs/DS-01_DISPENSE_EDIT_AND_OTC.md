@@ -1,7 +1,12 @@
 # DS-01 — CA edits at Dispensary, OTC dispensing, and the visit record (design for approval)
 
-Status: **design only, nothing built.** Owner direction, 2026-10-08. Needs the owner's sign-off on the
-invariants listed in section 4 before any code changes. Not production-approved; synthetic data only.
+Status: **design approved by the owner on 2026-10-09; DS-01a (medicines on the consultation Dispensary page)
+built on `feature/ds-01-ca-dispense-edit`.** Not production-approved; synthetic data only.
+
+Owner decisions, 2026-10-09: the doctor's original order is kept and every CA change audited (I1); the doctor's
+allergy confirmation stands, so there is **no** CA allergy tick (I2); a CA removing or reducing a line needs no
+doctor acknowledgement (I3); the CA confirms services at Dispensary instead of the doctor (I4, next slice);
+the completed-visit page is called **Invoices**.
 
 ## 1. What the owner asked for
 
@@ -39,8 +44,9 @@ So each of the three asks changes a safety rule the earlier phases enforce on pu
     `edited_by_user_id`, `edited_at`. `treatment_plan_medicine_order_id` becomes nullable for CA-added lines.
   - A removed line stays as a row with `change_state = removed` and quantity 0, so history can show it.
 - The dispensed list drives stock, labels and the invoice. The plan drives the "Ordered" side of the record.
-- **CA verification** at Complete: a recorded `allergy_checked_by_user_id` / `allergy_checked_at`, and the
-  CA's explicit confirmation of the final list. Allergies are shown on the page.
+- **CA verification** at Complete: pressing Complete after reviewing the final list is the CA's own
+  verification, stamped on the handoff (`ca_verified_at`) and audited. The allergy list stays visible on the
+  page; there is no separate allergy tick (the doctor's confirmation stands).
 - Audit stays structural (who, when, which item, which kind of change) with **no medicine text**, so Audit
   Logs never carry clinical content for Director or Technical Admin.
 
@@ -49,7 +55,7 @@ So each of the three asks changes a safety rule the earlier phases enforce on pu
 | # | Today | Proposed |
 |---|---|---|
 | I1 | CA cannot change what the doctor ordered | CA may edit, add and remove lines; original kept; changes audited |
-| I2 | Every line carries the doctor's validated Allergy Profile version | CA-added and CA-edited lines carry the CA's allergy confirmation instead; doctor-validated version is kept on unchanged lines |
+| I2 | Every line carries the doctor's validated Allergy Profile version | Unchanged: CA-added lines carry the current profile version when added; an unknown profile blocks adding a medicine; no extra CA tick |
 | I3 | Partial / not-dispensed needs doctor acknowledgement | Removed or reduced lines are the CA's decision and need no doctor acknowledgement; "Return to Doctor" stays for real clarification |
 | I4 | Doctor confirms each performed service at checkout | CA may edit the service list at Dispensary and confirms performance there (Yezza style) — **owner to confirm** |
 | I5 | Billing accepts consultation visits only, items 1:1 with the plan | Billing accepts the dispensed list (and OTC) as the source; the plan is the comparison only |
@@ -78,8 +84,10 @@ Visit History); it is a one-line change.
 
 ## 7. Delivery plan (separate branches, each with red-green tests and a PostgreSQL 18 run)
 
-1. **DS-01a** Dispensed-list columns + CA edit/add/remove + CA verification on the existing consultation
-   Dispensary page; Billing reads the dispensed list. Includes rewriting the affected contention tests.
+1. **DS-01a** *(built)* Dispensed-list columns + CA edit/add/remove of **medicines** + CA verification on the
+   existing consultation Dispensary page; Billing reads the dispensed list. **DS-01a-services** *(next)*: the CA
+   edits services and confirms performance (I4), which touches the immutable `ServiceDelivery` evidence and the
+   service rules in `BillingSourceService`.
 2. **DS-01b** OTC dispense case, Registration action, OTC billing source, OTC completion.
 3. **DS-01c** Visit Record: Ordered vs Dispensed, OTC, doctor's previous-consultation link.
 4. **DS-01d** New Dispensary page design (the editable layout) and removal of the Pending/Partial/Not
@@ -96,6 +104,6 @@ Visit History); it is a one-line change.
 
 ## 9. Open decisions
 
-- I4 (who confirms services) and the page name.
+- None. (I4 and the name were settled on 2026-10-09: the CA confirms services; the page is called Invoices.)
 - Whether a doctor may see the CA's changes on the Consultation side after completion (proposed: yes, read only
   on the visit record, not on the Consultation page).

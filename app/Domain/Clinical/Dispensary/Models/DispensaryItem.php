@@ -22,6 +22,35 @@ class DispensaryItem extends Model
 
     public const STATUS_NOT_DISPENSED = 'not_dispensed';
 
+    public const SOURCE_DOCTOR = 'doctor';
+
+    public const SOURCE_CA = 'ca';
+
+    public const CHANGE_UNCHANGED = 'unchanged';
+
+    public const CHANGE_EDITED = 'edited';
+
+    public const CHANGE_ADDED = 'added';
+
+    public const CHANGE_REMOVED = 'removed';
+
+    public const REASON_CA_REMOVED = 'ca_removed';
+
+    /**
+     * The text fields a CA may change at Dispensary, mapped to the column holding the CA's version.
+     * The doctor's snapshot column is immutable; a null final_* column means the snapshot stands.
+     *
+     * @var array<string, string>
+     */
+    public const EDITABLE_TEXT = [
+        'dosage' => 'final_dosage',
+        'frequency' => 'final_frequency',
+        'duration' => 'final_duration',
+        'route' => 'final_route',
+        'administration_instruction' => 'final_administration_instruction',
+        'precaution' => 'final_precaution',
+    ];
+
     protected static function booted(): void
     {
         static::deleting(fn (): never => throw new LogicException('Dispensary Items cannot be deleted.'));
@@ -34,9 +63,17 @@ class DispensaryItem extends Model
         });
     }
 
+    /** The value to dispense and print: the CA's version when there is one, otherwise the doctor's. */
+    public function effective(string $field): ?string
+    {
+        $final = self::EDITABLE_TEXT[$field] ?? null;
+
+        return ($final !== null ? $this->getAttribute($final) : null) ?? $this->getAttribute($field);
+    }
+
     protected function casts(): array
     {
-        return ['quantity_ordered' => 'decimal:3', 'quantity_dispensed' => 'decimal:3', 'allergy_profile_version_validated' => 'integer', 'lock_version' => 'integer', 'handled_at' => 'immutable_datetime'];
+        return ['edited_at' => 'immutable_datetime', 'quantity_ordered' => 'decimal:3', 'quantity_dispensed' => 'decimal:3', 'allergy_profile_version_validated' => 'integer', 'lock_version' => 'integer', 'handled_at' => 'immutable_datetime'];
     }
 
     public function getRouteKeyName(): string

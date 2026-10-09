@@ -67,12 +67,16 @@ class BillingSourceService
                 $this->invalid();
             }
             $items = DispensaryItem::query()->where('dispensary_handoff_id', $handoff->id)->orderBy('id')->lockForUpdate()->get();
-            if ($items->count() !== $medicines->count()) {
+            // DS-01a: every active doctor order still has exactly one line (never deleted), and the CA may have
+            // added lines of its own (no order). The CA's final list is what is billed; the plan is the comparison.
+            $orderedLines = $items->whereNotNull('treatment_plan_medicine_order_id');
+            if ($orderedLines->count() !== $medicines->count()
+                || $orderedLines->pluck('treatment_plan_medicine_order_id')->sort()->values()->all() !== $medicines->pluck('id')->sort()->values()->all()
+                || $items->contains(fn (DispensaryItem $item): bool => ($item->treatment_plan_medicine_order_id === null) !== ($item->source === DispensaryItem::SOURCE_CA))) {
                 $this->invalid();
             }
             foreach ($items as $item) {
-                $order = $medicines->firstWhere('id', $item->treatment_plan_medicine_order_id);
-                if (! $order || ! in_array($item->status, ['dispensed', 'partial', 'not_dispensed'], true) || $item->quantity_dispensed === null) {
+                if (! in_array($item->status, ['dispensed', 'partial', 'not_dispensed'], true) || $item->quantity_dispensed === null) {
                     $this->invalid();
                 }
                 if (ExactMoney::quantity($item->quantity_dispensed) > 0) {
