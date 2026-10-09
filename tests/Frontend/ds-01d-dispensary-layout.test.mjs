@@ -13,6 +13,7 @@ const THREE_COLUMNS =
 test('the Dispensary page uses the same three-column layout as the Invoices page', () => {
     assert.ok(invoices.includes(THREE_COLUMNS));
     assert.ok(page.includes(THREE_COLUMNS));
+
     for (const id of [
         'dispensary-left',
         'dispensary-main',
@@ -28,6 +29,7 @@ test('the left column holds the patient and allergies, the centre the editable l
     const main = at('data-testid="dispensary-main"');
     const right = at('data-testid="dispensary-right"');
     assert.ok(left < main && main < right);
+
     for (const id of [
         'dispensary-patient',
         'otc-allergy',
@@ -39,6 +41,7 @@ test('the left column holds the patient and allergies, the centre the editable l
             id,
         );
     }
+
     for (const id of [
         'add-medicine',
         'dispensary-services',
@@ -51,6 +54,7 @@ test('the left column holds the patient and allergies, the centre the editable l
             id,
         );
     }
+
     for (const id of [
         'dispensary-summary',
         'dispensary-actions',
