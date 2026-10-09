@@ -65,7 +65,7 @@ test("completing is the CA's own verification step, and unsaved lines block it",
     assert.match(page, /caseAction\('complete'\)/);
     assert.match(
         page,
-        /:disabled="\s*busy \|\| unsaved\.length > 0 \|\| unsavedServices\.length > 0\s*"/,
+        /:disabled="\s*busy \|\| unsaved\.length > 0 \|\| unsavedServices\.length > 0 \|\| \(isOtc && !otcAllergyConfirmed\)\s*"/,
     );
     // owner decision 2026-10-09: the doctor's allergy confirmation stands, so there is no CA allergy tick
     assert.doesNotMatch(page, /allergyChecked|allergy_checked/);

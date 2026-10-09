@@ -8,15 +8,19 @@ use App\Domain\Clinical\Dispensary\Models\DispensaryItemException;
 use App\Domain\Clinical\Dispensary\Models\DispensaryServiceLine;
 use App\Domain\Clinical\Dispensary\Services\DispensaryDirectoryService;
 use App\Domain\Clinical\Dispensary\Services\DispensaryService;
+use App\Domain\Clinical\Dispensary\Services\OtcDispensaryService;
 use App\Domain\Organisation\Models\Branch;
 use App\Domain\Queue\Display\RoomCallService;
 use App\Domain\Queue\Models\BranchRoom;
+use App\Domain\Visit\Models\Visit;
 use App\Http\Requests\AcknowledgeDispensaryPartialRequest;
 use App\Http\Requests\AddDispensaryItemRequest;
 use App\Http\Requests\AddDispensaryServiceLineRequest;
+use App\Http\Requests\ConfirmOtcAllergyRequest;
 use App\Http\Requests\DispensaryCaseActionRequest;
 use App\Http\Requests\EditDispensaryItemRequest;
 use App\Http\Requests\EditDispensaryServiceLineRequest;
+use App\Http\Requests\OpenOtcDispensaryRequest;
 use App\Http\Requests\RemoveDispensaryItemRequest;
 use App\Http\Requests\RemoveDispensaryServiceLineRequest;
 use App\Http\Requests\SearchDispensaryMedicinesRequest;
@@ -34,7 +38,7 @@ class DispensaryController extends Controller
     public function show(Request $request, DispensaryCase $dispensaryCase, DispensaryDirectoryService $directory, RoomCallService $calls): Response
     {
         $detail = $directory->detail($request->user(), $dispensaryCase);
-        if ($detail['status'] !== DispensaryCase::STATUS_COMPLETED) {
+        if ($detail['status'] !== DispensaryCase::STATUS_COMPLETED && $dispensaryCase->case_type !== DispensaryCase::TYPE_OTC) {
             $detail['tvCall'] = [
                 'canCall' => $request->user()->can('dispensary.start.branch')
                     && in_array($detail['status'], [DispensaryCase::STATUS_PENDING, DispensaryCase::STATUS_DISPENSING], true),
@@ -46,6 +50,26 @@ class DispensaryController extends Controller
         }
 
         return Inertia::render($detail['status'] === DispensaryCase::STATUS_COMPLETED ? 'Dispensary/Completed' : 'Dispensary/Show', ['dispensary' => $detail]);
+    }
+
+    public function openOtc(OpenOtcDispensaryRequest $request, Visit $visit, OtcDispensaryService $service): RedirectResponse
+    {
+        try {
+            $case = $service->open($request->user(), $visit, $request->validated());
+        } catch (ValidationException $exception) {
+            throw $exception->redirectTo(route('registration.index'));
+        }
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'Dispensing started for this OTC visit.']);
+
+        return to_route('dispensary.show', $case);
+    }
+
+    public function confirmOtcAllergy(ConfirmOtcAllergyRequest $request, DispensaryCase $dispensaryCase, DispensaryService $service): RedirectResponse
+    {
+        $this->stayOnCase($dispensaryCase, fn () => $service->confirmOtcAllergy($request->user(), $dispensaryCase, $request->validated()));
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'Allergy statement recorded.']);
+
+        return to_route('dispensary.show', $dispensaryCase);
     }
 
     public function labels(Request $request, DispensaryCase $dispensaryCase, DispensaryDirectoryService $directory, ?string $itemPublicId = null): Response

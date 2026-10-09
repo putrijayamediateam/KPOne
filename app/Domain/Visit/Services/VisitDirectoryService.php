@@ -324,7 +324,10 @@ class VisitDirectoryService
         $activeHold = $visit->clinicalEncounter?->holds
             ->first(fn ($hold): bool => $hold->resumed_at === null);
         $checkout = ConsultationCheckout::query()->where('current_visit_guard', $visit->id)->first(['route']);
-        $canBilling = $actor->can('billing.view.branch') && ($visit->status === Visit::STATUS_COMPLETED || ($checkout !== null && ($checkout->route === 'billing'
+        // DS-01b-3: an OTC visit has no checkout; its Dispensary case is the source Billing reads.
+        $otcCase = $visit->visit_type === 'otc' ? DispensaryCase::query()->where('visit_id', $visit->id)->where('case_type', DispensaryCase::TYPE_OTC)->first(['public_id', 'status']) : null;
+        $otcOpen = $otcCase !== null && $otcCase->status !== DispensaryCase::STATUS_COMPLETED;
+        $canBilling = $actor->can('billing.view.branch') && ($visit->status === Visit::STATUS_COMPLETED || ($otcCase !== null && ! $otcOpen) || ($checkout !== null && ($checkout->route === 'billing'
             || DispensaryCase::query()->where('visit_id', $visit->id)->where('status', 'completed')->exists())));
 
         return [
@@ -348,6 +351,8 @@ class VisitDirectoryService
             'durationMinutes' => $durationMinutes,
             'visitLockVersion' => $visit->lock_version,
             'billingUrl' => $canBilling ? route('billing.show', $visit) : null,
+            'dispensaryStatus' => $otcOpen ? $otcCase->status : null,
+            'dispensaryUrl' => $otcOpen && $actor->can('dispensary.view.branch') ? route('dispensary.show', $otcCase->public_id) : null,
             'awaitingBilling' => $canBilling && $visit->status === Visit::STATUS_REGISTERED,
             'completedAt' => $visit->completed_at?->setTimezone($branch->timezone)->format('j M Y, g:i A'),
             'queueLockVersion' => $visibleQueueEntry?->lock_version,
@@ -364,6 +369,8 @@ class VisitDirectoryService
                 'call' => $canCall,
                 'openConsultation' => $canOpenEncounter,
                 'openBilling' => $canBilling,
+                'dispense' => $visit->visit_type === 'otc' && $visit->status === Visit::STATUS_REGISTERED && $otcCase === null && $actor->can('dispensary.otc.create.branch'),
+                'openDispensary' => $otcOpen && $actor->can('dispensary.view.branch'),
             ],
         ];
     }

@@ -92,6 +92,8 @@ type Page = {
     patient: { patientNumber: string; name: string };
     visit: { visitNumber: string };
     doctor: string | null;
+    caseType?: 'consultation' | 'otc';
+    otc?: { allergyStatement: string | null; allergyConfirmed: boolean } | null;
     allergySafety: {
         allergies: Array<{
             allergen: string;
@@ -647,6 +649,19 @@ const addMedicine = () => {
     );
 };
 
+// OTC: no doctor reviewed this order, so the CA records what the patient said about allergies first.
+const isOtc = computed(() => props.dispensary.caseType === 'otc');
+const otcAllergyChoice = ref<'none' | 'has_allergy'>(
+    props.dispensary.otc?.allergyStatement === 'has_allergy'
+        ? 'has_allergy'
+        : 'none',
+);
+const otcAllergyConfirmed = computed(
+    () => props.dispensary.otc?.allergyConfirmed === true,
+);
+const confirmOtcAllergy = () =>
+    caseAction('otc-allergy', { allergy_statement: otcAllergyChoice.value });
+
 // The CA's own verification, after the doctor's, before stock moves.
 const confirming = ref(false);
 const completeCase = () => {
@@ -680,7 +695,11 @@ const inputClass = 'mt-1 h-9 w-full rounded-md border px-2';
                 <p class="text-sm text-muted-foreground">
                     {{ dispensary.patient.patientNumber }} ·
                     {{ dispensary.visit.visitNumber }} ·
-                    {{ dispensary.doctor ?? 'No doctor' }}
+                    {{
+                        isOtc
+                            ? 'OTC · no doctor'
+                            : (dispensary.doctor ?? 'No doctor')
+                    }}
                 </p>
             </div>
             <div class="flex flex-wrap gap-2">
@@ -744,7 +763,10 @@ const inputClass = 'mt-1 h-9 w-full rounded-md border px-2';
                 ><Button
                     v-if="dispensary.can.complete"
                     :disabled="
-                        busy || unsaved.length > 0 || unsavedServices.length > 0
+                        busy ||
+                        unsaved.length > 0 ||
+                        unsavedServices.length > 0 ||
+                        (isOtc && !otcAllergyConfirmed)
                     "
                     data-testid="dispensary-complete-open"
                     @click="confirming = true"
@@ -761,6 +783,78 @@ const inputClass = 'mt-1 h-9 w-full rounded-md border px-2';
             {{ actionError }}
         </p>
         <div
+            v-if="isOtc"
+            class="mb-3 rounded-lg border px-3 py-2 text-sm"
+            :class="
+                otcAllergyConfirmed
+                    ? 'border-emerald-200 bg-emerald-50/50'
+                    : 'border-amber-300 bg-amber-50/70'
+            "
+            data-testid="otc-allergy"
+        >
+            <p class="font-medium">Ask the patient about allergies</p>
+            <p class="text-xs text-muted-foreground">
+                Record what the patient says. This is a note for the record; it
+                does not check the medicines for you.
+            </p>
+            <ul
+                v-if="dispensary.allergySafety.allergies.length"
+                class="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-xs"
+            >
+                <li
+                    v-for="(allergy, index) in dispensary.allergySafety
+                        .allergies"
+                    :key="index"
+                >
+                    <strong>{{ allergy.allergen }}</strong>
+                    <span v-if="allergy.reaction">
+                        — {{ allergy.reaction }}</span
+                    >
+                    <span v-if="allergy.severity">
+                        ({{ allergy.severity }})</span
+                    >
+                </li>
+            </ul>
+            <div
+                v-if="dispensary.can.update"
+                class="mt-2 flex flex-wrap items-center gap-4"
+            >
+                <label class="flex items-center gap-1">
+                    <input
+                        v-model="otcAllergyChoice"
+                        type="radio"
+                        value="none"
+                        data-field="otc-allergy-none"
+                    />
+                    Patient reports no allergy
+                </label>
+                <label class="flex items-center gap-1">
+                    <input
+                        v-model="otcAllergyChoice"
+                        type="radio"
+                        value="has_allergy"
+                        data-field="otc-allergy-has"
+                    />
+                    Patient reports an allergy
+                </label>
+                <Button
+                    size="sm"
+                    variant="outline"
+                    :disabled="busy"
+                    data-action="confirm-otc-allergy"
+                    @click="confirmOtcAllergy"
+                >
+                    {{ otcAllergyConfirmed ? 'Update' : 'Confirm' }}
+                </Button>
+                <span
+                    v-if="otcAllergyConfirmed"
+                    class="text-xs text-emerald-800"
+                    >Recorded</span
+                >
+            </div>
+        </div>
+        <div
+            v-else
             class="mb-3 rounded-lg border px-3 py-2 text-sm"
             :class="
                 dispensary.allergySafety.isCurrent
@@ -808,8 +902,11 @@ const inputClass = 'mt-1 h-9 w-full rounded-md border px-2';
         >
             <p class="font-medium">Verify before completing</p>
             <p class="mb-2 text-xs text-muted-foreground">
-                The doctor has verified the order. Completing now records your
-                verification of the final list below and takes the stock out.
+                {{
+                    isOtc
+                        ? 'There is no doctor on an OTC visit. Completing now records your verification of the list below and takes the stock out.'
+                        : 'The doctor has verified the order. Completing now records your verification of the final list below and takes the stock out.'
+                }}
             </p>
             <div class="mt-2 flex gap-2">
                 <Button
@@ -1057,8 +1154,11 @@ const inputClass = 'mt-1 h-9 w-full rounded-md border px-2';
                 v-if="!visibleItems.length"
                 class="p-3 text-sm text-muted-foreground"
             >
-                Every medicine has been removed from the list. Add a medicine
-                below, or return the case to the doctor.
+                {{
+                    isOtc
+                        ? 'No medicine on the list yet. Add a medicine below.'
+                        : 'Every medicine has been removed from the list. Add a medicine below, or return the case to the doctor.'
+                }}
             </p>
         </section>
 
@@ -1251,6 +1351,7 @@ const inputClass = 'mt-1 h-9 w-full rounded-md border px-2';
             </div>
         </section>
         <section
+            v-if="!isOtc"
             class="mt-6 rounded-lg border bg-background"
             data-testid="dispensary-services"
         >
