@@ -156,7 +156,7 @@ class DispensaryDirectoryService
     /**
      * DS-01a-services: services the CA may add to this case. Read only; the domain service re-checks on add.
      *
-     * @return list<array<string, mixed>>
+     * @return array<int, array<string, mixed>>
      */
     public function searchServices(User $actor, DispensaryCase $case, string $query): array
     {
