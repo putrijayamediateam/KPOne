@@ -244,7 +244,7 @@ class PublicIntakeReviewService
     }
 
     /** @param array<string, mixed> $attributes
-     * @return array{intake: PublicPatientIntake, patient: Patient, visit: Visit, queue: QueueEntry|OtcQueueEntry|null}
+     * @return array{intake: PublicPatientIntake, patient: Patient|null, visit: Visit|null, queue: QueueEntry|OtcQueueEntry|null}
      */
     public function accept(User $actor, string $publicId, array $attributes): array
     {
@@ -482,7 +482,7 @@ class PublicIntakeReviewService
         return array_values($results);
     }
 
-    /** @return array{intake: PublicPatientIntake, patient: Patient, visit: Visit, queue: QueueEntry} */
+    /** @return array{intake: PublicPatientIntake, patient: Patient|null, visit: Visit|null, queue: QueueEntry|OtcQueueEntry|null} */
     private function acceptedResult(PublicPatientIntake $intake): array
     {
         $intake->loadMissing(['patient', 'visit', 'queueEntry', 'otcQueueEntry']);
