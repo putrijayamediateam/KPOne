@@ -17,6 +17,7 @@ export type PatientBoardRow = {
     returnedFromDispensary?: boolean;
     dispensaryUrl?: string;
     billingUrl?: string | null;
+    historyUrl?: string | null;
     completedAt?: string | null;
     statusLabel: string;
     statusTone: PatientBoardStatusTone;
