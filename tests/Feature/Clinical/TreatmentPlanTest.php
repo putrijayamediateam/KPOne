@@ -54,6 +54,7 @@ use Illuminate\Validation\ValidationException;
 use Inertia\Testing\AssertableInertia as Assert;
 use LogicException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+use Tests\Support\SyntheticVisitCompletion;
 
 class TreatmentPlanTest extends ClinicalTestCase
 {
@@ -1588,7 +1589,7 @@ class TreatmentPlanTest extends ClinicalTestCase
             'allocations' => [['location_public_id' => $f['location']->public_id, 'sku_public_id' => $extra['sku']->public_id, 'batch_public_id' => $extra['batch']->public_id, 'quantity' => '3.000']],
         ]);
         $visit = $f['visit']->refresh();
-        $visit->forceFill(['status' => Visit::STATUS_COMPLETED, 'completed_at' => now()])->save();
+        SyntheticVisitCompletion::complete($visit);
         $case->forceFill(['status' => DispensaryCase::STATUS_COMPLETED])->save();
         $case->handoffs()->update(['status' => 'completed', 'open_case_guard' => null]);
 

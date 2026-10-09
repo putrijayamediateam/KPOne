@@ -12,6 +12,7 @@ use Inertia\Testing\AssertableInertia as Assert;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
 use Tests\Feature\Billing\BillingTestCase;
+use Tests\Support\SyntheticVisitCompletion;
 
 /**
  * VH-01 (owner decision, 2026-10-08): every role that can see Registration and Consultation
@@ -26,7 +27,7 @@ class VisitHistoryTest extends BillingTestCase
     {
         [, $ca, $visit] = $this->finalizedFixture();
         // Synthetic initial state: the history page only reads a completed visit.
-        $visit->forceFill(['status' => Visit::STATUS_COMPLETED, 'completed_at' => now()])->save();
+        SyntheticVisitCompletion::complete($visit);
 
         return [$visit->refresh(), $ca];
     }
@@ -89,10 +90,10 @@ class VisitHistoryTest extends BillingTestCase
     {
         [$visit, $ca] = $this->completedVisit();
 
-        $visit->forceFill(['status' => Visit::STATUS_REGISTERED, 'completed_at' => null])->save();
+        $visit->forceFill(['status' => Visit::STATUS_REGISTERED, 'completed_at' => null, 'completed_by_user_id' => null, 'completion_evidence' => null])->save();
         $this->actingAs($ca)->get(route('visits.history', $visit))->assertNotFound();
 
-        $visit->forceFill(['status' => Visit::STATUS_COMPLETED, 'completed_at' => now()])->save();
+        SyntheticVisitCompletion::complete($visit);
         $otherBranch = Branch::query()->where('organisation_id', $visit->organisation_id)->where('id', '<>', $visit->branch_id)->firstOrFail();
         $other = $this->actor('ca', $otherBranch);
         $this->selectBranch($other, $otherBranch);
@@ -108,7 +109,7 @@ class VisitHistoryTest extends BillingTestCase
 
         $this->assertSame(route('visits.history', $visit), $row()['historyUrl']);
 
-        $visit->forceFill(['status' => Visit::STATUS_REGISTERED, 'completed_at' => null])->save();
+        $visit->forceFill(['status' => Visit::STATUS_REGISTERED, 'completed_at' => null, 'completed_by_user_id' => null, 'completion_evidence' => null])->save();
         $this->assertNull($row()['historyUrl']);
     }
 

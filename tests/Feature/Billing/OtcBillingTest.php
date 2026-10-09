@@ -21,6 +21,7 @@ use Illuminate\Validation\ValidationException;
 use Inertia\Testing\AssertableInertia as Assert;
 use Tests\Feature\Visit\VisitTestCase;
 use Tests\Support\OtcDispensaryFixtures;
+use Tests\Support\SyntheticVisitCompletion;
 
 class OtcBillingTest extends VisitTestCase
 {
@@ -178,7 +179,12 @@ class OtcBillingTest extends VisitTestCase
         $this->build($f);
 
         $this->expectException(QueryException::class);
-        DB::table('visits')->where('id', $f['visit']->id)->update(['status' => 'completed', 'completed_at' => now(), 'completion_evidence' => json_encode([])]);
+        $this->expectExceptionMessage('Completed Visit requires current final sources and Invoice evidence');
+        DB::transaction(function () use ($f): void {
+            // Valid terminal fields, so only the completion-evidence trigger can refuse (the invoice is still a draft).
+            DB::table('visits')->where('id', $f['visit']->id)->update(['status' => 'completed', 'completed_at' => now(), 'completed_by_user_id' => $f['ca']->id, 'completion_evidence' => json_encode(['x' => 1])]);
+            DB::statement('SET CONSTRAINTS ALL IMMEDIATE');
+        });
     }
 
     public function test_the_invoices_page_shows_an_otc_visit_with_only_what_was_dispensed(): void
@@ -188,7 +194,7 @@ class OtcBillingTest extends VisitTestCase
         $this->dispensed($f, '2.000');
         $this->finalized($f);
         $visit = $f['visit']->refresh();
-        $visit->forceFill(['status' => Visit::STATUS_COMPLETED, 'completed_at' => now()])->save();
+        SyntheticVisitCompletion::complete($visit);
 
         $this->get(route('visits.history', $visit))->assertOk()->assertInertia(fn (Assert $page) => $page
             ->component('Visits/History')

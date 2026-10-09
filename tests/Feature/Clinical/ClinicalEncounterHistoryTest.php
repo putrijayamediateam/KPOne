@@ -17,6 +17,7 @@ use App\Models\User;
 use Illuminate\Support\Facades\Route;
 use Inertia\Testing\AssertableInertia as Assert;
 use Tests\Support\StaffBranchAssignmentBootstrapper;
+use Tests\Support\SyntheticVisitCompletion;
 
 class ClinicalEncounterHistoryTest extends ClinicalTestCase
 {
@@ -77,7 +78,7 @@ class ClinicalEncounterHistoryTest extends ClinicalTestCase
         $this->get(route('encounters.show', $currentVisit))->assertOk()
             ->assertInertia(fn (Assert $page) => $page->where('clinical.history.0.invoiceUrl', null));
 
-        $historicalVisit->forceFill(['status' => Visit::STATUS_COMPLETED, 'completed_at' => now()])->save();
+        SyntheticVisitCompletion::complete($historicalVisit);
         $this->get(route('encounters.show', $currentVisit))->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->where('clinical.history.0.invoiceUrl', route('visits.history', $historicalVisit))
