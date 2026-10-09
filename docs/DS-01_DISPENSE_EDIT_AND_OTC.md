@@ -117,8 +117,9 @@ Visit History); it is a one-line change.
    shows only what was dispensed and the invoice. The Registration board menu says "Invoices". The doctor's
    "Previous consultation" panel opens this page as its full page when the previous visit is completed at the
    same branch (otherwise the earlier encounter page).
-4. **DS-01d** New Dispensary page design (the editable layout) and removal of the Pending/Partial/Not
-   dispensed controls.
+4. **DS-01d** *(built)* the Dispensary page now uses the Invoices page's three-column layout (patient and
+   allergies | editable medicines and services | summary and actions). The Pending/Partial/Not dispensed controls
+   were already removed in DS-01a.
 
 ## 8. Risks
 
