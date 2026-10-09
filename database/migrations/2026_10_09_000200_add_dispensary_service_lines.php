@@ -124,6 +124,8 @@ return new class extends Migration
             throw new RuntimeException('The invoice reconciliation function has an unexpected shape; the service rule was not changed.');
         }
         $patched = str_replace($old, $new, $source);
+        // the function body is the stored definition with one verified substitution, so it is not a literal
+        // @phpstan-ignore argument.type
         DB::unprepared('CREATE OR REPLACE FUNCTION kpone_billing_check_invoice(invoice_key bigint) RETURNS void LANGUAGE plpgsql AS $kpone$'.$patched.'$kpone$');
     }
 };
