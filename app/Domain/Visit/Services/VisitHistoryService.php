@@ -183,7 +183,7 @@ class VisitHistoryService
                 'indication' => $order->indication,
                 'precaution' => $order->precaution,
                 'source' => 'doctor',
-                'changeState' => $item?->change_state ?? 'unchanged',
+                'changeState' => $item->change_state ?? 'unchanged',
                 'dispensedQuantity' => $item?->quantity_dispensed,
                 'dispensedStatus' => $item?->status,
                 'dispensed' => $item ? $this->dispensedText($item) : null,
@@ -246,12 +246,12 @@ class VisitHistoryService
                 'quantityOrdered' => $order->quantity_ordered,
                 'instruction' => $order->clinical_instruction,
                 'source' => 'doctor',
-                'changeState' => $line?->change_state ?? 'unchanged',
-                'disposition' => $line?->disposition ?? $delivery?->disposition,
-                'quantityPerformed' => $line?->quantity_performed ?? $delivery?->quantity_performed,
+                'changeState' => $line->change_state ?? 'unchanged',
+                'disposition' => $line->disposition ?? $delivery?->disposition,
+                'quantityPerformed' => $line->quantity_performed ?? $delivery?->quantity_performed,
                 'doctorQuantityPerformed' => $delivery?->quantity_performed,
                 'finalInstruction' => $line?->effectiveInstruction(),
-                'performedAt' => ($line?->performed_at ?? $delivery?->performed_at)?->setTimezone($timezone)->format('j M Y, g:i A'),
+                'performedAt' => ($line->performed_at ?? $delivery?->performed_at)?->setTimezone($timezone)->format('j M Y, g:i A'),
             ];
         }
         foreach ($lines->whereNull('treatment_plan_service_order_id') as $line) {
