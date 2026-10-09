@@ -1,8 +1,10 @@
 # KPOne project
 
-Latest merged delivery: PR #87 — QR "Buy medicine only", merged as `de4e496`. Recent merges, newest first
+Latest merged delivery: PR #89 — Dispensary three-column layout, merged as `d03c03e`. Recent merges, newest first
 (documentation-only PRs omitted):
 
+- PR #89 (`d03c03e`) — DS-01d: the Dispensary page uses the Invoices three-column layout (patient and allergies |
+  editable medicines and services | summary and actions). Layout only.
 - PR #87 (`de4e496`) — DS-02c: the QR form offers "Buy medicine only"; accepting joins the OTC list and the patient's
   phone shows the B number and the pharmacy call.
 - PR #86 (`10f94b6`) — DS-02b: per-branch setting to call patients by queue number (default) or full registered name,
