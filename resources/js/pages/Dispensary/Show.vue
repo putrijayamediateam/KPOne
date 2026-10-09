@@ -64,6 +64,26 @@ type Item = {
         proposed_quantity_dispensed: string;
     } | null;
 };
+type ServiceLine = {
+    publicId: string;
+    lockVersion: number;
+    name: string;
+    code: string;
+    unit: string;
+    quantityOrdered: string;
+    quantityPerformed: string;
+    disposition: 'performed' | 'not_performed';
+    instruction: string | null;
+    source: 'doctor' | 'ca';
+    changeState: 'unchanged' | 'edited' | 'added' | 'removed';
+    original: { quantity: string | null; instruction: string | null };
+};
+type ServiceResult = {
+    publicId: string;
+    name: string;
+    code: string;
+    unit: string;
+};
 type Page = {
     publicId: string;
     status: 'pending' | 'dispensing';
@@ -83,6 +103,7 @@ type Page = {
         isCurrent: boolean;
     };
     items: Item[];
+    services: ServiceLine[];
     can: {
         start: boolean;
         update: boolean;
@@ -174,6 +195,195 @@ watch(
     },
     { immediate: true },
 );
+
+// Services: the CA confirms how much was performed; the doctor's confirmation stays on record.
+const serviceFormFor = (line: ServiceLine) => ({
+    quantity: line.quantityPerformed,
+    instruction: line.instruction ?? '',
+});
+const serviceForms = reactive<
+    Record<string, { quantity: string; instruction: string }>
+>({});
+const serviceBase = reactive<Record<string, number>>({});
+const isServiceDirty = (line: ServiceLine): boolean => {
+    const form = serviceForms[line.publicId];
+    const saved = serviceFormFor(line);
+
+    return (
+        !!form &&
+        (form.quantity !== saved.quantity ||
+            form.instruction !== saved.instruction)
+    );
+};
+watch(
+    () =>
+        props.dispensary.services.map(
+            (line) => `${line.publicId}:${line.lockVersion}`,
+        ),
+    () => {
+        for (const line of props.dispensary.services) {
+            if (!serviceForms[line.publicId]) {
+                serviceForms[line.publicId] = serviceFormFor(line);
+                serviceBase[line.publicId] = line.lockVersion;
+            } else if (
+                serviceBase[line.publicId] !== line.lockVersion &&
+                !isServiceDirty({
+                    ...line,
+                    lockVersion: serviceBase[line.publicId],
+                })
+            ) {
+                serviceForms[line.publicId] = serviceFormFor(line);
+                serviceBase[line.publicId] = line.lockVersion;
+            }
+        }
+    },
+    { immediate: true },
+);
+const visibleServices = computed(() =>
+    props.dispensary.services.filter((line) => line.changeState !== 'removed'),
+);
+const removedServices = computed(() =>
+    props.dispensary.services.filter((line) => line.changeState === 'removed'),
+);
+const unsavedServices = computed(() =>
+    visibleServices.value.filter((line) => isServiceDirty(line)),
+);
+const saveService = (line: ServiceLine, done?: () => void) => {
+    const form = serviceForms[line.publicId];
+    busy.value = true;
+    actionError.value = null;
+    router.put(
+        `/dispensary/${props.dispensary.publicId}/services/${line.publicId}/final`,
+        {
+            expected_branch_id: branchId(),
+            case_lock_version: props.dispensary.lockVersion,
+            line_lock_version: line.lockVersion,
+            quantity_performed: form.quantity,
+            clinical_instruction: form.instruction || null,
+        },
+        {
+            preserveScroll: true,
+            onError: showActionError,
+            onSuccess: () => done?.(),
+            onFinish: () => (busy.value = false),
+        },
+    );
+};
+const removeService = (line: ServiceLine) => {
+    busy.value = true;
+    actionError.value = null;
+    router.post(
+        `/dispensary/${props.dispensary.publicId}/services/${line.publicId}/remove`,
+        {
+            expected_branch_id: branchId(),
+            case_lock_version: props.dispensary.lockVersion,
+            line_lock_version: line.lockVersion,
+        },
+        {
+            preserveScroll: true,
+            onError: showActionError,
+            onFinish: () => (busy.value = false),
+        },
+    );
+};
+// Putting a removed service back restores what the doctor confirmed, or the ordered quantity.
+const restoreService = (line: ServiceLine) => {
+    const original = Number(line.original.quantity ?? 0);
+    busy.value = true;
+    actionError.value = null;
+    router.put(
+        `/dispensary/${props.dispensary.publicId}/services/${line.publicId}/final`,
+        {
+            expected_branch_id: branchId(),
+            case_lock_version: props.dispensary.lockVersion,
+            line_lock_version: line.lockVersion,
+            quantity_performed:
+                original > 0 ? line.original.quantity : line.quantityOrdered,
+            clinical_instruction: line.original.instruction,
+        },
+        {
+            preserveScroll: true,
+            onError: showActionError,
+            onFinish: () => (busy.value = false),
+        },
+    );
+};
+const serviceTerm = ref('');
+const serviceResults = ref<ServiceResult[]>([]);
+const serviceSearching = ref(false);
+const chosenService = ref<ServiceResult | null>(null);
+const serviceAdd = reactive({ quantity: '1.000', instruction: '' });
+const searchServices = async () => {
+    if (serviceTerm.value.trim().length < 2) {
+        serviceResults.value = [];
+
+        return;
+    }
+
+    serviceSearching.value = true;
+
+    try {
+        const response = await fetch(
+            `/dispensary/${props.dispensary.publicId}/services/search`,
+            {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Accept: 'application/json',
+                    'X-XSRF-TOKEN': csrf(),
+                },
+                body: JSON.stringify({ query: serviceTerm.value.trim() }),
+            },
+        );
+        serviceResults.value = response.ok
+            ? ((await response.json()) as { data: ServiceResult[] }).data
+            : [];
+    } finally {
+        serviceSearching.value = false;
+    }
+};
+const addService = () => {
+    const service = chosenService.value;
+
+    if (!service) {
+        return;
+    }
+
+    busy.value = true;
+    actionError.value = null;
+    router.post(
+        `/dispensary/${props.dispensary.publicId}/services`,
+        {
+            expected_branch_id: branchId(),
+            case_lock_version: props.dispensary.lockVersion,
+            service_public_id: service.publicId,
+            quantity_performed: serviceAdd.quantity,
+            clinical_instruction: serviceAdd.instruction || null,
+        },
+        {
+            preserveScroll: true,
+            onError: showActionError,
+            onSuccess: () => {
+                chosenService.value = null;
+                serviceResults.value = [];
+                serviceTerm.value = '';
+                Object.assign(serviceAdd, {
+                    quantity: '1.000',
+                    instruction: '',
+                });
+            },
+            onFinish: () => (busy.value = false),
+        },
+    );
+};
+const serviceChangeLabel = (line: ServiceLine) =>
+    ({
+        edited: 'Edited by CA',
+        added: 'Added by CA',
+        removed: 'Removed',
+        unchanged: '',
+    })[line.changeState];
 
 const visibleItems = computed(() =>
     props.dispensary.items.filter((item) => item.changeState !== 'removed'),
@@ -283,9 +493,12 @@ const saveItem = (item: Item, done?: () => void) => {
 };
 const saveAll = () => {
     const next = unsaved.value[0];
+    const nextService = unsavedServices.value[0];
 
     if (next) {
         saveItem(next, saveAll);
+    } else if (nextService) {
+        saveService(nextService, saveAll);
     }
 };
 const removeItem = (item: Item) => {
@@ -530,7 +743,9 @@ const inputClass = 'mt-1 h-9 w-full rounded-md border px-2';
                     ><RotateCcw class="size-4" />Return to Doctor</Button
                 ><Button
                     v-if="dispensary.can.complete"
-                    :disabled="busy || unsaved.length > 0"
+                    :disabled="
+                        busy || unsaved.length > 0 || unsavedServices.length > 0
+                    "
                     data-testid="dispensary-complete-open"
                     @click="confirming = true"
                     ><CheckCircle2 class="size-4" />Complete Dispensary</Button
@@ -615,13 +830,16 @@ const inputClass = 'mt-1 h-9 w-full rounded-md border px-2';
         </section>
 
         <div
-            v-if="dispensary.can.update && unsaved.length"
+            v-if="
+                dispensary.can.update &&
+                (unsaved.length || unsavedServices.length)
+            "
             class="mb-3 flex items-center justify-between rounded-lg border border-amber-300 bg-amber-50/70 px-3 py-2 text-sm"
             data-testid="dispensary-unsaved"
         >
             <span
-                >{{ unsaved.length }} line{{
-                    unsaved.length === 1 ? '' : 's'
+                >{{ unsaved.length + unsavedServices.length }} line{{
+                    unsaved.length + unsavedServices.length === 1 ? '' : 's'
                 }}
                 not saved yet. Save each line to confirm it, then
                 complete.</span
@@ -1029,6 +1247,242 @@ const inputClass = 'mt-1 h-9 w-full rounded-md border px-2';
                         @click="chosen = null"
                         >Cancel</Button
                     >
+                </div>
+            </div>
+        </section>
+        <section
+            class="mt-6 rounded-lg border bg-background"
+            data-testid="dispensary-services"
+        >
+            <h2
+                class="border-b px-3 py-2 text-xs font-semibold tracking-wide text-muted-foreground uppercase"
+            >
+                Services
+            </h2>
+            <p
+                v-if="!visibleServices.length"
+                class="p-3 text-sm text-muted-foreground"
+            >
+                No services on this visit.
+            </p>
+            <div class="divide-y">
+                <article
+                    v-for="line in visibleServices"
+                    :key="line.publicId"
+                    class="grid gap-3 p-3 lg:grid-cols-[minmax(220px,1fr)_minmax(0,3fr)]"
+                    :data-testid="`service-${line.publicId}`"
+                >
+                    <div>
+                        <h3 class="text-sm font-medium">{{ line.name }}</h3>
+                        <p class="text-xs text-muted-foreground">
+                            {{ line.code }}
+                        </p>
+                        <p
+                            v-if="serviceChangeLabel(line)"
+                            class="mt-1 inline-block rounded-md bg-pink-100/70 px-2 py-0.5 text-[11px] text-pink-800"
+                        >
+                            {{ serviceChangeLabel(line) }}
+                        </p>
+                        <p
+                            v-if="line.source === 'doctor'"
+                            class="mt-2 text-xs text-muted-foreground"
+                        >
+                            Doctor ordered
+                            <strong class="text-foreground"
+                                >{{ line.quantityOrdered }}
+                                {{ line.unit }}</strong
+                            >
+                            · confirmed
+                            <strong class="text-foreground">{{
+                                line.original.quantity ?? '0.000'
+                            }}</strong>
+                        </p>
+                        <p
+                            class="mt-1 text-xs"
+                            :class="
+                                line.disposition === 'performed'
+                                    ? 'text-emerald-700'
+                                    : 'text-muted-foreground'
+                            "
+                        >
+                            {{
+                                line.disposition === 'performed'
+                                    ? 'Performed'
+                                    : 'Not performed'
+                            }}
+                        </p>
+                    </div>
+                    <div
+                        v-if="
+                            dispensary.can.update && serviceForms[line.publicId]
+                        "
+                        class="grid gap-2 text-xs sm:grid-cols-2 lg:grid-cols-4"
+                    >
+                        <label
+                            >Performed ({{ line.unit }})<input
+                                v-model="serviceForms[line.publicId].quantity"
+                                :class="inputClass"
+                                inputmode="decimal"
+                                data-field="service-quantity"
+                        /></label>
+                        <label class="sm:col-span-3"
+                            >Instruction<input
+                                v-model="
+                                    serviceForms[line.publicId].instruction
+                                "
+                                :class="inputClass"
+                                maxlength="2000"
+                                data-field="service-instruction"
+                        /></label>
+                        <p class="text-xs text-muted-foreground sm:col-span-4">
+                            Enter 0 if the service was not performed.
+                        </p>
+                        <div class="flex items-end gap-2 sm:col-span-4">
+                            <Button
+                                size="sm"
+                                :disabled="busy || !isServiceDirty(line)"
+                                data-action="save-service"
+                                @click="saveService(line)"
+                                >Confirm and save</Button
+                            >
+                            <Button
+                                size="sm"
+                                variant="outline"
+                                :disabled="busy"
+                                data-action="remove-service"
+                                @click="removeService(line)"
+                                ><Trash2 class="size-4" />Remove</Button
+                            >
+                        </div>
+                    </div>
+                    <p v-else class="text-xs">
+                        {{ line.quantityPerformed }} {{ line.unit }}
+                        <span v-if="line.instruction"
+                            >· {{ line.instruction }}</span
+                        >
+                    </p>
+                </article>
+            </div>
+
+            <div
+                v-if="removedServices.length"
+                class="border-t border-dashed p-3 text-sm"
+                data-testid="removed-services"
+            >
+                <h3
+                    class="mb-1 text-xs font-semibold tracking-wide text-muted-foreground uppercase"
+                >
+                    Removed from the list
+                </h3>
+                <ul class="grid gap-1">
+                    <li
+                        v-for="line in removedServices"
+                        :key="line.publicId"
+                        class="flex items-center justify-between gap-2"
+                    >
+                        <span class="text-muted-foreground line-through">{{
+                            line.name
+                        }}</span>
+                        <Button
+                            v-if="dispensary.can.update"
+                            size="sm"
+                            variant="outline"
+                            :disabled="busy"
+                            data-action="restore-service"
+                            @click="restoreService(line)"
+                            >Put back</Button
+                        >
+                    </li>
+                </ul>
+            </div>
+
+            <div
+                v-if="dispensary.can.update"
+                class="border-t p-3 text-sm"
+                data-testid="add-service"
+            >
+                <h3
+                    class="mb-2 text-xs font-semibold tracking-wide text-muted-foreground uppercase"
+                >
+                    Add a service
+                </h3>
+                <div class="flex gap-2">
+                    <input
+                        v-model="serviceTerm"
+                        class="h-9 w-full max-w-sm rounded-md border px-2"
+                        placeholder="Search service name or code"
+                        aria-label="Search service"
+                        data-field="service-search"
+                        @keydown.enter.prevent="searchServices"
+                    />
+                    <Button
+                        size="sm"
+                        variant="outline"
+                        :disabled="serviceSearching || busy"
+                        @click="searchServices"
+                        ><Plus class="size-4" />Search</Button
+                    >
+                </div>
+                <ul
+                    v-if="!chosenService && serviceResults.length"
+                    class="mt-2 divide-y rounded-md border"
+                >
+                    <li
+                        v-for="service in serviceResults"
+                        :key="service.publicId"
+                        class="flex items-center justify-between gap-2 px-2 py-1.5"
+                    >
+                        <span
+                            >{{ service.name }}
+                            <span class="text-xs text-muted-foreground">{{
+                                service.code
+                            }}</span></span
+                        >
+                        <Button
+                            size="sm"
+                            variant="outline"
+                            data-action="choose-service"
+                            @click="chosenService = service"
+                            >Choose</Button
+                        >
+                    </li>
+                </ul>
+                <div
+                    v-if="chosenService"
+                    class="mt-3 grid gap-2 text-xs sm:grid-cols-2 lg:grid-cols-4"
+                >
+                    <p class="text-sm font-medium sm:col-span-4">
+                        {{ chosenService.name }}
+                    </p>
+                    <label
+                        >Performed ({{ chosenService.unit }})<input
+                            v-model="serviceAdd.quantity"
+                            :class="inputClass"
+                            inputmode="decimal"
+                            data-field="add-service-quantity"
+                    /></label>
+                    <label class="sm:col-span-3"
+                        >Instruction<input
+                            v-model="serviceAdd.instruction"
+                            :class="inputClass"
+                            maxlength="2000"
+                    /></label>
+                    <div class="flex gap-2 sm:col-span-4">
+                        <Button
+                            size="sm"
+                            :disabled="busy"
+                            data-action="add-service"
+                            @click="addService"
+                            >Add to list</Button
+                        >
+                        <Button
+                            size="sm"
+                            variant="outline"
+                            :disabled="busy"
+                            @click="chosenService = null"
+                            >Cancel</Button
+                        >
+                    </div>
                 </div>
             </div>
         </section>

@@ -6,6 +6,8 @@ use App\Domain\Access\BranchAccessService;
 use App\Domain\Clinical\Dispensary\Models\DispensaryCase;
 use App\Domain\Clinical\Dispensary\Models\DispensaryHandoff;
 use App\Domain\Clinical\Dispensary\Models\DispensaryItem;
+use App\Domain\Clinical\Dispensary\Models\DispensaryServiceLine;
+use App\Domain\Clinical\Models\ClinicalServiceCatalogueItem;
 use App\Domain\Clinical\Models\MedicineCatalogueItem;
 use App\Domain\Clinical\Models\PatientAllergyProfile;
 use App\Domain\Organisation\Inventory\Models\MedicineCatalogueInventorySku;
@@ -76,7 +78,7 @@ class DispensaryDirectoryService
             $mapping = MedicineCatalogueInventorySku::query()->where('organisation_id', $actor->organisation_id)->where('medicine_catalogue_item_id', $item->medicine_catalogue_item_id)->where('is_active', true)->with('sku')->first();
 
             return ['publicId' => $item->public_id, 'lockVersion' => $item->lock_version, 'name' => $item->medicine_name_snapshot, 'code' => $item->medicine_code_snapshot, 'strength' => $item->strength_snapshot, 'dosageForm' => $item->dosage_form_snapshot, 'unit' => $item->unit_snapshot, 'quantityOrdered' => $item->quantity_ordered, 'quantityDispensed' => $item->quantity_dispensed, 'status' => $item->status, 'reason' => $item->reason, 'dosage' => $item->effective('dosage'), 'frequency' => $item->effective('frequency'), 'duration' => $item->effective('duration'), 'route' => $item->effective('route'), 'instruction' => $item->effective('administration_instruction'), 'precaution' => $item->effective('precaution'), 'source' => $item->source, 'changeState' => $item->change_state, 'original' => ['quantity' => $item->quantity_ordered, 'dosage' => $item->dosage, 'frequency' => $item->frequency, 'duration' => $item->duration, 'route' => $item->route, 'instruction' => $item->administration_instruction, 'precaution' => $item->precaution], 'sku' => $mapping ? ['publicId' => $mapping->sku->public_id, 'unit' => $mapping->sku->dispensing_unit] : null, 'availability' => $mapping ? $this->availability->forSku($actor, $mapping->inventory_sku_id, $case->branch_id, dispensaryOnly: true) : [], 'allocations' => $item->allocations->map(fn ($a) => ['locationPublicId' => $a->location?->public_id, 'skuPublicId' => $a->sku?->public_id, 'batchPublicId' => $a->batch?->public_id, 'quantity' => $a->quantity])->values(), 'exception' => $item->exceptions->whereIn('status', ['awaiting_acknowledgement', 'acknowledged'])->last()?->only(['public_id', 'status', 'proposed_quantity_dispensed'])];
-        })->values(), 'can' => ['start' => $actor->can('dispensary.start.branch') && $case->status === DispensaryCase::STATUS_PENDING, 'update' => $actor->can('dispensary.update.branch') && $ownsDispensingCase, 'complete' => $actor->can('dispensary.complete.branch') && $ownsDispensingCase, 'return' => $actor->can('dispensary.return_to_doctor.branch') && in_array($case->status, [DispensaryCase::STATUS_PENDING, DispensaryCase::STATUS_DISPENSING], true)]];
+        })->values(), 'services' => DispensaryServiceLine::query()->where('dispensary_handoff_id', $handoff->id)->orderBy('id')->get()->map(fn (DispensaryServiceLine $line): array => ['publicId' => $line->public_id, 'lockVersion' => $line->lock_version, 'name' => $line->service_name_snapshot, 'code' => $line->service_code_snapshot, 'unit' => $line->unit_snapshot, 'quantityOrdered' => $line->quantity_ordered, 'quantityPerformed' => $line->quantity_performed, 'disposition' => $line->disposition, 'instruction' => $line->effectiveInstruction(), 'source' => $line->source, 'changeState' => $line->change_state, 'original' => ['quantity' => $line->doctor_quantity_performed, 'instruction' => $line->clinical_instruction]])->values(), 'can' => ['start' => $actor->can('dispensary.start.branch') && $case->status === DispensaryCase::STATUS_PENDING, 'update' => $actor->can('dispensary.update.branch') && $ownsDispensingCase, 'complete' => $actor->can('dispensary.complete.branch') && $ownsDispensingCase, 'return' => $actor->can('dispensary.return_to_doctor.branch') && in_array($case->status, [DispensaryCase::STATUS_PENDING, DispensaryCase::STATUS_DISPENSING], true)]];
     }
 
     /** @return array<string, mixed> */
@@ -149,5 +151,25 @@ class DispensaryDirectoryService
                     'availability' => $this->availability->forSku($actor, $mapping->inventory_sku_id, $case->branch_id, dispensaryOnly: true),
                 ] : null;
             })->filter()->values()->all();
+    }
+
+    /**
+     * DS-01a-services: services the CA may add to this case. Read only; the domain service re-checks on add.
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function searchServices(User $actor, DispensaryCase $case, string $query): array
+    {
+        $this->authorizedBranch($actor, $case);
+        abort_unless($actor->can('dispensary.update.branch'), 403);
+        $term = '%'.$this->escapeLike(Str::lower(trim($query))).'%';
+
+        return ClinicalServiceCatalogueItem::query()
+            ->where('organisation_id', $actor->organisation_id)->where('is_active', true)
+            ->where(fn ($q) => $q->whereRaw("LOWER(display_name) LIKE ? ESCAPE '\\'", [$term])->orWhereRaw("LOWER(code) LIKE ? ESCAPE '\\'", [$term]))
+            ->orderBy('display_name')->orderBy('id')->limit(15)
+            ->get(['public_id', 'code', 'display_name', 'order_unit'])
+            ->map(fn (ClinicalServiceCatalogueItem $service): array => ['publicId' => $service->public_id, 'name' => $service->display_name, 'code' => $service->code, 'unit' => $service->order_unit])
+            ->values()->all();
     }
 }

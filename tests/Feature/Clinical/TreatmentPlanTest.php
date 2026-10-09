@@ -7,6 +7,7 @@ use App\Domain\Clinical\Dispensary\Models\DispensaryCase;
 use App\Domain\Clinical\Dispensary\Models\DispensaryHandoff;
 use App\Domain\Clinical\Dispensary\Models\DispensaryItem;
 use App\Domain\Clinical\Dispensary\Models\DispensaryItemException;
+use App\Domain\Clinical\Dispensary\Models\DispensaryServiceLine;
 use App\Domain\Clinical\Dispensary\Services\DispensaryDirectoryService;
 use App\Domain\Clinical\Dispensary\Services\DispensaryHandoffService;
 use App\Domain\Clinical\Dispensary\Services\DispensaryService;
@@ -1647,6 +1648,215 @@ class TreatmentPlanTest extends ClinicalTestCase
         // An edited line may exceed the doctor's quantity; that is the point of the change.
         DB::table('dispensary_items')->where('id', $id)->update(['status' => 'dispensed', 'quantity_dispensed' => '5.000', 'reason' => null, 'change_state' => 'edited']);
         $this->assertSame('5.000', DB::table('dispensary_items')->where('id', $id)->value('quantity_dispensed'));
+    }
+
+    /** @param array<string, mixed> $f */
+    private function serviceLine(array $f): DispensaryServiceLine
+    {
+        return DispensaryServiceLine::query()->where('dispensary_handoff_id', $f['case']->handoffs()->where('status', DispensaryHandoff::STATUS_OPEN)->value('id'))->whereNotNull('treatment_plan_service_order_id')->sole();
+    }
+
+    /** @param array<string, mixed> $f @return array<string, mixed> */
+    private function servicePayloadFor(array $f, DispensaryServiceLine $line, string $quantity, ?string $instruction = null): array
+    {
+        return ['expected_branch_id' => $f['visit']->branch_id, 'case_lock_version' => $f['case']->refresh()->lock_version, 'line_lock_version' => $line->refresh()->lock_version, 'quantity_performed' => $quantity, 'clinical_instruction' => $instruction ?? $line->clinical_instruction];
+    }
+
+    public function test_a_ca_confirms_and_edits_a_service_and_the_doctors_evidence_is_kept(): void
+    {
+        $f = $this->stockedPartialFixture(true);
+        $line = $this->serviceLine($f);
+        $order = $line->serviceOrder()->firstOrFail();
+        $orderBefore = $order->attributesToArray();
+        $deliveryBefore = DB::table('service_deliveries')->where('treatment_plan_service_order_id', $order->id)->first();
+        $this->assertSame('not_performed', $line->disposition, 'the line starts from the doctor\'s confirmation');
+        $this->assertSame(DispensaryServiceLine::CHANGE_UNCHANGED, $line->change_state);
+
+        $edited = app(DispensaryService::class)->editServiceLine($f['ca'], $f['case']->refresh(), $line, $this->servicePayloadFor($f, $line, '1.000', 'Done at the counter'));
+
+        $this->assertSame('performed', $edited->disposition);
+        $this->assertSame('1.000', $edited->quantity_performed);
+        $this->assertSame(DispensaryServiceLine::CHANGE_EDITED, $edited->change_state);
+        $this->assertSame('Done at the counter', $edited->final_instruction);
+        $this->assertSame('Done at the counter', $edited->effectiveInstruction());
+        $this->assertSame($f['ca']->id, $edited->confirmed_by_user_id, 'the CA confirms performance');
+        $this->assertSame($orderBefore, $order->fresh()->attributesToArray(), 'the treatment-plan service order is untouched');
+        $this->assertEquals($deliveryBefore, DB::table('service_deliveries')->where('treatment_plan_service_order_id', $order->id)->first(), 'the doctor\'s delivery evidence is untouched');
+        $audit = AuditLog::query()->where('event', 'dispensary.service_edited')->sole();
+        $this->assertStringNotContainsString('Done at the counter', $audit->toJson());
+
+        $again = app(DispensaryService::class)->editServiceLine($f['ca'], $f['case']->refresh(), $edited, $this->servicePayloadFor($f, $edited, '0', $line->clinical_instruction));
+        $this->assertSame('not_performed', $again->disposition);
+        $this->assertSame(DispensaryServiceLine::CHANGE_UNCHANGED, $again->change_state, 'back to the doctor\'s values means unchanged');
+        $this->assertNull($again->final_instruction);
+    }
+
+    public function test_the_ca_adds_removes_and_restores_services(): void
+    {
+        $f = $this->stockedPartialFixture(true);
+        $extra = $this->serviceCatalogue($f['doctor']);
+        $service = app(DispensaryService::class);
+        $add = ['expected_branch_id' => $f['visit']->branch_id, 'case_lock_version' => $f['case']->refresh()->lock_version, 'service_public_id' => $extra->public_id, 'quantity_performed' => '2.000', 'clinical_instruction' => 'Walk-in service'];
+
+        $added = $service->addServiceLine($f['ca'], $f['case']->refresh(), $add);
+
+        $this->assertSame(DispensaryServiceLine::SOURCE_CA, $added->source);
+        $this->assertSame(DispensaryServiceLine::CHANGE_ADDED, $added->change_state);
+        $this->assertNull($added->treatment_plan_service_order_id);
+        $this->assertSame('performed', $added->disposition);
+        $this->assertSame(1, AuditLog::query()->where('event', 'dispensary.service_added')->count());
+
+        foreach ([['service_public_id', [...$add, 'case_lock_version' => $f['case']->refresh()->lock_version]], ['service_public_id', [...$add, 'service_public_id' => (string) Str::uuid(), 'case_lock_version' => $f['case']->lock_version]], ['quantity_performed', [...$add, 'quantity_performed' => '0', 'service_public_id' => $this->serviceCatalogue($f['doctor'])->public_id, 'case_lock_version' => $f['case']->lock_version]]] as [$key, $payload]) {
+            try {
+                $service->addServiceLine($f['ca'], $f['case']->refresh(), $payload);
+                $this->fail("Accepted an invalid {$key}.");
+            } catch (ValidationException $exception) {
+                $this->assertArrayHasKey($key, $exception->errors());
+            }
+        }
+
+        $removed = $service->removeServiceLine($f['ca'], $f['case']->refresh(), $added, ['expected_branch_id' => $f['visit']->branch_id, 'case_lock_version' => $f['case']->lock_version, 'line_lock_version' => $added->refresh()->lock_version]);
+        $this->assertSame(DispensaryServiceLine::CHANGE_REMOVED, $removed->change_state);
+        $this->assertSame('0.000', $removed->quantity_performed);
+        $this->assertSame('not_performed', $removed->disposition);
+        $this->assertDatabaseHas('dispensary_service_lines', ['id' => $added->id]);
+
+        $restored = $service->editServiceLine($f['ca'], $f['case']->refresh(), $removed, $this->servicePayloadFor($f, $removed, '2.000', 'Walk-in service'));
+        $this->assertSame(DispensaryServiceLine::CHANGE_ADDED, $restored->change_state);
+        $this->assertSame('performed', $restored->disposition);
+    }
+
+    public function test_service_lines_need_the_owning_ca_and_the_current_version(): void
+    {
+        $f = $this->stockedPartialFixture(true);
+        $line = $this->serviceLine($f);
+        $other = $this->actor('ca');
+        $this->selectBranch($other, $f['visit']->branch);
+
+        try {
+            app(DispensaryService::class)->editServiceLine($other, $f['case']->refresh(), $line, $this->servicePayloadFor($f, $line, '1.000'));
+            $this->fail('A CA who does not own the case edited a service.');
+        } catch (AuthorizationException) {
+            $this->assertSame('not_performed', $line->fresh()->disposition);
+        }
+        $stale = $this->servicePayloadFor($f, $line, '1.000');
+        $stale['line_lock_version'] += 5;
+        try {
+            app(DispensaryService::class)->editServiceLine($f['ca'], $f['case']->refresh(), $line, $stale);
+            $this->fail('A stale service version was accepted.');
+        } catch (ValidationException $exception) {
+            $this->assertArrayHasKey('line_lock_version', $exception->errors());
+        }
+        $this->expectException(ValidationException::class);
+        app(DispensaryService::class)->editServiceLine($f['ca'], $f['case']->refresh(), $line, $this->servicePayloadFor($f, $line, '-1'));
+    }
+
+    public function test_billing_uses_the_cas_final_service_list(): void
+    {
+        $f = $this->stockedPartialFixture(true);
+        $service = app(DispensaryService::class);
+        $line = $this->serviceLine($f);
+        $extra = $this->serviceCatalogue($f['doctor']);
+        $secondMedicine = $f['case']->refresh()->handoffs()->where('status', DispensaryHandoff::STATUS_OPEN)->sole()->items()->where('id', '<>', $f['item']->id)->sole();
+        $service->removeItem($f['ca'], $f['case']->refresh(), $secondMedicine, ['expected_branch_id' => $f['visit']->branch_id, 'case_lock_version' => $f['case']->lock_version, 'item_lock_version' => $secondMedicine->lock_version]);
+        $edited = $service->editServiceLine($f['ca'], $f['case']->refresh(), $line, $this->servicePayloadFor($f, $line, '1.000'));
+        $added = $service->addServiceLine($f['ca'], $f['case']->refresh(), ['expected_branch_id' => $f['visit']->branch_id, 'case_lock_version' => $f['case']->lock_version, 'service_public_id' => $extra->public_id, 'quantity_performed' => '2.000', 'clinical_instruction' => null]);
+        $service->complete($f['ca'], $f['case']->refresh(), ['expected_branch_id' => $f['visit']->branch_id, 'case_lock_version' => $f['case']->lock_version]);
+
+        $book = new PriceBook;
+        $book->forceFill(['public_id' => (string) Str::uuid(), 'organisation_id' => $f['ca']->organisation_id, 'scope_key' => 'organisation', 'name' => 'Synthetic billing prices', 'currency' => 'MYR'])->save();
+        $charges = [
+            ['consultation', 'consultation', ['unit' => 'consultation'], 4000],
+            ['medicine', 'medicine:'.$f['item']->medicine_catalogue_item_id, ['medicine_catalogue_item_id' => $f['item']->medicine_catalogue_item_id, 'unit' => $f['item']->unit_snapshot], 100],
+            ['service', 'service:'.$edited->clinical_service_catalogue_item_id, ['clinical_service_catalogue_item_id' => $edited->clinical_service_catalogue_item_id, 'unit' => $edited->unit_snapshot], 500],
+            ['service', 'service:'.$added->clinical_service_catalogue_item_id, ['clinical_service_catalogue_item_id' => $added->clinical_service_catalogue_item_id, 'unit' => $added->unit_snapshot], 300],
+        ];
+        foreach ($charges as $index => [$type, $source, $extraColumns, $price]) {
+            $charge = new ChargeDefinition;
+            $charge->forceFill(['public_id' => (string) Str::uuid(), 'organisation_id' => $f['ca']->organisation_id, 'type' => $type, 'code' => 'UAT-'.$type.$index, 'display_name' => 'Synthetic '.$type, 'source_key' => $source, ...$extraColumns])->save();
+            (new PriceEntry)->forceFill(['organisation_id' => $f['ca']->organisation_id, 'price_book_id' => $book->id, 'charge_definition_id' => $charge->id, 'version' => 1, 'unit_price_sen' => $price, 'effective_at' => now()->subMinute(), 'published_by_user_id' => $f['ca']->id])->save();
+        }
+        $builder = app(BillingBuilderService::class);
+        $invoice = $builder->build($f['ca'], $f['visit'], ['expected_branch_id' => $f['visit']->branch_id, 'lock_version' => null]);
+
+        $lines = InvoiceLine::query()->where('invoice_id', $invoice->id)->where('line_type', 'service')->orderBy('id')->get();
+        $this->assertSame(['1.000', '2.000'], $lines->pluck('quantity')->all());
+        $this->assertSame([$edited->id, $added->id], $lines->pluck('dispensary_service_line_id')->all());
+        $this->assertSame([null, null], $lines->pluck('service_delivery_id')->all());
+        $this->assertSame(['dservice:'.$edited->id, 'dservice:'.$added->id], $lines->pluck('source_key')->all());
+        $this->assertSame(4000 + 50 + 500 + 600, $invoice->total_sen);
+        $builder->finalize($f['ca'], $f['visit'], $invoice, ['expected_branch_id' => $f['visit']->branch_id, 'lock_version' => $invoice->lock_version]);
+    }
+
+    public function test_the_dispensary_detail_lists_services_beside_the_doctors_confirmation(): void
+    {
+        $f = $this->stockedPartialFixture(true);
+        $line = $this->serviceLine($f);
+        app(DispensaryService::class)->editServiceLine($f['ca'], $f['case']->refresh(), $line, $this->servicePayloadFor($f, $line, '1.000', 'Done'));
+
+        $detail = app(DispensaryDirectoryService::class)->detail($f['ca'], $f['case']->refresh());
+        $this->assertCount(1, $detail['services']);
+        $row = $detail['services'][0];
+        $this->assertSame('1.000', $row['quantityPerformed']);
+        $this->assertSame('Done', $row['instruction']);
+        $this->assertSame('edited', $row['changeState']);
+        $this->assertSame('0.000', $row['original']['quantity']);
+        $this->assertSame('doctor', $row['source']);
+    }
+
+    public function test_the_service_routes_stay_on_the_case_when_refused_and_are_closed_to_other_roles(): void
+    {
+        $f = $this->stockedPartialFixture(true);
+        $line = $this->serviceLine($f);
+        $url = route('dispensary.services.edit', [$f['case'], $line]);
+
+        $this->actingAs($f['ca'])->withSession(['_previous' => ['url' => 'http://localhost/check-in/status']])
+            ->put($url, [...$this->servicePayloadFor($f, $line, '1.000'), 'quantity_performed' => 'abc'])
+            ->assertRedirect(route('dispensary.show', $f['case']))->assertSessionHasErrors('quantity_performed');
+
+        $this->actingAs($f['ca'])->put($url, $this->servicePayloadFor($f, $line, '1.000'))
+            ->assertRedirect(route('dispensary.show', $f['case']))->assertSessionHasNoErrors();
+        $this->assertSame('performed', $line->fresh()->disposition);
+
+        $this->actingAs($f['ca'])->postJson(route('dispensary.services.search', $f['case']), ['query' => 'Synthetic'])->assertOk()->assertJsonStructure(['data']);
+
+        $this->selectBranch($f['doctor'], $f['visit']->branch);
+        $this->actingAs($f['doctor'])->put($url, $this->servicePayloadFor($f, $line, '3.000'))->assertForbidden();
+        $this->actingAs($f['doctor'])->postJson(route('dispensary.services.search', $f['case']), ['query' => 'Synthetic'])->assertForbidden();
+    }
+
+    public function test_the_database_rejects_inconsistent_service_lines_and_the_backfill_restores_them(): void
+    {
+        if (DB::connection()->getDriverName() !== 'pgsql') {
+            $this->markTestSkipped('The service-line constraints exist on PostgreSQL only.');
+        }
+        $f = $this->stockedPartialFixture(true);
+        $line = $this->serviceLine($f);
+        $bad = [
+            'performed with zero quantity' => ['disposition' => 'performed', 'quantity_performed' => '0.000'],
+            'not performed with a quantity' => ['disposition' => 'not_performed', 'quantity_performed' => '1.000'],
+            'a doctor line marked added' => ['disposition' => 'performed', 'quantity_performed' => '1.000', 'change_state' => 'added'],
+            'a removed line that is performed' => ['disposition' => 'performed', 'quantity_performed' => '1.000', 'change_state' => 'removed'],
+            'an unknown change state' => ['change_state' => 'rewritten'],
+            'a CA line that points at a doctor order' => ['source' => 'ca', 'change_state' => 'added'],
+        ];
+        foreach ($bad as $label => $values) {
+            try {
+                DB::transaction(fn () => DB::table('dispensary_service_lines')->where('id', $line->id)->update($values));
+                $this->fail("The database accepted {$label}.");
+            } catch (QueryException $exception) {
+                $this->assertSame('23514', $exception->errorInfo[0] ?? null, $label);
+            }
+        }
+
+        $before = DB::table('dispensary_service_lines')->where('id', $line->id)->first();
+        DB::table('dispensary_service_lines')->where('id', $line->id)->delete();
+        $migration = require base_path('database/migrations/2026_10_09_000200_add_dispensary_service_lines.php');
+        (new \ReflectionMethod($migration, 'backfill'))->invoke($migration);
+        $after = DB::table('dispensary_service_lines')->where('treatment_plan_service_order_id', $before->treatment_plan_service_order_id)->sole();
+        foreach (['dispensary_handoff_id', 'clinical_service_catalogue_item_id', 'service_name_snapshot', 'quantity_ordered', 'disposition', 'quantity_performed', 'doctor_quantity_performed', 'source', 'change_state', 'confirmed_by_user_id'] as $column) {
+            $this->assertEquals($before->{$column}, $after->{$column}, $column);
+        }
     }
 
     private function medicineCatalogue(User $doctor): MedicineCatalogueItem
