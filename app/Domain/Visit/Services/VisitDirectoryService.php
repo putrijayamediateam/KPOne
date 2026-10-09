@@ -349,7 +349,7 @@ class VisitDirectoryService
             'priority' => $visit->priority,
             'status' => $visit->status,
             'queueNumber' => $visibleQueueEntry ? QueueNumberFormat::format($visibleQueueEntry->queue_number) : ($otcEntry ? QueueNumberFormat::format($otcEntry->queue_number, QueueNumberFormat::OTC) : null),
-            'queueStatus' => $visibleQueueEntry?->status ?? ($otcWaiting ? OtcQueueEntry::STATUS_WAITING : null),
+            'queueStatus' => $visibleQueueEntry->status ?? ($otcWaiting ? OtcQueueEntry::STATUS_WAITING : null),
             'queueRemovalReason' => $visibleQueueEntry?->removal_reason,
             'isHeld' => $activeHold !== null,
             'holdStartedAt' => $activeHold?->held_at->toIso8601String(),
