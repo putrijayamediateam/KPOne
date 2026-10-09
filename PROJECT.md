@@ -1,8 +1,14 @@
 # KPOne project
 
-Latest merged delivery: PR #70 — billing payment guidance, merged as `8fd95c5`. Recent merges, newest first
+Latest merged delivery: PR #78 — CA-edited services at Dispensary, merged as `1cdd1a7`. Recent merges, newest first
 (documentation-only PRs omitted):
 
+- PR #78 (`1cdd1a7`) — DS-01a-services: the CA edits, adds, removes and confirms services at Dispensary; the doctor's
+  service order stays as the original and billing uses the CA-confirmed lines.
+- PR #77 (`55594bf`) — DS-01a: the CA edits, adds and removes medicines at Dispensary with the doctor's original
+  order kept beside it, and completing is the CA's own verification (no CA allergy tick).
+- PR #75 (`2252f3d`) — finance officers, panel officers and directors see invoice lines.
+- PR #74 (`843e61c`) — refused Dispensary and Billing actions stay on their page; TV Screen menu link; header cleanup.
 - PR #70 (`8fd95c5`) — billing page guidance: separate "Amount received" and Panel or pay later amount fields, a
   "How to settle this invoice" note, a six-step Panel guide, and hints under a waiting proposal and a disabled
   Add Payment. Wording and layout only; amounts, approval limits and permissions are unchanged.
