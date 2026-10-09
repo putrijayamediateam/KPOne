@@ -23,11 +23,15 @@ class DispensaryCase extends Model
 
     public const STATUS_COMPLETED = 'completed';
 
+    public const TYPE_CONSULTATION = 'consultation';
+
+    public const TYPE_OTC = 'otc';
+
     protected static function booted(): void
     {
         static::deleting(fn (): never => throw new LogicException('Dispensary Cases are retained clinical-operational records.'));
         static::updating(function (self $case): void {
-            foreach (['public_id', 'organisation_id', 'branch_id', 'visit_id', 'clinical_encounter_id', 'treatment_plan_id'] as $field) {
+            foreach (['public_id', 'organisation_id', 'branch_id', 'visit_id', 'clinical_encounter_id', 'treatment_plan_id', 'case_type'] as $field) {
                 if ($case->isDirty($field)) {
                     throw new LogicException('Dispensary Case ownership is immutable.');
                 }
