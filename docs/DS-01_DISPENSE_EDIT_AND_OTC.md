@@ -85,9 +85,11 @@ Visit History); it is a one-line change.
 ## 7. Delivery plan (separate branches, each with red-green tests and a PostgreSQL 18 run)
 
 1. **DS-01a** *(built)* Dispensed-list columns + CA edit/add/remove of **medicines** + CA verification on the
-   existing consultation Dispensary page; Billing reads the dispensed list. **DS-01a-services** *(next)*: the CA
-   edits services and confirms performance (I4), which touches the immutable `ServiceDelivery` evidence and the
-   service rules in `BillingSourceService`.
+   existing consultation Dispensary page; Billing reads the dispensed list. **DS-01a-services** *(built)*: the CA
+   edits, adds and removes services and confirms performance (I4) in `dispensary_service_lines`, one set per handoff,
+   started from the doctor's confirmation; the doctor's order and `service_deliveries` evidence are untouched;
+   billing reads the CA's lines for visits that go through Dispensary (`invoice_lines.dispensary_service_line_id`,
+   PostgreSQL reconciliation updated). A visit that bypasses Dispensary still bills the doctor's confirmation.
 2. **DS-01b** OTC dispense case, Registration action, OTC billing source, OTC completion.
 3. **DS-01c** Visit Record: Ordered vs Dispensed, OTC, doctor's previous-consultation link.
 4. **DS-01d** New Dispensary page design (the editable layout) and removal of the Pending/Partial/Not

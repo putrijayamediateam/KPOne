@@ -63,7 +63,10 @@ test("completing is the CA's own verification step, and unsaved lines block it",
     assert.match(page, /Verify before completing/);
     assert.match(page, /data-testid="dispensary-complete-confirm"/);
     assert.match(page, /caseAction\('complete'\)/);
-    assert.match(page, /:disabled="busy \|\| unsaved\.length > 0"/);
+    assert.match(
+        page,
+        /:disabled="\s*busy \|\| unsaved\.length > 0 \|\| unsavedServices\.length > 0\s*"/,
+    );
     // owner decision 2026-10-09: the doctor's allergy confirmation stands, so there is no CA allergy tick
     assert.doesNotMatch(page, /allergyChecked|allergy_checked/);
     assert.match(page, /data-testid="dispensary-allergies"/);
@@ -86,6 +89,57 @@ test('the edit routes are permission-gated', () => {
     ]) {
         const pattern = new RegExp(
             `Route::${method}\\('dispensary/\\{dispensaryCase\\}/${path.replace(/[{}/]/g, '\\$&')}'[\\s\\S]*?permission:${permission.replaceAll('.', '\\.')}`,
+        );
+        assert.match(routes, pattern, `${method} ${path}`);
+    }
+});
+
+test('the CA edits, adds, removes and confirms services on the same page', () => {
+    assert.match(page, /data-testid="dispensary-services"/);
+
+    for (const field of [
+        'service-quantity',
+        'service-instruction',
+        'service-search',
+        'add-service-quantity',
+    ]) {
+        assert.ok(page.includes(`data-field="${field}"`), field);
+    }
+
+    for (const action of [
+        'save-service',
+        'remove-service',
+        'restore-service',
+        'choose-service',
+        'add-service',
+    ]) {
+        assert.ok(page.includes(`data-action="${action}"`), action);
+    }
+
+    assert.match(
+        page,
+        /\/dispensary\/\$\{props\.dispensary\.publicId\}\/services\/\$\{line\.publicId\}\/final/,
+    );
+    assert.match(
+        page,
+        /\/dispensary\/\$\{props\.dispensary\.publicId\}\/services\/search/,
+    );
+    assert.match(page, /Confirm and save/);
+    assert.match(page, /Enter 0 if the service was not performed\./);
+    assert.match(page, /Doctor ordered/);
+    // an unsaved service blocks Complete, like an unsaved medicine
+    assert.match(page, /unsaved\.length > 0 \|\| unsavedServices\.length > 0/);
+});
+
+test('the service routes are permission-gated', () => {
+    for (const [method, path] of [
+        ['post', 'services'],
+        ['put', 'services/{line}/final'],
+        ['post', 'services/{line}/remove'],
+        ['post', 'services/search'],
+    ]) {
+        const pattern = new RegExp(
+            `Route::${method}\\('dispensary/\\{dispensaryCase\\}/${path.replace(/[{}/]/g, '\\$&')}'[\\s\\S]*?permission:dispensary\\.update\\.branch`,
         );
         assert.match(routes, pattern, `${method} ${path}`);
     }

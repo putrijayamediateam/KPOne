@@ -8,8 +8,10 @@ use App\Domain\Clinical\Dispensary\Models\DispensaryHandoff;
 use App\Domain\Clinical\Dispensary\Models\DispensaryItem;
 use App\Domain\Clinical\Dispensary\Models\DispensaryItemBatchAllocation;
 use App\Domain\Clinical\Dispensary\Models\DispensaryItemException;
+use App\Domain\Clinical\Dispensary\Models\DispensaryServiceLine;
 use App\Domain\Clinical\Models\ClinicalEncounter;
 use App\Domain\Clinical\Models\ClinicalEncounterAllergyReview;
+use App\Domain\Clinical\Models\ClinicalServiceCatalogueItem;
 use App\Domain\Clinical\Models\ConsultationCheckout;
 use App\Domain\Clinical\Models\MedicineCatalogueItem;
 use App\Domain\Clinical\Models\PatientAllergyProfile;
@@ -278,6 +280,122 @@ class DispensaryService
         return $clean;
     }
 
+    /**
+     * DS-01a-services: the CA saves the final version of one service: how much was performed and the
+     * instruction. Confirming performance is the CA's at Dispensary; the doctor's confirmation and the
+     * order are never touched.
+     *
+     * @param  array<string,mixed>  $attributes
+     */
+    public function editServiceLine(User $actor, DispensaryCase $case, DispensaryServiceLine $line, array $attributes): DispensaryServiceLine
+    {
+        $this->caTransaction($actor, $case, $attributes, 'dispensary.update.branch', function ($context) use ($line, $attributes): void {
+            [$actor,$branch,$case,$handoff] = $context;
+            $locked = $this->lockedServiceLine($actor, $case, $handoff, $line, $attributes);
+            $quantity = $this->nonNegativeQuantity($attributes['quantity_performed'] ?? null);
+            $instruction = $this->cleanValue($attributes['clinical_instruction'] ?? null);
+            $changed = (float) $quantity !== (float) ($locked->doctor_quantity_performed ?? $locked->quantity_ordered)
+                || $instruction !== $this->cleanValue($locked->clinical_instruction);
+            $locked->forceFill([
+                'quantity_performed' => $quantity, 'disposition' => (float) $quantity > 0 ? DispensaryServiceLine::DISPOSITION_PERFORMED : DispensaryServiceLine::DISPOSITION_NOT_PERFORMED,
+                'performed_at' => (float) $quantity > 0 ? now()->utc() : null,
+                'final_instruction' => $instruction !== $this->cleanValue($locked->clinical_instruction) ? $instruction : null,
+                'change_state' => $locked->source === DispensaryServiceLine::SOURCE_CA ? DispensaryServiceLine::CHANGE_ADDED : ($changed ? DispensaryServiceLine::CHANGE_EDITED : DispensaryServiceLine::CHANGE_UNCHANGED),
+                'confirmed_by_user_id' => $actor->id, 'confirmed_at' => now()->utc(), 'lock_version' => $locked->lock_version + 1,
+            ])->save();
+            $case->forceFill(['lock_version' => $case->lock_version + 1])->save();
+            $this->audit->record('dispensary.service_edited', $case, ['record_version' => $case->lock_version, 'change_state' => $locked->change_state], $actor, $branch);
+        });
+
+        return $line->fresh();
+    }
+
+    /**
+     * DS-01a-services: the CA adds a service the doctor did not order. It has no treatment-plan order.
+     *
+     * @param  array<string,mixed>  $attributes
+     */
+    public function addServiceLine(User $actor, DispensaryCase $case, array $attributes): DispensaryServiceLine
+    {
+        $created = null;
+        $this->caTransaction($actor, $case, $attributes, 'dispensary.update.branch', function ($context) use ($attributes, &$created): void {
+            [$actor,$branch,$case,$handoff] = $context;
+            $this->assertEditable($actor, $case);
+            $service = ClinicalServiceCatalogueItem::query()->where('public_id', (string) ($attributes['service_public_id'] ?? ''))->where('organisation_id', $actor->organisation_id)->where('is_active', true)->first();
+            if (! $service) {
+                throw ValidationException::withMessages(['service_public_id' => 'Choose an active service from the catalogue.']);
+            }
+            $lines = DispensaryServiceLine::query()->where('dispensary_handoff_id', $handoff->id)->orderBy('id')->lockForUpdate()->get();
+            if ($lines->contains(fn (DispensaryServiceLine $existing): bool => $existing->clinical_service_catalogue_item_id === $service->id && $existing->change_state !== DispensaryServiceLine::CHANGE_REMOVED)) {
+                throw ValidationException::withMessages(['service_public_id' => 'This service is already on the list. Edit the existing line instead.']);
+            }
+            $quantity = $this->nonNegativeQuantity($attributes['quantity_performed'] ?? null);
+            if ((float) $quantity <= 0) {
+                throw ValidationException::withMessages(['quantity_performed' => 'Enter a quantity above zero for a service you add.']);
+            }
+            $instruction = $this->cleanValue($attributes['clinical_instruction'] ?? null);
+            $line = new DispensaryServiceLine;
+            $line->forceFill([
+                'public_id' => (string) Str::uuid(), 'organisation_id' => $actor->organisation_id, 'branch_id' => $branch->id, 'dispensary_handoff_id' => $handoff->id,
+                'treatment_plan_service_order_id' => null, 'clinical_service_catalogue_item_id' => $service->id, 'service_code_snapshot' => $service->code,
+                'service_name_snapshot' => $service->display_name, 'unit_snapshot' => $service->order_unit, 'quantity_ordered' => $quantity, 'clinical_instruction' => $instruction,
+                'doctor_quantity_performed' => null, 'disposition' => DispensaryServiceLine::DISPOSITION_PERFORMED, 'quantity_performed' => $quantity, 'performed_at' => now()->utc(),
+                'source' => DispensaryServiceLine::SOURCE_CA, 'change_state' => DispensaryServiceLine::CHANGE_ADDED,
+                'confirmed_by_user_id' => $actor->id, 'confirmed_at' => now()->utc(), 'lock_version' => 1,
+            ])->save();
+            $case->forceFill(['lock_version' => $case->lock_version + 1])->save();
+            $this->audit->record('dispensary.service_added', $case, ['record_version' => $case->lock_version], $actor, $branch);
+            $created = $line;
+        });
+
+        return $created->fresh();
+    }
+
+    /**
+     * DS-01a-services: the CA takes a service off the final list. The row stays, marked removed.
+     *
+     * @param  array<string,mixed>  $attributes
+     */
+    public function removeServiceLine(User $actor, DispensaryCase $case, DispensaryServiceLine $line, array $attributes): DispensaryServiceLine
+    {
+        $this->caTransaction($actor, $case, $attributes, 'dispensary.update.branch', function ($context) use ($line, $attributes): void {
+            [$actor,$branch,$case,$handoff] = $context;
+            $locked = $this->lockedServiceLine($actor, $case, $handoff, $line, $attributes);
+            $locked->forceFill([
+                'quantity_performed' => '0.000', 'disposition' => DispensaryServiceLine::DISPOSITION_NOT_PERFORMED, 'performed_at' => null,
+                'change_state' => DispensaryServiceLine::CHANGE_REMOVED, 'confirmed_by_user_id' => $actor->id, 'confirmed_at' => now()->utc(),
+                'lock_version' => $locked->lock_version + 1,
+            ])->save();
+            $case->forceFill(['lock_version' => $case->lock_version + 1])->save();
+            $this->audit->record('dispensary.service_removed', $case, ['record_version' => $case->lock_version, 'source' => $locked->source], $actor, $branch);
+        });
+
+        return $line->fresh();
+    }
+
+    /** @param array<string,mixed> $attributes */
+    private function lockedServiceLine(User $actor, DispensaryCase $case, DispensaryHandoff $handoff, DispensaryServiceLine $line, array $attributes): DispensaryServiceLine
+    {
+        $locked = DispensaryServiceLine::query()->whereKey($line->id)->where('dispensary_handoff_id', $handoff->id)->lockForUpdate()->first();
+        abort_unless($locked !== null, 404);
+        $this->assertEditable($actor, $case);
+        if ($locked->lock_version !== (int) ($attributes['line_lock_version'] ?? 0)) {
+            $this->stale('line_lock_version');
+        }
+
+        return $locked;
+    }
+
+    private function nonNegativeQuantity(mixed $raw): string
+    {
+        $quantity = is_numeric($raw) ? number_format((float) $raw, 3, '.', '') : null;
+        if ($quantity === null || (float) $quantity < 0 || (float) $quantity > 999999999.999) {
+            throw ValidationException::withMessages(['quantity_performed' => 'Enter how much was performed, or 0 if it was not performed.']);
+        }
+
+        return $quantity;
+    }
+
     /** @param array<string,mixed> $attributes */
     public function returnToDoctor(User $actor, DispensaryCase $case, array $attributes): DispensaryCase
     {
@@ -448,6 +566,7 @@ class DispensaryService
                 'edited_lines' => $items->where('change_state', DispensaryItem::CHANGE_EDITED)->count(),
                 'added_lines' => $items->where('change_state', DispensaryItem::CHANGE_ADDED)->count(),
                 'removed_lines' => $items->where('change_state', DispensaryItem::CHANGE_REMOVED)->count(),
+                'service_lines_changed' => DispensaryServiceLine::query()->where('dispensary_handoff_id', $handoff->id)->where('change_state', '<>', DispensaryServiceLine::CHANGE_UNCHANGED)->count(),
             ], $actor, $branch);
         });
     }

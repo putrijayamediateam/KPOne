@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Domain\Clinical\Dispensary\Models\DispensaryCase;
 use App\Domain\Clinical\Dispensary\Models\DispensaryItem;
 use App\Domain\Clinical\Dispensary\Models\DispensaryItemException;
+use App\Domain\Clinical\Dispensary\Models\DispensaryServiceLine;
 use App\Domain\Clinical\Dispensary\Services\DispensaryDirectoryService;
 use App\Domain\Clinical\Dispensary\Services\DispensaryService;
 use App\Domain\Organisation\Models\Branch;
@@ -12,10 +13,14 @@ use App\Domain\Queue\Display\RoomCallService;
 use App\Domain\Queue\Models\BranchRoom;
 use App\Http\Requests\AcknowledgeDispensaryPartialRequest;
 use App\Http\Requests\AddDispensaryItemRequest;
+use App\Http\Requests\AddDispensaryServiceLineRequest;
 use App\Http\Requests\DispensaryCaseActionRequest;
 use App\Http\Requests\EditDispensaryItemRequest;
+use App\Http\Requests\EditDispensaryServiceLineRequest;
 use App\Http\Requests\RemoveDispensaryItemRequest;
+use App\Http\Requests\RemoveDispensaryServiceLineRequest;
 use App\Http\Requests\SearchDispensaryMedicinesRequest;
+use App\Http\Requests\SearchDispensaryServicesRequest;
 use App\Http\Requests\UpdateDispensaryItemRequest;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -91,6 +96,35 @@ class DispensaryController extends Controller
     public function searchMedicines(SearchDispensaryMedicinesRequest $request, DispensaryCase $dispensaryCase, DispensaryDirectoryService $directory): JsonResponse
     {
         return response()->json(['data' => $directory->searchMedicines($request->user(), $dispensaryCase, $request->validated('query'))]);
+    }
+
+    public function addService(AddDispensaryServiceLineRequest $request, DispensaryCase $dispensaryCase, DispensaryService $service): RedirectResponse
+    {
+        $this->stayOnCase($dispensaryCase, fn () => $service->addServiceLine($request->user(), $dispensaryCase, $request->validated()));
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'Service added to the list.']);
+
+        return to_route('dispensary.show', $dispensaryCase);
+    }
+
+    public function editService(EditDispensaryServiceLineRequest $request, DispensaryCase $dispensaryCase, DispensaryServiceLine $line, DispensaryService $service): RedirectResponse
+    {
+        $this->stayOnCase($dispensaryCase, fn () => $service->editServiceLine($request->user(), $dispensaryCase, $line, $request->validated()));
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'Service saved.']);
+
+        return to_route('dispensary.show', $dispensaryCase);
+    }
+
+    public function removeService(RemoveDispensaryServiceLineRequest $request, DispensaryCase $dispensaryCase, DispensaryServiceLine $line, DispensaryService $service): RedirectResponse
+    {
+        $this->stayOnCase($dispensaryCase, fn () => $service->removeServiceLine($request->user(), $dispensaryCase, $line, $request->validated()));
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'Service removed from the list.']);
+
+        return to_route('dispensary.show', $dispensaryCase);
+    }
+
+    public function searchServices(SearchDispensaryServicesRequest $request, DispensaryCase $dispensaryCase, DispensaryDirectoryService $directory): JsonResponse
+    {
+        return response()->json(['data' => $directory->searchServices($request->user(), $dispensaryCase, $request->validated('query'))]);
     }
 
     public function returnToDoctor(DispensaryCaseActionRequest $request, DispensaryCase $dispensaryCase, DispensaryService $service): RedirectResponse
