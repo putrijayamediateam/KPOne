@@ -1,11 +1,15 @@
 export type DisplayCall = {
     id: number;
     number: string;
+    /** Full registered name; present only when the branch calls by name. */
+    name?: string | null;
     room: string | null;
     service?: CallService;
     calledAt: string;
     isRecall: boolean;
 };
+
+export type CallDisplayMode = 'number' | 'name';
 
 export type CallService = 'consultation' | 'dispensary' | 'treatment';
 
@@ -13,6 +17,7 @@ export type DisplaySettings = {
     tickerText: string | null;
     youtubeVideoId: string | null;
     posterSeconds: number;
+    callDisplayMode?: CallDisplayMode;
     posters: Array<{ id: string; url: string }>;
     lockVersion: number;
 };
@@ -174,9 +179,15 @@ export const spokenQueueNumber = (
         )
         .join(', ');
 
-/** The number one character at a time, then the room exactly as named in settings. */
+/** What the TV shows for a call: the full name in name mode (number if no name), else the number. */
+export const callLabel = (
+    call: Pick<DisplayCall, 'number' | 'name'>,
+): string =>
+    call.name && call.name.trim() !== '' ? call.name.trim() : call.number;
+
+/** The number one character at a time (or the name as written), then the room exactly as named in settings. */
 export const announcementText = (
-    call: Pick<DisplayCall, 'number' | 'room' | 'service'>,
+    call: Pick<DisplayCall, 'number' | 'name' | 'room' | 'service'>,
     language: AnnouncementLanguage,
 ): string => {
     const room =
@@ -184,5 +195,10 @@ export const announcementText = (
             ? call.room.trim()
             : SERVICE_FALLBACK[call.service ?? 'consultation'][language];
 
-    return `${spokenQueueNumber(call.number, language)}. ${room}.`;
+    const who =
+        call.name && call.name.trim() !== ''
+            ? call.name.trim()
+            : spokenQueueNumber(call.number, language);
+
+    return `${who}. ${room}.`;
 };

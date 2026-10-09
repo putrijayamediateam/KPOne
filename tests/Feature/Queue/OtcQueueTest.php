@@ -4,6 +4,7 @@ namespace Tests\Feature\Queue;
 
 use App\Domain\Clinical\Dispensary\Models\DispensaryCase;
 use App\Domain\Clinical\Dispensary\Services\OtcDispensaryService;
+use App\Domain\Queue\Display\QueueDisplayAdministrationService;
 use App\Domain\Queue\Display\QueueDisplayFeedService;
 use App\Domain\Queue\Display\RoomCallService;
 use App\Domain\Queue\Models\OtcQueueEntry;
@@ -136,6 +137,21 @@ class OtcQueueTest extends VisitTestCase
         $this->assertSame('dispensary', $feed['calls'][0]['service']);
         $this->assertStringNotContainsString($f['visit']->patient->full_name, json_encode($feed, JSON_THROW_ON_ERROR), 'the feed carries no patient identity');
         $this->assertSame('waiting', $this->row($f)['queueStatus'], 'a call only announces');
+    }
+
+    public function test_in_name_mode_an_otc_call_shows_the_full_registered_name(): void
+    {
+        $f = $this->fixture();
+        $this->enter($f);
+        app(QueueDisplayAdministrationService::class)->updateSettings($this->actor('ca_supervisor'), $f['visit']->branch, [
+            'ticker_text' => null, 'youtube_url' => null, 'poster_seconds' => 10, 'call_display_mode' => 'name', 'lock_version' => 0,
+        ]);
+        app(RoomCallService::class)->callOtcToDispensary($f['ca'], $f['visit'], null, ['expected_branch_id' => $f['visit']->branch_id]);
+
+        $call = app(QueueDisplayFeedService::class)->feed($f['visit']->branch)['calls'][0];
+
+        $this->assertSame($f['visit']->patient->full_name, $call['name']);
+        $this->assertSame('B-001', $call['number']);
     }
 
     public function test_a_repeat_call_is_a_recall_after_the_cooldown_and_refused_inside_it(): void

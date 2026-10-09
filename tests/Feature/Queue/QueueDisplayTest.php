@@ -7,6 +7,7 @@ use App\Domain\Audit\Models\AuditLog;
 use App\Domain\Organisation\Models\Branch;
 use App\Domain\Queue\Display\DoctorRoomService;
 use App\Domain\Queue\Display\QueueDisplayAdministrationService;
+use App\Domain\Queue\Display\QueueDisplayFeedService;
 use App\Domain\Queue\Models\BranchDisplaySetting;
 use App\Domain\Queue\Models\QueueCall;
 use App\Domain\Queue\Models\QueueEntry;
@@ -437,6 +438,7 @@ class QueueDisplayTest extends QueueTestCase
             'ticker_text' => "  Waktu operasi:\n8 pagi - 10 malam  ",
             'youtube_url' => 'https://youtu.be/dQw4w9WgXcQ',
             'poster_seconds' => 15,
+            'call_display_mode' => 'number',
             'lock_version' => 0,
         ]);
         $this->assertSame(1, $settings->lock_version);
@@ -444,7 +446,7 @@ class QueueDisplayTest extends QueueTestCase
 
         try {
             $service->updateSettings($supervisor, $this->branch, [
-                'ticker_text' => null, 'youtube_url' => null, 'poster_seconds' => 10, 'lock_version' => 0,
+                'ticker_text' => null, 'youtube_url' => null, 'poster_seconds' => 10, 'call_display_mode' => 'number', 'lock_version' => 0,
             ]);
             $this->fail('A stale settings version must be refused.');
         } catch (ValidationException $exception) {
@@ -457,6 +459,50 @@ class QueueDisplayTest extends QueueTestCase
             ->assertJsonPath('settings.tickerText', 'Waktu operasi: 8 pagi - 10 malam')
             ->assertJsonPath('settings.youtubeVideoId', 'dQw4w9WgXcQ')
             ->assertJsonPath('settings.posterSeconds', 15);
+    }
+
+    public function test_the_branch_chooses_to_call_by_number_or_by_full_registered_name(): void
+    {
+        $supervisor = $this->actor('ca_supervisor');
+        $ca = $this->actor('ca');
+        $doctor = $this->doctor();
+        $visit = $this->consultationVisit($ca, $doctor);
+        $entry = $this->send($ca, $visit);
+        $this->callIn($doctor, $visit, $entry->lock_version);
+        $feed = app(QueueDisplayFeedService::class);
+
+        $default = $feed->feed($this->branch);
+        $this->assertSame('number', $default['settings']['callDisplayMode'], 'a branch calls by number until it chooses otherwise');
+        $this->assertArrayNotHasKey('name', $default['calls'][0]);
+        $this->assertStringNotContainsString($visit->patient->full_name, json_encode($default, JSON_THROW_ON_ERROR));
+
+        app(QueueDisplayAdministrationService::class)->updateSettings($supervisor, $this->branch, [
+            'ticker_text' => null, 'youtube_url' => null, 'poster_seconds' => 10, 'call_display_mode' => 'name', 'lock_version' => 0,
+        ]);
+
+        $byName = $feed->feed($this->branch);
+        $this->assertSame('name', $byName['settings']['callDisplayMode']);
+        $this->assertSame($visit->patient->full_name, $byName['calls'][0]['name']);
+        $this->assertSame('A-001', $byName['calls'][0]['number'], 'the number stays available as a fallback');
+        $this->assertDatabaseHas('audit_logs', ['event' => 'queue_display.settings.updated']);
+    }
+
+    public function test_an_unknown_call_display_mode_is_refused(): void
+    {
+        $supervisor = $this->actor('ca_supervisor');
+
+        try {
+            app(QueueDisplayAdministrationService::class)->updateSettings($supervisor, $this->branch, [
+                'ticker_text' => null, 'youtube_url' => null, 'poster_seconds' => 10, 'call_display_mode' => 'initials', 'lock_version' => 0,
+            ]);
+            $this->fail('An unknown mode must be refused.');
+        } catch (ValidationException $exception) {
+            $this->assertArrayHasKey('call_display_mode', $exception->errors());
+        }
+        $this->actingAs($supervisor);
+        $this->patch(route('queue-display.settings.update', $this->branch->id), [
+            'ticker_text' => null, 'youtube_url' => null, 'poster_seconds' => 10, 'call_display_mode' => 'initials', 'lock_version' => 0,
+        ])->assertSessionHasErrors('call_display_mode');
     }
 
     public function test_posters_are_private_branch_scoped_and_removed_from_storage(): void

@@ -119,7 +119,7 @@ class QueueDisplayAdministrationService
         }, 3);
     }
 
-    /** @param array{ticker_text: string|null, youtube_url: string|null, poster_seconds: int, lock_version: int} $attributes */
+    /** @param array{ticker_text: string|null, youtube_url: string|null, poster_seconds: int, call_display_mode: string, lock_version: int} $attributes */
     public function updateSettings(User $actor, Branch $branch, array $attributes): BranchDisplaySetting
     {
         $this->access->authorizeManage($actor, $branch);
@@ -127,6 +127,7 @@ class QueueDisplayAdministrationService
             'ticker_text' => $this->ticker($attributes['ticker_text']),
             'youtube_video_id' => self::youtubeVideoId($attributes['youtube_url']),
             'poster_seconds' => (int) $attributes['poster_seconds'],
+            'call_display_mode' => $this->callMode($attributes['call_display_mode']),
         ];
 
         return DB::transaction(function () use ($actor, $branch, $attributes, $values): BranchDisplaySetting {
@@ -301,6 +302,7 @@ class QueueDisplayAdministrationService
                 'ticker_text' => null,
                 'youtube_video_id' => null,
                 'poster_seconds' => 10,
+                'call_display_mode' => BranchDisplaySetting::MODE_NUMBER,
                 'posters' => [],
                 'lock_version' => 0,
             ]);
@@ -346,6 +348,15 @@ class QueueDisplayAdministrationService
         }
 
         return $text === '' ? null : $text;
+    }
+
+    private function callMode(string $mode): string
+    {
+        if (! in_array($mode, BranchDisplaySetting::MODES, true)) {
+            $this->invalid('call_display_mode', 'Choose to call by queue number or by patient name.');
+        }
+
+        return $mode;
     }
 
     private function stale(): never

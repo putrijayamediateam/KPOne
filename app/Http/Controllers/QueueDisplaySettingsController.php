@@ -99,12 +99,14 @@ class QueueDisplaySettingsController extends Controller
             'ticker_text' => ['nullable', 'string', 'max:500'],
             'youtube_url' => ['nullable', 'string', 'max:300'],
             'poster_seconds' => ['required', 'integer', 'min:5', 'max:120'],
+            'call_display_mode' => ['required', 'string', Rule::in(BranchDisplaySetting::MODES)],
             'lock_version' => ['required', 'integer', 'min:0'],
         ]);
         $this->stay($branch, fn () => $service->updateSettings($request->user(), $branch, [
             'ticker_text' => $validated['ticker_text'] ?? null,
             'youtube_url' => $validated['youtube_url'] ?? null,
             'poster_seconds' => (int) $validated['poster_seconds'],
+            'call_display_mode' => (string) $validated['call_display_mode'],
             'lock_version' => (int) $validated['lock_version'],
         ]));
 
