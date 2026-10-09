@@ -85,6 +85,7 @@ const settingsForm = useForm({
     ticker_text: props.settings.tickerText ?? '',
     youtube_url: props.youtubeUrl ?? '',
     poster_seconds: props.settings.posterSeconds,
+    call_display_mode: props.settings.callDisplayMode ?? 'number',
     lock_version: props.settings.lockVersion,
 });
 watch(
@@ -95,6 +96,7 @@ watch(
                 ticker_text: settings.tickerText ?? '',
                 youtube_url: youtubeUrl ?? '',
                 poster_seconds: settings.posterSeconds,
+                call_display_mode: settings.callDisplayMode ?? 'number',
                 lock_version: settings.lockVersion,
             });
             settingsForm.reset();
@@ -366,6 +368,29 @@ const removePoster = (posterId: string) => {
         <section class="rounded-xl border bg-card p-4">
             <h2 class="text-sm font-semibold">Screen content</h2>
             <form class="mt-4 grid gap-3" @submit.prevent="saveSettings">
+                <label class="grid max-w-md gap-1 text-xs">
+                    Call patients by
+                    <select
+                        v-model="settingsForm.call_display_mode"
+                        class="h-9 rounded-md border bg-background px-2 text-sm"
+                        data-testid="call-display-mode"
+                    >
+                        <option value="number">
+                            Queue number (A-001, B-001)
+                        </option>
+                        <option value="name">
+                            Patient full name (as registered)
+                        </option>
+                    </select>
+                    <span class="text-muted-foreground">
+                        Applies to the TV list and the spoken call. In name mode
+                        the TV shows each patient's full name to everyone in the
+                        waiting room.
+                    </span>
+                    <InputError
+                        :message="settingsForm.errors.call_display_mode"
+                    />
+                </label>
                 <label class="grid gap-1 text-xs">
                     Scrolling text (shown at the bottom of the TV)
                     <Input

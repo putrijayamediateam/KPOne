@@ -5,6 +5,7 @@ import { JsonRequestError, requestJson } from '@/lib/json-client';
 import type { DisplayCall, DisplayFeed } from '@/lib/queue-display';
 import {
     announcementText,
+    callLabel,
     formatCallTime,
     formatDisplayDate,
     formatDisplayTime,
@@ -474,9 +475,15 @@ onBeforeUnmount(() => {
                     </p>
                     <template v-if="current">
                         <p
-                            class="font-mono text-7xl leading-none font-black tabular-nums lg:text-[9rem]"
+                            class="text-balance break-words"
+                            :class="
+                                current.name
+                                    ? 'text-5xl leading-tight font-black lg:text-8xl'
+                                    : 'font-mono text-7xl leading-none font-black tabular-nums lg:text-[9rem]'
+                            "
+                            data-testid="current-label"
                         >
-                            {{ current.number }}
+                            {{ callLabel(current) }}
                         </p>
                         <p
                             class="mt-3 text-3xl font-bold text-balance break-words lg:text-5xl"
@@ -532,8 +539,11 @@ onBeforeUnmount(() => {
                             "
                         >
                             <span
-                                class="font-mono text-3xl font-bold tabular-nums lg:text-5xl"
-                                >{{ call.number }}</span
+                                class="truncate text-3xl font-bold lg:text-5xl"
+                                :class="
+                                    call.name ? '' : 'font-mono tabular-nums'
+                                "
+                                >{{ callLabel(call) }}</span
                             >
                             <span
                                 class="truncate text-xl font-semibold lg:text-3xl"
