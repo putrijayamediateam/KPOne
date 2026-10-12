@@ -71,13 +71,20 @@ class VisitDirectoryService
                 'assignedDoctor:id,name',
                 'reasonAssignments.reason:id,public_id,name',
                 'queueEntry:id,organisation_id,branch_id,visit_id,operational_date,queue_number,status,queued_at,called_at,returned_from_dispensary_at,lock_version',
+                'otcQueueEntry:id,visit_id,queue_number,status,queued_at',
                 'clinicalEncounter.holds',
             ]);
 
         $boardStatus = (string) ($criteria['board_status'] ?? 'all');
-        if (in_array($boardStatus, [QueueEntry::STATUS_WAITING, QueueEntry::STATUS_SERVING], true)) {
+        if ($boardStatus === QueueEntry::STATUS_WAITING) {
             $query->where('status', Visit::STATUS_REGISTERED)
-                ->whereHas('queueEntry', fn ($queue) => $queue->where('status', $boardStatus));
+                ->where(fn ($waiting) => $waiting
+                    ->whereHas('queueEntry', fn ($queue) => $queue->where('status', QueueEntry::STATUS_WAITING))
+                    ->orWhere(fn ($otc) => $otc->where('visit_type', 'otc')
+                        ->whereHas('otcQueueEntry', fn ($entry) => $entry->where('status', OtcQueueEntry::STATUS_WAITING))));
+        } elseif ($boardStatus === QueueEntry::STATUS_SERVING) {
+            $query->where('status', Visit::STATUS_REGISTERED)
+                ->whereHas('queueEntry', fn ($queue) => $queue->where('status', QueueEntry::STATUS_SERVING));
         } elseif ($boardStatus === Visit::STATUS_CANCELLED) {
             $query->where('status', Visit::STATUS_CANCELLED);
         } elseif ($boardStatus === 'completed') {
@@ -136,9 +143,19 @@ class VisitDirectoryService
             'patient:id,patient_number,full_name,date_of_birth,sex',
             'assignedDoctor:id,name',
             'queueEntry:id,organisation_id,branch_id,visit_id,operational_date,queue_number,status,queued_at,called_at,returned_from_dispensary_at,lock_version',
+            'otcQueueEntry:id,visit_id,queue_number,status,queued_at',
             'reasonAssignments.reason:id,public_id,name',
         ]);
         $visibleQueueEntry = $this->visibleQueueEntry($actor, $visit);
+        $canSendToWaiting = $visit->status === Visit::STATUS_REGISTERED
+            && (($visit->visit_type === 'consultation' && $visit->queueEntry === null)
+                || ($visit->visit_type === 'otc'
+                    && $visit->otcQueueEntry === null
+                    && ! DispensaryCase::query()
+                        ->where('visit_id', $visit->id)
+                        ->where('case_type', DispensaryCase::TYPE_OTC)
+                        ->exists()))
+            && $actor->can('create', QueueEntry::class);
 
         return [
             'visitNumber' => $visit->visit_number,
@@ -176,10 +193,7 @@ class VisitDirectoryService
             'can' => [
                 'update' => $actor->can('update', $visit),
                 'cancel' => $actor->can('cancel', $visit),
-                'sendToWaiting' => $visit->status === Visit::STATUS_REGISTERED
-                    && $visit->visit_type === 'consultation'
-                    && $visit->queueEntry === null
-                    && $actor->can('create', QueueEntry::class),
+                'sendToWaiting' => $canSendToWaiting,
             ],
         ];
     }
@@ -316,6 +330,8 @@ class VisitDirectoryService
             && $actor->hasRole('resident_doctor')
             && $actor->can('encounters.start.own')
             && $visit->assigned_doctor_user_id === $actor->id;
+        $otcEntry = $visit->visit_type === 'otc' ? $visit->otcQueueEntry : null;
+        $otcWaiting = $otcEntry?->status === OtcQueueEntry::STATUS_WAITING;
         $durationMinutes = match ($visibleQueueEntry?->status) {
             QueueEntry::STATUS_WAITING => max(0, (int) $visibleQueueEntry->queued_at->diffInMinutes(now()->utc())),
             QueueEntry::STATUS_SERVING => $visibleQueueEntry->called_at
@@ -323,6 +339,9 @@ class VisitDirectoryService
                 : null,
             default => null,
         };
+        if ($otcWaiting) {
+            $durationMinutes = max(0, (int) $otcEntry->queued_at->diffInMinutes(now()->utc()));
+        }
         $actions = $actionHints[$actionKey] ??= $this->visitPolicy->actionHints($actor, $visit);
         $activeHold = $visit->clinicalEncounter?->holds
             ->first(fn ($hold): bool => $hold->resumed_at === null);
@@ -330,8 +349,6 @@ class VisitDirectoryService
         // DS-01b-3: an OTC visit has no checkout; its Dispensary case is the source Billing reads.
         $otcCase = $visit->visit_type === 'otc' ? DispensaryCase::query()->where('visit_id', $visit->id)->where('case_type', DispensaryCase::TYPE_OTC)->first(['public_id', 'status']) : null;
         $otcOpen = $otcCase !== null && $otcCase->status !== DispensaryCase::STATUS_COMPLETED;
-        $otcEntry = $visit->visit_type === 'otc' ? OtcQueueEntry::query()->where('visit_id', $visit->id)->first(['queue_number', 'status']) : null;
-        $otcWaiting = $otcEntry !== null && $otcEntry->status === OtcQueueEntry::STATUS_WAITING;
         $canBilling = $actor->can('billing.view.branch') && ($visit->status === Visit::STATUS_COMPLETED || ($otcCase !== null && ! $otcOpen) || ($checkout !== null && ($checkout->route === 'billing'
             || DispensaryCase::query()->where('visit_id', $visit->id)->where('status', 'completed')->exists())));
 

@@ -31,7 +31,10 @@ test('the registration board names the page Invoices', () => {
 });
 
 test("the doctor's previous consultation opens the Invoices page as its full page", () => {
-    assert.match(panel, /selectedInvoiceUrl/);
-    assert.match(panel, /:href="selectedInvoiceUrl \?\? selectedUrl"/);
+    assert.match(panel, /@click="load\(item\)"/);
+    assert.match(panel, />\s*View\s*</);
+    assert.match(panel, /v-if="selectedInvoiceUrl"[\s\S]*?:href="selectedInvoiceUrl"/);
     assert.match(panel, />Open full page</);
+    assert.match(panel, /v-if="selectedInvoiceUrl"[\s\S]*?:href="selectedInvoiceUrl"[\s\S]*?>Open full page</);
+    assert.match(history, /:href="history\.links\.back"[\s\S]*?history\.links\.backLabel/);
 });

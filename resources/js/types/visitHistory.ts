@@ -111,7 +111,8 @@ export type VisitHistoryPage = {
     financial: VisitHistoryFinancial | null;
     canSeeFinancial: boolean;
     links: {
-        registration: string;
+        back: string;
+        backLabel: string;
         billing: string | null;
         consultation: string | null;
     };
