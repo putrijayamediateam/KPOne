@@ -81,8 +81,29 @@ class ClinicalEncounterHistoryTest extends ClinicalTestCase
         SyntheticVisitCompletion::complete($historicalVisit);
         $this->get(route('encounters.show', $currentVisit))->assertOk()
             ->assertInertia(fn (Assert $page) => $page
-                ->where('clinical.history.0.invoiceUrl', route('visits.history', $historicalVisit))
+                ->where('clinical.history.0.invoiceUrl', route('visits.history', [
+                    'visit' => $historicalVisit,
+                    'from_visit' => $currentVisit->visit_number,
+                ]))
                 ->where('clinical.history.0.viewUrl', route('encounters.history.show', $historicalVisit)));
+
+        $invoiceUrl = route('visits.history', [
+            'visit' => $historicalVisit,
+            'from_visit' => $currentVisit->visit_number,
+        ]);
+        $this->get($invoiceUrl)->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Visits/History')
+                ->where('history.links.back', route('encounters.show', $currentVisit))
+                ->where('history.links.backLabel', 'Consultation'));
+
+        $this->get(route('visits.history', [
+            'visit' => $historicalVisit,
+            'from_visit' => 'KPV-99999999',
+        ]))->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('history.links.back', route('registration.index'))
+                ->where('history.links.backLabel', 'Registration'));
     }
 
     public function test_authorized_history_can_be_loaded_on_demand_as_an_explicit_json_projection(): void

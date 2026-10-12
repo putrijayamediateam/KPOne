@@ -53,6 +53,8 @@ class VisitHistoryTest extends BillingTestCase
                 ->component('Visits/History')
                 ->where('history.visit.visitNumber', $visit->visit_number)
                 ->where('history.patient.patientNumber', $visit->patient->patient_number)
+                ->where('history.links.back', route('registration.index'))
+                ->where('history.links.backLabel', 'Registration')
                 ->has('history.consultation')
                 ->has('history.financial.lines', 1)
                 ->where('history.financial.state.total', 4000)

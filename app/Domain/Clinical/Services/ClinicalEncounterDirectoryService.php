@@ -223,7 +223,9 @@ class ClinicalEncounterDirectoryService
                 'visitReason' => $this->visitReasons->summary($encounter->visit),
                 'viewUrl' => route('encounters.history.show', $encounter->visit),
                 // DS-01c: the full page for a completed visit of this branch is the Invoices page (ordered vs dispensed, payment).
-                'invoiceUrl' => $encounter->visit->status === Visit::STATUS_COMPLETED && $encounter->visit->branch_id === $current->branch_id && $actor->can('visits.history.view.branch') ? route('visits.history', $encounter->visit) : null,
+                'invoiceUrl' => $encounter->visit->status === Visit::STATUS_COMPLETED && $encounter->visit->branch_id === $current->branch_id && $actor->can('visits.history.view.branch')
+                    ? route('visits.history', ['visit' => $encounter->visit, 'from_visit' => $current->visit->visit_number])
+                    : null,
             ])->values()->all();
 
         return array_values($history);
