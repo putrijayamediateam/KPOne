@@ -11,7 +11,7 @@ class ClinicPlaceholderController extends Controller
     /** @var array<string, string> */
     private const MODULES = [
         'clinic.reviews' => 'Reviews',
-        'clinic.panel-claims' => 'Panel Claims',
+        'clinic.panel-responsibility' => 'Panel Responsibility',
         'clinic.insight' => 'Insight',
         'clinic.purchase' => 'Purchase',
     ];

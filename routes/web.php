@@ -26,6 +26,7 @@ use App\Http\Controllers\InventoryMovementController;
 use App\Http\Controllers\InventoryOperationsController;
 use App\Http\Controllers\InventoryReferenceController;
 use App\Http\Controllers\MedicineCatalogueController;
+use App\Http\Controllers\PanelClaimsController;
 use App\Http\Controllers\PatientController;
 use App\Http\Controllers\PatientIdentifierController;
 use App\Http\Controllers\PatientSearchController;
@@ -97,7 +98,17 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->middleware(['permission:insights.view.organisation', 'sensitive.no-store'])
         ->name('insights.report');
 
-    Route::get('panel-claims', [BillingWorkController::class, 'panel'])->middleware('sensitive.no-store')->name('clinic.panel-claims');
+    Route::get('panel-responsibility', [BillingWorkController::class, 'panel'])->middleware('sensitive.no-store')->name('clinic.panel-responsibility');
+    Route::middleware(['permission:panel.claims.manage.branch', 'sensitive.no-store'])->group(function () {
+        Route::get('panel-claims', [PanelClaimsController::class, 'index'])->name('panel-claims.index');
+        Route::post('panel-claims/allocations/{allocation}/prepare', [PanelClaimsController::class, 'prepare'])->name('panel-claims.prepare');
+        Route::get('panel-claims/{claim}', [PanelClaimsController::class, 'show'])->name('panel-claims.show');
+        Route::patch('panel-claims/{claim}/amount', [PanelClaimsController::class, 'adjustAmount'])->name('panel-claims.amount');
+        Route::post('panel-claims/{claim}/submit', [PanelClaimsController::class, 'submit'])->name('panel-claims.submit');
+        Route::post('panel-claims/{claim}/query', [PanelClaimsController::class, 'query'])->name('panel-claims.query');
+        Route::post('panel-claims/{claim}/decision', [PanelClaimsController::class, 'decision'])->name('panel-claims.decision');
+        Route::post('panel-claims/{claim}/payments', [PanelClaimsController::class, 'payment'])->name('panel-claims.payment');
+    });
     Route::get('financial-work', [BillingWorkController::class, 'finance'])->middleware('sensitive.no-store')->name('billing.work');
 
     Route::get('staff', [StaffController::class, 'index'])

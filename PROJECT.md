@@ -91,6 +91,8 @@ Phase 2B adds one in-progress Treatment Plan per current Clinical Encounter. The
 
 Phase 3A-Core adds a version-bound doctor-to-Dispensary handoff, branch fulfilment, safe stock allocation, and immutable inventory movements. Phase 3B adds checkout, service performance evidence, governed pricing, invoices, receipts, payment and responsibility handling, and controlled Visit completion. These milestones are merged, but their delivery does not by itself authorise production use or go-live.
 
+Panel Claims (PC-01) is now authorised as a separate manual-portal workflow. Its scope is recorded in [docs/BASELINE.md](docs/BASELINE.md); it does not integrate with Panel systems or change Invoice allocations.
+
 The waiting-room TV (TV-1, PR #57; TV-2, PR #60) shows each branch's consultation, dispensary and treatment-room
 calls. The TV account sees only called numbers, rooms and times for its own branch, never patient, clinical or
 financial data, and does not receive Insights.
@@ -114,7 +116,7 @@ The order below is directional and requires a separately approved scope for each
 4. Design and separately authorise Appointments and any later Queue refinements.
 5. Expand inventory operations (including procurement, receiving, and stocktake) only after their own safety,
    reconciliation, and authorisation decisions.
-6. Panel claims/advanced finance, HR workflows and staff roster, each under an approved scope.
+6. Advanced finance, HR workflows and staff roster, each under an approved scope.
 7. Website management, marketing, controlled external integrations, patient portal, and patient messaging.
 8. Deliberate legacy/Yezza migration planning after data, safety, and reconciliation design.
 

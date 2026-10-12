@@ -18,14 +18,15 @@ class BillingWorkTest extends BillingTestCase
         [, $ca, $visit, $invoice] = $this->finalizedFixture();
         $panelActor = $this->actor('panel_officer');
         $this->selectBranch($panelActor);
-        $this->get(route('clinic.panel-claims'))->assertOk()->assertInertia(fn (Assert $p) => $p->has('work.data', 0));
+        $this->get(route('clinic.panel-responsibility'))->assertOk()->assertInertia(fn (Assert $p) => $p->has('work.data', 0));
+        $this->get(route('panel-claims.index'))->assertOk()->assertInertia(fn (Assert $p) => $p->component('PanelClaims/Index')->has('work.eligible.data', 0)->has('work.claims.data', 0));
         $this->selectBranch($ca);
         app(ResponsibilityService::class)->propose($ca, $visit, $invoice, 'deferment', ['expected_branch_id' => $visit->branch_id, 'lock_version' => $invoice->lock_version, 'amount_sen' => 1000, 'due_date' => now()->addDay()->toDateString(), 'reason' => 'Synthetic private reason']);
         $panel = Panel::factory()->create(['organisation_id' => $visit->organisation_id]);
         app(ResponsibilityService::class)->propose($ca, $visit, $invoice->refresh(), 'panel', ['expected_branch_id' => $visit->branch_id, 'lock_version' => $invoice->lock_version, 'amount_sen' => 3000, 'reason' => 'Synthetic coverage', 'panel_id' => $panel->id, 'member_reference' => 'SYNTHETIC-PRIVATE']);
         $this->selectBranch($panelActor);
         $this->get(route('dashboard'))->assertOk()->assertInertia(fn (Assert $p) => $p->where('workspace.navigation.panelWork', true)->where('workspace.navigation.financeWork', false)->where('workspace.navigation.registration', false));
-        $response = $this->get(route('clinic.panel-claims'))->assertOk()->assertInertia(fn (Assert $p) => $p->component('FinancialWork/Index')->has('work.data', 1)
+        $response = $this->get(route('clinic.panel-responsibility'))->assertOk()->assertInertia(fn (Assert $p) => $p->component('FinancialWork/Index')->has('work.data', 1)
             ->where('work.data.0.amountSen', 3000)->where('work.data.0.status', 'proposed')->where('work.data.0.reviewUrl', route('billing.show', $visit))
             ->missing('work.data.0.state')->missing('work.data.0.reason')->missing('work.data.0.dueDate')->missing('work.data.0.lines'));
         $this->assertStringContainsString('no-store', $response->headers->get('Cache-Control'));
@@ -65,7 +66,8 @@ class BillingWorkTest extends BillingTestCase
                 ->where('workspace.navigation.panelWork', false)
                 ->where('workspace.navigation.financeWork', false)
                 ->missing('work'));
-            $this->get(route('clinic.panel-claims'))->assertForbidden();
+            $this->get(route('clinic.panel-responsibility'))->assertForbidden();
+            $this->get(route('panel-claims.index'))->assertForbidden();
             $this->get(route('billing.work'))->assertForbidden();
         }
 
@@ -105,14 +107,16 @@ class BillingWorkTest extends BillingTestCase
         $this->get(route('dashboard'))->assertOk()->assertInertia(fn (Assert $page) => $page
             ->where('workspace.navigation.panelWork', true)
             ->where('workspace.navigation.financeWork', false));
-        $this->get(route('clinic.panel-claims'))->assertOk();
+        $this->get(route('clinic.panel-responsibility'))->assertOk();
+        $this->get(route('panel-claims.index'))->assertOk();
         $this->get(route('billing.work'))->assertForbidden();
 
         $this->selectBranch($finance);
         $this->get(route('dashboard'))->assertOk()->assertInertia(fn (Assert $page) => $page
             ->where('workspace.navigation.panelWork', false)
             ->where('workspace.navigation.financeWork', true));
-        $this->get(route('clinic.panel-claims'))->assertForbidden();
+        $this->get(route('clinic.panel-responsibility'))->assertForbidden();
+        $this->get(route('panel-claims.index'))->assertForbidden();
         $this->get(route('billing.work'))->assertOk();
 
         $this->selectBranch($technical);
@@ -120,7 +124,8 @@ class BillingWorkTest extends BillingTestCase
             ->where('workspace.navigation.panelWork', false)
             ->where('workspace.navigation.financeWork', false)
             ->missing('work'));
-        $this->get(route('clinic.panel-claims'))->assertForbidden();
+        $this->get(route('clinic.panel-responsibility'))->assertForbidden();
+        $this->get(route('panel-claims.index'))->assertForbidden();
         $this->get(route('billing.work'))->assertForbidden();
     }
 
@@ -131,14 +136,15 @@ class BillingWorkTest extends BillingTestCase
         app(ResponsibilityService::class)->propose($ca, $visit, $invoice, 'panel', ['expected_branch_id' => $visit->branch_id, 'lock_version' => $invoice->lock_version, 'amount_sen' => 4000, 'reason' => 'Synthetic coverage', 'panel_id' => $panel->id]);
         $panelActor = $this->actor('panel_officer');
         $this->selectBranch($panelActor);
-        $this->get(route('clinic.panel-claims'))->assertInertia(fn (Assert $p) => $p->has('work.data', 1));
+        $this->get(route('clinic.panel-responsibility'))->assertInertia(fn (Assert $p) => $p->has('work.data', 1));
         foreach (['technical_admin', 'resident_doctor'] as $role) {
             $actor = $this->actor($role);
             $this->selectBranch($actor);
             $this->get(route('dashboard'))->assertInertia(fn (Assert $p) => $p->where('workspace.navigation.panelWork', false)->where('workspace.navigation.financeWork', false));
             $this->get(route('billing.work'))->assertForbidden();
             $this->post(route('billing.complete', $visit), [])->assertForbidden();
-            $this->get(route('clinic.panel-claims'))->assertForbidden();
+            $this->get(route('clinic.panel-responsibility'))->assertForbidden();
+            $this->get(route('panel-claims.index'))->assertForbidden();
         }
         $other = Branch::query()->where('organisation_id', $this->organisation->id)->where('id', '<>', $this->branch->id)->firstOrFail();
         $org = new Organisation;
@@ -149,7 +155,7 @@ class BillingWorkTest extends BillingTestCase
             foreach (['finance_officer', 'panel_officer'] as $role) {
                 $actor = $this->actor($role, $branch);
                 $this->selectBranch($actor, $branch);
-                $route = $role === 'finance_officer' ? 'billing.work' : 'clinic.panel-claims';
+                $route = $role === 'finance_officer' ? 'billing.work' : 'clinic.panel-responsibility';
                 $this->get(route($route, ['branch_id' => $visit->branch_id, 'organisation_id' => $visit->organisation_id, 'scope' => 'organisation']))->assertOk()->assertInertia(fn (Assert $p) => $p->has('work.data', 0));
                 $this->get(route('billing.show', $visit))->assertNotFound();
             }

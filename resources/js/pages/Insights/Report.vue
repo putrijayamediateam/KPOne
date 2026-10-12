@@ -155,6 +155,22 @@ const cardRows = computed(() => {
                 label: 'Outstanding invoices',
                 value: String(value.summary.outstandingInvoices),
             },
+            {
+                label: 'Panel claim packs',
+                value: money(value.summary.panelClaimPacksSen),
+            },
+            {
+                label: 'Panel decisions accepted',
+                value: money(value.summary.panelClaimsAcceptedSen),
+            },
+            {
+                label: 'Panel remittances received',
+                value: money(value.summary.panelRemittancesReceivedSen),
+            },
+            {
+                label: 'Panel claims outstanding',
+                value: money(value.summary.panelClaimsOutstandingSen),
+            },
         ];
     }
 
@@ -227,6 +243,7 @@ const tableGroups = computed<TableGroup[]>(() => {
 
     if (value.kind === 'payments') {
         return [
+            { title: 'Panel claim outcomes', rows: value.panelClaims },
             { title: 'Panel ranking', rows: value.panels },
             { title: 'Payment method', rows: value.paymentMethods },
         ];
@@ -499,6 +516,17 @@ const occupancyMax = computed(() =>
             </div>
         </section>
 
+        <p
+            v-if="report.kind === 'payments'"
+            class="rounded-xl border border-dashed p-4 text-sm text-muted-foreground"
+        >
+            Panel claim packs, accepted amounts and current outstanding are
+            grouped by the Invoice finalization date in this range. Panel
+            remittances received use their recorded receipt date. Panel claim
+            remittances are separate from patient receipts and do not change
+            Invoice balances.
+        </p>
+
         <section
             v-if="hourlyPatients.length"
             class="rounded-xl border bg-card p-4 md:p-5"
@@ -689,13 +717,36 @@ const occupancyMax = computed(() =>
                         Showing the top 100 results. Search covers only the
                         results shown.
                     </p>
-                    <table class="w-full min-w-[420px] text-left text-sm">
+                    <table
+                        class="w-full text-left text-sm"
+                        :class="
+                            group.title === 'Panel claim outcomes'
+                                ? 'min-w-[760px]'
+                                : 'min-w-[420px]'
+                        "
+                    >
                         <thead>
                             <tr class="border-b text-xs text-muted-foreground">
                                 <th class="p-2">#</th>
                                 <th class="p-2">Name</th>
-                                <th class="p-2 text-right">Sales / amount</th>
-                                <th class="p-2 text-right">Patients / units</th>
+                                <template
+                                    v-if="
+                                        group.title === 'Panel claim outcomes'
+                                    "
+                                >
+                                    <th class="p-2 text-right">Claim pack</th>
+                                    <th class="p-2 text-right">Accepted</th>
+                                    <th class="p-2 text-right">Remitted</th>
+                                    <th class="p-2 text-right">Outstanding</th>
+                                </template>
+                                <template v-else>
+                                    <th class="p-2 text-right">
+                                        Sales / amount
+                                    </th>
+                                    <th class="p-2 text-right">
+                                        Patients / units
+                                    </th>
+                                </template>
                             </tr>
                         </thead>
                         <tbody>
@@ -708,31 +759,58 @@ const occupancyMax = computed(() =>
                                     {{ rowIndex + 1 }}
                                 </td>
                                 <td class="p-2 font-medium">{{ row.name }}</td>
-                                <td class="p-2 text-right tabular-nums">
-                                    {{
-                                        money(
-                                            row.salesSen ??
-                                                row.amountSen ??
-                                                row.billedSen ??
-                                                0,
-                                        )
-                                    }}
-                                </td>
-                                <td class="p-2 text-right tabular-nums">
-                                    <template v-if="row.billedSen !== undefined"
-                                        >{{ money(row.approvedSen ?? 0) }}
-                                        approved ·
-                                        {{ money(row.rejectedSen ?? 0) }}
-                                        rejected</template
-                                    >
-                                    <template v-else>{{
-                                        row.patients ?? row.unitsSold ?? '—'
-                                    }}</template>
-                                </td>
+                                <template
+                                    v-if="
+                                        group.title === 'Panel claim outcomes'
+                                    "
+                                >
+                                    <td class="p-2 text-right tabular-nums">
+                                        {{ money(row.claimAmountSen ?? 0) }}
+                                    </td>
+                                    <td class="p-2 text-right tabular-nums">
+                                        {{ money(row.acceptedClaimSen ?? 0) }}
+                                    </td>
+                                    <td class="p-2 text-right tabular-nums">
+                                        {{ money(row.remittedClaimSen ?? 0) }}
+                                    </td>
+                                    <td class="p-2 text-right tabular-nums">
+                                        {{
+                                            money(row.outstandingClaimSen ?? 0)
+                                        }}
+                                    </td>
+                                </template>
+                                <template v-else>
+                                    <td class="p-2 text-right tabular-nums">
+                                        {{
+                                            money(
+                                                row.salesSen ??
+                                                    row.amountSen ??
+                                                    row.billedSen ??
+                                                    0,
+                                            )
+                                        }}
+                                    </td>
+                                    <td class="p-2 text-right tabular-nums">
+                                        <template
+                                            v-if="row.billedSen !== undefined"
+                                            >{{ money(row.approvedSen ?? 0) }}
+                                            approved ·
+                                            {{ money(row.rejectedSen ?? 0) }}
+                                            rejected</template
+                                        >
+                                        <template v-else>{{
+                                            row.patients ?? row.unitsSold ?? '—'
+                                        }}</template>
+                                    </td>
+                                </template>
                             </tr>
                             <tr v-if="group.rows.length === 0">
                                 <td
-                                    colspan="4"
+                                    :colspan="
+                                        group.title === 'Panel claim outcomes'
+                                            ? 6
+                                            : 4
+                                    "
                                     class="p-6 text-center text-muted-foreground"
                                 >
                                     {{
