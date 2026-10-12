@@ -112,7 +112,7 @@ return new class extends Migration
             DB::statement("ALTER TABLE panel_claim_events ADD CONSTRAINT panel_claim_events_shape CHECK (event_type IN ('prepared','amount_adjusted','submitted','queried','decision_accepted','decision_partially_accepted','decision_rejected') AND (previous_amount_sen IS NULL OR previous_amount_sen BETWEEN 0 AND 999999999999) AND (amount_sen IS NULL OR amount_sen BETWEEN 0 AND 999999999999) AND ((event_type='prepared' AND amount_sen IS NOT NULL) OR (event_type='amount_adjusted' AND previous_amount_sen IS NOT NULL AND amount_sen IS NOT NULL AND note IS NOT NULL) OR (event_type='submitted' AND amount_sen IS NOT NULL) OR (event_type='queried' AND note IS NOT NULL) OR (event_type LIKE 'decision_%' AND amount_sen IS NOT NULL AND note IS NOT NULL)))");
             DB::statement("ALTER TABLE panel_claim_payments ADD CONSTRAINT panel_claim_payments_shape CHECK (amount_sen BETWEEN 1 AND 999999999999 AND currency='MYR')");
             DB::unprepared(<<<'SQL'
-CREATE FUNCTION kpone_panel_claim_child_immutable() RETURNS trigger LANGUAGE plpgsql AS $$
+CREATE OR REPLACE FUNCTION kpone_panel_claim_child_immutable() RETURNS trigger LANGUAGE plpgsql AS $$
 BEGIN
     RAISE EXCEPTION 'Panel claim evidence is immutable and retained' USING ERRCODE='23514';
 END $$;
@@ -120,7 +120,7 @@ CREATE TRIGGER panel_claim_lines_immutable BEFORE UPDATE OR DELETE ON panel_clai
 CREATE TRIGGER panel_claim_events_immutable BEFORE UPDATE OR DELETE ON panel_claim_events FOR EACH ROW EXECUTE FUNCTION kpone_panel_claim_child_immutable();
 CREATE TRIGGER panel_claim_payments_immutable BEFORE UPDATE OR DELETE ON panel_claim_payments FOR EACH ROW EXECUTE FUNCTION kpone_panel_claim_child_immutable();
 
-CREATE FUNCTION kpone_panel_claim_identity_immutable() RETURNS trigger LANGUAGE plpgsql AS $$
+CREATE OR REPLACE FUNCTION kpone_panel_claim_identity_immutable() RETURNS trigger LANGUAGE plpgsql AS $$
 BEGIN
     IF NEW.public_id<>OLD.public_id OR NEW.organisation_id<>OLD.organisation_id OR NEW.branch_id<>OLD.branch_id
        OR NEW.coverage_allocation_id<>OLD.coverage_allocation_id OR NEW.invoice_id<>OLD.invoice_id
