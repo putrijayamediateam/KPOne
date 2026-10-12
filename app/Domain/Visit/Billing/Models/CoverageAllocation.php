@@ -12,6 +12,8 @@ use LogicException;
  * @property int $organisation_id
  * @property int $branch_id
  * @property int $invoice_id
+ * @property int $panel_id
+ * @property int|null $current_invoice_guard
  * @property int $amount_sen
  * @property int $lock_version
  * @property int $expected_invoice_version

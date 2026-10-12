@@ -35,6 +35,7 @@ declare module '@inertiajs/core' {
                     paymentReconciliations: boolean;
                     patientRecords: boolean;
                     panelWork: boolean;
+                    panelClaims: boolean;
                     financeWork: boolean;
                     staff: boolean;
                     branches: boolean;

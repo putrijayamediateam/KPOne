@@ -103,6 +103,7 @@ class HandleInertiaRequests extends Middleware
                     'paymentReconciliations' => $user->can('payments.reconcile.branch'),
                     'patientRecords' => $user->can('patients.search.organisation'),
                     'panelWork' => app(BillingWorkAccess::class)->panel($user),
+                    'panelClaims' => $activeBranch !== null && $user->can('panel.claims.manage.branch'),
                     'financeWork' => app(BillingWorkAccess::class)->finance($user),
                     'staff' => $user->can('staff.view.own') || $user->can('staff.view.branch') || $user->can('staff.view.organisation'),
                     'branches' => $user->can('branches.view.branch') || $user->can('branches.view.organisation'),

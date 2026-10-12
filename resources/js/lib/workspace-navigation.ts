@@ -10,6 +10,7 @@ export type WorkspaceNavigationCapabilities = {
     paymentReconciliations: boolean;
     patientRecords: boolean;
     panelWork: boolean;
+    panelClaims: boolean;
     financeWork: boolean;
     staff: boolean;
     branches: boolean;
@@ -116,6 +117,14 @@ const destinations: Record<
         key: 'panelWork',
         label: 'Panel Responsibility',
         description: 'Review current Panel responsibility requests.',
+        href: '/panel-responsibility',
+        icon: 'file',
+    },
+    panelClaims: {
+        key: 'panelClaims',
+        label: 'Panel Claims',
+        description:
+            'Prepare claim packs, record Panel responses and track remittances.',
         href: '/panel-claims',
         icon: 'file',
     },
@@ -220,7 +229,7 @@ export const mainMenuGroups = (
         },
         {
             label: 'Panel',
-            destinations: available(capabilities, ['panelWork']),
+            destinations: available(capabilities, ['panelClaims', 'panelWork']),
         },
         {
             label: 'Finance',
@@ -258,6 +267,7 @@ export const headerDestinations = (
                   'consultation',
                   'inventory',
                   'patientRecords',
+                  'panelClaims',
                   'panelWork',
                   'financeWork',
                   'paymentMethods',
@@ -266,6 +276,7 @@ export const headerDestinations = (
               ]
             : [
                   'insights',
+                  'panelClaims',
                   'panelWork',
                   'financeWork',
                   'paymentMethods',

@@ -25,6 +25,7 @@ const capabilities = (overrides = {}) => ({
     paymentReconciliations: false,
     patientRecords: false,
     panelWork: false,
+    panelClaims: false,
     financeWork: false,
     staff: false,
     branches: false,
@@ -101,8 +102,25 @@ test('Panel Finance and technical-administration visibility remains least privil
     assert.ok(!technical.includes('Registration'));
     assert.ok(!technical.includes('Patient Records'));
     assert.ok(!technical.includes('Panel Responsibility'));
+    assert.ok(!technical.includes('Panel Claims'));
     assert.ok(!technical.includes('Finance / Billing'));
     assert.ok(!technical.includes('Payment Methods'));
+});
+
+test('Panel Claims is distinct from Panel Responsibility in navigation', () => {
+    const panelOfficer = labels(
+        navigation.mainMenuGroups(
+            capabilities({ panelClaims: true, panelWork: true }),
+        ),
+    );
+
+    assert.deepEqual([...panelOfficer], ['Panel Claims', 'Panel Responsibility']);
+    assert.match(source, /href: '\/panel-claims'/);
+    assert.match(source, /href: '\/panel-responsibility'/);
+    assert.match(
+        read('app/Http/Middleware/HandleInertiaRequests.php'),
+        /'panelClaims' => \$activeBranch !== null && \$user->can\('panel\.claims\.manage\.branch'\)/,
+    );
 });
 
 test('Payment Method setup is permission-backed and grouped with Finance', () => {

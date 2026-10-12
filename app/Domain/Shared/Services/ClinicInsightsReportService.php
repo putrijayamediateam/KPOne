@@ -536,6 +536,81 @@ class ClinicInsightsReportService
                 ->whereColumn('consultation_checkouts.id', 'invoices.consultation_checkout_id')
                 ->where('consultation_checkouts.attending_doctor_user_id', $doctorId));
         }
+        $claimPaymentTotals = DB::table('panel_claim_payments')
+            ->select('panel_claim_id')
+            ->selectRaw('SUM(amount_sen) as amount_sen')
+            ->groupBy('panel_claim_id');
+        $claimCohort = DB::table('panel_claims')
+            ->join('invoices', 'invoices.id', '=', 'panel_claims.invoice_id')
+            ->leftJoinSub($claimPaymentTotals, 'claim_payment_totals', 'claim_payment_totals.panel_claim_id', '=', 'panel_claims.id')
+            ->where('panel_claims.organisation_id', $actor->organisation_id)
+            ->whereColumn('invoices.organisation_id', 'panel_claims.organisation_id')
+            ->whereColumn('invoices.branch_id', 'panel_claims.branch_id')
+            ->where('invoices.status', 'finalized');
+        $this->scopePeriod($claimCohort, $periods, 'invoices.finalized_at', 'panel_claims.branch_id');
+        if ($doctorId !== null) {
+            $claimCohort->whereExists(fn (Builder $checkout) => $checkout->selectRaw('1')->from('consultation_checkouts')
+                ->whereColumn('consultation_checkouts.id', 'invoices.consultation_checkout_id')
+                ->where('consultation_checkouts.attending_doctor_user_id', $doctorId));
+        }
+        $claimPackAmount = (int) (clone $claimCohort)->sum('panel_claims.claim_amount_sen');
+        $claimAcceptedAmount = (int) (clone $claimCohort)->sum('panel_claims.accepted_amount_sen');
+        $claimOutstandingAmount = (int) ((clone $claimCohort)->selectRaw('SUM(CASE WHEN panel_claims.accepted_amount_sen > COALESCE(claim_payment_totals.amount_sen, 0) THEN panel_claims.accepted_amount_sen - COALESCE(claim_payment_totals.amount_sen, 0) ELSE 0 END) as amount_sen')->value('amount_sen') ?? 0);
+        $claimRemittances = DB::table('panel_claim_payments')
+            ->join('panel_claims', 'panel_claims.id', '=', 'panel_claim_payments.panel_claim_id')
+            ->join('invoices', 'invoices.id', '=', 'panel_claims.invoice_id')
+            ->where('panel_claim_payments.organisation_id', $actor->organisation_id)
+            ->whereColumn('panel_claims.organisation_id', 'panel_claim_payments.organisation_id')
+            ->whereColumn('panel_claims.branch_id', 'panel_claim_payments.branch_id')
+            ->whereColumn('invoices.organisation_id', 'panel_claims.organisation_id')
+            ->whereColumn('invoices.branch_id', 'panel_claims.branch_id')
+            ->where('invoices.status', 'finalized');
+        $this->scopePeriod($claimRemittances, $periods, 'panel_claim_payments.received_at', 'panel_claim_payments.branch_id');
+        if ($doctorId !== null) {
+            $claimRemittances->whereExists(fn (Builder $checkout) => $checkout->selectRaw('1')->from('consultation_checkouts')
+                ->whereColumn('consultation_checkouts.id', 'invoices.consultation_checkout_id')
+                ->where('consultation_checkouts.attending_doctor_user_id', $doctorId));
+        }
+        $claimRemittedAmount = (int) (clone $claimRemittances)->sum('panel_claim_payments.amount_sen');
+        $remittedByPanel = DB::table('panel_claim_payments')
+            ->join('panel_claims', 'panel_claims.id', '=', 'panel_claim_payments.panel_claim_id')
+            ->join('invoices', 'invoices.id', '=', 'panel_claims.invoice_id')
+            ->where('panel_claim_payments.organisation_id', $actor->organisation_id)
+            ->whereColumn('panel_claims.organisation_id', 'panel_claim_payments.organisation_id')
+            ->whereColumn('panel_claims.branch_id', 'panel_claim_payments.branch_id')
+            ->whereColumn('invoices.organisation_id', 'panel_claims.organisation_id')
+            ->whereColumn('invoices.branch_id', 'panel_claims.branch_id')
+            ->where('invoices.status', 'finalized');
+        $this->scopePeriod($remittedByPanel, $periods, 'panel_claim_payments.received_at', 'panel_claim_payments.branch_id');
+        if ($doctorId !== null) {
+            $remittedByPanel->whereExists(fn (Builder $checkout) => $checkout->selectRaw('1')->from('consultation_checkouts')
+                ->whereColumn('consultation_checkouts.id', 'invoices.consultation_checkout_id')
+                ->where('consultation_checkouts.attending_doctor_user_id', $doctorId));
+        }
+        $remittedByPanel = $remittedByPanel->selectRaw('panel_claims.panel_name_snapshot as name, SUM(panel_claim_payments.amount_sen) as amount_sen')
+            ->groupBy('panel_claims.panel_name_snapshot')->pluck('amount_sen', 'name');
+        $claimRanking = (clone $claimCohort)
+            ->selectRaw(<<<'SQL'
+                panel_claims.panel_name_snapshot as name,
+                SUM(panel_claims.claim_amount_sen) as claim_amount_sen,
+                SUM(COALESCE(panel_claims.accepted_amount_sen, 0)) as accepted_amount_sen,
+                SUM(CASE
+                    WHEN panel_claims.accepted_amount_sen > COALESCE(claim_payment_totals.amount_sen, 0)
+                    THEN panel_claims.accepted_amount_sen - COALESCE(claim_payment_totals.amount_sen, 0)
+                    ELSE 0
+                END) as outstanding_amount_sen
+            SQL)
+            ->groupBy('panel_claims.panel_name_snapshot')
+            ->orderByDesc('claim_amount_sen')
+            ->limit(50)
+            ->get()
+            ->map(fn (object $row): array => [
+                'name' => (string) $row->name,
+                'claimAmountSen' => (int) $row->claim_amount_sen,
+                'acceptedClaimSen' => (int) $row->accepted_amount_sen,
+                'remittedClaimSen' => (int) ($remittedByPanel[$row->name] ?? 0),
+                'outstandingClaimSen' => (int) $row->outstanding_amount_sen,
+            ])->all();
 
         return [
             'kind' => 'payments',
@@ -545,8 +620,13 @@ class ClinicInsightsReportService
                 'receivedSen' => $received,
                 'outstandingSen' => max(0, $outstandingTotal),
                 'outstandingInvoices' => $outstandingCount,
+                'panelClaimPacksSen' => $claimPackAmount,
+                'panelClaimsAcceptedSen' => $claimAcceptedAmount,
+                'panelRemittancesReceivedSen' => $claimRemittedAmount,
+                'panelClaimsOutstandingSen' => $claimOutstandingAmount,
             ],
             'paymentMethods' => $methodRows,
+            'panelClaims' => $claimRanking,
             'panels' => $panelRows->selectRaw('coverage_allocations.panel_name_snapshot as name, SUM(coverage_allocations.amount_sen) as billed_sen, SUM(CASE WHEN coverage_allocations.status = ? THEN coverage_allocations.amount_sen ELSE 0 END) as approved_sen, SUM(CASE WHEN coverage_allocations.status = ? THEN coverage_allocations.amount_sen ELSE 0 END) as rejected_sen', ['approved', 'rejected'])
                 ->groupBy('coverage_allocations.panel_name_snapshot')
                 ->orderByDesc('billed_sen')

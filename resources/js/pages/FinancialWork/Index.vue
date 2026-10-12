@@ -49,7 +49,9 @@ const description = computed(() =>
 );
 const columnCount = computed(() => (panel.value ? 7 : 11));
 const turnPage = (page: number) =>
-    router.get(panel.value ? '/panel-claims' : '/financial-work', { page });
+    router.get(panel.value ? '/panel-responsibility' : '/financial-work', {
+        page,
+    });
 </script>
 
 <template>

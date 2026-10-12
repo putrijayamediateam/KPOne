@@ -52,6 +52,10 @@ export type RangeInsightRow = {
     billedSen?: number;
     approvedSen?: number;
     rejectedSen?: number;
+    claimAmountSen?: number;
+    acceptedClaimSen?: number;
+    remittedClaimSen?: number;
+    outstandingClaimSen?: number;
 };
 
 export type InsightsRangeReport =
@@ -106,9 +110,14 @@ export type InsightsRangeReport =
               receivedSen: number;
               outstandingSen: number;
               outstandingInvoices: number;
+              panelClaimPacksSen: number;
+              panelClaimsAcceptedSen: number;
+              panelRemittancesReceivedSen: number;
+              panelClaimsOutstandingSen: number;
           };
           paymentMethods: RangeInsightRow[];
           panels: RangeInsightRow[];
+          panelClaims: RangeInsightRow[];
       }
     | {
           kind: 'inventory';

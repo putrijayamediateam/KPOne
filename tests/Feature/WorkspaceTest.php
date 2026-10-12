@@ -51,16 +51,16 @@ class WorkspaceTest extends VisitTestCase
     public function test_shared_navigation_capabilities_follow_direct_route_permissions(): void
     {
         $expectations = [
-            'ca' => [true, true, true, false, false, false, false],
-            'resident_doctor' => [true, true, true, false, false, false, false],
-            'ca_supervisor' => [true, true, true, false, false, false, false],
-            'panel_officer' => [false, false, false, true, false, false, false],
-            'finance_officer' => [false, false, false, false, true, false, false],
-            'technical_admin' => [false, false, false, false, false, true, true],
-            'director' => [true, true, true, true, true, true, true],
+            'ca' => [true, true, true, false, false, false, false, false],
+            'resident_doctor' => [true, true, true, false, false, false, false, false],
+            'ca_supervisor' => [true, true, true, false, false, false, false, false],
+            'panel_officer' => [false, false, false, true, true, false, false, false],
+            'finance_officer' => [false, false, false, false, false, true, false, false],
+            'technical_admin' => [false, false, false, false, false, false, true, true],
+            'director' => [true, true, true, true, false, true, true, true],
         ];
 
-        foreach ($expectations as $role => [$registration, $consultation, $patients, $panel, $finance, $access, $audit]) {
+        foreach ($expectations as $role => [$registration, $consultation, $patients, $panel, $panelClaims, $finance, $access, $audit]) {
             $actor = $this->actor($role);
             $this->selectBranch($actor);
 
@@ -69,6 +69,7 @@ class WorkspaceTest extends VisitTestCase
                 ->where('workspace.navigation.consultation', $consultation)
                 ->where('workspace.navigation.patientRecords', $patients)
                 ->where('workspace.navigation.panelWork', $panel)
+                ->where('workspace.navigation.panelClaims', $panelClaims)
                 ->where('workspace.navigation.financeWork', $finance)
                 ->where('workspace.navigation.accessControl', $access)
                 ->where('workspace.navigation.auditLogs', $audit)
