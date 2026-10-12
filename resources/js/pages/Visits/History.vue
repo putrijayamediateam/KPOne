@@ -74,9 +74,9 @@ const totals = computed(() => {
     <Head :title="`Visit ${history.visit.visitNumber}`" />
     <main class="flex flex-1 flex-col gap-4 p-4 md:p-6">
         <header class="flex flex-wrap items-center gap-3">
-            <ActionLink :href="history.links.registration">
+            <ActionLink :href="history.links.back">
                 <ArrowLeft class="size-3.5" />
-                Registration
+                {{ history.links.backLabel }}
             </ActionLink>
             <h1 class="text-xl font-semibold tracking-tight">
                 Invoice · Visit {{ history.visit.visitNumber }}

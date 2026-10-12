@@ -6,6 +6,7 @@ use App\Domain\Clinical\Models\ClinicalEncounter;
 use App\Domain\Organisation\Models\Branch;
 use App\Domain\Organisation\Models\Organisation;
 use App\Domain\Patient\Models\Patient;
+use App\Domain\Queue\Models\OtcQueueEntry;
 use App\Domain\Queue\Models\QueueEntry;
 use App\Models\User;
 use Carbon\CarbonImmutable;
@@ -52,6 +53,7 @@ use Illuminate\Support\Carbon;
  * @property-read User|null $assignedDoctor
  * @property-read Panel|null $panel
  * @property-read QueueEntry|null $queueEntry
+ * @property-read OtcQueueEntry|null $otcQueueEntry
  * @property-read ClinicalEncounter|null $clinicalEncounter
  */
 #[Guarded(['*'])]
@@ -125,6 +127,12 @@ class Visit extends Model
     public function queueEntry(): HasOne
     {
         return $this->hasOne(QueueEntry::class);
+    }
+
+    /** @return HasOne<OtcQueueEntry, $this> */
+    public function otcQueueEntry(): HasOne
+    {
+        return $this->hasOne(OtcQueueEntry::class);
     }
 
     /** @return HasOne<ClinicalEncounter, $this> */

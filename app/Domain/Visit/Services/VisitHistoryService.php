@@ -44,7 +44,7 @@ class VisitHistoryService
     }
 
     /** @return array<string, mixed> */
-    public function detail(User $actor, Visit $visit): array
+    public function detail(User $actor, Visit $visit, ?Visit $consultationReturnVisit = null): array
     {
         $branch = $this->branches->activeBranch($actor);
         abort_unless(
@@ -108,7 +108,10 @@ class VisitHistoryService
             'financial' => $invoice ? $this->financial($actor, $visit, $invoice, $canLines) : null,
             'canSeeFinancial' => $canFinance,
             'links' => [
-                'registration' => route('registration.index'),
+                'back' => $consultationReturnVisit
+                    ? route('encounters.show', $consultationReturnVisit)
+                    : route('registration.index'),
+                'backLabel' => $consultationReturnVisit ? 'Consultation' : 'Registration',
                 'billing' => $actor->can('billing.view.branch') ? route('billing.show', $visit) : null,
                 'consultation' => $actor->can('encounters.history.view.organisation') && $encounter !== null
                     ? route('encounters.history.show', $visit) : null,

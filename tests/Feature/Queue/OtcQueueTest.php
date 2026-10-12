@@ -18,6 +18,7 @@ use App\Domain\Visit\Services\VisitDirectoryService;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
+use Inertia\Testing\AssertableInertia as Assert;
 use Tests\Feature\Visit\VisitTestCase;
 use Tests\Support\OtcDispensaryFixtures;
 
@@ -52,6 +53,30 @@ class OtcQueueTest extends VisitTestCase
         $this->assertFalse($this->row($f)['can']['sendToWaiting']);
         $this->assertTrue($this->row($f)['can']['callDispensary']);
         $this->assertSame(0, QueueEntry::query()->count(), 'the consultation queue is untouched');
+    }
+
+    public function test_otc_visit_detail_can_send_to_waiting_and_waiting_tab_includes_it(): void
+    {
+        $f = $this->fixture();
+
+        $this->actingAs($f['ca'])->get(route('visits.show', $f['visit']))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Registration/Show')
+                ->where('visit.can.sendToWaiting', true));
+
+        $this->actingAs($f['ca'])->post(route('queue.store', $f['visit']), [
+            'expected_branch_id' => $f['visit']->branch_id,
+            'visit_lock_version' => $f['visit']->lock_version,
+        ])->assertRedirect(route('registration.index'));
+
+        $this->actingAs($f['ca'])->postJson(route('registration.search'), [
+            'board_status' => 'waiting',
+        ])->assertOk()
+            ->assertJsonPath('total', 1)
+            ->assertJsonPath('data.0.visitNumber', $f['visit']->visit_number)
+            ->assertJsonPath('data.0.queueNumber', 'B-001')
+            ->assertJsonPath('data.0.queueStatus', OtcQueueEntry::STATUS_WAITING);
     }
 
     public function test_sending_to_waiting_twice_returns_the_same_entry_and_consultation_visits_are_refused(): void
