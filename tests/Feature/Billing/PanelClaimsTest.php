@@ -305,7 +305,7 @@ class PanelClaimsTest extends BillingTestCase
     {
         [$panelOfficer, $visit, , $allocation] = $this->approvedPanelFixture();
         $encounter = ClinicalEncounter::query()->where('visit_id', $visit->id)->firstOrFail();
-        EncounterDiagnosis::factory()->create(['clinical_encounter_id' => $encounter->id, 'diagnosis_text' => 'Synthetic acute rhinitis', 'diagnosis_code' => 'J30.9']);
+        EncounterDiagnosis::factory()->create(['clinical_encounter_id' => $encounter->id, 'diagnosis_text' => 'Synthetic acute rhinitis', 'diagnosis_code' => 'J30.9', 'code_system' => 'ICD-10']);
         $plan = TreatmentPlan::factory()->create(['clinical_encounter_id' => $encounter->id]);
         $medicine = MedicineCatalogueItem::factory()->create(['organisation_id' => $visit->organisation_id, 'display_name' => 'Synthetic cetirizine tablet']);
         TreatmentPlanMedicineOrder::factory()->create(['treatment_plan_id' => $plan->id, 'medicine_catalogue_item_id' => $medicine->id]);
