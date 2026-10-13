@@ -4,6 +4,7 @@ namespace App\Domain\Visit\Billing\Services;
 
 use App\Domain\Access\BranchAccessService;
 use App\Domain\Access\TransactionalActorAuthority;
+use App\Domain\Audit\AuditRecorder;
 use App\Domain\Organisation\Models\Branch;
 use App\Domain\Visit\Billing\Models\PanelClaim;
 use App\Models\User;
@@ -33,6 +34,7 @@ final class PanelClaimDirectoryService
     public function __construct(
         private BranchAccessService $branches,
         private TransactionalActorAuthority $authority,
+        private AuditRecorder $audit,
     ) {}
 
     private const SUBMITTED = ['prepared', 'submitted', 'queried'];
@@ -509,7 +511,7 @@ final class PanelClaimDirectoryService
             [$actor, $branch] = $this->context($actor);
             $claim = PanelClaim::query()->whereKey($routeClaim->id)
                 ->where('organisation_id', $actor->organisation_id)->where('branch_id', $branch->id)
-                ->with(['lines', 'payments'])->firstOrFail();
+                ->with(['lines', 'payments', 'documents'])->firstOrFail();
             $paid = (int) $claim->payments->sum('amount_sen');
             $lineRows = $claim->lines->map(static fn ($line): array => [
                 'number' => $line->line_number,
@@ -568,12 +570,54 @@ final class PanelClaimDirectoryService
                 'receivedAt' => $payment->received_at->setTimezone($branch->timezone)->format('j M Y'),
             ])->all();
 
+            $panel = DB::table('panels')->where('id', $claim->panel_id)->where('organisation_id', $actor->organisation_id)->first(['claim_due_days', 'verification_url']);
+            $canSeeIdentity = $actor->can('panel.claims.patient_identity.view.branch');
+            $patientRow = DB::table('patients')->where('id', $claim->patient_id)->where('organisation_id', $actor->organisation_id)->first(['mobile_phone']);
+            $identifier = $canSeeIdentity
+                ? DB::table('patient_identifiers')->where('patient_id', $claim->patient_id)->where('organisation_id', $actor->organisation_id)
+                    ->whereNull('retired_at')->orderByDesc('id')->first(['identifier_type', 'normalized_value'])
+                : null;
+            if ($canSeeIdentity) {
+                $this->audit->record('panel_claim.identity_viewed', $claim, ['record_version' => $claim->lock_version], $actor, $branch);
+            }
+            $submittedEvent = collect($events)->firstWhere('type', 'submitted');
+            $lastEvent = collect($events)->last();
+            $lastPayment = $claim->payments->last();
+            $dueDays = (int) ($panel->claim_due_days ?? 30);
+            $statusKey = $claim->status;
+            $payoutBase = $claim->accepted_amount_sen ?? $claim->claim_amount_sen;
+            $documents = $claim->documents->map(fn ($document): array => [
+                'publicId' => $document->public_id,
+                'name' => $document->original_name,
+                'mimeType' => $document->mime_type,
+                'sizeBytes' => $document->size_bytes,
+                'uploadedAt' => $document->created_at?->setTimezone($branch->timezone)->format('j M Y, g:i A'),
+                'url' => route('panel-claims.documents.show', [$claim, $document]),
+            ])->all();
+
             return [
                 'branch' => ['id' => $branch->id, 'name' => $branch->name, 'today' => now()->setTimezone($branch->timezone)->toDateString()],
                 'claim' => [
                     'publicId' => $claim->public_id,
+                    'claimNo' => (string) $claim->id,
                     'lockVersion' => $claim->lock_version,
                     'status' => $this->status($claim),
+                    'statusKey' => $statusKey,
+                    'remarks' => $claim->remarks,
+                    'submittedOn' => is_array($submittedEvent) ? $submittedEvent['occurredAt'] : null,
+                    'updatedBy' => is_array($lastEvent) ? $lastEvent['actor'] : null,
+                    'shareUrl' => route('panel-claims.show', $claim),
+                    'invoiceUrl' => route('billing.show', ['visit' => $claim->visit_number]),
+                    'dueRule' => $dueDays === 0 ? 'Submit on the day of the visit' : "Submit {$dueDays} days after the visit",
+                    'verificationUrl' => $panel?->verification_url,
+                    'receivedOn' => $lastPayment?->received_at->setTimezone($branch->timezone)->format('j F Y'),
+                    'amountDueSen' => max(0, $payoutBase - $paid),
+                    'identityVisible' => $canSeeIdentity,
+                    'patientPhone' => $canSeeIdentity ? $patientRow?->mobile_phone : null,
+                    'patientIdentifierType' => $identifier === null ? null : strtoupper((string) $identifier->identifier_type),
+                    'patientIdentifier' => $identifier === null ? null : (string) $identifier->normalized_value,
+                    'documents' => $documents,
+                    'canEditRemarks' => in_array($claim->status, ['prepared', 'submitted', 'queried', 'rejected'], true),
                     'patientName' => $claim->patient_name_snapshot,
                     'memberReference' => $claim->member_reference,
                     'panelName' => $claim->panel_name_snapshot,
@@ -600,6 +644,13 @@ final class PanelClaimDirectoryService
                 ],
             ];
         });
+    }
+
+    /** Branch-scope check for claim attachments, without recording an identity view. */
+    public function assertVisible(User $actor, PanelClaim $claim): void
+    {
+        [$actor, $branch] = $this->context($actor);
+        abort_unless(PanelClaim::query()->whereKey($claim->id)->where('organisation_id', $actor->organisation_id)->where('branch_id', $branch->id)->exists(), 404);
     }
 
     /** @return array{User, Branch} */

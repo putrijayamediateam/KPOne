@@ -17,6 +17,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property string $name
  * @property bool $is_active
  * @property int $claim_due_days
+ * @property string|null $verification_url
  * @property-read Organisation $organisation
  */
 #[Guarded(['*'])]

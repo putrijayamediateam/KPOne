@@ -15,7 +15,9 @@ use App\Domain\Visit\Billing\Models\PanelClaim;
 use App\Domain\Visit\Billing\Services\ResponsibilityService;
 use App\Domain\Visit\Models\Panel;
 use App\Domain\Visit\Models\Visit;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Inertia\Testing\AssertableInertia as Assert;
 use Spatie\Permission\Models\Role;
@@ -331,6 +333,77 @@ class PanelClaimsTest extends BillingTestCase
         $this->get(route('panel-claims.index', ['tab' => 'pending', 'diagnosis' => 'fracture']))->assertOk()
             ->assertInertia(fn (Assert $page) => $page->has('work.eligible.data', 1)->where('work.can.clinicalFilters', false)->where('work.filters.diagnosis', ''));
         $this->assertSame($allocation->panel_name_snapshot, $allocation->refresh()->panel_name_snapshot);
+    }
+
+    public function test_claim_page_shows_summary_identity_for_the_panel_officer_and_hides_it_without_the_permission(): void
+    {
+        [$panelOfficer, $visit, , $allocation] = $this->approvedPanelFixture();
+        $this->selectBranch($panelOfficer, $this->branch);
+        DB::table('panels')->where('id', $allocation->panel_id)->update(['claim_due_days' => 7, 'verification_url' => 'https://claims.example.test/verify']);
+        DB::table('patients')->where('id', $visit->patient_id)->update(['mobile_phone' => '0123456789']);
+        DB::table('patient_identifiers')->insert(['organisation_id' => $visit->organisation_id, 'patient_id' => $visit->patient_id, 'identifier_type' => 'nric', 'issuing_country_code' => 'MY', 'normalized_value' => '900101015555', 'created_at' => now(), 'updated_at' => now()]);
+        $this->post(route('panel-claims.prepare', $allocation), ['expected_branch_id' => $visit->branch_id])->assertRedirect();
+        $claim = PanelClaim::query()->sole();
+
+        $this->get(route('panel-claims.show', $claim))->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('claim.claimNo', (string) $claim->id)
+            ->where('claim.dueRule', 'Submit 7 days after the visit')
+            ->where('claim.verificationUrl', 'https://claims.example.test/verify')
+            ->where('claim.identityVisible', true)
+            ->where('claim.patientPhone', '0123456789')
+            ->where('claim.patientIdentifier', '900101015555')
+            ->where('claim.patientIdentifierType', 'NRIC')
+            ->where('claim.amountDueSen', 3000)
+            ->where('claim.invoiceUrl', route('billing.show', ['visit' => $visit->visit_number]))
+            ->where('claim.receivedOn', null)
+            ->where('claim.updatedBy', $panelOfficer->name));
+        $this->assertDatabaseHas('audit_logs', ['event' => 'panel_claim.identity_viewed', 'subject_id' => $claim->id]);
+        $this->assertStringNotContainsString('900101015555', (string) DB::table('audit_logs')->where('event', 'panel_claim.identity_viewed')->value('metadata'));
+
+        Role::query()->where('name', 'panel_officer')->firstOrFail()->revokePermissionTo('panel.claims.patient_identity.view.branch');
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
+        $this->get(route('panel-claims.show', $claim))->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('claim.identityVisible', false)->where('claim.patientPhone', null)->where('claim.patientIdentifier', null));
+    }
+
+    public function test_notes_remarks_and_photo_documents_are_branch_scoped_audited_and_validated(): void
+    {
+        Storage::fake('local');
+        [$panelOfficer, $visit, , $allocation] = $this->approvedPanelFixture();
+        $this->selectBranch($panelOfficer, $this->branch);
+        $this->post(route('panel-claims.prepare', $allocation), ['expected_branch_id' => $visit->branch_id])->assertRedirect();
+        $claim = PanelClaim::query()->sole();
+        $branchId = $visit->branch_id;
+
+        $this->post(route('panel-claims.note', $claim), ['expected_branch_id' => $branchId, 'note' => 'Called the Panel desk'])->assertRedirect();
+        $this->assertDatabaseHas('panel_claim_events', ['panel_claim_id' => $claim->id, 'event_type' => 'note', 'note' => 'Called the Panel desk']);
+        $this->assertDatabaseHas('audit_logs', ['event' => 'panel_claim.note_added', 'subject_id' => $claim->id]);
+        $this->post(route('panel-claims.note', $claim), ['expected_branch_id' => $branchId, 'note' => ''])->assertSessionHasErrors('note');
+
+        $this->patch(route('panel-claims.remarks', $claim), ['expected_branch_id' => $branchId, 'lock_version' => $claim->lock_version, 'remarks' => 'Panel payment by cheque'])->assertRedirect();
+        $this->assertSame('Panel payment by cheque', $claim->refresh()->remarks);
+        $this->patch(route('panel-claims.remarks', $claim), ['expected_branch_id' => $branchId, 'lock_version' => 1, 'remarks' => 'stale'])->assertSessionHasErrors('claim');
+        $this->assertSame('Panel payment by cheque', $claim->refresh()->remarks);
+
+        $png = base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==');
+        $this->post(route('panel-claims.documents.store', $claim), ['expected_branch_id' => $branchId, 'file' => UploadedFile::fake()->createWithContent('guarantee letter.png', $png)])->assertRedirect();
+        $document = DB::table('panel_claim_documents')->where('panel_claim_id', $claim->id)->first();
+        $this->assertNotNull($document);
+        $this->assertSame('image/png', $document->mime_type);
+        Storage::disk('local')->assertExists($document->storage_path);
+        $this->assertDatabaseHas('audit_logs', ['event' => 'panel_claim.document_added', 'subject_id' => $claim->id]);
+
+        $this->get(route('panel-claims.show', $claim))->assertOk()->assertInertia(fn (Assert $page) => $page->has('claim.documents', 1)->where('claim.documents.0.name', 'guarantee letter.png'));
+        $this->get(route('panel-claims.documents.show', [$claim, $document->public_id]))->assertOk()->assertHeader('Content-Type', 'image/png');
+
+        $this->post(route('panel-claims.documents.store', $claim), ['expected_branch_id' => $branchId, 'file' => UploadedFile::fake()->createWithContent('notes.png', 'not an image')])->assertSessionHasErrors('file');
+        $this->post(route('panel-claims.documents.store', $claim), ['expected_branch_id' => $branchId, 'file' => UploadedFile::fake()->createWithContent('big.png', $png.str_repeat('0', 5 * 1024 * 1024))])->assertSessionHasErrors('file');
+        $this->assertDatabaseCount('panel_claim_documents', 1);
+
+        $finance = $this->actor('finance_officer');
+        $this->selectBranch($finance, $this->branch);
+        $this->get(route('panel-claims.documents.show', [$claim, $document->public_id]))->assertForbidden();
+        $this->post(route('panel-claims.note', $claim), ['expected_branch_id' => $branchId, 'note' => 'x'])->assertForbidden();
     }
 
     public function test_created_claims_leave_pending_and_show_in_submitted_then_follow_decisions_and_remittances(): void
