@@ -108,6 +108,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('panel-claims/{claim}/query', [PanelClaimsController::class, 'query'])->name('panel-claims.query');
         Route::post('panel-claims/{claim}/decision', [PanelClaimsController::class, 'decision'])->name('panel-claims.decision');
         Route::post('panel-claims/{claim}/payments', [PanelClaimsController::class, 'payment'])->name('panel-claims.payment');
+        Route::post('panel-claims/{claim}/notes', [PanelClaimsController::class, 'note'])->name('panel-claims.note');
+        Route::patch('panel-claims/{claim}/remarks', [PanelClaimsController::class, 'remarks'])->name('panel-claims.remarks');
+        Route::post('panel-claims/{claim}/documents', [PanelClaimsController::class, 'storeDocument'])->middleware('throttle:20,1')->name('panel-claims.documents.store');
+        Route::get('panel-claims/{claim}/documents/{document}', [PanelClaimsController::class, 'document'])->name('panel-claims.documents.show');
     });
     Route::get('financial-work', [BillingWorkController::class, 'finance'])->middleware('sensitive.no-store')->name('billing.work');
 

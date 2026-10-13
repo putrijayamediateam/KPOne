@@ -4,13 +4,17 @@ namespace App\Http\Controllers;
 
 use App\Domain\Visit\Billing\Models\CoverageAllocation;
 use App\Domain\Visit\Billing\Models\PanelClaim;
+use App\Domain\Visit\Billing\Models\PanelClaimDocument;
 use App\Domain\Visit\Billing\Services\PanelClaimDirectoryService;
 use App\Domain\Visit\Billing\Services\PanelClaimService;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class PanelClaimsController extends Controller
 {
@@ -106,5 +110,51 @@ class PanelClaimsController extends Controller
         $claims->recordPayment($actor, $claim, $request->all());
 
         return to_route('panel-claims.show', $claim);
+    }
+
+    public function note(Request $request, PanelClaim $claim, PanelClaimService $claims): RedirectResponse
+    {
+        $actor = $request->user();
+        abort_unless($actor instanceof User, 403);
+        $claims->addNote($actor, $claim, $request->all());
+
+        return to_route('panel-claims.show', $claim);
+    }
+
+    public function remarks(Request $request, PanelClaim $claim, PanelClaimService $claims): RedirectResponse
+    {
+        $actor = $request->user();
+        abort_unless($actor instanceof User, 403);
+        $claims->updateRemarks($actor, $claim, $request->all());
+
+        return to_route('panel-claims.show', $claim);
+    }
+
+    public function storeDocument(Request $request, PanelClaim $claim, PanelClaimService $claims): RedirectResponse
+    {
+        $actor = $request->user();
+        abort_unless($actor instanceof User, 403);
+        $file = $request->file('file');
+        abort_unless($file instanceof UploadedFile, 422);
+        $claims->addDocument($actor, $claim, $request->all(), $file);
+
+        return to_route('panel-claims.show', $claim);
+    }
+
+    public function document(Request $request, PanelClaim $claim, PanelClaimDocument $document, PanelClaimDirectoryService $directory): StreamedResponse
+    {
+        $actor = $request->user();
+        abort_unless($actor instanceof User, 403);
+        $directory->assertVisible($actor, $claim);
+        abort_unless($document->panel_claim_id === $claim->id && $document->organisation_id === $claim->organisation_id, 404);
+        $disk = Storage::disk(PanelClaimService::DOCUMENT_DISK);
+        abort_unless($disk->exists($document->storage_path), 404);
+
+        return $disk->response($document->storage_path, null, [
+            'Content-Type' => $document->mime_type,
+            'Cache-Control' => 'private, no-store',
+            'X-Content-Type-Options' => 'nosniff',
+            'Content-Disposition' => 'inline',
+        ]);
     }
 }

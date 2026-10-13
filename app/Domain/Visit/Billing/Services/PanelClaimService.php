@@ -9,13 +9,16 @@ use App\Domain\Visit\Billing\Models\CoverageAllocation;
 use App\Domain\Visit\Billing\Models\Invoice;
 use App\Domain\Visit\Billing\Models\InvoiceLine;
 use App\Domain\Visit\Billing\Models\PanelClaim;
+use App\Domain\Visit\Billing\Models\PanelClaimDocument;
 use App\Domain\Visit\Billing\Models\PanelClaimEvent;
 use App\Domain\Visit\Billing\Models\PanelClaimLine;
 use App\Domain\Visit\Billing\Models\PanelClaimPayment;
 use App\Domain\Visit\Models\Visit;
 use App\Models\User;
 use Carbon\CarbonImmutable;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -310,7 +313,103 @@ final class PanelClaimService
         }, 3);
     }
 
-    /** @return array{User, Branch, PanelClaim} */
+    public const DOCUMENT_DISK = 'local';
+
+    public const MAX_DOCUMENTS = 10;
+
+    public const MAX_DOCUMENT_BYTES = 5 * 1024 * 1024;
+
+    /** @param array<string, mixed> $a */
+    public function addNote(User $actor, PanelClaim $routeClaim, array $a): PanelClaim
+    {
+        Validator::make($a, [
+            'expected_branch_id' => ['required', 'integer', 'min:1'],
+            'note' => ['required', 'string', 'max:500'],
+        ])->validate();
+
+        return DB::transaction(function () use ($actor, $routeClaim, $a): PanelClaim {
+            [$actor, $branch, $claim] = $this->lockClaim($actor, $routeClaim, $a);
+            $this->event($claim, $actor, $branch, 'note', note: trim((string) $a['note']));
+            $this->audit->record('panel_claim.note_added', $claim, ['record_version' => $claim->lock_version], $actor, $branch);
+
+            return $claim;
+        }, 3);
+    }
+
+    /** @param array<string, mixed> $a */
+    public function updateRemarks(User $actor, PanelClaim $routeClaim, array $a): PanelClaim
+    {
+        Validator::make($a, [
+            'expected_branch_id' => ['required', 'integer', 'min:1'],
+            'lock_version' => ['required', 'integer', 'min:1'],
+            'remarks' => ['nullable', 'string', 'max:500'],
+        ])->validate();
+
+        return DB::transaction(function () use ($actor, $routeClaim, $a): PanelClaim {
+            [$actor, $branch, $claim] = $this->lockClaim($actor, $routeClaim, $a);
+            $this->requireVersion($claim, $a['lock_version']);
+            if (! in_array($claim->status, ['prepared', 'submitted', 'queried', 'rejected'], true)) {
+                throw ValidationException::withMessages(['claim' => 'Remarks can no longer be edited once the Panel has accepted the claim.']);
+            }
+            $remarks = trim((string) ($a['remarks'] ?? ''));
+            $claim->forceFill([
+                'remarks' => $remarks === '' ? null : $remarks,
+                'lock_version' => $claim->lock_version + 1,
+            ])->save();
+            $this->audit->record('panel_claim.remarks_updated', $claim, ['record_version' => $claim->lock_version], $actor, $branch);
+
+            return $claim;
+        }, 3);
+    }
+
+    /** @param array<string, mixed> $a */
+    public function addDocument(User $actor, PanelClaim $routeClaim, array $a, UploadedFile $file): PanelClaimDocument
+    {
+        Validator::make($a, ['expected_branch_id' => ['required', 'integer', 'min:1']])->validate();
+        // Sniff the real file content; never trust the client-supplied name or type.
+        $realPath = $file->getRealPath();
+        $mime = $realPath === false ? '' : (string) (new \finfo(FILEINFO_MIME_TYPE))->file($realPath);
+        $extension = ['image/jpeg' => 'jpg', 'image/png' => 'png'][$mime] ?? null;
+        if (! $file->isValid() || $extension === null || $file->getSize() < 1 || $file->getSize() > self::MAX_DOCUMENT_BYTES) {
+            throw ValidationException::withMessages(['file' => 'Upload a JPG or PNG image of at most 5 MB.']);
+        }
+        $path = null;
+
+        try {
+            return DB::transaction(function () use ($actor, $routeClaim, $a, $file, $mime, $extension, &$path): PanelClaimDocument {
+                [$actor, $branch, $claim] = $this->lockClaim($actor, $routeClaim, $a);
+                if ($claim->documents()->count() >= self::MAX_DOCUMENTS) {
+                    throw ValidationException::withMessages(['file' => 'A claim can hold at most '.self::MAX_DOCUMENTS.' documents.']);
+                }
+                $publicId = (string) Str::uuid();
+                $path = "panel-claims/{$claim->organisation_id}/{$branch->id}/{$claim->public_id}/{$publicId}.{$extension}";
+                Storage::disk(self::DOCUMENT_DISK)->putFileAs(dirname($path), $file, basename($path));
+                $document = new PanelClaimDocument;
+                $document->forceFill([
+                    'public_id' => $publicId,
+                    'organisation_id' => $claim->organisation_id,
+                    'branch_id' => $branch->id,
+                    'panel_claim_id' => $claim->id,
+                    'original_name' => Str::limit(preg_replace('/[^\p{L}\p{N} ._()-]+/u', '_', (string) $file->getClientOriginalName()) ?: 'photo', 200, ''),
+                    'mime_type' => $mime,
+                    'size_bytes' => (int) $file->getSize(),
+                    'sha256' => hash_file('sha256', (string) $file->getRealPath()) ?: str_repeat('0', 64),
+                    'storage_path' => $path,
+                    'uploaded_by_user_id' => $actor->id,
+                ])->save();
+                $this->audit->record('panel_claim.document_added', $claim, ['mime_type' => $mime, 'size_bytes' => $document->size_bytes], $actor, $branch);
+
+                return $document;
+            }, 3);
+        } catch (\Throwable $e) {
+            if ($path !== null) {
+                Storage::disk(self::DOCUMENT_DISK)->delete($path);
+            }
+
+            throw $e;
+        }
+    }
+
     /**
      * @param  array<string, mixed>  $a
      * @return array{User, Branch, PanelClaim}

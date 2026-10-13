@@ -40,7 +40,7 @@ test('Panel decisions and remittances stay separate from patient invoice payment
     assert.match(show, /Record Panel remittance/);
     assert.match(
         show,
-        /do not create patient receipts\s+or change\s+the Invoice/,
+        /do\s+not\s+create\s+patient\s+receipts\s+or\s+change\s+the\s+Invoice/,
     );
     assert.match(
         service,
@@ -103,4 +103,31 @@ test('Pending and Overdue list unclaimed invoices with View invoice and Create c
     assert.match(index, /Diagnosis/);
     assert.match(index, /Treatment/);
     assert.doesNotMatch(index, /MC days/);
+});
+
+test('Claim page follows the Yezza layout: summary, items, documents, payments, remarks and logs with Add note', () => {
+    for (const text of [
+        'Copy link',
+        'Download PDF',
+        'Edit panel claim',
+        'Billed to',
+        'Patient details',
+        'Person in charge',
+        'Panel claim submission due date',
+        'Verification link',
+        'View invoice',
+        'Claimed amount',
+        'Amount due',
+        'Documents',
+        'Payments',
+        'Remarks',
+        'Logs',
+        'Add note',
+    ]) {
+        assert.ok(show.includes(text), `Show.vue is missing "${text}"`);
+    }
+
+    assert.doesNotMatch(show, /Send claim/);
+    assert.match(show, /accept="image\/jpeg,image\/png"/);
+    assert.match(show, /rel="noopener noreferrer"/);
 });

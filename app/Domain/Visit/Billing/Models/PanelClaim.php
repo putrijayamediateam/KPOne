@@ -29,6 +29,7 @@ use LogicException;
  * @property int|null $accepted_amount_sen
  * @property string $status
  * @property int $lock_version
+ * @property string|null $remarks
  */
 #[Guarded(['*'])]
 class PanelClaim extends Model
@@ -37,7 +38,7 @@ class PanelClaim extends Model
     {
         static::deleting(fn (): never => throw new LogicException('Panel claim records are retained.'));
         static::updating(function (self $claim): void {
-            $allowed = ['claim_amount_sen', 'accepted_amount_sen', 'status', 'lock_version', 'updated_at'];
+            $allowed = ['claim_amount_sen', 'accepted_amount_sen', 'status', 'lock_version', 'remarks', 'updated_at'];
             if (array_diff(array_keys($claim->getDirty()), $allowed) !== []) {
                 throw new LogicException('Panel claim identity and source snapshots are immutable.');
             }
@@ -65,6 +66,12 @@ class PanelClaim extends Model
     public function events(): HasMany
     {
         return $this->hasMany(PanelClaimEvent::class)->orderBy('occurred_at')->orderBy('id');
+    }
+
+    /** @return HasMany<PanelClaimDocument, $this> */
+    public function documents(): HasMany
+    {
+        return $this->hasMany(PanelClaimDocument::class)->orderBy('created_at')->orderBy('id');
     }
 
     /** @return HasMany<PanelClaimPayment, $this> */
