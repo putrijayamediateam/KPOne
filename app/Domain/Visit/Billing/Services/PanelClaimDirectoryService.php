@@ -9,6 +9,7 @@ use App\Domain\Visit\Billing\Models\PanelClaim;
 use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Query\Builder;
+use Illuminate\Database\Query\Expression;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -151,11 +152,11 @@ final class PanelClaimDirectoryService
         ];
     }
 
-    private function dueAtSql(): string
+    private function dueAtExpression(): Expression
     {
         return DB::connection()->getDriverName() === 'pgsql'
-            ? "(v.registered_at + (pn.claim_due_days * interval '1 day'))"
-            : "datetime(v.registered_at, '+' || pn.claim_due_days || ' days')";
+            ? DB::raw("(v.registered_at + (pn.claim_due_days * interval '1 day'))")
+            : DB::raw("datetime(v.registered_at, '+' || pn.claim_due_days || ' days')");
     }
 
     /**
@@ -166,7 +167,7 @@ final class PanelClaimDirectoryService
      */
     private function eligibleQuery(User $actor, Branch $branch, array $filters, CarbonImmutable $today, ?CarbonImmutable $from, ?CarbonImmutable $to, ?string $state): Builder
     {
-        $dueAt = DB::raw($this->dueAtSql());
+        $dueAt = $this->dueAtExpression();
         $zone = $today->getTimezone();
         $dayStart = static fn (string $key): ?string => ($filters[$key] ?? '') === '' ? null : CarbonImmutable::createFromFormat('!Y-m-d', (string) $filters[$key], $zone)->startOfDay()->utc()->toDateTimeString();
         $dayEnd = static fn (string $key): ?string => ($filters[$key] ?? '') === '' ? null : CarbonImmutable::createFromFormat('!Y-m-d', (string) $filters[$key], $zone)->endOfDay()->utc()->toDateTimeString();
