@@ -654,6 +654,70 @@ plus the 1 new test. The 2 skips are the two `RegistrationTest` cases. Pint, PHP
 about 04:20 UTC, an hour at which the old defect was invisible, so the full run alone is not evidence of the fix; the
 frozen-clock test above is.
 
+### PC-02 — Create claim page — implementation pending review, not merged
+
+**Owner decisions, 2026-10-13.** The Pending/Overdue Create claim action opens a dedicated page instead of
+posting prepare. Creating starts directly in Submitted, at the approved Panel allocation amount, with a
+branch-local submitted date between the visit date and today, optional remarks (500 characters), and up to ten
+content-sniffed JPG/PNG photos (5 MB each). Treatment items come from the Invoice lines and are paginated by ten.
+The shared locked snapshot builder serves both `prepare()` and `create()`; legacy prepare/submit routes and
+query, decision and remittance flows remain available. Both new-creation events (`prepared`, `submitted`) have
+the same chosen instant, ordered by event id; today uses the current time and earlier dates use branch-local
+midnight converted to UTC. `created_at` remains the real creation time. One creation audit,
+`panel_claim.created`, records the claim subject, amount and submitted date, never remarks or photo names.
+
+**Concurrency and recovery.** Creation requires the current Invoice and allocation versions and locks the
+source records. Migration `2026_10_13_000500_add_panel_claim_creation_idempotency` adds nullable creation UUID
+and payload-hash columns with an organisation-scoped unique key, leaving legacy rows null. Identical retries
+return the existing claim; changed payloads or a second claim for the allocation are refused. All selected photos
+are validated before creation. Each photo is then added through `addDocument` with the current claim version;
+successful additions advance that version. A failed upload compensates its file write and redirects explicitly
+to the already-created claim with a recovery error, where missing photos can be added. Creation retries never
+upload again, including after a partial failure. Existing successful photos and the submitted claim are retained.
+
+**Amount editing.** Unpaid Submitted claims are now editable but stay Submitted. Reason and above-Invoice
+confirmation remain mandatory. The amount-adjusted event, audit and version increment remain. Legacy
+Prepared/Queried/Rejected edits still reset to Prepared and clear acceptance. Accepted, partially accepted,
+partially paid and paid claims stay non-editable. Invoice totals and approved allocation amounts are unchanged.
+No permission is added or widened. Phone QR uploads, Invoice print redesign/access changes, Panel settings and
+Panel integrations remain deferred. Synthetic data only; not production-approved.
+
+**Every deliberately changed existing assertion:**
+
+- `PanelClaimsTest::test_panel_officer_prepares_a_minimized_claim_pack_from_an_approved_allocation` is renamed
+  `test_panel_officer_creates_a_submitted_minimized_claim_from_an_approved_allocation`. Its creation request
+  now uses the new store endpoint with versions/date/UUID instead of prepare; status is Submitted instead of
+  Prepared; audit is `panel_claim.created` instead of `panel_claim.prepared`; event count is two instead of one,
+  with explicit prepared-then-submitted ordering. Existing minimized-projection, amount, snapshot and
+  no-billing-mutation assertions remain; legacy prepare/submit coverage remains in the other tests.
+- Frontend `Panel Claims is a separate branch-scoped manual-submission workspace` pins “Create claims for
+  manual submission” instead of “Prepare claim packs for manual submission”, reflecting the new flow while
+  keeping its privacy, navigation, permission and baseline assertions.
+- Frontend `Pending and Overdue list unclaimed invoices...` replaces its general allocation-URL assertion
+  with an explicit `router.visit` to the allocation's `/create` page. Formatting whitespace is accepted; the
+  navigation target is pinned. All other row-menu, filter and excluded-MC assertions remain.
+
+New regression coverage includes date limits and UTC/branch day boundaries, real creation timestamps,
+retry/payload conflicts, stale versions/source, role/branch denial, photo content/size/count limits, duplicate-free
+uploads, partial storage-failure compensation and abandoned-file cleanup on transaction retries, Submitted edit rules and legacy/non-editable statuses. Frontend
+coverage pins the new page fields, pagination, UUID/versions, photo selection and recovery error display.
+The transaction-retry test commits its disposable synthetic fixture before exercising the request because Laravel
+retries deadlocks only in outermost transactions; it forces a fresh schema for the next test. It retains all
+successful private files and deletes the file from the rolled-back attempt, with one document/version/audit.
+
+**Validation, uncommitted PC-02 worktree on `main` base `b51161a`.** PostgreSQL 18.6, disposable
+`kpone_pc02_testing` on `127.0.0.1:54174` (data directory created for this task): full backend **903 tests,
+901 passed, 2 existing disabled-public-registration skips, 0 failures, 10,915 assertions**; focused Billing
+including **23 Panel Claims tests: 103 tests, 103 passed, 2,013 assertions**. Pint, PHPStan level 7,
+frontend type/lint/format checks, production build and `git diff --check` pass; frontend **266/266**.
+Fresh migration/seeding passed twice consecutively and again after the final suite, using only synthetic
+`.test` seed identities. The first full run exhausted Herd's local 128 MB PHP limit; the final full run used
+PHPUnit's test-only `-d memory_limit=1G` override. No application or system PHP configuration was changed.
+Synthetic-props browser check with production CSS confirmed the desktop two-column layout, ten items on page
+one and two on page two, and no horizontal page overflow at 390 px (page width and viewport both 390 px).
+This is layout verification, not an authenticated end-to-end browser UAT. No real/demo database connection,
+`.env` access, commit or push. Not production-approved.
+
 ## 7. Updating this file
 
 Update this baseline in the same PR that merges a phase or changes an authorisation boundary.

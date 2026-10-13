@@ -35,71 +35,145 @@ final class PanelClaimService
         return DB::transaction(function () use ($actor, $allocation, $a): PanelClaim {
             $branch = $this->authority->branch($actor, $a['expected_branch_id']);
             $actor = $this->authority->lock($actor, $branch, 'panel.claims.manage.branch');
-            $allocation = CoverageAllocation::query()->whereKey($allocation->id)
-                ->where('organisation_id', $actor->organisation_id)->where('branch_id', $branch->id)
-                ->firstOrFail();
-            $invoice = Invoice::query()->whereKey($allocation->invoice_id)->where('organisation_id', $actor->organisation_id)
-                ->where('branch_id', $branch->id)->lockForUpdate()->firstOrFail();
-            $allocation = CoverageAllocation::query()->whereKey($allocation->id)
-                ->where('invoice_id', $invoice->id)->where('organisation_id', $actor->organisation_id)
-                ->where('branch_id', $branch->id)->lockForUpdate()->firstOrFail();
-            $this->requireClaimable($allocation, $invoice);
-
-            if (PanelClaim::query()->where('coverage_allocation_id', $allocation->id)->exists()) {
-                throw ValidationException::withMessages(['claim' => 'A claim pack already exists for this approved Panel allocation.']);
-            }
-
-            $visit = Visit::query()->whereKey($invoice->visit_id)->where('organisation_id', $actor->organisation_id)
-                ->where('branch_id', $branch->id)->firstOrFail();
-            $patient = DB::table('patients')->where('id', $invoice->patient_id)
-                ->where('organisation_id', $actor->organisation_id)->first(['full_name']);
-            $lines = InvoiceLine::query()->where('invoice_id', $invoice->id)->orderBy('id')->get();
-            if (! $patient || $lines->isEmpty() || $invoice->invoice_number === null) {
-                throw ValidationException::withMessages(['claim' => 'The finalized Invoice is missing claim-pack source data.']);
-            }
-
-            $claim = new PanelClaim;
-            $claim->forceFill([
-                'public_id' => (string) Str::uuid(),
-                'organisation_id' => $actor->organisation_id,
-                'branch_id' => $branch->id,
-                'coverage_allocation_id' => $allocation->id,
-                'invoice_id' => $invoice->id,
-                'patient_id' => $invoice->patient_id,
-                'panel_id' => $allocation->panel_id,
-                'invoice_number' => $invoice->invoice_number,
-                'visit_number' => $visit->visit_number,
-                'patient_name_snapshot' => $patient->full_name,
-                'panel_name_snapshot' => $allocation->panel_name_snapshot,
-                'member_reference' => $allocation->member_reference,
-                'branch_name_snapshot' => $branch->name,
-                'visit_date' => $visit->registered_at->setTimezone($branch->timezone)->toDateString(),
-                'invoice_total_sen' => $invoice->total_sen,
-                'claim_amount_sen' => $allocation->amount_sen,
-                'status' => 'prepared',
-                'lock_version' => 1,
-                'created_by_user_id' => $actor->id,
-            ])->save();
-
-            foreach ($lines as $index => $line) {
-                $copy = new PanelClaimLine;
-                $copy->forceFill([
-                    'organisation_id' => $actor->organisation_id,
-                    'branch_id' => $branch->id,
-                    'panel_claim_id' => $claim->id,
-                    'line_number' => $index + 1,
-                    'line_type' => $line->line_type,
-                    'display_name' => $line->display_name,
-                    'code_snapshot' => $line->code_snapshot,
-                    'unit_snapshot' => $line->unit_snapshot,
-                    'quantity' => $line->quantity,
-                    'unit_price_sen' => $line->unit_price_sen,
-                    'line_total_sen' => $line->line_total_sen,
-                ])->save();
-            }
+            $claim = $this->buildLockedSnapshot($actor, $branch, $allocation);
 
             $this->event($claim, $actor, $branch, 'prepared', amount: $claim->claim_amount_sen);
             $this->audit->record('panel_claim.prepared', $claim, ['claim_amount_sen' => $claim->claim_amount_sen], $actor, $branch);
+
+            return $claim;
+        }, 3);
+    }
+
+    /** @param array<string, mixed> $attributes */
+    private function buildLockedSnapshot(User $actor, Branch $branch, CoverageAllocation $allocation, array $attributes = []): PanelClaim
+    {
+        $allocation = CoverageAllocation::query()->whereKey($allocation->id)
+            ->where('organisation_id', $actor->organisation_id)->where('branch_id', $branch->id)
+            ->firstOrFail();
+        $invoice = Invoice::query()->whereKey($allocation->invoice_id)->where('organisation_id', $actor->organisation_id)
+            ->where('branch_id', $branch->id)->lockForUpdate()->firstOrFail();
+        $allocation = CoverageAllocation::query()->whereKey($allocation->id)
+            ->where('invoice_id', $invoice->id)->where('organisation_id', $actor->organisation_id)
+            ->where('branch_id', $branch->id)->lockForUpdate()->firstOrFail();
+        $this->requireClaimable($allocation, $invoice);
+
+        if (PanelClaim::query()->where('coverage_allocation_id', $allocation->id)->exists()) {
+            throw ValidationException::withMessages(['claim' => 'A claim pack already exists for this approved Panel allocation.']);
+        }
+
+        $visit = Visit::query()->whereKey($invoice->visit_id)->where('organisation_id', $actor->organisation_id)
+            ->where('branch_id', $branch->id)->firstOrFail();
+        $patient = DB::table('patients')->where('id', $invoice->patient_id)
+            ->where('organisation_id', $actor->organisation_id)->first(['full_name']);
+        $lines = InvoiceLine::query()->where('invoice_id', $invoice->id)->orderBy('id')->get();
+        if (! $patient || $lines->isEmpty() || $invoice->invoice_number === null) {
+            throw ValidationException::withMessages(['claim' => 'The finalized Invoice is missing claim-pack source data.']);
+        }
+
+        $claim = new PanelClaim;
+        $claim->forceFill(array_replace([
+            'public_id' => (string) Str::uuid(),
+            'organisation_id' => $actor->organisation_id,
+            'branch_id' => $branch->id,
+            'coverage_allocation_id' => $allocation->id,
+            'invoice_id' => $invoice->id,
+            'patient_id' => $invoice->patient_id,
+            'panel_id' => $allocation->panel_id,
+            'invoice_number' => $invoice->invoice_number,
+            'visit_number' => $visit->visit_number,
+            'patient_name_snapshot' => $patient->full_name,
+            'panel_name_snapshot' => $allocation->panel_name_snapshot,
+            'member_reference' => $allocation->member_reference,
+            'branch_name_snapshot' => $branch->name,
+            'visit_date' => $visit->registered_at->setTimezone($branch->timezone)->toDateString(),
+            'invoice_total_sen' => $invoice->total_sen,
+            'claim_amount_sen' => $allocation->amount_sen,
+            'status' => 'prepared',
+            'lock_version' => 1,
+            'created_by_user_id' => $actor->id,
+        ], $attributes))->save();
+
+        foreach ($lines as $index => $line) {
+            $copy = new PanelClaimLine;
+            $copy->forceFill([
+                'organisation_id' => $actor->organisation_id,
+                'branch_id' => $branch->id,
+                'panel_claim_id' => $claim->id,
+                'line_number' => $index + 1,
+                'line_type' => $line->line_type,
+                'display_name' => $line->display_name,
+                'code_snapshot' => $line->code_snapshot,
+                'unit_snapshot' => $line->unit_snapshot,
+                'quantity' => $line->quantity,
+                'unit_price_sen' => $line->unit_price_sen,
+                'line_total_sen' => $line->line_total_sen,
+            ])->save();
+        }
+
+        return $claim;
+    }
+
+    /** @param array<string, mixed> $a */
+    public function create(User $actor, CoverageAllocation $allocation, array $a): PanelClaim
+    {
+        Validator::make($a, [
+            'expected_branch_id' => ['required', 'integer', 'min:1'],
+            'allocation_lock_version' => ['required', 'integer', 'min:1'],
+            'invoice_lock_version' => ['required', 'integer', 'min:1'],
+            'idempotency_key' => ['required', 'uuid'],
+            'submitted_date' => ['required', 'date_format:Y-m-d'],
+            'remarks' => ['nullable', 'string', 'max:500'],
+            'photos' => ['sometimes', 'array', 'max:10'],
+            'photos.*' => ['required', 'file'],
+        ])->validate();
+        $photos = $a['photos'] ?? [];
+        $hashes = [];
+        foreach ($photos as $index => $photo) {
+            $mime = $this->validateDocument($photo, "photos.{$index}");
+            $hashes[] = [
+                'sha256' => hash_file('sha256', $photo->getRealPath()),
+                'mime' => $mime, 'size' => $photo->getSize(), 'name' => $photo->getClientOriginalName(),
+            ];
+        }
+        $remarks = trim((string) ($a['remarks'] ?? ''));
+        $hash = hash('sha256', json_encode([
+            $allocation->id, (int) $a['expected_branch_id'], (int) $a['allocation_lock_version'],
+            (int) $a['invoice_lock_version'], $a['submitted_date'], $remarks, $hashes,
+        ], JSON_THROW_ON_ERROR));
+
+        return DB::transaction(function () use ($actor, $allocation, $a, $remarks, $hash): PanelClaim {
+            $branch = $this->authority->branch($actor, $a['expected_branch_id']);
+            $actor = $this->authority->lock($actor, $branch, 'panel.claims.manage.branch');
+            // Actor authority locking serialises retries; the scoped unique key also guards the database.
+            $existing = PanelClaim::query()->where('organisation_id', $actor->organisation_id)
+                ->where('creation_idempotency_key', $a['idempotency_key'])->lockForUpdate()->first();
+            if ($existing !== null) {
+                if ($existing->branch_id !== $branch->id || $existing->creation_payload_hash !== $hash) {
+                    throw ValidationException::withMessages(['claim' => 'This creation key was already used with different details.']);
+                }
+
+                return $existing;
+            }
+            $claim = $this->buildLockedSnapshot($actor, $branch, $allocation, [
+                'status' => 'submitted', 'remarks' => $remarks === '' ? null : $remarks,
+                'creation_idempotency_key' => $a['idempotency_key'], 'creation_payload_hash' => $hash,
+            ]);
+            $lockedAllocation = CoverageAllocation::query()->findOrFail($claim->coverage_allocation_id);
+            $invoice = Invoice::query()->findOrFail($claim->invoice_id);
+            if ($lockedAllocation->lock_version !== (int) $a['allocation_lock_version'] || $invoice->lock_version !== (int) $a['invoice_lock_version']) {
+                throw ValidationException::withMessages(['claim' => 'The invoice or allocation has changed. Reload before creating the claim.']);
+            }
+            $today = CarbonImmutable::now($branch->timezone);
+            $date = CarbonImmutable::createFromFormat('!Y-m-d', $a['submitted_date'], $branch->timezone);
+            if ($date === null || $date->toDateString() > $today->toDateString() || $date->toDateString() < $claim->visit_date->toDateString()) {
+                throw ValidationException::withMessages(['submitted_date' => 'The submitted date must be between the visit date and today.']);
+            }
+            $occurredAt = ($date->isSameDay($today) ? $today : $date)->utc();
+            $this->event($claim, $actor, $branch, 'prepared', amount: $claim->claim_amount_sen, occurredAt: $occurredAt);
+            $this->event($claim, $actor, $branch, 'submitted', amount: $claim->claim_amount_sen, occurredAt: $occurredAt);
+            $this->audit->record('panel_claim.created', $claim, [
+                'claim_amount_sen' => $claim->claim_amount_sen, 'submitted_date' => $a['submitted_date'],
+            ], $actor, $branch);
 
             return $claim;
         }, 3);
@@ -123,8 +197,8 @@ final class PanelClaimService
         return DB::transaction(function () use ($actor, $routeClaim, $a, $amount): PanelClaim {
             [$actor, $branch, $claim] = $this->lockClaim($actor, $routeClaim, $a);
             $this->requireVersion($claim, $a['lock_version']);
-            if (! in_array($claim->status, ['prepared', 'queried', 'rejected'], true) || $claim->payments()->exists()) {
-                throw ValidationException::withMessages(['claim' => 'Only an unpaid prepared, queried or rejected claim can be adjusted.']);
+            if (! in_array($claim->status, ['prepared', 'submitted', 'queried', 'rejected'], true) || $claim->payments()->exists()) {
+                throw ValidationException::withMessages(['claim' => 'Only an unpaid prepared, submitted, queried or rejected claim can be adjusted.']);
             }
             if ($amount > $claim->invoice_total_sen && ! filter_var($a['confirm_over_invoice'] ?? false, FILTER_VALIDATE_BOOLEAN)) {
                 throw ValidationException::withMessages(['confirm_over_invoice' => 'Confirm the separate above-invoice adjustment before saving this claim amount.']);
@@ -136,8 +210,8 @@ final class PanelClaimService
             $previous = $claim->claim_amount_sen;
             $claim->forceFill([
                 'claim_amount_sen' => $amount,
-                'accepted_amount_sen' => null,
-                'status' => 'prepared',
+                'accepted_amount_sen' => $claim->status === 'submitted' ? $claim->accepted_amount_sen : null,
+                'status' => $claim->status === 'submitted' ? 'submitted' : 'prepared',
                 'lock_version' => $claim->lock_version + 1,
             ])->save();
             $this->event($claim, $actor, $branch, 'amount_adjusted', $previous, $amount, note: $a['reason']);
@@ -362,28 +436,42 @@ final class PanelClaimService
         }, 3);
     }
 
+    private function validateDocument(UploadedFile $file, string $field = 'file'): string
+    {
+        $path = $file->getRealPath();
+        $mime = $path === false ? '' : (string) (new \finfo(FILEINFO_MIME_TYPE))->file($path);
+        if (! $file->isValid() || ! in_array($mime, ['image/jpeg', 'image/png'], true)
+            || $file->getSize() < 1 || $file->getSize() > self::MAX_DOCUMENT_BYTES) {
+            throw ValidationException::withMessages([$field => 'Upload a JPG or PNG image of at most 5 MB.']);
+        }
+
+        return $mime;
+    }
+
     /** @param array<string, mixed> $a */
     public function addDocument(User $actor, PanelClaim $routeClaim, array $a, UploadedFile $file): PanelClaimDocument
     {
         Validator::make($a, ['expected_branch_id' => ['required', 'integer', 'min:1']])->validate();
-        // Sniff the real file content; never trust the client-supplied name or type.
-        $realPath = $file->getRealPath();
-        $mime = $realPath === false ? '' : (string) (new \finfo(FILEINFO_MIME_TYPE))->file($realPath);
-        $extension = ['image/jpeg' => 'jpg', 'image/png' => 'png'][$mime] ?? null;
-        if (! $file->isValid() || $extension === null || $file->getSize() < 1 || $file->getSize() > self::MAX_DOCUMENT_BYTES) {
-            throw ValidationException::withMessages(['file' => 'Upload a JPG or PNG image of at most 5 MB.']);
-        }
-        $path = null;
+        $mime = $this->validateDocument($file);
+        $extension = $mime === 'image/jpeg' ? 'jpg' : 'png';
+        $paths = [];
 
         try {
-            return DB::transaction(function () use ($actor, $routeClaim, $a, $file, $mime, $extension, &$path): PanelClaimDocument {
+            $document = DB::transaction(function () use ($actor, $routeClaim, $a, $file, $mime, $extension, &$paths): PanelClaimDocument {
                 [$actor, $branch, $claim] = $this->lockClaim($actor, $routeClaim, $a);
+                if (isset($a['lock_version'])) {
+                    $this->requireVersion($claim, $a['lock_version']);
+                }
                 if ($claim->documents()->count() >= self::MAX_DOCUMENTS) {
                     throw ValidationException::withMessages(['file' => 'A claim can hold at most '.self::MAX_DOCUMENTS.' documents.']);
                 }
+                $claim->forceFill(['lock_version' => $claim->lock_version + 1])->save();
                 $publicId = (string) Str::uuid();
                 $path = "panel-claims/{$claim->organisation_id}/{$branch->id}/{$claim->public_id}/{$publicId}.{$extension}";
-                Storage::disk(self::DOCUMENT_DISK)->putFileAs(dirname($path), $file, basename($path));
+                $paths[] = $path;
+                if (Storage::disk(self::DOCUMENT_DISK)->putFileAs(dirname($path), $file, basename($path)) === false) {
+                    throw new \RuntimeException('Claim photo storage failed.');
+                }
                 $document = new PanelClaimDocument;
                 $document->forceFill([
                     'public_id' => $publicId,
@@ -402,12 +490,21 @@ final class PanelClaimService
                 return $document;
             }, 3);
         } catch (\Throwable $e) {
-            if ($path !== null) {
+            foreach ($paths as $path) {
                 Storage::disk(self::DOCUMENT_DISK)->delete($path);
             }
 
             throw $e;
         }
+
+        // A retried transaction may have written an earlier file before it rolled back.
+        foreach ($paths as $path) {
+            if ($path !== $document->storage_path) {
+                Storage::disk(self::DOCUMENT_DISK)->delete($path);
+            }
+        }
+
+        return $document;
     }
 
     /**
@@ -459,6 +556,7 @@ final class PanelClaimService
         ?int $amount = null,
         ?string $externalReference = null,
         ?string $note = null,
+        ?CarbonImmutable $occurredAt = null,
     ): void {
         $event = new PanelClaimEvent;
         $event->forceFill([
@@ -471,7 +569,7 @@ final class PanelClaimService
             'amount_sen' => $amount,
             'external_reference' => $externalReference,
             'note' => $note,
-            'occurred_at' => now()->utc(),
+            'occurred_at' => $occurredAt ?? now()->utc(),
         ])->save();
     }
 }

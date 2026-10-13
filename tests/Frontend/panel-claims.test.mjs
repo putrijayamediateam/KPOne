@@ -12,7 +12,7 @@ const navigation = read('resources/js/lib/workspace-navigation.ts');
 const service = read('app/Domain/Visit/Billing/Services/PanelClaimService.php');
 
 test('Panel Claims is a separate branch-scoped manual-submission workspace', () => {
-    assert.match(index, /Prepare claim packs for manual\s+submission/);
+    assert.match(index, /Create claims for manual\s+submission/);
     assert.match(
         index,
         /clinical\s+notes,\s+diagnoses,\s+identity\s+documents\s+or\s+attachments/,
@@ -98,7 +98,7 @@ test('Pending and Overdue list unclaimed invoices with View invoice and Create c
     assert.match(index, /Due date/);
     assert.match(index, /Remark note/);
     assert.match(index, /Visit type/);
-    assert.match(index, /\/panel-claims\/allocations\//);
+    assert.match(index, /router\.visit\(\s*`\/panel-claims\/allocations\/.*\/create`,?\s*\)/);
     assert.match(index, /v-if="work\.can\.clinicalFilters"/);
     assert.match(index, /Diagnosis/);
     assert.match(index, /Treatment/);
@@ -130,4 +130,43 @@ test('Claim page follows the Yezza layout: summary, items, documents, payments, 
     assert.doesNotMatch(show, /Send claim/);
     assert.match(show, /accept="image\/jpeg,image\/png"/);
     assert.match(show, /rel="noopener noreferrer"/);
+});
+
+test('Create claim page uses selected invoice lines, ten-row pagination and submitted details', () => {
+    const create = read('resources/js/pages/PanelClaims/Create.vue');
+
+    for (const text of ['Create panel claim', 'Cancel', 'Create claim', 'Invoice details', 'Billing details', 'Patient details', 'Staff ID: N/A', 'Chit no: N/A', 'Treatment items', 'Item name', 'Rate', 'Qty', 'Total', 'Panel claim details', 'Submitted date', 'Remarks', 'Upload photo']) {
+        assert.ok(create.includes(text), `Create.vue is missing "${text}"`);
+    }
+
+    assert.match(create, /lines\.slice\([\s\S]*?\(page\.value - 1\) \* 10,[\s\S]*?page\.value \* 10/);
+    assert.match(create, /submitted_date: props\.branch\.today/);
+    assert.match(create, /idempotency_key: crypto\.randomUUID\(\)/);
+    assert.match(create, /allocation_lock_version: props\.allocation\.lockVersion/);
+    assert.match(create, /invoice_lock_version: props\.allocation\.invoiceLockVersion/);
+    assert.match(create, /:min="allocation\.visitDate"/);
+    assert.match(create, /:max="branch\.today"/);
+    assert.match(create, /maxlength="500"/);
+    assert.match(create, /@drop\.prevent/);
+    assert.match(create, /accept="image\/jpeg,image\/png"/);
+    assert.match(create, /selected\.length > 10/);
+    assert.match(create, /file\.size > 5 \* 1024 \* 1024/);
+    assert.match(create, /forceFormData: true/);
+    assert.match(create, /form\.errors\.submitted_date/);
+    assert.doesNotMatch(create, /localStorage|sessionStorage|scan QR|Send claim/);
+});
+
+test('Creation preserves legacy routes, uses shared snapshots and exposes photo recovery errors', () => {
+    const routes = read('routes/web.php');
+    const controller = read('app/Http/Controllers/PanelClaimsController.php');
+
+    assert.match(routes, /Route::get\('panel-claims\/allocations\/\{allocation\}\/create'/);
+    assert.match(routes, /name\('panel-claims\.prepare'\)/);
+    assert.match(routes, /name\('panel-claims\.submit'\)/);
+    assert.match(service, /private function buildLockedSnapshot/);
+    assert.equal((service.match(/\$this->buildLockedSnapshot\(/g) ?? []).length, 2);
+    assert.match(controller, /if \(\$claim->wasRecentlyCreated\)/);
+    assert.match(controller, /claim was created, but a photo could not be uploaded/);
+    assert.match(show, /error \|\| uploadRecoveryError/);
+    assert.match(service, /\$claim->status === 'submitted' \? 'submitted' : 'prepared'/);
 });
