@@ -85,7 +85,7 @@ final class PanelClaimDirectoryService
             $claims = $this->applyListFilters($base(), $filters, $tab, $today)
                 ->orderByDesc('id')
                 ->paginate(20, ['*'], 'claims_page', $claimsPage);
-            $latest = $this->latestEvents($claims->getCollection()->pluck('id')->all(), $actor, $branch);
+            $latest = $this->latestEvents(array_values(array_map(static fn ($id): int => (int) $id, $claims->getCollection()->pluck('id')->all())), $actor, $branch);
 
             return [
                 'branch' => ['id' => $branch->id, 'name' => $branch->name, 'today' => now()->setTimezone($branch->timezone)->toDateString()],
@@ -143,7 +143,10 @@ final class PanelClaimDirectoryService
         });
     }
 
-    /** @return array{0: CarbonImmutable|null, 1: CarbonImmutable|null, 2: string} */
+    /**
+     * @param  array<string, mixed>  $filters
+     * @return array{0: CarbonImmutable|null, 1: CarbonImmutable|null, 2: string}
+     */
     private function dateWindow(array $filters, CarbonImmutable $today): array
     {
         $range = (string) ($filters['range'] ?? 'all');
