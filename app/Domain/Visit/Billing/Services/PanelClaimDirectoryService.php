@@ -29,11 +29,26 @@ final class PanelClaimDirectoryService
         private TransactionalActorAuthority $authority,
     ) {}
 
-    /** @return array<string, mixed> */
-    public function search(User $actor, int $allocationsPage, int $claimsPage): array
+    public const OVERDUE_AFTER_DAYS = 30;
+
+    private const PENDING = ['prepared', 'queried'];
+
+    private const APPROVED = ['accepted', 'partially_accepted', 'partially_paid'];
+
+    private const TABS = ['all', 'pending', 'overdue', 'submitted', 'approved', 'rejected', 'received'];
+
+    /**
+     * @param  array<string, mixed>  $filters
+     * @return array<string, mixed>
+     */
+    public function search(User $actor, int $allocationsPage, int $claimsPage, array $filters = []): array
     {
-        return DB::transaction(function () use ($actor, $allocationsPage, $claimsPage): array {
+        return DB::transaction(function () use ($actor, $allocationsPage, $claimsPage, $filters): array {
             [$actor, $branch] = $this->context($actor);
+            $today = CarbonImmutable::now($branch->timezone);
+            [$from, $to, $range] = $this->dateWindow($filters, $today);
+            $base = fn () => $this->claimBase($actor, $branch, $from, $to);
+            $tab = in_array($filters['tab'] ?? 'all', self::TABS, true) ? (string) ($filters['tab'] ?? 'all') : 'all';
             $eligible = DB::table('coverage_allocations as c')
                 ->join('invoices as i', 'i.id', '=', 'c.invoice_id')
                 ->join('visits as v', 'v.id', '=', 'i.visit_id')
@@ -67,10 +82,10 @@ final class PanelClaimDirectoryService
                 ])
                 ->orderByDesc('c.id')
                 ->paginate(20, ['*'], 'allocations_page', $allocationsPage);
-            $claims = PanelClaim::query()->where('organisation_id', $actor->organisation_id)
-                ->where('branch_id', $branch->id)
-                ->orderByDesc('created_at')
+            $claims = $this->applyListFilters($base(), $filters, $tab, $today)
+                ->orderByDesc('id')
                 ->paginate(20, ['*'], 'claims_page', $claimsPage);
+            $latest = $this->latestEvents($claims->getCollection()->pluck('id')->all(), $actor, $branch);
 
             return [
                 'branch' => ['id' => $branch->id, 'name' => $branch->name, 'today' => now()->setTimezone($branch->timezone)->toDateString()],
@@ -91,16 +106,33 @@ final class PanelClaimDirectoryService
                     'currentPage' => $eligible->currentPage(),
                     'lastPage' => $eligible->lastPage(),
                 ],
+                'summary' => $this->summary($base, $today),
+                'tabs' => $this->tabCounts($base, $filters, $today),
+                'panels' => $base()->distinct()->orderBy('panel_name_snapshot')->pluck('panel_name_snapshot')->all(),
+                'filters' => [
+                    'tab' => $tab,
+                    'range' => $range,
+                    'from' => $from?->toDateString(),
+                    'to' => $to?->toDateString(),
+                    'panel' => (string) ($filters['panel'] ?? ''),
+                    'claimNo' => (string) ($filters['claim_no'] ?? ''),
+                    'amountMin' => (string) ($filters['amount_min'] ?? ''),
+                    'amountMax' => (string) ($filters['amount_max'] ?? ''),
+                ],
                 'claims' => [
                     'data' => $claims->getCollection()->map(fn (PanelClaim $claim): array => [
                         'publicId' => $claim->public_id,
+                        'claimNo' => (string) $claim->id,
                         'patientName' => $claim->patient_name_snapshot,
                         'visitNumber' => $claim->visit_number,
                         'invoiceNumber' => $claim->invoice_number,
                         'panelName' => $claim->panel_name_snapshot,
                         'claimAmountSen' => $claim->claim_amount_sen,
                         'status' => $this->status($claim),
-                        'createdAt' => $claim->created_at?->setTimezone($branch->timezone)->format('j M Y, g:i A'),
+                        'overdue' => $this->isOverdue($claim, $latest[$claim->id]['submittedAt'] ?? null, $today),
+                        'createdAt' => $claim->created_at?->setTimezone($branch->timezone)->format('j F Y'),
+                        'updatedBy' => $latest[$claim->id]['actor'] ?? null,
+                        'remarks' => $latest[$claim->id]['note'] ?? null,
                         'showUrl' => route('panel-claims.show', $claim),
                     ])->all(),
                     'total' => $claims->total(),
@@ -109,6 +141,177 @@ final class PanelClaimDirectoryService
                 ],
             ];
         });
+    }
+
+    /** @return array{0: CarbonImmutable|null, 1: CarbonImmutable|null, 2: string} */
+    private function dateWindow(array $filters, CarbonImmutable $today): array
+    {
+        $range = (string) ($filters['range'] ?? 'all');
+        $week = $today->startOfWeek(CarbonImmutable::SUNDAY);
+
+        return match ($range) {
+            'yesterday' => [$today->subDay()->startOfDay(), $today->subDay()->endOfDay(), $range],
+            'last_7_days' => [$today->subDays(6)->startOfDay(), $today->endOfDay(), $range],
+            'last_30_days' => [$today->subDays(29)->startOfDay(), $today->endOfDay(), $range],
+            'last_90_days' => [$today->subDays(89)->startOfDay(), $today->endOfDay(), $range],
+            'this_week' => [$week, $week->addDays(6)->endOfDay(), $range],
+            'this_month' => [$today->startOfMonth(), $today->endOfMonth(), $range],
+            'this_year' => [$today->startOfYear(), $today->endOfYear(), $range],
+            'last_week' => [$week->subWeek(), $week->subDay()->endOfDay(), $range],
+            'last_month' => [$today->subMonthNoOverflow()->startOfMonth(), $today->subMonthNoOverflow()->endOfMonth(), $range],
+            'custom' => [
+                isset($filters['from']) ? CarbonImmutable::createFromFormat('!Y-m-d', (string) $filters['from'], $today->getTimezone())->startOfDay() : null,
+                isset($filters['to']) ? CarbonImmutable::createFromFormat('!Y-m-d', (string) $filters['to'], $today->getTimezone())->endOfDay() : null,
+                $range,
+            ],
+            default => [null, null, 'all'],
+        };
+    }
+
+    /** @return \Illuminate\Database\Eloquent\Builder<PanelClaim> */
+    private function claimBase(User $actor, Branch $branch, ?CarbonImmutable $from, ?CarbonImmutable $to)
+    {
+        $query = PanelClaim::query()->where('organisation_id', $actor->organisation_id)->where('branch_id', $branch->id);
+        if ($from !== null) {
+            $query->where('created_at', '>=', $from->utc());
+        }
+        if ($to !== null) {
+            $query->where('created_at', '<=', $to->utc());
+        }
+
+        return $query;
+    }
+
+    private function overdueCutoff(CarbonImmutable $today): CarbonImmutable
+    {
+        return $today->subDays(self::OVERDUE_AFTER_DAYS)->utc();
+    }
+
+    /** @param \Illuminate\Database\Eloquent\Builder<PanelClaim> $query */
+    private function whereOverdue($query, CarbonImmutable $today): void
+    {
+        $query->where('status', 'submitted')->whereRaw(
+            "(select max(e.occurred_at) from panel_claim_events e where e.panel_claim_id = panel_claims.id and e.event_type = 'submitted') < ?",
+            [$this->overdueCutoff($today)->toDateTimeString()],
+        );
+    }
+
+    /**
+     * @param  \Illuminate\Database\Eloquent\Builder<PanelClaim>  $query
+     * @param  array<string, mixed>  $filters
+     * @return \Illuminate\Database\Eloquent\Builder<PanelClaim>
+     */
+    private function applyListFilters($query, array $filters, string $tab, CarbonImmutable $today, bool $withTab = true)
+    {
+        if ($withTab) {
+            match ($tab) {
+                'pending' => $query->whereIn('status', self::PENDING),
+                'overdue' => $this->whereOverdue($query, $today),
+                'submitted' => $query->where('status', 'submitted'),
+                'approved' => $query->whereIn('status', self::APPROVED),
+                'rejected' => $query->where('status', 'rejected'),
+                'received' => $query->where('status', 'paid'),
+                default => null,
+            };
+        }
+        if (($filters['panel'] ?? '') !== '') {
+            $query->where('panel_name_snapshot', (string) $filters['panel']);
+        }
+        if (($filters['claim_no'] ?? '') !== '') {
+            $query->where('id', (int) $filters['claim_no']);
+        }
+        if (($filters['amount_min'] ?? '') !== '') {
+            $query->where('claim_amount_sen', '>=', (int) round(((float) $filters['amount_min']) * 100));
+        }
+        if (($filters['amount_max'] ?? '') !== '') {
+            $query->where('claim_amount_sen', '<=', (int) round(((float) $filters['amount_max']) * 100));
+        }
+
+        return $query;
+    }
+
+    /**
+     * @param  callable(): \Illuminate\Database\Eloquent\Builder<PanelClaim>  $base
+     * @return array<string, array{count: int, amountSen: int}>
+     */
+    private function summary(callable $base, CarbonImmutable $today): array
+    {
+        $paid = '(select coalesce(sum(p.amount_sen), 0) from panel_claim_payments p where p.panel_claim_id = panel_claims.id)';
+        $pending = $base()->whereIn('status', self::PENDING);
+        $overdue = $base();
+        $this->whereOverdue($overdue, $today);
+        $approved = $base()->whereIn('status', self::APPROVED);
+        $received = $base()->where('status', 'paid');
+        $rejected = $base()->where('status', 'rejected');
+        $outstanding = $base()->whereIn('status', self::APPROVED)->whereRaw("coalesce(accepted_amount_sen, 0) - {$paid} > 0");
+
+        return [
+            'pending' => ['count' => (clone $pending)->count(), 'amountSen' => (int) (clone $pending)->sum('claim_amount_sen')],
+            'overdue' => ['count' => (clone $overdue)->count(), 'amountSen' => (int) (clone $overdue)->sum('claim_amount_sen')],
+            'approved' => ['count' => (clone $approved)->count(), 'amountSen' => (int) (clone $approved)->sum('accepted_amount_sen')],
+            'received' => ['count' => (clone $received)->count(), 'amountSen' => (int) (clone $received)->sum('accepted_amount_sen')],
+            'rejected' => ['count' => (clone $rejected)->count(), 'amountSen' => (int) (clone $rejected)->sum('claim_amount_sen')],
+            'outstanding' => ['count' => (clone $outstanding)->count(), 'amountSen' => (int) (clone $outstanding)->selectRaw("coalesce(sum(coalesce(accepted_amount_sen, 0) - {$paid}), 0) as total")->value('total')],
+        ];
+    }
+
+    /**
+     * Tab counts follow every filter except the tab itself.
+     *
+     * @param  callable(): \Illuminate\Database\Eloquent\Builder<PanelClaim>  $base
+     * @param  array<string, mixed>  $filters
+     * @return array<string, int>
+     */
+    private function tabCounts(callable $base, array $filters, CarbonImmutable $today): array
+    {
+        $counts = [];
+        foreach (self::TABS as $tab) {
+            $counts[$tab] = $this->applyListFilters($base(), $filters, $tab, $today)->count();
+        }
+
+        return $counts;
+    }
+
+    /**
+     * @param  list<int>  $claimIds
+     * @return array<int, array{actor: string|null, note: string|null, submittedAt: string|null}>
+     */
+    private function latestEvents(array $claimIds, User $actor, Branch $branch): array
+    {
+        if ($claimIds === []) {
+            return [];
+        }
+        $rows = DB::table('panel_claim_events')
+            ->join('users', function ($join): void {
+                $join->on('users.id', '=', 'panel_claim_events.actor_user_id')
+                    ->on('users.organisation_id', '=', 'panel_claim_events.organisation_id');
+            })
+            ->where('panel_claim_events.organisation_id', $actor->organisation_id)
+            ->where('panel_claim_events.branch_id', $branch->id)
+            ->whereIn('panel_claim_events.panel_claim_id', $claimIds)
+            ->orderBy('panel_claim_events.occurred_at')->orderBy('panel_claim_events.id')
+            ->get(['panel_claim_events.panel_claim_id', 'panel_claim_events.event_type', 'panel_claim_events.note', 'panel_claim_events.occurred_at', 'users.name as actor_name']);
+        $latest = [];
+        foreach ($rows as $row) {
+            $id = (int) $row->panel_claim_id;
+            $latest[$id] ??= ['actor' => null, 'note' => null, 'submittedAt' => null];
+            $latest[$id]['actor'] = (string) $row->actor_name;
+            if ($row->note !== null) {
+                $latest[$id]['note'] = (string) $row->note;
+            }
+            if ($row->event_type === 'submitted') {
+                $latest[$id]['submittedAt'] = (string) $row->occurred_at;
+            }
+        }
+
+        return $latest;
+    }
+
+    private function isOverdue(PanelClaim $claim, ?string $submittedAt, CarbonImmutable $today): bool
+    {
+        return $claim->status === 'submitted'
+            && $submittedAt !== null
+            && CarbonImmutable::parse($submittedAt, 'UTC')->lt($this->overdueCutoff($today));
     }
 
     /** @return array<string, mixed> */
