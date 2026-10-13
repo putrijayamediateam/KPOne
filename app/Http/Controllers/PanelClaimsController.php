@@ -21,10 +21,28 @@ class PanelClaimsController extends Controller
         $data = $request->validate([
             'allocations_page' => ['sometimes', 'integer', 'min:1', 'max:10000'],
             'claims_page' => ['sometimes', 'integer', 'min:1', 'max:10000'],
+            'tab' => ['sometimes', 'string', 'in:all,pending,overdue,submitted,approved,rejected,received'],
+            'range' => ['sometimes', 'string', 'in:all,yesterday,last_7_days,last_30_days,last_90_days,this_week,this_month,this_year,last_week,last_month,custom'],
+            'from' => ['sometimes', 'nullable', 'date_format:Y-m-d'],
+            'to' => ['sometimes', 'nullable', 'date_format:Y-m-d', 'after_or_equal:from'],
+            'panel' => ['sometimes', 'nullable', 'string', 'max:200'],
+            'claim_no' => ['sometimes', 'nullable', 'regex:/^\d{1,12}$/'],
+            'amount_min' => ['sometimes', 'nullable', 'regex:/^\d{1,9}(\.\d{1,2})?$/'],
+            'amount_max' => ['sometimes', 'nullable', 'regex:/^\d{1,9}(\.\d{1,2})?$/'],
+            'diagnosis' => ['sometimes', 'nullable', 'string', 'max:100'],
+            'treatment' => ['sometimes', 'nullable', 'string', 'max:100'],
+            'invoice_no' => ['sometimes', 'nullable', 'string', 'max:30'],
+            'name' => ['sometimes', 'nullable', 'string', 'max:100'],
+            'doctor' => ['sometimes', 'nullable', 'string', 'max:100'],
+            'visit_type' => ['sometimes', 'nullable', 'in:consultation,otc'],
+            'visit_from' => ['sometimes', 'nullable', 'date_format:Y-m-d'],
+            'visit_to' => ['sometimes', 'nullable', 'date_format:Y-m-d', 'after_or_equal:visit_from'],
+            'due_from' => ['sometimes', 'nullable', 'date_format:Y-m-d'],
+            'due_to' => ['sometimes', 'nullable', 'date_format:Y-m-d', 'after_or_equal:due_from'],
         ]);
 
         return Inertia::render('PanelClaims/Index', [
-            'work' => $directory->search($actor, (int) ($data['allocations_page'] ?? 1), (int) ($data['claims_page'] ?? 1)),
+            'work' => $directory->search($actor, (int) ($data['allocations_page'] ?? 1), (int) ($data['claims_page'] ?? 1), $data),
         ]);
     }
 

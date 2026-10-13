@@ -15,7 +15,7 @@ test('Panel Claims is a separate branch-scoped manual-submission workspace', () 
     assert.match(index, /Prepare claim packs for manual\s+submission/);
     assert.match(
         index,
-        /clinical notes, diagnoses, identity\s+documents or attachments/,
+        /clinical\s+notes,\s+diagnoses,\s+identity\s+documents\s+or\s+attachments/,
     );
     assert.match(navigation, /label: 'Panel Claims'/);
     assert.match(navigation, /href: '\/panel-claims'/);
@@ -54,4 +54,53 @@ test('Payments Insights labels Panel remittances and accepted claim balances sep
     assert.match(insights, /Panel claims outstanding/);
     assert.match(insights, /remittances are separate from patient receipts/);
     assert.match(insights, /Panel claim outcomes/);
+});
+
+test('Panel Claims main page has summary cards, status tabs, filters, column picker and a row menu', () => {
+    assert.match(index, /aria-label="Submissions"/);
+    assert.match(index, /aria-label="Payouts"/);
+    assert.match(index, /\['approved', 'Approved'\]/);
+    assert.match(index, /\['outstanding', 'Outstanding'\]/);
+
+    for (const label of [
+        'All',
+        'Pending',
+        'Overdue',
+        'Submitted',
+        'Approved',
+        'Rejected',
+        'Received',
+    ]) {
+        assert.match(index, new RegExp(`\\['[a-z]+', '${label}'\\]`));
+    }
+
+    assert.doesNotMatch(index, /\['cancelled', 'Cancelled'\]/);
+    assert.match(index, /label: 'Yesterday'/);
+    assert.match(index, /label: 'Custom'/);
+    assert.match(index, /Customize column/);
+    assert.match(index, /Reset filters/);
+    assert.match(index, /View claim/);
+    assert.match(index, /Submit claim \(manual\)/);
+    assert.doesNotMatch(index, /Send claim|Revert claim/);
+});
+
+test('Panel Claims filters are sent to the server and never kept in browser storage', () => {
+    assert.match(index, /router\.get\('\/panel-claims'/);
+    assert.match(index, /claim_no: draft\.claimNo/);
+    assert.match(index, /amount_min: draft\.amountMin/);
+    assert.doesNotMatch(index, /localStorage|sessionStorage/);
+});
+
+test('Pending and Overdue list unclaimed invoices with View invoice and Create claim, with clinical filters only for permitted roles', () => {
+    assert.match(index, /View invoice/);
+    assert.match(index, /Create claim/);
+    assert.match(index, /Invoice number/);
+    assert.match(index, /Due date/);
+    assert.match(index, /Remark note/);
+    assert.match(index, /Visit type/);
+    assert.match(index, /\/panel-claims\/allocations\//);
+    assert.match(index, /v-if="work\.can\.clinicalFilters"/);
+    assert.match(index, /Diagnosis/);
+    assert.match(index, /Treatment/);
+    assert.doesNotMatch(index, /MC days/);
 });

@@ -8,6 +8,7 @@ use App\Domain\Organisation\Models\Branch;
 use App\Domain\Visit\Billing\Models\PanelClaim;
 use App\Models\User;
 use Carbon\CarbonImmutable;
+use Illuminate\Contracts\Database\Query\Expression;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Facades\DB;
 
@@ -19,7 +20,12 @@ use Illuminate\Support\Facades\DB;
  *     invoice_number: string,
  *     invoice_total_sen: int|string,
  *     visit_number: string,
- *     patient_name: string
+ *     visit_type: string,
+ *     registered_at: string,
+ *     reason: string,
+ *     claim_due_days: int|string,
+ *     patient_name: string,
+ *     doctor_name: string|null
  * }
  */
 final class PanelClaimDirectoryService
@@ -29,78 +35,86 @@ final class PanelClaimDirectoryService
         private TransactionalActorAuthority $authority,
     ) {}
 
-    /** @return array<string, mixed> */
-    public function search(User $actor, int $allocationsPage, int $claimsPage): array
+    private const SUBMITTED = ['prepared', 'submitted', 'queried'];
+
+    private const APPROVED = ['accepted', 'partially_accepted', 'partially_paid'];
+
+    private const TABS = ['all', 'pending', 'overdue', 'submitted', 'approved', 'rejected', 'received'];
+
+    private const INVOICE_TABS = ['pending', 'overdue'];
+
+    /**
+     * @param  array<string, mixed>  $filters
+     * @return array<string, mixed>
+     */
+    public function search(User $actor, int $allocationsPage, int $claimsPage, array $filters = []): array
     {
-        return DB::transaction(function () use ($actor, $allocationsPage, $claimsPage): array {
+        return DB::transaction(function () use ($actor, $allocationsPage, $claimsPage, $filters): array {
             [$actor, $branch] = $this->context($actor);
-            $eligible = DB::table('coverage_allocations as c')
-                ->join('invoices as i', 'i.id', '=', 'c.invoice_id')
-                ->join('visits as v', 'v.id', '=', 'i.visit_id')
-                ->join('patients as p', 'p.id', '=', 'i.patient_id')
-                ->where('c.organisation_id', $actor->organisation_id)
-                ->where('c.branch_id', $branch->id)
-                ->where('c.status', 'approved')
-                ->whereColumn('c.current_invoice_guard', 'i.id')
-                ->whereColumn('c.invoice_id', 'i.id')
-                ->whereColumn('i.organisation_id', 'c.organisation_id')
-                ->whereColumn('i.branch_id', 'c.branch_id')
-                ->whereColumn('v.organisation_id', 'i.organisation_id')
-                ->whereColumn('v.branch_id', 'i.branch_id')
-                ->whereColumn('p.organisation_id', 'i.organisation_id')
-                ->whereColumn('p.id', 'i.patient_id')
-                ->where('i.status', 'finalized')
-                ->where('i.correction_hold', false)
-                ->where('i.source_stale', false)
-                ->whereColumn('c.amount_sen', '<=', 'i.total_sen')
-                ->whereNotExists(fn (Builder $existing) => $existing->selectRaw('1')
-                    ->from('panel_claims')
-                    ->whereColumn('panel_claims.coverage_allocation_id', 'c.id'))
-                ->select([
-                    'c.public_id as allocation_id',
-                    'c.amount_sen',
-                    'c.panel_name_snapshot',
-                    'i.invoice_number',
-                    'i.total_sen as invoice_total_sen',
-                    'v.visit_number',
-                    'p.full_name as patient_name',
-                ])
-                ->orderByDesc('c.id')
+            $today = CarbonImmutable::now($branch->timezone);
+            [$from, $to, $range] = $this->dateWindow($filters, $today);
+            $base = fn () => $this->claimBase($actor, $branch, $from, $to);
+            $invoices = fn (?string $state) => $this->eligibleQuery($actor, $branch, $filters, $today, $from, $to, $state);
+            $tab = in_array($filters['tab'] ?? 'all', self::TABS, true) ? (string) ($filters['tab'] ?? 'all') : 'all';
+            $onInvoices = in_array($tab, self::INVOICE_TABS, true);
+
+            $eligible = $invoices($onInvoices ? $tab : null)
+                ->orderBy('v.registered_at')->orderBy('c.id')
                 ->paginate(20, ['*'], 'allocations_page', $allocationsPage);
-            $claims = PanelClaim::query()->where('organisation_id', $actor->organisation_id)
-                ->where('branch_id', $branch->id)
-                ->orderByDesc('created_at')
+            $claims = $this->applyListFilters($base(), $filters, $onInvoices ? 'all' : $tab)
+                ->orderByDesc('id')
                 ->paginate(20, ['*'], 'claims_page', $claimsPage);
+            $paymentRemarks = $this->latestPaymentReferences(array_values(array_map(static fn ($id): int => (int) $id, $claims->getCollection()->pluck('id')->all())), $actor, $branch);
+            $latest = $this->latestEvents(array_values(array_map(static fn ($id): int => (int) $id, $claims->getCollection()->pluck('id')->all())), $actor, $branch);
 
             return [
-                'branch' => ['id' => $branch->id, 'name' => $branch->name, 'today' => now()->setTimezone($branch->timezone)->toDateString()],
+                'branch' => ['id' => $branch->id, 'name' => $branch->name, 'today' => $today->toDateString()],
                 'eligible' => [
                     'data' => $eligible->getCollection()->map(
                         /** @param EligibleAllocationRow $row */
-                        static fn ($row): array => [
-                            'allocationId' => $row->allocation_id,
-                            'patientName' => $row->patient_name,
-                            'visitNumber' => $row->visit_number,
-                            'invoiceNumber' => $row->invoice_number,
-                            'panelName' => $row->panel_name_snapshot,
-                            'amountSen' => (int) $row->amount_sen,
-                            'invoiceTotalSen' => (int) $row->invoice_total_sen,
-                        ],
+                        fn ($row): array => $this->eligibleRow($row, $branch, $today),
                     )->all(),
                     'total' => $eligible->total(),
                     'currentPage' => $eligible->currentPage(),
                     'lastPage' => $eligible->lastPage(),
                 ],
+                'summary' => $this->summary($base, $invoices),
+                'tabs' => $this->tabCounts($base, $invoices, $filters),
+                'panels' => DB::table('panels')->where('organisation_id', $actor->organisation_id)->where('is_active', true)->orderBy('name')->pluck('name')->all(),
+                'filters' => [
+                    'tab' => $tab,
+                    'range' => $range,
+                    'from' => $from?->toDateString(),
+                    'to' => $to?->toDateString(),
+                    'panel' => (string) ($filters['panel'] ?? ''),
+                    'claimNo' => (string) ($filters['claim_no'] ?? ''),
+                    'amountMin' => (string) ($filters['amount_min'] ?? ''),
+                    'amountMax' => (string) ($filters['amount_max'] ?? ''),
+                    'invoiceNo' => (string) ($filters['invoice_no'] ?? ''),
+                    'name' => (string) ($filters['name'] ?? ''),
+                    'doctor' => (string) ($filters['doctor'] ?? ''),
+                    'visitType' => (string) ($filters['visit_type'] ?? ''),
+                    'visitFrom' => (string) ($filters['visit_from'] ?? ''),
+                    'visitTo' => (string) ($filters['visit_to'] ?? ''),
+                    'dueFrom' => (string) ($filters['due_from'] ?? ''),
+                    'dueTo' => (string) ($filters['due_to'] ?? ''),
+                    'diagnosis' => $actor->can('panel.claims.clinical_filters.branch') ? (string) ($filters['diagnosis'] ?? '') : '',
+                    'treatment' => $actor->can('panel.claims.clinical_filters.branch') ? (string) ($filters['treatment'] ?? '') : '',
+                ],
+                'can' => ['clinicalFilters' => $actor->can('panel.claims.clinical_filters.branch')],
                 'claims' => [
                     'data' => $claims->getCollection()->map(fn (PanelClaim $claim): array => [
                         'publicId' => $claim->public_id,
+                        'claimNo' => (string) $claim->id,
                         'patientName' => $claim->patient_name_snapshot,
                         'visitNumber' => $claim->visit_number,
                         'invoiceNumber' => $claim->invoice_number,
                         'panelName' => $claim->panel_name_snapshot,
                         'claimAmountSen' => $claim->claim_amount_sen,
                         'status' => $this->status($claim),
-                        'createdAt' => $claim->created_at?->setTimezone($branch->timezone)->format('j M Y, g:i A'),
+                        'createdAt' => $claim->created_at?->setTimezone($branch->timezone)->format('j F Y'),
+                        'updatedBy' => $latest[$claim->id]['actor'] ?? null,
+                        'remarks' => $paymentRemarks[$claim->id] ?? ($latest[$claim->id]['note'] ?? null),
                         'showUrl' => route('panel-claims.show', $claim),
                     ])->all(),
                     'total' => $claims->total(),
@@ -109,6 +123,383 @@ final class PanelClaimDirectoryService
                 ],
             ];
         });
+    }
+
+    /**
+     * @param  EligibleAllocationRow  $row
+     * @return array<string, mixed>
+     */
+    private function eligibleRow(object $row, Branch $branch, CarbonImmutable $today): array
+    {
+        $visitAt = CarbonImmutable::parse((string) $row->registered_at, 'UTC')->setTimezone($branch->timezone);
+        $due = $visitAt->startOfDay()->addDays((int) $row->claim_due_days);
+
+        return [
+            'allocationId' => $row->allocation_id,
+            'patientName' => $row->patient_name,
+            'visitNumber' => $row->visit_number,
+            'invoiceNumber' => $row->invoice_number,
+            'invoiceUrl' => route('billing.show', ['visit' => $row->visit_number]),
+            'panelName' => $row->panel_name_snapshot,
+            'amountSen' => (int) $row->amount_sen,
+            'invoiceTotalSen' => (int) $row->invoice_total_sen,
+            'visitType' => (string) $row->visit_type,
+            'doctorName' => $row->doctor_name === null ? null : (string) $row->doctor_name,
+            'visitDate' => $visitAt->format('j F Y'),
+            'dueDate' => $due->format('j F Y'),
+            'overdue' => $due->lt($today->startOfDay()),
+            'remarkNote' => (string) $row->reason,
+        ];
+    }
+
+    private function dueAtExpression(): Expression
+    {
+        return DB::connection()->getDriverName() === 'pgsql'
+            ? DB::raw("(v.registered_at + (pn.claim_due_days * interval '1 day'))")
+            : DB::raw("datetime(v.registered_at, '+' || pn.claim_due_days || ' days')");
+    }
+
+    /**
+     * Approved Panel allocations without a claim yet (the "invoices" Pending and Overdue lists).
+     * $state: null = both, 'pending' = not yet due, 'overdue' = past the Panel's due date.
+     *
+     * @param  array<string, mixed>  $filters
+     */
+    private function eligibleQuery(User $actor, Branch $branch, array $filters, CarbonImmutable $today, ?CarbonImmutable $from, ?CarbonImmutable $to, ?string $state): Builder
+    {
+        $dueAt = $this->dueAtExpression();
+        $zone = $today->getTimezone();
+        $dayStart = static fn (string $key): ?string => ($filters[$key] ?? '') === '' ? null : CarbonImmutable::createFromFormat('!Y-m-d', (string) $filters[$key], $zone)->startOfDay()->utc()->toDateTimeString();
+        $dayEnd = static fn (string $key): ?string => ($filters[$key] ?? '') === '' ? null : CarbonImmutable::createFromFormat('!Y-m-d', (string) $filters[$key], $zone)->endOfDay()->utc()->toDateTimeString();
+        $query = DB::table('coverage_allocations as c')
+            ->join('invoices as i', 'i.id', '=', 'c.invoice_id')
+            ->join('visits as v', 'v.id', '=', 'i.visit_id')
+            ->join('patients as p', 'p.id', '=', 'i.patient_id')
+            ->join('panels as pn', function ($join): void {
+                $join->on('pn.id', '=', 'c.panel_id')->on('pn.organisation_id', '=', 'c.organisation_id');
+            })
+            ->leftJoin('users as d', function ($join): void {
+                $join->on('d.id', '=', 'v.assigned_doctor_user_id')->on('d.organisation_id', '=', 'v.organisation_id');
+            })
+            ->where('c.organisation_id', $actor->organisation_id)
+            ->where('c.branch_id', $branch->id)
+            ->where('c.status', 'approved')
+            ->whereColumn('c.current_invoice_guard', 'i.id')
+            ->whereColumn('c.invoice_id', 'i.id')
+            ->whereColumn('i.organisation_id', 'c.organisation_id')
+            ->whereColumn('i.branch_id', 'c.branch_id')
+            ->whereColumn('v.organisation_id', 'i.organisation_id')
+            ->whereColumn('v.branch_id', 'i.branch_id')
+            ->whereColumn('p.organisation_id', 'i.organisation_id')
+            ->whereColumn('p.id', 'i.patient_id')
+            ->where('i.status', 'finalized')
+            ->where('i.correction_hold', false)
+            ->where('i.source_stale', false)
+            ->whereColumn('c.amount_sen', '<=', 'i.total_sen')
+            ->whereNotExists(fn (Builder $existing) => $existing->selectRaw('1')
+                ->from('panel_claims')
+                ->whereColumn('panel_claims.coverage_allocation_id', 'c.id'))
+            ->select([
+                'c.public_id as allocation_id',
+                'c.amount_sen',
+                'c.panel_name_snapshot',
+                'c.reason',
+                'pn.claim_due_days',
+                'i.invoice_number',
+                'i.total_sen as invoice_total_sen',
+                'v.visit_number',
+                'v.visit_type',
+                'v.registered_at',
+                'p.full_name as patient_name',
+                'd.name as doctor_name',
+            ]);
+        if ($from !== null) {
+            $query->where('v.registered_at', '>=', $from->utc()->toDateTimeString());
+        }
+        if ($to !== null) {
+            $query->where('v.registered_at', '<=', $to->utc()->toDateTimeString());
+        }
+        if ($state === 'overdue') {
+            $query->where($dueAt, '<', $today->startOfDay()->utc()->toDateTimeString());
+        } elseif ($state === 'pending') {
+            $query->where($dueAt, '>=', $today->startOfDay()->utc()->toDateTimeString());
+        }
+        if (($filters['panel'] ?? '') !== '') {
+            $query->where('c.panel_name_snapshot', (string) $filters['panel']);
+        }
+        if (($filters['invoice_no'] ?? '') !== '') {
+            $query->where('i.invoice_number', (string) $filters['invoice_no']);
+        }
+        if (($filters['name'] ?? '') !== '') {
+            $query->whereRaw('lower(p.full_name) like ?', [$this->likeTerm((string) $filters['name'])]);
+        }
+        if (($filters['doctor'] ?? '') !== '') {
+            $query->whereRaw('lower(d.name) like ?', [$this->likeTerm((string) $filters['doctor'])]);
+        }
+        if (in_array($filters['visit_type'] ?? '', ['consultation', 'otc'], true)) {
+            $query->where('v.visit_type', (string) $filters['visit_type']);
+        }
+        if (($start = $dayStart('visit_from')) !== null) {
+            $query->where('v.registered_at', '>=', $start);
+        }
+        if (($end = $dayEnd('visit_to')) !== null) {
+            $query->where('v.registered_at', '<=', $end);
+        }
+        if (($start = $dayStart('due_from')) !== null) {
+            $query->where($dueAt, '>=', $start);
+        }
+        if (($end = $dayEnd('due_to')) !== null) {
+            $query->where($dueAt, '<=', $end);
+        }
+        if (($filters['amount_min'] ?? '') !== '') {
+            $query->where('c.amount_sen', '>=', (int) round(((float) $filters['amount_min']) * 100));
+        }
+        if (($filters['amount_max'] ?? '') !== '') {
+            $query->where('c.amount_sen', '<=', (int) round(((float) $filters['amount_max']) * 100));
+        }
+
+        $this->applyClinicalFilters($query, 'v.id', $actor, $branch, $filters);
+
+        return $query;
+    }
+
+    private function likeTerm(string $value): string
+    {
+        return '%'.mb_strtolower($this->escapeLike($value)).'%';
+    }
+
+    /**
+     * Diagnosis and Treatment filters read clinical content, so they are only applied for
+     * actors holding panel.claims.clinical_filters.branch (owner decision 2026-10-13). They
+     * narrow the list; no diagnosis or treatment text is returned.
+     *
+     * @param  Builder  $subject  a query whose visit id column is $visitIdColumn
+     * @param  array<string, mixed>  $filters
+     */
+    private function applyClinicalFilters(Builder $subject, string $visitIdColumn, User $actor, Branch $branch, array $filters): void
+    {
+        if (! $actor->can('panel.claims.clinical_filters.branch')) {
+            return;
+        }
+        if (($filters['diagnosis'] ?? '') !== '') {
+            $term = $this->likeTerm((string) $filters['diagnosis']);
+            $subject->whereExists(fn (Builder $q) => $q->selectRaw('1')->from('clinical_encounters as ce')
+                ->join('encounter_diagnoses as ed', function ($join): void {
+                    $join->on('ed.clinical_encounter_id', '=', 'ce.id')->on('ed.organisation_id', '=', 'ce.organisation_id')->on('ed.branch_id', '=', 'ce.branch_id');
+                })
+                ->whereColumn('ce.visit_id', $visitIdColumn)
+                ->where('ce.organisation_id', $actor->organisation_id)->where('ce.branch_id', $branch->id)
+                ->where(fn (Builder $any) => $any->whereRaw('lower(ed.diagnosis_text) like ?', [$term])->orWhereRaw('lower(coalesce(ed.diagnosis_code, \'\')) like ?', [$term])));
+        }
+        if (($filters['treatment'] ?? '') !== '') {
+            $term = $this->likeTerm((string) $filters['treatment']);
+            $subject->where(fn (Builder $either) => $either
+                ->whereExists(fn (Builder $q) => $q->selectRaw('1')->from('clinical_encounters as ce')
+                    ->join('treatment_plans as tp', function ($join): void {
+                        $join->on('tp.clinical_encounter_id', '=', 'ce.id')->on('tp.organisation_id', '=', 'ce.organisation_id')->on('tp.branch_id', '=', 'ce.branch_id');
+                    })
+                    ->join('treatment_plan_medicine_orders as mo', function ($join): void {
+                        $join->on('mo.treatment_plan_id', '=', 'tp.id')->on('mo.organisation_id', '=', 'tp.organisation_id')->on('mo.branch_id', '=', 'tp.branch_id');
+                    })
+                    ->whereColumn('ce.visit_id', $visitIdColumn)
+                    ->where('ce.organisation_id', $actor->organisation_id)->where('ce.branch_id', $branch->id)
+                    ->where('mo.status', 'active')
+                    ->whereRaw('lower(mo.medicine_name_snapshot) like ?', [$term]))
+                ->orWhereExists(fn (Builder $q) => $q->selectRaw('1')->from('clinical_encounters as ce')
+                    ->join('treatment_plans as tp', function ($join): void {
+                        $join->on('tp.clinical_encounter_id', '=', 'ce.id')->on('tp.organisation_id', '=', 'ce.organisation_id')->on('tp.branch_id', '=', 'ce.branch_id');
+                    })
+                    ->join('treatment_plan_service_orders as so', function ($join): void {
+                        $join->on('so.treatment_plan_id', '=', 'tp.id')->on('so.organisation_id', '=', 'tp.organisation_id')->on('so.branch_id', '=', 'tp.branch_id');
+                    })
+                    ->whereColumn('ce.visit_id', $visitIdColumn)
+                    ->where('ce.organisation_id', $actor->organisation_id)->where('ce.branch_id', $branch->id)
+                    ->where('so.status', 'active')
+                    ->whereRaw('lower(so.service_name_snapshot) like ?', [$term])));
+        }
+    }
+
+    private function escapeLike(string $value): string
+    {
+        return str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $value);
+    }
+
+    /**
+     * @param  array<string, mixed>  $filters
+     * @return array{0: CarbonImmutable|null, 1: CarbonImmutable|null, 2: string}
+     */
+    private function dateWindow(array $filters, CarbonImmutable $today): array
+    {
+        $range = (string) ($filters['range'] ?? 'all');
+        $week = $today->startOfWeek(CarbonImmutable::SUNDAY);
+
+        return match ($range) {
+            'yesterday' => [$today->subDay()->startOfDay(), $today->subDay()->endOfDay(), $range],
+            'last_7_days' => [$today->subDays(6)->startOfDay(), $today->endOfDay(), $range],
+            'last_30_days' => [$today->subDays(29)->startOfDay(), $today->endOfDay(), $range],
+            'last_90_days' => [$today->subDays(89)->startOfDay(), $today->endOfDay(), $range],
+            'this_week' => [$week, $week->addDays(6)->endOfDay(), $range],
+            'this_month' => [$today->startOfMonth(), $today->endOfMonth(), $range],
+            'this_year' => [$today->startOfYear(), $today->endOfYear(), $range],
+            'last_week' => [$week->subWeek(), $week->subDay()->endOfDay(), $range],
+            'last_month' => [$today->subMonthNoOverflow()->startOfMonth(), $today->subMonthNoOverflow()->endOfMonth(), $range],
+            'custom' => [
+                isset($filters['from']) ? CarbonImmutable::createFromFormat('!Y-m-d', (string) $filters['from'], $today->getTimezone())->startOfDay() : null,
+                isset($filters['to']) ? CarbonImmutable::createFromFormat('!Y-m-d', (string) $filters['to'], $today->getTimezone())->endOfDay() : null,
+                $range,
+            ],
+            default => [null, null, 'all'],
+        };
+    }
+
+    /** @return \Illuminate\Database\Eloquent\Builder<PanelClaim> */
+    private function claimBase(User $actor, Branch $branch, ?CarbonImmutable $from, ?CarbonImmutable $to)
+    {
+        $query = PanelClaim::query()->where('organisation_id', $actor->organisation_id)->where('branch_id', $branch->id);
+        if ($from !== null) {
+            $query->where('created_at', '>=', $from->utc());
+        }
+        if ($to !== null) {
+            $query->where('created_at', '<=', $to->utc());
+        }
+
+        return $query;
+    }
+
+    /**
+     * @param  \Illuminate\Database\Eloquent\Builder<PanelClaim>  $query
+     * @param  array<string, mixed>  $filters
+     * @return \Illuminate\Database\Eloquent\Builder<PanelClaim>
+     */
+    private function applyListFilters($query, array $filters, string $tab)
+    {
+        match ($tab) {
+            'submitted' => $query->whereIn('status', self::SUBMITTED),
+            'approved' => $query->whereIn('status', self::APPROVED),
+            'rejected' => $query->where('status', 'rejected'),
+            'received' => $query->where('status', 'paid'),
+            default => null,
+        };
+        if (($filters['panel'] ?? '') !== '') {
+            $query->where('panel_name_snapshot', (string) $filters['panel']);
+        }
+        if (($filters['claim_no'] ?? '') !== '') {
+            $query->where('id', (int) $filters['claim_no']);
+        }
+        if (($filters['invoice_no'] ?? '') !== '') {
+            $query->where('invoice_number', (string) $filters['invoice_no']);
+        }
+        if (($filters['name'] ?? '') !== '') {
+            $query->whereRaw('lower(patient_name_snapshot) like ?', [$this->likeTerm((string) $filters['name'])]);
+        }
+        if (($filters['amount_min'] ?? '') !== '') {
+            $query->where('claim_amount_sen', '>=', (int) round(((float) $filters['amount_min']) * 100));
+        }
+        if (($filters['amount_max'] ?? '') !== '') {
+            $query->where('claim_amount_sen', '<=', (int) round(((float) $filters['amount_max']) * 100));
+        }
+
+        return $query;
+    }
+
+    /**
+     * @param  callable(): \Illuminate\Database\Eloquent\Builder<PanelClaim>  $base
+     * @param  callable(?string): Builder  $invoices
+     * @return array<string, array{count: int, amountSen: int}>
+     */
+    private function summary(callable $base, callable $invoices): array
+    {
+        $paid = '(select coalesce(sum(p.amount_sen), 0) from panel_claim_payments p where p.panel_claim_id = panel_claims.id)';
+        $approved = $base()->whereIn('status', self::APPROVED);
+        $received = $base()->where('status', 'paid');
+        $rejected = $base()->where('status', 'rejected');
+        $outstanding = $base()->whereIn('status', self::APPROVED)->whereRaw("coalesce(accepted_amount_sen, 0) - {$paid} > 0");
+        $figure = static fn (Builder $query): array => ['count' => (clone $query)->count(), 'amountSen' => (int) (clone $query)->sum('c.amount_sen')];
+
+        return [
+            'pending' => $figure($invoices('pending')),
+            'overdue' => $figure($invoices('overdue')),
+            'approved' => ['count' => (clone $approved)->count(), 'amountSen' => (int) (clone $approved)->sum('accepted_amount_sen')],
+            'received' => ['count' => (clone $received)->count(), 'amountSen' => (int) (clone $received)->sum('accepted_amount_sen')],
+            'rejected' => ['count' => (clone $rejected)->count(), 'amountSen' => (int) (clone $rejected)->sum('claim_amount_sen')],
+            'outstanding' => ['count' => (clone $outstanding)->count(), 'amountSen' => (int) (clone $outstanding)->selectRaw("coalesce(sum(coalesce(accepted_amount_sen, 0) - {$paid}), 0) as total")->value('total')],
+        ];
+    }
+
+    /**
+     * Tab counts follow every filter except the tab itself.
+     *
+     * @param  callable(): \Illuminate\Database\Eloquent\Builder<PanelClaim>  $base
+     * @param  callable(?string): Builder  $invoices
+     * @param  array<string, mixed>  $filters
+     * @return array<string, int>
+     */
+    private function tabCounts(callable $base, callable $invoices, array $filters): array
+    {
+        $counts = [];
+        foreach (self::TABS as $tab) {
+            $counts[$tab] = in_array($tab, self::INVOICE_TABS, true)
+                ? $invoices($tab)->count()
+                : $this->applyListFilters($base(), $filters, $tab)->count();
+        }
+
+        return $counts;
+    }
+
+    /**
+     * The Remarks column on claims shows the Panel payment reference once a remittance exists.
+     *
+     * @param  list<int>  $claimIds
+     * @return array<int, string>
+     */
+    private function latestPaymentReferences(array $claimIds, User $actor, Branch $branch): array
+    {
+        if ($claimIds === []) {
+            return [];
+        }
+        $remarks = [];
+        $rows = DB::table('panel_claim_payments')
+            ->where('organisation_id', $actor->organisation_id)->where('branch_id', $branch->id)
+            ->whereIn('panel_claim_id', $claimIds)->whereNotNull('reference')
+            ->orderBy('received_at')->orderBy('id')
+            ->get(['panel_claim_id', 'reference']);
+        foreach ($rows as $row) {
+            $remarks[(int) $row->panel_claim_id] = (string) $row->reference;
+        }
+
+        return $remarks;
+    }
+
+    /**
+     * @param  list<int>  $claimIds
+     * @return array<int, array{actor: string|null, note: string|null}>
+     */
+    private function latestEvents(array $claimIds, User $actor, Branch $branch): array
+    {
+        if ($claimIds === []) {
+            return [];
+        }
+        $rows = DB::table('panel_claim_events')
+            ->join('users', function ($join): void {
+                $join->on('users.id', '=', 'panel_claim_events.actor_user_id')
+                    ->on('users.organisation_id', '=', 'panel_claim_events.organisation_id');
+            })
+            ->where('panel_claim_events.organisation_id', $actor->organisation_id)
+            ->where('panel_claim_events.branch_id', $branch->id)
+            ->whereIn('panel_claim_events.panel_claim_id', $claimIds)
+            ->orderBy('panel_claim_events.occurred_at')->orderBy('panel_claim_events.id')
+            ->get(['panel_claim_events.panel_claim_id', 'panel_claim_events.event_type', 'panel_claim_events.note', 'panel_claim_events.occurred_at', 'users.name as actor_name']);
+        $latest = [];
+        foreach ($rows as $row) {
+            $id = (int) $row->panel_claim_id;
+            $latest[$id] ??= ['actor' => null, 'note' => null];
+            $latest[$id]['actor'] = (string) $row->actor_name;
+            if ($row->note !== null) {
+                $latest[$id]['note'] = (string) $row->note;
+            }
+        }
+
+        return $latest;
     }
 
     /** @return array<string, mixed> */
