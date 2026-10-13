@@ -4,6 +4,7 @@ namespace App\Domain\Visit\Services;
 
 use App\Domain\Audit\AuditRecorder;
 use App\Domain\Organisation\Models\Organisation;
+use App\Domain\Visit\Billing\Services\PanelClaimDueRule;
 use App\Domain\Visit\Models\Panel;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
@@ -183,7 +184,7 @@ final class PanelSettingsService
             'addressLine1' => $panel->address_line_1, 'addressLine2' => $panel->address_line_2, 'postcode' => $panel->postcode,
             'city' => $panel->city, 'state' => $panel->state, 'country' => $panel->country,
             'verificationMode' => $panel->verification_mode, 'verificationUrl' => $panel->verification_url, 'verificationRemark' => $panel->verification_remark,
-            'claimDueDays' => $panel->claim_due_days, 'incomeTaxNumber' => $panel->income_tax_number,
+            'claimDueDays' => $panel->claim_due_days, 'claimDueRule' => $panel->claim_due_rule, 'claimDueTime' => $panel->claim_due_time, 'claimDueOffset' => $panel->claim_due_offset, 'incomeTaxNumber' => $panel->income_tax_number,
         ];
     }
 
@@ -210,12 +211,16 @@ final class PanelSettingsService
             'verification_mode' => ['required', 'in:url,remark'],
             'verification_url' => ['nullable', 'string', 'max:500', 'url:https'],
             'verification_remark' => ['nullable', 'string', 'max:500'],
-            'claim_due_days' => ['required', 'integer', 'between:0,365'],
+            'claim_due_rule' => ['required', 'in:'.implode(',', PanelClaimDueRule::RULES)],
+            'claim_due_days' => ['required_if:claim_due_rule,days_after_visit', 'nullable', 'integer', 'between:0,365'],
+            'claim_due_time' => ['required_unless:claim_due_rule,days_after_visit', 'nullable', 'regex:/^([01][0-9]|2[0-3]):[0-5][0-9]$/'],
+            'claim_due_offset' => ['required_unless:claim_due_rule,days_after_visit', 'nullable', 'integer'],
             'income_tax_number' => ['nullable', 'string', 'max:20', 'regex:/^[A-Za-z0-9\-]+$/'],
         ], [
             'company_registration_number.regex' => 'The company registration number must be exactly 12 digits.',
             'verification_url.url' => 'Enter a secure link that starts with https://.',
             'phone.regex' => 'Enter a valid phone number.',
+            'claim_due_time.regex' => 'Enter the time as HH:MM.',
         ]);
         $clean = $v->validate();
         $text = static function (mixed $value): ?string {
@@ -226,6 +231,12 @@ final class PanelSettingsService
         $name = $text($clean['name']);
         if ($name === null || preg_match('/[\p{C}]/u', $name) === 1) {
             throw ValidationException::withMessages(['name' => 'Enter a readable Panel name.']);
+        }
+        $rule = (string) $clean['claim_due_rule'];
+        $offset = $rule === 'days_after_visit' ? null : (int) $clean['claim_due_offset'];
+        $range = ['daily' => [0, 3], 'weekly' => [1, 7], 'monthly' => [0, 28]][$rule] ?? null;
+        if ($range !== null && ($offset < $range[0] || $offset > $range[1])) {
+            throw ValidationException::withMessages(['claim_due_offset' => 'Choose a valid day for this rule.']);
         }
         $url = $clean['verification_mode'] === 'url' ? $text($clean['verification_url'] ?? null) : null;
         $remark = $clean['verification_mode'] === 'remark' ? $text($clean['verification_remark'] ?? null) : null;
@@ -247,7 +258,10 @@ final class PanelSettingsService
             'verification_mode' => $clean['verification_mode'],
             'verification_url' => $url,
             'verification_remark' => $remark,
-            'claim_due_days' => (int) $clean['claim_due_days'],
+            'claim_due_rule' => $rule,
+            'claim_due_days' => (int) ($clean['claim_due_days'] ?? 30),
+            'claim_due_time' => $rule === 'days_after_visit' ? null : (string) $clean['claim_due_time'],
+            'claim_due_offset' => $offset,
             'income_tax_number' => $text($clean['income_tax_number'] ?? null),
         ];
     }

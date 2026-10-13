@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Head, Link, useForm } from '@inertiajs/vue3';
+import { computed } from 'vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -26,6 +27,9 @@ type PanelDetail = {
     verificationUrl: string | null;
     verificationRemark: string | null;
     claimDueDays: number;
+    claimDueRule: 'days_after_visit' | 'daily' | 'weekly' | 'monthly';
+    claimDueTime: string | null;
+    claimDueOffset: number | null;
     incomeTaxNumber: string | null;
 };
 
@@ -50,10 +54,35 @@ const form = useForm({
     verification_mode: props.panel?.verificationMode ?? 'url',
     verification_url: props.panel?.verificationUrl ?? '',
     verification_remark: props.panel?.verificationRemark ?? '',
+    claim_due_rule: props.panel?.claimDueRule ?? 'days_after_visit',
     claim_due_days: props.panel?.claimDueDays ?? 30,
+    claim_due_time: props.panel?.claimDueTime ?? '',
+    claim_due_offset: props.panel?.claimDueOffset ?? ('' as number | ''),
     income_tax_number: props.panel?.incomeTaxNumber ?? '',
     lock_version: props.panel?.lockVersion ?? 1,
 });
+
+const scheduled = computed(() => form.claim_due_rule !== 'days_after_visit');
+const setScheduled = (on: boolean) => {
+    form.claim_due_rule = on ? 'daily' : 'days_after_visit';
+    form.claim_due_offset = '';
+};
+const weekdays = [
+    'Monday',
+    'Tuesday',
+    'Wednesday',
+    'Thursday',
+    'Friday',
+    'Saturday',
+    'Sunday',
+];
+const monthDays = [
+    ...Array.from({ length: 28 }, (_, i) => ({
+        value: i + 1,
+        label: `Day ${i + 1} of next month`,
+    })),
+    { value: 0, label: 'Last day of the visit month' },
+];
 
 const submit = () => {
     const blankToNull = (value: string) => value.trim() || null;
@@ -75,6 +104,19 @@ const submit = () => {
         country: blankToNull(data.country),
         verification_url: blankToNull(data.verification_url),
         verification_remark: blankToNull(data.verification_remark),
+        claim_due_days:
+            data.claim_due_rule === 'days_after_visit'
+                ? data.claim_due_days
+                : null,
+        claim_due_time:
+            data.claim_due_rule === 'days_after_visit'
+                ? null
+                : blankToNull(data.claim_due_time),
+        claim_due_offset:
+            data.claim_due_rule === 'days_after_visit' ||
+            data.claim_due_offset === ''
+                ? null
+                : data.claim_due_offset,
         income_tax_number: blankToNull(data.income_tax_number),
     }));
 
@@ -284,9 +326,32 @@ const submit = () => {
                         Set the operational terms for this panel.
                     </p>
                 </div>
-                <label class="grid gap-1 text-xs">
-                    Claim submission due date
-                    <span class="flex items-center gap-2 text-sm">
+                <fieldset class="grid gap-2 text-xs">
+                    <legend class="mb-1 font-medium">
+                        Claim submission due date
+                    </legend>
+                    <div class="flex gap-4 text-sm">
+                        <label class="flex items-center gap-2">
+                            <input
+                                type="radio"
+                                :checked="!scheduled"
+                                @change="setScheduled(false)"
+                            />
+                            Days after the visit
+                        </label>
+                        <label class="flex items-center gap-2">
+                            <input
+                                type="radio"
+                                :checked="scheduled"
+                                @change="setScheduled(true)"
+                            />
+                            Daily, weekly or monthly
+                        </label>
+                    </div>
+                    <span
+                        v-if="!scheduled"
+                        class="flex items-center gap-2 text-sm"
+                    >
                         Submit
                         <Input
                             v-model.number="form.claim_due_days"
@@ -298,7 +363,65 @@ const submit = () => {
                         days after the visit
                     </span>
                     <InputError :message="form.errors.claim_due_days" />
-                </label>
+                    <div
+                        v-if="scheduled"
+                        class="flex flex-wrap items-center gap-2 text-sm"
+                    >
+                        Submit
+                        <select
+                            v-model="form.claim_due_rule"
+                            class="h-9 rounded-md border bg-background px-2"
+                            aria-label="Frequency"
+                            @change="form.claim_due_offset = ''"
+                        >
+                            <option value="daily">Daily</option>
+                            <option value="weekly">Weekly</option>
+                            <option value="monthly">Monthly</option>
+                        </select>
+                        by
+                        <Input
+                            v-model="form.claim_due_time"
+                            type="time"
+                            class="w-32"
+                            aria-label="Time"
+                        />
+                        <select
+                            v-model="form.claim_due_offset"
+                            class="h-9 rounded-md border bg-background px-2"
+                            aria-label="Day"
+                        >
+                            <option value="" disabled>Select day</option>
+                            <template v-if="form.claim_due_rule === 'daily'">
+                                <option :value="0">Same day</option>
+                                <option :value="1">Next day</option>
+                                <option :value="2">2 days after</option>
+                                <option :value="3">3 days after</option>
+                            </template>
+                            <template
+                                v-else-if="form.claim_due_rule === 'weekly'"
+                            >
+                                <option
+                                    v-for="(name, index) in weekdays"
+                                    :key="name"
+                                    :value="index + 1"
+                                >
+                                    Next {{ name }}
+                                </option>
+                            </template>
+                            <template v-else>
+                                <option
+                                    v-for="day in monthDays"
+                                    :key="day.value"
+                                    :value="day.value"
+                                >
+                                    {{ day.label }}
+                                </option>
+                            </template>
+                        </select>
+                    </div>
+                    <InputError :message="form.errors.claim_due_time" />
+                    <InputError :message="form.errors.claim_due_offset" />
+                </fieldset>
                 <p class="text-xs text-muted-foreground">
                     Prices: a Panel uses the default Panel price book unless it
                     has its own. Manage them in Pricing.

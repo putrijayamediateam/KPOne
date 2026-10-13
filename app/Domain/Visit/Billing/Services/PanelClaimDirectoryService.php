@@ -13,7 +13,6 @@ use App\Domain\Visit\Billing\Models\PanelClaim;
 use App\Domain\Visit\Models\Visit;
 use App\Models\User;
 use Carbon\CarbonImmutable;
-use Illuminate\Contracts\Database\Query\Expression;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Facades\DB;
 
@@ -29,6 +28,9 @@ use Illuminate\Support\Facades\DB;
  *     registered_at: string,
  *     reason: string,
  *     claim_due_days: int|string,
+ *     claim_due_rule: string,
+ *     claim_due_time: string|null,
+ *     claim_due_offset: int|string|null,
  *     patient_name: string,
  *     doctor_name: string|null
  * }
@@ -138,7 +140,7 @@ final class PanelClaimDirectoryService
     private function eligibleRow(object $row, Branch $branch, CarbonImmutable $today): array
     {
         $visitAt = CarbonImmutable::parse((string) $row->registered_at, 'UTC')->setTimezone($branch->timezone);
-        $due = $visitAt->startOfDay()->addDays((int) $row->claim_due_days);
+        $due = PanelClaimDueRule::dueAt($row, $visitAt);
 
         return [
             'allocationId' => $row->allocation_id,
@@ -153,16 +155,9 @@ final class PanelClaimDirectoryService
             'doctorName' => $row->doctor_name === null ? null : (string) $row->doctor_name,
             'visitDate' => $visitAt->format('j F Y'),
             'dueDate' => $due->format('j F Y'),
-            'overdue' => $due->lt($today->startOfDay()),
+            'overdue' => PanelClaimDueRule::isOverdue($row, $due, $today),
             'remarkNote' => (string) $row->reason,
         ];
-    }
-
-    private function dueAtExpression(): Expression
-    {
-        return DB::connection()->getDriverName() === 'pgsql'
-            ? DB::raw("(v.registered_at + (pn.claim_due_days * interval '1 day'))")
-            : DB::raw("datetime(v.registered_at, '+' || pn.claim_due_days || ' days')");
     }
 
     /**
@@ -173,7 +168,6 @@ final class PanelClaimDirectoryService
      */
     private function eligibleQuery(User $actor, Branch $branch, array $filters, CarbonImmutable $today, ?CarbonImmutable $from, ?CarbonImmutable $to, ?string $state): Builder
     {
-        $dueAt = $this->dueAtExpression();
         $zone = $today->getTimezone();
         $dayStart = static fn (string $key): ?string => ($filters[$key] ?? '') === '' ? null : CarbonImmutable::createFromFormat('!Y-m-d', (string) $filters[$key], $zone)->startOfDay()->utc()->toDateTimeString();
         $dayEnd = static fn (string $key): ?string => ($filters[$key] ?? '') === '' ? null : CarbonImmutable::createFromFormat('!Y-m-d', (string) $filters[$key], $zone)->endOfDay()->utc()->toDateTimeString();
@@ -211,6 +205,9 @@ final class PanelClaimDirectoryService
                 'c.panel_name_snapshot',
                 'c.reason',
                 'pn.claim_due_days',
+                'pn.claim_due_rule',
+                'pn.claim_due_time',
+                'pn.claim_due_offset',
                 'i.invoice_number',
                 'i.total_sen as invoice_total_sen',
                 'v.visit_number',
@@ -224,11 +221,6 @@ final class PanelClaimDirectoryService
         }
         if ($to !== null) {
             $query->where('v.registered_at', '<=', $to->utc()->toDateTimeString());
-        }
-        if ($state === 'overdue') {
-            $query->where($dueAt, '<', $today->startOfDay()->utc()->toDateTimeString());
-        } elseif ($state === 'pending') {
-            $query->where($dueAt, '>=', $today->startOfDay()->utc()->toDateTimeString());
         }
         if (($filters['panel'] ?? '') !== '') {
             $query->where('c.panel_name_snapshot', (string) $filters['panel']);
@@ -251,12 +243,6 @@ final class PanelClaimDirectoryService
         if (($end = $dayEnd('visit_to')) !== null) {
             $query->where('v.registered_at', '<=', $end);
         }
-        if (($start = $dayStart('due_from')) !== null) {
-            $query->where($dueAt, '>=', $start);
-        }
-        if (($end = $dayEnd('due_to')) !== null) {
-            $query->where($dueAt, '<=', $end);
-        }
         if (($filters['amount_min'] ?? '') !== '') {
             $query->where('c.amount_sen', '>=', (int) round(((float) $filters['amount_min']) * 100));
         }
@@ -265,6 +251,26 @@ final class PanelClaimDirectoryService
         }
 
         $this->applyClinicalFilters($query, 'v.id', $actor, $branch, $filters);
+
+        $dueFrom = ($filters['due_from'] ?? '') === '' ? null : CarbonImmutable::createFromFormat('!Y-m-d', (string) $filters['due_from'], $zone)->startOfDay();
+        $dueTo = ($filters['due_to'] ?? '') === '' ? null : CarbonImmutable::createFromFormat('!Y-m-d', (string) $filters['due_to'], $zone)->endOfDay();
+        if ($state !== null || $dueFrom !== null || $dueTo !== null) {
+            // Due dates depend on each Panel's rule (days, daily, weekly or monthly), so they are
+            // worked out here and the query is narrowed to the matching allocations.
+            $probe = clone $query;
+            $probe->columns = null;
+            $ids = [];
+            foreach ($probe->select(['c.id as allocation_row_id', 'v.registered_at', 'pn.claim_due_days', 'pn.claim_due_rule', 'pn.claim_due_time', 'pn.claim_due_offset'])->get() as $row) {
+                $due = PanelClaimDueRule::dueAt($row, CarbonImmutable::parse((string) $row->registered_at, 'UTC')->setTimezone($zone));
+                $overdue = PanelClaimDueRule::isOverdue($row, $due, $today);
+                if (($state === 'overdue' && ! $overdue) || ($state === 'pending' && $overdue)
+                    || ($dueFrom !== null && $due->lt($dueFrom)) || ($dueTo !== null && $due->gt($dueTo))) {
+                    continue;
+                }
+                $ids[] = (int) $row->allocation_row_id;
+            }
+            $ids === [] ? $query->whereRaw('1 = 0') : $query->whereIn('c.id', $ids);
+        }
 
         return $query;
     }
@@ -613,7 +619,7 @@ final class PanelClaimDirectoryService
                 'receivedAt' => $payment->received_at->setTimezone($branch->timezone)->format('j M Y'),
             ])->all();
 
-            $panel = DB::table('panels')->where('id', $claim->panel_id)->where('organisation_id', $actor->organisation_id)->first(['claim_due_days', 'verification_url']);
+            $panel = DB::table('panels')->where('id', $claim->panel_id)->where('organisation_id', $actor->organisation_id)->first(['claim_due_days', 'claim_due_rule', 'claim_due_time', 'claim_due_offset', 'verification_url']);
             $canSeeIdentity = $actor->can('panel.claims.patient_identity.view.branch');
             $patientRow = DB::table('patients')->where('id', $claim->patient_id)->where('organisation_id', $actor->organisation_id)->first(['mobile_phone']);
             $identifier = $canSeeIdentity
@@ -626,7 +632,6 @@ final class PanelClaimDirectoryService
             $submittedEvent = collect($events)->firstWhere('type', 'submitted');
             $lastEvent = collect($events)->last();
             $lastPayment = $claim->payments->last();
-            $dueDays = (int) ($panel->claim_due_days ?? 30);
             $statusKey = $claim->status;
             $payoutBase = $claim->accepted_amount_sen ?? $claim->claim_amount_sen;
             $documents = $claim->documents->map(fn ($document): array => [
@@ -651,7 +656,7 @@ final class PanelClaimDirectoryService
                     'updatedBy' => is_array($lastEvent) ? $lastEvent['actor'] : null,
                     'shareUrl' => route('panel-claims.show', $claim),
                     'invoiceUrl' => route('billing.show', ['visit' => $claim->visit_number]),
-                    'dueRule' => $dueDays === 0 ? 'Submit on the day of the visit' : "Submit {$dueDays} days after the visit",
+                    'dueRule' => PanelClaimDueRule::describe($panel ?? (object) []),
                     'verificationUrl' => $panel?->verification_url,
                     'receivedOn' => $lastPayment?->received_at->setTimezone($branch->timezone)->format('j F Y'),
                     'amountDueSen' => max(0, $payoutBase - $paid),

@@ -34,6 +34,9 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property string|null $verification_remark
  * @property string|null $income_tax_number
  * @property int $lock_version
+ * @property string $claim_due_rule
+ * @property string|null $claim_due_time
+ * @property int|null $claim_due_offset
  * @property-read Organisation $organisation
  */
 #[Guarded(['*'])]

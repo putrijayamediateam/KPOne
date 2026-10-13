@@ -31,6 +31,8 @@ test('Panel form keeps the code fixed on edit and offers URL or manual remark ve
     assert.match(form, /URL to panel platform/);
     assert.match(form, /Manual remark/);
     assert.match(form, /days after the visit/);
+    assert.match(form, /Daily, weekly or monthly/);
+    assert.match(form, /Last day of the visit month/);
     assert.match(form, /lock_version: props\.panel\?\.lockVersion \?\? 1/);
     assert.doesNotMatch(form, /bulk claim/i);
 });

@@ -18,7 +18,7 @@ class PanelSettingsTest extends VisitTestCase
             'code' => 'syn-care', 'name' => 'Synthetic  Care', 'panel_type' => 'tpa',
             'company_registration_number' => '202201234567', 'phone' => '+60 3-1234 5678', 'email' => 'claims@syn-care.test',
             'verification_mode' => 'url', 'verification_url' => 'https://verify.syn-care.test/login',
-            'claim_due_days' => 14, 'income_tax_number' => 'C1234567',
+            'claim_due_rule' => 'days_after_visit', 'claim_due_days' => 14, 'income_tax_number' => 'C1234567',
             ...$overrides,
         ];
     }
@@ -83,6 +83,22 @@ class PanelSettingsTest extends VisitTestCase
         $this->assertValidationFails(fn () => $service->update($officer, $panel, $this->payload(['lock_version' => 1, 'company_registration_number' => '123'])), 'company_registration_number');
         $this->assertValidationFails(fn () => $service->update($officer, $panel, $this->payload(['lock_version' => 1, 'claim_due_days' => 400])), 'claim_due_days');
         $this->assertSame(1, $panel->refresh()->lock_version);
+    }
+
+    public function test_scheduled_due_rules_are_saved_and_validated(): void
+    {
+        $officer = $this->actor('panel_officer');
+        $this->selectBranch($officer);
+        $service = app(PanelSettingsService::class);
+        $panel = $service->create($officer, $this->payload(['claim_due_rule' => 'weekly', 'claim_due_time' => '17:30', 'claim_due_offset' => 5, 'claim_due_days' => null]));
+        $this->assertSame(['weekly', '17:30', 5], [$panel->claim_due_rule, $panel->claim_due_time, $panel->claim_due_offset]);
+
+        $back = $service->update($officer, $panel, $this->payload(['lock_version' => 1, 'claim_due_rule' => 'days_after_visit', 'claim_due_days' => 10]));
+        $this->assertSame([null, null, 10], [$back->claim_due_time, $back->claim_due_offset, $back->claim_due_days]);
+
+        $this->assertValidationFails(fn () => $service->update($officer, $back, $this->payload(['lock_version' => 2, 'claim_due_rule' => 'weekly', 'claim_due_time' => '17:30', 'claim_due_offset' => 9])), 'claim_due_offset');
+        $this->assertValidationFails(fn () => $service->update($officer, $back, $this->payload(['lock_version' => 2, 'claim_due_rule' => 'daily', 'claim_due_time' => '25:00', 'claim_due_offset' => 1])), 'claim_due_time');
+        $this->assertValidationFails(fn () => $service->update($officer, $back, $this->payload(['lock_version' => 2, 'claim_due_rule' => 'monthly', 'claim_due_time' => '10:00'])), 'claim_due_offset');
     }
 
     public function test_manual_remark_mode_stores_no_link_and_another_organisations_panel_is_not_reachable(): void
