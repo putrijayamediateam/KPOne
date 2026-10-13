@@ -18,6 +18,22 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property bool $is_active
  * @property int $claim_due_days
  * @property string|null $verification_url
+ * @property string|null $panel_type
+ * @property string|null $company_registration_number
+ * @property string|null $company_name
+ * @property string|null $person_in_charge
+ * @property string|null $phone
+ * @property string|null $email
+ * @property string|null $address_line_1
+ * @property string|null $address_line_2
+ * @property string|null $postcode
+ * @property string|null $city
+ * @property string|null $state
+ * @property string|null $country
+ * @property string $verification_mode
+ * @property string|null $verification_remark
+ * @property string|null $income_tax_number
+ * @property int $lock_version
  * @property-read Organisation $organisation
  */
 #[Guarded(['*'])]
