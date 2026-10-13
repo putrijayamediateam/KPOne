@@ -6,6 +6,7 @@ export type WorkspaceNavigationCapabilities = {
     medicineCatalogue: boolean;
     clinicalServiceCatalogue: boolean;
     paymentMethods: boolean;
+    panelSettings: boolean;
     billingApprovalLimits: boolean;
     paymentReconciliations: boolean;
     patientRecords: boolean;
@@ -88,6 +89,14 @@ const destinations: Record<
         description:
             'Configure organisation payment methods available at checkout.',
         href: '/payment-methods',
+        icon: 'file',
+    },
+    panelSettings: {
+        key: 'panelSettings',
+        label: 'Checkout Settings',
+        description:
+            'Manage Panels: contact, verification link and claim due rule.',
+        href: '/checkout-settings',
         icon: 'file',
     },
     billingApprovalLimits: {
@@ -229,7 +238,11 @@ export const mainMenuGroups = (
         },
         {
             label: 'Panel',
-            destinations: available(capabilities, ['panelClaims', 'panelWork']),
+            destinations: available(capabilities, [
+                'panelClaims',
+                'panelWork',
+                'panelSettings',
+            ]),
         },
         {
             label: 'Finance',

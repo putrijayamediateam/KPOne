@@ -27,6 +27,7 @@ use App\Http\Controllers\InventoryOperationsController;
 use App\Http\Controllers\InventoryReferenceController;
 use App\Http\Controllers\MedicineCatalogueController;
 use App\Http\Controllers\PanelClaimsController;
+use App\Http\Controllers\PanelSettingsController;
 use App\Http\Controllers\PatientController;
 use App\Http\Controllers\PatientIdentifierController;
 use App\Http\Controllers\PatientSearchController;
@@ -399,6 +400,15 @@ Route::middleware(['auth', 'verified'])->group(function () {
             });
             Route::post('charges/{charge}/publish', [PricingController::class, 'publish'])
                 ->whereUuid('charge')->middleware(['permission:prices.publish.organisation', 'throttle:20,1'])->name('pricing.charges.publish');
+        });
+
+        Route::middleware(['permission:panels.manage.organisation', 'sensitive.no-store'])->prefix('checkout-settings')->group(function () {
+            Route::get('/', [PanelSettingsController::class, 'index'])->name('panel-settings.index');
+            Route::get('panels/create', [PanelSettingsController::class, 'create'])->name('panel-settings.create');
+            Route::post('panels', [PanelSettingsController::class, 'store'])->middleware('throttle:30,1')->name('panel-settings.store');
+            Route::get('panels/{panel}/edit', [PanelSettingsController::class, 'edit'])->whereNumber('panel')->name('panel-settings.edit');
+            Route::patch('panels/{panel}', [PanelSettingsController::class, 'update'])->whereNumber('panel')->middleware('throttle:30,1')->name('panel-settings.update');
+            Route::post('panels/{panel}/active', [PanelSettingsController::class, 'active'])->whereNumber('panel')->middleware('throttle:30,1')->name('panel-settings.active');
         });
 
         Route::middleware(['permission:payment_methods.manage.organisation'])->prefix('payment-methods')->group(function () {

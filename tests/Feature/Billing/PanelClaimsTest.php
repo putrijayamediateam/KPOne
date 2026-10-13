@@ -290,6 +290,17 @@ class PanelClaimsTest extends BillingTestCase
         $this->get(route('panel-claims.index', ['tab' => 'overdue']))->assertOk()->assertInertia(fn (Assert $page) => $page
             ->where('work.tabs.overdue', 0)->where('work.tabs.pending', 1)->has('work.eligible.data', 0));
 
+        // A scheduled rule (daily, by a time, same day) is overdue once that time has passed on a past visit day.
+        DB::table('panels')->where('id', $allocation->panel_id)->update(['claim_due_rule' => 'daily', 'claim_due_time' => '23:59', 'claim_due_offset' => 0]);
+        $this->get(route('panel-claims.index', ['tab' => 'overdue']))->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('work.tabs.overdue', 1)->where('work.tabs.pending', 0)->has('work.eligible.data', 1));
+        // Monthly, day 1 of next month: a visit three days ago is still pending.
+        DB::table('panels')->where('id', $allocation->panel_id)->update(['claim_due_rule' => 'monthly', 'claim_due_time' => '23:59', 'claim_due_offset' => 28]);
+        DB::table('visits')->where('id', $visit->id)->update(['registered_at' => now()]);
+        $this->get(route('panel-claims.index', ['tab' => 'pending']))->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('work.tabs.pending', 1)->where('work.tabs.overdue', 0));
+        DB::table('panels')->where('id', $allocation->panel_id)->update(['claim_due_rule' => 'days_after_visit', 'claim_due_time' => null, 'claim_due_offset' => null]);
+
         foreach ([
             [['invoice_no' => $invoice->invoice_number, 'tab' => 'pending'], 1],
             [['invoice_no' => 'NOPE-1', 'tab' => 'pending'], 0],
