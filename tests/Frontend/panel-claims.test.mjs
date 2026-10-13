@@ -91,7 +91,7 @@ test('Panel Claims filters are sent to the server and never kept in browser stor
     assert.doesNotMatch(index, /localStorage|sessionStorage/);
 });
 
-test('Pending and Overdue list unclaimed invoices with View invoice and Create claim, without clinical filters', () => {
+test('Pending and Overdue list unclaimed invoices with View invoice and Create claim, with clinical filters only for permitted roles', () => {
     assert.match(index, /View invoice/);
     assert.match(index, /Create claim/);
     assert.match(index, /Invoice number/);
@@ -99,5 +99,8 @@ test('Pending and Overdue list unclaimed invoices with View invoice and Create c
     assert.match(index, /Remark note/);
     assert.match(index, /Visit type/);
     assert.match(index, /\/panel-claims\/allocations\//);
-    assert.doesNotMatch(index, /Diagnosis|MC days|Treatment/);
+    assert.match(index, /v-if="work\.can\.clinicalFilters"/);
+    assert.match(index, /Diagnosis/);
+    assert.match(index, /Treatment/);
+    assert.doesNotMatch(index, /MC days/);
 });

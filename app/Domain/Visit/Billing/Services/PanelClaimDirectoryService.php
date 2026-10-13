@@ -63,6 +63,7 @@ final class PanelClaimDirectoryService
             $claims = $this->applyListFilters($base(), $filters, $onInvoices ? 'all' : $tab)
                 ->orderByDesc('id')
                 ->paginate(20, ['*'], 'claims_page', $claimsPage);
+            $paymentRemarks = $this->latestPaymentReferences(array_values(array_map(static fn ($id): int => (int) $id, $claims->getCollection()->pluck('id')->all())), $actor, $branch);
             $latest = $this->latestEvents(array_values(array_map(static fn ($id): int => (int) $id, $claims->getCollection()->pluck('id')->all())), $actor, $branch);
 
             return [
@@ -96,7 +97,10 @@ final class PanelClaimDirectoryService
                     'visitTo' => (string) ($filters['visit_to'] ?? ''),
                     'dueFrom' => (string) ($filters['due_from'] ?? ''),
                     'dueTo' => (string) ($filters['due_to'] ?? ''),
+                    'diagnosis' => $actor->can('panel.claims.clinical_filters.branch') ? (string) ($filters['diagnosis'] ?? '') : '',
+                    'treatment' => $actor->can('panel.claims.clinical_filters.branch') ? (string) ($filters['treatment'] ?? '') : '',
                 ],
+                'can' => ['clinicalFilters' => $actor->can('panel.claims.clinical_filters.branch')],
                 'claims' => [
                     'data' => $claims->getCollection()->map(fn (PanelClaim $claim): array => [
                         'publicId' => $claim->public_id,
@@ -109,7 +113,7 @@ final class PanelClaimDirectoryService
                         'status' => $this->status($claim),
                         'createdAt' => $claim->created_at?->setTimezone($branch->timezone)->format('j F Y'),
                         'updatedBy' => $latest[$claim->id]['actor'] ?? null,
-                        'remarks' => $latest[$claim->id]['note'] ?? null,
+                        'remarks' => $paymentRemarks[$claim->id] ?? ($latest[$claim->id]['note'] ?? null),
                         'showUrl' => route('panel-claims.show', $claim),
                     ])->all(),
                     'total' => $claims->total(),
@@ -226,10 +230,10 @@ final class PanelClaimDirectoryService
             $query->where('i.invoice_number', (string) $filters['invoice_no']);
         }
         if (($filters['name'] ?? '') !== '') {
-            $query->where('p.full_name', 'like', '%'.$this->escapeLike((string) $filters['name']).'%');
+            $query->whereRaw('lower(p.full_name) like ?', [$this->likeTerm((string) $filters['name'])]);
         }
         if (($filters['doctor'] ?? '') !== '') {
-            $query->where('d.name', 'like', '%'.$this->escapeLike((string) $filters['doctor']).'%');
+            $query->whereRaw('lower(d.name) like ?', [$this->likeTerm((string) $filters['doctor'])]);
         }
         if (in_array($filters['visit_type'] ?? '', ['consultation', 'otc'], true)) {
             $query->where('v.visit_type', (string) $filters['visit_type']);
@@ -253,7 +257,65 @@ final class PanelClaimDirectoryService
             $query->where('c.amount_sen', '<=', (int) round(((float) $filters['amount_max']) * 100));
         }
 
+        $this->applyClinicalFilters($query, 'v.id', $actor, $branch, $filters);
+
         return $query;
+    }
+
+    private function likeTerm(string $value): string
+    {
+        return '%'.mb_strtolower($this->escapeLike($value)).'%';
+    }
+
+    /**
+     * Diagnosis and Treatment filters read clinical content, so they are only applied for
+     * actors holding panel.claims.clinical_filters.branch (owner decision 2026-10-13). They
+     * narrow the list; no diagnosis or treatment text is returned.
+     *
+     * @param  Builder  $subject  a query whose visit id column is $visitIdColumn
+     * @param  array<string, mixed>  $filters
+     */
+    private function applyClinicalFilters(Builder $subject, string $visitIdColumn, User $actor, Branch $branch, array $filters): void
+    {
+        if (! $actor->can('panel.claims.clinical_filters.branch')) {
+            return;
+        }
+        if (($filters['diagnosis'] ?? '') !== '') {
+            $term = $this->likeTerm((string) $filters['diagnosis']);
+            $subject->whereExists(fn (Builder $q) => $q->selectRaw('1')->from('clinical_encounters as ce')
+                ->join('encounter_diagnoses as ed', function ($join): void {
+                    $join->on('ed.clinical_encounter_id', '=', 'ce.id')->on('ed.organisation_id', '=', 'ce.organisation_id')->on('ed.branch_id', '=', 'ce.branch_id');
+                })
+                ->whereColumn('ce.visit_id', $visitIdColumn)
+                ->where('ce.organisation_id', $actor->organisation_id)->where('ce.branch_id', $branch->id)
+                ->where(fn (Builder $any) => $any->whereRaw('lower(ed.diagnosis_text) like ?', [$term])->orWhereRaw('lower(coalesce(ed.diagnosis_code, \'\')) like ?', [$term])));
+        }
+        if (($filters['treatment'] ?? '') !== '') {
+            $term = $this->likeTerm((string) $filters['treatment']);
+            $subject->where(fn (Builder $either) => $either
+                ->whereExists(fn (Builder $q) => $q->selectRaw('1')->from('clinical_encounters as ce')
+                    ->join('treatment_plans as tp', function ($join): void {
+                        $join->on('tp.clinical_encounter_id', '=', 'ce.id')->on('tp.organisation_id', '=', 'ce.organisation_id')->on('tp.branch_id', '=', 'ce.branch_id');
+                    })
+                    ->join('treatment_plan_medicine_orders as mo', function ($join): void {
+                        $join->on('mo.treatment_plan_id', '=', 'tp.id')->on('mo.organisation_id', '=', 'tp.organisation_id')->on('mo.branch_id', '=', 'tp.branch_id');
+                    })
+                    ->whereColumn('ce.visit_id', $visitIdColumn)
+                    ->where('ce.organisation_id', $actor->organisation_id)->where('ce.branch_id', $branch->id)
+                    ->where('mo.status', 'active')
+                    ->whereRaw('lower(mo.medicine_name_snapshot) like ?', [$term]))
+                ->orWhereExists(fn (Builder $q) => $q->selectRaw('1')->from('clinical_encounters as ce')
+                    ->join('treatment_plans as tp', function ($join): void {
+                        $join->on('tp.clinical_encounter_id', '=', 'ce.id')->on('tp.organisation_id', '=', 'ce.organisation_id')->on('tp.branch_id', '=', 'ce.branch_id');
+                    })
+                    ->join('treatment_plan_service_orders as so', function ($join): void {
+                        $join->on('so.treatment_plan_id', '=', 'tp.id')->on('so.organisation_id', '=', 'tp.organisation_id')->on('so.branch_id', '=', 'tp.branch_id');
+                    })
+                    ->whereColumn('ce.visit_id', $visitIdColumn)
+                    ->where('ce.organisation_id', $actor->organisation_id)->where('ce.branch_id', $branch->id)
+                    ->where('so.status', 'active')
+                    ->whereRaw('lower(so.service_name_snapshot) like ?', [$term])));
+        }
     }
 
     private function escapeLike(string $value): string
@@ -327,7 +389,7 @@ final class PanelClaimDirectoryService
             $query->where('invoice_number', (string) $filters['invoice_no']);
         }
         if (($filters['name'] ?? '') !== '') {
-            $query->where('patient_name_snapshot', 'like', '%'.$this->escapeLike((string) $filters['name']).'%');
+            $query->whereRaw('lower(patient_name_snapshot) like ?', [$this->likeTerm((string) $filters['name'])]);
         }
         if (($filters['amount_min'] ?? '') !== '') {
             $query->where('claim_amount_sen', '>=', (int) round(((float) $filters['amount_min']) * 100));
@@ -381,6 +443,30 @@ final class PanelClaimDirectoryService
         }
 
         return $counts;
+    }
+
+    /**
+     * The Remarks column on claims shows the Panel payment reference once a remittance exists.
+     *
+     * @param  list<int>  $claimIds
+     * @return array<int, string>
+     */
+    private function latestPaymentReferences(array $claimIds, User $actor, Branch $branch): array
+    {
+        if ($claimIds === []) {
+            return [];
+        }
+        $remarks = [];
+        $rows = DB::table('panel_claim_payments')
+            ->where('organisation_id', $actor->organisation_id)->where('branch_id', $branch->id)
+            ->whereIn('panel_claim_id', $claimIds)->whereNotNull('reference')
+            ->orderBy('received_at')->orderBy('id')
+            ->get(['panel_claim_id', 'reference']);
+        foreach ($rows as $row) {
+            $remarks[(int) $row->panel_claim_id] = (string) $row->reference;
+        }
+
+        return $remarks;
     }
 
     /**

@@ -3,6 +3,11 @@
 namespace Tests\Feature\Billing;
 
 use App\Domain\Access\BillingPermissions;
+use App\Domain\Clinical\Models\ClinicalEncounter;
+use App\Domain\Clinical\Models\EncounterDiagnosis;
+use App\Domain\Clinical\Models\MedicineCatalogueItem;
+use App\Domain\Clinical\Models\TreatmentPlan;
+use App\Domain\Clinical\Models\TreatmentPlanMedicineOrder;
 use App\Domain\Organisation\Models\Branch;
 use App\Domain\Visit\Billing\Models\CoverageAllocation;
 use App\Domain\Visit\Billing\Models\Invoice;
@@ -13,6 +18,8 @@ use App\Domain\Visit\Models\Visit;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Inertia\Testing\AssertableInertia as Assert;
+use Spatie\Permission\Models\Role;
+use Spatie\Permission\PermissionRegistrar;
 
 class PanelClaimsTest extends BillingTestCase
 {
@@ -294,6 +301,38 @@ class PanelClaimsTest extends BillingTestCase
         $this->get(route('panel-claims.index', ['visit_type' => 'bogus']))->assertSessionHasErrors('visit_type');
     }
 
+    public function test_diagnosis_and_treatment_filters_need_the_clinical_filters_permission_and_return_no_clinical_text(): void
+    {
+        [$panelOfficer, $visit, , $allocation] = $this->approvedPanelFixture();
+        $encounter = ClinicalEncounter::query()->where('visit_id', $visit->id)->firstOrFail();
+        EncounterDiagnosis::factory()->create(['clinical_encounter_id' => $encounter->id, 'diagnosis_text' => 'Synthetic acute rhinitis', 'diagnosis_code' => 'J30.9']);
+        $plan = TreatmentPlan::factory()->create(['clinical_encounter_id' => $encounter->id]);
+        $medicine = MedicineCatalogueItem::factory()->create(['organisation_id' => $visit->organisation_id, 'display_name' => 'Synthetic cetirizine tablet']);
+        TreatmentPlanMedicineOrder::factory()->create(['treatment_plan_id' => $plan->id, 'medicine_catalogue_item_id' => $medicine->id]);
+        $this->selectBranch($panelOfficer, $this->branch);
+        $this->assertContains('panel.claims.clinical_filters.branch', BillingPermissions::roles()['panel_officer']);
+
+        foreach ([
+            [['diagnosis' => 'RHINITIS'], 1],
+            [['diagnosis' => 'j30'], 1],
+            [['diagnosis' => 'fracture'], 0],
+            [['treatment' => 'Cetirizine'], 1],
+            [['treatment' => 'insulin'], 0],
+            [['diagnosis' => 'rhinitis', 'treatment' => 'insulin'], 0],
+        ] as [$query, $expected]) {
+            $this->get(route('panel-claims.index', ['tab' => 'pending', ...$query]))->assertOk()
+                ->assertInertia(fn (Assert $page) => $page->has('work.eligible.data', $expected)->where('work.can.clinicalFilters', true));
+        }
+        $this->get(route('panel-claims.index', ['tab' => 'pending', 'diagnosis' => 'rhinitis']))->assertDontSee('Synthetic acute rhinitis')->assertDontSee('cetirizine');
+
+        // Without the permission the filters are ignored, not applied.
+        Role::query()->where('name', 'panel_officer')->firstOrFail()->revokePermissionTo('panel.claims.clinical_filters.branch');
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
+        $this->get(route('panel-claims.index', ['tab' => 'pending', 'diagnosis' => 'fracture']))->assertOk()
+            ->assertInertia(fn (Assert $page) => $page->has('work.eligible.data', 1)->where('work.can.clinicalFilters', false)->where('work.filters.diagnosis', ''));
+        $this->assertSame($allocation->panel_name_snapshot, $allocation->refresh()->panel_name_snapshot);
+    }
+
     public function test_created_claims_leave_pending_and_show_in_submitted_then_follow_decisions_and_remittances(): void
     {
         [$panelOfficer, $visit, , $allocation] = $this->approvedPanelFixture();
@@ -320,10 +359,12 @@ class PanelClaimsTest extends BillingTestCase
         $claim->forceFill(['status' => 'accepted', 'accepted_amount_sen' => 3000])->save();
         DB::table('panel_claim_payments')->insert([
             'public_id' => (string) Str::uuid(), 'organisation_id' => $claim->organisation_id, 'branch_id' => $claim->branch_id,
-            'panel_claim_id' => $claim->id, 'amount_sen' => 1000, 'currency' => 'MYR', 'idempotency_key' => (string) Str::uuid(),
+            'panel_claim_id' => $claim->id, 'amount_sen' => 1000, 'currency' => 'MYR', 'reference' => 'SYNTH-REMIT-1', 'idempotency_key' => (string) Str::uuid(),
             'payload_hash' => str_repeat('a', 64), 'received_at' => now(), 'recorded_by_user_id' => $panelOfficer->id,
             'created_at' => now(), 'updated_at' => now(),
         ]);
+        $this->get(route('panel-claims.index', ['tab' => 'approved']))->assertOk()
+            ->assertInertia(fn (Assert $page) => $page->where('work.claims.data.0.remarks', 'SYNTH-REMIT-1'));
         $this->get(route('panel-claims.index'))->assertOk()->assertInertia(fn (Assert $page) => $page
             ->where('work.summary.approved.amountSen', 3000)
             ->where('work.summary.outstanding.count', 1)->where('work.summary.outstanding.amountSen', 2000)

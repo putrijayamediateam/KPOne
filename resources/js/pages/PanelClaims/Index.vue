@@ -57,7 +57,10 @@ const props = defineProps<{
             visitTo: string;
             dueFrom: string;
             dueTo: string;
+            diagnosis: string;
+            treatment: string;
         };
+        can: { clinicalFilters: boolean };
         eligible: PageSet<{
             allocationId: string;
             patientName: string;
@@ -157,6 +160,8 @@ const draft = reactive({
     visitTo: props.work.filters.visitTo,
     dueFrom: props.work.filters.dueFrom,
     dueTo: props.work.filters.dueTo,
+    diagnosis: props.work.filters.diagnosis,
+    treatment: props.work.filters.treatment,
     from: props.work.filters.from ?? '',
     to: props.work.filters.to ?? '',
 });
@@ -210,6 +215,8 @@ const filtersActive = computed(() =>
         draft.visitTo,
         draft.dueFrom,
         draft.dueTo,
+        draft.diagnosis,
+        draft.treatment,
     ].some((value) => value !== ''),
 );
 
@@ -231,6 +238,8 @@ const query = (overrides: Record<string, string | number | null> = {}) => {
         visit_to: draft.visitTo,
         due_from: draft.dueFrom,
         due_to: draft.dueTo,
+        diagnosis: draft.diagnosis,
+        treatment: draft.treatment,
         ...overrides,
     };
 
@@ -263,6 +272,8 @@ const resetFilters = () => {
     draft.visitTo = '';
     draft.dueFrom = '';
     draft.dueTo = '';
+    draft.diagnosis = '';
+    draft.treatment = '';
     go({ claims_page: null, allocations_page: null });
 };
 const turnPage = (key: 'allocations_page' | 'claims_page', value: number) =>
@@ -525,6 +536,26 @@ const visitTypeLabel = (value: string) =>
                             />
                         </span>
                     </label>
+                    <template v-if="work.can.clinicalFilters">
+                        <label
+                            class="text-xs font-medium text-muted-foreground"
+                        >
+                            Diagnosis
+                            <input
+                                v-model="draft.diagnosis"
+                                class="mt-1 block h-9 w-40 rounded-md border bg-background px-2 text-sm"
+                            />
+                        </label>
+                        <label
+                            class="text-xs font-medium text-muted-foreground"
+                        >
+                            Treatment
+                            <input
+                                v-model="draft.treatment"
+                                class="mt-1 block h-9 w-40 rounded-md border bg-background px-2 text-sm"
+                            />
+                        </label>
+                    </template>
                 </template>
                 <template v-else>
                     <label class="text-xs font-medium text-muted-foreground">
