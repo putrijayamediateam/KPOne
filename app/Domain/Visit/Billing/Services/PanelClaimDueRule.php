@@ -18,7 +18,7 @@ final class PanelClaimDueRule
 
     private const WEEKDAYS = [1 => 'Monday', 2 => 'Tuesday', 3 => 'Wednesday', 4 => 'Thursday', 5 => 'Friday', 6 => 'Saturday', 7 => 'Sunday'];
 
-    /** @param  object{claim_due_days?: mixed, claim_due_rule?: mixed, claim_due_time?: mixed, claim_due_offset?: mixed}  $rule */
+    /** @param  object  $rule a Panel row carrying claim_due_rule, claim_due_days, claim_due_time and claim_due_offset */
     public static function dueAt(object $rule, CarbonImmutable $visitLocal): CarbonImmutable
     {
         $kind = (string) ($rule->claim_due_rule ?? 'days_after_visit');
@@ -37,7 +37,7 @@ final class PanelClaimDueRule
         return $date->setTime($hour, $minute);
     }
 
-    /** @param  object{claim_due_rule?: mixed}  $rule */
+    /** @param  object  $rule a Panel row carrying claim_due_rule, claim_due_days, claim_due_time and claim_due_offset */
     public static function isOverdue(object $rule, CarbonImmutable $dueAt, CarbonImmutable $now): bool
     {
         // The original rule counts whole days: late only once the due date is before today.
@@ -46,7 +46,7 @@ final class PanelClaimDueRule
             : $dueAt->lt($now);
     }
 
-    /** @param  object{claim_due_days?: mixed, claim_due_rule?: mixed, claim_due_time?: mixed, claim_due_offset?: mixed}  $rule */
+    /** @param  object  $rule a Panel row carrying claim_due_rule, claim_due_days, claim_due_time and claim_due_offset */
     public static function describe(object $rule): string
     {
         $kind = (string) ($rule->claim_due_rule ?? 'days_after_visit');
