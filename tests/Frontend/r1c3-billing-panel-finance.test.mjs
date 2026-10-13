@@ -51,7 +51,7 @@ test('Billing and Completed Visit compile with distinct read-only and governed s
 test('Billing hierarchy uses shared controls without raw underlined operational navigation', () => {
     assert.match(
         billing,
-        /<ActionLink href="\/registration" variant="secondary">/,
+        /<ActionLink\s+v-if="billing\.backLink"\s+:href="billing\.backLink\.href"\s+variant="secondary"/,
     );
     assert.match(billing, /<OperationalTabs/);
     assert.match(billing, /<OperationalTable/);

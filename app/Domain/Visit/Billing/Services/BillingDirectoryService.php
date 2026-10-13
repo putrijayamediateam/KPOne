@@ -58,6 +58,7 @@ class BillingDirectoryService
                 ->get(['i.invoice_number', 'r.remaining_sen', 'r.due_date', 'v.visit_number'])->map(fn ($r): array => ['invoiceNumber' => $r->invoice_number, 'amountSen' => (int) $r->remaining_sen, 'dueDate' => $r->due_date, 'url' => route('billing.show', $r->visit_number)])->all() : [];
 
             return ['patient' => ['name' => $visit->patient->full_name, 'patientNumber' => $visit->patient->patient_number],
+                'backLink' => $this->backLink($actor),
                 'visit' => ['visitNumber' => $visit->visit_number, 'status' => $visit->status, 'lockVersion' => $visit->lock_version, 'coverage' => $visit->coverage_type === 'panel' ? $visit->coverage_panel_name_snapshot : 'Self-pay', 'completedAt' => $visit->completed_at?->setTimezone($branch->timezone)->format('j M Y, g:i A')],
                 'clinic' => $branch->organisation->name, 'branch' => $branch->name, 'oldOutstanding' => $oldOutstanding,
                 'invoice' => $invoice ? ['publicId' => $invoice->public_id, 'number' => $invoice->invoice_number, 'status' => $invoice->status, 'lockVersion' => $invoice->lock_version, 'currency' => $invoice->currency,
@@ -76,5 +77,16 @@ class BillingDirectoryService
                     'reverse' => $mutable && $actor->can('payments.reverse.branch'), 'void' => $mutable && $actor->can('invoices.void.branch'),
                     'complete' => $mutable && $actor->can('visits.complete.branch') && $state['due_now'] === 0, 'print' => $invoice !== null && $invoice->status !== 'draft' && $actor->can('billing.print.branch')]];
         });
+    }
+
+    /** @return array{label: string, href: string}|null */
+    private function backLink(User $actor): ?array
+    {
+        return match (true) {
+            $actor->can('visits.view.branch') => ['label' => 'Registration', 'href' => '/registration'],
+            $actor->can('panel.work.view.branch') => ['label' => 'Panel Responsibility', 'href' => '/panel-responsibility'],
+            $actor->can('finance.work.view.branch') => ['label' => 'Finance / Billing', 'href' => '/financial-work'],
+            default => null,
+        };
     }
 }

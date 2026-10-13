@@ -23,6 +23,19 @@ use Inertia\Testing\AssertableInertia as Assert;
 
 class BillingBoundaryTest extends BillingTestCase
 {
+    public function test_billing_back_link_goes_to_a_page_the_actor_may_open(): void
+    {
+        [, $ca, $visit] = $this->finalizedFixture();
+        $this->get(route('billing.show', $visit))->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('billing.backLink', ['label' => 'Registration', 'href' => '/registration']));
+
+        $panel = $this->actor('panel_officer');
+        $this->assertFalse($panel->can('visits.view.branch'));
+        $this->selectBranch($panel, $visit->branch);
+        $this->get(route('billing.show', $visit))->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('billing.backLink', ['label' => 'Panel Responsibility', 'href' => '/panel-responsibility']));
+    }
+
     public function test_panel_summary_does_not_disclose_deferment_details_without_outstanding_authority(): void
     {
         [, $ca, $visit, $invoice] = $this->finalizedFixture();

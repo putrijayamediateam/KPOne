@@ -236,8 +236,12 @@ const reverse = (receipt: Receipt) =>
                     </span>
                 </div>
             </div>
-            <ActionLink href="/registration" variant="secondary">
-                Registration
+            <ActionLink
+                v-if="billing.backLink"
+                :href="billing.backLink.href"
+                variant="secondary"
+            >
+                {{ billing.backLink.label }}
             </ActionLink>
         </div>
         <p
