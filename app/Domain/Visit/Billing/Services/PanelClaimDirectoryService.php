@@ -162,7 +162,7 @@ final class PanelClaimDirectoryService
      */
     private function eligibleQuery(User $actor, Branch $branch, array $filters, CarbonImmutable $today, ?CarbonImmutable $from, ?CarbonImmutable $to, ?string $state): Builder
     {
-        $dueAt = $this->dueAtSql();
+        $dueAt = DB::raw($this->dueAtSql());
         $zone = $today->getTimezone();
         $dayStart = static fn (string $key): ?string => ($filters[$key] ?? '') === '' ? null : CarbonImmutable::createFromFormat('!Y-m-d', (string) $filters[$key], $zone)->startOfDay()->utc()->toDateTimeString();
         $dayEnd = static fn (string $key): ?string => ($filters[$key] ?? '') === '' ? null : CarbonImmutable::createFromFormat('!Y-m-d', (string) $filters[$key], $zone)->endOfDay()->utc()->toDateTimeString();
@@ -215,9 +215,9 @@ final class PanelClaimDirectoryService
             $query->where('v.registered_at', '<=', $to->utc()->toDateTimeString());
         }
         if ($state === 'overdue') {
-            $query->whereRaw("{$dueAt} < ?", [$today->startOfDay()->utc()->toDateTimeString()]);
+            $query->where($dueAt, '<', $today->startOfDay()->utc()->toDateTimeString());
         } elseif ($state === 'pending') {
-            $query->whereRaw("{$dueAt} >= ?", [$today->startOfDay()->utc()->toDateTimeString()]);
+            $query->where($dueAt, '>=', $today->startOfDay()->utc()->toDateTimeString());
         }
         if (($filters['panel'] ?? '') !== '') {
             $query->where('c.panel_name_snapshot', (string) $filters['panel']);
@@ -241,10 +241,10 @@ final class PanelClaimDirectoryService
             $query->where('v.registered_at', '<=', $end);
         }
         if (($start = $dayStart('due_from')) !== null) {
-            $query->whereRaw("{$dueAt} >= ?", [$start]);
+            $query->where($dueAt, '>=', $start);
         }
         if (($end = $dayEnd('due_to')) !== null) {
-            $query->whereRaw("{$dueAt} <= ?", [$end]);
+            $query->where($dueAt, '<=', $end);
         }
         if (($filters['amount_min'] ?? '') !== '') {
             $query->where('c.amount_sen', '>=', (int) round(((float) $filters['amount_min']) * 100));
