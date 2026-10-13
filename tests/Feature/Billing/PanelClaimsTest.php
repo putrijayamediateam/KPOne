@@ -247,34 +247,69 @@ class PanelClaimsTest extends BillingTestCase
         $this->assertDatabaseCount('payments', 0);
     }
 
-    public function test_main_page_shows_summary_tabs_filters_and_overdue_with_the_claim_authority_unchanged(): void
+    public function test_pending_and_overdue_list_unclaimed_invoices_by_each_panels_due_days(): void
+    {
+        [$panelOfficer, $visit, $invoice, $allocation] = $this->approvedPanelFixture();
+        $this->selectBranch($panelOfficer, $this->branch);
+
+        $this->get(route('panel-claims.index', ['tab' => 'pending']))->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('work.tabs.pending', 1)->where('work.tabs.overdue', 0)->where('work.tabs.all', 0)
+            ->where('work.summary.pending.count', 1)->where('work.summary.pending.amountSen', 3000)
+            ->where('work.summary.overdue.count', 0)
+            ->has('work.eligible.data', 1)
+            ->where('work.eligible.data.0.invoiceNumber', $invoice->invoice_number)
+            ->where('work.eligible.data.0.remarkNote', 'Synthetic Panel responsibility for tests')
+            ->where('work.eligible.data.0.overdue', false)
+            ->where('work.eligible.data.0.visitType', $visit->visit_type)
+            ->where('work.eligible.data.0.invoiceUrl', route('billing.show', ['visit' => $visit->visit_number]))
+            ->where('work.eligible.data.0.doctorName', $visit->assignedDoctor?->name));
+
+        // A Panel with a shorter due period makes the same unclaimed invoice overdue.
+        DB::table('visits')->where('id', $visit->id)->update(['registered_at' => now()->subDays(3)]);
+        DB::table('panels')->where('id', $allocation->panel_id)->update(['claim_due_days' => 2]);
+        $this->get(route('panel-claims.index', ['tab' => 'overdue']))->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('work.tabs.overdue', 1)->where('work.tabs.pending', 0)
+            ->where('work.summary.overdue.count', 1)->where('work.summary.overdue.amountSen', 3000)
+            ->has('work.eligible.data', 1)->where('work.eligible.data.0.overdue', true));
+        DB::table('panels')->where('id', $allocation->panel_id)->update(['claim_due_days' => 30]);
+        $this->get(route('panel-claims.index', ['tab' => 'overdue']))->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('work.tabs.overdue', 0)->where('work.tabs.pending', 1)->has('work.eligible.data', 0));
+
+        foreach ([
+            [['invoice_no' => $invoice->invoice_number, 'tab' => 'pending'], 1],
+            [['invoice_no' => 'NOPE-1', 'tab' => 'pending'], 0],
+            [['panel' => $allocation->panel_name_snapshot, 'tab' => 'pending'], 1],
+            [['panel' => 'No Such Panel', 'tab' => 'pending'], 0],
+            [['visit_type' => $visit->visit_type, 'tab' => 'pending'], 1],
+            [['visit_type' => $visit->visit_type === 'otc' ? 'consultation' : 'otc', 'tab' => 'pending'], 0],
+            [['visit_from' => now()->addDay()->toDateString(), 'tab' => 'pending'], 0],
+            [['due_from' => now()->toDateString(), 'tab' => 'pending'], 1],
+            [['due_to' => now()->subDays(2)->toDateString(), 'tab' => 'pending'], 0],
+            [['amount_min' => '30.01', 'tab' => 'pending'], 0],
+        ] as [$query, $expected]) {
+            $this->get(route('panel-claims.index', $query))->assertOk()
+                ->assertInertia(fn (Assert $page) => $page->has('work.eligible.data', $expected));
+        }
+        $this->get(route('panel-claims.index', ['tab' => 'bogus']))->assertSessionHasErrors('tab');
+        $this->get(route('panel-claims.index', ['visit_type' => 'bogus']))->assertSessionHasErrors('visit_type');
+    }
+
+    public function test_created_claims_leave_pending_and_show_in_submitted_then_follow_decisions_and_remittances(): void
     {
         [$panelOfficer, $visit, , $allocation] = $this->approvedPanelFixture();
         $this->selectBranch($panelOfficer, $this->branch);
         $this->post(route('panel-claims.prepare', $allocation), ['expected_branch_id' => $visit->branch_id])->assertRedirect();
         $claim = PanelClaim::query()->sole();
 
-        $this->get(route('panel-claims.index'))->assertOk()->assertInertia(fn (Assert $page) => $page
-            ->where('work.tabs.all', 1)->where('work.tabs.pending', 1)->where('work.tabs.overdue', 0)
-            ->where('work.summary.pending.count', 1)->where('work.summary.pending.amountSen', 3000)
-            ->where('work.summary.outstanding.count', 0)
+        $this->get(route('panel-claims.index', ['tab' => 'submitted']))->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('work.tabs.pending', 0)->where('work.tabs.all', 1)->where('work.tabs.submitted', 1)
             ->where('work.claims.data.0.claimNo', (string) $claim->id)
+            ->where('work.claims.data.0.status', 'Prepared')
             ->where('work.claims.data.0.updatedBy', $panelOfficer->name)
-            ->where('work.panels', [$claim->panel_name_snapshot]));
+            ->has('work.eligible.data', 0));
 
-        $claim->forceFill(['status' => 'submitted'])->save();
-        DB::table('panel_claim_events')->insert([
-            'organisation_id' => $claim->organisation_id, 'branch_id' => $claim->branch_id, 'panel_claim_id' => $claim->id,
-            'actor_user_id' => $panelOfficer->id, 'event_type' => 'submitted', 'amount_sen' => 3000,
-            'occurred_at' => now()->subDays(40), 'created_at' => now(), 'updated_at' => now(),
-        ]);
-        $this->get(route('panel-claims.index', ['tab' => 'overdue']))->assertOk()->assertInertia(fn (Assert $page) => $page
-            ->where('work.tabs.overdue', 1)->where('work.tabs.pending', 0)->where('work.tabs.submitted', 1)
-            ->where('work.summary.overdue.count', 1)->has('work.claims.data', 1)
-            ->where('work.claims.data.0.overdue', true));
-
-        $this->get(route('panel-claims.index', ['panel' => 'No Such Panel']))->assertOk()
-            ->assertInertia(fn (Assert $page) => $page->has('work.claims.data', 0)->where('work.tabs.all', 0));
+        $this->get(route('panel-claims.index', ['tab' => 'submitted', 'name' => 'zzz-no-match']))->assertOk()
+            ->assertInertia(fn (Assert $page) => $page->has('work.claims.data', 0));
         $this->get(route('panel-claims.index', ['claim_no' => (string) $claim->id, 'amount_min' => '30', 'amount_max' => '30.00']))->assertOk()
             ->assertInertia(fn (Assert $page) => $page->has('work.claims.data', 1));
         $this->get(route('panel-claims.index', ['amount_min' => '30.01']))->assertOk()
@@ -292,9 +327,7 @@ class PanelClaimsTest extends BillingTestCase
         $this->get(route('panel-claims.index'))->assertOk()->assertInertia(fn (Assert $page) => $page
             ->where('work.summary.approved.amountSen', 3000)
             ->where('work.summary.outstanding.count', 1)->where('work.summary.outstanding.amountSen', 2000)
-            ->where('work.tabs.approved', 1));
-
-        $this->get(route('panel-claims.index', ['tab' => 'bogus']))->assertSessionHasErrors('tab');
+            ->where('work.tabs.approved', 1)->where('work.tabs.submitted', 0));
     }
 
     /** @return array{mixed, Visit, Invoice, CoverageAllocation} */

@@ -29,6 +29,14 @@ class PanelClaimsController extends Controller
             'claim_no' => ['sometimes', 'nullable', 'regex:/^\d{1,12}$/'],
             'amount_min' => ['sometimes', 'nullable', 'regex:/^\d{1,9}(\.\d{1,2})?$/'],
             'amount_max' => ['sometimes', 'nullable', 'regex:/^\d{1,9}(\.\d{1,2})?$/'],
+            'invoice_no' => ['sometimes', 'nullable', 'string', 'max:30'],
+            'name' => ['sometimes', 'nullable', 'string', 'max:100'],
+            'doctor' => ['sometimes', 'nullable', 'string', 'max:100'],
+            'visit_type' => ['sometimes', 'nullable', 'in:consultation,otc'],
+            'visit_from' => ['sometimes', 'nullable', 'date_format:Y-m-d'],
+            'visit_to' => ['sometimes', 'nullable', 'date_format:Y-m-d', 'after_or_equal:visit_from'],
+            'due_from' => ['sometimes', 'nullable', 'date_format:Y-m-d'],
+            'due_to' => ['sometimes', 'nullable', 'date_format:Y-m-d', 'after_or_equal:due_from'],
         ]);
 
         return Inertia::render('PanelClaims/Index', [

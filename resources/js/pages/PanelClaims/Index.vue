@@ -49,15 +49,30 @@ const props = defineProps<{
             claimNo: string;
             amountMin: string;
             amountMax: string;
+            invoiceNo: string;
+            name: string;
+            doctor: string;
+            visitType: string;
+            visitFrom: string;
+            visitTo: string;
+            dueFrom: string;
+            dueTo: string;
         };
         eligible: PageSet<{
             allocationId: string;
             patientName: string;
             visitNumber: string;
             invoiceNumber: string;
+            invoiceUrl: string;
             panelName: string;
             amountSen: number;
             invoiceTotalSen: number;
+            visitType: string;
+            doctorName: string | null;
+            visitDate: string;
+            dueDate: string;
+            overdue: boolean;
+            remarkNote: string;
         }>;
         claims: PageSet<{
             publicId: string;
@@ -99,7 +114,7 @@ const tabLabels: [string, string][] = [
     ['rejected', 'Rejected'],
     ['received', 'Received'],
 ];
-const columnDefinitions = [
+const claimColumns = [
     { key: 'amount', label: 'Amount' },
     { key: 'claimNo', label: 'Claim no' },
     { key: 'panel', label: 'Panel' },
@@ -109,28 +124,66 @@ const columnDefinitions = [
     { key: 'updatedBy', label: 'Updated by' },
     { key: 'remarks', label: 'Remarks' },
 ] as const;
-type ColumnKey = (typeof columnDefinitions)[number]['key'];
+const invoiceColumns = [
+    { key: 'amount', label: 'Amount' },
+    { key: 'invoiceNo', label: 'Invoice no' },
+    { key: 'panel', label: 'Panel' },
+    { key: 'patient', label: 'Patient name' },
+    { key: 'status', label: 'Status' },
+    { key: 'visitDate', label: 'Visit date' },
+    { key: 'dueDate', label: 'Due date' },
+    { key: 'doctor', label: 'Doctor' },
+    { key: 'remarks', label: 'Remark note' },
+] as const;
+type ColumnKey =
+    | (typeof claimColumns)[number]['key']
+    | (typeof invoiceColumns)[number]['key'];
 
+const visitTypeOptions = [
+    { value: '', label: 'All visit types' },
+    { value: 'consultation', label: 'Consultation' },
+    { value: 'otc', label: 'OTC' },
+];
 const draft = reactive({
     panel: props.work.filters.panel,
     claimNo: props.work.filters.claimNo,
     amountMin: props.work.filters.amountMin,
     amountMax: props.work.filters.amountMax,
+    invoiceNo: props.work.filters.invoiceNo,
+    name: props.work.filters.name,
+    doctor: props.work.filters.doctor,
+    visitType: props.work.filters.visitType,
+    visitFrom: props.work.filters.visitFrom,
+    visitTo: props.work.filters.visitTo,
+    dueFrom: props.work.filters.dueFrom,
+    dueTo: props.work.filters.dueTo,
     from: props.work.filters.from ?? '',
     to: props.work.filters.to ?? '',
 });
 const visibleColumns = ref<Record<ColumnKey, boolean>>({
     amount: true,
     claimNo: true,
+    invoiceNo: true,
     panel: true,
     patient: true,
     status: true,
     date: true,
+    visitDate: true,
+    dueDate: true,
+    doctor: false,
     updatedBy: true,
     remarks: true,
 });
+const invoiceMode = computed(() =>
+    ['pending', 'overdue'].includes(props.work.filters.tab),
+);
+const columnList = computed(() =>
+    invoiceMode.value ? invoiceColumns : claimColumns,
+);
 const shownColumnCount = computed(
-    () => Object.values(visibleColumns.value).filter(Boolean).length + 1,
+    () =>
+        columnList.value.filter((column) => visibleColumns.value[column.key])
+            .length + 1,
 );
 const tabs = computed(() =>
     tabLabels.map(([value, label]) => ({
@@ -143,12 +196,21 @@ const panelOptions = computed(() => [
     { value: '', label: 'All Panels' },
     ...props.work.panels.map((name) => ({ value: name, label: name })),
 ]);
-const filtersActive = computed(
-    () =>
-        draft.panel !== '' ||
-        draft.claimNo !== '' ||
-        draft.amountMin !== '' ||
-        draft.amountMax !== '',
+const filtersActive = computed(() =>
+    [
+        draft.panel,
+        draft.claimNo,
+        draft.amountMin,
+        draft.amountMax,
+        draft.invoiceNo,
+        draft.name,
+        draft.doctor,
+        draft.visitType,
+        draft.visitFrom,
+        draft.visitTo,
+        draft.dueFrom,
+        draft.dueTo,
+    ].some((value) => value !== ''),
 );
 
 const query = (overrides: Record<string, string | number | null> = {}) => {
@@ -161,6 +223,14 @@ const query = (overrides: Record<string, string | number | null> = {}) => {
         claim_no: draft.claimNo,
         amount_min: draft.amountMin,
         amount_max: draft.amountMax,
+        invoice_no: draft.invoiceNo,
+        name: draft.name,
+        doctor: draft.doctor,
+        visit_type: draft.visitType,
+        visit_from: draft.visitFrom,
+        visit_to: draft.visitTo,
+        due_from: draft.dueFrom,
+        due_to: draft.dueTo,
         ...overrides,
     };
 
@@ -185,13 +255,15 @@ const resetFilters = () => {
     draft.claimNo = '';
     draft.amountMin = '';
     draft.amountMax = '';
-    go({
-        panel: '',
-        claim_no: '',
-        amount_min: '',
-        amount_max: '',
-        claims_page: null,
-    });
+    draft.invoiceNo = '';
+    draft.name = '';
+    draft.doctor = '';
+    draft.visitType = '';
+    draft.visitFrom = '';
+    draft.visitTo = '';
+    draft.dueFrom = '';
+    draft.dueTo = '';
+    go({ claims_page: null, allocations_page: null });
 };
 const turnPage = (key: 'allocations_page' | 'claims_page', value: number) =>
     go({ [key]: value });
@@ -213,6 +285,8 @@ const prepare = (allocationId: string) => {
 };
 const canMarkSubmitted = (status: string) =>
     status === 'Prepared' || status === 'Panel query';
+const visitTypeLabel = (value: string) =>
+    value === 'otc' ? 'OTC' : 'Consultation';
 </script>
 
 <template>
@@ -323,7 +397,12 @@ const canMarkSubmitted = (status: string) =>
                     :tabs="tabs"
                     label="Claim status"
                     @update:model-value="
-                        (value) => go({ tab: value, claims_page: null })
+                        (value) =>
+                            go({
+                                tab: value,
+                                claims_page: null,
+                                allocations_page: null,
+                            })
                     "
                 />
                 <DropdownMenu>
@@ -340,7 +419,7 @@ const canMarkSubmitted = (status: string) =>
                     <DropdownMenuContent align="end" class="w-56">
                         <DropdownMenuLabel>Customize column</DropdownMenuLabel>
                         <DropdownMenuCheckboxItem
-                            v-for="column in columnDefinitions"
+                            v-for="column in columnList"
                             :key="column.key"
                             :model-value="visibleColumns[column.key]"
                             @select.prevent
@@ -356,37 +435,133 @@ const canMarkSubmitted = (status: string) =>
                 </DropdownMenu>
             </div>
 
+            <p v-if="invoiceMode" class="text-sm text-muted-foreground">
+                Approved Panel invoices without a claim yet. Create claim
+                prepares a claim summary for use in the Panel’s portal with
+                invoice lines, patient name, member reference, visit date,
+                branch and invoice number; it does not include clinical notes,
+                diagnoses, identity documents or attachments. A claim is overdue
+                once the Panel’s due days after the visit have passed.
+            </p>
+
             <form
                 class="flex flex-wrap items-end gap-3"
-                @submit.prevent="go({ claims_page: null })"
+                @submit.prevent="
+                    go({ claims_page: null, allocations_page: null })
+                "
             >
-                <label class="text-xs font-medium text-muted-foreground">
-                    Amount (RM)
-                    <span class="mt-1 flex items-center gap-1">
+                <template v-if="invoiceMode">
+                    <label class="text-xs font-medium text-muted-foreground">
+                        Invoice number
                         <input
-                            v-model="draft.amountMin"
-                            inputmode="decimal"
-                            placeholder="Min"
-                            aria-label="Minimum amount"
-                            class="h-9 w-24 rounded-md border bg-background px-2 text-sm"
+                            v-model="draft.invoiceNo"
+                            class="mt-1 block h-9 w-32 rounded-md border bg-background px-2 text-sm"
                         />
+                    </label>
+                    <label class="text-xs font-medium text-muted-foreground">
+                        Name
                         <input
-                            v-model="draft.amountMax"
-                            inputmode="decimal"
-                            placeholder="Max"
-                            aria-label="Maximum amount"
-                            class="h-9 w-24 rounded-md border bg-background px-2 text-sm"
+                            v-model="draft.name"
+                            class="mt-1 block h-9 w-40 rounded-md border bg-background px-2 text-sm"
                         />
-                    </span>
-                </label>
-                <label class="text-xs font-medium text-muted-foreground">
-                    Claim number
-                    <input
-                        v-model="draft.claimNo"
-                        inputmode="numeric"
-                        class="mt-1 block h-9 w-32 rounded-md border bg-background px-2 text-sm"
-                    />
-                </label>
+                    </label>
+                    <label class="text-xs font-medium text-muted-foreground">
+                        Doctor
+                        <input
+                            v-model="draft.doctor"
+                            class="mt-1 block h-9 w-36 rounded-md border bg-background px-2 text-sm"
+                        />
+                    </label>
+                    <div class="text-xs font-medium text-muted-foreground">
+                        <span class="block">Visit type</span>
+                        <OperationalSelect
+                            class="mt-1"
+                            :model-value="draft.visitType"
+                            :options="visitTypeOptions"
+                            label="Visit type"
+                            trigger-class="min-w-36"
+                            @update:model-value="
+                                (value) => {
+                                    draft.visitType = String(value);
+                                    go({
+                                        claims_page: null,
+                                        allocations_page: null,
+                                    });
+                                }
+                            "
+                        />
+                    </div>
+                    <label class="text-xs font-medium text-muted-foreground">
+                        Visit date
+                        <span class="mt-1 flex items-center gap-1">
+                            <input
+                                v-model="draft.visitFrom"
+                                type="date"
+                                aria-label="Visit date from"
+                                class="h-9 rounded-md border bg-background px-2 text-sm"
+                            />
+                            <input
+                                v-model="draft.visitTo"
+                                type="date"
+                                aria-label="Visit date to"
+                                class="h-9 rounded-md border bg-background px-2 text-sm"
+                            />
+                        </span>
+                    </label>
+                    <label class="text-xs font-medium text-muted-foreground">
+                        Due date
+                        <span class="mt-1 flex items-center gap-1">
+                            <input
+                                v-model="draft.dueFrom"
+                                type="date"
+                                aria-label="Due date from"
+                                class="h-9 rounded-md border bg-background px-2 text-sm"
+                            />
+                            <input
+                                v-model="draft.dueTo"
+                                type="date"
+                                aria-label="Due date to"
+                                class="h-9 rounded-md border bg-background px-2 text-sm"
+                            />
+                        </span>
+                    </label>
+                </template>
+                <template v-else>
+                    <label class="text-xs font-medium text-muted-foreground">
+                        Amount (RM)
+                        <span class="mt-1 flex items-center gap-1">
+                            <input
+                                v-model="draft.amountMin"
+                                inputmode="decimal"
+                                placeholder="Min"
+                                aria-label="Minimum amount"
+                                class="h-9 w-24 rounded-md border bg-background px-2 text-sm"
+                            />
+                            <input
+                                v-model="draft.amountMax"
+                                inputmode="decimal"
+                                placeholder="Max"
+                                aria-label="Maximum amount"
+                                class="h-9 w-24 rounded-md border bg-background px-2 text-sm"
+                            />
+                        </span>
+                    </label>
+                    <label class="text-xs font-medium text-muted-foreground">
+                        Claim number
+                        <input
+                            v-model="draft.claimNo"
+                            inputmode="numeric"
+                            class="mt-1 block h-9 w-32 rounded-md border bg-background px-2 text-sm"
+                        />
+                    </label>
+                    <label class="text-xs font-medium text-muted-foreground">
+                        Name
+                        <input
+                            v-model="draft.name"
+                            class="mt-1 block h-9 w-40 rounded-md border bg-background px-2 text-sm"
+                        />
+                    </label>
+                </template>
                 <div class="text-xs font-medium text-muted-foreground">
                     <span class="block">Panel</span>
                     <OperationalSelect
@@ -398,7 +573,10 @@ const canMarkSubmitted = (status: string) =>
                         @update:model-value="
                             (value) => {
                                 draft.panel = String(value);
-                                go({ claims_page: null });
+                                go({
+                                    claims_page: null,
+                                    allocations_page: null,
+                                });
                             }
                         "
                     />
@@ -416,164 +594,54 @@ const canMarkSubmitted = (status: string) =>
                 </button>
             </form>
 
-            <EmptyState
-                v-if="work.claims.data.length === 0"
-                title="No claims match"
-                description="Prepare a claim pack from an approved allocation, or change the tab, date range or filters."
-            />
-            <OperationalTable
-                v-else
-                label="Panel claims"
-                :columns="shownColumnCount"
-                min-width="1000px"
-            >
-                <template #head>
-                    <tr>
-                        <th v-if="visibleColumns.amount" scope="col">Amount</th>
-                        <th v-if="visibleColumns.claimNo" scope="col">
-                            Claim no
-                        </th>
-                        <th v-if="visibleColumns.panel" scope="col">Panel</th>
-                        <th v-if="visibleColumns.patient" scope="col">
-                            Patient name
-                        </th>
-                        <th v-if="visibleColumns.status" scope="col">Status</th>
-                        <th v-if="visibleColumns.date" scope="col">Date</th>
-                        <th v-if="visibleColumns.updatedBy" scope="col">
-                            Updated by
-                        </th>
-                        <th v-if="visibleColumns.remarks" scope="col">
-                            Remarks
-                        </th>
-                        <th scope="col" class="text-right">
-                            <span class="sr-only">Actions</span>
-                        </th>
-                    </tr>
-                </template>
-                <template #body>
-                    <tr v-for="row in work.claims.data" :key="row.publicId">
-                        <td
-                            v-if="visibleColumns.amount"
-                            class="whitespace-nowrap tabular-nums"
-                        >
-                            {{ myr(row.claimAmountSen) }}
-                        </td>
-                        <td
-                            v-if="visibleColumns.claimNo"
-                            class="font-mono text-xs"
-                        >
-                            {{ row.claimNo }}
-                        </td>
-                        <td v-if="visibleColumns.panel">
-                            {{ row.panelName }}
-                        </td>
-                        <td v-if="visibleColumns.patient">
-                            <span class="block font-medium text-foreground">
-                                {{ row.patientName }}
-                            </span>
-                            <span class="block text-xs text-muted-foreground">
-                                {{ row.visitNumber }} · {{ row.invoiceNumber }}
-                            </span>
-                        </td>
-                        <td v-if="visibleColumns.status">
-                            <StatusBadge
-                                v-if="row.overdue"
-                                status="overdue"
-                                label="Overdue"
-                                tone="danger"
-                            />
-                            <StatusBadge v-else :status="row.status" />
-                        </td>
-                        <td
-                            v-if="visibleColumns.date"
-                            class="whitespace-nowrap"
-                        >
-                            {{ row.createdAt }}
-                        </td>
-                        <td v-if="visibleColumns.updatedBy">
-                            {{ row.updatedBy }}
-                        </td>
-                        <td
-                            v-if="visibleColumns.remarks"
-                            class="max-w-64 truncate"
-                        >
-                            {{ row.remarks }}
-                        </td>
-                        <td class="text-right">
-                            <DropdownMenu>
-                                <DropdownMenuTrigger as-child>
-                                    <Button
-                                        type="button"
-                                        variant="ghost"
-                                        size="sm"
-                                        :aria-label="`Actions for claim ${row.claimNo}`"
-                                    >
-                                        …
-                                    </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
-                                    <DropdownMenuItem as-child>
-                                        <a :href="row.showUrl">View claim</a>
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem
-                                        v-if="canMarkSubmitted(row.status)"
-                                        as-child
-                                    >
-                                        <a :href="row.showUrl"
-                                            >Submit claim (manual)</a
-                                        >
-                                    </DropdownMenuItem>
-                                </DropdownMenuContent>
-                            </DropdownMenu>
-                        </td>
-                    </tr>
-                </template>
-            </OperationalTable>
-            <CompactPagination
-                v-if="work.claims.total > 0"
-                :current-page="work.claims.currentPage"
-                :last-page="work.claims.lastPage"
-                :total="work.claims.total"
-                @change="(value) => turnPage('claims_page', value)"
-            />
-        </section>
-
-        <details
-            class="rounded-xl border bg-card p-4"
-            :open="work.eligible.total > 0 && work.claims.total === 0"
-        >
-            <summary class="cursor-pointer text-base font-semibold">
-                Ready to prepare ({{ work.eligible.total }})
-            </summary>
-            <p class="mt-2 text-sm text-muted-foreground">
-                Current approved Panel allocations without a claim pack. The
-                claim summary is for use in the Panel’s portal and includes
-                invoice lines, patient name, member reference, visit date,
-                branch and invoice number; it does not include clinical notes,
-                diagnoses, identity documents or attachments.
-            </p>
-            <div class="mt-3 space-y-3">
+            <template v-if="invoiceMode">
                 <EmptyState
                     v-if="work.eligible.data.length === 0"
-                    title="No approved allocations to prepare"
-                    description="Approved Panel allocations will appear here when they are available in this branch."
+                    :title="
+                        work.filters.tab === 'overdue'
+                            ? 'No overdue invoices'
+                            : 'No pending invoices'
+                    "
+                    description="Approved Panel invoices without a claim appear here. Change the date range or filters to see more."
                 />
                 <OperationalTable
                     v-else
-                    label="Approved Panel allocations ready to prepare"
-                    :columns="6"
-                    min-width="900px"
+                    label="Approved Panel invoices without a claim"
+                    :columns="shownColumnCount"
+                    min-width="1000px"
                 >
                     <template #head>
                         <tr>
-                            <th scope="col">Patient / Visit</th>
-                            <th scope="col">Invoice</th>
-                            <th scope="col">Panel</th>
-                            <th scope="col" class="text-right">Approved</th>
-                            <th scope="col" class="text-right">
-                                Invoice total
+                            <th v-if="visibleColumns.amount" scope="col">
+                                Amount
                             </th>
-                            <th scope="col" class="text-right">Action</th>
+                            <th v-if="visibleColumns.invoiceNo" scope="col">
+                                Invoice no
+                            </th>
+                            <th v-if="visibleColumns.panel" scope="col">
+                                Panel
+                            </th>
+                            <th v-if="visibleColumns.patient" scope="col">
+                                Patient name
+                            </th>
+                            <th v-if="visibleColumns.status" scope="col">
+                                Status
+                            </th>
+                            <th v-if="visibleColumns.visitDate" scope="col">
+                                Visit date
+                            </th>
+                            <th v-if="visibleColumns.dueDate" scope="col">
+                                Due date
+                            </th>
+                            <th v-if="visibleColumns.doctor" scope="col">
+                                Doctor
+                            </th>
+                            <th v-if="visibleColumns.remarks" scope="col">
+                                Remark note
+                            </th>
+                            <th scope="col" class="text-right">
+                                <span class="sr-only">Actions</span>
+                            </th>
                         </tr>
                     </template>
                     <template #body>
@@ -581,35 +649,92 @@ const canMarkSubmitted = (status: string) =>
                             v-for="row in work.eligible.data"
                             :key="row.allocationId"
                         >
-                            <td>
+                            <td
+                                v-if="visibleColumns.amount"
+                                class="whitespace-nowrap tabular-nums"
+                            >
+                                {{ myr(row.amountSen) }}
+                            </td>
+                            <td
+                                v-if="visibleColumns.invoiceNo"
+                                class="font-mono text-xs"
+                            >
+                                {{ row.invoiceNumber }}
+                            </td>
+                            <td v-if="visibleColumns.panel">
+                                {{ row.panelName }}
+                            </td>
+                            <td v-if="visibleColumns.patient">
                                 <span class="block font-medium text-foreground">
                                     {{ row.patientName }}
                                 </span>
                                 <span
                                     class="block text-xs text-muted-foreground"
                                 >
-                                    {{ row.visitNumber }}
+                                    {{ row.visitNumber }} ·
+                                    {{ visitTypeLabel(row.visitType) }}
                                 </span>
                             </td>
-                            <td class="font-mono text-xs">
-                                {{ row.invoiceNumber }}
+                            <td v-if="visibleColumns.status">
+                                <StatusBadge
+                                    v-if="row.overdue"
+                                    status="overdue"
+                                    label="Overdue"
+                                    tone="danger"
+                                />
+                                <StatusBadge
+                                    v-else
+                                    status="pending"
+                                    label="Pending"
+                                    tone="warning"
+                                />
                             </td>
-                            <td>{{ row.panelName }}</td>
-                            <td class="text-right tabular-nums">
-                                {{ myr(row.amountSen) }}
+                            <td
+                                v-if="visibleColumns.visitDate"
+                                class="whitespace-nowrap"
+                            >
+                                {{ row.visitDate }}
                             </td>
-                            <td class="text-right tabular-nums">
-                                {{ myr(row.invoiceTotalSen) }}
+                            <td
+                                v-if="visibleColumns.dueDate"
+                                class="whitespace-nowrap"
+                            >
+                                {{ row.dueDate }}
+                            </td>
+                            <td v-if="visibleColumns.doctor">
+                                {{ row.doctorName }}
+                            </td>
+                            <td
+                                v-if="visibleColumns.remarks"
+                                class="max-w-64 truncate"
+                            >
+                                {{ row.remarkNote }}
                             </td>
                             <td class="text-right">
-                                <Button
-                                    type="button"
-                                    variant="secondary"
-                                    size="sm"
-                                    @click="prepare(row.allocationId)"
-                                >
-                                    Prepare claim
-                                </Button>
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger as-child>
+                                        <Button
+                                            type="button"
+                                            variant="ghost"
+                                            size="sm"
+                                            :aria-label="`Actions for invoice ${row.invoiceNumber}`"
+                                        >
+                                            …
+                                        </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end">
+                                        <DropdownMenuItem as-child>
+                                            <a :href="row.invoiceUrl"
+                                                >View invoice</a
+                                            >
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem
+                                            @select="prepare(row.allocationId)"
+                                        >
+                                            Create claim
+                                        </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
                             </td>
                         </tr>
                     </template>
@@ -621,7 +746,134 @@ const canMarkSubmitted = (status: string) =>
                     :total="work.eligible.total"
                     @change="(value) => turnPage('allocations_page', value)"
                 />
-            </div>
-        </details>
+            </template>
+            <template v-else>
+                <EmptyState
+                    v-if="work.claims.data.length === 0"
+                    title="No claims match"
+                    description="Create a claim from the Pending or Overdue tab, or change the tab, date range or filters."
+                />
+                <OperationalTable
+                    v-else
+                    label="Panel claims"
+                    :columns="shownColumnCount"
+                    min-width="1000px"
+                >
+                    <template #head>
+                        <tr>
+                            <th v-if="visibleColumns.amount" scope="col">
+                                Amount
+                            </th>
+                            <th v-if="visibleColumns.claimNo" scope="col">
+                                Claim no
+                            </th>
+                            <th v-if="visibleColumns.panel" scope="col">
+                                Panel
+                            </th>
+                            <th v-if="visibleColumns.patient" scope="col">
+                                Patient name
+                            </th>
+                            <th v-if="visibleColumns.status" scope="col">
+                                Status
+                            </th>
+                            <th v-if="visibleColumns.date" scope="col">Date</th>
+                            <th v-if="visibleColumns.updatedBy" scope="col">
+                                Updated by
+                            </th>
+                            <th v-if="visibleColumns.remarks" scope="col">
+                                Remarks
+                            </th>
+                            <th scope="col" class="text-right">
+                                <span class="sr-only">Actions</span>
+                            </th>
+                        </tr>
+                    </template>
+                    <template #body>
+                        <tr v-for="row in work.claims.data" :key="row.publicId">
+                            <td
+                                v-if="visibleColumns.amount"
+                                class="whitespace-nowrap tabular-nums"
+                            >
+                                {{ myr(row.claimAmountSen) }}
+                            </td>
+                            <td
+                                v-if="visibleColumns.claimNo"
+                                class="font-mono text-xs"
+                            >
+                                {{ row.claimNo }}
+                            </td>
+                            <td v-if="visibleColumns.panel">
+                                {{ row.panelName }}
+                            </td>
+                            <td v-if="visibleColumns.patient">
+                                <span class="block font-medium text-foreground">
+                                    {{ row.patientName }}
+                                </span>
+                                <span
+                                    class="block text-xs text-muted-foreground"
+                                >
+                                    {{ row.visitNumber }} ·
+                                    {{ row.invoiceNumber }}
+                                </span>
+                            </td>
+                            <td v-if="visibleColumns.status">
+                                <StatusBadge :status="row.status" />
+                            </td>
+                            <td
+                                v-if="visibleColumns.date"
+                                class="whitespace-nowrap"
+                            >
+                                {{ row.createdAt }}
+                            </td>
+                            <td v-if="visibleColumns.updatedBy">
+                                {{ row.updatedBy }}
+                            </td>
+                            <td
+                                v-if="visibleColumns.remarks"
+                                class="max-w-64 truncate"
+                            >
+                                {{ row.remarks }}
+                            </td>
+                            <td class="text-right">
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger as-child>
+                                        <Button
+                                            type="button"
+                                            variant="ghost"
+                                            size="sm"
+                                            :aria-label="`Actions for claim ${row.claimNo}`"
+                                        >
+                                            …
+                                        </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end">
+                                        <DropdownMenuItem as-child>
+                                            <a :href="row.showUrl"
+                                                >View claim</a
+                                            >
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem
+                                            v-if="canMarkSubmitted(row.status)"
+                                            as-child
+                                        >
+                                            <a :href="row.showUrl"
+                                                >Submit claim (manual)</a
+                                            >
+                                        </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
+                            </td>
+                        </tr>
+                    </template>
+                </OperationalTable>
+                <CompactPagination
+                    v-if="work.claims.total > 0"
+                    :current-page="work.claims.currentPage"
+                    :last-page="work.claims.lastPage"
+                    :total="work.claims.total"
+                    @change="(value) => turnPage('claims_page', value)"
+                />
+            </template>
+        </section>
     </main>
 </template>

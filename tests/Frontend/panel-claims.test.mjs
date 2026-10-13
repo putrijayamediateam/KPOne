@@ -82,7 +82,6 @@ test('Panel Claims main page has summary cards, status tabs, filters, column pic
     assert.match(index, /View claim/);
     assert.match(index, /Submit claim \(manual\)/);
     assert.doesNotMatch(index, /Send claim|Revert claim/);
-    assert.match(index, /Ready to prepare/);
 });
 
 test('Panel Claims filters are sent to the server and never kept in browser storage', () => {
@@ -90,4 +89,15 @@ test('Panel Claims filters are sent to the server and never kept in browser stor
     assert.match(index, /claim_no: draft\.claimNo/);
     assert.match(index, /amount_min: draft\.amountMin/);
     assert.doesNotMatch(index, /localStorage|sessionStorage/);
+});
+
+test('Pending and Overdue list unclaimed invoices with View invoice and Create claim, without clinical filters', () => {
+    assert.match(index, /View invoice/);
+    assert.match(index, /Create claim/);
+    assert.match(index, /Invoice number/);
+    assert.match(index, /Due date/);
+    assert.match(index, /Remark note/);
+    assert.match(index, /Visit type/);
+    assert.match(index, /\/panel-claims\/allocations\//);
+    assert.doesNotMatch(index, /Diagnosis|MC days|Treatment/);
 });
