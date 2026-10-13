@@ -1,8 +1,14 @@
 # KPOne project
 
-Latest merged delivery: PR #91 — REF-01 same-origin referrer policy, merged as `8547ef7`. Recent merges, newest first
+Latest merged delivery: PR #95 — Billing back button, merged as `946e573`. Recent merges, newest first
 (documentation-only PRs omitted):
 
+- PR #95 (`946e573`) — Billing back button goes to Registration, Panel Responsibility or Finance / Billing depending on
+  what the account may open (a Panel Officer no longer lands on a forbidden Registration page).
+- PR #94 (`fdca613`) — OTC visits can be sent to waiting and show in the Registration Waiting tab; a doctor's
+  previous-visit View opens the Invoices page with a safe return link.
+- PR #93 (`4a23486`) — PC-01: manual Panel Claims for Panel Officers (claim pack from an approved Panel
+  responsibility, manual portal submission, query and decision tracking, remittances, Payments Insights measures).
 - PR #91 (`8547ef7`) — REF-01: staff pages send `Referrer-Policy: same-origin` so `back()` and refused-action redirects
   know the source page; the public QR pages keep `no-referrer`.
 - PR #89 (`d03c03e`) — DS-01d: the Dispensary page uses the Invoices three-column layout (patient and allergies |
@@ -91,7 +97,7 @@ Phase 2B adds one in-progress Treatment Plan per current Clinical Encounter. The
 
 Phase 3A-Core adds a version-bound doctor-to-Dispensary handoff, branch fulfilment, safe stock allocation, and immutable inventory movements. Phase 3B adds checkout, service performance evidence, governed pricing, invoices, receipts, payment and responsibility handling, and controlled Visit completion. These milestones are merged, but their delivery does not by itself authorise production use or go-live.
 
-Panel Claims (PC-01) is now authorised as a separate manual-portal workflow. Its scope is recorded in [docs/BASELINE.md](docs/BASELINE.md); it does not integrate with Panel systems or change Invoice allocations.
+Panel Claims (PC-01, PR #93) is merged as a separate manual-portal workflow. Its scope is recorded in [docs/BASELINE.md](docs/BASELINE.md); it does not integrate with Panel systems or change Invoice allocations.
 
 The waiting-room TV (TV-1, PR #57; TV-2, PR #60) shows each branch's consultation, dispensary and treatment-room
 calls. The TV account sees only called numbers, rooms and times for its own branch, never patient, clinical or
