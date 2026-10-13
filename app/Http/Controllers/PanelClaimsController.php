@@ -12,6 +12,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -48,6 +49,46 @@ class PanelClaimsController extends Controller
         return Inertia::render('PanelClaims/Index', [
             'work' => $directory->search($actor, (int) ($data['allocations_page'] ?? 1), (int) ($data['claims_page'] ?? 1), $data),
         ]);
+    }
+
+    public function create(Request $request, CoverageAllocation $allocation, PanelClaimDirectoryService $directory): Response|RedirectResponse
+    {
+        $actor = $request->user();
+        abort_unless($actor instanceof User, 403);
+        $details = $directory->createDetails($actor, $allocation);
+        if ($details['existingClaimUrl'] !== null) {
+            return redirect()->to($details['existingClaimUrl']);
+        }
+
+        return Inertia::render('PanelClaims/Create', $details);
+    }
+
+    public function store(Request $request, CoverageAllocation $allocation, PanelClaimService $claims): RedirectResponse
+    {
+        $actor = $request->user();
+        abort_unless($actor instanceof User, 403);
+        try {
+            $claim = $claims->create($actor, $allocation, $request->all());
+        } catch (ValidationException $e) {
+            throw $e->redirectTo(route('panel-claims.create', $allocation));
+        }
+        // Only the first successful creation request uploads. Replays return the same claim untouched.
+        if ($claim->wasRecentlyCreated) {
+            try {
+                foreach ($request->file('photos', []) as $file) {
+                    $claims->addDocument($actor, $claim, [
+                        'expected_branch_id' => $claim->branch_id,
+                        'lock_version' => $claim->refresh()->lock_version,
+                    ], $file);
+                }
+            } catch (\Throwable $e) {
+                return to_route('panel-claims.show', $claim)->withErrors([
+                    'file' => 'The claim was created, but a photo could not be uploaded. Please add any missing photos in Documents below.',
+                ]);
+            }
+        }
+
+        return to_route('panel-claims.show', $claim);
     }
 
     public function prepare(Request $request, CoverageAllocation $allocation, PanelClaimService $claims): RedirectResponse

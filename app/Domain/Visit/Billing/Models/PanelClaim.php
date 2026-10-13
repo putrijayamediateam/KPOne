@@ -9,6 +9,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use LogicException;
 
 /**
+ * @property string|null $creation_idempotency_key
+ * @property string|null $creation_payload_hash
  * @property int $id
  * @property string $public_id
  * @property int $organisation_id

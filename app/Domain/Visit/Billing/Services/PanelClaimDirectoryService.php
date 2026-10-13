@@ -6,7 +6,11 @@ use App\Domain\Access\BranchAccessService;
 use App\Domain\Access\TransactionalActorAuthority;
 use App\Domain\Audit\AuditRecorder;
 use App\Domain\Organisation\Models\Branch;
+use App\Domain\Visit\Billing\Models\CoverageAllocation;
+use App\Domain\Visit\Billing\Models\Invoice;
+use App\Domain\Visit\Billing\Models\InvoiceLine;
 use App\Domain\Visit\Billing\Models\PanelClaim;
+use App\Domain\Visit\Models\Visit;
 use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\Database\Query\Expression;
@@ -505,6 +509,45 @@ final class PanelClaimDirectoryService
     }
 
     /** @return array<string, mixed> */
+    public function createDetails(User $actor, CoverageAllocation $routeAllocation): array
+    {
+        return DB::transaction(function () use ($actor, $routeAllocation): array {
+            [$actor, $branch] = $this->context($actor);
+            $allocation = CoverageAllocation::query()->whereKey($routeAllocation->id)
+                ->where('organisation_id', $actor->organisation_id)->where('branch_id', $branch->id)->firstOrFail();
+            $invoice = Invoice::query()->whereKey($allocation->invoice_id)
+                ->where('organisation_id', $actor->organisation_id)->where('branch_id', $branch->id)->firstOrFail();
+            $visit = Visit::query()->whereKey($invoice->visit_id)
+                ->where('organisation_id', $actor->organisation_id)->where('branch_id', $branch->id)->firstOrFail();
+            abort_unless($allocation->status === 'approved' && (int) $allocation->current_invoice_guard === $invoice->id
+                && $invoice->status === 'finalized' && ! $invoice->correction_hold && ! $invoice->source_stale
+                && $allocation->amount_sen > 0 && $allocation->amount_sen <= $invoice->total_sen, 422);
+            $existing = PanelClaim::query()->where('coverage_allocation_id', $allocation->id)->first();
+            $patient = DB::table('patients')->where('id', $invoice->patient_id)
+                ->where('organisation_id', $actor->organisation_id)->first(['full_name']);
+            abort_unless($patient !== null, 422);
+
+            return [
+                'existingClaimUrl' => $existing === null ? null : route('panel-claims.show', $existing),
+                'branch' => ['id' => $branch->id, 'today' => now()->setTimezone($branch->timezone)->toDateString()],
+                'allocation' => [
+                    'publicId' => $allocation->public_id, 'lockVersion' => $allocation->lock_version,
+                    'invoiceLockVersion' => $invoice->lock_version, 'panelName' => $allocation->panel_name_snapshot,
+                    'amountSen' => $allocation->amount_sen, 'patientName' => $patient->full_name,
+                    'invoiceNumber' => $invoice->invoice_number, 'invoiceTotalSen' => $invoice->total_sen,
+                    'visitDate' => $visit->registered_at->setTimezone($branch->timezone)->toDateString(),
+                    'visitDateTime' => $visit->registered_at->setTimezone($branch->timezone)->format('j M Y, g:i A'),
+                    'lines' => InvoiceLine::query()->where('invoice_id', $invoice->id)->orderBy('id')->get()
+                        ->map(static fn (InvoiceLine $line): array => [
+                            'id' => $line->id, 'name' => $line->display_name, 'quantity' => (string) $line->quantity,
+                            'unitPriceSen' => $line->unit_price_sen, 'totalSen' => $line->line_total_sen,
+                        ])->all(),
+                ],
+            ];
+        });
+    }
+
+    /** @return array<string, mixed> */
     public function show(User $actor, PanelClaim $routeClaim): array
     {
         return DB::transaction(function () use ($actor, $routeClaim): array {
@@ -635,7 +678,7 @@ final class PanelClaimDirectoryService
                     'events' => $events,
                     'payments' => $payments,
                     'createdAt' => $claim->created_at?->setTimezone($branch->timezone)->format('j M Y, g:i A'),
-                    'canEditAmount' => in_array($claim->status, ['prepared', 'queried', 'rejected'], true) && $paid === 0,
+                    'canEditAmount' => in_array($claim->status, ['prepared', 'submitted', 'queried', 'rejected'], true) && $paid === 0,
                     'canSubmit' => in_array($claim->status, ['prepared', 'queried', 'rejected'], true) && $paid === 0,
                     'canRecordQuery' => $claim->status === 'submitted' && $paid === 0,
                     'canRecordDecision' => in_array($claim->status, ['submitted', 'queried'], true) && $paid === 0,

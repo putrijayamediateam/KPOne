@@ -15,6 +15,9 @@ use App\Domain\Visit\Billing\Models\PanelClaim;
 use App\Domain\Visit\Billing\Services\ResponsibilityService;
 use App\Domain\Visit\Models\Panel;
 use App\Domain\Visit\Models\Visit;
+use Carbon\CarbonImmutable;
+use Illuminate\Filesystem\FilesystemAdapter;
+use Illuminate\Foundation\Testing\RefreshDatabaseState;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -25,7 +28,7 @@ use Spatie\Permission\PermissionRegistrar;
 
 class PanelClaimsTest extends BillingTestCase
 {
-    public function test_panel_officer_prepares_a_minimized_claim_pack_from_an_approved_allocation(): void
+    public function test_panel_officer_creates_a_submitted_minimized_claim_from_an_approved_allocation(): void
     {
         [$panelOfficer, $visit, $invoice, $allocation] = $this->approvedPanelFixture();
         $this->selectBranch($panelOfficer, $this->branch);
@@ -37,17 +40,19 @@ class PanelClaimsTest extends BillingTestCase
             ->where('work.eligible.data.0.panelName', $allocation->panel_name_snapshot)
             ->has('work.claims.data', 0));
 
-        $this->post(route('panel-claims.prepare', $allocation), ['expected_branch_id' => $visit->branch_id])
+        $this->get(route('panel-claims.create', $allocation))->assertOk()->assertHeader('Cache-Control', 'max-age=0, must-revalidate, no-store, private')
+            ->assertInertia(fn (Assert $page) => $page->component('PanelClaims/Create')->where('allocation.amountSen', 3000)->has('allocation.lines', 1));
+        $this->post(route('panel-claims.store', $allocation), $this->creationPayload($allocation, $invoice))
             ->assertRedirect();
         $claim = PanelClaim::query()->sole();
 
-        $this->assertSame('prepared', $claim->status);
+        $this->assertSame('submitted', $claim->status);
         $this->assertSame($allocation->amount_sen, $claim->claim_amount_sen);
         $this->assertSame($invoice->total_sen, $claim->invoice_total_sen);
         $this->assertSame($visit->visit_number, $claim->visit_number);
         $this->assertDatabaseCount('panel_claim_lines', 1);
         $this->assertDatabaseHas('panel_claim_events', ['panel_claim_id' => $claim->id, 'event_type' => 'prepared']);
-        $this->assertDatabaseHas('audit_logs', ['event' => 'panel_claim.prepared', 'subject_id' => $claim->id]);
+        $this->assertDatabaseHas('audit_logs', ['event' => 'panel_claim.created', 'subject_id' => $claim->id]);
 
         $response = $this->get(route('panel-claims.show', $claim))->assertOk()->assertInertia(fn (Assert $page) => $page
             ->component('PanelClaims/Show')
@@ -56,7 +61,8 @@ class PanelClaimsTest extends BillingTestCase
             ->where('claim.invoiceNumber', $invoice->invoice_number)
             ->where('claim.adjustmentSen', 0)
             ->has('claim.lines', 1)
-            ->has('claim.events', 1)
+            ->has('claim.events', 2)
+            ->where('claim.events.0.type', 'prepared')->where('claim.events.1.type', 'submitted')
             ->missing('claim.diagnoses')
             ->missing('claim.clinicalNotes')
             ->missing('claim.identityDocuments'));
@@ -442,6 +448,262 @@ class PanelClaimsTest extends BillingTestCase
             ->where('work.summary.approved.amountSen', 3000)
             ->where('work.summary.outstanding.count', 1)->where('work.summary.outstanding.amountSen', 2000)
             ->where('work.tabs.approved', 1)->where('work.tabs.submitted', 0));
+    }
+
+    /** @return array<string, mixed> */
+    private function creationPayload(CoverageAllocation $allocation, Invoice $invoice): array
+    {
+        return [
+            'expected_branch_id' => $allocation->branch_id,
+            'allocation_lock_version' => $allocation->lock_version,
+            'invoice_lock_version' => $invoice->lock_version,
+            'idempotency_key' => (string) Str::uuid(),
+            'submitted_date' => now()->setTimezone($this->branch->timezone)->toDateString(),
+            'remarks' => 'Synthetic claim remarks',
+        ];
+    }
+
+    public function test_creation_retry_returns_same_claim_and_changed_payload_or_another_key_is_refused(): void
+    {
+        [, , $invoice, $allocation] = $this->approvedPanelFixture();
+        $payload = $this->creationPayload($allocation, $invoice);
+        $this->post(route('panel-claims.store', $allocation), $payload)->assertRedirect();
+        $claim = PanelClaim::query()->sole();
+        $this->post(route('panel-claims.store', $allocation), $payload)->assertRedirect(route('panel-claims.show', $claim));
+        $this->assertDatabaseCount('panel_claims', 1);
+        $this->assertDatabaseCount('panel_claim_events', 2);
+        $this->assertSame(1, DB::table('audit_logs')->where('event', 'panel_claim.created')->count());
+        $this->assertSame('Synthetic claim remarks', $claim->remarks);
+        $audit = json_decode(DB::table('audit_logs')->where('event', 'panel_claim.created')->sole()->metadata, true);
+        $this->assertSame(['claim_amount_sen' => 3000, 'submitted_date' => $payload['submitted_date']], $audit);
+        $this->post(route('panel-claims.store', $allocation), array_replace($payload, ['remarks' => 'Changed details']))
+            ->assertRedirect(route('panel-claims.create', $allocation))->assertSessionHasErrors('claim');
+        $this->post(route('panel-claims.store', $allocation), array_replace($payload, ['idempotency_key' => (string) Str::uuid()]))
+            ->assertSessionHasErrors('claim');
+        $this->get(route('panel-claims.create', $allocation))->assertRedirect(route('panel-claims.show', $claim));
+        $this->assertDatabaseCount('panel_claim_events', 2);
+    }
+
+    public function test_creation_dates_use_branch_timezone_and_backdated_events_are_ordered_with_real_creation_time(): void
+    {
+        $this->travelTo(CarbonImmutable::parse('2026-10-13 17:30:00', 'UTC'));
+        [, $visit, $invoice, $allocation] = $this->approvedPanelFixture();
+        DB::table('visits')->where('id', $visit->id)->update(['registered_at' => '2026-10-10 17:00:00']);
+        $payload = array_replace($this->creationPayload($allocation, $invoice), ['submitted_date' => '2026-10-12']);
+        $this->post(route('panel-claims.store', $allocation), $payload)->assertRedirect();
+        $claim = PanelClaim::query()->sole();
+        $this->assertSame('2026-10-13 17:30:00', $claim->created_at->format('Y-m-d H:i:s'));
+        $events = $claim->events()->get();
+        $this->assertSame(['prepared', 'submitted'], $events->pluck('event_type')->all());
+        foreach ($events as $event) {
+            $this->assertSame('2026-10-11 16:00:00', $event->occurred_at->format('Y-m-d H:i:s'));
+            $this->assertSame('2026-10-13 17:30:00', $event->created_at->format('Y-m-d H:i:s'));
+        }
+    }
+
+    public function test_today_submission_uses_current_time_even_when_utc_date_is_yesterday(): void
+    {
+        $this->travelTo(CarbonImmutable::parse('2026-10-13 17:30:00', 'UTC'));
+        [, , $invoice, $allocation] = $this->approvedPanelFixture();
+        $payload = $this->creationPayload($allocation, $invoice);
+        $this->assertSame('2026-10-14', $payload['submitted_date']);
+        $this->post(route('panel-claims.store', $allocation), $payload)->assertRedirect();
+        foreach (PanelClaim::query()->sole()->events()->get() as $event) {
+            $this->assertSame('2026-10-13 17:30:00', $event->occurred_at->format('Y-m-d H:i:s'));
+        }
+    }
+
+    public function test_future_and_pre_visit_dates_are_field_errors_and_roll_back_all_creation_evidence(): void
+    {
+        $this->travelTo(CarbonImmutable::parse('2026-10-13 17:30:00', 'UTC'));
+        [, , $invoice, $allocation] = $this->approvedPanelFixture();
+        $payload = $this->creationPayload($allocation, $invoice);
+        foreach (['2026-10-15', '2026-10-13', '2026-02-30', 'tomorrow'] as $date) {
+            $this->post(route('panel-claims.store', $allocation), array_replace($payload, ['submitted_date' => $date]))
+                ->assertRedirect(route('panel-claims.create', $allocation))->assertSessionHasErrors('submitted_date');
+            $this->assertDatabaseCount('panel_claims', 0);
+            $this->assertDatabaseCount('panel_claim_lines', 0);
+            $this->assertDatabaseCount('panel_claim_events', 0);
+            $this->assertSame(0, DB::table('audit_logs')->where('event', 'panel_claim.created')->count());
+        }
+    }
+
+    public function test_creation_rejects_stale_versions_and_no_longer_claimable_source(): void
+    {
+        [, , $invoice, $allocation] = $this->approvedPanelFixture();
+        $payload = $this->creationPayload($allocation, $invoice);
+        foreach (['invoice_lock_version', 'allocation_lock_version'] as $key) {
+            $this->post(route('panel-claims.store', $allocation), array_replace($payload, [$key => 999]))->assertSessionHasErrors('claim');
+        }
+        $invoice->forceFill(['correction_hold' => true])->save();
+        $this->post(route('panel-claims.store', $allocation), $payload)->assertSessionHasErrors('claim');
+        $this->assertDatabaseCount('panel_claims', 0);
+        $this->assertDatabaseCount('panel_claim_lines', 0);
+    }
+
+    public function test_create_get_and_post_require_panel_permission_and_current_branch_scope(): void
+    {
+        [, , $invoice, $allocation] = $this->approvedPanelFixture();
+        $payload = $this->creationPayload($allocation, $invoice);
+        foreach (['director', 'technical_admin', 'ca', 'finance_officer'] as $role) {
+            $actor = $this->actor($role);
+            $this->selectBranch($actor, $this->branch);
+            $this->get(route('panel-claims.create', $allocation))->assertForbidden();
+            $this->post(route('panel-claims.store', $allocation), $payload)->assertForbidden();
+        }
+        $otherBranch = Branch::query()->where('organisation_id', $this->organisation->id)->where('code', 'PUCHONG')->firstOrFail();
+        $officer = $this->actor('panel_officer', $otherBranch);
+        $this->selectBranch($officer, $otherBranch);
+        $this->get(route('panel-claims.create', $allocation))->assertNotFound();
+        $this->post(route('panel-claims.store', $allocation), array_replace($payload, ['expected_branch_id' => $otherBranch->id]))->assertNotFound();
+        $this->assertDatabaseCount('panel_claims', 0);
+    }
+
+    public function test_all_photos_are_content_validated_before_creation_with_size_and_count_limits(): void
+    {
+        Storage::fake('local');
+        [, , $invoice, $allocation] = $this->approvedPanelFixture();
+        $payload = $this->creationPayload($allocation, $invoice);
+        $invalid = [
+            [UploadedFile::fake()->image('valid.png'), UploadedFile::fake()->createWithContent('fake.jpg', 'not an image')],
+            [UploadedFile::fake()->image('large.png')->size(5121)],
+            array_map(fn () => UploadedFile::fake()->image('photo.jpg'), range(1, 11)),
+        ];
+        foreach ($invalid as $photos) {
+            $this->post(route('panel-claims.store', $allocation), $payload + ['photos' => $photos])->assertSessionHasErrors();
+            $this->assertDatabaseCount('panel_claims', 0);
+            $this->assertDatabaseCount('panel_claim_documents', 0);
+            $this->assertSame([], Storage::disk('local')->allFiles());
+        }
+    }
+
+    public function test_creation_photos_are_private_audited_and_never_reuploaded_on_retry(): void
+    {
+        Storage::fake('local');
+        [, , $invoice, $allocation] = $this->approvedPanelFixture();
+        $payload = $this->creationPayload($allocation, $invoice) + ['photos' => [UploadedFile::fake()->image('synthetic.png'), UploadedFile::fake()->image('synthetic.jpg')]];
+        $this->post(route('panel-claims.store', $allocation), $payload)->assertRedirect();
+        $claim = PanelClaim::query()->sole();
+        $this->post(route('panel-claims.store', $allocation), $payload)->assertRedirect(route('panel-claims.show', $claim));
+        $this->assertDatabaseCount('panel_claim_documents', 2);
+        $this->assertCount(2, Storage::disk('local')->allFiles());
+        $this->assertSame(2, DB::table('audit_logs')->where('event', 'panel_claim.document_added')->count());
+        $this->assertSame(3, $claim->refresh()->lock_version);
+    }
+
+    public function test_failed_upload_redirects_to_created_claim_with_recovery_error_and_retry_does_not_duplicate(): void
+    {
+        [, , $invoice, $allocation] = $this->approvedPanelFixture();
+        $actualDisk = Storage::fake('local');
+        $disk = \Mockery::mock(FilesystemAdapter::class);
+        $writes = 0;
+        $disk->shouldReceive('putFileAs')->twice()->andReturnUsing(function ($directory, $file, $name) use ($actualDisk, &$writes) {
+            $path = $actualDisk->putFileAs($directory, $file, $name);
+
+            return ++$writes === 1 ? $path : false;
+        });
+        $disk->shouldReceive('delete')->once()->andReturnUsing(fn ($path) => $actualDisk->delete($path));
+        Storage::shouldReceive('disk')->with('local')->andReturn($disk);
+        $payload = $this->creationPayload($allocation, $invoice) + ['photos' => [
+            UploadedFile::fake()->image('synthetic-first.png'), UploadedFile::fake()->image('synthetic-second.jpg'),
+        ]];
+        $response = $this->post(route('panel-claims.store', $allocation), $payload)->assertSessionHasErrors('file');
+        $claim = PanelClaim::query()->sole();
+        $response->assertRedirect(route('panel-claims.show', $claim));
+        $this->assertSame('submitted', $claim->status);
+        $this->assertSame(2, $claim->lock_version);
+        $this->assertDatabaseCount('panel_claim_documents', 1);
+        $this->assertCount(1, $actualDisk->allFiles());
+        $this->post(route('panel-claims.store', $allocation), $payload)->assertRedirect(route('panel-claims.show', $claim));
+        $this->assertDatabaseCount('panel_claims', 1);
+        $this->assertDatabaseCount('panel_claim_events', 2);
+        $this->assertDatabaseCount('panel_claim_documents', 1);
+        $this->assertCount(1, $actualDisk->allFiles());
+    }
+
+    public function test_document_transaction_retry_compensates_abandoned_files_and_keeps_one_document(): void
+    {
+        [, , $invoice, $allocation] = $this->approvedPanelFixture();
+        // Laravel retries deadlocks only at the outermost transaction. Commit this disposable
+        // fixture so the request exercises the runtime boundary; force a fresh schema next test.
+        $this->assertSame(1, DB::transactionLevel());
+        DB::commit();
+        RefreshDatabaseState::$migrated = false;
+        $actualDisk = Storage::fake('local');
+        $disk = \Mockery::mock(FilesystemAdapter::class);
+        $writes = 0;
+        $disk->shouldReceive('putFileAs')->twice()->andReturnUsing(function ($directory, $file, $name) use ($actualDisk, &$writes) {
+            $path = $actualDisk->putFileAs($directory, $file, $name);
+            if (++$writes === 1) {
+                throw new \PDOException('deadlock detected', 40001);
+            }
+
+            return $path;
+        });
+        $disk->shouldReceive('delete')->once()->andReturnUsing(fn ($path) => $actualDisk->delete($path));
+        Storage::shouldReceive('disk')->with('local')->andReturn($disk);
+        $payload = $this->creationPayload($allocation, $invoice) + ['photos' => [UploadedFile::fake()->image('synthetic.png')]];
+        $this->post(route('panel-claims.store', $allocation), $payload)->assertSessionHasNoErrors()->assertRedirect();
+        $claim = PanelClaim::query()->sole();
+        $this->assertSame('submitted', $claim->status);
+        $this->assertSame(2, $claim->lock_version);
+        $this->assertDatabaseCount('panel_claim_documents', 1);
+        $this->assertCount(1, $actualDisk->allFiles());
+        $this->assertSame(1, DB::table('audit_logs')->where('event', 'panel_claim.document_added')->count());
+    }
+
+    public function test_submitted_amount_edit_keeps_submitted_requires_reason_confirmation_and_current_version(): void
+    {
+        [, , $invoice, $allocation] = $this->approvedPanelFixture();
+        $this->post(route('panel-claims.store', $allocation), $this->creationPayload($allocation, $invoice))->assertRedirect();
+        $claim = PanelClaim::query()->sole();
+        $data = ['expected_branch_id' => $claim->branch_id, 'lock_version' => 1, 'amount_sen' => 6000];
+        $this->patch(route('panel-claims.amount', $claim), $data)->assertSessionHasErrors('reason');
+        $this->patch(route('panel-claims.amount', $claim), $data + ['reason' => 'Synthetic reason'])->assertSessionHasErrors('confirm_over_invoice');
+        $this->patch(route('panel-claims.amount', $claim), $data + ['reason' => 'Synthetic reason', 'confirm_over_invoice' => true])->assertRedirect();
+        $this->assertSame('submitted', $claim->refresh()->status);
+        $this->assertSame(6000, $claim->claim_amount_sen);
+        $this->assertNull($claim->accepted_amount_sen);
+        $this->assertSame(2, $claim->lock_version);
+        $this->assertDatabaseHas('panel_claim_events', ['event_type' => 'amount_adjusted', 'note' => 'Synthetic reason']);
+        $this->assertDatabaseHas('audit_logs', ['event' => 'panel_claim.amount_adjusted']);
+        $this->patch(route('panel-claims.amount', $claim), $data + ['reason' => 'Synthetic reason', 'confirm_over_invoice' => true])->assertSessionHasErrors('claim');
+        $this->get(route('panel-claims.show', $claim))->assertInertia(fn (Assert $page) => $page->where('claim.canEditAmount', true)->where('claim.canSubmit', false));
+        $this->assertSame(3000, $allocation->refresh()->amount_sen);
+        $this->assertSame(4000, $invoice->refresh()->total_sen);
+    }
+
+    public function test_legacy_prepared_queried_rejected_edits_keep_existing_reset_to_prepared_behaviour(): void
+    {
+        [, $visit, , $allocation] = $this->approvedPanelFixture();
+        $this->post(route('panel-claims.prepare', $allocation), ['expected_branch_id' => $visit->branch_id])->assertRedirect();
+        $claim = PanelClaim::query()->sole();
+        foreach (['prepared', 'queried', 'rejected'] as $index => $status) {
+            $claim->forceFill(['status' => $status, 'accepted_amount_sen' => $status === 'rejected' ? 0 : null])->save();
+            $this->patch(route('panel-claims.amount', $claim), [
+                'expected_branch_id' => $claim->branch_id, 'lock_version' => $claim->lock_version,
+                'amount_sen' => 3100 + $index, 'reason' => 'Synthetic legacy edit',
+            ])->assertRedirect();
+            $this->assertSame('prepared', $claim->refresh()->status);
+            $this->assertNull($claim->accepted_amount_sen);
+        }
+    }
+
+    public function test_accepted_partially_accepted_partially_paid_and_paid_claims_remain_not_editable(): void
+    {
+        [, , $invoice, $allocation] = $this->approvedPanelFixture();
+        $this->post(route('panel-claims.store', $allocation), $this->creationPayload($allocation, $invoice))->assertRedirect();
+        $claim = PanelClaim::query()->sole();
+        foreach (['accepted', 'partially_accepted', 'partially_paid', 'paid'] as $status) {
+            $claim->forceFill(['status' => $status, 'accepted_amount_sen' => $status === 'partially_accepted' ? 2000 : 3000])->save();
+            $this->patch(route('panel-claims.amount', $claim), [
+                'expected_branch_id' => $claim->branch_id, 'lock_version' => $claim->lock_version,
+                'amount_sen' => 3500, 'reason' => 'Synthetic refused edit',
+            ])->assertSessionHasErrors('claim');
+            $this->assertSame($status, $claim->refresh()->status);
+            $this->assertSame(3000, $claim->claim_amount_sen);
+            $this->get(route('panel-claims.show', $claim))->assertInertia(fn (Assert $page) => $page->where('claim.canEditAmount', false));
+        }
     }
 
     /** @return array{mixed, Visit, Invoice, CoverageAllocation} */
