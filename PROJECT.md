@@ -1,8 +1,17 @@
 # KPOne project
 
-Latest merged delivery: PR #95 — Billing back button, merged as `946e573`. Recent merges, newest first
+Latest merged delivery: PR #100 — Checkout settings (Panel list and Panel form), merged as `bfba0ef`. Recent merges, newest first
 (documentation-only PRs omitted):
 
+- PR #100 (`bfba0ef`) — PS-01: Checkout settings (`/checkout-settings`): Panel list with tabs, search, status switch,
+  Edit and Archive; Add/Edit panel page (type, SSM number, contact, address, verification link or remark, TIN) and a
+  per-Panel claim due rule (N days after the visit, or daily, weekly or monthly by a time). New permission
+  `panels.manage.organisation` for Director, Finance Officer and Panel Officer.
+- PR #99 (`03c6a9c`) — PC-02: Create claim page for Panel Officers (invoice details, submitted date, remarks, photos);
+  claims start in Submitted with scoped idempotency.
+- PR #98 (`b51161a`) — Yezza-style claim page with documents, notes, remarks and a patient identity view for Panel
+  Officers.
+- PR #97 (`e40d627`) — Yezza-style Panel Claims main page: Pending and Overdue invoices, filters and per-Panel due days.
 - PR #95 (`946e573`) — Billing back button goes to Registration, Panel Responsibility or Finance / Billing depending on
   what the account may open (a Panel Officer no longer lands on a forbidden Registration page).
 - PR #94 (`fdca613`) — OTC visits can be sent to waiting and show in the Registration Waiting tab; a doctor's
