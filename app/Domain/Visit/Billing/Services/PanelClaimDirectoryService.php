@@ -8,8 +8,8 @@ use App\Domain\Organisation\Models\Branch;
 use App\Domain\Visit\Billing\Models\PanelClaim;
 use App\Models\User;
 use Carbon\CarbonImmutable;
+use Illuminate\Contracts\Database\Query\Expression;
 use Illuminate\Database\Query\Builder;
-use Illuminate\Database\Query\Expression;
 use Illuminate\Support\Facades\DB;
 
 /**
