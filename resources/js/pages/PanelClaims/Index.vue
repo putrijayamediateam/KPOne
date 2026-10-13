@@ -280,18 +280,9 @@ const turnPage = (key: 'allocations_page' | 'claims_page', value: number) =>
     go({ [key]: value });
 
 const error = ref('');
-const prepare = (allocationId: string) => {
-    error.value = '';
-    router.post(
-        `/panel-claims/allocations/${encodeURIComponent(allocationId)}/prepare`,
-        { expected_branch_id: props.work.branch.id },
-        {
-            onError: (errors) => {
-                error.value =
-                    Object.values(errors)[0] ??
-                    'The claim pack could not be prepared.';
-            },
-        },
+const createClaim = (allocationId: string) => {
+    router.visit(
+        `/panel-claims/allocations/${encodeURIComponent(allocationId)}/create`,
     );
 };
 const canMarkSubmitted = (status: string) =>
@@ -309,8 +300,8 @@ const visitTypeLabel = (value: string) =>
                     Panel Claims
                 </h1>
                 <p class="mt-1 text-sm text-muted-foreground">
-                    {{ work.branch.name }} · Prepare claim packs for manual
-                    submission and track Panel decisions and remittances.
+                    {{ work.branch.name }} · Create claims for manual submission
+                    and track Panel decisions and remittances.
                 </p>
             </div>
             <div class="flex flex-wrap items-center gap-2">
@@ -447,12 +438,13 @@ const visitTypeLabel = (value: string) =>
             </div>
 
             <p v-if="invoiceMode" class="text-sm text-muted-foreground">
-                Approved Panel invoices without a claim yet. Create claim
-                prepares a claim summary for use in the Panel’s portal with
-                invoice lines, patient name, member reference, visit date,
-                branch and invoice number; it does not include clinical notes,
-                diagnoses, identity documents or attachments. A claim is overdue
-                once the Panel’s due days after the visit have passed.
+                Approved Panel invoices without a claim yet. Create claim opens
+                the creation page for a submitted claim with invoice lines,
+                patient name, member reference, visit date, branch and invoice
+                number. The claim summary excludes clinical notes, diagnoses,
+                identity documents or attachments. Photos can be added as claim
+                documents. A claim is overdue once the Panel’s due days after
+                the visit have passed.
             </p>
 
             <form
@@ -760,7 +752,9 @@ const visitTypeLabel = (value: string) =>
                                             >
                                         </DropdownMenuItem>
                                         <DropdownMenuItem
-                                            @select="prepare(row.allocationId)"
+                                            @select="
+                                                createClaim(row.allocationId)
+                                            "
                                         >
                                             Create claim
                                         </DropdownMenuItem>

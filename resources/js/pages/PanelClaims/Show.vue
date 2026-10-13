@@ -88,6 +88,7 @@ const props = defineProps<{
 const page = usePage();
 const busy = ref(false);
 const error = ref('');
+const uploadRecoveryError = computed(() => page.props.errors?.file);
 const amount = ref((props.claim.claimAmountSen / 100).toFixed(2));
 const amountReason = ref('');
 const confirmAboveInvoice = ref(false);
@@ -358,11 +359,11 @@ const eventTitle = (type: string) =>
         </header>
 
         <p
-            v-if="error"
+            v-if="error || uploadRecoveryError"
             role="alert"
             class="rounded-lg border border-destructive/40 bg-destructive/5 px-4 py-3 text-sm text-destructive print:hidden"
         >
-            {{ error }}
+            {{ error || uploadRecoveryError }}
         </p>
 
         <div class="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
