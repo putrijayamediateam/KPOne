@@ -23,10 +23,11 @@ class PanelSettingsTest extends VisitTestCase
         ];
     }
 
-    public function test_only_director_finance_officer_and_panel_officer_hold_the_permission(): void
+    public function test_only_director_administrator_finance_officer_and_panel_officer_hold_the_permission(): void
     {
         $holders = Role::query()->whereHas('permissions', fn ($q) => $q->where('name', 'panels.manage.organisation'))->pluck('name')->sort()->values()->all();
-        $this->assertSame(['director', 'finance_officer', 'panel_officer'], $holders);
+        // ADM-01: the clinic manager's Administrator role also manages Panels.
+        $this->assertSame(['administrator', 'director', 'finance_officer', 'panel_officer'], $holders);
 
         $this->selectBranch($this->actor('ca'));
         $this->get(route('panel-settings.index'))->assertForbidden();
