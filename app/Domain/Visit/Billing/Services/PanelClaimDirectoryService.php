@@ -643,9 +643,24 @@ final class PanelClaimDirectoryService
                 'url' => route('panel-claims.documents.show', [$claim, $document]),
             ])->all();
 
+            $messageBody = (string) DB::table('panel_claim_message_templates')->where('organisation_id', $actor->organisation_id)
+                ->where('kind', PanelClaimMessageService::KIND)->value('body');
+            $message = PanelClaimMessageService::render($messageBody, [
+                'panel_name' => (string) $claim->panel_name_snapshot,
+                'patient_name' => (string) $claim->patient_name_snapshot,
+                'patient_nric' => $identifier === null ? '(not available)' : (string) $identifier->normalized_value,
+                'staff_id' => (string) ($claim->member_reference ?? 'N/A'),
+                'claim_number' => (string) $claim->id,
+                'claimed_amount' => 'RM '.number_format($claim->claim_amount_sen / 100, 2),
+                'submission_date' => is_array($submittedEvent) ? trim(explode(',', (string) $submittedEvent['occurredAt'])[0]) : 'not yet submitted',
+                'claim_link' => route('panel-claims.show', $claim),
+                'clinic_name' => (string) $claim->branch_name_snapshot,
+            ]);
+
             return [
                 'branch' => ['id' => $branch->id, 'name' => $branch->name, 'today' => now()->setTimezone($branch->timezone)->toDateString()],
                 'claim' => [
+                    'message' => $message,
                     'publicId' => $claim->public_id,
                     'claimNo' => (string) $claim->id,
                     'lockVersion' => $claim->lock_version,

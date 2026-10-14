@@ -5,6 +5,7 @@ namespace App\Domain\Visit\Services;
 use App\Domain\Audit\AuditRecorder;
 use App\Domain\Organisation\Models\Organisation;
 use App\Domain\Visit\Billing\Services\PanelClaimDueRule;
+use App\Domain\Visit\Billing\Services\PanelClaimMessageService;
 use App\Domain\Visit\Models\Panel;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
@@ -22,7 +23,7 @@ final class PanelSettingsService
 
     private const PER_PAGE = 10;
 
-    public function __construct(private readonly AuditRecorder $audit) {}
+    public function __construct(private readonly AuditRecorder $audit, private readonly PanelClaimMessageService $messages) {}
 
     /**
      * @param  array<string, mixed>  $filters
@@ -75,6 +76,7 @@ final class PanelSettingsService
             'pagination' => ['currentPage' => $page->currentPage(), 'lastPage' => $page->lastPage(), 'total' => $page->total()],
             'selfPayMethods' => DB::table('payment_methods')->where('organisation_id', $actor->organisation_id)
                 ->where('is_active', true)->orderBy('sort_order')->orderBy('name')->pluck('name')->map(fn ($n): string => (string) $n)->all(),
+            'claimMessage' => $this->messages->forSettings($actor),
             'can' => ['managePaymentMethods' => $actor->can('payment_methods.manage.organisation')],
         ];
     }

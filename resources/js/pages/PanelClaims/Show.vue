@@ -56,6 +56,7 @@ type ClaimData = {
     submittedOn: string | null;
     updatedBy: string | null;
     shareUrl: string;
+    message: string | null;
     invoiceUrl: string;
     dueRule: string;
     verificationUrl: string | null;
@@ -231,6 +232,16 @@ const noteOpen = ref(false);
 const noteText = ref('');
 const remarksText = ref(props.claim.remarks ?? '');
 const fileInput = ref<HTMLInputElement | null>(null);
+const messageCopied = ref(false);
+const copyMessage = async () => {
+    try {
+        await navigator.clipboard.writeText(props.claim.message ?? '');
+        messageCopied.value = true;
+        setTimeout(() => (messageCopied.value = false), 2000);
+    } catch {
+        error.value = 'The message could not be copied.';
+    }
+};
 const copyLink = async () => {
     try {
         await navigator.clipboard.writeText(props.claim.shareUrl);
@@ -344,6 +355,14 @@ const eventTitle = (type: string) =>
             <div class="flex flex-wrap gap-2 print:hidden">
                 <Button type="button" variant="secondary" @click="copyLink">
                     {{ copied ? 'Link copied' : 'Copy link' }}
+                </Button>
+                <Button
+                    v-if="claim.message"
+                    type="button"
+                    variant="secondary"
+                    @click="copyMessage"
+                >
+                    {{ messageCopied ? 'Message copied' : 'Copy message' }}
                 </Button>
                 <Button type="button" variant="secondary" @click="printPack">
                     Download PDF

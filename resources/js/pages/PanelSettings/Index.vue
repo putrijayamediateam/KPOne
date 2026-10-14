@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { Head, Link, router } from '@inertiajs/vue3';
+import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import { ref } from 'vue';
+import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { PageHeader } from '@/components/ui/page-header';
@@ -25,6 +26,12 @@ const props = defineProps<{
     panels: PanelRow[];
     pagination: { currentPage: number; lastPage: number; total: number };
     selfPayMethods: string[];
+    claimMessage: {
+        body: string;
+        lockVersion: number;
+        fields: { key: string; label: string }[];
+        maxLength: number;
+    };
     can: { managePaymentMethods: boolean };
 }>();
 
@@ -50,6 +57,31 @@ const toggle = (panel: PanelRow) => {
         { preserveScroll: true },
     );
 };
+
+const messageForm = useForm({
+    body: props.claimMessage.body,
+    lock_version: props.claimMessage.lockVersion,
+});
+const messageBox = ref<HTMLTextAreaElement | null>(null);
+const insertField = (key: string) => {
+    const token = `{${key}}`;
+    const box = messageBox.value;
+    const start = box?.selectionStart ?? messageForm.body.length;
+    const end = box?.selectionEnd ?? start;
+    messageForm.body =
+        messageForm.body.slice(0, start) + token + messageForm.body.slice(end);
+    requestAnimationFrame(() => {
+        box?.focus();
+        box?.setSelectionRange(start + token.length, start + token.length);
+    });
+};
+const saveMessage = () =>
+    messageForm.patch('/checkout-settings/claim-message', {
+        preserveScroll: true,
+        onSuccess: () => {
+            messageForm.lock_version = props.claimMessage.lockVersion;
+        },
+    });
 
 const tabs: { key: 'all' | 'active' | 'archived'; label: string }[] = [
     { key: 'all', label: 'All' },
@@ -274,6 +306,54 @@ const tabs: { key: 'all' | 'active' | 'archived'; label: string }[] = [
                     Next
                 </Button>
             </div>
+        </section>
+
+        <section
+            class="rounded-xl border bg-card p-4"
+            data-testid="claim-message"
+        >
+            <h2 class="text-base font-semibold">Claim message template</h2>
+            <p class="text-sm text-muted-foreground">
+                A pre-filled message for a single claim. Panel Officers copy it
+                from the claim page and send it to the Panel themselves; nothing
+                is sent from KPOne. Plain text only.
+            </p>
+            <form class="mt-3 grid gap-3" @submit.prevent="saveMessage">
+                <textarea
+                    ref="messageBox"
+                    v-model="messageForm.body"
+                    rows="8"
+                    :maxlength="claimMessage.maxLength"
+                    class="w-full rounded-md border bg-background p-3 text-sm"
+                    placeholder="Type the message, then insert smart fields below"
+                    aria-label="Claim message"
+                />
+                <div class="flex justify-between text-xs text-muted-foreground">
+                    <span>These fields are filled in from the claim:</span>
+                    <span>
+                        Characters: {{ messageForm.body.length }} /
+                        {{ claimMessage.maxLength }}
+                    </span>
+                </div>
+                <div class="flex flex-wrap gap-2">
+                    <button
+                        v-for="field in claimMessage.fields"
+                        :key="field.key"
+                        type="button"
+                        class="rounded-full border px-3 py-1 text-xs hover:bg-muted"
+                        @click="insertField(field.key)"
+                    >
+                        {{ field.label }}
+                    </button>
+                </div>
+                <InputError :message="messageForm.errors.body" />
+                <InputError :message="messageForm.errors.lock_version" />
+                <div>
+                    <Button type="submit" :disabled="messageForm.processing">
+                        Save message
+                    </Button>
+                </div>
+            </form>
         </section>
 
         <section class="rounded-xl border bg-card p-4">

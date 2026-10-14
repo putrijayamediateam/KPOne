@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Domain\Visit\Billing\Services\PanelClaimMessageService;
 use App\Domain\Visit\Models\Panel;
 use App\Domain\Visit\Services\PanelSettingsService;
 use App\Models\User;
@@ -62,6 +63,17 @@ class PanelSettingsController extends Controller
         }
 
         return to_route('panel-settings.index')->with('success', $updated->is_active ? 'Panel restored.' : 'Panel archived.');
+    }
+
+    public function claimMessage(Request $request, PanelClaimMessageService $messages): RedirectResponse
+    {
+        try {
+            $messages->save($this->actor($request), $request->input('body'), $request->input('lock_version'));
+        } catch (ValidationException $e) {
+            throw $e->redirectTo(route('panel-settings.index'));
+        }
+
+        return to_route('panel-settings.index')->with('success', 'Claim message saved.');
     }
 
     private function actor(Request $request): User
