@@ -27,6 +27,9 @@ class PanelInvoicesController extends Controller
 
         return response()->streamDownload(function () use ($table): void {
             $out = fopen('php://output', 'w');
+            if ($out === false) {
+                return;
+            }
             fwrite($out, "\xEF\xBB\xBF");
             foreach ($table as $row) {
                 fputcsv($out, array_map(static fn (string $cell): string => PanelInvoiceReportService::safeCell($cell), $row), ',', '"', '\\');
