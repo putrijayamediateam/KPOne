@@ -27,6 +27,7 @@ use App\Http\Controllers\InventoryOperationsController;
 use App\Http\Controllers\InventoryReferenceController;
 use App\Http\Controllers\MedicineCatalogueController;
 use App\Http\Controllers\PanelClaimsController;
+use App\Http\Controllers\PanelInvoicesController;
 use App\Http\Controllers\PanelSettingsController;
 use App\Http\Controllers\PatientController;
 use App\Http\Controllers\PatientIdentifierController;
@@ -99,6 +100,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->middleware(['permission:insights.view.organisation', 'sensitive.no-store'])
         ->name('insights.report');
 
+    Route::middleware(['permission:panel.invoices.export.branch', 'sensitive.no-store'])->group(function () {
+        Route::get('panel-invoices', [PanelInvoicesController::class, 'index'])->name('panel-invoices.index');
+        Route::get('panel-invoices/download', [PanelInvoicesController::class, 'download'])->middleware('throttle:10,1')->name('panel-invoices.download');
+    });
     Route::get('panel-responsibility', [BillingWorkController::class, 'panel'])->middleware('sensitive.no-store')->name('clinic.panel-responsibility');
     Route::middleware(['permission:panel.claims.manage.branch', 'sensitive.no-store'])->group(function () {
         Route::get('panel-claims', [PanelClaimsController::class, 'index'])->name('panel-claims.index');
