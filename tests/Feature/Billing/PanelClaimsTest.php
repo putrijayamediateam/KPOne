@@ -12,6 +12,7 @@ use App\Domain\Organisation\Models\Branch;
 use App\Domain\Visit\Billing\Models\CoverageAllocation;
 use App\Domain\Visit\Billing\Models\Invoice;
 use App\Domain\Visit\Billing\Models\PanelClaim;
+use App\Domain\Visit\Billing\Services\PanelInvoiceReportService;
 use App\Domain\Visit\Billing\Services\ResponsibilityService;
 use App\Domain\Visit\Models\Panel;
 use App\Domain\Visit\Models\Visit;
@@ -743,6 +744,74 @@ class PanelClaimsTest extends BillingTestCase
                     && ! str_contains($message, '{patient_nric}')
                     && ! str_contains($message, '(not available)');
             }));
+    }
+
+    public function test_panel_invoices_page_lists_a_panels_invoices_and_downloads_a_safe_audited_csv(): void
+    {
+        [$panelOfficer, $visit, $invoice, $allocation] = $this->approvedPanelFixture();
+        $this->selectBranch($panelOfficer, $this->branch);
+
+        // Nothing is shown until a Panel is chosen.
+        $this->get(route('panel-invoices.index'))->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->component('PanelInvoices/Index')->where('ready', false)->where('rows', [])->where('can.clinicalFilters', true));
+
+        $params = ['panel' => $allocation->panel_name_snapshot];
+        $this->get(route('panel-invoices.index', $params))->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('ready', true)->where('total', 1)
+            ->where('rows.0.invoiceNumber', $invoice->invoice_number)
+            ->where('rows.0.panelAmountSen', 3000)->where('rows.0.invoiceTotalSen', $invoice->total_sen)
+            ->where('rows.0.claimStatus', 'No claim')->where('rows.0.memberReference', 'SYNTHETIC-TEST-REF')
+            ->missing('rows.0.diagnosis'));
+
+        foreach ([['visit_type' => 'otc'], ['doctor' => 'zzz-nobody'], ['from' => '2001-01-01', 'to' => '2001-12-31'], ['time_from' => '23:59', 'time_to' => '23:59']] as $extra) {
+            $this->get(route('panel-invoices.index', $params + $extra))->assertInertia(fn (Assert $page) => $page->where('total', 0));
+        }
+        $this->get(route('panel-invoices.index', ['panel' => 'Some Other Panel']))->assertInertia(fn (Assert $page) => $page->where('total', 0));
+
+        $response = $this->get(route('panel-invoices.download', $params))->assertOk();
+        $csv = $response->streamedContent();
+        $this->assertStringStartsWith("\xEF\xBB\xBF\"Invoice number\",\"Visit number\"", $csv);
+        $this->assertStringContainsString($invoice->invoice_number, $csv);
+        $this->assertStringContainsString('30.00', $csv);
+        $this->assertStringContainsString('text/csv', (string) $response->headers->get('Content-Type'));
+        $audit = (string) DB::table('audit_logs')->where('event', 'panel_invoices.exported')->value('metadata');
+        $this->assertStringContainsString('"row_count":1', $audit);
+        $this->assertStringNotContainsString($invoice->invoice_number, $audit);
+
+        $this->get(route('panel-invoices.download', []))->assertRedirect();
+        $this->assertSame(1, DB::table('audit_logs')->where('event', 'panel_invoices.exported')->count());
+    }
+
+    public function test_panel_invoices_are_limited_to_panel_officer_finance_officer_and_director_and_the_active_branch(): void
+    {
+        $holders = Role::query()->whereHas('permissions', fn ($q) => $q->where('name', 'panel.invoices.export.branch'))->pluck('name')->sort()->values()->all();
+        $this->assertSame(['director', 'finance_officer', 'panel_officer'], $holders);
+
+        foreach (['finance_officer', 'director'] as $role) {
+            $actor = $this->actor($role);
+            $this->selectBranch($actor, $this->branch);
+            $this->get(route('panel-invoices.index'))->assertOk();
+        }
+        foreach (['ca', 'ca_supervisor', 'resident_doctor', 'technical_admin'] as $role) {
+            $actor = $this->actor($role);
+            $this->selectBranch($actor, $this->branch);
+            $this->get(route('panel-invoices.index'))->assertForbidden();
+            $this->get(route('panel-invoices.download', ['panel' => 'X']))->assertForbidden();
+        }
+
+        $finance = $this->actor('finance_officer');
+        $this->selectBranch($finance, $this->branch);
+        $this->get(route('panel-invoices.index'))->assertInertia(fn (Assert $page) => $page->where('can.clinicalFilters', false));
+    }
+
+    public function test_csv_cells_that_look_like_formulas_are_neutralised(): void
+    {
+        $this->assertSame("'=SUM(A1)", PanelInvoiceReportService::safeCell('=SUM(A1)'));
+        $this->assertSame("'+60123", PanelInvoiceReportService::safeCell('+60123'));
+        $this->assertSame("'-1", PanelInvoiceReportService::safeCell('-1'));
+        $this->assertSame("'@cmd", PanelInvoiceReportService::safeCell('@cmd'));
+        $this->assertSame('Normal Name', PanelInvoiceReportService::safeCell('Normal Name'));
+        $this->assertSame('', PanelInvoiceReportService::safeCell(''));
     }
 
     private function approvedPanelFixture(): array

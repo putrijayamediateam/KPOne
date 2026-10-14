@@ -275,7 +275,7 @@ final class PanelClaimDirectoryService
         return $query;
     }
 
-    private function likeTerm(string $value): string
+    public function likeTerm(string $value): string
     {
         return '%'.mb_strtolower($this->escapeLike($value)).'%';
     }
@@ -288,7 +288,7 @@ final class PanelClaimDirectoryService
      * @param  Builder  $subject  a query whose visit id column is $visitIdColumn
      * @param  array<string, mixed>  $filters
      */
-    private function applyClinicalFilters(Builder $subject, string $visitIdColumn, User $actor, Branch $branch, array $filters): void
+    public function applyClinicalFilters(Builder $subject, string $visitIdColumn, User $actor, Branch $branch, array $filters): void
     {
         if (! $actor->can('panel.claims.clinical_filters.branch')) {
             return;

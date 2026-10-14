@@ -12,6 +12,7 @@ export type WorkspaceNavigationCapabilities = {
     patientRecords: boolean;
     panelWork: boolean;
     panelClaims: boolean;
+    panelInvoices: boolean;
     financeWork: boolean;
     staff: boolean;
     branches: boolean;
@@ -137,6 +138,14 @@ const destinations: Record<
         href: '/panel-claims',
         icon: 'file',
     },
+    panelInvoices: {
+        key: 'panelInvoices',
+        label: 'Panel Invoices',
+        description:
+            'Filter invoices billed to a Panel and download them as a CSV file.',
+        href: '/panel-invoices',
+        icon: 'file',
+    },
     financeWork: {
         key: 'financeWork',
         label: 'Finance / Billing',
@@ -241,6 +250,7 @@ export const mainMenuGroups = (
             destinations: available(capabilities, [
                 'panelClaims',
                 'panelWork',
+                'panelInvoices',
                 'panelSettings',
             ]),
         },
