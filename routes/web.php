@@ -404,6 +404,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
         Route::middleware(['permission:panels.manage.organisation', 'sensitive.no-store'])->prefix('checkout-settings')->group(function () {
             Route::get('/', [PanelSettingsController::class, 'index'])->name('panel-settings.index');
+            Route::patch('claim-message', [PanelSettingsController::class, 'claimMessage'])->middleware('throttle:30,1')->name('panel-settings.claim-message');
             Route::get('panels/create', [PanelSettingsController::class, 'create'])->name('panel-settings.create');
             Route::post('panels', [PanelSettingsController::class, 'store'])->middleware('throttle:30,1')->name('panel-settings.store');
             Route::get('panels/{panel}/edit', [PanelSettingsController::class, 'edit'])->whereNumber('panel')->name('panel-settings.edit');

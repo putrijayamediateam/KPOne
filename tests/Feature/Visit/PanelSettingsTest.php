@@ -101,6 +101,35 @@ class PanelSettingsTest extends VisitTestCase
         $this->assertValidationFails(fn () => $service->update($officer, $back, $this->payload(['lock_version' => 2, 'claim_due_rule' => 'monthly', 'claim_due_time' => '10:00'])), 'claim_due_offset');
     }
 
+    public function test_claim_message_template_is_saved_versioned_validated_and_audited_without_its_text(): void
+    {
+        $officer = $this->actor('panel_officer');
+        $this->selectBranch($officer);
+
+        $this->get(route('panel-settings.index'))->assertInertia(fn (Assert $page) => $page
+            ->where('claimMessage.body', '')->where('claimMessage.lockVersion', 0)->has('claimMessage.fields', 9));
+
+        $this->patch(route('panel-settings.claim-message'), ['body' => "Hi {panel_name},\r\nclaim {claim_number} {claimed_amount}", 'lock_version' => 0])
+            ->assertRedirect(route('panel-settings.index'));
+        $row = \DB::table('panel_claim_message_templates')->sole();
+        $this->assertSame("Hi {panel_name},\nclaim {claim_number} {claimed_amount}", $row->body);
+        $this->assertSame(1, $row->lock_version);
+        $audit = (string) \DB::table('audit_logs')->where('event', 'panel_claim_message_template.updated')->value('metadata');
+        $this->assertStringContainsString('claim_number', $audit);
+        $this->assertStringNotContainsString('Hi ', $audit);
+
+        $this->patch(route('panel-settings.claim-message'), ['body' => 'Stale {panel_name}', 'lock_version' => 0])->assertSessionHasErrors('body');
+        $this->patch(route('panel-settings.claim-message'), ['body' => 'Typo {patient_nrics}', 'lock_version' => 1])->assertSessionHasErrors('body');
+        $this->patch(route('panel-settings.claim-message'), ['body' => str_repeat('a', 2001), 'lock_version' => 1])->assertSessionHasErrors('body');
+        $this->assertSame(1, \DB::table('panel_claim_message_templates')->value('lock_version'));
+
+        $this->patch(route('panel-settings.claim-message'), ['body' => '', 'lock_version' => 1])->assertRedirect(route('panel-settings.index'));
+        $this->assertSame(2, \DB::table('panel_claim_message_templates')->value('lock_version'));
+
+        $this->selectBranch($this->actor('ca'));
+        $this->patch(route('panel-settings.claim-message'), ['body' => 'x', 'lock_version' => 2])->assertForbidden();
+    }
+
     public function test_manual_remark_mode_stores_no_link_and_another_organisations_panel_is_not_reachable(): void
     {
         $officer = $this->actor('panel_officer');

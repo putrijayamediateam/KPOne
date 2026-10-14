@@ -718,6 +718,33 @@ class PanelClaimsTest extends BillingTestCase
     }
 
     /** @return array{mixed, Visit, Invoice, CoverageAllocation} */
+    public function test_claim_page_offers_a_copy_ready_message_filled_from_the_template(): void
+    {
+        [$panelOfficer, $visit, , $allocation] = $this->approvedPanelFixture();
+        $this->selectBranch($panelOfficer, $this->branch);
+        $this->post(route('panel-claims.prepare', $allocation), ['expected_branch_id' => $visit->branch_id])->assertRedirect();
+        $claim = PanelClaim::query()->sole();
+
+        $this->get(route('panel-claims.show', $claim))->assertOk()->assertInertia(fn (Assert $page) => $page->where('claim.message', null));
+
+        DB::table('panel_claim_message_templates')->insert([
+            'organisation_id' => $claim->organisation_id, 'kind' => 'single', 'lock_version' => 1, 'created_at' => now(), 'updated_at' => now(),
+            'body' => "Dear {panel_name}\nClaim {claim_number} for {patient_name} ({patient_nric}), {staff_id}, {claimed_amount}, {submission_date}\n{claim_link} {clinic_name} {not_a_field}",
+        ]);
+        $this->get(route('panel-claims.show', $claim))->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('claim.message', function ($message) use ($claim): bool {
+                return str_contains($message, 'Dear '.$claim->panel_name_snapshot)
+                    && str_contains($message, 'Claim '.$claim->id.' for '.$claim->patient_name_snapshot)
+                    && str_contains($message, 'RM 30.00')
+                    && str_contains($message, route('panel-claims.show', $claim))
+                    && str_contains($message, $claim->branch_name_snapshot)
+                    && str_contains($message, 'not yet submitted')
+                    && str_contains($message, '{not_a_field}')
+                    && ! str_contains($message, '{patient_nric}')
+                    && ! str_contains($message, '(not available)');
+            }));
+    }
+
     private function approvedPanelFixture(): array
     {
         [, $ca, $visit, $invoice] = $this->finalizedFixture();
