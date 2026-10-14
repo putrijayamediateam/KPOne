@@ -33,6 +33,7 @@ declare module '@inertiajs/core' {
                     paymentMethods: boolean;
                     panelSettings: boolean;
                     catalogueSettings: boolean;
+                    consultationSettings: boolean;
                     billingApprovalLimits: boolean;
                     paymentReconciliations: boolean;
                     patientRecords: boolean;
