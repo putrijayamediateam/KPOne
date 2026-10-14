@@ -44,7 +44,7 @@ final class SupplierAdministrationService
             $locked = InventorySupplier::query()->whereKey($supplier->id)->where('organisation_id', $lockedActor->organisation_id)->lockForUpdate()->firstOrFail();
             $changed = array_filter($values, fn (mixed $value, string $key): bool => $locked->getAttribute($key) !== $value, ARRAY_FILTER_USE_BOTH);
             if ($changed !== []) {
-                $locked->forceFill($changed)->save();
+                $locked->forceFill([...$changed, 'lock_version' => $locked->lock_version + 1])->save();
                 $this->audit->record('inventory.supplier.updated', $locked, ['changed_fields' => array_keys($changed)], $lockedActor);
             }
 
@@ -58,7 +58,7 @@ final class SupplierAdministrationService
             $lockedActor = $this->authority->lockForOrganisation($actor, self::PERMISSION);
             $locked = InventorySupplier::query()->whereKey($supplier->id)->where('organisation_id', $lockedActor->organisation_id)->lockForUpdate()->firstOrFail();
             if ($locked->is_active !== $active) {
-                $locked->forceFill(['is_active' => $active])->save();
+                $locked->forceFill(['is_active' => $active, 'lock_version' => $locked->lock_version + 1])->save();
                 $this->audit->record($active ? 'inventory.supplier.activated' : 'inventory.supplier.deactivated', $locked, ['is_active' => $active], $lockedActor);
             }
 

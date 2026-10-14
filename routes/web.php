@@ -47,6 +47,7 @@ use App\Http\Controllers\StaffBranchAssignmentController;
 use App\Http\Controllers\StaffController;
 use App\Http\Controllers\StaffRoleController;
 use App\Http\Controllers\StaffStatusController;
+use App\Http\Controllers\SupplierSettingsController;
 use App\Http\Controllers\TreatmentPlanCatalogueController;
 use App\Http\Controllers\TreatmentPlanController;
 use App\Http\Controllers\VisitController;
@@ -104,6 +105,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('panel-invoices', [PanelInvoicesController::class, 'index'])->name('panel-invoices.index');
         Route::get('panel-invoices/download', [PanelInvoicesController::class, 'download'])->middleware('throttle:10,1')->name('panel-invoices.download');
     });
+    Route::middleware(['permission:catalogue.settings.manage.organisation', 'sensitive.no-store'])->group(function () {
+        Route::get('inventory-services-settings/suppliers', [SupplierSettingsController::class, 'index'])->name('supplier-settings.index');
+        Route::post('inventory-services-settings/suppliers', [SupplierSettingsController::class, 'store'])->middleware('throttle:30,1')->name('supplier-settings.store');
+        Route::patch('inventory-services-settings/suppliers/{supplier}/active', [SupplierSettingsController::class, 'active'])->middleware('throttle:20,1')->name('supplier-settings.active');
+    });
+
     Route::get('panel-responsibility', [BillingWorkController::class, 'panel'])->middleware('sensitive.no-store')->name('clinic.panel-responsibility');
     Route::middleware(['permission:panel.claims.manage.branch', 'sensitive.no-store'])->group(function () {
         Route::get('panel-claims', [PanelClaimsController::class, 'index'])->name('panel-claims.index');

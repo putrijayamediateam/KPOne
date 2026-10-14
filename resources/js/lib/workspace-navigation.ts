@@ -7,6 +7,7 @@ export type WorkspaceNavigationCapabilities = {
     clinicalServiceCatalogue: boolean;
     paymentMethods: boolean;
     panelSettings: boolean;
+    catalogueSettings: boolean;
     billingApprovalLimits: boolean;
     paymentReconciliations: boolean;
     patientRecords: boolean;
@@ -99,6 +100,13 @@ const destinations: Record<
             'Manage Panels: contact, verification link and claim due rule.',
         href: '/checkout-settings',
         icon: 'file',
+    },
+    catalogueSettings: {
+        key: 'catalogueSettings',
+        label: 'Inventory and services settings',
+        description: 'Manage shared catalogue settings and supplier contacts.',
+        href: '/inventory-services-settings/suppliers',
+        icon: 'clipboard',
     },
     billingApprovalLimits: {
         key: 'billingApprovalLimits',
@@ -239,6 +247,7 @@ export const mainMenuGroups = (
             destinations: available(capabilities, [
                 'medicineCatalogue',
                 'clinicalServiceCatalogue',
+                'catalogueSettings',
             ]),
         },
         {
