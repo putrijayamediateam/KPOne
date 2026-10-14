@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { router, useForm } from '@inertiajs/vue3';
-import { AlertTriangle, Check, Plus, ShieldCheck } from '@lucide/vue';
+import { AlertTriangle, Check, Plus } from '@lucide/vue';
 import { computed, ref } from 'vue';
 import ClinicalSafetyConfirmDialog from '@/components/clinical/ClinicalSafetyConfirmDialog.vue';
 import { Button } from '@/components/ui/button';
@@ -209,21 +209,10 @@ const saveProblem = () => {
 <template>
     <section
         id="clinical-safety"
-        class="space-y-3 rounded-lg border bg-background p-3 md:p-4"
+        aria-label="Allergies & Conditions"
+        class="space-y-3"
+        title="Longitudinal clinical safety information for the current Patient."
     >
-        <div class="flex flex-wrap items-start justify-between gap-2">
-            <div>
-                <h2 class="flex items-center gap-2 font-semibold">
-                    <ShieldCheck class="size-4 text-slate-700" /> Allergies &
-                    Conditions
-                </h2>
-                <p class="text-xs text-muted-foreground">
-                    Longitudinal clinical safety information for the current
-                    Patient.
-                </p>
-            </div>
-        </div>
-
         <p
             v-if="actionError"
             role="alert"
@@ -232,54 +221,24 @@ const saveProblem = () => {
             {{ actionError }}
         </p>
 
-        <div class="grid gap-3 lg:grid-cols-2 lg:items-start">
+        <div
+            class="grid sm:grid-cols-[minmax(0,11fr)_minmax(0,9fr)] sm:items-stretch"
+        >
             <section
                 v-if="allergies"
-                class="space-y-3 rounded-md border bg-white p-3 dark:bg-background"
+                class="min-w-0 space-y-2 p-4 sm:border-l"
                 aria-labelledby="allergies-heading"
             >
-                <div class="space-y-2 border-b pb-3">
+                <div class="space-y-1">
                     <div
-                        class="flex flex-wrap items-start justify-between gap-2"
+                        class="flex min-h-7 flex-wrap items-start justify-between gap-1"
                     >
-                        <div class="min-w-0">
-                            <h3
-                                id="allergies-heading"
-                                class="text-sm font-semibold"
-                            >
-                                Allergies
-                            </h3>
-                            <p
-                                v-if="allergies.status === 'unknown'"
-                                class="text-sm font-medium text-amber-900 dark:text-amber-300"
-                            >
-                                Allergy status not yet reviewed
-                            </p>
-                            <p
-                                v-else-if="
-                                    allergies.status === 'no_known_allergies'
-                                "
-                                class="text-sm font-medium"
-                            >
-                                No known allergies
-                                <span
-                                    v-if="allergies.reviewedAt"
-                                    class="font-normal text-muted-foreground"
-                                >
-                                    · Recorded
-                                    {{
-                                        formatDateTime(
-                                            allergies.reviewedAt,
-                                            timeZone,
-                                        )
-                                    }}
-                                </span>
-                            </p>
-                            <p v-else class="text-sm font-medium">
-                                Allergies recorded ·
-                                {{ allergies.records.length }} active
-                            </p>
-                        </div>
+                        <h3
+                            id="allergies-heading"
+                            class="text-sm font-semibold"
+                        >
+                            Allergies
+                        </h3>
                         <div
                             class="inline-flex shrink-0 items-center gap-1 rounded-md border px-2 py-1 text-xs font-medium"
                             :class="
@@ -297,6 +256,34 @@ const saveProblem = () => {
                         </div>
                     </div>
 
+                    <p
+                        v-if="allergies.status === 'unknown'"
+                        class="text-sm font-medium text-amber-900 dark:text-amber-300"
+                    >
+                        Allergy status not yet reviewed
+                    </p>
+                    <p
+                        v-else-if="allergies.status === 'no_known_allergies'"
+                        class="text-sm font-medium"
+                        :title="
+                            allergies.reviewedAt
+                                ? `Recorded ${formatDateTime(allergies.reviewedAt, timeZone)}`
+                                : undefined
+                        "
+                    >
+                        No known allergies
+                        <span v-if="allergies.reviewedAt" class="sr-only"
+                            >· Recorded
+                            {{
+                                formatDateTime(allergies.reviewedAt, timeZone)
+                            }}</span
+                        >
+                    </p>
+                    <p v-else class="text-sm font-medium">
+                        Allergies recorded ·
+                        {{ allergies.records.length }} active
+                    </p>
+
                     <div class="flex flex-wrap items-center gap-2">
                         <Button
                             v-if="
@@ -305,6 +292,7 @@ const saveProblem = () => {
                                 !reviewCurrent
                             "
                             size="sm"
+                            variant="outline"
                             type="button"
                             :disabled="allergyBusy"
                             @click="reviewAllergies"
@@ -318,7 +306,7 @@ const saveProblem = () => {
                             type="button"
                             @click="showAllergyForm = true"
                         >
-                            <Plus class="size-3.5" /> Record allergy
+                            Record allergy
                         </Button>
                         <Button
                             v-if="
@@ -326,7 +314,7 @@ const saveProblem = () => {
                                 allergies.status !== 'has_allergies'
                             "
                             size="sm"
-                            variant="ghost"
+                            variant="outline"
                             type="button"
                             :disabled="allergyBusy"
                             @click="requestConfirmation('declare-no-known')"
@@ -336,7 +324,10 @@ const saveProblem = () => {
                     </div>
                 </div>
 
-                <div v-if="allergies.records.length" class="divide-y">
+                <details v-if="allergies.records.length" class="divide-y">
+                    <summary class="cursor-pointer text-xs">
+                        Allergy details
+                    </summary>
                     <div
                         v-for="record in allergies.records"
                         :key="record.publicId"
@@ -383,7 +374,7 @@ const saveProblem = () => {
                             </Button>
                         </div>
                     </div>
-                </div>
+                </details>
                 <p
                     v-else-if="allergies.status !== 'no_known_allergies'"
                     class="text-xs text-muted-foreground"
@@ -470,34 +461,42 @@ const saveProblem = () => {
 
             <section
                 v-if="problems"
-                class="space-y-3 rounded-md border bg-white p-3 dark:bg-background"
+                class="min-w-0 space-y-2 border-t p-4 sm:order-first sm:border-t-0"
                 aria-labelledby="problems-heading"
             >
                 <div
-                    class="flex flex-wrap items-start justify-between gap-2 border-b pb-3"
+                    class="space-y-1"
+                    data-testid="underlying-conditions-summary"
                 >
-                    <div>
+                    <div class="flex min-h-7 items-start">
                         <h3 id="problems-heading" class="text-sm font-semibold">
-                            Problem List
+                            Underlying conditions
                         </h3>
-                        <p class="text-xs text-muted-foreground">
-                            {{ problems.active.length }} active ·
-                            {{ problems.resolved.length }} resolved · No
-                            automated medicine checks
-                        </p>
                     </div>
-                    <Button
-                        v-if="problems.canUpdate"
-                        size="sm"
-                        variant="outline"
-                        type="button"
-                        @click="showProblemForm = true"
+                    <p
+                        class="text-xs leading-[18.75px] text-muted-foreground"
+                        title="No automated medicine checks. No active structured conditions recorded does not imply that no medical conditions exist."
                     >
-                        <Plus class="size-3.5" /> Add problem
-                    </Button>
+                        {{ problems.active.length }} active ·
+                        {{ problems.resolved.length }} resolved
+                    </p>
+                    <div class="flex min-h-[30px] items-center">
+                        <Button
+                            v-if="problems.canUpdate"
+                            size="sm"
+                            variant="outline"
+                            type="button"
+                            @click="showProblemForm = true"
+                        >
+                            <Plus class="size-3.5" /> Add problem
+                        </Button>
+                    </div>
                 </div>
 
-                <div v-if="problems.active.length" class="divide-y">
+                <details v-if="problems.active.length" class="divide-y">
+                    <summary class="cursor-pointer text-xs">
+                        Condition details
+                    </summary>
                     <div
                         v-for="record in problems.active"
                         :key="record.publicId"
@@ -559,12 +558,7 @@ const saveProblem = () => {
                             </Button>
                         </div>
                     </div>
-                </div>
-
-                <p v-else class="text-xs text-muted-foreground">
-                    No active structured conditions recorded. This does not
-                    imply that no medical conditions exist.
-                </p>
+                </details>
 
                 <details
                     v-if="problems.resolved.length"

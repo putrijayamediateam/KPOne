@@ -8,6 +8,7 @@ use App\Domain\Clinical\Services\CompleteConsultationService;
 use App\Domain\Clinical\Services\ConsultationHoldService;
 use App\Domain\Queue\Models\QueueEntry;
 use App\Domain\Queue\Services\QueueEntryService;
+use App\Domain\Visit\Models\Panel;
 use Illuminate\Support\Str;
 use Inertia\Testing\AssertableInertia as Assert;
 use Spatie\Permission\Models\Permission;
@@ -46,6 +47,32 @@ class ClinicalEncounterDirectoryTest extends ClinicalTestCase
                 ->missing('clinical.visit.coverageMemberReference')
                 ->missing('clinical.queue.id')
                 ->missing('clinical.encounter.id'));
+    }
+
+    public function test_payment_badge_uses_the_visit_snapshot_without_member_or_financial_data(): void
+    {
+        [$doctor, , $visit, $queue] = $this->servingFixture();
+        $this->startEncounter($doctor, $visit, $queue);
+        $this->selectBranch($doctor);
+        $this->get(route('encounters.show', $visit))->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('clinical.visit.isPanel', false)
+                ->where('clinical.visit.paymentMethodLabel', 'Self-pay'));
+
+        // Controlled synthetic fixture; the label is the registered snapshot, not a live Panel lookup.
+        $panel = Panel::factory()->create(['organisation_id' => $visit->organisation_id, 'name' => 'Synthetic Renamed Panel']);
+        $visit->forceFill([
+            'panel_id' => $panel->id,
+            'coverage_type' => 'panel',
+            'coverage_panel_name_snapshot' => 'Synthetic Registered Panel',
+        ])->save();
+        $this->get(route('encounters.show', $visit))->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('clinical.visit.isPanel', true)
+                ->where('clinical.visit.paymentMethodLabel', 'Synthetic Registered Panel')
+                ->missing('clinical.visit.coverageMemberReference')
+                ->missing('clinical.visit.panelId')
+                ->missing('clinical.visit.invoice'));
     }
 
     public function test_hold_and_resume_are_not_offered_once_the_consultation_reaches_awaiting_billing(): void

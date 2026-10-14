@@ -105,6 +105,19 @@ type ServiceSearch = {
 };
 
 const customChoice = '__custom';
+// Presentation state is separate from the persisted treatment draft.
+const expandedOrders = ref<Record<string, boolean>>({});
+const orderKey = (item: {
+    public_id: string | null;
+    catalogue_public_id: string | null;
+}) => item.public_id ?? item.catalogue_public_id ?? '';
+const toggleOrder = (item: {
+    public_id: string | null;
+    catalogue_public_id: string | null;
+}) => {
+    const key = orderKey(item);
+    expandedOrders.value[key] = !expandedOrders.value[key];
+};
 const dosageUnits = ['tablet', 'capsule', 'mL', 'drop', 'puff', 'sachet'];
 const frequencyPresets = [
     'Once daily',
@@ -634,474 +647,583 @@ defineExpose({
 </script>
 
 <template>
-    <section class="space-y-3 rounded-lg border bg-background p-3.5">
-        <div class="flex flex-wrap items-start justify-between gap-3">
-            <div>
-                <h2 class="font-semibold">Treatment Plan</h2>
-                <p class="text-xs text-muted-foreground">
-                    Clinical orders only. Dispensary fulfilment follows Complete
-                    Consultation. Billing is outside this workspace.
-                </p>
+    <section
+        class="flex min-w-0 flex-col rounded-lg border bg-card lg:min-h-[calc(100dvh-12rem)]"
+        data-testid="consultation-treatment-plan"
+    >
+        <div
+            class="max-h-[calc(100dvh-15rem)] min-h-0 flex-1 space-y-4 overflow-y-auto p-4"
+        >
+            <div class="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                    <h2
+                        class="font-semibold"
+                        title="Clinical orders only. Dispensary fulfilment follows Complete Consultation. Billing is outside this workspace."
+                    >
+                        Treatment Plan
+                    </h2>
+                </div>
+                <span class="rounded border px-2 py-1 text-xs">{{
+                    plan.status === 'ready_for_dispensing'
+                        ? 'Sent to Dispensary'
+                        : 'In progress'
+                }}</span>
             </div>
-            <span class="rounded border px-2 py-1 text-xs">{{
-                plan.status === 'ready_for_dispensing'
-                    ? 'Sent to Dispensary'
-                    : 'In progress'
-            }}</span>
-        </div>
 
-        <div
-            v-if="recordDrifted"
-            role="alert"
-            class="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-950"
-        >
-            <span class="flex items-start gap-2">
-                <AlertTriangle class="mt-0.5 size-4 shrink-0" />
-                This Treatment Plan has changed elsewhere. Reload to see the
-                latest version - your draft has not been saved.
-            </span>
-            <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                @click="adoptLatestRecord"
+            <div
+                v-if="recordDrifted"
+                role="alert"
+                class="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-950"
             >
-                Reload
-            </Button>
-        </div>
-
-        <div
-            v-if="!allergyReady"
-            role="status"
-            class="rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-950"
-        >
-            New or changed medicine instructions require a current Allergy
-            Profile review for this consultation. Reordering or withdrawing an
-            existing medicine remains available.
-            <a href="#clinical-safety" class="font-medium underline"
-                >Review allergies</a
-            >
-        </div>
-
-        <div class="space-y-2.5">
-            <div class="flex flex-wrap items-end gap-2">
-                <label class="min-w-64 flex-1 text-sm">
-                    Find medicine
-                    <input
-                        v-model="medicineQuery"
-                        class="mt-1 h-9 w-full rounded-md border border-input bg-card px-3 outline-none hover:border-foreground/25 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/40"
-                        autocomplete="off"
-                        @keyup.enter.prevent="search('medicines')"
-                    />
-                </label>
+                <span class="flex items-start gap-2">
+                    <AlertTriangle class="mt-0.5 size-4 shrink-0" />
+                    This Treatment Plan has changed elsewhere. Reload to see the
+                    latest version - your draft has not been saved.
+                </span>
                 <Button
                     type="button"
                     size="sm"
                     variant="outline"
-                    :disabled="searchingMedicine || !allergyReady"
-                    @click="search('medicines')"
+                    @click="adoptLatestRecord"
                 >
-                    <LoaderCircle
-                        v-if="searchingMedicine"
-                        class="size-4 animate-spin"
-                    /><Search v-else class="size-4" /> Search
+                    Reload
                 </Button>
             </div>
+
             <div
-                v-if="medicineResults.length"
-                class="divide-y rounded-md border"
+                v-if="!allergyReady"
+                role="status"
+                class="rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-950"
             >
-                <button
-                    v-for="item in medicineResults"
-                    :key="item.publicId"
-                    type="button"
-                    class="flex w-full items-center justify-between gap-3 px-3 py-2 text-left text-sm hover:bg-muted"
-                    @click="addMedicine(item)"
+                New or changed medicine instructions require a current Allergy
+                Profile review for this consultation. Reordering or withdrawing
+                an existing medicine remains available.
+                <a href="#clinical-safety" class="font-medium underline"
+                    >Review allergies</a
                 >
-                    <span
-                        ><strong>{{ item.displayName }}</strong
-                        ><span class="ml-2 text-xs text-muted-foreground"
-                            >{{ item.code }} ·
-                            {{ item.strength ?? item.unit }}</span
-                        ></span
-                    ><Plus class="size-4" />
-                </button>
             </div>
-            <div
-                v-for="(item, index) in form.medicines"
-                :key="item.public_id ?? item.catalogue_public_id ?? index"
-                class="space-y-2 rounded-md border border-border/80 bg-background p-2.5"
-            >
-                <div class="flex items-center justify-between gap-3">
-                    <div class="min-w-0 text-sm font-medium">
-                        <span class="truncate">{{ item.display_name }}</span>
-                        <span class="ml-1 font-normal text-muted-foreground"
-                            >· {{ item.code
-                            }}<template v-if="item.strength">
-                                · {{ item.strength }}</template
-                            ></span
-                        >
-                    </div>
-                    <div class="flex shrink-0 items-center gap-0.5">
-                        <Button
-                            type="button"
-                            size="icon"
-                            variant="ghost"
-                            class="size-8"
-                            :disabled="index === 0"
-                            :aria-label="`Move ${item.display_name} up`"
-                            @click="moveRow(form.medicines, index, -1)"
-                            ><ArrowUp class="size-3.5"
-                        /></Button>
-                        <Button
-                            type="button"
-                            size="icon"
-                            variant="ghost"
-                            class="size-8"
-                            :disabled="index === form.medicines.length - 1"
-                            :aria-label="`Move ${item.display_name} down`"
-                            @click="moveRow(form.medicines, index, 1)"
-                            ><ArrowDown class="size-3.5"
-                        /></Button>
-                        <Button
-                            type="button"
-                            size="icon"
-                            variant="ghost"
-                            class="size-8 text-muted-foreground hover:text-destructive"
-                            :aria-label="`Withdraw ${item.display_name}`"
-                            @click="form.medicines.splice(index, 1)"
-                            ><Trash2 class="size-3.5"
-                        /></Button>
-                    </div>
+
+            <div class="space-y-2.5">
+                <div class="flex flex-wrap items-end gap-2">
+                    <label class="min-w-0 flex-1 text-sm">
+                        Find medicine
+                        <input
+                            v-model="medicineQuery"
+                            class="mt-1 h-9 w-full rounded-md border border-input bg-card px-3 outline-none hover:border-foreground/25 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/40"
+                            autocomplete="off"
+                            @keyup.enter.prevent="search('medicines')"
+                        />
+                    </label>
+                    <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        :disabled="searchingMedicine || !allergyReady"
+                        @click="search('medicines')"
+                    >
+                        <LoaderCircle
+                            v-if="searchingMedicine"
+                            class="size-4 animate-spin"
+                        /><Search v-else class="size-4" /> Search
+                    </Button>
                 </div>
                 <div
-                    class="grid gap-2 sm:grid-cols-2 lg:grid-cols-[120px_minmax(210px,1.2fr)_minmax(190px,1fr)_minmax(190px,1fr)]"
+                    v-if="medicineResults.length"
+                    class="divide-y rounded-md border"
                 >
-                    <label class="text-xs"
-                        >Quantity ({{ item.unit }})<input
-                            v-model="item.quantity_ordered"
-                            type="number"
-                            min="0.001"
-                            step="0.001"
-                            class="mt-1 h-9 w-full rounded-md border border-input bg-card px-3 text-sm outline-none hover:border-foreground/25 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/40"
-                    /></label>
-                    <fieldset class="text-xs">
-                        <legend>Dosage</legend>
-                        <div
-                            v-if="item.dosage_composer.mode === 'structured'"
-                            class="mt-1 grid grid-cols-[minmax(70px,1fr)_minmax(105px,1.3fr)] gap-1"
-                        >
-                            <input
-                                v-model="item.dosage_composer.amount"
-                                type="number"
-                                step="any"
-                                inputmode="decimal"
-                                aria-label="Dosage amount"
-                                class="h-9 min-w-0 rounded-md border border-input bg-card px-2 text-sm outline-none hover:border-foreground/25 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/40"
-                                @input="syncMedicine(item)"
-                            />
-                            <OperationalSelect
-                                v-model="item.dosage_composer.unit"
-                                label="Dosage unit"
-                                :options="dosageUnitOptions"
-                                @update:model-value="selectDosageUnit(item)"
-                            />
-                        </div>
-                        <div v-else class="mt-1 flex gap-1">
-                            <input
-                                v-model="item.dosage_composer.custom"
-                                maxlength="255"
-                                aria-label="Custom dosage"
-                                class="h-9 min-w-0 flex-1 rounded-md border border-input bg-card px-2 text-sm outline-none hover:border-foreground/25 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/40"
-                                @input="syncMedicine(item)"
-                            />
-                            <Button
-                                type="button"
-                                size="sm"
-                                variant="outline"
-                                class="h-9 px-2"
-                                @click="useStructuredDosage(item)"
-                                >Units</Button
-                            >
-                        </div>
-                    </fieldset>
-                    <div class="text-xs">
-                        <label :for="`medicine-frequency-${index}`"
-                            >Frequency</label
-                        ><OperationalSelect
-                            :id="`medicine-frequency-${index}`"
-                            v-model="item.frequency_choice"
-                            class="mt-1"
-                            label="Frequency"
-                            :options="frequencyOptions"
-                            @update:model-value="syncMedicine(item)"
-                        />
-                        <input
-                            v-if="item.frequency_choice === customChoice"
-                            v-model="item.frequency_custom"
-                            maxlength="255"
-                            aria-label="Custom frequency"
-                            class="mt-1 h-9 w-full rounded-md border border-input bg-card px-2 text-sm outline-none hover:border-foreground/25 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/40"
-                            @input="syncMedicine(item)"
-                        />
-                    </div>
-                    <fieldset class="text-xs">
-                        <legend>
-                            Duration
-                            <span class="text-muted-foreground"
-                                >(optional)</span
-                            >
-                        </legend>
-                        <div
-                            v-if="item.duration_composer.mode === 'structured'"
-                            class="mt-1 grid grid-cols-[minmax(70px,1fr)_minmax(105px,1.3fr)] gap-1"
-                        >
-                            <input
-                                v-model="item.duration_composer.amount"
-                                type="number"
-                                step="any"
-                                inputmode="decimal"
-                                aria-label="Duration amount"
-                                class="h-9 min-w-0 rounded-md border border-input bg-card px-2 text-sm outline-none hover:border-foreground/25 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/40"
-                                @input="syncMedicine(item)"
-                            />
-                            <OperationalSelect
-                                v-model="item.duration_composer.unit"
-                                label="Duration unit"
-                                :options="durationUnitOptions"
-                                @update:model-value="selectDurationUnit(item)"
-                            />
-                        </div>
-                        <div v-else class="mt-1 flex gap-1">
-                            <input
-                                v-model="item.duration_composer.custom"
-                                maxlength="255"
-                                aria-label="Custom duration"
-                                class="h-9 min-w-0 flex-1 rounded-md border border-input bg-card px-2 text-sm outline-none hover:border-foreground/25 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/40"
-                                @input="syncMedicine(item)"
-                            />
-                            <Button
-                                type="button"
-                                size="sm"
-                                variant="outline"
-                                class="h-9 px-2"
-                                @click="useStructuredDuration(item)"
-                                >Units</Button
-                            >
-                        </div>
-                    </fieldset>
-                </div>
-                <div class="grid gap-2 sm:grid-cols-2">
-                    <div class="text-xs">
-                        <label :for="`medicine-route-${index}`">Route</label>
-                        <span class="text-muted-foreground"> (optional)</span>
-                        <OperationalSelect
-                            :id="`medicine-route-${index}`"
-                            v-model="item.route_choice"
-                            class="mt-1"
-                            label="Route"
-                            :options="routeOptions"
-                            @update:model-value="syncMedicine(item)"
-                        />
-                        <input
-                            v-if="item.route_choice === customChoice"
-                            v-model="item.route_custom"
-                            maxlength="255"
-                            aria-label="Custom route"
-                            class="mt-1 h-9 w-full rounded-md border border-input bg-card px-2 text-sm outline-none hover:border-foreground/25 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/40"
-                            @input="syncMedicine(item)"
-                        />
-                    </div>
-                    <label class="text-xs"
-                        >Instruction
-                        <span class="text-muted-foreground">(optional)</span
-                        ><input
-                            v-model="item.administration_instruction"
-                            maxlength="2000"
-                            placeholder="e.g. After meals"
-                            class="mt-1 h-9 w-full rounded-md border border-input bg-card px-3 text-sm outline-none hover:border-foreground/25 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/40"
-                    /></label>
-                </div>
-                <details class="group text-xs text-muted-foreground">
-                    <summary
-                        class="flex w-fit cursor-pointer list-none items-center gap-1 rounded px-1 py-0.5 font-medium text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                    <button
+                        v-for="item in medicineResults"
+                        :key="item.publicId"
+                        type="button"
+                        class="flex w-full items-center justify-between gap-3 px-3 py-2 text-left text-sm hover:bg-muted"
+                        @click="addMedicine(item)"
                     >
-                        <ChevronDown
-                            class="size-3.5 transition-transform group-open:rotate-180"
-                        />
-                        More details
                         <span
-                            v-if="item.indication || item.precaution"
-                            class="text-muted-foreground"
-                            >· Added</span
-                        >
-                    </summary>
-                    <div class="mt-2 grid gap-2 md:grid-cols-2">
-                        <label
-                            >Indication<textarea
-                                v-model="item.indication"
-                                maxlength="2000"
-                                rows="2"
-                                class="mt-1 w-full rounded-md border border-input bg-card p-2 text-sm text-foreground outline-none hover:border-foreground/25 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/40"
-                            /></label
-                        ><label
-                            >Precaution / additional instruction<textarea
-                                v-model="item.precaution"
-                                maxlength="2000"
-                                rows="2"
-                                class="mt-1 w-full rounded-md border border-input bg-card p-2 text-sm text-foreground outline-none hover:border-foreground/25 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/40"
-                            />
-                        </label>
+                            ><strong>{{ item.displayName }}</strong
+                            ><span class="ml-2 text-xs text-muted-foreground"
+                                >{{ item.code }} ·
+                                {{ item.strength ?? item.unit }}</span
+                            ></span
+                        ><Plus class="size-4" />
+                    </button>
+                </div>
+                <div
+                    v-for="(item, index) in form.medicines"
+                    :key="item.public_id ?? item.catalogue_public_id ?? index"
+                    class="space-y-1 border-b border-border/60 py-2"
+                >
+                    <div
+                        class="flex flex-wrap items-center justify-between gap-1"
+                    >
+                        <div class="min-w-0 text-sm font-medium">
+                            <span class="break-words">{{
+                                item.display_name
+                            }}</span>
+                            <span class="ml-1 font-normal text-muted-foreground"
+                                >· {{ item.code
+                                }}<template v-if="item.strength">
+                                    · {{ item.strength }}</template
+                                ></span
+                            >
+                        </div>
+                        <div class="flex shrink-0 items-center gap-0.5">
+                            <Button
+                                type="button"
+                                size="sm"
+                                variant="outline"
+                                :aria-expanded="
+                                    !!expandedOrders[orderKey(item)]
+                                "
+                                @click="toggleOrder(item)"
+                                >Edit</Button
+                            >
+                            <Button
+                                type="button"
+                                size="icon"
+                                variant="ghost"
+                                class="size-8"
+                                :disabled="index === 0"
+                                :aria-label="`Move ${item.display_name} up`"
+                                @click="moveRow(form.medicines, index, -1)"
+                                ><ArrowUp class="size-3.5"
+                            /></Button>
+                            <Button
+                                type="button"
+                                size="icon"
+                                variant="ghost"
+                                class="size-8"
+                                :disabled="index === form.medicines.length - 1"
+                                :aria-label="`Move ${item.display_name} down`"
+                                @click="moveRow(form.medicines, index, 1)"
+                                ><ArrowDown class="size-3.5"
+                            /></Button>
+                            <Button
+                                type="button"
+                                size="icon"
+                                variant="ghost"
+                                class="size-8 text-muted-foreground hover:text-destructive"
+                                :aria-label="`Withdraw ${item.display_name}`"
+                                @click="form.medicines.splice(index, 1)"
+                                ><Trash2 class="size-3.5"
+                            /></Button>
+                        </div>
                     </div>
-                </details>
+                    <p
+                        class="truncate text-xs text-muted-foreground"
+                        :title="
+                            [
+                                item.dosage,
+                                item.frequency,
+                                item.duration,
+                                item.route,
+                                item.administration_instruction,
+                            ]
+                                .filter(Boolean)
+                                .join(' · ')
+                        "
+                    >
+                        {{ item.quantity_ordered }} {{ item.unit }} ·
+                        {{
+                            [
+                                item.dosage,
+                                item.frequency,
+                                item.duration,
+                                item.route,
+                                item.administration_instruction,
+                            ]
+                                .filter(Boolean)
+                                .join(' · ') || 'Instructions not entered'
+                        }}
+                    </p>
+                    <div
+                        v-show="
+                            expandedOrders[orderKey(item)] ||
+                            Object.keys(form.errors).some((key) =>
+                                key.startsWith(`medicines.${index}.`),
+                            )
+                        "
+                        class="space-y-2"
+                    >
+                        <div class="grid gap-2 sm:grid-cols-2">
+                            <label class="text-xs"
+                                >Quantity ({{ item.unit }})<input
+                                    v-model="item.quantity_ordered"
+                                    type="number"
+                                    min="0.001"
+                                    step="0.001"
+                                    class="mt-1 h-9 w-full rounded-md border border-input bg-card px-3 text-sm outline-none hover:border-foreground/25 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/40"
+                            /></label>
+                            <fieldset class="text-xs">
+                                <legend>Dosage</legend>
+                                <div
+                                    v-if="
+                                        item.dosage_composer.mode ===
+                                        'structured'
+                                    "
+                                    class="mt-1 grid grid-cols-[minmax(70px,1fr)_minmax(105px,1.3fr)] gap-1"
+                                >
+                                    <input
+                                        v-model="item.dosage_composer.amount"
+                                        type="number"
+                                        step="any"
+                                        inputmode="decimal"
+                                        aria-label="Dosage amount"
+                                        class="h-9 min-w-0 rounded-md border border-input bg-card px-2 text-sm outline-none hover:border-foreground/25 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/40"
+                                        @input="syncMedicine(item)"
+                                    />
+                                    <OperationalSelect
+                                        v-model="item.dosage_composer.unit"
+                                        label="Dosage unit"
+                                        :options="dosageUnitOptions"
+                                        @update:model-value="
+                                            selectDosageUnit(item)
+                                        "
+                                    />
+                                </div>
+                                <div v-else class="mt-1 flex gap-1">
+                                    <input
+                                        v-model="item.dosage_composer.custom"
+                                        maxlength="255"
+                                        aria-label="Custom dosage"
+                                        class="h-9 min-w-0 flex-1 rounded-md border border-input bg-card px-2 text-sm outline-none hover:border-foreground/25 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/40"
+                                        @input="syncMedicine(item)"
+                                    />
+                                    <Button
+                                        type="button"
+                                        size="sm"
+                                        variant="outline"
+                                        class="h-9 px-2"
+                                        @click="useStructuredDosage(item)"
+                                        >Units</Button
+                                    >
+                                </div>
+                            </fieldset>
+                            <div class="text-xs">
+                                <label :for="`medicine-frequency-${index}`"
+                                    >Frequency</label
+                                ><OperationalSelect
+                                    :id="`medicine-frequency-${index}`"
+                                    v-model="item.frequency_choice"
+                                    class="mt-1"
+                                    label="Frequency"
+                                    :options="frequencyOptions"
+                                    @update:model-value="syncMedicine(item)"
+                                />
+                                <input
+                                    v-if="
+                                        item.frequency_choice === customChoice
+                                    "
+                                    v-model="item.frequency_custom"
+                                    maxlength="255"
+                                    aria-label="Custom frequency"
+                                    class="mt-1 h-9 w-full rounded-md border border-input bg-card px-2 text-sm outline-none hover:border-foreground/25 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/40"
+                                    @input="syncMedicine(item)"
+                                />
+                            </div>
+                            <fieldset class="text-xs">
+                                <legend>
+                                    Duration
+                                    <span class="text-muted-foreground"
+                                        >(optional)</span
+                                    >
+                                </legend>
+                                <div
+                                    v-if="
+                                        item.duration_composer.mode ===
+                                        'structured'
+                                    "
+                                    class="mt-1 grid grid-cols-[minmax(70px,1fr)_minmax(105px,1.3fr)] gap-1"
+                                >
+                                    <input
+                                        v-model="item.duration_composer.amount"
+                                        type="number"
+                                        step="any"
+                                        inputmode="decimal"
+                                        aria-label="Duration amount"
+                                        class="h-9 min-w-0 rounded-md border border-input bg-card px-2 text-sm outline-none hover:border-foreground/25 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/40"
+                                        @input="syncMedicine(item)"
+                                    />
+                                    <OperationalSelect
+                                        v-model="item.duration_composer.unit"
+                                        label="Duration unit"
+                                        :options="durationUnitOptions"
+                                        @update:model-value="
+                                            selectDurationUnit(item)
+                                        "
+                                    />
+                                </div>
+                                <div v-else class="mt-1 flex gap-1">
+                                    <input
+                                        v-model="item.duration_composer.custom"
+                                        maxlength="255"
+                                        aria-label="Custom duration"
+                                        class="h-9 min-w-0 flex-1 rounded-md border border-input bg-card px-2 text-sm outline-none hover:border-foreground/25 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/40"
+                                        @input="syncMedicine(item)"
+                                    />
+                                    <Button
+                                        type="button"
+                                        size="sm"
+                                        variant="outline"
+                                        class="h-9 px-2"
+                                        @click="useStructuredDuration(item)"
+                                        >Units</Button
+                                    >
+                                </div>
+                            </fieldset>
+                        </div>
+                        <div class="grid gap-2 sm:grid-cols-2">
+                            <div class="text-xs">
+                                <label :for="`medicine-route-${index}`"
+                                    >Route</label
+                                >
+                                <span class="text-muted-foreground">
+                                    (optional)</span
+                                >
+                                <OperationalSelect
+                                    :id="`medicine-route-${index}`"
+                                    v-model="item.route_choice"
+                                    class="mt-1"
+                                    label="Route"
+                                    :options="routeOptions"
+                                    @update:model-value="syncMedicine(item)"
+                                />
+                                <input
+                                    v-if="item.route_choice === customChoice"
+                                    v-model="item.route_custom"
+                                    maxlength="255"
+                                    aria-label="Custom route"
+                                    class="mt-1 h-9 w-full rounded-md border border-input bg-card px-2 text-sm outline-none hover:border-foreground/25 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/40"
+                                    @input="syncMedicine(item)"
+                                />
+                            </div>
+                            <label class="text-xs"
+                                >Instruction
+                                <span class="text-muted-foreground"
+                                    >(optional)</span
+                                ><input
+                                    v-model="item.administration_instruction"
+                                    maxlength="2000"
+                                    placeholder="e.g. After meals"
+                                    class="mt-1 h-9 w-full rounded-md border border-input bg-card px-3 text-sm outline-none hover:border-foreground/25 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/40"
+                            /></label>
+                        </div>
+                        <details class="group text-xs text-muted-foreground">
+                            <summary
+                                class="flex w-fit cursor-pointer list-none items-center gap-1 rounded px-1 py-0.5 font-medium text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                            >
+                                <ChevronDown
+                                    class="size-3.5 transition-transform group-open:rotate-180"
+                                />
+                                More details
+                                <span
+                                    v-if="item.indication || item.precaution"
+                                    class="text-muted-foreground"
+                                    >· Added</span
+                                >
+                            </summary>
+                            <div class="mt-2 grid gap-2 md:grid-cols-2">
+                                <label
+                                    >Indication<textarea
+                                        v-model="item.indication"
+                                        maxlength="2000"
+                                        rows="2"
+                                        class="mt-1 w-full rounded-md border border-input bg-card p-2 text-sm text-foreground outline-none hover:border-foreground/25 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/40"
+                                    /></label
+                                ><label
+                                    >Precaution / additional
+                                    instruction<textarea
+                                        v-model="item.precaution"
+                                        maxlength="2000"
+                                        rows="2"
+                                        class="mt-1 w-full rounded-md border border-input bg-card p-2 text-sm text-foreground outline-none hover:border-foreground/25 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/40"
+                                    />
+                                </label>
+                            </div>
+                        </details>
+                    </div>
+                </div>
+                <p
+                    v-if="!form.medicines.length"
+                    class="text-sm text-muted-foreground"
+                >
+                    No medicine ordered.
+                </p>
             </div>
+
+            <div class="space-y-2.5 border-t pt-3">
+                <div class="flex flex-wrap items-end gap-2">
+                    <label class="min-w-0 flex-1 text-sm"
+                        >Find service / procedure<input
+                            v-model="serviceQuery"
+                            class="mt-1 h-9 w-full rounded-md border border-input bg-card px-3 outline-none hover:border-foreground/25 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/40"
+                            autocomplete="off"
+                            @keyup.enter.prevent="search('services')"
+                    /></label>
+                    <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        :disabled="searchingService"
+                        @click="search('services')"
+                        ><LoaderCircle
+                            v-if="searchingService"
+                            class="size-4 animate-spin"
+                        /><Search v-else class="size-4" /> Search</Button
+                    >
+                </div>
+                <div
+                    v-if="serviceResults.length"
+                    class="divide-y rounded-md border"
+                >
+                    <button
+                        v-for="item in serviceResults"
+                        :key="item.publicId"
+                        type="button"
+                        class="flex w-full items-center justify-between px-3 py-2 text-left text-sm hover:bg-muted"
+                        @click="addService(item)"
+                    >
+                        <span
+                            ><strong>{{ item.displayName }}</strong> ·
+                            {{ item.code }}</span
+                        ><Plus class="size-4" />
+                    </button>
+                </div>
+                <div
+                    v-for="(item, index) in form.services"
+                    :key="item.public_id ?? item.catalogue_public_id ?? index"
+                    class="space-y-1 border-b border-border/60 py-2"
+                >
+                    <div
+                        class="flex flex-wrap items-center justify-between gap-1"
+                    >
+                        <div class="text-sm font-medium">
+                            {{ item.display_name }}
+                            <div
+                                class="text-xs font-normal text-muted-foreground"
+                            >
+                                {{ item.code }} · {{ item.quantity_ordered }}
+                                {{ item.unit }}
+                            </div>
+                        </div>
+                        <div class="flex items-center justify-end gap-0.5">
+                            <Button
+                                type="button"
+                                size="sm"
+                                variant="outline"
+                                :aria-expanded="
+                                    !!expandedOrders[orderKey(item)]
+                                "
+                                @click="toggleOrder(item)"
+                                >Edit</Button
+                            >
+                            <Button
+                                type="button"
+                                size="icon"
+                                variant="ghost"
+                                class="size-8"
+                                :disabled="index === 0"
+                                :aria-label="`Move ${item.display_name} up`"
+                                @click="moveRow(form.services, index, -1)"
+                                ><ArrowUp class="size-3.5"
+                            /></Button>
+                            <Button
+                                type="button"
+                                size="icon"
+                                variant="ghost"
+                                class="size-8"
+                                :disabled="index === form.services.length - 1"
+                                :aria-label="`Move ${item.display_name} down`"
+                                @click="moveRow(form.services, index, 1)"
+                                ><ArrowDown class="size-3.5"
+                            /></Button>
+                            <Button
+                                type="button"
+                                size="icon"
+                                variant="ghost"
+                                class="size-8 text-muted-foreground hover:text-destructive"
+                                :aria-label="`Withdraw ${item.display_name}`"
+                                @click="form.services.splice(index, 1)"
+                                ><Trash2 class="size-3.5"
+                            /></Button>
+                        </div>
+                    </div>
+                    <div
+                        v-show="
+                            expandedOrders[orderKey(item)] ||
+                            Object.keys(form.errors).some((key) =>
+                                key.startsWith(`services.${index}.`),
+                            )
+                        "
+                        class="grid gap-2 sm:grid-cols-2"
+                    >
+                        <label class="text-xs"
+                            >Quantity ({{ item.unit }})<input
+                                v-model="item.quantity_ordered"
+                                type="number"
+                                min="0.001"
+                                step="0.001"
+                                class="mt-1 h-9 w-full rounded-md border border-input bg-card px-3 text-sm outline-none hover:border-foreground/25 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/40"
+                        /></label>
+                        <label class="text-xs"
+                            >Clinical instruction<input
+                                v-model="item.clinical_instruction"
+                                maxlength="2000"
+                                class="mt-1 h-9 w-full rounded-md border border-input bg-card px-3 text-sm outline-none hover:border-foreground/25 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/40"
+                        /></label>
+                    </div>
+                </div>
+                <p
+                    v-if="!form.services.length"
+                    class="text-sm text-muted-foreground"
+                >
+                    No service or procedure ordered.
+                </p>
+            </div>
+        </div>
+        <div
+            class="sticky bottom-0 z-10 shrink-0 space-y-2 border-t bg-card p-4"
+            data-testid="consultation-treatment-actions"
+        >
+            <p class="text-xs font-medium">
+                Total / {{ form.medicines.length + form.services.length }} items
+            </p>
+            <InputError :message="formError" />
             <p
-                v-if="!form.medicines.length"
+                v-if="plan.checkout?.route === 'billing'"
                 class="text-sm text-muted-foreground"
             >
-                No medicine ordered.
+                Consultation closed — awaiting Billing.
             </p>
-        </div>
-
-        <div class="space-y-2.5 border-t pt-3">
-            <div class="flex flex-wrap items-end gap-2">
-                <label class="min-w-64 flex-1 text-sm"
-                    >Find service / procedure<input
-                        v-model="serviceQuery"
-                        class="mt-1 h-9 w-full rounded-md border border-input bg-card px-3 outline-none hover:border-foreground/25 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/40"
-                        autocomplete="off"
-                        @keyup.enter.prevent="search('services')"
-                /></label>
+            <InputError :message="Object.values(reopenForm.errors)[0]" />
+            <div class="flex flex-wrap justify-end gap-2">
+                <Button
+                    v-if="plan.checkout?.canReopen"
+                    variant="outline"
+                    :disabled="reopenForm.processing"
+                    @click="reopenCheckout"
+                    >Reopen consultation</Button
+                >
+                <Button
+                    v-if="plan.canCompleteConsultation"
+                    type="button"
+                    @click="sendOpen = true"
+                    >Complete Consultation</Button
+                >
                 <Button
                     type="button"
-                    size="sm"
-                    variant="outline"
-                    :disabled="searchingService"
-                    @click="search('services')"
+                    :variant="
+                        treatmentSaveButtonVariant(plan.canCompleteConsultation)
+                    "
+                    :disabled="form.processing || !plan.canSave"
+                    @click="save()"
                     ><LoaderCircle
-                        v-if="searchingService"
+                        v-if="form.processing"
                         class="size-4 animate-spin"
-                    /><Search v-else class="size-4" /> Search</Button
+                    />{{
+                        form.processing ? 'Saving…' : 'Save Treatment Plan'
+                    }}</Button
                 >
             </div>
-            <div
-                v-if="serviceResults.length"
-                class="divide-y rounded-md border"
-            >
-                <button
-                    v-for="item in serviceResults"
-                    :key="item.publicId"
-                    type="button"
-                    class="flex w-full items-center justify-between px-3 py-2 text-left text-sm hover:bg-muted"
-                    @click="addService(item)"
-                >
-                    <span
-                        ><strong>{{ item.displayName }}</strong> ·
-                        {{ item.code }}</span
-                    ><Plus class="size-4" />
-                </button>
-            </div>
-            <div
-                v-for="(item, index) in form.services"
-                :key="item.public_id ?? item.catalogue_public_id ?? index"
-                class="grid gap-2 rounded-md border border-border/80 p-2.5 sm:grid-cols-[minmax(160px,1fr)_120px_minmax(200px,1.5fr)_auto] sm:items-end"
-            >
-                <div class="text-sm font-medium">
-                    {{ item.display_name }}
-                    <div class="text-xs font-normal text-muted-foreground">
-                        {{ item.code }}
-                    </div>
-                </div>
-                <label class="text-xs"
-                    >Quantity ({{ item.unit }})<input
-                        v-model="item.quantity_ordered"
-                        type="number"
-                        min="0.001"
-                        step="0.001"
-                        class="mt-1 h-9 w-full rounded-md border border-input bg-card px-3 text-sm outline-none hover:border-foreground/25 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/40"
-                /></label>
-                <label class="text-xs"
-                    >Clinical instruction<input
-                        v-model="item.clinical_instruction"
-                        maxlength="2000"
-                        class="mt-1 h-9 w-full rounded-md border border-input bg-card px-3 text-sm outline-none hover:border-foreground/25 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/40"
-                /></label>
-                <div class="flex items-center justify-end gap-0.5">
-                    <Button
-                        type="button"
-                        size="icon"
-                        variant="ghost"
-                        class="size-8"
-                        :disabled="index === 0"
-                        :aria-label="`Move ${item.display_name} up`"
-                        @click="moveRow(form.services, index, -1)"
-                        ><ArrowUp class="size-3.5"
-                    /></Button>
-                    <Button
-                        type="button"
-                        size="icon"
-                        variant="ghost"
-                        class="size-8"
-                        :disabled="index === form.services.length - 1"
-                        :aria-label="`Move ${item.display_name} down`"
-                        @click="moveRow(form.services, index, 1)"
-                        ><ArrowDown class="size-3.5"
-                    /></Button>
-                    <Button
-                        type="button"
-                        size="icon"
-                        variant="ghost"
-                        class="size-8 text-muted-foreground hover:text-destructive"
-                        :aria-label="`Withdraw ${item.display_name}`"
-                        @click="form.services.splice(index, 1)"
-                        ><Trash2 class="size-3.5"
-                    /></Button>
-                </div>
-            </div>
-            <p
-                v-if="!form.services.length"
-                class="text-sm text-muted-foreground"
-            >
-                No service or procedure ordered.
-            </p>
-        </div>
-
-        <InputError :message="formError" />
-        <p
-            v-if="plan.checkout?.route === 'billing'"
-            class="text-sm text-muted-foreground"
-        >
-            Consultation closed — awaiting Billing.
-        </p>
-        <InputError :message="Object.values(reopenForm.errors)[0]" />
-        <div class="flex justify-end gap-2">
-            <Button
-                v-if="plan.checkout?.canReopen"
-                variant="outline"
-                :disabled="reopenForm.processing"
-                @click="reopenCheckout"
-                >Reopen consultation</Button
-            >
-            <Button
-                v-if="plan.canCompleteConsultation"
-                type="button"
-                @click="sendOpen = true"
-                >Complete Consultation</Button
-            >
-            <Button
-                type="button"
-                :variant="
-                    treatmentSaveButtonVariant(plan.canCompleteConsultation)
-                "
-                :disabled="form.processing || !plan.canSave"
-                @click="save()"
-                ><LoaderCircle
-                    v-if="form.processing"
-                    class="size-4 animate-spin"
-                />{{
-                    form.processing ? 'Saving…' : 'Save Treatment Plan'
-                }}</Button
-            >
         </div>
         <Dialog v-model:open="sendOpen">
             <DialogContent>
