@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Head, Link, router, useForm } from '@inertiajs/vue3';
+import { Head, Link, router, useForm, usePage } from '@inertiajs/vue3';
 import {
     AlertTriangle,
     ArrowLeft,
@@ -9,15 +9,24 @@ import {
     Plus,
     PauseCircle,
     PlayCircle,
-    Stethoscope,
+    UserRound,
     Trash2,
 } from '@lucide/vue';
 import { computed, ref, watch } from 'vue';
 import DiagnosisPresetPicker from '@/components/clinical/DiagnosisPresetPicker.vue';
 import UnsavedClinicalWorkDialog from '@/components/clinical/UnsavedClinicalWorkDialog.vue';
 import InputError from '@/components/InputError.vue';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { OperationalSelect } from '@/components/ui/select';
+import UserMenuContent from '@/components/UserMenuContent.vue';
+import WorkspaceBranchSwitcher from '@/components/workspace/WorkspaceBranchSwitcher.vue';
+import { getInitials } from '@/composables/useInitials';
 import { appendPresetDiagnosis } from '@/lib/diagnosis-draft';
 import { waitedDurationLabel } from '@/lib/r1c2-presentation';
 import AllergyProblemPanel from '@/pages/Clinical/Partials/AllergyProblemPanel.vue';
@@ -27,14 +36,58 @@ import TreatmentPlanPanel from '@/pages/Clinical/Partials/TreatmentPlanPanel.vue
 import type { ClinicalEncounterPage } from '@/types';
 
 defineOptions({
-    layout: { breadcrumbs: [{ title: 'Queue', href: '/queue' }] },
+    layout: {
+        focusMode: true,
+        breadcrumbs: [{ title: 'Queue', href: '/queue' }],
+    },
 });
 
 const props = defineProps<{
     clinical: ClinicalEncounterPage;
     treatmentRooms?: Array<{ id: number; name: string }>;
 }>();
-const workspaceTab = ref<'current' | 'history'>('current');
+const page = usePage();
+const user = computed(() => page.props.auth.user!);
+// Reserved until PANEL-NOTE-01 supplies a note; do not display an empty label.
+const panelNote = ref<string | null>(null);
+const canViewPatient = computed(() =>
+    page.props.auth.permissions.includes('patients.view.organisation'),
+);
+const workspaceTab = ref<'treatment' | 'history'>('treatment');
+const patientAge = computed(() => {
+    const value = props.clinical.patient.dateOfBirth;
+
+    if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+        return 'Age unknown';
+    }
+
+    const birth = new Date(`${value}T00:00:00Z`);
+
+    if (
+        Number.isNaN(birth.getTime()) ||
+        birth.toISOString().slice(0, 10) !== value
+    ) {
+        return 'Age unknown';
+    }
+
+    const today = new Intl.DateTimeFormat('en-CA', {
+        timeZone: props.clinical.branch.timezone,
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+    }).format(new Date());
+
+    if (value > today) {
+        return 'Age unknown';
+    }
+
+    const years =
+        Number(today.slice(0, 4)) -
+        Number(value.slice(0, 4)) -
+        (today.slice(5) < value.slice(5) ? 1 : 0);
+
+    return `${years} years`;
+});
 const holdProcessing = ref(false);
 const holdError = ref('');
 type NumericInput = number | string | null;
@@ -47,6 +100,10 @@ type DiagnosisInput = {
 
 // Shared with the initial useForm() seed below and with the prop-resync
 // watcher (OH-06), so the two can never drift into different shapes.
+const vitalsExpanded = ref(false);
+const hasVitals = computed(() =>
+    Object.values(form.vitals).some((value) => value !== null && value !== ''),
+);
 const vitalsFromProps = () => ({
     systolic_bp: props.clinical.vitals.systolicBp as NumericInput,
     diastolic_bp: props.clinical.vitals.diastolicBp as NumericInput,
@@ -394,228 +451,219 @@ const changeHoldState = (action: 'hold' | 'resume') => {
 <template>
     <Head title="Clinical Encounter" />
     <main
-        class="mx-auto flex w-full max-w-[1800px] flex-1 flex-col gap-3 px-3 py-3 md:px-5"
+        class="consultation-workspace mx-auto flex w-full max-w-[1800px] flex-1 flex-col gap-3 bg-neutral-100 px-3 py-3 md:px-5 dark:bg-background"
     >
-        <nav
-            class="grid grid-cols-2 rounded-md border p-1 lg:hidden"
-            aria-label="Clinical workspace"
+        <header
+            class="flex flex-wrap items-center justify-between gap-3 px-1 py-1"
         >
-            <button
-                type="button"
-                class="cursor-pointer rounded px-3 py-2 text-sm font-medium focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-                :class="
-                    workspaceTab === 'current'
-                        ? 'bg-muted'
-                        : 'text-muted-foreground'
-                "
-                @click="workspaceTab = 'current'"
-            >
-                Current consultation
-            </button>
-            <button
-                type="button"
-                class="cursor-pointer rounded px-3 py-2 text-sm font-medium focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-                :class="
-                    workspaceTab === 'history'
-                        ? 'bg-muted'
-                        : 'text-muted-foreground'
-                "
-                @click="workspaceTab = 'history'"
-            >
-                Patient history
-            </button>
-        </nav>
-        <div
-            class="grid min-h-0 gap-5 lg:grid-cols-[minmax(0,65fr)_minmax(320px,35fr)]"
-        >
-            <div
-                class="min-w-0 space-y-4"
-                :class="
-                    workspaceTab === 'current' ? 'block' : 'hidden lg:block'
-                "
-            >
-                <header
-                    class="sticky top-14 z-20 flex flex-wrap items-start justify-between gap-3 border-b bg-background/95 py-2 backdrop-blur"
+            <div class="flex flex-wrap items-center gap-2">
+                <Link
+                    href="/queue"
+                    class="inline-flex items-center gap-1 text-xs font-medium text-emerald-800 hover:underline"
                 >
-                    <div>
-                        <Link
-                            href="/queue"
-                            class="mb-2 inline-flex items-center gap-1 text-xs font-medium text-emerald-800 hover:underline"
-                        >
-                            <ArrowLeft class="size-3.5" /> My Queue
-                        </Link>
-                        <div class="flex items-center gap-3">
-                            <div
-                                class="rounded-lg bg-emerald-100 p-2 text-emerald-800"
+                    <ArrowLeft class="size-3.5" /> My Queue
+                </Link>
+                <span class="rounded-md border bg-card px-2 py-1 text-xs">{{
+                    clinical.encounter.attendingClinician
+                }}</span>
+                <span class="text-[11px] text-muted-foreground"
+                    >{{ clinical.visit.visitNumber }} ·
+                    {{ clinical.hold.isHeld ? 'On Hold' : 'In progress' }}</span
+                >
+                <span class="text-[11px] text-muted-foreground"
+                    >{{ waitedDurationLabel(waitedMinutes) }} · Active
+                    {{ clinical.hold.activeMinutes }} min · Held
+                    {{ clinical.hold.heldMinutes }} min</span
+                >
+            </div>
+            <div
+                class="flex flex-wrap items-center justify-end gap-2 text-right text-xs text-muted-foreground"
+            >
+                <Button
+                    v-if="clinical.queue.canRecall"
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    :disabled="recallProcessing"
+                    data-testid="recall-patient"
+                    @click="recallPatient"
+                >
+                    <Megaphone class="size-4" /> Panggil semula
+                </Button>
+                <div
+                    v-if="
+                        clinical.queue.canRecall &&
+                        (treatmentRooms?.length ?? 0) > 0
+                    "
+                    class="flex items-center gap-2"
+                >
+                    <OperationalSelect
+                        v-if="(treatmentRooms?.length ?? 0) > 1"
+                        v-model="treatmentRoomId"
+                        label="Treatment room"
+                        placeholder="Bilik rawatan"
+                        trigger-class="h-8 w-40"
+                        :options="
+                            (treatmentRooms ?? []).map((room) => ({
+                                value: room.id,
+                                label: room.name,
+                            }))
+                        "
+                    />
+                    <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        :disabled="recallProcessing"
+                        data-testid="call-treatment"
+                        @click="callToTreatment"
+                    >
+                        <Megaphone class="size-4" /> Ke bilik rawatan
+                    </Button>
+                </div>
+                <InputError
+                    v-if="recallError"
+                    class="max-w-56 text-right"
+                    :message="recallError"
+                />
+                <Button
+                    v-if="clinical.hold.canHold"
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    :disabled="holdProcessing"
+                    @click="requestHold"
+                >
+                    <PauseCircle class="size-4" /> On Hold
+                </Button>
+                <Button
+                    v-if="clinical.hold.canResume"
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    :disabled="holdProcessing"
+                    @click="changeHoldState('resume')"
+                >
+                    <PlayCircle class="size-4" /> Resume Consultation
+                </Button>
+                <div
+                    class="flex shrink-0 items-center gap-2"
+                    data-testid="consultation-focus-controls"
+                >
+                    <WorkspaceBranchSwitcher />
+                    <DropdownMenu>
+                        <DropdownMenuTrigger as-child>
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                class="w-8 rounded-full px-0"
+                                aria-label="Open user menu"
                             >
-                                <Stethoscope class="size-5" />
+                                <Avatar class="size-7"
+                                    ><AvatarFallback
+                                        class="bg-muted text-xs font-semibold"
+                                        >{{
+                                            getInitials(user.name)
+                                        }}</AvatarFallback
+                                    ></Avatar
+                                >
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent
+                            align="end"
+                            class="w-60 rounded-xl border-border/70 p-1.5"
+                        >
+                            <UserMenuContent :user="user" />
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+                </div>
+            </div>
+        </header>
+        <!-- Reserved, hidden Panel note presentation slot for PANEL-NOTE-01. -->
+        <div
+            class="grid min-h-0 gap-5 lg:grid-cols-[minmax(0,55fr)_minmax(0,45fr)]"
+        >
+            <div class="min-w-0 space-y-3" data-testid="consultation-left">
+                <section class="overflow-hidden rounded-lg border bg-card">
+                    <div
+                        class="grid sm:grid-cols-[minmax(0,11fr)_minmax(0,9fr)]"
+                        data-testid="consultation-patient-grid"
+                    >
+                        <div class="flex min-w-0 items-start gap-3 p-4">
+                            <div
+                                class="rounded-lg bg-muted p-2 text-muted-foreground"
+                            >
+                                <UserRound class="size-5" />
                             </div>
-                            <div>
+                            <div class="min-w-0 flex-1 space-y-1">
                                 <h1
-                                    class="text-2xl font-semibold tracking-tight"
+                                    class="truncate text-[14px] font-semibold"
+                                    :title="clinical.patient.name"
                                 >
                                     {{ clinical.patient.name }}
                                 </h1>
+                                <p class="text-xs text-muted-foreground">
+                                    {{ patientAge }} ·
+                                    {{ clinical.patient.sex }}
+                                </p>
                                 <p
                                     class="font-mono text-xs text-muted-foreground"
                                 >
-                                    {{ clinical.patient.patientNumber }} ·
-                                    {{
-                                        clinical.patient.dateOfBirth ??
-                                        'DOB unknown'
-                                    }}
-                                    ·
-                                    {{ clinical.patient.sex }}
+                                    {{ clinical.patient.patientNumber }}
                                 </p>
+                                <span
+                                    v-if="clinical.visit.priority === 'urgent'"
+                                    class="inline-flex rounded-md bg-red-50 px-2 py-1 text-xs font-medium text-red-700 dark:bg-red-950/40 dark:text-red-300"
+                                    >Urgent</span
+                                >
+                            </div>
+                            <div
+                                class="flex shrink-0 flex-col items-end gap-2 text-right text-xs text-muted-foreground"
+                            >
+                                <Link
+                                    v-if="canViewPatient"
+                                    :href="`/patients/${encodeURIComponent(clinical.patient.patientNumber)}`"
+                                    class="inline-flex h-7 items-center rounded-md border px-2 text-[12px] text-foreground"
+                                    >View profile</Link
+                                >
+                                <span
+                                    >Queue No:
+                                    {{ clinical.queue.queueNumber }}</span
+                                >
+                            </div>
+                        </div>
+                        <div
+                            class="min-w-0 space-y-2 border-t p-4 sm:border-t-0 sm:border-l"
+                            data-testid="consultation-payment-method"
+                        >
+                            <div class="text-xs font-medium">
+                                Payment method
+                            </div>
+                            <span
+                                class="inline-flex max-w-full rounded-md bg-muted px-2 py-1 text-xs break-words"
+                                >{{ clinical.visit.paymentMethodLabel }}</span
+                            >
+                            <div
+                                v-if="clinical.visit.isPanel && panelNote"
+                                data-testid="consultation-panel-note"
+                                class="space-y-1 text-xs text-muted-foreground"
+                            >
+                                <div>Panel note</div>
+                                <!-- Reserved for PANEL-NOTE-01. -->
+                                <div>{{ panelNote }}</div>
                             </div>
                         </div>
                     </div>
-                    <div
-                        class="flex flex-col items-end gap-2 text-right text-xs text-muted-foreground"
-                    >
-                        <span
-                            v-if="clinical.hold.isHeld"
-                            class="inline-flex items-center gap-1 rounded-md bg-amber-100 px-2 py-1 font-semibold text-amber-900"
-                        >
-                            <PauseCircle class="size-3.5" /> On Hold
-                        </span>
-                        <div class="font-medium text-foreground">
-                            {{ clinical.branch.name }} · Queue
-                            {{ clinical.queue.queueNumber }}
-                        </div>
-                        <div>
-                            {{ clinical.encounter.attendingClinician }} · In
-                            progress
-                        </div>
-                        <div>{{ waitedDurationLabel(waitedMinutes) }}</div>
-                        <div>
-                            Active {{ clinical.hold.activeMinutes }} min · Held
-                            {{ clinical.hold.heldMinutes }} min
-                        </div>
-                        <Button
-                            v-if="clinical.queue.canRecall"
-                            type="button"
-                            size="sm"
-                            variant="outline"
-                            :disabled="recallProcessing"
-                            data-testid="recall-patient"
-                            @click="recallPatient"
-                        >
-                            <Megaphone class="size-4" /> Panggil semula
-                        </Button>
-                        <div
-                            v-if="
-                                clinical.queue.canRecall &&
-                                (treatmentRooms?.length ?? 0) > 0
-                            "
-                            class="flex items-center gap-2"
-                        >
-                            <OperationalSelect
-                                v-if="(treatmentRooms?.length ?? 0) > 1"
-                                v-model="treatmentRoomId"
-                                label="Treatment room"
-                                placeholder="Bilik rawatan"
-                                trigger-class="h-8 w-40"
-                                :options="
-                                    (treatmentRooms ?? []).map((room) => ({
-                                        value: room.id,
-                                        label: room.name,
-                                    }))
-                                "
-                            />
-                            <Button
-                                type="button"
-                                size="sm"
-                                variant="outline"
-                                :disabled="recallProcessing"
-                                data-testid="call-treatment"
-                                @click="callToTreatment"
-                            >
-                                <Megaphone class="size-4" /> Ke bilik rawatan
-                            </Button>
-                        </div>
-                        <InputError
-                            v-if="recallError"
-                            class="max-w-56 text-right"
-                            :message="recallError"
+                    <div class="border-t">
+                        <AllergyProblemPanel
+                            :visit-number="clinical.visit.visitNumber"
+                            :branch-id="clinical.branch.id"
+                            :time-zone="clinical.branch.timezone"
+                            :allergies="clinical.allergies"
+                            :problems="clinical.problems"
                         />
-                        <Button
-                            v-if="clinical.hold.canHold"
-                            type="button"
-                            size="sm"
-                            variant="outline"
-                            :disabled="holdProcessing"
-                            @click="requestHold"
-                        >
-                            <PauseCircle class="size-4" /> On Hold
-                        </Button>
-                        <Button
-                            v-if="clinical.hold.canResume"
-                            type="button"
-                            size="sm"
-                            :disabled="holdProcessing"
-                            @click="changeHoldState('resume')"
-                        >
-                            <PlayCircle class="size-4" /> Resume Consultation
-                        </Button>
-                    </div>
-                </header>
-
-                <section
-                    class="grid gap-3 rounded-lg bg-muted/25 p-4 md:grid-cols-3"
-                >
-                    <div>
-                        <div
-                            class="text-[11px] font-semibold text-muted-foreground uppercase"
-                        >
-                            Visit
-                        </div>
-                        <div class="font-mono text-sm">
-                            {{ clinical.visit.visitNumber }}
-                        </div>
-                    </div>
-                    <div>
-                        <div
-                            class="text-[11px] font-semibold text-muted-foreground uppercase"
-                        >
-                            Priority
-                        </div>
-                        <div
-                            :class="
-                                clinical.visit.priority === 'urgent'
-                                    ? 'font-semibold text-red-700'
-                                    : ''
-                            "
-                        >
-                            {{
-                                clinical.visit.priority === 'urgent'
-                                    ? 'Urgent'
-                                    : 'Normal'
-                            }}
-                        </div>
-                    </div>
-                    <div>
-                        <div
-                            class="text-[11px] font-semibold text-muted-foreground uppercase"
-                        >
-                            Visit Reason
-                        </div>
-                        <div class="text-sm">
-                            {{
-                                clinical.visit.registrationReason ??
-                                'No reason recorded'
-                            }}
-                        </div>
                     </div>
                 </section>
-
-                <AllergyProblemPanel
-                    :visit-number="clinical.visit.visitNumber"
-                    :branch-id="clinical.branch.id"
-                    :time-zone="clinical.branch.timezone"
-                    :allergies="clinical.allergies"
-                    :problems="clinical.problems"
-                />
 
                 <DispensaryAttentionPanel
                     :items="clinical.dispensaryAttention"
@@ -663,16 +711,136 @@ const changeHoldState = (action: 'hold' | 'resume') => {
                     </Button>
                 </div>
 
-                <form class="space-y-5" @submit.prevent="save">
-                    <section class="space-y-3">
-                        <div>
-                            <h2 class="font-semibold">Vitals</h2>
-                            <p class="text-xs text-muted-foreground">
-                                Enter the measurements available for this
-                                consultation.
-                            </p>
+                <form
+                    class="space-y-4 rounded-lg border bg-card p-4"
+                    data-testid="consultation-record-card"
+                    @submit.prevent="save"
+                >
+                    <div
+                        class="flex min-w-0 items-baseline gap-2 rounded-md border bg-muted/30 px-3 py-2"
+                        data-testid="consultation-visit-bar"
+                    >
+                        <span
+                            class="shrink-0 text-xs font-medium text-muted-foreground"
+                            >Visit note</span
+                        >
+                        <span>{{
+                            clinical.visit.registrationReason ??
+                            'No reason recorded'
+                        }}</span>
+                    </div>
+                    <section
+                        class="space-y-1 rounded-md border bg-muted/15 px-3 py-2"
+                        data-testid="consultation-vitals-bar"
+                    >
+                        <div
+                            class="flex flex-wrap items-center gap-x-3 gap-y-2"
+                        >
+                            <h2
+                                class="shrink-0 font-semibold"
+                                title="Enter the measurements available for this consultation."
+                            >
+                                Vital signs
+                            </h2>
+                            <Button
+                                type="button"
+                                size="sm"
+                                variant="outline"
+                                class="ml-auto shrink-0"
+                                title="Record vital signs"
+                                :aria-expanded="vitalsExpanded"
+                                @click="vitalsExpanded = !vitalsExpanded"
+                                >Record new</Button
+                            >
                         </div>
-                        <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                        <div
+                            v-if="hasVitals"
+                            class="flex min-w-0 flex-wrap gap-x-2 gap-y-1 text-xs"
+                            data-testid="vitals-summary"
+                        >
+                            <span class="inline-flex items-baseline gap-1"
+                                ><span
+                                    class="text-muted-foreground"
+                                    title="Blood pressure"
+                                    >BP</span
+                                ><strong class="font-medium"
+                                    >{{ form.vitals.systolic_bp || '—' }}/{{
+                                        form.vitals.diastolic_bp || '—'
+                                    }}</strong
+                                ></span
+                            >
+                            <span class="inline-flex items-baseline gap-1"
+                                ><span class="text-muted-foreground">Pulse</span
+                                ><strong class="font-medium">{{
+                                    form.vitals.pulse_bpm || '—'
+                                }}</strong></span
+                            >
+                            <span class="inline-flex items-baseline gap-1"
+                                ><span
+                                    class="text-muted-foreground"
+                                    title="Temperature"
+                                    >Temp</span
+                                ><strong class="font-medium"
+                                    >{{
+                                        form.vitals.temperature_celsius || '—'
+                                    }}
+                                    °C</strong
+                                ></span
+                            >
+                            <span class="inline-flex items-baseline gap-1"
+                                ><span class="text-muted-foreground">SpO₂</span
+                                ><strong class="font-medium"
+                                    >{{
+                                        form.vitals.spo2_percent || '—'
+                                    }}%</strong
+                                ></span
+                            >
+                            <span class="inline-flex items-baseline gap-1"
+                                ><span class="text-muted-foreground"
+                                    >Weight</span
+                                ><strong class="font-medium"
+                                    >{{
+                                        form.vitals.weight_kg || '—'
+                                    }}
+                                    kg</strong
+                                ></span
+                            >
+                            <span class="inline-flex items-baseline gap-1"
+                                ><span class="text-muted-foreground"
+                                    >Height</span
+                                ><strong class="font-medium"
+                                    >{{
+                                        form.vitals.height_cm || '—'
+                                    }}
+                                    cm</strong
+                                ></span
+                            >
+                            <span class="inline-flex items-baseline gap-1"
+                                ><span
+                                    class="text-muted-foreground"
+                                    title="Derived BMI"
+                                    >BMI</span
+                                ><strong class="font-medium">{{
+                                    bmi
+                                }}</strong></span
+                            >
+                        </div>
+                        <div
+                            v-if="!hasVitals"
+                            class="min-w-0 flex-1 text-xs text-muted-foreground"
+                        >
+                            No vital signs recorded.
+                        </div>
+
+                        <div
+                            v-show="
+                                vitalsExpanded ||
+                                Object.keys(form.errors).some((key) =>
+                                    key.startsWith('vitals.'),
+                                )
+                            "
+                            class="grid gap-2 sm:grid-cols-2 lg:grid-cols-4"
+                        >
                             <label class="text-sm"
                                 >Systolic BP
                                 <input
@@ -790,39 +958,84 @@ const changeHoldState = (action: 'hold' | 'resume') => {
 
                     <section class="space-y-2">
                         <div>
-                            <h2 class="font-semibold">Clinical Note</h2>
-                            <p class="text-xs text-muted-foreground">
-                                Consultation findings only. This is separate
-                                from the Visit Reason.
-                            </p>
-                        </div>
-                        <textarea
-                            v-model="form.clinical_note"
-                            maxlength="20000"
-                            rows="9"
-                            class="w-full rounded-md border border-input bg-card p-3 text-sm outline-none hover:border-foreground/25 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/40"
-                            placeholder="Record the clinical consultation note…"
-                        />
-                        <div
-                            class="flex justify-between text-xs text-muted-foreground"
-                        >
-                            <InputError :message="form.errors.clinical_note" />
-                            <span
-                                >{{
-                                    form.clinical_note.length.toLocaleString()
-                                }}
-                                / 20,000</span
+                            <h2
+                                class="font-semibold"
+                                title="Consultation findings only. This is separate from the Visit Reason."
                             >
+                                Clinical Note
+                            </h2>
+                        </div>
+                        <div
+                            class="overflow-hidden rounded-md border border-input"
+                        >
+                            <textarea
+                                v-model="form.clinical_note"
+                                maxlength="20000"
+                                rows="3"
+                                class="block min-h-20 w-full resize-y rounded-t-md border-0 bg-card p-3 text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/40"
+                                placeholder="Record the clinical consultation note…"
+                            />
+                            <InputError :message="form.errors.clinical_note" />
+                            <div class="border-t px-3 py-2">
+                                <div
+                                    class="flex flex-wrap items-center justify-between gap-x-3 gap-y-2"
+                                >
+                                    <span
+                                        >{{
+                                            form.clinical_note.length.toLocaleString()
+                                        }}
+                                        / 20,000</span
+                                    >
+                                    <span class="text-xs text-muted-foreground">
+                                        <template v-if="form.processing"
+                                            >Saving clinical record…</template
+                                        >
+                                        <template
+                                            v-else-if="form.recentlySuccessful"
+                                            >Saved.</template
+                                        >
+                                        <template v-else-if="form.isDirty"
+                                            >Unsaved changes</template
+                                        >
+                                        <template v-else
+                                            >Clinical record is up to
+                                            date.</template
+                                        >
+                                    </span>
+                                    <Button
+                                        type="submit"
+                                        :disabled="
+                                            form.processing ||
+                                            clinical.hold.isHeld
+                                        "
+                                    >
+                                        <LoaderCircle
+                                            v-if="form.processing"
+                                            class="size-4 animate-spin"
+                                        />
+                                        <ClipboardCheck v-else class="size-4" />
+                                        {{
+                                            form.processing
+                                                ? 'Saving…'
+                                                : 'Save clinical record'
+                                        }}
+                                    </Button>
+                                </div>
+                            </div>
                         </div>
                     </section>
 
-                    <section class="space-y-3">
-                        <div class="flex items-center justify-between">
+                    <section class="space-y-2">
+                        <div
+                            class="flex flex-wrap items-center justify-between gap-2"
+                        >
                             <div>
-                                <h2 class="font-semibold">Diagnoses</h2>
-                                <p class="text-xs text-muted-foreground">
-                                    Structured codes are optional in Phase 2A.
-                                </p>
+                                <h2
+                                    class="font-semibold"
+                                    title="Structured codes are optional in Phase 2A."
+                                >
+                                    Diagnoses
+                                </h2>
                             </div>
                             <div class="flex flex-wrap justify-end gap-2">
                                 <DiagnosisPresetPicker
@@ -852,7 +1065,7 @@ const changeHoldState = (action: 'hold' | 'resume') => {
                         <div
                             v-for="(diagnosis, index) in form.diagnoses"
                             :key="index"
-                            class="grid gap-2 rounded-lg bg-muted/20 p-3 md:grid-cols-[minmax(260px,1.5fr)_160px_160px_auto_auto]"
+                            class="grid gap-2 rounded-md border p-2 sm:grid-cols-2 xl:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_minmax(0,1fr)]"
                         >
                             <label class="text-xs"
                                 >Diagnosis
@@ -922,75 +1135,78 @@ const changeHoldState = (action: 'hold' | 'resume') => {
                         </div>
                         <p
                             v-if="!form.diagnoses.length"
-                            class="rounded-lg bg-muted/20 px-4 py-5 text-sm text-muted-foreground"
+                            class="text-xs text-muted-foreground"
                         >
-                            No diagnosis recorded yet. An in-progress Encounter
-                            may be saved without one.
+                            No diagnosis recorded yet.
                         </p>
                     </section>
-
-                    <div
-                        class="sticky bottom-0 z-20 border-t bg-background/95 p-3 backdrop-blur"
-                    >
-                        <div
-                            class="mx-auto flex max-w-6xl items-center justify-between gap-3"
-                        >
-                            <span class="text-xs text-muted-foreground">
-                                <template v-if="form.processing"
-                                    >Saving clinical record…</template
-                                >
-                                <template v-else-if="form.recentlySuccessful"
-                                    >Saved.</template
-                                >
-                                <template v-else-if="form.isDirty"
-                                    >Unsaved changes</template
-                                >
-                                <template v-else
-                                    >Clinical record is up to date.</template
-                                >
-                            </span>
-                            <Button
-                                type="submit"
-                                :disabled="
-                                    form.processing || clinical.hold.isHeld
-                                "
-                            >
-                                <LoaderCircle
-                                    v-if="form.processing"
-                                    class="size-4 animate-spin"
-                                />
-                                <ClipboardCheck v-else class="size-4" />
-                                {{
-                                    form.processing
-                                        ? 'Saving…'
-                                        : 'Save clinical record'
-                                }}
-                            </Button>
-                        </div>
-                    </div>
                 </form>
-
-                <TreatmentPlanPanel
-                    ref="treatmentPlanPanelRef"
-                    :visit-number="clinical.visit.visitNumber"
-                    :branch-id="clinical.branch.id"
-                    :plan="clinical.treatmentPlan"
-                    :visit-version="clinical.visit.lockVersion"
-                    :queue-version="clinical.queue.lockVersion"
-                    :encounter-version="clinical.encounter.lockVersion"
-                    :allergies="clinical.allergies"
-                />
             </div>
             <aside
-                class="min-w-0 border-l-0 lg:sticky lg:top-[4.25rem] lg:self-start lg:border-l lg:pl-5"
-                :class="
-                    workspaceTab === 'history' ? 'block' : 'hidden lg:block'
-                "
+                id="consultation-treatment"
+                data-testid="consultation-right"
+                class="min-w-0 space-y-3 lg:sticky lg:top-3 lg:self-start"
             >
-                <ClinicalHistoryPanel
-                    :history="clinical.history"
-                    :time-zone="clinical.branch.timezone"
-                />
+                <nav
+                    aria-label="Consultation panels"
+                    class="flex gap-2 rounded-md border bg-card p-1"
+                >
+                    <button
+                        type="button"
+                        :aria-current="
+                            workspaceTab === 'treatment' ? 'page' : undefined
+                        "
+                        :class="[
+                            'rounded px-3 py-2 text-sm font-medium',
+                            workspaceTab === 'treatment'
+                                ? 'bg-muted'
+                                : 'text-muted-foreground',
+                        ]"
+                        @click="workspaceTab = 'treatment'"
+                    >
+                        Treatment plan
+                    </button>
+                    <button
+                        type="button"
+                        :aria-current="
+                            workspaceTab === 'history' ? 'page' : undefined
+                        "
+                        :class="[
+                            'rounded px-3 py-2 text-sm font-medium',
+                            workspaceTab === 'history'
+                                ? 'bg-muted'
+                                : 'text-muted-foreground',
+                        ]"
+                        @click="workspaceTab = 'history'"
+                    >
+                        Patient history
+                    </button>
+                </nav>
+                <div
+                    v-show="workspaceTab === 'treatment'"
+                    data-testid="consultation-treatment-pane"
+                >
+                    <TreatmentPlanPanel
+                        ref="treatmentPlanPanelRef"
+                        :visit-number="clinical.visit.visitNumber"
+                        :branch-id="clinical.branch.id"
+                        :plan="clinical.treatmentPlan"
+                        :visit-version="clinical.visit.lockVersion"
+                        :queue-version="clinical.queue.lockVersion"
+                        :encounter-version="clinical.encounter.lockVersion"
+                        :allergies="clinical.allergies"
+                    />
+                </div>
+                <div
+                    v-show="workspaceTab === 'history'"
+                    data-testid="consultation-history-pane"
+                    class="min-h-0 rounded-lg border bg-card p-4 lg:h-[calc(100dvh-12rem)] lg:[&>div]:h-full"
+                >
+                    <ClinicalHistoryPanel
+                        :history="clinical.history"
+                        :time-zone="clinical.branch.timezone"
+                    />
+                </div>
             </aside>
         </div>
 
@@ -1006,3 +1222,50 @@ const changeHoldState = (action: 'hold' | 'resume') => {
         />
     </main>
 </template>
+
+<style scoped>
+.consultation-workspace {
+    font-size: 12.5px;
+    line-height: 1.5;
+}
+.consultation-workspace :deep(.text-sm) {
+    font-size: 12.5px;
+}
+.consultation-workspace :deep(.text-xs) {
+    font-size: 11.5px;
+}
+.consultation-workspace :deep(h2),
+.consultation-workspace :deep(h3) {
+    font-size: 13px;
+}
+.consultation-workspace :deep(button),
+.consultation-workspace :deep(button[class]) {
+    height: 30px;
+    font-size: 12px;
+    padding-inline: 8px;
+}
+.consultation-workspace :deep(#clinical-safety button) {
+    padding-inline: 4px;
+}
+.consultation-workspace :deep(button[aria-label='Open user menu']) {
+    width: 30px;
+    padding-inline: 0;
+}
+.consultation-workspace :deep(button:not(:focus-visible)) {
+    box-shadow: none;
+}
+.consultation-workspace :deep(button[aria-label^='Move ']),
+.consultation-workspace :deep(button[aria-label^='Withdraw ']),
+.consultation-workspace :deep(button[aria-label='Remove diagnosis']) {
+    width: 28px;
+    padding-inline: 4px;
+}
+.consultation-workspace
+    :deep(input:not([type='radio']):not([type='checkbox'])) {
+    height: 30px;
+    font-size: 12px;
+}
+.consultation-workspace :deep(textarea) {
+    font-size: 12.5px;
+}
+</style>

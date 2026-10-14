@@ -140,6 +140,8 @@ export type ClinicalEncounterPage = {
     visit: {
         visitNumber: string;
         priority: 'normal' | 'urgent';
+        isPanel: boolean;
+        paymentMethodLabel: string;
         registrationReason: string | null;
         registrationReasons: VisitReasonPresentation;
         registeredAt: string;
