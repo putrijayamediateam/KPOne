@@ -58,6 +58,7 @@ test('Claim message template is plain text with smart-field buttons and a Copy m
     assert.match(claimPage, /v-if="claim\.message"/);
     assert.match(messageService, /'panels\.manage\.organisation'/);
     assert.match(messageService, /lockForUpdate\(\)/);
+
     for (const field of [
         'panel_name',
         'patient_nric',
@@ -67,6 +68,7 @@ test('Claim message template is plain text with smart-field buttons and a Copy m
     ]) {
         assert.match(messageService, new RegExp(`'${field}' =>`));
     }
+
     for (const excluded of ['diagnosis', 'medication', 'mc_days', 'chit']) {
         assert.doesNotMatch(messageService, new RegExp(`'${excluded}'`));
     }
