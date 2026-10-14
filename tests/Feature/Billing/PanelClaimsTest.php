@@ -24,6 +24,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Inertia\Testing\AssertableInertia as Assert;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
 
@@ -263,8 +264,24 @@ class PanelClaimsTest extends BillingTestCase
         $this->assertDatabaseCount('payments', 0);
     }
 
-    public function test_pending_and_overdue_list_unclaimed_invoices_by_each_panels_due_days(): void
+    /** @return array<string, array{string}> */
+    public static function panelClaimFilterClocks(): array
     {
+        return [
+            'start of UTC day' => ['2026-10-14 00:01:00'],
+            'same UTC and branch date' => ['2026-10-14 10:00:00'],
+            'before branch midnight' => ['2026-10-14 15:59:59'],
+            'at branch midnight' => ['2026-10-14 16:00:00'],
+            'different UTC and branch date' => ['2026-10-14 17:00:00'],
+            'end of UTC day' => ['2026-10-14 23:59:59'],
+        ];
+    }
+
+    #[DataProvider('panelClaimFilterClocks')]
+    public function test_pending_and_overdue_list_unclaimed_invoices_by_each_panels_due_days(string $frozenAtUtc): void
+    {
+        // Freeze before creating actors so their branch access and visit timestamps share this clock.
+        $this->travelTo(CarbonImmutable::parse($frozenAtUtc, 'UTC'));
         [$panelOfficer, $visit, $invoice, $allocation] = $this->approvedPanelFixture();
         $this->selectBranch($panelOfficer, $this->branch);
 
@@ -302,6 +319,9 @@ class PanelClaimsTest extends BillingTestCase
             ->where('work.tabs.pending', 1)->where('work.tabs.overdue', 0));
         DB::table('panels')->where('id', $allocation->panel_id)->update(['claim_due_rule' => 'days_after_visit', 'claim_due_time' => null, 'claim_due_offset' => null]);
 
+        // Date filters are branch-local calendar dates, matching the directory's interpretation.
+        $branchToday = CarbonImmutable::now($this->branch->timezone);
+
         foreach ([
             [['invoice_no' => $invoice->invoice_number, 'tab' => 'pending'], 1],
             [['invoice_no' => 'NOPE-1', 'tab' => 'pending'], 0],
@@ -309,9 +329,9 @@ class PanelClaimsTest extends BillingTestCase
             [['panel' => 'No Such Panel', 'tab' => 'pending'], 0],
             [['visit_type' => $visit->visit_type, 'tab' => 'pending'], 1],
             [['visit_type' => $visit->visit_type === 'otc' ? 'consultation' : 'otc', 'tab' => 'pending'], 0],
-            [['visit_from' => now()->addDay()->toDateString(), 'tab' => 'pending'], 0],
-            [['due_from' => now()->toDateString(), 'tab' => 'pending'], 1],
-            [['due_to' => now()->subDays(2)->toDateString(), 'tab' => 'pending'], 0],
+            [['visit_from' => $branchToday->addDay()->toDateString(), 'tab' => 'pending'], 0],
+            [['due_from' => $branchToday->toDateString(), 'tab' => 'pending'], 1],
+            [['due_to' => $branchToday->subDays(2)->toDateString(), 'tab' => 'pending'], 0],
             [['amount_min' => '30.01', 'tab' => 'pending'], 0],
         ] as [$query, $expected]) {
             $this->get(route('panel-claims.index', $query))->assertOk()
