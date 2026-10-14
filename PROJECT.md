@@ -1,8 +1,13 @@
 # KPOne project
 
-Latest merged delivery: PR #100 — Checkout settings (Panel list and Panel form), merged as `bfba0ef`. Recent merges, newest first
+Latest merged delivery: PR #103 — Panel invoices page and CSV download, merged as `5aa60d6`. Recent merges, newest first
 (documentation-only PRs omitted):
 
+- PR #103 (`5aa60d6`) — PS-03: Panel invoices page (`/panel-invoices`) with date, time, Panel, doctor, visit type and
+  treatment filters, and a CSV download for Panel Officer, Finance Officer and Director. First export in KPOne,
+  audited by filters and row count only. New permission `panel.invoices.export.branch`.
+- PR #102 (`2860ea4`) — PS-02: claim message template (plain text with smart fields) edited in Checkout settings and a
+  Copy message button on the claim page.
 - PR #100 (`bfba0ef`) — PS-01: Checkout settings (`/checkout-settings`): Panel list with tabs, search, status switch,
   Edit and Archive; Add/Edit panel page (type, SSM number, contact, address, verification link or remark, TIN) and a
   per-Panel claim due rule (N days after the visit, or daily, weekly or monthly by a time). New permission
