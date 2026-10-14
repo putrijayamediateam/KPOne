@@ -45,8 +45,9 @@ class SupervisorPricingTest extends ClinicalTestCase
         $holders = fn (string $permission): array => collect($roles)
             ->filter(fn (array $permissions) => in_array($permission, $permissions, true))->keys()->sort()->values()->all();
 
-        $this->assertSame(['ca_supervisor', 'director', 'finance_officer'], $holders(self::REFERENCES));
-        $this->assertSame(['ca_supervisor', 'finance_officer'], $holders(self::PUBLISH));
+        // ADM-01: the clinic manager's Administrator role also manages and publishes prices.
+        $this->assertSame(['administrator', 'ca_supervisor', 'director', 'finance_officer'], $holders(self::REFERENCES));
+        $this->assertSame(['administrator', 'ca_supervisor', 'finance_officer'], $holders(self::PUBLISH));
     }
 
     public function test_the_grant_does_not_touch_staff_administration(): void

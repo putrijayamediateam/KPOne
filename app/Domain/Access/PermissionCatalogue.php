@@ -23,6 +23,9 @@ final class PermissionCatalogue
 
     public const QUEUE_DISPLAY_ROLE = 'queue_display';
 
+    /** The clinic manager's operational settings account; never patient, clinical or finance-approval access. */
+    public const ADMINISTRATOR_ROLE = 'administrator';
+
     /** @return list<string> */
     public static function all(): array
     {
@@ -42,6 +45,7 @@ final class PermissionCatalogue
             'public_intakes.review.branch',
             'medicines.manage.organisation',
             'clinical_services.manage.organisation',
+            'catalogue.settings.manage.organisation',
             'branch_context.switch.branch',
             'branch_context.switch.organisation',
             'access.view.organisation',
@@ -137,6 +141,7 @@ final class PermissionCatalogue
                 'public_checkin_links.manage.organisation',
                 'medicines.manage.organisation',
                 'clinical_services.manage.organisation',
+                'catalogue.settings.manage.organisation',
                 'inventory.references.manage.organisation',
                 'inventory.view.branch',
                 'inventory.suppliers.manage.organisation',
@@ -256,12 +261,28 @@ final class PermissionCatalogue
                 'inventory.reorder.manage.branch',
                 'inventory.warehouse.organisation',
             ],
-            'panel_officer' => $organisation,
+            'panel_officer' => [...$organisation, 'catalogue.settings.manage.organisation'],
             'finance_officer' => [
                 ...$organisation,
+                'catalogue.settings.manage.organisation',
                 'inventory.view.branch',
                 'inventory.suppliers.manage.organisation',
                 'inventory.purchase_orders.create.organisation',
+            ],
+            // The clinic manager: settings and catalogues only. No patient, clinical, billing-approval,
+            // Panel Claims or people/access authority (see BillingPermissions for its pricing and
+            // Panel settings grants).
+            self::ADMINISTRATOR_ROLE => [
+                ...$organisation,
+                'medicines.manage.organisation',
+                'clinical_services.manage.organisation',
+                'catalogue.settings.manage.organisation',
+                'inventory.view.branch',
+                'inventory.references.manage.organisation',
+                'inventory.suppliers.manage.organisation',
+                'inventory.reorder.manage.branch',
+                'public_checkin_links.manage.organisation',
+                'queue_display.manage.organisation',
             ],
             'business_development' => $organisation,
             'marketing' => $organisation,
