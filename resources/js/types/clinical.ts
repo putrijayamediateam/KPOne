@@ -159,6 +159,7 @@ export type ClinicalEncounterPage = {
         clinicalNote: string | null;
         startedAt: string;
         attendingClinician: string;
+        canChooseDiagnosisPreset: boolean;
         lockVersion: number;
         updatedAt: string;
     };

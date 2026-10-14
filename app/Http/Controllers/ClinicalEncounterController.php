@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Domain\Clinical\Services\ClinicalEncounterDirectoryService;
 use App\Domain\Clinical\Services\ClinicalEncounterService;
+use App\Domain\Clinical\Services\EncounterDiagnosisPresetDirectoryService;
 use App\Domain\Queue\Display\RoomCallService;
 use App\Domain\Queue\Models\BranchRoom;
 use App\Domain\Visit\Models\Visit;
@@ -51,6 +52,13 @@ class ClinicalEncounterController extends Controller
         }
 
         return Inertia::render('Clinical/HistoryShow', ['historical' => $historical]);
+    }
+
+    public function diagnosisPresets(Request $request, Visit $visit, EncounterDiagnosisPresetDirectoryService $directory): JsonResponse
+    {
+        $data = $request->validate(['expected_branch_id' => ['required', 'integer', 'min:1'], 'q' => ['sometimes', 'nullable', 'string', 'max:200']]);
+
+        return response()->json(['data' => $directory->search($request->user(), $visit, (int) $data['expected_branch_id'], trim((string) ($data['q'] ?? '')))]);
     }
 
     public function update(

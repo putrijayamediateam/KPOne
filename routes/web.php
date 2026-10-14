@@ -251,6 +251,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('visits/{historicalVisit}/encounter/history', [ClinicalEncounterController::class, 'history'])
             ->middleware('permission:encounters.history.view.organisation')
             ->name('encounters.history.show');
+        Route::get('visits/{visit}/encounter/diagnosis-presets', [ClinicalEncounterController::class, 'diagnosisPresets'])
+            ->middleware(['permission:encounters.view.own', 'permission:encounters.update.own', 'throttle:60,1'])
+            ->name('encounters.diagnosis-presets');
         Route::patch('visits/{visit}/encounter', [ClinicalEncounterController::class, 'update'])
             ->middleware(['permission:encounters.update.own', 'throttle:60,1'])
             ->name('encounters.update');
