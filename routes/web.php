@@ -20,6 +20,7 @@ use App\Http\Controllers\ClinicPlaceholderController;
 use App\Http\Controllers\ConsultationCheckoutController;
 use App\Http\Controllers\ConsultationHoldController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\DiagnosisPresetSettingsController;
 use App\Http\Controllers\DispensaryController;
 use App\Http\Controllers\InventoryController;
 use App\Http\Controllers\InventoryMovementController;
@@ -107,6 +108,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('panel-invoices/download', [PanelInvoicesController::class, 'download'])->middleware('throttle:10,1')->name('panel-invoices.download');
     });
     Route::middleware(['permission:catalogue.settings.manage.organisation', 'sensitive.no-store'])->group(function () {
+        Route::get('consultation-settings', [DiagnosisPresetSettingsController::class, 'index'])->name('diagnosis-presets.index');
+        Route::post('consultation-settings/diagnoses', [DiagnosisPresetSettingsController::class, 'store'])->middleware('throttle:30,1')->name('diagnosis-presets.store');
+        Route::patch('consultation-settings/diagnoses/{preset}/rename', [DiagnosisPresetSettingsController::class, 'rename'])->whereNumber('preset')->middleware('throttle:30,1')->name('diagnosis-presets.rename');
+        Route::patch('consultation-settings/diagnoses/{preset}/active', [DiagnosisPresetSettingsController::class, 'active'])->whereNumber('preset')->middleware('throttle:30,1')->name('diagnosis-presets.active');
         Route::get('inventory-services-settings/medicine-details', [MedicineOptionSettingsController::class, 'index'])->name('medicine-details.index');
         Route::post('inventory-services-settings/medicine-details/{type}', [MedicineOptionSettingsController::class, 'store'])->middleware('throttle:30,1')->name('medicine-details.store');
         Route::patch('inventory-services-settings/medicine-details/{type}/{option}/rename', [MedicineOptionSettingsController::class, 'rename'])->whereNumber('option')->middleware('throttle:30,1')->name('medicine-details.rename');

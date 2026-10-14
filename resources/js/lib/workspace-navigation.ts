@@ -8,6 +8,7 @@ export type WorkspaceNavigationCapabilities = {
     paymentMethods: boolean;
     panelSettings: boolean;
     catalogueSettings: boolean;
+    consultationSettings: boolean;
     billingApprovalLimits: boolean;
     paymentReconciliations: boolean;
     patientRecords: boolean;
@@ -100,6 +101,13 @@ const destinations: Record<
             'Manage Panels: contact, verification link and claim due rule.',
         href: '/checkout-settings',
         icon: 'file',
+    },
+    consultationSettings: {
+        key: 'consultationSettings',
+        label: 'Consultation settings',
+        description: 'Manage preset diagnosis names for the organisation.',
+        href: '/consultation-settings',
+        icon: 'clipboard',
     },
     catalogueSettings: {
         key: 'catalogueSettings',
@@ -248,6 +256,7 @@ export const mainMenuGroups = (
                 'medicineCatalogue',
                 'clinicalServiceCatalogue',
                 'catalogueSettings',
+                'consultationSettings',
             ]),
         },
         {

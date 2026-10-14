@@ -100,6 +100,7 @@ class HandleInertiaRequests extends Middleware
                     'clinicalServiceCatalogue' => $user->can('clinical_services.manage.organisation'),
                     'paymentMethods' => $user->can('payment_methods.manage.organisation'),
                     'panelSettings' => $user->can('panels.manage.organisation'),
+                    'consultationSettings' => $activeBranch !== null && $user->can('catalogue.settings.manage.organisation'),
                     'catalogueSettings' => $activeBranch !== null && $user->can('catalogue.settings.manage.organisation'),
                     'billingApprovalLimits' => $user->can('billing.approval_limits.manage.organisation'),
                     'paymentReconciliations' => $user->can('payments.reconcile.branch'),
