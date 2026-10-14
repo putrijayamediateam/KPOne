@@ -472,6 +472,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('queue', [QueueController::class, 'index'])
             ->middleware('permission:queue.view.own,queue.view.branch')
             ->name('queue.index');
+        Route::get('queue/waiting-counts', [QueueController::class, 'waitingCounts'])
+            ->middleware(['permission:queue.view.own,queue.view.branch', 'sensitive.no-store', 'throttle:60,1'])
+            ->name('queue.waiting-counts');
         Route::post('queue/search', [QueueController::class, 'search'])
             ->middleware(['permission:queue.view.own,queue.view.branch', 'throttle:120,1'])
             ->name('queue.search');
