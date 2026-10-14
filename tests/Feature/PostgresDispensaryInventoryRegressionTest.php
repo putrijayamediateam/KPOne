@@ -614,7 +614,14 @@ class PostgresDispensaryInventoryRegressionTest extends TestCase
         $catalogueCostMigration = '2026_10_01_000200_add_unified_catalogue_setup_and_costing';
         $catalogueCostPath = database_path('migrations/'.$catalogueCostMigration.'.php');
         $catalogueCostBatch = DB::table('migrations')->where('migration', $catalogueCostMigration)->value('batch');
+        $supplierSettingsMigration = '2026_10_14_000400_extend_suppliers_for_settings';
+        $supplierSettingsPath = database_path('migrations/'.$supplierSettingsMigration.'.php');
+        $supplierSettingsBatch = DB::table('migrations')->where('migration', $supplierSettingsMigration)->value('batch');
+        $this->assertSame(0, DB::table('inventory_supplier_contacts')->count());
+        $this->assertSame(0, DB::table('inventory_supplier_settings_commands')->count());
         try {
+            // Unwind later supplier dependencies before testing the retained Inventory foundation.
+            $migrator->rollback([$supplierSettingsPath], ['batch' => $supplierSettingsBatch]);
             $migrator->rollback([$catalogueCostPath], ['batch' => $catalogueCostBatch]);
             $migrator->rollback([$path], ['batch' => $migrationBatch]);
             foreach (self::INVENTORY_OPERATIONS_TABLES as $table) {
@@ -628,6 +635,9 @@ class PostgresDispensaryInventoryRegressionTest extends TestCase
             if (! DB::table('migrations')->where('migration', $catalogueCostMigration)->exists()) {
                 $migrator->run([$catalogueCostPath], ['step' => true]);
             }
+            if (! DB::table('migrations')->where('migration', $supplierSettingsMigration)->exists()) {
+                $migrator->run([$supplierSettingsPath], ['step' => true]);
+            }
         }
 
         foreach (self::INVENTORY_OPERATIONS_TABLES as $table) {
@@ -638,6 +648,10 @@ class PostgresDispensaryInventoryRegressionTest extends TestCase
         $this->assertTrue(Schema::hasColumn('inventory_purchase_order_lines', 'estimated_unit_cost_sen'));
         $this->assertTrue(Schema::hasColumn('inventory_goods_receipt_lines', 'unit_cost_sen'));
         $this->assertTrue(Schema::hasColumn('stock_movements', 'unit_cost_sen'));
+        $this->assertTrue(Schema::hasColumn('inventory_suppliers', 'lock_version'));
+        $this->assertTrue(Schema::hasTable('inventory_supplier_contacts'));
+        $this->assertTrue(Schema::hasTable('inventory_supplier_settings_commands'));
+        $this->assertTrue(DB::table('migrations')->where('migration', $supplierSettingsMigration)->exists());
     }
 
     public function test_inventory_operations_migration_refuses_every_retained_evidence_table_and_new_movement_without_changing_migrator_evidence(): void
