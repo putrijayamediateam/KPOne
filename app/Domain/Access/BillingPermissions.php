@@ -10,6 +10,7 @@ final class BillingPermissions
         $ca = ['billing.view.branch', 'billing.build.branch', 'billing.finalize.branch', 'billing.print.branch', 'payments.add.branch', 'payments.reconcile.branch', 'coverage.propose.branch', 'coverage.approve.branch', 'outstanding.request.branch', 'outstanding.view.branch', 'visits.complete.branch'];
 
         return [
+            'administrator' => ['pricing.references.manage.organisation', 'prices.publish.organisation', 'panels.manage.organisation', 'payment_methods.manage.organisation'],
             'ca' => $ca,
             'ca_supervisor' => [...$ca, 'coverage.approve.branch', 'outstanding.approve.branch', 'pricing.references.manage.organisation', 'prices.publish.organisation'],
             'finance_officer' => ['billing.summary.branch', 'billing.lines.view.branch', 'finance.work.view.branch', 'panel.invoices.export.branch', 'pricing.references.manage.organisation', 'panels.manage.organisation', 'payment_methods.manage.organisation', 'payments.reconcile.branch', 'prices.publish.organisation', 'payments.add.branch', 'payments.reverse.branch', 'invoices.void.branch', 'coverage.propose.branch', 'coverage.approve.branch', 'outstanding.view.branch', 'outstanding.request.branch', 'outstanding.approve.branch'],

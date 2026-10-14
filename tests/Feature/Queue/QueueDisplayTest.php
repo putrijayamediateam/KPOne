@@ -56,7 +56,8 @@ class QueueDisplayTest extends QueueTestCase
         $this->assertContains('queue_display.manage.branch', $roles['ca_supervisor']);
         $this->assertContains('queue.room.select.own', $roles['resident_doctor']);
         foreach ($roles as $role => $permissions) {
-            if (! in_array($role, ['director', 'ca_supervisor'], true)) {
+            // ADM-01: the clinic manager's Administrator role also manages Queue Display settings (organisation level).
+            if (! in_array($role, ['director', 'ca_supervisor', 'administrator'], true)) {
                 $this->assertNotContains('queue_display.manage.organisation', $permissions, $role);
                 $this->assertNotContains('queue_display.manage.branch', $permissions, $role);
             }
