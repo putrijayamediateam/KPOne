@@ -13,10 +13,12 @@ import {
     Trash2,
 } from '@lucide/vue';
 import { computed, ref, watch } from 'vue';
+import DiagnosisPresetPicker from '@/components/clinical/DiagnosisPresetPicker.vue';
 import UnsavedClinicalWorkDialog from '@/components/clinical/UnsavedClinicalWorkDialog.vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import { OperationalSelect } from '@/components/ui/select';
+import { appendPresetDiagnosis } from '@/lib/diagnosis-draft';
 import { waitedDurationLabel } from '@/lib/r1c2-presentation';
 import AllergyProblemPanel from '@/pages/Clinical/Partials/AllergyProblemPanel.vue';
 import ClinicalHistoryPanel from '@/pages/Clinical/Partials/ClinicalHistoryPanel.vue';
@@ -327,6 +329,9 @@ const addDiagnosis = () => {
         code_system: '',
         is_primary: form.diagnoses.length === 0,
     });
+};
+const choosePreset = (name: string) => {
+    form.diagnoses = appendPresetDiagnosis(form.diagnoses, name);
 };
 const removeDiagnosis = (index: number) => {
     form.diagnoses.splice(index, 1);
@@ -819,14 +824,29 @@ const changeHoldState = (action: 'hold' | 'resume') => {
                                     Structured codes are optional in Phase 2A.
                                 </p>
                             </div>
-                            <Button
-                                type="button"
-                                size="sm"
-                                variant="outline"
-                                @click="addDiagnosis"
-                            >
-                                <Plus class="size-4" /> Add diagnosis
-                            </Button>
+                            <div class="flex flex-wrap justify-end gap-2">
+                                <DiagnosisPresetPicker
+                                    :visit-number="clinical.visit.visitNumber"
+                                    :branch-id="clinical.branch.id"
+                                    :disabled="
+                                        !clinical.encounter
+                                            .canChooseDiagnosisPreset ||
+                                        clinical.hold.isHeld ||
+                                        form.processing ||
+                                        recordDrifted ||
+                                        form.diagnoses.length >= 20
+                                    "
+                                    @select="choosePreset"
+                                />
+                                <Button
+                                    type="button"
+                                    size="sm"
+                                    variant="outline"
+                                    @click="addDiagnosis"
+                                >
+                                    <Plus class="size-4" /> Add diagnosis
+                                </Button>
+                            </div>
                         </div>
                         <InputError :message="form.errors.diagnoses" />
                         <div

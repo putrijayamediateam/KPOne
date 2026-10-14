@@ -95,6 +95,7 @@ class ClinicalEncounterDirectoryService
             ],
             'encounter' => [
                 'status' => $encounter->status,
+                'canChooseDiagnosisPreset' => $canActOnConsultation && $activeHold === null && Gate::forUser($actor)->allows('update', $encounter),
                 'clinicalNote' => $encounter->clinical_note,
                 'startedAt' => $encounter->started_at->toIso8601String(),
                 'attendingClinician' => $encounter->attendingClinician->name,
