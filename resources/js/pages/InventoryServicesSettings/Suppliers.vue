@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Head, router, useForm, usePage } from '@inertiajs/vue3';
+import { Head, Link, router, useForm, usePage } from '@inertiajs/vue3';
 import { getCountries, getCountryCallingCode } from 'libphonenumber-js/max';
 import { computed, ref, watch } from 'vue';
 import InputError from '@/components/InputError.vue';
@@ -123,10 +123,10 @@ const generalError = computed(
                 class="rounded-md px-4 py-3 text-sm font-medium text-muted-foreground"
                 >Price tier</span
             >
-            <span
-                aria-disabled="true"
-                class="rounded-md px-4 py-3 text-sm font-medium text-muted-foreground"
-                >Medicine details</span
+            <Link
+                href="/inventory-services-settings/medicine-details"
+                class="rounded-md px-4 py-3 text-sm font-medium text-muted-foreground hover:bg-muted"
+                >Medicine details</Link
             >
             <span
                 aria-current="page"

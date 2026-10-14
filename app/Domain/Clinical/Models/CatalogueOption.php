@@ -14,14 +14,14 @@ class CatalogueOption extends Model
 {
     protected function casts(): array
     {
-        return ['is_active' => 'boolean'];
+        return ['is_active' => 'boolean', 'lock_version' => 'integer'];
     }
 
     protected static function booted(): void
     {
         static::deleting(fn (): never => throw new LogicException('Catalogue options are retained; deactivate them instead.'));
         static::updating(function (self $option): void {
-            if ($option->isDirty(['organisation_id', 'option_type', 'normalized_label'])) {
+            if ($option->isDirty(['organisation_id', 'option_type'])) {
                 throw new LogicException('Catalogue option identity is immutable.');
             }
         });

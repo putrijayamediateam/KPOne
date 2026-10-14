@@ -614,6 +614,10 @@ class PostgresDispensaryInventoryRegressionTest extends TestCase
         $catalogueCostMigration = '2026_10_01_000200_add_unified_catalogue_setup_and_costing';
         $catalogueCostPath = database_path('migrations/'.$catalogueCostMigration.'.php');
         $catalogueCostBatch = DB::table('migrations')->where('migration', $catalogueCostMigration)->value('batch');
+        $medicineSettingsMigration = '2026_10_14_000500_add_medicine_option_settings_versions_and_retries';
+        $medicineSettingsPath = database_path('migrations/'.$medicineSettingsMigration.'.php');
+        $medicineSettingsBatch = DB::table('migrations')->where('migration', $medicineSettingsMigration)->value('batch');
+        $this->assertSame(0, DB::table('medicine_option_settings_commands')->count());
         $supplierSettingsMigration = '2026_10_14_000400_extend_suppliers_for_settings';
         $supplierSettingsPath = database_path('migrations/'.$supplierSettingsMigration.'.php');
         $supplierSettingsBatch = DB::table('migrations')->where('migration', $supplierSettingsMigration)->value('batch');
@@ -621,6 +625,7 @@ class PostgresDispensaryInventoryRegressionTest extends TestCase
         $this->assertSame(0, DB::table('inventory_supplier_settings_commands')->count());
         try {
             // Unwind later supplier dependencies before testing the retained Inventory foundation.
+            $migrator->rollback([$medicineSettingsPath], ['batch' => $medicineSettingsBatch]);
             $migrator->rollback([$supplierSettingsPath], ['batch' => $supplierSettingsBatch]);
             $migrator->rollback([$catalogueCostPath], ['batch' => $catalogueCostBatch]);
             $migrator->rollback([$path], ['batch' => $migrationBatch]);
@@ -638,8 +643,13 @@ class PostgresDispensaryInventoryRegressionTest extends TestCase
             if (! DB::table('migrations')->where('migration', $supplierSettingsMigration)->exists()) {
                 $migrator->run([$supplierSettingsPath], ['step' => true]);
             }
+            if (! DB::table('migrations')->where('migration', $medicineSettingsMigration)->exists()) {
+                $migrator->run([$medicineSettingsPath], ['step' => true]);
+            }
         }
 
+        $this->assertTrue(Schema::hasColumn('catalogue_options', 'lock_version'));
+        $this->assertTrue(Schema::hasTable('medicine_option_settings_commands'));
         foreach (self::INVENTORY_OPERATIONS_TABLES as $table) {
             $this->assertTrue(Schema::hasTable($table), $table);
         }

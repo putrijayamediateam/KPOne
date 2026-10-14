@@ -26,6 +26,7 @@ use App\Http\Controllers\InventoryMovementController;
 use App\Http\Controllers\InventoryOperationsController;
 use App\Http\Controllers\InventoryReferenceController;
 use App\Http\Controllers\MedicineCatalogueController;
+use App\Http\Controllers\MedicineOptionSettingsController;
 use App\Http\Controllers\PanelClaimsController;
 use App\Http\Controllers\PanelInvoicesController;
 use App\Http\Controllers\PanelSettingsController;
@@ -106,6 +107,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('panel-invoices/download', [PanelInvoicesController::class, 'download'])->middleware('throttle:10,1')->name('panel-invoices.download');
     });
     Route::middleware(['permission:catalogue.settings.manage.organisation', 'sensitive.no-store'])->group(function () {
+        Route::get('inventory-services-settings/medicine-details', [MedicineOptionSettingsController::class, 'index'])->name('medicine-details.index');
+        Route::post('inventory-services-settings/medicine-details/{type}', [MedicineOptionSettingsController::class, 'store'])->middleware('throttle:30,1')->name('medicine-details.store');
+        Route::patch('inventory-services-settings/medicine-details/{type}/{option}/rename', [MedicineOptionSettingsController::class, 'rename'])->whereNumber('option')->middleware('throttle:30,1')->name('medicine-details.rename');
+        Route::patch('inventory-services-settings/medicine-details/{type}/{option}/active', [MedicineOptionSettingsController::class, 'active'])->whereNumber('option')->middleware('throttle:30,1')->name('medicine-details.active');
         Route::get('inventory-services-settings/suppliers', [SupplierSettingsController::class, 'index'])->name('supplier-settings.index');
         Route::post('inventory-services-settings/suppliers', [SupplierSettingsController::class, 'store'])->middleware('throttle:30,1')->name('supplier-settings.store');
         Route::patch('inventory-services-settings/suppliers/{supplier}/active', [SupplierSettingsController::class, 'active'])->middleware('throttle:20,1')->name('supplier-settings.active');
