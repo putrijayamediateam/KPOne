@@ -27,7 +27,7 @@ export type Responsibility = {
 };
 export type BillingPage = {
     backLink: { label: string; href: string } | null;
-    patient: { name: string; patientNumber: string };
+    patient: { name: string; patientNumber: string; profileUrl: string | null };
     visit: {
         visitNumber: string;
         status: string;

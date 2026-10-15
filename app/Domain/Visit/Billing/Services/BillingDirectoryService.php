@@ -57,7 +57,7 @@ class BillingDirectoryService
                 ->where('i.status', 'finalized')->where('r.status', 'approved')->where('r.remaining_sen', '>', 0)->orderBy('r.id')->limit(10)
                 ->get(['i.invoice_number', 'r.remaining_sen', 'r.due_date', 'v.visit_number'])->map(fn ($r): array => ['invoiceNumber' => $r->invoice_number, 'amountSen' => (int) $r->remaining_sen, 'dueDate' => $r->due_date, 'url' => route('billing.show', $r->visit_number)])->all() : [];
 
-            return ['patient' => ['name' => $visit->patient->full_name, 'patientNumber' => $visit->patient->patient_number],
+            return ['patient' => ['name' => $visit->patient->full_name, 'patientNumber' => $visit->patient->patient_number, 'profileUrl' => $actor->can('patients.view.organisation') ? '/patients/'.rawurlencode($visit->patient->patient_number) : null],
                 'backLink' => $this->backLink($actor),
                 'visit' => ['visitNumber' => $visit->visit_number, 'status' => $visit->status, 'lockVersion' => $visit->lock_version, 'coverage' => $visit->coverage_type === 'panel' ? $visit->coverage_panel_name_snapshot : 'Self-pay', 'completedAt' => $visit->completed_at?->setTimezone($branch->timezone)->format('j M Y, g:i A')],
                 'clinic' => $branch->organisation->name, 'branch' => $branch->name, 'oldOutstanding' => $oldOutstanding,
