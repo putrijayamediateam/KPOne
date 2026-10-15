@@ -15,6 +15,7 @@ import {
 import { computed, ref, watch } from 'vue';
 import DiagnosisPresetPicker from '@/components/clinical/DiagnosisPresetPicker.vue';
 import UnsavedClinicalWorkDialog from '@/components/clinical/UnsavedClinicalWorkDialog.vue';
+import WaitingPatientsButton from '@/components/clinical/WaitingPatientsButton.vue';
 import InputError from '@/components/InputError.vue';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -479,6 +480,21 @@ const changeHoldState = (action: 'hold' | 'resume') => {
             <div
                 class="flex flex-wrap items-center justify-end gap-2 text-right text-xs text-muted-foreground"
             >
+                <WaitingPatientsButton
+                    v-if="
+                        page.props.auth.permissions.some((permission) =>
+                            ['queue.view.own', 'queue.view.branch'].includes(
+                                permission,
+                            ),
+                        )
+                    "
+                    :branch-id="clinical.branch.id"
+                    :can-view-branch="
+                        page.props.auth.permissions.includes(
+                            'queue.view.branch',
+                        )
+                    "
+                />
                 <Button
                     v-if="clinical.queue.canRecall"
                     type="button"
