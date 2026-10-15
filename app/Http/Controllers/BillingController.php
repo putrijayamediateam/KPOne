@@ -33,6 +33,11 @@ class BillingController extends Controller
         return response()->json($service->page($request->user(), $visit, $group, (int) ($input['page'] ?? 1)));
     }
 
+    public function payments(Request $request, Visit $visit, BillingDirectoryService $directory): Response
+    {
+        return Inertia::render('Billing/Payments', ['billing' => $directory->detail($request->user(), $visit)]);
+    }
+
     public function build(Request $request, Visit $visit, BillingBuilderService $service): RedirectResponse
     {
         $this->stayOnBilling($visit, fn () => $service->build($request->user(), $visit, $request->only(['expected_branch_id', 'lock_version'])));
@@ -49,30 +54,30 @@ class BillingController extends Controller
 
     public function payment(Request $request, Visit $visit, Invoice $invoice, PaymentService $service): RedirectResponse
     {
-        $this->stayOnBilling($visit, fn () => $service->add($request->user(), $visit, $invoice, $request->only(['expected_branch_id', 'lock_version', 'amount_sen', 'method', 'reference', 'idempotency_key'])));
+        $this->stayOnSettlement($request, $visit, fn () => $service->add($request->user(), $visit, $invoice, $request->only(['expected_branch_id', 'lock_version', 'amount_sen', 'method', 'reference', 'idempotency_key'])));
 
-        return to_route('billing.show', $visit);
+        return redirect($this->settlementDestination($request, $visit));
     }
 
     public function propose(Request $request, Visit $visit, Invoice $invoice, string $kind, ResponsibilityService $service): RedirectResponse
     {
-        $this->stayOnBilling($visit, fn () => $service->propose($request->user(), $visit, $invoice, $kind, $request->only(['expected_branch_id', 'lock_version', 'amount_sen', 'reason', 'due_date', 'panel_id', 'member_reference'])));
+        $this->stayOnSettlement($request, $visit, fn () => $service->propose($request->user(), $visit, $invoice, $kind, $request->only(['expected_branch_id', 'lock_version', 'amount_sen', 'reason', 'due_date', 'panel_id', 'member_reference'])));
 
-        return to_route('billing.show', $visit);
+        return redirect($this->settlementDestination($request, $visit));
     }
 
     public function approve(Request $request, Visit $visit, Invoice $invoice, string $kind, string $proposal, ResponsibilityService $service): RedirectResponse
     {
-        $this->stayOnBilling($visit, fn () => $service->approve($request->user(), $visit, $invoice, $kind, $proposal, $request->only(['expected_branch_id', 'lock_version', 'proposal_lock_version'])));
+        $this->stayOnSettlement($request, $visit, fn () => $service->approve($request->user(), $visit, $invoice, $kind, $proposal, $request->only(['expected_branch_id', 'lock_version', 'proposal_lock_version'])));
 
-        return to_route('billing.show', $visit);
+        return redirect($this->settlementDestination($request, $visit));
     }
 
     public function reverse(Request $request, Visit $visit, Invoice $invoice, Payment $payment, InvoiceCorrectionService $service): RedirectResponse
     {
-        $this->stayOnBilling($visit, fn () => $service->reverse($request->user(), $visit, $invoice, $payment, $request->only(['expected_branch_id', 'lock_version', 'payment_lock_version', 'reason', 'recording_error_only'])));
+        $this->stayOnSettlement($request, $visit, fn () => $service->reverse($request->user(), $visit, $invoice, $payment, $request->only(['expected_branch_id', 'lock_version', 'payment_lock_version', 'reason', 'recording_error_only'])));
 
-        return to_route('billing.show', $visit);
+        return redirect($this->settlementDestination($request, $visit));
     }
 
     public function void(Request $request, Visit $visit, Invoice $invoice, InvoiceCorrectionService $service): RedirectResponse
@@ -110,6 +115,21 @@ class BillingController extends Controller
         abort_unless($receipt, 404);
 
         return Inertia::render('Billing/Print', ['billing' => $data, 'receipt' => $receipt]);
+    }
+
+    private function settlementDestination(Request $request, Visit $visit): string
+    {
+        return route($request->input('return_to') === 'payments' ? 'billing.payments' : 'billing.show', $visit);
+    }
+
+    private function stayOnSettlement(Request $request, Visit $visit, \Closure $action): void
+    {
+        try {
+            $request->validate(['return_to' => ['sometimes', 'string', 'in:billing,payments']]);
+            $action();
+        } catch (ValidationException $exception) {
+            throw $exception->redirectTo($this->settlementDestination($request, $visit));
+        }
     }
 
     /**

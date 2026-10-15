@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import { compileTemplate, parse } from '@vue/compiler-sfc';
 
-const path = 'resources/js/pages/Billing/Show.vue';
+const path = 'resources/js/components/billing/BillingWorkspace.vue';
 const raw = readFileSync(new URL(`../../${path}`, import.meta.url), 'utf8');
 // Whitespace is collapsed so Prettier's line wrapping cannot break an assertion.
 const billing = raw.replace(/\s+/g, ' ');
@@ -56,7 +56,8 @@ test('the page explains how to settle, how Panel payment works and what is waiti
 
 test('the entry form is cleared with both amounts and the use-amount-due shortcuts fill them', () => {
     assert.ok(billing.includes("responsibility_amount: '',"));
-    assert.ok(billing.includes("form.responsibility_amount = '';"));
+    assert.match(billing, /onSuccess: \(\) => \{ clearEntry\(\);/);
+    assert.match(billing, /Object.assign\(form, \{ amount: '', responsibility_amount: ''/);
     assert.ok(billing.includes('@click="form.amount = dueNowText"'));
     assert.ok(
         billing.includes('@click="form.responsibility_amount = dueNowText"'),

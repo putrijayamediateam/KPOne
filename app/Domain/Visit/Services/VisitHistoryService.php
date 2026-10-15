@@ -94,6 +94,7 @@ class VisitHistoryService
                 'back' => route('registration.index'),
                 'consultation' => route('visits.history', $visit),
                 'billing' => $actor->can('billing.view.branch') ? route('billing.show', $visit) : null,
+                'payments' => $canFinance ? route('billing.payments', $visit) : null,
             ],
         ];
     }
