@@ -45,14 +45,14 @@ const icons: Record<string, Component> = {
             Clinic management
         </h1>
         <div
-            class="grid gap-px overflow-hidden rounded-lg border bg-border md:grid-cols-2 xl:grid-cols-3"
+            class="grid gap-px overflow-hidden rounded-lg border bg-card md:grid-cols-2 xl:grid-cols-3"
             data-testid="clinic-management-cards"
         >
             <section
                 v-for="(group, index) in groups"
                 :key="group.title"
                 :aria-labelledby="`clinic-card-${index}`"
-                class="min-w-0 bg-card p-5 md:p-6"
+                class="min-w-0 bg-card p-5 ring-1 ring-border md:p-6"
             >
                 <component
                     :is="icons[group.icon]"

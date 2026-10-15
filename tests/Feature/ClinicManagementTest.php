@@ -14,9 +14,11 @@ class ClinicManagementTest extends VisitTestCase
     public function test_hub_returns_only_authorized_implemented_destinations_for_every_catalogue_role(): void
     {
         $permissions = [
+            '/public-checkin-links' => ['public_checkin_links.manage.organisation', 'public_checkin_links.manage.branch'],
             '/consultation-settings' => ['catalogue.settings.manage.organisation'],
             '/checkout-settings' => ['panels.manage.organisation'],
             '/payment-methods' => ['payment_methods.manage.organisation'],
+            '/billing-approval-limits' => ['billing.approval_limits.manage.organisation'],
             '/medicines' => ['medicines.manage.organisation'],
             '/clinical-services' => ['clinical_services.manage.organisation'],
             '/pricing' => ['pricing.references.manage.organisation'],
@@ -29,9 +31,11 @@ class ClinicManagementTest extends VisitTestCase
             '/queue-display' => ['queue.display.branch', 'queue_display.manage.organisation', 'queue_display.manage.branch'],
             '/insights/today' => ['insights.view.organisation'],
             '/panel-claims' => ['panel.claims.manage.branch'],
+            '/panel-responsibility' => ['panel.work.view.branch'],
             '/panel-invoices' => ['panel.invoices.export.branch'],
             '/staff' => ['staff.view.own', 'staff.view.branch', 'staff.view.organisation'],
             '/branches' => ['branches.view.branch', 'branches.view.organisation'],
+            '/access-control' => ['access.view.organisation'],
             '/audit-logs' => ['audit.view.organisation'],
         ];
         foreach (array_keys(PermissionCatalogue::roles()) as $role) {
@@ -40,7 +44,7 @@ class ClinicManagementTest extends VisitTestCase
             $expected = collect($permissions)->filter(fn ($abilities) => $actor->hasAnyPermission($abilities))
                 ->keys()->sort()->values()->all();
             if (! $actor->hasAnyPermission(['billing.view.branch', 'billing.summary.branch'])) {
-                $expected = array_values(array_diff($expected, ['/financial-work']));
+                $expected = array_values(array_diff($expected, ['/financial-work', '/panel-responsibility']));
             }
             $this->get('/clinic-management')->assertOk()->assertInertia(fn (Assert $page) => $page
                 ->component('ClinicManagement/Index')
@@ -77,7 +81,7 @@ class ClinicManagementTest extends VisitTestCase
             $response->assertDontSee($patient->full_name)->assertDontSee($patient->patient_number);
             $response->assertInertia(fn (Assert $page) => $page->where('groups', function ($groups): bool {
                 $hrefs = collect($groups)->flatMap(fn ($group) => $group['links'])->pluck('href')->all();
-                foreach (['/patients', '/financial-work', '/panel-invoices', '/panel-claims'] as $denied) {
+                foreach (['/patients', '/financial-work', '/panel-invoices', '/panel-claims', '/panel-responsibility'] as $denied) {
                     $this->assertNotContains($denied, $hrefs);
                 }
 
@@ -110,5 +114,51 @@ class ClinicManagementTest extends VisitTestCase
         $this->selectBranch($actor);
         $this->get('/clinic-management')->assertForbidden();
         $this->get('/dashboard')->assertInertia(fn (Assert $page) => $page->where('workspace.navigation.clinicManagement', false));
+    }
+
+    public function test_ca_supervisor_sees_both_catalogues_pricing_and_queue_display_settings(): void
+    {
+        $actor = $this->actor('ca_supervisor');
+        $this->selectBranch($actor);
+        $this->get('/clinic-management')->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('groups', function ($groups): bool {
+                $hrefs = collect($groups)->flatMap(fn ($group) => $group['links'])->pluck('href')->all();
+                foreach (['/medicines', '/clinical-services', '/pricing', '/queue-display-settings'] as $expected) {
+                    $this->assertContains($expected, $hrefs);
+                }
+
+                return true;
+            }));
+        foreach (['/medicines', '/clinical-services', '/pricing', '/queue-display-settings'] as $destination) {
+            $this->get($destination)->assertOk();
+        }
+    }
+
+    public function test_added_links_use_the_existing_permissions_and_card_locations(): void
+    {
+        $actor = $this->actor('director');
+        $this->selectBranch($actor);
+        $this->get('/clinic-management')->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('groups', function ($groups): bool {
+                $cards = collect($groups)->keyBy('title');
+                foreach (['In-clinic' => ['/public-checkin-links', '/billing-approval-limits'],
+                    'Staff & branches' => ['/access-control'], 'Panel' => ['/panel-responsibility']] as $card => $links) {
+                    foreach ($links as $link) {
+                        $this->assertContains($link, collect($cards[$card]['links'])->pluck('href')->all());
+                    }
+                }
+
+                return true;
+            }));
+
+        // Workspace permission alone is insufficient: the existing summary/view gate is also required.
+        $actor->syncRoles([]);
+        $actor->givePermissionTo('panel.work.view.branch');
+        $this->get('/clinic-management')->assertForbidden();
+        $this->get('/panel-responsibility')->assertForbidden();
+        $actor->givePermissionTo('billing.summary.branch');
+        $this->get('/clinic-management')->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('groups.0.title', 'Panel')->where('groups.0.links.0.href', '/panel-responsibility'));
+        $this->get('/panel-responsibility')->assertOk();
     }
 }

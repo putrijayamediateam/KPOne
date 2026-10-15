@@ -31,3 +31,14 @@ test('Hub compiles with semantic keyboard links, card headings, responsive colum
     assert.doesNotMatch(source, /router\.(post|put|patch|delete)|useForm|<aside|aria-disabled/);
     assert.doesNotMatch(read('app/Domain/Access/ClinicManagementNavigation.php'), /Reviews|Blasting|Packages|Scheduling|e-Invoice|Tax settings|API key|Price tier|registration-settings|business-details|\.download/);
 });
+
+test('Unoccupied grid cells use the card surface with visible card borders and no placeholder destinations', () => {
+    const template = parse(source).descriptor.template.content;
+    const grid = template.match(/<div\s+class="([^"]+)"\s+data-testid="clinic-management-cards"/);
+    assert.ok(grid);
+    assert.match(grid[1], /\bbg-card\b/);
+    assert.doesNotMatch(grid[1], /\bbg-border\b|\bbg-muted\b/);
+    assert.match(template, /v-for="\(group, index\) in groups"/);
+    assert.match(template, /ring-1 ring-border/);
+    assert.doesNotMatch(template, /placeholder|empty-cell|aria-disabled/);
+});
