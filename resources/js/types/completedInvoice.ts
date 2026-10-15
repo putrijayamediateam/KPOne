@@ -1,3 +1,4 @@
+import type { OutstandingBills } from '@/types/billing';
 import type {
     VisitHistoryFinancial,
     VisitHistoryPage,
@@ -11,6 +12,7 @@ export type CompletedInvoicePage = {
         'visitNumber' | 'branch' | 'coverage' | 'registeredAt' | 'completedAt'
     >;
     financial: VisitHistoryFinancial | null;
+    outstanding: OutstandingBills | null;
     canSeeFinancial: boolean;
     canSeeLines: boolean;
     links: { back: string; consultation: string; billing: string | null };

@@ -171,34 +171,7 @@ final class PanelClaimDirectoryService
         $zone = $today->getTimezone();
         $dayStart = static fn (string $key): ?string => ($filters[$key] ?? '') === '' ? null : CarbonImmutable::createFromFormat('!Y-m-d', (string) $filters[$key], $zone)->startOfDay()->utc()->toDateTimeString();
         $dayEnd = static fn (string $key): ?string => ($filters[$key] ?? '') === '' ? null : CarbonImmutable::createFromFormat('!Y-m-d', (string) $filters[$key], $zone)->endOfDay()->utc()->toDateTimeString();
-        $query = DB::table('coverage_allocations as c')
-            ->join('invoices as i', 'i.id', '=', 'c.invoice_id')
-            ->join('visits as v', 'v.id', '=', 'i.visit_id')
-            ->join('patients as p', 'p.id', '=', 'i.patient_id')
-            ->join('panels as pn', function ($join): void {
-                $join->on('pn.id', '=', 'c.panel_id')->on('pn.organisation_id', '=', 'c.organisation_id');
-            })
-            ->leftJoin('users as d', function ($join): void {
-                $join->on('d.id', '=', 'v.assigned_doctor_user_id')->on('d.organisation_id', '=', 'v.organisation_id');
-            })
-            ->where('c.organisation_id', $actor->organisation_id)
-            ->where('c.branch_id', $branch->id)
-            ->where('c.status', 'approved')
-            ->whereColumn('c.current_invoice_guard', 'i.id')
-            ->whereColumn('c.invoice_id', 'i.id')
-            ->whereColumn('i.organisation_id', 'c.organisation_id')
-            ->whereColumn('i.branch_id', 'c.branch_id')
-            ->whereColumn('v.organisation_id', 'i.organisation_id')
-            ->whereColumn('v.branch_id', 'i.branch_id')
-            ->whereColumn('p.organisation_id', 'i.organisation_id')
-            ->whereColumn('p.id', 'i.patient_id')
-            ->where('i.status', 'finalized')
-            ->where('i.correction_hold', false)
-            ->where('i.source_stale', false)
-            ->whereColumn('c.amount_sen', '<=', 'i.total_sen')
-            ->whereNotExists(fn (Builder $existing) => $existing->selectRaw('1')
-                ->from('panel_claims')
-                ->whereColumn('panel_claims.coverage_allocation_id', 'c.id'))
+        $query = app(PanelClaimEligibility::class)->query($actor->organisation_id, $branch->id)
             ->select([
                 'c.public_id as allocation_id',
                 'c.amount_sen',

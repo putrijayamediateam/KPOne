@@ -309,6 +309,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
         Route::prefix('visits/{visit}/billing')->controller(BillingController::class)->group(function () {
             Route::get('/', 'show')->middleware('permission:billing.view.branch,billing.summary.branch')->name('billing.show');
+            Route::get('outstanding/{group}', 'outstanding')->whereIn('group', ['patient', 'panel'])->middleware(['permission:billing.view.branch,billing.summary.branch', 'sensitive.no-store'])->name('billing.outstanding');
             Route::post('build', 'build')->middleware(['permission:billing.build.branch', 'throttle:20,1'])->name('billing.build');
             Route::post('complete', 'complete')->middleware(['permission:visits.complete.branch', 'throttle:20,1'])->name('billing.complete');
             Route::post('{invoice}/finalize', 'finalize')->middleware(['permission:billing.finalize.branch', 'throttle:20,1'])->name('billing.finalize');

@@ -52,15 +52,11 @@ class BillingDirectoryService
                     'memberReference' => $record instanceof CoverageAllocation ? $record->member_reference : null,
                     'remainingSen' => $record instanceof PatientReceivable ? $record->remaining_sen : null, 'dueDate' => $record instanceof PatientReceivable ? $record->due_date->toDateString() : null] : null;
             };
-            $oldOutstanding = $actor->can('outstanding.view.branch') ? DB::table('patient_receivables as r')->join('invoices as i', 'i.id', '=', 'r.invoice_id')->join('visits as v', 'v.id', '=', 'i.visit_id')
-                ->where('i.organisation_id', $actor->organisation_id)->where('i.branch_id', $branch->id)->where('i.patient_id', $visit->patient_id)->where('i.visit_id', '<>', $visit->id)
-                ->where('i.status', 'finalized')->where('r.status', 'approved')->where('r.remaining_sen', '>', 0)->orderBy('r.id')->limit(10)
-                ->get(['i.invoice_number', 'r.remaining_sen', 'r.due_date', 'v.visit_number'])->map(fn ($r): array => ['invoiceNumber' => $r->invoice_number, 'amountSen' => (int) $r->remaining_sen, 'dueDate' => $r->due_date, 'url' => route('billing.show', $r->visit_number)])->all() : [];
 
             return ['patient' => ['name' => $visit->patient->full_name, 'patientNumber' => $visit->patient->patient_number, 'profileUrl' => $actor->can('patients.view.organisation') ? '/patients/'.rawurlencode($visit->patient->patient_number) : null],
                 'backLink' => $this->backLink($actor),
                 'visit' => ['visitNumber' => $visit->visit_number, 'status' => $visit->status, 'lockVersion' => $visit->lock_version, 'coverage' => $visit->coverage_type === 'panel' ? $visit->coverage_panel_name_snapshot : 'Self-pay', 'completedAt' => $visit->completed_at?->setTimezone($branch->timezone)->format('j M Y, g:i A')],
-                'clinic' => $branch->organisation->name, 'branch' => $branch->name, 'oldOutstanding' => $oldOutstanding,
+                'clinic' => $branch->organisation->name, 'branch' => $branch->name, 'outstanding' => $printing ? null : app(OutstandingBillService::class)->summary($actor, $visit),
                 'invoice' => $invoice ? ['publicId' => $invoice->public_id, 'number' => $invoice->invoice_number, 'status' => $invoice->status, 'lockVersion' => $invoice->lock_version, 'currency' => $invoice->currency,
                     'finalizedAt' => $invoice->finalized_at?->setTimezone($branch->timezone)->format('j M Y, g:i A'), 'correctionHold' => $invoice->correction_hold, 'state' => $state,
                     'lines' => ($actor->can('billing.view.branch') || $actor->can('billing.lines.view.branch')) ? InvoiceLine::query()->where('invoice_id', $invoice->id)->orderBy('id')->get()->map(fn ($l): array => ['type' => $l->line_type, 'name' => $l->display_name, 'unit' => $l->unit_snapshot, 'quantity' => $l->quantity, 'unitPriceSen' => $l->unit_price_sen, 'totalSen' => $l->line_total_sen])->all() : []] : null,

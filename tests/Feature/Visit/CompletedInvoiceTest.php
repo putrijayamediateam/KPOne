@@ -32,7 +32,7 @@ class CompletedInvoiceTest extends BillingTestCase
         $response = $this->getJson(route('visits.invoice', $visit), ['X-Inertia' => 'true', 'X-Inertia-Version' => app(HandleInertiaRequests::class)->version(request()) ?? '']);
         $response->assertOk()->assertDontSee('Synthetic confidential consultation text');
         $this->assertSame(
-            ['patient', 'visit', 'financial', 'canSeeFinancial', 'canSeeLines', 'links'],
+            ['patient', 'visit', 'financial', 'outstanding', 'canSeeFinancial', 'canSeeLines', 'links'],
             array_keys($response->json('props.invoice')),
         );
         $this->assertSame($before, app(FinancialLedger::class)->state($invoice->refresh()));
