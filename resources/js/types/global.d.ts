@@ -24,6 +24,7 @@ declare module '@inertiajs/core' {
                 defaultUrl: string;
                 canEnterClinic: boolean;
                 navigation: {
+                    clinicManagement: boolean;
                     registration: boolean;
                     registrationReview: boolean;
                     consultation: boolean;
