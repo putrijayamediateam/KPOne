@@ -37,7 +37,7 @@ class ClinicalEncounterDirectoryService
                 'visit' => fn ($query) => $query->select([
                     'id', 'organisation_id', 'branch_id', 'patient_id', 'visit_number', 'visit_type',
                     'status', 'priority', 'visit_reason', 'assigned_doctor_user_id', 'registered_at', 'lock_version',
-                    'coverage_type', 'coverage_panel_name_snapshot',
+                    'coverage_type', 'coverage_panel_name_snapshot', 'coverage_panel_note',
                 ])->with([
                     'patient:id,organisation_id,patient_number,full_name,date_of_birth,sex',
                     'branch:id,organisation_id,code,name,timezone',
@@ -79,6 +79,7 @@ class ClinicalEncounterDirectoryService
                 'visitNumber' => $encounter->visit->visit_number,
                 'priority' => $encounter->visit->priority,
                 'isPanel' => $encounter->visit->coverage_type === 'panel',
+                'panelNote' => $encounter->visit->coverage_type === 'panel' ? $encounter->visit->coverage_panel_note : null,
                 'paymentMethodLabel' => $encounter->visit->coverage_type === 'panel'
                     ? ($encounter->visit->coverage_panel_name_snapshot ?? 'Panel')
                     : 'Self-pay',

@@ -140,7 +140,7 @@ class QueueDirectoryService
             'visit' => fn ($visit) => $visit
                 ->select([
                     'id', 'organisation_id', 'branch_id', 'patient_id', 'visit_number', 'visit_reason', 'priority', 'coverage_type',
-                    'coverage_panel_name_snapshot', 'assigned_doctor_user_id', 'status', 'lock_version',
+                    'coverage_panel_name_snapshot', 'coverage_panel_note', 'assigned_doctor_user_id', 'status', 'lock_version',
                 ])
                 ->with([
                     'patient:id,organisation_id,patient_number,full_name',
@@ -298,6 +298,7 @@ class QueueDirectoryService
             'visitReasonExcerpt' => ($summary = $this->visitReasons->summary($visit)) ? Str::limit($summary, 80) : null,
             'doctorName' => $visit->assignedDoctor?->name,
             'doctorEligible' => $doctorEligible,
+            'panelNote' => $visit->coverage_type === 'panel' ? $visit->coverage_panel_note : null,
             'coverageLabel' => $visit->coverage_type === 'panel'
                 ? $visit->coverage_panel_name_snapshot : 'Self-pay',
             'priority' => $visit->priority,

@@ -186,7 +186,7 @@ test('Focus mode retains branch/account access and a one-line name while hiding 
     assert.ok(show.includes('aria-label="Open user menu"'));
     assert.ok(show.includes('class="truncate text-[14px] font-semibold"'));
     assert.ok(show.includes(':title="clinical.patient.name"'));
-    assert.ok(show.includes('const panelNote = ref<string | null>(null)'));
+    assert.ok(show.includes('const panelNote = computed(() => props.clinical.visit.panelNote)'));
     assert.ok(show.includes('data-testid="consultation-vitals-bar"'));
     assert.ok(show.includes('title="Record vital signs"'));
 });

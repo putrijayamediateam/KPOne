@@ -27,6 +27,7 @@ class VisitAdministrationService
         private VisitDoctorEligibilityService $doctors,
         private VisitReasonService $reasons,
         private AuditRecorder $audit,
+        private VisitPanelNoteService $panelNotes = new VisitPanelNoteService,
     ) {}
 
     /** @param array<string, mixed> $attributes */
@@ -38,8 +39,20 @@ class VisitAdministrationService
 
         return DB::transaction(function () use ($visit, $validated, $actor, $branch): Visit {
             $this->lockActor($actor, $branch, 'visits.update.branch');
+            if (array_key_exists('coverage_panel_note', $validated) || filled($validated['panel_note_idempotency_key'] ?? null)) {
+                $this->panelNotes->lockCommands($actor);
+            }
             Patient::query()->whereKey($visit->patient_id)->lockForUpdate()->firstOrFail();
             $locked = Visit::query()->whereKey($visit->id)->lockForUpdate()->firstOrFail();
+            $noteValue = $this->panelNotes->value($validated, $locked);
+            $noteCommand = array_key_exists('coverage_panel_note', $validated) || filled($validated['panel_note_idempotency_key'] ?? null) || $noteValue !== $locked->coverage_panel_note;
+            if ($noteCommand) {
+                Validator::make($validated, ['panel_note_idempotency_key' => ['required', 'uuid']])->validate();
+            }
+            $noteHash = $this->panelNotes->hash($actor, 'update', $validated, $locked);
+            if ($noteCommand && $this->panelNotes->replay($actor, $locked, $validated['panel_note_idempotency_key'], $noteHash)) {
+                return $locked;
+            }
             $this->assertMutable($locked, (int) $validated['lock_version']);
             $queueEntry = QueueEntry::query()
                 ->where('visit_id', $locked->id)
@@ -55,7 +68,7 @@ class VisitAdministrationService
             $panel = $this->lockPanel($actor, $validated);
             $before = $locked->only([
                 'visit_type', 'priority', 'visit_reason', 'assigned_doctor_user_id', 'coverage_type',
-                'panel_id', 'coverage_panel_name_snapshot', 'coverage_member_reference',
+                'panel_id', 'coverage_panel_name_snapshot', 'coverage_member_reference', 'coverage_panel_note',
             ]);
             $reasonSelectionProvided = array_key_exists('visit_reason_public_ids', $validated);
             $currentStructured = $locked->reasonAssignments()->exists();
@@ -83,6 +96,7 @@ class VisitAdministrationService
                 'coverage_panel_name_snapshot' => $panel?->name,
                 'coverage_member_reference' => $validated['coverage_type'] === 'panel'
                     ? $validated['coverage_member_reference'] : null,
+                'coverage_panel_note' => $noteValue,
                 'updated_by_user_id' => $actor->id,
                 'lock_version' => $locked->lock_version + 1,
             ])->save();
@@ -95,6 +109,9 @@ class VisitAdministrationService
                 }
             }
 
+            if ($noteCommand) {
+                $this->panelNotes->record($actor, $locked, $validated['panel_note_idempotency_key'], $noteHash);
+            }
             $this->recordChanges($locked, $before, $actor);
 
             return $locked->refresh();
@@ -178,6 +195,9 @@ class VisitAdministrationService
             'coverage_type' => ['required', Rule::in(['self_pay', 'panel'])],
             'panel_id' => ['nullable', 'integer', 'required_if:coverage_type,panel'],
             'coverage_member_reference' => ['nullable', 'string', 'max:100'],
+            'coverage_panel_note' => ['sometimes', 'nullable', 'string', 'max:500'],
+            'panel_note_panel_id' => ['nullable', 'integer'],
+            'panel_note_idempotency_key' => [Rule::requiredIf(fn (): bool => array_key_exists('coverage_panel_note', $attributes)), 'nullable', 'uuid'],
         ])->validate();
         $validated['coverage_member_reference'] = $this->nullableTrim($validated['coverage_member_reference'] ?? null);
         $validated['assigned_doctor_user_id'] = isset($validated['assigned_doctor_user_id'])
@@ -298,8 +318,8 @@ class VisitAdministrationService
         $changed = array_keys(array_filter($visit->only(array_keys($before)), fn ($value, $key) => $before[$key] !== $value, ARRAY_FILTER_USE_BOTH));
         if ($changed !== []) {
             $this->audit->record('visit.details.updated', $visit, [
-                'changed_fields' => array_values(array_diff($changed, ['visit_reason', 'coverage_member_reference'])),
-                'sensitive_fields_changed' => array_values(array_intersect($changed, ['visit_reason', 'coverage_member_reference'])),
+                'changed_fields' => array_values(array_diff($changed, ['visit_reason', 'coverage_member_reference', 'coverage_panel_note'])),
+                'sensitive_fields_changed' => array_values(array_intersect($changed, ['visit_reason', 'coverage_member_reference', 'coverage_panel_note'])),
                 'record_version' => $visit->lock_version,
             ], $actor, $visit->branch);
         }

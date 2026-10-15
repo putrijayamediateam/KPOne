@@ -141,6 +141,7 @@ export type ClinicalEncounterPage = {
         visitNumber: string;
         priority: 'normal' | 'urgent';
         isPanel: boolean;
+        panelNote: string | null;
         paymentMethodLabel: string;
         registrationReason: string | null;
         registrationReasons: VisitReasonPresentation;

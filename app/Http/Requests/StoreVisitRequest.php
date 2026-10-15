@@ -46,6 +46,8 @@ class StoreVisitRequest extends FormRequest
             'coverage_type' => ['required', 'in:self_pay,panel'],
             'panel_id' => ['nullable', 'integer', 'required_if:coverage_type,panel'],
             'coverage_member_reference' => ['nullable', 'string', 'max:100'],
+            'coverage_panel_note' => ['sometimes', 'nullable', 'string', 'max:500'],
+            'panel_note_panel_id' => ['nullable', 'integer'],
             'confirm_repeat' => ['nullable', 'boolean'],
             'organisation_id' => ['prohibited'],
             'branch_id' => ['prohibited'],
@@ -81,6 +83,7 @@ class StoreVisitRequest extends FormRequest
             'visit_reason_public_ids.required_if' => 'Select at least one Visit Reason.',
             'visit_reason_public_ids.max' => 'A Visit can have up to 5 reasons.',
             'panel_id.required_if' => 'Please select a Panel for this Visit.',
+            'coverage_panel_note.max' => 'The Panel note must be 500 characters or fewer.',
             'coverage_member_reference.max' => 'The Panel member reference must be 100 characters or fewer.',
         ];
     }

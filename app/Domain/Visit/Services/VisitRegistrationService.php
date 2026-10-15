@@ -32,6 +32,7 @@ class VisitRegistrationService
         private VisitNumberGenerator $numbers,
         private VisitReasonService $reasons,
         private AuditRecorder $audit,
+        private VisitPanelNoteService $panelNotes = new VisitPanelNoteService,
     ) {}
 
     /** @param array<string, mixed> $attributes */
@@ -52,11 +53,19 @@ class VisitRegistrationService
                     throw new AuthorizationException('You may not register a Visit.');
                 }
 
+                if (array_key_exists('coverage_panel_note', $validated)) {
+                    $this->panelNotes->lockCommands($lockedActor);
+                }
                 $existing = $this->idempotentVisit($lockedActor, $branch, $validated['idempotency_key']);
                 if ($existing) {
+                    $this->assertPanelNoteReplay($lockedActor, $existing, $validated);
+
                     return $existing;
                 }
 
+                if (array_key_exists('coverage_panel_note', $validated)) {
+                    $this->panelNotes->assertUnusedKey($lockedActor, $validated['idempotency_key']);
+                }
                 $quickPatientCreated = ! filled($validated['patient_number'] ?? null);
                 $patient = $this->resolvePatient($lockedActor, $validated);
                 $lockedPatient = Patient::query()
@@ -70,6 +79,8 @@ class VisitRegistrationService
                     if ($quickPatientCreated) {
                         throw new IdempotentVisitResolved;
                     }
+
+                    $this->assertPanelNoteReplay($lockedActor, $existing, $validated);
 
                     return $existing;
                 }
@@ -123,12 +134,19 @@ class VisitRegistrationService
                     'coverage_panel_name_snapshot' => $panel?->name,
                     'coverage_member_reference' => $validated['coverage_type'] === 'panel'
                         ? $validated['coverage_member_reference'] : null,
+                    'coverage_panel_note' => $this->panelNotes->value($validated),
                     'registered_at' => $now,
                     'registered_by_user_id' => $lockedActor->id,
                     'updated_by_user_id' => $lockedActor->id,
                     'lock_version' => 1,
                 ])->save();
                 $this->reasons->assign($visit, $reasons);
+                if (array_key_exists('coverage_panel_note', $validated)) {
+                    $this->panelNotes->record($lockedActor, $visit, $validated['idempotency_key'], $this->panelNotes->hash($lockedActor, 'create', $validated));
+                }
+                if ($visit->coverage_panel_note !== null) {
+                    $this->audit->record('visit.panel_note.updated', $visit, ['record_version' => 1, 'has_note' => true], $lockedActor, $branch);
+                }
 
                 $this->audit->record('visit.created', $visit, [
                     'visit_type' => $visit->visit_type,
@@ -148,7 +166,10 @@ class VisitRegistrationService
                 ->where('idempotency_key', $validated['idempotency_key'])
                 ->first();
             if ($existing) {
-                return $this->assertIdempotentBranch($existing, $branch);
+                $existing = $this->assertIdempotentBranch($existing, $branch);
+                $this->assertPanelNoteReplay($actor, $existing, $validated);
+
+                return $existing;
             }
 
             throw $exception;
@@ -197,6 +218,8 @@ class VisitRegistrationService
             'coverage_type' => ['required', Rule::in(['self_pay', 'panel'])],
             'panel_id' => ['nullable', 'integer', 'required_if:coverage_type,panel'],
             'coverage_member_reference' => ['nullable', 'string', 'max:100'],
+            'coverage_panel_note' => ['sometimes', 'nullable', 'string', 'max:500'],
+            'panel_note_panel_id' => ['nullable', 'integer'],
             'confirm_repeat' => ['nullable', 'boolean'],
             'intake_purpose' => ['nullable', Rule::in(PublicIntakePayloadValidator::VISIT_PURPOSES)],
             'chief_complaint' => ['nullable', 'string', 'max:500'],
@@ -252,6 +275,15 @@ class VisitRegistrationService
             ->first();
 
         return $visit ? $this->assertIdempotentBranch($visit, $branch) : null;
+    }
+
+    /** @param array<string, mixed> $validated */
+    private function assertPanelNoteReplay(User $actor, Visit $visit, array $validated): void
+    {
+        $replayed = $this->panelNotes->replay($actor, $visit, $validated['idempotency_key'], $this->panelNotes->hash($actor, 'create', $validated));
+        if (! $replayed && array_key_exists('coverage_panel_note', $validated) && $this->panelNotes->value($validated) !== $visit->coverage_panel_note) {
+            throw ValidationException::withMessages(['idempotency_key' => 'This Registration was already saved with different details. Start a new form.']);
+        }
     }
 
     private function assertIdempotentBranch(Visit $visit, Branch $branch): Visit

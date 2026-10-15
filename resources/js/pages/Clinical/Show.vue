@@ -49,8 +49,8 @@ const props = defineProps<{
 }>();
 const page = usePage();
 const user = computed(() => page.props.auth.user!);
-// Reserved until PANEL-NOTE-01 supplies a note; do not display an empty label.
-const panelNote = ref<string | null>(null);
+// Show the authorized visit note only when non-empty.
+const panelNote = computed(() => props.clinical.visit.panelNote);
 const canViewPatient = computed(() =>
     page.props.auth.permissions.includes('patients.view.organisation'),
 );
@@ -595,7 +595,7 @@ const changeHoldState = (action: 'hold' | 'resume') => {
                 </div>
             </div>
         </header>
-        <!-- Reserved, hidden Panel note presentation slot for PANEL-NOTE-01. -->
+        <!-- Panel notes are read-only in the consultation. -->
         <div
             class="grid min-h-0 gap-5 lg:grid-cols-[minmax(0,55fr)_minmax(0,45fr)]"
         >
@@ -665,8 +665,9 @@ const changeHoldState = (action: 'hold' | 'resume') => {
                                 class="space-y-1 text-xs text-muted-foreground"
                             >
                                 <div>Panel note</div>
-                                <!-- Reserved for PANEL-NOTE-01. -->
-                                <div>{{ panelNote }}</div>
+                                <div class="break-words whitespace-pre-wrap">
+                                    {{ panelNote }}
+                                </div>
                             </div>
                         </div>
                     </div>

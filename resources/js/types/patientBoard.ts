@@ -12,6 +12,7 @@ export type PatientBoardRow = {
     visitNotes: string | null;
     doctorName: string | null;
     coverageLabel: string;
+    panelNote?: string | null;
     durationLabel: string;
     priority: 'normal' | 'urgent';
     returnedFromDispensary?: boolean;

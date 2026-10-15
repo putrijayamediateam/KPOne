@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class UpdateVisitRequest extends FormRequest
 {
@@ -27,6 +28,9 @@ class UpdateVisitRequest extends FormRequest
             'coverage_type' => ['required', 'in:self_pay,panel'],
             'panel_id' => ['nullable', 'integer', 'required_if:coverage_type,panel'],
             'coverage_member_reference' => ['nullable', 'string', 'max:100'],
+            'coverage_panel_note' => ['sometimes', 'nullable', 'string', 'max:500'],
+            'panel_note_panel_id' => ['nullable', 'integer'],
+            'panel_note_idempotency_key' => [Rule::requiredIf(fn (): bool => $this->exists('coverage_panel_note')), 'nullable', 'uuid'],
             'organisation_id' => ['prohibited'],
             'branch_id' => ['prohibited'],
             'patient_id' => ['prohibited'],
@@ -44,6 +48,7 @@ class UpdateVisitRequest extends FormRequest
             'assigned_doctor_user_id.required_if' => 'Please select a doctor for this consultation.',
             'visit_reason_public_ids.max' => 'A Visit can have up to 5 reasons.',
             'panel_id.required_if' => 'Please select a Panel for this Visit.',
+            'coverage_panel_note.max' => 'The Panel note must be 500 characters or fewer.',
             'coverage_member_reference.max' => 'The Panel member reference must be 100 characters or fewer.',
             'lock_version.required' => 'This Visit needs to be reloaded before it can be changed.',
         ];

@@ -36,6 +36,7 @@ export type VisitRow = {
     visitReasonExcerpt: string | null;
     doctorName: string | null;
     coverageLabel: string;
+    panelNote?: string | null;
     priority: VisitPriority;
     status: 'registered' | 'cancelled' | 'completed';
     queueNumber: string | null;
@@ -88,6 +89,7 @@ export type VisitDetail = {
         panelId: number | null;
         panelName: string | null;
         memberReference: string | null;
+        panelNote: string | null;
     };
     registeredAt: string;
     cancelledAt: string | null;
