@@ -79,7 +79,7 @@ const totals = computed(() => {
                 {{ history.links.backLabel }}
             </ActionLink>
             <h1 class="text-xl font-semibold tracking-tight">
-                Invoice · Visit {{ history.visit.visitNumber }}
+                Completed visit {{ history.visit.visitNumber }}
             </h1>
             <StatusBadge
                 status="completed"

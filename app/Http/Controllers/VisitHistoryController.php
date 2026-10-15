@@ -13,6 +13,13 @@ use Inertia\Response;
 
 class VisitHistoryController extends Controller
 {
+    public function invoice(Request $request, Visit $visit, VisitHistoryService $history): Response
+    {
+        return Inertia::render('Billing/Invoice', [
+            'invoice' => $history->invoiceDetail($request->user(), $visit),
+        ]);
+    }
+
     public function __invoke(
         Request $request,
         Visit $visit,

@@ -9,7 +9,7 @@ const history = squash(read('resources/js/pages/Visits/History.vue'));
 const panel = squash(read('resources/js/pages/Clinical/Partials/ClinicalHistoryPanel.vue'));
 const board = squash(read('resources/js/components/patient-board/PatientBoard.vue'));
 
-test('the Invoices page shows what was ordered beside what was dispensed', () => {
+test('the completed consultation keeps what was ordered beside what was dispensed', () => {
     assert.match(history, /data-testid="ordered-vs-dispensed"/);
     assert.match(history, /data-testid="ordered-side"/);
     assert.match(history, /data-testid="dispensed-side"/);
@@ -17,7 +17,7 @@ test('the Invoices page shows what was ordered beside what was dispensed', () =>
     assert.match(history, /Removed by CA/);
     assert.match(history, /Added by CA/);
     assert.match(history, /Edited by CA/);
-    assert.match(history, /Invoice · Visit/);
+    assert.match(history, /Completed visit/);
 });
 
 test('services show the CA confirmed quantity and the change label', () => {

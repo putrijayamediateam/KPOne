@@ -499,6 +499,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('registration', [RegistrationController::class, 'index'])
             ->middleware('permission:visits.view.branch')
             ->name('registration.index');
+        Route::get('visits/{visit}/invoice', [VisitHistoryController::class, 'invoice'])
+            ->middleware(['permission:visits.history.view.branch', 'sensitive.no-store'])
+            ->name('visits.invoice');
+
         Route::get('visits/{visit}/history', VisitHistoryController::class)
             ->middleware(['permission:visits.history.view.branch', 'sensitive.no-store'])
             ->name('visits.history');
