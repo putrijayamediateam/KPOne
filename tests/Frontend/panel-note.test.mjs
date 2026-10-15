@@ -80,23 +80,49 @@ test('the domain owns note binding and retry rules and audit never stores the no
     );
 });
 
-test('Registration and Queue share a narrow truncated Panel note column with a full-text keyboard tooltip and mobile cards', () => {
+test('Registration and Queue share one two-line Payment column with full-name/note tooltip and mobile cards', () => {
     const board = read(
         'resources/js/components/patient-board/PatientBoard.vue',
     );
 
     for (const page of ['Registration', 'Queue']) {
-        assert.match(
-            read(`resources/js/pages/${page}/Index.vue`),
-            /panelNote: (?:visit|row)\.panelNote/,
-        );
+        const source = read(`resources/js/pages/${page}/Index.vue`);
+
+        assert.match(source, /panelNote: (?:visit|row)\.panelNote/);
+        assert.match(source, /coverageLabel: (?:visit|row)\.coverageLabel/);
     }
 
-    assert.match(board, /w-\[10%\][^>]*>Panel note<\/th>/);
-    assert.match(board, /TooltipProvider\s+v-if="row.panelNote"/);
-    assert.match(board, /tabindex="0"[^>]*truncate[^>]*:title="row.panelNote"/);
-    assert.match(board, /TooltipContent[^>]*>[\s\S]*?\{\{ row.panelNote \}\}/);
+    assert.match(board, /w-\[24%\][^>]*>Payment<\/th>/);
+    assert.doesNotMatch(board, /<th[^>]*>(?:Coverage|Panel note)<\/th>/);
+    assert.match(
+        board,
+        /tabindex="0"[^>]*min-h-10[^>]*:title="paymentTooltip\(row\)"/,
+    );
+    assert.match(
+        board,
+        /\[row.coverageLabel, row.panelNote\]\.filter\(Boolean\)\.join\('\\n'\)/,
+    );
+    assert.match(
+        board,
+        /class="block font-semibold break-words"\s+data-testid="board-payment-name"/,
+    );
+    assert.match(
+        board,
+        /v-if="row.panelNote"\s+class="block truncate text-\[11px\] leading-4 text-muted-foreground"\s+data-testid="board-panel-note"/,
+    );
+    assert.match(
+        board,
+        /TooltipContent[^>]*>[\s\S]*?\{\{ row.coverageLabel \}\}[\s\S]*?v-if="row.panelNote"[\s\S]*?\{\{ row.panelNote \}\}/,
+    );
     assert.match(board, /@media \(width < 768px\)/);
     assert.match(board, /content: attr\(data-label\)/);
-    assert.match(board, /colspan="10"/);
+    assert.match(
+        board,
+        /td\[data-label='Payment'\] \{\s+grid-column: 1 \/ -1;/,
+    );
+    assert.match(board, /colspan="9"/);
+    assert.match(
+        read('resources/js/pages/Registration/Index.vue'),
+        /v-model="form.coverage_type"/,
+    );
 });

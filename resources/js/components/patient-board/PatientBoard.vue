@@ -51,6 +51,9 @@ const openHistory = (event: MouseEvent, row: PatientBoardRow) => {
     router.visit(row.historyUrl);
 };
 
+const paymentTooltip = (row: PatientBoardRow) =>
+    [row.coverageLabel, row.panelNote].filter(Boolean).join('\n');
+
 const patientHref = (number: string) =>
     `/patients/${encodeURIComponent(number)}`;
 const visitHref = (number: string) => `/visits/${encodeURIComponent(number)}`;
@@ -76,14 +79,13 @@ const statusClass = (tone: PatientBoardRow['statusTone']) =>
             >
                 <tr>
                     <th class="w-[15%] px-3 py-2">Patient</th>
-                    <th class="w-[8%] px-3 py-2">Queue</th>
-                    <th class="w-[8%] px-3 py-2">Arrived</th>
-                    <th class="w-[14%] px-3 py-2">Visit notes</th>
-                    <th class="w-[11%] px-3 py-2">Doctor</th>
-                    <th class="w-[10%] px-3 py-2">Coverage</th>
-                    <th class="w-[10%] px-3 py-2">Panel note</th>
+                    <th class="w-[7%] px-3 py-2">Queue</th>
+                    <th class="w-[9%] px-3 py-2">Arrived</th>
+                    <th class="w-[12%] px-3 py-2">Visit notes</th>
+                    <th class="w-[10%] px-3 py-2">Doctor</th>
+                    <th class="w-[24%] px-3 py-2">Payment</th>
                     <th class="w-[8%] px-3 py-2">Duration</th>
-                    <th class="w-[10%] px-3 py-2">Status</th>
+                    <th class="w-[9%] px-3 py-2">Status</th>
                     <th class="w-[6%] px-3 py-2 text-right">Actions</th>
                 </tr>
             </thead>
@@ -174,33 +176,40 @@ const statusClass = (tone: PatientBoardRow['statusTone']) =>
                             </Tooltip>
                         </TooltipProvider>
                     </td>
-                    <td class="px-3 py-2.5 align-middle" data-label="Coverage">
-                        <div class="truncate">{{ row.coverageLabel }}</div>
-                    </td>
-                    <td
-                        class="px-3 py-2.5 align-middle"
-                        data-label="Panel note"
-                        :class="{ 'panel-note-empty': !row.panelNote }"
-                    >
-                        <TooltipProvider
-                            v-if="row.panelNote"
-                            :delay-duration="350"
-                        >
+                    <td class="px-3 py-2.5 align-middle" data-label="Payment">
+                        <TooltipProvider :delay-duration="350">
                             <Tooltip>
                                 <TooltipTrigger as-child>
                                     <span
                                         tabindex="0"
-                                        class="block max-w-full truncate"
-                                        :title="row.panelNote"
-                                        data-testid="board-panel-note"
+                                        class="block min-h-10 max-w-full rounded-sm focus-visible:ring-2 focus-visible:ring-ring/35 focus-visible:outline-none"
+                                        :title="paymentTooltip(row)"
+                                        data-testid="board-payment"
                                         @click.stop
+                                    >
+                                        <span
+                                            class="block font-semibold break-words"
+                                            data-testid="board-payment-name"
+                                            >{{ row.coverageLabel }}</span
+                                        >
+                                        <span
+                                            v-if="row.panelNote"
+                                            class="block truncate text-[11px] leading-4 text-muted-foreground"
+                                            data-testid="board-panel-note"
+                                            >{{ row.panelNote }}</span
+                                        >
+                                    </span>
+                                </TooltipTrigger>
+                                <TooltipContent class="max-w-80 break-words">
+                                    <span class="block font-semibold">{{
+                                        row.coverageLabel
+                                    }}</span>
+                                    <span
+                                        v-if="row.panelNote"
+                                        class="block whitespace-pre-wrap"
                                         >{{ row.panelNote }}</span
                                     >
-                                </TooltipTrigger>
-                                <TooltipContent
-                                    class="max-w-72 break-words whitespace-pre-wrap"
-                                    >{{ row.panelNote }}</TooltipContent
-                                >
+                                </TooltipContent>
                             </Tooltip>
                         </TooltipProvider>
                     </td>
@@ -382,7 +391,7 @@ const statusClass = (tone: PatientBoardRow['statusTone']) =>
                 </tr>
                 <tr v-if="!rows.length">
                     <td
-                        colspan="10"
+                        colspan="9"
                         class="px-4 py-12 text-center text-sm text-muted-foreground"
                     >
                         {{
@@ -418,9 +427,6 @@ const statusClass = (tone: PatientBoardRow['statusTone']) =>
         min-width: 0;
         padding: 6px;
     }
-    .patient-board td.panel-note-empty {
-        display: none;
-    }
     .patient-board td::before {
         content: attr(data-label);
         display: block;
@@ -429,7 +435,7 @@ const statusClass = (tone: PatientBoardRow['statusTone']) =>
     }
     .patient-board td[data-label='Patient'],
     .patient-board td[data-label='Visit notes'],
-    .patient-board td[data-label='Panel note'] {
+    .patient-board td[data-label='Payment'] {
         grid-column: 1 / -1;
     }
 }
