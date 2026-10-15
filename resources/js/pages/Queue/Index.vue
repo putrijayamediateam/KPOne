@@ -200,6 +200,7 @@ const boardRows = computed<PatientBoardRow[]>(() =>
         visitNotes: row.visitReasonExcerpt,
         doctorName: row.doctorName,
         coverageLabel: row.coverageLabel,
+        panelNote: row.panelNote,
         durationLabel: row.isHeld
             ? `Held ${row.heldMinutes} min`
             : row.status === 'serving'

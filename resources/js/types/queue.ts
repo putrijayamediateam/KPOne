@@ -10,6 +10,7 @@ export type QueueRow = {
     doctorName: string | null;
     doctorEligible: boolean;
     coverageLabel: string;
+    panelNote?: string | null;
     priority: 'normal' | 'urgent';
     status: QueueStatus;
     queuedAt: string;

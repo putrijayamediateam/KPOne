@@ -67,23 +67,24 @@ const statusClass = (tone: PatientBoardRow['statusTone']) =>
 </script>
 
 <template>
-    <div class="overflow-x-auto">
+    <div class="patient-board overflow-x-auto">
         <table
-            class="w-full min-w-[1040px] table-fixed text-left text-[13px] leading-5"
+            class="w-full table-fixed text-left text-[13px] leading-5 md:min-w-[1040px]"
         >
             <thead
                 class="border-y bg-muted/25 text-[11px] font-semibold tracking-wide text-muted-foreground uppercase"
             >
                 <tr>
-                    <th class="w-[18%] px-3 py-2">Patient</th>
+                    <th class="w-[15%] px-3 py-2">Patient</th>
                     <th class="w-[8%] px-3 py-2">Queue</th>
                     <th class="w-[8%] px-3 py-2">Arrived</th>
-                    <th class="w-[19%] px-3 py-2">Visit notes</th>
-                    <th class="w-[13%] px-3 py-2">Doctor</th>
-                    <th class="w-[11%] px-3 py-2">Coverage</th>
+                    <th class="w-[14%] px-3 py-2">Visit notes</th>
+                    <th class="w-[11%] px-3 py-2">Doctor</th>
+                    <th class="w-[10%] px-3 py-2">Coverage</th>
+                    <th class="w-[10%] px-3 py-2">Panel note</th>
                     <th class="w-[8%] px-3 py-2">Duration</th>
                     <th class="w-[10%] px-3 py-2">Status</th>
-                    <th class="w-[5%] px-3 py-2 text-right">Actions</th>
+                    <th class="w-[6%] px-3 py-2 text-right">Actions</th>
                 </tr>
             </thead>
             <tbody>
@@ -95,7 +96,7 @@ const statusClass = (tone: PatientBoardRow['statusTone']) =>
                     :data-history-url="row.historyUrl ?? undefined"
                     @click="openHistory($event, row)"
                 >
-                    <td class="px-3 py-2.5 align-middle">
+                    <td class="px-3 py-2.5 align-middle" data-label="Patient">
                         <div class="flex min-w-0 items-center gap-2.5">
                             <span
                                 class="grid size-8 shrink-0 place-items-center rounded-full bg-muted/75 text-muted-foreground"
@@ -117,7 +118,7 @@ const statusClass = (tone: PatientBoardRow['statusTone']) =>
                             </div>
                         </div>
                     </td>
-                    <td class="px-3 py-2.5 align-middle">
+                    <td class="px-3 py-2.5 align-middle" data-label="Queue">
                         <span
                             class="inline-flex min-w-9 justify-center rounded-md bg-muted/65 px-2 py-0.5 font-normal text-foreground tabular-nums"
                             >{{ row.queueNumber ?? '—' }}</span
@@ -125,6 +126,7 @@ const statusClass = (tone: PatientBoardRow['statusTone']) =>
                     </td>
                     <td
                         class="px-3 py-2.5 align-middle font-normal tabular-nums"
+                        data-label="Arrived"
                     >
                         <span class="block truncate" :title="row.arrivedDate">{{
                             row.arrivedDate
@@ -134,7 +136,10 @@ const statusClass = (tone: PatientBoardRow['statusTone']) =>
                             >{{ row.arrivedTime }}</span
                         >
                     </td>
-                    <td class="px-3 py-2.5 align-middle">
+                    <td
+                        class="px-3 py-2.5 align-middle"
+                        data-label="Visit notes"
+                    >
                         <div class="text-xs leading-5">
                             <DisclosureText
                                 :text="row.visitNotes"
@@ -143,7 +148,7 @@ const statusClass = (tone: PatientBoardRow['statusTone']) =>
                             />
                         </div>
                     </td>
-                    <td class="px-3 py-2.5 align-middle">
+                    <td class="px-3 py-2.5 align-middle" data-label="Doctor">
                         <TooltipProvider :delay-duration="350">
                             <Tooltip>
                                 <TooltipTrigger as-child>
@@ -169,10 +174,37 @@ const statusClass = (tone: PatientBoardRow['statusTone']) =>
                             </Tooltip>
                         </TooltipProvider>
                     </td>
-                    <td class="px-3 py-2.5 align-middle">
+                    <td class="px-3 py-2.5 align-middle" data-label="Coverage">
                         <div class="truncate">{{ row.coverageLabel }}</div>
                     </td>
-                    <td class="px-3 py-2.5 align-middle">
+                    <td
+                        class="px-3 py-2.5 align-middle"
+                        data-label="Panel note"
+                        :class="{ 'panel-note-empty': !row.panelNote }"
+                    >
+                        <TooltipProvider
+                            v-if="row.panelNote"
+                            :delay-duration="350"
+                        >
+                            <Tooltip>
+                                <TooltipTrigger as-child>
+                                    <span
+                                        tabindex="0"
+                                        class="block max-w-full truncate"
+                                        :title="row.panelNote"
+                                        data-testid="board-panel-note"
+                                        @click.stop
+                                        >{{ row.panelNote }}</span
+                                    >
+                                </TooltipTrigger>
+                                <TooltipContent
+                                    class="max-w-72 break-words whitespace-pre-wrap"
+                                    >{{ row.panelNote }}</TooltipContent
+                                >
+                            </Tooltip>
+                        </TooltipProvider>
+                    </td>
+                    <td class="px-3 py-2.5 align-middle" data-label="Duration">
                         <span
                             class="inline-flex items-center gap-1.5 rounded-md bg-muted/65 px-2 py-0.5 font-normal tabular-nums"
                         >
@@ -183,7 +215,7 @@ const statusClass = (tone: PatientBoardRow['statusTone']) =>
                             {{ row.durationLabel }}
                         </span>
                     </td>
-                    <td class="px-3 py-2.5 align-middle">
+                    <td class="px-3 py-2.5 align-middle" data-label="Status">
                         <div class="flex flex-wrap items-center gap-1.5">
                             <span
                                 class="inline-flex rounded-md px-2 py-0.5 text-[11px] font-normal"
@@ -207,7 +239,10 @@ const statusClass = (tone: PatientBoardRow['statusTone']) =>
                             >
                         </div>
                     </td>
-                    <td class="px-3 py-2 text-right align-middle">
+                    <td
+                        class="px-3 py-2 text-right align-middle"
+                        data-label="Actions"
+                    >
                         <DropdownMenu>
                             <DropdownMenuTrigger as-child>
                                 <Button
@@ -347,7 +382,7 @@ const statusClass = (tone: PatientBoardRow['statusTone']) =>
                 </tr>
                 <tr v-if="!rows.length">
                     <td
-                        colspan="9"
+                        colspan="10"
                         class="px-4 py-12 text-center text-sm text-muted-foreground"
                     >
                         {{
@@ -360,3 +395,42 @@ const statusClass = (tone: PatientBoardRow['statusTone']) =>
         </table>
     </div>
 </template>
+
+<style scoped>
+@media (width < 768px) {
+    .patient-board table,
+    .patient-board tbody {
+        display: block;
+    }
+    .patient-board thead {
+        display: none;
+    }
+    .patient-board tbody > tr {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        margin-bottom: 12px;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 8px;
+    }
+    .patient-board td {
+        display: block;
+        min-width: 0;
+        padding: 6px;
+    }
+    .patient-board td.panel-note-empty {
+        display: none;
+    }
+    .patient-board td::before {
+        content: attr(data-label);
+        display: block;
+        color: var(--muted-foreground);
+        font-size: 11px;
+    }
+    .patient-board td[data-label='Patient'],
+    .patient-board td[data-label='Visit notes'],
+    .patient-board td[data-label='Panel note'] {
+        grid-column: 1 / -1;
+    }
+}
+</style>

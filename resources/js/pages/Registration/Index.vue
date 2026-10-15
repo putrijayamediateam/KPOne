@@ -227,6 +227,7 @@ const boardRows = computed<PatientBoardRow[]>(() =>
             visitNotes: visit.visitReasonExcerpt,
             doctorName: visit.doctorName,
             coverageLabel: visit.coverageLabel,
+            panelNote: visit.panelNote,
             durationLabel: visit.isHeld
                 ? 'On Hold'
                 : visit.queueStatus === 'serving'

@@ -94,6 +94,8 @@ type RegistrationForm = {
     coverage_type: 'self_pay' | 'panel';
     panel_id: number | '';
     coverage_member_reference: string;
+    coverage_panel_note: string;
+    panel_note_panel_id: number | '';
     priority: 'normal' | 'urgent';
     confirm_repeat: boolean;
 };
@@ -109,6 +111,8 @@ const form = useForm<RegistrationForm>({
     coverage_type: 'self_pay' as 'self_pay' | 'panel',
     panel_id: '',
     coverage_member_reference: '',
+    coverage_panel_note: '',
+    panel_note_panel_id: '' as number | '',
     priority: 'normal' as 'normal' | 'urgent',
     confirm_repeat: false,
 });
@@ -227,11 +231,20 @@ watch(patientQuery, (query) => {
     }
 });
 watch(
+    () => form.panel_id,
+    (panelId) => {
+        form.coverage_panel_note = '';
+        form.panel_note_panel_id = panelId;
+    },
+);
+watch(
     () => form.coverage_type,
     (coverage) => {
         if (coverage === 'self_pay') {
             form.panel_id = '';
             form.coverage_member_reference = '';
+            form.coverage_panel_note = '';
+            form.panel_note_panel_id = '';
         }
     },
 );
@@ -842,6 +855,36 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
                                     errorFor('coverage_member_reference')
                                 "
                         /></label>
+                        <label
+                            class="grid gap-1 md:col-span-2"
+                            for="coverage-panel-note"
+                        >
+                            <span class="text-sm font-medium"
+                                >Panel note (optional)</span
+                            >
+                            <textarea
+                                id="coverage-panel-note"
+                                aria-label="Panel note (optional)"
+                                aria-describedby="coverage-panel-note-count"
+                                v-model="form.coverage_panel_note"
+                                rows="2"
+                                maxlength="500"
+                                class="w-full resize-y rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:ring-2 focus-visible:ring-emerald-600/30 focus-visible:outline-none"
+                                data-testid="registration-panel-note"
+                            />
+                            <span
+                                id="coverage-panel-note-count"
+                                class="text-xs text-muted-foreground"
+                                >{{ form.coverage_panel_note.length }} /
+                                500</span
+                            >
+                            <InputError
+                                :message="
+                                    errorFor('coverage_panel_note') ||
+                                    errorFor('panel_note_idempotency_key')
+                                "
+                            />
+                        </label>
                     </div>
                 </div>
             </section>

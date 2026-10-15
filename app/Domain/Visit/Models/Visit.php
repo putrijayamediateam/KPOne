@@ -37,6 +37,7 @@ use Illuminate\Support\Carbon;
  * @property string $coverage_type
  * @property int|null $panel_id
  * @property string|null $coverage_panel_name_snapshot
+ * @property string|null $coverage_panel_note
  * @property string|null $coverage_member_reference
  * @property Carbon $registered_at
  * @property int $registered_by_user_id
@@ -57,7 +58,7 @@ use Illuminate\Support\Carbon;
  * @property-read ClinicalEncounter|null $clinicalEncounter
  */
 #[Guarded(['*'])]
-#[Hidden(['encrypted_presenting_information'])]
+#[Hidden(['encrypted_presenting_information', 'coverage_panel_note'])]
 class Visit extends Model
 {
     /** @use HasFactory<VisitFactory> */

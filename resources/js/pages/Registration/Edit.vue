@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Head, Link, useForm, usePage } from '@inertiajs/vue3';
 import { ArrowLeft } from '@lucide/vue';
-import { ref } from 'vue';
+import { ref, watch } from 'vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import { OperationalSelect } from '@/components/ui/select';
@@ -58,8 +58,29 @@ const form = useForm({
     coverage_type: props.visit.coverage.type,
     panel_id: props.visit.coverage.panelId ?? '',
     coverage_member_reference: props.visit.coverage.memberReference ?? '',
+    coverage_panel_note: props.visit.coverage.panelNote ?? '',
+    panel_note_panel_id: props.visit.coverage.panelId ?? '',
+    panel_note_idempotency_key: crypto.randomUUID(),
     priority: props.visit.priority,
 });
+watch(
+    () => form.panel_id,
+    (panelId) => {
+        form.coverage_panel_note = '';
+        form.panel_note_panel_id = panelId;
+    },
+);
+watch(
+    () => form.coverage_type,
+    (coverage) => {
+        if (coverage === 'self_pay') {
+            form.coverage_panel_note = '';
+            form.panel_note_panel_id = '';
+        } else {
+            form.panel_note_panel_id = form.panel_id;
+        }
+    },
+);
 const submit = () => {
     form.transform((data) => {
         if (props.visit.visitReasons.structured.length) {
@@ -182,6 +203,36 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
                                     errorFor('coverage_member_reference')
                                 "
                         /></label>
+                        <label
+                            class="grid gap-1 md:col-span-2"
+                            for="coverage-panel-note"
+                        >
+                            <span class="text-sm font-medium"
+                                >Panel note (optional)</span
+                            >
+                            <textarea
+                                id="coverage-panel-note"
+                                aria-label="Panel note (optional)"
+                                aria-describedby="coverage-panel-note-count"
+                                v-model="form.coverage_panel_note"
+                                rows="2"
+                                maxlength="500"
+                                class="w-full resize-y rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:ring-2 focus-visible:ring-emerald-600/30 focus-visible:outline-none"
+                                data-testid="registration-panel-note"
+                            />
+                            <span
+                                id="coverage-panel-note-count"
+                                class="text-xs text-muted-foreground"
+                                >{{ form.coverage_panel_note.length }} /
+                                500</span
+                            >
+                            <InputError
+                                :message="
+                                    errorFor('coverage_panel_note') ||
+                                    errorFor('panel_note_idempotency_key')
+                                "
+                            />
+                        </label>
                     </div>
                 </div>
             </section>

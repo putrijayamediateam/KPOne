@@ -36,6 +36,32 @@ class PublicPatientIntakeTest extends VisitTestCase
 {
     private static int $publicIpSequence = 10;
 
+    public function test_public_qr_exchange_and_accepted_status_never_expose_a_visit_panel_note(): void
+    {
+        [$token, $session] = $this->publicSession();
+        $note = 'Synthetic confidential employer note';
+        $this->postJson(route('public-intake.submit'), $this->payload($session))->assertCreated();
+        $intake = PublicPatientIntake::query()->sole();
+        $ca = $this->actor('ca');
+        $this->selectBranch($ca);
+        $panel = Panel::factory()->create(['organisation_id' => $this->organisation->id]);
+        $doctor = $this->actor('resident_doctor');
+        $this->post(route('registration-review.accept', $intake->public_id), [
+            'lock_version' => $intake->lock_version, 'idempotency_key' => (string) Str::uuid(), 'resolution' => 'create',
+            'duplicate_override' => true, 'priority' => 'normal', 'coverage_type' => 'panel', 'panel_id' => $panel->id,
+            'coverage_verified' => true, 'assigned_doctor_user_id' => $doctor->id,
+            'visit_reason_public_ids' => [app(VisitReasonService::class)->create($ca, 'Synthetic note test reason')->public_id],
+        ])->assertSessionHasNoErrors();
+        $visit = Visit::query()->findOrFail($intake->refresh()->visit_id);
+        $visit->forceFill(['coverage_panel_note' => $note])->save();
+        $this->get(route('public-intake.status'))->assertOk()->assertInertia(fn (Assert $page) => $page->where('status.state', 'accepted')->missing('status.panelNote')->missing('status.coverage_panel_note'))->assertDontSee($note);
+        $fresh = $this->postJson(route('public-intake.exchange'), ['link_token' => $token])->assertCreated();
+        $serialized = json_encode($fresh->json(), JSON_THROW_ON_ERROR);
+        foreach ([$note, 'panelNote', 'coverage_panel_note'] as $excluded) {
+            $this->assertStringNotContainsString($excluded, $serialized);
+        }
+    }
+
     public function test_public_exchange_only_exposes_active_panels_for_the_link_organisation(): void
     {
         $active = Panel::factory()->create([
