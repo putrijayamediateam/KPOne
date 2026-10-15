@@ -18,6 +18,7 @@ use App\Domain\Visit\Billing\Models\InvoiceLine;
 use App\Domain\Visit\Billing\Models\Payment;
 use App\Domain\Visit\Billing\Models\PaymentAllocation;
 use App\Domain\Visit\Billing\Services\FinancialLedger;
+use App\Domain\Visit\Billing\Services\OutstandingBillService;
 use App\Domain\Visit\Models\Visit;
 use App\Models\User;
 use Carbon\CarbonInterface;
@@ -86,6 +87,7 @@ class VisitHistoryService
                 'completedAt' => $visit->completed_at?->setTimezone($branch->timezone)->format('j M Y, g:i A'),
             ],
             'financial' => $invoice ? $this->financial($actor, $visit, $invoice, $canLines) : null,
+            'outstanding' => $canFinance ? app(OutstandingBillService::class)->summary($actor, $visit) : null,
             'canSeeFinancial' => $canFinance,
             'canSeeLines' => $canFinance && $canLines,
             'links' => [

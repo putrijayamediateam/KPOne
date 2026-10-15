@@ -4,6 +4,7 @@ import { ArrowLeft, UserRound } from '@lucide/vue';
 import { computed, onUnmounted, reactive, ref, watch } from 'vue';
 import BillingChargeRows from '@/components/billing/BillingChargeRows.vue';
 import BillingCompletionDialog from '@/components/billing/BillingCompletionDialog.vue';
+import OutstandingBills from '@/components/billing/OutstandingBills.vue';
 import { ActionLink } from '@/components/ui/action-link';
 import { Button } from '@/components/ui/button';
 import { OperationalSelect } from '@/components/ui/select';
@@ -312,28 +313,7 @@ const reverse = (receipt: Receipt) =>
                         </p>
                     </div>
                 </section>
-                <section
-                    v-if="billing.oldOutstanding.length"
-                    class="rounded-xl border bg-card p-4"
-                >
-                    <h3 class="font-semibold">Earlier outstanding</h3>
-                    <div
-                        v-for="debt in billing.oldOutstanding"
-                        :key="debt.invoiceNumber"
-                        class="mt-3 space-y-1 rounded-lg border bg-muted/20 p-3"
-                    >
-                        <p class="font-medium tabular-nums">
-                            {{ myr(debt.amountSen) }}
-                        </p>
-                        <p class="text-xs text-muted-foreground">
-                            {{ debt.invoiceNumber }} · Due
-                            {{ formatDate(debt.dueDate) }}
-                        </p>
-                        <ActionLink :href="debt.url" variant="ghost" size="sm">
-                            Settle Outstanding Balance
-                        </ActionLink>
-                    </div>
-                </section>
+                <OutstandingBills :groups="billing.outstanding" />
             </aside>
             <section class="min-w-0 overflow-hidden rounded-xl border bg-card">
                 <OperationalTabs

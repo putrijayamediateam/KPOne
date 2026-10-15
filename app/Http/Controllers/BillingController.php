@@ -8,9 +8,11 @@ use App\Domain\Visit\Billing\Services\BillingBuilderService;
 use App\Domain\Visit\Billing\Services\BillingDirectoryService;
 use App\Domain\Visit\Billing\Services\CompleteVisitationService;
 use App\Domain\Visit\Billing\Services\InvoiceCorrectionService;
+use App\Domain\Visit\Billing\Services\OutstandingBillService;
 use App\Domain\Visit\Billing\Services\PaymentService;
 use App\Domain\Visit\Billing\Services\ResponsibilityService;
 use App\Domain\Visit\Models\Visit;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
@@ -22,6 +24,13 @@ class BillingController extends Controller
     public function show(Request $request, Visit $visit, BillingDirectoryService $directory): Response
     {
         return Inertia::render('Billing/Show', ['billing' => $directory->detail($request->user(), $visit)]);
+    }
+
+    public function outstanding(Request $request, Visit $visit, string $group, OutstandingBillService $service): JsonResponse
+    {
+        $input = $request->validate(['page' => ['sometimes', 'integer', 'min:1', 'max:1000000']]);
+
+        return response()->json($service->page($request->user(), $visit, $group, (int) ($input['page'] ?? 1)));
     }
 
     public function build(Request $request, Visit $visit, BillingBuilderService $service): RedirectResponse
