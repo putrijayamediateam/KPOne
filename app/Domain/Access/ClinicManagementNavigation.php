@@ -29,6 +29,7 @@ final class ClinicManagementNavigation
             }
         };
         $add('In-clinic', 'clinic', [
+            [$settings, 'Business details', 'Manage organisation identity, branch contact details and the shared logo.', 'business-details.index'],
             [$actor->can('public_checkin_links.manage.organisation') || $actor->can('public_checkin_links.manage.branch'), 'Public Check-In (QR links)', 'Manage the public check-in QR links for your authorized branches.', 'public-checkin-links.index'],
             [$settings, 'Consultation settings', 'Manage preset diagnoses for consultations.', 'diagnosis-presets.index'],
             [$panels, 'Checkout settings', 'Manage Panels, verification details and claim due rules.', 'panel-settings.index'],

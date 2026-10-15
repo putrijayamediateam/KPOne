@@ -29,7 +29,15 @@ test('Hub compiles with semantic keyboard links, card headings, responsive colum
     assert.match(source, /:aria-labelledby=/);
     assert.match(source, /md:grid-cols-2 xl:grid-cols-3/);
     assert.doesNotMatch(source, /router\.(post|put|patch|delete)|useForm|<aside|aria-disabled/);
-    assert.doesNotMatch(read('app/Domain/Access/ClinicManagementNavigation.php'), /Reviews|Blasting|Packages|Scheduling|e-Invoice|Tax settings|API key|Price tier|registration-settings|business-details|\.download/);
+    assert.doesNotMatch(read('app/Domain/Access/ClinicManagementNavigation.php'), /Reviews|Blasting|Packages|Scheduling|e-Invoice|Tax settings|API key|Price tier|registration-settings|\.download/);
+});
+
+test('Clinic management and Business details coexist in Main Menu with independent capability filters', () => {
+    const links = (caps) => Array.from(mainMenuGroups(caps)).flatMap((g) => Array.from(g.destinations)).map((l) => l.href);
+    assert.deepEqual(links({ clinicManagement: true, businessDetails: true }), ['/clinic-management', '/business-details']);
+    assert.deepEqual(links({ clinicManagement: true, businessDetails: false }), ['/clinic-management']);
+    assert.deepEqual(links({ clinicManagement: false, businessDetails: true }), ['/business-details']);
+    assert.deepEqual(links({ clinicManagement: false, businessDetails: false }), []);
 });
 
 test('Unoccupied grid cells use the card surface with visible card borders and no placeholder destinations', () => {
