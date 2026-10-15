@@ -10,6 +10,7 @@ use App\Domain\Queue\Models\QueueEntry;
 use App\Domain\Queue\Services\OtcQueueService;
 use App\Domain\Queue\Services\QueueDirectoryService;
 use App\Domain\Queue\Services\QueueEntryService;
+use App\Domain\Queue\Services\QueueWaitingCountService;
 use App\Domain\Visit\Models\Visit;
 use App\Http\Requests\CallQueueEntryRequest;
 use App\Http\Requests\SearchQueueEntriesRequest;
@@ -24,6 +25,13 @@ use Inertia\Response;
 
 class QueueController extends Controller
 {
+    public function waitingCounts(Request $request, QueueWaitingCountService $counts): JsonResponse
+    {
+        $validated = $request->validate(['expected_branch_id' => ['required', 'integer', 'min:1']]);
+
+        return response()->json($counts->counts($request->user(), (int) $validated['expected_branch_id']));
+    }
+
     public function index(
         Request $request,
         QueueDirectoryService $directory,
