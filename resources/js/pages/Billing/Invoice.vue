@@ -299,8 +299,8 @@ const totals = computed(() => {
                         >
                             <h2 class="font-medium">Payments</h2>
                             <ActionLink
-                                v-if="invoice.links.billing"
-                                :href="invoice.links.billing"
+                                v-if="invoice.links.payments"
+                                :href="invoice.links.payments"
                                 variant="outline"
                                 >Manage</ActionLink
                             >

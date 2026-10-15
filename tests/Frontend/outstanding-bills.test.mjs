@@ -107,6 +107,6 @@ test('CA projection exposes one group and endpoint failure cannot leave a confir
     await flush();
     assert.equal(h.api.blocked.value, true);
     assert.equal(h.api.open.value, false);
-    assert.match(read('resources/js/pages/Billing/Show.vue'), /<OutstandingBills :groups="billing.outstanding"/);
+    assert.match(read('resources/js/components/billing/BillingWorkspace.vue'), /<OutstandingBills :groups="billing.outstanding"/);
     assert.match(read('resources/js/pages/Billing/Invoice.vue'), /<OutstandingBills :groups="invoice.outstanding"/);
 });

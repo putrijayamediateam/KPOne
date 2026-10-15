@@ -15,5 +15,10 @@ export type CompletedInvoicePage = {
     outstanding: OutstandingBills | null;
     canSeeFinancial: boolean;
     canSeeLines: boolean;
-    links: { back: string; consultation: string; billing: string | null };
+    links: {
+        back: string;
+        consultation: string;
+        billing: string | null;
+        payments: string | null;
+    };
 };

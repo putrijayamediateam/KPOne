@@ -240,7 +240,7 @@ test('confirmation binds the displayed Visit and submits once while processing',
 });
 
 test('Billing uses the shared dialog and does not retain a native confirmation path', () => {
-    const billing = read('resources/js/pages/Billing/Show.vue');
+    const billing = read('resources/js/components/billing/BillingWorkspace.vue');
     assert.match(billing, /<BillingCompletionDialog/);
     assert.match(billing, /:visit-number="billing\.visit\.visitNumber"/);
     assert.doesNotMatch(billing, /window\.confirm|\bconfirm\s*\(/);

@@ -6,7 +6,7 @@ import { compileTemplate, parse } from '@vue/compiler-sfc';
 const read = (path) =>
     readFileSync(new URL(`../../${path}`, import.meta.url), 'utf8');
 
-const billingPath = 'resources/js/pages/Billing/Show.vue';
+const billingPath = 'resources/js/components/billing/BillingWorkspace.vue';
 const workPath = 'resources/js/pages/FinancialWork/Index.vue';
 const billing = read(billingPath);
 const work = read(workPath);
@@ -44,14 +44,14 @@ test('Billing and Completed Visit compile with distinct read-only and governed s
         /This governed settlement is separate from the\s+completed Visit record\./,
     );
     assert.match(billing, /isCompleted\s*\?\s*'Settle Outstanding Balance'/);
-    assert.match(billing, /v-if="billing\.can\.complete"/);
+    assert.match(billing, /v-if="!manage && billing\.can\.complete"/);
     assert.doesNotMatch(billing, /<select[\s>]/);
 });
 
 test('Billing hierarchy uses shared controls without raw underlined operational navigation', () => {
     assert.match(
         billing,
-        /<ActionLink\s+v-if="billing\.backLink"\s+:href="billing\.backLink\.href"\s+variant="outline"/,
+        /<ActionLink\s+v-else-if="billing\.backLink"\s+:href="billing\.backLink\.href"\s+variant="outline"/,
     );
     assert.match(billing, /<OperationalTabs/);
     assert.match(billing, /<BillingChargeRows v-else :lines="lines"/);
