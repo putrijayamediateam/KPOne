@@ -8,6 +8,7 @@ use App\Http\Controllers\BillingController;
 use App\Http\Controllers\BillingWorkController;
 use App\Http\Controllers\BranchContextController;
 use App\Http\Controllers\BranchController;
+use App\Http\Controllers\BusinessDetailsController;
 use App\Http\Controllers\CatalogueOptionController;
 use App\Http\Controllers\CataloguePanelController;
 use App\Http\Controllers\CatalogueSetupReferenceController;
@@ -83,6 +84,12 @@ Route::middleware(['guest', 'throttle:10,1'])->group(function () {
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('workspace', WorkspaceController::class)->name('workspace');
+
+    Route::middleware(['permission:catalogue.settings.manage.organisation', 'sensitive.no-store'])->group(function () {
+        Route::get('business-details', [BusinessDetailsController::class, 'index'])->name('business-details.index');
+        Route::post('business-details', [BusinessDetailsController::class, 'store'])->middleware(['permission:business_details.manage.organisation', 'throttle:20,1'])->name('business-details.store');
+        Route::get('business-details/branches/{branch}/logo/{asset}', [BusinessDetailsController::class, 'logo'])->whereNumber('branch')->whereUuid('asset')->name('business-details.logo');
+    });
 
     Route::get('dashboard', DashboardController::class)
         ->middleware('permission:dashboard.view.own')

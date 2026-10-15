@@ -91,6 +91,7 @@ class HandleInertiaRequests extends Middleware
                 'defaultUrl' => route('workspace', absolute: false),
                 'canEnterClinic' => $canEnterClinic,
                 'navigation' => [
+                    'businessDetails' => $activeBranch !== null && $user->can('catalogue.settings.manage.organisation'),
                     'registration' => $user->can('visits.view.branch'),
                     'insights' => $user->can('insights.view.organisation'),
                     'registrationReview' => $user->can('public_intakes.review.branch'),
