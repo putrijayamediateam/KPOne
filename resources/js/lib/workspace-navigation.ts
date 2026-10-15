@@ -1,4 +1,5 @@
 export type WorkspaceNavigationCapabilities = {
+    clinicManagement: boolean;
     businessDetails: boolean;
     registration: boolean;
     registrationReview: boolean;
@@ -44,6 +45,13 @@ const destinations: Record<
     keyof WorkspaceNavigationCapabilities,
     WorkspaceDestination
 > = {
+    clinicManagement: {
+        key: 'clinicManagement',
+        label: 'Clinic management',
+        description: 'Open clinic settings and authorized management screens.',
+        href: '/clinic-management',
+        icon: 'building',
+    },
     businessDetails: {
         key: 'businessDetails',
         label: 'Business details',
@@ -293,6 +301,7 @@ export const mainMenuGroups = (
         {
             label: 'Administration',
             destinations: available(capabilities, [
+                'clinicManagement',
                 'businessDetails',
                 'staff',
                 'branches',

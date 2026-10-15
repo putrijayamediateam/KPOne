@@ -17,6 +17,7 @@ use App\Http\Controllers\ClinicalEncounterController;
 use App\Http\Controllers\ClinicalProblemController;
 use App\Http\Controllers\ClinicalServiceCatalogueController;
 use App\Http\Controllers\ClinicInsightsController;
+use App\Http\Controllers\ClinicManagementController;
 use App\Http\Controllers\ClinicPlaceholderController;
 use App\Http\Controllers\ConsultationCheckoutController;
 use App\Http\Controllers\ConsultationHoldController;
@@ -84,6 +85,9 @@ Route::middleware(['guest', 'throttle:10,1'])->group(function () {
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('workspace', WorkspaceController::class)->name('workspace');
+
+    Route::get('clinic-management', ClinicManagementController::class)
+        ->middleware('sensitive.no-store')->name('clinic-management.index');
 
     Route::middleware(['permission:catalogue.settings.manage.organisation', 'sensitive.no-store'])->group(function () {
         Route::get('business-details', [BusinessDetailsController::class, 'index'])->name('business-details.index');

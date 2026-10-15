@@ -4,6 +4,7 @@ namespace App\Http\Middleware;
 
 use App\Domain\Access\BillingWorkAccess;
 use App\Domain\Access\BranchAccessService;
+use App\Domain\Access\ClinicManagementNavigation;
 use App\Domain\Access\WorkspaceLandingService;
 use App\Domain\Patient\Models\PublicPatientIntake;
 use Closure;
@@ -91,6 +92,7 @@ class HandleInertiaRequests extends Middleware
                 'defaultUrl' => route('workspace', absolute: false),
                 'canEnterClinic' => $canEnterClinic,
                 'navigation' => [
+                    'clinicManagement' => app(ClinicManagementNavigation::class)->groups($user) !== [],
                     'businessDetails' => $activeBranch !== null && $user->can('catalogue.settings.manage.organisation'),
                     'registration' => $user->can('visits.view.branch'),
                     'insights' => $user->can('insights.view.organisation'),
