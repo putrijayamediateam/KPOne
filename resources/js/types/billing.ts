@@ -1,3 +1,23 @@
+export type OutstandingGroup = { count: number; totalSen: number; url: string };
+export type OutstandingBills = {
+    branchId: number;
+    patient: OutstandingGroup | null;
+    panel: OutstandingGroup | null;
+};
+export type OutstandingBillPage = {
+    count: number;
+    totalSen: number;
+    currentPage: number;
+    lastPage: number;
+    data: Array<{
+        invoiceNumber: string;
+        visitDate: string;
+        amountSen: number;
+        reviewRequired: boolean;
+        url: string;
+    }>;
+};
+
 export type BillingState = {
     total: number;
     self_pay: number;
@@ -37,12 +57,7 @@ export type BillingPage = {
     };
     clinic: string;
     branch: string;
-    oldOutstanding: Array<{
-        invoiceNumber: string;
-        amountSen: number;
-        dueDate: string;
-        url: string;
-    }>;
+    outstanding: OutstandingBills | null;
     invoice: null | {
         publicId: string;
         number: string | null;

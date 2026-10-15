@@ -49,7 +49,7 @@ class BillingBoundaryTest extends BillingTestCase
         $this->assertFalse($panel->can('outstanding.view.branch'));
         $this->selectBranch($panel, $visit->branch);
         $this->get(route('billing.show', $visit))->assertOk()->assertInertia(fn (Assert $page) => $page
-            ->where('billing.deferment', null)->where('billing.oldOutstanding', [])
+            ->where('billing.deferment', null)->where('billing.outstanding.patient', null)
             ->has('billing.invoice.lines', 1)->where('billing.can.deferApprove', false));
     }
 
@@ -124,7 +124,7 @@ class BillingBoundaryTest extends BillingTestCase
         app(CompleteVisitationService::class)->complete($ca, $visit, ['expected_branch_id' => $visit->branch_id, 'visit_lock_version' => $visit->lock_version, 'lock_version' => $invoice->refresh()->lock_version]);
         $history = $visit->refresh()->attributesToArray();
         $next = $this->register($ca, $visit->patient, ['visit_type' => 'consultation', 'visit_reason' => 'Synthetic next visit', 'assigned_doctor_user_id' => $doctor->id, 'confirm_repeat' => true]);
-        $this->get(route('billing.show', $next))->assertOk()->assertInertia(fn (Assert $page) => $page->where('billing.invoice', null)->has('billing.oldOutstanding', 1)->where('billing.oldOutstanding.0.amountSen', 4000));
+        $this->get(route('billing.show', $next))->assertOk()->assertInertia(fn (Assert $page) => $page->where('billing.invoice', null)->where('billing.outstanding.patient.count', 1)->where('billing.outstanding.patient.totalSen', 4000));
         $this->assertDatabaseCount('invoices', 1);
         $payment = app(PaymentService::class)->add($ca, $visit, $invoice, ['expected_branch_id' => $visit->branch_id, 'lock_version' => $invoice->refresh()->lock_version, 'amount_sen' => 4000, 'method' => 'cash', 'idempotency_key' => (string) Str::uuid()]);
         $this->assertSame($history, $visit->fresh()->attributesToArray());

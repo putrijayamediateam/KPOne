@@ -2,6 +2,7 @@
 import { Head } from '@inertiajs/vue3';
 import { ArrowLeft, Download, FileText, UserRound } from '@lucide/vue';
 import { computed, ref } from 'vue';
+import OutstandingBills from '@/components/billing/OutstandingBills.vue';
 import { ActionLink } from '@/components/ui/action-link';
 import { Button } from '@/components/ui/button';
 import { OperationalTabs } from '@/components/ui/tabs';
@@ -177,6 +178,7 @@ const totals = computed(() => {
                         </dl>
                     </div>
                 </section>
+                <OutstandingBills :groups="invoice.outstanding" />
             </aside>
 
             <section
