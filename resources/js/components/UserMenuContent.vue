@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { Link, router } from '@inertiajs/vue3';
-import { LogOut, Settings } from '@lucide/vue';
+import { Link, router, usePage } from '@inertiajs/vue3';
+import { Building2, LogOut, Settings } from '@lucide/vue';
 import {
     DropdownMenuGroup,
     DropdownMenuItem,
@@ -23,6 +23,7 @@ const handleLogout = () => {
 };
 
 defineProps<Props>();
+const page = usePage();
 </script>
 
 <template>
@@ -33,6 +34,14 @@ defineProps<Props>();
     </DropdownMenuLabel>
     <DropdownMenuSeparator />
     <DropdownMenuGroup>
+        <DropdownMenuItem
+            v-if="page.props.workspace?.navigation.clinicManagement"
+            :as-child="true"
+        >
+            <Link class="block w-full cursor-pointer" href="/clinic-management">
+                <Building2 class="mr-2 h-4 w-4" />Clinic management
+            </Link>
+        </DropdownMenuItem>
         <DropdownMenuItem :as-child="true">
             <Link class="block w-full cursor-pointer" :href="edit()" prefetch>
                 <Settings class="mr-2 h-4 w-4" />
