@@ -43,6 +43,59 @@ class VisitHistoryService
         return $visit->status === Visit::STATUS_COMPLETED && $actor->can('visits.history.view.branch');
     }
 
+    /**
+     * INV-01: a separate financial projection. Never return the clinical-history payload
+     * to the Invoice page; the existing history endpoint retains its authorised content.
+     *
+     * @return array<string, mixed>
+     */
+    public function invoiceDetail(User $actor, Visit $visit): array
+    {
+        $branch = $this->branches->activeBranch($actor);
+        abort_unless(
+            $branch !== null
+                && $actor->can('visits.history.view.branch')
+                && $visit->organisation_id === $actor->organisation_id
+                && $visit->branch_id === $branch->id
+                && $visit->status === Visit::STATUS_COMPLETED,
+            404,
+        );
+        $visit->load('patient:id,organisation_id,patient_number,full_name,date_of_birth,sex');
+        $canFinance = $actor->can('billing.view.branch') || $actor->can('billing.summary.branch');
+        $canLines = $actor->can('billing.view.branch') || $actor->can('billing.lines.view.branch');
+        $invoice = $canFinance ? Invoice::query()
+            ->where('organisation_id', $actor->organisation_id)
+            ->where('visit_id', $visit->id)
+            ->where('status', '!=', 'draft')
+            ->orderByDesc('id')->first() : null;
+
+        return [
+            'patient' => [
+                'name' => $visit->patient->full_name,
+                'patientNumber' => $visit->patient->patient_number,
+                'age' => $this->age($visit->patient->date_of_birth),
+                'sex' => $visit->patient->sex,
+                'profileUrl' => $actor->can('patients.view.organisation')
+                    ? '/patients/'.rawurlencode($visit->patient->patient_number) : null,
+            ],
+            'visit' => [
+                'visitNumber' => $visit->visit_number,
+                'branch' => $branch->name,
+                'coverage' => $visit->coverage_type === 'panel' ? $visit->coverage_panel_name_snapshot : 'Self-pay',
+                'registeredAt' => $visit->registered_at->setTimezone($branch->timezone)->format('j M Y, g:i A'),
+                'completedAt' => $visit->completed_at?->setTimezone($branch->timezone)->format('j M Y, g:i A'),
+            ],
+            'financial' => $invoice ? $this->financial($actor, $visit, $invoice, $canLines) : null,
+            'canSeeFinancial' => $canFinance,
+            'canSeeLines' => $canFinance && $canLines,
+            'links' => [
+                'back' => route('registration.index'),
+                'consultation' => route('visits.history', $visit),
+                'billing' => $actor->can('billing.view.branch') ? route('billing.show', $visit) : null,
+            ],
+        ];
+    }
+
     /** @return array<string, mixed> */
     public function detail(User $actor, Visit $visit, ?Visit $consultationReturnVisit = null): array
     {

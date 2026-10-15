@@ -109,7 +109,7 @@ class VisitHistoryTest extends BillingTestCase
         $row = fn () => collect($this->actingAs($ca)->postJson(route('registration.search'), ['board_status' => 'all'])
             ->assertOk()->json('data'))->firstWhere('visitNumber', $visit->visit_number);
 
-        $this->assertSame(route('visits.history', $visit), $row()['historyUrl']);
+        $this->assertSame(route('visits.invoice', $visit), $row()['historyUrl']);
 
         $visit->forceFill(['status' => Visit::STATUS_REGISTERED, 'completed_at' => null, 'completed_by_user_id' => null, 'completion_evidence' => null])->save();
         $this->assertNull($row()['historyUrl']);
