@@ -19,6 +19,7 @@ use App\Domain\Visit\Billing\Models\Payment;
 use App\Domain\Visit\Billing\Models\PaymentAllocation;
 use App\Domain\Visit\Billing\Services\FinancialLedger;
 use App\Domain\Visit\Billing\Services\InvoiceActivityService;
+use App\Domain\Visit\Billing\Services\InvoiceAdjustmentService;
 use App\Domain\Visit\Billing\Services\OutstandingBillService;
 use App\Domain\Visit\Models\Visit;
 use App\Models\User;
@@ -347,6 +348,7 @@ class VisitHistoryService
             'status' => $invoice->status,
             'currency' => $invoice->currency,
             'state' => $this->ledger->state($invoice),
+            'adjustment' => InvoiceAdjustmentService::summary($invoice),
             'lines' => $canLines ? InvoiceLine::query()->where('invoice_id', $invoice->id)->orderBy('id')->get()
                 ->map(fn (InvoiceLine $line): array => [
                     'type' => $line->line_type,

@@ -269,8 +269,36 @@ const totals = computed(() => {
                     <dl class="grid grid-cols-[1fr_auto] gap-x-3 gap-y-3">
                         <dt class="font-semibold">Subtotal</dt>
                         <dd class="text-right font-semibold tabular-nums">
-                            {{ myr(invoice.financial.state.total) }}
+                            {{ myr(invoice.financial.adjustment.subtotalSen) }}
                         </dd>
+                        <template
+                            v-if="
+                                invoice.financial.adjustment.adjustmentSen !== 0
+                            "
+                            ><dt>
+                                {{
+                                    invoice.financial.adjustment.adjustmentSen <
+                                    0
+                                        ? 'Discount'
+                                        : 'Surcharge'
+                                }}
+                            </dt>
+                            <dd class="text-right tabular-nums">
+                                {{
+                                    invoice.financial.adjustment.adjustmentSen <
+                                    0
+                                        ? '−'
+                                        : '+'
+                                }}{{
+                                    myr(
+                                        Math.abs(
+                                            invoice.financial.adjustment
+                                                .adjustmentSen,
+                                        ),
+                                    )
+                                }}
+                            </dd></template
+                        >
                         <dt class="font-semibold">Total</dt>
                         <dd class="text-right font-semibold tabular-nums">
                             {{ myr(invoice.financial.state.total) }}

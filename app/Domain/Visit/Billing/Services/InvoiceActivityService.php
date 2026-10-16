@@ -84,6 +84,10 @@ final class InvoiceActivityService
                 $queries[] = $this->rows($tenant('invoices')->where('id', $invoice->id), 4, 'Invoice voided', 'voided_at', 'voided_by_user_id');
             }
             $queries[] = $this->rows($tenant('payments')->whereIn('id', $tenant('payment_allocations')->where('invoice_id', $invoice->id)->select('payment_id')), 5, 'Payment recorded', 'received_at', 'recorded_by_user_id', 'amount_sen', 'method_snapshot');
+            foreach (['add' => 'Surcharge added', 'deduct' => 'Discount added'] as $direction => $message) {
+                $queries[] = $this->rows($tenant('invoice_adjustments')->where('invoice_id', $invoice->id)->where('direction', $direction), $direction === 'add' ? 11 : 12, $message, 'created_at', 'actor_user_id', 'amount_sen');
+            }
+            $queries[] = $this->rows($tenant('invoice_adjustment_reversals')->where('invoice_id', $invoice->id), 13, 'Invoice adjustment reversed', 'created_at', 'actor_user_id', 'amount_sen');
             $queries[] = $this->rows($tenant('payment_reversals')->where('invoice_id', $invoice->id), 6, 'Payment recording reversed (not a cash refund)', 'reversed_at', 'approved_by_user_id', 'amount_sen');
             foreach (['coverage_allocations' => $panel, 'patient_receivables' => $deferment] as $table => $allowed) {
                 if (! $allowed) {

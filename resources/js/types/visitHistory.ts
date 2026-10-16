@@ -1,4 +1,4 @@
-import type { BillingState } from '@/types/billing';
+import type { InvoiceAdjustmentSummary, BillingState } from '@/types/billing';
 
 export type VisitHistoryChangeState =
     'unchanged' | 'edited' | 'added' | 'removed';
@@ -69,6 +69,7 @@ export type VisitHistoryFinancial = {
     status: string;
     currency: string;
     state: BillingState;
+    adjustment: InvoiceAdjustmentSummary;
     lines: Array<{
         type: string;
         name: string;

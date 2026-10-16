@@ -31,7 +31,7 @@ final class BillingWorkDirectoryService
                 ->where('v.organisation_id', $actor->organisation_id)->where('v.branch_id', $branch->id)
                 ->where('p.organisation_id', $actor->organisation_id)->whereColumn('v.patient_id', 'p.id')
                 ->whereColumn('invoices.current_visit_guard', 'v.id')->where('invoices.status', 'finalized')
-                ->select(['invoices.id', 'invoices.invoice_number', 'invoices.status', 'invoices.total_sen', 'v.visit_number', 'p.full_name as patient_name']);
+                ->select(['invoices.id', 'invoices.invoice_number', 'invoices.status', 'invoices.total_sen', 'invoices.subtotal_sen', 'v.visit_number', 'p.full_name as patient_name']);
             if ($panel) {
                 $query->join('coverage_allocations as c', 'c.current_invoice_guard', '=', 'invoices.id')
                     ->whereColumn('c.invoice_id', 'invoices.id')->where('c.organisation_id', $actor->organisation_id)

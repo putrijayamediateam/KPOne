@@ -46,6 +46,11 @@ export type Responsibility = {
     remainingSen: number | null;
     dueDate: string | null;
 };
+export type InvoiceAdjustmentSummary = {
+    subtotalSen: number;
+    adjustmentSen: number;
+    activeId: string | null;
+};
 export type BillingPage = {
     activity: InvoiceActivityLink;
     backLink: { label: string; href: string } | null;
@@ -69,6 +74,18 @@ export type BillingPage = {
         finalizedAt: string | null;
         correctionHold: boolean;
         state: BillingState;
+        adjustment: InvoiceAdjustmentSummary;
+        adjustmentControls: null | {
+            url: string;
+            add: boolean;
+            reverse: boolean;
+            override: boolean;
+            threshold: {
+                configured: boolean;
+                limitSen: number | null;
+                lockVersion: number;
+            };
+        };
         lines: Array<{
             type: string;
             name: string;

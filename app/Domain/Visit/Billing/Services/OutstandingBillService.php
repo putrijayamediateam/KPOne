@@ -100,7 +100,7 @@ final class OutstandingBillService
             ->leftJoinSub($sum('coverage_allocations')->where('status', 'approved'), 'covered', 'covered.invoice_id', '=', 'i.id')
             ->select(['i.id', 'i.invoice_number', 'v.visit_number', 'v.registered_at'])
             // due_now + approved remaining pay-later; deferred is already part of patient debt.
-            ->selectRaw('i.total_sen - coalesce(paid.amount, 0) + coalesce(reversed.amount, 0) - coalesce(covered.amount, 0) as amount_sen')
+            ->selectRaw('kpone_invoice_payable(i.id) - coalesce(paid.amount, 0) + coalesce(reversed.amount, 0) - coalesce(covered.amount, 0) as amount_sen')
             ->selectRaw('(i.correction_hold or i.source_stale) as review_required');
 
         return DB::query()->fromSub($query, 'bills')->where('amount_sen', '>', 0);

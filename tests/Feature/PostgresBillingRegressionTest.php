@@ -112,6 +112,60 @@ class PostgresBillingRegressionTest extends TestCase
         parent::tearDown();
     }
 
+    private function adjustmentArgs(array $f): array
+    {
+        foreach (['ca', 'ca2'] as $key) {
+            foreach (['billing.adjustments.add.branch', 'billing.adjustments.override_limit.branch', 'billing.adjustments.reverse.branch'] as $permission) {
+                $f[$key]->givePermissionTo(Permission::findOrCreate($permission, 'web'));
+            }
+        }
+
+        return ['direction' => 'deduct', 'input_type' => 'fixed', 'input_value' => 1000, 'threshold_version' => 0, 'confirm_above_limit' => true, 'reason' => 'Synthetic private PG adjustment', 'idempotency_key' => (string) Str::uuid()];
+    }
+
+    public function test_adjustment_race_serializes_two_cashiers_and_payment_without_overpaying(): void
+    {
+        $f = $this->billingFixture();
+        $a = $this->adjustmentArgs($f);
+        $out = $this->race([$this->billWorker($f, 'bill-adjust', $a), $this->billWorker($f, 'bill-adjust', [...$a, 'idempotency_key' => (string) Str::uuid()], 'ca2')], $f['patient']);
+        $this->assertSame(1, substr_count($out, 'SUCCESS'));
+        $this->assertSame(1, substr_count($out, 'STALE'));
+        $this->assertSame(3000, app(FinancialLedger::class)->state($f['invoice'])['total']);
+        $this->assertSame(1, DB::table('invoice_adjustments')->where('invoice_id', $f['invoice']->id)->count());
+        $snapshot = fn () => $this->financialSnapshot($f);
+        $this->assertPgRejects(function () use ($f): void {
+            DB::table('invoice_adjustments')->where('invoice_id', $f['invoice']->id)->update(['amount_sen' => 900]);
+        }, $snapshot, 'immutable');
+        $this->assertPgRejects(function () use ($f): void {
+            DB::table('invoice_adjustments')->where('invoice_id', $f['invoice']->id)->delete();
+        }, $snapshot, 'retained');
+    }
+
+    public function test_adjustment_and_payment_race_has_only_one_winner(): void
+    {
+        $f = $this->billingFixture();
+        $a = $this->adjustmentArgs($f);
+        $out = $this->race([$this->billWorker($f, 'bill-adjust', $a), $this->billWorker($f, 'bill-pay', $this->payArgs($f, 4000), 'ca2')], $f['patient']);
+        $this->assertSame(1, substr_count($out, 'SUCCESS'));
+        $this->assertSame(1, substr_count($out, 'STALE'));
+        $state = app(FinancialLedger::class)->state($f['invoice']);
+        $this->assertTrue(($state['total'] === 3000 && $state['self_pay'] === 0) || ($state['total'] === 4000 && $state['self_pay'] === 4000));
+    }
+
+    public function test_postgres_rejects_forged_adjustment_basis_rounding_and_post_payment_history(): void
+    {
+        $f = $this->billingFixture();
+        $a = $this->adjustmentArgs($f);
+        $raw = ['public_id' => (string) Str::uuid(), 'organisation_id' => $f['organisation']->id, 'branch_id' => $f['branch']->id, 'invoice_id' => $f['invoice']->id, 'actor_user_id' => $f['ca']->id, 'direction' => 'deduct', 'input_type' => 'percentage', 'input_value' => 1250, 'base_sen' => 4000, 'amount_sen' => 500, 'reason' => 'Synthetic PG evidence', 'threshold_version' => 0, 'threshold_sen' => null, 'limit_overridden' => true, 'invoice_version' => $f['invoice']->lock_version, 'idempotency_key' => (string) Str::uuid(), 'payload_hash' => str_repeat('a', 64), 'created_at' => now(), 'updated_at' => now()];
+        $snapshot = fn () => $this->financialSnapshot($f);
+        foreach (['base_sen' => 3999, 'amount_sen' => 499, 'threshold_sen' => 0, 'threshold_version' => 1] as $field => $value) {
+            $this->assertPgRejects(fn () => DB::table('invoice_adjustments')->insert([...$raw, $field => $value]), $snapshot);
+        }
+        $this->assertPgRejects(fn () => DB::table('invoice_adjustments')->insert($raw), $snapshot, 'new Invoice revision', true);
+        app(PaymentService::class)->add($f['ca'], $f['visit'], $f['invoice'], [...$this->payArgs($f, 1000), 'expected_branch_id' => $f['branch']->id, 'lock_version' => $f['invoice']->lock_version]);
+        $this->assertPgRejects(fn () => DB::table('invoice_adjustments')->insert([...$raw, 'invoice_version' => $f['invoice']->refresh()->lock_version]), $snapshot, 'before any financial history');
+    }
+
     public function test_two_cashiers_cannot_overpay_one_invoice(): void
     {
         $f = $this->billingFixture();
@@ -467,7 +521,7 @@ class PostgresBillingRegressionTest extends TestCase
     private function financialSnapshot(array $f): array
     {
         $state = [];
-        foreach (['visits', 'invoices', 'invoice_lines', 'payments', 'payment_allocations', 'payment_reversals', 'coverage_allocations', 'patient_receivables', 'audit_logs'] as $table) {
+        foreach (['visits', 'invoices', 'invoice_lines', 'payments', 'payment_allocations', 'payment_reversals', 'coverage_allocations', 'patient_receivables', 'invoice_adjustments', 'invoice_adjustment_reversals', 'invoice_adjustment_limits', 'audit_logs'] as $table) {
             $state[$table] = DB::connection(self::OBSERVER)->table($table)->where('organisation_id', $f['organisation']->id)->orderBy('id')->get()->toJson();
         }
 
@@ -917,6 +971,12 @@ class PostgresBillingRegressionTest extends TestCase
     private function deleteOrganisation(int $id): void
     {
         DB::transaction(function () use ($id): void {
+            // Only this isolated PostgreSQL test fixture cleanup may discard retained synthetic evidence.
+            foreach (['invoice_adjustment_reversals', 'invoice_adjustments', 'invoice_adjustment_limits'] as $table) {
+                DB::statement("ALTER TABLE {$table} DISABLE TRIGGER USER");
+                DB::table($table)->where('organisation_id', $id)->delete();
+                DB::statement("ALTER TABLE {$table} ENABLE TRIGGER USER");
+            }
             foreach (['payment_reversals', 'payment_allocations', 'patient_receivables', 'coverage_allocations', 'payments', 'invoice_lines', 'invoices', 'billing_document_counters', 'price_entries', 'price_books', 'charge_definitions', 'payment_methods', 'billing_approval_limits'] as $table) {
                 DB::table($table)->where('organisation_id', $id)->delete();
             }

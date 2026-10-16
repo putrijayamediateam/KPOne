@@ -5,6 +5,7 @@ import { computed, onUnmounted, reactive, ref, watch } from 'vue';
 import BillingChargeRows from '@/components/billing/BillingChargeRows.vue';
 import BillingCompletionDialog from '@/components/billing/BillingCompletionDialog.vue';
 import InvoiceActivityDrawer from '@/components/billing/InvoiceActivityDrawer.vue';
+import InvoiceAdjustmentDialog from '@/components/billing/InvoiceAdjustmentDialog.vue';
 import OutstandingBills from '@/components/billing/OutstandingBills.vue';
 import { ActionLink } from '@/components/ui/action-link';
 import { Button } from '@/components/ui/button';
@@ -618,6 +619,46 @@ const reverse = (receipt: Receipt) =>
                             </dd>
                         </div>
                     </dl>
+                    <dl
+                        v-if="billing.invoice.adjustment.adjustmentSen !== 0"
+                        class="mt-2 border-t pt-2 text-xs"
+                    >
+                        <div class="flex justify-between py-1">
+                            <dt>Original subtotal</dt>
+                            <dd>
+                                {{
+                                    myr(billing.invoice.adjustment.subtotalSen)
+                                }}
+                            </dd>
+                        </div>
+                        <div class="flex justify-between py-1">
+                            <dt>
+                                {{
+                                    billing.invoice.adjustment.adjustmentSen < 0
+                                        ? 'Discount'
+                                        : 'Surcharge'
+                                }}
+                            </dt>
+                            <dd>
+                                {{
+                                    billing.invoice.adjustment.adjustmentSen < 0
+                                        ? '−'
+                                        : '+'
+                                }}{{
+                                    myr(
+                                        Math.abs(
+                                            billing.invoice.adjustment
+                                                .adjustmentSen,
+                                        ),
+                                    )
+                                }}
+                            </dd>
+                        </div>
+                    </dl>
+                    <InvoiceAdjustmentDialog
+                        v-if="!manage"
+                        :billing="billing"
+                    />
                     <p v-if="billing.invoice.correctionHold" role="status">
                         Correction hold — review required.
                     </p>
