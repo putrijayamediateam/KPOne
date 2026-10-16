@@ -136,7 +136,7 @@ test('Payment Method setup is permission-backed and grouped with Finance', () =>
     assert.deepEqual([...labels(finance)], ['Payment Methods']);
     assert.deepEqual(
         [...destinations.map((item) => item.label)],
-        ['Payment Methods'],
+        [],
     );
     assert.match(source, /href: '\/payment-methods'/);
     assert.match(
@@ -159,7 +159,7 @@ test('Terminal Reconciliation is permission-backed and kept in the Finance menu'
     );
 });
 
-test('desktop and mobile header share one context-aware destination list', () => {
+test('desktop and mobile header share the daily destination list across page contexts', () => {
     const allowed = capabilities({
         registration: true,
         consultation: true,
@@ -182,7 +182,7 @@ test('desktop and mobile header share one context-aware destination list', () =>
                 .headerDestinations(allowed, 'admin')
                 .map((item) => item.label),
         ],
-        ['Staff'],
+        ['Registration', 'Consultation', 'Inventory', 'Patient Records'],
     );
 });
 
@@ -204,7 +204,7 @@ test('Main Menu cards and header navigation retain semantic link and focus contr
     assert.match(header, /aria-label="Desktop primary navigation"/);
     assert.match(
         header,
-        /class="hidden min-w-0 flex-1 overflow-x-auto xl:flex"[\s\S]*?<div class="mx-auto flex w-max">/,
+        /class="hidden min-w-0 flex-1 overflow-hidden xl:flex"[\s\S]*?<div ref="desktopLinks" class="mx-auto flex w-max shrink-0">/,
     );
     assert.match(
         header,
@@ -235,7 +235,11 @@ test('the header never repeats Main Menu and never clips its first item', () => 
             .map((item) => item.label);
 
         assert.ok(!labelsInHeader.includes('Main Menu'));
-        assert.ok(labelsInHeader.includes('TV Screen'));
+        assert.ok(!labelsInHeader.includes('TV Screen'));
+        assert.deepEqual(
+            [...navigation.headerDestinations(capabilities({ queueDisplayScreen: true }), context).map((item) => item.label)],
+            ['TV Screen'],
+        );
     }
 
     // A centred overflowing flex row clips its first item, which showed as a lone "u".

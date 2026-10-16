@@ -15,7 +15,7 @@ test('Clinic management is permission-filtered in Main Menu and account menu, ke
     const links = (caps) => Array.from(mainMenuGroups(caps)).flatMap((g) => Array.from(g.destinations));
     assert.equal(links({}).some((l) => l.href === '/clinic-management'), false);
     assert.equal(links({ clinicManagement: true }).filter((l) => l.href === '/clinic-management').length, 1);
-    assert.equal(Array.from(headerDestinations({ clinicManagement: true }, 'clinic')).length, 0);
+    assert.deepEqual(Array.from(headerDestinations({ clinicManagement: true }, 'clinic')).map((item) => item.href), ['/clinic-management']);
     const account = read('resources/js/components/UserMenuContent.vue');
     assert.match(account, /v-if="page.props.workspace\?\.navigation.clinicManagement"/);
     assert.match(account, /href="\/clinic-management"/);

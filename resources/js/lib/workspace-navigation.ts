@@ -316,40 +316,99 @@ export const mainMenuGroups = (
 export const headerDestinations = (
     capabilities: WorkspaceNavigationCapabilities,
     context: 'clinic' | 'admin',
-): WorkspaceDestination[] =>
-    // The logo and KPOne name already open the Main Menu, so it is not repeated here.
-    available(
-        capabilities,
-        context === 'clinic'
-            ? [
-                  'insights',
-                  'registration',
-                  'consultation',
-                  'inventory',
-                  'patientRecords',
-                  'panelClaims',
-                  'panelWork',
-                  'financeWork',
-                  'paymentMethods',
-                  'billingApprovalLimits',
-                  'queueDisplayScreen',
-              ]
-            : [
-                  'insights',
-                  'panelClaims',
-                  'panelWork',
-                  'financeWork',
-                  'paymentMethods',
-                  'billingApprovalLimits',
-                  'staff',
-                  'branches',
-                  'accessControl',
-                  'auditLogs',
-                  'publicCheckInLinks',
-                  'queueDisplay',
-                  'queueDisplayScreen',
-              ],
+): WorkspaceDestination[] => {
+    // Preserve the existing display-only account's two shell menus exactly.
+    const displayOnly =
+        capabilities.queueDisplayScreen &&
+        ![
+            'insights',
+            'registration',
+            'consultation',
+            'inventory',
+            'patientRecords',
+            'panelClaims',
+            'panelWork',
+            'financeWork',
+            'queueDisplay',
+            'paymentMethods',
+            'billingApprovalLimits',
+            'accessControl',
+            'auditLogs',
+            'publicCheckInLinks',
+        ].some(
+            (key) => capabilities[key as keyof WorkspaceNavigationCapabilities],
+        );
+
+    if (displayOnly) {
+        return available(
+            capabilities,
+            context === 'clinic'
+                ? ['queueDisplayScreen']
+                : ['staff', 'branches', 'queueDisplayScreen'],
+        );
+    }
+
+    const keys: (keyof WorkspaceNavigationCapabilities)[] = [];
+
+    // Presentation only: every resulting destination still needs its existing capability.
+    if (capabilities.financeWork && capabilities.billingApprovalLimits) {
+        keys.push('insights', 'financeWork');
+    } else {
+        if (capabilities.financeWork) {
+            keys.push(
+                'insights',
+                'financeWork',
+                'inventory',
+                'paymentReconciliations',
+            );
+        }
+
+        if (capabilities.panelClaims || capabilities.panelWork) {
+            keys.push('panelClaims', 'panelWork', 'panelInvoices', 'insights');
+        }
+
+        const clinical =
+            capabilities.registration ||
+            capabilities.consultation ||
+            capabilities.patientRecords;
+
+        if (clinical) {
+            keys.push(
+                ...(capabilities.inventory
+                    ? ([
+                          'registration',
+                          'consultation',
+                          'inventory',
+                          'patientRecords',
+                      ] as const)
+                    : ([
+                          'consultation',
+                          'registration',
+                          'patientRecords',
+                          'insights',
+                      ] as const)),
+            );
+        } else if (capabilities.inventory && !capabilities.financeWork) {
+            keys.push('insights', 'inventory');
+        }
+
+        if (capabilities.accessControl || capabilities.auditLogs) {
+            keys.push('insights', 'staff');
+        }
+
+        if (keys.length === 0) {
+            keys.push('insights');
+        }
+    }
+
+    // Reserve the final position for the hub; overflow destinations remain there.
+    const items = available(capabilities, [...new Set(keys)]).slice(
+        0,
+        capabilities.clinicManagement ? 5 : 6,
     );
+
+    return [...items, ...available(capabilities, ['clinicManagement'])];
+};
 
 const pathname = (url: string): string => url.split(/[?#]/, 1)[0] ?? '';
 
