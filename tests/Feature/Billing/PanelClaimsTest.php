@@ -99,9 +99,9 @@ class PanelClaimsTest extends BillingTestCase
         $this->get(route('panel-claims.show', $claim))->assertInertia(fn (Assert $page) => $page
             ->where('claim.claimAmountSen', 6000)
             ->where('claim.adjustmentSen', 2000)
-            ->has('claim.lines', 2)
-            ->where('claim.lines.1.name', 'Panel claim adjustment')
-            ->where('claim.lines.1.totalSen', 2000));
+            ->has('claim.lines', 1)
+            ->where('claim.claimOnlyAdjustmentSen', 2000)
+            ->where('claim.invoiceAdjustmentSen', 0));
 
         $this->assertSame($invoice->total_sen, $invoice->refresh()->total_sen);
         $this->assertSame($invoice->lock_version, $invoice->refresh()->lock_version);

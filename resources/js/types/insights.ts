@@ -1,3 +1,9 @@
+export type InvoiceSalesReconciliation = {
+    grossSen: number;
+    discountsSen: number;
+    surchargesSen: number;
+    netSen: number;
+};
 export type InsightRankingItem = {
     name: string;
     code?: string;
@@ -21,6 +27,7 @@ export type TodayInsightsReport = {
     generatedAt: string;
     sales: {
         totalSen: number;
+        reconciliation: InvoiceSalesReconciliation;
         newSen: number;
         returningSen: number;
         patientCount: number;
@@ -63,6 +70,7 @@ export type InsightsRangeReport =
           kind: 'sales';
           summary: {
               totalSen: number;
+              reconciliation: InvoiceSalesReconciliation;
               newSen: number;
               returningSen: number;
               patients: number;

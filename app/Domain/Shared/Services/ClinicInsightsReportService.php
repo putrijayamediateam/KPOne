@@ -195,9 +195,9 @@ class ClinicInsightsReportService
     {
         $current = $this->invoiceQuery($actor, $periods, $doctorId);
         $prior = $this->invoiceQuery($actor, $previous, $doctorId);
-        $total = (int) (clone $current)->sum('invoices.total_sen');
+        $total = (int) (clone $current)->sum(DB::raw(InvoiceSalesProjection::PAYABLE));
         $patientCount = (int) (clone $current)->distinct()->count('invoices.patient_id');
-        $previousTotal = (int) (clone $prior)->sum('invoices.total_sen');
+        $previousTotal = (int) (clone $prior)->sum(DB::raw(InvoiceSalesProjection::PAYABLE));
         $previousPatients = (int) (clone $prior)->distinct()->count('invoices.patient_id');
 
         $returning = DB::table('invoices')
@@ -216,10 +216,10 @@ class ClinicInsightsReportService
             ->where('previous.organisation_id', $actor->organisation_id)
             ->where('previous.status', 'completed')
             ->whereColumn('previous.completed_at', '<', 'invoices.finalized_at');
-        $returningTotal = (int) (clone $returning)->whereExists($priorVisit)->sum('invoices.total_sen');
+        $returningTotal = (int) (clone $returning)->whereExists($priorVisit)->sum(DB::raw(InvoiceSalesProjection::PAYABLE));
         $newTotal = $total - $returningTotal;
 
-        $rows = (clone $current)->get(['invoices.branch_id', 'invoices.finalized_at', 'invoices.total_sen']);
+        $rows = (clone $current)->selectRaw('invoices.branch_id, invoices.finalized_at, kpone_invoice_payable(invoices.id) AS total_sen')->get();
         $days = [];
         foreach ($rows as $row) {
             $branch = $periods[$row->branch_id]['branch'];
@@ -272,7 +272,7 @@ class ClinicInsightsReportService
             $providersQuery->where('users.id', $doctorId);
         }
         $providers = $providersQuery
-            ->selectRaw('users.name, SUM(invoices.total_sen) as sales_sen, COUNT(DISTINCT invoices.patient_id) as patients')
+            ->selectRaw('users.name, SUM(kpone_invoice_payable(invoices.id)) as sales_sen, COUNT(DISTINCT invoices.patient_id) as patients')
             ->groupBy('users.id', 'users.name')
             ->orderByDesc('sales_sen')
             ->limit(101)
@@ -289,6 +289,7 @@ class ClinicInsightsReportService
             'kind' => 'sales',
             'summary' => [
                 'totalSen' => $total,
+                'reconciliation' => InvoiceSalesProjection::reconciliation($current),
                 'newSen' => $newTotal,
                 'returningSen' => $returningTotal,
                 'patients' => $patientCount,
@@ -487,9 +488,9 @@ class ClinicInsightsReportService
     {
         $invoices = $this->invoiceQuery($actor, $periods, $doctorId);
         $selfPay = (int) (clone $invoices)->whereExists(fn (Builder $visit) => $visit->selectRaw('1')->from('visits')
-            ->whereColumn('visits.id', 'invoices.visit_id')->where('visits.coverage_type', 'self_pay'))->sum('invoices.total_sen');
+            ->whereColumn('visits.id', 'invoices.visit_id')->where('visits.coverage_type', 'self_pay'))->sum(DB::raw(InvoiceSalesProjection::PAYABLE));
         $panelSales = (int) (clone $invoices)->whereExists(fn (Builder $visit) => $visit->selectRaw('1')->from('visits')
-            ->whereColumn('visits.id', 'invoices.visit_id')->where('visits.coverage_type', 'panel'))->sum('invoices.total_sen');
+            ->whereColumn('visits.id', 'invoices.visit_id')->where('visits.coverage_type', 'panel'))->sum(DB::raw(InvoiceSalesProjection::PAYABLE));
         $paid = DB::table('payments')
             ->join('payment_allocations', 'payment_allocations.payment_id', '=', 'payments.id')
             ->join('invoices', 'invoices.id', '=', 'payment_allocations.invoice_id')
@@ -520,7 +521,7 @@ class ClinicInsightsReportService
                 ->where('consultation_checkouts.attending_doctor_user_id', $doctorId));
         }
         $dueExpression = <<<'SQL'
-            invoices.total_sen
+            kpone_invoice_payable(invoices.id)
             - COALESCE((SELECT SUM(ca.amount_sen) FROM coverage_allocations ca WHERE ca.invoice_id = invoices.id AND ca.status = 'approved'), 0)
             - COALESCE((SELECT SUM(pa.amount_sen) FROM payment_allocations pa JOIN payments p ON p.id = pa.payment_id WHERE pa.invoice_id = invoices.id AND p.status = 'posted'), 0)
         SQL;

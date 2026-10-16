@@ -19,6 +19,9 @@ type ClaimData = {
     visitDate: string;
     invoiceNumber: string;
     invoiceTotalSen: number;
+    invoiceSubtotalSen: number;
+    invoiceAdjustmentSen: number;
+    claimOnlyAdjustmentSen: number;
     claimAmountSen: number;
     adjustmentSen: number;
     acceptedAmountSen: number | null;
@@ -386,7 +389,7 @@ const eventTitle = (type: string) =>
         </p>
 
         <div class="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
-            <div class="space-y-6">
+            <div class="min-w-0 space-y-6">
                 <section class="space-y-5 rounded-xl border bg-card p-5">
                     <h2 class="text-lg font-semibold">Summary</h2>
                     <dl class="grid gap-x-6 gap-y-5 text-sm sm:grid-cols-3">
@@ -523,14 +526,38 @@ const eventTitle = (type: string) =>
                     </p>
                     <dl class="ml-auto grid max-w-sm gap-2 text-sm">
                         <div class="flex justify-between gap-4">
-                            <dt>Invoice total</dt>
-                            <dd class="tabular-nums">
+                            <dt>Original subtotal (snapshot)</dt>
+                            <dd class="shrink-0 whitespace-nowrap tabular-nums">
+                                {{ myr(claim.invoiceSubtotalSen) }}
+                            </dd>
+                        </div>
+                        <div class="flex justify-between gap-4">
+                            <dt>Invoice adjustment (snapshot)</dt>
+                            <dd class="shrink-0 whitespace-nowrap tabular-nums">
+                                {{ claim.invoiceAdjustmentSen < 0 ? '−' : '+'
+                                }}{{
+                                    myr(Math.abs(claim.invoiceAdjustmentSen))
+                                }}
+                            </dd>
+                        </div>
+                        <div class="flex justify-between gap-4">
+                            <dt>Adjusted invoice total (snapshot)</dt>
+                            <dd class="shrink-0 whitespace-nowrap tabular-nums">
                                 {{ myr(claim.invoiceTotalSen) }}
                             </dd>
                         </div>
                         <div class="flex justify-between gap-4">
+                            <dt>Claim-only adjustment (above invoice)</dt>
+                            <dd class="shrink-0 whitespace-nowrap tabular-nums">
+                                {{ claim.claimOnlyAdjustmentSen < 0 ? '−' : '+'
+                                }}{{
+                                    myr(Math.abs(claim.claimOnlyAdjustmentSen))
+                                }}
+                            </dd>
+                        </div>
+                        <div class="flex justify-between gap-4">
                             <dt>Claimed amount</dt>
-                            <dd class="tabular-nums">
+                            <dd class="shrink-0 whitespace-nowrap tabular-nums">
                                 {{ myr(claim.claimAmountSen) }}
                             </dd>
                         </div>
@@ -539,7 +566,7 @@ const eventTitle = (type: string) =>
                             class="flex justify-between gap-4"
                         >
                             <dt>Panel accepted</dt>
-                            <dd class="tabular-nums">
+                            <dd class="shrink-0 whitespace-nowrap tabular-nums">
                                 {{ myr(claim.acceptedAmountSen) }}
                             </dd>
                         </div>
@@ -662,7 +689,7 @@ const eventTitle = (type: string) =>
                 </section>
             </div>
 
-            <div class="space-y-6">
+            <div class="min-w-0 space-y-6">
                 <section class="space-y-3 rounded-xl border bg-card p-5">
                     <div class="flex items-center justify-between">
                         <h2 class="text-lg font-semibold">Logs</h2>

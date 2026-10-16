@@ -86,7 +86,7 @@ final class PanelClaimService
             'member_reference' => $allocation->member_reference,
             'branch_name_snapshot' => $branch->name,
             'visit_date' => $visit->registered_at->setTimezone($branch->timezone)->toDateString(),
-            'invoice_total_sen' => $invoice->total_sen,
+            'invoice_total_sen' => app(FinancialLedger::class)->state($invoice)['total'],
             'claim_amount_sen' => $allocation->amount_sen,
             'status' => 'prepared',
             'lock_version' => 1,
@@ -525,7 +525,7 @@ final class PanelClaimService
     {
         if ($allocation->status !== 'approved' || (int) $allocation->current_invoice_guard !== $invoice->id
             || $invoice->status !== 'finalized' || $invoice->correction_hold || $invoice->source_stale
-            || $allocation->amount_sen < 1 || $allocation->amount_sen > $invoice->total_sen) {
+            || $allocation->amount_sen < 1 || $allocation->amount_sen > app(FinancialLedger::class)->state($invoice)['total']) {
             throw ValidationException::withMessages(['claim' => 'Only a current approved Panel allocation on an eligible finalized Invoice can be claimed.']);
         }
     }
