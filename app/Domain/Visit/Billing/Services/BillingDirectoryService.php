@@ -55,6 +55,7 @@ class BillingDirectoryService
 
             return ['patient' => ['name' => $visit->patient->full_name, 'patientNumber' => $visit->patient->patient_number, 'profileUrl' => $actor->can('patients.view.organisation') ? '/patients/'.rawurlencode($visit->patient->patient_number) : null],
                 'backLink' => $this->backLink($actor),
+                'activity' => app(InvoiceActivityService::class)->link($visit, $branch->id, $invoice, false),
                 'visit' => ['visitNumber' => $visit->visit_number, 'status' => $visit->status, 'lockVersion' => $visit->lock_version, 'coverage' => $visit->coverage_type === 'panel' ? $visit->coverage_panel_name_snapshot : 'Self-pay', 'completedAt' => $visit->completed_at?->setTimezone($branch->timezone)->format('j M Y, g:i A')],
                 'clinic' => $branch->organisation->name, 'branch' => $branch->name, 'outstanding' => $printing ? null : app(OutstandingBillService::class)->summary($actor, $visit),
                 'invoice' => $invoice ? ['publicId' => $invoice->public_id, 'number' => $invoice->invoice_number, 'status' => $invoice->status, 'lockVersion' => $invoice->lock_version, 'currency' => $invoice->currency,

@@ -1,3 +1,4 @@
+import type { InvoiceActivityLink } from '@/types/invoiceActivity';
 export type OutstandingGroup = { count: number; totalSen: number; url: string };
 export type OutstandingBills = {
     branchId: number;
@@ -46,6 +47,7 @@ export type Responsibility = {
     dueDate: string | null;
 };
 export type BillingPage = {
+    activity: InvoiceActivityLink;
     backLink: { label: string; href: string } | null;
     patient: { name: string; patientNumber: string; profileUrl: string | null };
     visit: {

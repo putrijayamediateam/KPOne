@@ -4,6 +4,7 @@ import { ArrowLeft, UserRound } from '@lucide/vue';
 import { computed, onUnmounted, reactive, ref, watch } from 'vue';
 import BillingChargeRows from '@/components/billing/BillingChargeRows.vue';
 import BillingCompletionDialog from '@/components/billing/BillingCompletionDialog.vue';
+import InvoiceActivityDrawer from '@/components/billing/InvoiceActivityDrawer.vue';
 import OutstandingBills from '@/components/billing/OutstandingBills.vue';
 import { ActionLink } from '@/components/ui/action-link';
 import { Button } from '@/components/ui/button';
@@ -339,6 +340,7 @@ const reverse = (receipt: Receipt) =>
                 billing.invoice?.number ?? 'No invoice'
             }}</span>
             <StatusBadge :status="billing.visit.status" />
+            <InvoiceActivityDrawer v-if="!manage" :context="billing.activity" />
             <span v-if="isCompleted" class="text-xs text-muted-foreground"
                 >Read-only Visit record</span
             >

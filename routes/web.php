@@ -28,6 +28,7 @@ use App\Http\Controllers\InventoryController;
 use App\Http\Controllers\InventoryMovementController;
 use App\Http\Controllers\InventoryOperationsController;
 use App\Http\Controllers\InventoryReferenceController;
+use App\Http\Controllers\InvoiceActivityController;
 use App\Http\Controllers\MedicineCatalogueController;
 use App\Http\Controllers\MedicineOptionSettingsController;
 use App\Http\Controllers\PanelClaimsController;
@@ -317,6 +318,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
             ->whereUuid('dispensaryCase')->middleware(['permission:dispensary.update.branch', 'throttle:30,1'])->name('dispensary.otc-allergy');
         Route::get('dispensary/{dispensaryCase}', [DispensaryController::class, 'show'])
             ->whereUuid('dispensaryCase')->middleware('permission:dispensary.view.branch')->name('dispensary.show');
+
+        Route::get('visits/{visit}/invoice/activity', [InvoiceActivityController::class, 'completed'])
+            ->middleware(['permission:visits.history.view.branch', 'sensitive.no-store'])->name('visits.invoice.activity');
+        Route::get('visits/{visit}/billing/activity', [InvoiceActivityController::class, 'visit'])
+            ->middleware(['permission:billing.view.branch,billing.summary.branch', 'sensitive.no-store'])->name('billing.visit-activity');
+        Route::get('visits/{visit}/billing/{invoice}/activity', [InvoiceActivityController::class, 'billing'])
+            ->whereUuid('invoice')->middleware(['permission:billing.view.branch,billing.summary.branch', 'sensitive.no-store'])->name('billing.activity');
 
         Route::prefix('visits/{visit}/billing')->controller(BillingController::class)->group(function () {
             Route::get('/', 'show')->middleware('permission:billing.view.branch,billing.summary.branch')->name('billing.show');
