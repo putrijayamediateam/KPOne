@@ -18,6 +18,7 @@ use App\Domain\Visit\Billing\Models\InvoiceLine;
 use App\Domain\Visit\Billing\Models\Payment;
 use App\Domain\Visit\Billing\Models\PaymentAllocation;
 use App\Domain\Visit\Billing\Services\FinancialLedger;
+use App\Domain\Visit\Billing\Services\InvoiceActivityService;
 use App\Domain\Visit\Billing\Services\OutstandingBillService;
 use App\Domain\Visit\Models\Visit;
 use App\Models\User;
@@ -95,6 +96,7 @@ class VisitHistoryService
                 'consultation' => route('visits.history', $visit),
                 'billing' => $actor->can('billing.view.branch') ? route('billing.show', $visit) : null,
                 'payments' => $canFinance ? route('billing.payments', $visit) : null,
+                'activity' => app(InvoiceActivityService::class)->link($visit, $branch->id),
             ],
         ];
     }

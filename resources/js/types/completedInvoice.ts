@@ -1,4 +1,5 @@
 import type { OutstandingBills } from '@/types/billing';
+import type { InvoiceActivityLink } from '@/types/invoiceActivity';
 import type {
     VisitHistoryFinancial,
     VisitHistoryPage,
@@ -20,5 +21,6 @@ export type CompletedInvoicePage = {
         consultation: string;
         billing: string | null;
         payments: string | null;
+        activity: InvoiceActivityLink;
     };
 };

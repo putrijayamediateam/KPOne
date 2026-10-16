@@ -9,10 +9,12 @@ const source = readFileSync(
     'utf8',
 );
 const javascript = ts.transpileModule(source.replaceAll('export ', ''), {
-    compilerOptions: { target: ts.ScriptTarget.ES2022 },
+    // billing.ts now also imports the activity-link type; handle its module marker.
+    compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS },
 }).outputText;
 const { toSen, myr, outstandingSen } = runInNewContext(
     `${javascript}\n({ toSen, myr, outstandingSen })`,
+    { exports: {} },
 );
 
 test('money text becomes exact integer sen without floating arithmetic', () => {
