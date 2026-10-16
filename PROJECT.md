@@ -1,8 +1,22 @@
 # KPOne project
 
-Latest merged delivery: PR #103 — Panel invoices page and CSV download, merged as `5aa60d6`. Recent merges, newest first
+Latest merged delivery: PR #124 — INV-05b invoice adjustment reporting, merged as `bcfde20`. Recent merges, newest first
 (documentation-only PRs omitted):
 
+- PR #124 (`bcfde20`) — INV-05b: Insights net of invoice adjustments with gross item rankings, adjustment rows on new Panel claims and the print view.
+- PR #123 (`ef96f1e`) — INV-05a: governed invoice adjustments (discount or surcharge) and reversals, with a branch threshold, new narrow permissions and PostgreSQL integrity checks.
+- PR #122 (`4ab954c`) — INV-03: read-only invoice activity log drawer.
+- PR #121 (`b5f4b29`) — NAV-02: shorter role-based top bar; everything else through Clinic management.
+- PR #119 (`1101dd8`) — BIZ-01: Business details, shared logo and branch letterhead service.
+- PR #118 (`f4ad214`) — Clinic management hub (`/clinic-management`), filtered by existing permissions.
+- PR #117 (`cb1d102`) — INV-02b: payment dialogs and Manage payments page.
+- PR #116 (`13701db`) — INV-02a: Outstanding bill groups.
+- PR #114 and #115 (`d6a533d`, `e0a267d`) — INV-01 and INV-01b: Invoice and Patient Billing pages in the Yezza layout.
+- PR #113 (`35c02dc`) — PANEL-NOTE-01: per-visit Panel notes and a Payment column.
+- PR #112 (`375d541`) — CONSULT-02: patients waiting counts on the consultation page.
+- PR #110 and #111 (`39f38d9`, `56e4a67`) — CONSULT-01 two-column consultation workspace; test-only timezone fix.
+- PR #106 to #109 (`dbd7dc5`, `93b8f3d`, `b8a4cce`, `b904a7e`) — settings pages: Suppliers, Medicine details, Preset diagnoses and the diagnosis preset picker.
+- PR #105 (`6b0cbba`) — ADM-01: Administrator role and `catalogue.settings.manage.organisation`.
 - PR #103 (`5aa60d6`) — PS-03: Panel invoices page (`/panel-invoices`) with date, time, Panel, doctor, visit type and
   treatment filters, and a CSV download for Panel Officer, Finance Officer and Director. First export in KPOne,
   audited by filters and row count only. New permission `panel.invoices.export.branch`.
@@ -117,7 +131,7 @@ The waiting-room TV (TV-1, PR #57; TV-2, PR #60) shows each branch's consultatio
 calls. The TV account sees only called numbers, rooms and times for its own branch, never patient, clinical or
 financial data, and does not receive Insights.
 
-The current Insights work provides aggregate-only operational and financial reports. It does not introduce appointments, packages, patient-level financial rankings, exports, or new business transactions. Unsupported figures are identified rather than estimated.
+The current Insights work provides aggregate-only operational and financial reports; invoice sales are net of invoice adjustments (INV-05b) while item rankings stay gross. It does not introduce appointments, packages, patient-level financial rankings, exports, or new business transactions. Unsupported figures are identified rather than estimated.
 
 The current public website remains a separate system. Its current website administration remains the production administration path during migration. KPOne Phase 0A contains no website integration.
 
