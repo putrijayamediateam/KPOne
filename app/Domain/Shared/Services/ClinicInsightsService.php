@@ -74,6 +74,7 @@ class ClinicInsightsService
             'generatedAt' => $now->toIso8601String(),
             'sales' => [
                 'totalSen' => $todaySales['totalSen'],
+                'reconciliation' => $todaySales['reconciliation'],
                 'newSen' => $todaySales['newSen'],
                 'returningSen' => $todaySales['returningSen'],
                 'patientCount' => $todayPatientCount,
@@ -99,7 +100,7 @@ class ClinicInsightsService
 
     /**
      * @param  array<int, array{branch: Branch, todayStart: CarbonImmutable, tomorrowStart: CarbonImmutable, yesterdayStart: CarbonImmutable}>  $periods
-     * @return array{totalSen: int, newSen: int, returningSen: int}
+     * @return array{totalSen: int, newSen: int, returningSen: int, reconciliation: array{grossSen: int, discountsSen: int, surchargesSen: int, netSen: int}}
      */
     private function salesSummary(User $actor, array $periods, string $period): array
     {
@@ -107,10 +108,11 @@ class ClinicInsightsService
             ->where('organisation_id', $actor->organisation_id)
             ->where('status', 'finalized');
         $this->applyPeriod($query, $periods, 'finalized_at', $period);
-        $total = (int) $query->sum('total_sen');
+        $reconciliation = InvoiceSalesProjection::reconciliation($query);
+        $total = (int) $query->sum(DB::raw(InvoiceSalesProjection::PAYABLE));
 
         if ($period !== 'today') {
-            return ['totalSen' => $total, 'newSen' => 0, 'returningSen' => 0];
+            return ['totalSen' => $total, 'newSen' => 0, 'returningSen' => 0, 'reconciliation' => $reconciliation];
         }
 
         $newSales = 0;
@@ -131,11 +133,11 @@ class ClinicInsightsService
                 ->where('previous.status', 'completed')
                 ->whereColumn('previous.completed_at', '<', 'invoices.finalized_at');
 
-            $returningSales += (int) (clone $branchQuery)->whereExists($previouslyAttended)->sum('total_sen');
-            $newSales += (int) $branchQuery->whereNotExists($previouslyAttended)->sum('total_sen');
+            $returningSales += (int) (clone $branchQuery)->whereExists($previouslyAttended)->sum(DB::raw(InvoiceSalesProjection::PAYABLE));
+            $newSales += (int) $branchQuery->whereNotExists($previouslyAttended)->sum(DB::raw(InvoiceSalesProjection::PAYABLE));
         }
 
-        return ['totalSen' => $total, 'newSen' => $newSales, 'returningSen' => $returningSales];
+        return ['totalSen' => $total, 'newSen' => $newSales, 'returningSen' => $returningSales, 'reconciliation' => $reconciliation];
     }
 
     /**
@@ -151,7 +153,7 @@ class ClinicInsightsService
         $this->applyPeriod($invoices, $periods, 'finalized_at', 'today');
 
         $salesByHour = array_fill(0, 24, 0);
-        foreach ($invoices->get(['branch_id', 'finalized_at', 'total_sen']) as $invoice) {
+        foreach ($invoices->selectRaw('invoices.branch_id, invoices.finalized_at, kpone_invoice_payable(invoices.id) AS total_sen')->get() as $invoice) {
             $branch = $periods[$invoice->branch_id]['branch'];
             $hour = CarbonImmutable::parse($invoice->finalized_at, 'UTC')->setTimezone($branch->timezone)->hour;
             $salesByHour[$hour] += (int) $invoice->total_sen;
@@ -207,7 +209,7 @@ class ClinicInsightsService
             ->where('invoices.status', 'finalized');
         $this->applyPeriod($query, $periods, 'invoices.finalized_at', 'today', 'invoices.branch_id');
 
-        return array_values($query->selectRaw('users.id, users.name, SUM(invoices.total_sen) as sales_sen, COUNT(DISTINCT invoices.patient_id) as patients')
+        return array_values($query->selectRaw('users.id, users.name, SUM(kpone_invoice_payable(invoices.id)) as sales_sen, COUNT(DISTINCT invoices.patient_id) as patients')
             ->groupBy('users.id', 'users.name')
             ->orderByDesc('sales_sen')
             ->orderBy('users.name')

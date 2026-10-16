@@ -2,6 +2,7 @@
 import { Head, router } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
 import DateRangePicker from '@/components/insights/DateRangePicker.vue';
+import SalesReconciliation from '@/components/insights/SalesReconciliation.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { PageHeader } from '@/components/ui/page-header';
@@ -88,13 +89,13 @@ const cardRows = computed(() => {
 
     if (value.kind === 'sales') {
         return [
-            { label: 'New sales', value: money(value.summary.newSen) },
+            { label: 'New net sales', value: money(value.summary.newSen) },
             {
-                label: 'Returning sales',
+                label: 'Returning net sales',
                 value: money(value.summary.returningSen),
             },
             {
-                label: 'Sales',
+                label: 'Net invoice sales',
                 value: money(value.summary.totalSen),
                 previous: money(value.summary.previousTotalSen),
             },
@@ -104,7 +105,7 @@ const cardRows = computed(() => {
                 previous: String(value.summary.previousPatients),
             },
             {
-                label: 'Sales per patient',
+                label: 'Net sales per patient',
                 value: money(value.summary.perPatientSen),
                 previous: money(value.summary.previousPerPatientSen),
             },
@@ -139,10 +140,13 @@ const cardRows = computed(() => {
     if (value.kind === 'payments') {
         return [
             {
-                label: 'Self-pay sales',
+                label: 'Self-pay net invoice sales',
                 value: money(value.summary.selfPaySalesSen),
             },
-            { label: 'Panel sales', value: money(value.summary.panelSalesSen) },
+            {
+                label: 'Panel net invoice sales',
+                value: money(value.summary.panelSalesSen),
+            },
             {
                 label: 'Payments received',
                 value: money(value.summary.receivedSen),
@@ -223,18 +227,18 @@ const tableGroups = computed<TableGroup[]>(() => {
     if (value.kind === 'sales') {
         return [
             {
-                title: 'Services ranking',
+                title: 'Services · gross item sales',
                 rows: value.services,
                 truncated: value.rankingTruncated.services,
             },
             {
-                title: 'Medication ranking',
+                title: 'Medicines · gross item sales',
                 rows: value.medicines,
                 truncated: value.rankingTruncated.medicines,
             },
             { title: 'Packages ranking', rows: value.packages },
             {
-                title: 'Provider ranking',
+                title: 'Provider · net invoice sales',
                 rows: value.providers,
                 truncated: value.rankingTruncated.providers,
             },
@@ -251,7 +255,10 @@ const tableGroups = computed<TableGroup[]>(() => {
 
     if (value.kind === 'inventory') {
         return [
-            { title: 'Medication sales ranking', rows: value.medicineSales },
+            {
+                title: 'Medicines · gross item sales',
+                rows: value.medicineSales,
+            },
         ];
     }
 
@@ -475,6 +482,11 @@ const occupancyMax = computed(() =>
             </article>
         </section>
 
+        <SalesReconciliation
+            v-if="report.kind === 'sales'"
+            :totals="report.summary.reconciliation"
+        />
+
         <section
             v-if="chartPoints.length"
             class="rounded-xl border bg-card p-4 md:p-5"
@@ -482,7 +494,7 @@ const occupancyMax = computed(() =>
             <h2 class="font-semibold">
                 {{
                     section === 'sales'
-                        ? 'Sales trend'
+                        ? 'Net invoice sales trend'
                         : section === 'patients'
                           ? 'Patient age distribution'
                           : 'Daily patient visits'

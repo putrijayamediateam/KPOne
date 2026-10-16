@@ -182,7 +182,7 @@ final class PanelClaimDirectoryService
                 'pn.claim_due_time',
                 'pn.claim_due_offset',
                 'i.invoice_number',
-                'i.total_sen as invoice_total_sen',
+                DB::raw('kpone_invoice_payable(i.id) as invoice_total_sen'),
                 'v.visit_number',
                 'v.visit_type',
                 'v.registered_at',
@@ -513,7 +513,7 @@ final class PanelClaimDirectoryService
                     'publicId' => $allocation->public_id, 'lockVersion' => $allocation->lock_version,
                     'invoiceLockVersion' => $invoice->lock_version, 'panelName' => $allocation->panel_name_snapshot,
                     'amountSen' => $allocation->amount_sen, 'patientName' => $patient->full_name,
-                    'invoiceNumber' => $invoice->invoice_number, 'invoiceTotalSen' => $invoice->total_sen,
+                    'invoiceNumber' => $invoice->invoice_number, 'invoiceTotalSen' => app(FinancialLedger::class)->state($invoice)['total'], 'invoiceBreakdown' => InvoiceAdjustmentService::summary($invoice),
                     'visitDate' => $visit->registered_at->setTimezone($branch->timezone)->toDateString(),
                     'visitDateTime' => $visit->registered_at->setTimezone($branch->timezone)->format('j M Y, g:i A'),
                     'lines' => InvoiceLine::query()->where('invoice_id', $invoice->id)->orderBy('id')->get()
@@ -535,6 +535,8 @@ final class PanelClaimDirectoryService
                 ->where('organisation_id', $actor->organisation_id)->where('branch_id', $branch->id)
                 ->with(['lines', 'payments', 'documents'])->firstOrFail();
             $paid = (int) $claim->payments->sum('amount_sen');
+            // Only saved claim evidence: never reconstruct older claims from the live Invoice.
+            $originalSubtotal = (int) $claim->lines->sum('line_total_sen');
             $lineRows = $claim->lines->map(static fn ($line): array => [
                 'number' => $line->line_number,
                 'type' => $line->line_type,
@@ -546,20 +548,6 @@ final class PanelClaimDirectoryService
                 'totalSen' => $line->line_total_sen,
                 'adjustment' => false,
             ])->all();
-            if ($claim->claim_amount_sen > $claim->invoice_total_sen) {
-                $adjustment = $claim->claim_amount_sen - $claim->invoice_total_sen;
-                $lineRows[] = [
-                    'number' => count($lineRows) + 1,
-                    'type' => 'adjustment',
-                    'name' => 'Panel claim adjustment',
-                    'code' => 'PANEL-ADJUSTMENT',
-                    'unit' => 'claim',
-                    'quantity' => '1.000',
-                    'unitPriceSen' => $adjustment,
-                    'totalSen' => $adjustment,
-                    'adjustment' => true,
-                ];
-            }
             $events = DB::table('panel_claim_events')
                 ->join('users', function ($join): void {
                     $join->on('users.id', '=', 'panel_claim_events.actor_user_id')
@@ -662,6 +650,9 @@ final class PanelClaimDirectoryService
                     'visitDate' => $claim->visit_date->format('j M Y'),
                     'invoiceNumber' => $claim->invoice_number,
                     'invoiceTotalSen' => $claim->invoice_total_sen,
+                    'invoiceSubtotalSen' => $originalSubtotal,
+                    'invoiceAdjustmentSen' => $claim->invoice_total_sen - $originalSubtotal,
+                    'claimOnlyAdjustmentSen' => max(0, $claim->claim_amount_sen - $claim->invoice_total_sen),
                     'claimAmountSen' => $claim->claim_amount_sen,
                     'adjustmentSen' => max(0, $claim->claim_amount_sen - $claim->invoice_total_sen),
                     'acceptedAmountSen' => $claim->accepted_amount_sen,

@@ -7,7 +7,9 @@ const print = () => window.print();
 </script>
 <template>
     <Head :title="receipt ? 'Receipt' : 'Invoice'" />
-    <main class="mx-auto max-w-3xl p-8 text-sm">
+    <main
+        class="mx-auto max-w-3xl min-w-0 p-4 text-sm sm:p-8 print:bg-white print:text-black"
+    >
         <button
             class="mb-4 rounded border px-3 py-2 print:hidden"
             @click="print"
@@ -32,7 +34,7 @@ const print = () => window.print();
             <p>Originating Invoice: {{ billing.invoice?.number }}</p></template
         ><template v-else-if="billing.invoice"
             ><p>Finalized {{ billing.invoice.finalizedAt }}</p>
-            <table class="my-4 w-full text-left">
+            <table class="my-4 w-full table-fixed text-left text-xs sm:text-sm">
                 <thead>
                     <tr>
                         <th>Charge</th>
@@ -47,14 +49,47 @@ const print = () => window.print();
                         :key="index"
                         class="border-b"
                     >
-                        <td class="py-2">{{ line.name }}</td>
+                        <td class="py-2 break-words">{{ line.name }}</td>
                         <td>{{ line.quantity }} {{ line.unit }}</td>
                         <td>{{ myr(line.unitPriceSen) }}</td>
                         <td>{{ myr(line.totalSen) }}</td>
                     </tr>
                 </tbody>
             </table>
-            <p>Total {{ myr(billing.invoice.state.total) }}</p>
+            <dl class="my-4 space-y-2" aria-label="Invoice amount breakdown">
+                <div class="flex justify-between">
+                    <dt>Original subtotal</dt>
+                    <dd>{{ myr(billing.invoice.adjustment.subtotalSen) }}</dd>
+                </div>
+                <div class="flex justify-between">
+                    <dt>
+                        {{
+                            billing.invoice.adjustment.adjustmentSen < 0
+                                ? 'Discount'
+                                : billing.invoice.adjustment.adjustmentSen > 0
+                                  ? 'Surcharge'
+                                  : 'Invoice adjustment'
+                        }}
+                    </dt>
+                    <dd>
+                        {{
+                            billing.invoice.adjustment.adjustmentSen < 0
+                                ? '−'
+                                : '+'
+                        }}{{
+                            myr(
+                                Math.abs(
+                                    billing.invoice.adjustment.adjustmentSen,
+                                ),
+                            )
+                        }}
+                    </dd>
+                </div>
+                <div class="flex justify-between font-semibold">
+                    <dt>Adjusted total</dt>
+                    <dd>{{ myr(billing.invoice.state.total) }}</dd>
+                </div>
+            </dl>
             <p>Self-pay received {{ myr(billing.invoice.state.self_pay) }}</p>
             <p>Panel responsibility {{ myr(billing.invoice.state.panel) }}</p>
             <p>Approved pay later {{ myr(billing.invoice.state.deferred) }}</p>

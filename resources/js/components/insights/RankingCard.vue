@@ -86,7 +86,11 @@ const money = (value: number) =>
                         </th>
                         <th class="py-2 pr-3 text-right">
                             <button type="button" @click="sort('salesSen')">
-                                SALES
+                                {{
+                                    kind === 'provider'
+                                        ? 'NET INVOICE SALES'
+                                        : 'GROSS ITEM SALES'
+                                }}
                             </button>
                         </th>
                         <th class="py-2 text-right">

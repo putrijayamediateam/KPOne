@@ -4,6 +4,7 @@ import { computed, onMounted, onUnmounted, ref } from 'vue';
 import ComparisonCard from '@/components/insights/ComparisonCard.vue';
 import HourlyTrendChart from '@/components/insights/HourlyTrendChart.vue';
 import RankingCard from '@/components/insights/RankingCard.vue';
+import SalesReconciliation from '@/components/insights/SalesReconciliation.vue';
 import {
     Dialog,
     DialogContent,
@@ -203,13 +204,13 @@ onUnmounted(() => {
             aria-label="New and returning sales"
         >
             <div class="rounded-xl border border-border bg-card p-4 md:p-5">
-                <p class="text-xs text-muted-foreground">New sales</p>
+                <p class="text-xs text-muted-foreground">New net sales</p>
                 <p class="mt-1 text-2xl font-semibold tabular-nums">
                     {{ money(report.sales.newSen) }}
                 </p>
             </div>
             <div class="rounded-xl border border-border bg-card p-4 md:p-5">
-                <p class="text-xs text-muted-foreground">Returning sales</p>
+                <p class="text-xs text-muted-foreground">Returning net sales</p>
                 <p class="mt-1 text-2xl font-semibold tabular-nums">
                     {{ money(report.sales.returningSen) }}
                 </p>
@@ -218,7 +219,7 @@ onUnmounted(() => {
 
         <section class="grid gap-3 sm:grid-cols-3" aria-label="Today's totals">
             <div class="rounded-xl border border-border bg-card p-4 md:p-5">
-                <p class="text-xs text-muted-foreground">Total sales</p>
+                <p class="text-xs text-muted-foreground">Net invoice sales</p>
                 <p class="mt-1 text-2xl font-semibold tabular-nums">
                     {{ money(report.sales.totalSen) }}
                 </p>
@@ -230,7 +231,9 @@ onUnmounted(() => {
                 </p>
             </div>
             <div class="rounded-xl border border-border bg-card p-4 md:p-5">
-                <p class="text-xs text-muted-foreground">Sales per patient</p>
+                <p class="text-xs text-muted-foreground">
+                    Net sales per patient
+                </p>
                 <p class="mt-1 text-2xl font-semibold tabular-nums">
                     {{ money(report.sales.averagePerPatientSen) }}
                 </p>
@@ -242,7 +245,7 @@ onUnmounted(() => {
             aria-label="Sales and patient comparisons with yesterday"
         >
             <ComparisonCard
-                title="Average sales comparison"
+                title="Net invoice sales comparison"
                 :current="report.sales.totalSen"
                 :previous="report.sales.previousTotalSen"
                 :money="true"
@@ -255,7 +258,7 @@ onUnmounted(() => {
                 unit=" patients"
             />
             <ComparisonCard
-                title="Average sales per patient comparison"
+                title="Net sales per patient comparison"
                 :current="report.sales.averagePerPatientSen"
                 :previous="report.sales.previousAveragePerPatientSen"
                 :money="true"
@@ -264,7 +267,7 @@ onUnmounted(() => {
         </section>
 
         <HourlyTrendChart
-            title="Sales trend"
+            title="Net invoice sales trend"
             :summary="salesTrendSummary"
             :points="
                 report.salesTrend.map((point) => ({
@@ -275,18 +278,19 @@ onUnmounted(() => {
             :money="true"
         />
 
+        <SalesReconciliation :totals="report.sales.reconciliation" />
         <section
             class="grid gap-4 xl:grid-cols-2"
             aria-label="Today's rankings"
         >
             <RankingCard
-                title="Services ranking"
+                title="Services · gross item sales"
                 kind="service"
                 :items="report.rankings.services"
                 @view-all="openDetails"
             />
             <RankingCard
-                title="Medication ranking"
+                title="Medicines · gross item sales"
                 kind="medicine"
                 :items="report.rankings.medicines"
                 @view-all="openDetails"
@@ -298,7 +302,7 @@ onUnmounted(() => {
                 empty-message="Package sales are not supported by the current billing catalogue."
             />
             <RankingCard
-                title="Provider ranking"
+                title="Provider · net invoice sales"
                 kind="provider"
                 :items="report.rankings.providers"
                 @view-all="openDetails"

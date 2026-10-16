@@ -4,6 +4,7 @@ import { computed, ref } from 'vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import { myr } from '@/types/billing';
+import type { InvoiceAdjustmentSummary } from '@/types/billing';
 
 const props = defineProps<{
     branch: { id: number; today: string };
@@ -16,6 +17,7 @@ const props = defineProps<{
         patientName: string;
         invoiceNumber: string;
         invoiceTotalSen: number;
+        invoiceBreakdown: InvoiceAdjustmentSummary;
         visitDate: string;
         visitDateTime: string;
         lines: {
@@ -206,6 +208,41 @@ const errors = computed(() => Object.entries(form.errors));
                             items)
                         </p>
                     </div>
+                    <dl
+                        class="mt-3 ml-auto grid max-w-sm gap-2 text-xs"
+                        aria-label="Invoice amount breakdown"
+                    >
+                        <div class="flex justify-between gap-3">
+                            <dt>Original subtotal</dt>
+                            <dd>
+                                {{
+                                    myr(allocation.invoiceBreakdown.subtotalSen)
+                                }}
+                            </dd>
+                        </div>
+                        <div class="flex justify-between gap-3">
+                            <dt>Invoice adjustment</dt>
+                            <dd>
+                                {{
+                                    allocation.invoiceBreakdown.adjustmentSen <
+                                    0
+                                        ? '−'
+                                        : '+'
+                                }}{{
+                                    myr(
+                                        Math.abs(
+                                            allocation.invoiceBreakdown
+                                                .adjustmentSen,
+                                        ),
+                                    )
+                                }}
+                            </dd>
+                        </div>
+                        <div class="flex justify-between gap-3 font-semibold">
+                            <dt>Adjusted total</dt>
+                            <dd>{{ myr(allocation.invoiceTotalSen) }}</dd>
+                        </div>
+                    </dl>
                 </section>
                 <section
                     class="min-w-0 space-y-5 rounded-xl border bg-card p-6 shadow-sm"
