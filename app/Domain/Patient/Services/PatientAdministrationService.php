@@ -2,9 +2,12 @@
 
 namespace App\Domain\Patient\Services;
 
+use App\Domain\Access\BranchAccessService;
 use App\Domain\Audit\AuditRecorder;
 use App\Domain\Patient\Models\Patient;
 use App\Domain\Patient\Models\PatientIdentifier;
+use App\Domain\Patient\Models\PublicIntakeSession;
+use App\Domain\Patient\Models\PublicPatientIntake;
 use App\Models\User;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\QueryException;
@@ -32,8 +35,28 @@ class PatientAdministrationService
     /** @param array<string, mixed> $attributes */
     public function create(User $actor, array $attributes): Patient
     {
+        return $this->createUsingPolicy($actor, $attributes, app(RegistrationSettingsService::class)->policy($actor->organisation_id));
+    }
+
+    public function createForIntake(User $actor, PublicPatientIntake $intake, bool $duplicateOverride): Patient
+    {
+        abort_unless($intake->organisation_id === $actor->organisation_id, 404);
+        abort_unless($actor->can('public_intakes.review.branch') && app(BranchAccessService::class)->activeBranch($actor)?->id === $intake->branch_id, 403);
+        $session = PublicIntakeSession::query()->whereKey($intake->public_intake_session_id)->where('organisation_id', $actor->organisation_id)->firstOrFail();
+        $attributes = Arr::wrap(data_get($intake->encrypted_payload, 'patient'));
+        $attributes['duplicate_override'] = $duplicateOverride;
+
+        return $this->createUsingPolicy($actor, $attributes, app(RegistrationSettingsService::class)->sessionPolicy($session));
+    }
+
+    /** @param array<string,mixed> $attributes
+     * @param  array{requireDateOfBirth:bool,requireNationality:bool,lockVersion:int}  $policy
+     */
+    private function createUsingPolicy(User $actor, array $attributes, array $policy): Patient
+    {
         Gate::forUser($actor)->authorize('create', Patient::class);
         (new PatientPhoneNormalizer)->normalize($attributes['mobile_phone'] ?? null, $attributes['phone_country'] ?? 'MY', required: true);
+        app(RegistrationSettingsService::class)->validateNewPatient($attributes, $policy);
         $normalized = $this->validatePatient($this->identity->normalizePatient($attributes));
         $identifiers = $this->normalizeIdentifierList($attributes['identifiers'] ?? []);
 

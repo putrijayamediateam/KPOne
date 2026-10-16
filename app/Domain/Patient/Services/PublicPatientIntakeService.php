@@ -33,6 +33,7 @@ class PublicPatientIntakeService
         $expiresAt = now()->utc()->addMinutes((int) config('public-intake.submission_session_ttl_minutes', 15));
 
         $session = PublicIntakeSession::query()->create([
+            'registration_policy' => app(RegistrationSettingsService::class)->policy($link->organisation_id),
             'public_id' => (string) Str::uuid(),
             'organisation_id' => $link->organisation_id,
             'branch_id' => $link->branch_id,
@@ -123,7 +124,7 @@ class PublicPatientIntakeService
     public function submit(PublicIntakeSession $boundSession, array $attributes, bool $allowsCreation): PublicPatientIntake
     {
         $this->ensureEnabled();
-        $payload = $this->payloads->validate($attributes, $boundSession->organisation_id);
+        $payload = $this->payloads->validate($attributes, $boundSession->organisation_id, null, app(RegistrationSettingsService::class)->sessionPolicy($boundSession));
         $fingerprint = $this->fingerprint($payload);
 
         return DB::transaction(function () use ($boundSession, $allowsCreation, $payload, $fingerprint): PublicPatientIntake {

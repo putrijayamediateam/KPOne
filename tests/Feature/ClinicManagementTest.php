@@ -20,6 +20,7 @@ class ClinicManagementTest extends VisitTestCase
             '/payment-reconciliations' => ['payments.reconcile.branch'],
             '/business-details' => ['catalogue.settings.manage.organisation'],
             '/public-checkin-links' => ['public_checkin_links.manage.organisation', 'public_checkin_links.manage.branch'],
+            '/registration-settings' => ['catalogue.settings.manage.organisation'],
             '/consultation-settings' => ['catalogue.settings.manage.organisation'],
             '/checkout-settings' => ['panels.manage.organisation'],
             '/payment-methods' => ['payment_methods.manage.organisation'],

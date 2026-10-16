@@ -21,6 +21,7 @@ import {
     focusInvalidField,
 } from '@/lib/patient-registration';
 import type { PatientRegistrationSummary, VisitOptions } from '@/types';
+import type { RegistrationRequirements } from '@/types/registration-settings';
 
 defineOptions({
     layout: {
@@ -33,6 +34,7 @@ defineOptions({
 const props = defineProps<{
     options: VisitOptions & { idempotencyKey: string };
     recentPatients: PatientRegistrationSummary[];
+    requirements: RegistrationRequirements;
 }>();
 const identityTypeOptions = [
     { value: 'nric', label: 'Malaysian IC' },
@@ -73,6 +75,7 @@ const quickIssuer = ref('MY');
 type QuickPatientInput = {
     full_name: string;
     date_of_birth: string;
+    nationality_code: string;
     sex: string;
     mobile_phone: string;
     phone_country: string;
@@ -119,6 +122,7 @@ const form = useForm<RegistrationForm>({
 const quick = ref({
     full_name: '',
     date_of_birth: '',
+    nationality_code: '',
     sex: 'unknown',
     mobile_phone: '',
     phone_country: 'MY',
@@ -635,15 +639,39 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
                     "
                 />
                 <label class="grid gap-1"
-                    ><span class="text-sm font-medium">DOB (optional)</span
+                    ><span class="text-sm font-medium">{{
+                        requirements.requireDateOfBirth
+                            ? 'DOB *'
+                            : 'DOB (optional)'
+                    }}</span
                     ><input
                         v-model="quick.date_of_birth"
+                        :required="requirements.requireDateOfBirth"
                         :aria-invalid="
                             !!errorFor('quick_patient.date_of_birth')
                         "
                         type="date"
                         class="h-10 rounded-md border bg-background px-3 text-sm" /><InputError
                         :message="errorFor('quick_patient.date_of_birth')"
+                /></label>
+                <label class="grid gap-1" for="quick-nationality"
+                    ><span class="text-sm font-medium"
+                        >Nationality country code{{
+                            requirements.requireNationality
+                                ? ' *'
+                                : ' (optional)'
+                        }}</span
+                    ><input
+                        id="quick-nationality"
+                        v-model="quick.nationality_code"
+                        :required="requirements.requireNationality"
+                        :aria-invalid="
+                            !!errorFor('quick_patient.nationality_code')
+                        "
+                        maxlength="2"
+                        placeholder="MY"
+                        class="h-10 rounded-md border bg-background px-3 text-sm uppercase" /><InputError
+                        :message="errorFor('quick_patient.nationality_code')"
                 /></label>
                 <label class="grid gap-1" for="quick-gender"
                     ><span class="text-sm font-medium">Gender</span

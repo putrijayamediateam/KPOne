@@ -12,6 +12,8 @@ import {
     focusInvalidField,
 } from '@/lib/patient-registration';
 import type { PatientFormValues } from '@/types';
+import type { RegistrationRequirements } from '@/types/registration-settings';
+defineProps<{ requirements: RegistrationRequirements }>();
 
 defineOptions({
     layout: {
@@ -121,6 +123,7 @@ const submit = () => {
         <form class="space-y-5" novalidate @submit.prevent="submit">
             <PatientFormFields
                 :model="form"
+                :requirements="requirements"
                 :errors="form.errors"
                 new-patient
             />

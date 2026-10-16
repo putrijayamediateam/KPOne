@@ -4,10 +4,12 @@ import InputError from '@/components/InputError.vue';
 import PhoneInput from '@/components/patient/PhoneInput.vue';
 import { OperationalSelect } from '@/components/ui/select';
 import type { PatientFormValues } from '@/types';
+import type { RegistrationRequirements } from '@/types/registration-settings';
 
 const props = defineProps<{
     model: PatientFormValues;
     newPatient?: boolean;
+    requirements?: RegistrationRequirements;
     originalPhone?: string;
     errors: Partial<Record<keyof PatientFormValues, string>>;
 }>();
@@ -47,9 +49,18 @@ const genderOptions = [
                     />
                 </label>
                 <label class="grid gap-2">
-                    <span class="text-sm font-medium">Date of birth</span>
+                    <span class="text-sm font-medium"
+                        >Date of birth{{
+                            newPatient && requirements?.requireDateOfBirth
+                                ? ' *'
+                                : ''
+                        }}</span
+                    >
                     <input
                         v-model="fields.date_of_birth"
+                        :required="
+                            newPatient && requirements?.requireDateOfBirth
+                        "
                         :aria-invalid="!!errors.date_of_birth"
                         type="date"
                         class="h-10 rounded-md border bg-background px-3 text-sm"
@@ -73,10 +84,17 @@ const genderOptions = [
                 </div>
                 <label class="grid gap-2">
                     <span class="text-sm font-medium"
-                        >Nationality country code</span
+                        >Nationality country code{{
+                            newPatient && requirements?.requireNationality
+                                ? ' *'
+                                : ''
+                        }}</span
                     >
                     <input
                         v-model="fields.nationality_code"
+                        :required="
+                            newPatient && requirements?.requireNationality
+                        "
                         :aria-invalid="!!errors.nationality_code"
                         maxlength="2"
                         placeholder="MY"

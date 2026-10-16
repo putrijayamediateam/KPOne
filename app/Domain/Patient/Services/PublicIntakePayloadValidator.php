@@ -34,12 +34,14 @@ class PublicIntakePayloadValidator
      *                                                   the version currently configured, or a version change would silently retract
      *                                                   or rewrite the patient's prior consent. Left null for a new public submission,
      *                                                   which must always consent to the currently configured version.
+     * @param  array{requireDateOfBirth:bool,requireNationality:bool,lockVersion:int}|null  $registrationPolicy
      * @return array<string, mixed>
      */
     public function validate(
         array $attributes,
         int $organisationId,
         ?string $lockedPrivacyNoticeVersion = null,
+        ?array $registrationPolicy = null,
     ): array {
         $privacyVersion = $lockedPrivacyNoticeVersion ?? (string) config('public-intake.privacy_notice_version');
         $validated = Validator::make($attributes, [
@@ -92,6 +94,8 @@ class PublicIntakePayloadValidator
             'guardian_attestation.accepted_if' => 'Penjaga mesti mengesahkan kebenaran untuk menghantar maklumat ini.',
             'consent_confirmed.accepted' => 'Persetujuan diperlukan sebelum maklumat dihantar.',
         ])->validate();
+
+        app(RegistrationSettingsService::class)->validateNewPatient($validated, $registrationPolicy ?? app(RegistrationSettingsService::class)->policy($organisationId), publicIntake: true);
 
         $dob = CarbonImmutable::createFromFormat('!Y-m-d', (string) $validated['date_of_birth']);
         if ($dob === null) {

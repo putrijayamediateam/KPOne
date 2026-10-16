@@ -47,6 +47,7 @@ use App\Http\Controllers\QueueController;
 use App\Http\Controllers\QueueDisplayController;
 use App\Http\Controllers\QueueDisplaySettingsController;
 use App\Http\Controllers\RegistrationController;
+use App\Http\Controllers\RegistrationSettingsController;
 use App\Http\Controllers\RoomCallController;
 use App\Http\Controllers\StaffBranchAssignmentController;
 use App\Http\Controllers\StaffController;
@@ -120,6 +121,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('panel-invoices/download', [PanelInvoicesController::class, 'download'])->middleware('throttle:10,1')->name('panel-invoices.download');
     });
     Route::middleware(['permission:catalogue.settings.manage.organisation', 'sensitive.no-store'])->group(function () {
+        Route::get('registration-settings', [RegistrationSettingsController::class, 'index'])->name('registration-settings.index');
+        Route::post('registration-settings', [RegistrationSettingsController::class, 'store'])->middleware('throttle:20,1')->name('registration-settings.store');
         Route::get('consultation-settings', [DiagnosisPresetSettingsController::class, 'index'])->name('diagnosis-presets.index');
         Route::post('consultation-settings/diagnoses', [DiagnosisPresetSettingsController::class, 'store'])->middleware('throttle:30,1')->name('diagnosis-presets.store');
         Route::patch('consultation-settings/diagnoses/{preset}/rename', [DiagnosisPresetSettingsController::class, 'rename'])->whereNumber('preset')->middleware('throttle:30,1')->name('diagnosis-presets.rename');

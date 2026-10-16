@@ -28,6 +28,7 @@ import {
     secondsRemaining,
     validateIntakeStep,
 } from '@/lib/public-intake-form';
+import type { RegistrationRequirements } from '@/types/registration-settings';
 
 const props = defineProps<{
     clinicName: string;
@@ -37,6 +38,7 @@ const props = defineProps<{
     statusAvailable: boolean;
     privacyNoticeVersion: string;
     minorAge: number;
+    registrationRequirements: RegistrationRequirements | null;
 }>();
 declare global {
     interface Window {
@@ -52,6 +54,7 @@ const submitting = ref(false);
 const session = ref<IntakeSession | null>(props.intakeSession);
 const branch = ref<{ name: string } | null>(props.branch);
 const panelOptions = ref(props.panelOptions);
+const requirements = ref(props.registrationRequirements);
 const errors = ref<Record<string, string[]>>({});
 const generalError = ref('');
 const form = reactive({
@@ -105,6 +108,7 @@ const checkStep = (target: number) => {
     const found = validateIntakeStep(target, form, {
         minorAge: props.minorAge,
         today: localToday(new Date()),
+        requireNationality: requirements.value?.requireNationality ?? false,
     });
     errors.value = found;
 
@@ -175,11 +179,13 @@ const exchangeFragment = async () => {
         })) as {
             branch: { name: string };
             intakeSession: IntakeSession;
+            registrationRequirements: RegistrationRequirements;
             panelOptions: Array<{ id: number; name: string }>;
         };
         branch.value = exchanged.branch;
         session.value = exchanged.intakeSession;
         panelOptions.value = exchanged.panelOptions;
+        requirements.value = exchanged.registrationRequirements;
     } catch {
         generalError.value =
             'Pautan pendaftaran tidak sah atau telah tamat. Sila imbas semula kod QR atau hadir ke kaunter.';
@@ -598,6 +604,28 @@ onBeforeUnmount(() => {
                                 </select></label
                             >
                         </div>
+                        <label class="grid gap-1.5" for="nationality"
+                            ><span class="text-sm font-medium"
+                                >Kod negara kewarganegaraan{{
+                                    requirements?.requireNationality
+                                        ? ' *'
+                                        : ' (pilihan)'
+                                }}</span
+                            ><input
+                                id="nationality"
+                                v-model="form.nationality_code"
+                                :required="requirements?.requireNationality"
+                                :aria-invalid="!!errorFor('nationality_code')"
+                                maxlength="2"
+                                placeholder="MY"
+                                class="min-h-12 rounded-xl border px-3 uppercase"
+                            /><span
+                                v-if="errorFor('nationality_code')"
+                                role="alert"
+                                class="text-sm text-red-700"
+                                >{{ errorFor('nationality_code') }}</span
+                            ></label
+                        >
                         <label class="grid gap-1.5" for="phone"
                             ><span class="text-sm font-medium"
                                 >Nombor telefon *</span
