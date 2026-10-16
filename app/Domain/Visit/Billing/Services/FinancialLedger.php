@@ -30,12 +30,13 @@ class FinancialLedger
             - (int) PaymentReversal::query()->where('invoice_id', $invoice->id)->sum('amount_sen');
         $panel = (int) CoverageAllocation::query()->where('invoice_id', $invoice->id)->where('status', 'approved')->sum('amount_sen');
         $deferred = (int) PatientReceivable::query()->where('invoice_id', $invoice->id)->where('status', 'approved')->sum('remaining_sen');
-        $due = $invoice->total_sen - $paid - $panel - $deferred;
+        $total = $invoice->total_sen + InvoiceAdjustmentService::summary($invoice)['adjustmentSen'];
+        $due = $total - $paid - $panel - $deferred;
         if ($paid < 0 || $due < 0) {
             throw ValidationException::withMessages(['invoice' => 'Financial evidence does not reconcile. Review is required.']);
         }
 
-        return ['total' => $invoice->total_sen, 'self_pay' => $paid, 'panel' => $panel, 'deferred' => $deferred, 'due_now' => $due];
+        return ['total' => $total, 'self_pay' => $paid, 'panel' => $panel, 'deferred' => $deferred, 'due_now' => $due];
     }
 
     public function requireMutable(Invoice $invoice, mixed $version): void

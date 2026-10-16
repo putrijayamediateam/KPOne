@@ -36,7 +36,7 @@ class CompleteVisitationService
                 $this->invalid();
             }
             $visit->forceFill(['status' => Visit::STATUS_COMPLETED, 'completed_at' => now()->utc(), 'completed_by_user_id' => $actor->id,
-                'completion_evidence' => ['invoice_public_id' => $invoice->public_id, 'invoice_version' => $invoice->lock_version, 'source_hash' => $invoice->source_hash, 'financial_revision' => $state],
+                'completion_evidence' => ['invoice_public_id' => $invoice->public_id, 'invoice_version' => $invoice->lock_version, 'source_hash' => $invoice->source_hash, 'financial_revision' => $state, 'adjustment' => InvoiceAdjustmentService::summary($invoice)],
                 'lock_version' => $visit->lock_version + 1])->save();
             $this->audit->record('billing.visit_completed', $visit, ['record_version' => $visit->lock_version], $actor, $branch);
         }, 3);

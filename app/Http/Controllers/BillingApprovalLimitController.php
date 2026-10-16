@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Domain\Access\BranchAccessService;
 use App\Domain\Organisation\Models\Branch;
 use App\Domain\Visit\Billing\Services\BillingApprovalLimitAdministrationService;
+use App\Domain\Visit\Billing\Services\InvoiceAdjustmentLimitService;
+use App\Domain\Visit\Billing\Services\InvoiceAdjustmentService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
@@ -23,6 +25,7 @@ class BillingApprovalLimitController extends Controller
                 'id' => $branch->id,
                 'name' => $branch->name,
             ],
+            'adjustmentThreshold' => InvoiceAdjustmentService::threshold($branch->id),
             'approvers' => $service->rows($request->user(), $branch),
         ]);
     }
@@ -36,6 +39,17 @@ class BillingApprovalLimitController extends Controller
             throw $exception->redirectTo(route('billing-approval-limits.index'));
         }
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Billing approval limit saved.')]);
+
+        return to_route('billing-approval-limits.index');
+    }
+
+    public function adjustmentThreshold(Request $request, InvoiceAdjustmentLimitService $service): RedirectResponse
+    {
+        try {
+            $service->save($request->user(), $request->only(['expected_branch_id', 'lock_version', 'limit_sen', 'idempotency_key']));
+        } catch (ValidationException $exception) {
+            throw $exception->redirectTo(route('billing-approval-limits.index'));
+        }
 
         return to_route('billing-approval-limits.index');
     }

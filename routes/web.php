@@ -337,6 +337,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::post('{invoice}/responsibility/{kind}', 'propose')->whereIn('kind', ['panel', 'deferment'])->middleware(['permission:coverage.propose.branch,outstanding.request.branch', 'throttle:20,1'])->name('billing.propose');
             Route::post('{invoice}/responsibility/{kind}/{proposal}/approve', 'approve')->whereIn('kind', ['panel', 'deferment'])->whereUuid('proposal')->middleware(['permission:coverage.approve.branch,outstanding.approve.branch', 'throttle:20,1'])->name('billing.approve');
             Route::post('{invoice}/payments/{payment}/reverse', 'reverse')->middleware(['permission:payments.reverse.branch', 'throttle:10,1'])->name('billing.reverse');
+            Route::post('{invoice}/adjustments', 'adjustment')->middleware(['permission:billing.adjustments.add.branch', 'throttle:20,1'])->name('billing.adjustment');
+            Route::post('{invoice}/adjustments/{adjustment}/reverse', 'reverseAdjustment')->whereUuid('adjustment')->middleware(['permission:billing.adjustments.reverse.branch', 'throttle:10,1'])->name('billing.adjustment.reverse');
             Route::post('{invoice}/void', 'void')->middleware(['permission:invoices.void.branch', 'throttle:10,1'])->name('billing.void');
             Route::get('{invoice}/print', 'printInvoice')->middleware('permission:billing.print.branch')->name('billing.print');
             Route::get('{invoice}/receipts/{payment}/print', 'printReceipt')->middleware('permission:billing.print.branch')->name('billing.receipt');
@@ -468,6 +470,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::middleware(['permission:billing.approval_limits.manage.organisation'])->prefix('billing-approval-limits')->group(function () {
             Route::get('/', [BillingApprovalLimitController::class, 'index'])->name('billing-approval-limits.index');
             Route::post('/', [BillingApprovalLimitController::class, 'store'])->middleware('throttle:30,1')->name('billing-approval-limits.store');
+            Route::post('adjustment-threshold', [BillingApprovalLimitController::class, 'adjustmentThreshold'])->middleware('throttle:30,1')->name('billing-approval-limits.adjustment-threshold');
             Route::post('clear', [BillingApprovalLimitController::class, 'clear'])->middleware('throttle:30,1')->name('billing-approval-limits.clear');
         });
         Route::middleware(['permission:payments.reconcile.branch', 'sensitive.no-store'])->prefix('payment-reconciliations')->group(function () {

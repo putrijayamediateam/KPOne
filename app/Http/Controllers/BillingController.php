@@ -7,6 +7,7 @@ use App\Domain\Visit\Billing\Models\Payment;
 use App\Domain\Visit\Billing\Services\BillingBuilderService;
 use App\Domain\Visit\Billing\Services\BillingDirectoryService;
 use App\Domain\Visit\Billing\Services\CompleteVisitationService;
+use App\Domain\Visit\Billing\Services\InvoiceAdjustmentService;
 use App\Domain\Visit\Billing\Services\InvoiceCorrectionService;
 use App\Domain\Visit\Billing\Services\OutstandingBillService;
 use App\Domain\Visit\Billing\Services\PaymentService;
@@ -83,6 +84,20 @@ class BillingController extends Controller
     public function void(Request $request, Visit $visit, Invoice $invoice, InvoiceCorrectionService $service): RedirectResponse
     {
         $this->stayOnBilling($visit, fn () => $service->void($request->user(), $visit, $invoice, $request->only(['expected_branch_id', 'lock_version', 'reason'])));
+
+        return to_route('billing.show', $visit);
+    }
+
+    public function adjustment(Request $request, Visit $visit, Invoice $invoice, InvoiceAdjustmentService $service): RedirectResponse
+    {
+        $this->stayOnBilling($visit, fn () => $service->add($request->user(), $visit, $invoice, $request->only(['expected_branch_id', 'lock_version', 'direction', 'input_type', 'input_value', 'reason', 'threshold_version', 'confirm_above_limit', 'idempotency_key'])));
+
+        return to_route('billing.show', $visit);
+    }
+
+    public function reverseAdjustment(Request $request, Visit $visit, Invoice $invoice, string $adjustment, InvoiceAdjustmentService $service): RedirectResponse
+    {
+        $this->stayOnBilling($visit, fn () => $service->reverse($request->user(), $visit, $invoice, $adjustment, $request->only(['expected_branch_id', 'lock_version', 'reason', 'idempotency_key'])));
 
         return to_route('billing.show', $visit);
     }

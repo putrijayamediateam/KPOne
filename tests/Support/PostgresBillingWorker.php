@@ -13,6 +13,7 @@ use App\Domain\Visit\Billing\Models\PaymentMethod;
 use App\Domain\Visit\Billing\Models\PriceBook;
 use App\Domain\Visit\Billing\Services\BillingBuilderService;
 use App\Domain\Visit\Billing\Services\CompleteVisitationService;
+use App\Domain\Visit\Billing\Services\InvoiceAdjustmentService;
 use App\Domain\Visit\Billing\Services\InvoiceCorrectionService;
 use App\Domain\Visit\Billing\Services\PaymentMethodAdministrationService;
 use App\Domain\Visit\Billing\Services\PaymentService;
@@ -57,6 +58,8 @@ try {
     match ($mode) {
         'bill-build' => app(BillingBuilderService::class)->build($actor, $visit, $a),
         'bill-finalize' => app(BillingBuilderService::class)->finalize($actor, $visit, $invoice, $a),
+        'bill-adjust' => app(InvoiceAdjustmentService::class)->add($actor, $visit, $invoice, $a),
+        'bill-adjust-reverse' => app(InvoiceAdjustmentService::class)->reverse($actor, $visit, $invoice, $a['adjustment'], $a),
         'bill-pay' => app(PaymentService::class)->add($actor, $visit, $invoice, $a),
         'bill-payment-method-deactivate' => app(PaymentMethodAdministrationService::class)->deactivate($actor, PaymentMethod::query()->findOrFail($a['method'])),
         'bill-complete' => app(CompleteVisitationService::class)->complete($actor, $visit, $a),

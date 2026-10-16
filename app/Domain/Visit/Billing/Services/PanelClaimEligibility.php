@@ -34,7 +34,7 @@ final class PanelClaimEligibility
             ->where('i.status', 'finalized')
             ->where('i.correction_hold', false)
             ->where('i.source_stale', false)
-            ->whereColumn('c.amount_sen', '<=', 'i.total_sen')
+            ->whereRaw('c.amount_sen <= kpone_invoice_payable(i.id)')
             ->whereNotExists(fn (Builder $existing) => $existing->selectRaw('1')
                 ->from('panel_claims')
                 ->whereColumn('panel_claims.coverage_allocation_id', 'c.id'));

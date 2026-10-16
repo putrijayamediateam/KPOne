@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { router } from '@inertiajs/vue3';
 import { reactive } from 'vue';
+import InvoiceAdjustmentThreshold from '@/components/billing/InvoiceAdjustmentThreshold.vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -19,6 +20,11 @@ type ApproverRow = {
 const props = defineProps<{
     branch: { id: number; name: string };
     approvers: ApproverRow[];
+    adjustmentThreshold: {
+        configured: boolean;
+        limitSen: number | null;
+        lockVersion: number;
+    };
 }>();
 
 const fieldErrors = reactive<Record<string, string | undefined>>({});
@@ -112,6 +118,11 @@ const clearLimit = (row: ApproverRow, capability: 'panel' | 'deferment') => {
                 capability.
             </p>
         </section>
+
+        <InvoiceAdjustmentThreshold
+            :branch-id="branch.id"
+            :threshold="adjustmentThreshold"
+        />
 
         <section class="rounded-xl border bg-card p-4">
             <h2 class="text-sm font-semibold">Approver limits</h2>
