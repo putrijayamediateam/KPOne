@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { Link, usePage } from '@inertiajs/vue3';
 import { Menu } from '@lucide/vue';
-import { computed } from 'vue';
+import { useResizeObserver } from '@vueuse/core';
+import { computed, ref } from 'vue';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import {
@@ -34,6 +35,15 @@ const items = computed(() =>
         : [],
 );
 const isActive = (href: string) => isWorkspaceDestinationActive(page.url, href);
+const desktopNav = ref<HTMLElement | null>(null);
+const desktopLinks = ref<HTMLElement | null>(null);
+const headerFits = ref(true);
+useResizeObserver([desktopNav, desktopLinks], () => {
+    if (desktopNav.value && desktopLinks.value) {
+        headerFits.value =
+            desktopLinks.value.scrollWidth <= desktopNav.value.clientWidth;
+    }
+});
 </script>
 
 <template>
@@ -46,7 +56,7 @@ const isActive = (href: string) => isWorkspaceDestinationActive(page.url, href);
                     <Button
                         variant="ghost"
                         size="icon"
-                        class="xl:hidden"
+                        :class="headerFits ? 'xl:hidden' : ''"
                         aria-label="Open navigation"
                     >
                         <Menu class="size-5" />
@@ -97,10 +107,12 @@ const isActive = (href: string) => isWorkspaceDestinationActive(page.url, href);
             </Link>
 
             <nav
-                class="hidden min-w-0 flex-1 overflow-x-auto xl:flex"
+                ref="desktopNav"
+                class="hidden min-w-0 flex-1 overflow-hidden xl:flex"
+                :class="{ invisible: !headerFits }"
                 aria-label="Desktop primary navigation"
             >
-                <div class="mx-auto flex w-max">
+                <div ref="desktopLinks" class="mx-auto flex w-max shrink-0">
                     <Link
                         v-for="item in items"
                         :key="item.href"

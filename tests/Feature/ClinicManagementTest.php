@@ -14,6 +14,10 @@ class ClinicManagementTest extends VisitTestCase
     public function test_hub_returns_only_authorized_implemented_destinations_for_every_catalogue_role(): void
     {
         $permissions = [
+            '/registration' => ['visits.view.branch'],
+            '/queue' => ['queue.view.own', 'queue.view.branch'],
+            '/registration-review' => ['public_intakes.review.branch'],
+            '/payment-reconciliations' => ['payments.reconcile.branch'],
             '/business-details' => ['catalogue.settings.manage.organisation'],
             '/public-checkin-links' => ['public_checkin_links.manage.organisation', 'public_checkin_links.manage.branch'],
             '/consultation-settings' => ['catalogue.settings.manage.organisation'],
@@ -82,7 +86,7 @@ class ClinicManagementTest extends VisitTestCase
             $response->assertDontSee($patient->full_name)->assertDontSee($patient->patient_number);
             $response->assertInertia(fn (Assert $page) => $page->where('groups', function ($groups): bool {
                 $hrefs = collect($groups)->flatMap(fn ($group) => $group['links'])->pluck('href')->all();
-                foreach (['/patients', '/financial-work', '/panel-invoices', '/panel-claims', '/panel-responsibility'] as $denied) {
+                foreach (['/patients', '/financial-work', '/panel-invoices', '/panel-claims', '/panel-responsibility', '/registration', '/queue', '/registration-review', '/payment-reconciliations'] as $denied) {
                     $this->assertNotContains($denied, $hrefs);
                 }
 
@@ -206,5 +210,31 @@ class ClinicManagementTest extends VisitTestCase
                 return true;
             }));
         $this->get('/business-details')->assertForbidden();
+    }
+
+    public function test_daily_work_links_keep_the_existing_destination_access_for_every_role(): void
+    {
+        $routes = [
+            '/registration' => ['visits.view.branch'],
+            '/queue' => ['queue.view.own', 'queue.view.branch'],
+            '/payment-reconciliations' => ['payments.reconcile.branch'],
+            '/registration-review' => ['public_intakes.review.branch'],
+        ];
+        foreach (array_keys(PermissionCatalogue::roles()) as $role) {
+            $actor = $this->actor($role);
+            $this->selectBranch($actor);
+            foreach ($routes as $url => $permissions) {
+                $response = $this->get($url);
+                if ($actor->hasAnyPermission($permissions)) {
+                    if ($url === '/registration-review') {
+                        $response->assertRedirect(route('registration.index', ['tab' => 'qr-intake']));
+                    } else {
+                        $response->assertOk();
+                    }
+                } else {
+                    $response->assertForbidden();
+                }
+            }
+        }
     }
 }
