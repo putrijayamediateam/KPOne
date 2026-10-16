@@ -13,6 +13,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
 /**
+ * @property array{requireDateOfBirth:bool,requireNationality:bool,lockVersion:int}|null $registration_policy
  * @property CarbonImmutable $expires_at
  * @property CarbonImmutable|null $consumed_at
  * @property-read Organisation $organisation
@@ -28,6 +29,7 @@ class PublicIntakeSession extends Model
     protected function casts(): array
     {
         return [
+            'registration_policy' => 'array',
             'expires_at' => 'immutable_datetime',
             'consumed_at' => 'immutable_datetime',
         ];

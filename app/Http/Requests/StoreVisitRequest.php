@@ -29,6 +29,7 @@ class StoreVisitRequest extends FormRequest
             ],
             'quick_patient.full_name' => ['required_with:quick_patient', 'string', 'max:255'],
             'quick_patient.date_of_birth' => ['nullable', 'date_format:Y-m-d', 'before_or_equal:today'],
+            'quick_patient.nationality_code' => ['nullable', 'string', 'size:2'],
             'quick_patient.sex' => ['required_with:quick_patient', 'in:female,male,indeterminate,unknown'],
             'quick_patient.mobile_phone' => ['required_with:quick_patient', 'nullable', 'string', 'max:64'],
             'quick_patient.phone_country' => ['sometimes', 'string', 'size:2'],

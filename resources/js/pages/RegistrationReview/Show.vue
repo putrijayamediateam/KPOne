@@ -301,6 +301,19 @@ watch(
                             class="h-10 rounded-md border bg-background px-3" /><InputError
                             :message="correction.errors.mobile_phone"
                     /></label>
+                    <label class="grid gap-1.5"
+                        ><span class="text-sm font-medium"
+                            >Nationality country code</span
+                        ><input
+                            v-model="correction.nationality_code"
+                            maxlength="2"
+                            placeholder="MY"
+                            class="h-10 rounded-md border bg-background px-3 text-sm uppercase"
+                            :aria-invalid="
+                                !!correction.errors.nationality_code
+                            " /><InputError
+                            :message="correction.errors.nationality_code"
+                    /></label>
                     <div class="grid grid-cols-[8rem_1fr] gap-2">
                         <select
                             v-model="correction.identifier_type"

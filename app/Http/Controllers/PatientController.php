@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Domain\Patient\Models\Patient;
 use App\Domain\Patient\Services\PatientAdministrationService;
 use App\Domain\Patient\Services\PatientDirectoryService;
+use App\Domain\Patient\Services\RegistrationSettingsService;
 use App\Http\Requests\StorePatientRequest;
 use App\Http\Requests\UpdatePatientRequest;
 use Illuminate\Http\RedirectResponse;
@@ -23,11 +24,11 @@ class PatientController extends Controller
         ]);
     }
 
-    public function create(): Response
+    public function create(Request $request): Response
     {
         $this->authorize('create', Patient::class);
 
-        return Inertia::render('Patient/Create');
+        return Inertia::render('Patient/Create', ['requirements' => app(RegistrationSettingsService::class)->policy($request->user()->organisation_id)]);
     }
 
     public function store(StorePatientRequest $request, PatientAdministrationService $administration): RedirectResponse

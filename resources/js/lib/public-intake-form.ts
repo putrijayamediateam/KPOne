@@ -7,6 +7,7 @@ export type IntakeFormValues = {
     submission_type: string;
     full_name: string;
     date_of_birth: string;
+    nationality_code?: string | null;
     mobile_phone: string;
     identifier_type: string;
     identifier_value: string;
@@ -69,7 +70,7 @@ export const localToday = (now: Date): Date =>
 export const validateIntakeStep = (
     step: number,
     form: IntakeFormValues,
-    options: { minorAge: number; today: Date },
+    options: { minorAge: number; today: Date; requireNationality?: boolean },
 ): StepErrors => {
     const errors: StepErrors = {};
     const add = (field: string, message: string) => {
@@ -77,6 +78,15 @@ export const validateIntakeStep = (
     };
 
     if (step === 2) {
+        if (options.requireNationality && !filled(form.nationality_code)) {
+            add('nationality_code', 'Kewarganegaraan diperlukan.');
+        } else if (
+            filled(form.nationality_code) &&
+            !/^[A-Za-z]{2}$/.test(form.nationality_code ?? '')
+        ) {
+            add('nationality_code', 'Gunakan kod negara dua huruf.');
+        }
+
         if (!filled(form.full_name)) {
             add('full_name', 'Nama penuh diperlukan.');
         } else if (tooLong(form.full_name, 255)) {
@@ -259,6 +269,11 @@ export const reviewRows = (
         },
         { label: 'Nama penuh', value: text(form.full_name), step: 2 },
         { label: 'Tarikh lahir', value: text(form.date_of_birth), step: 2 },
+        {
+            label: 'Kewarganegaraan',
+            value: text(form.nationality_code ?? ''),
+            step: 2,
+        },
         { label: 'Jantina', value: SEX_LABELS[form.sex] ?? '—', step: 2 },
         { label: 'Nombor telefon', value: text(form.mobile_phone), step: 2 },
         {

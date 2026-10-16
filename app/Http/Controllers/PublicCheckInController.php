@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Domain\Organisation\Services\PublicCheckInLinkService;
 use App\Domain\Patient\Models\PublicPatientIntake;
 use App\Domain\Patient\Services\PublicPatientIntakeService;
+use App\Domain\Patient\Services\RegistrationSettingsService;
 use App\Domain\Visit\Models\Panel;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\JsonResponse;
@@ -56,6 +57,7 @@ class PublicCheckInController extends Controller
             'statusAvailable' => $statusAvailable,
             'privacyNoticeVersion' => config('public-intake.privacy_notice_version'),
             'minorAge' => (int) config('public-intake.minor_age', 18),
+            'registrationRequirements' => $session ? app(RegistrationSettingsService::class)->sessionPolicy($session) : null,
         ]);
     }
 
@@ -82,6 +84,7 @@ class PublicCheckInController extends Controller
             'panelOptions' => $this->panelOptions($link->organisation_id),
             'privacyNoticeVersion' => config('public-intake.privacy_notice_version'),
             'minorAge' => (int) config('public-intake.minor_age', 18),
+            'registrationRequirements' => app(RegistrationSettingsService::class)->sessionPolicy($opened['session']),
         ], 201)
             ->withCookie($this->protectedCookie(
                 $request,

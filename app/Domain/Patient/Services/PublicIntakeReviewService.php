@@ -7,6 +7,7 @@ use App\Domain\Audit\AuditRecorder;
 use App\Domain\Organisation\Models\Branch;
 use App\Domain\Patient\Models\Patient;
 use App\Domain\Patient\Models\PatientIdentifier;
+use App\Domain\Patient\Models\PublicIntakeSession;
 use App\Domain\Patient\Models\PublicPatientIntake;
 use App\Domain\Queue\Models\OtcQueueEntry;
 use App\Domain\Queue\Models\QueueEntry;
@@ -176,6 +177,7 @@ class PublicIntakeReviewService
             $attributes,
             $current->organisation_id,
             $originalPrivacyNoticeVersion,
+            app(RegistrationSettingsService::class)->sessionPolicy(PublicIntakeSession::query()->findOrFail($current->public_intake_session_id)),
         );
 
         return $this->transition($actor, $publicId, $expectedVersion, function (PublicPatientIntake $intake) use ($actor, $payload): void {
@@ -332,9 +334,7 @@ class PublicIntakeReviewService
                     ->firstOrFail();
                 $this->record('public_intake.matched', $intake, $actor, $intake->status, ['patient_id' => $patient->id]);
             } else {
-                $patientAttributes = Arr::wrap($payload['patient'] ?? []);
-                $patientAttributes['duplicate_override'] = (bool) ($validated['duplicate_override'] ?? false);
-                $patient = $this->patients->create($actor, $patientAttributes);
+                $patient = $this->patients->createForIntake($actor, $intake, (bool) ($validated['duplicate_override'] ?? false));
                 $this->record('public_intake.patient_created', $intake, $actor, $intake->status, ['patient_id' => $patient->id]);
             }
 

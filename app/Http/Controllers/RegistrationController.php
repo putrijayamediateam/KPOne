@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Domain\Patient\Services\PublicIntakeReviewService;
+use App\Domain\Patient\Services\RegistrationSettingsService;
 use App\Domain\Visit\Models\Visit;
 use App\Domain\Visit\Services\VisitDirectoryService;
 use App\Domain\Visit\Services\VisitRegistrationService;
@@ -43,6 +44,7 @@ class RegistrationController extends Controller
 
         return Inertia::render('Registration/Create', [
             'options' => $directory->formOptions($request->user()),
+            'requirements' => app(RegistrationSettingsService::class)->policy($request->user()->organisation_id),
             'recentPatients' => $directory->recentPatients($request->user()),
         ]);
     }
