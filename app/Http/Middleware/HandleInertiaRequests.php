@@ -93,6 +93,7 @@ class HandleInertiaRequests extends Middleware
                 'canEnterClinic' => $canEnterClinic,
                 'navigation' => [
                     'clinicManagement' => app(ClinicManagementNavigation::class)->groups($user) !== [],
+                    'businessDetails' => $activeBranch !== null && $user->can('catalogue.settings.manage.organisation'),
                     'registration' => $user->can('visits.view.branch'),
                     'insights' => $user->can('insights.view.organisation'),
                     'registrationReview' => $user->can('public_intakes.review.branch'),

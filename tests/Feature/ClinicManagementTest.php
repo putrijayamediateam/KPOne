@@ -14,6 +14,7 @@ class ClinicManagementTest extends VisitTestCase
     public function test_hub_returns_only_authorized_implemented_destinations_for_every_catalogue_role(): void
     {
         $permissions = [
+            '/business-details' => ['catalogue.settings.manage.organisation'],
             '/public-checkin-links' => ['public_checkin_links.manage.organisation', 'public_checkin_links.manage.branch'],
             '/consultation-settings' => ['catalogue.settings.manage.organisation'],
             '/checkout-settings' => ['panels.manage.organisation'],
@@ -160,5 +161,50 @@ class ClinicManagementTest extends VisitTestCase
         $this->get('/clinic-management')->assertOk()->assertInertia(fn (Assert $page) => $page
             ->where('groups.0.title', 'Panel')->where('groups.0.links.0.href', '/panel-responsibility'));
         $this->get('/panel-responsibility')->assertOk();
+    }
+
+    public function test_business_details_hub_link_is_visible_and_reachable_for_only_the_agreed_catalogue_roles(): void
+    {
+        foreach (array_keys(PermissionCatalogue::roles()) as $role) {
+            $actor = $this->actor($role);
+            $this->selectBranch($actor);
+            $allowed = in_array($role, ['director', 'administrator', 'finance_officer', 'panel_officer'], true);
+            $this->get('/clinic-management')->assertOk()->assertInertia(fn (Assert $page) => $page
+                ->where('workspace.navigation.businessDetails', $allowed)
+                ->where('groups', function ($groups) use ($allowed): bool {
+                    $links = collect($groups)->flatMap(fn ($group) => $group['links'])->where('href', '/business-details');
+                    $this->assertCount($allowed ? 1 : 0, $links);
+                    if ($allowed) {
+                        $this->assertSame('Business details', $links->sole()['title']);
+                        $this->assertContains('/business-details', collect(collect($groups)->keyBy('title')['In-clinic']['links'])->pluck('href')->all());
+                    }
+
+                    return true;
+                }));
+            $response = $this->get('/business-details');
+            if ($allowed) {
+                $response->assertOk();
+            } else {
+                $response->assertForbidden();
+            }
+        }
+    }
+
+    public function test_business_details_hub_link_uses_the_existing_permission_rather_than_a_role_name(): void
+    {
+        $actor = $this->actor('ca');
+        $actor->givePermissionTo('catalogue.settings.manage.organisation');
+        $this->selectBranch($actor);
+        $this->get('/clinic-management')->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('groups.0.links.0.href', '/business-details'));
+        $this->get('/business-details')->assertOk()->assertInertia(fn (Assert $page) => $page->where('canEdit', false));
+        $actor->revokePermissionTo('catalogue.settings.manage.organisation');
+        $this->get('/clinic-management')->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('groups', function ($groups): bool {
+                $this->assertNotContains('/business-details', collect($groups)->flatMap(fn ($group) => $group['links'])->pluck('href')->all());
+
+                return true;
+            }));
+        $this->get('/business-details')->assertForbidden();
     }
 }

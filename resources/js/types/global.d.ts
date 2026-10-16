@@ -25,6 +25,7 @@ declare module '@inertiajs/core' {
                 canEnterClinic: boolean;
                 navigation: {
                     clinicManagement: boolean;
+                    businessDetails: boolean;
                     registration: boolean;
                     registrationReview: boolean;
                     consultation: boolean;
