@@ -1,14 +1,32 @@
 <script setup lang="ts">
 import { Head } from '@inertiajs/vue3';
+import { computed } from 'vue';
 import type { BillingPage, Receipt } from '@/types/billing';
 import { myr } from '@/types/billing';
-defineProps<{ billing: BillingPage; receipt: Receipt | null }>();
+import type { PrintLetterhead } from '@/types/letterhead';
+const props = defineProps<{
+    billing: BillingPage;
+    receipt: Receipt | null;
+    letterhead: PrintLetterhead;
+}>();
+const addressLines = computed(() =>
+    [
+        props.letterhead.details.address_line_1,
+        props.letterhead.details.address_line_2,
+        [props.letterhead.details.postcode, props.letterhead.details.city]
+            .filter(Boolean)
+            .join(' '),
+        [props.letterhead.details.state, props.letterhead.details.country]
+            .filter(Boolean)
+            .join(', '),
+    ].filter((line): line is string => !!line),
+);
 const print = () => window.print();
 </script>
 <template>
     <Head :title="receipt ? 'Receipt' : 'Invoice'" />
     <main
-        class="mx-auto max-w-3xl min-w-0 p-4 text-sm sm:p-8 print:bg-white print:text-black"
+        class="document-print mx-auto max-w-3xl min-w-0 p-4 text-sm sm:p-8 print:bg-white print:text-black"
     >
         <button
             class="mb-4 rounded border px-3 py-2 print:hidden"
@@ -16,9 +34,29 @@ const print = () => window.print();
         >
             Print {{ receipt ? 'Receipt' : 'Invoice' }}
         </button>
-        <h1 class="text-lg font-medium">
-            {{ billing.clinic }} · {{ billing.branch }}
-        </h1>
+        <header
+            class="mb-5 flex items-start gap-4 border-b pb-4"
+            aria-label="Clinic letterhead"
+        >
+            <img
+                v-if="letterhead.logo"
+                :src="letterhead.logo.url"
+                alt="Clinic logo"
+                class="max-h-20 w-24 shrink-0 object-contain"
+            />
+            <div class="min-w-0 break-words">
+                <h1 class="text-lg font-medium">
+                    {{ letterhead.details.clinic_name }}
+                </h1>
+                <p v-for="line in addressLines" :key="line">{{ line }}</p>
+                <p v-if="letterhead.details.phone">
+                    {{ letterhead.details.phone }}
+                </p>
+                <p v-if="letterhead.details.email">
+                    {{ letterhead.details.email }}
+                </p>
+            </div>
+        </header>
         <p>{{ billing.patient.name }} · {{ billing.patient.patientNumber }}</p>
         <p>{{ billing.visit.visitNumber }}</p>
         <h2 class="my-4 font-medium">
@@ -95,9 +133,42 @@ const print = () => window.print();
             <p>Approved pay later {{ myr(billing.invoice.state.deferred) }}</p>
             <p>Due now {{ myr(billing.invoice.state.due_now) }}</p></template
         >
+        <p
+            v-if="letterhead.footerText"
+            class="document-footer mt-8 border-t pt-3 text-xs break-words whitespace-pre-wrap"
+        >
+            {{ letterhead.footerText }}
+        </p>
         <p class="mt-8 text-xs text-muted-foreground">
             Development / synthetic validation document. Not a production tax or
             e-Invoice document.
         </p>
     </main>
 </template>
+
+<style>
+@page {
+    size: A4;
+    margin: 15mm;
+}
+@media print {
+    .document-print {
+        max-width: none;
+        padding: 0;
+        background: white;
+        color: black;
+    }
+    .document-print header,
+    .document-print tr,
+    .document-footer {
+        break-inside: avoid;
+    }
+    .document-print thead {
+        display: table-header-group;
+    }
+    .document-print th,
+    .document-print td {
+        overflow-wrap: anywhere;
+    }
+}
+</style>

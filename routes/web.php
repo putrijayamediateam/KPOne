@@ -93,6 +93,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::middleware(['permission:catalogue.settings.manage.organisation', 'sensitive.no-store'])->group(function () {
         Route::get('business-details', [BusinessDetailsController::class, 'index'])->name('business-details.index');
+        Route::post('business-details/footer', [BusinessDetailsController::class, 'footer'])->middleware('throttle:20,1')->name('business-details.footer');
         Route::post('business-details', [BusinessDetailsController::class, 'store'])->middleware(['permission:business_details.manage.organisation', 'throttle:20,1'])->name('business-details.store');
         Route::get('business-details/branches/{branch}/logo/{asset}', [BusinessDetailsController::class, 'logo'])->whereNumber('branch')->whereUuid('asset')->name('business-details.logo');
     });
@@ -343,8 +344,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::post('{invoice}/adjustments', 'adjustment')->middleware(['permission:billing.adjustments.add.branch', 'throttle:20,1'])->name('billing.adjustment');
             Route::post('{invoice}/adjustments/{adjustment}/reverse', 'reverseAdjustment')->whereUuid('adjustment')->middleware(['permission:billing.adjustments.reverse.branch', 'throttle:10,1'])->name('billing.adjustment.reverse');
             Route::post('{invoice}/void', 'void')->middleware(['permission:invoices.void.branch', 'throttle:10,1'])->name('billing.void');
-            Route::get('{invoice}/print', 'printInvoice')->middleware('permission:billing.print.branch')->name('billing.print');
-            Route::get('{invoice}/receipts/{payment}/print', 'printReceipt')->middleware('permission:billing.print.branch')->name('billing.receipt');
+            Route::get('{invoice}/letterhead-logo/{asset}', 'letterheadLogo')->whereUuid('asset')->middleware(['permission:billing.print.branch', 'sensitive.no-store'])->name('billing.letterhead-logo');
+            Route::get('{invoice}/print', 'printInvoice')->middleware(['permission:billing.print.branch', 'sensitive.no-store'])->name('billing.print');
+            Route::get('{invoice}/receipts/{payment}/print', 'printReceipt')->middleware(['permission:billing.print.branch', 'sensitive.no-store'])->name('billing.receipt');
         });
         Route::get('dispensary/{dispensaryCase}/labels', [DispensaryController::class, 'labels'])
             ->whereUuid('dispensaryCase')->middleware('permission:dispensary.view.branch')->name('dispensary.labels');

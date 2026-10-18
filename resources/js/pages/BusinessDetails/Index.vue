@@ -30,6 +30,8 @@ type Letterhead = {
     organisationVersion: number;
     branchVersion: number;
     configured: boolean;
+    footerText: string | null;
+    footerVersion: number;
 };
 const props = defineProps<{ letterhead: Letterhead; canEdit: boolean }>();
 defineOptions({
@@ -54,6 +56,31 @@ const values = () => ({
     logo: null as File | null,
 });
 const form = useForm(values());
+const footerValues = () => ({
+    footer_text: props.letterhead.footerText ?? '',
+    expected_branch_id: props.letterhead.branchId,
+    lock_version: props.letterhead.footerVersion,
+    idempotency_key: crypto.randomUUID(),
+});
+const footerForm = useForm(footerValues());
+const adoptFooter = () => {
+    footerForm.defaults(footerValues());
+    footerForm.reset();
+    footerForm.clearErrors();
+};
+const saveFooter = () => {
+    if (blocked.value || footerForm.processing) {
+        return;
+    }
+
+    footerForm.post('/business-details/footer', {
+        preserveScroll: true,
+        onSuccess: async () => {
+            await nextTick();
+            adoptFooter();
+        },
+    });
+};
 const blocked = ref(false);
 const fileInput = ref<HTMLInputElement | null>(null);
 const preview = ref('');
@@ -113,6 +140,8 @@ const save = () => {
 const stop = router.on('start', (event) => {
     if (event.detail.visit.url.pathname === '/branch-context') {
         blocked.value = true;
+        footerForm.footer_text = '';
+        footerForm.idempotency_key = crypto.randomUUID();
         clearPreview();
 
         for (const field of [
@@ -136,6 +165,7 @@ const stop = router.on('start', (event) => {
     }
 });
 watch(() => props.letterhead.branchId, adopt);
+watch(() => props.letterhead.branchId, adoptFooter);
 onUnmounted(() => {
     stop();
     clearPreview();
@@ -198,7 +228,7 @@ const reload = () =>
         </p>
         <p v-if="!canEdit" class="mb-3 text-xs text-muted-foreground">
             You can view these details. Only an authorised editor can save
-            changes.
+            changes. The print footer below can be edited separately.
         </p>
         <form @submit.prevent="save" class="space-y-3" novalidate>
             <fieldset
@@ -470,6 +500,69 @@ const reload = () =>
                     >{{ form.processing ? 'Saving…' : 'Save' }}</Button
                 >
             </footer>
+        </form>
+        <form
+            @submit.prevent="saveFooter"
+            class="my-4 rounded-lg border bg-card p-4 md:p-5"
+            novalidate
+            aria-labelledby="print-footer-heading"
+        >
+            <h2 id="print-footer-heading" class="text-sm font-semibold">
+                Branch print footer
+            </h2>
+            <p
+                id="print-footer-help"
+                class="my-2 text-xs text-muted-foreground"
+            >
+                Optional plain text for this branch’s invoice and receipt print
+                views. Maximum 1,000 characters; no HTML. Settings editors can
+                save this footer without changing clinic details or the logo.
+            </p>
+            <label for="footer_text" class="biz-label"
+                >Print footer (optional)</label
+            >
+            <textarea
+                id="footer_text"
+                v-model="footerForm.footer_text"
+                rows="3"
+                maxlength="1000"
+                class="w-full rounded-md border bg-background p-2 text-sm"
+                :disabled="blocked || footerForm.processing"
+                :aria-invalid="!!footerForm.errors.footer_text"
+                aria-describedby="print-footer-help print-footer-error"
+            />
+            <InputError
+                id="print-footer-error"
+                :message="footerForm.errors.footer_text"
+            />
+            <p
+                v-if="
+                    footerForm.errors.lock_version ||
+                    footerForm.errors.idempotency_key ||
+                    footerForm.errors.expected_branch_id
+                "
+                role="alert"
+                class="my-2 text-xs text-destructive"
+            >
+                {{
+                    footerForm.errors.lock_version ||
+                    footerForm.errors.idempotency_key ||
+                    footerForm.errors.expected_branch_id
+                }}
+                <button type="button" class="underline" @click="reload">
+                    Reload
+                </button>
+            </p>
+            <div class="mt-3 flex justify-end">
+                <Button
+                    type="submit"
+                    class="h-8 text-xs"
+                    :disabled="blocked || footerForm.processing"
+                    >{{
+                        footerForm.processing ? 'Saving…' : 'Save print footer'
+                    }}</Button
+                >
+            </div>
         </form>
     </main>
 </template>
