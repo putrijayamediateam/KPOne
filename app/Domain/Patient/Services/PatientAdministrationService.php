@@ -50,7 +50,7 @@ class PatientAdministrationService
     }
 
     /** @param array<string,mixed> $attributes
-     * @param  array{requireDateOfBirth:bool,requireNationality:bool,lockVersion:int}  $policy
+     * @param  array{requireDateOfBirth:bool,requireNationality:bool,requireEmail:bool,requireAddress:bool,lockVersion:int}  $policy
      */
     private function createUsingPolicy(User $actor, array $attributes, array $policy): Patient
     {

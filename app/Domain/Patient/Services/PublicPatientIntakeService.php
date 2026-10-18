@@ -18,6 +18,18 @@ use RuntimeException;
 
 class PublicPatientIntakeService
 {
+    public const LEGACY_PRIVACY_NOTICE_VERSION = 'uat-draft-2026-09-19-v1';
+
+    public function privacyVersion(PublicIntakeSession $session): string
+    {
+        return $session->privacy_notice_version ?? self::LEGACY_PRIVACY_NOTICE_VERSION;
+    }
+
+    public function collectsContactDetails(PublicIntakeSession $session): bool
+    {
+        return $session->privacy_notice_version !== null;
+    }
+
     public function __construct(
         private PublicIntakePayloadValidator $payloads,
         private AuditRecorder $audit,
@@ -33,6 +45,7 @@ class PublicPatientIntakeService
         $expiresAt = now()->utc()->addMinutes((int) config('public-intake.submission_session_ttl_minutes', 15));
 
         $session = PublicIntakeSession::query()->create([
+            'privacy_notice_version' => (string) config('public-intake.privacy_notice_version'),
             'registration_policy' => app(RegistrationSettingsService::class)->policy($link->organisation_id),
             'public_id' => (string) Str::uuid(),
             'organisation_id' => $link->organisation_id,
@@ -124,7 +137,7 @@ class PublicPatientIntakeService
     public function submit(PublicIntakeSession $boundSession, array $attributes, bool $allowsCreation): PublicPatientIntake
     {
         $this->ensureEnabled();
-        $payload = $this->payloads->validate($attributes, $boundSession->organisation_id, null, app(RegistrationSettingsService::class)->sessionPolicy($boundSession));
+        $payload = $this->payloads->validate($attributes, $boundSession->organisation_id, $this->privacyVersion($boundSession), app(RegistrationSettingsService::class)->sessionPolicy($boundSession), $this->collectsContactDetails($boundSession));
         $fingerprint = $this->fingerprint($payload);
 
         return DB::transaction(function () use ($boundSession, $allowsCreation, $payload, $fingerprint): PublicPatientIntake {

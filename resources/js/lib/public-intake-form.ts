@@ -8,6 +8,13 @@ export type IntakeFormValues = {
     full_name: string;
     date_of_birth: string;
     nationality_code?: string | null;
+    email?: string | null;
+    address_line_1?: string | null;
+    address_line_2?: string | null;
+    city?: string | null;
+    state?: string | null;
+    postcode?: string | null;
+    country_code?: string | null;
     mobile_phone: string;
     identifier_type: string;
     identifier_value: string;
@@ -70,7 +77,14 @@ export const localToday = (now: Date): Date =>
 export const validateIntakeStep = (
     step: number,
     form: IntakeFormValues,
-    options: { minorAge: number; today: Date; requireNationality?: boolean },
+    options: {
+        minorAge: number;
+        today: Date;
+        requireNationality?: boolean;
+        requireEmail?: boolean;
+        requireAddress?: boolean;
+        collectContactDetails?: boolean;
+    },
 ): StepErrors => {
     const errors: StepErrors = {};
     const add = (field: string, message: string) => {
@@ -78,6 +92,52 @@ export const validateIntakeStep = (
     };
 
     if (step === 2) {
+        if (options.collectContactDetails) {
+            const email = form.email?.trim() ?? '';
+
+            if (options.requireEmail && email === '') {
+                add('email', 'E-mel diperlukan.');
+            } else if (
+                email !== '' &&
+                (email.length > 255 || !/^[^\s@]+@[^\s@]+$/.test(email))
+            ) {
+                add('email', 'Masukkan e-mel yang sah (maksimum 255 aksara).');
+            }
+
+            const address = [
+                ['address_line_1', 255, 'Alamat baris 1'],
+                ['address_line_2', 255, 'Alamat baris 2'],
+                ['city', 100, 'Bandar'],
+                ['state', 100, 'Negeri'],
+                ['postcode', 20, 'Poskod'],
+                ['country_code', 2, 'Kod negara'],
+            ] as const;
+
+            for (const [key, max, label] of address) {
+                const value = form[key]?.trim() ?? '';
+
+                if (
+                    options.requireAddress &&
+                    key !== 'address_line_2' &&
+                    value === ''
+                ) {
+                    add(key, `${label} diperlukan.`);
+                } else if (
+                    value.length > max ||
+                    (key === 'country_code' &&
+                        value !== '' &&
+                        !/^[A-Za-z]{2}$/.test(value))
+                ) {
+                    add(
+                        key,
+                        key === 'country_code'
+                            ? 'Gunakan kod negara dua huruf.'
+                            : `${label} terlalu panjang (maksimum ${max} aksara).`,
+                    );
+                }
+            }
+        }
+
         if (options.requireNationality && !filled(form.nationality_code)) {
             add('nationality_code', 'Kewarganegaraan diperlukan.');
         } else if (
@@ -259,6 +319,7 @@ const RELATIONSHIP_LABELS: Record<string, string> = {
 export const reviewRows = (
     form: IntakeFormValues & { sex: string },
     panelOptions: Array<{ id: number; name: string }>,
+    collectContactDetails = false,
 ): ReviewRow[] => {
     const text = (value: string) => value.trim() || '—';
     const rows: ReviewRow[] = [
@@ -276,6 +337,33 @@ export const reviewRows = (
         },
         { label: 'Jantina', value: SEX_LABELS[form.sex] ?? '—', step: 2 },
         { label: 'Nombor telefon', value: text(form.mobile_phone), step: 2 },
+        ...(collectContactDetails
+            ? [
+                  { label: 'E-mel', value: text(form.email ?? ''), step: 2 },
+                  {
+                      label: 'Alamat baris 1',
+                      value: text(form.address_line_1 ?? ''),
+                      step: 2,
+                  },
+                  {
+                      label: 'Alamat baris 2',
+                      value: text(form.address_line_2 ?? ''),
+                      step: 2,
+                  },
+                  { label: 'Bandar', value: text(form.city ?? ''), step: 2 },
+                  { label: 'Negeri', value: text(form.state ?? ''), step: 2 },
+                  {
+                      label: 'Poskod',
+                      value: text(form.postcode ?? ''),
+                      step: 2,
+                  },
+                  {
+                      label: 'Kod negara',
+                      value: text(form.country_code ?? ''),
+                      step: 2,
+                  },
+              ]
+            : []),
         {
             label: form.identifier_type === 'passport' ? 'Passport' : 'No. IC',
             value: text(form.identifier_value),
@@ -351,3 +439,27 @@ export const reviewRows = (
 
     return rows;
 };
+
+/** Preserve the original collection scope for sessions opened before contact fields. */
+export function intakeSubmission<T extends IntakeFormValues>(
+    form: T,
+    collectContactDetails: boolean,
+): Partial<T> {
+    const payload: Partial<T> = { ...form };
+
+    if (!collectContactDetails) {
+        for (const field of [
+            'email',
+            'address_line_1',
+            'address_line_2',
+            'city',
+            'state',
+            'postcode',
+            'country_code',
+        ] as const) {
+            delete payload[field];
+        }
+    }
+
+    return payload;
+}

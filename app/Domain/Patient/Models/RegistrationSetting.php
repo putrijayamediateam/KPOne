@@ -11,7 +11,7 @@ class RegistrationSetting extends Model
 {
     protected function casts(): array
     {
-        return ['require_date_of_birth' => 'boolean', 'require_nationality' => 'boolean', 'lock_version' => 'integer'];
+        return ['require_date_of_birth' => 'boolean', 'require_nationality' => 'boolean', 'require_email' => 'boolean', 'require_address' => 'boolean', 'lock_version' => 'integer'];
     }
 
     protected static function booted(): void

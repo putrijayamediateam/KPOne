@@ -6,7 +6,7 @@ import { compileTemplate, parse } from '@vue/compiler-sfc';
 import ts from 'typescript';
 const read = (p) => readFileSync(new URL(`../../${p}`, import.meta.url), 'utf8');
 
-test('SET-04 checkbox screen compiles with two configurable requirements and fixed safety rows', () => {
+test('SET-04 checkbox screen compiles with four configurable requirements and fixed safety rows', () => {
     const source = read('resources/js/pages/RegistrationSettings/Index.vue');
     assert.deepEqual(compileTemplate({ id: 'set04', source: parse(source).descriptor.template.content, filename: 'Index.vue' }).errors, []);
 
@@ -16,13 +16,15 @@ assert.ok(source.includes(label));
 
     assert.match(source, /v-model="form.require_date_of_birth"/);
     assert.match(source, /v-model="form.require_nationality"/);
+    assert.match(source, /v-model="form.require_email"/);
+    assert.match(source, /v-model="form.require_address"/);
     assert.match(source, /checked\s+disabled/);
     assert.match(source, /href="\/clinic-management"/);
     assert.match(source, /crypto.randomUUID\(\)/);
     assert.match(source, /form.lock_version = props.requirements.lockVersion/);
     assert.match(source, /Reload latest settings/);
     assert.match(source, /role="status"/);
-    assert.doesNotMatch(source, /Email|Address|Patient image|Religion|Race|Emergency contact|Clear queue|Panel member|<aside/);
+    assert.doesNotMatch(source, /Patient image|Religion|Race|Emergency contact|Clear queue|Panel member|<aside/);
     assert.match(read('app/Domain/Access/ClinicManagementNavigation.php'), /\[\$settings, 'Registration settings', 'Set required details in registration.', 'registration-settings.index'\]/);
 });
 

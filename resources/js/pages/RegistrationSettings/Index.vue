@@ -9,6 +9,8 @@ const props = defineProps<{
     requirements: {
         requireDateOfBirth: boolean;
         requireNationality: boolean;
+        requireEmail: boolean;
+        requireAddress: boolean;
         lockVersion: number;
     };
 }>();
@@ -19,6 +21,8 @@ const form = useForm({
     idempotency_key: crypto.randomUUID(),
     require_date_of_birth: props.requirements.requireDateOfBirth,
     require_nationality: props.requirements.requireNationality,
+    require_email: props.requirements.requireEmail,
+    require_address: props.requirements.requireAddress,
 });
 watch(
     () => props.branchId,
@@ -31,6 +35,8 @@ const reloadLatest = () =>
             form.lock_version = props.requirements.lockVersion;
             form.require_date_of_birth = props.requirements.requireDateOfBirth;
             form.require_nationality = props.requirements.requireNationality;
+            form.require_email = props.requirements.requireEmail;
+            form.require_address = props.requirements.requireAddress;
             form.idempotency_key = crypto.randomUUID();
             form.clearErrors();
             saved.value = false;
@@ -135,6 +141,40 @@ const submit = () => {
                         QR intake.
                     </p>
                 </div>
+                <div>
+                    <label class="flex items-center gap-3 text-sm"
+                        ><input
+                            v-model="form.require_email"
+                            type="checkbox"
+                            class="size-4 accent-primary"
+                            aria-describedby="email-help"
+                        /><span>Email</span></label
+                    >
+                    <p
+                        id="email-help"
+                        class="mt-1 ml-7 text-xs text-muted-foreground"
+                    >
+                        Applies to new Patient creation, Quick create and public
+                        QR intake.
+                    </p>
+                </div>
+                <div>
+                    <label class="flex items-center gap-3 text-sm"
+                        ><input
+                            v-model="form.require_address"
+                            type="checkbox"
+                            class="size-4 accent-primary"
+                            aria-describedby="address-help"
+                        /><span>Address</span></label
+                    >
+                    <p
+                        id="address-help"
+                        class="mt-1 ml-7 text-xs text-muted-foreground"
+                    >
+                        Requires line 1, city, state, postcode and country. Line
+                        2 stays optional.
+                    </p>
+                </div>
                 <label class="flex items-center gap-3 text-sm"
                     ><input
                         type="checkbox"
@@ -155,7 +195,9 @@ const submit = () => {
                     form.errors.expected_branch_id ||
                     form.errors.idempotency_key ||
                     form.errors.require_date_of_birth ||
-                    form.errors.require_nationality
+                    form.errors.require_nationality ||
+                    form.errors.require_email ||
+                    form.errors.require_address
                 "
             />
             <Button
