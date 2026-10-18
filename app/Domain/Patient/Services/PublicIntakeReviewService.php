@@ -136,6 +136,7 @@ class PublicIntakeReviewService
             'consentedAt' => $intake->consented_at->toIso8601String(),
             'submittedAt' => $intake->submitted_at->toIso8601String(),
             'lockVersion' => $intake->lock_version,
+            'collectContactDetails' => app(PublicPatientIntakeService::class)->collectsContactDetails(PublicIntakeSession::query()->findOrFail($intake->public_intake_session_id)),
             'fields' => $this->payloads->editableFields($payload),
             'duplicateCandidates' => $this->duplicateCandidates($actor, $payload),
         ];
@@ -178,6 +179,7 @@ class PublicIntakeReviewService
             $current->organisation_id,
             $originalPrivacyNoticeVersion,
             app(RegistrationSettingsService::class)->sessionPolicy(PublicIntakeSession::query()->findOrFail($current->public_intake_session_id)),
+            app(PublicPatientIntakeService::class)->collectsContactDetails(PublicIntakeSession::query()->findOrFail($current->public_intake_session_id)),
         );
 
         return $this->transition($actor, $publicId, $expectedVersion, function (PublicPatientIntake $intake) use ($actor, $payload): void {

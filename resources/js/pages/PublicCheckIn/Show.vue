@@ -20,10 +20,12 @@ import {
     ref,
     watch,
 } from 'vue';
+import RegistrationContactFields from '@/components/patient/RegistrationContactFields.vue';
 import {
     SESSION_WARNING_SECONDS,
     formatCountdown,
     localToday,
+    intakeSubmission,
     reviewRows,
     secondsRemaining,
     validateIntakeStep,
@@ -39,6 +41,7 @@ const props = defineProps<{
     privacyNoticeVersion: string;
     minorAge: number;
     registrationRequirements: RegistrationRequirements | null;
+    collectContactDetails: boolean;
 }>();
 declare global {
     interface Window {
@@ -55,6 +58,8 @@ const session = ref<IntakeSession | null>(props.intakeSession);
 const branch = ref<{ name: string } | null>(props.branch);
 const panelOptions = ref(props.panelOptions);
 const requirements = ref(props.registrationRequirements);
+const collectContactDetails = ref(props.collectContactDetails);
+const privacyVersion = ref(props.privacyNoticeVersion);
 const errors = ref<Record<string, string[]>>({});
 const generalError = ref('');
 const form = reactive({
@@ -63,6 +68,13 @@ const form = reactive({
     date_of_birth: '',
     sex: 'unknown',
     nationality_code: 'MY',
+    email: '',
+    address_line_1: '',
+    address_line_2: '',
+    city: '',
+    state: '',
+    postcode: '',
+    country_code: 'MY',
     mobile_phone: '',
     phone_country: 'MY',
     identifier_type: 'nric',
@@ -103,12 +115,22 @@ const sessionWarning = computed(
 const sessionLapsed = computed(
     () => !!session.value && sessionSecondsLeft.value === 0,
 );
-const summaryRows = computed(() => reviewRows(form, panelOptions.value));
+const contactErrors = computed(() =>
+    Object.fromEntries(
+        Object.entries(errors.value).map(([key, value]) => [key, value[0]]),
+    ),
+);
+const summaryRows = computed(() =>
+    reviewRows(form, panelOptions.value, collectContactDetails.value),
+);
 const checkStep = (target: number) => {
     const found = validateIntakeStep(target, form, {
         minorAge: props.minorAge,
         today: localToday(new Date()),
         requireNationality: requirements.value?.requireNationality ?? false,
+        requireEmail: requirements.value?.requireEmail ?? false,
+        requireAddress: requirements.value?.requireAddress ?? false,
+        collectContactDetails: collectContactDetails.value,
     });
     errors.value = found;
 
@@ -180,12 +202,17 @@ const exchangeFragment = async () => {
             branch: { name: string };
             intakeSession: IntakeSession;
             registrationRequirements: RegistrationRequirements;
+            privacyNoticeVersion: string;
+            collectContactDetails: boolean;
             panelOptions: Array<{ id: number; name: string }>;
         };
         branch.value = exchanged.branch;
         session.value = exchanged.intakeSession;
         panelOptions.value = exchanged.panelOptions;
         requirements.value = exchanged.registrationRequirements;
+        privacyVersion.value = exchanged.privacyNoticeVersion;
+        form.privacy_notice_version = exchanged.privacyNoticeVersion;
+        collectContactDetails.value = exchanged.collectContactDetails;
     } catch {
         generalError.value =
             'Pautan pendaftaran tidak sah atau telah tamat. Sila imbas semula kod QR atau hadir ke kaunter.';
@@ -241,7 +268,8 @@ const submit = async () => {
     generalError.value = '';
 
     try {
-        const result = await request('/check-in/intakes', { ...form });
+        const payload = intakeSubmission(form, collectContactDetails.value);
+        const result = await request('/check-in/intakes', payload);
         window.location.assign(result.statusUrl as string);
     } catch (error) {
         const response = error as { errors?: Record<string, string[]> };
@@ -431,9 +459,17 @@ onBeforeUnmount(() => {
                     >
                         <p class="font-semibold">Notis privasi — draf UAT</p>
                         <p class="mt-1">
-                            Versi {{ privacyNoticeVersion }} belum merupakan
-                            teks undang-undang muktamad. Maklumat digunakan
-                            untuk semakan pendaftaran di cawangan ini sahaja.
+                            Versi {{ privacyVersion }} belum merupakan teks
+                            undang-undang muktamad. Maklumat digunakan untuk
+                            semakan pendaftaran di cawangan ini sahaja.
+                            <span v-if="collectContactDetails"
+                                >E-mel dan alamat turut dikumpulkan untuk rekod
+                                pendaftaran. Maklumat dalam pendaftaran yang
+                                belum disahkan disulitkan dan dipadam selepas 30
+                                hari. Selepas penerimaan oleh staf, maklumat
+                                disalin ke rekod pesakit; tempoh 30 hari ini
+                                tidak merujuk kepada rekod pesakit.</span
+                            >
                         </p>
                     </div>
                 </template>
@@ -604,6 +640,15 @@ onBeforeUnmount(() => {
                                 </select></label
                             >
                         </div>
+                        <RegistrationContactFields
+                            v-if="collectContactDetails"
+                            :model="form"
+                            :require-email="requirements?.requireEmail"
+                            :require-address="requirements?.requireAddress"
+                            :errors="contactErrors"
+                            public-form
+                            id-prefix="public-contact"
+                        />
                         <label class="grid gap-1.5" for="nationality"
                             ><span class="text-sm font-medium"
                                 >Kod negara kewarganegaraan{{
@@ -1086,8 +1131,16 @@ onBeforeUnmount(() => {
                     >
                         <p class="font-semibold">Notis privasi — draf UAT</p>
                         <p>
-                            Versi {{ privacyNoticeVersion }}. Teks ini masih
+                            Versi {{ privacyVersion }}. Teks ini masih
                             memerlukan kelulusan privasi/undang-undang.
+                            <span v-if="collectContactDetails"
+                                >E-mel dan alamat digunakan untuk rekod
+                                pendaftaran. Maklumat pendaftaran yang belum
+                                disahkan disulitkan dan dipadam selepas 30 hari.
+                                Selepas staf menerima pendaftaran, maklumat
+                                disalin ke rekod pesakit; rekod pesakit tidak
+                                dipadam selepas 30 hari.</span
+                            >
                         </p>
                     </div>
                     <label

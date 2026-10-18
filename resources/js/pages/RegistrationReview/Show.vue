@@ -9,6 +9,7 @@ import {
 } from '@lucide/vue';
 import { computed, ref, watch } from 'vue';
 import InputError from '@/components/InputError.vue';
+import RegistrationContactFields from '@/components/patient/RegistrationContactFields.vue';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -27,6 +28,7 @@ type Intake = {
     status: string;
     submissionType: string;
     privacyNoticeVersion: string;
+    collectContactDetails: boolean;
     consentedAt: string;
     submittedAt: string;
     lockVersion: number;
@@ -36,6 +38,13 @@ type Intake = {
         date_of_birth: string;
         sex: string;
         nationality_code: string | null;
+        email: string | null;
+        address_line_1: string | null;
+        address_line_2: string | null;
+        city: string | null;
+        state: string | null;
+        postcode: string | null;
+        country_code: string | null;
         mobile_phone: string;
         phone_country: string;
         identifier_type: string;
@@ -301,6 +310,13 @@ watch(
                             class="h-10 rounded-md border bg-background px-3" /><InputError
                             :message="correction.errors.mobile_phone"
                     /></label>
+                    <RegistrationContactFields
+                        v-if="intake.collectContactDetails"
+                        class="md:col-span-2"
+                        :model="correction"
+                        :errors="correction.errors"
+                        id-prefix="correction-contact"
+                    />
                     <label class="grid gap-1.5"
                         ><span class="text-sm font-medium"
                             >Nationality country code</span

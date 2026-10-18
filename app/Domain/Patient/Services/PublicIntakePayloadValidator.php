@@ -28,13 +28,12 @@ class PublicIntakePayloadValidator
     /**
      * @param  array<string, mixed>  $attributes
      * @param  int  $organisationId  Organisation bound to the QR session or staff intake scope.
-     * @param  string|null  $lockedPrivacyNoticeVersion  The intake's own already-consented
-     *                                                   version, passed only when validating a staff correction of an existing intake.
-     *                                                   A correction must be checked and stamped against that original version, never
-     *                                                   the version currently configured, or a version change would silently retract
-     *                                                   or rewrite the patient's prior consent. Left null for a new public submission,
-     *                                                   which must always consent to the currently configured version.
-     * @param  array{requireDateOfBirth:bool,requireNationality:bool,lockVersion:int}|null  $registrationPolicy
+     * @param  string|null  $lockedPrivacyNoticeVersion  The server-bound session notice for a public submission,
+     *                                                   or the intake's original consent version for correction.
+     *                                                   A newer configured notice must not rewrite earlier consent
+     *                                                   or block an in-flight session. Null uses the configured
+     *                                                   version only for standalone validation.
+     * @param  array{requireDateOfBirth:bool,requireNationality:bool,requireEmail:bool,requireAddress:bool,lockVersion:int}|null  $registrationPolicy
      * @return array<string, mixed>
      */
     public function validate(
@@ -42,6 +41,7 @@ class PublicIntakePayloadValidator
         int $organisationId,
         ?string $lockedPrivacyNoticeVersion = null,
         ?array $registrationPolicy = null,
+        bool $collectContactDetails = true,
     ): array {
         $privacyVersion = $lockedPrivacyNoticeVersion ?? (string) config('public-intake.privacy_notice_version');
         $validated = Validator::make($attributes, [
@@ -52,6 +52,13 @@ class PublicIntakePayloadValidator
             'nationality_code' => ['nullable', 'string', 'size:2'],
             'mobile_phone' => ['required', 'string', 'max:64'],
             'phone_country' => ['required', 'string', 'size:2'],
+            'email' => $collectContactDetails ? ['nullable', 'email', 'max:255'] : ['prohibited'],
+            'address_line_1' => $collectContactDetails ? ['nullable', 'string', 'max:255'] : ['prohibited'],
+            'address_line_2' => $collectContactDetails ? ['nullable', 'string', 'max:255'] : ['prohibited'],
+            'city' => $collectContactDetails ? ['nullable', 'string', 'max:100'] : ['prohibited'],
+            'state' => $collectContactDetails ? ['nullable', 'string', 'max:100'] : ['prohibited'],
+            'postcode' => $collectContactDetails ? ['nullable', 'string', 'max:20'] : ['prohibited'],
+            'country_code' => $collectContactDetails ? ['nullable', 'string', 'regex:/\A[A-Za-z]{2}\z/'] : ['prohibited'],
             'identifier_type' => ['required', Rule::in(['nric', 'passport'])],
             'identifier_value' => ['required', 'string', 'max:100'],
             'identifier_issuing_country_code' => ['nullable', 'string', 'size:2'],
@@ -111,14 +118,8 @@ class PublicIntakePayloadValidator
         $patient = $this->identity->normalizePatient([
             ...Arr::only($validated, [
                 'full_name', 'date_of_birth', 'sex', 'nationality_code', 'mobile_phone', 'phone_country',
+                'email', 'address_line_1', 'address_line_2', 'postcode', 'city', 'state', 'country_code',
             ]),
-            'email' => null,
-            'address_line_1' => null,
-            'address_line_2' => null,
-            'postcode' => null,
-            'city' => null,
-            'state' => null,
-            'country_code' => null,
         ]);
         $identifier = $this->identity->normalizeIdentifier([
             'identifier_type' => $validated['identifier_type'],
@@ -200,6 +201,13 @@ class PublicIntakePayloadValidator
             'nationality_code' => $patient['nationality_code'] ?? null,
             'mobile_phone' => $patient['mobile_phone'] ?? '',
             'phone_country' => $patient['phone_country'] ?? 'MY',
+            'email' => $patient['email'] ?? null,
+            'address_line_1' => $patient['address_line_1'] ?? null,
+            'address_line_2' => $patient['address_line_2'] ?? null,
+            'city' => $patient['city'] ?? null,
+            'state' => $patient['state'] ?? null,
+            'postcode' => $patient['postcode'] ?? null,
+            'country_code' => $patient['country_code'] ?? null,
             'identifier_type' => $identifier['identifier_type'] ?? 'nric',
             'identifier_value' => $identifier['value'] ?? '',
             'identifier_issuing_country_code' => $identifier['issuing_country_code'] ?? null,

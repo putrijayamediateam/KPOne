@@ -55,7 +55,8 @@ class PublicCheckInController extends Controller
             'intakeSession' => $session ? ['expiresAt' => $session->expires_at->toIso8601String()] : null,
             'panelOptions' => $session ? $this->panelOptions($session->organisation_id) : [],
             'statusAvailable' => $statusAvailable,
-            'privacyNoticeVersion' => config('public-intake.privacy_notice_version'),
+            'privacyNoticeVersion' => $session ? $intakes->privacyVersion($session) : config('public-intake.privacy_notice_version'),
+            'collectContactDetails' => $session ? $intakes->collectsContactDetails($session) : false,
             'minorAge' => (int) config('public-intake.minor_age', 18),
             'registrationRequirements' => $session ? app(RegistrationSettingsService::class)->sessionPolicy($session) : null,
         ]);
@@ -82,7 +83,8 @@ class PublicCheckInController extends Controller
             'branch' => ['name' => $link->branch->name],
             'intakeSession' => ['expiresAt' => $opened['expiresAt']],
             'panelOptions' => $this->panelOptions($link->organisation_id),
-            'privacyNoticeVersion' => config('public-intake.privacy_notice_version'),
+            'privacyNoticeVersion' => $intakes->privacyVersion($opened['session']),
+            'collectContactDetails' => $intakes->collectsContactDetails($opened['session']),
             'minorAge' => (int) config('public-intake.minor_age', 18),
             'registrationRequirements' => app(RegistrationSettingsService::class)->sessionPolicy($opened['session']),
         ], 201)

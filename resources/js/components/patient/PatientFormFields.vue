@@ -119,9 +119,14 @@ const genderOptions = [
                     :error="errors.mobile_phone || errors.phone_country"
                 />
                 <label class="grid gap-2">
-                    <span class="text-sm font-medium">Email</span>
+                    <span class="text-sm font-medium"
+                        >Email{{
+                            newPatient && requirements?.requireEmail ? ' *' : ''
+                        }}</span
+                    >
                     <input
                         v-model="fields.email"
+                        :required="newPatient && requirements?.requireEmail"
                         :aria-invalid="!!errors.email"
                         type="email"
                         class="h-10 rounded-md border bg-background px-3 text-sm"
@@ -138,9 +143,16 @@ const genderOptions = [
             </div>
             <div class="grid gap-4 p-5 md:grid-cols-2">
                 <label class="grid gap-2 md:col-span-2">
-                    <span class="text-sm font-medium">Address line 1</span>
+                    <span class="text-sm font-medium"
+                        >Address line 1{{
+                            newPatient && requirements?.requireAddress
+                                ? ' *'
+                                : ''
+                        }}</span
+                    >
                     <input
                         v-model="fields.address_line_1"
+                        :required="newPatient && requirements?.requireAddress"
                         :aria-invalid="!!errors.address_line_1"
                         class="h-10 rounded-md border bg-background px-3 text-sm"
                         autocomplete="off"
@@ -158,33 +170,57 @@ const genderOptions = [
                     <InputError :message="errors.address_line_2" />
                 </label>
                 <label class="grid gap-2"
-                    ><span class="text-sm font-medium">Postcode</span
+                    ><span class="text-sm font-medium"
+                        >Postcode{{
+                            newPatient && requirements?.requireAddress
+                                ? ' *'
+                                : ''
+                        }}</span
                     ><input
                         v-model="fields.postcode"
+                        :required="newPatient && requirements?.requireAddress"
                         :aria-invalid="!!errors.postcode"
                         class="h-10 rounded-md border bg-background px-3 text-sm" /><InputError
                         :message="errors.postcode"
                 /></label>
                 <label class="grid gap-2"
-                    ><span class="text-sm font-medium">City</span
+                    ><span class="text-sm font-medium"
+                        >City{{
+                            newPatient && requirements?.requireAddress
+                                ? ' *'
+                                : ''
+                        }}</span
                     ><input
                         v-model="fields.city"
+                        :required="newPatient && requirements?.requireAddress"
                         :aria-invalid="!!errors.city"
                         class="h-10 rounded-md border bg-background px-3 text-sm" /><InputError
                         :message="errors.city"
                 /></label>
                 <label class="grid gap-2"
-                    ><span class="text-sm font-medium">State</span
+                    ><span class="text-sm font-medium"
+                        >State{{
+                            newPatient && requirements?.requireAddress
+                                ? ' *'
+                                : ''
+                        }}</span
                     ><input
                         v-model="fields.state"
+                        :required="newPatient && requirements?.requireAddress"
                         :aria-invalid="!!errors.state"
                         class="h-10 rounded-md border bg-background px-3 text-sm" /><InputError
                         :message="errors.state"
                 /></label>
                 <label class="grid gap-2"
-                    ><span class="text-sm font-medium">Country code</span
+                    ><span class="text-sm font-medium"
+                        >Country code{{
+                            newPatient && requirements?.requireAddress
+                                ? ' *'
+                                : ''
+                        }}</span
                     ><input
                         v-model="fields.country_code"
+                        :required="newPatient && requirements?.requireAddress"
                         :aria-invalid="!!errors.country_code"
                         maxlength="2"
                         placeholder="MY"

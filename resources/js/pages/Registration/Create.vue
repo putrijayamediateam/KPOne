@@ -11,6 +11,7 @@ import {
 import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue';
 import InputError from '@/components/InputError.vue';
 import PhoneInput from '@/components/patient/PhoneInput.vue';
+import RegistrationContactFields from '@/components/patient/RegistrationContactFields.vue';
 import { Button } from '@/components/ui/button';
 import { OperationalSelect } from '@/components/ui/select';
 import VisitReasonPicker from '@/components/visit/VisitReasonPicker.vue';
@@ -76,6 +77,13 @@ type QuickPatientInput = {
     full_name: string;
     date_of_birth: string;
     nationality_code: string;
+    email: string;
+    address_line_1: string;
+    address_line_2: string;
+    city: string;
+    state: string;
+    postcode: string;
+    country_code: string;
     sex: string;
     mobile_phone: string;
     phone_country: string;
@@ -123,11 +131,25 @@ const quick = ref({
     full_name: '',
     date_of_birth: '',
     nationality_code: '',
+    email: '',
+    address_line_1: '',
+    address_line_2: '',
+    city: '',
+    state: '',
+    postcode: '',
+    country_code: 'MY',
     sex: 'unknown',
     mobile_phone: '',
     phone_country: 'MY',
     duplicate_override: false,
 });
+const contactErrors = computed(() =>
+    Object.fromEntries(
+        Object.entries(form.errors)
+            .filter(([key]) => key.startsWith('quick_patient.'))
+            .map(([key, value]) => [key.slice('quick_patient.'.length), value]),
+    ),
+);
 const selectedVisitReasons = ref<VisitReasonOption[]>([]);
 const csrf = () =>
     document.querySelector<HTMLMetaElement>('meta[name="csrf-token"]')
@@ -682,6 +704,14 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
                         :invalid="!!errorFor('quick_patient.sex')"
                         :options="genderOptions"
                 /></label>
+                <RegistrationContactFields
+                    class="md:col-span-2"
+                    :model="quick"
+                    :require-email="requirements.requireEmail"
+                    :require-address="requirements.requireAddress"
+                    :errors="contactErrors"
+                    id-prefix="quick-contact"
+                />
                 <label
                     v-if="errorFor('quick_patient.duplicate_override')"
                     class="flex items-start gap-2 rounded-md border border-amber-300 bg-amber-50 p-3 text-sm md:col-span-2"
