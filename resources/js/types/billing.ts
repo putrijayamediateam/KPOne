@@ -1,3 +1,4 @@
+import type { BillToContext } from '@/types/billTo';
 import type { InvoiceActivityLink } from '@/types/invoiceActivity';
 import type { InvoiceNotesContext } from './invoiceNotes';
 export type OutstandingGroup = { count: number; totalSen: number; url: string };
@@ -53,6 +54,7 @@ export type InvoiceAdjustmentSummary = {
     activeId: string | null;
 };
 export type BillingPage = {
+    billTo?: BillToContext | null;
     notes?: InvoiceNotesContext | null;
     activity: InvoiceActivityLink;
     backLink: { label: string; href: string } | null;

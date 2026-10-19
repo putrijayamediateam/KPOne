@@ -6,6 +6,7 @@ import BillingChargeRows from '@/components/billing/BillingChargeRows.vue';
 import BillingCompletionDialog from '@/components/billing/BillingCompletionDialog.vue';
 import InvoiceActivityDrawer from '@/components/billing/InvoiceActivityDrawer.vue';
 import InvoiceAdjustmentDialog from '@/components/billing/InvoiceAdjustmentDialog.vue';
+import InvoiceBillTo from '@/components/billing/InvoiceBillTo.vue';
 import InvoiceNotes from '@/components/billing/InvoiceNotes.vue';
 import OutstandingBills from '@/components/billing/OutstandingBills.vue';
 import { ActionLink } from '@/components/ui/action-link';
@@ -394,6 +395,12 @@ const reverse = (receipt: Receipt) =>
                             variant="outline"
                             >View profile</ActionLink
                         >
+                    </div>
+                    <div v-if="!manage && billing.billTo" class="border-t p-4">
+                        <h2 class="mb-2 font-medium text-muted-foreground">
+                            Invoice
+                        </h2>
+                        <InvoiceBillTo :context="billing.billTo" />
                     </div>
                     <div
                         v-if="!manage && billing.notes"

@@ -1,4 +1,5 @@
 import type { OutstandingBills } from '@/types/billing';
+import type { BillToContext } from '@/types/billTo';
 import type { InvoiceActivityLink } from '@/types/invoiceActivity';
 import type {
     VisitHistoryFinancial,
@@ -8,6 +9,7 @@ import type { InvoiceNotesContext } from './invoiceNotes';
 
 // An explicit, non-clinical contract; never pass VisitHistoryPage to Invoice.
 export type CompletedInvoicePage = {
+    billTo?: BillToContext | null;
     notes?: InvoiceNotesContext | null;
     patient: VisitHistoryPage['patient'];
     visit: Pick<

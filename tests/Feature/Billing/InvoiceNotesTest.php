@@ -271,6 +271,7 @@ class InvoiceNotesTest extends BillingTestCase
         $permission = Permission::findOrCreate('synthetic.extra.branch', 'web');
         $role = Role::findByName('ca');
         $role->givePermissionTo($permission);
+        $billToBefore = Permission::query()->where('name', 'like', 'billing.bill_to.%')->orderBy('name')->get(['id', 'name', 'guard_name'])->toJson();
         $migration = require base_path('database/migrations/2026_10_19_000200_grant_invoice_note_permissions.php');
         $before = DB::table('role_has_permissions')->orderBy('role_id')->orderBy('permission_id')->get()->toJson();
         $migration->up();
@@ -279,6 +280,6 @@ class InvoiceNotesTest extends BillingTestCase
         $this->assertSame($before, DB::table('role_has_permissions')->orderBy('role_id')->orderBy('permission_id')->get()->toJson());
         $this->assertTrue($role->fresh()->hasPermissionTo('synthetic.extra.branch'));
         $this->assertFalse(Permission::query()->where('name', 'billing.notes.retract.own')->exists());
-        $this->assertFalse(Permission::query()->where('name', 'billing.bill_to.manage.branch')->exists());
+        $this->assertSame($billToBefore, Permission::query()->where('name', 'like', 'billing.bill_to.%')->orderBy('name')->get(['id', 'name', 'guard_name'])->toJson());
     }
 }

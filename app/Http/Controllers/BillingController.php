@@ -10,6 +10,7 @@ use App\Domain\Visit\Billing\Services\BillingBuilderService;
 use App\Domain\Visit\Billing\Services\BillingDirectoryService;
 use App\Domain\Visit\Billing\Services\CompleteVisitationService;
 use App\Domain\Visit\Billing\Services\InvoiceAdjustmentService;
+use App\Domain\Visit\Billing\Services\InvoiceBillToService;
 use App\Domain\Visit\Billing\Services\InvoiceCorrectionService;
 use App\Domain\Visit\Billing\Services\OutstandingBillService;
 use App\Domain\Visit\Billing\Services\PaymentService;
@@ -118,7 +119,7 @@ class BillingController extends Controller
         $data = $directory->detail($request->user(), $visit, $invoice, true);
         abort_if($data['invoice']['status'] === 'draft', 404);
 
-        return Inertia::render('Billing/Print', ['billing' => $data, 'receipt' => null, 'letterhead' => app(BranchLetterheadService::class)->forInvoice($request->user(), $visit, $invoice)->toArray()]);
+        return Inertia::render('Billing/Print', ['billing' => $data, 'receipt' => null, 'billTo' => app(InvoiceBillToService::class)->forPrint($request->user(), $visit, $invoice, $invoice->branch_id), 'letterhead' => app(BranchLetterheadService::class)->forInvoice($request->user(), $visit, $invoice)->toArray()]);
     }
 
     public function printReceipt(Request $request, Visit $visit, Invoice $invoice, Payment $payment, BillingDirectoryService $directory): Response

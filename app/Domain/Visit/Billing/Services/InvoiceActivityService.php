@@ -42,10 +42,11 @@ final class InvoiceActivityService
             : ($document ? Invoice::query()->whereKey($document->id)->where('visit_id', $visit->id)->where('organisation_id', $actor->organisation_id)->where('branch_id', $branch->id)->firstOrFail() : Invoice::query()->where('current_visit_guard', $visit->id)->where('organisation_id', $actor->organisation_id)->where('branch_id', $branch->id)->first());
         $panel = $financial && $actor->hasAnyPermission(['coverage.propose.branch', 'coverage.approve.branch']);
         $deferment = $financial && $actor->hasAnyPermission(['outstanding.view.branch', 'outstanding.request.branch', 'outstanding.approve.branch']);
+        $billTo = $financial && $actor->getAllPermissions()->contains('name', 'billing.bill_to.view.branch');
         $notes = $financial && $actor->can('billing.notes.view.branch');
         $operational = $actor->can('visits.history.view.branch');
         // Bind continuation to the actor, selected document, branch and current visibility. No permission snapshot authorizes a request.
-        $scope = hash('sha256', json_encode([$actor->id, $visit->id, $branch->id, $invoice?->id, $completed, $financial, $panel, $deferment, $operational, $notes], JSON_THROW_ON_ERROR));
+        $scope = hash('sha256', json_encode([$actor->id, $visit->id, $branch->id, $invoice?->id, $completed, $financial, $panel, $deferment, $operational, $notes, $billTo], JSON_THROW_ON_ERROR));
         $queries = [];
         $tenant = fn (string $table): Builder => DB::table($table)->where('organisation_id', $actor->organisation_id)->where('branch_id', $branch->id);
         $audit = $tenant('audit_logs')->where('subject_type', (new Visit)->getMorphClass())->where('subject_id', $visit->id);
@@ -77,6 +78,9 @@ final class InvoiceActivityService
             }
         }
         if ($financial && $invoice) {
+            if ($billTo) {
+                $queries[] = $this->auditRows($tenant('audit_logs')->where('subject_type', $invoice->getMorphClass())->where('subject_id', $invoice->id), ['billing.bill_to_set' => 'Bill to set', 'billing.bill_to_changed' => 'Bill to changed', 'billing.bill_to_cleared' => 'Bill to cleared'], 15);
+            }
             if ($notes) {
                 $queries[] = $this->auditRows($tenant('audit_logs')->where('subject_type', $invoice->getMorphClass())->where('subject_id', $invoice->id), ['billing.note_added' => 'Invoice note added', 'billing.note_retracted' => 'Invoice note retracted', 'billing.note_corrected' => 'Invoice note corrected'], 14);
             }
