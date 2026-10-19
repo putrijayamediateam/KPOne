@@ -480,6 +480,18 @@ const changeHoldState = (action: 'hold' | 'resume') => {
             <div
                 class="flex flex-wrap items-center justify-end gap-2 text-right text-xs text-muted-foreground"
             >
+                <a
+                    v-if="
+                        page.props.auth.permissions.includes(
+                            'medical_certificates.view.own',
+                        )
+                    "
+                    :href="`/visits/${clinical.visit.visitNumber}/medical-certificates`"
+                    target="_blank"
+                    rel="noopener"
+                    class="rounded-md border bg-card px-3 py-2 text-xs"
+                    >Medical certificates (new tab)</a
+                >
                 <WaitingPatientsButton
                     v-if="
                         page.props.auth.permissions.some((permission) =>

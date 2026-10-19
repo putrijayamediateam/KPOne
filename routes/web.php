@@ -32,6 +32,7 @@ use App\Http\Controllers\InventoryReferenceController;
 use App\Http\Controllers\InvoiceActivityController;
 use App\Http\Controllers\InvoiceBillToController;
 use App\Http\Controllers\InvoiceNoteController;
+use App\Http\Controllers\MedicalCertificateController;
 use App\Http\Controllers\MedicineCatalogueController;
 use App\Http\Controllers\MedicineOptionSettingsController;
 use App\Http\Controllers\PanelClaimsController;
@@ -266,6 +267,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
         Route::get('inventory', InventoryController::class)
             ->middleware('permission:inventory.view.branch')->name('inventory.index');
+        Route::get('visits/{visit}/medical-certificates', [MedicalCertificateController::class, 'index'])
+            ->middleware(['permission:medical_certificates.view.own,medical_certificates.view.branch', 'sensitive.no-store'])->name('medical-certificates.index');
+        Route::post('visits/{visit}/medical-certificates', [MedicalCertificateController::class, 'store'])
+            ->middleware(['permission:medical_certificates.issue.own', 'sensitive.no-store', 'throttle:20,1'])->name('medical-certificates.store');
+        Route::get('visits/{visit}/medical-certificates/{document}', [MedicalCertificateController::class, 'show'])
+            ->whereNumber('document')->middleware(['permission:medical_certificates.view.own,medical_certificates.view.branch', 'sensitive.no-store:no-referrer'])->name('medical-certificates.show');
         Route::post('visits/{visit}/encounter', [ClinicalEncounterController::class, 'store'])
             ->middleware(['permission:encounters.start.own', 'throttle:20,1'])
             ->name('encounters.store');

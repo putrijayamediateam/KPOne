@@ -56,10 +56,13 @@ class ClinicianCredentialsTest extends VisitTestCase
             $this->assertSame($role === 'director', in_array('/clinician-credentials', $links, true));
             $this->assertSame($settings, in_array('/medical-certificate-templates', $links, true));
         }
-        foreach (['medical_certificates.issue.own', 'medical_certificates.print.own', 'medical_certificates.void.own'] as $name) {
+        foreach (['medical_certificates.print.own', 'medical_certificates.void.own'] as $name) {
             $this->assertFalse(Permission::query()->where('name', $name)->exists());
         }
-        foreach (['medical_certificates', 'mc_number_counters', 'issued_documents'] as $table) {
+        $this->assertTrue(Permission::query()->where('name', 'medical_certificates.issue.own')->exists());
+        $this->assertTrue(Schema::hasTable('medical_certificates'));
+        $this->assertTrue(Schema::hasTable('mc_number_counters'));
+        foreach (['issued_documents'] as $table) {
             $this->assertFalse(Schema::hasTable($table));
         }
     }

@@ -50,6 +50,16 @@ const submitCancel = () => {
     <main
         class="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-4 p-4 md:p-6"
     >
+        <Link
+            v-if="
+                page.props.auth.permissions.includes(
+                    'medical_certificates.view.branch',
+                ) && visit.visitType === 'consultation'
+            "
+            :href="`/visits/${visit.visitNumber}/medical-certificates`"
+            class="text-sm underline"
+            >Medical certificates</Link
+        >
         <div
             class="flex flex-col justify-between gap-3 md:flex-row md:items-start"
         >
