@@ -1,8 +1,10 @@
 # KPOne project
 
-Latest merged delivery: PR #128 — DOC-01 clinic letterhead on invoice and receipt prints, merged as `916219c`. Recent merges, newest first
+Latest merged delivery: PR #131 — INV-04b Bill to on the invoice, merged as `458ac11`. Recent merges, newest first
 (documentation-only PRs omitted):
 
+- PR #131 (`458ac11`) — INV-04b: Bill to (document addressing only) with append-only revisions, an invoice print block and generic Logs entries.
+- PR #130 (`024a42a`) — INV-04a: encrypted internal invoice notes (correct or retract, never edited), with an invoice-level Add note in the Logs drawer.
 - PR #128 (`916219c`) — DOC-01: Business-details letterhead and an optional branch footer on the invoice and receipt prints. Clinical documents and issued-document snapshots are deferred.
 - PR #127 (`0a949c5`) — SET-04b: Email and Address inputs and requirement switches in QR, Quick create and Patient creation.
 - PR #126 (`d930244`) — SET-04: Registration settings (`/registration-settings`), with Date of birth and Nationality switches.
