@@ -1,8 +1,9 @@
 # KPOne project
 
-Latest merged delivery: PR #135 — DOC-02b Medical Certificates, merged as `f1518c1`. Recent merges, newest first
+Latest merged delivery: PR #137 — DOC-02b follow-up, MC history in clinic-local time, merged as `ff9479b`. Recent merges, newest first
 (documentation-only PRs omitted):
 
+- PR #137 (`ff9479b`) — DOC-02b follow-up: the MC history shows issue times in the branch timezone (UTC evidence unchanged) and explains that a void closes the MC chain.
 - PR #135 (`f1518c1`) — DOC-02b: Medical Certificate issuance by the attending doctor with encrypted immutable pre-signature snapshots, numbering, replace and void by the original issuer, and no diagnosis by default, no charge. EN/BM wording is a draft pending doctor approval.
 - PR #134 (`d3cac4d`) — DOC-02a: Director-managed clinician credentials (professional name, MMC number) and fixed draft EN/BM MC template previews.
 - PR #133 (`e06a3d3`) — UI-FIX: Quick create Register Visit card no longer overlaps the form on narrow screens.
