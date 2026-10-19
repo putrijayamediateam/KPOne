@@ -6,6 +6,7 @@ import BillingChargeRows from '@/components/billing/BillingChargeRows.vue';
 import BillingCompletionDialog from '@/components/billing/BillingCompletionDialog.vue';
 import InvoiceActivityDrawer from '@/components/billing/InvoiceActivityDrawer.vue';
 import InvoiceAdjustmentDialog from '@/components/billing/InvoiceAdjustmentDialog.vue';
+import InvoiceNotes from '@/components/billing/InvoiceNotes.vue';
 import OutstandingBills from '@/components/billing/OutstandingBills.vue';
 import { ActionLink } from '@/components/ui/action-link';
 import { Button } from '@/components/ui/button';
@@ -341,7 +342,11 @@ const reverse = (receipt: Receipt) =>
                 billing.invoice?.number ?? 'No invoice'
             }}</span>
             <StatusBadge :status="billing.visit.status" />
-            <InvoiceActivityDrawer v-if="!manage" :context="billing.activity" />
+            <InvoiceActivityDrawer
+                v-if="!manage"
+                :context="billing.activity"
+                :notes-context="billing.notes"
+            />
             <span v-if="isCompleted" class="text-xs text-muted-foreground"
                 >Read-only Visit record</span
             >
@@ -389,6 +394,15 @@ const reverse = (receipt: Receipt) =>
                             variant="outline"
                             >View profile</ActionLink
                         >
+                    </div>
+                    <div
+                        v-if="!manage && billing.notes"
+                        class="flex flex-wrap items-center justify-between gap-2 border-t p-4"
+                    >
+                        <span class="font-medium text-muted-foreground"
+                            >Invoice notes</span
+                        >
+                        <InvoiceNotes :context="billing.notes" />
                     </div>
                     <div class="border-t p-4">
                         <h3 class="font-medium text-muted-foreground">

@@ -42,9 +42,10 @@ final class InvoiceActivityService
             : ($document ? Invoice::query()->whereKey($document->id)->where('visit_id', $visit->id)->where('organisation_id', $actor->organisation_id)->where('branch_id', $branch->id)->firstOrFail() : Invoice::query()->where('current_visit_guard', $visit->id)->where('organisation_id', $actor->organisation_id)->where('branch_id', $branch->id)->first());
         $panel = $financial && $actor->hasAnyPermission(['coverage.propose.branch', 'coverage.approve.branch']);
         $deferment = $financial && $actor->hasAnyPermission(['outstanding.view.branch', 'outstanding.request.branch', 'outstanding.approve.branch']);
+        $notes = $financial && $actor->can('billing.notes.view.branch');
         $operational = $actor->can('visits.history.view.branch');
         // Bind continuation to the actor, selected document, branch and current visibility. No permission snapshot authorizes a request.
-        $scope = hash('sha256', json_encode([$actor->id, $visit->id, $branch->id, $invoice?->id, $completed, $financial, $panel, $deferment, $operational], JSON_THROW_ON_ERROR));
+        $scope = hash('sha256', json_encode([$actor->id, $visit->id, $branch->id, $invoice?->id, $completed, $financial, $panel, $deferment, $operational, $notes], JSON_THROW_ON_ERROR));
         $queries = [];
         $tenant = fn (string $table): Builder => DB::table($table)->where('organisation_id', $actor->organisation_id)->where('branch_id', $branch->id);
         $audit = $tenant('audit_logs')->where('subject_type', (new Visit)->getMorphClass())->where('subject_id', $visit->id);
@@ -76,6 +77,9 @@ final class InvoiceActivityService
             }
         }
         if ($financial && $invoice) {
+            if ($notes) {
+                $queries[] = $this->auditRows($tenant('audit_logs')->where('subject_type', $invoice->getMorphClass())->where('subject_id', $invoice->id), ['billing.note_added' => 'Invoice note added', 'billing.note_retracted' => 'Invoice note retracted', 'billing.note_corrected' => 'Invoice note corrected'], 14);
+            }
             $queries[] = $this->auditRows($tenant('audit_logs')->where('subject_type', $invoice->getMorphClass())->where('subject_id', $invoice->id), ['billing.draft_built' => 'Invoice draft built or refreshed'], 1);
             if ($invoice->finalized_at) {
                 $queries[] = $this->rows($tenant('invoices')->where('id', $invoice->id), 3, 'Invoice finalised', 'finalized_at', 'finalized_by_user_id', 'total_sen');
