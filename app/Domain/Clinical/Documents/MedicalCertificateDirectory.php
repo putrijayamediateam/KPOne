@@ -23,7 +23,7 @@ final class MedicalCertificateDirectory
             $canIssue = $actor->getAllPermissions()->contains('name', 'medical_certificates.issue.own') && $encounter->attending_clinician_user_id === $actor->id;
             $credential = ClinicianProfessionalProfile::query()->where('user_id', $actor->id)->where('organisation_id', $branch->organisation_id)->first();
 
-            return ['visitNumber' => $visit->visit_number, 'branchId' => $branch->id, 'lockVersion' => DB::table('mc_controls')->where('visit_id', $visit->id)->value('lock_version') ?? 0,
+            return ['visitNumber' => $visit->visit_number, 'branchId' => $branch->id, 'branchTimezone' => $branch->timezone, 'lockVersion' => DB::table('mc_controls')->where('visit_id', $visit->id)->value('lock_version') ?? 0,
                 'patientName' => $visit->patient->full_name, 'canIssue' => $canIssue,
                 'canFirstIssue' => $canIssue && ! DB::table('medical_certificates')->where('visit_id', $visit->id)->exists() && $visit->status === 'registered' && $visit->visit_type === 'consultation' && $visit->assigned_doctor_user_id === $actor->id
                     && $visit->queueEntry?->status === 'serving' && ! DB::table('consultation_holds')->where('clinical_encounter_id', $encounter->id)->whereNull('resumed_at')->exists() && ! DB::table('consultation_checkouts')->where('visit_id', $visit->id)->exists(), 'credentialVerified' => (bool) $credential?->verified, 'today' => now()->setTimezone($branch->timezone)->toDateString(),
