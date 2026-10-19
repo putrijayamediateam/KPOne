@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Head } from '@inertiajs/vue3';
+import { Head, usePage } from '@inertiajs/vue3';
 import { ArrowLeft } from '@lucide/vue';
 import { computed, ref } from 'vue';
 import { ActionLink } from '@/components/ui/action-link';
@@ -14,6 +14,7 @@ defineOptions({
 
 const props = defineProps<{ history: VisitHistoryPage }>();
 
+const page = usePage();
 const tab = ref('all');
 const tabs = computed(() => [
     { value: 'all', label: 'All' },
@@ -87,6 +88,18 @@ const totals = computed(() => {
                 tone="neutral"
             />
             <div class="ml-auto flex flex-wrap gap-2 text-sm">
+                <ActionLink
+                    v-if="
+                        page.props.auth.permissions.some((p) =>
+                            [
+                                'medical_certificates.view.own',
+                                'medical_certificates.view.branch',
+                            ].includes(p),
+                        )
+                    "
+                    :href="`/visits/${history.visit.visitNumber}/medical-certificates`"
+                    >Medical certificates</ActionLink
+                >
                 <ActionLink
                     v-if="history.links.consultation"
                     :href="history.links.consultation"

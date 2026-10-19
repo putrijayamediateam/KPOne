@@ -2,6 +2,8 @@
 
 namespace App\Domain\Access;
 
+use App\Domain\Clinical\Documents\MedicalCertificatePermissions;
+
 final class PermissionCatalogue
 {
     public const PROTECTED_AUTHORITY_ROLE = 'director';
@@ -32,6 +34,7 @@ final class PermissionCatalogue
     {
         return [
             ...BillingPermissions::all(),
+            ...array_keys(MedicalCertificatePermissions::grants()),
             'dashboard.view.own',
             'profile.view.own',
             'staff.view.own',
@@ -310,6 +313,12 @@ final class PermissionCatalogue
         ];
         foreach (BillingPermissions::roles() as $role => $permissions) {
             $roles[$role] = [...$roles[$role], ...$permissions];
+        }
+
+        foreach (MedicalCertificatePermissions::grants() as $permission => $grants) {
+            foreach ($grants as $role) {
+                $roles[$role][] = $permission;
+            }
         }
 
         foreach ($roles as $role => $permissions) {
