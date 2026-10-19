@@ -20,6 +20,7 @@ use App\Domain\Visit\Billing\Models\PaymentAllocation;
 use App\Domain\Visit\Billing\Services\FinancialLedger;
 use App\Domain\Visit\Billing\Services\InvoiceActivityService;
 use App\Domain\Visit\Billing\Services\InvoiceAdjustmentService;
+use App\Domain\Visit\Billing\Services\InvoiceBillToService;
 use App\Domain\Visit\Billing\Services\InvoiceNoteService;
 use App\Domain\Visit\Billing\Services\OutstandingBillService;
 use App\Domain\Visit\Models\Visit;
@@ -89,6 +90,7 @@ class VisitHistoryService
                 'registeredAt' => $visit->registered_at->setTimezone($branch->timezone)->format('j M Y, g:i A'),
                 'completedAt' => $visit->completed_at?->setTimezone($branch->timezone)->format('j M Y, g:i A'),
             ],
+            'billTo' => app(InvoiceBillToService::class)->link($actor, $visit, $invoice),
             'notes' => app(InvoiceNoteService::class)->link($actor, $visit, $invoice),
             'financial' => $invoice ? $this->financial($actor, $visit, $invoice, $canLines) : null,
             'outstanding' => $canFinance ? app(OutstandingBillService::class)->summary($actor, $visit) : null,

@@ -29,6 +29,7 @@ use App\Http\Controllers\InventoryMovementController;
 use App\Http\Controllers\InventoryOperationsController;
 use App\Http\Controllers\InventoryReferenceController;
 use App\Http\Controllers\InvoiceActivityController;
+use App\Http\Controllers\InvoiceBillToController;
 use App\Http\Controllers\InvoiceNoteController;
 use App\Http\Controllers\MedicineCatalogueController;
 use App\Http\Controllers\MedicineOptionSettingsController;
@@ -330,6 +331,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
             ->middleware(['permission:billing.view.branch,billing.summary.branch', 'sensitive.no-store'])->name('billing.visit-activity');
         Route::get('visits/{visit}/billing/{invoice}/activity', [InvoiceActivityController::class, 'billing'])
             ->whereUuid('invoice')->middleware(['permission:billing.view.branch,billing.summary.branch', 'sensitive.no-store'])->name('billing.activity');
+
+        Route::get('visits/{visit}/billing/{invoice}/bill-to', [InvoiceBillToController::class, 'index'])
+            ->whereUuid('invoice')->middleware(['permission:billing.bill_to.view.branch', 'sensitive.no-store'])->name('billing.bill-to');
+        Route::post('visits/{visit}/billing/{invoice}/bill-to', [InvoiceBillToController::class, 'store'])
+            ->whereUuid('invoice')->middleware(['permission:billing.bill_to.manage.branch', 'throttle:30,1', 'sensitive.no-store'])->name('billing.bill-to.store');
 
         Route::get('visits/{visit}/billing/{invoice}/notes', [InvoiceNoteController::class, 'index'])
             ->whereUuid('invoice')->middleware(['permission:billing.notes.view.branch', 'sensitive.no-store'])->name('billing.notes');

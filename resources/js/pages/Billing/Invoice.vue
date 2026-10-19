@@ -3,6 +3,7 @@ import { Head } from '@inertiajs/vue3';
 import { ArrowLeft, Download, FileText, UserRound } from '@lucide/vue';
 import { computed, ref } from 'vue';
 import InvoiceActivityDrawer from '@/components/billing/InvoiceActivityDrawer.vue';
+import InvoiceBillTo from '@/components/billing/InvoiceBillTo.vue';
 import InvoiceNotes from '@/components/billing/InvoiceNotes.vue';
 import OutstandingBills from '@/components/billing/OutstandingBills.vue';
 import { ActionLink } from '@/components/ui/action-link';
@@ -167,6 +168,7 @@ const totals = computed(() => {
                                 ><Download class="size-3" />Download</ActionLink
                             >
                         </div>
+                        <InvoiceBillTo :context="invoice.billTo" class="mt-3" />
                         <dl
                             class="mt-3 grid grid-cols-[auto_1fr] gap-x-3 gap-y-2 text-xs"
                         >

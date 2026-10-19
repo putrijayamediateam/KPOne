@@ -1,12 +1,15 @@
 <script setup lang="ts">
 import { Head } from '@inertiajs/vue3';
 import { computed } from 'vue';
+import BillToRecipient from '@/components/billing/BillToRecipient.vue';
 import type { BillingPage, Receipt } from '@/types/billing';
 import { myr } from '@/types/billing';
+import type { BillToRecipientData } from '@/types/billTo';
 import type { PrintLetterhead } from '@/types/letterhead';
 const props = defineProps<{
     billing: BillingPage;
     receipt: Receipt | null;
+    billTo?: BillToRecipientData | null;
     letterhead: PrintLetterhead;
 }>();
 const addressLines = computed(() =>
@@ -57,7 +60,18 @@ const print = () => window.print();
                 </p>
             </div>
         </header>
-        <p>{{ billing.patient.name }} · {{ billing.patient.patientNumber }}</p>
+        <section
+            v-if="!receipt && billTo"
+            class="my-4 rounded border p-4"
+            aria-label="Bill to"
+        >
+            <h2 class="mb-2 font-semibold">Bill to</h2>
+            <BillToRecipient :recipient="billTo" />
+        </section>
+        <p>
+            <span v-if="!receipt && billTo">Patient: </span
+            >{{ billing.patient.name }} · {{ billing.patient.patientNumber }}
+        </p>
         <p>{{ billing.visit.visitNumber }}</p>
         <h2 class="my-4 font-medium">
             {{ receipt?.number ?? billing.invoice?.number }} ·
@@ -158,6 +172,7 @@ const print = () => window.print();
         background: white;
         color: black;
     }
+    .document-print [aria-label='Bill to'],
     .document-print header,
     .document-print tr,
     .document-footer {
