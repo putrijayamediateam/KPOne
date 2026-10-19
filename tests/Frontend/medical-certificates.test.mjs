@@ -1,7 +1,9 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
+import { runInNewContext } from 'node:vm';
 import { compileScript, compileTemplate, parse } from '@vue/compiler-sfc';
+import ts from 'typescript';
 import { nextTick, reactive, ref, watch } from 'vue';
 
 const read = (file) => readFileSync(new URL(`../../${file}`, import.meta.url), 'utf8');
@@ -68,4 +70,24 @@ test('Encounter MC entry opens separately and preserves the unsaved clinical for
     assert.match(anchor, /target="_blank"/);
     assert.match(anchor, /rel="noopener"/);
     assert.match(anchor, /Medical certificates \(new tab\)/);
+});
+
+
+test('MC history formats UTC evidence in the explicit branch timezone and explains the terminal void rule', () => {
+    assert.match(source, /import \{ formatDateTime \} from '@\/lib\/presentation'/);
+    assert.match(source, /formatDateTime\(\s*document.issuedAt,\s*certificates.branchTimezone,?\s*\)/);
+    assert.match(source, /:datetime="document.issuedAt"/);
+    assert.doesNotMatch(source, /document.issuedAt \}\} \(UTC\)/);
+    assert.match(source.replace(/\s+/g, ' '), /Voiding it closes this MC chain; another MC cannot be issued for this consultation/);
+    assert.match(source, /v-if="form.reason"[\s]*class="flex items-start gap-2 text-sm"[\s]*><input[\s]*v-model="form.reason_consent"[\s]*type="checkbox"/);
+});
+
+
+test('MC branch-local history crosses midnight and New Year without changing the UTC evidence', () => {
+    const javascript = ts.transpileModule(read('resources/js/lib/presentation.ts'), {
+        compilerOptions: { target: ts.ScriptTarget.ES2022 },
+    }).outputText;
+    const format = runInNewContext(`${javascript.replaceAll('export ', '')}\nformatDateTime`);
+    assert.equal(format('2026-12-31T16:10:00+00:00', 'Asia/Kuala_Lumpur'), '1 Jan 2027, 12:10 AM');
+    assert.equal(format('2026-10-19T06:46:47+00:00', 'Asia/Kuala_Lumpur'), '19 Oct 2026, 2:46 PM');
 });

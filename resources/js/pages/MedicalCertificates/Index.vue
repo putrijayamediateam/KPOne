@@ -11,6 +11,7 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
+import { formatDateTime } from '@/lib/presentation';
 
 type Document = {
     id: number;
@@ -25,6 +26,7 @@ const props = defineProps<{
         patientName: string;
         canFirstIssue: boolean;
         branchId: number;
+        branchTimezone: string;
         lockVersion: number;
         canIssue: boolean;
         credentialVerified: boolean;
@@ -193,6 +195,14 @@ const days = computed(() => {
                 No MC has been issued for this visit. First issue requires
                 Serving, not held, before clinical checkout.
             </p>
+            <p
+                v-if="certificates.documents.length"
+                class="text-sm text-muted-foreground"
+            >
+                One first MC may be issued per consultation. The original issuer
+                may replace the current MC. Voiding it closes this MC chain;
+                another MC cannot be issued for this consultation.
+            </p>
             <article
                 v-for="document in certificates.documents"
                 :key="document.id"
@@ -204,7 +214,14 @@ const days = computed(() => {
                     </h2>
                     <p class="text-sm capitalize">{{ document.status }}</p>
                     <p class="text-xs text-muted-foreground">
-                        Issued {{ document.issuedAt }} (UTC)
+                        Issued
+                        <time :datetime="document.issuedAt">{{
+                            formatDateTime(
+                                document.issuedAt,
+                                certificates.branchTimezone,
+                            )
+                        }}</time>
+                        ({{ certificates.branchTimezone }})
                     </p>
                 </div>
                 <div class="flex flex-wrap gap-2">

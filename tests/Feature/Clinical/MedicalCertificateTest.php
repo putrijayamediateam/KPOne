@@ -98,6 +98,9 @@ class MedicalCertificateTest extends BillingTestCase
         $history = app(MedicalCertificateDirectory::class)->history($doctor, $visit);
         $this->assertSame(['void', 'replaced'], array_column($history['documents'], 'status'));
         $this->assertSame(3, $history['lockVersion']);
+        $this->assertFalse($history['canFirstIssue']);
+        $this->assertFalse($history['documents'][0]['canCorrect']);
+        $this->assertSame($this->branch->timezone, $history['branchTimezone']);
         $this->assertStringEndsWith('+00:00', $history['documents'][0]['issuedAt']);
         $this->assertSame(2, DB::table('mc_number_counters')->sole()->last_number);
         foreach (AuditLog::query()->where('event', 'like', 'medical_certificate.%')->get() as $audit) {
@@ -195,6 +198,7 @@ class MedicalCertificateTest extends BillingTestCase
         $id = $this->act($doctor, $visit, $this->command(['reason' => 'Synthetic consented reason', 'reason_consent' => true]));
         $directory = app(MedicalCertificateDirectory::class);
         $original = $directory->snapshot($doctor, $visit, $id);
+        $this->assertTrue($original['snapshot']['reasonConsent']);
         $visit->patient->forceFill(['full_name' => 'Synthetic Later Patient Name', 'lock_version' => $visit->patient->lock_version + 1])->save();
         $doctor->forceFill(['name' => 'Synthetic Later Account Name'])->save();
         $this->branch->forceFill(['name' => 'Synthetic Later Branch'])->save();
@@ -314,6 +318,9 @@ class MedicalCertificateTest extends BillingTestCase
         $this->assertSame('dua', $snapshot['fields']['days_words']);
         $this->assertSame('01/01/2027', $snapshot['fields']['issue_date']);
         $this->assertSame('2026-12-31 16:10:00.000000+00:00', $snapshot['issuedAtUtc']);
+        $history = app(MedicalCertificateDirectory::class)->history($doctor, $visit);
+        $this->assertSame('Asia/Kuala_Lumpur', $history['branchTimezone']);
+        $this->assertSame('2026-12-31T16:10:00+00:00', $history['documents'][0]['issuedAt']);
     }
 
     public function test_logo_bytes_are_retained_privately_even_after_current_logo_is_removed(): void
