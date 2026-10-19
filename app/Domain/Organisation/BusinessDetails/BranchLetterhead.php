@@ -17,6 +17,8 @@ final readonly class BranchLetterhead
         public ?array $logo,
         public int $organisationVersion,
         public int $branchVersion,
+        public ?string $footerText = null,
+        public int $footerVersion = 0,
     ) {}
 
     /** @return array<string, mixed> */
@@ -24,6 +26,6 @@ final readonly class BranchLetterhead
     {
         return ['branchId' => $this->branchId, 'branchName' => $this->branchName, 'organisation' => $this->organisation,
             'details' => $this->details, 'logo' => $this->logo, 'organisationVersion' => $this->organisationVersion,
-            'branchVersion' => $this->branchVersion, 'configured' => $this->organisationVersion > 0 && $this->branchVersion > 0];
+            'branchVersion' => $this->branchVersion, 'footerText' => $this->footerText, 'footerVersion' => $this->footerVersion, 'configured' => $this->organisationVersion > 0 && $this->branchVersion > 0];
     }
 }

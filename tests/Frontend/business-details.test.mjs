@@ -115,7 +115,7 @@ test('branch switching clears drafts and blocks posting until the new branch pro
     assert.notEqual(h.calls[0].payload.email, 'old@branch.test');
 });
 
-test('view-only users cannot submit; fields and errors are accessible without deferred feature controls', () => {
+test('view-only clinic identity users cannot submit identity edits; fields and errors are accessible without deferred feature controls', () => {
     const h = harness();
     h.props.canEdit = false;
     h.api.save();
@@ -128,5 +128,32 @@ test('view-only users cannot submit; fields and errors are accessible without de
     assert.match(source, /role="alert"/);
     assert.match(source, /href="\/clinic-management"/);
     assert.match(source, /← Clinic management/);
-    assert.doesNotMatch(source, /localStorage|sessionStorage|GST|SST|Tax settings|Account number|Footer|e-Invoice/);
+    assert.match(source, /v-model="footerForm.footer_text"/);
+    assert.doesNotMatch(source, /localStorage|sessionStorage|GST|SST|Tax settings|Account number|e-Invoice/);
+});
+
+
+test('settings viewers save the footer independently with versions, retry key and branch-switch clearing', async () => {
+    const h = harness();
+    h.props.canEdit = false;
+    h.props.letterhead.footerVersion = 0;
+    h.api.footerForm.footer_text = 'Synthetic footer';
+    h.api.saveFooter();
+    h.api.saveFooter();
+    assert.equal(h.calls.length,1);
+    assert.equal(h.calls[0].url,'/business-details/footer');
+    assert.equal(h.calls[0].payload.footer_text,'Synthetic footer');
+    const key=h.calls[0].payload.idempotency_key;
+    h.api.footerForm.processing=false;
+    h.api.saveFooter();
+    assert.equal(h.calls[1].payload.idempotency_key,key);
+    h.props.letterhead.footerText='Saved footer';
+    h.props.letterhead.footerVersion=1;
+    await h.calls[1].options.onSuccess();
+    assert.equal(h.api.footerForm.lock_version,1);
+    assert.notEqual(h.api.footerForm.idempotency_key,key);
+    h.callbacks.start({detail:{visit:{url:new URL('https://kpone.test/branch-context')}}});
+    assert.equal(h.api.footerForm.footer_text,'');
+    h.api.saveFooter();
+    assert.equal(h.calls.length,2);
 });

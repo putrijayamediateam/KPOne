@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Domain\Organisation\BusinessDetails\BranchLetterheadService;
+use App\Domain\Organisation\BusinessDetails\BusinessDetailAsset;
 use App\Domain\Visit\Billing\Models\Invoice;
 use App\Domain\Visit\Billing\Models\Payment;
 use App\Domain\Visit\Billing\Services\BillingBuilderService;
@@ -16,9 +18,11 @@ use App\Domain\Visit\Models\Visit;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class BillingController extends Controller
 {
@@ -114,7 +118,7 @@ class BillingController extends Controller
         $data = $directory->detail($request->user(), $visit, $invoice, true);
         abort_if($data['invoice']['status'] === 'draft', 404);
 
-        return Inertia::render('Billing/Print', ['billing' => $data, 'receipt' => null]);
+        return Inertia::render('Billing/Print', ['billing' => $data, 'receipt' => null, 'letterhead' => app(BranchLetterheadService::class)->forInvoice($request->user(), $visit, $invoice)->toArray()]);
     }
 
     public function printReceipt(Request $request, Visit $visit, Invoice $invoice, Payment $payment, BillingDirectoryService $directory): Response
@@ -129,7 +133,20 @@ class BillingController extends Controller
         }
         abort_unless($receipt, 404);
 
-        return Inertia::render('Billing/Print', ['billing' => $data, 'receipt' => $receipt]);
+        return Inertia::render('Billing/Print', ['billing' => $data, 'receipt' => $receipt, 'letterhead' => app(BranchLetterheadService::class)->forInvoice($request->user(), $visit, $invoice)->toArray()]);
+    }
+
+    public function letterheadLogo(Request $request, Visit $visit, Invoice $invoice, string $asset, BranchLetterheadService $letterheads): BinaryFileResponse
+    {
+        $letterhead = $letterheads->forInvoice($request->user(), $visit, $invoice);
+        abort_unless($letterhead->logo !== null && $letterhead->logo['url'] === route('billing.letterhead-logo', [$visit, $invoice, $asset], absolute: false), 404);
+        $image = BusinessDetailAsset::query()->where('organisation_id', $request->user()->organisation_id)
+            ->where('public_id', $asset)->whereNull('retired_at')->firstOrFail();
+        abort_unless(Storage::disk('local')->exists($image->path), 404);
+
+        return response()->file(Storage::disk('local')->path($image->path), ['Content-Type' => $image->mime,
+            'Content-Disposition' => 'inline; filename="clinic-logo.'.($image->mime === 'image/png' ? 'png' : 'jpg').'"',
+            'Cache-Control' => 'private, no-store', 'X-Content-Type-Options' => 'nosniff']);
     }
 
     private function settlementDestination(Request $request, Visit $visit): string

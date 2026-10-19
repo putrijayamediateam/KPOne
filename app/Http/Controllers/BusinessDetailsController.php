@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Domain\Access\BranchAccessService;
+use App\Domain\Organisation\BusinessDetails\BranchDocumentFooterService;
 use App\Domain\Organisation\BusinessDetails\BranchLetterheadService;
 use App\Domain\Organisation\BusinessDetails\BusinessDetailAsset;
 use App\Domain\Organisation\BusinessDetails\BusinessDetailsAccess;
@@ -34,6 +35,17 @@ final class BusinessDetailsController extends Controller
         }
 
         return to_route('business-details.index')->with('success', 'Business details saved.');
+    }
+
+    public function footer(Request $request, BranchDocumentFooterService $service): RedirectResponse
+    {
+        try {
+            $service->save($request->user(), $request->only(['expected_branch_id', 'lock_version', 'idempotency_key', 'footer_text']));
+        } catch (ValidationException $e) {
+            throw $e->redirectTo(route('business-details.index'));
+        }
+
+        return to_route('business-details.index')->with('success', 'Print footer saved.');
     }
 
     public function logo(Request $request, int $branch, string $asset, BusinessDetailsAccess $access): BinaryFileResponse
