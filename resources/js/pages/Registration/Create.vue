@@ -729,7 +729,12 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
             </div>
         </section>
 
-        <form v-if="visitReady" class="space-y-3" @submit.prevent="submit">
+        <!-- Small screens reserve a row above the fields for the sticky action. -->
+        <form
+            v-if="visitReady"
+            class="space-y-3 max-lg:flex max-lg:flex-col max-lg:gap-3 max-lg:space-y-0"
+            @submit.prevent="submit"
+        >
             <section class="rounded-lg border bg-card">
                 <div class="px-4 pt-4 pb-2">
                     <h2 class="font-semibold">Visit details</h2>
@@ -964,7 +969,7 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
                 "
             />
             <div
-                class="sticky bottom-3 z-10 flex items-center justify-between gap-4 rounded-lg border bg-background/95 p-3 shadow-sm backdrop-blur"
+                class="sticky bottom-3 z-10 flex items-center justify-between gap-4 rounded-lg border bg-background/95 p-3 shadow-sm backdrop-blur max-lg:top-16 max-lg:bottom-auto max-lg:order-first"
             >
                 <div class="hidden min-w-0 sm:block">
                     <p class="truncate text-sm font-medium">
