@@ -1,8 +1,11 @@
 # KPOne project
 
-Latest merged delivery: PR #131 — INV-04b Bill to on the invoice, merged as `458ac11`. Recent merges, newest first
+Latest merged delivery: PR #135 — DOC-02b Medical Certificates, merged as `f1518c1`. Recent merges, newest first
 (documentation-only PRs omitted):
 
+- PR #135 (`f1518c1`) — DOC-02b: Medical Certificate issuance by the attending doctor with encrypted immutable pre-signature snapshots, numbering, replace and void by the original issuer, and no diagnosis by default, no charge. EN/BM wording is a draft pending doctor approval.
+- PR #134 (`d3cac4d`) — DOC-02a: Director-managed clinician credentials (professional name, MMC number) and fixed draft EN/BM MC template previews.
+- PR #133 (`e06a3d3`) — UI-FIX: Quick create Register Visit card no longer overlaps the form on narrow screens.
 - PR #131 (`458ac11`) — INV-04b: Bill to (document addressing only) with append-only revisions, an invoice print block and generic Logs entries.
 - PR #130 (`024a42a`) — INV-04a: encrypted internal invoice notes (correct or retract, never edited), with an invoice-level Add note in the Logs drawer.
 - PR #128 (`916219c`) — DOC-01: Business-details letterhead and an optional branch footer on the invoice and receipt prints. Clinical documents and issued-document snapshots are deferred.
