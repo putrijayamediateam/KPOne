@@ -1,4 +1,5 @@
 import type { InvoiceActivityLink } from '@/types/invoiceActivity';
+import type { InvoiceNotesContext } from './invoiceNotes';
 export type OutstandingGroup = { count: number; totalSen: number; url: string };
 export type OutstandingBills = {
     branchId: number;
@@ -52,6 +53,7 @@ export type InvoiceAdjustmentSummary = {
     activeId: string | null;
 };
 export type BillingPage = {
+    notes?: InvoiceNotesContext | null;
     activity: InvoiceActivityLink;
     backLink: { label: string; href: string } | null;
     patient: { name: string; patientNumber: string; profileUrl: string | null };

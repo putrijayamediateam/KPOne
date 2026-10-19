@@ -4,9 +4,11 @@ import type {
     VisitHistoryFinancial,
     VisitHistoryPage,
 } from '@/types/visitHistory';
+import type { InvoiceNotesContext } from './invoiceNotes';
 
 // An explicit, non-clinical contract; never pass VisitHistoryPage to Invoice.
 export type CompletedInvoicePage = {
+    notes?: InvoiceNotesContext | null;
     patient: VisitHistoryPage['patient'];
     visit: Pick<
         VisitHistoryPage['visit'],

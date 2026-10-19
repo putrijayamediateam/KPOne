@@ -2,6 +2,7 @@
 import { router, usePage } from '@inertiajs/vue3';
 import { CircleCheck, Clock3, CreditCard, UserRound } from '@lucide/vue';
 import { computed, onBeforeUnmount, ref, watch } from 'vue';
+import InvoiceNotes from '@/components/billing/InvoiceNotes.vue';
 import { Button } from '@/components/ui/button';
 import {
     Sheet,
@@ -18,9 +19,11 @@ import type {
     InvoiceActivityLink,
     InvoiceActivityPage,
 } from '@/types/invoiceActivity';
+import type { InvoiceNotesContext } from '@/types/invoiceNotes';
 
 const props = defineProps<{
     context: InvoiceActivityLink | null | undefined;
+    notesContext?: InvoiceNotesContext | null;
 }>();
 const page = usePage();
 const open = ref(false);
@@ -162,10 +165,16 @@ const icon = (entry: InvoiceActivityEntry) =>
         >
             <SheetHeader class="shrink-0 border-b p-5 pr-12">
                 <SheetTitle class="text-base">Logs</SheetTitle>
+                <InvoiceNotes
+                    v-if="notesContext"
+                    :context="notesContext"
+                    drawer
+                    @saved="load()"
+                />
                 <SheetDescription class="text-xs"
-                    >Read-only activity. Visit milestones are shared; financial
-                    entries belong to this invoice. Exact item and price history
-                    is not reconstructed.</SheetDescription
+                    >Activity entries are read-only. Visit milestones are
+                    shared; financial entries belong to this invoice. Exact item
+                    and price history is not reconstructed.</SheetDescription
                 >
             </SheetHeader>
             <div

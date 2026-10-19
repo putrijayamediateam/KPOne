@@ -88,7 +88,7 @@ const harness = () => {
     return { api, props, page, requests, callbacks, cleanups };
 };
 
-test('activity drawer is shared by both pages, compiles and contains no mutation or note controls', () => {
+test('activity drawer is shared by both pages, compiles and delegates authorised invoice-level notes', () => {
     assert.deepEqual(
         compileTemplate({
             source: descriptor.template.content,
@@ -111,9 +111,12 @@ test('activity drawer is shared by both pages, compiles and contains no mutation
     assert.match(source, /:aria-busy="loading"/);
     assert.match(source, /Load more/);
     assert.match(source, /Refresh/);
+    assert.match(source, /InvoiceNotes\s+v-if="notesContext"/);
+    assert.match(source, /:context="notesContext"/);
+    assert.doesNotMatch(source, /entry.*[Aa]nchor|anchor.*entry/);
     assert.doesNotMatch(
         source,
-        /router\.(post|put|patch|delete)|useForm|Add note|v-html/,
+        /router\.(post|put|patch|delete)|useForm|v-html/,
     );
 });
 

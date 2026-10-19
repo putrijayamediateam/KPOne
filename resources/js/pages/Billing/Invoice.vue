@@ -3,6 +3,7 @@ import { Head } from '@inertiajs/vue3';
 import { ArrowLeft, Download, FileText, UserRound } from '@lucide/vue';
 import { computed, ref } from 'vue';
 import InvoiceActivityDrawer from '@/components/billing/InvoiceActivityDrawer.vue';
+import InvoiceNotes from '@/components/billing/InvoiceNotes.vue';
 import OutstandingBills from '@/components/billing/OutstandingBills.vue';
 import { ActionLink } from '@/components/ui/action-link';
 import { Button } from '@/components/ui/button';
@@ -107,7 +108,10 @@ const totals = computed(() => {
             <ActionLink :href="invoice.links.consultation" variant="outline"
                 >View consultation</ActionLink
             >
-            <InvoiceActivityDrawer :context="invoice.links.activity" />
+            <InvoiceActivityDrawer
+                :context="invoice.links.activity"
+                :notes-context="invoice.notes"
+            />
             <span class="ml-auto text-[11px] text-muted-foreground"
                 >{{ invoice.visit.branch }} ·
                 {{ invoice.visit.visitNumber }}</span
@@ -149,10 +153,13 @@ const totals = computed(() => {
                         >
                     </div>
                     <div class="border-t p-4">
-                        <div class="flex items-center justify-between gap-2">
+                        <div
+                            class="flex flex-wrap items-center justify-between gap-2"
+                        >
                             <h2 class="font-medium text-muted-foreground">
                                 Invoice
                             </h2>
+                            <InvoiceNotes :context="invoice.notes" />
                             <ActionLink
                                 v-if="invoice.financial?.printUrl"
                                 :href="invoice.financial.printUrl"
