@@ -1,8 +1,11 @@
 # KPOne project
 
-Latest merged delivery: PR #124 — INV-05b invoice adjustment reporting, merged as `bcfde20`. Recent merges, newest first
+Latest merged delivery: PR #128 — DOC-01 clinic letterhead on invoice and receipt prints, merged as `916219c`. Recent merges, newest first
 (documentation-only PRs omitted):
 
+- PR #128 (`916219c`) — DOC-01: Business-details letterhead and an optional branch footer on the invoice and receipt prints. Clinical documents and issued-document snapshots are deferred.
+- PR #127 (`0a949c5`) — SET-04b: Email and Address inputs and requirement switches in QR, Quick create and Patient creation.
+- PR #126 (`d930244`) — SET-04: Registration settings (`/registration-settings`), with Date of birth and Nationality switches.
 - PR #124 (`bcfde20`) — INV-05b: Insights net of invoice adjustments with gross item rankings, adjustment rows on new Panel claims and the print view.
 - PR #123 (`ef96f1e`) — INV-05a: governed invoice adjustments (discount or surcharge) and reversals, with a branch threshold, new narrow permissions and PostgreSQL integrity checks.
 - PR #122 (`4ab954c`) — INV-03: read-only invoice activity log drawer.
