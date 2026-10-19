@@ -16,6 +16,7 @@ use App\Http\Controllers\ClinicalAllergyController;
 use App\Http\Controllers\ClinicalEncounterController;
 use App\Http\Controllers\ClinicalProblemController;
 use App\Http\Controllers\ClinicalServiceCatalogueController;
+use App\Http\Controllers\ClinicianCredentialController;
 use App\Http\Controllers\ClinicInsightsController;
 use App\Http\Controllers\ClinicManagementController;
 use App\Http\Controllers\ClinicPlaceholderController;
@@ -89,6 +90,11 @@ Route::middleware(['guest', 'throttle:10,1'])->group(function () {
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('workspace', WorkspaceController::class)->name('workspace');
+
+    Route::get('clinician-credentials/me', [ClinicianCredentialController::class, 'own'])->middleware(['permission:staff.view.own', 'sensitive.no-store'])->name('clinician-credentials.own');
+    Route::get('clinician-credentials', [ClinicianCredentialController::class, 'index'])->middleware(['permission:clinician_credentials.manage.organisation', 'sensitive.no-store'])->name('clinician-credentials.index');
+    Route::post('clinician-credentials/{subject}', [ClinicianCredentialController::class, 'save'])->whereNumber('subject')->middleware(['permission:clinician_credentials.manage.organisation', 'sensitive.no-store', 'throttle:20,1'])->name('clinician-credentials.save');
+    Route::get('medical-certificate-templates', [ClinicianCredentialController::class, 'templates'])->middleware(['permission:catalogue.settings.manage.organisation', 'sensitive.no-store'])->name('medical-certificate-templates.index');
 
     Route::get('clinic-management', ClinicManagementController::class)
         ->middleware('sensitive.no-store')->name('clinic-management.index');

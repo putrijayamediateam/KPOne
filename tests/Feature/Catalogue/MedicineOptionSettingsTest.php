@@ -62,8 +62,14 @@ class MedicineOptionSettingsTest extends ClinicalTestCase
         $this->assertDatabaseCount('catalogue_options', 2);
         $this->post(route('medicine-details.store', 'indication'), $this->payload(['labels' => ['Synthetic first', 'Synthetic second']]))->assertRedirect();
         $this->assertDatabaseCount('catalogue_options', 4);
-        $audit = json_decode(DB::table('audit_logs')->where('event', 'catalogue_option.created')->first()->metadata, true);
-        $this->assertSame(['option_type' => 'precaution', 'lock_version' => 1], $audit);
+        $audit = DB::table('audit_logs')->where('event', 'catalogue_option.created')->orderBy('id')->pluck('metadata')
+            ->map(fn (string $metadata): array => json_decode($metadata, true, flags: JSON_THROW_ON_ERROR))->all();
+        $this->assertSame([
+            ['option_type' => 'precaution', 'lock_version' => 1],
+            ['option_type' => 'precaution', 'lock_version' => 1],
+            ['option_type' => 'indication', 'lock_version' => 1],
+            ['option_type' => 'indication', 'lock_version' => 1],
+        ], $audit);
     }
 
     public function test_duplicates_inside_batch_and_invalid_fields_leave_no_records(): void
