@@ -19,6 +19,7 @@ final class PermissionCatalogue
         'staff.manage.organisation',
         'branches.manage.organisation',
         'access.manage.organisation',
+        'clinician_credentials.manage.organisation',
     ];
 
     public const QUEUE_DISPLAY_ROLE = 'queue_display';
@@ -37,6 +38,7 @@ final class PermissionCatalogue
             'staff.view.branch',
             'staff.view.organisation',
             'staff.manage.organisation',
+            'clinician_credentials.manage.organisation',
             'branches.view.branch',
             'branches.view.organisation',
             'branches.manage.organisation',
@@ -137,6 +139,7 @@ final class PermissionCatalogue
         $roles = [
             'director' => [
                 ...$organisation,
+                'clinician_credentials.manage.organisation',
                 'staff.manage.organisation',
                 'branches.manage.organisation',
                 'public_checkin_links.manage.organisation',

@@ -31,7 +31,7 @@ class StaffAuthorityBoundaryTest extends TestCase
 {
     use RefreshDatabase;
 
-    private const DECLARED = ['staff.manage.organisation', 'branches.manage.organisation', 'access.manage.organisation'];
+    private const DECLARED = ['staff.manage.organisation', 'branches.manage.organisation', 'access.manage.organisation', 'clinician_credentials.manage.organisation'];
 
     private Organisation $organisation;
 

@@ -14,6 +14,9 @@ class ClinicManagementTest extends VisitTestCase
     public function test_hub_returns_only_authorized_implemented_destinations_for_every_catalogue_role(): void
     {
         $permissions = [
+            '/medical-certificate-templates' => ['catalogue.settings.manage.organisation'],
+            '/clinician-credentials' => ['clinician_credentials.manage.organisation'],
+            '/clinician-credentials/me' => ['encounters.view.own'],
             '/registration' => ['visits.view.branch'],
             '/queue' => ['queue.view.own', 'queue.view.branch'],
             '/registration-review' => ['public_intakes.review.branch'],
