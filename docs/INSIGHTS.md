@@ -191,3 +191,46 @@ asynchronous/email delivery and other report families remain deferred. New tests
 source rows before/after both exports with populated claims, stock and receipt evidence; one existing exact daily-trend assertion is extended with its four distinct patients, preserving its
 exact sales amount and all other financial assertions. Candidate CSV and frontend contracts are extended
 for the added column and display-only filtering; none is weakened. No real patient data or production approval.
+
+
+## RPT-02a: separate patient Billing Detail exception (authorised PR candidate)
+
+The owner explicitly authorises a dedicated Billing Detail page and CSV at `/reports/billing-detail`.
+This is not an expansion of aggregate Insights payloads or RPT-01 permissions. Only Director and Finance
+Officer receive `reports.patient_billing.view.branch` and `reports.patient_billing.export.branch`.
+Export requires both permissions. CA Supervisor, Panel Officer, Doctor, Administrator, Technical Admin and
+other roles receive neither. Every request checks fresh authority and an effective assignment to the active
+branch, including accounts that otherwise switch organisation-wide. The additive migration creates missing
+permissions/grants only; its `down()` never removes grants.
+
+The page starts empty, then explicitly runs an audited result with 20 invoices per page and full-cohort totals.
+One row represents one finalised, non-void invoice, selected by branch-local finalisation date and optional
+local time, attending-checkout doctor, visit type and payment-method filters. Filters use searchable staged
+multi-select chips (OR within, AND across); no Treatment/diagnosis filter is authorised. The maximum period
+is 31 local dates, default yesterday. Existing Insights filters and downloads are unchanged.
+
+Names are current patient names. Identifiers are KPOne patient, visit and invoice numbers, never NRIC/passport,
+contacts or member references. No clinical text, drug names, notes, Bill to or adjustment reasons are returned.
+The existing FinancialLedger supplies current adjusted payable, net allocated patient receipts, approved Panel
+responsibility, approved pay-later outstanding and due now. Net payable equals those four settlement components.
+Settlement includes linked receipts from any receipt date; it is not receipt-date cash flow. Method filtering
+selects invoices with a currently posted receipt in a selected method, retaining the whole invoice settlement;
+such invoice cohorts can overlap. Historical checkout doctors and archived used methods remain selectable.
+
+The CSV pivots net allocated receipts into one amount column per method used by the filtered invoice cohort,
+including zero-net reversed methods, with zeroes for a row lacking that method. Codes are stable identifiers;
+method names are current catalogue labels. Header totals include every financial column and every method.
+Screen generation time is presented in the active branch timezone, explicitly labelled; CSV generation remains UTC. Payment-method labels on screen show names only; codes remain in CSV headers. Screen and CSV identify their own generation time; downloads deliberately re-read current data without a signed
+fingerprint refusal. They can differ after intervening changes. Neither is an immutable issued document.
+
+Both responses are private/no-store and prepared in a request-owned PostgreSQL repeatable-read transaction.
+The only write is a values-free audit event (`reports.patient_billing.viewed` or `.exported`), with dataset,
+branch/date/time, permitted filter IDs, page and row count only. Failed audit refuses release. Each successful
+result page is audited; opening the empty shell is not. Downloads use the shared 10/minute/actor RPT limiter;
+result requests use 60/minute/actor. More than 5,000 export data rows is refused before preparing identities,
+never truncated. CSV reuses the BOM/CRLF/quoting/formula-neutralising encoder and exact integer-sen MYR formatting.
+No generated file, email or background job is stored. Browser downloads remain under the recipient's control.
+
+Transaction Detail (RPT-02b) is a separate PR. Cash/Non-cash classification, a Payment Methods classification
+setting, Treatment filtering, Panel ageing, valuation, patient rankings, XLSX/PDF and retained/asynchronous
+exports remain deferred. Existing real-patient production and privacy release gates remain applicable.

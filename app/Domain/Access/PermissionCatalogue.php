@@ -60,6 +60,8 @@ final class PermissionCatalogue
             'insights.view.organisation',
             'reports.sales.export.organisation',
             'reports.payments.export.organisation',
+            'reports.patient_billing.view.branch',
+            'reports.patient_billing.export.branch',
             'system_events.view.organisation',
             'patients.search.organisation',
             'patients.view.organisation',
@@ -324,6 +326,11 @@ final class PermissionCatalogue
             foreach ($grants as $role) {
                 $roles[$role][] = $permission;
             }
+        }
+
+        foreach (['director', 'finance_officer'] as $role) {
+            $roles[$role][] = 'reports.patient_billing.view.branch';
+            $roles[$role][] = 'reports.patient_billing.export.branch';
         }
 
         foreach (['director', 'finance_officer', self::ADMINISTRATOR_ROLE] as $role) {
