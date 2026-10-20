@@ -79,7 +79,7 @@ export type InsightsRangeReport =
               previousPatients: number;
               previousPerPatientSen: number;
           };
-          dailyTrend: { date: string; salesSen: number }[];
+          dailyTrend: { date: string; salesSen: number; patients: number }[];
           services: RangeInsightRow[];
           medicines: RangeInsightRow[];
           packages: RangeInsightRow[];
@@ -112,6 +112,14 @@ export type InsightsRangeReport =
       }
     | {
           kind: 'payments';
+          dailyReceipts: {
+              date: string;
+              methodCode: string;
+              method: string;
+              receiptsSen: number;
+              reversedSen: number;
+              netSen: number;
+          }[];
           summary: {
               selfPaySalesSen: number;
               panelSalesSen: number;

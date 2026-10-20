@@ -1,7 +1,7 @@
 # KPOne Baseline
 
 This file is the authoritative delivery status and supersedes the overview in `PROJECT.md`. Merged milestones
-below reflect the latest recorded `main` baseline, through PR #139 (Drug label). Every row marked merged is
+below reflect the latest recorded `main` baseline, through PR #141 (aggregate Sales summary CSV). Every row marked merged is
 merged only; none is production-approved.
 For `main`'s current tip, run `git log -1` — a line here recording it goes stale the instant it is committed.
 
@@ -165,13 +165,18 @@ walkthrough with non-zero synthetic data on 2026-10-02 and confirmed results. Th
 
 ### RPT-01: report download authorisation (owner decision, 2026-10-20)
 
-RPT-01a is authorised as an **unmerged candidate**: Sales summary CSV only, aggregate data, with the narrow
+RPT-01a is **merged in PR #141 as `83877a4`**: Sales summary CSV only, aggregate data, with the narrow
 `reports.sales.export.organisation` permission for Director, Finance Officer and Administrator. No patient
 access is granted to Administrator. One additive permission migration; no financial schema changes.
 Existing Insights calculations, gross/net distinction and cohorts are reused. Values-free export audit,
 10/minute per-actor RPT throttle, UTF-8 BOM/formula safety, 5,000-row refusal and no retained generated file.
-RPT-01b (daily net sales and receipts by payment method, aggregates only) is pre-authorised as its own PR,
-not implemented here. PS-03 is unchanged. Patient-level exports, Panel ageing and stock valuation remain
+RPT-01b is an **authorised, unmerged candidate** on `feature/rpt-01b-daily-payment-export`:
+daily adjusted net sales and distinct patient counts by local finalisation date, and receipt amounts by original receipt date/method,
+with explicit reversed and net columns. New `reports.payments.export.organisation` has the same three
+holders (additive permission migration only). The receipt projection is shared with terminal
+reconciliation; existing Payments allocation-based cards/rankings remain unchanged and their difference
+is explicit. The screen hides all-zero receipt rows while the CSV keeps the full date/method matrix.
+Empty export dates are zero; exports share RPT-01a's safe CSV, audit-only write and throttle rules. PS-03 is unchanged. Patient-level exports, Panel ageing and stock valuation remain
 pending owner decisions. See [INSIGHTS.md](./INSIGHTS.md). This is not production approval.
 
 ## 5. Key decisions

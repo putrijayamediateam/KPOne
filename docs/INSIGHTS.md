@@ -16,7 +16,7 @@ data supports it.
 
 Reports return aggregates and catalogue/provider ranking labels, not patient names, patient numbers, identity
 documents, or individual financial records. Patient-level outstanding-balance rankings are intentionally not
-available to the all-role report. Patient drill-down remains excluded. RPT-01a is authorised as described below; it is not merged or production-approved.
+available to the all-role report. Patient drill-down remains excluded. RPT-01a is merged in PR #141; RPT-01b is authorised as described below. Neither is production-approved.
 
 ## Filters and comparison
 
@@ -96,7 +96,7 @@ payloads, claim projections, print views or exports. Existing aggregate-only Ins
 Administrator and Technical Admin gain no patient detail or invoice access. RPT-01a authorises only the aggregate Sales summary export described below.
 
 
-## RPT-01a: Sales summary CSV (authorised candidate)
+## RPT-01a: Sales summary CSV (merged PR #141)
 
 The owner authorised one aggregate Sales summary CSV, guarded by the new
 `reports.sales.export.organisation` permission for Director, Finance Officer and Administrator.
@@ -129,3 +129,65 @@ that a browser completed or opened a download. Existing financial/stock/claim ro
 RPT-01b is pre-authorised as a separate PR for daily net sales and receipts by payment method, aggregates only.
 It is not implemented by RPT-01a. Other report families, patient-level exports, Panel ageing, stock valuation,
 XLSX/PDF, retained exports and asynchronous/email delivery remain deferred pending owner decisions.
+
+## RPT-01b: Daily sales and receipt-method CSV (authorised candidate)
+
+Two aggregate-only downloads, separate from the RPT-01a summary:
+
+- **Sales → Download daily CSV:** one row per local calendar date, including zero days, from the
+  existing `dailyTrend` projection. `Net invoice sales (MYR)` uses the invoice finalisation-date cohort
+  and current adjusted payable. `Distinct patients` counts patient records once per local finalisation
+  date in that same cohort, deduplicated across invoices and selected branches. The on-screen daily
+  trend displays this count. A patient can count again on another date, so daily counts need not sum
+  to the period distinct count. Zero-value finalised invoices count; empty export dates have zero patients.
+  Later adjustments restate the original finalisation date; draft and
+  voided invoices are excluded. The chart still omits absent dates; the export makes those zeros explicit.
+- **Payments → Download receipts by payment method CSV:** the new receipt-date reconciliation table
+  and CSV share `dailyReceipts` in `ClinicInsightsReportService`. One row per date and governed method
+  code, with receipt-time name snapshots, original receipts, reversed receipts and net received. Empty
+  days are zeros for methods observed in the period; a completely empty period uses `(none)` per date.
+  The screen hides rows only when receipts, reversed and net are all zero; the CSV retains the full
+  date/method matrix. Fully reversed receipts remain visible. Archived methods are retained. Different snapshots for the same method are listed together, not split
+  into different methods. For all branches, each receipt is dated in its own branch timezone before
+  aggregation. A doctor filter follows allocated invoices' attending doctor; it is not the receipt recorder.
+
+**Receipt basis and existing-screen difference.** `PostedReceiptProjection` is the shared receipt-date
+cohort used by manual terminal reconciliation and the new report. Reconciliation sums currently posted
+**receipt amounts**; it does not require a finalised invoice join. The new table adds the amounts of
+reversed receipts explicitly, attributed to their **original `received_at` date**. Net equals currently
+posted receipt amounts for that cohort. A later recording reversal restates that original date; this is
+**not refund-date cash flow**, and a reversed receipt is not evidence of a cash refund. Existing immutable
+terminal-close revisions retain their historical recorded totals; a new export may differ after later
+receipts or reversals. Method subtotals reconcile by method code, combining receipt-name snapshots.
+
+The existing Payments received card and Payment method ranking are preserved: they sum **posted
+allocations against finalised invoices**. They can differ from receipt amounts (for example an unallocated
+receipt in a legacy fixture). The new screen text and file header state the distinction; no existing
+financial calculation is silently replaced. Panel claim remittances remain a separate measure and are
+excluded from this receipt export. The two CSVs never combine sales and receipts in one amount column.
+
+**Access.** Daily sales reuses `reports.sales.export.organisation`. Receipt download adds
+`reports.payments.export.organisation`, also requiring `insights.view.organisation`. Both default to
+Director, Finance Officer and Administrator. Technical Admin and other roles gain no export permission.
+Administrator gains no patient, print or payment-write access. Backend checks fresh actor/grants, active
+organisation and branch context, then allows selected/all active branches within that organisation.
+Migration `2026_10_20_000300_grant_payments_export_permission` adds only missing grants; repeat-safe,
+no-op down, no financial/source schema change. The reference catalogue agrees.
+
+**CSV and audit.** UTF-8 BOM, CRLF, quoted/neutralised text (including whitespace/control evasions), exact
+integer-sen two-decimal MYR values. A CSV header block states dataset, scope, branch timezones, applied
+period, generated UTC time, currency, doctor filter and explicit basis. Header rows are separate from data
+rows for the 5,000-data-row hard refusal; no truncation or partial release. The existing 366-calendar-day
+maximum remains. RPT exports share one 10/minute actor limiter across datasets and filter variants.
+Applied dates are pinned in the URL; dirty filters disable the actions. Private/no-store, synchronous
+memory-only preparation; no retained file, email or job. Request-owned repeatable-read transaction;
+actor/grant locks only. Runtime writes only the required audit event. `reports.sales.exported` /
+`reports.payments.exported` records dataset, branch scope, dates and row count, never values or arbitrary
+query fields. Audit refusal releases no file. An audit proves response preparation, not completion of a
+browser download. No change to source locks, versions or financial facts.
+
+**Boundaries.** Patient-level billing/transaction exports, Panel ageing, stock valuation, XLSX/PDF,
+asynchronous/email delivery and other report families remain deferred. New tests compare full ordered
+source rows before/after both exports with populated claims, stock and receipt evidence; one existing exact daily-trend assertion is extended with its four distinct patients, preserving its
+exact sales amount and all other financial assertions. Candidate CSV and frontend contracts are extended
+for the added column and display-only filtering; none is weakened. No real patient data or production approval.

@@ -5,7 +5,6 @@ namespace App\Domain\Visit\Billing\Services;
 use App\Domain\Access\TransactionalActorAuthority;
 use App\Domain\Audit\AuditRecorder;
 use App\Domain\Organisation\Models\Organisation;
-use App\Domain\Visit\Billing\Models\Payment;
 use App\Domain\Visit\Billing\Models\PaymentMethod;
 use App\Domain\Visit\Billing\Models\PaymentReconciliation;
 use App\Models\User;
@@ -82,13 +81,8 @@ class PaymentReconciliationService
 
             $start = $localBusinessDate->startOfDay()->utc();
             $end = $localBusinessDate->addDay()->startOfDay()->utc();
-            $payments = Payment::query()
-                ->where('organisation_id', $actor->organisation_id)
-                ->where('branch_id', $branch->id)
-                ->where('payment_method_id', $method->id)
-                ->where('status', 'posted')
-                ->where('received_at', '>=', $start)
-                ->where('received_at', '<', $end);
+            $payments = PostedReceiptProjection::query($actor->organisation_id, $branch->id, $start, $end)
+                ->where('payment_method_id', $method->id);
             $paymentCount = (clone $payments)->count();
             $paymentTotal = (int) ((clone $payments)->sum('amount_sen'));
             $countVariance = $salesCount - $paymentCount;
