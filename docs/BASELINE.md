@@ -808,6 +808,10 @@ Owner-authorised aggregate report for Director, Finance Officer and Administrato
 
 Owner-authorised aggregate Panel responsibility/claim/ageing report for Director, Finance Officer and Panel Officer. No additional patient/source content, financial or claim mutation. Existing claim scope and numeric measures are shared. [Full handoff](reports/RPT-01d.md) records definitions, grants, the hub assertion and validation. No push, PR or merge.
 
+### RPT-01e — Stock movement summary (local stacked candidate)
+
+Owner-authorised branch SKU quantities report for Director, Finance Officer and Administrator. No cost, valuation or patient content; retained movement quantities reconcile to historical closing. [Full handoff](reports/RPT-01e.md) records grants, the hub assertion, exact quantity/source proof, limitations and evidence. No push, PR or merge.
+
 ## 7. Updating this file
 
 Update this baseline in the same PR that merges a phase or changes an authorisation boundary.

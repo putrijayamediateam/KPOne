@@ -175,14 +175,7 @@ final class InventoryDirectoryService
      */
     private function movements(User $actor, Branch $branch, array $filters, ?int $locationId): array
     {
-        $query = DB::table('stock_movements as movement')
-            ->join('inventory_skus as s', fn ($join) => $join->on('s.id', '=', 'movement.inventory_sku_id')->on('s.organisation_id', '=', 'movement.organisation_id'))
-            ->join('inventory_items as i', fn ($join) => $join->on('i.id', '=', 's.inventory_item_id')->on('i.organisation_id', '=', 'movement.organisation_id'))
-            ->join('inventory_batches as batch', fn ($join) => $join->on('batch.id', '=', 'movement.inventory_batch_id')->on('batch.organisation_id', '=', 'movement.organisation_id'))
-            ->leftJoin('inventory_locations as source', fn ($join) => $join->on('source.id', '=', 'movement.source_location_id')->on('source.organisation_id', '=', 'movement.organisation_id'))
-            ->leftJoin('inventory_locations as destination', fn ($join) => $join->on('destination.id', '=', 'movement.destination_location_id')->on('destination.organisation_id', '=', 'movement.organisation_id'))
-            ->where('movement.organisation_id', $actor->organisation_id)
-            ->where(fn (Builder $scope) => $scope->where('source.branch_id', $branch->id)->orWhere('destination.branch_id', $branch->id))
+        $query = InventoryMovementProjection::query($actor->organisation_id, $branch->id)
             ->select(['movement.id', 'movement.movement_type', 'movement.quantity', 'movement.reference_type', 'movement.occurred_at',
                 's.id as inventory_sku_id', 's.sku_code', 's.stock_unit', 'i.generic_name', 'i.brand_name', 'i.strength', 'i.dosage_form',
                 'batch.batch_number', 'source.name as source_name', 'destination.name as destination_name']);
