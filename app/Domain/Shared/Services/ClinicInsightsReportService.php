@@ -3,6 +3,8 @@
 namespace App\Domain\Shared\Services;
 
 use App\Domain\Organisation\Models\Branch;
+use App\Domain\Visit\Billing\Models\PaymentMethod;
+use App\Domain\Visit\Billing\Services\PostedReceiptProjection;
 use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Query\Builder;
@@ -219,12 +221,14 @@ class ClinicInsightsReportService
         $returningTotal = (int) (clone $returning)->whereExists($priorVisit)->sum(DB::raw(InvoiceSalesProjection::PAYABLE));
         $newTotal = $total - $returningTotal;
 
-        $rows = (clone $current)->selectRaw('invoices.branch_id, invoices.finalized_at, kpone_invoice_payable(invoices.id) AS total_sen')->get();
+        $rows = (clone $current)->selectRaw('invoices.branch_id, invoices.finalized_at, invoices.patient_id, kpone_invoice_payable(invoices.id) AS total_sen')->get();
         $days = [];
+        $dailyPatients = [];
         foreach ($rows as $row) {
             $branch = $periods[$row->branch_id]['branch'];
             $key = CarbonImmutable::parse($row->finalized_at, 'UTC')->setTimezone($branch->timezone)->toDateString();
             $days[$key] = ($days[$key] ?? 0) + (int) $row->total_sen;
+            $dailyPatients[$key][$row->patient_id] = true;
         }
 
         $loadRankings = function (array $lineTypes) use ($actor, $periods, $doctorId): Collection {
@@ -298,7 +302,7 @@ class ClinicInsightsReportService
                 'previousPatients' => $previousPatients,
                 'previousPerPatientSen' => $previousPatients === 0 ? 0 : (int) round($previousTotal / $previousPatients),
             ],
-            'dailyTrend' => collect($days)->sortKeys()->map(static fn (int $value, string $date): array => ['date' => $date, 'salesSen' => $value])->values()->all(),
+            'dailyTrend' => collect($days)->sortKeys()->map(static fn (int $value, string $date): array => ['date' => $date, 'salesSen' => $value, 'patients' => count($dailyPatients[$date])])->values()->all(),
             'services' => $services['rows'],
             'medicines' => $medicines['rows'],
             'rankingTruncated' => [
@@ -481,6 +485,61 @@ class ClinicInsightsReportService
     }
 
     /**
+     * Original receipts and reversals are both attributed to received_at, not reversal time.
+     * Net is exactly the current posted-receipt cohort used in terminal reconciliation.
+     *
+     * @param  InsightPeriods  $periods
+     * @return list<array{date:string, methodCode:string, method:string, receiptsSen:int, reversedSen:int, netSen:int}>
+     */
+    private function dailyReceipts(User $actor, array $periods, ?int $doctorId): array
+    {
+        $days = [];
+        $methods = [];
+        $dates = [];
+        $codes = PaymentMethod::query()->where('organisation_id', $actor->organisation_id)->pluck('code', 'id');
+        foreach ($periods as $period) {
+            $branch = $period['branch'];
+            for ($date = $period['start']->setTimezone($branch->timezone)->startOfDay(); $date->utc()->lt($period['end']); $date = $date->addDay()) {
+                $dates[$date->toDateString()] = true;
+            }
+            $query = PostedReceiptProjection::query($actor->organisation_id, $branch->id, $period['start'], $period['end'], ['posted', 'reversed']);
+            if ($doctorId !== null) {
+                $query->whereExists(fn (Builder $allocation) => $allocation->selectRaw('1')->from('payment_allocations')
+                    ->join('invoices', 'invoices.id', '=', 'payment_allocations.invoice_id')
+                    ->join('consultation_checkouts', 'consultation_checkouts.id', '=', 'invoices.consultation_checkout_id')
+                    ->whereColumn('payment_allocations.payment_id', 'payments.id')
+                    ->where('invoices.organisation_id', $actor->organisation_id)
+                    ->where('consultation_checkouts.attending_doctor_user_id', $doctorId));
+            }
+            foreach ($query->get(['received_at', 'method_snapshot', 'payment_method_id', 'amount_sen', 'status']) as $payment) {
+                $date = $payment->received_at->setTimezone($branch->timezone)->toDateString();
+                $method = (string) $codes[$payment->payment_method_id];
+                $methods[$method][$payment->method_snapshot] = true;
+                $days[$date][$method]['receipts'] = ($days[$date][$method]['receipts'] ?? 0) + $payment->amount_sen;
+                $days[$date][$method]['reversed'] = ($days[$date][$method]['reversed'] ?? 0) + ($payment->status === 'reversed' ? $payment->amount_sen : 0);
+            }
+        }
+        // No receipt methods in this range: still represent every empty date explicitly.
+        if ($methods === []) {
+            $methods['(none)']['(none)'] = true;
+        }
+        ksort($dates);
+        ksort($methods);
+        $rows = [];
+        foreach (array_keys($dates) as $date) {
+            foreach (array_keys($methods) as $method) {
+                $gross = $days[$date][$method]['receipts'] ?? 0;
+                $reversed = $days[$date][$method]['reversed'] ?? 0;
+                $names = array_keys($methods[$method]);
+                sort($names);
+                $rows[] = ['date' => $date, 'methodCode' => (string) $method, 'method' => implode(' / ', $names), 'receiptsSen' => $gross, 'reversedSen' => $reversed, 'netSen' => $gross - $reversed];
+            }
+        }
+
+        return $rows;
+    }
+
+    /**
      * @param  InsightPeriods  $periods
      * @return array<string, mixed>
      */
@@ -627,6 +686,7 @@ class ClinicInsightsReportService
                 'panelClaimsOutstandingSen' => $claimOutstandingAmount,
             ],
             'paymentMethods' => $methodRows,
+            'dailyReceipts' => $this->dailyReceipts($actor, $periods, $doctorId),
             'panelClaims' => $claimRanking,
             'panels' => $panelRows->selectRaw('coverage_allocations.panel_name_snapshot as name, SUM(coverage_allocations.amount_sen) as billed_sen, SUM(CASE WHEN coverage_allocations.status = ? THEN coverage_allocations.amount_sen ELSE 0 END) as approved_sen, SUM(CASE WHEN coverage_allocations.status = ? THEN coverage_allocations.amount_sen ELSE 0 END) as rejected_sen', ['approved', 'rejected'])
                 ->groupBy('coverage_allocations.panel_name_snapshot')

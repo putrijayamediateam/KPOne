@@ -24,6 +24,7 @@ defineOptions({
 
 const props = defineProps<{
     summaryDownloadUrl: string | null;
+    dailyDownloadUrl: string | null;
     filters: InsightsRangeFilters;
     branches: { code: string; name: string }[];
     doctors: { id: number; name: string; branch: string }[];
@@ -284,7 +285,25 @@ const tableGroups = computed<TableGroup[]>(() => {
     return [];
 });
 
-type ChartPoint = { label: string; value: number; detail: string };
+const visibleReceiptRows = computed(() =>
+    report.value.kind === 'payments'
+        ? report.value.dailyReceipts.filter(
+              (row) =>
+                  row.receiptsSen !== 0 ||
+                  row.reversedSen !== 0 ||
+                  row.netSen !== 0,
+          )
+        : [],
+);
+
+const patientNoun = (count: number) => (count === 1 ? 'patient' : 'patients');
+
+type ChartPoint = {
+    label: string;
+    value: number;
+    detail: string;
+    patients?: number;
+};
 const chartPoints = computed<ChartPoint[]>(() => {
     const value = report.value;
 
@@ -292,7 +311,8 @@ const chartPoints = computed<ChartPoint[]>(() => {
         return value.dailyTrend.map((point) => ({
             label: point.date.slice(5),
             value: point.salesSen,
-            detail: money(point.salesSen),
+            detail: `${money(point.salesSen)} · ${point.patients} distinct ${patientNoun(point.patients)}`,
+            patients: point.patients,
         }));
     }
 
@@ -499,6 +519,101 @@ const occupancyMax = computed(() =>
         </div>
 
         <section
+            v-if="dailyDownloadUrl"
+            aria-label="Daily aggregate download"
+            class="flex flex-wrap items-center justify-between gap-3 rounded-xl border bg-card p-4"
+        >
+            <div class="min-w-0 text-sm">
+                <h2 class="font-semibold">
+                    {{
+                        section === 'sales'
+                            ? 'Daily net invoice sales'
+                            : 'Daily receipts by payment method'
+                    }}
+                </h2>
+                <p class="text-muted-foreground">
+                    {{
+                        section === 'sales'
+                            ? 'Invoice finalisation date, current adjusted payable; matches the daily trend. Empty dates are zero.'
+                            : 'Receipt date, not invoice date. Original receipts less reversed receipts = currently posted receipts. Later reversals restate the original receipt date; not refund-date cash flow. Panel claim remittances excluded.'
+                    }}
+                </p>
+                <p v-if="exportDirty" role="status">
+                    Apply filters before downloading.
+                </p>
+                <p v-if="downloadError" role="alert">{{ downloadError }}</p>
+            </div>
+            <Button v-if="!exportDirty" as-child class="w-full sm:w-auto"
+                ><a :href="dailyDownloadUrl">{{
+                    section === 'sales'
+                        ? 'Download daily CSV'
+                        : 'Download receipts by payment method CSV'
+                }}</a></Button
+            >
+            <Button v-else disabled class="w-full sm:w-auto">{{
+                section === 'sales'
+                    ? 'Download daily CSV'
+                    : 'Download receipts by payment method CSV'
+            }}</Button>
+        </section>
+
+        <section
+            v-if="report.kind === 'payments'"
+            aria-label="Receipt-date reconciliation"
+            class="min-w-0 rounded-xl border bg-card p-4"
+        >
+            <h2 class="font-semibold">
+                Receipts by local business date and payment method
+            </h2>
+            <p class="my-2 text-sm text-muted-foreground">
+                Receipt amounts, including later reversals on their original
+                receipt date. Net matches the current posted receipts used by
+                terminal reconciliation. The existing Payments received card and
+                Payment method ranking use posted allocations against finalised
+                invoices and may differ. These bases are not combined. Zero-only
+                rows are hidden here; the CSV includes every date/method.
+            </p>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-sm">
+                    <thead>
+                        <tr>
+                            <th class="p-2">Local receipt date</th>
+                            <th class="p-2">Payment method</th>
+                            <th class="p-2">Receipts (MYR)</th>
+                            <th class="p-2">Reversed (MYR)</th>
+                            <th class="p-2">Net received (MYR)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr v-if="visibleReceiptRows.length === 0">
+                            <td colspan="5" class="p-2 text-muted-foreground">
+                                No receipts for this period.
+                            </td>
+                        </tr>
+                        <tr
+                            v-for="row in visibleReceiptRows"
+                            :key="`${row.date}:${row.methodCode}`"
+                        >
+                            <td class="p-2 whitespace-nowrap">
+                                {{ row.date }}
+                            </td>
+                            <td class="p-2">
+                                {{
+                                    row.methodCode === '(none)'
+                                        ? 'No receipts'
+                                        : `${row.method} (${row.methodCode})`
+                                }}
+                            </td>
+                            <td class="p-2">{{ money(row.receiptsSen) }}</td>
+                            <td class="p-2">{{ money(row.reversedSen) }}</td>
+                            <td class="p-2">{{ money(row.netSen) }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <section
             class="grid gap-3 sm:grid-cols-2 xl:grid-cols-3"
             :aria-label="`${title} summary`"
         >
@@ -544,6 +659,16 @@ const occupancyMax = computed(() =>
                           : 'Daily patient visits'
                 }}
             </h2>
+            <p
+                v-if="report.kind === 'sales'"
+                class="mt-2 text-sm text-muted-foreground"
+            >
+                Patients are distinct patient records in the net-sales invoice
+                cohort, once per local finalisation date across selected
+                branches. Repeat invoices on that date count once; another date
+                counts again. Daily counts need not sum to the period distinct
+                count.
+            </p>
             <div
                 class="mt-5 flex h-56 items-end gap-1 overflow-x-auto border-b border-l px-2"
             >
@@ -567,6 +692,12 @@ const occupancyMax = computed(() =>
                     <span
                         class="mt-1 truncate text-center text-[10px] text-muted-foreground"
                         >{{ point.label }}</span
+                    >
+                    <span
+                        v-if="point.patients !== undefined"
+                        class="text-center text-[10px] text-muted-foreground"
+                        >{{ point.patients }}
+                        {{ patientNoun(point.patients) }}</span
                     >
                 </div>
             </div>

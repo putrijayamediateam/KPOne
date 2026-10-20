@@ -11,8 +11,9 @@ final class ReportCsv
 
     /** @param list<string> $headings
      * @param  list<list<string>>  $rows
+     * @param  list<list<string>>  $metadata
      */
-    public static function encode(array $headings, array $rows): string
+    public static function encode(array $headings, array $rows, array $metadata = []): string
     {
         if (count($rows) > self::MAX_ROWS) {
             throw ValidationException::withMessages(['export' => 'More than 5,000 rows match. Narrow the filters before downloading.']);
@@ -23,7 +24,7 @@ final class ReportCsv
         }
         try {
             fwrite($out, "\xEF\xBB\xBF");
-            foreach ([$headings, ...$rows] as $row) {
+            foreach ([...$metadata, ...($metadata === [] ? [] : [[]]), $headings, ...$rows] as $row) {
                 fputcsv($out, array_map(self::safeCell(...), $row), ',', '"', '', "\r\n");
             }
             rewind($out);
