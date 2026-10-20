@@ -156,11 +156,23 @@ Do not build or store data for these without an explicitly approved phase:
 
 The owner authorised aggregate-only reports for **Today**, **Sales**, **In-clinic**, **Payments**, **Inventory**,
 and **Patients**. The dedicated `insights.view.organisation` permission is granted to every catalogue role.
-Appointments, exports, package billing, patient drill-down, and patient-level financial rankings are outside the
-approved scope. The implementation status, filter behavior, metric definitions, privacy limits, and unavailable
+Appointments, general exports, package billing, patient drill-down, and patient-level financial rankings remain outside the
+approved scope, except for separately authorised PS-03 and RPT-01 slices below. The implementation status, filter behavior, metric definitions, privacy limits, and unavailable
 measures are maintained in [INSIGHTS.md](./INSIGHTS.md). The reports merged in PR #43 as `a08d099`; exact
 candidate PostgreSQL 18.6 validation and post-merge CI passed. The owner completed the fresh-database browser
 walkthrough with non-zero synthetic data on 2026-10-02 and confirmed results. This is not production approval.
+
+
+### RPT-01: report download authorisation (owner decision, 2026-10-20)
+
+RPT-01a is authorised as an **unmerged candidate**: Sales summary CSV only, aggregate data, with the narrow
+`reports.sales.export.organisation` permission for Director, Finance Officer and Administrator. No patient
+access is granted to Administrator. One additive permission migration; no financial schema changes.
+Existing Insights calculations, gross/net distinction and cohorts are reused. Values-free export audit,
+10/minute per-actor RPT throttle, UTF-8 BOM/formula safety, 5,000-row refusal and no retained generated file.
+RPT-01b (daily net sales and receipts by payment method, aggregates only) is pre-authorised as its own PR,
+not implemented here. PS-03 is unchanged. Patient-level exports, Panel ageing and stock valuation remain
+pending owner decisions. See [INSIGHTS.md](./INSIGHTS.md). This is not production approval.
 
 ## 5. Key decisions
 

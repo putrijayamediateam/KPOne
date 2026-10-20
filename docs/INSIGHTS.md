@@ -16,7 +16,7 @@ data supports it.
 
 Reports return aggregates and catalogue/provider ranking labels, not patient names, patient numbers, identity
 documents, or individual financial records. Patient-level outstanding-balance rankings are intentionally not
-available to the all-role report. No exports or patient drill-down are included.
+available to the all-role report. Patient drill-down remains excluded. RPT-01a is authorised as described below; it is not merged or production-approved.
 
 ## Filters and comparison
 
@@ -93,4 +93,39 @@ remain separate from invoice adjustments and never change invoice sales or patie
 
 Reports select only numeric adjustment effects. Private adjustment reasons are never included in report
 payloads, claim projections, print views or exports. Existing aggregate-only Insights access is unchanged;
-Administrator and Technical Admin gain no patient detail or invoice access. No new export is introduced.
+Administrator and Technical Admin gain no patient detail or invoice access. RPT-01a authorises only the aggregate Sales summary export described below.
+
+
+## RPT-01a: Sales summary CSV (authorised candidate)
+
+The owner authorised one aggregate Sales summary CSV, guarded by the new
+`reports.sales.export.organisation` permission for Director, Finance Officer and Administrator.
+Existing Insights viewing does not grant downloads. Administrator gains no patient, billing or print access.
+The organisation permission permits selected or all active branches of that organisation, independently of
+which branch is selected for day-to-day work. The export rechecks current actor authority and grants.
+
+Download summary CSV uses the applied Sales filters and the existing report calculations. It includes current
+full-cohort gross item sales, invoice discounts/surcharges, net invoice sales, new/returning net sales,
+aggregate patients and net sales per patient. Only the existing total/patient/per-patient comparison metrics
+are included for the previous period. It contains no patient identities, individual invoices, line rankings,
+provider table, notes, Bill to, adjustment reasons or clinical content. PS-03 Panel invoices remains a separate,
+unchanged patient-level exception with a different date basis and its existing permission.
+
+CSV is UTF-8 with BOM, proper quoting and formula-neutralised text. Exact money uses two decimals without
+thousands separators; counts are numeric. Scope, branch timezones, doctor filter, generation time in UTC,
+period dates, metric and unit are explicit columns. Calendar boundaries follow each branch's timezone.
+The download represents current results for those filters at generation, not a frozen copy of an earlier
+screen. App requests use a repeatable-read transaction on PostgreSQL. Changing an unapplied control disables
+the action until filters are applied. Tables and their local search fields are not included.
+
+The bounded CSV is prepared in memory and streamed, with no stored generated file, public link, email or
+background job. More than 5,000 data rows is refused before release; the fixed summary currently has 11 rows.
+The existing one-year range limit remains. The shared RPT limiter is 10 downloads/minute per actor across
+filter variations; PS-03's limiter is unchanged. Private/no-store responses are used. `reports.sales.exported`
+records only dataset, allowed filters/filter-presence flags and row count in existing actor/organisation/time
+audit context, never rows or values. Audit failure refuses release. The event records preparation, not proof
+that a browser completed or opened a download. Existing financial/stock/claim rows and versions never change.
+
+RPT-01b is pre-authorised as a separate PR for daily net sales and receipts by payment method, aggregates only.
+It is not implemented by RPT-01a. Other report families, patient-level exports, Panel ageing, stock valuation,
+XLSX/PDF, retained exports and asynchronous/email delivery remain deferred pending owner decisions.

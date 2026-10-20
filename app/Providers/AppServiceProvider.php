@@ -58,6 +58,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        RateLimiter::for('reports-downloads', fn (Request $request) => Limit::perMinute(10)->by('reports:'.$request->user()?->organisation_id.':'.$request->user()?->id));
         $this->configureDefaults();
         $this->configureAuthorization();
         $this->configureAuditListeners();
