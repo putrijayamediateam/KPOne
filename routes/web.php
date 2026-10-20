@@ -117,6 +117,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('reviews', ClinicPlaceholderController::class)->name('clinic.reviews');
         Route::get('purchase', ClinicPlaceholderController::class)->name('clinic.purchase');
     });
+    Route::get('reports/panel-summary', [BranchReportController::class, 'index'])->defaults('dataset', 'panel_summary')->middleware(['permission:reports.panel_summary.view.branch', 'sensitive.no-store'])->name('reports.panel-summary.index');
+    Route::post('reports/panel-summary/run', [BranchReportController::class, 'run'])->defaults('dataset', 'panel_summary')->middleware(['permission:reports.panel_summary.view.branch', 'sensitive.no-store', 'throttle:patient-report-views'])->name('reports.panel-summary.run');
+    Route::post('reports/panel-summary/download', [BranchReportController::class, 'download'])->defaults('dataset', 'panel_summary')->middleware(['permission:reports.panel_summary.view.branch', 'permission:reports.panel_summary.export.branch', 'sensitive.no-store', 'throttle:reports-downloads'])->name('reports.panel-summary.download');
     Route::get('reports/daily-summary', [BranchReportController::class, 'index'])->defaults('dataset', 'daily_summary')->middleware(['permission:reports.daily_summary.view.branch', 'sensitive.no-store'])->name('reports.daily-summary.index');
     Route::post('reports/daily-summary/run', [BranchReportController::class, 'run'])->defaults('dataset', 'daily_summary')->middleware(['permission:reports.daily_summary.view.branch', 'sensitive.no-store', 'throttle:patient-report-views'])->name('reports.daily-summary.run');
     Route::post('reports/daily-summary/download', [BranchReportController::class, 'download'])->defaults('dataset', 'daily_summary')->middleware(['permission:reports.daily_summary.view.branch', 'permission:reports.daily_summary.export.branch', 'sensitive.no-store', 'throttle:reports-downloads'])->name('reports.daily-summary.download');

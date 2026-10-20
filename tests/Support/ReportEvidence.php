@@ -2,10 +2,25 @@
 
 namespace Tests\Support;
 
+use App\Domain\Clinical\Services\CompleteConsultationService;
+use App\Domain\Visit\Billing\Services\BillingBuilderService;
 use Illuminate\Support\Facades\DB;
 
 trait ReportEvidence
 {
+    protected function anotherReportInvoice(): array
+    {
+        [$doctor, $ca, $visit, $queue] = $this->servingFixture();
+        $encounter = $this->startEncounter($doctor, $visit, $queue);
+        app(CompleteConsultationService::class)->complete($doctor, $visit, ['expected_branch_id' => $visit->branch_id, 'visit_lock_version' => $visit->lock_version, 'queue_lock_version' => $queue->lock_version, 'encounter_lock_version' => $encounter->lock_version, 'lock_version' => null, 'service_deliveries' => []]);
+        $this->selectBranch($ca);
+        $builder = app(BillingBuilderService::class);
+        $invoice = $builder->build($ca, $visit, ['expected_branch_id' => $visit->branch_id, 'lock_version' => null]);
+        $invoice = $builder->finalize($ca, $visit, $invoice, ['expected_branch_id' => $visit->branch_id, 'lock_version' => $invoice->lock_version]);
+
+        return [$doctor, $ca, $visit, $invoice];
+    }
+
     private function sourceEvidence(): array
     {
         $result = [];

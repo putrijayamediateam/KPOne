@@ -98,3 +98,26 @@ test('daily summary labels distinct cohorts and uses existing financial projecti
         /reports\/daily-summary\/download[^\n]*throttle:reports-downloads/,
     );
 });
+
+test('Panel summary reuses eligibility and existing accepted-outstanding measures without patient projection', () => {
+    const panel = read(
+        'app/Domain/Shared/Services/PanelSummaryReportService.php',
+    );
+    assert.match(panel, /approvedAllocations/);
+    assert.match(page, /data\.count === 1 \? 'row' : 'rows'/);
+    assert.match(panel, /PanelClaimAmounts::summary/);
+    assert.match(panel, /first submitted date/);
+    assert.match(panel, /Unclaimed over 90 days/);
+    assert.doesNotMatch(
+        panel,
+        /patient_name|full_name|member_reference|diagnosis|treatment|remarks/,
+    );
+    assert.match(
+        read(
+            'app/Domain/Visit/Billing/Services/PanelClaimDirectoryService.php',
+        ),
+        /PanelClaimAmounts::summary/,
+    );
+    assert.match(page, /v-if="options\?\.methods"/);
+    assert.match(page, /v-if="options\?\.visit_types"/);
+});

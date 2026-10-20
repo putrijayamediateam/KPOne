@@ -804,6 +804,10 @@ Owner authorised the five sequential reporting slices; first slice adds current 
 
 Owner-authorised aggregate report for Director, Finance Officer and Administrator, with separate receipt-date and invoice-date columns. Uses shared receipt and FinancialLedger projections; source records unchanged. [Full handoff](reports/RPT-01c.md) records the new grants, hub assertion, Total interpretation, tests and evidence. No push, PR or merge.
 
+### RPT-01d — Panel summary (local stacked candidate)
+
+Owner-authorised aggregate Panel responsibility/claim/ageing report for Director, Finance Officer and Panel Officer. No additional patient/source content, financial or claim mutation. Existing claim scope and numeric measures are shared. [Full handoff](reports/RPT-01d.md) records definitions, grants, the hub assertion and validation. No push, PR or merge.
+
 ## 7. Updating this file
 
 Update this baseline in the same PR that merges a phase or changes an authorisation boundary.

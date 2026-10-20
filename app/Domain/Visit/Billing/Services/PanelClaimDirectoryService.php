@@ -535,6 +535,7 @@ final class PanelClaimDirectoryService
                 ->where('organisation_id', $actor->organisation_id)->where('branch_id', $branch->id)
                 ->with(['lines', 'payments', 'documents'])->firstOrFail();
             $paid = (int) $claim->payments->sum('amount_sen');
+            $amounts = PanelClaimAmounts::summary($claim, $paid);
             // Only saved claim evidence: never reconstruct older claims from the live Invoice.
             $originalSubtotal = (int) $claim->lines->sum('line_total_sen');
             $lineRows = $claim->lines->map(static fn ($line): array => [
@@ -657,7 +658,7 @@ final class PanelClaimDirectoryService
                     'adjustmentSen' => max(0, $claim->claim_amount_sen - $claim->invoice_total_sen),
                     'acceptedAmountSen' => $claim->accepted_amount_sen,
                     'paidAmountSen' => $paid,
-                    'outstandingSen' => max(0, ($claim->accepted_amount_sen ?? 0) - $paid),
+                    'outstandingSen' => $amounts['outstanding'],
                     'lines' => $lineRows,
                     'events' => $events,
                     'payments' => $payments,
