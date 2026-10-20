@@ -251,23 +251,21 @@ class TreatmentPlanTest extends ClinicalTestCase
         $before = $this->fulfilmentSnapshot();
         $this->get(route('dispensary.labels', $fixture['case']))->assertOk()->assertInertia(fn (Assert $page) => $page
             ->component('Dispensary/Labels')
-            ->has('labels.items', 2)
+            ->has('labels.items', 1)
             ->where('labels.items.0.quantity', '0.500')
-            ->where('labels.items.1.name', 'Synthetic second medicine')
-            ->where('labels.items.1.quantity', null));
+            ->where('labels.excludedCount', 1));
         $this->assertDatabaseCount('treatment_plan_service_orders', 1);
         $this->assertSame($before, $this->fulfilmentSnapshot());
         $labels = app(DispensaryDirectoryService::class)->labels($fixture['ca'], $fixture['case']->refresh());
-        $this->assertSame(['clinic', 'branch', 'patient', 'date', 'items'], array_keys($labels));
-        $this->assertSame(['name', 'strength', 'quantity', 'unit', 'dosage', 'frequency', 'duration', 'instruction'], array_keys($labels['items'][0]));
+        $this->assertSame(['clinic', 'branch', 'patient', 'date', 'items', 'blocked', 'logo', 'pageSize', 'token', 'branchId', 'excludedCount'], array_keys($labels));
+        $this->assertSame(['name', 'strength', 'quantity', 'unit', 'dosage', 'frequency', 'duration', 'instruction', 'lines', 'emphasis', 'previewUrl'], array_keys($labels['items'][0]));
     }
 
     public function test_labels_exclude_non_dispensed_items_and_scope_item_identity_to_current_handoff(): void
     {
         [, $ca, $visit, , $case, $item] = $this->patientDeclinedFixture(true);
         $this->selectBranch($ca, $visit->branch);
-        $this->get(route('dispensary.labels', $case))->assertOk()->assertInertia(fn (Assert $page) => $page
-            ->has('labels.items', 1)->where('labels.items.0.name', 'Synthetic second medicine'));
+        $this->get(route('dispensary.labels', $case))->assertNotFound(); // Remaining medicine is pending, not a printable fulfilment.
         $this->get(route('dispensary.items.label', [$case, $item->public_id]))->assertNotFound();
         $this->get(route('dispensary.items.label', [$case, (string) Str::uuid()]))->assertNotFound();
         $other = $this->stockedPartialFixture();
@@ -310,7 +308,7 @@ class TreatmentPlanTest extends ClinicalTestCase
             ->missing('dispensary.items')->missing('dispensary.can')->missing('dispensary.lockVersion'));
         $this->assertStringContainsString('no-store', $response->headers->get('Cache-Control'));
         $this->assertSame(['status', 'patient', 'visit', 'completedAt'], array_keys(app(DispensaryDirectoryService::class)->detail($fixture['ca'], $fixture['case']->refresh())));
-        $this->get(route('dispensary.labels', $fixture['case']))->assertNotFound();
+        $this->get(route('dispensary.labels', $fixture['case']))->assertOk()->assertInertia(fn (Assert $page) => $page->has('labels.items', 1));
         $this->assertSame($before, $this->fulfilmentSnapshot());
         $this->assertPrivateCaseUrls([$url]);
         foreach (['resident_doctor', 'director', 'technical_admin'] as $role) {
@@ -389,10 +387,12 @@ class TreatmentPlanTest extends ClinicalTestCase
         $this->assertStringContainsString('Dispensary fulfilment follows Complete Consultation.', $panel);
         $this->assertStringNotContainsString('dispensing, stock and billing are handled later', $panel);
         $labels = file_get_contents(resource_path('js/pages/Dispensary/Labels.vue'));
-        $this->assertStringContainsString('const printLabels = () => window.print();', $labels);
+        $this->assertStringContainsString('const printLabels = async () =>', $labels);
+        $this->assertStringContainsString("url.searchParams.set('verify', '1')", $labels);
+        $this->assertStringContainsString('window.print();', $labels);
         $this->assertStringContainsString('@media print', $labels);
-        $this->assertStringContainsString('Not yet recorded', $labels);
-        foreach (['router.', 'fetch(', 'localStorage', 'sessionStorage', 'useForm'] as $mutation) {
+        $this->assertStringContainsString('Printing blocked', $labels);
+        foreach (['router.', 'localStorage', 'sessionStorage', 'useForm'] as $mutation) {
             $this->assertStringNotContainsString($mutation, $labels);
         }
         $workspace = file_get_contents(resource_path('js/pages/Dispensary/Show.vue'));

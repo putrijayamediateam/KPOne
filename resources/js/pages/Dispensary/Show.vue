@@ -85,6 +85,8 @@ type ServiceResult = {
     unit: string;
 };
 type Page = {
+    canPrintLabels?: boolean;
+    labelLimits?: Record<string, number>;
     publicId: string;
     status: 'pending' | 'dispensing';
     lockVersion: number;
@@ -704,7 +706,12 @@ const inputClass = 'mt-1 h-9 w-full rounded-md border px-2';
             </div>
             <div class="flex flex-wrap gap-2">
                 <Button
-                    v-if="visibleItems.length"
+                    v-if="
+                        visibleItems.length &&
+                        dispensary.canPrintLabels &&
+                        !unsaved.length &&
+                        !unsavedServices.length
+                    "
                     as-child
                     variant="outline"
                     size="sm"
@@ -949,6 +956,9 @@ const inputClass = 'mt-1 h-9 w-full rounded-md border px-2';
                             <Button
                                 v-if="
                                     item.status === 'dispensed' &&
+                                    dispensary.canPrintLabels &&
+                                    !unsaved.length &&
+                                    !unsavedServices.length &&
                                     !isDirty(item)
                                 "
                                 as-child
@@ -973,6 +983,19 @@ const inputClass = 'mt-1 h-9 w-full rounded-md border px-2';
                             v-if="dispensary.can.update && forms[item.publicId]"
                             class="grid gap-2 text-xs sm:grid-cols-2 lg:grid-cols-4"
                         >
+                            <p class="text-muted-foreground sm:col-span-4">
+                                Label limits (characters; saved clinical text is
+                                unchanged): dosage
+                                {{ dispensary.labelLimits?.dosage }}, frequency
+                                {{ dispensary.labelLimits?.frequency }},
+                                duration {{ dispensary.labelLimits?.duration }},
+                                route {{ dispensary.labelLimits?.route }},
+                                instruction
+                                {{ dispensary.labelLimits?.instruction }},
+                                precaution
+                                {{ dispensary.labelLimits?.precaution }}.
+                                Over-budget labels are blocked, never truncated.
+                            </p>
                             <label
                                 >Quantity ({{ item.unit }})<input
                                     v-model="forms[item.publicId].quantity"
@@ -981,42 +1004,54 @@ const inputClass = 'mt-1 h-9 w-full rounded-md border px-2';
                                     data-field="quantity"
                             /></label>
                             <label
-                                >Dosage<input
+                                >Dosage (label max
+                                {{ dispensary.labelLimits?.dosage }}
+                                characters)<input
                                     v-model="forms[item.publicId].dosage"
                                     :class="inputClass"
                                     maxlength="500"
                                     data-field="dosage"
                             /></label>
                             <label
-                                >Frequency<input
+                                >Frequency (label max
+                                {{ dispensary.labelLimits?.frequency }}
+                                characters)<input
                                     v-model="forms[item.publicId].frequency"
                                     :class="inputClass"
                                     maxlength="500"
                                     data-field="frequency"
                             /></label>
                             <label
-                                >Duration<input
+                                >Duration (label max
+                                {{ dispensary.labelLimits?.duration }}
+                                characters)<input
                                     v-model="forms[item.publicId].duration"
                                     :class="inputClass"
                                     maxlength="500"
                                     data-field="duration"
                             /></label>
                             <label
-                                >Route<input
+                                >Route (label max
+                                {{ dispensary.labelLimits?.route }}
+                                characters)<input
                                     v-model="forms[item.publicId].route"
                                     :class="inputClass"
                                     maxlength="500"
                                     data-field="route"
                             /></label>
                             <label class="sm:col-span-2"
-                                >Instruction<input
+                                >Instruction (label max
+                                {{ dispensary.labelLimits?.instruction }}
+                                characters)<input
                                     v-model="forms[item.publicId].instruction"
                                     :class="inputClass"
                                     maxlength="2000"
                                     data-field="instruction"
                             /></label>
                             <label class="sm:col-span-2"
-                                >Precaution<input
+                                >Precaution (label max
+                                {{ dispensary.labelLimits?.precaution }}
+                                characters)<input
                                     v-model="forms[item.publicId].precaution"
                                     :class="inputClass"
                                     maxlength="2000"
@@ -1239,39 +1274,51 @@ const inputClass = 'mt-1 h-9 w-full rounded-md border px-2';
                                 data-field="add-quantity"
                         /></label>
                         <label
-                            >Dosage<input
+                            >Dosage (label max
+                            {{ dispensary.labelLimits?.dosage }}
+                            characters)<input
                                 v-model="addForm.dosage"
                                 :class="inputClass"
                                 maxlength="500"
                                 data-field="add-dosage"
                         /></label>
                         <label
-                            >Frequency<input
+                            >Frequency (label max
+                            {{ dispensary.labelLimits?.frequency }}
+                            characters)<input
                                 v-model="addForm.frequency"
                                 :class="inputClass"
                                 maxlength="500"
                                 data-field="add-frequency"
                         /></label>
                         <label
-                            >Duration<input
+                            >Duration (label max
+                            {{ dispensary.labelLimits?.duration }}
+                            characters)<input
                                 v-model="addForm.duration"
                                 :class="inputClass"
                                 maxlength="500"
                         /></label>
                         <label
-                            >Route<input
+                            >Route (label max
+                            {{ dispensary.labelLimits?.route }}
+                            characters)<input
                                 v-model="addForm.route"
                                 :class="inputClass"
                                 maxlength="500"
                         /></label>
                         <label class="sm:col-span-2"
-                            >Instruction<input
+                            >Instruction (label max
+                            {{ dispensary.labelLimits?.instruction }}
+                            characters)<input
                                 v-model="addForm.instruction"
                                 :class="inputClass"
                                 maxlength="2000"
                         /></label>
                         <label class="sm:col-span-2"
-                            >Precaution<input
+                            >Precaution (label max
+                            {{ dispensary.labelLimits?.precaution }}
+                            characters)<input
                                 v-model="addForm.precaution"
                                 :class="inputClass"
                                 maxlength="2000"
@@ -1295,6 +1342,17 @@ const inputClass = 'mt-1 h-9 w-full rounded-md border px-2';
                                 </option>
                             </select></label
                         >
+                        <p class="text-xs text-muted-foreground sm:col-span-4">
+                            Label limits: dosage
+                            {{ dispensary.labelLimits?.dosage }}, frequency
+                            {{ dispensary.labelLimits?.frequency }}, duration
+                            {{ dispensary.labelLimits?.duration }}, route
+                            {{ dispensary.labelLimits?.route }}, instruction
+                            {{ dispensary.labelLimits?.instruction }},
+                            precaution
+                            {{ dispensary.labelLimits?.precaution }} characters.
+                            Printing does not truncate saved text.
+                        </p>
                         <div class="flex gap-2 sm:col-span-4">
                             <Button
                                 size="sm"

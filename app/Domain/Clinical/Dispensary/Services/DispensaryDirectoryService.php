@@ -3,6 +3,7 @@
 namespace App\Domain\Clinical\Dispensary\Services;
 
 use App\Domain\Access\BranchAccessService;
+use App\Domain\Clinical\Dispensary\Labels\DrugLabelService;
 use App\Domain\Clinical\Dispensary\Models\DispensaryCase;
 use App\Domain\Clinical\Dispensary\Models\DispensaryHandoff;
 use App\Domain\Clinical\Dispensary\Models\DispensaryItem;
@@ -84,33 +85,7 @@ class DispensaryDirectoryService
     /** @return array<string, mixed> */
     public function labels(User $actor, DispensaryCase $case, ?string $itemPublicId = null): array
     {
-        $branch = $this->authorizedBranch($actor, $case);
-        abort_unless(in_array($case->status, [DispensaryCase::STATUS_PENDING, DispensaryCase::STATUS_DISPENSING], true), 404);
-        $handoff = $case->handoffs()->where('status', DispensaryHandoff::STATUS_OPEN)->first();
-        abort_unless($handoff !== null, 404);
-        $items = $handoff->items()->where('status', '!=', DispensaryItem::STATUS_NOT_DISPENSED)
-            ->when($itemPublicId !== null, fn ($query) => $query->where('public_id', $itemPublicId))
-            ->orderBy('id')->get();
-        abort_if($items->isEmpty(), 404);
-        $case->load('visit.patient:id,patient_number,full_name');
-
-        // Explicit saved snapshot projection only. Printing never stages or completes fulfilment.
-        return [
-            'clinic' => $branch->organisation->name,
-            'branch' => $branch->name,
-            'patient' => ['name' => $case->visit->patient->full_name, 'patientNumber' => $case->visit->patient->patient_number],
-            'date' => now()->setTimezone($branch->timezone)->format('j M Y'),
-            'items' => $items->map(fn (DispensaryItem $item): array => [
-                'name' => $item->medicine_name_snapshot,
-                'strength' => $item->strength_snapshot,
-                'quantity' => $item->quantity_dispensed,
-                'unit' => $item->unit_snapshot,
-                'dosage' => $item->effective('dosage'),
-                'frequency' => $item->effective('frequency'),
-                'duration' => $item->effective('duration'),
-                'instruction' => $item->effective('administration_instruction'),
-            ])->values()->all(),
-        ];
+        return app(DrugLabelService::class)->preview($actor, $case, $itemPublicId);
     }
 
     private function authorizedBranch(User $actor, DispensaryCase $case): Branch
