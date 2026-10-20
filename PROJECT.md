@@ -1,8 +1,11 @@
 # KPOne project
 
-Latest merged delivery: PR #139 — DOC-03 live Drug label printing, merged as `695c0c2`. Recent merges, newest first
+Latest merged delivery: PR #143 — RPT-02a patient Billing Detail report, merged as `ca9d03b`. Recent merges, newest first
 (documentation-only PRs omitted):
 
+- PR #143 (`ca9d03b`) — RPT-02a: Billing Detail page and CSV at `/reports/billing-detail` (one row per finalised invoice with KPOne patient number, name and settlement figures; no IC number), audited before release, for Finance Officer and Director only. Transaction Detail and Cash / Non-cash classification are deferred.
+- PR #142 (`89d10bb`) — RPT-01b: daily net sales (with distinct patients per day) and receipts-by-payment-method CSVs, aggregates only, with reversals shown and a receipt projection shared with terminal reconciliation.
+- PR #141 (`83877a4`) — RPT-01a: aggregate Sales summary CSV for Director, Finance Officer and Administrator.
 - PR #139 (`695c0c2`) — DOC-03: Drug label printing from saved CA-final dispensing lines with server-side field budgets (over-budget labels are blocked, never truncated), a new `dispensary.labels.print.branch` permission for CA and CA Supervisor, and no stored label content. Provisional 100 × 150 mm size; printer and sticker stock to be confirmed.
 - PR #137 (`ff9479b`) — DOC-02b follow-up: the MC history shows issue times in the branch timezone (UTC evidence unchanged) and explains that a void closes the MC chain.
 - PR #135 (`f1518c1`) — DOC-02b: Medical Certificate issuance by the attending doctor with encrypted immutable pre-signature snapshots, numbering, replace and void by the original issuer, and no diagnosis by default, no charge. EN/BM wording is a draft pending doctor approval.
