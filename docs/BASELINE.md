@@ -800,6 +800,10 @@ in the handoff report. Merged in PR #143 as `ca9d03b` (commit `f978bf5`); PR CI 
 
 Owner authorised the five sequential reporting slices; first slice adds current Cash/Non-cash classification to Payment Methods using existing settings permission. No patient access, source-payment mutation or export is added. Full change/assertion/validation record: [RPT-01c-0](reports/RPT-01c-0.md). Later slices remain unbuilt until this gate passes.
 
+### RPT-01c — Daily summary (local stacked candidate)
+
+Owner-authorised aggregate report for Director, Finance Officer and Administrator, with separate receipt-date and invoice-date columns. Uses shared receipt and FinancialLedger projections; source records unchanged. [Full handoff](reports/RPT-01c.md) records the new grants, hub assertion, Total interpretation, tests and evidence. No push, PR or merge.
+
 ## 7. Updating this file
 
 Update this baseline in the same PR that merges a phase or changes an authorisation boundary.

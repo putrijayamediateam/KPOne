@@ -58,6 +58,7 @@ final class ClinicManagementNavigation
             [$branch && ($display || $actor->can('queue.display.branch')), 'TV Screen', 'Open the queue display for this branch.', 'queue-display.screen'],
         ]);
         $add('Reports', 'reports', [
+            [$branch && $actor->can('reports.daily_summary.view.branch'), 'Daily summary', 'Review receipt-date cash and non-cash with separately dated invoice responsibility.', 'reports.daily-summary.index'],
             [$branch && $actor->can('reports.patient_billing.view.branch'), 'Billing Detail', 'Reconcile patient invoices and current settlement for this branch.', 'patient-billing-report.index'],
             [$actor->can('insights.view.organisation'), 'Insights', 'Review existing aggregate clinic reports.', 'insights.today'],
         ]);

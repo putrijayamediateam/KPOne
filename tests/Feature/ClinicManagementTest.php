@@ -39,6 +39,7 @@ class ClinicManagementTest extends VisitTestCase
             '/queue-display-settings' => ['queue_display.manage.organisation', 'queue_display.manage.branch'],
             '/queue-display' => ['queue.display.branch', 'queue_display.manage.organisation', 'queue_display.manage.branch'],
             '/insights/today' => ['insights.view.organisation'],
+            '/reports/daily-summary' => ['reports.daily_summary.view.branch'],
             '/reports/billing-detail' => ['reports.patient_billing.view.branch'],
             '/panel-claims' => ['panel.claims.manage.branch'],
             '/panel-responsibility' => ['panel.work.view.branch'],
