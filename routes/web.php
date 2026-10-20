@@ -38,6 +38,7 @@ use App\Http\Controllers\MedicineOptionSettingsController;
 use App\Http\Controllers\PanelClaimsController;
 use App\Http\Controllers\PanelInvoicesController;
 use App\Http\Controllers\PanelSettingsController;
+use App\Http\Controllers\PatientBillingReportController;
 use App\Http\Controllers\PatientController;
 use App\Http\Controllers\PatientIdentifierController;
 use App\Http\Controllers\PatientSearchController;
@@ -115,6 +116,15 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('reviews', ClinicPlaceholderController::class)->name('clinic.reviews');
         Route::get('purchase', ClinicPlaceholderController::class)->name('clinic.purchase');
     });
+    Route::get('reports/billing-detail', [PatientBillingReportController::class, 'index'])
+        ->middleware(['permission:reports.patient_billing.view.branch', 'sensitive.no-store'])
+        ->name('patient-billing-report.index');
+    Route::post('reports/billing-detail/run', [PatientBillingReportController::class, 'run'])
+        ->middleware(['permission:reports.patient_billing.view.branch', 'sensitive.no-store', 'throttle:patient-report-views'])
+        ->name('patient-billing-report.run');
+    Route::post('reports/billing-detail/download', [PatientBillingReportController::class, 'download'])
+        ->middleware(['permission:reports.patient_billing.view.branch', 'permission:reports.patient_billing.export.branch', 'sensitive.no-store', 'throttle:reports-downloads'])
+        ->name('patient-billing-report.download');
     Route::get('insight', fn () => to_route('insights.today'))
         ->middleware('permission:insights.view.organisation')
         ->name('clinic.insight');

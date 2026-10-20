@@ -772,6 +772,26 @@ one and two on page two, and no horizontal page overflow at 390 px (page width a
 This is layout verification, not an authenticated end-to-end browser UAT. No real/demo database connection,
 `.env` access, commit or push. Not production-approved.
 
+### RPT-02a — patient Billing Detail page and CSV — authorised PR candidate
+
+Owner approved the narrow Finance patient-row exception after RPT-01b, with two explicit changes from the
+analysis: no signed-fingerprint refusal (screen and CSV each show generation time; CSV headers state totals),
+and one net-receipt amount column per payment method used by the filtered invoice cohort. The owner then
+confirmed Cash/Non-cash classification is entirely deferred (no setting or columns) and permissions remain
+Finance Officer and Director only. Transaction Detail (RPT-02b) remains a separate PR.
+
+Implementation branch: `feature/rpt-02a-patient-billing-detail`, isolated worktree from canonical main `89d10bb`.
+The patient-report page is separate from aggregate Insights and uses fresh branch-assigned permission checks,
+explicit audited queries, 20-row pagination, 31-date limits, full-cohort totals, staged searchable filter chips,
+and a safe capped synchronous CSV. Existing FinancialLedger computes the settlement figures. No invoice,
+receipt, adjustment, claim, stock, dispensary or clinical workflow changes. No `.env` access or new dependency.
+The only migration adds the two report permissions and missing grants, replay-safe with non-revoking down().
+
+**Changed existing assertion:** `ClinicManagementTest::test_hub_returns_only_authorized_implemented_destinations_for_every_catalogue_role` adds `/reports/billing-detail` to its exact permission-to-destination map, guarded by `reports.patient_billing.view.branch`. This encodes the authorised Finance Officer/Director link while retaining exact allowlists for every other role. No financial assertion is changed or weakened. New backend and frontend tests cover this explicit exception without relaxing existing aggregate-only Insights assertions. Validation and synthetic browser evidence are recorded
+in the handoff report; this candidate is not merged or production-approved.
+
+**Validation, 2026-10-20:** PostgreSQL 18.6, task-owned `kpone_rpt02a_testing` on port 58406: full backend **1,188 tests, 1,186 passed, two existing disabled-public-registration skips, 18,157 assertions**. Focused report/hub suites: **21 tests, 1,184 assertions**. Pint, PHPStan level 7, frontend types/lint/format, production build and `git diff --check` pass; frontend **380/380**. Fresh migrations and synthetic seeding pass on the separate disposable `kpone_rpt02a_seed_testing` database. Real authenticated Chrome checks cover exact 1440/390 CSS px in both themes with no page overflow, staged searchable filters, a real downloaded synthetic CSV and Administrator 403 denial. The final full test process uses PHPUnit's own `-d memory_limit=1G` option; a parent-only override did not survive Herd's subprocess configuration.
+
 ## 7. Updating this file
 
 Update this baseline in the same PR that merges a phase or changes an authorisation boundary.
