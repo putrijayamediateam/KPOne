@@ -1,8 +1,9 @@
 # KPOne project
 
-Latest merged delivery: PR #137 — DOC-02b follow-up, MC history in clinic-local time, merged as `ff9479b`. Recent merges, newest first
+Latest merged delivery: PR #139 — DOC-03 live Drug label printing, merged as `695c0c2`. Recent merges, newest first
 (documentation-only PRs omitted):
 
+- PR #139 (`695c0c2`) — DOC-03: Drug label printing from saved CA-final dispensing lines with server-side field budgets (over-budget labels are blocked, never truncated), a new `dispensary.labels.print.branch` permission for CA and CA Supervisor, and no stored label content. Provisional 100 × 150 mm size; printer and sticker stock to be confirmed.
 - PR #137 (`ff9479b`) — DOC-02b follow-up: the MC history shows issue times in the branch timezone (UTC evidence unchanged) and explains that a void closes the MC chain.
 - PR #135 (`f1518c1`) — DOC-02b: Medical Certificate issuance by the attending doctor with encrypted immutable pre-signature snapshots, numbering, replace and void by the original issuer, and no diagnosis by default, no charge. EN/BM wording is a draft pending doctor approval.
 - PR #134 (`d3cac4d`) — DOC-02a: Director-managed clinician credentials (professional name, MMC number) and fixed draft EN/BM MC template previews.
