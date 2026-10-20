@@ -16,7 +16,7 @@ data supports it.
 
 Reports return aggregates and catalogue/provider ranking labels, not patient names, patient numbers, identity
 documents, or individual financial records. Patient-level outstanding-balance rankings are intentionally not
-available to the all-role report. Patient drill-down remains excluded. RPT-01a is merged in PR #141; RPT-01b is authorised as described below. Neither is production-approved.
+available to the all-role report. Patient drill-down remains excluded. RPT-01a, RPT-01b and RPT-02a are merged in PRs #141, #142 and #143. None is production-approved.
 
 ## Filters and comparison
 
@@ -130,7 +130,7 @@ RPT-01b is pre-authorised as a separate PR for daily net sales and receipts by p
 It is not implemented by RPT-01a. Other report families, patient-level exports, Panel ageing, stock valuation,
 XLSX/PDF, retained exports and asynchronous/email delivery remain deferred pending owner decisions.
 
-## RPT-01b: Daily sales and receipt-method CSV (authorised candidate)
+## RPT-01b: Daily sales and receipt-method CSV (merged PR #142)
 
 Two aggregate-only downloads, separate from the RPT-01a summary:
 
@@ -193,7 +193,7 @@ exact sales amount and all other financial assertions. Candidate CSV and fronten
 for the added column and display-only filtering; none is weakened. No real patient data or production approval.
 
 
-## RPT-02a: separate patient Billing Detail exception (authorised PR candidate)
+## RPT-02a: separate patient Billing Detail exception (merged PR #143)
 
 The owner explicitly authorises a dedicated Billing Detail page and CSV at `/reports/billing-detail`.
 This is not an expansion of aggregate Insights payloads or RPT-01 permissions. Only Director and Finance
