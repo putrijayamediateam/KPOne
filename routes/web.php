@@ -374,9 +374,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::get('{invoice}/receipts/{payment}/print', 'printReceipt')->middleware(['permission:billing.print.branch', 'sensitive.no-store'])->name('billing.receipt');
         });
         Route::get('dispensary/{dispensaryCase}/labels', [DispensaryController::class, 'labels'])
-            ->whereUuid('dispensaryCase')->middleware('permission:dispensary.view.branch')->name('dispensary.labels');
+            ->whereUuid('dispensaryCase')->middleware('permission:dispensary.labels.print.branch')->name('dispensary.labels');
         Route::get('dispensary/{dispensaryCase}/items/{itemPublicId}/label', [DispensaryController::class, 'labels'])
-            ->whereUuid('dispensaryCase')->middleware('permission:dispensary.view.branch')->whereUuid('itemPublicId')->name('dispensary.items.label');
+            ->whereUuid('dispensaryCase')->middleware('permission:dispensary.labels.print.branch')->whereUuid('itemPublicId')->name('dispensary.items.label');
         Route::post('dispensary/{dispensaryCase}/call', [RoomCallController::class, 'dispensary'])
             ->whereUuid('dispensaryCase')->middleware(['permission:dispensary.start.branch', 'throttle:30,1'])->name('dispensary.call');
         Route::post('dispensary/{dispensaryCase}/start', [DispensaryController::class, 'start'])

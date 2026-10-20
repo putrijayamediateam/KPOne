@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Domain\Clinical\Dispensary\Labels\DrugLabelLayout;
 use App\Domain\Clinical\Dispensary\Models\DispensaryCase;
 use App\Domain\Clinical\Dispensary\Models\DispensaryItem;
 use App\Domain\Clinical\Dispensary\Models\DispensaryItemException;
@@ -38,6 +39,11 @@ class DispensaryController extends Controller
     public function show(Request $request, DispensaryCase $dispensaryCase, DispensaryDirectoryService $directory, RoomCallService $calls): Response
     {
         $detail = $directory->detail($request->user(), $dispensaryCase);
+        $detail['labelLimits'] = DrugLabelLayout::FIELD_BUDGETS;
+        $detail['canPrintLabels'] = $request->user()->can('dispensary.labels.print.branch') && ($dispensaryCase->status === 'completed' || ($dispensaryCase->status === 'dispensing' && $dispensaryCase->current_handler_user_id === $request->user()->id));
+        if ($detail['canPrintLabels']) {
+            $detail['labelUrl'] = route('dispensary.labels', $dispensaryCase);
+        }
         if ($detail['status'] !== DispensaryCase::STATUS_COMPLETED && $dispensaryCase->case_type !== DispensaryCase::TYPE_OTC) {
             $detail['tvCall'] = [
                 'canCall' => $request->user()->can('dispensary.start.branch')
@@ -72,9 +78,17 @@ class DispensaryController extends Controller
         return to_route('dispensary.show', $dispensaryCase);
     }
 
-    public function labels(Request $request, DispensaryCase $dispensaryCase, DispensaryDirectoryService $directory, ?string $itemPublicId = null): Response
+    public function labels(Request $request, DispensaryCase $dispensaryCase, DispensaryDirectoryService $directory, ?string $itemPublicId = null): Response|JsonResponse
     {
-        return Inertia::render('Dispensary/Labels', ['labels' => $directory->labels($request->user(), $dispensaryCase, $itemPublicId)]);
+        $labels = $directory->labels($request->user(), $dispensaryCase, $itemPublicId);
+        if ($request->boolean('verify')) {
+            $request->validate(['token' => ['required', 'string', 'regex:/^[a-f0-9]{64}$/'], 'branch' => ['required', 'integer']]);
+            abort_unless((int) $request->query('branch') === $labels['branchId'] && hash_equals($labels['token'], $request->string('token')->toString()) && $labels['blocked'] === [], 409);
+
+            return response()->json(['current' => true]);
+        }
+
+        return Inertia::render('Dispensary/Labels', ['labels' => $labels]);
     }
 
     public function start(DispensaryCaseActionRequest $request, DispensaryCase $dispensaryCase, DispensaryService $service): RedirectResponse

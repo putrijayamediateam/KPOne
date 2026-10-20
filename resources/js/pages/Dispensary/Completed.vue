@@ -9,6 +9,7 @@ defineProps<{
         visit: { visitNumber: string };
         completedAt: string | null;
         billingUrl?: string;
+        labelUrl?: string;
     };
 }>();
 </script>
@@ -29,6 +30,11 @@ defineProps<{
             This case is read-only. Fulfilment has finished and it cannot be
             returned to the doctor.
         </p>
+        <Button v-if="dispensary.labelUrl" as-child variant="outline" size="sm"
+            ><a :href="dispensary.labelUrl" target="_blank" rel="noopener"
+                >Print current labels</a
+            ></Button
+        >
         <Button as-child variant="outline" size="sm">
             <Link href="/registration">Return to Registration</Link>
         </Button>
