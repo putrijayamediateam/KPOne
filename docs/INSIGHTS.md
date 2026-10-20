@@ -250,3 +250,7 @@ The owner now authorises this separate aggregate branch report and fixed ageing 
 ## RPT-01e: quantities-only stock movement summary
 
 Separate assigned-branch report for Director, Finance Officer and Administrator. Uses the shared retained movement scope, exact milliunits and historical opening/closing reconciliation. No patient, batch/reference, supplier, cost or valuation fields. Stock valuation stays deferred. [Definitions and gate](reports/RPT-01e.md).
+
+## RPT-02b: Transaction Detail (separate patient-level exception)
+
+Owner authorises Finance Officer and Director only to view/export one assigned branch's receipt-date rows through new `reports.transactions.view.branch` / `.export.branch` permissions. Administrator's aggregate access does not confer these permissions. Uses PostedReceiptProjection and the same gross/reversed/net arithmetic as aggregate receipts and terminal reconciliation. Current patient name, KPOne patient number, linked visit/invoice numbers, receipt timestamp, retained method name, current classification and explicit monetary reversal evidence only. Unallocated receipts retain their amounts but mask identity and invent no invoice/visit. No NRIC/passport, contact, clinical, note, Bill to or adjustment reason. See [definitions, privacy, validation and open choices](reports/RPT-02b.md). Existing aggregate report contracts are unchanged.

@@ -139,3 +139,20 @@ test('stock summary has exact quantity-only movement reconciliation with no valu
     );
     assert.doesNotMatch(stock, /\(float\)|number_format/);
 });
+
+test('Transaction Detail reuses receipt evidence and guards personal preparation behind scope and cap', () => {
+    const transaction = read('app/Domain/Shared/Services/TransactionReportService.php');
+    assert.match(transaction, /PostedReceiptProjection::query/);
+    assert.match(transaction, /PostedReceiptProjection::amounts/);
+    assert.match(transaction, /PostedReceiptProjection::filterVisitTypes/);
+    assert.match(transaction, /REPEATABLE READ/);
+    assert.match(transaction, /self::PAGE_SIZE/);
+    assert.ok(transaction.indexOf('$count > ReportCsv::MAX_ROWS') < transaction.indexOf('$this->identity($receipt)'));
+    assert.match(transaction, /Not shown \(no invoice allocation\)/);
+    assert.match(transaction, /Payment method code/);
+    assert.match(transaction, /if \(\$download\)/);
+    assert.match(transaction, /AuditRecorder::class/);
+    assert.doesNotMatch(transaction, /identity_number|passport|nric|phone_number|email_address|diagnosis_text|bill_to_revisions|invoice_notes/);
+    assert.match(read('routes/web.php'), /reports\/transactions\/download[^\n]*throttle:reports-downloads/);
+    assert.match(read('app/Domain/Access/ReportPermissions.php'), /reports\.transactions\.view\.branch/);
+});

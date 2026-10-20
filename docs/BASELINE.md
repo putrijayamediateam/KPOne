@@ -812,6 +812,10 @@ Owner-authorised aggregate Panel responsibility/claim/ageing report for Director
 
 Owner-authorised branch SKU quantities report for Director, Finance Officer and Administrator. No cost, valuation or patient content; retained movement quantities reconcile to historical closing. [Full handoff](reports/RPT-01e.md) records grants, the hub assertion, exact quantity/source proof, limitations and evidence. No push, PR or merge.
 
+### RPT-02b — Transaction Detail (local stacked candidate)
+
+Owner-authorised patient-level receipt report for Finance Officer and Director only. One branch, explicit audited Run, 20-row pages and full-result totals. Narrow additive view/export grants; no new access for Administrator, Technical Admin, CA Supervisor or Panel Officer. Receipt-date, reversal, archived-method and classification definitions reuse retained receipt evidence. [Full handoff](reports/RPT-02b.md) records the sole hub assertion change, source invariance and validation. No push, PR or merge.
+
 ## 7. Updating this file
 
 Update this baseline in the same PR that merges a phase or changes an authorisation boundary.

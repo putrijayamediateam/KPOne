@@ -512,19 +512,14 @@ class ClinicInsightsReportService
                     ->where('invoices.organisation_id', $actor->organisation_id)
                     ->where('consultation_checkouts.attending_doctor_user_id', $doctorId));
             }
-            if ($visitTypes !== []) {
-                $query->whereExists(fn (Builder $allocation) => $allocation->selectRaw('1')->from('payment_allocations')
-                    ->join('invoices', 'invoices.id', '=', 'payment_allocations.invoice_id')
-                    ->join('visits', 'visits.id', '=', 'invoices.visit_id')
-                    ->whereColumn('payment_allocations.payment_id', 'payments.id')
-                    ->where('invoices.organisation_id', $actor->organisation_id)->whereIn('visits.visit_type', $visitTypes));
-            }
+            PostedReceiptProjection::filterVisitTypes($query, $actor->organisation_id, $visitTypes);
             foreach ($query->get(['received_at', 'method_snapshot', 'payment_method_id', 'amount_sen', 'status']) as $payment) {
                 $date = $payment->received_at->setTimezone($branch->timezone)->toDateString();
                 $method = (string) $codes[$payment->payment_method_id];
                 $methods[$method][$payment->method_snapshot] = true;
-                $days[$date][$method]['receipts'] = ($days[$date][$method]['receipts'] ?? 0) + $payment->amount_sen;
-                $days[$date][$method]['reversed'] = ($days[$date][$method]['reversed'] ?? 0) + ($payment->status === 'reversed' ? $payment->amount_sen : 0);
+                $amounts = PostedReceiptProjection::amounts($payment->amount_sen, $payment->status);
+                $days[$date][$method]['receipts'] = ($days[$date][$method]['receipts'] ?? 0) + $amounts['receiptsSen'];
+                $days[$date][$method]['reversed'] = ($days[$date][$method]['reversed'] ?? 0) + $amounts['reversedSen'];
             }
         }
         // No receipt methods in this range: still represent every empty date explicitly.
