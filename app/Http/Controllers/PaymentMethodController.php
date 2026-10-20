@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Domain\Visit\Billing\Models\PaymentMethod;
 use App\Domain\Visit\Billing\Services\PaymentMethodAdministrationService;
+use App\Domain\Visit\Billing\Services\PaymentMethodClassificationService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
@@ -29,6 +30,8 @@ class PaymentMethodController extends Controller
                     'requiresReference' => $method->requires_reference,
                     'sortOrder' => $method->sort_order,
                     'isActive' => $method->is_active,
+                    'classification' => $method->classification,
+                    'lockVersion' => $method->lock_version,
                 ])
                 ->values(),
         ]);
@@ -72,6 +75,13 @@ class PaymentMethodController extends Controller
     {
         $service->deactivate($request->user(), $method);
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Payment Method deactivated.')]);
+
+        return to_route('payment-methods.index');
+    }
+
+    public function classification(Request $request, PaymentMethod $method, PaymentMethodClassificationService $service): RedirectResponse
+    {
+        $service->change($request->user(), $method, $request->all());
 
         return to_route('payment-methods.index');
     }

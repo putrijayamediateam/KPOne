@@ -515,6 +515,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::get('/', [PaymentMethodController::class, 'index'])->name('payment-methods.index');
             Route::post('/', [PaymentMethodController::class, 'store'])->middleware('throttle:30,1')->name('payment-methods.store');
             Route::patch('{method}', [PaymentMethodController::class, 'update'])->whereNumber('method')->middleware('throttle:30,1')->name('payment-methods.update');
+            Route::patch('{method}/classification', [PaymentMethodController::class, 'classification'])->whereNumber('method')->middleware('throttle:30,1')->name('payment-methods.classification');
             Route::post('{method}/publish', [PaymentMethodController::class, 'publish'])->whereNumber('method')->middleware('throttle:20,1')->name('payment-methods.publish');
             Route::post('{method}/deactivate', [PaymentMethodController::class, 'deactivate'])->whereNumber('method')->middleware('throttle:20,1')->name('payment-methods.deactivate');
         });

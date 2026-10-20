@@ -172,10 +172,12 @@ class MedicalCertificateTest extends BillingTestCase
         $this->verified($doctor);
         $command = $this->command();
         $id = $this->act($doctor, $visit, $command);
+        $overlongEnd = CarbonImmutable::parse($command['start_date'], $this->branch->timezone)->addDays(30);
+        $this->assertSame(31, (int) CarbonImmutable::parse($command['start_date'], $this->branch->timezone)->diffInDays($overlongEnd) + 1);
         foreach ([
             [...$command, 'language' => 'bm'],
             $this->command(['action' => 'replace', 'document_id' => $id, 'lock_version' => 0, 'change_reason' => 'details_corrected']),
-            $this->command(['action' => 'replace', 'document_id' => $id, 'lock_version' => 1, 'change_reason' => 'dates_corrected', 'end_date' => now()->addDays(30)->toDateString()]),
+            $this->command(['action' => 'replace', 'document_id' => $id, 'lock_version' => 1, 'change_reason' => 'dates_corrected', 'end_date' => $overlongEnd->toDateString()]),
             $this->command(['reason' => 'Synthetic sensitive reason', 'reason_consent' => false]),
             $this->command(['reason' => '<script>alert(1)</script>', 'reason_consent' => true]),
         ] as $invalid) {

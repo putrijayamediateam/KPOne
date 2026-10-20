@@ -22,13 +22,18 @@ class PaymentMethod extends Model
 
     protected function casts(): array
     {
-        return ['requires_reference' => 'boolean', 'is_active' => 'boolean', 'sort_order' => 'integer'];
+        return ['requires_reference' => 'boolean', 'is_active' => 'boolean', 'sort_order' => 'integer', 'lock_version' => 'integer'];
     }
 
     /** @param Builder<self> $query */
     public function scopeOperational(Builder $query): void
     {
         $query->where('is_active', true);
+    }
+
+    public function reportClassification(): string
+    {
+        return $this->classification === 'cash' ? 'cash' : 'non_cash';
     }
 
     public function getRouteKeyName(): string

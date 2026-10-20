@@ -234,3 +234,7 @@ No generated file, email or background job is stored. Browser downloads remain u
 Transaction Detail (RPT-02b) is a separate PR. Cash/Non-cash classification, a Payment Methods classification
 setting, Treatment filtering, Panel ageing, valuation, patient rankings, XLSX/PDF and retained/asynchronous
 exports remain deferred. Existing real-patient production and privacy release gates remain applicable.
+
+## RPT-01c-0: current payment-method classification
+
+Owner authorised Cash/Non-cash classification for subsequent reporting slices. Existing retained CASH methods default to Cash; other retained methods default to Non-cash. A missing classification is displayed as Not classified and counted as Non-cash. A later classification decision applies to reports generated thereafter, including historical periods, without changing any stored receipt or payment. Existing RPT-01a/01b and RPT-02a output contracts remain unchanged. See [slice handoff](reports/RPT-01c-0.md).
