@@ -58,6 +58,7 @@ final class PermissionCatalogue
             'access.manage.organisation',
             'audit.view.organisation',
             'insights.view.organisation',
+            'reports.sales.export.organisation',
             'system_events.view.organisation',
             'patients.search.organisation',
             'patients.view.organisation',
@@ -280,7 +281,7 @@ final class PermissionCatalogue
                 'inventory.suppliers.manage.organisation',
                 'inventory.purchase_orders.create.organisation',
             ],
-            // The clinic manager: settings and catalogues only. No patient, clinical, billing-approval,
+            // The clinic manager: settings, catalogues and explicitly authorised aggregate Sales exports only. No patient, clinical, billing-approval,
             // Panel Claims or people/access authority (see BillingPermissions for its pricing and
             // Panel settings grants).
             self::ADMINISTRATOR_ROLE => [
@@ -322,6 +323,10 @@ final class PermissionCatalogue
             foreach ($grants as $role) {
                 $roles[$role][] = $permission;
             }
+        }
+
+        foreach (['director', 'finance_officer', self::ADMINISTRATOR_ROLE] as $role) {
+            $roles[$role][] = 'reports.sales.export.organisation';
         }
 
         foreach ($roles as $role => $permissions) {

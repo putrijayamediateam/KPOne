@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Head, router } from '@inertiajs/vue3';
+import { Head, router, usePage } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
 import DateRangePicker from '@/components/insights/DateRangePicker.vue';
 import SalesReconciliation from '@/components/insights/SalesReconciliation.vue';
@@ -23,6 +23,7 @@ defineOptions({
 });
 
 const props = defineProps<{
+    summaryDownloadUrl: string | null;
     filters: InsightsRangeFilters;
     branches: { code: string; name: string }[];
     doctors: { id: number; name: string; branch: string }[];
@@ -42,6 +43,24 @@ const selectedBranch = ref(props.filters.branch);
 const from = ref(props.filters.from);
 const to = ref(props.filters.to);
 const doctor = ref(props.filters.doctor ? String(props.filters.doctor) : '');
+const page = usePage();
+const downloadError = computed(
+    () =>
+        page.props.errors.export ||
+        page.props.errors.from ||
+        page.props.errors.to ||
+        page.props.errors.branch ||
+        page.props.errors.doctor ||
+        '',
+);
+const exportDirty = computed(
+    () =>
+        selectedBranch.value !== props.filters.branch ||
+        from.value !== props.filters.from ||
+        to.value !== props.filters.to ||
+        doctor.value !==
+            (props.filters.doctor ? String(props.filters.doctor) : ''),
+);
 const searches = ref<Record<string, string>>({});
 const section = computed(() => props.filters.section);
 const report = computed(() => props.data.report);
@@ -453,6 +472,31 @@ const occupancyMax = computed(() =>
             </label>
             <Button type="submit">Apply filters</Button>
         </form>
+
+        <div
+            v-if="section === 'sales' && summaryDownloadUrl"
+            class="flex flex-wrap items-center justify-between gap-3 rounded-xl border bg-card p-4"
+            aria-label="Sales summary download"
+        >
+            <div class="min-w-0 text-sm">
+                <h2 class="font-semibold">Sales summary</h2>
+                <p class="text-muted-foreground">
+                    Aggregate summary only. Current results for the applied
+                    filters; generated time is included. Tables are not
+                    included.
+                </p>
+                <p v-if="exportDirty" role="status">
+                    Apply filters before downloading.
+                </p>
+                <p v-if="downloadError" role="alert">{{ downloadError }}</p>
+            </div>
+            <Button v-if="!exportDirty" as-child class="w-full sm:w-auto"
+                ><a :href="summaryDownloadUrl">Download summary CSV</a></Button
+            >
+            <Button v-else disabled class="w-full sm:w-auto"
+                >Download summary CSV</Button
+            >
+        </div>
 
         <section
             class="grid gap-3 sm:grid-cols-2 xl:grid-cols-3"

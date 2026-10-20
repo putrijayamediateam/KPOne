@@ -121,6 +121,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('insights/today', [ClinicInsightsController::class, 'today'])
         ->middleware(['permission:insights.view.organisation', 'sensitive.no-store'])
         ->name('insights.today');
+    Route::get('insights/sales-summary/download', [ClinicInsightsController::class, 'downloadSalesSummary'])
+        ->middleware(['permission:reports.sales.export.organisation', 'permission:insights.view.organisation', 'sensitive.no-store', 'throttle:reports-downloads'])
+        ->name('insights.sales-summary.download');
     Route::get('insights/{section}', [ClinicInsightsController::class, 'report'])
         ->whereIn('section', ['sales', 'in-clinic', 'payments', 'inventory', 'patients'])
         ->middleware(['permission:insights.view.organisation', 'sensitive.no-store'])

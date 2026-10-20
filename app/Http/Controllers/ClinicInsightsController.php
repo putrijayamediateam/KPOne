@@ -4,12 +4,14 @@ namespace App\Http\Controllers;
 
 use App\Domain\Shared\Services\ClinicInsightsReportService;
 use App\Domain\Shared\Services\ClinicInsightsService;
+use App\Domain\Shared\Services\SalesSummaryExportService;
 use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ClinicInsightsController extends Controller
 {
@@ -51,6 +53,7 @@ class ClinicInsightsController extends Controller
         }
 
         return Inertia::render('Insights/Report', [
+            'summaryDownloadUrl' => $section === 'sales' && $actor->can(SalesSummaryExportService::PERMISSION) ? route('insights.sales-summary.download', ['from' => $from, 'to' => $to, 'branch' => $filters['branch'] ?? 'all', 'doctor' => $filters['doctor'] ?? null]) : null,
             'filters' => [
                 'section' => $section,
                 'branch' => $filters['branch'] ?? 'all',
@@ -69,5 +72,27 @@ class ClinicInsightsController extends Controller
                 isset($filters['doctor']) ? (int) $filters['doctor'] : null,
             ),
         ]);
+    }
+
+    public function downloadSalesSummary(Request $request, SalesSummaryExportService $exports): StreamedResponse
+    {
+        $actor = $request->user();
+        abort_unless($actor instanceof User, 403);
+        try {
+            $filters = $request->validate([
+                'branch' => ['sometimes', 'string', 'max:40'],
+                'from' => ['sometimes', 'date_format:Y-m-d'],
+                'to' => ['sometimes', 'date_format:Y-m-d', 'after_or_equal:from'],
+                'doctor' => ['sometimes', 'nullable', 'integer', 'min:1'],
+            ]);
+            $default = CarbonImmutable::now('Asia/Kuala_Lumpur')->subDay()->toDateString();
+            $result = $exports->download($actor, $filters['branch'] ?? 'all', $filters['from'] ?? $default, $filters['to'] ?? $default, isset($filters['doctor']) ? (int) $filters['doctor'] : null);
+        } catch (ValidationException $e) {
+            throw $e->redirectTo(route('insights.report', ['section' => 'sales']));
+        }
+
+        return response()->streamDownload(static function () use ($result): void {
+            echo $result['csv'];
+        }, $result['name'], ['Content-Type' => 'text/csv; charset=UTF-8', 'Cache-Control' => 'no-store, private']);
     }
 }
