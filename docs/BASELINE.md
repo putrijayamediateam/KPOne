@@ -804,13 +804,13 @@ Owner authorised the five sequential reporting slices; first slice adds current 
 
 Owner-authorised aggregate report for Director, Finance Officer and Administrator, with separate receipt-date and invoice-date columns. Uses shared receipt and FinancialLedger projections; source records unchanged. [Full handoff](reports/RPT-01c.md) records the new grants, hub assertion, Total interpretation, tests and evidence. Merged in PR #146 as `bfd136f`; subsequent report slices remain separate PRs.
 
-### RPT-01d — Panel summary (PR candidate against main)
+### RPT-01d — Panel summary (merged)
 
-Owner-authorised aggregate Panel responsibility/claim/ageing report for Director, Finance Officer and Panel Officer. No additional patient/source content, financial or claim mutation. Existing claim scope and numeric measures are shared. [Full handoff](reports/RPT-01d.md) records definitions, grants, the hub assertion and validation. Latest main `bfd136f` merged; only a documentation conflict was resolved, preserving both sections. Full gate re-run before the owner-authorised push/PR; no merge authorised.
+Owner-authorised aggregate Panel responsibility/claim/ageing report for Director, Finance Officer and Panel Officer. No additional patient/source content, financial or claim mutation. Existing claim scope and numeric measures are shared. [Full handoff](reports/RPT-01d.md) records definitions, grants, the hub assertion and validation. Merged in PR #147 as `71b8361`; the full gate passed before handoff.
 
-### RPT-01e — Stock movement summary (local stacked candidate)
+### RPT-01e — Stock movement summary (PR candidate against main)
 
-Owner-authorised branch SKU quantities report for Director, Finance Officer and Administrator. No cost, valuation or patient content; retained movement quantities reconcile to historical closing. [Full handoff](reports/RPT-01e.md) records grants, the hub assertion, exact quantity/source proof, limitations and evidence. No push, PR or merge.
+Owner-authorised branch SKU quantities report for Director, Finance Officer and Administrator. No cost, valuation or patient content; retained movement quantities reconcile to historical closing. [Full handoff](reports/RPT-01e.md) records grants, the hub assertion, exact quantity/source proof, limitations and evidence. Latest main `71b8361` merged cleanly, including the released first three slices; no conflict resolution or runtime/test change was needed. Full gate re-run before the owner-authorised push/PR; no merge authorised.
 
 ## 7. Updating this file
 
