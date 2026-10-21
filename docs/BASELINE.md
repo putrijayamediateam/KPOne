@@ -808,13 +808,13 @@ Owner-authorised aggregate report for Director, Finance Officer and Administrato
 
 Owner-authorised aggregate Panel responsibility/claim/ageing report for Director, Finance Officer and Panel Officer. No additional patient/source content, financial or claim mutation. Existing claim scope and numeric measures are shared. [Full handoff](reports/RPT-01d.md) records definitions, grants, the hub assertion and validation. Merged in PR #147 as `71b8361`; the full gate passed before handoff.
 
-### RPT-01e — Stock movement summary (PR candidate against main)
+### RPT-01e — Stock movement summary (merged)
 
-Owner-authorised branch SKU quantities report for Director, Finance Officer and Administrator. No cost, valuation or patient content; retained movement quantities reconcile to historical closing. [Full handoff](reports/RPT-01e.md) records grants, the hub assertion, exact quantity/source proof, limitations and evidence. Latest main `71b8361` merged cleanly, including the released first three slices; no conflict resolution or runtime/test change was needed. Full gate re-run before the owner-authorised push/PR; no merge authorised.
+Owner-authorised branch SKU quantities report for Director, Finance Officer and Administrator. No cost, valuation or patient content; retained movement quantities reconcile to historical closing. [Full handoff](reports/RPT-01e.md) records grants, the hub assertion, exact quantity/source proof, limitations and evidence. Merged in PR #148 as `2b56ce3`; the full gate passed before handoff.
 
-### RPT-02b — Transaction Detail (local stacked candidate)
+### RPT-02b — Transaction Detail (PR candidate against main)
 
-Owner-authorised patient-level receipt report for Finance Officer and Director only. One branch, explicit audited Run, 20-row pages and full-result totals. Narrow additive view/export grants; no new access for Administrator, Technical Admin, CA Supervisor or Panel Officer. Receipt-date, reversal, archived-method and classification definitions reuse retained receipt evidence. [Full handoff](reports/RPT-02b.md) records the sole hub assertion change, source invariance and validation. No push, PR or merge.
+Owner-authorised patient-level receipt report for Finance Officer and Director only. One branch, explicit audited Run, 20-row pages and full-result totals. Narrow additive view/export grants; no new access for Administrator, Technical Admin, CA Supervisor or Panel Officer. Receipt-date, reversal, archived-method and classification definitions reuse retained receipt evidence. [Full handoff](reports/RPT-02b.md) records the sole hub assertion change, source invariance and validation. Latest main `2b56ce3` merged cleanly; no conflicts or runtime/test changes were needed. Full gate re-run before the owner-authorised push/PR; no merge authorised.
 
 ## 7. Updating this file
 

@@ -1,6 +1,6 @@
 # RPT-02b — Transaction Detail
 
-Local stacked branch `feature/rpt-02b-transaction-detail`, based on RPT-01e `a3a0f5e`. No push, PR or merge.
+PR candidate `feature/rpt-02b-transaction-detail` against canonical main `2b56ce3`. Owner authorised this push and PR; no merge.
 
 ## Scope and definitions
 
@@ -58,3 +58,9 @@ TransactionReportService; shared PostedReceiptProjection arithmetic/visit predic
 Inherited the Daily summary Total wording, the Stock-only opening-entry note and the assertion-preserving invoice-note clock-fixture correction from the updated preceding branches. No Transaction Detail financial projection, permissions, columns or source mutation changed. The shared frontend file had two independent appended tests at the merge point; both the existing Transaction Detail regression and the new Stock note regression are retained unchanged.
 
 Integration validation after merging: **31 report/notes/hub backend tests passed, 1,513 assertions; all 388 frontend tests passed**. Original full Transaction Detail gate remains recorded above. Updated stack display/fixture changes have passed full stock and first-slice PostgreSQL gates. Follow-up static/type/lint/format/build results are retained in `/private/tmp/rpt-review-followup/transaction-*.log`. Owner authorises pushing this branch only; its PR remains deferred until separately requested. No merge is authorised.
+
+## PR preparation after slices 1–4 merged
+
+Merged canonical main **2b56ce3** (includes #145–#148) with ordinary merge commit **3ad5b4b**. **No conflicts occurred**, including the hub destination assertion, shared report files and docs/INSIGHTS.md. Main contributed documentation updates only; runtime/test files are identical to the pre-merge Transaction Detail branch. Earlier MC/invoice-note fixture corrections are already in main and are not new changes here. Relative to current main, the sole changed existing assertion remains the strict hub map addition described above. No test weakened or newly skipped.
+
+Post-merge full gate **passed**: **1,204 backend tests, 1,202 passed, two existing disabled-public-registration skips, 18,913 assertions; all 388 frontend tests passed**. Pint, PHPStan level 7, TypeScript, ESLint, Prettier, production build, separate-DB fresh migration/seeding and diff check passed. Effective and actual task-owned PG18.6 connection verified before requests: 127.0.0.1:58426, kpone_rpt02b_testing; separate kpone_rpt02b_seed_testing. Refreshed logs, exact diff and PR body: /private/tmp/rpt02b-pr-evidence/. Existing exact 1440/390 light/dark Chrome captures and actual downloaded synthetic CSV remain applicable because the merge changes no UI/runtime code. Only this branch is pushed and only RPT-02b is opened for this request; no merge authorised.
