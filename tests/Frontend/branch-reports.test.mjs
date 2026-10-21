@@ -83,6 +83,8 @@ test('daily summary labels distinct cohorts and uses existing financial projecti
     assert.match(service, /branchReceiptRows/);
     assert.match(service, /FinancialLedger::class/);
     assert.match(service, /Total is net receipts only/);
+    assert.match(service, /Total received \(Cash \+ Non-cash\) \(receipt date, MYR\)/);
+    assert.match(service, /Panel and Due are not included in Total received/);
     assert.match(
         service,
         /Payment-method filters apply to receipt columns only/,
