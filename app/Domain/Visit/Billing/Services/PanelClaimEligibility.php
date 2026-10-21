@@ -10,6 +10,13 @@ final class PanelClaimEligibility
 {
     public function query(int $organisationId, int $branchId): Builder
     {
+        return $this->approvedAllocations($organisationId, $branchId)
+            ->where('i.correction_hold', false)->where('i.source_stale', false)
+            ->whereNotExists(fn (Builder $existing) => $existing->selectRaw('1')->from('panel_claims')->whereColumn('panel_claims.coverage_allocation_id', 'c.id'));
+    }
+
+    public function approvedAllocations(int $organisationId, int $branchId): Builder
+    {
         return DB::table('coverage_allocations as c')
             ->join('invoices as i', 'i.id', '=', 'c.invoice_id')
             ->join('visits as v', 'v.id', '=', 'i.visit_id')
@@ -32,11 +39,6 @@ final class PanelClaimEligibility
             ->whereColumn('p.organisation_id', 'i.organisation_id')
             ->whereColumn('p.id', 'i.patient_id')
             ->where('i.status', 'finalized')
-            ->where('i.correction_hold', false)
-            ->where('i.source_stale', false)
-            ->whereRaw('c.amount_sen <= kpone_invoice_payable(i.id)')
-            ->whereNotExists(fn (Builder $existing) => $existing->selectRaw('1')
-                ->from('panel_claims')
-                ->whereColumn('panel_claims.coverage_allocation_id', 'c.id'));
+            ->whereRaw('c.amount_sen <= kpone_invoice_payable(i.id)');
     }
 }

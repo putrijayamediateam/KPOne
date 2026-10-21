@@ -242,3 +242,7 @@ Owner authorised Cash/Non-cash classification for subsequent reporting slices. E
 ## RPT-01c: Daily summary
 
 Separate branch report, not an expansion of Insights. Cash/Non-cash and Total use receipt dates with original/reversed/net columns; Panel and approved pay-later outstanding use invoice finalisation dates. Method filters affect receipts only. Director, Finance Officer and Administrator hold narrow view/export permissions; no patient rows. Existing aggregate exports remain unchanged. [Definitions and validation](reports/RPT-01c.md).
+
+## RPT-01d: Panel summary
+
+The owner now authorises this separate aggregate branch report and fixed ageing buckets, superseding the earlier deferral for this slice only. It is not an Insights/patient drill-down expansion. Director, Finance Officer and Panel Officer receive narrow view/export permission. Date cohort, current accepted outstanding, fully rejected measure and first-submission/unclaimed ageing are explicit in [the handoff](reports/RPT-01d.md). No patient content, tax identifiers or changed claims.

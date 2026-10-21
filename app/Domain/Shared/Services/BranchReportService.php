@@ -19,6 +19,11 @@ abstract class BranchReportService
 {
     public const PAGE_SIZE = 20;
 
+    protected function supportsFilters(): bool
+    {
+        return true;
+    }
+
     abstract public function key(): string;
 
     abstract public function title(): string;
@@ -46,20 +51,20 @@ abstract class BranchReportService
             $actor = app(TransactionalActorAuthority::class)->lock($actor, $branch, $view);
             $grants = $actor->getAllPermissions()->pluck('name');
             abort_unless($grants->contains($view) && (! $download || $grants->contains($export)), 403);
-            $methods = PaymentMethod::query()->where('organisation_id', $actor->organisation_id)->orderBy('name')->get(['id', 'name'])->map(fn ($m): array => ['value' => (string) $m->id, 'label' => $m->name])->all();
+            $methods = ! $this->supportsFilters() ? [] : PaymentMethod::query()->where('organisation_id', $actor->organisation_id)->orderBy('name')->get(['id', 'name'])->map(fn ($m): array => ['value' => (string) $m->id, 'label' => $m->name])->all();
             $yesterday = CarbonImmutable::now($branch->timezone)->subDay()->toDateString();
             $filters = Validator::make($input + ['from' => $yesterday, 'to' => $yesterday, 'page' => 1, 'methods' => [], 'visit_types' => []], [
                 'expected_branch_id' => [$run || $download ? 'required' : 'sometimes', 'integer', 'in:'.$branch->id],
                 'from' => ['required', 'date_format:Y-m-d'], 'to' => ['required', 'date_format:Y-m-d', 'after_or_equal:from'],
-                'page' => ['required', 'integer', 'min:1'], 'methods' => ['array', 'max:100'], 'methods.*' => ['string', 'distinct', Rule::in(array_column($methods, 'value'))],
-                'visit_types' => ['array', 'max:2'], 'visit_types.*' => ['string', 'distinct', Rule::in(['consultation', 'otc'])],
+                'page' => ['required', 'integer', 'min:1'], 'methods' => [$this->supportsFilters() ? 'array' : 'prohibited', 'max:100'], 'methods.*' => ['string', 'distinct', Rule::in(array_column($methods, 'value'))],
+                'visit_types' => [$this->supportsFilters() ? 'array' : 'prohibited', 'max:2'], 'visit_types.*' => ['string', 'distinct', Rule::in(['consultation', 'otc'])],
                 'branch' => ['prohibited'], 'doctor' => ['prohibited'], 'treatment' => ['prohibited'], 'diagnosis' => ['prohibited'],
             ])->validate();
             if (CarbonImmutable::parse($filters['from'])->diffInDays(CarbonImmutable::parse($filters['to'])) >= 31) {
                 throw ValidationException::withMessages(['to' => 'Choose at most 31 local dates.']);
             }
             $filters['expected_branch_id'] = $branch->id;
-            $base = ['title' => $this->title(), 'basis' => $this->basis(), 'endpoint' => '/reports/'.str_replace('_', '-', $this->key()), 'branch' => ['id' => $branch->id, 'name' => $branch->name, 'timezone' => $branch->timezone], 'canExport' => $grants->contains($export), 'options' => ['methods' => $methods, 'visit_types' => [['value' => 'consultation', 'label' => 'Consultation'], ['value' => 'otc', 'label' => 'Medicine-only (OTC)']]], 'filters' => $filters, 'result' => null];
+            $base = ['title' => $this->title(), 'basis' => $this->basis(), 'endpoint' => '/reports/'.str_replace('_', '-', $this->key()), 'branch' => ['id' => $branch->id, 'name' => $branch->name, 'timezone' => $branch->timezone], 'canExport' => $grants->contains($export), 'options' => $this->supportsFilters() ? ['methods' => $methods, 'visit_types' => [['value' => 'consultation', 'label' => 'Consultation'], ['value' => 'otc', 'label' => 'Medicine-only (OTC)']]] : null, 'filters' => $filters, 'result' => null];
             if (! $run && ! $download) {
                 return $base;
             }

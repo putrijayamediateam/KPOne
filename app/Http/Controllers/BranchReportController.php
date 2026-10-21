@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Domain\Shared\Services\BranchReportService;
 use App\Domain\Shared\Services\DailySummaryReportService;
+use App\Domain\Shared\Services\PanelSummaryReportService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -15,6 +16,7 @@ final class BranchReportController extends Controller
     private function service(Request $request): BranchReportService
     {
         return match ($request->route('dataset')) {
+            'panel_summary' => app(PanelSummaryReportService::class),
             'daily_summary' => app(DailySummaryReportService::class),
             default => abort(404),
         };

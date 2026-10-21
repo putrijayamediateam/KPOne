@@ -29,10 +29,9 @@ type Payload = {
     branch: { id: number; name: string; timezone: string };
     canExport: boolean;
     filters: Filters;
-    options: Record<
-        'methods' | 'visit_types',
-        { value: string; label: string }[]
-    >;
+    options: Partial<
+        Record<'methods' | 'visit_types', { value: string; label: string }[]>
+    > | null;
     result: Result | null;
 };
 const props = defineProps<Payload>();
@@ -233,6 +232,7 @@ function applySelection(key: 'methods' | 'visit_types', value: string[]) {
             </p>
             <div class="flex flex-wrap gap-2">
                 <MultiSelectFilterChip
+                    v-if="options?.methods"
                     label="Payment method"
                     :options="options.methods"
                     :model-value="draft.methods"
@@ -240,6 +240,7 @@ function applySelection(key: 'methods' | 'visit_types', value: string[]) {
                     @pending="pending.methods = $event"
                 />
                 <MultiSelectFilterChip
+                    v-if="options?.visit_types"
                     label="Visit type"
                     :options="options.visit_types"
                     :model-value="draft.visit_types"
@@ -260,7 +261,8 @@ function applySelection(key: 'methods' | 'visit_types', value: string[]) {
         </p>
         <template v-if="data">
             <p class="text-sm">
-                {{ data.count }} rows · Generated
+                {{ data.count }} {{ data.count === 1 ? 'row' : 'rows' }} ·
+                Generated
                 <time :datetime="data.generatedAt">{{
                     formatDateTime(data.generatedAt, branch.timezone)
                 }}</time>
