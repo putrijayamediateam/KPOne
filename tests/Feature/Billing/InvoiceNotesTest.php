@@ -226,9 +226,9 @@ class InvoiceNotesTest extends BillingTestCase
 
     public function test_note_timestamps_preserve_the_utc_instant_with_a_non_utc_postgres_session(): void
     {
+        $this->travelTo(CarbonImmutable::parse('2026-10-19T01:00:00Z'));
         [, $ca, $visit, $invoice] = $this->finalizedFixture();
         DB::statement("SET LOCAL TIME ZONE 'Asia/Kuala_Lumpur'");
-        $this->travelTo(CarbonImmutable::parse('2026-10-19T01:00:00Z'));
         app(InvoiceNoteService::class)->write($ca, $visit, $invoice, $this->command());
         $this->assertSame(now()->timestamp, InvoiceNoteEvent::query()->sole()->created_at->timestamp);
         $page = app(InvoiceNoteService::class)->page($ca, $visit, $invoice, $visit->branch_id);
