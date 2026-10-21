@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Head, Link, useForm, usePage } from '@inertiajs/vue3';
 import { ArrowLeft, Ban, ListOrdered, Pencil } from '@lucide/vue';
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import { StatusBadge } from '@/components/ui/status';
@@ -12,11 +12,21 @@ import type { BranchContext, VisitDetail } from '@/types';
 defineOptions({
     layout: { breadcrumbs: [{ title: 'Registration', href: '/registration' }] },
 });
-const props = defineProps<{ visit: VisitDetail }>();
+const props = defineProps<{
+    visit: VisitDetail;
+    attendanceCopies: { id: number; number: string }[];
+}>();
 const page = usePage<{
     branchContext: BranchContext;
     auth: { permissions: string[] };
 }>();
+const attendanceBranchChanged = ref(false);
+watch(
+    () => page.props.branchContext?.active?.id,
+    () => {
+        attendanceBranchChanged.value = true;
+    },
+);
 const canCreate = computed(() =>
     page.props.auth.permissions.includes('visits.create.branch'),
 );
@@ -50,6 +60,28 @@ const submitCancel = () => {
     <main
         class="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-4 p-4 md:p-6"
     >
+        <template
+            v-if="
+                !attendanceBranchChanged &&
+                page.props.auth.permissions.includes(
+                    'attendance_documents.view.branch',
+                ) &&
+                page.props.auth.permissions.includes(
+                    'attendance_documents.print.branch',
+                )
+            "
+        >
+            <a
+                v-for="copy in attendanceCopies"
+                :key="copy.id"
+                :href="`/visits/${visit.visitNumber}/attendance/${copy.id}`"
+                target="_blank"
+                rel="noopener"
+                class="rounded-md border px-3 py-2 text-sm underline"
+                >Attendance confirmation — {{ copy.number }} — Open COPY /
+                print</a
+            >
+        </template>
         <Link
             v-if="
                 page.props.auth.permissions.includes(
