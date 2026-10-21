@@ -267,6 +267,23 @@ class ReferralTest extends BillingTestCase
         $this->assertStringContainsString($record->allergen_text, $preview['html']);
     }
 
+    public function test_print_acknowledgement_omits_internal_caveat_in_both_draft_languages(): void
+    {
+        [$doctor, , $visit] = $this->ready();
+        foreach (['en' => 'Patient agreement to this disclosure was acknowledged by the referring doctor.', 'bm' => 'Persetujuan pesakit terhadap pendedahan ini telah diakui oleh doktor yang merujuk.'] as $language => $acknowledgement) {
+            $snapshot = app(ReferralService::class)->preview($doctor, $visit, $this->command($doctor, $visit, ['language' => $language]))['snapshot'];
+            $this->assertSame($acknowledgement, $snapshot['templateWording']['consent']);
+            $body = implode('', array_column($snapshot['pages'][0], 'text'));
+            $this->assertStringContainsString($acknowledgement, $body);
+            foreach (['written-consent', 'guardian', 'persetujuan bertulis', 'penjaga'] as $internalCaveat) {
+                $this->assertStringNotContainsString($internalCaveat, $snapshot['html']);
+            }
+            $this->assertSame('referral-a4-v2', $snapshot['rendererVersion']);
+            $this->assertFalse($snapshot['productionApproved']);
+            $this->assertCount(1, $snapshot['pages']);
+        }
+    }
+
     public function test_short_referral_is_one_page_with_one_signature_after_all_content(): void
     {
         [$doctor, , $visit] = $this->ready();

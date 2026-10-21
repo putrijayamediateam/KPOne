@@ -8,7 +8,7 @@ A permission-filtered **Referral letters (new tab)** link from the clinical work
 
 Patient name, KP number, recorded DOB if present, Visit reference, branch-local examination/issue dates, verified professional name/MMC number and captured branch letterhead identify the document. DOB is never invented. Preview is required; an HMAC binds the validated selection/wording to saved-source versions, branch presentation and letterhead. Intervening source or selected-content changes refuse issue. A new preview is required. Unsaved browser source fields are ignored and do not enter the snapshot.
 
-An explicit acknowledgement of patient agreement to disclosure to the named recipient is required, retained encrypted with the recipient. Screen and evidence state that this tick does not prove the clinic's written-consent or guardian procedure was followed.
+An explicit acknowledgement of patient agreement to disclosure to the named recipient is required, retained encrypted with the recipient. The unchanged issue screen states that this tick does not prove the clinic's written-consent or guardian procedure was followed. Printed text contains only the doctor's acknowledgement; the agreement and recipient remain captured in encrypted evidence.
 
 ## Authority and lifecycle
 
@@ -60,7 +60,7 @@ During development, new fixture expectations were corrected to the existing stri
 
 ## New test coverage
 
-- ReferralTest (13 tests): exact catalogue roles/routes and migration replay; fresh permission revocation; other-doctor, branch, organisation and effective-assignment refusal; first-issue Serving/hold/checkout/reopen rules; original-issuer corrections; independent chains; retries/conflicts; required consent/recipient, bounded escaped input and exact preview; stale saved patient/credentials/letterhead/orders/Encounter; absent DOB; missing credentials/address/contact and corrupt/configured-unavailable logo; selected diagnoses/medicines/allergies, unknown versus none; encrypted stable snapshots, EN/BM draft pages; retained COPY/current/replaced/void; PostgreSQL update/delete/truncate refusal; audit-failure rollback and values-free metadata; branch-local New Year; all-table/source/MC invariance.
+- ReferralTest (14 tests): exact catalogue roles/routes and migration replay; fresh permission revocation; other-doctor, branch, organisation and effective-assignment refusal; first-issue Serving/hold/checkout/reopen rules; original-issuer corrections; independent chains; retries/conflicts; required consent/recipient, bounded escaped input and exact preview; stale saved patient/credentials/letterhead/orders/Encounter; absent DOB; missing credentials/address/contact and corrupt/configured-unavailable logo; selected diagnoses/medicines/allergies, unknown versus none; encrypted stable snapshots, EN/BM draft pages; retained COPY/current/replaced/void; PostgreSQL update/delete/truncate refusal; audit-failure rollback and values-free metadata; branch-local New Year; all-table/source/MC invariance.
 - PostgresReferralNumberTest (one test): real two-process counter contention, consecutive unique numbers, retained counter and unchanged global grant rows. No reference-permission seeding.
 - ReferralPaginationTest (four tests): every grapheme/space retained, fixed cell/line budget, short sections kept whole, ordinary words preserved and long unbroken values wrapped.
 - referrals.test.mjs (three tests): actual Vue compilation plus bounded/escaped consent/source structure, permission-filtered actions, branch-change clearing/cancellation and history suppression, responsive layout and fixed A4 white/dark-text repeated identity/reference/page structure.
@@ -156,3 +156,58 @@ All checks passed on frozen final runtime/test code, PostgreSQL 18.6 at the veri
 Follow-up diff from `3744aad`: `/private/tmp/doc04-evidence/pagination-follow-up.diff`. No existing assertion was changed, removed or weakened; tests only add coverage. No new migration or permission. No push or PR.
 
 A pre-boundary-fix full run was stopped when the generated-spacer edge was discovered; it is not release evidence. Only the final complete gate above is release evidence for this follow-up. Browser short/long examples do not hit this exact-fill edge; their verified content and page counts are unchanged by it.
+
+
+## Print acknowledgement and sans-serif follow-up (owner request)
+
+Renderer remains **referral-a4-v2**; no v3. The owner-authorised, unreleased initial EN/BM draft wording definition now prints acknowledgement only:
+
+- EN: “Patient agreement to this disclosure was acknowledged by the referring doctor.”
+- BM: “Persetujuan pesakit terhadap pendedahan ini telah diakui oleh doktor yang merujuk.”
+
+The full issue-screen caveat is unchanged, byte-for-byte in `Referrals/Index.vue`: “A tick does not prove the clinic's written-consent or guardian procedure was followed.” The printed document no longer contains that internal caveat. Explicit consent remains required and encrypted with recipient/evidence. Wording remains DRAFT and not production-approved. Fresh task-owned disposable DBs recreate the initial unreleased template definitions; **no retained template/document row is updated**, and no production migration is added. Old immutable snapshots remain exact; new issues/replacements capture the revised initial draft wording. MC revision 1 is untouched.
+
+The printed body now inherits the existing Arial/sans-serif family, at the unchanged 11 pt / 1.35 line height. Server pagination code and constants, wrapping, page margins and last-page signature rules are unchanged. The verified short/long examples retain their one-/two-page counts. The optional screen COPY/status banner uses the same family; print resets its screen padding/border to preserve the existing geometry.
+
+### Every changed assertion and reason
+
+**Existing assertions replaced, changed, removed or weakened: none.** A repository search found no test pinning the literal old printed caveat; the existing issue-screen caveat assertion remains unchanged.
+
+Added assertions:
+
+- New backend test `test_print_acknowledgement_omits_internal_caveat_in_both_draft_languages`: pins exact EN/BM acknowledgement in retained wording and rendered body; refuses reappearance of EN/BM internal-caveat fragments in generated HTML; preserves renderer v2, draft flag and one-page short output. This distinguishes the authorised printed wording from the internal screen warning.
+- Existing frontend test gains an exact full issue-screen caveat assertion: prevents accidental shortening/removal of the warning while the print wording changes.
+- Existing frontend print test gains three assertions: body inherits the page font, Arial remains 11 pt / 1.35, and no monospace declaration remains. These pin a single sans-serif family without changing pagination or shrinking clinical text.
+
+Focused gate: **19 passed / 652 assertions**, `typeface-focused.log`.
+
+### Fresh Chrome/PDF evidence
+
+All paths under `/private/tmp/doc04-evidence/`; synthetic `.test` data only:
+
+- `referral-typeface-en-short.pdf` and `referral-typeface-bm-short.pdf`: **1 physical A4 page** each, labelled 1/1.
+- `referral-typeface-en-long.pdf` and `referral-typeface-bm-long.pdf`: **2 physical A4 pages** each, labelled 1/2 and 2/2; signature only on page 2.
+- `typeface-{en,bm}-{short,long}-preview.jpg`: actual native Chrome Save-as-PDF previews.
+- `typeface-{en,bm}-short-1.png`, `typeface-{en,bm}-long-{1,2}.png`: every saved PDF page rendered and visually inspected, white paper/dark text, no clipping or font shrinking.
+- `typeface-pdf-inspection.log`: PDFKit confirms font-family set **[Arial]** in all four PDFs, absence of internal caveat on all six pages, and signature presence only on the last page.
+- `typeface-short-screen-{1440,390}.jpg`: styled screen output; measured 390 CSS px with no horizontal overflow. Computed body font Arial 14.6667 px / 19.8 px.
+- `typeface-issue-caveat-{1440,390}.jpg`: unchanged full issue-screen warning visible. Temporary viewport was reset; no patient data beyond synthetic fixtures.
+
+### Full wording/typeface gate
+
+Passed on frozen runtime/test code, task-owned PostgreSQL 18.6 at verified 127.0.0.1:58427:
+
+| Check | Result / log under `/private/tmp/doc04-evidence/` |
+| --- | --- |
+| `php -d memory_limit=1G artisan test -d memory_limit=1G` | **1,223 total: 1,221 passed, 2 unchanged public-registration skips; 19,568 assertions**, 488.305 s. `backend-typeface.log`. No PostgreSQL contention test skipped. |
+| Pint `--test` | Passed, `pint-typeface.log`. |
+| PHPStan / Larastan level 7 `--memory-limit=1G --debug` | Passed, zero errors, `phpstan-typeface.log`. |
+| `npm run types:check` | Passed, `types-typeface.log`. |
+| `npm run lint:check` | Passed, `lint-typeface.log`. |
+| `npm run format:check` | Passed, `format-typeface.log`. |
+| `npm run build` | Passed, `build-typeface.log`. |
+| `node --test tests/Frontend/*.mjs` | **391 passed**, zero failures/skips, `frontend-typeface.log`. |
+| `migrate:fresh --seed`, separate `kpone_doc04_seed_testing` | Passed, `seed-typeface.log`. |
+| Working and staged `git diff --check` | Passed. |
+
+Follow-up diff from `529d1a2`: `/private/tmp/doc04-evidence/typeface-follow-up.diff`. Initial draft-definition change only: no new migration, grant, renderer version or source/financial change. Existing snapshots remain immutable; all DRAFT marks remain. Served tree unchanged. Local commit only; not pushed and no PR opened.

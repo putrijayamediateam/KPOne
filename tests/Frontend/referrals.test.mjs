@@ -13,6 +13,7 @@ test('referral composer compiles and uses escaped selections, bounded text and e
     assert.match(page, /Only SAVED source data/);
     assert.match(page, /form\.consent/);
     assert.match(page.replace(/\s+/g, ' '), /written-consent or guardian procedure/);
+    assert.ok(page.replace(/\s+/g, ' ').includes("A tick does not prove the clinic's written-consent or guardian procedure was followed."));
     assert.match(page, /review_token/);
     assert.match(page, /preview\.value = null/);
     assert.match(page, /lg:grid-cols-2/);
@@ -42,6 +43,9 @@ test('referral print retains A4 white dark-text pages with repeat identity, refe
     assert.match(content, /@if\(\$loop->last\)[\s\S]*class="ref-sign"[\s\S]*@endif/);
     assert.match(content, /<style>[\s\S]*\.ref-page\{[^}]*background:#fff[^}]*font:11pt/);
     assert.match(content, /@media\(max-width:760px\)/);
+    assert.match(content, /\.ref-lines\{font:inherit;/);
+    assert.match(content, /font:11pt\/1\.35 Arial,sans-serif/);
+    assert.doesNotMatch(content, /monospace/);
     assert.doesNotMatch(content, /{!!|<script|overflow:hidden|text-overflow/);
     assert.match(read('resources/views/referrals/show.blade.php'), /COPY — \{\{ \$status/);
 });
