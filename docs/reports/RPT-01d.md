@@ -48,3 +48,11 @@ PanelSummaryReportService; shared PanelClaimAmounts and PanelClaimEligibility ex
 - Outstanding is accepted less remitted only; pending/unaccepted claimed amounts are not accepted receivables.
 - Rejected is the existing fully-rejected current measure, not a new partial-rejection remainder.
 - Prepared but never submitted is unclaimed; age uses first submission, never reset by resubmission. Panels with no qualifying invoices are omitted.
+
+## PR preparation after slice 2 merge
+
+Merged canonical `main` at `bfd136f` (PR #146) into this existing branch with a normal merge commit. One conflict occurred in **docs/INSIGHTS.md**: main changed the Daily summary link text to “Definitions and validation”, adjacent to this branch's added Panel section. Resolution keeps main's updated link and the complete Panel summary section. The hub destination assertion and shared report files merged without conflicts. No runtime or test-tree change resulted from this merge, and no assertion was removed or weakened.
+
+Relative to current main, the only changed existing assertion input remains the strict hub map's `/reports/panel-summary => reports.panel_summary.view.branch` addition. Previous MC and invoice-note fixture corrections are already in main and not changed here.
+
+Full PostgreSQL 18 gate after merging main **passed**: 1,197 backend tests, 1,195 passed, two existing disabled-public-registration skips, 18,607 assertions; all 385 frontend tests. Pint, PHPStan level 7 (zero errors), frontend types/lint/format, production build, separate-DB fresh migration/seeding and diff check all passed. Evidence `/private/tmp/rpt01d-pr-evidence/`: effective task-owned host/port/name re-verified before requests, 127.0.0.1:58426 / `kpone_rpt01d_testing`; fresh migration/seeding uses separate `kpone_rpt01d_seed_testing`. Earlier synthetic Chrome/CSV evidence remains valid because the main merge changes no runtime/test files. Owner authorises pushing only this branch and opening only RPT-01d against main; remaining report PRs stay deferred. No PR merge authorised.

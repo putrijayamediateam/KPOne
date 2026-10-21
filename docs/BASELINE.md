@@ -800,13 +800,13 @@ in the handoff report. Merged in PR #143 as `ca9d03b` (commit `f978bf5`); PR CI 
 
 Owner authorised the five sequential reporting slices; first slice adds current Cash/Non-cash classification to Payment Methods using existing settings permission. No patient access, source-payment mutation or export is added. Full change/assertion/validation record: [RPT-01c-0](reports/RPT-01c-0.md). Merged in PR #145 as `87df9b1`; subsequent authorised report slices remain separate PRs.
 
-### RPT-01c — Daily summary (PR candidate against main)
+### RPT-01c — Daily summary — merged in PR #146 as `bfd136f`
 
-Owner-authorised aggregate report for Director, Finance Officer and Administrator, with separate receipt-date and invoice-date columns. Uses shared receipt and FinancialLedger projections; source records unchanged. [Full handoff](reports/RPT-01c.md) records the new grants, hub assertion, Total interpretation, tests and evidence. Latest main `87df9b1` merged cleanly with no conflicts; full gate re-run before the owner-authorised push/PR. No merge authorised.
+Owner-authorised aggregate report for Director, Finance Officer and Administrator, with separate receipt-date and invoice-date columns. Uses shared receipt and FinancialLedger projections; source records unchanged. [Full handoff](reports/RPT-01c.md) records the new grants, hub assertion, Total interpretation, tests and evidence. Merged in PR #146 as `bfd136f`; subsequent report slices remain separate PRs.
 
-### RPT-01d — Panel summary (local stacked candidate)
+### RPT-01d — Panel summary (PR candidate against main)
 
-Owner-authorised aggregate Panel responsibility/claim/ageing report for Director, Finance Officer and Panel Officer. No additional patient/source content, financial or claim mutation. Existing claim scope and numeric measures are shared. [Full handoff](reports/RPT-01d.md) records definitions, grants, the hub assertion and validation. No push, PR or merge.
+Owner-authorised aggregate Panel responsibility/claim/ageing report for Director, Finance Officer and Panel Officer. No additional patient/source content, financial or claim mutation. Existing claim scope and numeric measures are shared. [Full handoff](reports/RPT-01d.md) records definitions, grants, the hub assertion and validation. Latest main `bfd136f` merged; only a documentation conflict was resolved, preserving both sections. Full gate re-run before the owner-authorised push/PR; no merge authorised.
 
 ## 7. Updating this file
 
