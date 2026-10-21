@@ -141,3 +141,10 @@ test('stock summary has exact quantity-only movement reconciliation with no valu
     );
     assert.doesNotMatch(stock, /\(float\)|number_format/);
 });
+
+test('stock opening entries are explained visibly below the results table', () => {
+    assert.match(
+        page,
+        /<\/table>[\s\S]*v-if="endpoint === '\/reports\/stock-movement'"[\s\S]*Adjusted includes opening-balance entries recorded during the[\s\S]*selected period\.[\s\S]*aria-label="Report pages"/,
+    );
+});

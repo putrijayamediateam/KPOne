@@ -321,6 +321,13 @@ function applySelection(key: 'methods' | 'visit_types', value: string[]) {
                     </tbody>
                 </table>
             </div>
+            <p
+                v-if="endpoint === '/reports/stock-movement'"
+                class="text-sm text-muted-foreground"
+            >
+                Adjusted includes opening-balance entries recorded during the
+                selected period.
+            </p>
             <nav
                 class="flex flex-wrap items-center justify-between gap-3"
                 aria-label="Report pages"
