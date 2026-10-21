@@ -492,6 +492,18 @@ const changeHoldState = (action: 'hold' | 'resume') => {
                     class="rounded-md border bg-card px-3 py-2 text-xs"
                     >Medical certificates (new tab)</a
                 >
+                <a
+                    v-if="
+                        page.props.auth.permissions.includes(
+                            'referrals.view.own',
+                        )
+                    "
+                    :href="`/visits/${clinical.visit.visitNumber}/referrals`"
+                    target="_blank"
+                    rel="noopener"
+                    class="rounded-md border bg-card px-3 py-2 text-xs"
+                    >Referral letters (new tab)</a
+                >
                 <WaitingPatientsButton
                     v-if="
                         page.props.auth.permissions.some((permission) =>
