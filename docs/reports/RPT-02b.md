@@ -52,3 +52,9 @@ TransactionReportService; shared PostedReceiptProjection arithmetic/visit predic
 - One row per whole receipt and semicolon-separated linked invoice/visit references. Visit-type cohorts can overlap; no proportional allocation or fabricated split.
 - Current classification and receipt-snapshot method name; no historical classification snapshot is invented.
 - Only method and non-clinical visit-type chips in this slice. Additional doctor/time filters remain separate; treatment/clinical filtering is not added.
+
+## Owner review follow-up — inherited display fixes
+
+Inherited the Daily summary Total wording, the Stock-only opening-entry note and the assertion-preserving invoice-note clock-fixture correction from the updated preceding branches. No Transaction Detail financial projection, permissions, columns or source mutation changed. The shared frontend file had two independent appended tests at the merge point; both the existing Transaction Detail regression and the new Stock note regression are retained unchanged.
+
+Integration validation after merging: **31 report/notes/hub backend tests passed, 1,513 assertions; all 388 frontend tests passed**. Original full Transaction Detail gate remains recorded above. Updated stack display/fixture changes have passed full stock and first-slice PostgreSQL gates. Follow-up static/type/lint/format/build results are retained in `/private/tmp/rpt-review-followup/transaction-*.log`. Owner authorises pushing this branch only; its PR remains deferred until separately requested. No merge is authorised.

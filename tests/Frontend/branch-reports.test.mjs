@@ -83,6 +83,8 @@ test('daily summary labels distinct cohorts and uses existing financial projecti
     assert.match(service, /branchReceiptRows/);
     assert.match(service, /FinancialLedger::class/);
     assert.match(service, /Total is net receipts only/);
+    assert.match(service, /Total received \(Cash \+ Non-cash\) \(receipt date, MYR\)/);
+    assert.match(service, /Panel and Due are not included in Total received/);
     assert.match(
         service,
         /Payment-method filters apply to receipt columns only/,
@@ -138,6 +140,13 @@ test('stock summary has exact quantity-only movement reconciliation with no valu
         /unit_cost_sen|supplier_id|patient_name|full_name|member_reference|reference_public_id|batch_number/,
     );
     assert.doesNotMatch(stock, /\(float\)|number_format/);
+});
+
+test('stock opening entries are explained visibly below the results table', () => {
+    assert.match(
+        page,
+        /<\/table>[\s\S]*v-if="endpoint === '\/reports\/stock-movement'"[\s\S]*Adjusted includes opening-balance entries recorded during the[\s\S]*selected period\.[\s\S]*aria-label="Report pages"/,
+    );
 });
 
 test('Transaction Detail reuses receipt evidence and guards personal preparation behind scope and cap', () => {

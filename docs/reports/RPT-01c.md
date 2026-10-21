@@ -43,3 +43,7 @@ ReportPermissions and PermissionCatalogue, ClinicManagementNavigation, BranchRep
 ## Open questions
 
 Confirm the conservative Total meaning (receipt totals only). Used 31-day range and 20-row pagination for this aggregate page to match the report shell; no expanded access or financial mutation is implied.
+
+## Owner wording follow-up
+
+The net Total header is now **Total received (Cash + Non-cash) (receipt date, MYR)**, and the page/CSV basis explicitly says **Panel and Due are not included in Total received**. Original and reversed Total receipt columns remain explicit. This changes wording only, including the matching totals label; no amount, date cohort, permission or reconciliation changes. Two new wording assertions retain every prior assertion. Follow-up validation: 3 daily-summary backend tests / 110 assertions, all 384 frontend tests, Pint and diff check passed on the verified task-owned PostgreSQL 18 connection. The descendant stock slice also re-runs the full gate with this wording inherited. Evidence: `/private/tmp/rpt-review-followup/`.

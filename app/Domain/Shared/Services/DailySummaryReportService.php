@@ -24,7 +24,7 @@ class DailySummaryReportService extends BranchReportService
 
     public function basis(): string
     {
-        return 'Cash, Non-cash and Total use original receipt date, not invoice finalisation; original, reversed and net are explicit. Reversals restate the original receipt date, not refund-date cash flow. Panel is approved responsibility; Due is approved pay-later outstanding, both from the invoice finalisation-date cohort. Total is net receipts only and does not sum across those two date bases. Payment-method filters apply to receipt columns only. Visit type filters apply to both cohorts; unallocated receipts cannot match a visit filter. Current classification applies to historical periods; Not classified counts as Non-cash. MYR, two decimals. Empty dates are zero rows. Current records at generation, not a historical snapshot.';
+        return 'Cash, Non-cash and Total use original receipt date, not invoice finalisation; original, reversed and net are explicit. Reversals restate the original receipt date, not refund-date cash flow. Panel is approved responsibility; Due is approved pay-later outstanding, both from the invoice finalisation-date cohort. Total is net receipts only: Total received (Cash + Non-cash). Panel and Due are not included in Total received. Payment-method filters apply to receipt columns only. Visit type filters apply to both cohorts; unallocated receipts cannot match a visit filter. Current classification applies to historical periods; Not classified counts as Non-cash. MYR, two decimals. Empty dates are zero rows. Current records at generation, not a historical snapshot.';
     }
 
     protected function project(User $actor, Branch $branch, array $filters): array
@@ -57,7 +57,7 @@ class DailySummaryReportService extends BranchReportService
             $days[$date][6] = ($days[$date][6] ?? 0) + $state['panel'];
             $days[$date][7] = ($days[$date][7] ?? 0) + $state['deferred'];
         }
-        $columns = ['Local date', 'Cash original (receipt date, MYR)', 'Cash reversed (receipt date, MYR)', 'Cash net (receipt date, MYR)', 'Non-cash original (receipt date, MYR)', 'Non-cash reversed (receipt date, MYR)', 'Non-cash net (receipt date, MYR)', 'Panel approved (invoice finalisation date, MYR)', 'Due approved pay-later outstanding (invoice finalisation date, MYR)', 'Total original receipts (receipt date, MYR)', 'Total reversed receipts (receipt date, MYR)', 'Total net receipts (receipt date, MYR)'];
+        $columns = ['Local date', 'Cash original (receipt date, MYR)', 'Cash reversed (receipt date, MYR)', 'Cash net (receipt date, MYR)', 'Non-cash original (receipt date, MYR)', 'Non-cash reversed (receipt date, MYR)', 'Non-cash net (receipt date, MYR)', 'Panel approved (invoice finalisation date, MYR)', 'Due approved pay-later outstanding (invoice finalisation date, MYR)', 'Total original receipts (receipt date, MYR)', 'Total reversed receipts (receipt date, MYR)', 'Total received (Cash + Non-cash) (receipt date, MYR)'];
         $sums = array_fill(0, 11, 0);
         $rows = [];
         foreach ($days as $date => $values) {

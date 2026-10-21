@@ -44,6 +44,13 @@ StockMovementReportService, InventoryMovementProjection and unchanged-contract I
 
 ## Open questions (narrow defaults applied)
 
-- Opening entries inside the period count as Adjusted, with explicit wording.
 - No cross-unit/SKU grand quantity total; no invented legacy opening from a live balance.
 - Retained SKUs with history remain visible even if archived or currently zero. Names/units are governed catalogue labels; physical quantities come from retained movements.
+
+## Owner review follow-up — opening entries visibility
+
+Added the visible note **“Adjusted includes opening-balance entries recorded during the selected period.”** directly below the Stock movement results table. The note appears only for this report and only with results; Daily summary, Panel summary and Transaction Detail do not receive it. This is display text only: columns, quantities, movement classification and the independent reconciliation equation/test are unchanged. The owner permitted this note as the alternative to another column.
+
+One new frontend test pins the exact note, Stock-only condition and placement after the table and before pagination. **No existing assertion changes in this follow-up**, and no reconciliation assertion is removed or weakened. The full gate also exposed the existing invoice-note timestamp test creating current-date staff before travelling back to 19 October, before their effective assignment. Its existing clock freeze now precedes fixture creation. Both exact UTC/local timestamp assertions and all permission checks remain unchanged; no application note or access code changes. This is the only changed existing fixture in the follow-up. The inherited Daily summary follow-up changes wording only: its net Total header explicitly says Cash + Non-cash and its page excludes Panel/Due. The stack carries these fixes through ordinary local merge commits without history rewriting.
+
+Follow-up full gate **passed**: 1,200 backend tests, 1,198 passed, two existing disabled-public-registration skips, 18,758 assertions; all 387 frontend tests. Pint, PHPStan level 7, types, lint, format, production build, separate-DB fresh migration/seeding and diff check passed. Focused invoice-note/stock suite: 15 passed, 282 assertions. The initial failure is retained in `stock-backend-initial-failure.log`. The clock-fixture correction is also carried in RPT-01c-0 so the first PR CI is deterministic; updated descendants inherit it. Updated real Chrome evidence: `/private/tmp/rpt-review-followup/stock-{1440,390}-{light,dark}.jpg`, with exact CSS widths and no page overflow. The synthetic row still reconciles to 12.250. Same directory contains effective connection, full gate and fresh-seed logs. The worktree remains separate from the served tree; all connections use the task-owned PostgreSQL 18 cluster and explicitly named databases.
