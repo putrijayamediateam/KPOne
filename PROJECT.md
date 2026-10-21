@@ -1,8 +1,9 @@
 # KPOne project
 
-Latest merged delivery: PR #149 — RPT-02b patient Transaction Detail report, merged as `39161b6`. Recent merges, newest first
+Latest merged delivery: PR #151 — DOC-04 Referral letters, merged as `b4b81ac`. Recent merges, newest first
 (documentation-only PRs omitted):
 
+- PR #151 (`b4b81ac`) — DOC-04: Referral letters issued by the attending doctor from selected saved clinical content, with a recorded recipient and disclosure acknowledgement, encrypted immutable pre-signature snapshots, `REF/KP/{CHR|SGB|PCG}/{year}/{6-digit}` numbering, replace and void by the original issuer, A4 copies, no charge, and new `referrals.*.own` permissions for the Resident Doctor only. EN/BM wording is a draft pending doctor approval.
 - PR #149 (`39161b6`) — RPT-02b: Transaction Detail page and CSV at `/reports/transactions` (one row per receipt with KPOne patient number, name, visit and invoice numbers, method, Cash / Non-cash classification and original, reversed and net amounts; no IC number), audited before release, for Finance Officer and Director only.
 - PR #148 (`2b56ce3`) — RPT-01e: Stock movement summary page and CSV, quantities only (opening, received, dispensed, adjusted, transferred, closing per SKU and unit; no cost or valuation), for Director, Finance Officer and Administrator.
 - PR #147 (`71b8361`) — RPT-01d: Panel summary page and CSV (approved, claimed, unclaimed, accepted, rejected, remitted and outstanding per Panel, with 0-30, 31-60, 61-90 and over 90 day ageing), aggregates only, for Director, Finance Officer and Panel Officer.
