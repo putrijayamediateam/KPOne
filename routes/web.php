@@ -8,6 +8,7 @@ use App\Http\Controllers\BillingController;
 use App\Http\Controllers\BillingWorkController;
 use App\Http\Controllers\BranchContextController;
 use App\Http\Controllers\BranchController;
+use App\Http\Controllers\BranchReportController;
 use App\Http\Controllers\BusinessDetailsController;
 use App\Http\Controllers\CatalogueOptionController;
 use App\Http\Controllers\CataloguePanelController;
@@ -116,6 +117,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('reviews', ClinicPlaceholderController::class)->name('clinic.reviews');
         Route::get('purchase', ClinicPlaceholderController::class)->name('clinic.purchase');
     });
+    Route::get('reports/daily-summary', [BranchReportController::class, 'index'])->defaults('dataset', 'daily_summary')->middleware(['permission:reports.daily_summary.view.branch', 'sensitive.no-store'])->name('reports.daily-summary.index');
+    Route::post('reports/daily-summary/run', [BranchReportController::class, 'run'])->defaults('dataset', 'daily_summary')->middleware(['permission:reports.daily_summary.view.branch', 'sensitive.no-store', 'throttle:patient-report-views'])->name('reports.daily-summary.run');
+    Route::post('reports/daily-summary/download', [BranchReportController::class, 'download'])->defaults('dataset', 'daily_summary')->middleware(['permission:reports.daily_summary.view.branch', 'permission:reports.daily_summary.export.branch', 'sensitive.no-store', 'throttle:reports-downloads'])->name('reports.daily-summary.download');
     Route::get('reports/billing-detail', [PatientBillingReportController::class, 'index'])
         ->middleware(['permission:reports.patient_billing.view.branch', 'sensitive.no-store'])
         ->name('patient-billing-report.index');

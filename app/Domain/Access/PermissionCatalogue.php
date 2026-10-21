@@ -34,6 +34,7 @@ final class PermissionCatalogue
     {
         return [
             ...BillingPermissions::all(),
+            ...array_keys(ReportPermissions::grants()),
             ...array_keys(MedicalCertificatePermissions::grants()),
             'dashboard.view.own',
             'profile.view.own',
@@ -336,6 +337,12 @@ final class PermissionCatalogue
         foreach (['director', 'finance_officer', self::ADMINISTRATOR_ROLE] as $role) {
             $roles[$role][] = 'reports.sales.export.organisation';
             $roles[$role][] = 'reports.payments.export.organisation';
+        }
+
+        foreach (ReportPermissions::grants() as $permission => $holders) {
+            foreach ($holders as $role) {
+                $roles[$role][] = $permission;
+            }
         }
 
         foreach ($roles as $role => $permissions) {

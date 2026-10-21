@@ -238,3 +238,7 @@ exports remain deferred. Existing real-patient production and privacy release ga
 ## RPT-01c-0: current payment-method classification
 
 Owner authorised Cash/Non-cash classification for subsequent reporting slices. Existing retained CASH methods default to Cash; other retained methods default to Non-cash. A missing classification is displayed as Not classified and counted as Non-cash. A later classification decision applies to reports generated thereafter, including historical periods, without changing any stored receipt or payment. Existing RPT-01a/01b and RPT-02a output contracts remain unchanged. See [slice handoff](reports/RPT-01c-0.md).
+
+## RPT-01c: Daily summary
+
+Separate branch report, not an expansion of Insights. Cash/Non-cash and Total use receipt dates with original/reversed/net columns; Panel and approved pay-later outstanding use invoice finalisation dates. Method filters affect receipts only. Director, Finance Officer and Administrator hold narrow view/export permissions; no patient rows. Existing aggregate exports remain unchanged. [Definitions and validation](reports/RPT-01c.md).

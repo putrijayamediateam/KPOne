@@ -489,9 +489,10 @@ class ClinicInsightsReportService
      * Net is exactly the current posted-receipt cohort used in terminal reconciliation.
      *
      * @param  InsightPeriods  $periods
+     * @param  list<string>  $visitTypes
      * @return list<array{date:string, methodCode:string, method:string, receiptsSen:int, reversedSen:int, netSen:int}>
      */
-    private function dailyReceipts(User $actor, array $periods, ?int $doctorId): array
+    private function dailyReceipts(User $actor, array $periods, ?int $doctorId, array $visitTypes = []): array
     {
         $days = [];
         $methods = [];
@@ -510,6 +511,13 @@ class ClinicInsightsReportService
                     ->whereColumn('payment_allocations.payment_id', 'payments.id')
                     ->where('invoices.organisation_id', $actor->organisation_id)
                     ->where('consultation_checkouts.attending_doctor_user_id', $doctorId));
+            }
+            if ($visitTypes !== []) {
+                $query->whereExists(fn (Builder $allocation) => $allocation->selectRaw('1')->from('payment_allocations')
+                    ->join('invoices', 'invoices.id', '=', 'payment_allocations.invoice_id')
+                    ->join('visits', 'visits.id', '=', 'invoices.visit_id')
+                    ->whereColumn('payment_allocations.payment_id', 'payments.id')
+                    ->where('invoices.organisation_id', $actor->organisation_id)->whereIn('visits.visit_type', $visitTypes));
             }
             foreach ($query->get(['received_at', 'method_snapshot', 'payment_method_id', 'amount_sen', 'status']) as $payment) {
                 $date = $payment->received_at->setTimezone($branch->timezone)->toDateString();
@@ -537,6 +545,14 @@ class ClinicInsightsReportService
         }
 
         return $rows;
+    }
+
+    /** @param list<string> $visitTypes
+     * @return list<array{date:string,methodCode:string,method:string,receiptsSen:int,reversedSen:int,netSen:int}>
+     */
+    public function branchReceiptRows(User $actor, Branch $branch, string $from, string $to, array $visitTypes = []): array
+    {
+        return $this->dailyReceipts($actor, $this->periods(collect([$branch]), CarbonImmutable::parse($from, 'UTC'), CarbonImmutable::parse($to, 'UTC')), null, $visitTypes);
     }
 
     /**
