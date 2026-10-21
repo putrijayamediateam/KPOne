@@ -30,7 +30,9 @@ html,body{margin:0;background:#eee;color:#18181b}
         COPY · Page / Halaman {{ $index + 1 }} / {{ count($snapshot['pages']) }}
     </div>
     <div class="ref-lines">@foreach($lines as $line)<div class="ref-line {{ $line['heading'] ? 'heading' : '' }}">{{ $line['text'] }}</div>@endforeach</div>
+    @if($loop->last)
     <div class="ref-sign">________________________________<br>{{ $snapshot['doctor']['name'] }} · MMC {{ $snapshot['doctor']['mmc'] }}<br>Wet signature / Tandatangan basah</div>
+    @endif
     <div class="ref-foot">Pre-signature content only; not an archived signed original. Wet-sign paper and retain a signed duplicate.<br>UTC: {{ $snapshot['issuedAtUtc'] }} · {{ $snapshot['timezone'] }} · {{ strtoupper($snapshot['language']) }} revision {{ $snapshot['templateRevision'] }} · {{ $snapshot['rendererVersion'] }}</div>
 </article>
 @endforeach

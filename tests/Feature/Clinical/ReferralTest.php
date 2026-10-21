@@ -267,6 +267,45 @@ class ReferralTest extends BillingTestCase
         $this->assertStringContainsString($record->allergen_text, $preview['html']);
     }
 
+    public function test_short_referral_is_one_page_with_one_signature_after_all_content(): void
+    {
+        [$doctor, , $visit] = $this->ready();
+        foreach (['en', 'bm'] as $language) {
+            $snapshot = app(ReferralService::class)->preview($doctor, $visit, $this->command($doctor, $visit, ['language' => $language]))['snapshot'];
+            $this->assertCount(1, $snapshot['pages']);
+            $this->assertSame('referral-a4-v2', $snapshot['rendererVersion']);
+            $this->assertSame(1, substr_count($snapshot['html'], 'class="ref-sign"'));
+            $this->assertStringContainsString('Page / Halaman 1 / 1', $snapshot['html']);
+            $this->assertGreaterThan(strrpos($snapshot['html'], 'class="ref-lines"'), strpos($snapshot['html'], 'class="ref-sign"'));
+        }
+    }
+
+    public function test_long_referral_has_content_on_each_page_and_signature_on_last_page_only(): void
+    {
+        [$doctor, , $visit] = $this->ready();
+        foreach (['en', 'bm'] as $language) {
+            $snapshot = app(ReferralService::class)->preview($doctor, $visit, $this->command($doctor, $visit, ['language' => $language, 'history' => str_repeat('Synthetic long relevant history. ', 110), 'management' => 'FINAL CLINICAL CONTENT']))['snapshot'];
+            $this->assertGreaterThan(1, count($snapshot['pages']));
+            $this->assertSame(1, substr_count($snapshot['html'], 'class="ref-sign"'));
+            $dom = new \DOMDocument;
+            $dom->loadHTML($snapshot['html'], LIBXML_NOERROR | LIBXML_NOWARNING);
+            $articles = (new \DOMXPath($dom))->query('//article[@class="ref-page"]');
+            $this->assertCount(count($snapshot['pages']), $articles);
+            foreach ($articles as $index => $article) {
+                $html = $dom->saveHTML($article);
+                $this->assertStringContainsString('Page / Halaman '.($index + 1).' / '.count($snapshot['pages']), $html);
+                $this->assertNotEmpty(array_filter($snapshot['pages'][$index], fn ($line) => ! $line['heading'] && trim($line['text']) !== ''));
+                if ($index < count($snapshot['pages']) - 1) {
+                    $this->assertStringNotContainsString('class="ref-sign"', $html);
+                } else {
+                    $this->assertStringContainsString('class="ref-sign"', $html);
+                }
+            }
+            $this->assertGreaterThan(strpos($snapshot['html'], 'FINAL CLINICAL CONTENT'), strpos($snapshot['html'], 'class="ref-sign"'));
+            $this->assertGreaterThan(strrpos($snapshot['html'], 'class="ref-lines"'), strpos($snapshot['html'], 'class="ref-sign"'));
+        }
+    }
+
     public function test_letterhead_required_fields_missing_credentials_and_configured_logo_fail_closed(): void
     {
         Storage::fake('local');

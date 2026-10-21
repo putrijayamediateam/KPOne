@@ -28,11 +28,11 @@ No purge or delete job. Rollback does not drop retained referral evidence. Reten
 
 ## Templates, letterhead and printing
 
-Two fixed EN/BM revision-1 layouts, `referral-a4-v1`, always `production_approved=false` and visibly DRAFT. No template editor, raw input HTML, arbitrary expressions, uploads or approval UI. MC wording/revision/grants/storage/routes/renderers are untouched.
+Two fixed EN/BM wording revision-1 records, always `production_approved=false` and visibly DRAFT. No template editor, raw input HTML, arbitrary expressions, uploads or approval UI. MC wording/revision/grants/storage/routes/renderers are untouched.
 
 The document-source boundary calls the DOC-01 assembler after referral authorisation. It explicitly requires this branch's configured clinic name; address line 1, postcode, city, state, country; and at least phone or email. Address line 2 and logo are optional. A configured logo that is missing, retired or corrupt refuses issuance. No other branch supplies missing lines; no private asset path is exposed. Clinic registration/tax fields and the arbitrary billing footer are not captured.
 
-Deterministic server pagination uses 72 display cells and at most 27 body lines per page, preserves every grapheme/space, prefers word boundaries and keeps sections that fit on a page together. Long unbroken values wrap; clinical text is never truncated or shrunk. Conservative pagination can leave whitespace. Each A4 page repeats patient identity, reference, page number, draft warning, issuer and wet-signature space. A repeated status strip says COPY and CURRENT, REPLACED or VOID; replaced/void copies also say NOT VALID. Status is current metadata around immutable original content. No claim is made that paper was printed, signed, delivered or recalled.
+Deterministic server pagination uses 72 display cells and at most 27 body lines per page, preserves every grapheme/space, prefers word boundaries and keeps sections that fit on a page together. Long unbroken values wrap; clinical text is never truncated or shrunk. Conservative pagination can leave whitespace. Each A4 page repeats patient identity, reference, page number and draft warning. The issuer/wet-signature block appears after all content on the last page only. A repeated status strip says COPY and CURRENT, REPLACED or VOID; replaced/void copies also say NOT VALID. Status is current metadata around immutable original content. No claim is made that paper was printed, signed, delivered or recalled.
 
 White paper/dark text is explicit in print CSS regardless of app theme. Browser Print/Save as PDF only; no app PDF storage, email, WhatsApp, portal or electronic signature. The clinic must wet-sign paper and retain its signed duplicate.
 
@@ -60,15 +60,15 @@ During development, new fixture expectations were corrected to the existing stri
 
 ## New test coverage
 
-- ReferralTest (11 tests): exact catalogue roles/routes and migration replay; fresh permission revocation; other-doctor, branch, organisation and effective-assignment refusal; first-issue Serving/hold/checkout/reopen rules; original-issuer corrections; independent chains; retries/conflicts; required consent/recipient, bounded escaped input and exact preview; stale saved patient/credentials/letterhead/orders/Encounter; absent DOB; missing credentials/address/contact and corrupt/configured-unavailable logo; selected diagnoses/medicines/allergies, unknown versus none; encrypted stable snapshots, EN/BM draft pages; retained COPY/current/replaced/void; PostgreSQL update/delete/truncate refusal; audit-failure rollback and values-free metadata; branch-local New Year; all-table/source/MC invariance.
+- ReferralTest (13 tests): exact catalogue roles/routes and migration replay; fresh permission revocation; other-doctor, branch, organisation and effective-assignment refusal; first-issue Serving/hold/checkout/reopen rules; original-issuer corrections; independent chains; retries/conflicts; required consent/recipient, bounded escaped input and exact preview; stale saved patient/credentials/letterhead/orders/Encounter; absent DOB; missing credentials/address/contact and corrupt/configured-unavailable logo; selected diagnoses/medicines/allergies, unknown versus none; encrypted stable snapshots, EN/BM draft pages; retained COPY/current/replaced/void; PostgreSQL update/delete/truncate refusal; audit-failure rollback and values-free metadata; branch-local New Year; all-table/source/MC invariance.
 - PostgresReferralNumberTest (one test): real two-process counter contention, consecutive unique numbers, retained counter and unchanged global grant rows. No reference-permission seeding.
-- ReferralPaginationTest (two tests): every grapheme/space retained, fixed cell/line budget, short sections kept whole, ordinary words preserved and long unbroken values wrapped.
+- ReferralPaginationTest (four tests): every grapheme/space retained, fixed cell/line budget, short sections kept whole, ordinary words preserved and long unbroken values wrapped.
 - referrals.test.mjs (three tests): actual Vue compilation plus bounded/escaped consent/source structure, permission-filtered actions, branch-change clearing/cancellation and history suppression, responsive layout and fixed A4 white/dark-text repeated identity/reference/page structure.
 - Existing MC, drug-label and billing-print suites run without edits in the full suite. Two pre-existing public-registration skips remain unchanged; no PostgreSQL contention test is skipped.
 
-## Validation
+## Initial validation at 3744aad
 
-Final release gate passed on frozen runtime/test code:
+The original candidate gate passed; the pagination follow-up gate below supersedes it:
 
 | Check | Result / evidence under `/private/tmp/doc04-evidence/` |
 | --- | --- |
@@ -109,3 +109,50 @@ Directory `/private/tmp/doc04-evidence/`. Production assets, synthetic doctor an
 - Only the fixed existing organisation/branch prefixes are supported; an unknown branch/organisation refuses numbering.
 - No recipient directory, free-text template editor, uploads/attachments, electronic delivery/signing, PDF/signed-original archive, fee or other document type.
 - No MC behaviour repair or approval change; the earlier MC letterhead completeness discrepancy remains separate.
+
+
+## Pagination follow-up (owner request before PR)
+
+The originally supplied `REF/KP/CHR/2026/000004` PDF really had three non-blank pages:
+
+1. Recipient, urgency and referral reason, followed prematurely by the repeated signature.
+2. The long relevant-history section, followed by another signature. Screenshot: `/private/tmp/doc04-evidence/pdf-en-final-2.png`.
+3. Selected diagnosis `Synthetic diagnosis alpha`, selected allergy status `Allergy status unknown`, consent acknowledgement/written-consent caveat, then another signature. Screenshot: `/private/tmp/doc04-evidence/pdf-en-final-3.png`.
+
+The defect was not blank pages: the renderer put a signature on every page, and the keep-together rule moved an entire long section to a fresh page when its block fit within 27 lines. The fix keeps together only genuinely short blocks (named 8-line budget); longer sections consume remaining space and continue. The signature renders once, after all body content on the last page. An inserted separator is also omitted when it would otherwise become a blank final page; user-entered body text/blank lines are retained. There is still no truncation or font shrinking.
+
+New snapshots explicitly identify `referral-a4-v2`, separately retaining the immutable wording record's `templateRendererVersion` (`referral-a4-v1`). Wording revision 1 and `production_approved=false` are unchanged. Earlier encrypted snapshots/HTML are never rewritten; a correction requires a replacement as before. No migration, permission, MC, source, financial, dispensary or stock change was made for this follow-up.
+
+Added regression tests: short EN/BM referral has one page and one final signature; long EN/BM referral has substantive content on each page, matching article/page numbers, and exactly one signature on the last page after the final clinical content. Pagination unit tests pin using available introductory-page space, exact text preservation, and an exactly full page not pushing its generated separator onto a blank final page. Three extra frontend assertions pin conditional signature rendering and the inline responsive screen stylesheet. **Changed or removed existing assertions: none.**
+
+Focused tests on final code: **18 passed / 634 assertions**, `pagination-focused-boundary.log`. Standalone comparison using the original algorithm and the identical whitespace fixture: old first page 9 lines, corrected first page 27 lines; `pagination-old-new-check.log`.
+
+Real Chrome, synthetic-only, saved new renderer output (fresh disposable fixture; not a rewrite of the earlier retained 000004 snapshot): long EN referral **2 physical A4 pages**, short EN referral **1 physical A4 page**. Physical page counts match printed 1/2, 2/2 and 1/1. PDFKit rendering/text inspection confirmed every page is populated and the long PDF has the signature on page 2 only. White paper/dark text, no clipping or shrinking.
+
+- Original pages 2/3: `pdf-en-final-2.png`, `pdf-en-final-3.png` (original pre-fix evidence retained).
+- Corrected Chrome PDFs: `referral-pagination-long.pdf`, `referral-pagination-short.pdf`.
+- Corrected physical pages: `pagination-long-{1,2}.png`, `pagination-short-1.png`.
+- Native Chrome previews: `pagination-long-native-preview.jpg`, `pagination-short-native-preview.jpg`.
+- Styled screen routes: `pagination-{long,short}-screen-{1440,390}-{light,dark}.jpg`; mobile long-route end views `pagination-long-screen-390-{light,dark}-end.jpg`. The long 390 captures use viewport start/end views to avoid full-page screenshot stitching artifacts.
+- Computed screen style: white panel `rgb(255,255,255)`, Arial 14.6667 px / 19.8 px; loaded inline stylesheet. Measured innerWidth/scrollWidth both 1440 or 390, respectively. Main print content is formatted, not raw unstyled text. The browser theme and temporary viewport were restored.
+
+### Final pagination gate
+
+All checks passed on frozen final runtime/test code, PostgreSQL 18.6 at the verified task-owned 127.0.0.1:58427:
+
+| Check | Final result / log under `/private/tmp/doc04-evidence/` |
+| --- | --- |
+| `php -d memory_limit=1G artisan test -d memory_limit=1G` | **1,222 total: 1,220 passed, 2 unchanged public-registration skips; 19,550 assertions**, 498.158 s. `backend-pagination-final.log`. No PostgreSQL contention test skipped. |
+| Pint `--test` | Passed, `pint-pagination-final.log`. |
+| PHPStan / Larastan level 7, `--memory-limit=1G --debug` | Passed, zero errors, `phpstan-pagination-final.log`. |
+| `npm run types:check` | Passed, `types-pagination-final.log`. |
+| `npm run lint:check` | Passed, `lint-pagination-final.log`. |
+| `npm run format:check` | Passed, `format-pagination-final.log`. |
+| `npm run build` | Passed, `build-pagination-final.log`. |
+| `node --test tests/Frontend/*.mjs` | **391 passed**, zero failures/skips, `frontend-pagination-final.log`. |
+| `migrate:fresh --seed`, separate `kpone_doc04_seed_testing` | Passed, `seed-pagination-final.log`. |
+| Working and staged `git diff --check` | Passed. |
+
+Follow-up diff from `3744aad`: `/private/tmp/doc04-evidence/pagination-follow-up.diff`. No existing assertion was changed, removed or weakened; tests only add coverage. No new migration or permission. No push or PR.
+
+A pre-boundary-fix full run was stopped when the generated-spacer edge was discovered; it is not release evidence. Only the final complete gate above is release evidence for this follow-up. Browser short/long examples do not hit this exact-fill edge; their verified content and page counts are unchanged by it.

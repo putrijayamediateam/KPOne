@@ -8,6 +8,8 @@ final class ReferralPagination
 
     public const LINES_PER_PAGE = 27;
 
+    public const KEEP_TOGETHER_LINES = 8;
+
     /** No truncation: every grapheme and whitespace character is retained.
      * @param  list<array{string, string}>  $sections
      * @return list<list<array{text: string, heading: bool}>>
@@ -24,12 +26,18 @@ final class ReferralPagination
                 }
             }
             $block[] = ['text' => '', 'heading' => false];
-            // Keep short sections together, and never orphan a heading.
-            if ($current !== [] && ((count($block) <= self::LINES_PER_PAGE && count($current) + count($block) > self::LINES_PER_PAGE) || count($current) >= self::LINES_PER_PAGE - 1)) {
+            // Keep genuinely short sections together, without moving a long
+            // section wholesale off a partly used page. Never orphan a heading.
+            if ($current !== [] && ((count($block) <= self::KEEP_TOGETHER_LINES && count($current) + count($block) > self::LINES_PER_PAGE) || count($current) >= self::LINES_PER_PAGE - 1)) {
                 $pages[] = $current;
                 $current = [];
             }
-            foreach ($block as $line) {
+            foreach ($block as $lineIndex => $line) {
+                // The generated separator must not become a header-only page.
+                // User-entered blank lines are separate body lines and are retained.
+                if ($lineIndex === count($block) - 1 && count($current) === self::LINES_PER_PAGE) {
+                    continue;
+                }
                 if (count($current) === self::LINES_PER_PAGE) {
                     $pages[] = $current;
                     $current = [];

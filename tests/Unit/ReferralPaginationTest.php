@@ -30,6 +30,29 @@ class ReferralPaginationTest extends TestCase
         $this->assertContains(['text' => 'Specific recipient agreement. Written procedure remains required.', 'heading' => false], $last);
     }
 
+    public function test_long_section_fills_the_space_after_short_intro_instead_of_leaving_it_blank(): void
+    {
+        $history = str_repeat('Synthetic history continues. ', 50);
+        $pages = (new ReferralPagination)->pages([['Recipient', 'Synthetic Hospital'], ['Urgency', 'Routine'], ['Reason', 'Synthetic referral'], ['History', $history]]);
+        $this->assertGreaterThan(1, count($pages));
+        $this->assertCount(ReferralPagination::LINES_PER_PAGE, $pages[0]);
+        $this->assertContains(['text' => 'History', 'heading' => true], $pages[0]);
+        $historyLines = array_slice($pages[0], 10);
+        foreach (array_slice($pages, 1) as $page) {
+            $historyLines = [...$historyLines, ...$page];
+        }
+        $this->assertSame($history, implode('', array_column($historyLines, 'text')));
+    }
+
+    public function test_exactly_full_page_does_not_push_its_separator_onto_a_blank_final_page(): void
+    {
+        $text = str_repeat('x', ReferralPagination::COLUMNS * (ReferralPagination::LINES_PER_PAGE - 1));
+        $pages = (new ReferralPagination)->pages([['History', $text]]);
+        $this->assertCount(1, $pages);
+        $this->assertCount(ReferralPagination::LINES_PER_PAGE, $pages[0]);
+        $this->assertSame($text, implode('', array_column(array_filter($pages[0], fn ($line) => ! $line['heading']), 'text')));
+    }
+
     public function test_normal_words_are_not_split_but_long_unbroken_values_still_fit(): void
     {
         $pages = (new ReferralPagination)->pages([['History', str_repeat('specialist ', 40)]]);

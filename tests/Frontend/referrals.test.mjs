@@ -39,6 +39,9 @@ test('referral print retains A4 white dark-text pages with repeat identity, refe
     assert.match(content, /patient'\]\['number/);
     assert.match(content, /Page \/ Halaman/);
     assert.match(content, /DRAFT WORDING/);
+    assert.match(content, /@if\(\$loop->last\)[\s\S]*class="ref-sign"[\s\S]*@endif/);
+    assert.match(content, /<style>[\s\S]*\.ref-page\{[^}]*background:#fff[^}]*font:11pt/);
+    assert.match(content, /@media\(max-width:760px\)/);
     assert.doesNotMatch(content, /{!!|<script|overflow:hidden|text-overflow/);
     assert.match(read('resources/views/referrals/show.blade.php'), /COPY — \{\{ \$status/);
 });

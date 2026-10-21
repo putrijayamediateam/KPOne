@@ -9,6 +9,9 @@ use Illuminate\Validation\ValidationException;
 
 final class ReferralSnapshot
 {
+    // Wording revision 1 stays immutable; new snapshots identify this layout fix.
+    public const RENDERER_VERSION = 'referral-a4-v2';
+
     public const TEXT_LIMITS = ['institution' => 200, 'department' => 200, 'clinician' => 200, 'reason' => 1000, 'history' => 4000, 'findings' => 4000, 'management' => 4000];
 
     /** @param array<string, mixed> $source
@@ -45,7 +48,7 @@ final class ReferralSnapshot
             }
         }
         $sections[] = ['Consent / Persetujuan', $w['consent']];
-        $snapshot = ['schemaVersion' => 1, 'rendererVersion' => $template->renderer_version, 'templateId' => $template->id, 'templateRevision' => 1, 'templateWording' => $w, 'productionApproved' => false, 'language' => $input['language'], 'title' => $w['title'],
+        $snapshot = ['schemaVersion' => 1, 'rendererVersion' => self::RENDERER_VERSION, 'templateRendererVersion' => $template->renderer_version, 'templateId' => $template->id, 'templateRevision' => 1, 'templateWording' => $w, 'productionApproved' => false, 'language' => $input['language'], 'title' => $w['title'],
             'number' => $number, 'issuedAtUtc' => $at, 'issueDate' => CarbonImmutable::parse($at)->setTimezone($branch->timezone)->format('d/m/Y'), 'timezone' => $branch->timezone, 'patient' => $source['patient'], 'visit' => $source['visit'], 'examDate' => $source['examDate'], 'doctor' => $source['doctor'], 'letterhead' => $source['letterhead'],
             'recipient' => array_intersect_key($input, array_flip(['institution', 'department', 'clinician'])), 'consent' => true, 'selected' => $selected, 'sourceToken' => $source['token'], 'evidence' => 'pre-signature', 'pages' => app(ReferralPagination::class)->pages($sections)];
         $snapshot['html'] = view('referrals.content', ['snapshot' => $snapshot])->render();
