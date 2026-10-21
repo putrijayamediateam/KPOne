@@ -1,8 +1,13 @@
 # KPOne project
 
-Latest merged delivery: PR #143 — RPT-02a patient Billing Detail report, merged as `ca9d03b`. Recent merges, newest first
+Latest merged delivery: PR #149 — RPT-02b patient Transaction Detail report, merged as `39161b6`. Recent merges, newest first
 (documentation-only PRs omitted):
 
+- PR #149 (`39161b6`) — RPT-02b: Transaction Detail page and CSV at `/reports/transactions` (one row per receipt with KPOne patient number, name, visit and invoice numbers, method, Cash / Non-cash classification and original, reversed and net amounts; no IC number), audited before release, for Finance Officer and Director only.
+- PR #148 (`2b56ce3`) — RPT-01e: Stock movement summary page and CSV, quantities only (opening, received, dispensed, adjusted, transferred, closing per SKU and unit; no cost or valuation), for Director, Finance Officer and Administrator.
+- PR #147 (`71b8361`) — RPT-01d: Panel summary page and CSV (approved, claimed, unclaimed, accepted, rejected, remitted and outstanding per Panel, with 0-30, 31-60, 61-90 and over 90 day ageing), aggregates only, for Director, Finance Officer and Panel Officer.
+- PR #146 (`bfd136f`) — RPT-01c: Daily summary page and CSV (Cash and Non-cash receipts by receipt date; Panel and approved pay-later Due by invoice finalisation date; Total is Cash + Non-cash received only) for Director, Finance Officer and Administrator.
+- PR #145 (`87df9b1`) — RPT-01c-0: Cash / Non-cash classification on payment methods, applied to reports from then on. Also made two clock-dependent tests deterministic.
 - PR #143 (`ca9d03b`) — RPT-02a: Billing Detail page and CSV at `/reports/billing-detail` (one row per finalised invoice with KPOne patient number, name and settlement figures; no IC number), audited before release, for Finance Officer and Director only. Transaction Detail and Cash / Non-cash classification are deferred.
 - PR #142 (`89d10bb`) — RPT-01b: daily net sales (with distinct patients per day) and receipts-by-payment-method CSVs, aggregates only, with reversals shown and a receipt projection shared with terminal reconciliation.
 - PR #141 (`83877a4`) — RPT-01a: aggregate Sales summary CSV for Director, Finance Officer and Administrator.
