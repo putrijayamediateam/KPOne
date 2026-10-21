@@ -31,3 +31,9 @@ None blocking. Not classified remains available for new methods and is counted a
 ## Files changed
 
 PaymentMethod model, PaymentMethodClassificationService, PaymentMethodController, routes/web.php, PaymentMethods/Index.vue, the additive classification migration, PaymentMethodClassificationTest, payment-method-classification.test.mjs, the MC invalid-duration fixture, docs/BASELINE.md, docs/INSIGHTS.md and this handoff.
+
+## PR preparation follow-up — deterministic timestamp fixture
+
+The owner-requested stock full-gate rerun on 21 October exposed an existing InvoiceNotesTest fixture issue: it created staff at the current date, then travelled back to 19 October before their assignment was effective. The timestamp test now freezes its existing instant **before** creating the fixture. Both exact UTC/local assertions and all backend authority checks remain unchanged. No invoice-note runtime or financial code changes. This correction is included in the first slice so its CI is also deterministic; later branches inherit it. Together with the earlier MC invalid-duration input correction, these are the only existing test setup changes relative to main; no assertion is removed, weakened or skipped.
+
+Updated first-slice full gate passed: **1,191 backend tests, 1,189 passed, two existing disabled-public-registration skips, 18,193 assertions; all 381 frontend tests**. Pint, PHPStan level 7, types, lint, format, production build, separate-DB fresh migration/seeding and diff check passed. Effective connection was re-verified as task-owned 127.0.0.1:58426 with separate `kpone_rpt01c0_testing` / `kpone_rpt01c0_seed_testing` databases. Refreshed logs: `/private/tmp/rpt-review-followup/classification-*.log`. Original validation above remains recorded. Owner now authorises pushing all five branches and opening only this slice against main, with no merge.
