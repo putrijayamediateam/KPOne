@@ -58,6 +58,7 @@ final class ClinicManagementNavigation
             [$branch && ($display || $actor->can('queue.display.branch')), 'TV Screen', 'Open the queue display for this branch.', 'queue-display.screen'],
         ]);
         $add('Reports', 'reports', [
+            [$branch && $actor->can('reports.transactions.view.branch'), 'Transaction Detail', 'Reconcile branch receipt-date transactions with invoice-linked patient identities.', 'reports.transactions.index'],
             [$branch && $actor->can('reports.stock_movement.view.branch'), 'Stock movement summary', 'Review branch quantities and reconciled movements without valuation.', 'reports.stock-movement.index'],
             [$branch && $actor->can('reports.panel_summary.view.branch'), 'Panel summary', 'Review aggregate responsibility, claims and ageing for this branch.', 'reports.panel-summary.index'],
             [$branch && $actor->can('reports.daily_summary.view.branch'), 'Daily summary', 'Review receipt-date cash and non-cash with separately dated invoice responsibility.', 'reports.daily-summary.index'],

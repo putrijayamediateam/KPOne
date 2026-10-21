@@ -117,6 +117,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('reviews', ClinicPlaceholderController::class)->name('clinic.reviews');
         Route::get('purchase', ClinicPlaceholderController::class)->name('clinic.purchase');
     });
+    Route::get('reports/transactions', [BranchReportController::class, 'index'])->defaults('dataset', 'transactions')->middleware(['permission:reports.transactions.view.branch', 'sensitive.no-store'])->name('reports.transactions.index');
+    Route::post('reports/transactions/run', [BranchReportController::class, 'run'])->defaults('dataset', 'transactions')->middleware(['permission:reports.transactions.view.branch', 'sensitive.no-store', 'throttle:patient-report-views'])->name('reports.transactions.run');
+    Route::post('reports/transactions/download', [BranchReportController::class, 'download'])->defaults('dataset', 'transactions')->middleware(['permission:reports.transactions.view.branch', 'permission:reports.transactions.export.branch', 'sensitive.no-store', 'throttle:reports-downloads'])->name('reports.transactions.download');
     Route::get('reports/stock-movement', [BranchReportController::class, 'index'])->defaults('dataset', 'stock_movement')->middleware(['permission:reports.stock_movement.view.branch', 'sensitive.no-store'])->name('reports.stock-movement.index');
     Route::post('reports/stock-movement/run', [BranchReportController::class, 'run'])->defaults('dataset', 'stock_movement')->middleware(['permission:reports.stock_movement.view.branch', 'sensitive.no-store', 'throttle:patient-report-views'])->name('reports.stock-movement.run');
     Route::post('reports/stock-movement/download', [BranchReportController::class, 'download'])->defaults('dataset', 'stock_movement')->middleware(['permission:reports.stock_movement.view.branch', 'permission:reports.stock_movement.export.branch', 'sensitive.no-store', 'throttle:reports-downloads'])->name('reports.stock-movement.download');

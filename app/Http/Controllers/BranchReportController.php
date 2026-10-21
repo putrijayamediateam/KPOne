@@ -6,6 +6,7 @@ use App\Domain\Shared\Services\BranchReportService;
 use App\Domain\Shared\Services\DailySummaryReportService;
 use App\Domain\Shared\Services\PanelSummaryReportService;
 use App\Domain\Shared\Services\StockMovementReportService;
+use App\Domain\Shared\Services\TransactionReportService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -14,9 +15,10 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 final class BranchReportController extends Controller
 {
-    private function service(Request $request): BranchReportService
+    private function service(Request $request): BranchReportService|TransactionReportService
     {
         return match ($request->route('dataset')) {
+            'transactions' => app(TransactionReportService::class),
             'stock_movement' => app(StockMovementReportService::class),
             'panel_summary' => app(PanelSummaryReportService::class),
             'daily_summary' => app(DailySummaryReportService::class),
