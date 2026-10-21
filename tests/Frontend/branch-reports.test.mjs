@@ -123,3 +123,28 @@ test('Panel summary reuses eligibility and existing accepted-outstanding measure
     assert.match(page, /v-if="options\?\.methods"/);
     assert.match(page, /v-if="options\?\.visit_types"/);
 });
+
+test('stock summary has exact quantity-only movement reconciliation with no valuation or personal fields', () => {
+    const stock = read(
+        'app/Domain/Shared/Services/StockMovementReportService.php',
+    );
+    assert.match(stock, /InventoryMovementProjection::query/);
+    assert.match(stock, /intdiv/);
+    assert.match(stock, /Reconciles/);
+    assert.match(
+        stock,
+        /Opening \+ received - dispensed \+ adjusted \+ transferred = closing/,
+    );
+    assert.doesNotMatch(
+        stock,
+        /unit_cost_sen|supplier_id|patient_name|full_name|member_reference|reference_public_id|batch_number/,
+    );
+    assert.doesNotMatch(stock, /\(float\)|number_format/);
+});
+
+test('stock opening entries are explained visibly below the results table', () => {
+    assert.match(
+        page,
+        /<\/table>[\s\S]*v-if="endpoint === '\/reports\/stock-movement'"[\s\S]*Adjusted includes opening-balance entries recorded during the[\s\S]*selected period\.[\s\S]*aria-label="Report pages"/,
+    );
+});

@@ -246,3 +246,7 @@ Separate branch report, not an expansion of Insights. Cash/Non-cash and Total us
 ## RPT-01d: Panel summary
 
 The owner now authorises this separate aggregate branch report and fixed ageing buckets, superseding the earlier deferral for this slice only. It is not an Insights/patient drill-down expansion. Director, Finance Officer and Panel Officer receive narrow view/export permission. Date cohort, current accepted outstanding, fully rejected measure and first-submission/unclaimed ageing are explicit in [the handoff](reports/RPT-01d.md). No patient content, tax identifiers or changed claims.
+
+## RPT-01e: quantities-only stock movement summary
+
+Separate assigned-branch report for Director, Finance Officer and Administrator. Uses the shared retained movement scope, exact milliunits and historical opening/closing reconciliation. No patient, batch/reference, supplier, cost or valuation fields. Stock valuation stays deferred. [Definitions and gate](reports/RPT-01e.md).

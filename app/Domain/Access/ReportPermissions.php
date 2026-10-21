@@ -8,6 +8,8 @@ final class ReportPermissions
     public static function grants(): array
     {
         return [
+            'reports.stock_movement.view.branch' => ['director', 'finance_officer', 'administrator'],
+            'reports.stock_movement.export.branch' => ['director', 'finance_officer', 'administrator'],
             'reports.panel_summary.view.branch' => ['director', 'finance_officer', 'panel_officer'],
             'reports.panel_summary.export.branch' => ['director', 'finance_officer', 'panel_officer'],
             'reports.daily_summary.view.branch' => ['director', 'finance_officer', 'administrator'],
