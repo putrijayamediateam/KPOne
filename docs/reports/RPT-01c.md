@@ -42,8 +42,14 @@ ReportPermissions and PermissionCatalogue, ClinicManagementNavigation, BranchRep
 
 ## Open questions
 
-Confirm the conservative Total meaning (receipt totals only). Used 31-day range and 20-row pagination for this aggregate page to match the report shell; no expanded access or financial mutation is implied.
+The owner confirmed Total received means Cash + Non-cash, excluding Panel and Due. The 31-day range and 20-row pagination remain the authorised narrow limits; no blocking decisions remain.
 
 ## Owner wording follow-up
 
 The net Total header is now **Total received (Cash + Non-cash) (receipt date, MYR)**, and the page/CSV basis explicitly says **Panel and Due are not included in Total received**. Original and reversed Total receipt columns remain explicit. This changes wording only, including the matching totals label; no amount, date cohort, permission or reconciliation changes. Two new wording assertions retain every prior assertion. Follow-up validation: 3 daily-summary backend tests / 110 assertions, all 384 frontend tests, Pint and diff check passed on the verified task-owned PostgreSQL 18 connection. The descendant stock slice also re-runs the full gate with this wording inherited. Evidence: `/private/tmp/rpt-review-followup/`.
+
+## PR preparation after slice 1 merge
+
+Merged canonical `main` at `87df9b1` (PR #145) into this existing branch using a merge commit. **No conflicts occurred**, including in the hub destination assertion. No runtime or test-tree change resulted from the main merge; it records the released ancestry. Relative to current main the exact hub destination map still adds only `/reports/daily-summary => reports.daily_summary.view.branch`, preserving strict complete-set equality for every role. The MC and invoice-note fixture corrections are already in main and are not changed again by this PR.
+
+New full PostgreSQL 18 gate **passed after merging main**: 1,194 backend tests, 1,192 passed, two existing disabled-public-registration skips, 18,351 assertions; all 384 frontend tests passed. Pint, PHPStan level 7 (zero errors), types, lint, format, production build, separate-DB fresh migration/seeding and diff check all passed. Evidence: `/private/tmp/rpt01c-pr-evidence/`. Effective host/port/name verified before requests: task-owned 127.0.0.1:58426, `kpone_rpt01c_testing`; fresh migration/seeding uses separate `kpone_rpt01c_seed_testing`. Existing synthetic Chrome and CSV evidence remains recorded above; no UI or financial changes are introduced by the main merge. Owner authorises pushing this branch and opening only RPT-01c against main; other report PRs remain deferred and no merge is authorised.

@@ -1,6 +1,6 @@
 # RPT-01e — Stock movement summary
 
-Local stacked branch `feature/rpt-01e-stock-movement-summary`, based on RPT-01d `1024201`. No push, PR or merge.
+PR candidate `feature/rpt-01e-stock-movement-summary` against canonical main `71b8361`. Owner authorised push and this PR only; no merge.
 
 ## Scope and definitions
 
@@ -54,3 +54,9 @@ Added the visible note **“Adjusted includes opening-balance entries recorded d
 One new frontend test pins the exact note, Stock-only condition and placement after the table and before pagination. **No existing assertion changes in this follow-up**, and no reconciliation assertion is removed or weakened. The full gate also exposed the existing invoice-note timestamp test creating current-date staff before travelling back to 19 October, before their effective assignment. Its existing clock freeze now precedes fixture creation. Both exact UTC/local timestamp assertions and all permission checks remain unchanged; no application note or access code changes. This is the only changed existing fixture in the follow-up. The inherited Daily summary follow-up changes wording only: its net Total header explicitly says Cash + Non-cash and its page excludes Panel/Due. The stack carries these fixes through ordinary local merge commits without history rewriting.
 
 Follow-up full gate **passed**: 1,200 backend tests, 1,198 passed, two existing disabled-public-registration skips, 18,758 assertions; all 387 frontend tests. Pint, PHPStan level 7, types, lint, format, production build, separate-DB fresh migration/seeding and diff check passed. Focused invoice-note/stock suite: 15 passed, 282 assertions. The initial failure is retained in `stock-backend-initial-failure.log`. The clock-fixture correction is also carried in RPT-01c-0 so the first PR CI is deterministic; updated descendants inherit it. Updated real Chrome evidence: `/private/tmp/rpt-review-followup/stock-{1440,390}-{light,dark}.jpg`, with exact CSS widths and no page overflow. The synthetic row still reconciles to 12.250. Same directory contains effective connection, full gate and fresh-seed logs. The worktree remains separate from the served tree; all connections use the task-owned PostgreSQL 18 cluster and explicitly named databases.
+
+## PR preparation after slices 1–3 merged
+
+Merged canonical main **71b8361** into this branch with ordinary merge commit **9681d1b**. **No conflicts occurred**: hub assertion, shared report files and INSIGHTS merged cleanly. Main contributed documentation updates only; runtime/test files are identical to the pre-merge stock branch. The released MC/invoice-note fixture corrections are already in main and do not appear as new changes in this PR. Relative to current main, the only changed existing assertion remains the strict hub destination map addition described above. No test weakened.
+
+Post-merge full gate passed: **1,200 backend tests, 1,198 passed, two existing disabled-public-registration skips, 18,758 assertions; 387 frontend tests passed**. Pint, PHPStan level 7, TypeScript, ESLint, Prettier, production build, separate-DB fresh migration/seeding and diff check all passed. Effective task-owned PG18.6 host/port/name verified before requests: 127.0.0.1:58426, kpone_rpt01e_testing, and kpone_rpt01e_seed_testing. Logs, exact diff and PR body: /private/tmp/rpt01e-pr-evidence/. Existing 1440/390 light/dark Chrome evidence and actual synthetic CSV remain applicable: the merge changes no UI or runtime code. Only this branch is pushed and only its PR is opened. RPT-02b remains unopened; no merge authorised.
