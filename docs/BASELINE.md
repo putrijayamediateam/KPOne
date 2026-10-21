@@ -796,17 +796,17 @@ in the handoff report. Merged in PR #143 as `ca9d03b` (commit `f978bf5`); PR CI 
 
 **Validation, 2026-10-20:** PostgreSQL 18.6, task-owned `kpone_rpt02a_testing` on port 58406: full backend **1,188 tests, 1,186 passed, two existing disabled-public-registration skips, 18,157 assertions**. Focused report/hub suites: **21 tests, 1,184 assertions**. Pint, PHPStan level 7, frontend types/lint/format, production build and `git diff --check` pass; frontend **380/380**. Fresh migrations and synthetic seeding pass on the separate disposable `kpone_rpt02a_seed_testing` database. Real authenticated Chrome checks cover exact 1440/390 CSS px in both themes with no page overflow, staged searchable filters, a real downloaded synthetic CSV and Administrator 403 denial. The final full test process uses PHPUnit's own `-d memory_limit=1G` option; a parent-only override did not survive Herd's subprocess configuration.
 
-### RPT-01c-0 — payment-method classification (local candidate)
+### RPT-01c-0 — payment-method classification — merged in PR #145 as `87df9b1`
 
-Owner authorised the five sequential reporting slices; first slice adds current Cash/Non-cash classification to Payment Methods using existing settings permission. No patient access, source-payment mutation or export is added. Full change/assertion/validation record: [RPT-01c-0](reports/RPT-01c-0.md). Later slices remain unbuilt until this gate passes.
+Owner authorised the five sequential reporting slices; first slice adds current Cash/Non-cash classification to Payment Methods using existing settings permission. No patient access, source-payment mutation or export is added. Full change/assertion/validation record: [RPT-01c-0](reports/RPT-01c-0.md). Merged in PR #145 as `87df9b1`; subsequent authorised report slices remain separate PRs.
 
-### RPT-01c — Daily summary (local stacked candidate)
+### RPT-01c — Daily summary — merged in PR #146 as `bfd136f`
 
-Owner-authorised aggregate report for Director, Finance Officer and Administrator, with separate receipt-date and invoice-date columns. Uses shared receipt and FinancialLedger projections; source records unchanged. [Full handoff](reports/RPT-01c.md) records the new grants, hub assertion, Total interpretation, tests and evidence. No push, PR or merge.
+Owner-authorised aggregate report for Director, Finance Officer and Administrator, with separate receipt-date and invoice-date columns. Uses shared receipt and FinancialLedger projections; source records unchanged. [Full handoff](reports/RPT-01c.md) records the new grants, hub assertion, Total interpretation, tests and evidence. Merged in PR #146 as `bfd136f`; subsequent report slices remain separate PRs.
 
-### RPT-01d — Panel summary (local stacked candidate)
+### RPT-01d — Panel summary (PR candidate against main)
 
-Owner-authorised aggregate Panel responsibility/claim/ageing report for Director, Finance Officer and Panel Officer. No additional patient/source content, financial or claim mutation. Existing claim scope and numeric measures are shared. [Full handoff](reports/RPT-01d.md) records definitions, grants, the hub assertion and validation. No push, PR or merge.
+Owner-authorised aggregate Panel responsibility/claim/ageing report for Director, Finance Officer and Panel Officer. No additional patient/source content, financial or claim mutation. Existing claim scope and numeric measures are shared. [Full handoff](reports/RPT-01d.md) records definitions, grants, the hub assertion and validation. Latest main `bfd136f` merged; only a documentation conflict was resolved, preserving both sections. Full gate re-run before the owner-authorised push/PR; no merge authorised.
 
 ### RPT-01e — Stock movement summary (local stacked candidate)
 
