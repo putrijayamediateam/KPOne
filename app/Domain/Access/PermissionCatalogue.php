@@ -3,6 +3,7 @@
 namespace App\Domain\Access;
 
 use App\Domain\Clinical\Documents\MedicalCertificatePermissions;
+use App\Domain\Clinical\Documents\ReferralPermissions;
 
 final class PermissionCatalogue
 {
@@ -36,6 +37,7 @@ final class PermissionCatalogue
             ...BillingPermissions::all(),
             ...array_keys(ReportPermissions::grants()),
             ...array_keys(MedicalCertificatePermissions::grants()),
+            ...array_keys(ReferralPermissions::grants()),
             'dashboard.view.own',
             'profile.view.own',
             'staff.view.own',
@@ -323,7 +325,7 @@ final class PermissionCatalogue
             $roles[$role] = [...$roles[$role], ...$permissions];
         }
 
-        foreach (MedicalCertificatePermissions::grants() as $permission => $grants) {
+        foreach ([...MedicalCertificatePermissions::grants(), ...ReferralPermissions::grants()] as $permission => $grants) {
             foreach ($grants as $role) {
                 $roles[$role][] = $permission;
             }
