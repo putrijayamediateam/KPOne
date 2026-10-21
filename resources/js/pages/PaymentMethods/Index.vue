@@ -16,6 +16,8 @@ type PaymentMethodRow = {
     requiresReference: boolean;
     sortOrder: number;
     isActive: boolean;
+    classification: 'cash' | 'non_cash' | null;
+    lockVersion: number;
 };
 
 defineProps<{ methods: PaymentMethodRow[] }>();
@@ -39,6 +41,33 @@ const create = () => {
         });
 };
 
+const classifying = ref<PaymentMethodRow | null>(null);
+const classificationForm = useForm({
+    classification: null as 'cash' | 'non_cash' | null,
+    lock_version: 0,
+});
+const beginClassification = (method: PaymentMethodRow) => {
+    classifying.value = method;
+    classificationForm.classification = method.classification;
+    classificationForm.lock_version = method.lockVersion;
+    classificationForm.clearErrors();
+};
+const saveClassification = () => {
+    if (!classifying.value) {
+        return;
+    }
+
+    classificationForm.patch(
+        `/payment-methods/${classifying.value.id}/classification`,
+        {
+            preserveScroll: true,
+            onSuccess: () => {
+                classifying.value = null;
+                classificationForm.reset();
+            },
+        },
+    );
+};
 const editingId = ref<number | null>(null);
 const editForm = useForm({
     name: '',
@@ -91,6 +120,11 @@ const changeStatus = (method: PaymentMethodRow) => {
             description="Configure the organisation payment methods available at checkout."
         />
 
+        <p class="text-sm text-muted-foreground">
+            Classification changes apply to reports generated from now on,
+            including historical periods. Stored payments and receipts never
+            change. Not classified is counted as Non-cash in reports.
+        </p>
         <section class="rounded-xl border bg-card p-4">
             <h2 class="text-sm font-semibold">Add Payment Method</h2>
             <p class="mt-1 text-xs text-muted-foreground">
@@ -166,6 +200,9 @@ const changeStatus = (method: PaymentMethodRow) => {
                         <tr class="border-b text-xs text-muted-foreground">
                             <th class="py-2 pr-3 font-medium">Code</th>
                             <th class="py-2 pr-3 font-medium">Name</th>
+                            <th class="py-2 pr-3 font-medium">
+                                Classification
+                            </th>
                             <th class="py-2 pr-3 font-medium">Reference</th>
                             <th class="py-2 pr-3 font-medium">Order</th>
                             <th class="py-2 pr-3 font-medium">Status</th>
@@ -189,6 +226,24 @@ const changeStatus = (method: PaymentMethodRow) => {
                                 >
                                     {{ method.description }}
                                 </div>
+                            </td>
+                            <td class="py-3 pr-3">
+                                <p>
+                                    {{
+                                        method.classification === 'cash'
+                                            ? 'Cash'
+                                            : method.classification ===
+                                                'non_cash'
+                                              ? 'Non-cash'
+                                              : 'Not classified'
+                                    }}
+                                </p>
+                                <Button
+                                    size="sm"
+                                    variant="outline"
+                                    @click="beginClassification(method)"
+                                    >Change classification</Button
+                                >
                             </td>
                             <td class="py-3 pr-3">
                                 {{
@@ -235,6 +290,62 @@ const changeStatus = (method: PaymentMethodRow) => {
             </div>
         </section>
 
+        <div
+            v-if="classifying"
+            class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+            @keydown.esc="classifying = null"
+        >
+            <section
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="classification-title"
+                class="w-full max-w-lg rounded-xl border bg-card p-5 shadow-xl"
+            >
+                <h2 id="classification-title" class="font-semibold">
+                    Change classification
+                </h2>
+                <p class="mt-2 text-sm">{{ classifying.name }}</p>
+                <form
+                    class="mt-4 grid gap-3"
+                    @submit.prevent="saveClassification"
+                >
+                    <label class="grid gap-1 text-sm"
+                        >Classification
+                        <select
+                            v-model="classificationForm.classification"
+                            class="rounded-md border bg-background p-2 text-foreground"
+                        >
+                            <option :value="null">Not classified</option>
+                            <option value="cash">Cash</option>
+                            <option value="non_cash">Non-cash</option>
+                        </select>
+                    </label>
+                    <InputError
+                        :message="classificationForm.errors.classification"
+                    />
+                    <InputError
+                        :message="classificationForm.errors.lock_version"
+                    />
+                    <p class="text-xs text-muted-foreground">
+                        Not classified counts as Non-cash. Reports use the
+                        current classification; stored receipts are unchanged.
+                    </p>
+                    <div class="flex justify-end gap-2">
+                        <Button
+                            type="button"
+                            variant="outline"
+                            @click="classifying = null"
+                            >Cancel</Button
+                        >
+                        <Button
+                            type="submit"
+                            :disabled="classificationForm.processing"
+                            >Save classification</Button
+                        >
+                    </div>
+                </form>
+            </section>
+        </div>
         <div
             v-if="editingId !== null"
             class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
