@@ -231,9 +231,10 @@ result requests use 60/minute/actor. More than 5,000 export data rows is refused
 never truncated. CSV reuses the BOM/CRLF/quoting/formula-neutralising encoder and exact integer-sen MYR formatting.
 No generated file, email or background job is stored. Browser downloads remain under the recipient's control.
 
-Transaction Detail (RPT-02b) is a separate PR. Cash/Non-cash classification, a Payment Methods classification
-setting, Treatment filtering, Panel ageing, valuation, patient rankings, XLSX/PDF and retained/asynchronous
-exports remain deferred. Existing real-patient production and privacy release gates remain applicable.
+At the time of RPT-02a, Transaction Detail, Cash/Non-cash classification and Panel ageing were deferred. They
+were then built as RPT-02b, RPT-01c-0 and RPT-01d (PRs #149, #145 and #147; see the sections below). Treatment
+filtering, valuation, patient rankings, XLSX/PDF and retained/asynchronous exports remain deferred. Existing
+real-patient production and privacy release gates remain applicable.
 
 ## RPT-01c-0: current payment-method classification
 
