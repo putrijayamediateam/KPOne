@@ -1,4 +1,6 @@
-# DOC-04 — Referral letters (local candidate)
+# DOC-04 — Referral letters (merged in PR #151 as `b4b81ac`)
+
+> Status update 2026-10-21: merged into `main` as `b4b81ac`; PR and post-merge CI green. The sections below are the original local-candidate handoff, kept as written, so statements such as "no push, PR or merge" describe the state before the PR.
 
 Owner-authorised referral only, based on canonical main `305f369`. Isolated worktree `/private/tmp/KPOne-doc04`, branch `feature/doc-04-referral-letters`. Local commit only; no push, PR or merge authorised. The served tree is unchanged. Other document types are neither implemented nor stubbed.
 
