@@ -3,6 +3,7 @@ import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import { BadgeCheck, FileClock, Pencil, Plus } from '@lucide/vue';
 import { ref } from 'vue';
 import InputError from '@/components/InputError.vue';
+import WhatsAppLink from '@/components/patient/WhatsAppLink.vue';
 import { Button } from '@/components/ui/button';
 import type { PatientDetail, PatientIdentifier } from '@/types';
 
@@ -131,8 +132,15 @@ const formatTime = (value: string) =>
                 <dl class="grid gap-4 p-5 text-sm">
                     <div>
                         <dt class="text-muted-foreground">Mobile</dt>
-                        <dd class="font-medium">
-                            {{ patient.contact.mobilePhone ?? 'Not recorded' }}
+                        <dd
+                            class="flex flex-wrap items-center gap-2 font-medium"
+                        >
+                            <span>{{
+                                patient.contact.mobilePhone ?? 'Not recorded'
+                            }}</span>
+                            <WhatsAppLink
+                                :phone="patient.contact.mobilePhone"
+                            />
                         </dd>
                     </div>
                     <div>

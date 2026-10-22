@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Head, router, usePage } from '@inertiajs/vue3';
 import { computed, ref, watch } from 'vue';
+import WhatsAppLink from '@/components/patient/WhatsAppLink.vue';
 import { ActionLink } from '@/components/ui/action-link';
 import { Button } from '@/components/ui/button';
 import { StatusBadge } from '@/components/ui/status';
@@ -404,9 +405,10 @@ const eventTitle = (type: string) =>
                             </dd>
                             <dd
                                 v-if="claim.patientPhone"
-                                class="text-muted-foreground"
+                                class="flex flex-wrap items-center gap-2 text-muted-foreground"
                             >
-                                {{ claim.patientPhone }}
+                                <span>{{ claim.patientPhone }}</span>
+                                <WhatsAppLink :phone="claim.patientPhone" />
                             </dd>
                         </div>
                         <div>

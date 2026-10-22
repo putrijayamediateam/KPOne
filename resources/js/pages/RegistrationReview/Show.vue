@@ -10,6 +10,7 @@ import {
 import { computed, ref, watch } from 'vue';
 import InputError from '@/components/InputError.vue';
 import RegistrationContactFields from '@/components/patient/RegistrationContactFields.vue';
+import WhatsAppLink from '@/components/patient/WhatsAppLink.vue';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -302,14 +303,26 @@ watch(
                             </select></label
                         >
                     </div>
-                    <label class="grid gap-1"
-                        ><span class="text-sm font-medium">Mobile phone</span
-                        ><input
-                            v-model="correction.mobile_phone"
-                            type="tel"
-                            class="h-10 rounded-md border bg-background px-3" /><InputError
-                            :message="correction.errors.mobile_phone"
-                    /></label>
+                    <div class="grid content-start gap-2">
+                        <label class="grid gap-1"
+                            ><span class="text-sm font-medium"
+                                >Mobile phone</span
+                            ><input
+                                v-model="correction.mobile_phone"
+                                type="tel"
+                                class="h-10 rounded-md border bg-background px-3" /><InputError
+                                :message="
+                                    correction.errors.mobile_phone
+                                " /></label
+                        ><WhatsAppLink
+                            v-if="
+                                correction.mobile_phone ===
+                                intake.fields.mobile_phone
+                            "
+                            :phone="intake.fields.mobile_phone"
+                            class="justify-self-start"
+                        />
+                    </div>
                     <RegistrationContactFields
                         v-if="intake.collectContactDetails"
                         class="md:col-span-2"
@@ -344,21 +357,37 @@ watch(
                             class="h-10 min-w-0 rounded-md border bg-background px-3"
                         />
                     </div>
-                    <template v-if="correction.submission_type === 'guardian'"
-                        ><label class="grid gap-1"
-                            ><span class="text-sm font-medium"
+                    <template v-if="correction.submission_type === 'guardian'">
+                        <label class="grid gap-1">
+                            <span class="text-sm font-medium"
                                 >Guardian name</span
-                            ><input
+                            >
+                            <input
                                 v-model="correction.guardian_name"
-                                class="h-10 rounded-md border bg-background px-3" /></label
-                        ><label class="grid gap-1"
-                            ><span class="text-sm font-medium"
-                                >Guardian contact</span
-                            ><input
-                                v-model="correction.guardian_contact_number"
-                                type="tel"
-                                class="h-10 rounded-md border bg-background px-3" /></label
-                    ></template>
+                                class="h-10 rounded-md border bg-background px-3"
+                            />
+                        </label>
+                        <div class="grid content-start gap-2">
+                            <label class="grid gap-1">
+                                <span class="text-sm font-medium"
+                                    >Guardian contact</span
+                                >
+                                <input
+                                    v-model="correction.guardian_contact_number"
+                                    type="tel"
+                                    class="h-10 rounded-md border bg-background px-3"
+                                />
+                            </label>
+                            <WhatsAppLink
+                                v-if="
+                                    correction.guardian_contact_number ===
+                                    intake.fields.guardian_contact_number
+                                "
+                                :phone="intake.fields.guardian_contact_number"
+                                class="justify-self-start"
+                            />
+                        </div>
+                    </template>
                     <p
                         v-if="medicineOnly"
                         class="rounded-md border border-sky-300 bg-sky-50 p-2 text-sm text-sky-950 md:col-span-2"

@@ -8,7 +8,7 @@ These rules apply to the entire repository.
 - Never create, read, print, or commit a real `.env`. Work from `.env.example` placeholders only.
 - Never add real patient data, staff personal data, employee names, private email addresses, phone numbers, credentials, tokens, or operational secrets.
 - Use fictional `.test` identities in tests and local-only seeders.
-- Do not build patient, registration, queue, appointment, clinical, diagnosis, prescription, dispensary, billing, inventory, HR workflow, finance workflow, website integration, Yezza, WhatsApp, OTP, or data-migration features until their phase is explicitly authorised.
+- Do not build patient, registration, queue, appointment, clinical, diagnosis, prescription, dispensary, billing, inventory, HR workflow, finance workflow, website integration, Yezza, WhatsApp, OTP, or data-migration features until their phase is explicitly authorised. Only a plain WhatsApp click-to-chat link is permitted (owner decision 2026-10-22; see docs/BASELINE.md); its API, templates, stored messages, delivery tracking, OTP and notifications remain unauthorised.
 - Do not commit or push unless the user explicitly asks after reviewing the diff.
 
 ## Architecture
