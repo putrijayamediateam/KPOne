@@ -44,7 +44,7 @@ class PatientDirectoryService
             ),
         };
 
-        return $this->projectPaginator($patients->orderBy('full_name')->paginate(20, page: $page));
+        return $this->projectPaginator($actor, $patients->orderBy('full_name')->paginate(20, page: $page));
     }
 
     /**
@@ -81,7 +81,7 @@ class PatientDirectoryService
         foreach ($ids as $id) {
             $patient = $patients->get($id);
             if ($patient instanceof Patient) {
-                $summaries[] = $this->projectPatient($patient);
+                $summaries[] = $this->projectPatient($actor, $patient);
             }
         }
 
@@ -136,6 +136,7 @@ class PatientDirectoryService
         }
 
         return [
+            'canWhatsapp' => $actor->can('patients.view.organisation') && WhatsAppNumber::normalize($patient->mobile_phone) !== null,
             'patientNumber' => $patient->patient_number,
             'identity' => [
                 'fullName' => $patient->full_name,
@@ -191,10 +192,10 @@ class PatientDirectoryService
      * @param  LengthAwarePaginator<int, Patient>  $paginator
      * @return array<string, mixed>
      */
-    private function projectPaginator(LengthAwarePaginator $paginator): array
+    private function projectPaginator(User $actor, LengthAwarePaginator $paginator): array
     {
         return [
-            'data' => collect($paginator->items())->map(fn (Patient $patient): array => $this->projectPatient($patient))->values()->all(),
+            'data' => collect($paginator->items())->map(fn (Patient $patient): array => $this->projectPatient($actor, $patient))->values()->all(),
             'currentPage' => $paginator->currentPage(),
             'lastPage' => $paginator->lastPage(),
             'perPage' => $paginator->perPage(),
@@ -203,11 +204,12 @@ class PatientDirectoryService
     }
 
     /** @return array<string, mixed> */
-    private function projectPatient(Patient $patient): array
+    private function projectPatient(User $actor, Patient $patient): array
     {
         $identifier = $patient->identifiers->first();
 
         return [
+            'canWhatsapp' => $actor->can('patients.view.organisation') && WhatsAppNumber::normalize($patient->mobile_phone) !== null,
             'patientNumber' => $patient->patient_number,
             'fullName' => $patient->full_name,
             'dateOfBirth' => $patient->date_of_birth?->format('Y-m-d'),

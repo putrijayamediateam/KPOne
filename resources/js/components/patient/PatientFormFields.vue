@@ -12,6 +12,8 @@ const props = defineProps<{
     newPatient?: boolean;
     requirements?: RegistrationRequirements;
     originalPhone?: string;
+    canWhatsapp?: boolean;
+    patientNumber?: string;
     errors: Partial<Record<keyof PatientFormValues, string>>;
 }>();
 const fields = reactive(props.model);
@@ -126,7 +128,8 @@ const genderOptions = [
                             originalPhone !== undefined &&
                             fields.mobile_phone === originalPhone
                         "
-                        :phone="originalPhone"
+                        :can-whatsapp="!!canWhatsapp"
+                        :route-key="patientNumber ?? ''"
                         class="justify-self-start"
                     />
                 </div>

@@ -59,6 +59,7 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         RateLimiter::for('patient-report-views', fn (Request $request) => Limit::perMinute(60)->by('patient-reports:'.$request->user()?->organisation_id.':'.$request->user()?->id));
+        RateLimiter::for('patient-whatsapp', fn (Request $request) => Limit::perMinute(20)->by('patient-whatsapp:'.$request->user()?->id));
         RateLimiter::for('reports-downloads', fn (Request $request) => Limit::perMinute(10)->by('reports:'.$request->user()?->organisation_id.':'.$request->user()?->id));
         $this->configureDefaults();
         $this->configureAuthorization();

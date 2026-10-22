@@ -70,6 +70,7 @@ type Intake = {
         fullName: string;
         dateOfBirth: string | null;
         maskedPhone: string | null;
+        canWhatsapp: boolean;
         maskedIdentifier: string | null;
     }>;
 };
@@ -311,17 +312,8 @@ watch(
                                 v-model="correction.mobile_phone"
                                 type="tel"
                                 class="h-10 rounded-md border bg-background px-3" /><InputError
-                                :message="
-                                    correction.errors.mobile_phone
-                                " /></label
-                        ><WhatsAppLink
-                            v-if="
-                                correction.mobile_phone ===
-                                intake.fields.mobile_phone
-                            "
-                            :phone="intake.fields.mobile_phone"
-                            class="justify-self-start"
-                        />
+                                :message="correction.errors.mobile_phone"
+                        /></label>
                     </div>
                     <RegistrationContactFields
                         v-if="intake.collectContactDetails"
@@ -378,14 +370,6 @@ watch(
                                     class="h-10 rounded-md border bg-background px-3"
                                 />
                             </label>
-                            <WhatsAppLink
-                                v-if="
-                                    correction.guardian_contact_number ===
-                                    intake.fields.guardian_contact_number
-                                "
-                                :phone="intake.fields.guardian_contact_number"
-                                class="justify-self-start"
-                            />
                         </div>
                     </template>
                     <p
@@ -607,6 +591,10 @@ watch(
                                 <p class="text-xs text-muted-foreground">
                                     {{ candidate.maskedIdentifier }} ·
                                     {{ candidate.maskedPhone }}
+                                    <WhatsAppLink
+                                        :can-whatsapp="candidate.canWhatsapp"
+                                        :route-key="candidate.patientNumber"
+                                    />
                                 </p>
                             </div>
                             <Button

@@ -6,6 +6,7 @@ use App\Domain\Access\BranchAccessService;
 use App\Domain\Access\TransactionalActorAuthority;
 use App\Domain\Audit\AuditRecorder;
 use App\Domain\Organisation\Models\Branch;
+use App\Domain\Patient\Services\WhatsAppNumber;
 use App\Domain\Visit\Billing\Models\CoverageAllocation;
 use App\Domain\Visit\Billing\Models\Invoice;
 use App\Domain\Visit\Billing\Models\InvoiceLine;
@@ -638,6 +639,7 @@ final class PanelClaimDirectoryService
                     'receivedOn' => $lastPayment?->received_at->setTimezone($branch->timezone)->format('j F Y'),
                     'amountDueSen' => max(0, $payoutBase - $paid),
                     'identityVisible' => $canSeeIdentity,
+                    'canWhatsapp' => $canSeeIdentity && WhatsAppNumber::normalize($patientRow?->mobile_phone) !== null,
                     'patientPhone' => $canSeeIdentity ? $patientRow?->mobile_phone : null,
                     'patientIdentifierType' => $identifier === null ? null : strtoupper((string) $identifier->identifier_type),
                     'patientIdentifier' => $identifier === null ? null : (string) $identifier->normalized_value,

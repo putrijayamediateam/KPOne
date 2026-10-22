@@ -467,7 +467,7 @@ class PublicIntakeReviewService
             }
         }
 
-        $results = $candidates->unique('id')->take(5)->map(function (Patient $patient): array {
+        $results = $candidates->unique('id')->take(5)->map(function (Patient $patient) use ($actor): array {
             $patient->loadMissing('identifiers');
             $identifier = $patient->identifiers->firstWhere('retired_at', null);
 
@@ -476,6 +476,7 @@ class PublicIntakeReviewService
                 'fullName' => $patient->full_name,
                 'dateOfBirth' => $patient->date_of_birth?->format('Y-m-d'),
                 'maskedPhone' => $this->identity->maskPhone($patient->mobile_phone),
+                'canWhatsapp' => $actor->can('patients.view.organisation') && WhatsAppNumber::normalize($patient->mobile_phone) !== null,
                 'maskedIdentifier' => $identifier
                     ? $this->identity->maskIdentifier($identifier->identifier_type, $identifier->normalized_value) : null,
             ];

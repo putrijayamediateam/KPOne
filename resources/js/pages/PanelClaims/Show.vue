@@ -68,6 +68,7 @@ type ClaimData = {
     amountDueSen: number;
     identityVisible: boolean;
     patientPhone: string | null;
+    canWhatsapp: boolean;
     patientIdentifierType: string | null;
     patientIdentifier: string | null;
     documents: {
@@ -408,7 +409,11 @@ const eventTitle = (type: string) =>
                                 class="flex flex-wrap items-center gap-2 text-muted-foreground"
                             >
                                 <span>{{ claim.patientPhone }}</span>
-                                <WhatsAppLink :phone="claim.patientPhone" />
+                                <WhatsAppLink
+                                    :can-whatsapp="claim.canWhatsapp"
+                                    :route-key="claim.publicId"
+                                    context="claim"
+                                />
                             </dd>
                         </div>
                         <div>

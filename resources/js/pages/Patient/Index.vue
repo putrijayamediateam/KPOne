@@ -3,6 +3,7 @@ import { Head, Link } from '@inertiajs/vue3';
 import { Plus, Search, UserRoundSearch } from '@lucide/vue';
 import { reactive, ref } from 'vue';
 import InputError from '@/components/InputError.vue';
+import WhatsAppLink from '@/components/patient/WhatsAppLink.vue';
 import { Button } from '@/components/ui/button';
 import { OperationalSelect } from '@/components/ui/select';
 
@@ -12,6 +13,7 @@ defineOptions({
 defineProps<{ canCreate: boolean }>();
 
 type Result = {
+    canWhatsapp: boolean;
     patientNumber: string;
     fullName: string;
     dateOfBirth: string | null;
@@ -172,9 +174,9 @@ const identifierLabel = (result: Result) =>
                 {{ total }} matching record{{ total === 1 ? '' : 's' }}
             </div>
             <div v-if="results.length" class="overflow-x-auto">
-                <table class="w-full text-left text-sm">
+                <table class="block w-full text-left text-sm md:table">
                     <thead
-                        class="border-b bg-muted/40 text-xs text-muted-foreground uppercase"
+                        class="hidden border-b bg-muted/40 text-xs text-muted-foreground uppercase md:table-header-group"
                     >
                         <tr>
                             <th class="px-5 py-3">Patient</th>
@@ -183,12 +185,15 @@ const identifierLabel = (result: Result) =>
                             <th class="px-5 py-3">Phone</th>
                         </tr>
                     </thead>
-                    <tbody class="divide-y">
+                    <tbody class="block divide-y md:table-row-group">
                         <tr
                             v-for="patient in results"
                             :key="patient.patientNumber"
+                            class="grid grid-cols-[minmax(0,1fr)_auto] md:table-row"
                         >
-                            <td class="px-5 py-4">
+                            <td
+                                class="order-1 min-w-0 px-3 py-3 md:px-5 md:py-4"
+                            >
                                 <Link
                                     :href="patientHref(patient.patientNumber)"
                                     class="font-medium text-emerald-800 hover:underline"
@@ -200,15 +205,29 @@ const identifierLabel = (result: Result) =>
                                     {{ patient.patientNumber }}
                                 </div>
                             </td>
-                            <td class="px-5 py-4">
+                            <td class="order-3 px-3 pb-3 md:px-5 md:py-4">
+                                <span
+                                    class="block text-xs text-muted-foreground md:hidden"
+                                    >DOB / sex</span
+                                >
                                 {{ patient.dateOfBirth ?? 'Not recorded' }} ·
                                 {{ patient.sex }}
                             </td>
-                            <td class="px-5 py-4">
+                            <td class="order-4 px-3 pb-3 md:px-5 md:py-4">
+                                <span
+                                    class="block text-xs text-muted-foreground md:hidden"
+                                    >Identifier</span
+                                >
                                 {{ identifierLabel(patient) }}
                             </td>
-                            <td class="px-5 py-4">
-                                {{ patient.maskedPhone ?? 'Not recorded' }}
+                            <td class="order-2 px-3 py-3 md:px-5 md:py-4">
+                                <span class="flex items-center gap-1">
+                                    {{ patient.maskedPhone ?? 'Not recorded'
+                                    }}<WhatsAppLink
+                                        :can-whatsapp="patient.canWhatsapp"
+                                        :route-key="patient.patientNumber"
+                                    />
+                                </span>
                             </td>
                         </tr>
                     </tbody>

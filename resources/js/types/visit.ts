@@ -18,6 +18,7 @@ export type VisitReasonPresentation = {
 };
 
 export type PatientRegistrationSummary = {
+    canWhatsapp: boolean;
     patientNumber: string;
     fullName: string;
     dateOfBirth: string | null;

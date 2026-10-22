@@ -139,7 +139,8 @@ const formatTime = (value: string) =>
                                 patient.contact.mobilePhone ?? 'Not recorded'
                             }}</span>
                             <WhatsAppLink
-                                :phone="patient.contact.mobilePhone"
+                                :can-whatsapp="patient.canWhatsapp"
+                                :route-key="patient.patientNumber"
                             />
                         </dd>
                     </div>

@@ -44,6 +44,7 @@ use App\Http\Controllers\PatientBillingReportController;
 use App\Http\Controllers\PatientController;
 use App\Http\Controllers\PatientIdentifierController;
 use App\Http\Controllers\PatientSearchController;
+use App\Http\Controllers\PatientWhatsAppController;
 use App\Http\Controllers\PaymentMethodController;
 use App\Http\Controllers\PaymentReconciliationController;
 use App\Http\Controllers\PricingController;
@@ -96,6 +97,8 @@ Route::middleware(['guest', 'throttle:10,1'])->group(function () {
 });
 
 Route::middleware(['auth', 'verified'])->group(function () {
+    Route::get('patient-contact/{context}/{key}/whatsapp', PatientWhatsAppController::class)->whereIn('context', ['patient', 'claim'])->middleware(['sensitive.no-store:no-referrer', 'throttle:patient-whatsapp'])->name('patients.whatsapp');
+
     Route::get('workspace', WorkspaceController::class)->name('workspace');
 
     Route::get('clinician-credentials/me', [ClinicianCredentialController::class, 'own'])->middleware(['permission:staff.view.own', 'sensitive.no-store'])->name('clinician-credentials.own');
