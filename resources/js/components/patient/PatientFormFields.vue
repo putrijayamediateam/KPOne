@@ -2,6 +2,7 @@
 import { reactive } from 'vue';
 import InputError from '@/components/InputError.vue';
 import PhoneInput from '@/components/patient/PhoneInput.vue';
+import WhatsAppLink from '@/components/patient/WhatsAppLink.vue';
 import { OperationalSelect } from '@/components/ui/select';
 import type { PatientFormValues } from '@/types';
 import type { RegistrationRequirements } from '@/types/registration-settings';
@@ -11,6 +12,8 @@ const props = defineProps<{
     newPatient?: boolean;
     requirements?: RegistrationRequirements;
     originalPhone?: string;
+    canWhatsapp?: boolean;
+    patientNumber?: string;
     errors: Partial<Record<keyof PatientFormValues, string>>;
 }>();
 const fields = reactive(props.model);
@@ -110,14 +113,26 @@ const genderOptions = [
                 <h2 class="font-semibold">Contact</h2>
             </div>
             <div class="grid gap-4 p-5 md:grid-cols-2">
-                <PhoneInput
-                    id="patient-phone"
-                    v-model="fields.mobile_phone"
-                    v-model:country="fields.phone_country"
-                    :required="newPatient"
-                    :unchanged-value="originalPhone"
-                    :error="errors.mobile_phone || errors.phone_country"
-                />
+                <div class="grid content-start gap-2">
+                    <PhoneInput
+                        id="patient-phone"
+                        v-model="fields.mobile_phone"
+                        v-model:country="fields.phone_country"
+                        :required="newPatient"
+                        :unchanged-value="originalPhone"
+                        :error="errors.mobile_phone || errors.phone_country"
+                    />
+                    <WhatsAppLink
+                        v-if="
+                            !newPatient &&
+                            originalPhone !== undefined &&
+                            fields.mobile_phone === originalPhone
+                        "
+                        :can-whatsapp="!!canWhatsapp"
+                        :route-key="patientNumber ?? ''"
+                        class="justify-self-start"
+                    />
+                </div>
                 <label class="grid gap-2">
                     <span class="text-sm font-medium"
                         >Email{{

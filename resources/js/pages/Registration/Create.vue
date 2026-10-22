@@ -12,6 +12,7 @@ import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue';
 import InputError from '@/components/InputError.vue';
 import PhoneInput from '@/components/patient/PhoneInput.vue';
 import RegistrationContactFields from '@/components/patient/RegistrationContactFields.vue';
+import WhatsAppLink from '@/components/patient/WhatsAppLink.vue';
 import { Button } from '@/components/ui/button';
 import { OperationalSelect } from '@/components/ui/select';
 import VisitReasonPicker from '@/components/visit/VisitReasonPicker.vue';
@@ -468,6 +469,11 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
                             selectedPatient.maskedPhone ??
                             'No identifier recorded'
                         }}
+                        <WhatsAppLink
+                            v-if="!selectedPatient.identifier"
+                            :can-whatsapp="selectedPatient.canWhatsapp"
+                            :route-key="selectedPatient.patientNumber"
+                        />
                     </div>
                 </div>
             </div>
@@ -510,43 +516,52 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
                     v-if="patientResults.length"
                     role="listbox"
                 >
-                    <button
+                    <div
                         v-for="(patient, index) in patientResults"
                         :key="patient.patientNumber"
-                        type="button"
-                        role="option"
-                        :aria-selected="activeResultIndex === index"
-                        :class="
-                            activeResultIndex === index
-                                ? 'bg-emerald-50/80'
-                                : 'hover:bg-muted/35'
-                        "
-                        class="flex w-full items-center justify-between gap-4 border-b border-border/50 px-3 py-2.5 text-left last:border-0"
-                        @mouseenter="activeResultIndex = index"
-                        @click="selectPatient(patient)"
+                        class="flex items-center"
                     >
-                        <span class="min-w-0">
-                            <span class="block truncate font-medium">{{
-                                patient.fullName
-                            }}</span>
-                            <span
-                                class="font-mono text-xs text-muted-foreground"
-                                >{{ patient.patientNumber }}</span
-                            >
-                        </span>
-                        <span
-                            class="shrink-0 text-right text-xs text-muted-foreground"
+                        <button
+                            type="button"
+                            role="option"
+                            :aria-selected="activeResultIndex === index"
+                            :class="
+                                activeResultIndex === index
+                                    ? 'bg-emerald-50/80'
+                                    : 'hover:bg-muted/35'
+                            "
+                            class="flex w-full items-center justify-between gap-4 border-b border-border/50 px-3 py-2.5 text-left last:border-0"
+                            @mouseenter="activeResultIndex = index"
+                            @click="selectPatient(patient)"
                         >
-                            <span class="block">{{
-                                patient.dateOfBirth ?? 'DOB unknown'
-                            }}</span>
-                            <span>{{
-                                patient.identifier?.maskedValue ??
-                                patient.maskedPhone ??
-                                'No identifier'
-                            }}</span>
-                        </span>
-                    </button>
+                            <span class="min-w-0">
+                                <span class="block truncate font-medium">{{
+                                    patient.fullName
+                                }}</span>
+                                <span
+                                    class="font-mono text-xs text-muted-foreground"
+                                    >{{ patient.patientNumber }}</span
+                                >
+                            </span>
+                            <span
+                                class="shrink-0 text-right text-xs text-muted-foreground"
+                            >
+                                <span class="block">{{
+                                    patient.dateOfBirth ?? 'DOB unknown'
+                                }}</span>
+                                <span>{{
+                                    patient.identifier?.maskedValue ??
+                                    patient.maskedPhone ??
+                                    'No identifier'
+                                }}</span>
+                            </span>
+                        </button>
+                        <WhatsAppLink
+                            v-if="!patient.identifier"
+                            :can-whatsapp="patient.canWhatsapp"
+                            :route-key="patient.patientNumber"
+                        />
+                    </div>
                 </div>
                 <div
                     v-if="

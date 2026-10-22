@@ -14,6 +14,7 @@ use App\Domain\Clinical\Models\PatientAllergyProfile;
 use App\Domain\Organisation\Inventory\Models\MedicineCatalogueInventorySku;
 use App\Domain\Organisation\Inventory\Services\InventoryAvailabilityService;
 use App\Domain\Organisation\Models\Branch;
+use App\Domain\Patient\Services\VisitWhatsAppEligibility;
 use App\Domain\Visit\Services\VisitReasonService;
 use App\Models\User;
 use Carbon\CarbonImmutable;
@@ -32,7 +33,7 @@ class DispensaryDirectoryService
         $branch = $this->branches->activeBranch($actor);
         abort_unless($branch && $actor->can('dispensary.view.branch') && $actor->hasAnyRole(['ca', 'ca_supervisor']), 404);
         $query = DispensaryCase::query()->where('dispensary_cases.organisation_id', $actor->organisation_id)->where('dispensary_cases.branch_id', $branch->id)->whereIn('dispensary_cases.status', [DispensaryCase::STATUS_PENDING, DispensaryCase::STATUS_DISPENSING])
-            ->with(['visit.patient:id,patient_number,full_name', 'visit.assignedDoctor:id,name', 'visit.reasonAssignments.reason:id,public_id,name', 'handoffs' => fn ($q) => $q->where('status', DispensaryHandoff::STATUS_OPEN)->withCount('items')]);
+            ->with(['visit.patient:id,organisation_id,patient_number,full_name,mobile_phone', 'visit.assignedDoctor:id,name', 'visit.reasonAssignments.reason:id,public_id,name', 'handoffs' => fn ($q) => $q->where('status', DispensaryHandoff::STATUS_OPEN)->withCount('items')]);
         $term = trim((string) ($criteria['patient_query'] ?? ''));
         if ($term !== '') {
             $query->whereHas('visit.patient', fn ($q) => preg_match('/\AKP-\d{8}\z/i', $term) === 1 ? $q->where('patient_number', Str::upper($term)) : $q->whereRaw("search_name LIKE ? ESCAPE '\\'", ['%'.$this->escapeLike(Str::lower($term)).'%']));
@@ -42,13 +43,13 @@ class DispensaryDirectoryService
         }
         $paginator = $query->latest('received_at')->paginate(25, page: (int) ($criteria['page'] ?? 1));
 
-        return ['data' => $paginator->getCollection()->map(function (DispensaryCase $case) use ($branch): array {
+        return ['data' => $paginator->getCollection()->map(function (DispensaryCase $case) use ($actor, $branch): array {
             $visit = $case->visit;
             $handoff = $case->handoffs->first();
 
             $receivedAt = CarbonImmutable::parse($case->received_at);
 
-            return ['visitNumber' => $visit->visit_number, 'patientNumber' => $visit->patient->patient_number, 'patientName' => $visit->patient->full_name, 'visitType' => $visit->visit_type, 'registeredAt' => $receivedAt->setTimezone($branch->timezone)->format('H:i'), 'visitReasonExcerpt' => ($summary = $this->visitReasons->summary($visit)) ? Str::limit($summary, 80) : null, 'doctorName' => $visit->assignedDoctor?->name, 'panelNote' => $visit->coverage_type === 'panel' ? $visit->coverage_panel_note : null, 'coverageLabel' => $visit->coverage_type === 'panel' ? $visit->coverage_panel_name_snapshot : 'Self-pay', 'priority' => $visit->priority, 'status' => $visit->status, 'queueNumber' => null, 'queueStatus' => 'removed', 'durationMinutes' => max(0, (int) $receivedAt->diffInMinutes(now()->utc())), 'visitLockVersion' => $visit->lock_version, 'queueLockVersion' => null, 'dispensaryStatus' => $case->status, 'medicineCount' => (int) $handoff->getAttribute('items_count'), 'dispensaryUrl' => route('dispensary.show', $case), 'can' => ['viewPatient' => false, 'update' => false, 'cancel' => false, 'sendToWaiting' => false, 'call' => false, 'openConsultation' => false, 'openDispensary' => true]];
+            return ['canWhatsapp' => VisitWhatsAppEligibility::allows($actor, $visit, $branch), 'visitNumber' => $visit->visit_number, 'patientNumber' => $visit->patient->patient_number, 'patientName' => $visit->patient->full_name, 'visitType' => $visit->visit_type, 'registeredAt' => $receivedAt->setTimezone($branch->timezone)->format('H:i'), 'visitReasonExcerpt' => ($summary = $this->visitReasons->summary($visit)) ? Str::limit($summary, 80) : null, 'doctorName' => $visit->assignedDoctor?->name, 'panelNote' => $visit->coverage_type === 'panel' ? $visit->coverage_panel_note : null, 'coverageLabel' => $visit->coverage_type === 'panel' ? $visit->coverage_panel_name_snapshot : 'Self-pay', 'priority' => $visit->priority, 'status' => $visit->status, 'queueNumber' => null, 'queueStatus' => 'removed', 'durationMinutes' => max(0, (int) $receivedAt->diffInMinutes(now()->utc())), 'visitLockVersion' => $visit->lock_version, 'queueLockVersion' => null, 'dispensaryStatus' => $case->status, 'medicineCount' => (int) $handoff->getAttribute('items_count'), 'dispensaryUrl' => route('dispensary.show', $case), 'can' => ['viewPatient' => false, 'update' => false, 'cancel' => false, 'sendToWaiting' => false, 'call' => false, 'openConsultation' => false, 'openDispensary' => true]];
         })->values(), 'total' => $paginator->total(), 'currentPage' => $paginator->currentPage(), 'lastPage' => $paginator->lastPage()];
     }
 

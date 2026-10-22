@@ -215,6 +215,7 @@ const boardRows = computed<PatientBoardRow[]>(() =>
 
         return {
             key: visit.visitNumber,
+            canWhatsapp: visit.canWhatsapp,
             patientName: visit.patientName,
             patientNumber: visit.patientNumber,
             visitNumber: visit.visitNumber,

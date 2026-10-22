@@ -67,6 +67,8 @@ const submit = () => {
                 :model="form"
                 :errors="form.errors"
                 :original-phone="patient.contact.mobilePhone ?? ''"
+                :can-whatsapp="patient.canWhatsapp"
+                :patient-number="patient.patientNumber"
             />
             <div
                 v-if="form.errors.lock_version"

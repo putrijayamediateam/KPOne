@@ -8,6 +8,7 @@ export type PatientIdentifier = {
 };
 
 export type PatientDetail = {
+    canWhatsapp: boolean;
     patientNumber: string;
     identity: {
         fullName: string;

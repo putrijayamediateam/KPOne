@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Head, router, usePage } from '@inertiajs/vue3';
 import { computed, ref, watch } from 'vue';
+import WhatsAppLink from '@/components/patient/WhatsAppLink.vue';
 import { ActionLink } from '@/components/ui/action-link';
 import { Button } from '@/components/ui/button';
 import { StatusBadge } from '@/components/ui/status';
@@ -67,6 +68,7 @@ type ClaimData = {
     amountDueSen: number;
     identityVisible: boolean;
     patientPhone: string | null;
+    canWhatsapp: boolean;
     patientIdentifierType: string | null;
     patientIdentifier: string | null;
     documents: {
@@ -404,9 +406,14 @@ const eventTitle = (type: string) =>
                             </dd>
                             <dd
                                 v-if="claim.patientPhone"
-                                class="text-muted-foreground"
+                                class="flex flex-wrap items-center gap-2 text-muted-foreground"
                             >
-                                {{ claim.patientPhone }}
+                                <span>{{ claim.patientPhone }}</span>
+                                <WhatsAppLink
+                                    :can-whatsapp="claim.canWhatsapp"
+                                    :route-key="claim.publicId"
+                                    context="claim"
+                                />
                             </dd>
                         </div>
                         <div>

@@ -18,6 +18,7 @@ export type VisitReasonPresentation = {
 };
 
 export type PatientRegistrationSummary = {
+    canWhatsapp: boolean;
     patientNumber: string;
     fullName: string;
     dateOfBirth: string | null;
@@ -27,6 +28,7 @@ export type PatientRegistrationSummary = {
 };
 
 export type VisitRow = {
+    canWhatsapp: boolean;
     visitNumber: string;
     patientNumber: string;
     patientName: string;

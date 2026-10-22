@@ -8,7 +8,7 @@ These rules apply to the entire repository.
 - Never create, read, print, or commit a real `.env`. Work from `.env.example` placeholders only.
 - Never add real patient data, staff personal data, employee names, private email addresses, phone numbers, credentials, tokens, or operational secrets.
 - Use fictional `.test` identities in tests and local-only seeders.
-- Do not build patient, registration, queue, appointment, clinical, diagnosis, prescription, dispensary, billing, inventory, HR workflow, finance workflow, website integration, Yezza, WhatsApp, OTP, or data-migration features until their phase is explicitly authorised. Website content management is authorised in DRAFT-ONLY form (2026-10-22); publishing, public intake, feedback, analytics, Search Console, deployment, import and any use of the old website remain unauthorised (see docs/BASELINE.md).
+- Do not build patient, registration, queue, appointment, clinical, diagnosis, prescription, dispensary, billing, inventory, HR workflow, finance workflow, website integration, Yezza, WhatsApp, OTP, or data-migration features until their phase is explicitly authorised. Website content management is authorised in DRAFT-ONLY form (2026-10-22); publishing, public intake, feedback, analytics, Search Console, deployment, import and any use of the old website remain unauthorised (see docs/BASELINE.md). The owner-authorised WA-01 exception (2026-10-22) permits only a staff-initiated WhatsApp click-to-chat link using a patient's saved number; KPOne sends nothing and uses no WhatsApp integration or message storage. WhatsApp messaging, OTP and all other messaging features remain unauthorised.
 - Do not commit or push unless the user explicitly asks after reviewing the diff.
 
 ## Architecture
