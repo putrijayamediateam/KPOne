@@ -107,8 +107,12 @@ class StaffAuthorityBoundaryTest extends TestCase
 
         foreach ($emptySet as $role) {
             $subject = $this->staff($role);
-            $this->administerAllFour($technical, $subject, ['marketing'], $role);
-            $this->assertTrue($subject->refresh()->hasRole('marketing'), $role);
+            $auditCount = AuditLog::query()->count();
+            $this->expectFailure(fn () => app(StaffRoleService::class)->sync($subject, ['marketing'], $technical), $role.' cannot be assigned Marketing by Technical Admin');
+            $this->assertTrue($subject->refresh()->hasRole($role), $role);
+            $this->assertSame($auditCount, AuditLog::query()->count());
+            $this->administerAllFour($technical, $subject, ['business_development'], $role);
+            $this->assertTrue($subject->refresh()->hasRole('business_development'), $role);
         }
     }
 
@@ -117,16 +121,20 @@ class StaffAuthorityBoundaryTest extends TestCase
         $technical = $this->staff('technical_admin');
         $supervisor = $this->staff('ca_supervisor');
 
-        app(StaffRoleService::class)->sync($supervisor, ['marketing'], $technical);
+        $auditBeforeDenial = AuditLog::query()->count();
+        $this->expectFailure(fn () => app(StaffRoleService::class)->sync($supervisor, ['marketing'], $technical), 'Marketing carries Website permissions Technical Admin cannot assign');
+        $this->assertTrue($supervisor->refresh()->hasRole('ca_supervisor'));
+        $this->assertSame($auditBeforeDenial, AuditLog::query()->count());
+        app(StaffRoleService::class)->sync($supervisor, ['business_development'], $technical);
 
-        $this->assertTrue($supervisor->refresh()->hasRole('marketing'));
+        $this->assertTrue($supervisor->refresh()->hasRole('business_development'));
         $this->assertFalse($supervisor->hasRole('ca_supervisor'));
         $detached = AuditLog::query()->where('event', 'access.role.detached')->where('subject_id', $supervisor->id)->sole();
         $this->assertSame($technical->id, $detached->actor_user_id);
         $this->assertContains('ca_supervisor', $detached->metadata['roles']);
         $attached = AuditLog::query()->where('event', 'access.role.attached')->where('subject_id', $supervisor->id)->where('actor_user_id', $technical->id)->sole();
         $this->assertSame($technical->id, $attached->actor_user_id);
-        $this->assertContains('marketing', $attached->metadata['roles']);
+        $this->assertContains('business_development', $attached->metadata['roles']);
 
         // Restoring the role is a promotion: canAssignRoles refuses it, and nothing changes.
         $auditCount = AuditLog::query()->count();
@@ -134,7 +142,7 @@ class StaffAuthorityBoundaryTest extends TestCase
             app(StaffRoleService::class)->sync($supervisor, ['ca_supervisor'], $technical);
             $this->fail('technical_admin re-assigned ca_supervisor.');
         } catch (AuthorizationException) {
-            $this->assertTrue($supervisor->refresh()->hasRole('marketing'));
+            $this->assertTrue($supervisor->refresh()->hasRole('business_development'));
             $this->assertFalse($supervisor->hasRole('ca_supervisor'));
             $this->assertSame($auditCount, AuditLog::query()->count());
         }
@@ -152,9 +160,13 @@ class StaffAuthorityBoundaryTest extends TestCase
         $peer = $this->staff('technical_admin');
 
         $this->assertTrue($technical->can('manageRoles', $peer));
-        app(StaffRoleService::class)->sync($peer, ['marketing'], $technical);
+        $auditBeforeDenial = AuditLog::query()->count();
+        $this->expectFailure(fn () => app(StaffRoleService::class)->sync($peer, ['marketing'], $technical), 'Peer demotion cannot mint Website permissions');
+        $this->assertTrue($peer->refresh()->hasRole('technical_admin'));
+        $this->assertSame($auditBeforeDenial, AuditLog::query()->count());
+        app(StaffRoleService::class)->sync($peer, ['business_development'], $technical);
 
-        $this->assertTrue($peer->refresh()->hasRole('marketing'));
+        $this->assertTrue($peer->refresh()->hasRole('business_development'));
         $this->assertFalse($peer->hasRole('technical_admin'));
         $this->assertSame($technical->id, AuditLog::query()->where('event', 'access.role.detached')->where('subject_id', $peer->id)->sole()->actor_user_id);
     }
@@ -272,6 +284,100 @@ class StaffAuthorityBoundaryTest extends TestCase
             }
             $this->assertTrue($self->refresh()->hasRole($role));
         }
+    }
+
+    public function test_website_roles_cannot_be_assigned_or_provisioned_by_technical_admin_or_hr(): void
+    {
+        foreach (['technical_admin', 'hr_manager'] as $actorRole) {
+            $actor = $this->staff($actorRole);
+            foreach (['marketing', 'hr_manager', 'administrator'] as $role) {
+                $subject = $this->staff('business_development');
+                $auditCount = AuditLog::query()->count();
+                $users = User::query()->count();
+                $this->expectFailure(fn () => app(StaffRoleService::class)->sync($subject, [$role], $actor), "{$actorRole} assigns {$role}");
+                $this->expectFailure(fn () => app(StaffProvisioningService::class)->provision($actor, $this->websiteProvisioningAttributes($role)), "{$actorRole} provisions {$role}");
+                $this->assertSame(['business_development'], $subject->refresh()->getRoleNames()->all());
+                $this->assertSame($users, User::query()->count());
+                $this->assertSame($auditCount, AuditLog::query()->count());
+                // HR covers its own role's permissions, but lacks access.manage.organisation.
+                // Test the actual mutation/provisioning boundary, not a new rule in canAssignRoles.
+                if ($actorRole === 'technical_admin' || $role !== 'hr_manager') {
+                    $this->assertFalse(app(StaffAuthorityService::class)->canAssignRoles($actor, [$role]));
+                }
+            }
+        }
+    }
+
+    public function test_director_provisions_all_three_website_roles_with_exact_approved_permissions(): void
+    {
+        $director = $this->staff('director');
+        foreach (['marketing', 'hr_manager', 'administrator'] as $role) {
+            $this->assertTrue(app(StaffAuthorityService::class)->canAssignRoles($director, [$role]));
+            $subject = app(StaffProvisioningService::class)->provision($director, $this->websiteProvisioningAttributes($role));
+            $this->assertSame([$role], $subject->getRoleNames()->all());
+            $expected = $role === 'hr_manager'
+                ? ['website.assets.manage.organisation', 'website.careers.manage.organisation', 'website.content.view.organisation', 'website.doctor_profiles.manage.organisation']
+                : ['website.assets.manage.organisation', 'website.content.manage.organisation', 'website.content.view.organisation'];
+            $actual = $subject->getAllPermissions()->pluck('name')->filter(fn (string $permission) => str_starts_with($permission, 'website.'))->sort()->values()->all();
+            $this->assertSame($expected, $actual);
+            $this->assertSame(1, $subject->staffProfile->branchAssignments()->where('is_primary', true)->count());
+        }
+    }
+
+    public function test_technical_admin_and_hr_still_edit_and_deactivate_website_role_accounts(): void
+    {
+        foreach (['technical_admin', 'hr_manager'] as $actorRole) {
+            $actor = $this->staff($actorRole);
+            foreach (['marketing', 'hr_manager', 'administrator'] as $role) {
+                // Controlled synthetic fixture only: account creation is not an actor mutation.
+                $subject = $this->staff($role);
+                $this->assertTrue($actor->can('update', $subject));
+                $this->assertTrue($actor->can('manageStatus', $subject));
+                app(StaffAdministrationService::class)->updateProfile($subject, $this->profileAttributes($subject, 'Synthetic Website Account Edited'), $actor);
+                $this->assertSame('Synthetic Website Account Edited', $subject->refresh()->name);
+                if ($actorRole === 'technical_admin') {
+                    app(BranchAssignmentService::class)->create($subject->staffProfile, $this->puchong, $this->temporaryAssignment(), $actor);
+                    $this->assertSame(2, $subject->staffProfile->branchAssignments()->count());
+                } else {
+                    $this->assertFalse($actor->can('manageAccess', $subject));
+                }
+                app(StaffAdministrationService::class)->setActive($subject, false, $actor);
+                $this->assertFalse($subject->refresh()->is_active);
+                $this->assertSame([$role], $subject->getRoleNames()->all());
+            }
+        }
+    }
+
+    public function test_technical_admin_can_demote_website_accounts_but_only_director_can_restore_them(): void
+    {
+        $technical = $this->staff('technical_admin');
+        $director = $this->staff('director');
+        foreach (['marketing', 'hr_manager', 'administrator'] as $role) {
+            $subject = $this->staff($role);
+            app(StaffRoleService::class)->sync($subject, ['business_development'], $technical);
+            $this->assertSame(['business_development'], $subject->refresh()->getRoleNames()->all());
+            $this->assertFalse($subject->getAllPermissions()->contains(fn ($permission) => str_starts_with($permission->name, 'website.')));
+            $auditCount = AuditLog::query()->count();
+            $this->expectFailure(fn () => app(StaffRoleService::class)->sync($subject, [$role], $technical), 'Technical Admin cannot restore '.$role);
+            $this->assertSame(['business_development'], $subject->refresh()->getRoleNames()->all());
+            $this->assertSame($auditCount, AuditLog::query()->count());
+            app(StaffRoleService::class)->sync($subject, [$role], $director);
+            $this->assertSame([$role], $subject->refresh()->getRoleNames()->all());
+        }
+    }
+
+    /** @return array<string, mixed> */
+    private function websiteProvisioningAttributes(string $role): array
+    {
+        return [
+            'name' => 'Synthetic Website Role', 'email' => Str::uuid().'@kpone.test',
+            'credential_strategy' => 'google_only', 'department_id' => $this->department->id,
+            'staff_number' => null, 'job_title' => 'Synthetic', 'is_active' => true, 'roles' => [$role],
+            'assignments' => [[
+                'branch_id' => $this->cheras->id, 'assignment_type' => 'permanent', 'is_primary' => true,
+                'valid_from' => now()->toDateString(), 'valid_until' => null,
+            ]],
+        ];
     }
 
     /**

@@ -6,6 +6,7 @@ use App\Domain\Access\PermissionCatalogue;
 use App\Domain\Organisation\Models\Branch;
 use App\Domain\Organisation\Models\Department;
 use App\Domain\Organisation\Models\Organisation;
+use App\Domain\Organisation\Website\WebsiteDraftSeeds;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Str;
 use Spatie\Permission\Models\Permission;
@@ -76,6 +77,8 @@ class KPOneReferenceSeeder extends Seeder
             );
             $department->forceFill(['name' => $name, 'is_active' => true])->save();
         }
+
+        WebsiteDraftSeeds::seed();
 
         foreach (PermissionCatalogue::all() as $permission) {
             Permission::query()->firstOrCreate(['name' => $permission, 'guard_name' => 'web']);

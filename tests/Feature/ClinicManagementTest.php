@@ -14,6 +14,10 @@ class ClinicManagementTest extends VisitTestCase
     public function test_hub_returns_only_authorized_implemented_destinations_for_every_catalogue_role(): void
     {
         $permissions = [
+            '/website/doctor-profiles' => ['website.content.view.organisation'],
+            '/website/careers' => ['website.content.view.organisation'],
+            '/website/branch-profiles' => ['website.content.view.organisation'],
+            '/website/media' => ['website.assets.manage.organisation'],
             '/medical-certificate-templates' => ['catalogue.settings.manage.organisation'],
             '/clinician-credentials' => ['clinician_credentials.manage.organisation'],
             '/clinician-credentials/me' => ['encounters.view.own'],
