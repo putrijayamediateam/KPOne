@@ -29,6 +29,7 @@ return [
     */
 
     'disks' => [
+        'website_media' => ['driver' => 'local', 'root' => storage_path('app/private/website-media'), 'serve' => false, 'throw' => true],
 
         'local' => [
             'driver' => 'local',
