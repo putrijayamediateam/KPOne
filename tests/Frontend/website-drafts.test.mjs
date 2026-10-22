@@ -55,5 +55,5 @@ test('Website hub icon and destinations remain permission-filtered without publi
     assert.match(nav, /website.content.view.organisation/);
     assert.match(nav, /website.assets.manage.organisation/);
     assert.match(read('resources/js/pages/ClinicManagement/Index.vue'), /website: Globe/);
-    assert.doesNotMatch(nav, /website\.publish|website\.requests|website\.careers|website\.doctor_profiles/);
+    assert.doesNotMatch(nav, /website\.publish|website\.requests/);
 });

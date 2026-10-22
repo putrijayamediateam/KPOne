@@ -12,6 +12,7 @@ Yezza remains the operational source of truth. Nothing below is production-appro
 | Phase / slice | Scope | Status |
 |---|---|---|
 | W1a | Draft-only branch public profiles, immutable EN/BM revisions, private sanitised website media, narrow website permissions. Provisioning Marketing, HR Manager and Administrator accounts is Director-only. | local candidate |
+| W1b | Manual doctor public profiles and careers content, private EN/BM revisions, consent-aware portraits, branch associations and retained archive state. New manage permissions: Director and HR Manager only; provisioning website roles remains Director-only. | local candidate |
 | 0A | Organisation, 3 branches (CHERAS, SUNGAI_BESI, PUCHONG), 9 departments, RBAC, auth, audit, shell | Merged |
 | 0B | Staff provisioning, identity admin, branch assignments | Merged |
 | 1A | Patient Master (KP-number, NRIC/passport history, masked search) | Merged |
@@ -839,3 +840,7 @@ Update this baseline in the same PR that merges a phase or changes an authorisat
 Owner authorises website content management in **DRAFT-ONLY** form: branch public profiles, EN/BM immutable revisions and private sanitised media only. Publishing, releases/snapshots, public routes/APIs, public intake, feedback, analytics, Search Console, deployment, import and any use of the old website remain unauthorised. KPOne stays independent; no old website code or runtime dependency. No other content type is built or stubbed.
 
 Local candidate on `feature/w1a-website-content-foundation`, based on canonical main `5bf8612`. Owner authorised the three legacy staff-authority fixture updates on 2026-10-22; access rules remain unchanged. Full gate including the EXIF-orientation fix passed: 1,293 backend passes / 21,530 assertions / two existing public-registration skips, and 398 frontend passes. JPEG/PNG/WebP EXIF orientation is applied before metadata removal; retained dimensions describe upright pixels. Full changes, every changed existing assertion, validation and synthetic Chrome evidence: [W1a report](reports/W1a.md). No push, PR or merge.
+
+## W1b — Manual doctor profiles and careers drafts (2026-10-22)
+
+Owner authorises **DRAFT-ONLY** manual doctor public profiles and careers content, extending W1a. Local candidate on `feature/w1b-website-people-content` from canonical main `18b5d60`. Nothing is public: no publishing, approval, release, public route/API, outbound website call, applicant/hiring workflow, old-data import or staff/credential sourcing. New `website.doctor_profiles.manage.organisation` and `website.careers.manage.organisation` permissions belong only to Director and HR Manager. Existing website view permission permits Director, HR Manager, Marketing and Administrator to read. Provisioning Marketing, HR Manager and Administrator accounts remains Director-only; staff-authority rules are unchanged. Full gate passed: 1,303 backend passes / 22,929 assertions / two existing public-registration skips, and 401 frontend passes. Details, every changed existing assertion, validation and synthetic Chrome evidence: [W1b report](reports/W1b.md).
