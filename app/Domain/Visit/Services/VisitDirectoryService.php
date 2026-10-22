@@ -9,6 +9,7 @@ use App\Domain\Clinical\Models\ConsultationCheckout;
 use App\Domain\Organisation\Models\Branch;
 use App\Domain\Patient\Models\Patient;
 use App\Domain\Patient\Services\PatientDirectoryService;
+use App\Domain\Patient\Services\VisitWhatsAppEligibility;
 use App\Domain\Queue\Models\OtcQueueEntry;
 use App\Domain\Queue\Models\QueueEntry;
 use App\Domain\Queue\QueueNumberFormat;
@@ -67,7 +68,7 @@ class VisitDirectoryService
             ->where('branch_id', $branch->id)
             ->whereBetween('registered_at', [$from, $to])
             ->with([
-                'patient:id,organisation_id,patient_number,full_name',
+                'patient:id,organisation_id,patient_number,full_name,mobile_phone',
                 'assignedDoctor:id,name',
                 'reasonAssignments.reason:id,public_id,name',
                 'queueEntry:id,organisation_id,branch_id,visit_id,operational_date,queue_number,status,queued_at,called_at,returned_from_dispensary_at,lock_version',
@@ -354,6 +355,7 @@ class VisitDirectoryService
             || DispensaryCase::query()->where('visit_id', $visit->id)->where('status', 'completed')->exists())));
 
         return [
+            'canWhatsapp' => VisitWhatsAppEligibility::allows($actor, $visit, $branch),
             'visitNumber' => $visit->visit_number,
             'patientNumber' => $visit->patient->patient_number,
             'patientName' => $visit->patient->full_name,

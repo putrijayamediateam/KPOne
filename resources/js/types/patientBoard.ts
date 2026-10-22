@@ -3,6 +3,7 @@ export type PatientBoardStatusTone =
 
 export type PatientBoardRow = {
     key: string;
+    canWhatsapp: boolean;
     patientName: string;
     patientNumber: string;
     visitNumber: string;

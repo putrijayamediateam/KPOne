@@ -11,7 +11,8 @@ const props = withDefaults(
     defineProps<{
         canWhatsapp: boolean;
         routeKey: string;
-        context?: 'patient' | 'claim';
+        compact?: boolean;
+        context?: 'patient' | 'claim' | 'visit';
     }>(),
     { context: 'patient' },
 );
@@ -38,7 +39,9 @@ const warning =
                         as-child
                         variant="ghost"
                         size="icon"
-                        class="min-h-12 min-w-12"
+                        :class="
+                            compact ? 'min-h-11 min-w-11' : 'min-h-12 min-w-12'
+                        "
                     >
                         <a
                             :href="href"
@@ -62,9 +65,14 @@ const warning =
                             </svg>
                         </a>
                     </Button> </TooltipTrigger
-                ><TooltipContent class="max-w-64">{{
-                    warning
-                }}</TooltipContent></Tooltip
+                ><TooltipContent
+                    side="bottom"
+                    align="end"
+                    :avoid-collisions="false"
+                    :side-offset="8"
+                    class="max-w-64 bg-slate-900 text-white shadow-lg dark:bg-slate-100 dark:text-slate-950"
+                    >{{ warning }}</TooltipContent
+                ></Tooltip
             ></TooltipProvider
         >
     </span>

@@ -1,6 +1,7 @@
 export type QueueStatus = 'waiting' | 'serving' | 'removed';
 
 export type QueueRow = {
+    canWhatsapp: boolean;
     queueNumber: string;
     operationalDate: string;
     patientNumber: string;

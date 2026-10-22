@@ -7,6 +7,7 @@ use App\Domain\Access\TransactionalActorAuthority;
 use App\Domain\Audit\AuditRecorder;
 use App\Domain\Patient\Models\Patient;
 use App\Domain\Visit\Billing\Models\PanelClaim;
+use App\Domain\Visit\Models\Visit;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -15,7 +16,7 @@ final class PatientWhatsAppService
 {
     public function destination(User $actor, string $context, string $key): string
     {
-        abort_unless(in_array($context, ['patient', 'claim'], true), 404);
+        abort_unless(in_array($context, ['patient', 'claim', 'visit'], true), 404);
 
         return DB::transaction(function () use ($actor, $context, $key): string {
             $actor = $actor->fresh();
@@ -36,6 +37,10 @@ final class PatientWhatsAppService
                 abort_unless(Str::isUuid($key), 404);
                 $claim = PanelClaim::query()->where('public_id', $key)->where('organisation_id', $actor->organisation_id)->where('branch_id', $branch->id)->firstOrFail(['patient_id']);
                 $patient = Patient::query()->whereKey($claim->patient_id)->where('organisation_id', $actor->organisation_id)->firstOrFail(['id', 'organisation_id', 'mobile_phone']);
+            } elseif ($context === 'visit') {
+                $visit = Visit::query()->where('visit_number', $key)->where('organisation_id', $actor->organisation_id)->where('branch_id', $branch->id)->lockForUpdate()->firstOrFail(['id', 'patient_id', 'status']);
+                abort_if($visit->status === Visit::STATUS_CANCELLED, 404);
+                $patient = Patient::query()->whereKey($visit->patient_id)->where('organisation_id', $actor->organisation_id)->firstOrFail(['id', 'organisation_id', 'mobile_phone']);
             } else {
                 $patient = Patient::query()->where('patient_number', $key)->where('organisation_id', $actor->organisation_id)->firstOrFail(['id', 'organisation_id', 'mobile_phone']);
             }

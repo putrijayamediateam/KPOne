@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Link, router } from '@inertiajs/vue3';
 import { Clock3, Ellipsis, LoaderCircle, UserRound } from '@lucide/vue';
+import WhatsAppLink from '@/components/patient/WhatsAppLink.vue';
 import { Button } from '@/components/ui/button';
 import { DisclosureText } from '@/components/ui/disclosure';
 import {
@@ -86,7 +87,7 @@ const statusClass = (tone: PatientBoardRow['statusTone']) =>
                     <th class="w-[24%] px-3 py-2">Payment</th>
                     <th class="w-[8%] px-3 py-2">Duration</th>
                     <th class="w-[9%] px-3 py-2">Status</th>
-                    <th class="w-[6%] px-3 py-2 text-right">Actions</th>
+                    <th class="w-[112px] px-3 py-2 text-right">Actions</th>
                 </tr>
             </thead>
             <tbody>
@@ -252,141 +253,158 @@ const statusClass = (tone: PatientBoardRow['statusTone']) =>
                         class="px-3 py-2 text-right align-middle"
                         data-label="Actions"
                     >
-                        <DropdownMenu>
-                            <DropdownMenuTrigger as-child>
-                                <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    :aria-label="`Actions for ${row.patientName}`"
+                        <div class="flex min-h-11 items-center justify-end">
+                            <WhatsAppLink
+                                :can-whatsapp="row.canWhatsapp"
+                                :route-key="row.visitNumber"
+                                context="visit"
+                                compact
+                            />
+                            <DropdownMenu>
+                                <DropdownMenuTrigger as-child>
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        :aria-label="`Actions for ${row.patientName}`"
+                                    >
+                                        <LoaderCircle
+                                            v-if="busyKey === row.key"
+                                            class="size-4 animate-spin"
+                                        />
+                                        <Ellipsis v-else class="size-4" />
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent
+                                    align="end"
+                                    class="w-48 rounded-xl border-border/70 p-1.5 shadow-xl shadow-black/5"
                                 >
-                                    <LoaderCircle
-                                        v-if="busyKey === row.key"
-                                        class="size-4 animate-spin"
+                                    <DropdownMenuItem
+                                        as-child
+                                        class="min-h-8 rounded-lg px-2.5 text-[13px]"
+                                    >
+                                        <Link :href="visitHref(row.visitNumber)"
+                                            >View Visit</Link
+                                        >
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                        v-if="row.can.viewPatient"
+                                        as-child
+                                        class="min-h-8 rounded-lg px-2.5 text-[13px]"
+                                    >
+                                        <Link
+                                            :href="
+                                                patientHref(row.patientNumber)
+                                            "
+                                            >View Patient</Link
+                                        >
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                        v-if="row.can.update"
+                                        as-child
+                                        class="min-h-8 rounded-lg px-2.5 text-[13px]"
+                                    >
+                                        <Link :href="editHref(row.visitNumber)"
+                                            >Edit Visit</Link
+                                        >
+                                    </DropdownMenuItem>
+                                    <DropdownMenuSeparator
+                                        v-if="
+                                            row.can.sendToWaiting ||
+                                            row.can.call ||
+                                            row.can.recall ||
+                                            row.can.callTreatment ||
+                                            row.can.openConsultation ||
+                                            row.can.openDispensary ||
+                                            row.can.cancel
+                                        "
                                     />
-                                    <Ellipsis v-else class="size-4" />
-                                </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent
-                                align="end"
-                                class="w-48 rounded-xl border-border/70 p-1.5 shadow-xl shadow-black/5"
-                            >
-                                <DropdownMenuItem
-                                    as-child
-                                    class="min-h-8 rounded-lg px-2.5 text-[13px]"
-                                >
-                                    <Link :href="visitHref(row.visitNumber)"
-                                        >View Visit</Link
+                                    <DropdownMenuItem
+                                        v-if="row.can.sendToWaiting"
+                                        class="min-h-8 rounded-lg px-2.5 text-[13px]"
+                                        @select="$emit('sendToWaiting', row)"
+                                        >Send to Waiting</DropdownMenuItem
                                     >
-                                </DropdownMenuItem>
-                                <DropdownMenuItem
-                                    v-if="row.can.viewPatient"
-                                    as-child
-                                    class="min-h-8 rounded-lg px-2.5 text-[13px]"
-                                >
-                                    <Link :href="patientHref(row.patientNumber)"
-                                        >View Patient</Link
+                                    <DropdownMenuItem
+                                        v-if="row.can.call"
+                                        class="min-h-8 rounded-lg px-2.5 text-[13px]"
+                                        @select="$emit('call', row)"
+                                        >Call In</DropdownMenuItem
                                     >
-                                </DropdownMenuItem>
-                                <DropdownMenuItem
-                                    v-if="row.can.update"
-                                    as-child
-                                    class="min-h-8 rounded-lg px-2.5 text-[13px]"
-                                >
-                                    <Link :href="editHref(row.visitNumber)"
-                                        >Edit Visit</Link
+                                    <DropdownMenuItem
+                                        v-if="row.can.recall"
+                                        class="min-h-8 rounded-lg px-2.5 text-[13px]"
+                                        @select="$emit('recall', row)"
+                                        >Call Again</DropdownMenuItem
                                     >
-                                </DropdownMenuItem>
-                                <DropdownMenuSeparator
-                                    v-if="
-                                        row.can.sendToWaiting ||
-                                        row.can.call ||
-                                        row.can.recall ||
-                                        row.can.callTreatment ||
-                                        row.can.openConsultation ||
-                                        row.can.openDispensary ||
-                                        row.can.cancel
-                                    "
-                                />
-                                <DropdownMenuItem
-                                    v-if="row.can.sendToWaiting"
-                                    class="min-h-8 rounded-lg px-2.5 text-[13px]"
-                                    @select="$emit('sendToWaiting', row)"
-                                    >Send to Waiting</DropdownMenuItem
-                                >
-                                <DropdownMenuItem
-                                    v-if="row.can.call"
-                                    class="min-h-8 rounded-lg px-2.5 text-[13px]"
-                                    @select="$emit('call', row)"
-                                    >Call In</DropdownMenuItem
-                                >
-                                <DropdownMenuItem
-                                    v-if="row.can.recall"
-                                    class="min-h-8 rounded-lg px-2.5 text-[13px]"
-                                    @select="$emit('recall', row)"
-                                    >Call Again</DropdownMenuItem
-                                >
-                                <DropdownMenuItem
-                                    v-if="row.can.callTreatment"
-                                    class="min-h-8 rounded-lg px-2.5 text-[13px]"
-                                    @select="$emit('callTreatment', row)"
-                                    >Call to Treatment Room</DropdownMenuItem
-                                >
-                                <DropdownMenuItem
-                                    v-if="row.can.openConsultation"
-                                    class="min-h-8 rounded-lg px-2.5 text-[13px]"
-                                    @select="$emit('openConsultation', row)"
-                                    >Open Consultation</DropdownMenuItem
-                                >
-                                <DropdownMenuItem
-                                    v-if="row.can.callDispensary"
-                                    class="min-h-8 rounded-lg px-2.5 text-[13px]"
-                                    data-action="call-dispensary"
-                                    @select="$emit('callDispensary', row)"
-                                    >Call to Dispensary</DropdownMenuItem
-                                >
-                                <DropdownMenuItem
-                                    v-if="row.can.dispense"
-                                    class="min-h-8 rounded-lg px-2.5 text-[13px]"
-                                    data-action="dispense"
-                                    @select="$emit('dispense', row)"
-                                    >Dispense</DropdownMenuItem
-                                >
-                                <DropdownMenuItem
-                                    v-if="
-                                        row.can.openDispensary &&
-                                        row.dispensaryUrl
-                                    "
-                                    as-child
-                                    class="min-h-8 rounded-lg px-2.5 text-[13px]"
-                                >
-                                    <Link :href="row.dispensaryUrl"
-                                        >Open Dispensary</Link
+                                    <!-- prettier-ignore -->
+                                    <DropdownMenuItem
+                                        v-if="row.can.callTreatment"
+                                        class="min-h-8 rounded-lg px-2.5 text-[13px]"
+                                        @select="$emit('callTreatment', row)"
+                                        >Call to Treatment Room</DropdownMenuItem
                                     >
-                                </DropdownMenuItem>
-                                <DropdownMenuItem
-                                    v-if="row.can.cancel"
-                                    class="min-h-8 rounded-lg px-2.5 text-[13px] text-red-700 focus:text-red-700"
-                                    @select="$emit('cancel', row)"
-                                    >Cancel Visit</DropdownMenuItem
-                                >
-                                <DropdownMenuItem
-                                    v-if="row.historyUrl"
-                                    as-child
-                                    class="min-h-8 rounded-lg px-2.5 text-[13px]"
-                                >
-                                    <Link :href="row.historyUrl">Invoices</Link>
-                                </DropdownMenuItem>
-                                <DropdownMenuItem
-                                    v-if="row.can.openBilling && row.billingUrl"
-                                    as-child
-                                    class="min-h-8 rounded-lg px-2.5 text-[13px]"
-                                >
-                                    <Link :href="row.billingUrl"
-                                        >Open Billing</Link
+                                    <DropdownMenuItem
+                                        v-if="row.can.openConsultation"
+                                        class="min-h-8 rounded-lg px-2.5 text-[13px]"
+                                        @select="$emit('openConsultation', row)"
+                                        >Open Consultation</DropdownMenuItem
                                     >
-                                </DropdownMenuItem>
-                            </DropdownMenuContent>
-                        </DropdownMenu>
+                                    <DropdownMenuItem
+                                        v-if="row.can.callDispensary"
+                                        class="min-h-8 rounded-lg px-2.5 text-[13px]"
+                                        data-action="call-dispensary"
+                                        @select="$emit('callDispensary', row)"
+                                        >Call to Dispensary</DropdownMenuItem
+                                    >
+                                    <DropdownMenuItem
+                                        v-if="row.can.dispense"
+                                        class="min-h-8 rounded-lg px-2.5 text-[13px]"
+                                        data-action="dispense"
+                                        @select="$emit('dispense', row)"
+                                        >Dispense</DropdownMenuItem
+                                    >
+                                    <DropdownMenuItem
+                                        v-if="
+                                            row.can.openDispensary &&
+                                            row.dispensaryUrl
+                                        "
+                                        as-child
+                                        class="min-h-8 rounded-lg px-2.5 text-[13px]"
+                                    >
+                                        <Link :href="row.dispensaryUrl"
+                                            >Open Dispensary</Link
+                                        >
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                        v-if="row.can.cancel"
+                                        class="min-h-8 rounded-lg px-2.5 text-[13px] text-red-700 focus:text-red-700"
+                                        @select="$emit('cancel', row)"
+                                        >Cancel Visit</DropdownMenuItem
+                                    >
+                                    <DropdownMenuItem
+                                        v-if="row.historyUrl"
+                                        as-child
+                                        class="min-h-8 rounded-lg px-2.5 text-[13px]"
+                                    >
+                                        <Link :href="row.historyUrl"
+                                            >Invoices</Link
+                                        >
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                        v-if="
+                                            row.can.openBilling &&
+                                            row.billingUrl
+                                        "
+                                        as-child
+                                        class="min-h-8 rounded-lg px-2.5 text-[13px]"
+                                    >
+                                        <Link :href="row.billingUrl"
+                                            >Open Billing</Link
+                                        >
+                                    </DropdownMenuItem>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+                        </div>
                     </td>
                 </tr>
                 <tr v-if="!rows.length">

@@ -7,6 +7,7 @@ use App\Domain\Clinical\Dispensary\Services\DoctorDispensaryAttentionService;
 use App\Domain\Clinical\Models\ConsultationHold;
 use App\Domain\Clinical\Services\CheckoutReopenEligibility;
 use App\Domain\Organisation\Models\Branch;
+use App\Domain\Patient\Services\VisitWhatsAppEligibility;
 use App\Domain\Queue\Models\QueueEntry;
 use App\Domain\Queue\QueueNumberFormat;
 use App\Domain\Visit\Policies\VisitPolicy;
@@ -143,7 +144,7 @@ class QueueDirectoryService
                     'coverage_panel_name_snapshot', 'coverage_panel_note', 'assigned_doctor_user_id', 'status', 'lock_version',
                 ])
                 ->with([
-                    'patient:id,organisation_id,patient_number,full_name',
+                    'patient:id,organisation_id,patient_number,full_name,mobile_phone',
                     'assignedDoctor:id,name',
                     'reasonAssignments.reason:id,public_id,name',
                     'clinicalEncounter.holds',
@@ -290,6 +291,7 @@ class QueueDirectoryService
         $elapsedSeconds = $entry->called_at ? $entry->called_at->diffInSeconds($now) : 0;
 
         return [
+            'canWhatsapp' => VisitWhatsAppEligibility::allows($actor, $visit, $branch),
             'queueNumber' => QueueNumberFormat::format($entry->queue_number),
             'operationalDate' => $entry->operational_date->toDateString(),
             'patientNumber' => $visit->patient->patient_number,

@@ -191,6 +191,7 @@ const compactTime = (value: string) => {
 const boardRows = computed<PatientBoardRow[]>(() =>
     sourceRows.value.map((row) => ({
         key: `${row.operationalDate}-${row.queueNumber}`,
+        canWhatsapp: row.canWhatsapp,
         patientName: row.patientName,
         patientNumber: row.patientNumber,
         visitNumber: row.visitNumber,

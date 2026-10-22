@@ -28,6 +28,7 @@ export type PatientRegistrationSummary = {
 };
 
 export type VisitRow = {
+    canWhatsapp: boolean;
     visitNumber: string;
     patientNumber: string;
     patientName: string;

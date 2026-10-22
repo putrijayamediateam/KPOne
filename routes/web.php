@@ -97,7 +97,7 @@ Route::middleware(['guest', 'throttle:10,1'])->group(function () {
 });
 
 Route::middleware(['auth', 'verified'])->group(function () {
-    Route::get('patient-contact/{context}/{key}/whatsapp', PatientWhatsAppController::class)->whereIn('context', ['patient', 'claim'])->middleware(['sensitive.no-store:no-referrer', 'throttle:patient-whatsapp'])->name('patients.whatsapp');
+    Route::get('patient-contact/{context}/{key}/whatsapp', PatientWhatsAppController::class)->whereIn('context', ['patient', 'claim', 'visit'])->middleware(['sensitive.no-store:no-referrer', 'throttle:patient-whatsapp'])->name('patients.whatsapp');
 
     Route::get('workspace', WorkspaceController::class)->name('workspace');
 
