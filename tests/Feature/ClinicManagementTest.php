@@ -16,6 +16,8 @@ class ClinicManagementTest extends VisitTestCase
         $permissions = [
             '/website/doctor-profiles' => ['website.content.view.organisation'],
             '/website/careers' => ['website.content.view.organisation'],
+            '/website/service-categories' => ['website.content.view.organisation'],
+            '/website/services' => ['website.content.view.organisation'],
             '/website/branch-profiles' => ['website.content.view.organisation'],
             '/website/media' => ['website.assets.manage.organisation'],
             '/medical-certificate-templates' => ['catalogue.settings.manage.organisation'],

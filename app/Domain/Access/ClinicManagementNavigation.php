@@ -74,6 +74,8 @@ final class ClinicManagementNavigation
         $add('Website', 'website', [
             [$branch && $actor->can('website.content.view.organisation'), 'Doctor profiles', 'Manual private public-profile drafts. Nothing is public yet.', 'website.doctors.index'],
             [$branch && $actor->can('website.content.view.organisation'), 'Careers', 'Private careers content only. No applications or publishing.', 'website.careers.index'],
+            [$branch && $actor->can('website.content.view.organisation'), 'Service categories', 'Private category and subcategory drafts. Nothing is public yet.', 'website.categories.index'],
+            [$branch && $actor->can('website.content.view.organisation'), 'Services', 'Manual public-service drafts. No clinical or pricing connection.', 'website.services.index'],
             [$branch && $actor->can('website.content.view.organisation'), 'Branch public profiles', 'Edit private EN and BM website drafts. Nothing is public yet.', 'website.profiles'],
             [$branch && $actor->can('website.assets.manage.organisation'), 'Media library', 'Manage sanitised private website images and rights references.', 'website.media'],
         ]);

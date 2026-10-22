@@ -23,5 +23,5 @@ test('New hub entries use existing view permission, with no publishing or additi
 assert.match(nav, new RegExp(`website.content.view.organisation'\\), '${label}'`));
 }
 
-    assert.doesNotMatch(nav, /website\.publish|website\.services|website\.requests/);
+    assert.doesNotMatch(nav, /website\.publish|website\.requests/);
 });
