@@ -438,6 +438,6 @@ class WebsiteDraftTest extends BillingTestCase
         $migration->up();
         $migration->down();
         $this->assertSame($before, DB::table('role_has_permissions')->orderBy('role_id')->orderBy('permission_id')->get()->toJson());
-        $this->assertSame([P::ASSETS, P::MANAGE, P::VIEW], DB::table('permissions')->where('name', 'like', 'website.%')->orderBy('name')->pluck('name')->all());
+        $this->assertSame([P::ASSETS, P::CAREERS, P::MANAGE, P::VIEW, P::DOCTORS], DB::table('permissions')->where('name', 'like', 'website.%')->orderBy('name')->pluck('name')->all());
     }
 }
