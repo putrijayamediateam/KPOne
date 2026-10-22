@@ -70,6 +70,7 @@ use App\Http\Controllers\VisitHistoryController;
 use App\Http\Controllers\VisitReasonController;
 use App\Http\Controllers\WebsiteDraftController;
 use App\Http\Controllers\WebsitePeopleController;
+use App\Http\Controllers\WebsiteServicesController;
 use App\Http\Controllers\WorkspaceController;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
@@ -111,6 +112,18 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     foreach (['doctor-profiles' => ['doctor_profile', 'doctors', 'website.doctor_profiles.manage.organisation'], 'careers' => ['career_posting', 'careers', 'website.careers.manage.organisation']] as $path => [$type, $name, $permission]) {
         Route::prefix('website/'.$path)->controller(WebsitePeopleController::class)->middleware('sensitive.no-store')->group(function () use ($type, $name, $permission): void {
+            Route::get('/', 'index')->defaults('contentType', $type)->middleware('permission:website.content.view.organisation')->name('website.'.$name.'.index');
+            Route::get('/create', 'index')->defaults('contentType', $type)->defaults('websiteItem', 'create')->middleware('permission:'.$permission)->name('website.'.$name.'.create');
+            Route::get('/{websiteItem}', 'index')->whereUuid('websiteItem')->defaults('contentType', $type)->middleware('permission:website.content.view.organisation')->name('website.'.$name.'.edit');
+            Route::post('/', 'save')->defaults('contentType', $type)->middleware('permission:'.$permission)->name('website.'.$name.'.store');
+            Route::post('/{websiteItem}', 'save')->whereUuid('websiteItem')->defaults('contentType', $type)->middleware('permission:'.$permission)->name('website.'.$name.'.save');
+            foreach (['archive', 'unarchive'] as $action) {
+                Route::post('/{websiteItem}/'.$action, 'archive')->whereUuid('websiteItem')->defaults('contentType', $type)->defaults('archiveAction', $action)->middleware('permission:'.$permission)->name('website.'.$name.'.'.$action);
+            }
+        });
+    }
+    foreach (['service-categories' => ['service_category', 'categories', 'website.content.manage.organisation'], 'services' => ['public_service', 'services', 'website.content.manage.organisation']] as $path => [$type, $name, $permission]) {
+        Route::prefix('website/'.$path)->controller(WebsiteServicesController::class)->middleware('sensitive.no-store')->group(function () use ($type, $name, $permission): void {
             Route::get('/', 'index')->defaults('contentType', $type)->middleware('permission:website.content.view.organisation')->name('website.'.$name.'.index');
             Route::get('/create', 'index')->defaults('contentType', $type)->defaults('websiteItem', 'create')->middleware('permission:'.$permission)->name('website.'.$name.'.create');
             Route::get('/{websiteItem}', 'index')->whereUuid('websiteItem')->defaults('contentType', $type)->middleware('permission:website.content.view.organisation')->name('website.'.$name.'.edit');
