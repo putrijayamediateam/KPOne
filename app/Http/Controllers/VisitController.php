@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Domain\Clinical\Documents\AttendanceService;
 use App\Domain\Visit\Models\Visit;
 use App\Domain\Visit\Services\VisitAdministrationService;
 use App\Domain\Visit\Services\VisitDirectoryService;
@@ -18,6 +19,7 @@ class VisitController extends Controller
     {
         return Inertia::render('Registration/Show', [
             'visit' => $directory->detail($request->user(), $visit),
+            'attendanceCopies' => $request->user()->can('attendance_documents.view.branch') && $request->user()->can('attendance_documents.print.branch') ? app(AttendanceService::class)->currentCopies($request->user(), $visit) : [],
         ]);
     }
 

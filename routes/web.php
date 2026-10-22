@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AccessControlController;
+use App\Http\Controllers\AttendanceController;
 use App\Http\Controllers\AuditLogController;
 use App\Http\Controllers\Auth\GoogleAuthController;
 use App\Http\Controllers\BillingApprovalLimitController;
@@ -307,6 +308,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('visits/{visit}/referrals/preview', [ReferralController::class, 'preview'])->middleware(['permission:referrals.issue.own', 'sensitive.no-store', 'throttle:20,1'])->name('referrals.preview');
         Route::post('visits/{visit}/referrals', [ReferralController::class, 'store'])->middleware(['permission:referrals.issue.own', 'sensitive.no-store', 'throttle:20,1'])->name('referrals.store');
         Route::get('visits/{visit}/referrals/{document}', [ReferralController::class, 'show'])->whereNumber('document')->middleware(['permission:referrals.view.own', 'sensitive.no-store:no-referrer'])->name('referrals.show');
+        Route::get('visits/{visit}/attendance', [AttendanceController::class, 'index'])->middleware(['permission:attendance_documents.view.own', 'sensitive.no-store'])->name('attendance.index');
+        Route::get('visits/{visit}/attendance/source', [AttendanceController::class, 'source'])->middleware(['permission:attendance_documents.issue.own', 'sensitive.no-store', 'throttle:20,1'])->name('attendance.source');
+        Route::post('visits/{visit}/attendance/preview', [AttendanceController::class, 'preview'])->middleware(['permission:attendance_documents.issue.own', 'sensitive.no-store', 'throttle:20,1'])->name('attendance.preview');
+        Route::post('visits/{visit}/attendance', [AttendanceController::class, 'store'])->middleware(['permission:attendance_documents.issue.own', 'sensitive.no-store', 'throttle:20,1'])->name('attendance.store');
+        Route::get('visits/{visit}/attendance/{document}', [AttendanceController::class, 'show'])->whereNumber('document')->middleware(['permission:attendance_documents.view.own,attendance_documents.view.branch', 'sensitive.no-store:no-referrer'])->name('attendance.show');
         Route::get('visits/{visit}/medical-certificates', [MedicalCertificateController::class, 'index'])
             ->middleware(['permission:medical_certificates.view.own,medical_certificates.view.branch', 'sensitive.no-store'])->name('medical-certificates.index');
         Route::post('visits/{visit}/medical-certificates', [MedicalCertificateController::class, 'store'])
