@@ -7,6 +7,7 @@ import {
     ChartNoAxesCombined,
     ClipboardList,
     FileText,
+    Globe,
     Ticket,
     Users,
 } from '@lucide/vue';
@@ -35,6 +36,7 @@ const icons: Record<string, Component> = {
     panel: ClipboardList,
     staff: Users,
     documents: FileText,
+    website: Globe,
 };
 </script>
 
