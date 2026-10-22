@@ -69,6 +69,7 @@ use App\Http\Controllers\VisitController;
 use App\Http\Controllers\VisitHistoryController;
 use App\Http\Controllers\VisitReasonController;
 use App\Http\Controllers\WebsiteDraftController;
+use App\Http\Controllers\WebsiteEditorialController;
 use App\Http\Controllers\WebsitePeopleController;
 use App\Http\Controllers\WebsiteServicesController;
 use App\Http\Controllers\WorkspaceController;
@@ -131,6 +132,18 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::post('/{websiteItem}', 'save')->whereUuid('websiteItem')->defaults('contentType', $type)->middleware('permission:'.$permission)->name('website.'.$name.'.save');
             foreach (['archive', 'unarchive'] as $action) {
                 Route::post('/{websiteItem}/'.$action, 'archive')->whereUuid('websiteItem')->defaults('contentType', $type)->defaults('archiveAction', $action)->middleware('permission:'.$permission)->name('website.'.$name.'.'.$action);
+            }
+        });
+    }
+    foreach (['promotions' => 'promotion', 'activities' => 'activity', 'faqs' => 'faq'] as $path => $type) {
+        Route::prefix('website/'.$path)->controller(WebsiteEditorialController::class)->middleware('sensitive.no-store')->group(function () use ($type, $path): void {
+            Route::get('/', 'index')->defaults('contentType', $type)->middleware('permission:website.content.view.organisation')->name('website.'.$path.'.index');
+            Route::get('/create', 'index')->defaults('contentType', $type)->defaults('websiteItem', 'create')->middleware('permission:website.content.manage.organisation')->name('website.'.$path.'.create');
+            Route::get('/{websiteItem}', 'index')->whereUuid('websiteItem')->defaults('contentType', $type)->middleware('permission:website.content.view.organisation')->name('website.'.$path.'.edit');
+            Route::post('/', 'save')->defaults('contentType', $type)->middleware('permission:website.content.manage.organisation')->name('website.'.$path.'.store');
+            Route::post('/{websiteItem}', 'save')->whereUuid('websiteItem')->defaults('contentType', $type)->middleware('permission:website.content.manage.organisation')->name('website.'.$path.'.save');
+            foreach (['archive', 'unarchive'] as $action) {
+                Route::post('/{websiteItem}/'.$action, 'archive')->whereUuid('websiteItem')->defaults('contentType', $type)->defaults('archiveAction', $action)->middleware('permission:website.content.manage.organisation')->name('website.'.$path.'.'.$action);
             }
         });
     }
