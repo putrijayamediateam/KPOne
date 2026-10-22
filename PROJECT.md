@@ -1,8 +1,12 @@
 # KPOne project
 
-Latest merged delivery: PR #151 — DOC-04 Referral letters, merged as `b4b81ac`. Recent merges, newest first
+Latest merged delivery: PR #156 — WA-01 WhatsApp click-to-chat, merged as `1e3250f`. Recent merges, newest first
 (documentation-only PRs omitted):
 
+- PR #156 (`1e3250f`) — WA-01: icon-only WhatsApp button (real logo) beside saved patient phone numbers in the Patient directory, patient details and edit, Registration picker, QR duplicate candidates, Panel claim identity view, and before the row menu on the Registration board and Queue list. One audited server redirect to `wa.me`, no message text, no new permission; KPOne sends nothing. Director, Resident Doctor, CA and CA Supervisor (existing `patients.view.organisation`); Panel Officer only on the claim page.
+- PR #155 (`5389b49`) — W1b: draft-only manual doctor public profiles and careers content (EN/BM revisions, consent-aware portrait, branch associations, archive). Director and HR Manager manage; Marketing and Administrator view. Nothing is public.
+- PR #154 (`18b5d60`) — W1a: draft-only website foundation: branch public profiles and a private sanitised media library (EXIF orientation applied). Provisioning Marketing, HR Manager and Administrator is Director-only.
+- PR #153 (`5bf8612`) — DOC-05: Attendance confirmation (date only, not an MC), issued by the attending doctor, `ATT/KP/{CHR|SGB|PCG}/{year}/{6-digit}` numbering, encrypted immutable pre-signature snapshots, CA view and print of issued copies. EN/BM wording is a draft pending doctor approval.
 - PR #151 (`b4b81ac`) — DOC-04: Referral letters issued by the attending doctor from selected saved clinical content, with a recorded recipient and disclosure acknowledgement, encrypted immutable pre-signature snapshots, `REF/KP/{CHR|SGB|PCG}/{year}/{6-digit}` numbering, replace and void by the original issuer, A4 copies, no charge, and new `referrals.*.own` permissions for the Resident Doctor only. EN/BM wording is a draft pending doctor approval.
 - PR #149 (`39161b6`) — RPT-02b: Transaction Detail page and CSV at `/reports/transactions` (one row per receipt with KPOne patient number, name, visit and invoice numbers, method, Cash / Non-cash classification and original, reversed and net amounts; no IC number), audited before release, for Finance Officer and Director only.
 - PR #148 (`2b56ce3`) — RPT-01e: Stock movement summary page and CSV, quantities only (opening, received, dispensed, adjusted, transferred, closing per SKU and unit; no cost or valuation), for Director, Finance Officer and Administrator.
