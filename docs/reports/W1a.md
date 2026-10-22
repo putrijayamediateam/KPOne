@@ -77,7 +77,7 @@ Four new tests explicitly prove:
 
 `StaffAuthorityService::canAssignRoles`, `StaffRoleService`, `StaffProvisioningService`, policies and all role grants are **unchanged** by this follow-up. Exact existing behaviour matters: HR Manager covers its own role's permission set, so the coverage-only `canAssignRoles` helper may return true for HR-to-HR. HR still cannot assign or provision that role because both mutation entry points require `access.manage.organisation`, which HR does not hold. Tests assert the real service boundary rather than changing the helper to fit an inaccurate shortcut. Technical Admin lacks all three roles' Website permissions. Among current catalogue roles, provisioning these three accounts is therefore Director-only.
 
-## Final full-gate rerun
+## Foundation full-gate rerun (`081222c`)
 
 **PASS — local candidate only; no push, PR or merge.** Owner authorised the three legacy fixture revisions, preserving all access rules, and the complete gate was rerun on the verified task-owned PostgreSQL 18.6 databases.
 
@@ -161,3 +161,19 @@ All screenshots and gate logs are local ignored evidence, not application media 
 | [ ca-denied-1440-dark ](../../storage/app/private/w1a-evidence/chrome/ca-denied-1440-dark.jpg) | 1440 | Light |
 
 Original stopped handoff log: `storage/app/private/w1a-evidence/backend-full-final.log`. Final follow-up gate logs use the `resume-` prefix; verified endpoints use `test-db-verified-resume.log` and `seed-db-verified-resume.log`.
+
+## PR #154 follow-up — EXIF orientation (2026-10-22)
+
+Owner-authorised image-orientation correction only. `WebsiteImage::sanitise` now captures primary-image EXIF before metadata is discarded, validates TIFF byte order/magic/IFD entry bounds and the single SHORT/count-1 Orientation tag, then applies the eight EXIF pixel transforms (mirrors included). JPEG uses PHP's EXIF extension when available, checked against the bounded parser; without it the same bounded reader supplies the orientation. Both little- and big-endian TIFF are supported. Malformed, duplicate, conflicting or out-of-range tags are refused through ordinary image validation, not crashes. No new dependency.
+
+PNG **can** carry EXIF in `eXIf`, and WebP **can** carry it in an `EXIF` RIFF chunk; these were accepted still-image types already. Their EXIF now receives the same validation and upright-pixel handling. PNG CRC/container checks and WebP chunk lengths/padding are checked before extraction. References: [W3C PNG eXIf specification](https://www.w3.org/TR/png-3/#eXIf), [Google WebP container specification](https://developers.google.com/speed/webp/docs/riff_container). There is no network request from the application.
+
+After transforming pixels, dimensions are measured using `imagesx`/`imagesy`; the dimension and pixel budgets are checked again on that final image. Only then does GD encode retained bytes. Uploaded EXIF, Orientation and GPS metadata are absent from the retained output. Width/height, byte size and SHA-256 describe the retained upright file. No permission, migration, route, financial/source record or immutable existing asset is changed. Previously sanitised assets cannot recover an orientation tag already stripped; a rotated old asset needs the original re-uploaded, not a metadata rewrite.
+
+New `WebsiteImageOrientationTest` has 39 cases: 24 end-to-end upload cases (all eight orientations × JPEG/PNG/WebP) check independent asymmetric quadrant pixel expectations, final and stored dimensions (swapped for 5–8), metadata removal, retained byte size/hash and one-file retention; one test exercises both TIFF byte orders and the direct fallback reader; 14 malformed-tag cases run against all three containers, covering truncation, byte order/magic, IFD offsets/counts, tag type/count, 0/9/65535 and duplicate tags. Fixtures are synthetic non-square colour patterns with synthetic GPS references, never real photographs or personal data.
+
+**Changed existing assertions in this follow-up: none.** All prior Website, staff-authority, hub and other test assertions remain untouched. The four pre-existing-test changes made for the initial foundation remain enumerated above; none is changed again. Focused new-plus-existing Website suite: **55 passed / 1,329 assertions**.
+
+A separate PHP process with `exif_read_data` disabled passed the fallback regression: **1 test / 49 assertions**, covering both TIFF byte orders and all eight JPEG orientations without the native function. This probe is separate from (not added to) the full-suite totals.
+
+**Full follow-up gate PASS:** 1,295 backend cases — **1,293 passed, 21,530 assertions**, two unchanged disabled-public-registration skips; 506.193 seconds. **398 frontend tests passed**, zero failures/skips. Whole-repository Pint, PHPStan level 7 (zero errors), frontend types/lint/format, production build, separate PostgreSQL 18 migrate:fresh/seed, and working/staged diff checks all pass. No new or PostgreSQL regression test is skipped. All existing test assertions remain unchanged by this fix; only new orientation tests/fixtures are added. Separate fallback probe: 1 passed / 49 assertions with the native EXIF function disabled. No permission, migration, route or access-rule change. This is a fix on PR #154, not a new slice; do not merge without owner instruction. Logs use `storage/app/private/w1a-evidence/orientation-*.log` and corresponding exit-status files, with verified owned PostgreSQL 18.6 databases at `127.0.0.1:58439`: `kpone_w1a_testing` and separate `kpone_w1a_seed_testing`. The existing page-layout screenshots remain applicable; no UI code changes in this follow-up.

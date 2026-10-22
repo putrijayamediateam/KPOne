@@ -29,17 +29,19 @@ final class WebsiteImage
         if (! $ext || ! $size || $size['mime'] !== $mime || $file->getClientMimeType() !== $mime || ! in_array(strtolower($file->getClientOriginalExtension()), $allowedExtension, true)) {
             self::refuse('The filename, declared type and actual image content must agree (JPG, PNG or WebP only).');
         }
-        if ($size[0] < 1 || $size[1] < 1 || max($size[0], $size[1]) > self::MAX_DIMENSION || $size[0] * $size[1] > self::MAX_PIXELS) {
-            self::refuse('Images must be at most 4096 pixels per side and 12 million pixels in total.');
-        }
+        self::checkDimensions($size[0], $size[1]);
+        $exif = null;
         if (preg_match('/<\?(?:php|=)|<script\b|<!doctype\b|<html\b/i', $raw)) {
             self::refuse('Embedded executable or HTML content is not allowed.');
         }
         if ($ext === 'jpg') {
-            self::checkJpeg($raw);
+            $exif = self::checkJpeg($raw);
         }
         if ($ext === 'webp' && (substr($raw, 0, 4) !== 'RIFF' || substr($raw, 8, 4) !== 'WEBP' || (unpack('Vlength', substr($raw, 4, 4))['length'] ?? 0) + 8 !== strlen($raw) || str_contains($raw, 'ANIM'))) {
             self::refuse('Use a single still WebP without trailing content.');
+        }
+        if ($ext === 'webp') {
+            $exif = self::webpExif($raw);
         }
         if ($ext === 'png') {
             $offset = 8;
@@ -59,6 +61,12 @@ final class WebsiteImage
                 if (hash('crc32b', $chunk) !== $crc || $type === 'acTL') {
                     self::refuse('Use a valid still PNG.');
                 }
+                if ($type === 'eXIf') {
+                    if ($exif !== null) {
+                        self::refuse('Multiple EXIF chunks are not supported.');
+                    }
+                    $exif = substr($raw, $offset + 8, $length);
+                }
                 $offset += 12 + $length;
                 if ($type === 'IEND') {
                     $ended = true;
@@ -69,6 +77,17 @@ final class WebsiteImage
                 self::refuse('PNG has invalid or trailing content.');
             }
         }
+        $orientation = $exif === null ? 1 : WebsiteImageOrientation::fromExif($exif);
+        if ($ext === 'jpg' && $exif !== null && function_exists('exif_read_data')) {
+            $native = @exif_read_data($file->getPathname(), 'IFD0', true);
+            $nativeOrientation = $native['IFD0']['Orientation'] ?? null;
+            if ($nativeOrientation !== null) {
+                if (! is_int($nativeOrientation) || $nativeOrientation !== $orientation) {
+                    self::refuse('Conflicting image EXIF orientation.');
+                }
+                $orientation = $nativeOrientation;
+            }
+        }
         $image = @imagecreatefromstring($raw);
         if ($image === false) {
             self::refuse('Image cannot be decoded.');
@@ -76,6 +95,10 @@ final class WebsiteImage
         try {
             imagepalettetotruecolor($image);
             imagesavealpha($image, true);
+            $image = WebsiteImageOrientation::upright($image, $orientation);
+            $width = imagesx($image);
+            $height = imagesy($image);
+            self::checkDimensions($width, $height);
             ob_start();
             try {
                 $ok = match ($ext) {
@@ -89,18 +112,19 @@ final class WebsiteImage
                 self::refuse('Sanitised image cannot be stored within the 5 MB limit.');
             }
 
-            return ['content' => $content, 'mime' => $mime, 'extension' => $ext, 'width' => $size[0], 'height' => $size[1], 'bytes' => strlen($content), 'sha256' => hash('sha256', $content)];
+            return ['content' => $content, 'mime' => $mime, 'extension' => $ext, 'width' => $width, 'height' => $height, 'bytes' => strlen($content), 'sha256' => hash('sha256', $content)];
         } finally {
             imagedestroy($image);
         }
     }
 
-    private static function checkJpeg(string $raw): void
+    private static function checkJpeg(string $raw): ?string
     {
         if (! str_starts_with($raw, "\xff\xd8")) {
             self::refuse('Invalid JPEG.');
         }
         $offset = 2;
+        $exif = null;
         $length = strlen($raw);
         while ($offset < $length) {
             if (ord($raw[$offset++]) !== 255) {
@@ -118,7 +142,7 @@ final class WebsiteImage
                     self::refuse('JPEG has trailing content.');
                 }
 
-                return;
+                return $exif;
             }
             if ($marker === 0 || $marker === 216) {
                 self::refuse('Invalid JPEG marker.');
@@ -132,6 +156,12 @@ final class WebsiteImage
             $segment = ord($raw[$offset]) * 256 + ord($raw[$offset + 1]);
             if ($segment < 2 || $offset + $segment > $length) {
                 self::refuse('Invalid JPEG segment.');
+            }
+            if ($marker === 225 && str_starts_with(substr($raw, $offset + 2, $segment - 2), 'Exif')) {
+                if ($exif !== null || substr($raw, $offset + 2, 6) !== "Exif\0\0") {
+                    self::refuse('Invalid or duplicate JPEG EXIF.');
+                }
+                $exif = substr($raw, $offset + 2, $segment - 2);
             }
             $offset += $segment;
             if ($marker === 218) {
@@ -159,6 +189,44 @@ final class WebsiteImage
             }
         }
         self::refuse('JPEG has no complete end marker.');
+    }
+
+    private static function checkDimensions(int $width, int $height): void
+    {
+        if ($width < 1 || $height < 1 || max($width, $height) > self::MAX_DIMENSION || $width * $height > self::MAX_PIXELS) {
+            self::refuse('Images must be at most 4096 pixels per side and 12 million pixels in total.');
+        }
+    }
+
+    private static function webpExif(string $raw): ?string
+    {
+        $offset = 12;
+        $exif = null;
+        while ($offset < strlen($raw)) {
+            if ($offset + 8 > strlen($raw)) {
+                self::refuse('Invalid WebP chunk.');
+            }
+            $length = unpack('Vlength', substr($raw, $offset + 4, 4));
+            if ($length === false || $length['length'] > strlen($raw) - $offset - 8) {
+                self::refuse('Invalid WebP chunk length.');
+            }
+            $length = $length['length'];
+            if (substr($raw, $offset, 4) === 'EXIF') {
+                if ($exif !== null) {
+                    self::refuse('Multiple EXIF chunks are not supported.');
+                }
+                $exif = substr($raw, $offset + 8, $length);
+            }
+            $offset += 8 + $length;
+            if ($length % 2 !== 0) {
+                if ($offset >= strlen($raw) || $raw[$offset] !== "\0") {
+                    self::refuse('Invalid WebP chunk padding.');
+                }
+                $offset++;
+            }
+        }
+
+        return $exif;
     }
 
     private static function refuse(string $message): never
