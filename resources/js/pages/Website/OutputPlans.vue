@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
-import { onUnmounted, ref, watch } from 'vue';
+import { computed, onUnmounted, ref, watch } from 'vue';
 import { Button } from '@/components/ui/button';
 import ReleaseStructuredValue from '@/components/website/ReleaseStructuredValue.vue';
 import type { OutputPlanPage } from '@/types/website-output-plans';
@@ -17,6 +17,13 @@ defineOptions({
 });
 const page = ref<OutputPlanPage | null>(props.outputPlans);
 const blocked = ref(false);
+const detailContent = computed(() =>
+    Object.fromEntries(
+        Object.entries(page.value?.detail?.content ?? {}).filter(
+            ([key]) => key !== 'aliases',
+        ),
+    ),
+);
 const values = () => ({
     expected_branch_id: page.value?.branchId ?? 0,
     release_id: page.value?.release?.id ?? 0,
@@ -254,7 +261,40 @@ const inputClass = 'mt-1 block w-full min-w-0 rounded border bg-background p-2';
                                 : 'No · plan and bound release must both be approved'
                         }}
                     </p>
-                    <ReleaseStructuredValue :value="page.detail.content" />
+                    <table class="w-full table-fixed text-left text-sm">
+                        <caption class="mb-2 text-left font-semibold">
+                            Route aliases (frozen English names)
+                        </caption>
+                        <thead>
+                            <tr class="border-b">
+                                <th scope="col" class="w-5/12 p-2">Name</th>
+                                <th scope="col" class="w-1/4 p-2">Kind</th>
+                                <th scope="col" class="p-2">Alias</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr
+                                v-for="row in page.detail.aliasRows"
+                                :key="row.key"
+                                class="border-b"
+                            >
+                                <td class="p-2 align-top wrap-anywhere">
+                                    <span>{{ row.name }}</span>
+                                    <small
+                                        class="mt-1 block text-muted-foreground"
+                                        >{{ row.key }}</small
+                                    >
+                                </td>
+                                <td class="p-2 align-top wrap-anywhere">
+                                    {{ row.kind }}
+                                </td>
+                                <td class="p-2 align-top wrap-anywhere">
+                                    {{ row.alias }}
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <ReleaseStructuredValue :value="detailContent" />
                 </section>
                 <section
                     v-if="page.canApprove"
