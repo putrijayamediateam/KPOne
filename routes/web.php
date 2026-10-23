@@ -71,6 +71,7 @@ use App\Http\Controllers\VisitReasonController;
 use App\Http\Controllers\WebsiteDraftController;
 use App\Http\Controllers\WebsiteEditorialController;
 use App\Http\Controllers\WebsiteLittleShieldController;
+use App\Http\Controllers\WebsiteOutputPlanController;
 use App\Http\Controllers\WebsitePeopleController;
 use App\Http\Controllers\WebsiteReleaseController;
 use App\Http\Controllers\WebsiteServicesController;
@@ -150,6 +151,14 @@ Route::middleware(['auth', 'verified'])->group(function () {
             }
         });
     }
+    Route::prefix('website/releases')->controller(WebsiteOutputPlanController::class)->middleware(['sensitive.no-store:no-referrer', PrivateWebsiteRelease::class, 'permission:website.releases.prepare.organisation'])->group(function (): void {
+        Route::get('output-plans', 'index')->name('website.output-plans.index');
+        Route::get('output-plans/{plan}', 'index')->whereNumber('plan')->name('website.output-plans.show');
+        Route::get('{release}/output-plans', 'index')->whereNumber('release')->name('website.output-plans.create');
+        Route::post('{release}/output-plans', 'prepare')->whereNumber('release')->middleware('throttle:10,1')->name('website.output-plans.prepare');
+        Route::post('output-plans/{plan}/{operation}', 'decide')->whereNumber('plan')->whereIn('operation', ['approve', 'refuse', 'withdraw'])->middleware(['permission:website.releases.approve.organisation', 'throttle:10,1'])->name('website.output-plans.decide');
+    });
+
     Route::prefix('website/releases')->controller(WebsiteReleaseController::class)->middleware(['sensitive.no-store:no-referrer', PrivateWebsiteRelease::class, 'permission:website.releases.prepare.organisation'])->group(function (): void {
         Route::get('/', 'index')->name('website.releases.index');
         Route::post('/', 'prepare')->middleware('throttle:10,1')->name('website.releases.prepare');
