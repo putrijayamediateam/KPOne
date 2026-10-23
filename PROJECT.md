@@ -1,8 +1,13 @@
 # KPOne project
 
-Latest merged delivery: PR #156 — WA-01 WhatsApp click-to-chat, merged as `1e3250f`. Recent merges, newest first
+Latest merged delivery: PR #163 — website site-settings analysis (documentation), merged as `75dc6a9`. Recent merges, newest first
 (documentation-only PRs omitted):
 
+- PR #162 and #163 (`e0d7176`, `75dc6a9`) — documentation only: the W1e publishing analysis and the site-settings and legal-pages analysis. They authorise nothing.
+- PR #161 (`ef803f0`) — W1d-2: draft-only Little Shield programme page (one per organisation, ordered pillars, steps, safeguards, partner types and posters). No form or sign-up. Nothing is public.
+- PR #160 (`fde54dc`) — website shared-references fix: branches, a service's category and an FAQ's linked service now have one answer for both languages through a coordinated save and a deferred database rule; archiving a service with active FAQ links is refused.
+- PR #159 (`b49a96d`) — W1d: draft-only promotions, activities and FAQs. Nothing is public.
+- PR #158 (`8da1ea0`) — W1c: draft-only website service categories and public services, with manual optional price wording kept separate from billing prices. Nothing is public.
 - PR #156 (`1e3250f`) — WA-01: icon-only WhatsApp button (real logo) beside saved patient phone numbers in the Patient directory, patient details and edit, Registration picker, QR duplicate candidates, Panel claim identity view, and before the row menu on the Registration board and Queue list. One audited server redirect to `wa.me`, no message text, no new permission; KPOne sends nothing. Director, Resident Doctor, CA and CA Supervisor (existing `patients.view.organisation`); Panel Officer only on the claim page.
 - PR #155 (`5389b49`) — W1b: draft-only manual doctor public profiles and careers content (EN/BM revisions, consent-aware portrait, branch associations, archive). Director and HR Manager manage; Marketing and Administrator view. Nothing is public.
 - PR #154 (`18b5d60`) — W1a: draft-only website foundation: branch public profiles and a private sanitised media library (EXIF orientation applied). Provisioning Marketing, HR Manager and Administrator is Director-only.
