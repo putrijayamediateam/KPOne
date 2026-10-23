@@ -4,7 +4,15 @@ import { onUnmounted, ref, watch } from 'vue';
 import { Button } from '@/components/ui/button';
 import ReleaseStructuredValue from '@/components/website/ReleaseStructuredValue.vue';
 import type { ReleasePage } from '@/types/website-releases';
-const props = defineProps<{ releases: ReleasePage }>();
+const props = defineProps<{
+    releases: ReleasePage;
+    outputPlans?: {
+        id: number;
+        number: string;
+        release_number: string;
+        state: string;
+    }[];
+}>();
 defineOptions({
     layout: {
         breadcrumbs: [{ title: 'Website releases', href: '/website/releases' }],
@@ -110,6 +118,19 @@ onUnmounted(remove);
         <template v-if="page">
             <section class="space-y-3">
                 <h2 class="font-semibold">Saved releases</h2>
+                <Link href="/website/releases/output-plans" class="underline"
+                    >Website output plans</Link
+                >
+                <ul>
+                    <li v-for="plan in props.outputPlans ?? []" :key="plan.id">
+                        <Link
+                            :href="`/website/releases/output-plans/${plan.id}`"
+                            class="underline"
+                            >{{ plan.number }} · {{ plan.state }} ·
+                            {{ plan.release_number }}</Link
+                        >
+                    </li>
+                </ul>
                 <p v-if="!page.releases.length" class="text-muted-foreground">
                     No release has been prepared. Only saved, complete EN and BM
                     content can be frozen.
@@ -134,6 +155,12 @@ onUnmounted(remove);
                 </div>
             </section>
             <template v-if="page.detail">
+                <Link
+                    v-if="page.detail.state === 'approved'"
+                    :href="`/website/releases/${page.detail.id}/output-plans`"
+                    class="inline-block underline"
+                    >Prepare output plan</Link
+                >
                 <section class="min-w-0 space-y-2 rounded-lg border p-4">
                     <h2 class="text-xl font-semibold">
                         {{ page.detail.number }} · {{ page.detail.state }}
