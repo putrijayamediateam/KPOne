@@ -29,6 +29,7 @@ test('Hub compiles with semantic keyboard links, card headings, responsive colum
     assert.match(source, /:aria-labelledby=/);
     assert.match(source, /md:grid-cols-2 xl:grid-cols-3/);
     assert.doesNotMatch(source, /router\.(post|put|patch|delete)|useForm|<aside|aria-disabled/);
+    assert.match(read('app/Domain/Access/ClinicManagementNavigation.php'), /website.releases.prepare.organisation'\), 'Website releases'/);
     assert.doesNotMatch(read('app/Domain/Access/ClinicManagementNavigation.php'), /Reviews|Blasting|Packages|Scheduling|e-Invoice|Tax settings|API key|Price tier|\.download/);
 });
 
