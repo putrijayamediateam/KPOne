@@ -72,8 +72,10 @@ use App\Http\Controllers\WebsiteDraftController;
 use App\Http\Controllers\WebsiteEditorialController;
 use App\Http\Controllers\WebsiteLittleShieldController;
 use App\Http\Controllers\WebsitePeopleController;
+use App\Http\Controllers\WebsiteReleaseController;
 use App\Http\Controllers\WebsiteServicesController;
 use App\Http\Controllers\WorkspaceController;
+use App\Http\Middleware\PrivateWebsiteRelease;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
@@ -148,6 +150,14 @@ Route::middleware(['auth', 'verified'])->group(function () {
             }
         });
     }
+    Route::prefix('website/releases')->controller(WebsiteReleaseController::class)->middleware(['sensitive.no-store:no-referrer', PrivateWebsiteRelease::class, 'permission:website.releases.prepare.organisation'])->group(function (): void {
+        Route::get('/', 'index')->name('website.releases.index');
+        Route::post('/', 'prepare')->middleware('throttle:10,1')->name('website.releases.prepare');
+        Route::get('{release}', 'index')->whereNumber('release')->name('website.releases.show');
+        Route::get('{release}/media/{filename}', 'media')->whereNumber('release')->where('filename', '[a-f0-9]{64}\\.(jpg|png|webp)')->name('website.releases.media');
+        Route::post('{release}/{operation}', 'decide')->whereNumber('release')->whereIn('operation', ['approve', 'refuse', 'withdraw'])->middleware(['permission:website.releases.approve.organisation', 'throttle:10,1'])->name('website.releases.decide');
+    });
+
     Route::get('website/little-shield', [WebsiteLittleShieldController::class, 'index'])->middleware(['sensitive.no-store', 'permission:website.content.view.organisation'])->name('website.little-shield.index');
     Route::post('website/little-shield', [WebsiteLittleShieldController::class, 'save'])->middleware(['sensitive.no-store', 'permission:website.content.manage.organisation'])->name('website.little-shield.save');
 
