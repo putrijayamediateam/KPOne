@@ -169,13 +169,13 @@ const inputClass =
         <template v-if="!blocked">
             <div class="flex flex-wrap gap-2">
                 <Button
-                    variant="outline"
+                    :variant="language === 'en' ? 'default' : 'outline'"
                     :disabled="form.isDirty || form.processing"
                     :aria-pressed="language === 'en'"
                     @click="changeLanguage('en')"
                     >English (EN)</Button
                 ><Button
-                    variant="outline"
+                    :variant="language === 'bm' ? 'default' : 'outline'"
                     :disabled="form.isDirty || form.processing"
                     :aria-pressed="language === 'bm'"
                     @click="changeLanguage('bm')"
@@ -213,13 +213,18 @@ const inputClass =
                             v-for="(limit, key) in page.textLimits"
                             :key="key"
                             class="block text-sm"
-                            >{{ label(key) }} (max {{ limit }})<textarea
+                            >{{ label(key) }} (max {{ limit }})<input
+                                v-if="key === 'title'"
+                                v-model="form.content[key]"
+                                type="text"
+                                :maxlength="limit"
+                                :class="inputClass"
+                            /><textarea
+                                v-else
                                 v-model="form.content[key]"
                                 :maxlength="limit"
                                 :class="inputClass"
-                                :rows="
-                                    key === 'title' || key === 'tagline' ? 2 : 3
-                                "
+                                :rows="key === 'tagline' ? 2 : 3"
                             />
                         </label>
                         <p class="text-xs text-muted-foreground">

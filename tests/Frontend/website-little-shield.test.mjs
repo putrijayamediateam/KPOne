@@ -174,3 +174,25 @@ test('Actual Little Shield saved preview escapes text and retains steps and post
     );
     assert.match(html, /1, 3/);
 });
+
+test('Little Shield active language is visibly selected and Title is a bounded single-line input', () => {
+    for (const language of ['en', 'bm']) {
+        assert.ok(
+            source.includes(
+                `:variant="language === '${language}' ? 'default' : 'outline'"`,
+            ),
+        );
+        assert.ok(
+            source.includes(`:aria-pressed="language === '${language}'"`),
+        );
+    }
+
+    assert.match(
+        source,
+        /<input\s+v-if="key === 'title'"\s+v-model="form.content\[key\]"\s+type="text"\s+:maxlength="limit"\s+:class="inputClass"/,
+    );
+    assert.match(
+        source,
+        /<textarea\s+v-else\s+v-model="form.content\[key\]"\s+:maxlength="limit"/,
+    );
+});

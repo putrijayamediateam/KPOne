@@ -140,7 +140,7 @@ final class WebsiteReleaseService
                 $c = DB::table('website_release_controls')->where('release_id', $r->id)->first();
                 $a = DB::table('website_release_actions')->where('release_id', $r->id)->where('action', 'approved')->orderByDesc('id')->first();
 
-                return ['id' => $r->id, 'number' => $r->number, 'state' => $c->state, 'creator' => 'Staff #'.$r->created_by_user_id, 'approver' => $a ? 'Staff #'.$a->actor_user_id : null, 'approvedAt' => $a ? CarbonImmutable::parse($a->created_at)->setTimezone($branch->timezone)->format('d M Y H:i:s').' '.$branch->timezone : null, 'createdAt' => CarbonImmutable::parse($r->created_at)->setTimezone($branch->timezone)->format('d M Y H:i:s').' '.$branch->timezone];
+                return ['id' => $r->id, 'number' => $r->number, 'state' => $c->state, 'creator' => $r->created_by_user_id, 'approver' => $a?->actor_user_id, 'approvedAt' => $a ? CarbonImmutable::parse($a->created_at)->setTimezone($branch->timezone)->format('d M Y H:i:s').' '.$branch->timezone : null, 'createdAt' => CarbonImmutable::parse($r->created_at)->setTimezone($branch->timezone)->format('d M Y H:i:s').' '.$branch->timezone];
             })->all();
             $detail = null;
             if ($id !== null) {
@@ -148,10 +148,28 @@ final class WebsiteReleaseService
                 abort_unless($r !== null, 404);
                 $this->verify($r);
                 $control = DB::table('website_release_controls')->where('release_id', $id)->first();
-                $approved = DB::table('website_release_actions as a')->join('website_releases as r', 'r.id', '=', 'a.release_id')->where('r.organisation_id', $actor->organisation_id)->where('a.action', 'approved')->where('r.id', '<>', $id)->orderByDesc('a.id')->first(['r.manifest', 'r.number']);
+                $approved = DB::table('website_releases as r')->join('website_release_controls as c', 'c.release_id', '=', 'r.id')->where('r.organisation_id', $actor->organisation_id)->where('c.state', 'approved')->where('r.id', '<', $id)->orderByDesc('r.id')->first(['r.manifest', 'r.number']);
                 $manifest = json_decode($r->manifest, true, 512, JSON_THROW_ON_ERROR);
                 $approval = DB::table('website_release_actions')->where('release_id', $id)->where('action', 'approved')->first();
-                $detail = ['id' => $id, 'number' => $r->number, 'state' => $control->state, 'lockVersion' => $control->lock_version, 'hash' => $r->manifest_hash, 'items' => $manifest['items'], 'media' => $manifest['media'], 'omissions' => json_decode($r->omissions, true, 512, JSON_THROW_ON_ERROR), 'changes' => $this->changes($manifest, $approved ? json_decode($approved->manifest, true, 512, JSON_THROW_ON_ERROR) : null), 'comparedTo' => $approved->number ?? 'First release', 'samePreparerApprover' => $r->created_by_user_id === ($approval->actor_user_id ?? $actor->id), 'actions' => DB::table('website_release_actions')->where('release_id', $id)->orderBy('id')->get()->map(fn ($a) => ['action' => $a->action, 'actor' => 'Staff #'.$a->actor_user_id, 'at' => CarbonImmutable::parse($a->created_at)->setTimezone($branch->timezone)->format('d M Y H:i:s').' '.$branch->timezone, 'reason' => $a->reason])->all()];
+                $detail = ['id' => $id, 'number' => $r->number, 'state' => $control->state, 'lockVersion' => $control->lock_version, 'hash' => $r->manifest_hash, 'items' => $manifest['items'], 'media' => $manifest['media'], 'omissions' => json_decode($r->omissions, true, 512, JSON_THROW_ON_ERROR), 'changes' => $this->changes($manifest, $approved ? json_decode($approved->manifest, true, 512, JSON_THROW_ON_ERROR) : null), 'comparedTo' => $approved->number ?? 'First release', 'samePreparerApprover' => $r->created_by_user_id === ($approval->actor_user_id ?? $actor->id), 'actions' => DB::table('website_release_actions')->where('release_id', $id)->orderBy('id')->get()->map(fn ($a) => ['action' => $a->action, 'actor' => $a->actor_user_id, 'at' => CarbonImmutable::parse($a->created_at)->setTimezone($branch->timezone)->format('d M Y H:i:s').' '.$branch->timezone, 'reason' => $a->reason])->all()];
+            }
+
+            // Presentation-only names: evidence and audits retain actor ids only.
+            $actorIds = array_column($summaries, 'creator');
+            $actorIds = [...$actorIds, ...array_column($summaries, 'approver'), ...array_column($detail['actions'] ?? [], 'actor')];
+            $actorIds = array_values(array_unique(array_filter($actorIds)));
+            $names = $actorIds === [] ? collect() : DB::table('users')->where('organisation_id', $actor->organisation_id)->whereIn('id', $actorIds)->pluck('name', 'id');
+            $displayName = fn (int $userId): string => $names[$userId] ?? 'Staff #'.$userId;
+            foreach ($summaries as &$summary) {
+                $summary['creator'] = $displayName($summary['creator']);
+                $summary['approver'] = $summary['approver'] !== null ? $displayName($summary['approver']) : null;
+            }
+            unset($summary);
+            if ($detail !== null) {
+                foreach ($detail['actions'] as &$action) {
+                    $action['actor'] = $displayName($action['actor']);
+                }
+                unset($action);
             }
 
             return ['branchId' => $branch->id, 'releases' => $summaries, 'detail' => $detail, 'canApprove' => $actor->getAllPermissions()->pluck('name')->contains(WebsitePermissions::APPROVE)];

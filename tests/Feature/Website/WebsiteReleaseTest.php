@@ -17,6 +17,7 @@ use App\Domain\Organisation\Website\WebsiteProfileFields;
 use App\Domain\Organisation\Website\WebsiteReleaseJson as J;
 use App\Domain\Organisation\Website\WebsiteReleaseService as S;
 use App\Domain\Organisation\Website\WebsiteServiceFields;
+use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Console\Scheduling\Schedule;
@@ -460,7 +461,19 @@ class WebsiteReleaseTest extends BillingTestCase
             foreach ($queries as $q) {
                 $this->assertDoesNotMatchRegularExpression('/(?:from|join|into|update)\s+"?(?:patients|patient_[a-z_]+|visits|visit_[a-z_]+|queue_[a-z_]+|clinical_[a-z_]+|encounters|treatment_[a-z_]+|invoices|invoice_[a-z_]+|payments|payment_[a-z_]+|dispensary_[a-z_]+|stock_[a-z_]+|inventory_[a-z_]+|medicine[a-z_]*|charge_definitions|price_[a-z_]+|appointments|clinician_credentials|staff_schedules|staff_rosters)"?\b/i', $q['query']);
                 if (preg_match('/(?:from|join)\s+"?(?:users|staff_profiles|staff_branch_assignments)"?\b/i', $q['query'])) {
-                    $this->assertContains([$q['query'], $q['bindings']], $authority);
+                    if (preg_match('/\Aselect "name", "id" from "users" where "organisation_id" = \? and "id" in \(\?(?:, \?)*\)\z/', $q['query'])) {
+                        // This one extra read is presentation-only; direct mutations/media
+                        // are separately tested to issue no display-name lookup.
+                        $this->assertSame($actor->organisation_id, $q['bindings'][0]);
+                        $releaseIds = DB::table('website_releases')->where('organisation_id', $actor->organisation_id)->pluck('id');
+                        $releaseActors = DB::table('website_releases')->whereIn('id', $releaseIds)->pluck('created_by_user_id')->merge(DB::table('website_release_actions')->whereIn('release_id', $releaseIds)->pluck('actor_user_id'))->unique()->all();
+                        foreach (array_slice($q['bindings'], 1) as $actorId) {
+                            $this->assertContains($actorId, $releaseActors);
+                        }
+                        $this->assertCount(1, array_filter($queries, fn ($query) => preg_match('/\Aselect "name", "id" from "users" where "organisation_id" = \? and "id" in \(\?(?:, \?)*\)\z/', $query['query'])));
+                    } else {
+                        $this->assertContains([$q['query'], $q['bindings']], $authority);
+                    }
                 }
             }
             $this->assertSame($before, $this->rows());
@@ -698,5 +711,126 @@ class WebsiteReleaseTest extends BillingTestCase
         $this->updateSource($little, ['include_on_website' => false]);
         $id = $this->prepare($actor);
         $this->assertCount(2, app(S::class)->page($actor, $id)['detail']['changes']['removed']);
+    }
+
+    public function test_release_page_names_are_batched_scoped_display_only_with_fallback(): void
+    {
+        $this->profiles();
+        $creator = $this->actor('marketing');
+        $director = $this->actor('director');
+        $unused = $this->actor('marketing');
+        $other = Organisation::create(['code' => 'SYN_NAMES_OTHER', 'name' => 'Synthetic other']);
+        $foreign = User::factory()->create(['organisation_id' => $other->id, 'name' => 'Synthetic foreign actor', 'email' => 'foreign.names@kpone.test']);
+        $creator->forceFill(['name' => 'Synthetic Website Editor'])->save();
+        $director->forceFill(['name' => 'Synthetic Website Approver'])->save();
+        $this->selectBranch($creator);
+        $first = $this->prepare($creator);
+        $read = function (int $id) use ($director): array {
+            $this->selectBranch($director);
+            DB::enableQueryLog();
+            DB::flushQueryLog();
+            $page = app(S::class)->page($director, $id);
+            $queries = array_values(array_filter(DB::getQueryLog(), fn ($q) => str_starts_with($q['query'], 'select "name", "id" from "users"')));
+            DB::disableQueryLog();
+            $this->assertCount(1, $queries);
+            $this->assertMatchesRegularExpression('/\Aselect "name", "id" from "users" where "organisation_id" = \? and "id" in \(\?(?:, \?)*\)\z/', $queries[0]['query']);
+            $this->assertSame($director->organisation_id, $queries[0]['bindings'][0]);
+
+            return [$page, array_slice($queries[0]['bindings'], 1)];
+        };
+        [$page, $ids] = $read($first);
+        $this->assertSame([$creator->id], $ids);
+        $this->assertSame('Synthetic Website Editor', $page['releases'][0]['creator']);
+        $this->assertSame(['Synthetic Website Editor'], array_column($page['detail']['actions'], 'actor'));
+        $this->decision($director, $first, 'approve');
+        $this->decision($director, $first, 'withdraw');
+        $this->selectBranch($creator);
+        $second = $this->prepare($creator);
+        $this->decision($director, $second, 'refuse');
+        $this->selectBranch($creator);
+        $this->prepare($creator);
+        $before = [];
+        foreach (['website_releases', 'website_release_items', 'website_release_media', 'website_release_actions', 'website_release_controls', 'website_release_commands', 'website_release_counters', 'audit_logs'] as $table) {
+            $before[$table] = DB::table($table)->orderBy($table === 'website_release_controls' ? 'release_id' : 'id')->get()->toJson();
+        }
+        [$page, $ids] = $read($first);
+        sort($ids);
+        $expected = [$creator->id, $director->id];
+        sort($expected);
+        $this->assertSame($expected, $ids);
+        $this->assertNotContains($unused->id, $ids);
+        $this->assertNotContains($foreign->id, $ids);
+        $summary = collect($page['releases'])->firstWhere('id', $first);
+        $this->assertSame('Synthetic Website Editor', $summary['creator']);
+        $this->assertSame('Synthetic Website Approver', $summary['approver']);
+        $this->assertSame(['Synthetic Website Editor', 'Synthetic Website Approver', 'Synthetic Website Approver'], array_column($page['detail']['actions'], 'actor'));
+        $creator->forceFill(['name' => 'Synthetic Renamed Editor'])->save();
+        [$page] = $read($first);
+        $this->assertSame('Synthetic Renamed Editor', collect($page['releases'])->firstWhere('id', $first)['creator']);
+        // A row no longer present in the scoped organisation must use the id fallback.
+        DB::table('users')->where('id', $creator->id)->update(['organisation_id' => $other->id]);
+        [$page] = $read($first);
+        $this->assertSame('Staff #'.$creator->id, collect($page['releases'])->firstWhere('id', $first)['creator']);
+        $this->assertSame('Staff #'.$creator->id, $page['detail']['actions'][0]['actor']);
+        foreach ($before as $table => $rows) {
+            $this->assertSame($rows, DB::table($table)->orderBy($table === 'website_release_controls' ? 'release_id' : 'id')->get()->toJson(), $table);
+        }
+    }
+
+    public function test_change_baseline_is_currently_approved_lower_id_only(): void
+    {
+        $this->profiles();
+        $actor = $this->actor('director');
+        $this->selectBranch($actor);
+        $s = app(S::class);
+        $first = $this->prepare($actor);
+        $this->decision($actor, $first, 'approve');
+        $second = $this->prepare($actor);
+        $this->decision($actor, $second, 'approve');
+        $this->assertSame('First release', $s->page($actor, $first)['detail']['comparedTo']);
+        $this->decision($actor, $second, 'withdraw');
+        $third = $this->prepare($actor);
+        $this->decision($actor, $third, 'refuse');
+        $fourth = $this->prepare($actor);
+        $fifth = $this->prepare($actor);
+        $firstNumber = DB::table('website_releases')->where('id', $first)->value('number');
+        $this->assertSame($firstNumber, $s->page($actor, $fifth)['detail']['comparedTo']);
+        $this->assertSame($firstNumber, $s->page($actor, $second)['detail']['comparedTo']);
+        $this->assertSame($firstNumber, $s->page($actor, $fourth)['detail']['comparedTo']);
+        $this->decision($actor, $first, 'withdraw');
+        $this->assertSame('First release', $s->page($actor, $fifth)['detail']['comparedTo']);
+        $this->decision($actor, $fifth, 'approve');
+        $this->assertSame('First release', $s->page($actor, $fourth)['detail']['comparedTo']);
+        $this->assertSame('First release', $s->page($actor, $first)['detail']['comparedTo']);
+    }
+
+    public function test_display_name_query_is_absent_from_direct_mutations_and_media(): void
+    {
+        $this->profiles();
+        $actor = $this->actor('director');
+        $this->selectBranch($actor);
+        $asset = $this->asset($actor);
+        $this->little(['cover_public_id' => $asset->public_id]);
+        $s = app(S::class);
+        $check = function (callable $call): mixed {
+            DB::enableQueryLog();
+            DB::flushQueryLog();
+            $result = $call();
+            $queries = DB::getQueryLog();
+            DB::disableQueryLog();
+            foreach ($queries as $q) {
+                $this->assertStringNotContainsString('select "name", "id" from "users"', $q['query']);
+            }
+
+            return $result;
+        };
+        $id = $check(fn () => $s->mutate($actor, 'prepare', null, $this->input()));
+        $detail = $s->page($actor, $id)['detail'];
+        $check(fn () => $s->media($actor, $id, $detail['media'][0]['filename']));
+        $check(fn () => $s->mutate($actor, 'approve', $id, $this->input(['lock_version' => 1, 'manifest_hash' => $detail['hash'], 'confirmation' => $detail['number']])));
+        $check(fn () => $s->mutate($actor, 'withdraw', $id, $this->input(['lock_version' => 2, 'manifest_hash' => $detail['hash'], 'reason' => 'Synthetic reason'])));
+        $second = $check(fn () => $s->mutate($actor, 'prepare', null, $this->input()));
+        $detail = $s->page($actor, $second)['detail'];
+        $check(fn () => $s->mutate($actor, 'refuse', $second, $this->input(['lock_version' => 1, 'manifest_hash' => $detail['hash'], 'reason' => 'Synthetic reason'])));
     }
 }
