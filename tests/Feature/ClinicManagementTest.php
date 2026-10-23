@@ -21,6 +21,7 @@ class ClinicManagementTest extends VisitTestCase
             '/website/promotions' => ['website.content.view.organisation'],
             '/website/activities' => ['website.content.view.organisation'],
             '/website/little-shield' => ['website.content.view.organisation'],
+            '/website/releases' => ['website.releases.prepare.organisation'],
             '/website/faqs' => ['website.content.view.organisation'],
             '/website/branch-profiles' => ['website.content.view.organisation'],
             '/website/media' => ['website.assets.manage.organisation'],

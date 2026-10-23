@@ -319,7 +319,9 @@ class WebsiteDraftTest extends BillingTestCase
         $service->upload($actor, $this->uploadInput(), $this->imageFile());
         $asset = DB::table('website_media_assets')->first();
         $service->save($actor, $this->saveInput(['hero_asset_public_id' => $asset->public_id]));
-        foreach (['UPDATE website_content_revisions SET revision_number = 100', 'DELETE FROM website_content_revisions', 'TRUNCATE website_content_revisions', "UPDATE website_draft_commands SET operation = 'other'", 'DELETE FROM website_draft_commands', 'TRUNCATE website_draft_commands', "UPDATE website_media_assets SET alt_en = 'changed'", 'DELETE FROM website_media_assets', 'TRUNCATE website_media_assets CASCADE'] as $sql) {
+        $tables = ['website_content_revisions', 'website_draft_commands', 'website_media_assets', 'website_releases', 'website_release_items', 'website_release_media', 'website_release_actions', 'website_release_controls', 'website_release_commands', 'website_release_counters'];
+        $counts = array_combine($tables, array_map(fn ($table) => DB::table($table)->count(), $tables));
+        foreach (['UPDATE website_content_revisions SET revision_number = 100', 'DELETE FROM website_content_revisions', 'TRUNCATE website_content_revisions CASCADE', "UPDATE website_draft_commands SET operation = 'other'", 'DELETE FROM website_draft_commands', 'TRUNCATE website_draft_commands', "UPDATE website_media_assets SET alt_en = 'changed'", 'DELETE FROM website_media_assets', 'TRUNCATE website_media_assets CASCADE'] as $sql) {
             DB::beginTransaction();
             try {
                 DB::statement($sql);
@@ -328,6 +330,23 @@ class WebsiteDraftTest extends BillingTestCase
                 $this->assertSame('P0001', $e->errorInfo[0]);
             } finally {
                 DB::rollBack();
+            }
+            foreach ($counts as $table => $count) {
+                $this->assertSame($count, DB::table($table)->count(), $sql.' changed '.$table);
+            }
+            if ($sql === 'TRUNCATE website_content_revisions CASCADE') {
+                DB::beginTransaction();
+                try {
+                    DB::statement('TRUNCATE website_content_revisions');
+                    $this->fail('Plain truncate bypassed the release provenance foreign key.');
+                } catch (QueryException $e) {
+                    $this->assertSame('0A000', $e->errorInfo[0]);
+                } finally {
+                    DB::rollBack();
+                }
+                foreach ($counts as $table => $count) {
+                    $this->assertSame($count, DB::table($table)->count(), 'Plain truncate changed '.$table);
+                }
             }
         }
     }
@@ -438,6 +457,6 @@ class WebsiteDraftTest extends BillingTestCase
         $migration->up();
         $migration->down();
         $this->assertSame($before, DB::table('role_has_permissions')->orderBy('role_id')->orderBy('permission_id')->get()->toJson());
-        $this->assertSame([P::ASSETS, P::CAREERS, P::MANAGE, P::VIEW, P::DOCTORS], DB::table('permissions')->where('name', 'like', 'website.%')->orderBy('name')->pluck('name')->all());
+        $this->assertSame([P::ASSETS, P::CAREERS, P::MANAGE, P::VIEW, P::DOCTORS, P::APPROVE, P::PREPARE], DB::table('permissions')->where('name', 'like', 'website.%')->orderBy('name')->pluck('name')->all());
     }
 }

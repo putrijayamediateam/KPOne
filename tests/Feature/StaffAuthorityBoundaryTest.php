@@ -317,7 +317,7 @@ class StaffAuthorityBoundaryTest extends TestCase
             $this->assertSame([$role], $subject->getRoleNames()->all());
             $expected = $role === 'hr_manager'
                 ? ['website.assets.manage.organisation', 'website.careers.manage.organisation', 'website.content.view.organisation', 'website.doctor_profiles.manage.organisation']
-                : ['website.assets.manage.organisation', 'website.content.manage.organisation', 'website.content.view.organisation'];
+                : ['website.assets.manage.organisation', 'website.content.manage.organisation', 'website.content.view.organisation', 'website.releases.prepare.organisation'];
             $actual = $subject->getAllPermissions()->pluck('name')->filter(fn (string $permission) => str_starts_with($permission, 'website.'))->sort()->values()->all();
             $this->assertSame($expected, $actual);
             $this->assertSame(1, $subject->staffProfile->branchAssignments()->where('is_primary', true)->count());

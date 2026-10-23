@@ -71,7 +71,7 @@ class WebsiteLittleShieldTest extends BillingTestCase
                 $response->assertForbidden();
             }
         }
-        $this->assertSame(['website.assets.manage.organisation', 'website.careers.manage.organisation', 'website.content.manage.organisation', 'website.content.view.organisation', 'website.doctor_profiles.manage.organisation'], Permission::where('name', 'like', 'website.%')->orderBy('name')->pluck('name')->all());
+        $this->assertSame(['website.assets.manage.organisation', 'website.careers.manage.organisation', 'website.content.manage.organisation', 'website.content.view.organisation', 'website.doctor_profiles.manage.organisation', 'website.releases.approve.organisation', 'website.releases.prepare.organisation'], Permission::where('name', 'like', 'website.%')->orderBy('name')->pluck('name')->all());
         $this->app['auth']->forgetGuards();
         $this->get('/website/little-shield')->assertRedirect('/login');
     }
