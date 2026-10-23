@@ -70,6 +70,7 @@ use App\Http\Controllers\VisitHistoryController;
 use App\Http\Controllers\VisitReasonController;
 use App\Http\Controllers\WebsiteDraftController;
 use App\Http\Controllers\WebsiteEditorialController;
+use App\Http\Controllers\WebsiteLittleShieldController;
 use App\Http\Controllers\WebsitePeopleController;
 use App\Http\Controllers\WebsiteServicesController;
 use App\Http\Controllers\WorkspaceController;
@@ -147,6 +148,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
             }
         });
     }
+    Route::get('website/little-shield', [WebsiteLittleShieldController::class, 'index'])->middleware(['sensitive.no-store', 'permission:website.content.view.organisation'])->name('website.little-shield.index');
+    Route::post('website/little-shield', [WebsiteLittleShieldController::class, 'save'])->middleware(['sensitive.no-store', 'permission:website.content.manage.organisation'])->name('website.little-shield.save');
+
     Route::prefix('website')->controller(WebsiteDraftController::class)->middleware('sensitive.no-store')->group(function (): void {
         Route::get('branch-profiles', 'profiles')->middleware('permission:website.content.view.organisation')->name('website.profiles');
         Route::post('branch-profiles', 'save')->middleware('permission:website.content.manage.organisation')->name('website.profiles.save');

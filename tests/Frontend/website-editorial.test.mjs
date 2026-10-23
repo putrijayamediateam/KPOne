@@ -91,10 +91,10 @@ test('Every write is permission-filtered and branch switch clears all loaded sta
     assert.doesNotMatch(controller, /\bback\(/);
     assert.equal((controller.match(/redirect\(\)->route\(/g) ?? []).length, 2);
 });
-test('All three destinations use existing view authority and forbidden families stay absent', () => {
+test('All four destinations use existing view authority and forbidden families stay absent', () => {
     const nav = read('app/Domain/Access/ClinicManagementNavigation.php');
 
-    for (const label of ['Promotions', 'Activities', 'FAQs']) {
+    for (const label of ['Promotions', 'Activities', 'FAQs', 'Little Shield']) {
         assert.match(
             nav,
             new RegExp(`website.content.view.organisation'\\), '${label}'`),
