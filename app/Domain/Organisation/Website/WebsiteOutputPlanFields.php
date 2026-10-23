@@ -29,6 +29,22 @@ final class WebsiteOutputPlanFields
         return $out;
     }
 
+    /**
+     * @param  array<string,array{kind:string,alias:string}>  $aliases
+     * @param  list<array{key:string,kind:string,name:string}>  $targets
+     * @return list<array{key:string,kind:string,alias:string,name:string}>
+     */
+    public static function aliasRows(array $aliases, array $targets): array
+    {
+        $names = array_column($targets, 'name', 'key');
+        $rows = [];
+        foreach ($aliases as $key => $alias) {
+            $rows[] = ['key' => $key, 'kind' => $alias['kind'], 'alias' => $alias['alias'], 'name' => $names[$key] ?? 'Unknown item'];
+        }
+
+        return $rows;
+    }
+
     /** @param array<string,mixed> $manifest
      * @return list<string> */
     public static function available(array $manifest): array

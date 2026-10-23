@@ -22,6 +22,7 @@ export type OutputPlanPage = {
         lockVersion: number;
         hash: string;
         content: Record<string, ReleaseValue>;
+        aliasRows: { key: string; name: string; kind: string; alias: string }[];
         actions: {
             action: string;
             actor: string;

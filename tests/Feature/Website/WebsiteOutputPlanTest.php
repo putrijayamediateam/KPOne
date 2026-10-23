@@ -551,4 +551,38 @@ class WebsiteOutputPlanTest extends BillingTestCase
         $this->assertCount(2, array_unique($ids));
         $this->assertSame(4, DB::table('website_output_plans')->count());
     }
+
+    public function test_detail_alias_names_come_only_from_the_bound_frozen_manifest(): void
+    {
+        [$actor] = $this->approved();
+        $category = $this->source('service_category', ['name' => 'Frozen synthetic category', 'short_description' => 'Summary', 'include_on_website' => true]);
+        $publicId = DB::table('website_content_items')->where('id', $category)->value('public_id');
+        $service = $this->source('public_service', ['name' => 'Frozen synthetic service', 'short_summary' => 'Summary', 'seo_title' => 'Synthetic', 'seo_description' => 'Synthetic description', 'parent_public_id' => $publicId, 'description_sections' => [['heading' => 'Heading', 'body' => 'Body']], 'include_on_website' => true]);
+        $release = $this->prepare($actor);
+        $this->decision($actor, $release, 'approve');
+        $id = $this->plan($actor, $release);
+        $this->updateSource($category, ['name' => 'Live draft category sentinel']);
+        $this->updateSource($service, ['name' => 'Live draft service sentinel']);
+        $before = $this->snapshot(true);
+        DB::enableQueryLog();
+        DB::flushQueryLog();
+        $page = app(Plan::class)->page($actor, null, $id);
+        $queries = DB::getQueryLog();
+        DB::disableQueryLog();
+        foreach ($queries as $query) {
+            $this->assertDoesNotMatchRegularExpression('/website_content_|website_draft_|business_details/i', $query['query']);
+        }
+        $rows = $page['detail']['aliasRows'];
+        $this->assertCount(5, $rows);
+        foreach ($rows as $row) {
+            $this->assertSame(match ($row['kind']) {
+                'branch' => 'Synthetic public branch',
+                'category' => 'Frozen synthetic category',
+                'service' => 'Frozen synthetic service',
+            }, $row['name']);
+            $this->assertSame(J::encode($page['detail']['content']['aliases'][$row['key']]), J::encode(['kind' => $row['kind'], 'alias' => $row['alias']]));
+        }
+        $this->get('/website/releases/output-plans/'.$id)->assertOk()->assertInertia(fn (AssertableInertia $p) => $p->where('outputPlans.detail.aliasRows', $rows));
+        $this->assertSame($before, $this->snapshot(true));
+    }
 }
