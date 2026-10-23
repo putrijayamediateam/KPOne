@@ -70,7 +70,7 @@ final class WebsiteEditorialService
             $permissions = $actor->getAllPermissions()->pluck('name');
             $assets = $permissions->contains(WebsitePermissions::ASSETS) ? DB::table('website_media_assets')->where('organisation_id', $actor->organisation_id)->whereNull('retired_at')->where(fn ($q) => $q->where('identifiable_person', false)->orWhere('consent_reference', '<>', ''))->orderByDesc('id')->get(['public_id', 'alt_en', 'alt_bm']) : collect();
 
-            return ['type' => $type, 'branchId' => $branch->id, 'timezone' => $branch->timezone, 'branches' => $branches, 'linkedServices' => $linkedServices, 'canManage' => $permissions->contains(WebsitePermissions::MANAGE), 'canSelectMedia' => $permissions->contains(WebsitePermissions::ASSETS), 'filters' => $filters, 'items' => array_map(fn ($row) => $this->item($row), $rows->items()), 'page' => $rows->currentPage(), 'pages' => $rows->lastPage(), 'editing' => $publicId !== null, 'item' => $item ? $this->item($item) : null, 'drafts' => $drafts, 'assets' => $assets, 'history' => array_map(fn ($r) => $this->revision($r, $type), $history->items()), 'historyPage' => $history->currentPage(), 'historyPages' => $history->lastPage(), 'textLimits' => WebsiteEditorialFields::TEXT[$type], 'dateFields' => WebsiteEditorialFields::DATES[$type]];
+            return [...WebsiteSharedReferences::notices($item), 'type' => $type, 'branchId' => $branch->id, 'timezone' => $branch->timezone, 'branches' => $branches, 'linkedServices' => $linkedServices, 'canManage' => $permissions->contains(WebsitePermissions::MANAGE), 'canSelectMedia' => $permissions->contains(WebsitePermissions::ASSETS), 'filters' => $filters, 'items' => array_map(fn ($row) => $this->item($row), $rows->items()), 'page' => $rows->currentPage(), 'pages' => $rows->lastPage(), 'editing' => $publicId !== null, 'item' => $item ? $this->item($item) : null, 'drafts' => $drafts, 'assets' => $assets, 'history' => array_map(fn ($r) => $this->revision($r, $type), $history->items()), 'historyPage' => $history->currentPage(), 'historyPages' => $history->lastPage(), 'textLimits' => WebsiteEditorialFields::TEXT[$type], 'dateFields' => WebsiteEditorialFields::DATES[$type]];
         });
     }
 
@@ -137,15 +137,6 @@ final class WebsiteEditorialService
                 if (count($associatedBranches) !== count($branchIds)) {
                     self::refuse('branch_ids', 'Choose active branches from this organisation.');
                 }
-                if ($item) {
-                    $other = DB::table('website_content_revisions')->where('item_id', $item->id)->where('language', '<>', $data['language'])->orderByDesc('revision_number')->first();
-                    if ($other) {
-                        $saved = json_decode($other->content, true, 512, JSON_THROW_ON_ERROR);
-                        if (($saved['_branch_ids'] ?? []) !== $branchIds || ($saved['linked_service_public_id'] ?? null) !== ($content['linked_service_public_id'] ?? null)) {
-                            self::refuse('references', 'Branches and the FAQ service link must match the other language’s saved revision. Item-wide references cannot differ between EN and BM.');
-                        }
-                    }
-                }
                 if (($content['linked_service_public_id'] ?? null) !== null) {
                     $linked = DB::table('website_content_items')->where('public_id', $content['linked_service_public_id'])->where('organisation_id', $actor->organisation_id)->where('type', 'public_service')->whereNull('archived_at')->lockForUpdate()->first();
                     if (! $linked) {
@@ -167,8 +158,8 @@ final class WebsiteEditorialService
                 } else {
                     DB::table('website_content_items')->where('id', $item->id)->update(['lock_version' => $item->lock_version + 1]);
                 }
-                $number = (int) DB::table('website_content_revisions')->where('item_id', $item->id)->where('language', $data['language'])->max('revision_number') + 1;
-                DB::table('website_content_revisions')->insert(['organisation_id' => $actor->organisation_id, 'item_id' => $item->id, 'language' => $data['language'], 'revision_number' => $number, 'content' => json_encode([...$content, '_branch_ids' => $branchIds], JSON_THROW_ON_ERROR), 'hero_asset_id' => $assets->firstWhere('public_id', $content['cover_public_id'] ?? null)?->id, 'is_seed_copy' => false, 'created_by_user_id' => $actor->id, 'created_at' => now()->utc()->toIso8601String()]);
+                $appended = WebsiteSharedReferences::append($item, $data['language'], $content, $branchIds, $assets->firstWhere('public_id', $content['cover_public_id'] ?? null)?->id, $actor->id);
+                $number = $appended['number'];
                 DB::table('website_content_item_branches')->where('item_id', $item->id)->delete();
                 foreach ($branchIds as $branchId) {
                     DB::table('website_content_item_branches')->insert(['organisation_id' => $actor->organisation_id, 'item_id' => $item->id, 'branch_id' => $branchId]);
@@ -182,7 +173,7 @@ final class WebsiteEditorialService
                 $fields = ['archived_at'];
             }
             DB::table('website_draft_commands')->insert(['organisation_id' => $actor->organisation_id, 'actor_user_id' => $actor->id, 'idempotency_key' => $data['idempotency_key'], 'operation' => 'editorial_'.$operation, 'payload_hash' => $hash, 'result_id' => $item->id, 'created_at' => now()->utc()->toIso8601String()]);
-            if ($this->audit->record('website.editorial.'.$operation, null, ['item_id' => $item->id, 'version' => (int) $data['lock_version'] + 1, 'revision_number' => $number ?? null, 'language' => $data['language'] ?? null, 'field_names' => $fields], $actor, $branch) === null) {
+            if ($this->audit->record('website.editorial.'.$operation, null, ['item_id' => $item->id, 'version' => (int) $data['lock_version'] + 1, 'revision_number' => $number ?? null, 'language' => $data['language'] ?? null, 'field_names' => $fields, ...((isset($appended) && count($appended['languages']) > 1) ? ['languages' => $appended['languages']] : [])], $actor, $branch) === null) {
                 throw new \RuntimeException('Website audit could not be recorded.');
             }
 

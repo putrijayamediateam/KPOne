@@ -22,6 +22,8 @@ export type PeopleItem = {
 };
 export type PeoplePage = {
     type: 'doctor_profile' | 'career_posting';
+    sharedReferencesDiverge: boolean;
+    danglingServiceLink: boolean;
     branchId: number;
     branches: { id: number; name: string }[];
     canManage: boolean;

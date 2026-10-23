@@ -24,8 +24,8 @@ final class WebsitePeopleController extends Controller
 
     public function archive(Request $request, WebsitePeopleService $service): RedirectResponse
     {
-        $service->mutate($request->user(), $request->route('contentType'), $request->route('websiteItem'), $request->route('archiveAction'), $request->all());
+        $id = $service->mutate($request->user(), $request->route('contentType'), $request->route('websiteItem'), $request->route('archiveAction'), $request->all());
 
-        return back();
+        return redirect()->route($request->route('contentType') === 'doctor_profile' ? 'website.doctors.edit' : 'website.careers.edit', ['websiteItem' => $id]);
     }
 }

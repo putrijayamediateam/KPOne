@@ -61,7 +61,7 @@ final class WebsitePeopleService
             $history = DB::table('website_content_revisions')->where('item_id', $item->id ?? 0)->orderByDesc('id')->paginate(12, page: (int) ($filters['history_page'] ?? 1));
             $assets = DB::table('website_media_assets')->where('organisation_id', $actor->organisation_id)->whereNull('retired_at')->where('identifiable_person', true)->where('consent_reference', '<>', '')->orderByDesc('id')->get(['public_id', 'alt_en', 'alt_bm']);
 
-            return ['type' => $type, 'branchId' => $branch->id, 'branches' => $branches, 'canManage' => $actor->getAllPermissions()->pluck('name')->contains($permission), 'filters' => $filters, 'items' => array_map(fn ($row) => $this->item($row), $rows->items()), 'page' => $rows->currentPage(), 'pages' => $rows->lastPage(), 'editing' => $publicId !== null, 'item' => $item ? $this->item($item) : null, 'drafts' => $drafts, 'assets' => $assets, 'history' => array_map(fn ($r) => $this->revision($r, $type), $history->items()), 'historyPage' => $history->currentPage(), 'historyPages' => $history->lastPage(), 'textLimits' => $type === 'doctor_profile' ? WebsitePeopleFields::DOCTOR_TEXT : WebsitePeopleFields::CAREER_TEXT, 'listLimits' => $type === 'doctor_profile' ? WebsitePeopleFields::DOCTOR_LISTS : WebsitePeopleFields::CAREER_LISTS, 'employmentTypes' => WebsitePeopleFields::EMPLOYMENT];
+            return [...WebsiteSharedReferences::notices($item), 'type' => $type, 'branchId' => $branch->id, 'branches' => $branches, 'canManage' => $actor->getAllPermissions()->pluck('name')->contains($permission), 'filters' => $filters, 'items' => array_map(fn ($row) => $this->item($row), $rows->items()), 'page' => $rows->currentPage(), 'pages' => $rows->lastPage(), 'editing' => $publicId !== null, 'item' => $item ? $this->item($item) : null, 'drafts' => $drafts, 'assets' => $assets, 'history' => array_map(fn ($r) => $this->revision($r, $type), $history->items()), 'historyPage' => $history->currentPage(), 'historyPages' => $history->lastPage(), 'textLimits' => $type === 'doctor_profile' ? WebsitePeopleFields::DOCTOR_TEXT : WebsitePeopleFields::CAREER_TEXT, 'listLimits' => $type === 'doctor_profile' ? WebsitePeopleFields::DOCTOR_LISTS : WebsitePeopleFields::CAREER_LISTS, 'employmentTypes' => WebsitePeopleFields::EMPLOYMENT];
         });
     }
 
@@ -145,9 +145,8 @@ final class WebsitePeopleService
                 } else {
                     DB::table('website_content_items')->where('id', $item->id)->update(['lock_version' => $item->lock_version + 1]);
                 }
-                $number = (int) DB::table('website_content_revisions')->where('item_id', $item->id)->where('language', $data['language'])->max('revision_number') + 1;
-                // Association snapshots preserve earlier branch choices alongside each language revision.
-                DB::table('website_content_revisions')->insert(['organisation_id' => $actor->organisation_id, 'item_id' => $item->id, 'language' => $data['language'], 'revision_number' => $number, 'content' => json_encode([...$content, '_branch_ids' => $branchIds], JSON_THROW_ON_ERROR), 'hero_asset_id' => $portrait?->id, 'is_seed_copy' => false, 'created_by_user_id' => $actor->id, 'created_at' => now()->utc()->toIso8601String()]);
+                $appended = WebsiteSharedReferences::append($item, $data['language'], $content, $branchIds, $portrait?->id, $actor->id);
+                $number = $appended['number'];
                 DB::table('website_content_item_branches')->where('item_id', $item->id)->delete();
                 foreach ($branchIds as $branchId) {
                     DB::table('website_content_item_branches')->insert(['organisation_id' => $actor->organisation_id, 'item_id' => $item->id, 'branch_id' => $branchId]);
@@ -161,7 +160,7 @@ final class WebsitePeopleService
                 $fields = ['archived_at'];
             }
             DB::table('website_draft_commands')->insert(['organisation_id' => $actor->organisation_id, 'actor_user_id' => $actor->id, 'idempotency_key' => $data['idempotency_key'], 'operation' => 'people_'.$operation, 'payload_hash' => $hash, 'result_id' => $item->id, 'created_at' => now()->utc()->toIso8601String()]);
-            if ($this->audit->record('website.people.'.$operation, null, ['item_id' => $item->id, 'version' => max(1, (int) $data['lock_version'] + 1), 'revision_number' => $number ?? null, 'language' => $data['language'] ?? null, 'field_names' => $fields], $actor, $branch) === null) {
+            if ($this->audit->record('website.people.'.$operation, null, ['item_id' => $item->id, 'version' => max(1, (int) $data['lock_version'] + 1), 'revision_number' => $number ?? null, 'language' => $data['language'] ?? null, 'field_names' => $fields, ...((isset($appended) && count($appended['languages']) > 1) ? ['languages' => $appended['languages']] : [])], $actor, $branch) === null) {
                 throw new \RuntimeException('Website audit could not be recorded.');
             }
 

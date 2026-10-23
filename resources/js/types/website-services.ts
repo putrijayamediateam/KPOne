@@ -37,6 +37,8 @@ export type ServiceRevision = {
 };
 export type ServicesPage = {
     type: 'service_category' | 'public_service';
+    sharedReferencesDiverge: boolean;
+    danglingServiceLink: boolean;
     branchId: number;
     branches: { id: number; name: string }[];
     categories: ServiceItem[];

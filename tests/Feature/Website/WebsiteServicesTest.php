@@ -113,24 +113,27 @@ class WebsiteServicesTest extends BillingTestCase
         $service->mutate($actor, 'public_service', $id, 'save', $bm);
         $page = $service->page($actor, 'public_service', $id);
         $this->assertSame('Synthetic searchable service', $page['drafts']['en']['content']['name']);
-        $this->assertSame([$this->branch->id], $page['drafts']['en']['branchIds']);
+        $this->assertSame([$other->id], $page['drafts']['en']['branchIds']);
+        $this->assertNull($page['drafts']['en']['content']['parent_public_id']);
+        $this->assertNull($page['drafts']['bm']['content']['parent_public_id']);
         $this->assertSame([$other->id], $page['drafts']['bm']['branchIds']);
         $this->assertSame(1, $page['drafts']['bm']['number']);
         $this->assertSame($slug, $page['item']['slug']);
-        $this->assertCount(1, $service->page($actor, 'public_service', null, ['search' => 'searchable', 'branch_id' => $other->id, 'category_id' => $sub])['items']);
+        $this->assertCount(0, $service->page($actor, 'public_service', null, ['search' => 'searchable', 'branch_id' => $other->id, 'category_id' => $sub])['items']);
+        $this->assertCount(1, $service->page($actor, 'public_service', null, ['search' => 'searchable', 'branch_id' => $other->id])['items']);
         foreach (['archive' => 2, 'unarchive' => 3] as $operation => $version) {
             $data = $this->input(extra: ['lock_version' => $version]);
             $service->mutate($actor, 'public_service', $id, $operation, $data);
             $this->assertSame($id, $service->mutate($actor, 'public_service', $id, $operation, $data));
             $this->assertSame($operation === 'archive', $service->page($actor, 'public_service', $id)['item']['archived']);
-            $this->assertSame(2, DB::table('website_content_revisions')->where('item_id', DB::table('website_content_items')->where('public_id', $id)->value('id'))->count());
+            $this->assertSame(3, DB::table('website_content_revisions')->where('item_id', DB::table('website_content_items')->where('public_id', $id)->value('id'))->count());
         }
         $this->assertSame($slug, $service->page($actor, 'public_service', $id)['item']['slug']);
         for ($version = 4; $version < 17; $version++) {
             $service->mutate($actor, 'public_service', $id, 'save', $this->input(extra: ['lock_version' => $version]));
         }
         $this->assertCount(12, $service->page($actor, 'public_service', $id)['history']);
-        $this->assertCount(3, $service->page($actor, 'public_service', $id, ['history_page' => 2])['history']);
+        $this->assertCount(5, $service->page($actor, 'public_service', $id, ['history_page' => 2])['history']);
     }
 
     public function test_all_text_and_list_budgets_markup_controls_and_completeness(): void
