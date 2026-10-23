@@ -96,7 +96,7 @@ test('Both destinations use existing view authority and forbidden families stay 
 
     assert.doesNotMatch(
         nav,
-        /website\.publish|website\.requests|website\.promotions|website\.activities/,
+        /website\.publish|website\.requests/,
     );
 });
 test('Actual saved preview escapes clinical-looking markup without interpreting it and retains section and gallery order', async () => {

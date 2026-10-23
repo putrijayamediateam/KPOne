@@ -23,7 +23,7 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         // Preserve raw contact/IC input until domain validation rejects control characters.
-        $middleware->trimStrings(except: [fn (Request $request): bool => $request->is('website/services', 'website/services/*', 'website/service-categories', 'website/service-categories/*'), 'mobile_phone', 'quick_patient.mobile_phone', 'value', 'identifiers.*.value', 'quick_patient.identifiers.*.value']);
+        $middleware->trimStrings(except: [fn (Request $request): bool => $request->is('website/services', 'website/services/*', 'website/service-categories', 'website/service-categories/*', 'website/promotions', 'website/promotions/*', 'website/activities', 'website/activities/*', 'website/faqs', 'website/faqs/*'), 'mobile_phone', 'quick_patient.mobile_phone', 'value', 'identifiers.*.value', 'quick_patient.identifiers.*.value']);
         $middleware->encryptCookies(except: ['appearance', 'sidebar_state', 'kpone_public_intake_exchange_attempt']);
 
         $middleware->web(append: [

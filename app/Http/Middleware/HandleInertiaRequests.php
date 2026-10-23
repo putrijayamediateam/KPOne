@@ -124,7 +124,7 @@ class HandleInertiaRequests extends Middleware
                         || $user->can('queue_display.manage.organisation')
                         || $user->can('queue_display.manage.branch'),
                 ],
-                'pendingIntakes' => ! $request->routeIs('website.doctors.*', 'website.careers.*', 'website.categories.*', 'website.services.*')
+                'pendingIntakes' => ! $request->routeIs('website.doctors.*', 'website.careers.*', 'website.categories.*', 'website.services.*', 'website.promotions.*', 'website.activities.*', 'website.faqs.*')
                     && $activeBranch && $user->can('public_intakes.review.branch')
                     ? PublicPatientIntake::query()
                         ->where('organisation_id', $user->organisation_id)
