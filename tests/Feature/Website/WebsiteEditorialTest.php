@@ -210,7 +210,7 @@ class WebsiteEditorialTest extends BillingTestCase
         return app(WebsiteServicesService::class)->mutate($actor, 'public_service', null, 'save', ['expected_branch_id' => $this->branch->id, 'lock_version' => 0, 'idempotency_key' => (string) Str::uuid(), 'language' => 'en', 'content' => WebsiteServiceFields::empty('public_service'), 'branch_ids' => [$this->branch->id]]);
     }
 
-    public function test_item_wide_branch_and_faq_service_references_refuse_language_divergence(): void
+    public function test_item_wide_branch_and_faq_service_references_coordinate_language_changes(): void
     {
         $actor = $this->actor('marketing');
         $this->selectBranch($actor);
@@ -219,11 +219,12 @@ class WebsiteEditorialTest extends BillingTestCase
         foreach (['promotion', 'activity'] as $type) {
             $id = $this->create($actor, $type);
             $bm = $this->input($type, ['language' => 'bm', 'lock_version' => 1, 'branch_ids' => [$branch->id]]);
-            $this->refuse(fn () => $s->mutate($actor, $type, $id, 'save', $bm));
-            $this->assertSame([$this->branch->id], $s->page($actor, $type, $id)['drafts']['bm']['branchIds']);
-            $bm['branch_ids'] = [$this->branch->id];
             $s->mutate($actor, $type, $id, 'save', $bm);
-            $this->refuse(fn () => $s->mutate($actor, $type, $id, 'save', $this->input($type, ['lock_version' => 2, 'branch_ids' => []])));
+            $this->assertSame([$branch->id], $s->page($actor, $type, $id)['drafts']['en']['branchIds']);
+            $this->assertSame([$branch->id], $s->page($actor, $type, $id)['drafts']['bm']['branchIds']);
+            $s->mutate($actor, $type, $id, 'save', $this->input($type, ['lock_version' => 2, 'branch_ids' => []]));
+            $this->assertSame([], $s->page($actor, $type, $id)['drafts']['en']['branchIds']);
+            $this->assertSame([], $s->page($actor, $type, $id)['drafts']['bm']['branchIds']);
         }
         $linked = $this->publicService($actor);
         $input = $this->input('faq');
@@ -231,10 +232,15 @@ class WebsiteEditorialTest extends BillingTestCase
         $id = $s->mutate($actor, 'faq', null, 'save', $input);
         $this->assertSame($linked, $s->page($actor, 'faq', $id)['drafts']['bm']['content']['linked_service_public_id']);
         $bm = $this->input('faq', ['language' => 'bm', 'lock_version' => 1]);
-        $this->refuse(fn () => $s->mutate($actor, 'faq', $id, 'save', $bm));
+        $s->mutate($actor, 'faq', $id, 'save', $bm);
+        $this->assertNull($s->page($actor, 'faq', $id)['drafts']['en']['content']['linked_service_public_id']);
+        $this->assertNull($s->page($actor, 'faq', $id)['drafts']['bm']['content']['linked_service_public_id']);
+        $bm['lock_version'] = 2;
+        $bm['idempotency_key'] = (string) Str::uuid();
         $bm['content']['linked_service_public_id'] = $linked;
         $s->mutate($actor, 'faq', $id, 'save', $bm);
-        $this->refuse(fn () => $s->mutate($actor, 'faq', $id, 'save', $this->input('faq', ['lock_version' => 2])));
+        $this->assertSame($linked, $s->page($actor, 'faq', $id)['drafts']['en']['content']['linked_service_public_id']);
+        $this->assertSame($linked, $s->page($actor, 'faq', $id)['drafts']['bm']['content']['linked_service_public_id']);
         $this->refuse(fn () => $s->mutate($actor, 'faq', null, 'save', $this->input('faq', ['branch_ids' => [$this->branch->id]])));
         $category = app(WebsiteServicesService::class)->mutate($actor, 'service_category', null, 'save', ['expected_branch_id' => $this->branch->id, 'lock_version' => 0, 'idempotency_key' => (string) Str::uuid(), 'language' => 'en', 'content' => WebsiteServiceFields::empty('service_category'), 'branch_ids' => []]);
         $this->refuse(fn () => $s->mutate($actor, 'faq', null, 'save', $this->input('faq', ['content' => [...F::empty('faq'), 'linked_service_public_id' => $category]])));
@@ -246,6 +252,7 @@ class WebsiteEditorialTest extends BillingTestCase
         foreach ([$wrong, (string) Str::uuid()] as $bad) {
             $this->refuse(fn () => $s->mutate($actor, 'faq', null, 'save', $this->input('faq', ['content' => [...F::empty('faq'), 'linked_service_public_id' => $bad]])));
         }
+        $s->mutate($actor, 'faq', $id, 'archive', $this->input('faq', ['lock_version' => 3]));
         app(WebsiteServicesService::class)->mutate($actor, 'public_service', $linked, 'archive', ['expected_branch_id' => $this->branch->id, 'lock_version' => 1, 'idempotency_key' => (string) Str::uuid()]);
         $this->refuse(fn () => $s->mutate($actor, 'faq', null, 'save', $this->input('faq', ['content' => [...F::empty('faq'), 'linked_service_public_id' => $linked]])));
         $this->assertSame($linked, $s->page($actor, 'faq', $id)['history'][0]['content']['linked_service_public_id']);
@@ -433,7 +440,10 @@ class WebsiteEditorialTest extends BillingTestCase
             }
             foreach ($actions as $action) {
                 try {
-                    DB::transaction($action);
+                    DB::transaction(function () use ($action): void {
+                        $action();
+                        DB::statement('SET CONSTRAINTS website_shared_references_consistent IMMEDIATE');
+                    });
                     $this->fail('Database protection bypassed.');
                 } catch (QueryException $e) {
                     $this->assertNotEmpty($e->getMessage());
@@ -449,7 +459,10 @@ class WebsiteEditorialTest extends BillingTestCase
         $r['language'] = 'bm';
         $r['content'] = json_encode([...F::empty('faq'), '_branch_ids' => []]);
         try {
-            DB::transaction(fn () => DB::table('website_content_revisions')->insert($r));
+            DB::transaction(function () use ($r): void {
+                DB::table('website_content_revisions')->insert($r);
+                DB::statement('SET CONSTRAINTS website_shared_references_consistent IMMEDIATE');
+            });
             $this->fail('Divergent service link accepted.');
         } catch (QueryException $e) {
             $this->assertNotEmpty($e->getMessage());

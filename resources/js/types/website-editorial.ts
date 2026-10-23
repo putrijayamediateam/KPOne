@@ -35,6 +35,8 @@ export type EditorialRevision = {
 export type EditorialPage = {
     type: 'promotion' | 'activity' | 'faq';
     timezone: string;
+    sharedReferencesDiverge: boolean;
+    danglingServiceLink: boolean;
     branchId: number;
     branches: { id: number; name: string }[];
     linkedServices: EditorialItem[];

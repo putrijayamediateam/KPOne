@@ -162,7 +162,7 @@ test('Editorial source adds no public delivery, scheduler, integration or permis
         service,
         /Http::|dispatch\(|schedule\(|Patient::|User::query|Pricing/,
     );
-    assert.match(service, /other language/);
+    assert.match(service, /WebsiteSharedReferences::append/);
     assert.match(source, /linked_service_public_id/);
     assert.match(source, /page\.timezone/);
     assert.match(preview, /revision\.content\.linked_service_public_id/);

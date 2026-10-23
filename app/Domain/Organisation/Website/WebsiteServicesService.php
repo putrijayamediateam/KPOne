@@ -67,11 +67,18 @@ final class WebsiteServicesService
                 $revision = $item ? DB::table('website_content_revisions')->where('item_id', $item->id)->where('language', $language)->orderByDesc('revision_number')->first() : null;
                 $drafts[$language] = $revision ? $this->revision($revision, $type) : ['id' => null, 'number' => 0, 'language' => $language, 'content' => WebsiteServiceFields::empty($type), 'branchIds' => [], 'missing' => WebsiteServiceFields::missing($type, WebsiteServiceFields::empty($type)), 'createdAt' => null];
             }
+            foreach (['en' => 'bm', 'bm' => 'en'] as $language => $otherLanguage) {
+                if ($drafts[$language]['number'] === 0 && $drafts[$otherLanguage]['number'] > 0) {
+                    $drafts[$language]['branchIds'] = $drafts[$otherLanguage]['branchIds'];
+                    $drafts[$language]['content']['parent_public_id'] = $drafts[$otherLanguage]['content']['parent_public_id'];
+                    $drafts[$language]['missing'] = WebsiteServiceFields::missing($type, $drafts[$language]['content'], $drafts[$language]['branchIds']);
+                }
+            }
             $history = DB::table('website_content_revisions')->where('item_id', $item->id ?? 0)->orderByDesc('id')->paginate(12, page: (int) ($filters['history_page'] ?? 1));
             $permissions = $actor->getAllPermissions()->pluck('name');
             $assets = $permissions->contains(WebsitePermissions::ASSETS) ? DB::table('website_media_assets')->where('organisation_id', $actor->organisation_id)->whereNull('retired_at')->where(fn ($q) => $q->where('identifiable_person', false)->orWhere('consent_reference', '<>', ''))->orderByDesc('id')->get(['public_id', 'alt_en', 'alt_bm']) : collect();
 
-            return ['type' => $type, 'branchId' => $branch->id, 'branches' => $branches, 'categories' => $categories, 'canManage' => $permissions->contains(WebsitePermissions::MANAGE), 'canSelectMedia' => $permissions->contains(WebsitePermissions::ASSETS), 'filters' => $filters, 'items' => array_map(fn ($row) => $this->item($row), $rows->items()), 'page' => $rows->currentPage(), 'pages' => $rows->lastPage(), 'editing' => $publicId !== null, 'item' => $item ? $this->item($item) : null, 'drafts' => $drafts, 'assets' => $assets, 'history' => array_map(fn ($r) => $this->revision($r, $type), $history->items()), 'historyPage' => $history->currentPage(), 'historyPages' => $history->lastPage(), 'textLimits' => $type === 'service_category' ? WebsiteServiceFields::CATEGORY_TEXT : WebsiteServiceFields::SERVICE_TEXT, 'listLimits' => $type === 'public_service' ? WebsiteServiceFields::LISTS : []];
+            return [...WebsiteSharedReferences::notices($item), 'type' => $type, 'branchId' => $branch->id, 'branches' => $branches, 'categories' => $categories, 'canManage' => $permissions->contains(WebsitePermissions::MANAGE), 'canSelectMedia' => $permissions->contains(WebsitePermissions::ASSETS), 'filters' => $filters, 'items' => array_map(fn ($row) => $this->item($row), $rows->items()), 'page' => $rows->currentPage(), 'pages' => $rows->lastPage(), 'editing' => $publicId !== null, 'item' => $item ? $this->item($item) : null, 'drafts' => $drafts, 'assets' => $assets, 'history' => array_map(fn ($r) => $this->revision($r, $type), $history->items()), 'historyPage' => $history->currentPage(), 'historyPages' => $history->lastPage(), 'textLimits' => $type === 'service_category' ? WebsiteServiceFields::CATEGORY_TEXT : WebsiteServiceFields::SERVICE_TEXT, 'listLimits' => $type === 'public_service' ? WebsiteServiceFields::LISTS : []];
         });
     }
 
@@ -155,8 +162,8 @@ final class WebsiteServicesService
                 } else {
                     DB::table('website_content_items')->where('id', $item->id)->update(['lock_version' => $item->lock_version + 1]);
                 }
-                $number = (int) DB::table('website_content_revisions')->where('item_id', $item->id)->where('language', $data['language'])->max('revision_number') + 1;
-                DB::table('website_content_revisions')->insert(['organisation_id' => $actor->organisation_id, 'item_id' => $item->id, 'language' => $data['language'], 'revision_number' => $number, 'content' => json_encode([...$content, '_branch_ids' => $branchIds], JSON_THROW_ON_ERROR), 'hero_asset_id' => $assets->firstWhere('public_id', $content['cover_public_id'])?->id, 'is_seed_copy' => false, 'created_by_user_id' => $actor->id, 'created_at' => now()->utc()->toIso8601String()]);
+                $appended = WebsiteSharedReferences::append($item, $data['language'], $content, $branchIds, $assets->firstWhere('public_id', $content['cover_public_id'])?->id, $actor->id);
+                $number = $appended['number'];
                 DB::table('website_content_item_branches')->where('item_id', $item->id)->delete();
                 foreach ($branchIds as $branchId) {
                     DB::table('website_content_item_branches')->insert(['organisation_id' => $actor->organisation_id, 'item_id' => $item->id, 'branch_id' => $branchId]);
@@ -169,6 +176,9 @@ final class WebsiteServicesService
                 if ($operation === 'archive' && $type === 'service_category' && $this->children($publicId)) {
                     self::refuse('archive', 'Archive active children before archiving this category.');
                 }
+                if ($operation === 'archive' && $type === 'public_service' && ($faqCount = WebsiteSharedReferences::activeFaqCount($publicId)) > 0) {
+                    self::refuse('archive', "Cannot archive: {$faqCount} active FAQs link to this service. Clear their links or archive those FAQs first.");
+                }
                 if ($operation === 'unarchive') {
                     foreach (DB::table('website_content_revisions')->where('item_id', $item->id)->orderByDesc('revision_number')->get()->unique('language') as $revision) {
                         $this->parent($actor->organisation_id, $type, $publicId, json_decode($revision->content, true, 512, JSON_THROW_ON_ERROR)['parent_public_id'] ?? null);
@@ -178,7 +188,7 @@ final class WebsiteServicesService
                 $fields = ['archived_at'];
             }
             DB::table('website_draft_commands')->insert(['organisation_id' => $actor->organisation_id, 'actor_user_id' => $actor->id, 'idempotency_key' => $data['idempotency_key'], 'operation' => 'services_'.$operation, 'payload_hash' => $hash, 'result_id' => $item->id, 'created_at' => now()->utc()->toIso8601String()]);
-            if ($this->audit->record('website.services.'.$operation, null, ['item_id' => $item->id, 'version' => (int) $data['lock_version'] + 1, 'revision_number' => $number ?? null, 'language' => $data['language'] ?? null, 'field_names' => $fields], $actor, $branch) === null) {
+            if ($this->audit->record('website.services.'.$operation, null, ['item_id' => $item->id, 'version' => (int) $data['lock_version'] + 1, 'revision_number' => $number ?? null, 'language' => $data['language'] ?? null, 'field_names' => $fields, ...((isset($appended) && count($appended['languages']) > 1) ? ['languages' => $appended['languages']] : [])], $actor, $branch) === null) {
                 throw new \RuntimeException('Website audit could not be recorded.');
             }
 

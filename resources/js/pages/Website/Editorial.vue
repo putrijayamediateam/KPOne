@@ -102,7 +102,11 @@ const preview = computed(
     () => selected.value ?? page.value.drafts[language.value],
 );
 const label = (key: string) =>
-    key.replaceAll('_', ' ').replace(/^./, (c) => c.toUpperCase());
+    key === 'seo_title'
+        ? 'SEO title'
+        : key === 'seo_description'
+          ? 'SEO description'
+          : key.replaceAll('_', ' ').replace(/^./, (c) => c.toUpperCase());
 const sections = computed(() => form.content.description_sections ?? []);
 const galleryCandidate = ref('');
 const addGallery = () => {
@@ -173,6 +177,23 @@ const inputClass =
             >Clinic management</Link
         >
         <h1 class="text-2xl font-semibold">{{ title }}</h1>
+        <p
+            v-if="page.sharedReferencesDiverge"
+            role="alert"
+            class="rounded border border-amber-500 p-3 text-sm"
+        >
+            Legacy language references differ. The next save will append
+            revisions that converge both languages onto the saved language’s
+            shared choices, keeping the other language’s text unchanged.
+        </p>
+        <p
+            v-if="page.danglingServiceLink"
+            role="alert"
+            class="rounded border border-amber-500 p-3 text-sm"
+        >
+            This FAQ links to an inactive or unavailable service. Clear or
+            change its link and save; both languages will be updated together.
+        </p>
         <p
             class="rounded-lg border border-amber-400/60 bg-amber-50 p-4 text-sm text-amber-950 dark:bg-amber-950/30 dark:text-amber-100"
         >
@@ -358,9 +379,9 @@ const inputClass =
                                 Plain text only; no markup or hidden characters.
                                 Offer text requires its display-approval
                                 reference. Incomplete private drafts may be
-                                saved. Branch associations and FAQ service link
-                                must match the other language’s saved revision.
-                                Text remains independent.
+                                saved. Changing shared branch or service
+                                references appends a coordinated revision for
+                                the other language, preserving its text.
                             </p>
                             <label v-if="faq" class="block text-sm"
                                 >Linked service (optional, item-wide)
