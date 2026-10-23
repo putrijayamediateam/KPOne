@@ -1,8 +1,9 @@
 # KPOne project
 
-Latest merged delivery: PR #163 — website site-settings analysis (documentation), merged as `75dc6a9`. Recent merges, newest first
+Latest merged delivery: PR #165 — W1e-1 website release freeze, merged as `ef79ea6`. Recent merges, newest first
 (documentation-only PRs omitted):
 
+- PR #165 (`ef79ea6`) — W1e-1: private, immutable, hashed and numbered website release freeze with a structured EN/BM preview, change list and Director-only approve, refuse and withdraw. Nothing is public; no output, deployment or public route.
 - PR #162 and #163 (`e0d7176`, `75dc6a9`) — documentation only: the W1e publishing analysis and the site-settings and legal-pages analysis. They authorise nothing.
 - PR #161 (`ef803f0`) — W1d-2: draft-only Little Shield programme page (one per organisation, ordered pillars, steps, safeguards, partner types and posters). No form or sign-up. Nothing is public.
 - PR #160 (`fde54dc`) — website shared-references fix: branches, a service's category and an FAQ's linked service now have one answer for both languages through a coordinated save and a deferred database rule; archiving a service with active FAQ links is refused.
