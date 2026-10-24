@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Domain\Organisation\Website\WebsiteArtifactBuildService;
 use App\Domain\Organisation\Website\WebsiteOutputPlanService;
 use App\Domain\Organisation\Website\WebsiteReleaseService;
 use Illuminate\Http\RedirectResponse;
@@ -15,7 +16,7 @@ final class WebsiteReleaseController extends Controller
 {
     public function index(Request $request, WebsiteReleaseService $service, ?int $release = null): Response
     {
-        return Inertia::render('Website/Releases', ['releases' => $service->page($request->user(), $release), 'outputPlans' => app(WebsiteOutputPlanService::class)->listing($request->user())])->with('privatePreview', true);
+        return Inertia::render('Website/Releases', ['releases' => $service->page($request->user(), $release), 'outputPlans' => app(WebsiteOutputPlanService::class)->listing($request->user()), 'builds' => app(WebsiteArtifactBuildService::class)->page($request->user(), $release)])->with('privatePreview', true);
     }
 
     public function prepare(Request $request, WebsiteReleaseService $service): RedirectResponse

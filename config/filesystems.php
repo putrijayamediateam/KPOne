@@ -29,6 +29,8 @@ return [
     */
 
     'disks' => [
+        'website_artifacts' => ['driver' => 'local', 'root' => storage_path('app/private/website-artifacts'), 'serve' => false, 'throw' => true, 'visibility' => 'private', 'directory_visibility' => 'private'],
+
         'website_media' => ['driver' => 'local', 'root' => storage_path('app/private/website-media'), 'serve' => false, 'throw' => true],
 
         'local' => [
