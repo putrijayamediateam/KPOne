@@ -189,6 +189,9 @@ final class WebsiteOutputPlanService
                 $release = ['id' => $r->id, 'number' => $r->number, 'hash' => $r->manifest_hash, 'state' => $state];
                 $manifest = json_decode($r->manifest, true, 512, JSON_THROW_ON_ERROR);
                 $targets = WebsiteOutputPlanFields::targets($manifest);
+                if ($detail !== null) {
+                    $detail['aliasRows'] = WebsiteOutputPlanFields::aliasRows($detail['content']['aliases'], $targets);
+                }
                 $available = WebsiteOutputPlanFields::available($manifest);
                 $usable = $state === 'approved' && ($detail['state'] ?? null) === 'approved';
             }
