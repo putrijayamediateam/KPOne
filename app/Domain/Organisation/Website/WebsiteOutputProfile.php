@@ -6,6 +6,10 @@ final class WebsiteOutputProfile
 {
     public const LANGUAGE = 'en-root-bm-v1';
 
+    public const WORDMARK = 'Klinik Putrijaya';
+
+    public const HOME_LINE = ['en' => 'Clinic information and services.', 'bm' => 'Maklumat dan perkhidmatan klinik.'];
+
     public const LABELS = [
         'home' => ['en' => 'Home', 'bm' => 'Laman utama'], 'branches' => ['en' => 'Branches', 'bm' => 'Cawangan'],
         'doctors' => ['en' => 'Doctors', 'bm' => 'Doktor'], 'services' => ['en' => 'Services', 'bm' => 'Perkhidmatan'],

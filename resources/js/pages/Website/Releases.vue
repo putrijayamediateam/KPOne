@@ -3,9 +3,12 @@ import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import { onUnmounted, ref, watch } from 'vue';
 import { Button } from '@/components/ui/button';
 import ReleaseStructuredValue from '@/components/website/ReleaseStructuredValue.vue';
+import WebsiteBuilds from '@/components/website/WebsiteBuilds.vue';
+import type { WebsiteBuildPage } from '@/types/website-builds';
 import type { ReleasePage } from '@/types/website-releases';
 const props = defineProps<{
     releases: ReleasePage;
+    builds?: WebsiteBuildPage | null;
     outputPlans?: {
         id: number;
         number: string;
@@ -242,6 +245,7 @@ onUnmounted(remove);
                         continue.
                     </p>
                 </section>
+                <WebsiteBuilds v-if="props.builds" :builds="props.builds" />
                 <section class="space-y-3 rounded-lg border p-4">
                     <h2 class="font-semibold">
                         Change list · {{ page.detail.comparedTo }}

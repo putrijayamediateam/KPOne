@@ -1,0 +1,331 @@
+:root {
+    --white: __white__;
+    --ink: __ink__;
+    --soft: __soft__;
+    --pink: __pink__;
+    --brand: __brand__;
+    --border: __border__;
+    font-family: __font__;
+    color: var(--ink);
+    background: var(--white);
+    font-synthesis: none;
+    line-height: 1.6;
+}
+* {
+    box-sizing: border-box;
+}
+body {
+    margin: 0;
+}
+a {
+    color: var(--brand);
+    text-underline-offset: 0.18em;
+}
+a:hover {
+    text-decoration-thickness: 0.15em;
+}
+:focus-visible {
+    outline: 3px solid var(--brand);
+    outline-offset: 4px;
+}
+img {
+    max-width: 100%;
+    height: auto;
+    display: block;
+}
+p,
+li,
+address {
+    overflow-wrap: anywhere;
+}
+h1,
+h2,
+h3 {
+    line-height: 1.2;
+    overflow-wrap: anywhere;
+}
+h1 {
+    font-size: clamp(2rem, 4vw, 3.6rem);
+    margin: 0.3em 0;
+}
+h2 {
+    font-size: 1.4rem;
+}
+h3 {
+    font-size: 1.1rem;
+}
+.skip {
+    position: absolute;
+    left: 1rem;
+    top: -8rem;
+    padding: 0.8rem;
+    background: var(--white);
+    z-index: 2;
+}
+.skip:focus {
+    top: 1rem;
+}
+.site-header {
+    background: var(--soft);
+    border-top: 6px solid var(--pink);
+    border-bottom: 1px solid var(--border);
+}
+.masthead {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    max-width: 1200px;
+    margin: auto;
+    padding: 1.25rem;
+}
+.wordmark {
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    color: var(--ink);
+    font-size: 1.4rem;
+    font-weight: 750;
+    text-decoration: none;
+}
+.wordmark img {
+    max-width: 5rem;
+    max-height: 4rem;
+    object-fit: contain;
+}
+.language {
+    padding: 0.5rem;
+    min-width: 44px;
+    min-height: 44px;
+    text-align: center;
+    font-weight: 700;
+}
+[role='navigation'] {
+    max-width: 1200px;
+    margin: auto;
+    padding: 0 1.25rem 1rem;
+}
+[role='navigation'] ul {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem 1.2rem;
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+[role='navigation'] a {
+    display: block;
+    padding: 0.5rem 0;
+    font-weight: 600;
+    min-height: 44px;
+}
+[role='navigation'] a[aria-current='page'] {
+    text-decoration-thickness: 0.18em;
+}
+[role='main'] {
+    max-width: 1200px;
+    margin: auto;
+    padding: 2rem 1.25rem 4rem;
+    min-height: 60vh;
+}
+[role='main'] > section {
+    margin-bottom: 2.5rem;
+}
+.page-heading {
+    padding: 1rem 0 1.5rem;
+    max-width: 850px;
+}
+.eyebrow {
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--brand);
+}
+.lead {
+    font-size: 1.25rem;
+    max-width: 45rem;
+}
+.cards {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1.25rem;
+}
+.card {
+    min-width: 0;
+    border: 1px solid var(--border);
+    border-radius: 1rem;
+    padding: 1.4rem;
+    background: var(--white);
+}
+.card h2 {
+    margin-top: 0.2rem;
+}
+.card ul {
+    padding-left: 1.4rem;
+}
+.prose {
+    white-space: pre-line;
+}
+.gallery {
+    display: grid;
+    gap: 0.6rem;
+    margin-bottom: 1rem;
+}
+.gallery img {
+    width: 100%;
+    max-height: 22rem;
+    object-fit: contain;
+    background: var(--soft);
+    border-radius: 0.5rem;
+}
+.programme > .card {
+    background: var(--soft);
+    padding: clamp(1.25rem, 4vw, 3rem);
+}
+.programme-teaser {
+    background: var(--soft);
+    border: 1px solid var(--border);
+    border-radius: 1rem;
+    padding: 2rem;
+    margin-top: 2rem;
+}
+.button {
+    display: inline-block;
+    border-radius: 0.6rem;
+    background: var(--brand);
+    color: var(--white);
+    padding: 0.7rem 1rem;
+    text-decoration: none;
+    font-weight: 700;
+    min-height: 44px;
+}
+.contact-links {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+    align-items: center;
+}
+.hours > div {
+    display: flex;
+    gap: 1rem;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--border);
+    padding: 0.3rem 0;
+}
+.hours dd {
+    margin: 0;
+}
+address {
+    font-style: normal;
+}
+address span {
+    display: block;
+}
+.filter {
+    border: 1px solid var(--border);
+    border-radius: 1rem;
+    padding: 1rem;
+    background: var(--soft);
+}
+label {
+    display: block;
+    font-weight: 650;
+    margin-bottom: 0.5rem;
+}
+select {
+    font: inherit;
+    max-width: 100%;
+    min-height: 44px;
+    border: 1px solid var(--border);
+    border-radius: 0.4rem;
+    padding: 0.5rem;
+    background: var(--white);
+    color: var(--ink);
+}
+.site-footer {
+    padding: 2rem 1.25rem;
+    text-align: center;
+    background: var(--soft);
+    border-top: 1px solid var(--border);
+}
+[hidden] {
+    display: none !important;
+}
+#service-detail {
+    max-width: 800px;
+}
+#service-detail img {
+    max-height: 28rem;
+    object-fit: contain;
+    margin: 1rem 0;
+}
+@media (max-width: 900px) {
+    .cards {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+@media (max-width: 560px) {
+    .cards {
+        grid-template-columns: 1fr;
+    }
+    [role='main'] {
+        padding-top: 1.2rem;
+    }
+    .masthead {
+        padding: 1rem;
+    }
+    .wordmark {
+        font-size: 1.2rem;
+    }
+    [role='navigation'] ul {
+        gap: 0.2rem 1rem;
+    }
+    .card {
+        padding: 1.1rem;
+    }
+    .programme-teaser {
+        padding: 1.25rem;
+    }
+}
+@media (prefers-reduced-motion: reduce) {
+    * {
+        scroll-behavior: auto !important;
+        animation: none !important;
+        transition: none !important;
+    }
+}
+@media print {
+    [role='navigation'],
+    .language,
+    .skip {
+        display: none;
+    }
+    body,
+    .site-header,
+    [role='main'],
+    .site-footer,
+    .card {
+        color: var(--ink);
+        background: var(--white);
+    }
+    [role='main'] {
+        max-width: none;
+        padding: 0;
+    }
+    .cards {
+        display: block;
+    }
+    .card {
+        break-inside: avoid;
+        margin-bottom: 1rem;
+    }
+    .button {
+        color: var(--ink);
+        background: var(--white);
+        text-decoration: underline;
+    }
+    a {
+        color: var(--ink);
+    }
+}
