@@ -138,7 +138,7 @@ CREATE OR REPLACE FUNCTION website_artifact_complete() RETURNS trigger LANGUAGE 
  SELECT * INTO t FROM website_artifact_attempts WHERE id=NEW.id;
  SELECT * INTO a FROM website_artifacts WHERE attempt_id=NEW.id;
  IF t.state='built' THEN
- SELECT count(*),coalesce(sum(bytes),0),jsonb_agg(jsonb_build_object('path',path,'mime',mime,'bytes',bytes,'sha256',sha256) ORDER BY path) INTO n,b,files FROM website_artifact_files WHERE artifact_id=a.id;
+ SELECT count(*),coalesce(sum(bytes),0),jsonb_agg(jsonb_build_object('path',path,'mime',mime,'bytes',bytes,'sha256',sha256) ORDER BY path COLLATE "C") INTO n,b,files FROM website_artifact_files WHERE artifact_id=a.id;
  IF a.id IS DISTINCT FROM t.artifact_id OR n IS DISTINCT FROM a.file_count::bigint OR b IS DISTINCT FROM a.total_bytes OR files IS DISTINCT FROM a.file_manifest::jsonb OR NOT EXISTS(SELECT 1 FROM website_artifact_actions WHERE attempt_id=NEW.id AND action='built' AND artifact_hash=a.artifact_hash) THEN RAISE EXCEPTION 'Incomplete built artifact'; END IF;
  ELSIF a.id IS NOT NULL THEN RAISE EXCEPTION 'Artifact without built attempt'; END IF;
  RETURN NULL;

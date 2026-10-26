@@ -1,7 +1,7 @@
 # W1e-2a — deterministic static renderer and private artifacts
 
-Status: **local candidate, uncommitted pending owner review. Not production-approved.**
-Branch: `feature/w1e-2a-renderer`; independent base `4e375f9` (fetched `origin/main`, contains PRs #165–#168). Job 1 is separately open as [PR #169](https://github.com/putrijayamediateam/KPOne/pull/169); this branch does not include it. No push, PR, merge or served-tree change for Job 2.
+Status: **PR #170 candidate; CI correction and required main integration validated. Not production-approved.**
+Branch: `feature/w1e-2a-renderer`; original independent base `4e375f9` (contains PRs #165–#168). The original reviewed candidate was committed as `f5d198a` and opened as [PR #170](https://github.com/putrijayamediateam/KPOne/pull/170). The original gate/evidence below are retained as history; the CI investigation and subsequent validation are recorded at the end. No served-tree change.
 
 ## Scope and inputs
 
@@ -92,7 +92,7 @@ Task-owned PostgreSQL **18.6**, `127.0.0.1:58523`, user `renderer`, DB `kpone_re
 | `migrate:fresh --seed --force` on separate owned seed DB | Pass |
 | `git diff --check origin/main`, including new-file checks | Pass |
 
-The candidate is intentionally uncommitted until owner review; no candidate commit SHA is claimed. The working branch still points to base `4e375f9`. Private logs and the complete uncommitted patch are under the evidence folder.
+The preceding gate table records the original pre-commit validation at base `4e375f9`, later committed as `f5d198a`. Its private logs and original patch remain under the evidence folder. The PR #170 CI correction and latest gate are recorded below.
 
 ## Evidence and generated fixture files
 
@@ -153,3 +153,112 @@ sitemap.xml
 - A future private preview adapter must authorise every read; the internal integrity materialiser is not an HTTP access policy or serving endpoint.
 - Failed encrypted staging may need an explicit operational cleanup policy later; no background cleanup or purge is authorised here.
 - Preview/file serving, ZIP/download, artifact approval, production profile, deployment/Cloudflare, redirects, settings, About, appointment intake, feedback, analytics, old-site import/use and new permissions remain absent and unauthorised.
+
+## PR #170 CI investigation (2026-10-26)
+
+Failed candidate: `f5d198a5e7e891d0f162f466d98a13ae02fb3464`, GitHub run `40100568070`. The complete failed log was retrieved with `gh run view --log-failed`; it was not necessary to infer the failure from container startup logs. The failing command was `composer ci:check`, specifically its final `php artisan test`. ESLint, Prettier, Vue type checking, Pint with `--parallel --test`, and PHPStan with `--memory-limit=1G` had passed. GitHub reported **7 failed, 1,400 passed, two existing skips, 29,150 assertions, 873.95 seconds**.
+
+The first failure, `test_rich_frozen_build_is_deterministic_and_the_private_index_verifies`, was exactly:
+
+```text
+render
+Failed asserting that two strings are identical.
+-'built'
++'failed'
+```
+
+PostgreSQL logged:
+
+```text
+ERROR: Incomplete built artifact
+CONTEXT: PL/pgSQL function website_artifact_complete() line 6 at RAISE
+STATEMENT: COMMIT
+```
+
+The other six failures were in the same new test class: source-row stability (null artifact), retry/source withdrawal (zero rather than one artifact), encrypted-file tampering (null artifact id), immutable statements (the counter is empty after the failed fixture build), plan-logo references (null artifact id), and deferred completeness (no artifact row). These are consequences of the same failed build, not seven independent renderer failures.
+
+Exact hosted failure locations at `f5d198a` (all in `tests/Feature/Website/WebsiteArtifactBuildTest.php`):
+
+| Test method | Location | Failure output |
+|---|---|---|
+| `test_rich_frozen_build_is_deterministic_and_the_private_index_verifies` | 33 | `render`; `Failed asserting that two strings are identical.`; expected `built`, actual `failed` |
+| `test_build_changes_no_source_rows_and_live_edits_do_not_change_historical_output` | 164 | `Failed asserting that null is not null.` |
+| `test_retry_conflict_stale_versions_and_source_withdrawal` | 212 | `Failed asserting that 0 is identical to 1.` |
+| `test_tampered_generated_bytes_are_refused_and_retained_media_are_references` | 290 | `Attempt to read property "id" on null` |
+| `test_postgresql_refuses_immutable_changes_and_late_file_insertion` | 331 | `Immutable statement accepted` |
+| `test_plan_only_logo_is_referenced_without_copying_and_integrity_helpers_refuse_tampering` | 391 | `Attempt to read property "id" on null` |
+| `test_postgresql_deferred_completeness_and_terminal_versions_are_enforced` | 453 (call), framework `BuildsQueries.php:403` | `RecordsNotFoundException` (no message) |
+
+
+### Workflow command order and settings
+
+After candidate/ref/tree attestation and PHP/Node setup, `.github/workflows/tests.yml` executes these commands in this exact order:
+
+```sh
+cp .env.example .env
+composer install --no-interaction --prefer-dist --no-progress
+npm ci
+php artisan wayfinder:generate --with-form --no-interaction
+shopt -s failglob
+node --test tests/Frontend/*.test.mjs
+php artisan migrate --force
+npm run build
+composer ci:check
+```
+
+Composer install also executes its normal lockfile hooks: `Illuminate\\Foundation\\ComposerScripts::postAutoloadDump` and `php artisan package:discover --ansi`. `composer ci:check` expands in order to:
+
+```text
+Composer\Config::disableProcessTimeout
+npm run lint:check             -> eslint .
+npm run format:check           -> prettier --check resources/
+npm run types:check            -> vue-tsc --noEmit
+php artisan config:clear --ansi
+pint --parallel --test
+phpstan analyse --memory-limit=1G
+php artisan test
+```
+
+There is **no PHPUnit memory override** in the workflow. Its pinned `setup-php` action selects PHP 8.4, production INI and coverage `none`, without an explicit extension list or `ini-values`. The pinned action's `configure_php` appends its checked-in defaults, including `memory_limit=-1` and `date.timezone=UTC`. Xdebug and PCOV are disabled. The action also appends `opcache.enable=1`, `opcache.jit_buffer_size=256M`, and `opcache.jit=1235`; CLI OPcache remains off (`opcache.enable_cli=0`). The completed fixed replay explicitly matches those values too. The application artifact budget is independently 512 MiB and remains unchanged. The actual hosted run used PHP 8.4.27, Composer 2.10.3, Node 22.23.3 and PostgreSQL 18.6 with `en_US.utf8` collation.
+
+Local replay uses only disposable checkouts with `.env` copied from `.env.example`, a new task-owned PostgreSQL 18.6 cluster at **127.0.0.1:58526**, `en_US.UTF-8`, UTC, user `postgres`. The original replay DB is `kpone_test`; the fixed replay DB is `kpone_ci_fixed_testing`; the isolated diagnostic DB is `kpone_ci_probe_testing`. All host/port/names were verified. No served-tree request or real environment file is used.
+
+Reproduction limitation: this machine is macOS/ARM, not Ubuntu/x86. The configurable Homebrew PHP binary is **8.4.26**, one patch older than the hosted run; it runs with the action's effective unlimited CLI memory setting, UTC and no Xdebug/PCOV. Required extensions including pgsql/PDO, GD, EXIF, mbstring, intl, DOM/XML, zip and sodium are loaded. Composer and Node match the hosted versions. The installed Herd PHP 8.4.27 forces its own global 128 MiB configuration, so it was not used for the completed replay. An initial diagnostic with that incorrect 128 MiB setting exhausted memory in an unrelated billing test; it is discarded as a settings mismatch, not evidence of this CI failure. No global PHP configuration was changed.
+
+### Cause and bounded fix
+
+The PHP file manifest uses `ksort` (byte order for these allowlisted paths). The new deferred PostgreSQL completeness guard used locale-sensitive `ORDER BY path`. In the new `en_US` database, the observed order is `_headers,404.html,...`; byte order is `404.html,_headers,...`. JSONB preserves array order, so the complete, correctly staged artifact is rejected at commit. The original rich-build failure reproduced in **1.422 seconds**, far below the 30-second render budget. The complete original-head sequence then reproduced exactly **1,400 passed, seven unsuccessful tests (four assertion failures and three errors), two existing skips and 29,150 assertions**, in **642.421 seconds**. `composer ci:check` returned exit 2. The failed test names and failure messages match the hosted run.
+
+The fix changes only the new migration's aggregate ordering to `ORDER BY path COLLATE "C"`. Counts, summed bytes, exact manifest equality, the required built action, append-only guards and every production budget remain intact. No renderer output, file bytes or canonical PHP hash is changed. This is a correction to the as-yet-unmerged artifact migration; an installation that already ran the earlier candidate migration will not rerun that file automatically and needs a separately reviewed forward repair before reuse. Disposable validation databases are rebuilt.
+
+New regression `test_completion_manifest_uses_byte_order_even_with_a_locale_sorted_path_column` explicitly uses an ICU English collation for the file path column, proves it differs from byte ordering, then requires a successful complete build, exact byte-ordered manifest and successful integrity verification. Its pre-fix negative control failed with the same `render` / `built` versus `failed` result. No existing assertion is changed, weakened, removed or newly skipped.
+
+The 2,000-file / 249.58 MiB benchmark is an ignored manual renderer harness, **not a fixture executed by this workflow**. Normal CI rich-build fixtures are tens of files. The expired-lease test establishes a lease five minutes in the past rather than sleeping for a machine-dependent interval. Each artifact test uses a fresh database and `Storage::fake('website_artifacts')`; the completed replay starts from separate checkouts/private storage and does not reuse prior evidence. The budget refusal test uses small injected budgets to exercise the same production logic and retains its assertions. Disk had approximately **769 GiB free**. The observed CI failure is not a deadline, memory or disk refusal; no production limit or timing assertion is loosened.
+
+### Main integration
+
+Fetched `origin/main` at `6174586` (PR #169). The read-only merge check found a conflict **only in `docs/BASELINE.md`**. A normal merge was therefore started as requested. Resolution keeps main's merged output-plan status and owner decisions, plus the renderer row and its explicit scope. The plan-name implementation/tests arrive unchanged from main. They are not assertion changes made for this fix. The fix and this required integration are recorded in one merge commit after validation.
+
+
+### Fixed candidate: completed CI replay and full gate
+
+The complete fixed workflow sequence returned **exit 0** after the required main integration. Backend: **1,410 passed / 29,270 assertions / two existing skips** (1,412 total), **636.937 seconds**. The additional tests relative to `f5d198a` are the two already-merged plan-name tests from PR #169 and the one new locale regression. No existing assertion was changed by the fix. Imported main files match `origin/main` exactly except the documented baseline resolution.
+
+| Check | Result |
+|---|---|
+| Ephemeral example environment; locked Composer install; `npm ci` | Pass |
+| `php artisan wayfinder:generate --with-form --no-interaction` | Pass |
+| `node --test tests/Frontend/*.test.mjs` with `failglob` | **486 passed**, no failures/skips |
+| `php artisan migrate --force` | Pass |
+| `npm run build` (`vite build`) | Pass |
+| `npm run lint:check` / `format:check` / `types:check` | Pass |
+| `php artisan config:clear --ansi` | Pass |
+| Pint `--parallel --test` | Pass |
+| PHPStan level 7 `--memory-limit=1G` | Pass, zero errors |
+| `php artisan test` (workflow settings, no manual memory override) | **1,410 passed, 29,270 assertions, two existing skips** |
+| Separate owned `kpone_ci_seed_testing`: `migrate:fresh --seed --force` | Pass |
+| Broader `node --test tests/Frontend/*.mjs` | **486 passed**, no failures/skips |
+| `git diff --check` | Pass |
+| Immediate post-suite artifact rerun (same checkout/database, fresh fake disk) | **18 passed / 1,421 assertions**, 22.171 seconds |
+
+The validated runtime/test files were byte-compared with the feature worktree before committing. Investigation logs remain local at `/private/tmp/w1e2a-ci-original-logs/` and `/private/tmp/w1e2a-ci-final-logs/`; effective PHP settings are recorded in the latter's `php-settings.json`. No logs, database files, environment copies or private evidence are committed. The served tree remains clean on `main`. No other branch is pushed and the PR is not merged.

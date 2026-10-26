@@ -43,6 +43,27 @@ class WebsiteArtifactBuildTest extends WebsiteArtifactTestCase
         $this->assertSame($a->file_manifest, $b->file_manifest);
     }
 
+    public function test_completion_manifest_uses_byte_order_even_with_a_locale_sorted_path_column(): void
+    {
+        DB::statement("CREATE COLLATION IF NOT EXISTS artifact_test_locale (provider = icu, locale = 'en-US')");
+        DB::statement('ALTER TABLE website_artifact_files ALTER COLUMN path TYPE varchar(180) COLLATE artifact_test_locale');
+        $paths = ['404.html', '_headers'];
+        $localeOrder = DB::select("SELECT path FROM (VALUES ('404.html'), ('_headers')) AS files(path) ORDER BY path COLLATE artifact_test_locale");
+        $this->assertNotSame($paths, array_column($localeOrder, 'path'));
+
+        [$actor, $release, $plan] = $this->rich();
+        $id = app(Build::class)->build($actor, $release, $this->buildInput($release, $plan));
+        $attempt = DB::table('website_artifact_attempts')->where('id', $id)->first();
+        $this->assertSame('built', $attempt->state, $attempt->failure_code ?? '');
+        $artifact = DB::table('website_artifacts')->where('id', $attempt->artifact_id)->first();
+        $manifest = json_decode($artifact->file_manifest, true, 512, JSON_THROW_ON_ERROR);
+        $byteOrder = DB::table('website_artifact_files')->where('artifact_id', $artifact->id)->orderByRaw('path COLLATE "C"')->pluck('path')->all();
+        $this->assertSame($byteOrder, array_column($manifest, 'path'));
+        $verifiedPaths = array_keys(app(WebsiteArtifactStore::class)->verify($actor->organisation_id, $artifact->id));
+        sort($verifiedPaths, SORT_STRING);
+        $this->assertSame($byteOrder, $verifiedPaths);
+    }
+
     public function test_reader_isolation_renderer_purity_and_private_sentinels(): void
     {
         [$actor,$release,$plan] = $this->rich();
