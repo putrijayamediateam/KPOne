@@ -160,8 +160,8 @@ class ConsultationHoldService
 
     /**
      * Returns a consultation to Serving as On Hold when its doctor already has another active patient, so a
-     * doctor never has two non-held consultations. The caller must already hold the visit, queue and encounter
-     * locks in the current transaction; the doctor row lock taken here serialises against Queue call and resume.
+     * doctor never has two non-held consultations. The caller must already hold the doctor BEFORE the visit, queue and encounter
+     * locks, following ConsultationLocks. This re-read uses that already-held doctor lock.
      */
     public function holdReturningConsultation(
         User $actor,
@@ -250,20 +250,20 @@ class ConsultationHoldService
 
     private function lockDoctor(User $actor, Branch $branch): User
     {
+        ConsultationLocks::users($branch->organisation_id, [$actor->id]);
         $doctor = User::query()->whereKey($actor->id)
             ->where('organisation_id', $branch->organisation_id)
             ->lockForUpdate()->firstOrFail();
         $doctor->load(['roles.permissions', 'permissions']);
         $profile = StaffProfile::query()->where('user_id', $doctor->id)->lockForUpdate()->first();
         $assignments = $profile
-            ? StaffBranchAssignment::query()->where('staff_profile_id', $profile->id)->lockForUpdate()->get()
+            ? StaffBranchAssignment::query()->where('staff_profile_id', $profile->id)->orderBy('id')->lockForUpdate()->get()
             : collect();
         $date = now()->setTimezone($branch->timezone)->toDateString();
         $assigned = $assignments->contains(fn (StaffBranchAssignment $assignment): bool => $assignment->branch_id === $branch->id
             && $assignment->valid_from->toDateString() <= $date
             && ($assignment->valid_until === null || $assignment->valid_until->toDateString() >= $date));
-        if (! $doctor->is_active || ! $profile || ! $doctor->hasRole('resident_doctor')
-            || ! $doctor->can('consultations.hold.own') || ! $assigned) {
+        if (! $doctor->is_active || ! $profile || ! $doctor->can('consultations.hold.own') || ! $assigned) {
             throw new AuthorizationException('You may not hold or resume this consultation.');
         }
 
@@ -301,14 +301,7 @@ class ConsultationHoldService
 
     private function hasOtherActiveConsultation(User $doctor, Visit $current): bool
     {
-        return QueueEntry::query()
-            ->where('queue_entries.organisation_id', $doctor->organisation_id)
-            ->where('queue_entries.branch_id', $current->branch_id)
-            ->where('queue_entries.status', QueueEntry::STATUS_SERVING)
-            ->where('queue_entries.visit_id', '!=', $current->id)
-            ->whereHas('visit', fn ($query) => $query->where('assigned_doctor_user_id', $doctor->id))
-            ->whereDoesntHave('visit.clinicalEncounter.activeHold')
-            ->exists();
+        return ConsultationLocks::doctorBusy($doctor, $current);
     }
 
     private function bumpVersions(ClinicalEncounter $encounter, QueueEntry $queue, User $doctor): void

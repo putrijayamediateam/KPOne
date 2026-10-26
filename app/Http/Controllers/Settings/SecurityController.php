@@ -32,6 +32,6 @@ class SecurityController extends Controller
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Password updated.')]);
 
-        return back();
+        return to_route('security.edit');
     }
 }

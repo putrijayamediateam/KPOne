@@ -108,7 +108,7 @@ class ClinicalSafetyAuthorizationTest extends ClinicalTestCase
     public function test_legitimate_current_care_can_read_longitudinal_allergies_across_branches(): void
     {
         [$doctor, , $firstVisit, $firstQueue] = $this->servingFixture();
-        $this->startEncounter($doctor, $firstVisit, $firstQueue);
+        $firstEncounter = $this->startEncounter($doctor, $firstVisit, $firstQueue);
         app(PatientAllergyService::class)->add($doctor, $firstVisit, [
             'expected_branch_id' => $firstVisit->branch_id,
             'profile_lock_version' => null,
@@ -117,6 +117,8 @@ class ClinicalSafetyAuthorizationTest extends ClinicalTestCase
             'reaction_text' => null,
             'severity' => null,
         ]);
+
+        $this->holdEncounter($doctor, $firstVisit, $firstQueue, $firstEncounter);
 
         $otherBranch = Branch::query()
             ->where('organisation_id', $this->organisation->id)

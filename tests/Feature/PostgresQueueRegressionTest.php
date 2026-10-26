@@ -3,6 +3,8 @@
 namespace Tests\Feature;
 
 use App\Domain\Access\BranchAccessService;
+use App\Domain\Clinical\Models\ClinicalEncounter;
+use App\Domain\Clinical\Services\ConsultationHoldService;
 use App\Domain\Identity\Models\StaffProfile;
 use App\Domain\Organisation\Models\Branch;
 use App\Domain\Organisation\Models\Organisation;
@@ -75,6 +77,8 @@ class PostgresQueueRegressionTest extends TestCase
         }
         if ($this->organisationId !== null) {
             DB::table('audit_logs')->where('organisation_id', $this->organisationId)->delete();
+            DB::table('consultation_holds')->where('organisation_id', $this->organisationId)->delete();
+            DB::table('clinical_encounters')->where('organisation_id', $this->organisationId)->delete();
             DB::table('queue_calls')->where('organisation_id', $this->organisationId)->delete();
             DB::table('queue_entries')->where('organisation_id', $this->organisationId)->delete();
             DB::table('visit_reason_assignments')->where('organisation_id', $this->organisationId)->delete();
@@ -262,6 +266,61 @@ class PostgresQueueRegressionTest extends TestCase
             );
             $this->tearDownOrganisationOnly();
         }
+    }
+
+    public function test_pilot_hold_resume_same_doctor_patient_serialize_without_a_transaction_retry(): void
+    {
+        [$organisation, $branches, $actors, $doctor] = $this->fixture();
+        $this->grantPermissions($doctor, ['consultations.hold.own', 'queue.call.own']);
+        [$visit, $queue, $encounter] = $this->pilotServing($organisation, $branches[0], $actors[0], $doctor);
+        app(ConsultationHoldService::class)->hold($doctor, $visit, $this->pilotInput($visit, $queue, $encounter));
+        $input = $this->pilotInput($visit, $queue, $encounter);
+        $workers = [];
+        foreach (['pilot-hold', 'pilot-resume'] as $mode) {
+            $workers[] = $this->worker([$mode, (string) $doctor->id, $visit->visit_number, (string) $visit->branch_id, (string) $input['visit_lock_version'], (string) $input['queue_lock_version'], (string) $input['encounter_lock_version']]);
+        }
+        $this->runTogetherWhileParentBlocks($workers, fn () => User::whereKey($doctor->id)->lockForUpdate()->firstOrFail());
+        $output = $this->workerOutput($workers);
+        $this->assertSame(2, substr_count($output, 'PILOT_TRANSACTIONS 1'));
+        $this->assertStringNotContainsString('PILOT_TRANSACTIONS 2', $output);
+        $this->assertStringNotContainsString('deadlock', strtolower($output));
+    }
+
+    public function test_pilot_hold_and_call_same_doctor_patient_serialize_without_a_transaction_retry(): void
+    {
+        [$organisation, $branches, $actors, $doctor] = $this->fixture();
+        $this->grantPermissions($doctor, ['consultations.hold.own', 'queue.call.own']);
+        [$visit, $queue, $encounter] = $this->pilotServing($organisation, $branches[0], $actors[0], $doctor);
+        $next = $this->visit($organisation, $branches[0], $actors[0], $doctor);
+        $next->forceFill(['patient_id' => $visit->patient_id])->save();
+        $waiting = $this->enter($actors[0], $next);
+        $input = $this->pilotInput($visit, $queue, $encounter);
+        $workers = [
+            $this->worker(['pilot-hold', (string) $doctor->id, $visit->visit_number, (string) $visit->branch_id, (string) $input['visit_lock_version'], (string) $input['queue_lock_version'], (string) $input['encounter_lock_version']]),
+            $this->worker(['pilot-call', (string) $actors[0]->id, $next->visit_number, (string) $next->branch_id, (string) $next->lock_version, (string) $waiting->lock_version, '1']),
+        ];
+        $this->runTogetherWhileParentBlocks($workers, fn () => User::whereKey($doctor->id)->lockForUpdate()->firstOrFail());
+        $output = $this->workerOutput($workers);
+        $this->assertSame(2, substr_count($output, 'PILOT_TRANSACTIONS 1'));
+        $this->assertStringNotContainsString('PILOT_TRANSACTIONS 2', $output);
+        $this->assertStringNotContainsString('deadlock', strtolower($output));
+        $this->assertLessThanOrEqual(1, QueueEntry::where('organisation_id', $organisation->id)->where('status', QueueEntry::STATUS_SERVING)->whereDoesntHave('visit.clinicalEncounter.activeHold')->count());
+    }
+
+    private function pilotServing(Organisation $organisation, Branch $branch, User $actor, User $doctor): array
+    {
+        $visit = $this->visit($organisation, $branch, $actor, $doctor);
+        $queue = $this->enter($actor, $visit);
+        $queue->forceFill(['status' => QueueEntry::STATUS_SERVING, 'called_at' => now(), 'called_by_user_id' => $doctor->id])->save();
+        $encounter = new ClinicalEncounter;
+        $encounter->forceFill(['organisation_id' => $organisation->id, 'branch_id' => $branch->id, 'visit_id' => $visit->id, 'attending_clinician_user_id' => $doctor->id, 'status' => 'in_progress', 'started_at' => now(), 'updated_by_user_id' => $doctor->id, 'lock_version' => 1])->save();
+
+        return [$visit, $queue, $encounter];
+    }
+
+    private function pilotInput($visit, $queue, $encounter): array
+    {
+        return ['expected_branch_id' => $visit->branch_id, 'visit_lock_version' => $visit->refresh()->lock_version, 'queue_lock_version' => $queue->refresh()->lock_version, 'encounter_lock_version' => $encounter->refresh()->lock_version, 'idempotency_key' => (string) Str::uuid()];
     }
 
     private function fixture(bool $security = false): array
@@ -555,6 +614,8 @@ class PostgresQueueRegressionTest extends TestCase
         }
         $id = $this->organisationId;
         DB::table('audit_logs')->where('organisation_id', $id)->delete();
+        DB::table('consultation_holds')->where('organisation_id', $id)->delete();
+        DB::table('clinical_encounters')->where('organisation_id', $id)->delete();
         DB::table('queue_calls')->where('organisation_id', $id)->delete();
         DB::table('queue_entries')->where('organisation_id', $id)->delete();
         DB::table('visit_reason_assignments')->where('organisation_id', $id)->delete();
