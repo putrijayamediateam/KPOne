@@ -183,10 +183,15 @@ class DispensaryController extends Controller
 
     public function acknowledge(AcknowledgeDispensaryPartialRequest $request, DispensaryItemException $exception, DispensaryService $service): RedirectResponse
     {
-        $service->acknowledge($request->user(), $exception, $request->validated());
+        $visit = Visit::query()->whereKey(DispensaryCase::query()->whereKey($exception->dispensary_case_id)->where('organisation_id', $request->user()->organisation_id)->value('visit_id'))->firstOrFail();
+        try {
+            $service->acknowledge($request->user(), $exception, $request->validated());
+        } catch (ValidationException $failure) {
+            throw $failure->redirectTo(route('encounters.show', $visit));
+        }
         Inertia::flash('toast', ['type' => 'success', 'message' => 'Partial fulfilment acknowledged.']);
 
-        return back();
+        return to_route('encounters.show', $visit);
     }
 
     /**

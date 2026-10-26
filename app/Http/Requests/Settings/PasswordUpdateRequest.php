@@ -10,6 +10,8 @@ class PasswordUpdateRequest extends FormRequest
 {
     use PasswordValidationRules;
 
+    protected $redirectRoute = 'security.edit';
+
     /**
      * Get the validation rules that apply to the request.
      *

@@ -19,7 +19,7 @@ const changeBranch = (value: unknown) => {
     if (branchId) {
         router.post(
             '/branch-context',
-            { branch_id: branchId },
+            { branch_id: branchId, return_to: page.url },
             { preserveScroll: true },
         );
     }

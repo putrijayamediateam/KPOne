@@ -3,13 +3,16 @@
 declare(strict_types=1);
 
 use App\Domain\Access\BranchAccessService;
+use App\Domain\Clinical\Services\ConsultationHoldService;
 use App\Domain\Queue\Services\QueueEntryService;
 use App\Domain\Visit\Models\Visit;
 use App\Domain\Visit\Services\VisitAdministrationService;
 use App\Models\User;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Contracts\Console\Kernel;
+use Illuminate\Database\Events\TransactionBeginning;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 require dirname(__DIR__, 2).'/vendor/autoload.php';
@@ -32,6 +35,34 @@ try {
     fflush(STDOUT);
     if (trim((string) fgets(STDIN)) !== 'GO') {
         exit(66);
+    }
+
+    if (in_array($mode, ['pilot-hold', 'pilot-resume', 'pilot-call'], true) && count($argv) === 9) {
+        [, , $actorId, $visitNumber, $branchId, $visitVersion, $queueVersion, $encounterVersion] = $argv;
+        app('session')->start();
+        session([BranchAccessService::SESSION_KEY => (int) $branchId]);
+        $actor = User::findOrFail((int) $actorId);
+        $visit = Visit::where('organisation_id', $actor->organisation_id)->where('visit_number', $visitNumber)->firstOrFail();
+        $transactions = 0;
+        app('events')->listen(TransactionBeginning::class, function ($event) use (&$transactions): void {
+            if ($event->connection->transactionLevel() === 1) {
+                $transactions++;
+            }
+        });
+        $input = ['expected_branch_id' => (int) $branchId, 'visit_lock_version' => (int) $visitVersion, 'queue_lock_version' => (int) $queueVersion, 'encounter_lock_version' => (int) $encounterVersion, 'idempotency_key' => (string) Str::uuid()];
+        try {
+            if ($mode === 'pilot-call') {
+                app(QueueEntryService::class)->call($actor, $visit, $input);
+            } else {
+                $method = $mode === 'pilot-hold' ? 'hold' : 'resume';
+                app(ConsultationHoldService::class)->$method($actor, $visit, $input);
+            }
+            fwrite(STDOUT, 'PILOT_OK'.PHP_EOL);
+        } catch (ValidationException|AuthorizationException $error) {
+            fwrite(STDOUT, 'PILOT_REFUSED '.$error::class.' '.$error->getMessage().PHP_EOL);
+        }
+        fwrite(STDOUT, 'PILOT_TRANSACTIONS '.$transactions.PHP_EOL);
+        exit(0);
     }
 
     if ($mode === 'enter' && count($argv) === 6) {

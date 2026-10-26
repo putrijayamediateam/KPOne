@@ -12,6 +12,7 @@ use App\Domain\Clinical\Models\ClinicalEncounter;
 use App\Domain\Clinical\Models\PatientAllergyProfile;
 use App\Domain\Clinical\Models\PatientAllergyProfileVersion;
 use App\Domain\Clinical\Models\TreatmentPlan;
+use App\Domain\Clinical\Services\ConsultationHoldService;
 use App\Domain\Clinical\Services\TreatmentPlanService;
 use App\Domain\Identity\Models\StaffBranchAssignment;
 use App\Domain\Identity\Models\StaffProfile;
@@ -29,7 +30,9 @@ use App\Models\User;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Contracts\Console\Kernel;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Database\Events\TransactionBeginning;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 
@@ -52,6 +55,33 @@ try {
     fflush(STDOUT);
     if (trim((string) fgets(STDIN)) !== 'GO') {
         exit(66);
+    }
+
+    if (in_array($mode, ['pilot-return', 'pilot-hold-return'], true)) {
+        $transactions = 0;
+        app('events')->listen(TransactionBeginning::class, function ($event) use (&$transactions): void {
+            if ($event->connection->transactionLevel() === 1) {
+                $transactions++;
+            }
+        });
+        register_shutdown_function(function () use (&$transactions): void {
+            fwrite(STDOUT, 'PILOT_TRANSACTIONS '.$transactions.PHP_EOL);
+        });
+        if ($mode === 'pilot-return') {
+            $mode = 'return';
+        } else {
+            $actor = User::findOrFail((int) $argv[2]);
+            app('session')->start();
+            session([BranchAccessService::SESSION_KEY => (int) $argv[3]]);
+            $visit = Visit::where('organisation_id', $actor->organisation_id)->where('visit_number', $argv[4])->firstOrFail();
+            try {
+                app(ConsultationHoldService::class)->hold($actor, $visit, ['expected_branch_id' => (int) $argv[3], 'visit_lock_version' => (int) $argv[5], 'queue_lock_version' => (int) $argv[6], 'encounter_lock_version' => (int) $argv[7], 'idempotency_key' => (string) Str::uuid()]);
+                fwrite(STDOUT, 'PILOT_HELD'.PHP_EOL);
+            } catch (ValidationException) {
+                fwrite(STDOUT, 'PILOT_REFUSED'.PHP_EOL);
+            }
+            exit(0);
+        }
     }
 
     if ($mode === 'adjustment-hold') {

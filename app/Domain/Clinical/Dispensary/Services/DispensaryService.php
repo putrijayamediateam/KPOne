@@ -20,6 +20,7 @@ use App\Domain\Clinical\Models\TreatmentPlan;
 use App\Domain\Clinical\Models\TreatmentPlanMedicineOrder;
 use App\Domain\Clinical\Services\CheckoutEvidenceService;
 use App\Domain\Clinical\Services\ConsultationHoldService;
+use App\Domain\Clinical\Services\ConsultationLocks;
 use App\Domain\Identity\Models\StaffBranchAssignment;
 use App\Domain\Identity\Models\StaffProfile;
 use App\Domain\Organisation\Inventory\Models\InventoryBatch;
@@ -634,10 +635,19 @@ class DispensaryService
         $branch = $this->authority->activeBranch($actor, $attributes);
 
         return DB::transaction(function () use ($actor, $case, $attributes, $permission, $callback, $branch): DispensaryCase {
+            $returnDoctorId = null;
+            if ($permission === 'dispensary.return_to_doctor.branch') {
+                $stub = DispensaryCase::query()->whereKey($case->id)->where('organisation_id', $actor->organisation_id)->where('branch_id', $branch->id)->firstOrFail();
+                $returnDoctorId = Visit::query()->whereKey($stub->visit_id)->value('assigned_doctor_user_id');
+                ConsultationLocks::users($actor->organisation_id, [$actor->id, $returnDoctorId]);
+            }
             $lockedActor = $this->authority->lock($actor, $branch, $permission);
             $lockedCaseStub = DispensaryCase::query()->whereKey($case->id)->where('organisation_id', $lockedActor->organisation_id)->where('branch_id', $branch->id)->firstOrFail();
             $patient = Patient::query()->whereKey($lockedCaseStub->visit()->value('patient_id'))->where('organisation_id', $lockedActor->organisation_id)->lockForUpdate()->firstOrFail();
             $visit = Visit::query()->whereKey($lockedCaseStub->visit_id)->where('patient_id', $patient->id)->where('branch_id', $branch->id)->lockForUpdate()->firstOrFail();
+            if ($permission === 'dispensary.return_to_doctor.branch' && $visit->assigned_doctor_user_id !== $returnDoctorId) {
+                $this->stale('case');
+            }
             $otc = $lockedCaseStub->case_type === DispensaryCase::TYPE_OTC;
             $queue = $otc ? null : QueueEntry::query()->where('visit_id', $visit->id)->lockForUpdate()->firstOrFail();
             $encounter = $otc ? null : ClinicalEncounter::query()->whereKey($lockedCaseStub->clinical_encounter_id)->lockForUpdate()->firstOrFail();

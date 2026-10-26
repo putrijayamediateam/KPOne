@@ -4,6 +4,7 @@ namespace App\Domain\Queue\Services;
 
 use App\Domain\Access\BranchAccessService;
 use App\Domain\Audit\AuditRecorder;
+use App\Domain\Clinical\Services\ConsultationLocks;
 use App\Domain\Identity\Models\StaffBranchAssignment;
 use App\Domain\Identity\Models\StaffProfile;
 use App\Domain\Organisation\Models\Branch;
@@ -144,6 +145,7 @@ class QueueEntryService
         ])->validate();
 
         return DB::transaction(function () use ($actor, $visit, $branch, $validated): QueueEntry {
+            ConsultationLocks::users($actor->organisation_id, [$actor->id, $visit->assigned_doctor_user_id]);
             $lockedActor = $this->lockActor($actor, $branch, [
                 'queue.call.branch',
                 'queue.call.own',
@@ -198,17 +200,10 @@ class QueueEntryService
                 $effectiveDate,
             );
 
-            $hasActiveConsultation = QueueEntry::query()
-                ->where('organisation_id', $lockedActor->organisation_id)
-                ->where('branch_id', $branch->id)
-                ->where('status', QueueEntry::STATUS_SERVING)
-                ->whereHas('visit', fn ($query) => $query
-                    ->where('assigned_doctor_user_id', $lockedDoctor->id))
-                ->whereDoesntHave('visit.clinicalEncounter.activeHold')
-                ->exists();
+            $hasActiveConsultation = ConsultationLocks::doctorBusy($lockedDoctor);
             if ($hasActiveConsultation) {
                 throw ValidationException::withMessages([
-                    'queue' => 'This doctor is already serving another patient. Place that consultation On Hold or complete it first.',
+                    'queue' => 'Doktor sedang menjalankan konsultasi lain. Tahan atau selesaikan konsultasi tersebut dahulu.',
                 ]);
             }
 
@@ -335,7 +330,7 @@ class QueueEntryService
         if ($profile) {
             StaffBranchAssignment::query()
                 ->where('staff_profile_id', $profile->id)
-                ->lockForUpdate()
+                ->orderBy('id')->lockForUpdate()
                 ->get();
             $locked->unsetRelation('staffProfile');
         }

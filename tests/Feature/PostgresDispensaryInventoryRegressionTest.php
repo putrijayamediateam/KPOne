@@ -125,6 +125,56 @@ class PostgresDispensaryInventoryRegressionTest extends TestCase
         parent::tearDown();
     }
 
+    public function test_pilot_manual_hold_and_automatic_return_same_patient_do_not_deadlock_or_retry(): void
+    {
+        $f = $this->sentFixture();
+        $this->grantPermissions($f['doctor'], 'consultations.hold.own');
+        $f['queue']->refresh();
+        $f['encounter']->refresh();
+        $manual = $this->worker(['pilot-hold-return', (string) $f['doctor']->id, (string) $f['branch']->id, $f['visit']->visit_number, (string) $f['visit']->lock_version, (string) $f['queue']->lock_version, (string) $f['encounter']->lock_version]);
+        $automatic = $this->worker(['pilot-return', (string) $f['ca']->id, (string) $f['branch']->id, $f['case']->public_id, (string) $f['case']->lock_version]);
+        DB::beginTransaction();
+        try {
+            User::whereKey($f['doctor']->id)->lockForUpdate()->firstOrFail();
+            $parent = (int) DB::scalar('select pg_backend_pid()');
+            // Queue manual hold first at the doctor mutex, then the return. The old
+            // return held the Visit before waiting here and formed a cycle on release.
+            foreach ([$manual, $automatic] as $worker) {
+                $worker['process']->start();
+                $this->waitReady([$worker]);
+                $worker['input']->write("GO\n");
+                $worker['input']->close();
+                $this->waitForDatabaseBlock($worker['process'], $parent);
+            }
+            DB::commit();
+        } finally {
+            if (DB::transactionLevel() > 0) {
+                DB::rollBack();
+            }
+        }
+        $this->finish([$manual, $automatic]);
+        $output = $this->workerOutput([$manual, $automatic]);
+        $this->assertSame(2, substr_count($output, 'PILOT_TRANSACTIONS 1'), $output);
+        $this->assertStringNotContainsString('PILOT_TRANSACTIONS 2', $output);
+        $this->assertSame('serving', $f['queue']->refresh()->status);
+    }
+
+    public function test_pilot_acknowledge_success_and_refusals_ignore_stale_previous_navigation(): void
+    {
+        $f = $this->patientDeclinedFixture();
+        $this->actingAs($f['doctor']);
+        session([BranchAccessService::SESSION_KEY => $f['branch']->id]);
+        $target = route('encounters.show', $f['visit']);
+        $this->withSession(['_previous' => ['url' => '/check-in/status']])
+            ->post(route('dispensary.exceptions.acknowledge', $f['exception']), [])
+            ->assertRedirect($target)->assertSessionHasErrors('case_lock_version');
+        $this->post(route('dispensary.exceptions.acknowledge', $f['exception']), ['case_lock_version' => 9999, 'item_lock_version' => $f['item']->lock_version])
+            ->assertRedirect($target)->assertSessionHasErrors();
+        $this->post(route('dispensary.exceptions.acknowledge', $f['exception']), ['case_lock_version' => $f['case']->lock_version, 'item_lock_version' => $f['item']->lock_version])
+            ->assertRedirect($target);
+        $this->assertSame(DispensaryItemException::STATUS_ACKNOWLEDGED, $f['exception']->refresh()->status);
+    }
+
     public function test_double_send_creates_one_handoff_case_queue_transition_and_audit(): void
     {
         $f = $this->fixture();
@@ -1324,7 +1374,7 @@ class PostgresDispensaryInventoryRegressionTest extends TestCase
         DB::transaction(function () use ($id): void {
             DB::table('service_deliveries')->where('organisation_id', $id)->delete();
             DB::table('consultation_checkouts')->where('organisation_id', $id)->delete();
-            foreach (['stock_movements', 'inventory_goods_receipt_lines', 'inventory_goods_receipts', 'inventory_purchase_order_lines', 'inventory_purchase_orders', 'inventory_suppliers', 'inventory_stocktake_lines', 'inventory_stocktakes', 'inventory_stock_request_lines', 'inventory_stock_requests', 'inventory_adjustments', 'inventory_reorder_levels', 'dispensary_item_batch_allocations', 'dispensary_item_exceptions', 'dispensary_items', 'dispensary_handoffs', 'dispensary_cases', 'inventory_stock_balances', 'medicine_catalogue_inventory_skus', 'medicine_catalogue_aliases', 'inventory_batches', 'inventory_locations', 'inventory_skus', 'inventory_items', 'treatment_plan_service_orders', 'treatment_plan_medicine_orders', 'treatment_plans', 'clinical_service_catalogue_items', 'medicine_catalogue_items', 'clinical_encounter_allergy_reviews', 'patient_allergy_records', 'patient_allergy_profile_versions', 'patient_allergy_profiles', 'audit_logs', 'clinical_encounters', 'queue_calls', 'queue_entries', 'queue_number_counters', 'visits', 'visit_number_counters', 'patients', 'patient_number_counters'] as $table) {
+            foreach (['stock_movements', 'inventory_goods_receipt_lines', 'inventory_goods_receipts', 'inventory_purchase_order_lines', 'inventory_purchase_orders', 'inventory_suppliers', 'inventory_stocktake_lines', 'inventory_stocktakes', 'inventory_stock_request_lines', 'inventory_stock_requests', 'inventory_adjustments', 'inventory_reorder_levels', 'dispensary_item_batch_allocations', 'dispensary_item_exceptions', 'dispensary_items', 'dispensary_handoffs', 'dispensary_cases', 'inventory_stock_balances', 'medicine_catalogue_inventory_skus', 'medicine_catalogue_aliases', 'inventory_batches', 'inventory_locations', 'inventory_skus', 'inventory_items', 'treatment_plan_service_orders', 'treatment_plan_medicine_orders', 'treatment_plans', 'clinical_service_catalogue_items', 'medicine_catalogue_items', 'clinical_encounter_allergy_reviews', 'patient_allergy_records', 'patient_allergy_profile_versions', 'patient_allergy_profiles', 'audit_logs', 'consultation_holds', 'clinical_encounters', 'queue_calls', 'queue_entries', 'queue_number_counters', 'visits', 'visit_number_counters', 'patients', 'patient_number_counters'] as $table) {
                 DB::table($table)->where('organisation_id', $id)->delete();
             }
             $branchIds = DB::table('branches')->where('organisation_id', $id)->pluck('id');
