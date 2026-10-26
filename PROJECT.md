@@ -1,8 +1,13 @@
 # KPOne project
 
-Latest merged delivery: PR #165 — W1e-1 website release freeze, merged as `ef79ea6`. Recent merges, newest first
+Latest merged delivery: PR #170 — W1e-2a private static website renderer and artifact record, merged as `223067b`. Recent merges, newest first
 (documentation-only PRs omitted):
 
+- PR #170 (`223067b`) — W1e-2a: deterministic English and Bahasa Melayu static website renderer from an approved release and its approved output plan, with encrypted private generated files and an immutable artifact index. Review profile only: no preview route, file serving, ZIP, public surface or deployment.
+- PR #169 (`6174586`) — W1e-2-0b: output plan detail shows the frozen English item name beside each alias.
+- PR #168 (`4e375f9`) — W1e-2-0: Director-reviewed, immutable website output plan (public origin, route aliases, page set, footer, fixed soft pink, white and black design profile, optional frozen logo) bound to an approved release.
+- PR #167 (`8fbfb3d`) — documentation only: the W1e-2 static output analysis.
+- PR #166 (`32f7679`) — W1e-1b: staff names on release pages, change list compares against the latest currently approved lower-id release, Little Shield language tab and Title cosmetics.
 - PR #165 (`ef79ea6`) — W1e-1: private, immutable, hashed and numbered website release freeze with a structured EN/BM preview, change list and Director-only approve, refuse and withdraw. Nothing is public; no output, deployment or public route.
 - PR #162 and #163 (`e0d7176`, `75dc6a9`) — documentation only: the W1e publishing analysis and the site-settings and legal-pages analysis. They authorise nothing.
 - PR #161 (`ef803f0`) — W1d-2: draft-only Little Shield programme page (one per organisation, ordered pillars, steps, safeguards, partner types and posters). No form or sign-up. Nothing is public.
