@@ -3,6 +3,7 @@ import { Head, router } from '@inertiajs/vue3';
 import { computed, ref, watch } from 'vue';
 import InventoryOperationsPanel from '@/components/inventory/InventoryOperationsPanel.vue';
 import InventoryReferenceDataPanel from '@/components/inventory/InventoryReferenceDataPanel.vue';
+import InventorySearchSelect from '@/components/inventory/InventorySearchSelect.vue';
 import { ActionLink } from '@/components/ui/action-link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -51,6 +52,7 @@ const props = defineProps<{
     receiptMemoryContext: InventoryReceiptMemoryContext;
     referenceData: {
         canManage: boolean;
+        expectedBranchId: number;
         items: Array<{ publicId: string; code: string; genericName: string }>;
         skus: Array<{
             publicId: string;
@@ -243,11 +245,14 @@ const clearFilters = () => {
                     <label for="inventory-location" class="text-xs font-medium">
                         Location
                     </label>
-                    <OperationalSelect
+                    <InventorySearchSelect
                         id="inventory-location"
                         v-model="location"
                         label="Inventory location"
                         :options="locationOptions"
+                        kind="locations"
+                        context="directory"
+                        :expected-branch-id="operations.expectedBranchId"
                     />
                 </div>
                 <div v-if="inventory.tab !== 'movements'" class="space-y-1">

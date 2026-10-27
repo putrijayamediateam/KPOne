@@ -2,6 +2,7 @@
 import { useForm } from '@inertiajs/vue3';
 import { computed, ref, watch } from 'vue';
 import InputError from '@/components/InputError.vue';
+import InventorySearchSelect from '@/components/inventory/InventorySearchSelect.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { OperationalSelect } from '@/components/ui/select';
@@ -10,6 +11,7 @@ import { requestJson } from '@/lib/json-client';
 
 type ReferenceData = {
     canManage: boolean;
+    expectedBranchId: number;
     items: Array<{ publicId: string; code: string; genericName: string }>;
     skus: Array<{ publicId: string; skuCode: string; inventoryItemId: number }>;
     locations: Array<{ publicId: string; name: string; type: string }>;
@@ -49,6 +51,7 @@ type SkuBatch = { publicId: string; batchNumber: string; expiryDate: string };
 const skuBatches = ref<SkuBatch[]>([]);
 const batchesLoading = ref(false);
 const batchesError = ref('');
+const batchSearch = ref('');
 let batchesRequest = 0;
 const loadSkuBatches = async (skuPublicId: string) => {
     const request = ++batchesRequest;
@@ -65,7 +68,7 @@ const loadSkuBatches = async (skuPublicId: string) => {
 
     try {
         const response = await requestJson<{ data: SkuBatch[] }>(
-            `/inventory-references/skus/${skuPublicId}/batches`,
+            `/inventory-references/skus/${skuPublicId}/batches?q=${encodeURIComponent(batchSearch.value)}`,
         );
 
         if (request === batchesRequest) {
@@ -134,6 +137,7 @@ watch(
     () => openingBalanceForm.sku_public_id,
     (skuPublicId) => {
         openingBalanceForm.batch_public_id = '';
+        batchSearch.value = '';
         void loadSkuBatches(skuPublicId);
     },
 );
@@ -251,17 +255,44 @@ const submitMapping = () => {
                 label="Branch"
                 :options="branchOptions.filter((o) => o.value !== '')"
             />
-            <OperationalSelect
+            <InventorySearchSelect
                 v-model="openingBalanceForm.location_public_id"
                 label="Location"
                 :options="locationOptions"
+                kind="locations"
+                context="references"
+                :expected-branch-id="referenceData.expectedBranchId"
             />
-            <OperationalSelect
+            <InventorySearchSelect
                 v-model="openingBalanceForm.sku_public_id"
                 label="SKU"
                 :options="skuOptions"
+                kind="skus"
+                context="references"
+                :expected-branch-id="referenceData.expectedBranchId"
             />
             <div>
+                <Input
+                    v-model="batchSearch"
+                    aria-label="Search opening balance batches"
+                    placeholder="Search batches"
+                    maxlength="100"
+                    @keydown.enter.prevent="
+                        loadSkuBatches(openingBalanceForm.sku_public_id)
+                    "
+                />
+                <Button
+                    type="button"
+                    variant="outline"
+                    :disabled="
+                        !openingBalanceForm.sku_public_id || batchesLoading
+                    "
+                    @click="loadSkuBatches(openingBalanceForm.sku_public_id)"
+                    >Search batches</Button
+                >
+                <p class="text-xs text-muted-foreground">
+                    Up to 25 batches. Search to find more.
+                </p>
                 <OperationalSelect
                     v-model="openingBalanceForm.batch_public_id"
                     label="Batch"
@@ -338,10 +369,13 @@ const submitMapping = () => {
             class="mt-4 grid gap-3 md:grid-cols-2"
             @submit.prevent="submitSku"
         >
-            <OperationalSelect
+            <InventorySearchSelect
                 v-model="skuForm.inventory_item_public_id"
                 label="Inventory Item"
                 :options="itemOptions"
+                kind="items"
+                context="references"
+                :expected-branch-id="referenceData.expectedBranchId"
             />
             <label class="grid gap-1 text-xs">
                 SKU code
@@ -444,10 +478,13 @@ const submitMapping = () => {
             class="mt-4 grid gap-3 md:grid-cols-2"
             @submit.prevent="submitBatch"
         >
-            <OperationalSelect
+            <InventorySearchSelect
                 v-model="batchForm.inventory_sku_public_id"
                 label="SKU"
                 :options="skuOptions"
+                kind="skus"
+                context="references"
+                :expected-branch-id="referenceData.expectedBranchId"
             />
             <label class="grid gap-1 text-xs">
                 Batch number
@@ -475,15 +512,21 @@ const submitMapping = () => {
             class="mt-4 grid gap-3 md:grid-cols-2"
             @submit.prevent="submitMapping"
         >
-            <OperationalSelect
+            <InventorySearchSelect
                 v-model="mappingForm.medicine_public_id"
                 label="Medicine"
                 :options="medicineOptions"
+                kind="medicines"
+                context="references"
+                :expected-branch-id="referenceData.expectedBranchId"
             />
-            <OperationalSelect
+            <InventorySearchSelect
                 v-model="mappingForm.inventory_sku_public_id"
                 label="Inventory SKU"
                 :options="skuOptions"
+                kind="skus"
+                context="references"
+                :expected-branch-id="referenceData.expectedBranchId"
             />
             <div class="md:col-span-2">
                 <Button

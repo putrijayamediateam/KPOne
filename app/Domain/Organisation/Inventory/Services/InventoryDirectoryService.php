@@ -74,7 +74,7 @@ final class InventoryDirectoryService
                 'dateTo' => $filters['date_to'] ?? '',
                 'batch' => $filters['batch'] ?? '',
             ],
-            'locations' => $this->locations($actor, $branch),
+            'locations' => $this->locations($actor, $branch, $filters['location']),
             'summary' => $this->summary($actor, $branch),
             ...$results,
         ];
@@ -93,17 +93,18 @@ final class InventoryDirectoryService
     }
 
     /** @return list<array{publicId:string,name:string,type:string}> */
-    private function locations(User $actor, Branch $branch): array
+    private function locations(User $actor, Branch $branch, ?string $selected): array
     {
-        $locations = [];
-        $rows = DB::table('inventory_locations')->where('organisation_id', $actor->organisation_id)
-            ->where('branch_id', $branch->id)->where('is_active', true)->orderBy('name')->get(['public_id', 'name', 'type']);
-        foreach ($rows as $row) {
-            $values = (array) $row;
-            $locations[] = ['publicId' => (string) $values['public_id'], 'name' => (string) $values['name'], 'type' => $this->label((string) $values['type'])];
+        $choices = app(InventoryPickerService::class)->choices($actor, $branch, 'locations', 'directory');
+        if ($selected && ! in_array($selected, array_column($choices, 'publicId'), true)) {
+            $location = DB::table('inventory_locations')->where('organisation_id', $actor->organisation_id)->where('branch_id', $branch->id)->where('public_id', $selected)->first(['public_id as publicId', 'name', 'type']);
+            if ($location) {
+                $choices = [get_object_vars($location), ...array_slice($choices, 0, 24)];
+            }
         }
 
-        return $locations;
+        return array_map(fn (array $row): array => ['publicId' => (string) $row['publicId'], 'name' => (string) $row['name'], 'type' => $this->label((string) $row['type'])], $choices);
+
     }
 
     /** @param array{tab:string,search:?string,location:?string,status:?string,movement_type:?string,date_from:?string,date_to:?string,batch:?string,page:int} $filters

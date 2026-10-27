@@ -10,6 +10,7 @@ use App\Domain\Visit\Billing\Models\InvoiceAdjustmentLimit;
 use App\Domain\Visit\Billing\Models\InvoiceAdjustmentReversal;
 use App\Domain\Visit\Models\Visit;
 use App\Models\User;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
@@ -22,6 +23,17 @@ final class InvoiceAdjustmentService
     public static function active(Invoice $invoice): ?InvoiceAdjustment
     {
         return InvoiceAdjustment::query()->where('invoice_id', $invoice->id)->whereNotIn('id', InvoiceAdjustmentReversal::query()->select('invoice_adjustment_id'))->first();
+    }
+
+    /** Numeric-only batch equivalent of active(); invoice ids are selected by the caller's scope.
+     * @param  list<int>  $invoiceIds
+     * @return Collection<int, InvoiceAdjustment>
+     */
+    public static function activeForInvoices(array $invoiceIds): Collection
+    {
+        return InvoiceAdjustment::query()->whereIn('invoice_id', $invoiceIds)
+            ->whereNotIn('id', InvoiceAdjustmentReversal::query()->select('invoice_adjustment_id'))
+            ->orderBy('id')->get(['id', 'invoice_id', 'public_id', 'direction', 'amount_sen'])->keyBy('invoice_id');
     }
 
     public static function hasHistory(Invoice $invoice): bool
@@ -51,9 +63,14 @@ final class InvoiceAdjustmentService
     public static function summary(Invoice $invoice): array
     {
         $active = self::active($invoice);
-        $net = $active ? ($active->direction === 'add' ? $active->amount_sen : -$active->amount_sen) : 0;
+        $net = self::net($active);
 
         return ['subtotalSen' => $invoice->subtotal_sen, 'adjustmentSen' => $net, 'activeId' => $active?->public_id];
+    }
+
+    public static function net(?InvoiceAdjustment $adjustment): int
+    {
+        return $adjustment ? ($adjustment->direction === 'add' ? $adjustment->amount_sen : -$adjustment->amount_sen) : 0;
     }
 
     /** @return array<string,mixed> */

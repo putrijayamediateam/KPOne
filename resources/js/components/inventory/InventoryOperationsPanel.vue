@@ -3,6 +3,7 @@ import { router, useRemember } from '@inertiajs/vue3';
 import { Boxes } from '@lucide/vue';
 import { computed, reactive, ref, shallowRef, watchEffect } from 'vue';
 import type { Ref } from 'vue';
+import InventorySearchSelect from '@/components/inventory/InventorySearchSelect.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import OperationalConfirmDialog from '@/components/ui/OperationalConfirmDialog.vue';
@@ -740,15 +741,21 @@ const saveReorder = () =>
                     class="grid gap-2 sm:grid-cols-2"
                     @submit.prevent="createPurchaseOrder"
                 >
-                    <OperationalSelect
+                    <InventorySearchSelect
                         v-model="purchaseOrder.supplier"
                         label="Supplier"
                         :options="supplierOptions"
+                        kind="suppliers"
+                        context="operations"
+                        :expected-branch-id="operations.expectedBranchId"
                     />
-                    <OperationalSelect
+                    <InventorySearchSelect
                         v-model="purchaseOrder.destination"
                         label="Destination"
                         :options="locationOptions"
+                        kind="locations"
+                        context="operations"
+                        :expected-branch-id="operations.expectedBranchId"
                     />
                     <fieldset
                         v-for="(line, index) in purchaseOrder.lines"
@@ -758,10 +765,13 @@ const saveReorder = () =>
                         <legend class="px-1 text-xs font-medium">
                             Order line {{ index + 1 }}
                         </legend>
-                        <OperationalSelect
+                        <InventorySearchSelect
                             v-model="line.sku"
                             :label="`SKU ${index + 1}`"
                             :options="skuOptions"
+                            kind="skus"
+                            context="operations"
+                            :expected-branch-id="operations.expectedBranchId"
                         />
                         <Input
                             v-model="line.quantity"
@@ -827,17 +837,23 @@ const saveReorder = () =>
                         class="grid gap-2 rounded-lg bg-muted/40 p-2 sm:grid-cols-2"
                         @submit.prevent="updatePurchaseOrder(row)"
                     >
-                        <OperationalSelect
+                        <InventorySearchSelect
                             v-model="purchaseOrderEdits[row.publicId].supplier"
                             label="Draft supplier"
                             :options="supplierOptions"
+                            kind="suppliers"
+                            context="operations"
+                            :expected-branch-id="operations.expectedBranchId"
                         />
-                        <OperationalSelect
+                        <InventorySearchSelect
                             v-model="
                                 purchaseOrderEdits[row.publicId].destination
                             "
                             label="Draft destination"
                             :options="locationOptions"
+                            kind="locations"
+                            context="operations"
+                            :expected-branch-id="operations.expectedBranchId"
                         />
                         <label
                             v-for="line in row.lines"
@@ -951,15 +967,21 @@ const saveReorder = () =>
                     class="grid gap-2 sm:grid-cols-2"
                     @submit.prevent="createStockRequest"
                 >
-                    <OperationalSelect
+                    <InventorySearchSelect
                         v-model="stockRequest.source"
                         label="Source location"
                         :options="locationOptions"
+                        kind="locations"
+                        context="operations"
+                        :expected-branch-id="operations.expectedBranchId"
                     />
-                    <OperationalSelect
+                    <InventorySearchSelect
                         v-model="stockRequest.destination"
                         label="Destination location"
                         :options="locationOptions"
+                        kind="locations"
+                        context="operations"
+                        :expected-branch-id="operations.expectedBranchId"
                     />
                     <fieldset
                         v-for="(line, index) in stockRequest.lines"
@@ -969,10 +991,13 @@ const saveReorder = () =>
                         <legend class="px-1 text-xs font-medium">
                             Request line {{ index + 1 }}
                         </legend>
-                        <OperationalSelect
+                        <InventorySearchSelect
                             v-model="line.sku"
                             :label="`Requested SKU ${index + 1}`"
                             :options="skuOptions"
+                            kind="skus"
+                            context="operations"
+                            :expected-branch-id="operations.expectedBranchId"
                         />
                         <Input
                             v-model="line.quantity"
@@ -1047,10 +1072,16 @@ const saveReorder = () =>
                                 >{{ line.sku }} ·
                                 {{ line.requestedQuantity }}</span
                             >
-                            <OperationalSelect
+                            <InventorySearchSelect
                                 v-model="dispatchBatch[line.publicId]"
                                 label="Dispatch batch"
                                 :options="batchOptions(line.skuPublicId)"
+                                kind="batches"
+                                context="operations"
+                                :expected-branch-id="
+                                    operations.expectedBranchId
+                                "
+                                :sku="line.skuPublicId"
                             />
                         </div>
                         <Button type="submit" size="sm" :disabled="busy"
@@ -1069,10 +1100,13 @@ const saveReorder = () =>
                     class="space-y-2"
                     @submit.prevent="createStocktake"
                 >
-                    <OperationalSelect
+                    <InventorySearchSelect
                         v-model="stocktakeLocation"
                         label="Count location"
                         :options="locationOptions"
+                        kind="locations"
+                        context="operations"
+                        :expected-branch-id="operations.expectedBranchId"
                     /><Button type="submit" :disabled="busy"
                         >Create snapshot</Button
                     >
@@ -1147,20 +1181,30 @@ const saveReorder = () =>
                     class="space-y-2"
                     @submit.prevent="confirmAdjustment"
                 >
-                    <OperationalSelect
+                    <InventorySearchSelect
                         v-model="adjustment.location"
                         label="Location"
                         :options="locationOptions"
+                        kind="locations"
+                        context="operations"
+                        :expected-branch-id="operations.expectedBranchId"
                     />
-                    <OperationalSelect
+                    <InventorySearchSelect
                         v-model="adjustment.sku"
                         label="SKU"
                         :options="skuOptions"
+                        kind="skus"
+                        context="operations"
+                        :expected-branch-id="operations.expectedBranchId"
                     />
-                    <OperationalSelect
+                    <InventorySearchSelect
                         v-model="adjustment.batch"
                         label="Batch"
                         :options="batchOptions(adjustment.sku)"
+                        kind="batches"
+                        context="operations"
+                        :expected-branch-id="operations.expectedBranchId"
+                        :sku="adjustment.sku"
                     />
                     <div class="grid grid-cols-2 gap-2">
                         <OperationalSelect
@@ -1210,14 +1254,20 @@ const saveReorder = () =>
                     class="space-y-2"
                     @submit.prevent="saveReorder"
                 >
-                    <OperationalSelect
+                    <InventorySearchSelect
                         v-model="reorder.location"
                         label="Location"
                         :options="locationOptions"
-                    /><OperationalSelect
+                        kind="locations"
+                        context="operations"
+                        :expected-branch-id="operations.expectedBranchId"
+                    /><InventorySearchSelect
                         v-model="reorder.sku"
                         label="SKU"
                         :options="skuOptions"
+                        kind="skus"
+                        context="operations"
+                        :expected-branch-id="operations.expectedBranchId"
                     /><Input
                         v-model="reorder.level"
                         aria-label="Reorder level"
@@ -1225,6 +1275,11 @@ const saveReorder = () =>
                         required
                     /><Button type="submit" :disabled="busy">Save level</Button>
                 </form>
+                <p class="text-xs text-muted-foreground">
+                    Up to 100 low-stock entries and 100 near-expiry batches are
+                    shown. Use the Stock and Batches tabs to search the full
+                    inventory.
+                </p>
                 <p
                     v-if="operations.lowStock.length === 0"
                     class="text-sm text-muted-foreground"

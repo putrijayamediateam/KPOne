@@ -5,6 +5,7 @@ namespace App\Domain\Clinical\Services;
 use App\Domain\Clinical\Models\ConsultationCheckout;
 use App\Domain\Visit\Models\Visit;
 use App\Models\User;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 class CheckoutReopenEligibility
@@ -31,5 +32,27 @@ class CheckoutReopenEligibility
         }
 
         return true;
+    }
+
+    /** Batch equivalent of allows() for already scoped queue rows. Commands still call their own authority.
+     * @param  Collection<int,Visit>  $visits
+     * @return array<int,bool>
+     */
+    public function forVisits(User $actor, Collection $visits): array
+    {
+        if (! $actor->is_active || ! $actor->hasRole('resident_doctor') || ! $actor->can('consultations.reopen.own')) {
+            return [];
+        }
+        $ids = $visits->filter(fn (Visit $visit): bool => $visit->organisation_id === $actor->organisation_id && $visit->status === Visit::STATUS_REGISTERED && $visit->assigned_doctor_user_id === $actor->id)->map(fn (Visit $visit): int => $visit->id)->all();
+        if ($ids === []) {
+            return [];
+        }
+        $query = ConsultationCheckout::query()->whereIn('current_visit_guard', $ids)->where('attending_doctor_user_id', $actor->id)->where('route', 'billing')
+            ->whereNotExists(fn ($q) => $q->selectRaw('1')->from('invoices')->whereColumn('invoices.visit_id', 'consultation_checkouts.current_visit_guard')->where('invoices.status', '<>', 'draft'));
+        foreach (['payment_allocations', 'coverage_allocations', 'patient_receivables'] as $table) {
+            $query->whereNotExists(fn ($q) => $q->selectRaw('1')->from($table.' as evidence')->join('invoices', 'invoices.id', '=', 'evidence.invoice_id')->whereColumn('invoices.visit_id', 'consultation_checkouts.current_visit_guard'));
+        }
+
+        return $query->pluck('current_visit_guard')->mapWithKeys(fn ($id): array => [(int) $id => true])->all();
     }
 }
