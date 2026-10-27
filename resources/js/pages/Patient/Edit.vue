@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { knownMinor } from '@/lib/guardian-contact';
 import { phoneError, focusInvalidField } from '@/lib/patient-registration';
 import type { PatientDetail, PatientFormValues } from '@/types';
+import type { RegistrationRequirements } from '@/types/registration-settings';
 
 defineOptions({
     layout: {
@@ -15,8 +16,14 @@ defineOptions({
         ],
     },
 });
-const props = defineProps<{ patient: PatientDetail; guardianToday?: string }>();
+const props = defineProps<{
+    patient: PatientDetail;
+    guardianToday?: string;
+    requirements: RegistrationRequirements;
+}>();
 const form = useForm<PatientFormValues & { lock_version: number }>({
+    adult_confirmed: false,
+    adult_confirmation_key: crypto.randomUUID(),
     guardian: props.patient.guardian
         ? { ...props.patient.guardian, retry_key: crypto.randomUUID() }
         : null,
@@ -55,6 +62,14 @@ const submit = () => {
         }
     }
 
+    form.transform((data) => {
+        const { adult_confirmation_key, adult_confirmed, ...rest } = data;
+
+        return !data.date_of_birth && !!props.patient.identity.dateOfBirth
+            ? { ...rest, adult_confirmation_key, adult_confirmed }
+            : rest;
+    });
+
     form.patch('/patients/' + encodeURIComponent(props.patient.patientNumber), {
         preserveState: true,
         onError: focusInvalidField,
@@ -77,6 +92,7 @@ const submit = () => {
             <PatientFormFields
                 :model="form"
                 :guardian-today="guardianToday"
+                :requirements="requirements"
                 :errors="form.errors"
                 :original-phone="patient.contact.mobilePhone ?? ''"
                 :original-dob="patient.identity.dateOfBirth ?? ''"

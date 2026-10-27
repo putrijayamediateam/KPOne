@@ -42,6 +42,8 @@ const form = useForm<
         duplicate_override: boolean;
     }
 >({
+    adult_confirmed: false,
+    adult_confirmation_key: crypto.randomUUID(),
     guardian: null,
     expected_branch_id: (
         usePage().props.branchContext as { active?: { id: number } } | undefined
@@ -110,6 +112,14 @@ const submit = () => {
     if (missingName || phone || identifier) {
         return focusInvalidField();
     }
+
+    form.transform((data) => {
+        const { adult_confirmation_key, adult_confirmed, ...rest } = data;
+
+        return !data.date_of_birth
+            ? { ...rest, adult_confirmation_key, adult_confirmed }
+            : rest;
+    });
 
     form.post('/patients', { preserveState: true, onError: focusInvalidField });
 };

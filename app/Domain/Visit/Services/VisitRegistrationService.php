@@ -255,7 +255,7 @@ class VisitRegistrationService
         }
 
         try {
-            return $this->patients->create($actor, Arr::wrap($validated['quick_patient'] ?? []));
+            return $this->patients->create($actor, [...Arr::wrap($validated['quick_patient'] ?? []), 'expected_branch_id' => $validated['expected_branch_id']]);
         } catch (ValidationException $exception) {
             $prefixed = [];
             foreach ($exception->errors() as $field => $messages) {

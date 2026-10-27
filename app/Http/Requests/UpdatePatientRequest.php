@@ -16,6 +16,8 @@ class UpdatePatientRequest extends FormRequest
     {
         return [
             'full_name' => ['required', 'string', 'max:255'],
+            'adult_confirmed' => ['sometimes', 'boolean'],
+            'adult_confirmation_key' => ['sometimes', 'uuid'],
             'date_of_birth' => ['nullable', 'date_format:Y-m-d', 'before_or_equal:today'],
             'sex' => ['required', 'in:female,male,indeterminate,unknown'],
             'nationality_code' => ['nullable', 'string', 'size:2'],

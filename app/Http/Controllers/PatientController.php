@@ -49,7 +49,7 @@ class PatientController extends Controller
     {
         $this->authorize('update', $patient);
 
-        return Inertia::render('Patient/Edit', ['guardianToday' => app(PatientGuardianService::class)->today($request->user()), 'patient' => $directory->detail($request->user(), $patient)]);
+        return Inertia::render('Patient/Edit', ['requirements' => app(RegistrationSettingsService::class)->policy($request->user()->organisation_id), 'guardianToday' => app(PatientGuardianService::class)->today($request->user()), 'patient' => $directory->detail($request->user(), $patient)]);
     }
 
     public function update(UpdatePatientRequest $request, Patient $patient, PatientAdministrationService $administration): RedirectResponse

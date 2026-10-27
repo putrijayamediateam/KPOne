@@ -50,6 +50,7 @@ try {
                 'quick_patient' => in_array($patientNumber, ['QUICK', 'QUICK_IDENTIFIER'], true)
                     ? [
                         'full_name' => 'Synthetic Idempotent Quick',
+                        'date_of_birth' => '1990-01-01',
                         'sex' => 'unknown',
                         'mobile_phone' => '+60123456789',
                         'duplicate_override' => true,
