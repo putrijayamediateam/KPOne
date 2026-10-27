@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Domain\Patient\Services\PatientGuardianService;
 use App\Domain\Visit\Models\Visit;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -38,7 +39,7 @@ class StoreVisitRequest extends FormRequest
             'quick_patient.country_code' => ['nullable', 'string', 'size:2'],
             'quick_patient.nationality_code' => ['nullable', 'string', 'size:2'],
             'quick_patient.sex' => ['required_with:quick_patient', 'in:female,male,indeterminate,unknown'],
-            'quick_patient.mobile_phone' => ['required_with:quick_patient', 'nullable', 'string', 'max:64'],
+            'quick_patient.mobile_phone' => [Rule::requiredIf(fn (): bool => $this->filled('quick_patient') && ! app(PatientGuardianService::class)->minor($this->input('quick_patient.date_of_birth'), $this->user())), 'nullable', 'string', 'max:64'],
             'quick_patient.phone_country' => ['sometimes', 'string', 'size:2'],
             'quick_patient.identifiers' => ['required_with:quick_patient', 'nullable', 'array', 'size:1'],
             'quick_patient.identifiers.*.identifier_type' => ['required', 'in:nric,passport'],
@@ -57,6 +58,7 @@ class StoreVisitRequest extends FormRequest
             'coverage_panel_note' => ['sometimes', 'nullable', 'string', 'max:500'],
             'panel_note_panel_id' => ['nullable', 'integer'],
             'confirm_repeat' => ['nullable', 'boolean'],
+            'quick_patient.guardian' => ['sometimes', 'nullable', 'array'],
             'organisation_id' => ['prohibited'],
             'branch_id' => ['prohibited'],
             'visit_number' => ['prohibited'],

@@ -373,6 +373,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
             ->middleware('permission:public_intakes.review.branch')->group(function () {
                 Route::get('/', 'index')->name('registration-review.index');
                 Route::get('{publicIntake}', 'show')->whereUuid('publicIntake')->name('registration-review.show');
+                Route::get('{publicIntake}/guardian-contact', 'guardianContact')->whereUuid('publicIntake')->middleware(['permission:patients.view.organisation', 'throttle:60,1'])->name('registration-review.guardian-contact');
                 Route::post('{publicIntake}/start', 'start')->whereUuid('publicIntake')->middleware('throttle:30,1')->name('registration-review.start');
                 Route::patch('{publicIntake}/correct', 'correct')->whereUuid('publicIntake')->middleware('throttle:30,1')->name('registration-review.correct');
                 Route::post('{publicIntake}/correction-required', 'correctionRequired')->whereUuid('publicIntake')->middleware('throttle:30,1')->name('registration-review.correction-required');

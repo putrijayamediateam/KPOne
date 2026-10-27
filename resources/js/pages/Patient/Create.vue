@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { Head, Link, useForm } from '@inertiajs/vue3';
+import { usePage, Head, Link, useForm } from '@inertiajs/vue3';
 import { ArrowLeft, UserPlus } from '@lucide/vue';
 import InputError from '@/components/InputError.vue';
 import PatientFormFields from '@/components/patient/PatientFormFields.vue';
 import { Button } from '@/components/ui/button';
 import { OperationalSelect } from '@/components/ui/select';
+import { knownMinor } from '@/lib/guardian-contact';
 import {
     phoneError,
     identityError,
@@ -13,7 +14,10 @@ import {
 } from '@/lib/patient-registration';
 import type { PatientFormValues } from '@/types';
 import type { RegistrationRequirements } from '@/types/registration-settings';
-defineProps<{ requirements: RegistrationRequirements }>();
+const props = defineProps<{
+    requirements: RegistrationRequirements;
+    guardianToday?: string;
+}>();
 
 defineOptions({
     layout: {
@@ -38,6 +42,10 @@ const form = useForm<
         duplicate_override: boolean;
     }
 >({
+    guardian: null,
+    expected_branch_id: (
+        usePage().props.branchContext as { active?: { id: number } } | undefined
+    )?.active?.id,
     full_name: '',
     date_of_birth: '',
     sex: 'unknown',
@@ -75,7 +83,11 @@ const submit = () => {
         form.setError('full_name', 'Please enter the Patient name.');
     }
 
-    const phone = phoneError(form.mobile_phone, form.phone_country);
+    const phone = phoneError(
+        form.mobile_phone,
+        form.phone_country,
+        !knownMinor(form.date_of_birth, props.guardianToday),
+    );
     const identity = form.identifiers[0];
     identity.issuing_country_code = identifierIssuer(
         identity.identifier_type,
@@ -123,6 +135,7 @@ const submit = () => {
         <form class="space-y-5" novalidate @submit.prevent="submit">
             <PatientFormFields
                 :model="form"
+                :guardian-today="guardianToday"
                 :requirements="requirements"
                 :errors="form.errors"
                 new-patient

@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { reactive } from 'vue';
 import InputError from '@/components/InputError.vue';
+import GuardianFields from '@/components/patient/GuardianFields.vue';
 import PhoneInput from '@/components/patient/PhoneInput.vue';
 import WhatsAppLink from '@/components/patient/WhatsAppLink.vue';
 import { OperationalSelect } from '@/components/ui/select';
+import { knownMinor } from '@/lib/guardian-contact';
 import type { PatientFormValues } from '@/types';
 import type { RegistrationRequirements } from '@/types/registration-settings';
 
@@ -12,6 +14,8 @@ const props = defineProps<{
     newPatient?: boolean;
     requirements?: RegistrationRequirements;
     originalPhone?: string;
+    originalDob?: string;
+    guardianToday?: string;
     canWhatsapp?: boolean;
     patientNumber?: string;
     errors: Partial<Record<keyof PatientFormValues, string>>;
@@ -108,6 +112,14 @@ const genderOptions = [
             </div>
         </section>
 
+        <GuardianFields
+            v-model="fields.guardian"
+            :dob="fields.date_of_birth"
+            :today="guardianToday"
+            :original-dob="originalDob"
+            :new-patient="newPatient"
+            :errors="errors"
+        />
         <section class="rounded-lg border bg-card">
             <div class="border-b px-5 py-4">
                 <h2 class="font-semibold">Contact</h2>
@@ -118,7 +130,10 @@ const genderOptions = [
                         id="patient-phone"
                         v-model="fields.mobile_phone"
                         v-model:country="fields.phone_country"
-                        :required="newPatient"
+                        :required="
+                            newPatient &&
+                            !knownMinor(fields.date_of_birth, guardianToday)
+                        "
                         :unchanged-value="originalPhone"
                         :error="errors.mobile_phone || errors.phone_country"
                     />

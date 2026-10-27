@@ -19,7 +19,7 @@ class WhatsAppLinkBoundaryTest extends VisitTestCase
         $visit = $this->register($ca, $patient);
         $before = DB::table('audit_logs')->orderBy('id')->get()->toJson();
         $detail = app(PatientDirectoryService::class)->detail($ca, $patient);
-        $this->assertSame(['canWhatsapp', 'patientNumber', 'identity', 'contact', 'address', 'identifiers', 'administrative', 'activity', 'can'], array_keys($detail));
+        $this->assertSame(['canWhatsapp', 'patientNumber', 'identity', 'guardian', 'contact', 'address', 'identifiers', 'administrative', 'activity', 'can'], array_keys($detail));
         $this->assertTrue($detail['canWhatsapp']);
         $this->assertSame(['mobilePhone' => $patient->mobile_phone, 'email' => $patient->email], $detail['contact']);
         $visitDetail = app(VisitDirectoryService::class)->detail($ca, $visit);

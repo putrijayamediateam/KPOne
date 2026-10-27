@@ -144,6 +144,7 @@ class PatientDirectoryService
                 'sex' => $patient->sex,
                 'nationalityCode' => $patient->nationality_code,
             ],
+            'guardian' => app(PatientGuardianService::class)->contact($patient),
             'contact' => ['mobilePhone' => $patient->mobile_phone, 'email' => $patient->email],
             'address' => [
                 'line1' => $patient->address_line_1,

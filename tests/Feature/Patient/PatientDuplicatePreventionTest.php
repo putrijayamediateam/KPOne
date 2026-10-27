@@ -4,6 +4,7 @@ namespace Tests\Feature\Patient;
 
 use App\Domain\Patient\Services\PatientAdministrationService;
 use Illuminate\Validation\ValidationException;
+use Tests\Support\GuardianFixture;
 
 class PatientDuplicatePreventionTest extends PatientTestCase
 {
@@ -63,7 +64,9 @@ class PatientDuplicatePreventionTest extends PatientTestCase
         }
 
         $service->create($actor, $this->patientAttributes(['date_of_birth' => '1981-01-01', 'duplicate_override' => true]));
+        GuardianFixture::assign($actor);
         $service->create($actor, $this->patientAttributes([
+            'guardian' => GuardianFixture::contact(),
             'full_name' => 'Synthetic Twin Sibling',
             'date_of_birth' => '2015-03-03',
             'duplicate_override' => true,

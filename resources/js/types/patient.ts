@@ -1,3 +1,4 @@
+import type { GuardianInput } from '@/lib/guardian-contact';
 export type PatientIdentifier = {
     id: number;
     type: 'nric' | 'passport';
@@ -8,6 +9,7 @@ export type PatientIdentifier = {
 };
 
 export type PatientDetail = {
+    guardian?: Omit<GuardianInput, 'retry_key'> | null;
     canWhatsapp: boolean;
     patientNumber: string;
     identity: {
@@ -42,6 +44,8 @@ export type PatientDetail = {
 };
 
 export type PatientFormValues = {
+    guardian?: GuardianInput | null;
+    expected_branch_id?: number;
     phone_country?: string;
     full_name: string;
     date_of_birth: string;

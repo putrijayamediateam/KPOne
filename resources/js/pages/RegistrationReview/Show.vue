@@ -7,7 +7,7 @@ import {
     ShieldAlert,
     UserCheck,
 } from '@lucide/vue';
-import { computed, ref, watch } from 'vue';
+import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import InputError from '@/components/InputError.vue';
 import RegistrationContactFields from '@/components/patient/RegistrationContactFields.vue';
 import WhatsAppLink from '@/components/patient/WhatsAppLink.vue';
@@ -23,6 +23,8 @@ import {
 import OperationalSelect from '@/components/ui/select/OperationalSelect.vue';
 import VisitReasonPicker from '@/components/visit/VisitReasonPicker.vue';
 import type { VisitReasonOption } from '@/components/visit/VisitReasonPicker.vue';
+import type { GuardianInput } from '@/lib/guardian-contact';
+import { requestJson } from '@/lib/json-client';
 
 type Intake = {
     publicId: string;
@@ -103,6 +105,16 @@ const acceptance = useForm({
     lock_version: props.intake.lockVersion,
     idempotency_key: props.visitOptions.idempotencyKey,
     resolution: 'match',
+    guardian_choice: '',
+    guardian_relationship: [
+        'mother',
+        'father',
+        'legal_guardian',
+        'other_family_member',
+    ].includes(props.intake.fields.guardian_relationship ?? '')
+        ? (props.intake.fields.guardian_relationship ?? '')
+        : '',
+    guardian_lock_version: 0,
     patient_number: '',
     duplicate_override: false,
     assigned_doctor_user_id: '' as string | number,
@@ -115,6 +127,75 @@ const acceptance = useForm({
     confirm_repeat: false,
     status: '',
 });
+const matchedGuardian = ref<Omit<GuardianInput, 'retry_key'> | null>(null);
+const guardianLookupBusy = ref(false);
+const guardianLookupError = ref('');
+let guardianLookup: AbortController | null = null;
+watch(
+    () => acceptance.patient_number,
+    async (patientNumber) => {
+        guardianLookup?.abort();
+        matchedGuardian.value = null;
+        acceptance.guardian_choice = '';
+        acceptance.guardian_lock_version = 0;
+        guardianLookupError.value = '';
+        guardianLookupBusy.value = false;
+
+        if (!patientNumber || props.intake.submissionType !== 'guardian') {
+            return;
+        }
+
+        const controller = new AbortController();
+        guardianLookup = controller;
+        guardianLookupBusy.value = true;
+
+        try {
+            const data = await requestJson<{
+                patientNumber: string;
+                guardian: Omit<GuardianInput, 'retry_key'> | null;
+            }>(
+                `/registration-review/${props.intake.publicId}/guardian-contact?patient_number=${encodeURIComponent(patientNumber)}`,
+                { signal: controller.signal },
+            );
+
+            if (
+                controller.signal.aborted ||
+                acceptance.patient_number !== patientNumber
+            ) {
+                return;
+            }
+
+            matchedGuardian.value = data.guardian;
+            acceptance.guardian_lock_version = data.guardian?.lock_version ?? 0;
+        } catch {
+            if (!controller.signal.aborted) {
+                guardianLookupError.value =
+                    'Unable to load the selected guardian contact. Reload before accepting.';
+            }
+        } finally {
+            if (!controller.signal.aborted) {
+                guardianLookupBusy.value = false;
+            }
+        }
+    },
+);
+watch(
+    () => [props.intake.publicId, props.visitOptions.branch.id],
+    () => {
+        guardianLookup?.abort();
+        matchedGuardian.value = null;
+        guardianLookupBusy.value = false;
+        acceptance.guardian_choice = '';
+        acceptance.guardian_lock_version = 0;
+    },
+);
+onBeforeUnmount(() => guardianLookup?.abort());
+const guardianAcceptError = computed(() =>
+    Object.entries(acceptance.errors)
+        .filter(([key]) => key === 'guardian' || key.startsWith('guardian.'))
+        .map(([, message]) => message)
+        .join(' '),
+);
 const rejectionCategory = ref('insufficient_information');
 const medicineOnly = computed(() => props.intake.fields.visit_kind === 'otc');
 const doctorOptions = computed(() =>
@@ -164,10 +245,15 @@ const saveCorrection = () =>
     correction.patch(`/registration-review/${props.intake.publicId}/correct`, {
         preserveScroll: true,
     });
-const accept = () =>
+const accept = () => {
+    if (guardianLookupBusy.value || guardianLookupError.value) {
+        return;
+    }
+
     acceptance.post(`/registration-review/${props.intake.publicId}/accept`, {
         preserveScroll: true,
     });
+};
 const selectCandidate = (patientNumber: string) => {
     acceptance.resolution = 'match';
     acceptance.patient_number = patientNumber;
@@ -571,6 +657,73 @@ watch(
                         public status page.</CardDescription
                     ></CardHeader
                 ><CardContent class="space-y-4">
+                    <section
+                        v-if="intake.fields.submission_type === 'guardian'"
+                        class="space-y-3 rounded-md border p-3"
+                    >
+                        <h3 class="font-semibold">Guardian contact review</h3>
+                        <InputError
+                            :message="
+                                guardianAcceptError || guardianLookupError
+                            "
+                        />
+                        <p v-if="guardianLookupBusy" class="text-sm">
+                            Loading the selected guardian contact…
+                        </p>
+                        <p class="break-words">
+                            Incoming: {{ intake.fields.guardian_name }} ·
+                            {{ intake.fields.guardian_relationship }} ·
+                            {{ intake.fields.guardian_contact_number }}
+                        </p>
+                        <p v-if="matchedGuardian" class="break-words">
+                            Existing: {{ matchedGuardian.full_name }} ·
+                            {{ matchedGuardian.relationship }} ·
+                            {{ matchedGuardian.phone }}
+                        </p>
+                        <label v-if="matchedGuardian" class="grid gap-2"
+                            >Contact decision
+                            <select
+                                v-model="acceptance.guardian_choice"
+                                class="min-h-11 w-full rounded-md border bg-background px-3"
+                            >
+                                <option value="">Choose explicitly</option>
+                                <option value="keep">
+                                    Keep the existing guardian
+                                </option>
+                                <option value="use_incoming">
+                                    Use the incoming guardian
+                                </option>
+                            </select>
+                        </label>
+                        <label class="grid gap-2"
+                            >Incoming relationship (confirm before saving)
+                            <select
+                                v-model="acceptance.guardian_relationship"
+                                class="min-h-11 w-full rounded-md border bg-background px-3"
+                            >
+                                <option value="">Select relationship</option>
+                                <option value="mother">Mother</option>
+                                <option value="father">Father</option>
+                                <option value="legal_guardian">
+                                    Legal guardian
+                                </option>
+                                <option value="other_family_member">
+                                    Other family member
+                                </option>
+                            </select>
+                        </label>
+                        <InputError
+                            :message="
+                                acceptance.errors.guardian_choice ||
+                                acceptance.errors.guardian_relationship ||
+                                acceptance.errors.guardian_lock_version
+                            "
+                        />
+                        <p class="text-sm text-muted-foreground">
+                            Guardian details never replace the Patient's own
+                            contact and are not used for WhatsApp.
+                        </p>
+                    </section>
                     <div
                         v-for="candidate in intake.duplicateCandidates"
                         :key="candidate.patientNumber"

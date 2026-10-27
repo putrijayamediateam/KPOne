@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { Head, Link, useForm } from '@inertiajs/vue3';
+import { usePage, Head, Link, useForm } from '@inertiajs/vue3';
 import { ArrowLeft, Save } from '@lucide/vue';
 import PatientFormFields from '@/components/patient/PatientFormFields.vue';
 import { Button } from '@/components/ui/button';
+import { knownMinor } from '@/lib/guardian-contact';
 import { phoneError, focusInvalidField } from '@/lib/patient-registration';
 import type { PatientDetail, PatientFormValues } from '@/types';
 
@@ -14,8 +15,14 @@ defineOptions({
         ],
     },
 });
-const props = defineProps<{ patient: PatientDetail }>();
+const props = defineProps<{ patient: PatientDetail; guardianToday?: string }>();
 const form = useForm<PatientFormValues & { lock_version: number }>({
+    guardian: props.patient.guardian
+        ? { ...props.patient.guardian, retry_key: crypto.randomUUID() }
+        : null,
+    expected_branch_id: (
+        usePage().props.branchContext as { active?: { id: number } } | undefined
+    )?.active?.id,
     full_name: props.patient.identity.fullName,
     date_of_birth: props.patient.identity.dateOfBirth ?? '',
     sex: props.patient.identity.sex,
@@ -35,7 +42,11 @@ const submit = () => {
     form.clearErrors();
 
     if (form.mobile_phone !== (props.patient.contact.mobilePhone ?? '')) {
-        const error = phoneError(form.mobile_phone, form.phone_country);
+        const error = phoneError(
+            form.mobile_phone,
+            form.phone_country,
+            !knownMinor(form.date_of_birth, props.guardianToday),
+        );
 
         if (error) {
             form.setError('mobile_phone', error);
@@ -65,8 +76,10 @@ const submit = () => {
         <form class="space-y-5" @submit.prevent="submit">
             <PatientFormFields
                 :model="form"
+                :guardian-today="guardianToday"
                 :errors="form.errors"
                 :original-phone="patient.contact.mobilePhone ?? ''"
+                :original-dob="patient.identity.dateOfBirth ?? ''"
                 :can-whatsapp="patient.canWhatsapp"
                 :patient-number="patient.patientNumber"
             />

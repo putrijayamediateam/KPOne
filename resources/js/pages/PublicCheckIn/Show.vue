@@ -21,6 +21,7 @@ import {
     watch,
 } from 'vue';
 import RegistrationContactFields from '@/components/patient/RegistrationContactFields.vue';
+import { knownMinor } from '@/lib/guardian-contact';
 import {
     SESSION_WARNING_SECONDS,
     formatCountdown,
@@ -672,8 +673,11 @@ onBeforeUnmount(() => {
                             ></label
                         >
                         <label class="grid gap-1.5" for="phone"
-                            ><span class="text-sm font-medium"
-                                >Nombor telefon *</span
+                            ><span class="text-sm font-medium">{{
+                                knownMinor(form.date_of_birth)
+                                    ? 'Nombor telefon anak (pilihan)'
+                                    : 'Nombor telefon pesakit *'
+                            }}</span
                             ><input
                                 id="phone"
                                 v-model="form.mobile_phone"
@@ -885,6 +889,11 @@ onBeforeUnmount(() => {
                             >
                                 <option value="" disabled>
                                     Pilih hubungan
+                                </option>
+                                <option value="mother">Ibu</option>
+                                <option value="father">Bapa</option>
+                                <option value="other_family_member">
+                                    Ahli keluarga lain
                                 </option>
                                 <option value="parent">Ibu / Bapa</option>
                                 <option value="legal_guardian">

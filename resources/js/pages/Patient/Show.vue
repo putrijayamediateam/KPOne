@@ -350,5 +350,22 @@ const formatTime = (value: string) =>
                 </div>
             </div>
         </section>
+        <section
+            v-if="patient.guardian"
+            class="space-y-2 rounded-lg border bg-card p-5"
+        >
+            <h2 class="font-semibold">Guardian contact</h2>
+            <p class="break-words">
+                {{ patient.guardian.full_name }} ·
+                {{ patient.guardian.relationship.replaceAll('_', ' ') }}
+            </p>
+            <p class="break-words">{{ patient.guardian.phone }}</p>
+            <p v-if="patient.guardian.email" class="break-words">
+                {{ patient.guardian.email }}
+            </p>
+            <p class="text-sm text-muted-foreground">
+                This guardian number is not used by WhatsApp or patient search.
+            </p>
+        </section>
     </main>
 </template>
