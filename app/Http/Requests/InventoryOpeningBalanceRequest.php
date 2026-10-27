@@ -22,6 +22,7 @@ class InventoryOpeningBalanceRequest extends FormRequest
             'location_public_id' => ['required', 'uuid'],
             'sku_public_id' => ['required', 'uuid'],
             'batch_public_id' => ['required', 'uuid'],
+            'unit' => ['sometimes', 'string', 'max:100'],
             'quantity' => ['required', 'regex:/^\d{1,12}(?:\.\d{1,3})?$/'],
             'unit_cost_sen' => ['nullable', 'integer', 'min:0'],
             'supplier_public_id' => ['nullable', 'uuid'],

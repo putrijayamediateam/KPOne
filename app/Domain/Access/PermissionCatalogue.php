@@ -114,6 +114,7 @@ final class PermissionCatalogue
             'dispensary.acknowledge_partial.own',
             'inventory.view.branch',
             'inventory.opening_balance.branch',
+            'inventory.opening.verify.branch',
             'inventory.transfer.branch',
             'inventory.transfer.organisation',
             'inventory.references.manage.organisation',
@@ -327,6 +328,10 @@ final class PermissionCatalogue
                 'system_events.view.organisation',
             ],
         ];
+        foreach (['ca_supervisor', 'finance_officer', 'director'] as $role) {
+            $roles[$role][] = 'inventory.opening.verify.branch';
+        }
+
         foreach (BillingPermissions::roles() as $role => $permissions) {
             $roles[$role] = [...$roles[$role], ...$permissions];
         }

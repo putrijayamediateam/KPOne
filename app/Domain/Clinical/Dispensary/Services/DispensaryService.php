@@ -28,6 +28,7 @@ use App\Domain\Organisation\Inventory\Models\InventoryLocation;
 use App\Domain\Organisation\Inventory\Models\InventorySku;
 use App\Domain\Organisation\Inventory\Models\MedicineCatalogueInventorySku;
 use App\Domain\Organisation\Inventory\Services\InventoryMovementService;
+use App\Domain\Organisation\Inventory\Services\InventoryReadinessService;
 use App\Domain\Organisation\Models\Branch;
 use App\Domain\Patient\Models\Patient;
 use App\Domain\Queue\Models\QueueEntry;
@@ -606,6 +607,7 @@ class DispensaryService
                     || $location->type !== InventoryLocation::TYPE_DISPENSARY
                     || ! $sku
                     || ! $sku->is_active
+                    || $item->unit_snapshot !== $sku->stock_unit
                     || ! $mapping
                     || ! $mapping->is_active
                     || ! $batch
@@ -704,6 +706,7 @@ class DispensaryService
     {
         $location = InventoryLocation::query()->where('public_id', $a['location_public_id'])->where('organisation_id', $actor->organisation_id)->where('branch_id', $case->branch_id)->where('type', InventoryLocation::TYPE_DISPENSARY)->where('is_active', true)->lockForUpdate()->firstOrFail();
         $sku = InventorySku::query()->where('public_id', $a['sku_public_id'])->where('organisation_id', $actor->organisation_id)->where('is_active', true)->lockForUpdate()->firstOrFail();
+        InventoryReadinessService::assertUnambiguous($actor->organisation_id, $item->medicine_catalogue_item_id, $sku->id, $item->unit_snapshot);
         $mapped = MedicineCatalogueInventorySku::query()->where('organisation_id', $actor->organisation_id)->where('medicine_catalogue_item_id', $item->medicine_catalogue_item_id)->where('inventory_sku_id', $sku->id)->where('is_active', true)->lockForUpdate()->exists();
         abort_unless($mapped, 404);
         $batch = InventoryBatch::query()->where('public_id', $a['batch_public_id'])->where('organisation_id', $actor->organisation_id)->where('inventory_sku_id', $sku->id)->lockForUpdate()->firstOrFail();

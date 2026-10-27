@@ -39,7 +39,7 @@ class StockMovement extends Model
 
     protected function casts(): array
     {
-        return ['quantity' => 'decimal:3', 'occurred_at' => 'immutable_datetime'];
+        return ['unit_snapshot' => 'array', 'quantity' => 'decimal:3', 'occurred_at' => 'immutable_datetime'];
     }
 
     /** @return BelongsTo<DispensaryItemBatchAllocation, $this> */

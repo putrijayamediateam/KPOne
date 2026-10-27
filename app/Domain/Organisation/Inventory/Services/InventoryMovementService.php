@@ -44,7 +44,7 @@ class InventoryMovementService
                     'opening_balance' => 'An opening balance has already been recorded for this location, SKU, and batch. Use a stock transfer or manual adjustment to change the balance.',
                 ]);
             }
-            $quantity = $this->quantity($attributes['quantity']);
+            $quantity = StockUnitQuantity::base($attributes['quantity'], $sku->stock_unit, $attributes['unit'] ?? null);
             $unitCostSen = $this->unitCostSen($attributes['unit_cost_sen'] ?? null);
             $supplier = null;
             if (filled($attributes['supplier_public_id'] ?? null)) {
@@ -97,7 +97,7 @@ class InventoryMovementService
                 abort_unless($source->branch_id === $branch->id && $destination->branch_id === $branch->id, 404);
             }
             [$sku, $batch] = $this->lockSkuAndBatch($lockedActor, $attributes['sku_public_id'], $attributes['batch_public_id']);
-            $quantity = $this->quantity($attributes['quantity']);
+            $quantity = StockUnitQuantity::base($attributes['quantity'], $sku->stock_unit, $attributes['unit'] ?? null);
             $this->move($lockedActor->organisation_id, $source->id, $destination->id, $sku->id, $batch->id, $quantity);
             $movement = $this->movement($lockedActor, $sku, $batch, $source, $destination, $quantity, StockMovement::TYPE_TRANSFER, 'inventory_transfer', (string) Str::uuid());
             $this->audit->record('inventory.transfer', $movement, ['movement_type' => StockMovement::TYPE_TRANSFER], $lockedActor, $branch);
@@ -108,8 +108,9 @@ class InventoryMovementService
 
     public function debitForDispense(User $actor, InventoryLocation $location, InventorySku $sku, InventoryBatch $batch, string $quantity, int $allocationId, string $allocationPublicId): StockMovement
     {
+        StockUnitQuantity::base($quantity, $sku->stock_unit, $sku->dispensing_unit);
         $balance = $this->balance($actor->organisation_id, $location->id, $sku->id, $batch->id);
-        $affected = DB::table('inventory_stock_balances')->where('id', $balance->id)->where('lock_version', $balance->lock_version)->where('quantity', '>=', $quantity)->decrement('quantity', (float) $quantity, ['lock_version' => $balance->lock_version + 1, 'updated_at' => now()]);
+        $affected = $this->changeBalance($balance, $quantity, false);
         if ($affected !== 1) {
             throw ValidationException::withMessages(['stock' => 'Available stock changed. Review current availability and retry.']);
         }
@@ -160,12 +161,13 @@ class InventoryMovementService
 
     public function recordStocktakeVariance(User $actor, InventoryLocation $location, InventorySku $sku, InventoryBatch $batch, mixed $variance, string $stocktakePublicId): ?StockMovement
     {
-        $quantity = number_format(abs((float) $variance), 3, '.', '');
-        if ((float) $quantity === 0.0) {
+        $text = trim((string) $variance);
+        $quantity = StockUnitQuantity::format(StockUnitQuantity::scaled(ltrim($text, '-'), true));
+        if ($quantity === '0.000') {
             return null;
         }
 
-        return (float) $variance > 0
+        return ! str_starts_with($text, '-')
             ? $this->creditOperation($actor, $location, $sku, $batch, $quantity, StockMovement::TYPE_STOCKTAKE_GAIN, 'inventory_stocktake', $stocktakePublicId)
             : $this->debitOperation($actor, $location, $sku, $batch, $quantity, StockMovement::TYPE_STOCKTAKE_LOSS, 'inventory_stocktake', $stocktakePublicId);
     }
@@ -191,8 +193,7 @@ class InventoryMovementService
         $this->assertOperationReferences($actor, $location, $sku, $batch);
         $value = $this->quantity($quantity);
         $balance = $this->balance($actor->organisation_id, $location->id, $sku->id, $batch->id);
-        $affected = DB::table('inventory_stock_balances')->where('id', $balance->id)->where('lock_version', $balance->lock_version)->where('quantity', '>=', $value)
-            ->decrement('quantity', (float) $value, ['lock_version' => $balance->lock_version + 1, 'updated_at' => now()]);
+        $affected = $this->changeBalance($balance, $value, false);
         if ($affected !== 1) {
             throw ValidationException::withMessages(['quantity' => 'Insufficient stock at the source location.']);
         }
@@ -210,7 +211,7 @@ class InventoryMovementService
     private function increase(int $organisationId, int $locationId, int $skuId, int $batchId, string $quantity): void
     {
         $balance = $this->balance($organisationId, $locationId, $skuId, $batchId);
-        $affected = DB::table('inventory_stock_balances')->where('id', $balance->id)->where('lock_version', $balance->lock_version)->increment('quantity', (float) $quantity, ['lock_version' => $balance->lock_version + 1, 'updated_at' => now()]);
+        $affected = $this->changeBalance($balance, $quantity, true);
         if ($affected !== 1) {
             throw ValidationException::withMessages(['quantity' => 'Stock changed while the movement was being posted. Review and retry.']);
         }
@@ -224,15 +225,30 @@ class InventoryMovementService
             $this->balance($organisationId, $id, $skuId, $batchId);
         }
         $source = InventoryStockBalance::query()->where('organisation_id', $organisationId)->where('inventory_location_id', $sourceId)->where('inventory_sku_id', $skuId)->where('inventory_batch_id', $batchId)->lockForUpdate()->firstOrFail();
-        if ((float) $source->quantity < (float) $quantity) {
+        if (StockUnitQuantity::scaled($source->quantity, true) < StockUnitQuantity::scaled($quantity)) {
             throw ValidationException::withMessages(['quantity' => 'Insufficient stock at the source location.']);
         }
         $destination = InventoryStockBalance::query()->where('organisation_id', $organisationId)->where('inventory_location_id', $destinationId)->where('inventory_sku_id', $skuId)->where('inventory_batch_id', $batchId)->lockForUpdate()->firstOrFail();
-        $debited = DB::table('inventory_stock_balances')->where('id', $source->id)->where('lock_version', $source->lock_version)->where('quantity', '>=', $quantity)->decrement('quantity', (float) $quantity, ['lock_version' => $source->lock_version + 1, 'updated_at' => now()]);
+        $debited = $this->changeBalance($source, $quantity, false);
         if ($debited !== 1) {
             throw ValidationException::withMessages(['quantity' => 'Insufficient stock at the source location.']);
         }
-        DB::table('inventory_stock_balances')->where('id', $destination->id)->where('lock_version', $destination->lock_version)->increment('quantity', (float) $quantity, ['lock_version' => $destination->lock_version + 1, 'updated_at' => now()]);
+        if ($this->changeBalance($destination, $quantity, true) !== 1) {
+            throw ValidationException::withMessages(['quantity' => 'Destination quantity would overflow or changed.']);
+        }
+    }
+
+    private function changeBalance(InventoryStockBalance $balance, string $quantity, bool $increase): int
+    {
+        $quantity = StockUnitQuantity::base($quantity, 'base');
+        $current = StockUnitQuantity::scaled($balance->quantity, true);
+        $delta = StockUnitQuantity::scaled($quantity);
+        $next = $increase ? $current + $delta : $current - $delta;
+        if ($next < 0 || $next > StockUnitQuantity::MAX) {
+            throw ValidationException::withMessages(['quantity' => 'Stock quantity would be negative or overflow.']);
+        }
+
+        return DB::table('inventory_stock_balances')->where('id', $balance->id)->where('lock_version', $balance->lock_version)->update(['quantity' => StockUnitQuantity::format($next), 'lock_version' => $balance->lock_version + 1, 'updated_at' => now()]);
     }
 
     private function balance(int $organisationId, int $locationId, int $skuId, int $batchId): InventoryStockBalance
@@ -282,7 +298,8 @@ class InventoryMovementService
             'inventory_batch_id' => $batch->id,
             'source_location_id' => $source?->id,
             'destination_location_id' => $destination?->id,
-            'quantity' => $quantity,
+            'quantity' => StockUnitQuantity::base($quantity, $sku->stock_unit),
+            'unit_snapshot' => ['base_unit' => $sku->stock_unit, 'input_unit' => $sku->stock_unit, 'direction' => 'input_to_base', 'factor' => '1.000', 'precision' => 3],
             'movement_type' => $type,
             'dispensary_item_batch_allocation_id' => $allocationId,
             'reference_type' => $referenceType,
@@ -298,12 +315,7 @@ class InventoryMovementService
 
     private function quantity(mixed $value): string
     {
-        $value = trim((string) $value);
-        if (preg_match('/^\d{1,12}(?:\.\d{1,3})?$/D', $value) !== 1 || (float) $value <= 0) {
-            throw ValidationException::withMessages(['quantity' => 'Quantity must be positive with at most three decimal places.']);
-        }
-
-        return number_format((float) $value, 3, '.', '');
+        return StockUnitQuantity::base($value, 'base');
     }
 
     private function unitCostSen(mixed $value): ?int
