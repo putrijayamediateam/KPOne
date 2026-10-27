@@ -20,6 +20,7 @@ use App\Domain\Patient\Models\PublicIntakeSession;
 use App\Domain\Patient\Policies\PatientPolicy;
 use App\Domain\Queue\Models\QueueEntry;
 use App\Domain\Queue\Policies\QueueEntryPolicy;
+use App\Domain\Queue\Readiness\CallHoldService;
 use App\Domain\Visit\Models\Visit;
 use App\Domain\Visit\Policies\VisitPolicy;
 use App\Models\User;
@@ -61,6 +62,7 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('patient-report-views', fn (Request $request) => Limit::perMinute(60)->by('patient-reports:'.$request->user()?->organisation_id.':'.$request->user()?->id));
         RateLimiter::for('patient-whatsapp', fn (Request $request) => Limit::perMinute(20)->by('patient-whatsapp:'.$request->user()?->id));
         RateLimiter::for('reports-downloads', fn (Request $request) => Limit::perMinute(10)->by('reports:'.$request->user()?->organisation_id.':'.$request->user()?->id));
+        QueueEntry::updating(fn (QueueEntry $entry) => app(CallHoldService::class)->leavingWaiting($entry));
         $this->configureDefaults();
         $this->configureAuthorization();
         $this->configureAuditListeners();

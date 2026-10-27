@@ -6,6 +6,7 @@ use App\Domain\Access\BranchAccessService;
 use App\Domain\Queue\Models\QueueEntry;
 use App\Domain\Visit\Models\Visit;
 use App\Models\User;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\ValidationException;
 
@@ -13,8 +14,8 @@ class QueueWaitingCountService
 {
     public function __construct(private BranchAccessService $branches) {}
 
-    /** @return array{branchId: int, own: int, branch: int|null} */
-    public function counts(User $actor, int $expectedBranchId): array
+    /** @return array{branchId: int, own: int, branch: int|null, notReady?:int} */
+    public function counts(User $actor, int $expectedBranchId, bool $readiness = false, string $scope = 'own'): array
     {
         abort_unless($actor->is_active, 403);
         Gate::forUser($actor)->authorize('viewAny', QueueEntry::class);
@@ -37,10 +38,19 @@ class QueueWaitingCountService
             ->where('queue_entries.status', QueueEntry::STATUS_WAITING)
             ->whereDate('queue_entries.operational_date', '<=', now()->setTimezone($branch->timezone)->toDateString());
 
-        return [
+        $result = [
             'branchId' => $branch->id,
             'own' => (clone $query)->where('visits.assigned_doctor_user_id', $actor->id)->count(),
             'branch' => $actor->can('queue.view.branch') ? $query->count() : null,
         ];
+        if ($readiness) {
+            $visible = clone $query;
+            if ($scope !== 'branch' || ! $actor->can('queue.view.branch')) {
+                $visible->where('visits.assigned_doctor_user_id', $actor->id);
+            }
+            $result['notReady'] = (clone $visible)->whereIn('queue_entries.id', DB::table('queue_call_holds')->whereNull('closed_at')->select('queue_entry_id'))->count();
+        }
+
+        return $result;
     }
 }

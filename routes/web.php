@@ -54,6 +54,7 @@ use App\Http\Controllers\PublicIntakeReviewController;
 use App\Http\Controllers\QueueController;
 use App\Http\Controllers\QueueDisplayController;
 use App\Http\Controllers\QueueDisplaySettingsController;
+use App\Http\Controllers\QueueReadinessController;
 use App\Http\Controllers\ReferralController;
 use App\Http\Controllers\RegistrationController;
 use App\Http\Controllers\RegistrationSettingsController;
@@ -653,6 +654,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('queue', [QueueController::class, 'index'])
             ->middleware('permission:queue.view.own,queue.view.branch')
             ->name('queue.index');
+        Route::post('visits/{visit}/queue/readiness', [QueueReadinessController::class, 'store'])->middleware(['permission:queue.call_hold.set.branch', 'sensitive.no-store', 'throttle:60,1'])->name('queue.readiness.set');
+        Route::patch('visits/{visit}/queue/readiness', [QueueReadinessController::class, 'clear'])->middleware(['permission:queue.call_hold.set.branch,queue.call_hold.clear.branch', 'sensitive.no-store', 'throttle:60,1'])->name('queue.readiness.clear');
+        Route::get('queue/readiness-updates', [QueueReadinessController::class, 'updates'])->middleware(['permission:queue.view.own,queue.view.branch', 'sensitive.no-store', 'throttle:60,1'])->name('queue.readiness.updates');
         Route::get('queue/waiting-counts', [QueueController::class, 'waitingCounts'])
             ->middleware(['permission:queue.view.own,queue.view.branch', 'sensitive.no-store', 'throttle:60,1'])
             ->name('queue.waiting-counts');

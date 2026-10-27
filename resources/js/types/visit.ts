@@ -1,3 +1,4 @@
+import type { CallReadiness } from './patientBoard';
 export type VisitType = 'consultation' | 'otc';
 export type VisitPriority = 'normal' | 'urgent';
 export type VisitCoverage = 'self_pay' | 'panel';
@@ -28,6 +29,7 @@ export type PatientRegistrationSummary = {
 };
 
 export type VisitRow = {
+    callHold?: CallReadiness | null;
     canWhatsapp: boolean;
     visitNumber: string;
     patientNumber: string;

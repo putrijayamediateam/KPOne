@@ -10,11 +10,18 @@ import {
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { Button } from '@/components/ui/button';
 import { OperationalTabs } from '@/components/ui/tabs';
+import { useCallReadinessAlerts } from '@/composables/useCallReadinessAlerts';
 import { requestJson } from '@/lib/json-client';
 import { createQueuePollingLifecycle } from '@/lib/queue-polling';
 
 const props = defineProps<{ branchId: number; canViewBranch: boolean }>();
-type Counts = { branchId: number; own: number; branch: number | null };
+type Counts = {
+    branchId: number;
+    own: number;
+    branch: number | null;
+    notReady: number;
+};
+const readyAlerts = useCallReadinessAlerts(false);
 const open = ref(false);
 const selected = ref('own');
 const counts = ref<Counts | null>(null);
@@ -54,7 +61,13 @@ const refresh = async () => {
     try {
         const params = new URLSearchParams({
             expected_branch_id: String(branchId),
+            include_readiness: '1',
+            scope: selected.value,
         });
+        // Sample clear events first: a later clear must not explain an earlier cancellation drop.
+        const readiness = await readyAlerts
+            .read(branchId, controller.signal)
+            .catch(() => null);
         const result = await requestJson<Counts>(
             `/queue/waiting-counts?${params}`,
             { signal: controller.signal },
@@ -68,7 +81,13 @@ const refresh = async () => {
             throw new Error('Branch changed');
         }
 
+        const previous = counts.value?.notReady;
         counts.value = result;
+        // A clear-event signal is required: cancellation and Call In never trigger readiness.
+        readyAlerts.announce(
+            readiness,
+            previous !== undefined && result.notReady < previous,
+        );
     } catch {
         if (lifecycle.accepts(generation)) {
             counts.value = null;
@@ -91,6 +110,11 @@ const visibilityChanged = () => {
         void refresh();
     }
 };
+watch(selected, () => {
+    counts.value = null;
+    readyAlerts.reset();
+    void refresh();
+});
 watch(open, (value) => {
     if (value) {
         void refresh();
@@ -100,6 +124,7 @@ watch(
     () => [props.branchId, props.canViewBranch],
     () => {
         counts.value = null;
+        readyAlerts.reset();
         selected.value = 'own';
         open.value = false;
         void refresh();
@@ -125,6 +150,7 @@ onBeforeUnmount(() => {
                 size="sm"
                 variant="outline"
                 data-testid="patients-waiting"
+                class="min-h-11"
             >
                 <UsersRound class="size-3.5" />
                 {{
@@ -163,7 +189,7 @@ onBeforeUnmount(() => {
                         {{
                             total == null
                                 ? 'Loading waiting count…'
-                                : `${total} patients waiting`
+                                : `${total} waiting, ${counts?.notReady ?? 0} not ready to be called`
                         }}
                     </p>
                     <p
@@ -181,6 +207,16 @@ onBeforeUnmount(() => {
                     @click="refresh"
                     >Retry</Button
                 >
+                <Button
+                    type="button"
+                    variant="outline"
+                    class="min-h-11 w-full"
+                    :aria-pressed="readyAlerts.chimeEnabled.value"
+                    @click="readyAlerts.toggleChime"
+                >
+                    Notification sound:
+                    {{ readyAlerts.chimeEnabled.value ? 'On' : 'Off' }}
+                </Button>
                 <Link
                     href="/queue"
                     class="mt-1 block border-t pt-3 text-xs font-medium hover:underline"

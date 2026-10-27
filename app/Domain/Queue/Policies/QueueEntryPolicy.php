@@ -5,6 +5,7 @@ namespace App\Domain\Queue\Policies;
 use App\Domain\Access\BranchAccessService;
 use App\Domain\Organisation\Models\Branch;
 use App\Domain\Queue\Models\QueueEntry;
+use App\Domain\Queue\Readiness\CallHoldPermissions;
 use App\Models\User;
 use Closure;
 
@@ -73,5 +74,15 @@ class QueueEntryPolicy
     private function callPermission(User $actor, QueueEntry $entry): bool
     {
         return $actor->can('queue.call.branch') || ($actor->can('queue.call.own') && $entry->visit->assigned_doctor_user_id === $actor->id);
+    }
+
+    public function setReadiness(User $actor, QueueEntry $entry): bool
+    {
+        return $actor->is_active && $this->view($actor, $entry) && $actor->can(CallHoldPermissions::SET);
+    }
+
+    public function clearReadiness(User $actor, QueueEntry $entry): bool
+    {
+        return $actor->is_active && $this->view($actor, $entry) && ($actor->can(CallHoldPermissions::SET) || $actor->can(CallHoldPermissions::CLEAR));
     }
 }
