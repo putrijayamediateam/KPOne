@@ -151,6 +151,10 @@ class QueueDirectoryService
                 ]),
         ]);
 
+        $removedVisits = $removedEntries->map(fn (QueueEntry $entry) => $entry->visit);
+        $removedHints = $this->dispensaryAttention->pendingForVisits($actor, $removedVisits)
+            + app(CheckoutReopenEligibility::class)->forVisits($actor, $removedVisits);
+
         $dynamic = [
             'scope' => $actor->can('queue.view.branch') ? 'branch' : 'own',
             'serverNow' => $now->toIso8601String(),
@@ -158,7 +162,7 @@ class QueueDirectoryService
             'waiting' => ['data' => $this->rows($actor, $waitingEntries, $branch, $now, $eligibleDoctorIds, $visitActionHints), ...$waitingMeta],
             'carryOver' => ['data' => $this->rows($actor, $carryOverEntries, $branch, $now, $eligibleDoctorIds, $visitActionHints), ...$carryOverMeta],
             'serving' => $this->rows($actor, $servingEntries, $branch, $now, $eligibleDoctorIds, $visitActionHints),
-            'removed' => $this->rows($actor, $removedEntries, $branch, $now, $eligibleDoctorIds, $visitActionHints),
+            'removed' => $this->rows($actor, $removedEntries, $branch, $now, $eligibleDoctorIds, $visitActionHints, $removedHints),
         ];
 
         if (! $includeStableMetadata) {
@@ -178,6 +182,7 @@ class QueueDirectoryService
      * @param  Collection<int, QueueEntry>  $entries
      * @param  list<int>  $eligibleDoctorIds
      * @param  array<string, array{update: bool, cancel: bool}>  $visitActionHints
+     * @param  array<int, bool>  $removedHints
      * @return Collection<int, array<string, mixed>>
      */
     private function rows(
@@ -187,10 +192,11 @@ class QueueDirectoryService
         CarbonInterface $now,
         array $eligibleDoctorIds,
         array &$visitActionHints,
+        array $removedHints = [],
     ): Collection {
         return $entries
-            ->map(function (QueueEntry $entry) use ($actor, $branch, $now, $eligibleDoctorIds, &$visitActionHints): array {
-                return $this->row($actor, $entry, $branch, $now, $eligibleDoctorIds, $visitActionHints);
+            ->map(function (QueueEntry $entry) use ($actor, $branch, $now, $eligibleDoctorIds, &$visitActionHints, $removedHints): array {
+                return $this->row($actor, $entry, $branch, $now, $eligibleDoctorIds, $visitActionHints, $removedHints[$entry->visit_id] ?? false);
             })
             ->values();
     }
@@ -264,6 +270,7 @@ class QueueDirectoryService
         CarbonInterface $now,
         array $eligibleDoctorIds,
         array &$visitActionHints,
+        bool $removedCanOpen = false,
     ): array {
         $visit = $entry->visit;
         $entry->setRelation('visit', $visit);
@@ -279,8 +286,7 @@ class QueueDirectoryService
             && $actor->can('encounters.start.own')
             && $visit->assigned_doctor_user_id === $actor->id;
         if ($entry->status === QueueEntry::STATUS_REMOVED) {
-            $canOpenEncounter = $this->dispensaryAttention->hasPendingForVisit($actor, $visit)
-                || app(CheckoutReopenEligibility::class)->allows($actor, $visit);
+            $canOpenEncounter = $removedCanOpen;
         }
         $actions = $visitActionHints[$entry->status] ??= $this->visitPolicy->actionHints($actor, $visit);
         $activeHold = $visit->clinicalEncounter?->holds

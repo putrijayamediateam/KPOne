@@ -51,12 +51,15 @@ class DailySummaryReportService extends BranchReportService
         if ($filters['visit_types'] !== []) {
             $query->whereIn('visit_id', DB::table('visits')->where('organisation_id', $actor->organisation_id)->whereIn('visit_type', $filters['visit_types'])->select('id'));
         }
-        foreach ($query->cursor() as $invoice) {
-            $date = $invoice->finalized_at?->setTimezone($branch->timezone)->toDateString();
-            $state = app(FinancialLedger::class)->state($invoice);
-            $days[$date][6] = ($days[$date][6] ?? 0) + $state['panel'];
-            $days[$date][7] = ($days[$date][7] ?? 0) + $state['deferred'];
-        }
+        $query->chunkById(500, function ($invoices) use (&$days, $branch): void {
+            $states = app(FinancialLedger::class)->states($invoices);
+            foreach ($invoices as $invoice) {
+                $date = $invoice->finalized_at?->setTimezone($branch->timezone)->toDateString();
+                $state = $states[$invoice->id];
+                $days[$date][6] = ($days[$date][6] ?? 0) + $state['panel'];
+                $days[$date][7] = ($days[$date][7] ?? 0) + $state['deferred'];
+            }
+        });
         $columns = ['Local date', 'Cash original (receipt date, MYR)', 'Cash reversed (receipt date, MYR)', 'Cash net (receipt date, MYR)', 'Non-cash original (receipt date, MYR)', 'Non-cash reversed (receipt date, MYR)', 'Non-cash net (receipt date, MYR)', 'Panel approved (invoice finalisation date, MYR)', 'Due approved pay-later outstanding (invoice finalisation date, MYR)', 'Total original receipts (receipt date, MYR)', 'Total reversed receipts (receipt date, MYR)', 'Total received (Cash + Non-cash) (receipt date, MYR)'];
         $sums = array_fill(0, 11, 0);
         $rows = [];

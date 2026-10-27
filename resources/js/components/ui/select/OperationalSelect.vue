@@ -24,8 +24,9 @@ const props = withDefaults(
         disabled?: boolean;
         invalid?: boolean;
         triggerClass?: string;
+        contentAvoidCollisions?: boolean;
     }>(),
-    { placeholder: 'Select', disabled: false, invalid: false, triggerClass: '' },
+    { placeholder: 'Select', disabled: false, invalid: false, triggerClass: '', contentAvoidCollisions: true },
 );
 const emit = defineEmits<{
     'update:modelValue': [value: string | number];
@@ -62,7 +63,10 @@ const update = (value: unknown) => {
         >
             <SelectValue :placeholder="placeholder" />
         </SelectTrigger>
-        <SelectContent>
+        <SelectContent
+            :avoid-collisions="contentAvoidCollisions"
+            :class="contentAvoidCollisions ? undefined : 'w-(--reka-select-trigger-width) max-w-(--reka-select-trigger-width) [&_span]:min-w-0 [&_span]:whitespace-normal [overflow-wrap:anywhere]'"
+        >
             <SelectItem
                 v-for="option in encodedOptions"
                 :key="option.encoded"

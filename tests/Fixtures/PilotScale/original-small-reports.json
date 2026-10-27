@@ -1,0 +1,243 @@
+{
+    "daily-page": {
+        "generatedAt": "2027-01-02T02:00:00+00:00",
+        "count": 3,
+        "page": 1,
+        "pages": 1,
+        "columns": [
+            "Local date",
+            "Cash original (receipt date, MYR)",
+            "Cash reversed (receipt date, MYR)",
+            "Cash net (receipt date, MYR)",
+            "Non-cash original (receipt date, MYR)",
+            "Non-cash reversed (receipt date, MYR)",
+            "Non-cash net (receipt date, MYR)",
+            "Panel approved (invoice finalisation date, MYR)",
+            "Due approved pay-later outstanding (invoice finalisation date, MYR)",
+            "Total original receipts (receipt date, MYR)",
+            "Total reversed receipts (receipt date, MYR)",
+            "Total received (Cash + Non-cash) (receipt date, MYR)"
+        ],
+        "rows": [
+            [
+                "2026-12-31",
+                "0.00",
+                "0.00",
+                "0.00",
+                "0.00",
+                "0.00",
+                "0.00",
+                "20.00",
+                "10.00",
+                "0.00",
+                "0.00",
+                "0.00"
+            ],
+            [
+                "2027-01-01",
+                "25.00",
+                "25.00",
+                "0.00",
+                "30.00",
+                "0.00",
+                "30.00",
+                "0.00",
+                "0.00",
+                "55.00",
+                "25.00",
+                "30.00"
+            ],
+            [
+                "2027-01-02",
+                "0.00",
+                "0.00",
+                "0.00",
+                "0.00",
+                "0.00",
+                "0.00",
+                "0.00",
+                "0.00",
+                "0.00",
+                "0.00",
+                "0.00"
+            ]
+        ],
+        "totals": {
+            "Cash original (receipt date, MYR)": "25.00",
+            "Cash reversed (receipt date, MYR)": "25.00",
+            "Cash net (receipt date, MYR)": "0.00",
+            "Non-cash original (receipt date, MYR)": "30.00",
+            "Non-cash reversed (receipt date, MYR)": "0.00",
+            "Non-cash net (receipt date, MYR)": "30.00",
+            "Panel approved (invoice finalisation date, MYR)": "20.00",
+            "Due approved pay-later outstanding (invoice finalisation date, MYR)": "10.00",
+            "Total original receipts (receipt date, MYR)": "55.00",
+            "Total reversed receipts (receipt date, MYR)": "25.00",
+            "Total received (Cash + Non-cash) (receipt date, MYR)": "30.00"
+        }
+    },
+    "daily-csv": "﻿Report,\"Daily summary\"\r\nBranch,Cheras\r\nTimezone,Asia\/Kuala_Lumpur\r\nFrom,2026-12-31\r\nTo,2027-01-02\r\n\"Generated at UTC\",2027-01-02T02:00:00+00:00\r\nBasis,\"Cash, Non-cash and Total use original receipt date, not invoice finalisation; original, reversed and net are explicit. Reversals restate the original receipt date, not refund-date cash flow. Panel is approved responsibility; Due is approved pay-later outstanding, both from the invoice finalisation-date cohort. Total is net receipts only: Total received (Cash + Non-cash). Panel and Due are not included in Total received. Payment-method filters apply to receipt columns only. Visit type filters apply to both cohorts; unallocated receipts cannot match a visit filter. Current classification applies to historical periods; Not classified counts as Non-cash. MYR, two decimals. Empty dates are zero rows. Current records at generation, not a historical snapshot.\"\r\n\"Payment method IDs\",all\r\n\"Visit types\",all\r\nRows,3\r\n\"Total Cash original (receipt date, MYR)\",25.00\r\n\"Total Cash reversed (receipt date, MYR)\",25.00\r\n\"Total Cash net (receipt date, MYR)\",0.00\r\n\"Total Non-cash original (receipt date, MYR)\",30.00\r\n\"Total Non-cash reversed (receipt date, MYR)\",0.00\r\n\"Total Non-cash net (receipt date, MYR)\",30.00\r\n\"Total Panel approved (invoice finalisation date, MYR)\",20.00\r\n\"Total Due approved pay-later outstanding (invoice finalisation date, MYR)\",10.00\r\n\"Total Total original receipts (receipt date, MYR)\",55.00\r\n\"Total Total reversed receipts (receipt date, MYR)\",25.00\r\n\"Total Total received (Cash + Non-cash) (receipt date, MYR)\",30.00\r\n\r\n\"Local date\",\"Cash original (receipt date, MYR)\",\"Cash reversed (receipt date, MYR)\",\"Cash net (receipt date, MYR)\",\"Non-cash original (receipt date, MYR)\",\"Non-cash reversed (receipt date, MYR)\",\"Non-cash net (receipt date, MYR)\",\"Panel approved (invoice finalisation date, MYR)\",\"Due approved pay-later outstanding (invoice finalisation date, MYR)\",\"Total original receipts (receipt date, MYR)\",\"Total reversed receipts (receipt date, MYR)\",\"Total received (Cash + Non-cash) (receipt date, MYR)\"\r\n2026-12-31,0.00,0.00,0.00,0.00,0.00,0.00,20.00,10.00,0.00,0.00,0.00\r\n2027-01-01,25.00,25.00,0.00,30.00,0.00,30.00,0.00,0.00,55.00,25.00,30.00\r\n2027-01-02,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00\r\n",
+    "panel-page": {
+        "generatedAt": "2027-01-02T02:00:00+00:00",
+        "count": 1,
+        "page": 1,
+        "pages": 1,
+        "columns": [
+            "Panel",
+            "Approved invoices",
+            "Approved responsibility (MYR)",
+            "Claimed invoices",
+            "Claimed current (MYR)",
+            "Unclaimed invoices",
+            "Unclaimed responsibility (MYR)",
+            "Accepted (MYR)",
+            "Fully rejected current (MYR)",
+            "Remitted (MYR)",
+            "Accepted outstanding (MYR)",
+            "Claim outstanding 0-30 days (MYR)",
+            "Claim outstanding 31-60 days (MYR)",
+            "Claim outstanding 61-90 days (MYR)",
+            "Claim outstanding over 90 days (MYR)",
+            "Unclaimed 0-30 days (MYR)",
+            "Unclaimed 31-60 days (MYR)",
+            "Unclaimed 61-90 days (MYR)",
+            "Unclaimed over 90 days (MYR)"
+        ],
+        "rows": [
+            [
+                "Synthetic Scale Panel",
+                "1",
+                "20.00",
+                "1",
+                "20.00",
+                "0",
+                "0.00",
+                "0.00",
+                "0.00",
+                "0.00",
+                "0.00",
+                "0.00",
+                "0.00",
+                "0.00",
+                "0.00",
+                "0.00",
+                "0.00",
+                "0.00",
+                "0.00"
+            ]
+        ],
+        "totals": {
+            "Approved invoices": "1",
+            "Approved responsibility (MYR)": "20.00",
+            "Claimed invoices": "1",
+            "Claimed current (MYR)": "20.00",
+            "Unclaimed invoices": "0",
+            "Unclaimed responsibility (MYR)": "0.00",
+            "Accepted (MYR)": "0.00",
+            "Fully rejected current (MYR)": "0.00",
+            "Remitted (MYR)": "0.00",
+            "Accepted outstanding (MYR)": "0.00",
+            "Claim outstanding 0-30 days (MYR)": "0.00",
+            "Claim outstanding 31-60 days (MYR)": "0.00",
+            "Claim outstanding 61-90 days (MYR)": "0.00",
+            "Claim outstanding over 90 days (MYR)": "0.00",
+            "Unclaimed 0-30 days (MYR)": "0.00",
+            "Unclaimed 31-60 days (MYR)": "0.00",
+            "Unclaimed 61-90 days (MYR)": "0.00",
+            "Unclaimed over 90 days (MYR)": "0.00"
+        }
+    },
+    "panel-csv": "﻿Report,\"Panel summary\"\r\nBranch,Cheras\r\nTimezone,Asia\/Kuala_Lumpur\r\nFrom,2026-12-31\r\nTo,2027-01-02\r\n\"Generated at UTC\",2027-01-02T02:00:00+00:00\r\nBasis,\"Invoice finalisation-date cohort: current approved Panel responsibility on finalised, non-void invoices, including correction holds. Claim figures are current recorded amounts, not invoice adjustments. Claimed means a first submitted event exists; never-submitted prepared packs remain unclaimed. Accepted is the recorded accepted amount; Rejected is current fully rejected claim amount (not a partial-decision remainder). Remitted is recorded claim payments, not patient receipts. Outstanding is accepted less remitted, floored at zero, matching claim detail; unaccepted claims are not accepted receivables. Age as of branch-local today, from first submitted date; unclaimed responsibility ages separately from invoice finalisation. Buckets: 0-30, 31-60, 61-90, over 90 days. MYR. Current Panel names; no patient content. Only Panels with qualifying invoices appear.\"\r\n\"Payment method IDs\",all\r\n\"Visit types\",all\r\nRows,1\r\n\"Total Approved invoices\",1\r\n\"Total Approved responsibility (MYR)\",20.00\r\n\"Total Claimed invoices\",1\r\n\"Total Claimed current (MYR)\",20.00\r\n\"Total Unclaimed invoices\",0\r\n\"Total Unclaimed responsibility (MYR)\",0.00\r\n\"Total Accepted (MYR)\",0.00\r\n\"Total Fully rejected current (MYR)\",0.00\r\n\"Total Remitted (MYR)\",0.00\r\n\"Total Accepted outstanding (MYR)\",0.00\r\n\"Total Claim outstanding 0-30 days (MYR)\",0.00\r\n\"Total Claim outstanding 31-60 days (MYR)\",0.00\r\n\"Total Claim outstanding 61-90 days (MYR)\",0.00\r\n\"Total Claim outstanding over 90 days (MYR)\",0.00\r\n\"Total Unclaimed 0-30 days (MYR)\",0.00\r\n\"Total Unclaimed 31-60 days (MYR)\",0.00\r\n\"Total Unclaimed 61-90 days (MYR)\",0.00\r\n\"Total Unclaimed over 90 days (MYR)\",0.00\r\n\r\nPanel,\"Approved invoices\",\"Approved responsibility (MYR)\",\"Claimed invoices\",\"Claimed current (MYR)\",\"Unclaimed invoices\",\"Unclaimed responsibility (MYR)\",\"Accepted (MYR)\",\"Fully rejected current (MYR)\",\"Remitted (MYR)\",\"Accepted outstanding (MYR)\",\"Claim outstanding 0-30 days (MYR)\",\"Claim outstanding 31-60 days (MYR)\",\"Claim outstanding 61-90 days (MYR)\",\"Claim outstanding over 90 days (MYR)\",\"Unclaimed 0-30 days (MYR)\",\"Unclaimed 31-60 days (MYR)\",\"Unclaimed 61-90 days (MYR)\",\"Unclaimed over 90 days (MYR)\"\r\n\"Synthetic Scale Panel\",1,20.00,1,20.00,0,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00\r\n",
+    "stock-page": {
+        "generatedAt": "2027-01-02T02:00:00+00:00",
+        "count": 1,
+        "page": 1,
+        "pages": 1,
+        "columns": [
+            "Item",
+            "SKU",
+            "Stock unit",
+            "Opening quantity",
+            "Received quantity",
+            "Dispensed quantity",
+            "Adjusted quantity (net)",
+            "Transferred quantity (net)",
+            "Closing quantity",
+            "Reconciles"
+        ],
+        "rows": [
+            [
+                "Synthetic stock item",
+                "SCALE-SMALL-SKU",
+                "unit",
+                "10.000",
+                "5.125",
+                "0.000",
+                "-1.250",
+                "-0.250",
+                "13.625",
+                "Yes"
+            ]
+        ],
+        "totals": []
+    },
+    "stock-csv": "﻿Report,\"Stock movement summary\"\r\nBranch,Cheras\r\nTimezone,Asia\/Kuala_Lumpur\r\nFrom,2026-12-31\r\nTo,2027-01-02\r\n\"Generated at UTC\",2027-01-02T02:00:00+00:00\r\nBasis,\"Quantities only, by retained SKU and stock unit; no valuation or cost. Branch-local movement dates. Opening is all signed retained movements before the period; closing is all movements through the period end, not a live balance snapshot. Received is purchase receipts; dispensed is quantity out; adjusted includes stocktakes, adjustments and opening entries recorded during the period. Transfers are signed net; transfers between locations in the same branch cancel. Opening + received - dispensed + adjusted + transferred = closing. Three decimal places, exact integer milliunits. Units\/SKUs are never summed together. Legacy balances without movements are not invented; only SKUs with retained branch movements appear. Archived locations and items remain included.\"\r\n\"Payment method IDs\",all\r\n\"Visit types\",all\r\nRows,1\r\n\r\nItem,SKU,\"Stock unit\",\"Opening quantity\",\"Received quantity\",\"Dispensed quantity\",\"Adjusted quantity (net)\",\"Transferred quantity (net)\",\"Closing quantity\",Reconciles\r\n\"Synthetic stock item\",SCALE-SMALL-SKU,unit,10.000,5.125,0.000,-1.250,-0.250,13.625,Yes\r\n",
+    "transactions-page": {
+        "generatedAt": "2027-01-02T02:00:00+00:00",
+        "count": 2,
+        "page": 1,
+        "pages": 1,
+        "columns": [
+            "Row",
+            "Local receipt date\/time",
+            "KPOne patient number",
+            "Patient name (current)",
+            "Visit number(s)",
+            "Invoice number(s)",
+            "Payment method (receipt snapshot)",
+            "Classification (current)",
+            "Original receipt (MYR)",
+            "Reversed (MYR)",
+            "Net received (MYR)",
+            "Status"
+        ],
+        "rows": [
+            [
+                "1",
+                "2027-01-01 00:05:00",
+                "KP-88000001",
+                " =Synthetic, \"雪\"",
+                "KPV-00000001",
+                "KPI-00000001",
+                "Synthetic CASH",
+                "Cash",
+                "25.00",
+                "25.00",
+                "0.00",
+                "Reversed (recording reversal)"
+            ],
+            [
+                "2",
+                "2027-01-01 00:05:00",
+                "KP-88000001",
+                " =Synthetic, \"雪\"",
+                "KPV-00000001",
+                "KPI-00000001",
+                "Synthetic CARD",
+                "Not classified (Non-cash)",
+                "30.00",
+                "0.00",
+                "30.00",
+                "Posted"
+            ]
+        ],
+        "totals": {
+            "Original receipts (MYR)": "55.00",
+            "Reversed receipts (MYR)": "25.00",
+            "Net received (MYR)": "30.00",
+            "Cash net received (MYR)": "0.00",
+            "Non-cash net received (MYR)": "30.00"
+        }
+    },
+    "transactions-csv": "﻿Report,\"Transaction Detail\"\r\nBranch,Cheras\r\nTimezone,Asia\/Kuala_Lumpur\r\nFrom,2026-12-31\r\nTo,2027-01-02\r\n\"Generated at UTC\",2027-01-02T02:00:00+00:00\r\nCurrency,MYR\r\nBasis,\"Original receipt date in the branch timezone, not invoice finalisation. Whole receipt amounts use the same posted\/reversed cohort as receipt reconciliation: original, recording-reversed and net are explicit. A recording reversal is not evidence of a cash refund; later reversals restate the original receipt date. Current patient names and governed classification; payment-method names are receipt snapshots. Not classified counts as Non-cash. One row per receipt, even if several invoice references exist. Unallocated receipts remain included for money reconciliation but patient identity is masked and no invoice\/visit is invented. Visit-type filters select any linked invoice and keep the whole receipt; separately filtered cohorts can overlap. Current records at generation, not an issued snapshot. MYR, two decimals. Empty periods have no patient rows.\"\r\n\"Payment method IDs\",all\r\n\"Visit types\",all\r\nRows,2\r\n\"Total Original receipts (MYR)\",55.00\r\n\"Total Reversed receipts (MYR)\",25.00\r\n\"Total Net received (MYR)\",30.00\r\n\"Total Cash net received (MYR)\",0.00\r\n\"Total Non-cash net received (MYR)\",30.00\r\n\r\nRow,\"Local receipt date\/time\",\"KPOne patient number\",\"Patient name (current)\",\"Visit number(s)\",\"Invoice number(s)\",\"Payment method code\",\"Payment method (receipt snapshot)\",\"Classification (current)\",\"Original receipt (MYR)\",\"Reversed (MYR)\",\"Net received (MYR)\",Status\r\n1,\"2027-01-01 00:05:00\",KP-88000001,\"' =Synthetic, \"\"雪\"\"\",KPV-00000001,KPI-00000001,CASH,\"Synthetic CASH\",Cash,25.00,25.00,0.00,\"Reversed (recording reversal)\"\r\n2,\"2027-01-01 00:05:00\",KP-88000001,\"' =Synthetic, \"\"雪\"\"\",KPV-00000001,KPI-00000001,CARD,\"Synthetic CARD\",\"Not classified (Non-cash)\",30.00,0.00,30.00,Posted\r\n"
+}

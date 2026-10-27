@@ -379,6 +379,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
                 Route::post('{publicIntake}/accept', 'accept')->whereUuid('publicIntake')->middleware('throttle:20,1')->name('registration-review.accept');
             });
 
+        Route::get('inventory/picker', [InventoryController::class, 'picker'])
+            ->middleware(['permission:inventory.view.branch', 'throttle:120,1'])->name('inventory.picker');
         Route::get('inventory', InventoryController::class)
             ->middleware('permission:inventory.view.branch')->name('inventory.index');
         Route::get('visits/{visit}/referrals', [ReferralController::class, 'index'])->middleware(['permission:referrals.view.own', 'sensitive.no-store'])->name('referrals.index');

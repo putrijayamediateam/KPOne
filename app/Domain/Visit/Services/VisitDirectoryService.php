@@ -12,12 +12,14 @@ use App\Domain\Patient\Services\PatientDirectoryService;
 use App\Domain\Patient\Services\VisitWhatsAppEligibility;
 use App\Domain\Queue\Models\OtcQueueEntry;
 use App\Domain\Queue\Models\QueueEntry;
+use App\Domain\Queue\Policies\QueueEntryPolicy;
 use App\Domain\Queue\QueueNumberFormat;
 use App\Domain\Visit\Models\Panel;
 use App\Domain\Visit\Models\Visit;
 use App\Domain\Visit\Policies\VisitPolicy;
 use App\Models\User;
 use Carbon\CarbonInterface;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -121,12 +123,20 @@ class VisitDirectoryService
         $effectiveDate = now()->setTimezone($branch->timezone)->toDateString();
         $eligibleDoctorIds = $this->doctors->eligibleDoctors($branch, $effectiveDate)
             ->pluck('id')->map(fn ($id): int => (int) $id)->values()->all();
+        $queueHints = app(QueueEntryPolicy::class)->boardHints($actor, $branch);
         $actionHints = [];
+        $visits = $paginator->getCollection();
+        $checkouts = ConsultationCheckout::query()->where('organisation_id', $actor->organisation_id)->where('branch_id', $branch->id)
+            ->whereIn('current_visit_guard', $visits->map(fn (Visit $visit): int => $visit->id)->all())->get(['current_visit_guard', 'route'])->keyBy('current_visit_guard');
+        $cases = DispensaryCase::query()->where('organisation_id', $actor->organisation_id)->where('branch_id', $branch->id)
+            ->whereIn('visit_id', $visits->map(fn (Visit $visit): int => $visit->id)->all())->orderBy('id')->get(['visit_id', 'public_id', 'case_type', 'status'])->groupBy('visit_id');
 
         return [
             'data' => $paginator->getCollection()
-                ->map(function (Visit $visit) use ($actor, $branch, $eligibleDoctorIds, &$actionHints): array {
-                    return $this->row($actor, $visit, $branch, $eligibleDoctorIds, $actionHints);
+                ->map(function (Visit $visit) use ($actor, $branch, $eligibleDoctorIds, &$actionHints, $checkouts, $cases, $queueHints): array {
+                    $visit->setRelation('branch', $branch);
+
+                    return $this->row($actor, $visit, $branch, $eligibleDoctorIds, $actionHints, $checkouts->get($visit->id), $cases->get($visit->id) ?? collect(), $queueHints);
                 })
                 ->values(),
             'total' => $paginator->total(),
@@ -309,6 +319,8 @@ class VisitDirectoryService
     /**
      * @param  array<int, int>  $eligibleDoctorIds
      * @param  array<string, array{update: bool, cancel: bool}>  $actionHints
+     * @param  Collection<int, DispensaryCase>  $cases
+     * @param  \Closure(QueueEntry):array{view:bool,call:bool}  $queueHints
      * @return array<string, mixed>
      */
     private function row(
@@ -317,15 +329,18 @@ class VisitDirectoryService
         Branch $branch,
         array $eligibleDoctorIds,
         array &$actionHints,
+        ?ConsultationCheckout $checkout,
+        Collection $cases,
+        \Closure $queueHints,
     ): array {
-        $visibleQueueEntry = $this->visibleQueueEntry($actor, $visit);
+        $visibleQueueEntry = $this->visibleQueueEntry($actor, $visit, $queueHints);
         $visibleQueueStatus = $visibleQueueEntry instanceof QueueEntry ? $visibleQueueEntry->status : 'none';
         $actionKey = $visit->status.':'.$visibleQueueStatus;
         $doctorEligible = $visit->assigned_doctor_user_id !== null
             && in_array($visit->assigned_doctor_user_id, $eligibleDoctorIds, true);
         $canCall = $visibleQueueEntry?->status === QueueEntry::STATUS_WAITING
             && $doctorEligible
-            && Gate::forUser($actor)->allows('call', $visibleQueueEntry);
+            && $queueHints($visibleQueueEntry)['call'];
         $canOpenEncounter = $visibleQueueEntry?->status === QueueEntry::STATUS_SERVING
             && $doctorEligible
             && $actor->is_active
@@ -347,12 +362,11 @@ class VisitDirectoryService
         $actions = $actionHints[$actionKey] ??= $this->visitPolicy->actionHints($actor, $visit);
         $activeHold = $visit->clinicalEncounter?->holds
             ->first(fn ($hold): bool => $hold->resumed_at === null);
-        $checkout = ConsultationCheckout::query()->where('current_visit_guard', $visit->id)->first(['route']);
         // DS-01b-3: an OTC visit has no checkout; its Dispensary case is the source Billing reads.
-        $otcCase = $visit->visit_type === 'otc' ? DispensaryCase::query()->where('visit_id', $visit->id)->where('case_type', DispensaryCase::TYPE_OTC)->first(['public_id', 'status']) : null;
+        $otcCase = $visit->visit_type === 'otc' ? $cases->firstWhere('case_type', DispensaryCase::TYPE_OTC) : null;
         $otcOpen = $otcCase !== null && $otcCase->status !== DispensaryCase::STATUS_COMPLETED;
         $canBilling = $actor->can('billing.view.branch') && ($visit->status === Visit::STATUS_COMPLETED || ($otcCase !== null && ! $otcOpen) || ($checkout !== null && ($checkout->route === 'billing'
-            || DispensaryCase::query()->where('visit_id', $visit->id)->where('status', 'completed')->exists())));
+            || $cases->contains('status', 'completed'))));
 
         return [
             'canWhatsapp' => VisitWhatsAppEligibility::allows($actor, $visit, $branch),
@@ -402,7 +416,7 @@ class VisitDirectoryService
         ];
     }
 
-    private function visibleQueueEntry(User $actor, Visit $visit): ?QueueEntry
+    private function visibleQueueEntry(User $actor, Visit $visit, ?\Closure $queueHints = null): ?QueueEntry
     {
         $entry = $visit->queueEntry;
         if (! $entry) {
@@ -411,7 +425,7 @@ class VisitDirectoryService
 
         $entry->setRelation('visit', $visit);
 
-        return Gate::forUser($actor)->allows('view', $entry) ? $entry : null;
+        return ($queueHints ? $queueHints($entry)['view'] : Gate::forUser($actor)->allows('view', $entry)) ? $entry : null;
     }
 
     private function escapeLike(string $value): string

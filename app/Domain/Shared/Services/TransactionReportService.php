@@ -12,6 +12,7 @@ use App\Domain\Visit\Billing\Services\PostedReceiptProjection;
 use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
@@ -91,7 +92,10 @@ class TransactionReportService
             }
             $rows = [];
             $position = $download ? 0 : ($page - 1) * self::PAGE_SIZE;
-            foreach ($selected->get(['id', 'organisation_id', 'branch_id', 'patient_id', 'payment_method_id', 'received_at', 'method_snapshot', 'amount_sen', 'status']) as $receipt) {
+            $receipts = $selected->get(['id', 'organisation_id', 'branch_id', 'patient_id', 'payment_method_id', 'received_at', 'method_snapshot', 'amount_sen', 'status']);
+            $identities = $this->identities($receipts);
+            foreach ($receipts as $receipt) {
+                $receipt->setRelation('transactionReportIdentity', $identities[$receipt->id]);
                 $method = $methods->get($receipt->payment_method_id);
                 abort_unless($method !== null, 409, 'Receipt method evidence requires review.');
                 [$number, $name, $visits, $invoices] = $this->identity($receipt);
@@ -131,19 +135,50 @@ class TransactionReportService
         return PostedReceiptProjection::filterVisitTypes($query, $actor->organisation_id, $filters['visit_types']);
     }
 
-    /** @return array{string,string,string,string} */
+    /** Resolve a row only from the batch prepared after the scope and cap checks.
+     * @return array{string,string,string,string}
+     */
     private function identity(Payment $receipt): array
     {
-        $ids = DB::table('payment_allocations')->where('organisation_id', $receipt->organisation_id)->where('branch_id', $receipt->branch_id)->where('payment_id', $receipt->id)->pluck('invoice_id')->unique();
-        if ($ids->isEmpty()) {
-            return ['—', 'Not shown (no invoice allocation)', '—', '—'];
-        }
-        $invoices = DB::table('invoices as i')->join('visits as v', fn ($join) => $join->on('v.id', '=', 'i.visit_id')->on('v.organisation_id', '=', 'i.organisation_id')->on('v.branch_id', '=', 'i.branch_id'))
-            ->where('i.organisation_id', $receipt->organisation_id)->where('i.branch_id', $receipt->branch_id)->whereIn('i.id', $ids)->orderBy('i.id')->get(['i.patient_id', 'i.invoice_number', 'v.visit_number']);
-        abort_unless($invoices->count() === $ids->count() && $invoices->every(fn ($i): bool => (int) $i->patient_id === $receipt->patient_id), 409, 'Receipt allocation evidence requires review.');
-        $patient = DB::table('patients')->where('organisation_id', $receipt->organisation_id)->where('id', $receipt->patient_id)->first(['patient_number', 'full_name']);
-        abort_unless($patient !== null, 409, 'Receipt identity evidence requires review.');
+        $identity = $receipt->getRelation('transactionReportIdentity');
 
-        return [(string) $patient->patient_number, (string) $patient->full_name, $invoices->pluck('visit_number')->unique()->implode('; '), $invoices->pluck('invoice_number')->unique()->implode('; ')];
+        return $identity;
+    }
+
+    /** Bounded to the selected page or the existing 5,000-row export cap.
+     * @param  Collection<int, Payment>  $receipts
+     * @return array<int,array{string,string,string,string}>
+     */
+    private function identities(Collection $receipts): array
+    {
+        if ($receipts->isEmpty()) {
+            return [];
+        }
+        $organisation = $receipts->first()->organisation_id;
+        $branch = $receipts->first()->branch_id;
+        $allocations = DB::table('payment_allocations')->where('organisation_id', $organisation)->where('branch_id', $branch)
+            ->whereIn('payment_id', $receipts->pluck('id'))->orderBy('id')->get(['payment_id', 'invoice_id'])->groupBy('payment_id');
+        $ids = $allocations->flatten(1)->pluck('invoice_id')->unique();
+        $invoices = DB::table('invoices as i')->join('visits as v', fn ($join) => $join->on('v.id', '=', 'i.visit_id')->on('v.organisation_id', '=', 'i.organisation_id')->on('v.branch_id', '=', 'i.branch_id'))
+            ->where('i.organisation_id', $organisation)->where('i.branch_id', $branch)->whereIn('i.id', $ids)->orderBy('i.id')->get(['i.id', 'i.patient_id', 'i.invoice_number', 'v.visit_number'])->keyBy('id');
+        // Preserve masking: unallocated receipts do not cause identity lookup or disclosure.
+        $allocated = $receipts->filter(fn ($receipt): bool => $allocations->has($receipt->id));
+        $patients = DB::table('patients')->where('organisation_id', $organisation)->whereIn('id', $allocated->pluck('patient_id'))->get(['id', 'patient_number', 'full_name'])->keyBy('id');
+        $result = [];
+        foreach ($receipts as $receipt) {
+            $invoiceIds = ($allocations->get($receipt->id) ?? collect())->pluck('invoice_id')->unique();
+            if ($invoiceIds->isEmpty()) {
+                $result[$receipt->id] = ['—', 'Not shown (no invoice allocation)', '—', '—'];
+
+                continue;
+            }
+            $linked = $invoices->only($invoiceIds->all())->sortBy('id');
+            abort_unless($linked->count() === $invoiceIds->count() && $linked->every(fn ($i): bool => (int) $i->patient_id === $receipt->patient_id), 409, 'Receipt allocation evidence requires review.');
+            $patient = $patients->get($receipt->patient_id);
+            abort_unless($patient !== null, 409, 'Receipt identity evidence requires review.');
+            $result[$receipt->id] = [(string) $patient->patient_number, (string) $patient->full_name, $linked->pluck('visit_number')->unique()->implode('; '), $linked->pluck('invoice_number')->unique()->implode('; ')];
+        }
+
+        return $result;
     }
 }

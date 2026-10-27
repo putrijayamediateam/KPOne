@@ -93,6 +93,7 @@ class InventoryReferenceController extends Controller
 
     public function skuBatches(Request $request, string $sku): JsonResponse
     {
+        $filters = $request->validate(['q' => ['nullable', 'string', 'max:100'], 'limit' => ['sometimes', 'integer', 'min:1', 'max:100']]);
         $inventorySku = InventorySku::query()
             ->where('organisation_id', $request->user()->organisation_id)
             ->where('public_id', $sku)
@@ -102,9 +103,11 @@ class InventoryReferenceController extends Controller
             'data' => InventoryBatch::query()
                 ->where('organisation_id', $inventorySku->organisation_id)
                 ->where('inventory_sku_id', $inventorySku->id)
-                ->orderBy('batch_number')
+                ->when(filled($filters['q'] ?? null), fn ($query) => $query->whereRaw("batch_number ILIKE ? ESCAPE '\\'", ['%'.str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], (string) $filters['q']).'%']))
+                ->orderByRaw('batch_number COLLATE "C"')
                 ->orderBy('id')
-                ->get()
+                ->limit((int) ($filters['limit'] ?? 25))
+                ->get(['public_id', 'batch_number', 'expiry_date'])
                 ->map(fn (InventoryBatch $batch): array => [
                     'publicId' => $batch->public_id,
                     'batchNumber' => $batch->batch_number,
