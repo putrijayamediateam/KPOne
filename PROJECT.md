@@ -1,8 +1,12 @@
 # KPOne project
 
-Latest merged delivery: PR #170 — W1e-2a private static website renderer and artifact record, merged as `223067b`. Recent merges, newest first
+Latest merged delivery: PR #177 — pilot not-ready-to-call flag with audited doctor override, merged as `1de90ff`. Recent merges, newest first
 (documentation-only PRs omitted):
 
+- PR #177 (`1de90ff`) — pilot: structured, controlled "not ready to call" flag on a Waiting consultation entry (CA and CA Supervisor set and clear; Call In is refused while active; the attending doctor may override with a recorded reason; immutable PostgreSQL evidence; badge on the boards, ready alert, count-only consultation dropdown with one aggregate integer). TV and QR status unchanged. English wording.
+- PR #176 (`c9596ba`) — pilot scale limits: bounded server-side inventory pickers (25 by default, at most 100), batched Daily summary, Panel summary, Transaction Detail and Stock movement reports, and batched Registration and completed-queue boards. Report outputs are number-identical to the originals.
+- PR #175 (`8732b55`) — pilot flow defects: one hold/resume lock order, an organisation-wide "doctor busy" rule, `consultations.hold.own` permission instead of a role-name check, explicit redirects with a static ban on bare `return back()`, and per-process test storage isolation.
+- PR #172, #173 and #174 (`5da737e`, `9d4bf86`, `349aae4`) — documentation only: HR, Finance and Stock/pharmacy readiness analyses. They authorise nothing.
 - PR #170 (`223067b`) — W1e-2a: deterministic English and Bahasa Melayu static website renderer from an approved release and its approved output plan, with encrypted private generated files and an immutable artifact index. Review profile only: no preview route, file serving, ZIP, public surface or deployment.
 - PR #169 (`6174586`) — W1e-2-0b: output plan detail shows the frozen English item name beside each alias.
 - PR #168 (`4e375f9`) — W1e-2-0: Director-reviewed, immutable website output plan (public origin, route aliases, page set, footer, fixed soft pink, white and black design profile, optional frozen logo) bound to an approved release.
