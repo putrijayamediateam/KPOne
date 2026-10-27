@@ -115,6 +115,8 @@ final class PermissionCatalogue
             'inventory.view.branch',
             'inventory.opening_balance.branch',
             'inventory.opening.verify.branch',
+            'inventory.batch_holds.place.branch',
+            'inventory.batch_holds.release.branch',
             'inventory.transfer.branch',
             'inventory.transfer.organisation',
             'inventory.references.manage.organisation',
@@ -382,6 +384,13 @@ final class PermissionCatalogue
             'branch_context.switch.branch',
             'queue.display.branch',
         ];
+
+        foreach (['ca_supervisor', 'finance_officer', 'director'] as $holder) {
+            $roles[$holder][] = 'inventory.batch_holds.place.branch';
+        }
+        foreach (['finance_officer', 'director'] as $holder) {
+            $roles[$holder][] = 'inventory.batch_holds.release.branch';
+        }
 
         return $roles;
     }

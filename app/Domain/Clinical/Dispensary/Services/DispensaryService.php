@@ -27,6 +27,7 @@ use App\Domain\Organisation\Inventory\Models\InventoryBatch;
 use App\Domain\Organisation\Inventory\Models\InventoryLocation;
 use App\Domain\Organisation\Inventory\Models\InventorySku;
 use App\Domain\Organisation\Inventory\Models\MedicineCatalogueInventorySku;
+use App\Domain\Organisation\Inventory\Services\InventoryBatchEligibility;
 use App\Domain\Organisation\Inventory\Services\InventoryMovementService;
 use App\Domain\Organisation\Inventory\Services\InventoryReadinessService;
 use App\Domain\Organisation\Models\Branch;
@@ -34,7 +35,6 @@ use App\Domain\Patient\Models\Patient;
 use App\Domain\Queue\Models\QueueEntry;
 use App\Domain\Visit\Models\Visit;
 use App\Models\User;
-use Carbon\CarbonImmutable;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -592,7 +592,6 @@ class DispensaryService
                 ->lockForUpdate()
                 ->get()
                 ->keyBy('id');
-            $localDate = now()->setTimezone($branch->timezone)->toDateString();
 
             foreach ($allocations as $allocation) {
                 $item = $items->firstWhere('id', $allocation->dispensary_item_id);
@@ -600,20 +599,19 @@ class DispensaryService
                 $sku = $skus->get($allocation->inventory_sku_id);
                 $batch = $batches->get($allocation->inventory_batch_id);
                 $mapping = $item ? $mappings->first(fn (MedicineCatalogueInventorySku $candidate): bool => $candidate->medicine_catalogue_item_id === $item->medicine_catalogue_item_id && $candidate->inventory_sku_id === $allocation->inventory_sku_id) : null;
+                app(InventoryBatchEligibility::class)->assertEligible($actor->organisation_id, $branch, $allocation->inventory_batch_id, $item->medicine_name_snapshot ?? 'Selected medicine');
                 if (! $item
                     || ! $location
                     || ! $location->is_active
                     || $location->branch_id !== $branch->id
                     || $location->type !== InventoryLocation::TYPE_DISPENSARY
                     || ! $sku
-                    || ! $sku->is_active
                     || $item->unit_snapshot !== $sku->stock_unit
                     || ! $mapping
                     || ! $mapping->is_active
                     || ! $batch
                     || $batch->inventory_sku_id !== $sku->id
-                    || $batch->status !== InventoryBatch::STATUS_AVAILABLE
-                    || CarbonImmutable::parse((string) $batch->expiry_date, $branch->timezone)->toDateString() <= $localDate) {
+                ) {
                     throw ValidationException::withMessages(['allocations' => 'A selected inventory reference is no longer eligible for dispensing.']);
                 }
                 $movement = $this->inventory->debitForDispense($actor, $location, $sku, $batch, (string) $allocation->quantity, $allocation->id, $allocation->public_id);
@@ -705,17 +703,30 @@ class DispensaryService
     private function allocation(User $actor, DispensaryCase $case, DispensaryItem $item, array $a): void
     {
         $location = InventoryLocation::query()->where('public_id', $a['location_public_id'])->where('organisation_id', $actor->organisation_id)->where('branch_id', $case->branch_id)->where('type', InventoryLocation::TYPE_DISPENSARY)->where('is_active', true)->lockForUpdate()->firstOrFail();
-        $sku = InventorySku::query()->where('public_id', $a['sku_public_id'])->where('organisation_id', $actor->organisation_id)->where('is_active', true)->lockForUpdate()->firstOrFail();
+        $sku = InventorySku::query()->where('public_id', $a['sku_public_id'])->where('organisation_id', $actor->organisation_id)->lockForUpdate()->firstOrFail();
+        $batch = InventoryBatch::query()->where('public_id', $a['batch_public_id'])->where('organisation_id', $actor->organisation_id)->where('inventory_sku_id', $sku->id)->lockForUpdate()->firstOrFail();
+        $branch = Branch::query()->whereKey($case->branch_id)->where('organisation_id', $actor->organisation_id)->firstOrFail();
+        $eligibility = app(InventoryBatchEligibility::class);
+        $eligibility->assertEligible($actor->organisation_id, $branch, $batch->id, $item->medicine_name_snapshot);
         InventoryReadinessService::assertUnambiguous($actor->organisation_id, $item->medicine_catalogue_item_id, $sku->id, $item->unit_snapshot);
         $mapped = MedicineCatalogueInventorySku::query()->where('organisation_id', $actor->organisation_id)->where('medicine_catalogue_item_id', $item->medicine_catalogue_item_id)->where('inventory_sku_id', $sku->id)->where('is_active', true)->lockForUpdate()->exists();
         abort_unless($mapped, 404);
-        $batch = InventoryBatch::query()->where('public_id', $a['batch_public_id'])->where('organisation_id', $actor->organisation_id)->where('inventory_sku_id', $sku->id)->lockForUpdate()->firstOrFail();
+        $fefoReason = $a['fefo_exception_reason'] ?? null;
+        if ($fefoReason !== null && ! in_array($fefoReason, InventoryBatchEligibility::FEFO_REASONS, true)) {
+            throw ValidationException::withMessages(['allocations' => $item->medicine_name_snapshot.': choose a controlled FEFO exception reason.']);
+        }
+        if ($eligibility->earlierEligible($actor->organisation_id, $branch, $sku->id, $batch->id) && $fefoReason === null) {
+            throw ValidationException::withMessages(['allocations' => $item->medicine_name_snapshot.': an eligible earlier-expiry batch exists. Choose a FEFO exception reason for this later batch.']);
+        }
         $quantity = number_format((float) $a['quantity'], 3, '.', '');
         if ((float) $quantity <= 0) {
             throw ValidationException::withMessages(['allocations' => 'Allocation quantity must be positive.']);
         }
         $allocation = new DispensaryItemBatchAllocation;
-        $allocation->forceFill(['public_id' => (string) Str::uuid(), 'organisation_id' => $actor->organisation_id, 'branch_id' => $case->branch_id, 'dispensary_item_id' => $item->id, 'inventory_location_id' => $location->id, 'inventory_sku_id' => $sku->id, 'inventory_batch_id' => $batch->id, 'quantity' => $quantity])->save();
+        $allocation->forceFill(['public_id' => (string) Str::uuid(), 'organisation_id' => $actor->organisation_id, 'branch_id' => $case->branch_id, 'dispensary_item_id' => $item->id, 'inventory_location_id' => $location->id, 'inventory_sku_id' => $sku->id, 'inventory_batch_id' => $batch->id, 'quantity' => $quantity, 'fefo_exception_reason' => $fefoReason])->save();
+        if ($fefoReason !== null) {
+            abort_if($this->audit->record('dispensary.fefo_exception', $allocation, ['allocation_id' => $allocation->id], $actor, $branch) === null, 503);
+        }
     }
 
     private function stale(string $field): never

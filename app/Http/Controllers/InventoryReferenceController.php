@@ -2,10 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Domain\Access\BranchAccessService;
 use App\Domain\Clinical\Models\MedicineCatalogueItem;
-use App\Domain\Organisation\Inventory\Models\InventoryBatch;
 use App\Domain\Organisation\Inventory\Models\InventoryItem;
 use App\Domain\Organisation\Inventory\Models\InventorySku;
+use App\Domain\Organisation\Inventory\Services\InventoryBatchEligibility;
 use App\Domain\Organisation\Inventory\Services\InventoryReferenceAdministrationService;
 use App\Domain\Organisation\Models\Branch;
 use App\Http\Requests\InventoryReferenceBatchStoreRequest;
@@ -99,19 +100,22 @@ class InventoryReferenceController extends Controller
             ->where('public_id', $sku)
             ->firstOrFail();
 
+        $branch = app(BranchAccessService::class)->activeBranch($request->user());
+        abort_unless($branch !== null, 404);
+
         return response()->json([
-            'data' => InventoryBatch::query()
-                ->where('organisation_id', $inventorySku->organisation_id)
-                ->where('inventory_sku_id', $inventorySku->id)
+            'data' => app(InventoryBatchEligibility::class)->query($inventorySku->organisation_id, $branch)
+                ->where('eligibility.inventory_sku_id', $inventorySku->id)
                 ->when(filled($filters['q'] ?? null), fn ($query) => $query->whereRaw("batch_number ILIKE ? ESCAPE '\\'", ['%'.str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], (string) $filters['q']).'%']))
                 ->orderByRaw('batch_number COLLATE "C"')
                 ->orderBy('id')
                 ->limit((int) ($filters['limit'] ?? 25))
-                ->get(['public_id', 'batch_number', 'expiry_date'])
-                ->map(fn (InventoryBatch $batch): array => [
+                ->get(['public_id', 'batch_number', 'expiry_date', 'hold_reason'])
+                ->map(fn ($batch): array => [
                     'publicId' => $batch->public_id,
                     'batchNumber' => $batch->batch_number,
                     'expiryDate' => CarbonImmutable::parse($batch->expiry_date)->toDateString(),
+                    ...($batch->hold_reason ? ['held' => true, 'holdReason' => $batch->hold_reason] : []),
                 ])
                 ->values(),
         ]);
