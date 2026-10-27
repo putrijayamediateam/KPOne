@@ -462,7 +462,7 @@ class InventoryReferenceAdministrationService
 
     private function skuHasEvidence(InventorySku $sku): bool
     {
-        foreach (['inventory_batches', 'medicine_catalogue_inventory_skus', 'inventory_stock_balances', 'stock_movements', 'dispensary_item_batch_allocations'] as $table) {
+        foreach (['inventory_unit_contracts', 'inventory_batches', 'medicine_catalogue_inventory_skus', 'inventory_stock_balances', 'stock_movements', 'dispensary_item_batch_allocations'] as $table) {
             if (DB::table($table)->where('organisation_id', $sku->organisation_id)->where('inventory_sku_id', $sku->id)->exists()) {
                 return true;
             }

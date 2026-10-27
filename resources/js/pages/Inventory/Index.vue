@@ -175,6 +175,11 @@ const clearFilters = () => {
 </script>
 
 <template>
+    <a
+        href="/inventory/readiness"
+        class="mx-4 mt-4 inline-flex min-h-11 items-center self-start rounded-md border px-4 text-sm"
+        >Pilot readiness</a
+    >
     <Head title="Inventory" />
     <main class="mx-auto w-full max-w-[1600px] space-y-4 px-4 py-6">
         <PageHeader

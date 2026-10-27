@@ -30,6 +30,7 @@ use App\Http\Controllers\DispensaryController;
 use App\Http\Controllers\InventoryController;
 use App\Http\Controllers\InventoryMovementController;
 use App\Http\Controllers\InventoryOperationsController;
+use App\Http\Controllers\InventoryReadinessController;
 use App\Http\Controllers\InventoryReferenceController;
 use App\Http\Controllers\InvoiceActivityController;
 use App\Http\Controllers\InvoiceBillToController;
@@ -380,6 +381,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
                 Route::post('{publicIntake}/reject', 'reject')->whereUuid('publicIntake')->middleware('throttle:30,1')->name('registration-review.reject');
                 Route::post('{publicIntake}/accept', 'accept')->whereUuid('publicIntake')->middleware('throttle:20,1')->name('registration-review.accept');
             });
+
+        Route::get('inventory/readiness', [InventoryReadinessController::class, 'index'])->middleware('permission:inventory.view.branch')->name('inventory.readiness');
+        Route::post('inventory/readiness/{kind}/{key}', [InventoryReadinessController::class, 'verify'])->whereIn('kind', ['unit', 'opening'])->whereUuid('key')->middleware('throttle:30,1')->name('inventory.readiness.verify');
 
         Route::get('inventory/picker', [InventoryController::class, 'picker'])
             ->middleware(['permission:inventory.view.branch', 'throttle:120,1'])->name('inventory.picker');
