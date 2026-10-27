@@ -3,7 +3,9 @@
 namespace App\Http\Requests;
 
 use App\Domain\Patient\Models\Patient;
+use App\Domain\Patient\Services\PatientGuardianService;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class StorePatientRequest extends FormRequest
 {
@@ -20,7 +22,7 @@ class StorePatientRequest extends FormRequest
             'date_of_birth' => ['nullable', 'date_format:Y-m-d', 'before_or_equal:today'],
             'sex' => ['required', 'in:female,male,indeterminate,unknown'],
             'nationality_code' => ['nullable', 'string', 'size:2'],
-            'mobile_phone' => ['required', 'string', 'max:64'],
+            'mobile_phone' => [Rule::requiredIf(fn (): bool => ! app(PatientGuardianService::class)->minor($this->input('date_of_birth'), $this->user())), 'nullable', 'string', 'max:64'],
             'phone_country' => ['sometimes', 'string', 'size:2'],
             'email' => ['nullable', 'email', 'max:255'],
             'address_line_1' => ['nullable', 'string', 'max:255'],
@@ -34,6 +36,8 @@ class StorePatientRequest extends FormRequest
             'identifiers.*.issuing_country_code' => ['nullable', 'string', 'size:2'],
             'identifiers.*.value' => ['required', 'string', 'max:100'],
             'duplicate_override' => ['nullable', 'boolean'],
+            'guardian' => ['sometimes', 'nullable', 'array'],
+            'expected_branch_id' => ['sometimes', 'integer'],
             'organisation_id' => ['prohibited'],
             'patient_number' => ['prohibited'],
             'search_name' => ['prohibited'],

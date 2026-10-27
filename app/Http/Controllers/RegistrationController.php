@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Domain\Patient\Services\PatientGuardianService;
 use App\Domain\Patient\Services\PublicIntakeReviewService;
 use App\Domain\Patient\Services\RegistrationSettingsService;
 use App\Domain\Visit\Models\Visit;
@@ -43,6 +44,7 @@ class RegistrationController extends Controller
         $this->authorize('create', Visit::class);
 
         return Inertia::render('Registration/Create', [
+            'guardianToday' => app(PatientGuardianService::class)->today($request->user()),
             'options' => $directory->formOptions($request->user()),
             'requirements' => app(RegistrationSettingsService::class)->policy($request->user()->organisation_id),
             'recentPatients' => $directory->recentPatients($request->user()),

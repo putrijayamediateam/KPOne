@@ -29,6 +29,8 @@ class UpdatePatientRequest extends FormRequest
             'state' => ['nullable', 'string', 'max:100'],
             'country_code' => ['nullable', 'string', 'size:2'],
             'lock_version' => ['required', 'integer', 'min:1'],
+            'guardian' => ['sometimes', 'nullable', 'array'],
+            'expected_branch_id' => ['sometimes', 'integer'],
             'organisation_id' => ['prohibited'],
             'patient_number' => ['prohibited'],
             'search_name' => ['prohibited'],

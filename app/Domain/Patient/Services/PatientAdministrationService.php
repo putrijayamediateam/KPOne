@@ -35,16 +35,28 @@ class PatientAdministrationService
     /** @param array<string, mixed> $attributes */
     public function create(User $actor, array $attributes): Patient
     {
-        return $this->createUsingPolicy($actor, $attributes, app(RegistrationSettingsService::class)->policy($actor->organisation_id));
+        return DB::transaction(function () use ($actor, $attributes): Patient {
+            if (! empty($attributes['guardian'])) {
+                $actor = app(PatientGuardianService::class)->authority($actor, $attributes, 'patients.create.organisation');
+                if ($retry = app(PatientGuardianService::class)->retry($actor, $attributes)) {
+                    return $retry;
+                }
+            }
+
+            return $this->createUsingPolicy($actor, $attributes, app(RegistrationSettingsService::class)->policy($actor->organisation_id));
+        });
     }
 
-    public function createForIntake(User $actor, PublicPatientIntake $intake, bool $duplicateOverride): Patient
+    public function createForIntake(User $actor, PublicPatientIntake $intake, bool $duplicateOverride, ?string $guardianRelationship = null): Patient
     {
         abort_unless($intake->organisation_id === $actor->organisation_id, 404);
         abort_unless($actor->can('public_intakes.review.branch') && app(BranchAccessService::class)->activeBranch($actor)?->id === $intake->branch_id, 403);
         $session = PublicIntakeSession::query()->whereKey($intake->public_intake_session_id)->where('organisation_id', $actor->organisation_id)->firstOrFail();
         $attributes = Arr::wrap(data_get($intake->encrypted_payload, 'patient'));
         $attributes['duplicate_override'] = $duplicateOverride;
+        if (app(PatientGuardianService::class)->minor($attributes['date_of_birth'] ?? null, $actor) && ($guardian = data_get($intake->encrypted_payload, 'guardian'))) {
+            $attributes['guardian'] = ['relationship' => $guardianRelationship ?? $guardian['relationship'], 'full_name' => $guardian['name'], 'phone' => $guardian['contact_number'], 'phone_country' => $attributes['phone_country'] ?? 'MY', 'email' => $guardian['email'] ?? null, 'lock_version' => 0, 'retry_key' => $intake->public_id];
+        }
 
         return $this->createUsingPolicy($actor, $attributes, app(RegistrationSettingsService::class)->sessionPolicy($session));
     }
@@ -55,8 +67,10 @@ class PatientAdministrationService
     private function createUsingPolicy(User $actor, array $attributes, array $policy): Patient
     {
         Gate::forUser($actor)->authorize('create', Patient::class);
-        (new PatientPhoneNormalizer)->normalize($attributes['mobile_phone'] ?? null, $attributes['phone_country'] ?? 'MY', required: true);
         app(RegistrationSettingsService::class)->validateNewPatient($attributes, $policy);
+        $guardianService = app(PatientGuardianService::class);
+        $guardian = $guardianService->validate($actor, $attributes);
+        (new PatientPhoneNormalizer)->normalize($attributes['mobile_phone'] ?? null, $attributes['phone_country'] ?? 'MY', required: ! $guardianService->minor($attributes['date_of_birth'] ?? null, $actor));
         $normalized = $this->validatePatient($this->identity->normalizePatient($attributes));
         $identifiers = $this->normalizeIdentifierList($attributes['identifiers'] ?? []);
 
@@ -68,7 +82,10 @@ class PatientAdministrationService
         }
 
         try {
-            return DB::transaction(function () use ($actor, $normalized, $identifiers, $attributes): Patient {
+            return DB::transaction(function () use ($actor, $normalized, $identifiers, $attributes, $guardian): Patient {
+                if ($guardian) {
+                    $actor = app(PatientGuardianService::class)->authority($actor, $attributes, 'patients.create.organisation');
+                }
                 $patient = new Patient;
                 $patient->forceFill([
                     'organisation_id' => $actor->organisation_id,
@@ -94,6 +111,10 @@ class PatientAdministrationService
                     'soft_duplicate_override' => (bool) ($attributes['duplicate_override'] ?? false),
                 ], $actor, organisationId: $patient->organisation_id);
 
+                if ($guardian) {
+                    app(PatientGuardianService::class)->save($actor, $patient, $guardian, $attributes);
+                }
+
                 return $patient->refresh()->load('identifiers');
             });
         } catch (QueryException $exception) {
@@ -105,18 +126,28 @@ class PatientAdministrationService
     public function update(Patient $patient, array $attributes, User $actor): Patient
     {
         Gate::forUser($actor)->authorize('update', $patient);
+        if ($retry = app(PatientGuardianService::class)->retry($actor, $attributes, $patient)) {
+            return $retry;
+        }
         // Missing legacy contact data is permitted; a changed value must be valid.
         $samePhone = ($attributes['mobile_phone'] ?? '') === ($patient->mobile_phone ?? '');
         if (! $samePhone) {
-            (new PatientPhoneNormalizer)->normalize($attributes['mobile_phone'] ?? null, $attributes['phone_country'] ?? 'MY', required: true);
+            (new PatientPhoneNormalizer)->normalize($attributes['mobile_phone'] ?? null, $attributes['phone_country'] ?? 'MY', required: ! app(PatientGuardianService::class)->minor($attributes['date_of_birth'] ?? null, $actor));
         }
         $normalized = $this->validatePatient($this->identity->normalizePatient($samePhone ? [...$attributes, 'mobile_phone' => null] : $attributes));
         if ($samePhone) {
             $normalized['mobile_phone'] = $patient->mobile_phone;
         }
         $expectedVersion = (int) ($attributes['lock_version'] ?? 0);
+        $guardianChange = app(PatientGuardianService::class)->validate($actor, $attributes, $patient);
 
-        return DB::transaction(function () use ($patient, $actor, $normalized, $expectedVersion): Patient {
+        return DB::transaction(function () use ($patient, $actor, $normalized, $expectedVersion, $attributes, $guardianChange): Patient {
+            if ($guardianChange) {
+                $actor = app(PatientGuardianService::class)->authority($actor, $attributes, 'patients.update.organisation');
+                if ($retry = app(PatientGuardianService::class)->retry($actor, $attributes, $patient)) {
+                    return $retry;
+                }
+            }
             $locked = Patient::query()->whereKey($patient->id)->lockForUpdate()->firstOrFail();
             $this->assertSameOrganisation($actor, $locked);
 
@@ -126,6 +157,7 @@ class PatientAdministrationService
                 ]);
             }
 
+            $guardian = app(PatientGuardianService::class)->validate($actor, $attributes, $locked);
             $before = $locked->only([...self::DEMOGRAPHIC_FIELDS, ...self::CONTACT_FIELDS, ...self::ADDRESS_FIELDS]);
             $locked->forceFill([
                 ...Arr::only($normalized, [...self::DEMOGRAPHIC_FIELDS, ...self::CONTACT_FIELDS, ...self::ADDRESS_FIELDS, 'search_name']),
@@ -137,6 +169,10 @@ class PatientAdministrationService
             $this->auditChangedGroup($locked, $actor, 'patient.demographics.updated', self::DEMOGRAPHIC_FIELDS, $before, $after);
             $this->auditChangedGroup($locked, $actor, 'patient.contact.updated', self::CONTACT_FIELDS, $before, $after);
             $this->auditChangedGroup($locked, $actor, 'patient.address.updated', self::ADDRESS_FIELDS, $before, $after);
+
+            if ($guardian) {
+                app(PatientGuardianService::class)->save($actor, $locked, $guardian, $attributes);
+            }
 
             return $locked->refresh()->load('identifiers');
         });

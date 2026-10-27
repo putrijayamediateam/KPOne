@@ -7,6 +7,7 @@ use App\Domain\Patient\Services\PublicIntakeReviewService;
 use App\Domain\Queue\Models\OtcQueueEntry;
 use App\Domain\Queue\QueueNumberFormat;
 use App\Domain\Visit\Services\VisitDirectoryService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
@@ -34,6 +35,13 @@ class PublicIntakeReviewController extends Controller
             'visitOptions' => $visits->formOptions($request->user()),
             'rejectionCategories' => PublicPatientIntake::REJECTION_CATEGORIES,
         ]);
+    }
+
+    public function guardianContact(Request $request, string $publicIntake, PublicIntakeReviewService $reviews): JsonResponse
+    {
+        $data = $request->validate(['patient_number' => ['required', 'string', 'regex:/\AKP-\d{8}\z/']]);
+
+        return response()->json($reviews->guardianForMatch($request->user(), $publicIntake, $data['patient_number']));
     }
 
     public function start(Request $request, string $publicIntake, PublicIntakeReviewService $reviews): RedirectResponse

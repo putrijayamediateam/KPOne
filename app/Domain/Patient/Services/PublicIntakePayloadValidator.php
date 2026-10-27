@@ -50,7 +50,7 @@ class PublicIntakePayloadValidator
             'date_of_birth' => ['required', 'date_format:Y-m-d', 'before_or_equal:today'],
             'sex' => ['required', Rule::in(['female', 'male', 'indeterminate', 'unknown'])],
             'nationality_code' => ['nullable', 'string', 'size:2'],
-            'mobile_phone' => ['required', 'string', 'max:64'],
+            'mobile_phone' => [Rule::requiredIf(fn (): bool => ! PatientGuardianService::minorOn($attributes['date_of_birth'] ?? null, now()->toDateString())), 'nullable', 'string', 'max:64'],
             'phone_country' => ['required', 'string', 'size:2'],
             'email' => $collectContactDetails ? ['nullable', 'email', 'max:255'] : ['prohibited'],
             'address_line_1' => $collectContactDetails ? ['nullable', 'string', 'max:255'] : ['prohibited'],
@@ -82,7 +82,7 @@ class PublicIntakePayloadValidator
             'guardian_name' => ['nullable', 'required_if:submission_type,guardian', 'string', 'max:255'],
             'guardian_relationship' => [
                 'nullable', 'required_if:submission_type,guardian',
-                Rule::in(['parent', 'legal_guardian', 'spouse', 'adult_child', 'sibling', 'other']),
+                Rule::in(['parent', 'legal_guardian', 'spouse', 'adult_child', 'sibling', 'other', 'mother', 'father', 'other_family_member']),
             ],
             'guardian_contact_number' => ['nullable', 'required_if:submission_type,guardian', 'string', 'max:64'],
             'guardian_attestation' => ['nullable', 'accepted_if:submission_type,guardian'],

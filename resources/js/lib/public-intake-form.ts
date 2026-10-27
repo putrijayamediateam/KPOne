@@ -171,7 +171,10 @@ export const validateIntakeStep = (
             );
         }
 
-        if (!filled(form.mobile_phone)) {
+        if (
+            !filled(form.mobile_phone) &&
+            !(dateOfBirth && ageOn(dateOfBirth, options.today) < 18)
+        ) {
             add('mobile_phone', 'Nombor telefon diperlukan.');
         } else if (tooLong(form.mobile_phone, 64)) {
             add('mobile_phone', 'Nombor telefon terlalu panjang.');

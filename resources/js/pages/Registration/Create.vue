@@ -10,6 +10,7 @@ import {
 } from '@lucide/vue';
 import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue';
 import InputError from '@/components/InputError.vue';
+import GuardianFields from '@/components/patient/GuardianFields.vue';
 import PhoneInput from '@/components/patient/PhoneInput.vue';
 import RegistrationContactFields from '@/components/patient/RegistrationContactFields.vue';
 import WhatsAppLink from '@/components/patient/WhatsAppLink.vue';
@@ -17,6 +18,8 @@ import { Button } from '@/components/ui/button';
 import { OperationalSelect } from '@/components/ui/select';
 import VisitReasonPicker from '@/components/visit/VisitReasonPicker.vue';
 import type { VisitReasonOption } from '@/components/visit/VisitReasonPicker.vue';
+import type { GuardianInput } from '@/lib/guardian-contact';
+import { knownMinor } from '@/lib/guardian-contact';
 import {
     phoneError,
     identityError,
@@ -37,6 +40,7 @@ const props = defineProps<{
     options: VisitOptions & { idempotencyKey: string };
     recentPatients: PatientRegistrationSummary[];
     requirements: RegistrationRequirements;
+    guardianToday?: string;
 }>();
 const identityTypeOptions = [
     { value: 'nric', label: 'Malaysian IC' },
@@ -75,6 +79,7 @@ const quickIdentifierType = ref<'nric' | 'passport'>('nric');
 const quickIdentifierValue = ref('');
 const quickIssuer = ref('MY');
 type QuickPatientInput = {
+    guardian?: GuardianInput | null;
     full_name: string;
     date_of_birth: string;
     nationality_code: string;
@@ -129,6 +134,7 @@ const form = useForm<RegistrationForm>({
     confirm_repeat: false,
 });
 const quick = ref({
+    guardian: null as GuardianInput | null,
     full_name: '',
     date_of_birth: '',
     nationality_code: '',
@@ -356,6 +362,7 @@ const submit = () => {
         const phone = phoneError(
             quick.value.mobile_phone,
             quick.value.phone_country,
+            !knownMinor(quick.value.date_of_birth, props.guardianToday),
         );
         const identity = identityError(
             quickIdentifierType.value,
@@ -669,7 +676,7 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
                     id="quick-phone"
                     v-model="quick.mobile_phone"
                     v-model:country="quick.phone_country"
-                    required
+                    :required="!knownMinor(quick.date_of_birth, guardianToday)"
                     :error="
                         errorFor('quick_patient.mobile_phone') ||
                         errorFor('quick_patient.phone_country')
@@ -719,6 +726,13 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
                         :invalid="!!errorFor('quick_patient.sex')"
                         :options="genderOptions"
                 /></label>
+                <GuardianFields
+                    v-model="quick.guardian"
+                    :dob="quick.date_of_birth"
+                    :today="guardianToday"
+                    new-patient
+                    :errors="contactErrors"
+                />
                 <RegistrationContactFields
                     class="md:col-span-2"
                     :model="quick"

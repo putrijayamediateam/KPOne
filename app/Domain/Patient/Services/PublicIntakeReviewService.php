@@ -142,6 +142,21 @@ class PublicIntakeReviewService
         ];
     }
 
+    /** Read only the selected Patient after an explicit match choice, never a search result.
+     * @return array{patientNumber:string,guardian:array<string,mixed>|null}
+     */
+    public function guardianForMatch(User $actor, string $publicId, string $patientNumber): array
+    {
+        $actor = $actor->fresh()?->load(['roles.permissions', 'permissions']);
+        abort_unless($actor !== null && $actor->is_active, 403);
+        $intake = $this->scoped($actor, $publicId);
+        abort_unless($intake->submission_type === 'guardian' && $intake->encrypted_payload !== null && $intake->expires_at->isFuture(), 410);
+        $patient = Patient::query()->where('organisation_id', $actor->organisation_id)->where('patient_number', $patientNumber)->firstOrFail();
+        Gate::forUser($actor)->authorize('view', $patient);
+
+        return ['patientNumber' => $patient->patient_number, 'guardian' => app(PatientGuardianService::class)->contact($patient)];
+    }
+
     public function startReview(User $actor, string $publicId, int $expectedVersion): PublicPatientIntake
     {
         return $this->transition($actor, $publicId, $expectedVersion, function (PublicPatientIntake $intake) use ($actor): void {
@@ -256,6 +271,9 @@ class PublicIntakeReviewService
             'lock_version' => ['required', 'integer', 'min:1'],
             'idempotency_key' => ['required', 'uuid'],
             'resolution' => ['required', Rule::in(['match', 'create'])],
+            'guardian_choice' => ['nullable', Rule::in(['keep', 'use_incoming'])],
+            'guardian_relationship' => ['nullable', Rule::in(PatientGuardianService::RELATIONSHIPS)],
+            'guardian_lock_version' => ['nullable', 'integer', 'min:0'],
             'patient_number' => ['nullable', 'required_if:resolution,match', 'string', 'max:20'],
             'duplicate_override' => ['nullable', 'boolean'],
             'assigned_doctor_user_id' => ['nullable', 'integer'],
@@ -323,6 +341,9 @@ class PublicIntakeReviewService
 
             $payload = Arr::wrap($intake->encrypted_payload);
             $isOtc = data_get($payload, 'visit.kind') === 'otc';
+            if (! empty($payload['guardian'])) {
+                $actor = app(PatientGuardianService::class)->authority($actor, ['expected_branch_id' => $branch->id], 'public_intakes.review.branch');
+            }
             if (! $isOtc && (blank($validated['assigned_doctor_user_id'] ?? null) || blank($validated['visit_reason_public_ids'] ?? null))) {
                 throw ValidationException::withMessages([
                     'assigned_doctor_user_id' => 'Choose the doctor and at least one visit reason for a consultation.',
@@ -336,8 +357,32 @@ class PublicIntakeReviewService
                     ->firstOrFail();
                 $this->record('public_intake.matched', $intake, $actor, $intake->status, ['patient_id' => $patient->id]);
             } else {
-                $patient = $this->patients->createForIntake($actor, $intake, (bool) ($validated['duplicate_override'] ?? false));
+                $patient = $this->patients->createForIntake($actor, $intake, (bool) ($validated['duplicate_override'] ?? false), $validated['guardian_relationship'] ?? null);
                 $this->record('public_intake.patient_created', $intake, $actor, $intake->status, ['patient_id' => $patient->id]);
+            }
+
+            if ($validated['resolution'] === 'match' && ($incoming = $payload['guardian'] ?? null)) {
+                $guardians = app(PatientGuardianService::class);
+                $current = $guardians->contact($patient);
+                if ($current && empty($validated['guardian_choice'])) {
+                    throw ValidationException::withMessages(['guardian_choice' => 'Compare both guardian contacts and explicitly choose which one to keep.']);
+                }
+                if (($validated['guardian_choice'] ?? 'use_incoming') === 'use_incoming' && ($current || $guardians->minor($patient->date_of_birth?->format('Y-m-d'), $actor))) {
+                    $contactInput = ['date_of_birth' => $patient->date_of_birth?->format('Y-m-d'), 'guardian' => ['relationship' => $validated['guardian_relationship'] ?? $incoming['relationship'], 'full_name' => $incoming['name'], 'phone' => $incoming['contact_number'], 'phone_country' => $payload['patient']['phone_country'] ?? 'MY', 'email' => $incoming['email'] ?? null, 'lock_version' => $validated['guardian_lock_version'] ?? 0, 'retry_key' => $validated['idempotency_key']]];
+                    $contact = $guardians->validate($actor, $contactInput, $patient);
+                    if ($contact) {
+                        $actor = $guardians->authority($actor, ['expected_branch_id' => $branch->id], 'patients.update.organisation');
+                        $guardians->save($actor, $patient, $contact, $contactInput, 'use_incoming');
+                    }
+                } elseif ($current) {
+                    Gate::forUser($actor)->authorize('view', $patient);
+                    if ((int) ($validated['guardian_lock_version'] ?? -1) !== $current['lock_version']) {
+                        throw ValidationException::withMessages(['guardian_lock_version' => 'The guardian contact changed. Reload before accepting.']);
+                    }
+                    if (! $this->audit->record('public_intake.guardian_kept', $intake, ['patient_id' => $patient->id, 'public_intake_public_id' => $intake->public_id], $actor, $intake->branch, $intake->organisation_id)) {
+                        abort(503, 'The guardian decision could not be audited. Try again.');
+                    }
+                }
             }
 
             $visit = $this->visits->register($actor, [
