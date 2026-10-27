@@ -14,6 +14,7 @@ use App\Domain\Queue\Models\OtcQueueEntry;
 use App\Domain\Queue\Models\QueueEntry;
 use App\Domain\Queue\Policies\QueueEntryPolicy;
 use App\Domain\Queue\QueueNumberFormat;
+use App\Domain\Queue\Readiness\CallHoldProjection;
 use App\Domain\Visit\Models\Panel;
 use App\Domain\Visit\Models\Visit;
 use App\Domain\Visit\Policies\VisitPolicy;
@@ -130,6 +131,12 @@ class VisitDirectoryService
             ->whereIn('current_visit_guard', $visits->map(fn (Visit $visit): int => $visit->id)->all())->get(['current_visit_guard', 'route'])->keyBy('current_visit_guard');
         $cases = DispensaryCase::query()->where('organisation_id', $actor->organisation_id)->where('branch_id', $branch->id)
             ->whereIn('visit_id', $visits->map(fn (Visit $visit): int => $visit->id)->all())->orderBy('id')->get(['visit_id', 'public_id', 'case_type', 'status'])->groupBy('visit_id');
+
+        $readinessIds = $paginator->getCollection()->map(fn ($visit) => $this->visibleQueueEntry($actor, $visit, $queueHints)?->id)->filter()->values()->all();
+        $readiness = app(CallHoldProjection::class)->rows($actor, array_values($readinessIds));
+        foreach ($paginator->getCollection() as $visit) {
+            $visit->setRelation('callReadiness', $readiness[$visit->queueEntry?->id] ?? null);
+        }
 
         return [
             'data' => $paginator->getCollection()
@@ -369,6 +376,7 @@ class VisitDirectoryService
             || $cases->contains('status', 'completed'))));
 
         return [
+            'callHold' => $visit->getRelation('callReadiness'),
             'canWhatsapp' => VisitWhatsAppEligibility::allows($actor, $visit, $branch),
             'visitNumber' => $visit->visit_number,
             'patientNumber' => $visit->patient->patient_number,

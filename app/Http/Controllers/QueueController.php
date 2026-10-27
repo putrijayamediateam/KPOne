@@ -27,9 +27,9 @@ class QueueController extends Controller
 {
     public function waitingCounts(Request $request, QueueWaitingCountService $counts): JsonResponse
     {
-        $validated = $request->validate(['expected_branch_id' => ['required', 'integer', 'min:1']]);
+        $validated = $request->validate(['expected_branch_id' => ['required', 'integer', 'min:1'], 'include_readiness' => ['sometimes', 'boolean'], 'scope' => ['sometimes', 'in:own,branch']]);
 
-        return response()->json($counts->counts($request->user(), (int) $validated['expected_branch_id']));
+        return response()->json($counts->counts($request->user(), (int) $validated['expected_branch_id'], $request->boolean('include_readiness'), $validated['scope'] ?? 'own'));
     }
 
     public function index(

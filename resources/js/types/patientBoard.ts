@@ -1,9 +1,21 @@
+export type CallReadiness = {
+    id: number | null;
+    lockVersion: number | null;
+    active: boolean;
+    overridden: boolean;
+    reason: string | null;
+    canSet: boolean;
+    canClear: boolean;
+    canOverride: boolean;
+};
+
 export type PatientBoardStatusTone =
     'neutral' | 'waiting' | 'serving' | 'held' | 'cancelled' | 'removed';
 
 export type PatientBoardRow = {
     key: string;
     canWhatsapp: boolean;
+    callHold?: CallReadiness | null;
     patientName: string;
     patientNumber: string;
     visitNumber: string;

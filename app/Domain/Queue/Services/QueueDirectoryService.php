@@ -10,6 +10,7 @@ use App\Domain\Organisation\Models\Branch;
 use App\Domain\Patient\Services\VisitWhatsAppEligibility;
 use App\Domain\Queue\Models\QueueEntry;
 use App\Domain\Queue\QueueNumberFormat;
+use App\Domain\Queue\Readiness\CallHoldProjection;
 use App\Domain\Visit\Policies\VisitPolicy;
 use App\Domain\Visit\Services\VisitDoctorEligibilityService;
 use App\Domain\Visit\Services\VisitReasonService;
@@ -154,6 +155,10 @@ class QueueDirectoryService
         $removedVisits = $removedEntries->map(fn (QueueEntry $entry) => $entry->visit);
         $removedHints = $this->dispensaryAttention->pendingForVisits($actor, $removedVisits)
             + app(CheckoutReopenEligibility::class)->forVisits($actor, $removedVisits);
+        $readiness = app(CallHoldProjection::class)->rows($actor, array_values($entries->modelKeys()));
+        foreach ($entries as $entry) {
+            $entry->setRelation('callReadiness', $readiness[$entry->id] ?? null);
+        }
 
         $dynamic = [
             'scope' => $actor->can('queue.view.branch') ? 'branch' : 'own',
@@ -297,6 +302,7 @@ class QueueDirectoryService
         $elapsedSeconds = $entry->called_at ? $entry->called_at->diffInSeconds($now) : 0;
 
         return [
+            'callHold' => $entry->getRelation('callReadiness'),
             'canWhatsapp' => VisitWhatsAppEligibility::allows($actor, $visit, $branch),
             'queueNumber' => QueueNumberFormat::format($entry->queue_number),
             'operationalDate' => $entry->operational_date->toDateString(),

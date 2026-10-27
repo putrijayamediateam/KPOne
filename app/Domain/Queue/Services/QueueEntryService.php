@@ -13,6 +13,8 @@ use App\Domain\Queue\Display\QueueCallRecorder;
 use App\Domain\Queue\Models\BranchRoom;
 use App\Domain\Queue\Models\QueueCall;
 use App\Domain\Queue\Models\QueueEntry;
+use App\Domain\Queue\Readiness\CallHoldPermissions;
+use App\Domain\Queue\Readiness\CallHoldService;
 use App\Domain\Visit\Models\Visit;
 use App\Domain\Visit\Services\VisitDoctorEligibilityService;
 use App\Models\User;
@@ -142,6 +144,9 @@ class QueueEntryService
             'expected_branch_id' => ['required', 'integer'],
             'visit_lock_version' => ['required', 'integer', 'min:1'],
             'queue_lock_version' => ['required', 'integer', 'min:1'],
+            'call_hold_id' => ['required_with:override_reason', 'integer', 'min:1'],
+            'call_hold_lock_version' => ['required_with:override_reason', 'integer', 'min:1'],
+            'override_reason' => ['sometimes', 'string'], 'idempotency_key' => ['required_with:override_reason', 'uuid'],
         ])->validate();
 
         return DB::transaction(function () use ($actor, $visit, $branch, $validated): QueueEntry {
@@ -172,6 +177,16 @@ class QueueEntryService
             if (! $lockedActor->can('queue.call.branch') && ! $ownsQueue) {
                 throw new AuthorizationException('You may not Call In this Patient.');
             }
+            $readiness = app(CallHoldService::class);
+            $overridePayload = ['action' => 'override', 'entry' => $lockedEntry->id, 'visit_version' => $validated['visit_lock_version'], 'queue_version' => $validated['queue_lock_version'], 'reason' => $validated['override_reason'] ?? null, 'flag' => $validated['call_hold_id'] ?? null, 'flag_version' => $validated['call_hold_lock_version'] ?? null];
+            if (isset($validated['override_reason'])) {
+                abort_unless($lockedActor->can(CallHoldPermissions::OVERRIDE) && $lockedVisit->assigned_doctor_user_id === $lockedActor->id, 403);
+                if ($retry = $readiness->retry($lockedActor, $validated['idempotency_key'], $overridePayload)) {
+                    $lockedEntry->forceFill($retry);
+
+                    return $lockedEntry;
+                }
+            }
             if ($lockedVisit->lock_version !== (int) $validated['visit_lock_version']
                 || $lockedEntry->lock_version !== (int) $validated['queue_lock_version']) {
                 $this->stale();
@@ -193,6 +208,8 @@ class QueueEntryService
                 ]);
             }
 
+            $flag = $readiness->assertCall($lockedActor, $lockedVisit, $lockedEntry, $validated);
+
             $effectiveDate = now()->setTimezone($branch->timezone)->toDateString();
             $this->doctors->lockAndValidate(
                 $lockedVisit->assigned_doctor_user_id,
@@ -208,6 +225,9 @@ class QueueEntryService
             }
 
             $room = $this->requiredRoom($lockedDoctor, $branch, $effectiveDate);
+            if ($flag) {
+                $readiness->markOverridden($flag);
+            }
             $calledAt = now()->utc();
             $lockedEntry->forceFill([
                 'status' => QueueEntry::STATUS_SERVING,
@@ -216,7 +236,11 @@ class QueueEntryService
                 'updated_by_user_id' => $lockedActor->id,
                 'lock_version' => $lockedEntry->lock_version + 1,
             ])->save();
-            $this->calls->record($lockedEntry, QueueCall::SERVICE_CONSULTATION, $room, $lockedActor, $effectiveDate, $calledAt, false);
+            $call = $this->calls->record($lockedEntry, QueueCall::SERVICE_CONSULTATION, $room, $lockedActor, $effectiveDate, $calledAt, false);
+            if ($flag) {
+                $readiness->override($flag, $call, $lockedActor, $validated);
+                $readiness->remember($lockedActor, $validated['idempotency_key'], $overridePayload, ['status' => $lockedEntry->status, 'lock_version' => $lockedEntry->lock_version, 'called_at' => $calledAt->toIso8601String(), 'called_by_user_id' => $lockedActor->id]);
+            }
             $this->audit->record('queue.called', $lockedEntry, [
                 'from_state' => QueueEntry::STATUS_WAITING,
                 'to_state' => QueueEntry::STATUS_SERVING,

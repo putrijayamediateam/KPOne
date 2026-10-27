@@ -16,6 +16,7 @@ import QueueCallDialog from '@/components/queue/QueueCallDialog.vue';
 import { Button } from '@/components/ui/button';
 import { OperationalSelect } from '@/components/ui/select';
 import OperationalTabs from '@/components/ui/tabs/OperationalTabs.vue';
+import { useCallReadinessAlerts } from '@/composables/useCallReadinessAlerts';
 import { formatDate } from '@/lib/presentation';
 import {
     applyQueueFilters,
@@ -94,6 +95,7 @@ const tabs: Array<{ value: QueueTab; label: string }> = [
     { value: 'removed', label: 'Consultation Completed' },
 ];
 const live = ref(props.snapshot);
+const readyAlerts = useCallReadinessAlerts(true);
 const activeTab = ref<QueueTab>('all');
 const isRefreshing = ref(false);
 const isApplyingFilters = ref(false);
@@ -124,6 +126,10 @@ const clockNow = ref(Date.now());
 watch(
     () => props.snapshot,
     (snapshot) => {
+        if (live.value.branch.id !== snapshot.branch.id) {
+            readyAlerts.reset();
+        }
+
         live.value = snapshot;
         receivedAt.value = Date.now();
     },
@@ -192,6 +198,7 @@ const boardRows = computed<PatientBoardRow[]>(() =>
     sourceRows.value.map((row) => ({
         key: `${row.operationalDate}-${row.queueNumber}`,
         canWhatsapp: row.canWhatsapp,
+        callHold: row.callHold,
         patientName: row.patientName,
         patientNumber: row.patientNumber,
         visitNumber: row.visitNumber,
@@ -326,6 +333,9 @@ const refresh = (page = 1, carryPage = 1, reschedule = true) => {
             );
             receivedAt.value = Date.now();
             failures = 0;
+            await readyAlerts
+                .poll(live.value.branch.id, request.signal)
+                .catch(() => undefined);
         } catch (caught) {
             if (
                 pollingLifecycle.accepts(requestGeneration) &&
@@ -682,7 +692,18 @@ onBeforeUnmount(() => {
                     live.scope === 'own' ? 'Clinician scope' : 'Branch scope'
                 }}</span>
             </div>
+            <Button
+                type="button"
+                variant="outline"
+                class="mb-3 min-h-11"
+                :aria-pressed="readyAlerts.chimeEnabled.value"
+                @click="readyAlerts.toggleChime"
+                >Notification sound:
+                {{ readyAlerts.chimeEnabled.value ? 'On' : 'Off' }}</Button
+            >
             <PatientBoard
+                :branch-id="live.branch.id"
+                from="queue"
                 :rows="boardRows"
                 :busy-key="busyKey"
                 @call="requestCall"

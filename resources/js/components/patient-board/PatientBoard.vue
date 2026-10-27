@@ -2,6 +2,7 @@
 import { Link, router } from '@inertiajs/vue3';
 import { Clock3, Ellipsis, LoaderCircle, UserRound } from '@lucide/vue';
 import WhatsAppLink from '@/components/patient/WhatsAppLink.vue';
+import CallReadinessActions from '@/components/queue/CallReadinessActions.vue';
 import { Button } from '@/components/ui/button';
 import { DisclosureText } from '@/components/ui/disclosure';
 import {
@@ -21,6 +22,8 @@ import type { PatientBoardRow } from '@/types';
 
 defineProps<{
     rows: PatientBoardRow[];
+    branchId?: number;
+    from?: 'registration' | 'queue';
     busyKey?: string | null;
     emptyMessage?: string;
 }>();
@@ -247,6 +250,26 @@ const statusClass = (tone: PatientBoardRow['statusTone']) =>
                                 class="text-[11px] text-muted-foreground"
                                 >{{ row.completedAt }}</span
                             >
+                            <span
+                                v-if="
+                                    row.callHold?.active ||
+                                    row.callHold?.overridden
+                                "
+                                class="block w-full rounded-md border border-amber-600/40 bg-amber-50 p-2 text-xs break-words text-amber-950 dark:bg-amber-950 dark:text-amber-100"
+                                data-testid="call-readiness-badge"
+                            >
+                                {{
+                                    row.callHold.active
+                                        ? 'Not ready to call'
+                                        : 'Overridden by doctor'
+                                }}: {{ row.callHold.reason }}
+                            </span>
+                            <CallReadinessActions
+                                v-if="branchId"
+                                :row="row"
+                                :branch-id="branchId"
+                                :from="from ?? 'queue'"
+                            />
                         </div>
                     </td>
                     <td
@@ -265,6 +288,7 @@ const statusClass = (tone: PatientBoardRow['statusTone']) =>
                                     <Button
                                         variant="ghost"
                                         size="icon"
+                                        class="min-h-11 min-w-11"
                                         :aria-label="`Actions for ${row.patientName}`"
                                     >
                                         <LoaderCircle
@@ -326,9 +350,30 @@ const statusClass = (tone: PatientBoardRow['statusTone']) =>
                                     >
                                     <DropdownMenuItem
                                         v-if="row.can.call"
-                                        class="min-h-8 rounded-lg px-2.5 text-[13px]"
+                                        :disabled="row.callHold?.active"
+                                        :title="
+                                            row.callHold?.active
+                                                ? `Not ready to call: ${row.callHold.reason}`
+                                                : undefined
+                                        "
+                                        class="min-h-11 rounded-lg px-2.5 text-[13px]"
                                         @select="$emit('call', row)"
-                                        >Call In</DropdownMenuItem
+                                        >{{
+                                            row.callHold?.active
+                                                ? `Call In — ${row.callHold.reason}`
+                                                : 'Call In'
+                                        }}</DropdownMenuItem
+                                    >
+                                    <DropdownMenuItem
+                                        v-if="
+                                            row.can.call &&
+                                            row.callHold?.active &&
+                                            row.callHold.canOverride
+                                        "
+                                        class="min-h-11 whitespace-normal"
+                                        @select="$emit('call', row)"
+                                        >Override flag and
+                                        call</DropdownMenuItem
                                     >
                                     <DropdownMenuItem
                                         v-if="row.can.recall"

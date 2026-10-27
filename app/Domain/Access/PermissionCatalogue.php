@@ -6,6 +6,7 @@ use App\Domain\Clinical\Documents\AttendancePermissions;
 use App\Domain\Clinical\Documents\MedicalCertificatePermissions;
 use App\Domain\Clinical\Documents\ReferralPermissions;
 use App\Domain\Organisation\Website\WebsitePermissions;
+use App\Domain\Queue\Readiness\CallHoldPermissions;
 
 final class PermissionCatalogue
 {
@@ -36,6 +37,7 @@ final class PermissionCatalogue
     public static function all(): array
     {
         return [
+            ...array_keys(CallHoldPermissions::grants()),
             ...BillingPermissions::all(),
             ...array_keys(WebsitePermissions::grants()),
             ...array_keys(ReportPermissions::grants()),
@@ -343,6 +345,12 @@ final class PermissionCatalogue
         foreach (['director', 'finance_officer', self::ADMINISTRATOR_ROLE] as $role) {
             $roles[$role][] = 'reports.sales.export.organisation';
             $roles[$role][] = 'reports.payments.export.organisation';
+        }
+
+        foreach (CallHoldPermissions::grants() as $permission => $holders) {
+            foreach ($holders as $role) {
+                $roles[$role][] = $permission;
+            }
         }
 
         foreach (WebsitePermissions::grants() as $permission => $holders) {

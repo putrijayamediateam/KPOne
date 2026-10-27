@@ -216,6 +216,7 @@ const boardRows = computed<PatientBoardRow[]>(() =>
         return {
             key: visit.visitNumber,
             canWhatsapp: visit.canWhatsapp,
+            callHold: visit.callHold,
             patientName: visit.patientName,
             patientNumber: visit.patientNumber,
             visitNumber: visit.visitNumber,
@@ -586,6 +587,8 @@ const changeQrHistoryPage = (qrHistoryPage: number) => {
                     ><span>25 per page</span>
                 </div>
                 <PatientBoard
+                    :branch-id="options.branch.id"
+                    from="registration"
                     :rows="boardRows"
                     :busy-key="busyKey"
                     :empty-message="boardEmptyMessage"
