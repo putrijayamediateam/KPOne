@@ -15,6 +15,7 @@ use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
@@ -36,6 +37,18 @@ class PatientAdministrationService
     public function create(User $actor, array $attributes): Patient
     {
         return DB::transaction(function () use ($actor, $attributes): Patient {
+            app(RegistrationSettingsService::class)->validateNewPatient($attributes, app(RegistrationSettingsService::class)->policy($actor->organisation_id));
+            $adult = app(PatientAdultConfirmationService::class);
+            if ($adult->required($attributes)) {
+                (new PatientPhoneNormalizer)->normalize($attributes['mobile_phone'] ?? null, $attributes['phone_country'] ?? 'MY', required: true);
+                $this->validatePatient($this->identity->normalizePatient($attributes));
+                $this->normalizeIdentifierList($attributes['identifiers'] ?? []);
+                $adult->validate($attributes, $adult->required($attributes), app(RegistrationSettingsService::class)->policy($actor->organisation_id)['requireDateOfBirth']);
+                $actor = $adult->authority($actor, $attributes, false);
+                if ($retry = $adult->retry($actor, $attributes)) {
+                    return $retry;
+                }
+            }
             if (! empty($attributes['guardian'])) {
                 $actor = app(PatientGuardianService::class)->authority($actor, $attributes, 'patients.create.organisation');
                 if ($retry = app(PatientGuardianService::class)->retry($actor, $attributes)) {
@@ -58,13 +71,13 @@ class PatientAdministrationService
             $attributes['guardian'] = ['relationship' => $guardianRelationship ?? $guardian['relationship'], 'full_name' => $guardian['name'], 'phone' => $guardian['contact_number'], 'phone_country' => $attributes['phone_country'] ?? 'MY', 'email' => $guardian['email'] ?? null, 'lock_version' => 0, 'retry_key' => $intake->public_id];
         }
 
-        return $this->createUsingPolicy($actor, $attributes, app(RegistrationSettingsService::class)->sessionPolicy($session));
+        return $this->createUsingPolicy($actor, $attributes, app(RegistrationSettingsService::class)->sessionPolicy($session), false);
     }
 
     /** @param array<string,mixed> $attributes
      * @param  array{requireDateOfBirth:bool,requireNationality:bool,requireEmail:bool,requireAddress:bool,lockVersion:int}  $policy
      */
-    private function createUsingPolicy(User $actor, array $attributes, array $policy): Patient
+    private function createUsingPolicy(User $actor, array $attributes, array $policy, bool $staff = true): Patient
     {
         Gate::forUser($actor)->authorize('create', Patient::class);
         app(RegistrationSettingsService::class)->validateNewPatient($attributes, $policy);
@@ -82,7 +95,7 @@ class PatientAdministrationService
         }
 
         try {
-            return DB::transaction(function () use ($actor, $normalized, $identifiers, $attributes, $guardian): Patient {
+            return DB::transaction(function () use ($actor, $normalized, $identifiers, $attributes, $guardian, $staff): Patient {
                 if ($guardian) {
                     $actor = app(PatientGuardianService::class)->authority($actor, $attributes, 'patients.create.organisation');
                 }
@@ -111,6 +124,9 @@ class PatientAdministrationService
                     'soft_duplicate_override' => (bool) ($attributes['duplicate_override'] ?? false),
                 ], $actor, organisationId: $patient->organisation_id);
 
+                if ($staff && app(PatientAdultConfirmationService::class)->required($attributes)) {
+                    app(PatientAdultConfirmationService::class)->record($actor, $patient, $attributes, false);
+                }
                 if ($guardian) {
                     app(PatientGuardianService::class)->save($actor, $patient, $guardian, $attributes);
                 }
@@ -126,6 +142,17 @@ class PatientAdministrationService
     public function update(Patient $patient, array $attributes, User $actor): Patient
     {
         Gate::forUser($actor)->authorize('update', $patient);
+        if (is_string($attributes['adult_confirmation_key'] ?? null) && Str::isUuid($attributes['adult_confirmation_key']) && DB::table('patient_adult_confirmations')->where('organisation_id', $actor->organisation_id)->where('confirmed_by_user_id', $actor->id)->where('retry_key', $attributes['adult_confirmation_key'])->exists()) {
+            $retry = DB::transaction(function () use ($actor, $attributes, $patient): ?Patient {
+                $adult = app(PatientAdultConfirmationService::class);
+                $fresh = $adult->authority($actor, $attributes, true);
+
+                return $adult->retry($fresh, $attributes, $patient);
+            });
+            if ($retry) {
+                return $retry;
+            }
+        }
         if ($retry = app(PatientGuardianService::class)->retry($actor, $attributes, $patient)) {
             return $retry;
         }
@@ -142,6 +169,13 @@ class PatientAdministrationService
         $guardianChange = app(PatientGuardianService::class)->validate($actor, $attributes, $patient);
 
         return DB::transaction(function () use ($patient, $actor, $normalized, $expectedVersion, $attributes, $guardianChange): Patient {
+            $adult = app(PatientAdultConfirmationService::class);
+            if ($adult->required($attributes, $patient)) {
+                $actor = $adult->authority($actor, $attributes, true);
+                if ($retry = $adult->retry($actor, $attributes, $patient)) {
+                    return $retry;
+                }
+            }
             if ($guardianChange) {
                 $actor = app(PatientGuardianService::class)->authority($actor, $attributes, 'patients.update.organisation');
                 if ($retry = app(PatientGuardianService::class)->retry($actor, $attributes, $patient)) {
@@ -157,6 +191,8 @@ class PatientAdministrationService
                 ]);
             }
 
+            $confirmationRequired = $adult->required($attributes, $locked);
+            $adult->validate($attributes, $confirmationRequired, app(RegistrationSettingsService::class)->policy($actor->organisation_id)['requireDateOfBirth']);
             $guardian = app(PatientGuardianService::class)->validate($actor, $attributes, $locked);
             $before = $locked->only([...self::DEMOGRAPHIC_FIELDS, ...self::CONTACT_FIELDS, ...self::ADDRESS_FIELDS]);
             $locked->forceFill([
@@ -170,6 +206,9 @@ class PatientAdministrationService
             $this->auditChangedGroup($locked, $actor, 'patient.contact.updated', self::CONTACT_FIELDS, $before, $after);
             $this->auditChangedGroup($locked, $actor, 'patient.address.updated', self::ADDRESS_FIELDS, $before, $after);
 
+            if ($confirmationRequired) {
+                $adult->record($actor, $locked, $attributes, true);
+            }
             if ($guardian) {
                 app(PatientGuardianService::class)->save($actor, $locked, $guardian, $attributes);
             }

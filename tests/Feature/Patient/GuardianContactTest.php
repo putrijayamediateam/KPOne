@@ -166,10 +166,10 @@ class GuardianContactTest extends PatientTestCase
         $settings = app(RegistrationSettingsService::class);
         $settings->save($director, ['expected_branch_id' => $branch->id, 'lock_version' => $settings->policy($director->organisation_id)['lockVersion'], 'idempotency_key' => (string) Str::uuid(), 'require_date_of_birth' => false, 'require_nationality' => false]);
         $ca = $this->actor('ca');
-        $unknown = app(PatientAdministrationService::class)->create($ca, $this->patientAttributes(['date_of_birth' => null]));
+        GuardianFixture::assign($ca);
+        $unknown = app(PatientAdministrationService::class)->create($ca, $this->patientAttributes(['date_of_birth' => null, 'adult_confirmed' => true, 'adult_confirmation_key' => (string) Str::uuid(), 'expected_branch_id' => $branch->id]));
         $this->assertNull($unknown->date_of_birth);
         $this->assertDatabaseCount('patient_guardian_contacts', 0);
-        GuardianFixture::assign($ca);
         try {
             app(PatientAdministrationService::class)->create($ca, $this->minorInput(['expected_branch_id' => 999999]));
             $this->fail('Wrong effective branch accepted');

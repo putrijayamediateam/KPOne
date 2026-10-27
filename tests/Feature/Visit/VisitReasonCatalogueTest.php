@@ -360,7 +360,7 @@ class VisitReasonCatalogueTest extends VisitTestCase
             ...$base,
             'idempotency_key' => (string) Str::uuid(),
             'patient_number' => null,
-            'quick_patient' => [
+            'quick_patient' => ['adult_confirmed' => true, 'adult_confirmation_key' => (string) Str::uuid(),
                 'full_name' => 'Synthetic R1-B Quick', 'sex' => 'unknown', 'mobile_phone' => '+60123456789',
                 'identifiers' => [['identifier_type' => 'passport', 'issuing_country_code' => 'MY', 'value' => 'SYN-R1B-QUICK']],
                 'duplicate_override' => true,

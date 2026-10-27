@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { reactive } from 'vue';
 import InputError from '@/components/InputError.vue';
+import AdultConfirmation from '@/components/patient/AdultConfirmation.vue';
 import GuardianFields from '@/components/patient/GuardianFields.vue';
 import PhoneInput from '@/components/patient/PhoneInput.vue';
 import WhatsAppLink from '@/components/patient/WhatsAppLink.vue';
@@ -74,6 +75,17 @@ const genderOptions = [
                     />
                     <InputError :message="errors.date_of_birth" />
                 </label>
+                <AdultConfirmation
+                    v-if="
+                        !fields.date_of_birth &&
+                        (newPatient || !!originalDob) &&
+                        !requirements?.requireDateOfBirth
+                    "
+                    v-model="fields.adult_confirmed"
+                    :error="
+                        errors.adult_confirmed || errors.adult_confirmation_key
+                    "
+                />
                 <div class="grid gap-2">
                     <span id="patient-gender-label" class="text-sm font-medium"
                         >Gender</span

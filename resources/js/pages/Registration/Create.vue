@@ -10,6 +10,7 @@ import {
 } from '@lucide/vue';
 import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue';
 import InputError from '@/components/InputError.vue';
+import AdultConfirmation from '@/components/patient/AdultConfirmation.vue';
 import GuardianFields from '@/components/patient/GuardianFields.vue';
 import PhoneInput from '@/components/patient/PhoneInput.vue';
 import RegistrationContactFields from '@/components/patient/RegistrationContactFields.vue';
@@ -79,6 +80,8 @@ const quickIdentifierType = ref<'nric' | 'passport'>('nric');
 const quickIdentifierValue = ref('');
 const quickIssuer = ref('MY');
 type QuickPatientInput = {
+    adult_confirmed: boolean;
+    adult_confirmation_key: string;
     guardian?: GuardianInput | null;
     full_name: string;
     date_of_birth: string;
@@ -134,6 +137,8 @@ const form = useForm<RegistrationForm>({
     confirm_repeat: false,
 });
 const quick = ref({
+    adult_confirmed: false,
+    adult_confirmation_key: crypto.randomUUID(),
     guardian: null as GuardianInput | null,
     full_name: '',
     date_of_birth: '',
@@ -698,6 +703,16 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
                         class="h-10 rounded-md border bg-background px-3 text-sm" /><InputError
                         :message="errorFor('quick_patient.date_of_birth')"
                 /></label>
+                <AdultConfirmation
+                    v-if="
+                        !quick.date_of_birth && !requirements.requireDateOfBirth
+                    "
+                    v-model="quick.adult_confirmed"
+                    :error="
+                        errorFor('quick_patient.adult_confirmed') ||
+                        errorFor('quick_patient.adult_confirmation_key')
+                    "
+                />
                 <label class="grid gap-1" for="quick-nationality"
                     ><span class="text-sm font-medium"
                         >Nationality country code{{

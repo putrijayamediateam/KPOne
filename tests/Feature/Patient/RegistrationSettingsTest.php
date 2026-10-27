@@ -122,7 +122,7 @@ class RegistrationSettingsTest extends VisitTestCase
     {
         $ca = $this->actor('ca');
         $this->selectBranch($ca);
-        $legacy = $this->patient($ca, ['date_of_birth' => null, 'nationality_code' => null]);
+        $legacy = $this->patient($ca, ['date_of_birth' => null, 'nationality_code' => null, 'adult_confirmed' => true, 'adult_confirmation_key' => (string) Str::uuid(), 'expected_branch_id' => $this->branch->id]);
         $this->assertNull($legacy->date_of_birth);
         $this->configure();
         $this->selectBranch($ca);

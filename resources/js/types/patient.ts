@@ -44,6 +44,8 @@ export type PatientDetail = {
 };
 
 export type PatientFormValues = {
+    adult_confirmed?: boolean;
+    adult_confirmation_key?: string;
     guardian?: GuardianInput | null;
     expected_branch_id?: number;
     phone_country?: string;

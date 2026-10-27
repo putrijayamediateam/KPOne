@@ -25,7 +25,7 @@ class QuickPatientValidationTest extends VisitTestCase
         }
         $this->assertDatabaseCount('patients', 0);
         $this->assertDatabaseCount('visits', 0);
-        $visit = app(VisitRegistrationService::class)->register($ca, [...$base, 'quick_patient' => ['full_name' => 'Synthetic Quick', 'sex' => 'unknown', 'mobile_phone' => '020 7946 0018', 'phone_country' => 'GB', 'identifiers' => [['identifier_type' => 'passport', 'issuing_country_code' => 'GB', 'value' => 'syn-quick']]]]);
+        $visit = app(VisitRegistrationService::class)->register($ca, [...$base, 'quick_patient' => ['adult_confirmed' => true, 'adult_confirmation_key' => (string) Str::uuid(), 'full_name' => 'Synthetic Quick', 'sex' => 'unknown', 'mobile_phone' => '020 7946 0018', 'phone_country' => 'GB', 'identifiers' => [['identifier_type' => 'passport', 'issuing_country_code' => 'GB', 'value' => 'syn-quick']]]]);
         $this->assertSame('+442079460018', $visit->patient->mobile_phone);
         $this->assertSame('SYN-QUICK', $visit->patient->identifiers()->sole()->normalized_value);
     }

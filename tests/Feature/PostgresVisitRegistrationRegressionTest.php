@@ -319,6 +319,9 @@ class PostgresVisitRegistrationRegressionTest extends TestCase
     public function test_late_quick_patient_visit_failure_rolls_back_both_counters_and_audits(): void
     {
         [$organisation, $branches, $actors] = $this->fixture();
+        $profile = new StaffProfile;
+        $profile->forceFill(['user_id' => $actors[0]->id])->save();
+        StaffBranchAssignmentBootstrapper::create($profile, $branches[0], ['is_primary' => true]);
         $fixtureAuditCount = DB::table('audit_logs')->where('organisation_id', $organisation->id)->count();
         app('session')->start();
         session([BranchAccessService::SESSION_KEY => $branches[0]->id]);
@@ -344,7 +347,7 @@ class PostgresVisitRegistrationRegressionTest extends TestCase
         try {
             $service->register($actors[0], [
                 'idempotency_key' => (string) Str::uuid(), 'expected_branch_id' => $branches[0]->id,
-                'quick_patient' => ['full_name' => 'Synthetic Rollback', 'sex' => 'unknown', 'duplicate_override' => true, 'mobile_phone' => '+60123456789', 'identifiers' => [['identifier_type' => 'passport', 'issuing_country_code' => 'MY', 'value' => 'SYN-ROLLBACK']]],
+                'quick_patient' => ['adult_confirmed' => true, 'adult_confirmation_key' => (string) Str::uuid(), 'full_name' => 'Synthetic Rollback', 'sex' => 'unknown', 'duplicate_override' => true, 'mobile_phone' => '+60123456789', 'identifiers' => [['identifier_type' => 'passport', 'issuing_country_code' => 'MY', 'value' => 'SYN-ROLLBACK']]],
                 'visit_type' => 'otc', 'priority' => 'normal', 'coverage_type' => 'self_pay',
             ]);
             $this->fail('Expected injected failure.');
