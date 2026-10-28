@@ -1,6 +1,55 @@
 # STK-3 — verified receiving and order evidence (local candidate)
 
-Date: 2026-10-28. Branch `feature/stk-3-verified-receiving`, isolated worktree `/Users/klinikputrijaya/Herd/KPOne-stk-3`. Base `dded476d813ccb0d9a3909ef4191f19a1d231838` (STK-2, #182). Original implementation `9bd63cd391f2104212c15737755c62e8f95f5bc1`, PR #183. The test-isolation CI follow-up is recorded below. Not production-approved.
+Date: 2026-10-28. Branch `feature/stk-3-verified-receiving`, isolated worktree `/Users/klinikputrijaya/Herd/KPOne-stk-3`. Base `dded476d813ccb0d9a3909ef4191f19a1d231838` (STK-2, #182). Original implementation `9bd63cd391f2104212c15737755c62e8f95f5bc1`, PR #183. The test-isolation and deterministic-fixture CI follow-ups are recorded below. Not production-approved.
+
+## PR #183 second CI follow-up — deterministic receiving fixture branch
+
+CI run `40643458823`, head `14b557e`, failed **one test / 1,519 passed / two existing skips / 30,784 assertions**, 2,013.67 s. This is a reproducible fixture defect, not a correction-rule failure. `DispensaryAuthorityService.php:20–23` compares the actor's effective active branch with `expected_branch_id`. The stack's `InventoryMovementService.php:26` is **openingBalance during fixture construction**, before the test reaches its reversing correction or audit assertions.
+
+### Root cause
+
+The new `VerifiedReceivingFixture` delegated to `BatchHoldFixture`. That existing generic helper chooses actors' branches with unordered `Branch::firstOrFail()` (`tests/Support/BatchHoldFixture.php:35`), while its registration uses `VisitFactory` without an explicit branch (`:50–52`). `database/factories/VisitFactory.php:24` independently chooses a branch with a differently shaped unordered `value('id')` query. Ordinary PostgreSQL updates can change heap order, so the queries need not pick the same branch. In the controlled reproduction a normal update of CHERAS's `updated_at` made the actor query choose SUNGAI_BESI (id 2) while the Visit query chose CHERAS (id 1). The opening location and expected branch followed the Visit. The actor had no CHERAS assignment, so `BranchAccessService` correctly rejected that session selection, fell back to the actor's primary SUNGAI_BESI branch and cached that result; the authority guard correctly refused the mismatch. These are observed local ids, not recovered CI ids. Clearing the session and recreating BranchAccess before the probe still reproduced the failure. Neither the clock nor a stale production cache caused it; unordered fixture setup made the outcome depend on physical database state and query plans. No existing runtime fix is needed.
+
+### Narrow test-only fix and regression
+
+- `tests/Support/VerifiedReceivingFixture.php:20–76`: keep the existing OTC dispensing bootstrap, but supply one explicit branch to every actor assignment, Patient organisation, Visit, location and payload. The default resolves CHERAS by organisation and code, never row position; callers can pass another branch. Branch selection uses the normal `BranchAccessService::select` API instead of resetting its instance and writing a raw session selection. No existing generic helper, factory or application code changes.
+- `tests/Feature/Inventory/VerifiedReceivingTest.php`: its private fixture passes the test's explicit branch. All **16 pre-existing public test bodies and assertions are byte-identical** to `14b557e`. New `test_fixture_branch_is_independent_of_heap_order_prior_selection_and_hour` (`:551`) checks both CHERAS and SUNGAI_BESI, a prior other-branch selection, a legitimate heap-moving UPDATE, and two frozen instants (`2026-10-28T00:05Z`, `23:55Z`, crossing a branch-local calendar date). Its **44 assertions** check Visit, location, expected branch, and each actor's primary assignment and active branch. The clock is restored in finally; no OS clock change.
+- `tests/Feature/Inventory/PostgresVerifiedReceivingTest.php`: the second synthetic receiver now comes from the same explicit-branch STK-3 helper. No assertion, contention protocol step, timeout or worker changes.
+- This report is the only other changed file. No migration, permission, dependency, production cache change or existing assertion edit. The original 29 PostgreSQL regression bodies remain unchanged.
+
+### Reproduction, ordering and time evidence
+
+All logs are local under `/private/tmp/kpone-stk3-evidence/`. All databases are task-owned UTF8/template0 PostgreSQL 18.6 at **127.0.0.1:58664**, owned cluster `/private/tmp/kpone-stk3-pg18`; application connection identity verified before use. No `.env` or `.env.preview`, non-task database or served-tree change.
+
+| Probe | Before fix | After fix |
+| --- | --- | --- |
+| VerifiedReceivingTest, default order | 16 passed / 234 assertions / 10.192 s (`branch-before-class.log`) | 17 passed / 273 assertions / 11.058 s (`branch-after-class.log`) |
+| Whole Inventory directory, default order, stop at first failure | 30 passed / one error / 342 assertions / 20.863 s; new overage test fixture hit the same inconsistent branch authority (`branch-before-directory.log`) | 45 passed / 575 assertions / 28.399 s (`branch-after-directory.log`) |
+| Exact correction test body, private inherited probe with only heap-moving setup | One error / zero assertions / 1.363 s, exact active-branch refusal (`branch-exact-case-before.log`) | One passed / 12 assertions / 1.663 s (`branch-exact-case-after.log`) |
+| New branch-independence guard | Same active-branch refusal before its first assertion (`branch-regression-before.log`) | Included and green in all class runs; 44 new assertions |
+| Class reverse order | Not needed after deterministic reproduction | 17 passed / 273 assertions / 11.094 s (`branch-after-reverse.log`) |
+| Class seeded random order, seed 406434588 | Not needed after deterministic reproduction | 17 passed / 273 assertions / 11.015 s (`branch-after-random.log`) |
+| Four independent setup probes: normal plan, forced index plan, heap update, heap update plus index plan | First two built; both heap-update cases reproduced the exact failure, even with clean session/service (`branch-layout-before.jsonl`) | All four built the requested branch (`branch-layout-after.jsonl`) |
+
+The private exact-test probe loaded the old helper from `14b557e` to demonstrate failure, then the current helper to demonstrate repair; the inherited correction method was not edited. Private probes are evidence only, not committed tests. The regression exercises two application clock values because effective assignment uses the branch-local date. All original assertions remain intact; assertion totals can vary with the unchanged query-log test's per-query checks because normal branch selection changes its warmed query set.
+
+### Final validation for this follow-up
+
+**Passed, exit 0.** Replayed the workflow sequence: Wayfinder generation; CI frontend glob; migrate --force; production build; exact `composer ci:check` (lint, format, types, config clear, Pint, PHPStan level 7, full backend); then the full frontend glob. Source stayed frozen throughout.
+
+| Check | Actual result |
+| --- | --- |
+| Full backend | **1,521 passed / 30,835 assertions / two existing public-registration skips**, 1,523 reached, **749.172 s** (`branch-full-check.log`) |
+| CI frontend behavior tests | **513 passed**, zero skips, 2.415 s (`branch-full-frontend.log`) |
+| Full frontend glob | **513 passed**, zero skips, 2.344 s (`branch-gate-frontend.log`) |
+| Syntax / Pint / PHPStan level 7 | All three modified PHP files pass syntax; Pint passes; whole-project PHPStan zero errors (`branch-final-phpstan.log` and exact CI log) |
+| lint / format / types | Passed in exact CI sequence |
+| Production build | Passed, **1.65 s** (`branch-full-build.log`) |
+| `git diff --check` | Passed |
+
+Fresh full-replay database `kpone_stk3_branch_ci_testing`; class/directory database `kpone_stk3_branch_testing`; separate deterministic-probe database `kpone_stk3_branch_repro_testing`. All owned and verified as described above. Task-only approved **1 GiB**, PHP **8.4.26**, Node **22.23.3**. No test weakened, removed or newly skipped. The new guard adds 44 assertions; the unchanged query-log test performs five fewer per-query assertions with correctly warmed branch selection, yielding 30,796 + 44 - 5 = **30,835**. All original assertion statements remain unchanged.
+
+Prior Chrome feature evidence and separate fresh seed remain applicable: this follow-up changes only synthetic test setup, one new regression and documentation, with no feature or schema change. No new screenshots are claimed. Private diagnostic probes stay outside the repository. Served tree stays clean on main, untouched. This is one normal new commit on the same branch, no force-push and no merge.
 
 ## PR #183 CI follow-up — container-safe child database identity
 

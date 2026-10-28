@@ -10,7 +10,6 @@ use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Symfony\Component\Process\InputStream;
 use Symfony\Component\Process\Process;
-use Tests\Support\BatchHoldFixture;
 use Tests\Support\VerifiedReceivingFixture;
 use Tests\TestCase;
 
@@ -37,7 +36,7 @@ class PostgresVerifiedReceivingTest extends TestCase
             $this->seed(KPOneReferenceSeeder::class);
             foreach (['lock_version', 'delivery_reference'] as $expected) {
                 $f = (new VerifiedReceivingFixture)->build();
-                $otherReceiver = (new BatchHoldFixture)->actor('ca_supervisor');
+                $otherReceiver = (new VerifiedReceivingFixture($f['visit']->branch))->actor('ca_supervisor');
                 $service = app(ProcurementService::class);
                 $order = $f['order'];
                 $first = $f['payload'];

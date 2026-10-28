@@ -49,7 +49,7 @@ class VerifiedReceivingTest extends VisitTestCase
 
     private function fixture(): array
     {
-        return (new VerifiedReceivingFixture)->build();
+        return (new VerifiedReceivingFixture($this->branch))->build();
     }
 
     private function lot(string $quantity, string $outcome = 'accepted', ?string $reason = null, string $batch = 'SYN-LOT'): array
@@ -545,6 +545,32 @@ class VerifiedReceivingTest extends VisitTestCase
             $row = collect($page['receipts']['rows'])->firstWhere('public_id', $receipt->public_id);
             $this->assertSame('01 Jan 2027 00:30', $row['received_at_local']);
             $this->assertSame('Asia/Kuala_Lumpur', $page['timezone']);
+        }
+    }
+
+    public function test_fixture_branch_is_independent_of_heap_order_prior_selection_and_hour(): void
+    {
+        $other = Branch::query()->where('organisation_id', $this->organisation->id)->where('code', 'SUNGAI_BESI')->sole();
+        try {
+            foreach (['2026-10-28T00:05:00+00:00', '2026-10-28T23:55:00+00:00'] as $instant) {
+                $this->travelTo(CarbonImmutable::parse($instant));
+                foreach ([$this->branch, $other] as $target) {
+                    $prior = $this->actor('director');
+                    app(BranchAccessService::class)->select($prior, $target->is($other) ? $this->branch : $other);
+                    // A legitimate UPDATE changes heap order without changing branch identity.
+                    DB::table('branches')->where('id', $target->id)->update(['updated_at' => now()]);
+                    $f = (new VerifiedReceivingFixture($target))->build();
+                    $this->assertSame($target->id, $f['visit']->branch_id);
+                    $this->assertSame($target->id, $f['location']->branch_id);
+                    $this->assertSame($target->id, $f['payload']['expected_branch_id']);
+                    foreach (['ca', 'receiver', 'finance', 'director'] as $key) {
+                        $this->assertSame($target->id, $f[$key]->staffProfile->branchAssignments()->where('is_primary', true)->sole()->branch_id);
+                        $this->assertSame($target->id, app(BranchAccessService::class)->activeBranch($f[$key])->id);
+                    }
+                }
+            }
+        } finally {
+            $this->travelBack();
         }
     }
 }
