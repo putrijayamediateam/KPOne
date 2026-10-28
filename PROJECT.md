@@ -1,8 +1,13 @@
 # KPOne project
 
-Latest merged delivery: PR #177 — pilot not-ready-to-call flag with audited doctor override, merged as `1de90ff`. Recent merges, newest first
+Latest merged delivery: PR #183 — STK-3 verified receiving and immutable order evidence, merged as `de3452f`. Recent merges, newest first
 (documentation-only PRs omitted):
 
+- PR #183 (`de3452f`) — STK-3: verified receiving (required delivery reference, split lots, accepted, quarantined and rejected outcomes, independent exception approval, reversing corrections, exact quantities); a real expiry date is now required on every new receipt.
+- PR #182 (`dded476`) — STK-2: branch batch safety holds (release by a different person), one shared batch eligibility rule at Save, Complete and pickers, and controlled FEFO exception reasons.
+- PR #181 (`bc614ac`) — unknown date of birth: explicit adult confirmation by staff, kept as append-only evidence.
+- PR #180 (`97e2bdb`) — STK-1: one verified base stock unit per SKU, exact quantities, Pilot readiness page and independent opening sign-off.
+- PR #179 (`72f92d1`) — GUARDIAN-CONTACT-1: independent guardian contact for each minor, saved on QR acceptance, never used for WhatsApp, search or matching.
 - PR #177 (`1de90ff`) — pilot: structured, controlled "not ready to call" flag on a Waiting consultation entry (CA and CA Supervisor set and clear; Call In is refused while active; the attending doctor may override with a recorded reason; immutable PostgreSQL evidence; badge on the boards, ready alert, count-only consultation dropdown with one aggregate integer). TV and QR status unchanged. English wording.
 - PR #176 (`c9596ba`) — pilot scale limits: bounded server-side inventory pickers (25 by default, at most 100), batched Daily summary, Panel summary, Transaction Detail and Stock movement reports, and batched Registration and completed-queue boards. Report outputs are number-identical to the originals.
 - PR #175 (`8732b55`) — pilot flow defects: one hold/resume lock order, an organisation-wide "doctor busy" rule, `consultations.hold.own` permission instead of a role-name check, explicit redirects with a static ban on bare `return back()`, and per-process test storage isolation.
