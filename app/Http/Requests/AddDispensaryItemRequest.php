@@ -2,8 +2,10 @@
 
 namespace App\Http\Requests;
 
+use App\Domain\Organisation\Inventory\Services\InventoryBatchEligibility;
 use App\Http\Requests\Concerns\RedirectsValidationFailuresToDispensaryCase;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 /** DS-01a: a medicine the CA adds that the doctor did not order. */
 class AddDispensaryItemRequest extends FormRequest
@@ -33,7 +35,7 @@ class AddDispensaryItemRequest extends FormRequest
             'allocations.*.location_public_id' => ['required', 'uuid'],
             'allocations.*.sku_public_id' => ['required', 'uuid'],
             'allocations.*.batch_public_id' => ['required', 'uuid'],
-            'allocations.*.quantity' => ['required', 'regex:/^\d{1,9}(?:\.\d{1,3})?$/'],
+            'allocations.*.fefo_exception_reason' => ['nullable', Rule::in(InventoryBatchEligibility::FEFO_REASONS)], 'allocations.*.quantity' => ['required', 'regex:/^\d{1,9}(?:\.\d{1,3})?$/'],
         ];
     }
 }

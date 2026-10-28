@@ -47,7 +47,13 @@ const skuOptions = computed(() => [
         label: s.skuCode,
     })),
 ]);
-type SkuBatch = { publicId: string; batchNumber: string; expiryDate: string };
+type SkuBatch = {
+    publicId: string;
+    batchNumber: string;
+    expiryDate: string;
+    held?: boolean;
+    holdReason?: string;
+};
 const skuBatches = ref<SkuBatch[]>([]);
 const batchesLoading = ref(false);
 const batchesError = ref('');
@@ -95,7 +101,7 @@ const openingBalanceBatchOptions = computed(() => [
     },
     ...skuBatches.value.map((b) => ({
         value: b.publicId,
-        label: `${b.batchNumber} (expires ${b.expiryDate})`,
+        label: `${b.held ? `Held: ${b.holdReason} · ` : ''}${b.batchNumber} (expires ${b.expiryDate})`,
     })),
 ]);
 const itemOptions = computed(() => [

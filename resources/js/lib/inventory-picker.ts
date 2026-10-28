@@ -34,21 +34,25 @@ export function inventoryPickerOptions(
 ): InventoryPickerOption[] {
     return rows.slice(0, 100).map((row) => ({
         value: String(row.publicId ?? row.id),
-        label: String(
-            row.skuCode ??
-                (row.batchNumber
-                    ? `${row.batchNumber} · ${row.expiryDate}`
-                    : row.genericName
-                      ? `${row.code} · ${row.genericName}`
-                      : row.displayName
-                        ? `${row.code} · ${row.displayName}`
-                        : row.code
-                          ? `${row.code} · ${row.name}`
-                          : row.type
-                            ? `${row.name} · ${row.type}`
-                            : row.name),
-        ),
-        disabled: kind === 'suppliers' && row.isActive === false,
+        label:
+            (row.held ? `Held: ${row.holdReason} · ` : '') +
+            String(
+                row.skuCode ??
+                    (row.batchNumber
+                        ? `${row.batchNumber} · ${row.expiryDate}`
+                        : row.genericName
+                          ? `${row.code} · ${row.genericName}`
+                          : row.displayName
+                            ? `${row.code} · ${row.displayName}`
+                            : row.code
+                              ? `${row.code} · ${row.name}`
+                              : row.type
+                                ? `${row.name} · ${row.type}`
+                                : row.name),
+            ),
+        disabled:
+            row.held === true ||
+            (kind === 'suppliers' && row.isActive === false),
     }));
 }
 export function mergeInventoryPickerOptions(

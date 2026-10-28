@@ -3,7 +3,6 @@
 namespace App\Domain\Organisation\Inventory\Services;
 
 use App\Domain\Access\BranchAccessService;
-use App\Domain\Organisation\Inventory\Models\InventoryBatch;
 use App\Domain\Organisation\Inventory\Models\StockMovement;
 use App\Domain\Organisation\Models\Branch;
 use App\Models\User;
@@ -121,9 +120,7 @@ final class InventoryDirectoryService
         foreach ($results->items() as $row) {
             $values = (array) $row;
             $expiryDate = CarbonImmutable::parse($values['expiry_date'])->toDateString();
-            $available = (float) $values['quantity'] > 0 && (bool) $values['location_active'] && (bool) $values['item_active'] && (bool) $values['sku_active']
-                && $values['batch_status'] === InventoryBatch::STATUS_AVAILABLE
-                && $expiryDate > $localDate;
+            $available = (float) $values['quantity'] > 0 && (bool) $values['location_active'] && $values['eligibility_reason'] === null;
             $data[] = [
                 'skuCode' => (string) $values['sku_code'], 'itemName' => $this->itemName($values),
                 'medicineName' => $medicineNames[(int) $values['inventory_sku_id']] ?? null,
@@ -133,7 +130,8 @@ final class InventoryDirectoryService
                 'expiryDate' => CarbonImmutable::parse($expiryDate)->format('j M Y'),
                 'active' => (bool) $values['item_active'] && (bool) $values['sku_active'],
                 'available' => $available,
-                'availabilityStatus' => $available ? 'Available' : 'Unavailable',
+                'availabilityStatus' => $values['hold_reason'] ? 'Held' : ($available ? 'Available' : 'Unavailable'),
+                ...($values['hold_reason'] ? ['holdReason' => $values['hold_reason']] : []),
             ];
         }
 
@@ -164,7 +162,8 @@ final class InventoryDirectoryService
                 'expiryDate' => CarbonImmutable::parse($values['expiry_date'])->format('j M Y'),
                 'expiryStatus' => (string) $values['expiry_date'] <= $localDate ? 'Expired' : 'Valid',
                 'receivedDate' => $values['received_at'] ? CarbonImmutable::parse($values['received_at'])->format('j M Y') : null,
-                'batchStatus' => $this->label((string) $values['batch_status']),
+                'batchStatus' => $values['hold_reason'] ? 'Held' : $this->label((string) $values['batch_status']),
+                ...($values['hold_reason'] ? ['holdReason' => $values['hold_reason']] : []),
             ];
         }
 
@@ -260,11 +259,11 @@ final class InventoryDirectoryService
             ->join('inventory_locations as l', fn ($join) => $join->on('l.id', '=', 'balance.inventory_location_id')->on('l.organisation_id', '=', 'balance.organisation_id'))
             ->join('inventory_skus as s', fn ($join) => $join->on('s.id', '=', 'balance.inventory_sku_id')->on('s.organisation_id', '=', 'balance.organisation_id'))
             ->join('inventory_items as i', fn ($join) => $join->on('i.id', '=', 's.inventory_item_id')->on('i.organisation_id', '=', 'balance.organisation_id'))
-            ->join('inventory_batches as batch', fn ($join) => $join->on('batch.id', '=', 'balance.inventory_batch_id')->on('batch.organisation_id', '=', 'balance.organisation_id'))
+            ->joinSub(app(InventoryBatchEligibility::class)->query($actor->organisation_id, $branch), 'batch', fn ($join) => $join->on('batch.id', '=', 'balance.inventory_batch_id')->on('batch.organisation_id', '=', 'balance.organisation_id'))
             ->where('balance.organisation_id', $actor->organisation_id)->where('l.branch_id', $branch->id)
             ->select(['balance.id', 'balance.quantity', 's.id as inventory_sku_id', 's.sku_code', 's.stock_unit', 's.is_active as sku_active',
                 'i.generic_name', 'i.brand_name', 'i.strength', 'i.dosage_form', 'i.is_active as item_active',
-                'l.name as location_name', 'l.type as location_type', 'l.is_active as location_active', 'batch.batch_number', 'batch.expiry_date', 'batch.received_at', 'batch.status as batch_status']);
+                'l.name as location_name', 'l.type as location_type', 'l.is_active as location_active', 'batch.batch_number', 'batch.expiry_date', 'batch.received_at', 'batch.status as batch_status', 'batch.eligibility_reason', 'batch.hold_reason']);
     }
 
     /** @param array{tab:string,search:?string,location:?string,status:?string,movement_type:?string,date_from:?string,date_to:?string,batch:?string,page:int} $filters */
@@ -275,16 +274,12 @@ final class InventoryDirectoryService
             $query->where('balance.inventory_location_id', $locationId);
         }
         if ($filters['status'] === 'active') {
-            $query->where('balance.quantity', '>', 0)->where('l.is_active', true)->where('s.is_active', true)->where('i.is_active', true)
-                ->where('batch.status', InventoryBatch::STATUS_AVAILABLE)->whereDate('batch.expiry_date', '>', $localDate);
+            $query->where('balance.quantity', '>', 0)->where('l.is_active', true)->whereNull('batch.eligibility_reason');
         } elseif ($filters['status'] === 'inactive') {
             $query->where(fn (Builder $unavailable) => $unavailable
                 ->where('balance.quantity', '<=', 0)
                 ->orWhere('l.is_active', false)
-                ->orWhere('s.is_active', false)
-                ->orWhere('i.is_active', false)
-                ->orWhere('batch.status', '!=', InventoryBatch::STATUS_AVAILABLE)
-                ->orWhereDate('batch.expiry_date', '<=', $localDate));
+                ->orWhereNotNull('batch.eligibility_reason'));
         }
     }
 
@@ -347,7 +342,7 @@ final class InventoryDirectoryService
         $localDate = now()->setTimezone($branch->timezone)->toDateString();
         $base = DB::table('inventory_stock_balances as balance')
             ->join('inventory_locations as l', fn ($join) => $join->on('l.id', '=', 'balance.inventory_location_id')->on('l.organisation_id', '=', 'balance.organisation_id'))
-            ->join('inventory_batches as batch', fn ($join) => $join->on('batch.id', '=', 'balance.inventory_batch_id')->on('batch.organisation_id', '=', 'balance.organisation_id'))
+            ->joinSub(app(InventoryBatchEligibility::class)->query($actor->organisation_id, $branch), 'batch', fn ($join) => $join->on('batch.id', '=', 'balance.inventory_batch_id')->on('batch.organisation_id', '=', 'balance.organisation_id'))
             ->where('balance.organisation_id', $actor->organisation_id)->where('l.branch_id', $branch->id);
 
         return [

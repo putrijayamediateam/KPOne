@@ -64,10 +64,9 @@ final class InventoryPickerService
             $query->join('inventory_items as item', fn ($join) => $join->on('item.id', '=', 'choice.inventory_item_id')->on('item.organisation_id', '=', 'choice.organisation_id'))->where('item.is_active', true);
         }
         if ($kind === 'batches') {
-            $query->join('inventory_skus as sku', fn ($join) => $join->on('sku.id', '=', 'choice.inventory_sku_id')->on('sku.organisation_id', '=', 'choice.organisation_id'))
-                ->join('inventory_items as item', fn ($join) => $join->on('item.id', '=', 'sku.inventory_item_id')->on('item.organisation_id', '=', 'choice.organisation_id'))
-                ->where('sku.is_active', true)->where('item.is_active', true)->where('choice.status', 'available')
-                ->whereDate('choice.expiry_date', '>', now()->setTimezone($branch->timezone)->toDateString());
+            $query = DB::query()->fromSub(app(InventoryBatchEligibility::class)->query($actor->organisation_id, $branch), 'choice')
+                ->join('inventory_skus as sku', 'sku.id', '=', 'choice.inventory_sku_id')
+                ->where(fn ($q) => $q->whereNull('choice.eligibility_reason')->orWhereNotNull('choice.hold_reason'));
             if ($sku !== null) {
                 $query->where('sku.public_id', $sku);
             }
@@ -79,7 +78,7 @@ final class InventoryPickerService
             'medicines' => [['choice.public_id as publicId', 'choice.code', 'choice.display_name as displayName'], 'choice.display_name'],
             'branches' => [['choice.id', 'choice.name'], 'choice.name'],
             'suppliers' => [['choice.public_id as publicId', 'choice.code', 'choice.name', 'choice.is_active as isActive'], 'choice.name'],
-            'batches' => [['choice.public_id as publicId', 'sku.public_id as skuPublicId', 'choice.batch_number as batchNumber', 'choice.expiry_date as expiryDate'], 'choice.batch_number'],
+            'batches' => [['choice.public_id as publicId', 'sku.public_id as skuPublicId', 'choice.batch_number as batchNumber', 'choice.expiry_date as expiryDate', 'choice.eligibility_reason', 'choice.hold_reason'], 'choice.batch_number'],
         };
         if (trim($search) !== '') {
             $like = '%'.str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], trim($search)).'%';
@@ -95,6 +94,12 @@ final class InventoryPickerService
         }
         $collation = DB::getDriverName() === 'pgsql' ? '"C"' : 'BINARY';
 
-        return array_values($query->orderByRaw($order.' COLLATE '.$collation)->orderBy('choice.id')->limit($limit)->get($columns)->map(fn ($row): array => get_object_vars($row))->all());
+        return array_values($query->orderByRaw($order.' COLLATE '.$collation)->orderBy('choice.id')->limit($limit)->get($columns)->map(function ($row): array {
+            $values = get_object_vars($row);
+            $held = ($values['hold_reason'] ?? null) !== null;
+            unset($values['eligibility_reason'], $values['hold_reason']);
+
+            return [...$values, ...($held ? ['held' => true, 'holdReason' => $row->hold_reason] : [])];
+        })->all());
     }
 }

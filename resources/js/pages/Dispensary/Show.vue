@@ -25,6 +25,8 @@ type Availability = {
     batchNumber: string;
     expiryDate: string;
     quantity: string;
+    held?: boolean;
+    holdReason?: string;
 };
 type Original = {
     quantity: string;
@@ -137,6 +139,7 @@ type LineForm = {
     instruction: string;
     precaution: string;
     availabilityIndex: number;
+    fefoReason: string;
 };
 
 const props = defineProps<{ dispensary: Page }>();
@@ -154,7 +157,11 @@ const formFor = (item: Item): LineForm => ({
     route: item.route ?? '',
     instruction: item.instruction ?? '',
     precaution: item.precaution ?? '',
-    availabilityIndex: 0,
+    availabilityIndex: Math.max(
+        0,
+        item.availability.findIndex((stock) => !stock.held),
+    ),
+    fefoReason: '',
 });
 const forms = reactive<Record<string, LineForm>>({});
 const baseLock = reactive<Record<string, number>>({});
@@ -173,6 +180,8 @@ const isDirty = (item: Item): boolean => {
                 'route',
                 'instruction',
                 'precaution',
+                'fefoReason',
+                'availabilityIndex',
             ] as const
         ).some((key) => form[key] !== saved[key])
     );
@@ -450,6 +459,7 @@ const allocationFor = (
     availability: Availability | undefined,
     skuPublicId: string | undefined,
     quantity: string,
+    fefoReason = '',
 ) =>
     availability && skuPublicId
         ? [
@@ -458,6 +468,7 @@ const allocationFor = (
                   sku_public_id: skuPublicId,
                   batch_public_id: availability.batchPublicId,
                   quantity,
+                  ...(fefoReason ? { fefo_exception_reason: fefoReason } : {}),
               },
           ]
         : [];
@@ -485,6 +496,7 @@ const saveItem = (item: Item, done?: () => void) => {
                 item.availability[form.availabilityIndex],
                 item.sku?.publicId,
                 form.quantity,
+                form.fefoReason,
             ),
         },
         {
@@ -524,7 +536,7 @@ const removeItem = (item: Item) => {
 };
 // Putting a removed line back restores the doctor's (or the CA's first) version.
 const restoreItem = (item: Item) => {
-    const first = item.availability[0];
+    const first = item.availability.find((stock) => !stock.held);
     const quantity = item.original.quantity;
     busy.value = true;
     actionError.value = null;
@@ -565,6 +577,7 @@ const addForm = reactive<LineForm>({
     instruction: '',
     precaution: '',
     availabilityIndex: 0,
+    fefoReason: '',
 });
 const csrf = () =>
     decodeURIComponent(
@@ -605,7 +618,11 @@ const searchMedicines = async () => {
 };
 const chooseMedicine = (medicine: Medicine) => {
     chosen.value = medicine;
-    addForm.availabilityIndex = 0;
+    addForm.availabilityIndex = Math.max(
+        0,
+        medicine.availability.findIndex((stock) => !stock.held),
+    );
+    addForm.fefoReason = '';
 };
 const addMedicine = () => {
     const medicine = chosen.value;
@@ -627,6 +644,7 @@ const addMedicine = () => {
                 medicine.availability[addForm.availabilityIndex],
                 medicine.sku.publicId,
                 addForm.quantity,
+                addForm.fefoReason,
             ),
         },
         {
@@ -1070,14 +1088,48 @@ const inputClass = 'mt-1 h-9 w-full rounded-md border px-2';
                                         ) in item.availability"
                                         :key="stock.batchPublicId"
                                         :value="index"
+                                        :disabled="stock.held"
                                     >
                                         {{ stock.locationName }} ·
                                         {{ stock.batchNumber }} · exp
                                         {{ stock.expiryDate }} ·
-                                        {{ stock.quantity }}
+                                        {{ stock.quantity
+                                        }}{{
+                                            stock.held
+                                                ? ` · Held: ${stock.holdReason}`
+                                                : ''
+                                        }}
                                     </option>
                                 </select></label
                             >
+                            <label class="grid gap-2 sm:col-span-2"
+                                >FEFO exception reason (later batch only)<select
+                                    v-model="forms[item.publicId].fefoReason"
+                                    :class="inputClass"
+                                >
+                                    <option value="">No exception</option>
+                                    <option value="earlier_batch_damaged">
+                                        Earlier batch damaged
+                                    </option>
+                                    <option value="earlier_batch_insufficient">
+                                        Earlier batch insufficient
+                                    </option>
+                                    <option value="earlier_batch_held">
+                                        Earlier batch held
+                                    </option>
+                                    <option value="other_approved">
+                                        Other approved
+                                    </option>
+                                </select></label
+                            >
+                            <p
+                                class="text-xs text-muted-foreground sm:col-span-2"
+                            >
+                                Up to 100 batches shown. Held batches are
+                                visible but cannot be selected. A later batch
+                                needs a controlled reason when an eligible
+                                earlier-expiry batch exists.
+                            </p>
                             <p
                                 v-if="!item.sku"
                                 class="text-xs text-amber-700 sm:col-span-2"
@@ -1334,14 +1386,44 @@ const inputClass = 'mt-1 h-9 w-full rounded-md border px-2';
                                     ) in chosen.availability"
                                     :key="stock.batchPublicId"
                                     :value="index"
+                                    :disabled="stock.held"
                                 >
                                     {{ stock.locationName }} ·
                                     {{ stock.batchNumber }} · exp
-                                    {{ stock.expiryDate }} ·
-                                    {{ stock.quantity }}
+                                    {{ stock.expiryDate }} · {{ stock.quantity
+                                    }}{{
+                                        stock.held
+                                            ? ` · Held: ${stock.holdReason}`
+                                            : ''
+                                    }}
                                 </option>
                             </select></label
                         >
+                        <label class="grid gap-2 sm:col-span-4"
+                            >FEFO exception reason (later batch only)<select
+                                v-model="addForm.fefoReason"
+                                :class="inputClass"
+                            >
+                                <option value="">No exception</option>
+                                <option value="earlier_batch_damaged">
+                                    Earlier batch damaged
+                                </option>
+                                <option value="earlier_batch_insufficient">
+                                    Earlier batch insufficient
+                                </option>
+                                <option value="earlier_batch_held">
+                                    Earlier batch held
+                                </option>
+                                <option value="other_approved">
+                                    Other approved
+                                </option>
+                            </select></label
+                        >
+                        <p class="text-xs text-muted-foreground sm:col-span-4">
+                            Up to 100 batches shown. Held batches cannot be
+                            selected. A later batch needs a controlled reason
+                            when an eligible earlier-expiry batch exists.
+                        </p>
                         <p class="text-xs text-muted-foreground sm:col-span-4">
                             Label limits: dosage
                             {{ dispensary.labelLimits?.dosage }}, frequency

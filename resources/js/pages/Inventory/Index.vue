@@ -176,6 +176,11 @@ const clearFilters = () => {
 
 <template>
     <a
+        href="/inventory/batch-holds"
+        class="mx-4 mt-4 inline-flex min-h-11 items-center self-start rounded-md border px-4 text-sm underline"
+        >Batch safety holds</a
+    >
+    <a
         href="/inventory/readiness"
         class="mx-4 mt-4 inline-flex min-h-11 items-center self-start rounded-md border px-4 text-sm"
         >Pilot readiness</a
@@ -407,7 +412,11 @@ const clearFilters = () => {
                     <td class="min-w-32">
                         <StatusBadge
                             :status="row.available ? 'available' : 'inactive'"
-                            :label="String(row.availabilityStatus)"
+                            :label="
+                                row.holdReason
+                                    ? `Held: ${row.holdReason}`
+                                    : String(row.availabilityStatus)
+                            "
                         />
                     </td>
                 </tr>
@@ -482,7 +491,11 @@ const clearFilters = () => {
                     <td>
                         <StatusBadge
                             :status="String(row.batchStatus).toLowerCase()"
-                            :label="String(row.batchStatus)"
+                            :label="
+                                row.holdReason
+                                    ? `Held: ${row.holdReason}`
+                                    : String(row.batchStatus)
+                            "
                         />
                     </td>
                     <td
