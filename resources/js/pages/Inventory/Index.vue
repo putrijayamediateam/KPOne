@@ -176,6 +176,11 @@ const clearFilters = () => {
 
 <template>
     <a
+        href="/inventory/stock-review"
+        class="inline-flex min-h-11 items-center px-4 underline"
+        >Stock review</a
+    >
+    <a
         href="/inventory/batch-holds"
         class="mx-4 mt-4 inline-flex min-h-11 items-center self-start rounded-md border px-4 text-sm underline"
         >Batch safety holds</a
