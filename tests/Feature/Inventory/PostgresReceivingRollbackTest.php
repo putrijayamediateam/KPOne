@@ -31,13 +31,11 @@ class PostgresReceivingRollbackTest extends TestCase
             Schema::clearResolvedInstance('db.schema');
             app()->forgetInstance('db.schema');
             $connection = DB::connection();
-            if ($connection->getConfig('host') !== $config['host'] || (string) $connection->getConfig('port') !== (string) $config['port'] || $connection->getDatabaseName() !== $database) {
+            if (DB::getDefaultConnection() !== 'receiving_rollback' || $connection->getName() !== 'receiving_rollback' || $connection->getDatabaseName() !== $database) {
                 throw new RuntimeException('Refusing a rollback test outside its child database.');
             }
-            $effective = $connection->selectOne("select current_database() as database, host(inet_server_addr()) as host, inet_server_port() as port, current_setting('server_encoding') as encoding");
+            $effective = $connection->selectOne("select current_database() as database, current_setting('server_encoding') as encoding");
             $this->assertSame($database, $effective->database);
-            $this->assertSame($config['host'], $effective->host);
-            $this->assertSame((string) $config['port'], (string) $effective->port);
             $this->assertSame('UTF8', $effective->encoding);
             $this->assertSame(0, Artisan::call('migrate', ['--database' => 'receiving_rollback', '--force' => true]));
             $this->seed(KPOneReferenceSeeder::class);

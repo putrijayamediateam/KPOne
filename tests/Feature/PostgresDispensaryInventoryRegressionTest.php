@@ -115,13 +115,13 @@ class PostgresDispensaryInventoryRegressionTest extends TestCase
             Schema::clearResolvedInstance('db.schema');
             app()->forgetInstance('db.schema');
             $connection = DB::connection();
-            if ($connection->getConfig('host') !== $config['host']
-                || (string) $connection->getConfig('port') !== (string) $config['port']
+            if (DB::getDefaultConnection() !== self::CHILD_CONNECTION
+                || $connection->getName() !== self::CHILD_CONNECTION
                 || $connection->getDatabaseName() !== $child) {
                 throw new RuntimeException('Dispensary regression must use its own child database before any query.');
             }
-            $effective = $connection->selectOne("select current_database() as database, host(inet_server_addr()) as host, inet_server_port() as port, current_setting('server_encoding') as encoding");
-            if ($effective?->database !== $child || $effective->host !== $config['host'] || (string) $effective->port !== (string) $config['port'] || $effective->encoding !== 'UTF8') {
+            $effective = $connection->selectOne("select current_database() as database, current_setting('server_encoding') as encoding");
+            if ($effective?->database !== $child || $effective->encoding !== 'UTF8') {
                 throw new RuntimeException('Effective dispensary regression child connection does not match.');
             }
             $migrationOptions = ['--database' => self::CHILD_CONNECTION, '--force' => true];

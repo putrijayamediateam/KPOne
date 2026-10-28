@@ -1,12 +1,62 @@
 # STK-3 — verified receiving and order evidence (local candidate)
 
-Date: 2026-10-28. Branch `feature/stk-3-verified-receiving`, isolated worktree `/Users/klinikputrijaya/Herd/KPOne-stk-3`. Base `dded476d813ccb0d9a3909ef4191f19a1d231838` (STK-2, #182). Uncommitted local candidate; no commit, push or PR. Full local gate passed. Not production-approved.
+Date: 2026-10-28. Branch `feature/stk-3-verified-receiving`, isolated worktree `/Users/klinikputrijaya/Herd/KPOne-stk-3`. Base `dded476d813ccb0d9a3909ef4191f19a1d231838` (STK-2, #182). Original implementation `9bd63cd391f2104212c15737755c62e8f95f5bc1`, PR #183. The test-isolation CI follow-up is recorded below. Not production-approved.
 
-## Outcome
+## PR #183 CI follow-up — container-safe child database identity
 
-STK-3 is complete locally. Final exact CI command replay exits 0 on the task-owned PostgreSQL 18 database: **1,520 backend passes / 30,798 assertions / two existing public-registration skips** (1,522 tests reached), **763.003 seconds**. Full frontend gate: **513 passes**, no skips. Syntax, Pint, PHPStan level 7, types, lint, formatting, production build, separate `migrate:fresh --seed` and whitespace checks pass. No existing assertion was weakened, removed or newly skipped.
+Owner-authorised 2026-10-28, following CI failure on implementation commit `9bd63cd391f2104212c15737755c62e8f95f5bc1` (30 failed / 1,490 passed, as reported by the owner). The fault was in the new isolation checks, not receiving logic: they compared the client's configured endpoint `127.0.0.1` to PostgreSQL's listening interface address. A published Docker service can correctly report its container address (`172.18.0.2` in that CI run). Endpoint and server-interface addresses are not database identity.
 
-Canonical `origin/main` was fetched again and remains the branch base `dded476d813ccb0d9a3909ef4191f19a1d231838`; no rebase was needed. All work remains in the isolated task worktree. Served tree is clean on main and unchanged. No commit, push or PR until the owner says “open the PR”.
+Only new isolation code is corrected, plus this report. No application, migration, permission, worker protocol, timeout or existing 29-test body changes.
+
+| File / location | Old new-code check | Corrected check |
+| --- | --- | --- |
+| `tests/Feature/PostgresDispensaryInventoryRegressionTest.php:118–125`, setup | Configured host/port equality and `inet_server_addr()` / `inet_server_port()` equality with the configured endpoint. | Require default connection alias AND connection object's name to be `pgsql_dispensary_inventory_child`; configured database must equal this test's freshly generated unique child; query actual `current_database()` and require that same child plus `server_encoding = UTF8`. No server-address or server-port comparison. |
+| `tests/Feature/Inventory/PostgresReceivingRollbackTest.php:34–39`, new test | Same endpoint assumption, including two new assertions comparing actual server host and port. | Require default connection alias AND connection object's name to be `receiving_rollback`; configured database must equal its newly generated child; keep assertions on actual `current_database()` and UTF8 encoding. Remove only the two invalid host/port assertions from this new STK-3 test. |
+
+The connection configuration remains explicit, inherited from the intended task/CI connection, with its unique child database and `url = null`; workers retain explicit host/port/user/database settings. No root/shared test database is accepted as a child. Dropping server-port comparison is deliberate: a published or forwarded client port may differ from PostgreSQL's listener, just like its address. The existing unique-name generation, scope guard, UTF8/template0 creation and guarded teardown/drop remain intact. All 29 original regression bodies are byte-identical to `9bd63cd` and the pre-STK-3 base.
+
+### Search of new/changed tests and workers
+
+- Fixed the two files above; they were the only server-address/port equality checks.
+- `tests/Feature/Inventory/PostgresVerifiedReceivingTest.php`: no server-address/port comparison; explicit child config and child database check already work. Host/port are correctly used only as worker connection inputs. Unchanged.
+- `tests/Support/PostgresVerifiedReceivingWorker.php`: unique `kpone_stk3_race_*_testing` name guard, no address comparison. Unchanged.
+- `tests/Support/PostgresDispensaryInventoryWorker.php`: no address/port equality; explicit child settings supplied by the test. No new worker change.
+- `tests/Feature/Inventory/PostgresBatchHoldTest.php` and `tests/Support/PostgresBatchHoldWorker.php` (merged STK-2 reference): child-name checks and explicit worker settings, no server-address/port equality. Unchanged.
+- `tests/Feature/Clinical/InventoryOperationsTest.php`, `tests/Feature/Inventory/VerifiedReceivingTest.php`, `tests/Support/VerifiedReceivingFixture.php` and `tests/Frontend/verified-receiving.test.mjs`: no server-address/port comparisons. Unchanged.
+- A repository-wide search of `tests/` finds no remaining `inet_server_addr()` or `inet_server_port()` use. No other test needed a change.
+
+### Actual different-address replay
+
+No SQL mocking or response rewriting. A throwaway Python standard-library TCP relay listened on **127.0.0.1:58667** and forwarded raw PostgreSQL traffic to the same task-owned PG18 cluster at **[::1]:58664**. The local verification query returned actual **server_host `::1`**, **server_port `58664`**, UTF8, and owned data directory `/private/tmp/kpone-stk3-pg18`, while Laravel was configured for **host `127.0.0.1`**, **port `58667`**. Thus both the configured address and port genuinely differ from the server interface/port, reproducing the Docker/published-port assumption without installing Docker or changing OS network settings.
+
+Both affected classes ran through that relay, including all worker connections: **30 passed / 481 assertions / no skips / 57.864 seconds**, `ci-address-two-classes.log`. Actual endpoint proof: `/private/tmp/kpone-stk3-evidence/address-proof.json`. Root harness database `kpone_stk3_address_testing`; each test still used/dropped its own generated UTF8 child. The relay is task-owned and was stopped after the replay. No external or non-task-owned database was used.
+
+### Full replay result
+
+**Passed, exit 0.** Exact workflow validation sequence: Wayfinder generation; `node --test tests/Frontend/*.test.mjs`; `php artisan migrate --force`; `npm run build`; `composer ci:check` (npm lint/format/types, config clear, Pint, PHPStan level 7, full backend). Additional full frontend glob: `node --test tests/Frontend/*.mjs`. No feature source changed during validation.
+
+| Check | Actual result / local log under `/private/tmp/kpone-stk3-evidence/` |
+| --- | --- |
+| Two affected classes through different-address/port TCP relay | **30 passed / 481 assertions / zero skips / 57.864 s**, `ci-address-two-classes.log` |
+| Complete exact CI replay | **Passed, exit 0**, `ci-address-full-check.log` |
+| Full backend | **1,520 passed / 30,796 assertions / two existing public-registration skips** (1,522 reached), **750.158 s** |
+| CI frontend behavior tests | **513 passed**, no skips, `ci-address-full-frontend.log` |
+| Full frontend glob | **513 passed**, no skips, 2.418 s, `ci-address-gate-frontend.log` |
+| Syntax | Both modified PHP files pass `php -l` |
+| Pint / PHPStan level 7 | Passed; PHPStan zero errors (`ci-address-full-check.log`, early `ci-address-phpstan.log`) |
+| npm lint / format / types | Passed in exact CI replay |
+| Production build | Passed, **1.64 s**, `ci-address-full-build.log` |
+| `git diff --check` | Passed |
+
+Fresh owned UTF8/template0 full-replay database **kpone_stk3_ci_address_testing**, PostgreSQL **18.6** at **127.0.0.1:58664**, owned cluster `/private/tmp/kpone-stk3-pg18`. Same approved task-only 1 GiB, PHP 8.4.26, Node 22.23.3. The different-address proof used the relay separately; the full replay used the normal direct task endpoint. No `.env` or `.env.preview` read/created, no non-task-owned database, no new dependency. No new skip; no PostgreSQL skip. No application, migration or permission changes; prior fresh-seed and Chrome feature evidence remain unchanged.
+
+The assertion total changes **30,798 → 30,796 solely because the owner-authorised host and port assertions were removed from the new STK-3 rollback test**. Its actual database/UTF8 assertions remain, and both new-code guards now also enforce the configured child alias. No assertion, expected value, test name, timeout, contention step or skip in the existing 29 regression bodies changed. No other test needed modification. The same branch receives one normal new commit; no force-push or merge.
+
+## Original implementation validation (9bd63cd, before the CI follow-up)
+
+STK-3 implementation local validation. The original exact CI command replay exits 0 on the task-owned PostgreSQL 18 database: **1,520 backend passes / 30,798 assertions / two existing public-registration skips** (1,522 tests reached), **763.003 seconds**. Full frontend gate: **513 passes**, no skips. Syntax, Pint, PHPStan level 7, types, lint, formatting, production build, separate `migrate:fresh --seed` and whitespace checks pass. No existing assertion was weakened, removed or newly skipped.
+
+Canonical `origin/main` was fetched again and remains the branch base `dded476d813ccb0d9a3909ef4191f19a1d231838`; no rebase was needed. All work remains in the isolated task worktree. Served tree is clean on main and unchanged. Owner subsequently authorised PR #183 and its test-only CI follow-up; no merge authorised.
 
 Exactly two historical migration tests use the owner-authorised historical schema; every other method in the previously authorised 29-test PostgreSQL class uses the current schema. All 29 test bodies remain byte-identical to HEAD. The class passes **29 / 468 assertions / 35.325 s** in its scoped run and also passes in the final full suite. Final Chrome evidence comprises **30 synthetic screenshots**, including exact 390 CSS px captures, 1440 px, both themes, split lots, quarantine, independent approval, posting and role denial.
 
@@ -92,7 +142,7 @@ Timing: the same approval/cancellation test previously errored in cleanup after 
 | `2026_11_02_000200_grant_receiving_exception_approval.php` | Approved permission/holders only; `firstOrCreate`, missing grants only, missing roles logged/skipped; down never revokes. Catalogue agrees. |
 | `2026_11_02_000300_create_verified_receiving_evidence.php` | Six tables: `inventory_receiving_reviews`, `inventory_receiving_approvals`, `inventory_receipt_line_evidence`, `inventory_receipt_lots`, `inventory_receiving_consumptions`, `inventory_receipt_corrections`; conservation/scope/independent approval and immutable guards. Also protects existing receipt headers/lines against update, delete and truncate, exposing the legacy teardown conflict above. |
 
-Seven new tables total. Evidence migrations retain evidence on down. Existing databases would need `php artisan migrate`; this unfinished candidate must not be deployed.
+Seven new tables total. Evidence migrations retain evidence on down. Existing databases would need `php artisan migrate`; this candidate is not production-approved.
 
 ### Compatibility limits requiring review
 
@@ -164,17 +214,17 @@ This is the original base-code survey. Subsequent authorised fixture changes and
 | --- | --- | --- | --- | --- |
 | `tests/Feature/Clinical/InventoryOperationsTest.php`, `receiptAttributes` (all callers, including `test_purchase_order_lifecycle_partial_and_final_receiving_are_atomic_and_idempotent`) | 988 | No delivery reference. | Add only `'delivery_reference' => 'SYN-DELIVERY-'.$key`. Owner-authorised synthetic setup for the deliberately required field; retry retains its reference. Quantities, real expiry and assertions unchanged. | Existing class: 24 passes / 687 assertions, 10.901 s in the scoped run. |
 | `tests/Support/PostgresDispensaryInventoryWorker.php`, `purchase-order-receive` | 249 | No delivery reference. | Add only `'delivery_reference' => 'SYN-PG-DELIVERY-'.(string) $argv[6]`. Owner-authorised setup; outcomes/protocol unchanged. | Measured with the class below, not as a standalone test. |
-| `tests/Feature/PostgresDispensaryInventoryRegressionTest.php`, class setup/teardown, `dropChildDatabase`, worker connection setup (all 29 methods) | 97, 154, 176, 1258 | Shared test database; organisation-row DELETE cleanup; worker inherited DB environment. | Owner-authorised test-infrastructure isolation: unique UTF8/template0 child per test, configured/effective host-port-name verification before fixture queries, explicit child connection settings for workers, stop workers and always drop the guarded child database, including failures/timeouts. No assertion change. | Same single approval/cancellation test: failed cleanup at 0.747 s before, passes at 1.281 s after; not a passing before-baseline. Targeted 3 tests: 3.740 s. Full unchanged class: 29 passes / 468 assertions / 35.325 s. |
+| `tests/Feature/PostgresDispensaryInventoryRegressionTest.php`, class setup/teardown, `dropChildDatabase`, worker connection setup (all 29 methods) | 97, 154, 176, 1258 | Shared test database; organisation-row DELETE cleanup; worker inherited DB environment. | Owner-authorised test-infrastructure isolation: unique UTF8/template0 child per test, configured child connection/name and actual database/UTF8 verification before fixture queries (CI correction above), explicit host/port/child settings for workers, stop workers and always drop the guarded child database, including failures/timeouts. No assertion change. | Same single approval/cancellation test: failed cleanup at 0.747 s before, passes at 1.281 s after; not a passing before-baseline. Targeted 3 tests: 3.740 s. Full unchanged class: 29 passes / 468 assertions / 35.325 s. |
 | Same file, setup only for `test_inventory_operations_migration_empty_rollback_and_reapply_use_the_laravel_migrator` (body line 718) | 128–138 | Current schema prevented historical table-drop assertions through STK-3 FKs. | Owner-authorised test-infrastructure isolation: run only real repository migrations, normal filename order, through `2026_11_01_000200_grant_branch_batch_hold_permissions.php` (last pre-STK-3 schema, retaining the supplier/cost dependencies its body unwinds). Original body unchanged; no hand-written DDL or migration/down edits. | 1 pass / 60 assertions / **1.018 s**, `historical-rollback.log`. Earlier failed-class run was 26.840 s; no standalone pre-isolation duration was recorded. |
 | Same file, setup only for `test_inventory_operations_migration_refuses_every_retained_evidence_table_and_new_movement_without_changing_migrator_evidence` (body line 782) | 128–138 | Current receipt immutability refused its internal per-table fixture cleanup DELETE. | Same owner-authorised real-migration historical setup. Preserve every body statement, including internal cleanup, so it still proves the historical guard contract. Current-schema protection is proved separately below. No assertion change. | 1 pass / 168 assertions / **1.349 s**, `historical-retained.log`. Earlier failed-class run was 27.938 s; no standalone pre-isolation duration was recorded. |
 
-New tests are not changes to existing assertions: `PostgresReceivingRollbackTest::test_current_schema_refuses_old_rollback_and_receipt_drop_without_losing_any_rows` (line 19) proves retained-evidence rollback refusal, exact PostgreSQL **2BP01** receipt-table-drop refusal and full ID-ordered row preservation on the current schema. It passes 1 test / 15 assertions / 1.729 s in its scoped run. `VerifiedReceivingTest::test_receipt_evidence_is_utc_and_local_display_is_independent_of_database_session_timezone` (line 533) proves UTC storage and New Year branch-local presentation under both UTC and Asia/Kuala_Lumpur database sessions (1 test / 8 assertions / 1.238 s).
+New tests are not changes to pre-STK-3 assertions: `PostgresReceivingRollbackTest::test_current_schema_refuses_old_rollback_and_receipt_drop_without_losing_any_rows` (line 18) proves retained-evidence rollback refusal, exact PostgreSQL **2BP01** receipt-table-drop refusal and full ID-ordered row preservation on the current schema. It passes 1 test / 15 assertions / 1.729 s in its scoped run. `VerifiedReceivingTest::test_receipt_evidence_is_utc_and_local_display_is_independent_of_database_session_timezone` (line 533) proves UTC storage and New Year branch-local presentation under both UTC and Asia/Kuala_Lumpur database sessions (1 test / 8 assertions / 1.238 s).
 
 CI uses the PostgreSQL 18 service with `POSTGRES_USER: postgres`, the same database-creation pattern already used by merged `PostgresBatchHoldTest`. CREATE DATABASE plus ownership to drop its own database is sufficient. Local task user is postgres with CREATEDB; no CI permission or workflow change. Effective settings and actual server/database identity are checked before fixture SQL. Child cleanup was verified after failed and successful runs; zero prefixed children remained. All pre-existing production migrations and immutability protections are untouched.
 
 **Future PR statement:** rolling back the old Inventory Operations migration on a database holding STK-3 evidence is now deliberately refused. The existing populated-evidence guard refuses first; new restrictive foreign keys independently refuse destructive removal of referenced receipt tables. No FK removal, CASCADE drop, trigger bypass or evidence deletion is used.
 
-## Final validation
+## Original full validation (9bd63cd)
 
 Task-owned **PostgreSQL 18.6**, **127.0.0.1:58664**, cluster `/private/tmp/kpone-stk3-pg18`, UTF8/template0 databases. Effective host, port, database name, encoding, server version and data directory were verified before application use. Final CI database **kpone_stk3_final_testing**; separate final seed database **kpone_stk3_seed_final_testing**; final Chrome database **kpone_stk3_preview_utc_testing**. Earlier task databases are retained synthetic diagnostics, not production data. Child regression databases are uniquely prefixed and always dropped.
 
@@ -242,4 +292,4 @@ The exercised receipt contains **3.000 accepted + 2.000 quarantined = 5.000 phys
 
 STK-4 through STK-10, AP/supplier payments, supplier returns, valuation, printable purchase orders, transfers, stocktake, imports, notifications and dispensing changes remain deferred and unauthorised. No real supplier, medicine, price or personal data was used.
 
-Full uncommitted review diff: `/private/tmp/kpone-stk-3.diff`. Original survey diff: `/private/tmp/kpone-stk-3-survey.diff`. Final state: task-owned HTTP server and PostgreSQL cluster stopped, no child regression databases remaining; served tree clean on main and untouched. No commit, push or PR. Await owner review.
+Full uncommitted review diff: `/private/tmp/kpone-stk-3.diff`. Original survey diff: `/private/tmp/kpone-stk-3-survey.diff`. Final state: task-owned HTTP server and PostgreSQL cluster stopped, no child regression databases remaining; served tree clean on main and untouched. PR #183 remains open. This owner-authorised CI fix is a new commit on the same branch; no merge or force-push.
