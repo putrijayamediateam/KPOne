@@ -33,6 +33,7 @@ use App\Http\Controllers\InventoryMovementController;
 use App\Http\Controllers\InventoryOperationsController;
 use App\Http\Controllers\InventoryReadinessController;
 use App\Http\Controllers\InventoryReferenceController;
+use App\Http\Controllers\InventoryStockReviewController;
 use App\Http\Controllers\InvoiceActivityController;
 use App\Http\Controllers\InvoiceBillToController;
 use App\Http\Controllers\InvoiceNoteController;
@@ -383,6 +384,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
                 Route::post('{publicIntake}/accept', 'accept')->whereUuid('publicIntake')->middleware('throttle:20,1')->name('registration-review.accept');
             });
 
+        Route::get('inventory/stock-review', [InventoryStockReviewController::class, 'index'])->middleware(['permission:inventory.view.branch', 'sensitive.no-store'])->name('inventory.stock-review');
+        Route::post('inventory/stock-review/{kind}/{reviewItem}', [InventoryStockReviewController::class, 'store'])->whereIn('kind', ['low_stock', 'expiring', 'expired'])->whereNumber('reviewItem')->middleware(['permission:inventory.stock_reviews.manage.branch', 'sensitive.no-store', 'throttle:30,1'])->name('inventory.stock-review.store');
         Route::get('inventory/batch-holds', [InventoryBatchHoldController::class, 'index'])->middleware(['permission:inventory.view.branch', 'sensitive.no-store'])->name('inventory.batch-holds');
         Route::post('inventory/batch-holds/{batch}/{action}', [InventoryBatchHoldController::class, 'store'])->whereUuid('batch')->whereIn('action', ['place', 'release'])->middleware(['sensitive.no-store', 'throttle:30,1'])->name('inventory.batch-holds.store');
         Route::get('inventory/readiness', [InventoryReadinessController::class, 'index'])->middleware('permission:inventory.view.branch')->name('inventory.readiness');

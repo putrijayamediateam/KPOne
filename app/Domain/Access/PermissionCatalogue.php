@@ -112,6 +112,7 @@ final class PermissionCatalogue
             'dispensary.return_to_doctor.branch',
             'dispensary.otc.create.branch',
             'dispensary.acknowledge_partial.own',
+            'inventory.stock_reviews.manage.branch',
             'inventory.view.branch',
             'inventory.opening_balance.branch',
             'inventory.opening.verify.branch',
@@ -395,6 +396,7 @@ final class PermissionCatalogue
 
         foreach (['ca_supervisor', 'finance_officer', 'director'] as $holder) {
             $roles[$holder][] = 'inventory.receiving.exceptions.approve.branch';
+            $roles[$holder][] = 'inventory.stock_reviews.manage.branch';
         }
 
         return $roles;
