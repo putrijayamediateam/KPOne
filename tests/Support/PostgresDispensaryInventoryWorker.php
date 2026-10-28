@@ -246,7 +246,7 @@ try {
     } elseif ($mode === 'purchase-order-receive') {
         $order = PurchaseOrder::query()->where('public_id', (string) $argv[4])->firstOrFail();
         app(ProcurementService::class)->receive($actor, $order, [
-            'expected_branch_id' => $branchId, 'lock_version' => (int) $argv[5], 'idempotency_key' => (string) $argv[6],
+            'expected_branch_id' => $branchId, 'lock_version' => (int) $argv[5], 'idempotency_key' => (string) $argv[6], 'delivery_reference' => 'SYN-PG-DELIVERY-'.(string) $argv[6],
             'lines' => [[
                 'line_public_id' => (string) $argv[7], 'batch_number' => (string) $argv[8],
                 'expiry_date' => (string) $argv[9], 'quantity' => (string) $argv[10],

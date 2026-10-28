@@ -4,6 +4,8 @@ import { Boxes } from '@lucide/vue';
 import { computed, reactive, ref, shallowRef, watchEffect } from 'vue';
 import type { Ref } from 'vue';
 import InventorySearchSelect from '@/components/inventory/InventorySearchSelect.vue';
+import ReceivingReviews from '@/components/inventory/ReceivingReviews.vue';
+import VerifiedReceivingForm from '@/components/inventory/VerifiedReceivingForm.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import OperationalConfirmDialog from '@/components/ui/OperationalConfirmDialog.vue';
@@ -42,6 +44,7 @@ const props = defineProps<{
     operations: InventoryOperations;
     receiptMemoryContext: InventoryReceiptMemoryContext;
 }>();
+const deliveryReferences = reactive<Record<string, string>>({});
 const busy = ref(false);
 const operationError = ref<string | null>(null);
 const operationErrorContext = ref('Inventory operation');
@@ -200,6 +203,10 @@ watchEffect(() => {
     if (context !== activeReceiptContext) {
         for (const linePublicId of Object.keys(receipt)) {
             delete receipt[linePublicId];
+        }
+
+        for (const key of Object.keys(deliveryReferences)) {
+            delete deliveryReferences[key];
         }
 
         restoredReceiptOrders.clear();
@@ -454,6 +461,7 @@ const receivePurchaseOrder = (row: DocumentRow) => {
         {
             ...version(row),
             idempotency_key: submitted.idempotencyKey,
+            delivery_reference: deliveryReferences[row.publicId] ?? '',
             receipt_session_nonce: props.receiptMemoryContext.sessionNonce,
             lines: submitted.payload,
         },
@@ -714,7 +722,7 @@ const saveReorder = () =>
                 <div
                     v-for="item in operations.suppliers"
                     :key="item.publicId"
-                    class="flex items-center justify-between gap-2 rounded-lg border p-2"
+                    class="flex min-w-0 flex-wrap items-center justify-between gap-2 rounded-lg border p-2 [&_[data-slot=status-badge]]:max-w-full [&_[data-slot=status-badge]]:wrap-anywhere [&_[data-slot=status-badge]]:whitespace-normal"
                 >
                     <StatusBadge
                         :status="item.isActive ? 'active' : 'inactive'"
@@ -918,6 +926,17 @@ const saveReorder = () =>
                         class="space-y-2"
                         @submit.prevent="confirmPurchaseOrderReceipt(row)"
                     >
+                        <label class="grid gap-1 text-sm"
+                            >Delivery note or supplier invoice reference
+                            (required)
+                            <Input
+                                v-model="deliveryReferences[row.publicId]"
+                                required
+                                maxlength="120"
+                                class="min-h-11"
+                                :aria-label="`${row.number} delivery reference`"
+                            />
+                        </label>
                         <fieldset
                             v-for="line in row.lines"
                             :key="line.publicId"
@@ -927,6 +946,7 @@ const saveReorder = () =>
                                 {{ line.sku }} · {{ line.receivedQuantity }}/{{
                                     line.orderedQuantity
                                 }}
+                                · Base stock unit: {{ line.stockUnit }}
                             </legend>
                             <Input
                                 v-model="receipt[line.publicId].batchNumber"
@@ -957,7 +977,17 @@ const saveReorder = () =>
                             >Post receipt</Button
                         >
                     </form>
+                    <VerifiedReceivingForm
+                        v-if="canPurchase(row, 'receive')"
+                        :row="row"
+                        :branch-id="operations.expectedBranchId"
+                        :nonce="receiptMemoryContext.sessionNonce"
+                    />
                 </article>
+                <ReceivingReviews
+                    :branch-id="operations.expectedBranchId"
+                    :nonce="receiptMemoryContext.sessionNonce"
+                />
             </section>
 
             <section class="space-y-3 rounded-xl border bg-card p-4">

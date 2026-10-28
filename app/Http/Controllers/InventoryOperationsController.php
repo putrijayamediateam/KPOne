@@ -8,6 +8,8 @@ use App\Domain\Organisation\Inventory\Models\PurchaseOrder;
 use App\Domain\Organisation\Inventory\Models\StockRequest;
 use App\Domain\Organisation\Inventory\Services\InventoryControlService;
 use App\Domain\Organisation\Inventory\Services\ProcurementService;
+use App\Domain\Organisation\Inventory\Services\ReceiptCorrectionService;
+use App\Domain\Organisation\Inventory\Services\ReceivingReviewService;
 use App\Domain\Organisation\Inventory\Services\StockRequestService;
 use App\Domain\Organisation\Inventory\Services\SupplierAdministrationService;
 use Illuminate\Http\RedirectResponse;
@@ -133,12 +135,56 @@ class InventoryOperationsController extends Controller
                 ]);
             }
 
-            $service->receive($request->user(), $purchaseOrder, $request->only(['expected_branch_id', 'lock_version', 'idempotency_key', 'lines']));
+            $service->receive($request->user(), $purchaseOrder, $request->only(['expected_branch_id', 'lock_version', 'idempotency_key', 'delivery_reference', 'review_public_id', 'review_lock_version', 'lines']));
         } catch (ValidationException $exception) {
             throw $this->stayOnInventory($exception);
         }
 
         return $this->success('Goods Receipt posted.');
+    }
+
+    public function requestReceivingReview(Request $request, PurchaseOrder $purchaseOrder, ReceivingReviewService $service): RedirectResponse
+    {
+        try {
+            $data = $request->validate(['receipt_session_nonce' => ['required', 'uuid']]);
+            $nonce = InventoryController::currentReceiptSessionNonce($request, $request->user());
+            if ($nonce === null || ! hash_equals($nonce, Str::lower($data['receipt_session_nonce']))) {
+                throw ValidationException::withMessages(['receipt_session_nonce' => 'The secure receipt session expired. Reload Inventory before receiving stock.']);
+            }
+            $service->request($request->user(), $purchaseOrder, $request->only(['expected_branch_id', 'lock_version', 'retry_key', 'kind', 'delivery_reference', 'lines', 'receipt_public_id', 'reason']));
+        } catch (ValidationException $exception) {
+            throw $this->stayOnInventory($exception);
+        }
+
+        return $this->success('Delivery exception requested. A different authorised person must approve before posting.');
+    }
+
+    public function approveReceivingReview(Request $request, string $review, ReceivingReviewService $service): RedirectResponse
+    {
+        try {
+            $service->approve($request->user(), $review, $request->only(['expected_branch_id', 'lock_version', 'retry_key']));
+        } catch (ValidationException $exception) {
+            throw $this->stayOnInventory($exception);
+        }
+
+        return $this->success('Delivery exception approved. The original receiver may post the unchanged delivery.');
+    }
+
+    public function reverseReceivingReceipt(Request $request, string $review, ReceiptCorrectionService $service): RedirectResponse
+    {
+        try {
+            $data = $request->validate(['receipt_session_nonce' => ['required', 'uuid']]);
+            $nonce = InventoryController::currentReceiptSessionNonce($request, $request->user());
+            if ($nonce === null || ! hash_equals($nonce, Str::lower($data['receipt_session_nonce']))) {
+                throw ValidationException::withMessages(['receipt_session_nonce' => 'The secure receipt session expired. Reload Inventory before receiving stock.']);
+            }
+
+            $service->reverse($request->user(), $review, $request->only(['expected_branch_id', 'review_lock_version', 'idempotency_key']));
+        } catch (ValidationException $exception) {
+            throw $this->stayOnInventory($exception);
+        }
+
+        return $this->success('Reversing receipt correction posted. Original evidence retained.');
     }
 
     public function createStockRequest(Request $request, StockRequestService $service): RedirectResponse

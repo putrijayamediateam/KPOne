@@ -179,6 +179,11 @@ class InventoryMovementService
             : $this->debitOperation($actor, $location, $sku, $batch, $quantity, StockMovement::TYPE_ADJUSTMENT_OUT, 'inventory_adjustment', $adjustmentPublicId);
     }
 
+    public function recordReceiptCorrection(User $actor, InventoryLocation $location, InventorySku $sku, InventoryBatch $batch, string $quantity, string $correctionPublicId): StockMovement
+    {
+        return $this->debitOperation($actor, $location, $sku, $batch, $quantity, StockMovement::TYPE_ADJUSTMENT_OUT, 'inventory_receipt_correction', $correctionPublicId);
+    }
+
     private function creditOperation(User $actor, InventoryLocation $location, InventorySku $sku, InventoryBatch $batch, mixed $quantity, string $type, string $referenceType, string $referencePublicId): StockMovement
     {
         $this->assertOperationReferences($actor, $location, $sku, $batch);
@@ -323,7 +328,7 @@ class InventoryMovementService
         if ($value === null || $value === '') {
             return null;
         }
-        if (! is_numeric($value) || (float) $value < 0 || floor((float) $value) !== (float) $value) {
+        if ((! is_int($value) && ! is_string($value)) || ! preg_match('/^\d{1,12}$/D', (string) $value)) {
             throw ValidationException::withMessages(['unit_cost_sen' => 'Unit cost must be entered as whole sen.']);
         }
 

@@ -12,6 +12,7 @@ export type InventoryOption = {
 };
 
 export type InventoryDocumentLine = {
+    stockUnit?: string;
     publicId: string;
     skuPublicId?: string;
     sku: string;
