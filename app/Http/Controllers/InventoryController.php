@@ -7,6 +7,7 @@ use App\Domain\Organisation\Inventory\Services\InventoryDirectoryService;
 use App\Domain\Organisation\Inventory\Services\InventoryOperationsDirectoryService;
 use App\Domain\Organisation\Inventory\Services\InventoryPickerService;
 use App\Domain\Organisation\Inventory\Services\InventoryReferenceAdministrationService;
+use App\Domain\Organisation\Inventory\Services\ReceivingReviewService;
 use App\Domain\Organisation\Models\Branch;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Models\User;
@@ -55,6 +56,7 @@ class InventoryController extends Controller
         abort_unless($activeBranch && $activeBranch->id === $operationDirectory['expectedBranchId'], 404);
 
         return Inertia::render('Inventory/Index', [
+            'receiving' => Inertia::optional(fn () => app(ReceivingReviewService::class)->page($actor, $request->query())),
             'inventory' => $directory->directory($actor, $filters),
             'operations' => $operationDirectory,
             'receiptMemoryContext' => $this->receiptMemoryContext($request, $actor, $activeBranch),

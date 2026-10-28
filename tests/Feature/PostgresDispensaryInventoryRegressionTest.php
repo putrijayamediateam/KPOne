@@ -40,6 +40,7 @@ use App\Models\User;
 use Illuminate\Database\Connection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\QueryException;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -87,6 +88,12 @@ class PostgresDispensaryInventoryRegressionTest extends TestCase
 
     private int $sequence = 1;
 
+    private ?string $childDatabase = null;
+
+    private string $originalConnection;
+
+    private const CHILD_CONNECTION = 'pgsql_dispensary_inventory_child';
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -97,32 +104,90 @@ class PostgresDispensaryInventoryRegressionTest extends TestCase
         if (! app()->environment('testing') || preg_match('/(?:^|_)(?:test|testing)(?:_|$)/i', $database) !== 1) {
             throw new RuntimeException('Phase 3A concurrency tests require an isolated PostgreSQL test database.');
         }
-        foreach (['dispensary_cases', 'dispensary_items', 'inventory_stock_balances', 'stock_movements'] as $table) {
-            if (! Schema::hasTable($table)) {
-                throw new RuntimeException('Migrate the isolated PostgreSQL test database before Phase 3A regressions.');
+        $this->originalConnection = (string) config('database.default');
+        $config = DB::connection()->getConfig();
+        $child = 'kpone_dispensary_inventory_'.strtolower(Str::random(16)).'_testing';
+        DB::statement('CREATE DATABASE "'.$child.'" ENCODING \'UTF8\' TEMPLATE template0');
+        $this->childDatabase = $child;
+        try {
+            Config::set('database.connections.'.self::CHILD_CONNECTION, [...$config, 'database' => $child, 'name' => self::CHILD_CONNECTION, 'url' => null]);
+            DB::setDefaultConnection(self::CHILD_CONNECTION);
+            Schema::clearResolvedInstance('db.schema');
+            app()->forgetInstance('db.schema');
+            $connection = DB::connection();
+            if ($connection->getConfig('host') !== $config['host']
+                || (string) $connection->getConfig('port') !== (string) $config['port']
+                || $connection->getDatabaseName() !== $child) {
+                throw new RuntimeException('Dispensary regression must use its own child database before any query.');
             }
+            $effective = $connection->selectOne("select current_database() as database, host(inet_server_addr()) as host, inet_server_port() as port, current_setting('server_encoding') as encoding");
+            if ($effective?->database !== $child || $effective->host !== $config['host'] || (string) $effective->port !== (string) $config['port'] || $effective->encoding !== 'UTF8') {
+                throw new RuntimeException('Effective dispensary regression child connection does not match.');
+            }
+            $migrationOptions = ['--database' => self::CHILD_CONNECTION, '--force' => true];
+            if (in_array($this->name(), [
+                'test_inventory_operations_migration_empty_rollback_and_reapply_use_the_laravel_migrator',
+                'test_inventory_operations_migration_refuses_every_retained_evidence_table_and_new_movement_without_changing_migrator_evidence',
+            ], true)) {
+                // Preserve this historical rollback contract at the last pre-STK-3 schema.
+                // Only real repository migrations, in their normal filename order.
+                $migrationOptions['--path'] = collect(glob(database_path('migrations/*.php')) ?: [])
+                    ->filter(fn (string $path): bool => basename($path) <= '2026_11_01_000200_grant_branch_batch_hold_permissions.php')
+                    ->sort()->map(fn (string $path): string => 'database/migrations/'.basename($path))->values()->all();
+            }
+            if (Artisan::call('migrate', $migrationOptions) !== 0) {
+                throw new RuntimeException('Could not migrate the dispensary regression child database.');
+            }
+            foreach (['dispensary_cases', 'dispensary_items', 'inventory_stock_balances', 'stock_movements'] as $table) {
+                if (! Schema::hasTable($table)) {
+                    throw new RuntimeException('Migrate the isolated PostgreSQL test database before Phase 3A regressions.');
+                }
+            }
+            Config::set('database.connections.'.self::OBSERVER, config('database.connections.'.config('database.default')));
+            DB::purge(self::OBSERVER);
+        } catch (\Throwable $exception) {
+            $this->dropChildDatabase();
+            throw $exception;
         }
-        Config::set('database.connections.'.self::OBSERVER, config('database.connections.'.config('database.default')));
-        DB::purge(self::OBSERVER);
     }
 
     protected function tearDown(): void
     {
-        foreach ($this->inputs as $input) {
-            if (! $input->isClosed()) {
-                $input->close();
+        try {
+            foreach ($this->inputs as $input) {
+                if (! $input->isClosed()) {
+                    $input->close();
+                }
+            }
+            foreach ($this->workers as $worker) {
+                if ($worker->isRunning()) {
+                    $worker->stop(1);
+                }
+            }
+        } finally {
+            try {
+                $this->dropChildDatabase();
+            } finally {
+                parent::tearDown();
             }
         }
-        foreach ($this->workers as $worker) {
-            if ($worker->isRunning()) {
-                $worker->stop(1);
-            }
+    }
+
+    private function dropChildDatabase(): void
+    {
+        if ($this->childDatabase === null) {
+            return;
         }
-        foreach ($this->organisationIds as $id) {
-            $this->deleteOrganisation($id);
+        if (preg_match('/^kpone_dispensary_inventory_[a-z0-9]{16}_testing$/D', $this->childDatabase) !== 1) {
+            throw new RuntimeException('Refusing to drop an unowned regression database.');
         }
         DB::purge(self::OBSERVER);
-        parent::tearDown();
+        DB::purge(self::CHILD_CONNECTION);
+        DB::setDefaultConnection($this->originalConnection);
+        Schema::clearResolvedInstance('db.schema');
+        app()->forgetInstance('db.schema');
+        DB::statement('DROP DATABASE "'.$this->childDatabase.'" WITH (FORCE)');
+        $this->childDatabase = null;
     }
 
     public function test_pilot_manual_hold_and_automatic_return_same_patient_do_not_deadlock_or_retry(): void
@@ -1193,7 +1258,14 @@ class PostgresDispensaryInventoryRegressionTest extends TestCase
     private function worker(array $arguments): array
     {
         $input = new InputStream;
-        $process = new Process([PHP_BINARY, base_path('tests/Support/PostgresDispensaryInventoryWorker.php'), ...$arguments, 'kpone-dispensary-pg-'.Str::lower(Str::random(8))], base_path());
+        $process = new Process([PHP_BINARY, base_path('tests/Support/PostgresDispensaryInventoryWorker.php'), ...$arguments, 'kpone-dispensary-pg-'.Str::lower(Str::random(8))], base_path(), [
+            'APP_ENV' => 'testing', 'DB_CONNECTION' => 'pgsql', 'DB_URL' => '',
+            'DB_HOST' => DB::connection()->getConfig('host'),
+            'DB_PORT' => (string) DB::connection()->getConfig('port'),
+            'DB_DATABASE' => $this->childDatabase,
+            'DB_USERNAME' => DB::connection()->getConfig('username'),
+            'DB_PASSWORD' => DB::connection()->getConfig('password') ?? '',
+        ]);
         $process->setInput($input);
         $process->setTimeout(ContentionTimeouts::processTimeoutSeconds());
         $this->workers[] = $process;

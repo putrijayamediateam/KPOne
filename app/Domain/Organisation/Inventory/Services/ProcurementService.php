@@ -148,92 +148,142 @@ final class ProcurementService
         if (! Str::isUuid($key)) {
             throw ValidationException::withMessages(['idempotency_key' => 'A valid receipt idempotency key is required.']);
         }
-        $inputLines = $this->validateReceiptLines($attributes['lines'] ?? null);
-        $hash = hash('sha256', json_encode($inputLines, JSON_THROW_ON_ERROR));
+        $payload = app(ReceivingPayload::class)->normalise($attributes);
+        $hash = hash('sha256', json_encode($payload, JSON_THROW_ON_ERROR));
 
-        return DB::transaction(function () use ($actor, $order, $attributes, $branch, $key, $inputLines, $hash): GoodsReceipt {
-            $lockedActor = $this->authority->lockForBranch($actor, $branch, self::RECEIVE_PERMISSION);
-            $locked = $this->lockOrder($lockedActor, $order, $attributes, false);
-            $destination = InventoryLocation::query()->whereKey($locked->destination_location_id)->where('organisation_id', $lockedActor->organisation_id)->where('is_active', true)->lockForUpdate()->firstOrFail();
-            $this->assertLocationAuthority($lockedActor, $branch, $destination);
-            $existing = GoodsReceipt::query()->where('organisation_id', $lockedActor->organisation_id)->where('idempotency_key', $key)->lockForUpdate()->first();
+        return DB::transaction(function () use ($actor, $order, $attributes, $branch, $key, $payload, $hash): GoodsReceipt {
+            $actor = $this->authority->lockForBranch($actor, $branch, self::RECEIVE_PERMISSION);
+            $locked = $this->lockOrder($actor, $order, $attributes, false);
+            $destination = InventoryLocation::query()->whereKey($locked->destination_location_id)->where('organisation_id', $actor->organisation_id)->where('is_active', true)->lockForUpdate()->firstOrFail();
+            $this->assertLocationAuthority($actor, $branch, $destination);
+            abort_unless($destination->branch_id === $branch->id, 403, 'Verified receiving requires a branch destination.');
+            $existing = GoodsReceipt::query()->where('organisation_id', $actor->organisation_id)->where('idempotency_key', $key)->lockForUpdate()->first();
             if ($existing) {
                 return $this->matchingReceiptOrFail($existing, $locked, $hash);
             }
             $this->requireCurrentVersion($locked, $attributes);
             $this->requireStatus($locked, [PurchaseOrder::STATUS_APPROVED, PurchaseOrder::STATUS_PARTIALLY_RECEIVED]);
-            $orderLines = PurchaseOrderLine::query()->where('purchase_order_id', $locked->id)->where('organisation_id', $lockedActor->organisation_id)->orderBy('id')->lockForUpdate()->get()->keyBy('public_id');
-            $plans = [];
-            foreach ($inputLines as $input) {
-                $line = $orderLines->get($input['line_public_id']);
-                if (! $line) {
-                    abort(404);
-                }
-                $remaining = (float) $line->ordered_quantity - (float) $line->received_quantity;
-                if ((float) $input['quantity'] > $remaining + 0.0001) {
-                    throw ValidationException::withMessages(['lines' => 'A received quantity exceeds the remaining Purchase Order quantity.']);
-                }
-                $plans[] = ['line' => $line, 'input' => $input];
+            $reference = $payload['delivery_reference'];
+            $referenceKey = (string) DB::scalar('SELECT upper(?)', [$reference]);
+            DB::select('SELECT pg_advisory_xact_lock(hashtext(?), hashtext(?))', ['verified-receiving-delivery', $actor->organisation_id.':'.$locked->supplier_id.':'.$branch->id.':'.$referenceKey]);
+            if (DB::table('inventory_receipt_delivery_evidence')->where('organisation_id', $actor->organisation_id)->where('supplier_id', $locked->supplier_id)->where('branch_id', $branch->id)->where('reference_key', $referenceKey)->exists()) {
+                throw ValidationException::withMessages(['delivery_reference' => 'This delivery reference is already recorded for this supplier at this branch.']);
             }
-            usort($plans, fn (array $left, array $right): int => $left['line']->inventory_sku_id <=> $right['line']->inventory_sku_id);
-            $skus = InventorySku::query()->where('organisation_id', $lockedActor->organisation_id)->where('is_active', true)->whereIn('id', array_map(fn (array $plan): int => $plan['line']->inventory_sku_id, $plans))->orderBy('id')->lockForUpdate()->get()->keyBy('id');
-            abort_unless($skus->count() === count($plans), 404);
+            $plans = $this->receiptPlan($actor, $locked, $branch, $payload);
+            $reasons = $this->exceptionReasons($plans);
+            $review = app(ReceivingReviewService::class)->approvedForPosting($actor, $locked, $branch, $payload, $attributes, $reasons);
             $publicId = (string) Str::uuid();
             $timestamp = now()->utc();
-            $inserted = DB::table('inventory_goods_receipts')->insertOrIgnore([
-                'public_id' => $publicId,
-                'organisation_id' => $lockedActor->organisation_id,
-                'purchase_order_id' => $locked->id,
-                'idempotency_key' => $key,
-                'request_hash' => $hash,
-                'received_by_user_id' => $lockedActor->id,
-                'received_at' => $timestamp,
-                'created_at' => $timestamp,
-                'updated_at' => $timestamp,
-            ]);
+            $inserted = DB::table('inventory_goods_receipts')->insertOrIgnore(['public_id' => $publicId, 'organisation_id' => $actor->organisation_id, 'purchase_order_id' => $locked->id, 'idempotency_key' => $key, 'request_hash' => $hash, 'received_by_user_id' => $actor->id, 'received_at' => $timestamp, 'created_at' => $timestamp, 'updated_at' => $timestamp]);
             if ($inserted === 0) {
-                $existing = GoodsReceipt::query()->where('organisation_id', $lockedActor->organisation_id)
-                    ->where('idempotency_key', $key)->lockForUpdate()->firstOrFail();
-
-                return $this->matchingReceiptOrFail($existing, $locked, $hash);
+                return $this->matchingReceiptOrFail(GoodsReceipt::query()->where('organisation_id', $actor->organisation_id)->where('idempotency_key', $key)->lockForUpdate()->firstOrFail(), $locked, $hash);
             }
-            $receipt = GoodsReceipt::query()->where('public_id', $publicId)->where('organisation_id', $lockedActor->organisation_id)->firstOrFail();
-
+            $receipt = GoodsReceipt::query()->where('public_id', $publicId)->firstOrFail();
+            DB::table('inventory_receipt_delivery_evidence')->insert(['organisation_id' => $actor->organisation_id, 'goods_receipt_id' => $receipt->id, 'branch_id' => $branch->id, 'supplier_id' => $locked->supplier_id, 'delivery_reference' => $reference, 'reference_key' => $referenceKey, 'received_by_user_id' => $actor->id, 'received_at' => $receipt->received_at, 'lock_version' => 1]);
             foreach ($plans as $plan) {
                 $line = $plan['line'];
-                $input = $plan['input'];
-                $sku = $skus->get($line->inventory_sku_id);
-                abort_unless($sku !== null, 404);
-                $batch = $this->resolveBatch($lockedActor, $branch, $sku, $input);
-                $receiptLine = new GoodsReceiptLine;
-                $unitCostSen = $input['unit_cost_sen'] ?? $line->estimated_unit_cost_sen;
-                $receiptLine->forceFill([
-                    'organisation_id' => $lockedActor->organisation_id,
-                    'goods_receipt_id' => $receipt->id,
-                    'purchase_order_line_id' => $line->id,
-                    'inventory_sku_id' => $sku->id,
-                    'inventory_batch_id' => $batch->id,
-                    'quantity' => $input['quantity'],
-                    'unit_cost_sen' => $unitCostSen,
-                ])->save();
-                $this->movements->recordPurchaseReceipt(
-                    $lockedActor,
-                    $destination,
-                    $sku,
-                    $batch,
-                    $input['quantity'],
-                    $receipt->public_id,
-                    $unitCostSen,
-                    $locked->supplier_id,
-                );
-                $line->forceFill(['received_quantity' => number_format((float) $line->received_quantity + (float) $input['quantity'], 3, '.', '')])->save();
+                $sku = $plan['sku'];
+                $stockIn = $plan['accepted'] + $plan['quarantined'];
+                $applied = min($stockIn, $plan['remaining']);
+                $lineId = DB::table('inventory_receipt_line_evidence')->insertGetId(['organisation_id' => $actor->organisation_id, 'goods_receipt_id' => $receipt->id, 'purchase_order_line_id' => $line->id, 'physical_quantity' => $plan['input']['physical_quantity'], 'accepted_quantity' => StockUnitQuantity::format($plan['accepted']), 'quarantined_quantity' => StockUnitQuantity::format($plan['quarantined']), 'rejected_quantity' => StockUnitQuantity::format($plan['rejected']), 'applied_order_quantity' => StockUnitQuantity::format($applied), 'overage_quantity' => StockUnitQuantity::format($stockIn - $applied)]);
+                foreach ($plan['input']['lots'] as $lot) {
+                    $batch = $lot['outcome'] === 'rejected' ? null : $this->resolveBatch($actor, $branch, $sku, $lot);
+                    $cost = $lot['unit_cost_sen'] ?? $line->estimated_unit_cost_sen;
+                    DB::table('inventory_receipt_lots')->insert(['line_evidence_id' => $lineId, 'inventory_batch_id' => $batch?->id, 'batch_number' => $lot['batch_number'], 'expiry_date' => $lot['expiry_date'], 'quantity' => $lot['quantity'], 'outcome' => $lot['outcome'], 'reason' => $lot['reason'], 'unit_cost_sen' => $cost]);
+                    if (! $batch) {
+                        continue;
+                    }
+                    $this->movements->recordPurchaseReceipt($actor, $destination, $sku, $batch, $lot['quantity'], $receipt->public_id, $cost, $locked->supplier_id);
+                    // Retain the legacy single-lot relation without fabricating a batch aggregate for split lots.
+                    if (count($plan['input']['lots']) === 1) {
+                        (new GoodsReceiptLine)->forceFill(['organisation_id' => $actor->organisation_id, 'goods_receipt_id' => $receipt->id, 'purchase_order_line_id' => $line->id, 'inventory_sku_id' => $sku->id, 'inventory_batch_id' => $batch->id, 'quantity' => $lot['quantity'], 'unit_cost_sen' => $cost])->save();
+                    }
+                    if ($lot['outcome'] === 'quarantined') {
+                        $state = DB::table('inventory_batch_hold_states')->where('inventory_batch_id', $batch->id)->where('branch_id', $branch->id)->first();
+                        if (! ($state->active_action_id ?? null)) {
+                            app(InventoryBatchHoldService::class)->act($actor, $batch->public_id, 'place', ['expected_branch_id' => $branch->id, 'lock_version' => $state->lock_version ?? 0, 'retry_key' => (string) Str::uuid(), 'reason' => $lot['reason'] === 'damaged' ? 'damaged' : 'other_safety']);
+                        }
+                    }
+                }
+                $next = StockUnitQuantity::scaled($line->received_quantity, true) + $applied;
+                $line->forceFill(['received_quantity' => StockUnitQuantity::format($next)])->save();
+            }
+            if ($review !== null) {
+                DB::table('inventory_receiving_consumptions')->insert(['review_id' => $review, 'goods_receipt_id' => $receipt->id, 'created_at' => now()->utc()]);
             }
             $hasRemaining = $locked->lines()->whereColumn('received_quantity', '<', 'ordered_quantity')->exists();
-            $locked->forceFill(['status' => $hasRemaining ? PurchaseOrder::STATUS_PARTIALLY_RECEIVED : PurchaseOrder::STATUS_FULLY_RECEIVED, 'lock_version' => $locked->lock_version + 1])->save();
-            $this->audit->record('inventory.goods_receipt.posted', $receipt, ['purchase_order_public_id' => $locked->public_id, 'line_count' => count($inputLines)], $lockedActor, $branch);
+            $hasReceived = $locked->lines()->where('received_quantity', '>', 0)->exists();
+            $status = ! $hasRemaining ? PurchaseOrder::STATUS_FULLY_RECEIVED : ($hasReceived ? PurchaseOrder::STATUS_PARTIALLY_RECEIVED : PurchaseOrder::STATUS_APPROVED);
+            $locked->forceFill(['status' => $status, 'lock_version' => $locked->lock_version + 1])->save();
+            abort_if($this->audit->record('inventory.goods_receipt.posted', $receipt, ['purchase_order_public_id' => $locked->public_id, 'line_count' => count($plans)], $actor, $branch) === null, 503, 'The receipt could not be audited. Nothing was posted.');
 
             return $receipt->load('lines');
         }, 3);
+    }
+
+    /**
+     * Caller owns the order lock.
+     *
+     * @param  array<string,mixed>  $payload
+     * @return list<array<string,mixed>>
+     */
+    public function receiptPlan(User $actor, PurchaseOrder $order, Branch $branch, array $payload): array
+    {
+        $lines = PurchaseOrderLine::query()->where('purchase_order_id', $order->id)->where('organisation_id', $actor->organisation_id)->orderBy('id')->lockForUpdate()->get()->keyBy('public_id');
+        $ids = [];
+        foreach ($payload['lines'] as $input) {
+            $line = $lines->get($input['line_public_id']);
+            abort_unless($line !== null, 404);
+            $ids[] = $line->inventory_sku_id;
+        }
+        $skus = InventorySku::query()->where('organisation_id', $actor->organisation_id)->whereIn('id', $ids)->orderBy('id')->lockForUpdate()->get()->keyBy('id');
+        $plans = [];
+        foreach ($payload['lines'] as $input) {
+            $line = $lines->get($input['line_public_id']);
+            $sku = $skus->get($line->inventory_sku_id);
+            abort_unless($sku && $sku->is_active && $sku->item()->where('is_active', true)->exists(), 404);
+            if (! $sku->expiry_tracking_required) {
+                throw ValidationException::withMessages(['lines' => 'This item has no expiry tracking. A real expiry date is required before it can be received. Review the item setup.']);
+            }
+            $totals = ['accepted' => 0, 'quarantined' => 0, 'rejected' => 0];
+            foreach ($input['lots'] as $lot) {
+                StockUnitQuantity::base($lot['quantity'], $sku->stock_unit, $lot['unit'] ?? null);
+                if ($lot['expiry_date'] <= now()->setTimezone($branch->timezone)->toDateString()) {
+                    throw ValidationException::withMessages(['lines' => 'Expired stock cannot be received as available inventory.']);
+                }
+                $totals[$lot['outcome']] += StockUnitQuantity::scaled($lot['quantity']);
+            }
+            $remaining = StockUnitQuantity::scaled($line->ordered_quantity, true) - StockUnitQuantity::scaled($line->received_quantity, true);
+            $plans[] = [...$totals, 'input' => $input, 'line' => $line, 'sku' => $sku, 'remaining' => $remaining];
+        }
+
+        return $plans;
+    }
+
+    /**
+     * @param  list<array<string,mixed>>  $plans
+     * @return list<string>
+     */
+    public function exceptionReasons(array $plans): array
+    {
+        $reasons = [];
+        foreach ($plans as $plan) {
+            if (StockUnitQuantity::scaled($plan['input']['physical_quantity']) > $plan['remaining']) {
+                $reasons[] = 'overage';
+            }
+            if ($plan['input']['short_delivery']) {
+                $reasons[] = 'short';
+            }
+            foreach ($plan['input']['lots'] as $lot) {
+                if ($lot['outcome'] !== 'accepted') {
+                    $reasons[] = match ($lot['reason']) {
+                        'damaged' => 'damaged', 'wrong_item' => 'wrong_item', 'short_expiry' => 'expiry_problem', default => 'documentation'
+                    };
+                }
+            }
+        }
+
+        return array_values(array_unique($reasons));
     }
 
     private function matchingReceiptOrFail(GoodsReceipt $receipt, PurchaseOrder $order, string $requestHash): GoodsReceipt
@@ -347,37 +397,12 @@ final class ProcurementService
             'lines.*.unit_cost_sen' => ['nullable', 'integer', 'min:0'],
         ])->validate()['lines'];
         foreach ($values as &$line) {
-            if ((float) $line['quantity'] <= 0) {
+            if (StockUnitQuantity::scaled($line['quantity'], true) === 0) {
                 throw ValidationException::withMessages(['lines' => 'Ordered quantities must be positive.']);
             }
-            $line['quantity'] = number_format((float) $line['quantity'], 3, '.', '');
+            $line['quantity'] = StockUnitQuantity::format(StockUnitQuantity::scaled($line['quantity']));
             $line['unit_cost_sen'] = isset($line['unit_cost_sen']) ? (int) $line['unit_cost_sen'] : null;
         }
-
-        return $values;
-    }
-
-    /** @return list<array{line_public_id:string,quantity:string,batch_number:?string,expiry_date:?string,unit_cost_sen:int|null}> */
-    private function validateReceiptLines(mixed $lines): array
-    {
-        $values = validator(['lines' => $lines], [
-            'lines' => ['required', 'array', 'min:1', 'max:100'],
-            'lines.*.line_public_id' => ['required', 'uuid', 'distinct'],
-            'lines.*.quantity' => ['required', 'regex:/^\d{1,12}(?:\.\d{1,3})?$/'],
-            'lines.*.batch_number' => ['nullable', 'string', 'max:100'],
-            'lines.*.expiry_date' => ['nullable', 'date_format:Y-m-d'],
-            'lines.*.unit_cost_sen' => ['nullable', 'integer', 'min:0'],
-        ])->validate()['lines'];
-        foreach ($values as &$line) {
-            if ((float) $line['quantity'] <= 0) {
-                throw ValidationException::withMessages(['lines' => 'Received quantities must be positive.']);
-            }
-            $line['quantity'] = number_format((float) $line['quantity'], 3, '.', '');
-            $line['batch_number'] = filled($line['batch_number'] ?? null) ? trim((string) $line['batch_number']) : null;
-            $line['expiry_date'] = $line['expiry_date'] ?? null;
-            $line['unit_cost_sen'] = isset($line['unit_cost_sen']) ? (int) $line['unit_cost_sen'] : null;
-        }
-        usort($values, fn (array $a, array $b): int => $a['line_public_id'] <=> $b['line_public_id']);
 
         return $values;
     }
@@ -388,11 +413,14 @@ final class ProcurementService
         if ($sku->batch_tracking_required && ! filled($input['batch_number'])) {
             throw ValidationException::withMessages(['lines' => 'A batch number is required for this SKU.']);
         }
-        if ($sku->expiry_tracking_required && ! filled($input['expiry_date'])) {
+        if (! $sku->expiry_tracking_required) {
+            throw ValidationException::withMessages(['lines' => 'This item has no expiry tracking. A real expiry date is required before it can be received. Review the item setup.']);
+        }
+        if (! filled($input['expiry_date'])) {
             throw ValidationException::withMessages(['lines' => 'An expiry date is required for this SKU.']);
         }
-        $batchNumber = $sku->batch_tracking_required ? (string) $input['batch_number'] : 'UNTRACKED-'.$sku->id;
-        $expiryDate = $sku->expiry_tracking_required ? (string) $input['expiry_date'] : '9999-12-31';
+        $batchNumber = (string) $input['batch_number'];
+        $expiryDate = (string) $input['expiry_date'];
         if ($expiryDate <= now()->setTimezone($branch->timezone)->toDateString()) {
             throw ValidationException::withMessages(['lines' => 'Expired stock cannot be received as available inventory.']);
         }

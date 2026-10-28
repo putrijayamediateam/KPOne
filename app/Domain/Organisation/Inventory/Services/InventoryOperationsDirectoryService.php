@@ -75,7 +75,7 @@ final class InventoryOperationsDirectoryService
     {
         return $this->groupLines(DB::table('inventory_purchase_order_lines as line')->join('inventory_skus as sku', 'sku.id', '=', 'line.inventory_sku_id')
             ->where('line.organisation_id', $organisationId)->whereIn('line.purchase_order_id', $purchaseOrderIds)->orderBy('line.purchase_order_id')->orderBy('line.id')
-            ->get(['line.purchase_order_id as parentId', 'line.public_id as publicId', 'sku.public_id as skuPublicId', 'sku.sku_code as sku', 'line.ordered_quantity as orderedQuantity', 'line.received_quantity as receivedQuantity']));
+            ->get(['line.purchase_order_id as parentId', 'line.public_id as publicId', 'sku.public_id as skuPublicId', 'sku.sku_code as sku', 'sku.stock_unit as stockUnit', 'line.ordered_quantity as orderedQuantity', 'line.received_quantity as receivedQuantity']));
     }
 
     /**

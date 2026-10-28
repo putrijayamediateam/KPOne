@@ -985,7 +985,7 @@ class InventoryOperationsTest extends ClinicalTestCase
     /** @return array<string, mixed> */
     private function receiptAttributes(PurchaseOrder $order, string $linePublicId, string $quantity, string $key, ?int $unitCostSen = null): array
     {
-        return [...$this->transition($order), 'idempotency_key' => $key, 'lines' => [['line_public_id' => $linePublicId, 'quantity' => $quantity, 'batch_number' => 'SYN-RECEIPT-BATCH', 'expiry_date' => '2028-12-31', 'unit_cost_sen' => $unitCostSen]]];
+        return [...$this->transition($order), 'idempotency_key' => $key, 'delivery_reference' => 'SYN-DELIVERY-'.$key, 'lines' => [['line_public_id' => $linePublicId, 'quantity' => $quantity, 'batch_number' => 'SYN-RECEIPT-BATCH', 'expiry_date' => '2028-12-31', 'unit_cost_sen' => $unitCostSen]]];
     }
 
     /** @return array<string, mixed> */

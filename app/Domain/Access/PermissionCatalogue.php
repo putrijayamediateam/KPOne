@@ -124,6 +124,7 @@ final class PermissionCatalogue
             'inventory.purchase_orders.create.organisation',
             'inventory.purchase_orders.approve.organisation',
             'inventory.receiving.branch',
+            'inventory.receiving.exceptions.approve.branch',
             'inventory.stock_requests.create.branch',
             'inventory.stock_requests.approve.branch',
             'inventory.transfers.dispatch.branch',
@@ -390,6 +391,10 @@ final class PermissionCatalogue
         }
         foreach (['finance_officer', 'director'] as $holder) {
             $roles[$holder][] = 'inventory.batch_holds.release.branch';
+        }
+
+        foreach (['ca_supervisor', 'finance_officer', 'director'] as $holder) {
+            $roles[$holder][] = 'inventory.receiving.exceptions.approve.branch';
         }
 
         return $roles;
