@@ -184,6 +184,17 @@ class InventoryMovementService
         return $this->debitOperation($actor, $location, $sku, $batch, $quantity, StockMovement::TYPE_ADJUSTMENT_OUT, 'inventory_receipt_correction', $correctionPublicId);
     }
 
+    /** New governed caller holds SKU, batch and balance locks inside its approval transaction. */
+    public function recordGovernedChange(User $actor, InventoryLocation $location, InventorySku $sku, InventoryBatch $batch, string $quantity, string $type, string $casePublicId): StockMovement
+    {
+        abort_unless(DB::transactionLevel() > 0, 500);
+        abort_unless(in_array($type, [StockMovement::TYPE_STOCKTAKE_GAIN, StockMovement::TYPE_STOCKTAKE_LOSS, StockMovement::TYPE_EXPIRY_WRITEOFF, StockMovement::TYPE_STOCK_WRITEOFF, StockMovement::TYPE_ADJUSTMENT_IN, StockMovement::TYPE_ADJUSTMENT_OUT], true), 422);
+
+        return in_array($type, [StockMovement::TYPE_STOCKTAKE_GAIN, StockMovement::TYPE_ADJUSTMENT_IN], true)
+            ? $this->creditOperation($actor, $location, $sku, $batch, $quantity, $type, 'inventory_governed_case', $casePublicId)
+            : $this->debitOperation($actor, $location, $sku, $batch, $quantity, $type, 'inventory_governed_case', $casePublicId);
+    }
+
     private function creditOperation(User $actor, InventoryLocation $location, InventorySku $sku, InventoryBatch $batch, mixed $quantity, string $type, string $referenceType, string $referencePublicId): StockMovement
     {
         $this->assertOperationReferences($actor, $location, $sku, $batch);
