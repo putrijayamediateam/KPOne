@@ -175,6 +175,17 @@ const clearFilters = () => {
 </script>
 
 <template>
+    <div class="flex flex-wrap gap-3 px-4">
+        <a
+            href="/inventory/counts"
+            class="inline-flex min-h-11 items-center underline"
+            >Stock count (governed)</a
+        ><a
+            href="/inventory/writeoffs"
+            class="inline-flex min-h-11 items-center underline"
+            >Write-off (governed)</a
+        >
+    </div>
     <a
         href="/inventory/stock-review"
         class="inline-flex min-h-11 items-center px-4 underline"
