@@ -1,8 +1,10 @@
 # KPOne project
 
-Latest merged delivery: PR #183 — STK-3 verified receiving and immutable order evidence, merged as `de3452f`. Recent merges, newest first
+Latest merged delivery: PR #186 — STK-5 independent stock count and write-off approval, merged as `eba4336`. Recent merges, newest first
 (documentation-only PRs omitted):
 
+- PR #186 (`eba4336`) — STK-5: governed stock count and write-off path (frozen source snapshots, independent recount, approval by someone other than the counter, recounter and proposer, atomic reason-coded movement, linked reversal proposals) and the new `inventory.variances.approve.branch` permission for `ca_supervisor`, `finance_officer` and `director`. The legacy demo stocktake and manual adjustment path is untouched and remains a pilot-blocking bypass until STK-6A.
+- PR #185 (`0d78ede`) — STK-4: owned stock and expiry review (low stock, expiring within 90 days, expired on hand) with append-only acknowledgements and the new `inventory.stock_reviews.manage.branch` permission for `ca_supervisor`, `finance_officer` and `director`.
 - PR #183 (`de3452f`) — STK-3: verified receiving (required delivery reference, split lots, accepted, quarantined and rejected outcomes, independent exception approval, reversing corrections, exact quantities); a real expiry date is now required on every new receipt.
 - PR #182 (`dded476`) — STK-2: branch batch safety holds (release by a different person), one shared batch eligibility rule at Save, Complete and pickers, and controlled FEFO exception reasons.
 - PR #181 (`bc614ac`) — unknown date of birth: explicit adult confirmation by staff, kept as append-only evidence.
