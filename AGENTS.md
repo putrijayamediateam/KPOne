@@ -4,7 +4,7 @@ These rules apply to the entire repository.
 
 ## Non-negotiable boundaries
 
-- KPOne is independent of `MiniWeb_KlinikPutrijaya_Fullstack`. Do not import MiniWeb code, access its database, or add a runtime dependency on its code, files or availability. The only permitted integration is the owner-approved publication of static website snapshots to a configured storage destination and the public website's configured Staff Login navigation to KPOne. The snapshot contract must remain independent of MiniWeb implementation code.
+- KPOne is independent of `MiniWeb_KlinikPutrijaya_Fullstack`. Do not import MiniWeb code, access its database, or add a runtime dependency on its code, files or availability. The only permitted integration is the owner-approved publication of static website snapshots to a configured storage destination and the public website's configured Staff Login navigation to KPOne. The snapshot contract must remain independent of MiniWeb implementation code. Changes to the MiniWeb website are made in the MiniWeb repository under its own AGENTS.md, never from within a KPOne change.
 - Never create, read, print, or commit a real `.env`. Work from `.env.example` placeholders only.
 - Never add real patient data, staff personal data, employee names, private email addresses, phone numbers, credentials, tokens, or operational secrets.
 - Use fictional `.test` identities in tests and local-only seeders.

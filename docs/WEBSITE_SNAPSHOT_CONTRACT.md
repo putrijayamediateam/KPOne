@@ -9,6 +9,8 @@ provisioning, deployment or cutover is authorised by this document.
 The existing website keeps its presentation, extensionless URLs and service-detail
 query URLs. KPOne remains independent of MiniWeb code, its database and runtime
 availability. The interface is static public JSON and images, not imported code.
+Changes to the MiniWeb website are made in the MiniWeb repository under its own
+AGENTS.md, never from within a KPOne change.
 
 ## 1. Data flow and authority
 
@@ -211,9 +213,11 @@ A separate snapshot bucket isolates it from private KPOne storage and website co
 Pages was considered but would require separate deployment orchestration; R2 fits
 immutable content objects plus one pointer without deploying website code.
 
-The owner holds Cloudflare administration. KPOne receives only an Object Read &
-Write upload credential restricted to the snapshot bucket, stored in the hosting
-provider's secret store and accessed through server-side Laravel configuration.
+The owner holds Cloudflare administration, including account, bucket and DNS
+administration (owner decision 2026-10-29; supersedes the 2026-10-26 IT-person/agency
+custody decision). KPOne receives only an Object Read & Write upload credential
+restricted to the snapshot bucket, stored in the hosting provider's secret store
+and accessed through server-side Laravel configuration.
 It receives no account-admin, DNS, Pages-deployment or private-storage credential.
 Bucket-level permission does not promise prefix-level or write-only isolation.
 Administrative provisioning and emergency recovery use the owner's separate access.
@@ -448,10 +452,11 @@ owner-controlled procedure, with Director-only publication/restoration unchanged
 3. An authorised Director activates the safe publication. If none is safe, the owner
    authorises a controlled emergency website release with safe static information;
    do not silently reactivate MySQL or bypass approval checks.
-4. Under explicit owner approval, the Cloudflare administrator removes/blocks the
-   affected public objects and purges affected CDN URLs. Do not mutate historical
-   files in place under an existing immutable hash. Recheck direct URLs and alternate
-   public access paths; never enable `r2.dev` as a bypass.
+4. With explicit owner approval, the owner removes/blocks the affected public
+   objects and purges affected CDN URLs using the separate administrative access
+   defined in section 5. Do not mutate historical files in place under an existing
+   immutable hash. Recheck direct URLs and alternate public access paths; never
+   enable `r2.dev` as a bypass.
 5. Replace affected website-bundled baselines/images in an emergency website release.
    Connected clients must not continue selecting a known taken-down cache; the later
    takedown implementation must define/test cache invalidation before cutover. A
@@ -502,8 +507,9 @@ reconciliation, complete baseline/cache gates, retention/takedown and timed dril
   explicit mapping/decision before the affected domain moves.
 - Exact snapshot custom domain, Staff Login URL and snapshot base URL remain unset;
   the owner must confirm them before later configured deployment/cutover.
-- The owner holds Cloudflare administration. Assign the monthly baseline-refresh
-  and incident operators before cutover, without granting new publishing roles.
+- Assign the monthly baseline-refresh and incident operators before cutover,
+  without changing the administration custody defined in section 5 or granting new
+  publishing roles.
 - Cache eviction and first visits require a baseline; offline freshness/recall is
   impossible. R2 and Pages also share a provider, so separate origins do not remove
   every correlated outage risk.
