@@ -235,7 +235,7 @@ watch(
         <h1 class="text-2xl font-semibold">{{ title }}</h1>
         <p>{{ stock.branchName }}</p>
         <p class="rounded border border-amber-500 p-3 text-sm">
-            Known pilot limit: {{ stock.legacyLimit }}
+            Stock controls: {{ stock.legacyLimit }}
         </p>
         <p class="text-sm text-muted-foreground">
             One saved snapshot per SKU, batch and location. Non-zero variance

@@ -16,6 +16,7 @@ use App\Domain\Organisation\Inventory\Services\InventoryAuthorityService;
 use App\Domain\Organisation\Inventory\Services\InventoryControlService;
 use App\Domain\Organisation\Inventory\Services\InventoryMovementService;
 use App\Domain\Organisation\Inventory\Services\InventoryReferenceAdministrationService;
+use App\Domain\Organisation\Inventory\Services\LegacyStockPath;
 use App\Domain\Organisation\Inventory\Services\ProcurementService;
 use App\Domain\Organisation\Inventory\Services\StockRequestService;
 use App\Domain\Organisation\Inventory\Services\SupplierAdministrationService;
@@ -30,9 +31,13 @@ use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use LogicException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+use Tests\Support\AssertsLegacyStockRefusal;
+use Tests\Support\LegacyStockHistoryFixture;
 
 class InventoryOperationsTest extends ClinicalTestCase
 {
+    use AssertsLegacyStockRefusal;
+
     public function test_supplier_governance_is_tenant_scoped_unique_and_retains_purchase_history(): void
     {
         $finance = $this->actor('finance_officer');
@@ -629,44 +634,38 @@ class InventoryOperationsTest extends ClinicalTestCase
         $fixture = $this->inventoryFixture($supervisor, 'P2-ST');
         app(InventoryMovementService::class)->openingBalance($supervisor, $this->opening($fixture, '10.000'));
         $service = app(InventoryControlService::class);
-        $stocktake = $service->createStocktake($supervisor, ['expected_branch_id' => $this->branch->id, 'location_public_id' => $fixture['location']->public_id]);
+        $stocktake = LegacyStockHistoryFixture::stocktake($supervisor, $fixture, 'posted', '10.000', '12.000');
         $this->assertSame('10.000', $stocktake->lines()->sole()->expected_quantity);
-        $stocktake = $service->startCounting($supervisor, $stocktake, $this->stocktakeTransition($stocktake));
         $line = $stocktake->lines()->sole();
-        $stocktake = $service->recordCounts($supervisor, $stocktake, [...$this->stocktakeTransition($stocktake), 'lines' => [['line_public_id' => $line->public_id, 'physical_quantity' => '12.000']]]);
-        $stocktake = $service->postStocktake($supervisor, $stocktake, $this->stocktakeTransition($stocktake));
+        LegacyStockHistoryFixture::movement($supervisor, $fixture, 'stocktake_gain', '2.000', $stocktake->public_id);
+        $this->expectLegacyRefusal(fn () => $service->postStocktake($supervisor, $stocktake, $this->stocktakeTransition($stocktake)));
         $this->assertSame(InventoryStocktake::STATUS_POSTED, $stocktake->status);
         $this->assertDatabaseHas('inventory_stock_balances', ['inventory_location_id' => $fixture['location']->id, 'quantity' => 12]);
         $this->assertSame(1, DB::table('stock_movements')->where('movement_type', StockMovement::TYPE_STOCKTAKE_GAIN)->count());
-        $this->expectValidation(fn () => $service->postStocktake($supervisor, $stocktake, $this->stocktakeTransition($stocktake)), 'stocktake');
+        $this->expectLegacyRefusal(fn () => $service->postStocktake($supervisor, $stocktake, $this->stocktakeTransition($stocktake)));
 
-        $loss = $service->createStocktake($supervisor, ['expected_branch_id' => $this->branch->id, 'location_public_id' => $fixture['location']->public_id]);
-        $loss = $service->startCounting($supervisor, $loss, $this->stocktakeTransition($loss));
+        $loss = LegacyStockHistoryFixture::stocktake($supervisor, $fixture, 'posted', '12.000', '11.000');
         $lossLine = $loss->lines()->sole();
-        $loss = $service->recordCounts($supervisor, $loss, [...$this->stocktakeTransition($loss), 'lines' => [['line_public_id' => $lossLine->public_id, 'physical_quantity' => '11.000']]]);
-        $service->postStocktake($supervisor, $loss, $this->stocktakeTransition($loss));
+        LegacyStockHistoryFixture::movement($supervisor, $fixture, 'stocktake_loss', '1.000', $loss->public_id);
+        $this->expectLegacyRefusal(fn () => $service->postStocktake($supervisor, $loss, $this->stocktakeTransition($loss)));
         $this->assertDatabaseHas('inventory_stock_balances', ['inventory_location_id' => $fixture['location']->id, 'quantity' => 11]);
         $this->assertSame(1, DB::table('stock_movements')->where('movement_type', StockMovement::TYPE_STOCKTAKE_LOSS)->count());
 
-        $stale = $service->createStocktake($supervisor, ['expected_branch_id' => $this->branch->id, 'location_public_id' => $fixture['location']->public_id]);
-        $stale = $service->startCounting($supervisor, $stale, $this->stocktakeTransition($stale));
+        $stale = LegacyStockHistoryFixture::stocktake($supervisor, $fixture, 'review', '11.000', '11.000');
         $staleLine = $stale->lines()->sole();
-        $stale = $service->recordCounts($supervisor, $stale, [...$this->stocktakeTransition($stale), 'lines' => [['line_public_id' => $staleLine->public_id, 'physical_quantity' => '11.000']]]);
-        $service->adjust($supervisor, [...$this->adjustment($fixture, 'in', '1.000'), 'reason_code' => 'found_stock']);
-        $this->expectValidation(fn () => $service->postStocktake($supervisor, $stale, $this->stocktakeTransition($stale)), 'stocktake');
+        LegacyStockHistoryFixture::adjustment($supervisor, $fixture, 'in', '1.000', 'found_stock');
+        $this->expectLegacyRefusal(fn () => $service->postStocktake($supervisor, $stale, $this->stocktakeTransition($stale)));
         $this->assertSame(InventoryStocktake::STATUS_REVIEW, $stale->refresh()->status);
         $this->assertDatabaseHas('inventory_stock_balances', ['inventory_location_id' => $fixture['location']->id, 'quantity' => 12]);
 
-        $newKey = $service->createStocktake($supervisor, ['expected_branch_id' => $this->branch->id, 'location_public_id' => $fixture['location']->public_id]);
-        $newKey = $service->startCounting($supervisor, $newKey, $this->stocktakeTransition($newKey));
+        $newKey = LegacyStockHistoryFixture::stocktake($supervisor, $fixture, 'review', '12.000', '12.000');
         $newKeyLine = $newKey->lines()->sole();
-        $newKey = $service->recordCounts($supervisor, $newKey, [...$this->stocktakeTransition($newKey), 'lines' => [['line_public_id' => $newKeyLine->public_id, 'physical_quantity' => '12.000']]]);
         $additional = $this->inventoryFixture($supervisor, 'P2-ST-NEW');
         $additional['location'] = $fixture['location'];
-        $service->adjust($supervisor, [...$this->adjustment($additional, 'in', '2.000'), 'reason_code' => 'found_stock']);
+        LegacyStockHistoryFixture::adjustment($supervisor, $additional, 'in', '2.000', 'found_stock');
         $stocktakeMovementCount = DB::table('stock_movements')->whereIn('movement_type', [StockMovement::TYPE_STOCKTAKE_GAIN, StockMovement::TYPE_STOCKTAKE_LOSS])->count();
 
-        $this->expectValidation(fn () => $service->postStocktake($supervisor, $newKey, $this->stocktakeTransition($newKey)), 'stocktake');
+        $this->expectLegacyRefusal(fn () => $service->postStocktake($supervisor, $newKey, $this->stocktakeTransition($newKey)));
 
         $this->assertSame(InventoryStocktake::STATUS_REVIEW, $newKey->refresh()->status);
         $this->assertSame($stocktakeMovementCount, DB::table('stock_movements')->whereIn('movement_type', [StockMovement::TYPE_STOCKTAKE_GAIN, StockMovement::TYPE_STOCKTAKE_LOSS])->count());
@@ -780,7 +779,7 @@ class InventoryOperationsTest extends ClinicalTestCase
         $this->selectBranch($supervisor);
         app(InventoryMovementService::class)->openingBalance($supervisor, $this->opening($fixture, '10.000'));
         foreach ([1, 2] as $_) {
-            app(InventoryControlService::class)->createStocktake($supervisor, ['expected_branch_id' => $this->branch->id, 'location_public_id' => $fixture['location']->public_id]);
+            LegacyStockHistoryFixture::stocktake($supervisor, $fixture);
         }
 
         $lineQueries = ['inventory_purchase_order_lines' => 0, 'inventory_stock_request_lines' => 0, 'inventory_stocktake_lines' => 0];
@@ -805,9 +804,10 @@ class InventoryOperationsTest extends ClinicalTestCase
         $this->selectBranch($supervisor);
         $fixture = $this->inventoryFixture($supervisor, 'P2-ADJ');
         $service = app(InventoryControlService::class);
-        $service->adjust($supervisor, $this->adjustment($fixture, 'in', '5.000'));
-        $this->expectValidation(fn () => $service->adjust($supervisor, [...$this->adjustment($fixture, 'in', '1.000'), 'reason_code' => '']), 'reason_code');
-        $this->expectValidation(fn () => $service->adjust($supervisor, $this->adjustment($fixture, 'out', '6.000')), 'quantity');
+        LegacyStockHistoryFixture::adjustment($supervisor, $fixture, 'in', '5.000');
+        $this->expectLegacyRefusal(fn () => $service->adjust($supervisor, $this->adjustment($fixture, 'in', '5.000')));
+        $this->expectLegacyRefusal(fn () => $service->adjust($supervisor, [...$this->adjustment($fixture, 'in', '1.000'), 'reason_code' => '']));
+        $this->expectLegacyRefusal(fn () => $service->adjust($supervisor, $this->adjustment($fixture, 'out', '6.000')));
         $this->assertSame(1, DB::table('inventory_adjustments')->count());
         $this->assertDatabaseHas('inventory_stock_balances', ['inventory_location_id' => $fixture['location']->id, 'quantity' => 5]);
         $service->setReorderLevel($supervisor, ['expected_branch_id' => $this->branch->id, 'location_public_id' => $fixture['location']->public_id, 'sku_public_id' => $fixture['sku']->public_id, 'reorder_level' => '5.000']);
@@ -852,21 +852,24 @@ class InventoryOperationsTest extends ClinicalTestCase
         $key = (string) Str::uuid();
         $input = [...$this->adjustment($fixture, 'in', '5.000'), 'idempotency_key' => $key];
 
-        $first = $service->adjust($supervisor, $input);
-        $again = $service->adjust($supervisor, $input);
-        $this->assertSame($first->id, $again->id);
-        $this->assertSame(1, DB::table('inventory_adjustments')->count());
-        $this->assertSame(1, DB::table('stock_movements')->where('movement_type', StockMovement::TYPE_ADJUSTMENT_IN)->count());
-        $this->assertSame(1, DB::table('audit_logs')->where('event', 'inventory.adjustment.posted')->count());
-        $this->assertDatabaseHas('inventory_stock_balances', ['inventory_location_id' => $fixture['location']->id, 'quantity' => 5]);
+        $before = $this->legacyStockSnapshot();
+        $this->expectLegacyRefusal(fn () => $service->adjust($supervisor, $input));
+        $this->expectLegacyRefusal(fn () => $service->adjust($supervisor, $input));
+        $this->assertSame($before, $this->legacyStockSnapshot());
+        $this->assertSame(0, DB::table('inventory_adjustments')->count());
+        $this->assertSame(0, DB::table('stock_movements')->where('movement_type', StockMovement::TYPE_ADJUSTMENT_IN)->count());
+        $this->assertSame(0, DB::table('audit_logs')->where('event', 'inventory.adjustment.posted')->count());
+        $this->assertDatabaseMissing('inventory_stock_balances', ['inventory_location_id' => $fixture['location']->id]);
 
-        $this->expectValidation(fn () => $service->adjust($supervisor, [...$input, 'quantity' => '6.000']), 'idempotency_key');
-        $this->assertSame(1, DB::table('inventory_adjustments')->count());
-        $this->assertSame(1, DB::table('stock_movements')->where('movement_type', StockMovement::TYPE_ADJUSTMENT_IN)->count());
-        $this->assertDatabaseHas('inventory_stock_balances', ['inventory_location_id' => $fixture['location']->id, 'quantity' => 5]);
+        $this->expectLegacyRefusal(fn () => $service->adjust($supervisor, [...$input, 'quantity' => '6.000']));
+        $this->assertSame(0, DB::table('inventory_adjustments')->count());
+        $this->assertSame(0, DB::table('stock_movements')->where('movement_type', StockMovement::TYPE_ADJUSTMENT_IN)->count());
+        $this->assertDatabaseMissing('inventory_stock_balances', ['inventory_location_id' => $fixture['location']->id]);
 
         $this->post(route('inventory.adjustments.store'), [...$this->adjustment($fixture, 'in', '1.000'), 'idempotency_key' => $key])
-            ->assertSessionHasErrors('idempotency_key');
+            ->assertRedirect(route('inventory.index'))
+            ->assertSessionHasErrors(['legacy_stock_path' => LegacyStockPath::MESSAGE]);
+        $this->assertSame($before, $this->legacyStockSnapshot());
     }
 
     public function test_inventory_operations_permissions_are_explicit_and_technical_admin_has_none(): void
@@ -933,7 +936,7 @@ class InventoryOperationsTest extends ClinicalTestCase
         $supervisor = $this->actor('ca_supervisor');
         $this->selectBranch($supervisor);
         $fixture = $this->inventoryFixture($supervisor, 'IMMUTABLE');
-        $adjustment = app(InventoryControlService::class)->adjust($supervisor, $this->adjustment($fixture, 'in', '1.000'));
+        $adjustment = LegacyStockHistoryFixture::adjustment($supervisor, $fixture, 'in', '1.000');
         $this->expectException(LogicException::class);
         $adjustment->delete();
     }

@@ -152,7 +152,7 @@ test('Inventory Operations uses KPOne controls and server-backed idempotent endp
         assert.match(component, new RegExp(label));
     }
 
-    assert.match(component, /<OperationalSelect/g);
+    assert.match(component, /<InventorySearchSelect/g);
     assert.doesNotMatch(component, /<select\b/i);
     assert.match(component, /crypto\.randomUUID\(\)/);
     assert.match(component, /useRemember<InventoryReceiptRememberedVault>/);
@@ -171,7 +171,7 @@ test('Inventory Operations uses KPOne controls and server-backed idempotent endp
         /receipt_session_nonce:\s*props\.receiptMemoryContext\.sessionNonce/,
     );
     assert.match(component, /consumeInventoryReceiptIntent/);
-    assert.match(component, /adjustmentIdentity\.value = undefined/);
+    assert.doesNotMatch(component, /adjustmentIdentity/);
     assert.match(component, /errorBag: 'inventoryOperations'/);
     assert.match(component, /onError: \(errors\)/);
     assert.match(component, /role="alert"/);
@@ -179,8 +179,8 @@ test('Inventory Operations uses KPOne controls and server-backed idempotent endp
     assert.match(component, /confirmPurchaseOrderReceipt/);
     assert.match(component, /confirmStockRequestDispatch/);
     assert.match(component, /confirmStockRequestReceipt/);
-    assert.match(component, /confirmStocktakeTransition/);
-    assert.match(component, /confirmAdjustment/);
+    assert.doesNotMatch(component, /confirmStocktakeTransition/);
+    assert.doesNotMatch(component, /confirmAdjustment/);
     assert.match(component, /updatePurchaseOrder/);
     assert.match(component, />Update draft</);
     assert.match(component, /addPurchaseOrderLine/);

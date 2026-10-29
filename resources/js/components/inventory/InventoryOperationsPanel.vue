@@ -9,16 +9,13 @@ import VerifiedReceivingForm from '@/components/inventory/VerifiedReceivingForm.
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import OperationalConfirmDialog from '@/components/ui/OperationalConfirmDialog.vue';
-import { OperationalSelect } from '@/components/ui/select';
 import { StatusBadge } from '@/components/ui/status';
 import {
     purchaseOrderActionAllowed,
     stockRequestActionAllowed,
-    stocktakeActionAllowed,
 } from '@/lib/inventory-operation-transitions';
 import type {
     InventoryDocument as DocumentRow,
-    InventoryIntentIdentity,
     InventoryOperations,
     InventoryReceiptMemoryContext,
     InventoryReceiptRememberedState,
@@ -28,7 +25,6 @@ import {
     consumeInventoryReceiptIntent,
     emptyInventoryReceiptRememberedVault,
     firstInventoryOperationError,
-    inventoryIntentIdentity,
     inventoryOperationErrorContext,
     inventoryReceiptRememberContext,
     inventoryReceiptDrafts,
@@ -169,18 +165,6 @@ const stockRequest = reactive({
     lines: [blankLine()],
 });
 const dispatchBatch = reactive<Record<string, string>>({});
-const stocktakeLocation = ref('');
-const physicalCounts = reactive<Record<string, string>>({});
-const adjustment = reactive({
-    location: '',
-    sku: '',
-    batch: '',
-    direction: 'in',
-    quantity: '',
-    reason: 'correction',
-    note: '',
-});
-const adjustmentIdentity = ref<InventoryIntentIdentity>();
 const reorder = reactive({ location: '', sku: '', level: '' });
 const canPurchase = (
     row: DocumentRow,
@@ -577,88 +561,6 @@ const confirmStockRequestReceipt = (row: DocumentRow) =>
             'This credits the dispatched batches to the destination location exactly once.',
         confirmLabel: 'Confirm receipt',
         action: () => receiveStockRequest(row),
-    });
-const createStocktake = () =>
-    send(
-        'post',
-        '/inventory/stocktakes',
-        {
-            expected_branch_id: props.operations.expectedBranchId,
-            location_public_id: stocktakeLocation.value,
-        },
-        () => (stocktakeLocation.value = ''),
-    );
-const transitionStocktake = (row: DocumentRow, action: string) =>
-    send('post', `/inventory/stocktakes/${row.publicId}/${action}`, {
-        ...version(row),
-        ...(action === 'count'
-            ? {
-                  lines: row.lines.map((line) => ({
-                      line_public_id: line.publicId,
-                      physical_quantity: physicalCounts[line.publicId] ?? '',
-                  })),
-              }
-            : {}),
-    });
-const confirmStocktakeTransition = (row: DocumentRow, action: string) =>
-    requestConfirmation({
-        title:
-            action === 'post'
-                ? `Post ${row.number} variance?`
-                : `Cancel ${row.number}?`,
-        description:
-            action === 'post'
-                ? 'This posts append-only gain or loss movements after rechecking the captured balance versions.'
-                : 'Cancellation preserves the count history and creates no stock movement.',
-        confirmLabel: action === 'post' ? 'Post variance' : 'Cancel stocktake',
-        destructive: action === 'cancel',
-        action: () => transitionStocktake(row, action),
-    });
-const postAdjustment = () => {
-    const signature = JSON.stringify({
-        location_public_id: adjustment.location,
-        sku_public_id: adjustment.sku,
-        batch_public_id: adjustment.batch,
-        direction: adjustment.direction,
-        quantity: Number(adjustment.quantity).toFixed(3),
-        reason_code: adjustment.reason,
-        reason_note: adjustment.note.trim() || null,
-    });
-    const identity = inventoryIntentIdentity(
-        adjustmentIdentity.value,
-        signature,
-        () => crypto.randomUUID(),
-    );
-    adjustmentIdentity.value = identity;
-    send(
-        'post',
-        '/inventory/adjustments',
-        {
-            expected_branch_id: props.operations.expectedBranchId,
-            location_public_id: adjustment.location,
-            sku_public_id: adjustment.sku,
-            batch_public_id: adjustment.batch,
-            direction: adjustment.direction,
-            quantity: adjustment.quantity,
-            reason_code: adjustment.reason,
-            reason_note: adjustment.note || null,
-            idempotency_key: identity.key,
-        },
-        () => {
-            adjustment.quantity = '';
-            adjustment.note = '';
-            adjustmentIdentity.value = undefined;
-        },
-    );
-};
-const confirmAdjustment = () =>
-    requestConfirmation({
-        title: 'Post manual adjustment?',
-        description:
-            'This creates a permanent stock movement with the selected controlled reason.',
-        confirmLabel: 'Post adjustment',
-        destructive: adjustment.direction === 'out',
-        action: postAdjustment,
     });
 const saveReorder = () =>
     send('put', '/inventory/reorder-levels', {
@@ -1125,22 +1027,22 @@ const saveReorder = () =>
         <div class="grid gap-4 xl:grid-cols-3">
             <section class="space-y-3 rounded-xl border bg-card p-4">
                 <h3 class="font-semibold">Stocktake</h3>
-                <form
-                    v-if="operations.permissions.stocktake"
-                    class="space-y-2"
-                    @submit.prevent="createStocktake"
-                >
-                    <InventorySearchSelect
-                        v-model="stocktakeLocation"
-                        label="Count location"
-                        :options="locationOptions"
-                        kind="locations"
-                        context="operations"
-                        :expected-branch-id="operations.expectedBranchId"
-                    /><Button type="submit" :disabled="busy"
-                        >Create snapshot</Button
+                <p class="text-sm text-muted-foreground">
+                    Legacy stocktake and manual adjustment are read-only. Use
+                    the governed workflow.
+                </p>
+                <div class="flex flex-wrap gap-2">
+                    <a
+                        class="inline-flex min-h-11 items-center underline"
+                        href="/inventory/counts"
+                        >Stock count (governed)</a
                     >
-                </form>
+                    <a
+                        class="inline-flex min-h-11 items-center underline"
+                        href="/inventory/writeoffs"
+                        >Write-off (governed)</a
+                    >
+                </div>
                 <article
                     v-for="row in operations.stocktakes"
                     :key="row.publicId"
@@ -1150,131 +1052,42 @@ const saveReorder = () =>
                         <span class="font-mono text-xs">{{ row.number }}</span
                         ><StatusBadge :status="row.status" />
                     </div>
-                    <Button
-                        v-if="
-                            operations.permissions.stocktake &&
-                            stocktakeActionAllowed(row.status, 'start')
-                        "
-                        size="sm"
-                        @click="transitionStocktake(row, 'start')"
-                        >Start counting</Button
+                    <div
+                        v-for="line in row.lines"
+                        :key="line.publicId"
+                        class="text-xs break-words"
                     >
-                    <form
-                        v-if="
-                            operations.permissions.stocktake &&
-                            stocktakeActionAllowed(row.status, 'count')
-                        "
-                        class="space-y-2"
-                        @submit.prevent="transitionStocktake(row, 'count')"
-                    >
-                        <label
-                            v-for="line in row.lines"
-                            :key="line.publicId"
-                            class="grid grid-cols-2 items-center gap-2 text-xs"
-                            ><span
-                                >{{ line.sku }} / {{ line.batch }} ({{
-                                    line.expectedQuantity
-                                }})</span
-                            ><Input
-                                v-model="physicalCounts[line.publicId]"
-                                aria-label="Physical quantity"
-                                required
-                        /></label>
-                        <Button size="sm">Send to review</Button>
-                    </form>
-                    <Button
-                        v-if="
-                            operations.permissions.stocktake &&
-                            stocktakeActionAllowed(row.status, 'post')
-                        "
-                        size="sm"
-                        @click="confirmStocktakeTransition(row, 'post')"
-                        >Post variance</Button
-                    >
-                    <Button
-                        v-if="
-                            operations.permissions.stocktake &&
-                            stocktakeActionAllowed(row.status, 'cancel')
-                        "
-                        size="sm"
-                        variant="secondary"
-                        @click="confirmStocktakeTransition(row, 'cancel')"
-                        >Cancel stocktake</Button
-                    >
+                        {{ line.sku }} / {{ line.batch }} · Expected
+                        {{ line.expectedQuantity }} · Counted
+                        {{ line.physicalQuantity ?? 'Not recorded' }} · Variance
+                        {{ line.varianceQuantity ?? 'Not recorded' }}
+                    </div>
                 </article>
             </section>
 
             <section class="space-y-3 rounded-xl border bg-card p-4">
                 <h3 class="font-semibold">Manual Adjustment</h3>
-                <form
-                    v-if="operations.permissions.adjust"
-                    class="space-y-2"
-                    @submit.prevent="confirmAdjustment"
+                <p class="text-sm text-muted-foreground">
+                    Read-only legacy history. New changes require governed
+                    approval.
+                </p>
+                <article
+                    v-for="row in operations.adjustments"
+                    :key="row.publicId"
+                    class="space-y-1 rounded-lg border p-3 text-sm break-words"
                 >
-                    <InventorySearchSelect
-                        v-model="adjustment.location"
-                        label="Location"
-                        :options="locationOptions"
-                        kind="locations"
-                        context="operations"
-                        :expected-branch-id="operations.expectedBranchId"
-                    />
-                    <InventorySearchSelect
-                        v-model="adjustment.sku"
-                        label="SKU"
-                        :options="skuOptions"
-                        kind="skus"
-                        context="operations"
-                        :expected-branch-id="operations.expectedBranchId"
-                    />
-                    <InventorySearchSelect
-                        v-model="adjustment.batch"
-                        label="Batch"
-                        :options="batchOptions(adjustment.sku)"
-                        kind="batches"
-                        context="operations"
-                        :expected-branch-id="operations.expectedBranchId"
-                        :sku="adjustment.sku"
-                    />
-                    <div class="grid grid-cols-2 gap-2">
-                        <OperationalSelect
-                            v-model="adjustment.direction"
-                            label="Direction"
-                            :options="[
-                                { value: 'in', label: 'Adjustment in' },
-                                { value: 'out', label: 'Adjustment out' },
-                            ]"
-                        /><Input
-                            v-model="adjustment.quantity"
-                            aria-label="Adjustment quantity"
-                            placeholder="Quantity"
-                            required
-                        />
-                    </div>
-                    <OperationalSelect
-                        v-model="adjustment.reason"
-                        label="Controlled reason"
-                        :options="[
-                            { value: 'correction', label: 'Correction' },
-                            { value: 'damage', label: 'Damage' },
-                            { value: 'found_stock', label: 'Found stock' },
-                            {
-                                value: 'count_variance',
-                                label: 'Count variance',
-                            },
-                            { value: 'other', label: 'Other' },
-                        ]"
-                    />
-                    <Input
-                        v-model="adjustment.note"
-                        aria-label="Adjustment note"
-                        placeholder="Optional note"
-                        maxlength="300"
-                    />
-                    <Button type="submit" :disabled="busy"
-                        >Post adjustment</Button
-                    >
-                </form>
+                    <p>{{ row.sku }} / {{ row.batch }} · {{ row.location }}</p>
+                    <p>
+                        {{ row.direction }} {{ row.quantity }} ·
+                        {{ row.reasonCode }} · {{ row.postedAt }}
+                    </p>
+                </article>
+                <p
+                    v-if="operations.adjustments.length === 0"
+                    class="text-sm text-muted-foreground"
+                >
+                    No legacy adjustments.
+                </p>
             </section>
 
             <section class="space-y-3 rounded-xl border bg-card p-4">
