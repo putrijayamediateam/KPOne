@@ -22,6 +22,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Spatie\Permission\Models\Role;
 use Tests\Feature\Billing\BillingTestCase;
+use Tests\Support\LegacyStockHistoryFixture;
 use Tests\Support\OtcDispensaryFixtures;
 use Tests\Support\ReportEvidence;
 
@@ -131,10 +132,10 @@ class StockMovementReportTest extends BillingTestCase
         $this->confirmAllergy($f, $case);
         $this->complete($f, $case);
         DB::transaction(function () use ($moves, $supervisor, $f): void {
-            $moves->recordAdjustment($supervisor, $f['location'], $f['sku'], $f['batch'], 'out', '1.250', (string) Str::uuid());
-            $moves->recordAdjustment($supervisor, $f['location'], $f['sku'], $f['batch'], 'in', '0.375', (string) Str::uuid());
-            $moves->recordStocktakeVariance($supervisor, $f['location'], $f['sku'], $f['batch'], '0.500', (string) Str::uuid());
-            $moves->recordStocktakeVariance($supervisor, $f['location'], $f['sku'], $f['batch'], '-0.250', (string) Str::uuid());
+            LegacyStockHistoryFixture::movement($supervisor, $f, 'adjustment_out', '1.250');
+            LegacyStockHistoryFixture::movement($supervisor, $f, 'adjustment_in', '0.375');
+            LegacyStockHistoryFixture::movement($supervisor, $f, 'stocktake_gain', '0.500');
+            LegacyStockHistoryFixture::movement($supervisor, $f, 'stocktake_loss', '0.250');
             $moves->recordTransferDispatch($supervisor, $f['location'], $f['sku'], $f['batch'], '1.000', (string) Str::uuid());
             $moves->recordTransferReceipt($supervisor, $f['location'], $f['sku'], $f['batch'], '0.250', (string) Str::uuid());
         });

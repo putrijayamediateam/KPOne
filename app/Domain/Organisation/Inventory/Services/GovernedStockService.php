@@ -24,7 +24,7 @@ final class GovernedStockService
 
     public const REASONS = ['expired', 'damaged', 'contaminated', 'other_approved'];
 
-    public const LEGACY_LIMIT = 'The legacy demo stocktake and manual adjustment path still permits same-person count and post and bypasses the independent approval; it must be disabled or hidden for the pilot in a separate slice.';
+    public const LEGACY_LIMIT = 'Legacy stocktake and manual adjustment are closed. Use the governed Stock count or Write-off workflow; independent approval is required.';
 
     /** @param array<string,mixed> $input */
     public function propose(User $actor, string $kind, array $input): int
