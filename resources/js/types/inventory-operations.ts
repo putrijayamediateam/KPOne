@@ -21,6 +21,7 @@ export type InventoryDocumentLine = {
     requestedQuantity?: string;
     dispatchedQuantity?: string | null;
     physicalQuantity?: string | null;
+    varianceQuantity?: string | null;
     expectedQuantity?: string;
     batch?: string | null;
 };

@@ -41,7 +41,7 @@ class InventoryMovementService
                 ->exists();
             if ($openingBalanceExists) {
                 throw ValidationException::withMessages([
-                    'opening_balance' => 'An opening balance has already been recorded for this location, SKU, and batch. Use a stock transfer or manual adjustment to change the balance.',
+                    'opening_balance' => 'An opening balance has already been recorded for this location, SKU, and batch. Use Stock count (governed) or Write-off (governed) for a count or loss, or a stock transfer for a transfer.',
                 ]);
             }
             $quantity = StockUnitQuantity::base($attributes['quantity'], $sku->stock_unit, $attributes['unit'] ?? null);
@@ -161,22 +161,12 @@ class InventoryMovementService
 
     public function recordStocktakeVariance(User $actor, InventoryLocation $location, InventorySku $sku, InventoryBatch $batch, mixed $variance, string $stocktakePublicId): ?StockMovement
     {
-        $text = trim((string) $variance);
-        $quantity = StockUnitQuantity::format(StockUnitQuantity::scaled(ltrim($text, '-'), true));
-        if ($quantity === '0.000') {
-            return null;
-        }
-
-        return ! str_starts_with($text, '-')
-            ? $this->creditOperation($actor, $location, $sku, $batch, $quantity, StockMovement::TYPE_STOCKTAKE_GAIN, 'inventory_stocktake', $stocktakePublicId)
-            : $this->debitOperation($actor, $location, $sku, $batch, $quantity, StockMovement::TYPE_STOCKTAKE_LOSS, 'inventory_stocktake', $stocktakePublicId);
+        LegacyStockPath::refuseForLocation($actor, InventoryControlService::STOCKTAKE_PERMISSION, $location);
     }
 
     public function recordAdjustment(User $actor, InventoryLocation $location, InventorySku $sku, InventoryBatch $batch, string $direction, mixed $quantity, string $adjustmentPublicId): StockMovement
     {
-        return $direction === 'in'
-            ? $this->creditOperation($actor, $location, $sku, $batch, $quantity, StockMovement::TYPE_ADJUSTMENT_IN, 'inventory_adjustment', $adjustmentPublicId)
-            : $this->debitOperation($actor, $location, $sku, $batch, $quantity, StockMovement::TYPE_ADJUSTMENT_OUT, 'inventory_adjustment', $adjustmentPublicId);
+        LegacyStockPath::refuseForLocation($actor, InventoryControlService::ADJUST_PERMISSION, $location);
     }
 
     public function recordReceiptCorrection(User $actor, InventoryLocation $location, InventorySku $sku, InventoryBatch $batch, string $quantity, string $correctionPublicId): StockMovement

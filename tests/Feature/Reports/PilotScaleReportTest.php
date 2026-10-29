@@ -22,6 +22,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Tests\Feature\Billing\BillingTestCase;
+use Tests\Support\LegacyStockHistoryFixture;
 use Tests\Support\OtcDispensaryFixtures;
 use Tests\Support\ReportEvidence;
 
@@ -83,7 +84,7 @@ class PilotScaleReportTest extends BillingTestCase
         DB::transaction(function () use ($stock, $supervisor): void {
             $moves = app(InventoryMovementService::class);
             $moves->recordPurchaseReceipt($supervisor, $stock['location'], $stock['sku'], $stock['batch'], '5.125', (string) Str::uuid(), 0);
-            $moves->recordAdjustment($supervisor, $stock['location'], $stock['sku'], $stock['batch'], 'out', '1.250', (string) Str::uuid());
+            LegacyStockHistoryFixture::movement($supervisor, $stock, 'adjustment_out', '1.250');
             $moves->recordTransferDispatch($supervisor, $stock['location'], $stock['sku'], $stock['batch'], '0.375', (string) Str::uuid());
             $moves->recordTransferReceipt($supervisor, $stock['location'], $stock['sku'], $stock['batch'], '0.125', (string) Str::uuid());
         });

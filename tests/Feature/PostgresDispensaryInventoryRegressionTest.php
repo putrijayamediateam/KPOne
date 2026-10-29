@@ -52,13 +52,17 @@ use Spatie\Permission\Models\Role;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Process\InputStream;
 use Symfony\Component\Process\Process;
+use Tests\Support\AssertsLegacyStockRefusal;
 use Tests\Support\ContentionTimeouts;
+use Tests\Support\LegacyStockHistoryFixture as History;
 use Tests\Support\StaffBranchAssignmentBootstrapper;
 use Tests\TestCase;
 
 /** @phpstan-type Worker array{process: Process, input: InputStream} */
 class PostgresDispensaryInventoryRegressionTest extends TestCase
 {
+    use AssertsLegacyStockRefusal;
+
     private const OBSERVER = 'pgsql_dispensary_inventory_observer';
 
     private const INVENTORY_OPERATIONS_MIGRATION = '2026_09_11_000100_create_inventory_operations';
@@ -941,31 +945,36 @@ class PostgresDispensaryInventoryRegressionTest extends TestCase
         $key = (string) Str::uuid();
         $arguments = fn (User $actor): array => ['adjustment-replay', (string) $actor->id, (string) $f['branch']->id, $f['location']->public_id, $f['sku']->public_id, $f['batch']->public_id, $key];
 
+        $before = $this->legacyStockSnapshot();
         $output = $this->race([$this->worker($arguments($f['inventorySupervisor'])), $this->worker($arguments($otherActor))], $f['organisation']);
 
-        $this->assertSame(2, substr_count($output, 'ADJUSTED'));
-        $this->assertSame(1, DB::table('inventory_adjustments')->where('organisation_id', $f['organisation']->id)->where('idempotency_key', $key)->count());
-        $this->assertSame(1, DB::table('stock_movements')->where('organisation_id', $f['organisation']->id)->where('movement_type', 'adjustment_in')->count());
-        $this->assertSame(1, AuditLog::query()->where('organisation_id', $f['organisation']->id)->where('event', 'inventory.adjustment.posted')->count());
-        $this->assertSame('11.000', (string) DB::table('inventory_stock_balances')->where('id', $f['balance']->id)->value('quantity'));
+        $this->assertSame(2, substr_count($output, 'STALE legacy_stock_path'));
+        $this->assertSame(0, DB::table('inventory_adjustments')->where('organisation_id', $f['organisation']->id)->where('idempotency_key', $key)->count());
+        $this->assertSame(0, DB::table('stock_movements')->where('organisation_id', $f['organisation']->id)->where('movement_type', 'adjustment_in')->count());
+        $this->assertSame(0, AuditLog::query()->where('organisation_id', $f['organisation']->id)->where('event', 'inventory.adjustment.posted')->count());
+        $this->assertSame('10.000', (string) DB::table('inventory_stock_balances')->where('id', $f['balance']->id)->value('quantity'));
+        $this->assertSame($before, $this->legacyStockSnapshot());
+        $this->expectLegacyRefusal(fn () => app(InventoryControlService::class)->adjust($f['inventorySupervisor'], ['expected_branch_id' => $f['branch']->id]));
     }
 
     public function test_stocktake_posting_rejects_live_stock_change_after_snapshot(): void
     {
         $f = $this->completableFixture('10.000', '4.000');
         session([BranchAccessService::SESSION_KEY => $f['branch']->id]);
-        $service = app(InventoryControlService::class);
-        $stocktake = $service->createStocktake($f['inventorySupervisor'], ['expected_branch_id' => $f['branch']->id, 'location_public_id' => $f['location']->public_id]);
-        $stocktake = $service->startCounting($f['inventorySupervisor'], $stocktake, ['expected_branch_id' => $f['branch']->id, 'lock_version' => $stocktake->lock_version]);
-        $line = $stocktake->lines()->sole();
-        $stocktake = $service->recordCounts($f['inventorySupervisor'], $stocktake, ['expected_branch_id' => $f['branch']->id, 'lock_version' => $stocktake->lock_version, 'lines' => [['line_public_id' => $line->public_id, 'physical_quantity' => '9.000']]]);
-        $leader = $this->worker(['adjustment-hold', (string) $f['inventorySupervisor']->id, (string) $f['branch']->id, $f['location']->public_id, $f['sku']->public_id, $f['batch']->public_id, (string) Str::uuid()]);
+        $stocktake = History::stocktake($f['inventorySupervisor'], $f, 'review', '10.000', '9.000');
+        History::movement($f['inventorySupervisor'], $f, 'adjustment_in', '1.000');
+        $leader = $this->worker(['adjustment-replay', (string) $f['inventorySupervisor']->id, (string) $f['branch']->id, $f['location']->public_id, $f['sku']->public_id, $f['batch']->public_id, (string) Str::uuid()]);
         $follower = $this->worker(['stocktake-post', (string) $f['inventorySupervisor']->id, (string) $f['branch']->id, $stocktake->public_id, (string) $stocktake->lock_version]);
 
-        $output = $this->leaderThenFollower($leader, $follower);
+        // Owner-approved sequencing in STK-6A report section 7: retired calls cannot reach LOCKED.
+        // Reuse the unmodified organisation-lock race protocol; the live dispensing/transfer race is separate.
+        $before = $this->legacyStockSnapshot();
+        $output = $this->race([$leader, $follower], $f['organisation']);
 
-        $this->assertStringContainsString('ADJUSTED', $output);
-        $this->assertStringContainsString('STALE stocktake', $output);
+        $this->assertStringNotContainsString('ADJUSTED', $output);
+        $this->assertSame(2, substr_count($output, 'STALE legacy_stock_path'));
+        $this->assertSame($before, $this->legacyStockSnapshot());
+        $this->expectLegacyRefusal(fn () => app(InventoryControlService::class)->postStocktake($f['inventorySupervisor'], $stocktake, ['expected_branch_id' => $f['branch']->id]));
         $this->assertSame('11.000', (string) DB::table('inventory_stock_balances')->where('id', $f['balance']->id)->value('quantity'));
         $this->assertSame('review', $stocktake->refresh()->status);
         $this->assertSame(0, DB::table('stock_movements')->where('organisation_id', $f['organisation']->id)->whereIn('movement_type', ['stocktake_gain', 'stocktake_loss'])->count());
@@ -975,23 +984,49 @@ class PostgresDispensaryInventoryRegressionTest extends TestCase
     {
         $f = $this->completableFixture('10.000', '4.000');
         session([BranchAccessService::SESSION_KEY => $f['branch']->id]);
-        $service = app(InventoryControlService::class);
-        $stocktake = $service->createStocktake($f['inventorySupervisor'], ['expected_branch_id' => $f['branch']->id, 'location_public_id' => $f['location']->public_id]);
-        $stocktake = $service->startCounting($f['inventorySupervisor'], $stocktake, ['expected_branch_id' => $f['branch']->id, 'lock_version' => $stocktake->lock_version]);
-        $line = $stocktake->lines()->sole();
-        $stocktake = $service->recordCounts($f['inventorySupervisor'], $stocktake, ['expected_branch_id' => $f['branch']->id, 'lock_version' => $stocktake->lock_version, 'lines' => [['line_public_id' => $line->public_id, 'physical_quantity' => '10.000']]]);
+        $stocktake = History::stocktake($f['inventorySupervisor'], $f, 'review', '10.000', '10.000');
         [$sku, $batch] = $this->additionalInventoryKey($f);
-        $leader = $this->worker(['adjustment-hold', (string) $f['inventorySupervisor']->id, (string) $f['branch']->id, $f['location']->public_id, $sku->public_id, $batch->public_id, (string) Str::uuid()]);
+        History::movement($f['inventorySupervisor'], [...$f, 'sku' => $sku, 'batch' => $batch], 'adjustment_in', '1.000');
+        $leader = $this->worker(['adjustment-replay', (string) $f['inventorySupervisor']->id, (string) $f['branch']->id, $f['location']->public_id, $sku->public_id, $batch->public_id, (string) Str::uuid()]);
         $follower = $this->worker(['stocktake-post', (string) $f['inventorySupervisor']->id, (string) $f['branch']->id, $stocktake->public_id, (string) $stocktake->lock_version]);
 
-        $output = $this->leaderThenFollower($leader, $follower);
+        // Owner-approved section-7 sequencing; worker, timeout, cleanup and race helper stay unchanged.
+        $before = $this->legacyStockSnapshot();
+        $output = $this->race([$leader, $follower], $f['organisation']);
 
-        $this->assertStringContainsString('ADJUSTED', $output);
-        $this->assertStringContainsString('STALE stocktake', $output);
+        $this->assertStringNotContainsString('ADJUSTED', $output);
+        $this->assertSame(2, substr_count($output, 'STALE legacy_stock_path'));
+        $this->assertSame($before, $this->legacyStockSnapshot());
+        $this->expectLegacyRefusal(fn () => app(InventoryControlService::class)->postStocktake($f['inventorySupervisor'], $stocktake, ['expected_branch_id' => $f['branch']->id]));
         $this->assertSame('10.000', (string) DB::table('inventory_stock_balances')->where('id', $f['balance']->id)->value('quantity'));
         $this->assertSame('1.000', (string) DB::table('inventory_stock_balances')->where('inventory_location_id', $f['location']->id)->where('inventory_sku_id', $sku->id)->where('inventory_batch_id', $batch->id)->value('quantity'));
         $this->assertSame('review', $stocktake->refresh()->status);
         $this->assertSame(0, DB::table('stock_movements')->where('organisation_id', $f['organisation']->id)->whereIn('movement_type', ['stocktake_gain', 'stocktake_loss'])->count());
+    }
+
+    public function test_stk6a_kept_direct_transfer_races_dispensing_with_one_winner_and_conserved_stock(): void
+    {
+        $f = $this->completableFixture('10.000', '7.000');
+        $before = DB::table('stock_movements')->orderBy('id')->get()->toJson();
+        $lastId = DB::table('stock_movements')->max('id');
+        $lastAudit = AuditLog::query()->max('id');
+        $output = $this->race([
+            $this->worker(['complete', (string) $f['ca']->id, (string) $f['branch']->id, $f['case']->public_id, (string) $f['case']->lock_version]),
+            $this->worker(['transfer', (string) $f['ca2']->id, (string) $f['branch']->id, $f['location']->public_id, $f['destination']->public_id, $f['sku']->public_id, $f['batch']->public_id, '5.000']),
+        ], $f['balance']);
+        $this->assertSame(1, substr_count($output, 'COMPLETED') + substr_count($output, 'TRANSFERRED'));
+        $this->assertSame(1, substr_count($output, 'STALE'));
+        $this->assertSame($before, DB::table('stock_movements')->where('id', '<=', $lastId)->orderBy('id')->get()->toJson());
+        $posted = DB::table('stock_movements')->where('id', '>', $lastId)->sole();
+        $this->assertContains($posted->movement_type, ['dispense', 'transfer']);
+        $this->assertSame($posted->movement_type === 'dispense' ? '7.000' : '5.000', $posted->quantity);
+        $remaining = (string) $f['balance']->refresh()->quantity;
+        $destination = DB::table('inventory_stock_balances')->where('inventory_location_id', $f['destination']->id)->where('inventory_sku_id', $f['sku']->id)->where('inventory_batch_id', $f['batch']->id)->value('quantity') ?? '0.000';
+        $this->assertSame($posted->movement_type === 'dispense' ? '3.000' : '5.000', $remaining);
+        $this->assertSame($posted->movement_type === 'dispense' ? '0.000' : '5.000', $destination);
+        $this->assertSame(1, AuditLog::query()->where('id', '>', $lastAudit)->whereIn('event', ['dispensary.completed', 'inventory.transfer'])->count());
+        $this->assertSame(0, DB::table('inventory_adjustments')->count());
+        $this->assertSame(0, DB::table('inventory_stocktakes')->count());
     }
 
     /** @return array<string, mixed> */
