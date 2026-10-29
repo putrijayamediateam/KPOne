@@ -326,7 +326,8 @@ function applySelection(key: 'methods' | 'visit_types', value: string[]) {
                 class="text-sm text-muted-foreground"
             >
                 Adjusted includes opening-balance entries recorded during the
-                selected period.
+                selected period. Approved count variances, expiry and other
+                stock write-offs and reversals are also included in Adjusted.
             </p>
             <nav
                 class="flex flex-wrap items-center justify-between gap-3"

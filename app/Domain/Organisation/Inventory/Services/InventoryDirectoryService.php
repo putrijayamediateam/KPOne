@@ -16,6 +16,8 @@ final class InventoryDirectoryService
     private const PER_PAGE = 25;
 
     public const MOVEMENT_TYPES = [
+        StockMovement::TYPE_EXPIRY_WRITEOFF,
+        StockMovement::TYPE_STOCK_WRITEOFF,
         StockMovement::TYPE_OPENING,
         StockMovement::TYPE_TRANSFER,
         StockMovement::TYPE_DISPENSE,
@@ -29,6 +31,8 @@ final class InventoryDirectoryService
     ];
 
     private const MOVEMENT_LABELS = [
+        StockMovement::TYPE_EXPIRY_WRITEOFF => 'Expiry Write-off',
+        StockMovement::TYPE_STOCK_WRITEOFF => 'Stock Write-off',
         StockMovement::TYPE_OPENING => 'Opening Balance',
         StockMovement::TYPE_TRANSFER => 'Inventory Transfer',
         StockMovement::TYPE_DISPENSE => 'Dispense',
