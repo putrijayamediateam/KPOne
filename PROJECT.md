@@ -1,8 +1,9 @@
 # KPOne project
 
-Latest merged delivery: PR #188 — STK-6A closed the legacy stocktake and manual adjustment bypass, merged as `c3df068`. Recent merges, newest first
+Latest merged delivery: PR #189 — D02 invoice and receipt footer release, merged as `4c3fda4`. Recent merges, newest first
 (documentation-only PRs omitted):
 
+- PR #189 (`4c3fda4`) — D02: invoices and receipts print the configured branch footer and no longer print the unconditional development disclaimer. A branch with no footer prints nothing extra, so the footer must be set in Business details before real use. Print view only: no permission, migration, route, payload or financial change. Whether the print meets tax or e-Invoice rules is to confirm with the clinic's accountant or tax adviser.
 - PR #188 (`c3df068`) — STK-6A: the legacy demo stocktake (create, start, count, post, cancel) and manual adjustment, plus the two public legacy ledger helpers, are refused in the domain after fresh permission and branch checks; unauthorised roles keep 403 and an authorised CA Supervisor is pointed to the governed Stock count and Write-off. Controls removed, history kept read-only. Opening balance, receiving and approved corrections, dispensing, transfers, STK-5, holds and reporting are unchanged. No permission or migration. A source test fails if a new writer bypasses the ledger.
 - PR #186 (`eba4336`) — STK-5: governed stock count and write-off path (frozen source snapshots, independent recount, approval by someone other than the counter, recounter and proposer, atomic reason-coded movement, linked reversal proposals) and the new `inventory.variances.approve.branch` permission for `ca_supervisor`, `finance_officer` and `director`. The legacy bypass it left open was closed by STK-6A (PR #188).
 - PR #185 (`0d78ede`) — STK-4: owned stock and expiry review (low stock, expiring within 90 days, expired on hand) with append-only acknowledgements and the new `inventory.stock_reviews.manage.branch` permission for `ca_supervisor`, `finance_officer` and `director`.
