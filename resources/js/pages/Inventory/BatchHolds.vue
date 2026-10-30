@@ -9,6 +9,7 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
+import { formatInventoryReason } from '@/lib/inventory-picker';
 type Row = {
     public_id: string;
     batch_number: string;
@@ -140,7 +141,7 @@ watch(
                     v-if="row.reason"
                     class="font-semibold text-amber-800 dark:text-amber-300"
                 >
-                    Held: {{ row.reason }}
+                    Held: {{ formatInventoryReason(row.reason) }}
                 </p>
                 <p v-else>No active branch hold</p>
                 <button
@@ -207,7 +208,7 @@ watch(
                                 :key="reason"
                                 :value="reason"
                             >
-                                {{ label(reason) }}
+                                {{ formatInventoryReason(reason) }}
                             </option>
                         </select></label
                     ><InputError

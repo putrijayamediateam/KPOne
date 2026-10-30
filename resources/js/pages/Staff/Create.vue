@@ -105,16 +105,20 @@ const submit = () => form.post('/staff');
                         ></CardHeader
                     ><CardContent class="grid gap-4 sm:grid-cols-2">
                         <div class="grid gap-2 sm:col-span-2">
-                            <label class="text-sm font-medium">Full name</label
+                            <label for="staff-name" class="text-sm font-medium"
+                                >Full name</label
                             ><input
+                                id="staff-name"
                                 v-model="form.name"
                                 class="h-9 rounded-md border bg-background px-3 text-sm"
                                 autocomplete="off"
                             /><InputError :message="form.errors.name" />
                         </div>
                         <div class="grid gap-2 sm:col-span-2">
-                            <label class="text-sm font-medium">Work email</label
+                            <label for="staff-email" class="text-sm font-medium"
+                                >Work email</label
                             ><input
+                                id="staff-email"
                                 v-model="form.email"
                                 type="email"
                                 class="h-9 rounded-md border bg-background px-3 text-sm"
@@ -122,10 +126,16 @@ const submit = () => form.post('/staff');
                             /><InputError :message="form.errors.email" />
                         </div>
                         <div class="grid gap-2 sm:col-span-2">
-                            <label class="text-sm font-medium"
-                                >Sign-in method</label
+                            <span
+                                id="staff-sign-in-method"
+                                class="text-sm font-medium"
+                                >Sign-in method</span
                             >
-                            <div class="grid gap-2 sm:grid-cols-2">
+                            <div
+                                role="radiogroup"
+                                aria-labelledby="staff-sign-in-method"
+                                class="grid gap-2 sm:grid-cols-2"
+                            >
                                 <label
                                     class="rounded-md border p-3 text-sm"
                                     :class="
@@ -167,9 +177,12 @@ const submit = () => form.post('/staff');
                         </div>
                         <template v-if="form.credential_strategy === 'password'"
                             ><div class="grid gap-2">
-                                <label class="text-sm font-medium"
+                                <label
+                                    for="staff-password"
+                                    class="text-sm font-medium"
                                     >Bootstrap password</label
                                 ><input
+                                    id="staff-password"
                                     v-model="form.password"
                                     type="password"
                                     autocomplete="new-password"
@@ -177,9 +190,12 @@ const submit = () => form.post('/staff');
                                 /><InputError :message="form.errors.password" />
                             </div>
                             <div class="grid gap-2">
-                                <label class="text-sm font-medium"
+                                <label
+                                    for="staff-password-confirmation"
+                                    class="text-sm font-medium"
                                     >Confirm password</label
                                 ><input
+                                    id="staff-password-confirmation"
                                     v-model="form.password_confirmation"
                                     type="password"
                                     autocomplete="new-password"
@@ -198,23 +214,34 @@ const submit = () => form.post('/staff');
                         ></CardHeader
                     ><CardContent class="grid gap-4 sm:grid-cols-2">
                         <div class="grid gap-2">
-                            <label class="text-sm font-medium"
+                            <label
+                                for="staff-number"
+                                class="text-sm font-medium"
                                 >Staff number</label
                             ><input
+                                id="staff-number"
                                 v-model="form.staff_number"
                                 class="h-9 rounded-md border bg-background px-3 text-sm"
                             /><InputError :message="form.errors.staff_number" />
                         </div>
                         <div class="grid gap-2">
-                            <label class="text-sm font-medium">Job title</label
+                            <label
+                                for="staff-job-title"
+                                class="text-sm font-medium"
+                                >Job title</label
                             ><input
+                                id="staff-job-title"
                                 v-model="form.job_title"
                                 class="h-9 rounded-md border bg-background px-3 text-sm"
                             /><InputError :message="form.errors.job_title" />
                         </div>
                         <div class="grid gap-2 sm:col-span-2">
-                            <label class="text-sm font-medium">Department</label
+                            <label
+                                for="staff-department"
+                                class="text-sm font-medium"
+                                >Department</label
                             ><select
+                                id="staff-department"
                                 v-model="form.department_id"
                                 class="h-9 rounded-md border bg-background px-3 text-sm"
                             >
@@ -282,9 +309,12 @@ const submit = () => form.post('/staff');
                                 class="grid gap-4 md:grid-cols-2 xl:grid-cols-4"
                             >
                                 <div class="grid gap-2 xl:col-span-2">
-                                    <label class="text-xs font-medium"
+                                    <label
+                                        :for="`staff-assignment-${index}-branch`"
+                                        class="text-xs font-medium"
                                         >Branch</label
                                     ><select
+                                        :id="`staff-assignment-${index}-branch`"
                                         v-model="assignment.branch_id"
                                         class="h-9 rounded-md border bg-background px-3 text-sm"
                                     >
@@ -307,9 +337,12 @@ const submit = () => form.post('/staff');
                                     />
                                 </div>
                                 <div class="grid gap-2">
-                                    <label class="text-xs font-medium"
+                                    <label
+                                        :for="`staff-assignment-${index}-type`"
+                                        class="text-xs font-medium"
                                         >Type</label
                                     ><select
+                                        :id="`staff-assignment-${index}-type`"
                                         v-model="assignment.assignment_type"
                                         class="h-9 rounded-md border bg-background px-3 text-sm"
                                     >
@@ -333,9 +366,12 @@ const submit = () => form.post('/staff');
                                     Primary branch</label
                                 >
                                 <div class="grid gap-2">
-                                    <label class="text-xs font-medium"
+                                    <label
+                                        :for="`staff-assignment-${index}-from`"
+                                        class="text-xs font-medium"
                                         >Valid from</label
                                     ><input
+                                        :id="`staff-assignment-${index}-from`"
                                         v-model="assignment.valid_from"
                                         type="date"
                                         class="h-9 rounded-md border bg-background px-3 text-sm"
@@ -348,9 +384,12 @@ const submit = () => form.post('/staff');
                                     />
                                 </div>
                                 <div class="grid gap-2">
-                                    <label class="text-xs font-medium"
+                                    <label
+                                        :for="`staff-assignment-${index}-until`"
+                                        class="text-xs font-medium"
                                         >Valid through (inclusive)</label
                                     ><input
+                                        :id="`staff-assignment-${index}-until`"
                                         v-model="assignment.valid_until"
                                         type="date"
                                         class="h-9 rounded-md border bg-background px-3 text-sm"

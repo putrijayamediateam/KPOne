@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { useForm } from '@inertiajs/vue3';
 import { watch } from 'vue';
+import { formatInventoryReason } from '@/lib/inventory-picker';
 import type { InventoryDocument } from '@/types/inventory-operations';
 const props = defineProps<{
     row: InventoryDocument;
@@ -189,7 +190,7 @@ watch(
                                     :key="reason"
                                     :value="reason"
                                 >
-                                    {{ reason.replaceAll('_', ' ') }}
+                                    {{ formatInventoryReason(reason) }}
                                 </option>
                             </select></label
                         >

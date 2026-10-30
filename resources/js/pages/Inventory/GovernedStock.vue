@@ -245,7 +245,7 @@ watch(
             releasing their hold.
         </p>
         <form class="flex flex-wrap items-end gap-2" @submit.prevent="search()">
-            <label class="min-w-0 flex-1"
+            <label class="min-w-[min(100%,18rem)] flex-1 basis-72"
                 >Search SKU, batch or location<input
                     v-model="q"
                     maxlength="100"
