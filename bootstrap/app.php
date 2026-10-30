@@ -6,6 +6,7 @@ use App\Http\Middleware\HandleAppearance;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\PreventSensitiveResponseCaching;
 use App\Http\Middleware\RequireAnyPermission;
+use App\Http\Middleware\RouteIsolatedThrottle;
 use App\Http\Middleware\ValidatePublicIntakeProxy;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Foundation\Application;
@@ -34,6 +35,7 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
 
         $middleware->alias([
+            'throttle' => RouteIsolatedThrottle::class,
             'permission' => RequireAnyPermission::class,
             'sensitive.no-store' => PreventSensitiveResponseCaching::class,
             'public-intake.proxy' => ValidatePublicIntakeProxy::class,
