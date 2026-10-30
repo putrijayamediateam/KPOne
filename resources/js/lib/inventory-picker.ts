@@ -35,7 +35,9 @@ export function inventoryPickerOptions(
     return rows.slice(0, 100).map((row) => ({
         value: String(row.publicId ?? row.id),
         label:
-            (row.held ? `Held: ${row.holdReason} · ` : '') +
+            (row.held
+                ? `Held: ${formatInventoryReason(String(row.holdReason))} · `
+                : '') +
             String(
                 row.skuCode ??
                     (row.batchNumber
@@ -70,3 +72,39 @@ export function mergeInventoryPickerOptions(
 
     return [...unique.values()];
 }
+
+const reasonLabels: Record<string, string> = {
+    suspected_quality_issue: 'Suspected quality issue',
+    recall: 'Recall',
+    damaged: 'Damaged',
+    other_safety: 'Other safety concern',
+    cleared_by_supplier: 'Cleared by supplier',
+    inspection_passed: 'Inspection passed',
+    other_approved: 'Other approved reason',
+    wrong_item: 'Wrong item',
+    short_expiry: 'Short expiry',
+    documentation_missing: 'Missing documentation',
+    overage: 'Over delivery',
+    short: 'Short delivery',
+    expiry_problem: 'Expiry problem',
+    documentation: 'Documentation issue',
+    correction: 'Receipt correction',
+    duplicate_delivery: 'Duplicate delivery',
+    incorrect_quantity: 'Incorrect quantity',
+    incorrect_batch: 'Incorrect batch',
+};
+
+export const formatInventoryReason = (
+    value: string | null | undefined,
+): string => {
+    if (!value) {
+        return '';
+    }
+
+    return (
+        reasonLabels[value] ??
+        value
+            .replaceAll('_', ' ')
+            .replace(/^./, (character) => character.toUpperCase())
+    );
+};

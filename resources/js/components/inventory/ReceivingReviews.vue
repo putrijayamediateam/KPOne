@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { router, usePage } from '@inertiajs/vue3';
 import { computed, reactive, ref, watch } from 'vue';
+import { formatInventoryReason } from '@/lib/inventory-picker';
 type Review = {
     public_id: string;
     order_public_id: string;
@@ -227,7 +228,7 @@ watch(
                                 :key="reason"
                                 :value="reason"
                             >
-                                {{ reason.replaceAll('_', ' ') }}
+                                {{ formatInventoryReason(reason) }}
                             </option>
                         </select></label
                     >
@@ -308,8 +309,12 @@ watch(
                     }}
                 </p>
                 <p class="text-sm wrap-anywhere">
-                    {{ row.payload.delivery_reference ?? row.payload.reason }} ·
-                    {{ row.reason_codes.join(', ') }}
+                    {{
+                        row.payload.delivery_reference ??
+                        formatInventoryReason(row.payload.reason)
+                    }}
+                    ·
+                    {{ row.reason_codes.map(formatInventoryReason).join(', ') }}
                 </p>
                 <div
                     v-for="(line, index) in row.payload.lines ?? []"
@@ -324,7 +329,7 @@ watch(
                     >
                         {{ lot.batch_number }} · {{ lot.expiry_date }} ·
                         {{ lot.quantity }} · {{ lot.outcome }}
-                        {{ lot.reason ?? '' }}
+                        {{ formatInventoryReason(lot.reason) }}
                     </p>
                 </div>
                 <button
