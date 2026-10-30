@@ -153,10 +153,6 @@ const print = () => window.print();
         >
             {{ letterhead.footerText }}
         </p>
-        <p class="mt-8 text-xs text-muted-foreground">
-            Development / synthetic validation document. Not a production tax or
-            e-Invoice document.
-        </p>
     </main>
 </template>
 
