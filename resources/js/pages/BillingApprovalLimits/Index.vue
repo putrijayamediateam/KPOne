@@ -6,6 +6,7 @@ import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { PageHeader } from '@/components/ui/page-header';
+import { myr } from '@/types/billing';
 
 type ApproverRow = {
     id: number;
@@ -51,6 +52,20 @@ for (const row of props.approvers) {
             row.defermentLimitSen === null ? '' : String(row.defermentLimitSen);
     }
 }
+
+const limitEcho = (value: string | number | undefined): string => {
+    const text = String(value ?? '');
+
+    if (!/^[0-9]+$/.test(text)) {
+        return '';
+    }
+
+    const sen = Number(text);
+
+    return Number.isSafeInteger(sen) && sen <= 999999999999
+        ? `= ${myr(sen)}`
+        : '';
+};
 
 const saveLimit = (row: ApproverRow, capability: 'panel' | 'deferment') => {
     const key = keyOf(row.id, capability);
@@ -166,6 +181,7 @@ const clearLimit = (row: ApproverRow, capability: 'panel' | 'deferment') => {
                                                     keyOf(row.id, 'panel')
                                                 ]
                                             "
+                                            :aria-describedby="`limit-echo-${row.id}-panel`"
                                             type="number"
                                             min="0"
                                             max="999999999999"
@@ -189,6 +205,18 @@ const clearLimit = (row: ApproverRow, capability: 'panel' | 'deferment') => {
                                             Clear
                                         </Button>
                                     </div>
+                                    <p
+                                        :id="`limit-echo-${row.id}-panel`"
+                                        class="mt-1 text-xs text-muted-foreground"
+                                    >
+                                        {{
+                                            limitEcho(
+                                                formValues[
+                                                    keyOf(row.id, 'panel')
+                                                ],
+                                            )
+                                        }}
+                                    </p>
                                     <InputError
                                         :message="
                                             fieldErrors[keyOf(row.id, 'panel')]
@@ -208,6 +236,7 @@ const clearLimit = (row: ApproverRow, capability: 'panel' | 'deferment') => {
                                                     keyOf(row.id, 'deferment')
                                                 ]
                                             "
+                                            :aria-describedby="`limit-echo-${row.id}-deferment`"
                                             type="number"
                                             min="0"
                                             max="999999999999"
@@ -235,6 +264,18 @@ const clearLimit = (row: ApproverRow, capability: 'panel' | 'deferment') => {
                                             Clear
                                         </Button>
                                     </div>
+                                    <p
+                                        :id="`limit-echo-${row.id}-deferment`"
+                                        class="mt-1 text-xs text-muted-foreground"
+                                    >
+                                        {{
+                                            limitEcho(
+                                                formValues[
+                                                    keyOf(row.id, 'deferment')
+                                                ],
+                                            )
+                                        }}
+                                    </p>
                                     <InputError
                                         :message="
                                             fieldErrors[
