@@ -48,18 +48,51 @@ const print = () => window.print();
                 class="max-h-20 w-24 shrink-0 object-contain"
             />
             <div class="min-w-0 break-words">
-                <h1 class="text-lg font-medium">
+                <h1 class="text-lg font-bold">
                     {{ letterhead.details.clinic_name }}
                 </h1>
                 <p v-for="line in addressLines" :key="line">{{ line }}</p>
-                <p v-if="letterhead.details.phone">
-                    {{ letterhead.details.phone }}
-                </p>
                 <p v-if="letterhead.details.email">
                     {{ letterhead.details.email }}
                 </p>
+                <p v-if="letterhead.details.phone">
+                    Tel: {{ letterhead.details.phone }}
+                </p>
             </div>
         </header>
+        <h2 class="my-6 text-center text-lg font-bold underline">
+            {{ receipt ? 'OFFICIAL RECEIPT' : 'OFFICIAL INVOICE' }}
+        </h2>
+        <section
+            class="my-4 grid min-w-0 gap-4 sm:grid-cols-2"
+            aria-label="Document details"
+        >
+            <div class="min-w-0 break-words" aria-label="Patient recipient">
+                <h3 class="mb-1 font-semibold">To</h3>
+                <p>
+                    <span v-if="!receipt && billTo">Patient: </span
+                    >{{ billing.patient.name }}
+                </p>
+                <p>{{ billing.patient.patientNumber }}</p>
+            </div>
+            <div class="min-w-0 text-right break-words">
+                <p>
+                    <span class="font-semibold">{{
+                        receipt ? 'Receipt No:' : 'Invoice No:'
+                    }}</span>
+                    {{ receipt?.number ?? billing.invoice?.number }}
+                </p>
+                <p>
+                    <span class="font-semibold">Date:</span>
+                    {{ receipt?.receivedAt ?? billing.invoice?.finalizedAt }}
+                </p>
+                <p>
+                    <span class="font-semibold">Status:</span>
+                    {{ receipt?.status ?? billing.invoice?.status }}
+                </p>
+            </div>
+        </section>
+        <p class="my-2">{{ billing.visit.visitNumber }}</p>
         <section
             v-if="!receipt && billTo"
             class="my-4 rounded border p-4"
@@ -68,31 +101,26 @@ const print = () => window.print();
             <h2 class="mb-2 font-semibold">Bill to</h2>
             <BillToRecipient :recipient="billTo" />
         </section>
-        <p>
-            <span v-if="!receipt && billTo">Patient: </span
-            >{{ billing.patient.name }} · {{ billing.patient.patientNumber }}
-        </p>
-        <p>{{ billing.visit.visitNumber }}</p>
-        <h2 class="my-4 font-medium">
-            {{ receipt?.number ?? billing.invoice?.number }} ·
-            {{ receipt?.status ?? billing.invoice?.status }}
-        </h2>
         <template v-if="receipt"
-            ><p>Received: {{ receipt.receivedAt }}</p>
-            <p>{{ receipt.method }} · {{ myr(receipt.amountSen) }}</p>
+            ><p class="my-4">
+                Received for {{ billing.patient.name }} the sum of
+                {{ myr(receipt.amountSen) }} via {{ receipt.method }} towards
+                Invoice {{ billing.invoice?.number }}.
+            </p>
             <p v-if="receipt.status === 'reversed'">
                 Recording reversed — this is not a refund receipt.
             </p>
             <p>Originating Invoice: {{ billing.invoice?.number }}</p></template
         ><template v-else-if="billing.invoice"
-            ><p>Finalized {{ billing.invoice.finalizedAt }}</p>
-            <table class="my-4 w-full table-fixed text-left text-xs sm:text-sm">
+            ><table
+                class="my-4 w-full table-fixed text-left text-xs sm:text-sm"
+            >
                 <thead>
                     <tr>
-                        <th>Charge</th>
-                        <th>Quantity</th>
-                        <th>Unit price</th>
-                        <th>Total</th>
+                        <th>Item</th>
+                        <th>Qty</th>
+                        <th>Unit price (RM)</th>
+                        <th>Total (RM)</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -149,7 +177,7 @@ const print = () => window.print();
         >
         <p
             v-if="letterhead.footerText"
-            class="document-footer mt-8 border-t pt-3 text-xs break-words whitespace-pre-wrap"
+            class="document-footer mt-8 border-t pt-3 text-center text-xs break-words whitespace-pre-wrap italic"
         >
             {{ letterhead.footerText }}
         </p>
