@@ -36,6 +36,25 @@ const seen = new Set<number>(props.feed.calls.map((call) => call.id));
 const timeZone = computed(() => feed.value.branch.timezone);
 const current = computed<DisplayCall | null>(() => feed.value.calls[0] ?? null);
 const previous = computed(() => feed.value.calls.slice(1, 6));
+const callAgeServerAnchor = ref(Date.parse(props.feed.serverTime));
+let callAgeMonotonicAnchor = performance.now();
+const callAgeElapsed = ref(0);
+const syncCallAge = (serverTime: string) => {
+    callAgeServerAnchor.value = Date.parse(serverTime);
+    callAgeMonotonicAnchor = performance.now();
+    callAgeElapsed.value = 0;
+};
+const currentCallHeading = computed(() => {
+    const calledAt = current.value ? Date.parse(current.value.calledAt) : null;
+
+    return calledAt !== null &&
+        callAgeServerAnchor.value + callAgeElapsed.value - calledAt >= 900_000
+        ? 'Last called'
+        : 'Now calling';
+});
+const recallIndicator = computed(() =>
+    current.value?.isRecall ? 'Recall' : null,
+);
 const videoUrl = computed(() =>
     youtubeEmbedUrl(feed.value.settings.youtubeVideoId),
 );
@@ -196,6 +215,7 @@ const poll = async () => {
             posterIndex.value = 0;
         }
 
+        syncCallAge(next.serverTime);
         feed.value = next;
         announce(fresh);
     } catch (error) {
@@ -223,6 +243,7 @@ const signOut = () => {
 
 let pollTimer: number | undefined;
 let clockTimer: number | undefined;
+let callAgeTimer: number | undefined;
 let posterTimer: number | undefined;
 const schedulePosters = () => {
     window.clearInterval(posterTimer);
@@ -255,12 +276,19 @@ onMounted(() => {
     void keepAwake();
     pollTimer = window.setInterval(poll, POLL_MILLISECONDS);
     clockTimer = window.setInterval(() => (now.value = new Date()), 1_000);
+    callAgeTimer = window.setInterval(() => {
+        callAgeElapsed.value = Math.max(
+            0,
+            performance.now() - callAgeMonotonicAnchor,
+        );
+    }, 1_000);
     schedulePosters();
     document.addEventListener('visibilitychange', onVisibility);
 });
 onBeforeUnmount(() => {
     window.clearInterval(pollTimer);
     window.clearInterval(clockTimer);
+    window.clearInterval(callAgeTimer);
     window.clearInterval(posterTimer);
     window.clearTimeout(highlightTimer);
     document.removeEventListener('visibilitychange', onVisibility);
@@ -470,8 +498,18 @@ onBeforeUnmount(() => {
                     aria-live="assertive"
                     data-testid="current-call"
                 >
-                    <p class="text-lg font-semibold uppercase lg:text-2xl">
-                        {{ current?.isRecall ? 'Recall' : 'Now calling' }}
+                    <p
+                        class="text-lg font-semibold uppercase lg:text-2xl"
+                        data-testid="current-call-heading"
+                    >
+                        {{ currentCallHeading }}
+                    </p>
+                    <p
+                        v-if="recallIndicator"
+                        class="mt-1 text-sm font-medium"
+                        data-testid="recall-indicator"
+                    >
+                        {{ recallIndicator }}
                     </p>
                     <template v-if="current">
                         <p
