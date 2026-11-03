@@ -1,8 +1,11 @@
 # KPOne project
 
-Latest merged delivery: PR #202 — TV-5 "Last called" after 15 minutes, merged as `d213653`. Recent merges, newest first
+Latest merged delivery: PR #207 — DARK-1 dark-mode contrast fixes, merged as `492564f`. Recent merges, newest first
 (documentation-only PRs omitted):
 
+- PR #208 (`f3f120a`) — CLOCK-1: a stock-review test built its dates with the UTC clock and failed between 00:00 and 08:00 Kuala Lumpur time; the dates now use the branch time zone. Test only.
+- PR #207 (`492564f`) — DARK-1: four screens that kept a pale surface in dark mode (Registration create picker, Staff create sign-in cards, OTC allergy panel, visit Consultation Queue card) now have dark colours. Frontend only; light mode unchanged.
+- PR #205 (`5c936fe`) — DEPS-1: Composer runtime security update (symfony/http-foundation 8.1.9, Laravel 13.30.0, league/commonmark 2.10.2, Flysystem 3.35.3, Mime 8.1.10), closing eight advisories. `composer.lock` only. phpseclib (medium) and symfony/yaml (development) remain.
 - PR #202 (`d213653`) — TV-5: the waiting-room TV shows "Last called" instead of "Now calling" once the current call is 15 minutes old, using server time so a wrong TV clock cannot change it. Recall stays as a small secondary indicator. Frontend only.
 - PR #201 (`b04e585`) — FLOW-FIXES-1: Registration keeps its filter and page after not-ready, Send to Waiting and Call to Dispensary actions and refreshes; the All tab offers Open Dispensary for a consultation with medicines waiting; a handed-off consultation shows Completed with Save disabled; Send to Waiting started from Registration stays on Registration.
 - PR #200 (`da0aa8c`) — PRINT-1: invoice, receipt and drug-label prints stay white in dark mode. Physical printer test still outstanding.
