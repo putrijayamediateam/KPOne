@@ -547,7 +547,7 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
                             :aria-selected="activeResultIndex === index"
                             :class="
                                 activeResultIndex === index
-                                    ? 'bg-emerald-50/80'
+                                    ? 'bg-emerald-50/80 dark:bg-emerald-950/30'
                                     : 'hover:bg-muted/35'
                             "
                             class="flex w-full items-center justify-between gap-4 border-b border-border/50 px-3 py-2.5 text-left last:border-0"

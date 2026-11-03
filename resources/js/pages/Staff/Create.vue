@@ -141,7 +141,7 @@ const submit = () => form.post('/staff');
                                     :class="
                                         form.credential_strategy ===
                                             'google_only' &&
-                                        'border-emerald-400 bg-emerald-50/60'
+                                        'border-emerald-400 bg-emerald-50/60 dark:border-emerald-900 dark:bg-emerald-950/30'
                                     "
                                     ><input
                                         v-model="form.credential_strategy"
@@ -159,7 +159,7 @@ const submit = () => form.post('/staff');
                                     :class="
                                         form.credential_strategy ===
                                             'password' &&
-                                        'border-emerald-400 bg-emerald-50/60'
+                                        'border-emerald-400 bg-emerald-50/60 dark:border-emerald-900 dark:bg-emerald-950/30'
                                     "
                                     ><input
                                         v-model="form.credential_strategy"
