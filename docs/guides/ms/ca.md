@@ -28,8 +28,9 @@ Jika skrin mewajibkan tarikh lahir, jangan masukkan tarikh anggaran. Cara mengur
 
 1. Selepas pendaftaran, cari pesakit pada halaman “Registration”.
 2. Pada menu tindakan pesakit, pilih “Send to Waiting”.
-3. Selepas memilih “Send to Waiting”, halaman “Queue” dibuka. Kembali ke “Registration” jika mahu meneruskan urusan di sana.
-4. Pastikan status pesakit menunjukkan bahawa dia sedang menunggu.
+3. Pastikan status pesakit menunjukkan bahawa dia sedang menunggu.
+
+Jika penapis atau halaman tertentu sedang aktif, kedudukannya kekal selepas tindakan.
 
 ## Tandakan pesakit belum bersedia dipanggil
 
