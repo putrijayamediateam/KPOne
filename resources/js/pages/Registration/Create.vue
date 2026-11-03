@@ -490,11 +490,19 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
                 </div>
             </div>
             <div v-else-if="!quickMode" class="space-y-3 px-4 pb-4">
+                <p
+                    id="patient-search-help"
+                    class="text-sm text-muted-foreground"
+                >
+                    Search for the patient first. Quick create appears when no
+                    match is found.
+                </p>
                 <form class="relative" @submit.prevent="searchPatients">
                     <label class="relative block"
                         ><Search
                             class="absolute top-3 left-3 size-4 text-muted-foreground" /><input
                             id="patient-search"
+                            aria-describedby="patient-search-help"
                             v-model="patientQuery"
                             autofocus
                             autocomplete="off"

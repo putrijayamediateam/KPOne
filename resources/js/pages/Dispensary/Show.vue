@@ -12,6 +12,7 @@ import {
 import { computed, reactive, ref, watch } from 'vue';
 import { Button } from '@/components/ui/button';
 import { OperationalSelect } from '@/components/ui/select';
+import { formatInventoryReason } from '@/lib/inventory-picker';
 import { formatStatusLabel } from '@/lib/presentation';
 
 defineOptions({
@@ -1096,7 +1097,7 @@ const inputClass = 'mt-1 h-9 w-full rounded-md border px-2';
                                         {{ stock.quantity
                                         }}{{
                                             stock.held
-                                                ? ` · Held: ${stock.holdReason}`
+                                                ? ` · Held: ${formatInventoryReason(stock.holdReason)}`
                                                 : ''
                                         }}
                                     </option>
@@ -1393,7 +1394,7 @@ const inputClass = 'mt-1 h-9 w-full rounded-md border px-2';
                                     {{ stock.expiryDate }} · {{ stock.quantity
                                     }}{{
                                         stock.held
-                                            ? ` · Held: ${stock.holdReason}`
+                                            ? ` · Held: ${formatInventoryReason(stock.holdReason)}`
                                             : ''
                                     }}
                                 </option>

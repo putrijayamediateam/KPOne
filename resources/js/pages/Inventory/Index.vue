@@ -14,6 +14,7 @@ import { EmptyState, ErrorState } from '@/components/ui/state';
 import { StatusBadge } from '@/components/ui/status';
 import { OperationalTable } from '@/components/ui/table';
 import { OperationalTabs } from '@/components/ui/tabs';
+import { formatInventoryReason } from '@/lib/inventory-picker';
 import { inventoryFilterError } from '@/types/inventory-operations';
 import type {
     InventoryOperations,
@@ -430,7 +431,7 @@ const clearFilters = () => {
                             :status="row.available ? 'available' : 'inactive'"
                             :label="
                                 row.holdReason
-                                    ? `Held: ${row.holdReason}`
+                                    ? `Held: ${formatInventoryReason(String(row.holdReason))}`
                                     : String(row.availabilityStatus)
                             "
                         />
@@ -509,7 +510,7 @@ const clearFilters = () => {
                             :status="String(row.batchStatus).toLowerCase()"
                             :label="
                                 row.holdReason
-                                    ? `Held: ${row.holdReason}`
+                                    ? `Held: ${formatInventoryReason(String(row.holdReason))}`
                                     : String(row.batchStatus)
                             "
                         />

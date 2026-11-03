@@ -99,6 +99,15 @@ class PatientGuardianService
             'guardian.email' => ['nullable', 'email', 'max:255'],
             'guardian.lock_version' => ['required', 'integer', 'min:0'],
             'guardian.retry_key' => ['required', 'uuid'],
+        ], [], [
+            'guardian' => 'Guardian contact',
+            'guardian.relationship' => 'Guardian relationship',
+            'guardian.full_name' => 'Guardian name',
+            'guardian.phone' => 'Guardian phone',
+            'guardian.phone_country' => 'Guardian phone country',
+            'guardian.email' => 'Guardian email',
+            'guardian.lock_version' => 'Guardian contact version',
+            'guardian.retry_key' => 'Guardian request reference',
         ])->validate()['guardian'];
         $data['full_name'] = trim($data['full_name']);
         if ($data['full_name'] === '') {
