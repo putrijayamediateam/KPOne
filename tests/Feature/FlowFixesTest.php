@@ -4,8 +4,11 @@ namespace Tests\Feature;
 
 use App\Domain\Clinical\Dispensary\Models\DispensaryCase;
 use App\Domain\Clinical\Models\TreatmentPlan;
+use App\Domain\Clinical\Services\ClinicalEncounterDirectoryService;
 use App\Domain\Clinical\Services\ClinicalEncounterService;
 use App\Domain\Clinical\Services\CompleteConsultationService;
+use App\Domain\Clinical\Services\ConsultationHoldService;
+use App\Domain\Clinical\Services\ReopenConsultationCheckoutService;
 use App\Domain\Organisation\Models\Branch;
 use App\Domain\Visit\Services\VisitDirectoryService;
 use Illuminate\Support\Facades\DB;
@@ -116,6 +119,51 @@ class FlowFixesTest extends ClinicalTestCase
         $this->selectBranch($doctor, $visit->branch);
         $this->patchJson(route('encounters.update', $visit), $this->aggregate($encounter->refresh(), ['clinical_note' => 'Synthetic refused edit']))->assertStatus(422)->assertJsonPath('errors.encounter.0', 'Only a registered Consultation currently Serving can use a clinical Encounter.');
         $this->assertSame($before, $this->snapshot());
+    }
+
+    public function test_registration_call_in_goes_to_queue_with_current_serving_actions(): void
+    {
+        $supervisor = $this->actor('ca_supervisor');
+        $doctor = $this->doctor();
+        $visit = $this->consultationVisit($supervisor, $doctor);
+        $queue = $this->send($supervisor, $visit);
+        $this->selectBranch($supervisor);
+        $this->patch(route('queue.call', $visit), ['from' => 'registration', 'expected_branch_id' => $visit->branch_id, 'visit_lock_version' => $visit->lock_version, 'queue_lock_version' => $queue->lock_version])
+            ->assertRedirect(route('queue.index'))->assertSessionHasNoErrors();
+        $row = app(VisitDirectoryService::class)->search($supervisor, [])['data']->firstWhere('visitNumber', $visit->visit_number);
+        $this->assertSame('serving', $row['queueStatus']);
+        $this->assertFalse($row['can']['call']);
+        $this->assertDatabaseCount('queue_calls', 1);
+    }
+
+    public function test_reopening_clears_checkout_with_idle_and_busy_doctor_then_allows_save(): void
+    {
+        foreach ([false, true] as $busy) {
+            [$doctor, $ca, $visit, $queue] = $this->servingFixture();
+            $encounter = $this->startEncounter($doctor, $visit, $queue);
+            app(ClinicalEncounterService::class)->update($doctor, $visit, $this->aggregate($encounter));
+            $checkout = app(CompleteConsultationService::class)->complete($doctor, $visit, ['expected_branch_id' => $visit->branch_id, 'visit_lock_version' => $visit->refresh()->lock_version, 'queue_lock_version' => $queue->refresh()->lock_version, 'encounter_lock_version' => $encounter->refresh()->lock_version, 'lock_version' => null, 'service_deliveries' => []]);
+            if ($busy) {
+                [, , $otherVisit, $otherQueue] = $this->servingFixture($doctor, $ca);
+                $otherEncounter = $this->startEncounter($doctor, $otherVisit, $otherQueue);
+            }
+            app(ReopenConsultationCheckoutService::class)->reopen($doctor, $visit->refresh(), ['expected_branch_id' => $visit->branch_id, 'visit_lock_version' => $visit->lock_version, 'checkout_lock_version' => $checkout->lock_version]);
+            $detail = app(ClinicalEncounterDirectoryService::class)->detail($doctor, $visit->refresh());
+            $this->assertNull($detail['treatmentPlan']['checkout']);
+            $this->assertSame($busy, $detail['hold']['isHeld']);
+            $this->assertNull($checkout->refresh()->current_visit_guard);
+            $this->assertSame('superseded', $checkout->status);
+            if ($busy) {
+                $this->holdEncounter($doctor, $otherVisit, $otherQueue, $otherEncounter);
+                app(ConsultationHoldService::class)->resume($doctor, $visit->refresh(), ['expected_branch_id' => $visit->branch_id, 'visit_lock_version' => $visit->lock_version, 'queue_lock_version' => $queue->refresh()->lock_version, 'encounter_lock_version' => $encounter->refresh()->lock_version, 'idempotency_key' => (string) Str::uuid()]);
+            }
+            $detail = app(ClinicalEncounterDirectoryService::class)->detail($doctor, $visit->refresh());
+            $this->assertNull($detail['treatmentPlan']['checkout']);
+            $this->assertFalse($detail['hold']['isHeld']);
+            $this->patch(route('encounters.update', $visit), $this->aggregate($encounter->refresh(), ['clinical_note' => 'Synthetic note after reopen and resume']))
+                ->assertRedirect(route('encounters.show', $visit))->assertSessionHasNoErrors();
+            $this->assertSame('Synthetic note after reopen and resume', $encounter->refresh()->clinical_note);
+        }
     }
 
     /** @return array<string, string> */

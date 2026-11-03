@@ -232,7 +232,7 @@ const requireMap = {
         Link: LinkStub,
         router: {
             post: (...args) => environment.mutate?.(...args),
-            patch: () => {},
+            patch: (...args) => environment.mutate?.(...args),
             reload: () => {},
         },
         usePage: () => ({ url: '/registration' }),
@@ -625,7 +625,7 @@ const clinicalComponent = (checkout, patches) => {
     const component = componentModule.exports.default;
     component.render = () => null;
     const mounted = createMountedRenderer();
-    const clinical = {
+    const clinical = Vue.reactive({
         branch: { id: 1, timezone: 'Asia/Kuala_Lumpur' },
         patient: { name: 'Synthetic Patient' },
         visit: { visitNumber: 'KPV-00000001' },
@@ -636,7 +636,7 @@ const clinicalComponent = (checkout, patches) => {
         diagnoses: [],
         treatmentPlan: { checkout },
         dispensaryAttention: [],
-    };
+    });
     const app = mounted.renderer.createApp(component, { clinical });
     app.mount(mounted.root);
     mountedApps.push(app);
@@ -669,6 +669,89 @@ test('FLOW-FIXES-1 a consultation without checkout retains its existing Save req
     const patches = [];
     const state = clinicalComponent(null, patches);
     assert.equal(state.consultationCompleted, false);
+    state.save();
+    assert.equal(patches.length, 1);
+    assert.equal(patches[0][0], '/visits/KPV-00000001/encounter');
+});
+
+const mutationRow = () => ({
+    key: 'SYN',
+    visitNumber: 'KPV-00000001',
+    source: { visitLockVersion: 1, queueLockVersion: 1 },
+});
+
+for (const action of [
+    'SendToWaiting',
+    'Call',
+    'OpenConsultation',
+    'Dispense',
+    'CallDispensary',
+]) {
+    test(`FLOW-FIXES-1 review ${action} refreshes the applied board after success while still mounted`, async () => {
+        const mounted = await appliedPageTwo();
+        const applied = { ...environment.requests.at(-1).body };
+        let mutation;
+        environment.mutate = (url, data, options) => {
+            mutation = { url, data, options };
+        };
+        environment.respond = async () => response('UPDATED', 2);
+        board(mounted.root).props[`on${action}`](mutationRow());
+        assert.equal(environment.requests.length, 2);
+        mutation.options.onSuccess();
+        assert.equal(environment.requests.length, 2);
+        mutation.options.onFinish();
+        await flush();
+        assert.equal(environment.requests.length, 3);
+        assert.deepEqual(environment.requests.at(-1).body, applied);
+        assert.deepEqual(boardRowKeys(mounted.root), ['UPDATED']);
+    });
+}
+
+test('FLOW-FIXES-1 review a refused same-page OTC call does not refresh or replace the board', async () => {
+    const mounted = await appliedPageTwo();
+    let mutation;
+    environment.mutate = (url, data, options) => {
+        mutation = { url, data, options };
+    };
+    board(mounted.root).props.onCallDispensary(mutationRow());
+    mutation.options.onError({ queue: 'Synthetic refusal' });
+    mutation.options.onFinish();
+    await flush();
+    assert.equal(environment.requests.length, 2);
+    assert.deepEqual(boardRowKeys(mounted.root), ['FILTERED-PAGE-TWO']);
+});
+
+for (const action of ['Call', 'OpenConsultation', 'Dispense']) {
+    test(`FLOW-FIXES-1 review ${action} does not search after navigation unmounts Registration`, async () => {
+        const mounted = await appliedPageTwo();
+        let mutation;
+        environment.mutate = (url, data, options) => {
+            mutation = { url, data, options };
+        };
+        board(mounted.root).props[`on${action}`](mutationRow());
+        mounted.app.unmount();
+        mountedApps.splice(mountedApps.indexOf(mounted.app), 1);
+        mutation.options.onSuccess();
+        mutation.options.onFinish();
+        await flush();
+        assert.equal(environment.requests.length, 2);
+    });
+}
+
+test('FLOW-FIXES-1 review replacing current checkout with null clears Completed and allows Save after Resume', async () => {
+    const patches = [];
+    const state = clinicalComponent(
+        { route: 'billing', lockVersion: 1, canReopen: true },
+        patches,
+    );
+    assert.equal(state.consultationCompleted, true);
+    state.props.clinical.treatmentPlan.checkout = null;
+    state.props.clinical.hold.isHeld = true;
+    await nextTick();
+    assert.equal(state.consultationCompleted, false);
+    assert.equal(state.props.clinical.hold.isHeld, true);
+    state.props.clinical.hold.isHeld = false;
+    await nextTick();
     state.save();
     assert.equal(patches.length, 1);
     assert.equal(patches[0][0], '/visits/KPV-00000001/encounter');

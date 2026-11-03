@@ -492,7 +492,6 @@ const runMutation = (
     method: 'post' | 'patch',
     url: string,
     data: Record<string, number | string>,
-    refreshAfterSuccess = false,
 ) => {
     busyKey.value = row.key;
     let succeeded = false;
@@ -510,7 +509,7 @@ const runMutation = (
         onFinish: () => {
             busyKey.value = null;
 
-            if (succeeded && refreshAfterSuccess) {
+            if (succeeded) {
                 refreshAppliedBoard();
             }
         },
@@ -526,7 +525,6 @@ const sendToWaiting = (row: PatientBoardRow) =>
             visit_lock_version: source(row).visitLockVersion,
             from: 'registration',
         },
-        true,
     );
 const callIn = (row: PatientBoardRow) =>
     runMutation(
