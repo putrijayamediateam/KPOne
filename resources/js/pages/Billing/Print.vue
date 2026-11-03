@@ -98,7 +98,7 @@ const print = () => window.print();
             class="my-4 rounded border p-4"
             aria-label="Bill to"
         >
-            <h2 class="mb-2 font-semibold">Bill to</h2>
+            <h3 class="mb-2 font-semibold">Bill to</h3>
             <BillToRecipient :recipient="billTo" />
         </section>
         <template v-if="receipt"

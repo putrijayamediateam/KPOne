@@ -14,14 +14,20 @@ import { EmptyState, ErrorState } from '@/components/ui/state';
 import { StatusBadge } from '@/components/ui/status';
 import { OperationalTable } from '@/components/ui/table';
 import { OperationalTabs } from '@/components/ui/tabs';
-import { formatInventoryReason } from '@/lib/inventory-picker';
+import {
+    formatInventoryHoldLabel,
+    formatInventoryReason,
+} from '@/lib/inventory-picker';
 import { inventoryFilterError } from '@/types/inventory-operations';
 import type {
     InventoryOperations,
     InventoryReceiptMemoryContext,
 } from '@/types/inventory-operations';
 
-type InventoryRow = Record<string, string | boolean | null>;
+type InventoryRow = Record<string, string | boolean | null | undefined> & {
+    held?: boolean;
+    holdReason?: string | null;
+};
 type InventoryDirectory = {
     tab: 'stock' | 'batches' | 'movements';
     branch: string;
@@ -430,8 +436,13 @@ const clearFilters = () => {
                         <StatusBadge
                             :status="row.available ? 'available' : 'inactive'"
                             :label="
-                                row.holdReason
-                                    ? `Held: ${formatInventoryReason(String(row.holdReason))}`
+                                row.holdReason ||
+                                row.held === true ||
+                                String(row.availabilityStatus).toLowerCase() ===
+                                    'held'
+                                    ? formatInventoryHoldLabel(
+                                          formatInventoryReason(row.holdReason),
+                                      )
                                     : String(row.availabilityStatus)
                             "
                         />
@@ -509,8 +520,12 @@ const clearFilters = () => {
                         <StatusBadge
                             :status="String(row.batchStatus).toLowerCase()"
                             :label="
-                                row.holdReason
-                                    ? `Held: ${formatInventoryReason(String(row.holdReason))}`
+                                row.holdReason ||
+                                row.held === true ||
+                                String(row.batchStatus).toLowerCase() === 'held'
+                                    ? formatInventoryHoldLabel(
+                                          formatInventoryReason(row.holdReason),
+                                      )
                                     : String(row.batchStatus)
                             "
                         />
