@@ -56,13 +56,14 @@ Saiz 100 × 150 mm telah disahkan, tetapi pencetak, stok pelekat dan ujian cetak
 ## Bil, pelarasan dan bayaran
 
 1. Pada “Patient Billing”, pilih “Build / refresh draft”, semak baris bil, kemudian “Finalize Invoice”.
-2. Jika pelarasan dibenarkan, pilih “Add Adjustment”. Pilih “Deduct (discount)” atau “Add (surcharge)”, kemudian “Fixed amount (RM)” atau “Percentage (%)”. Masukkan nilai dan “Reason (required)”, kemudian pilih “Apply adjustment”. Pelarasan tidak mengubah item atau harga asal.
-3. Jika skrin menyatakan “Above branch adjustment limit”, tandakan “I confirm this adjustment exceeds the branch threshold and uses my override authority.” hanya jika anda memang mempunyai kuasa override. Jika kotak itu tiada, berhenti. Cara klinik mengesahkan pelarasan di luar kuasa akaun: [PERLU DISAHKAN].
-4. Jika ada tanggungan Panel, buka “Add” > “Propose Panel responsibility” sebelum merekod bayaran pesakit. Masukkan amaun, sebab atau bukti pengesahan, pilih “Verified Panel” dan masukkan “Member reference” jika diperlukan. Pilih “Propose Panel responsibility”. Amaun hanya dikira selepas pihak yang mempunyai kuasa melulus memilih “Approve”.
-5. Untuk bayaran kemudian, buka “Add” > “Request pay later”, masukkan amaun, sebab dan “Pay later due date”, kemudian hantar permintaan. Ini memerlukan kelulusan dan bukan resit tunai; pesakit membayar pada tarikh yang diluluskan.
-6. Untuk wang yang benar-benar diterima, buka “Add” > “Record new payment”. Masukkan “Amount received (MYR)”, pilih “Payment method”, tambah rujukan transaksi jika perlu, kemudian pilih “Add Payment”. Jangan masukkan butiran kad.
-7. Untuk bayaran berpecah, rekod setiap amaun yang diterima sebagai bayaran berasingan. Semak “Due Now” selepas setiap bayaran; jangan rekod wang yang belum diterima.
-8. Selepas semua tanggungan diluluskan dan “Due Now” sudah sifar, pilih “Complete Visitation” jika butang itu tersedia.
+2. “Add Adjustment” hanya dibenarkan sebelum sebarang bayaran direkodkan, sebelum “Propose Panel responsibility” atau “Request pay later”, dan sebelum “Complete Visitation”. Buat pelarasan sebelum langkah bayaran di bawah kerana sistem menolaknya selepas salah satu tindakan itu.
+3. Jika pelarasan dibenarkan, pilih “Add Adjustment”. Pilih “Deduct (discount)” atau “Add (surcharge)”, kemudian “Fixed amount (RM)” atau “Percentage (%)”. Masukkan nilai dan “Reason (required)”, kemudian pilih “Apply adjustment”. Pelarasan tidak mengubah item atau harga asal.
+4. Jika skrin menyatakan “Above branch adjustment limit”, tandakan “I confirm this adjustment exceeds the branch threshold and uses my override authority.” hanya jika anda memang mempunyai kuasa override. Jika kotak itu tiada, berhenti. Cara klinik mengesahkan pelarasan di luar kuasa akaun: [PERLU DISAHKAN].
+5. Jika ada tanggungan Panel, buka “Add” > “Propose Panel responsibility” sebelum merekod bayaran pesakit. Masukkan amaun, sebab atau bukti pengesahan, pilih “Verified Panel” dan masukkan “Member reference” jika diperlukan. Pilih “Propose Panel responsibility”. Amaun hanya dikira selepas pihak yang mempunyai kuasa melulus memilih “Approve”.
+6. Untuk bayaran kemudian, buka “Add” > “Request pay later”, masukkan amaun, sebab dan “Pay later due date”, kemudian hantar permintaan. Ini memerlukan kelulusan dan bukan resit tunai; pesakit membayar pada tarikh yang diluluskan.
+7. Untuk wang yang benar-benar diterima, buka “Add” > “Record new payment”. Masukkan “Amount received (MYR)”, pilih “Payment method”, tambah rujukan transaksi jika perlu, kemudian pilih “Add Payment”. Jangan masukkan butiran kad.
+8. Untuk bayaran berpecah, rekod setiap amaun yang diterima sebagai bayaran berasingan. Semak “Due Now” selepas setiap bayaran; jangan rekod wang yang belum diterima.
+9. Selepas semua tanggungan diluluskan dan “Due Now” sudah sifar, pilih “Complete Visitation” jika butang itu tersedia.
 
 ## Cetak invois dan resit
 

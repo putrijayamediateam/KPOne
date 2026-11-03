@@ -14,6 +14,8 @@ Draf untuk semakan klinik. Bukan dokumen rasmi.
 2. Semak dialog dan pilih “Call Patient”.
 3. Jika pesakit ditandakan belum bersedia, gunakan bahagian “Not ready to call” di bawah; jangan cuba panggil berulang kali.
 
+Jika anda sedang melayani pesakit berstatus Serving yang tidak ditahan, anda tidak boleh memilih “Call In” untuk pesakit lain di mana-mana cawangan. Tahan konsultasi semasa dengan “On Hold” atau lengkapkannya dengan “Complete Consultation” dahulu.
+
 ## Semak alahan sebelum memesan ubat
 
 1. Pada halaman konsultasi, semak “Allergy Profile” dan perubahan yang ditunjukkan.

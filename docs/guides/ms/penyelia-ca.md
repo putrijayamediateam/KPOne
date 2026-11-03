@@ -7,8 +7,9 @@ Draf untuk semakan klinik. Bukan dokumen rasmi.
 1. Pada halaman “Inventory”, buka bahagian “Stock Setup” dan pilih tab “Opening Balance”.
 2. Pilih “Branch”, “Location”, “SKU” dan “Batch”. Gunakan “Search batches” jika batch belum kelihatan.
 3. Masukkan “Quantity” dalam unit stok SKU yang dipaparkan, kemudian pilih “Record Opening Balance”.
-4. Buka “Pilot readiness”. Semak SKU, lokasi, nombor batch, tarikh luput dan kuantiti dengan stok fizikal.
-5. Minta penyemak berkuasa yang berbeza daripada pencatat untuk membuka “Pilot readiness” pada akaun sendiri dan memilih “Sign off opening”. Pencatat tidak boleh menandatangani stok pembukaan sendiri.
+4. Buka “Pilot readiness”. Sahkan base unit setiap SKU dengan “Verify base unit:” dan unit yang dipaparkan. Jika “Stock unit” dan “Dispensing unit” berbeza, dispensing ditolak; semak rujukan unit sebelum membenarkan dispensing.
+5. Dalam “Pilot readiness”, semak SKU, lokasi, nombor batch, tarikh luput dan kuantiti dengan stok fizikal.
+6. Minta penyemak berkuasa yang berbeza daripada pencatat untuk membuka “Pilot readiness” pada akaun sendiri dan memilih “Sign off opening”. Pencatat tidak boleh menandatangani stok pembukaan sendiri.
 
 ## Terima penghantaran
 
@@ -25,15 +26,15 @@ Draf untuk semakan klinik. Bukan dokumen rasmi.
 
 1. Dari “Inventory”, buka “Stock count (governed)”. Cari SKU, batch dan lokasi yang betul; pilih “Take snapshot”.
 2. Pada kes itu, pilih “Enter count”, masukkan kuantiti fizikal dan pilih “Save evidence”. Kiraan sifar beza ditutup tanpa pergerakan stok.
-3. Jika ada beza, orang lain mesti memilih “Independent recount” dan merekod kiraan semula. Jika beza masih ada, penyemak lain mesti memilih “Approve and post”. Pengira semula mesti berbeza daripada pengira pertama; pelulus mesti berbeza daripada pencadang, pengira dan pengira semula.
+3. Jika ada beza, orang lain mesti memilih “Independent recount” dan merekod kiraan semula. Perbezaan memerlukan tiga orang berbeza: pengira pertama, pengira semula dan pelulus yang memilih “Approve and post”. Pelulus tidak boleh menjadi pencadang, pengira atau pengira semula.
 4. Untuk stok yang perlu dihapus kira, buka “Write-off (governed)”, pilih item dan “Propose write-off”. Masukkan kuantiti, “Controlled reason” dan “Disposal document or log reference”, kemudian “Save evidence”.
-5. Orang berkuasa yang berbeza memilih “Approve and post”. Rujukan pelupusan direkodkan sahaja; KPOne tidak mengesahkan pelupusan fizikal.
+5. Untuk write-off, pencadang dan pelulus yang memilih “Approve and post” mesti orang berbeza. Rujukan pelupusan direkodkan sahaja; KPOne tidak mengesahkan pelupusan fizikal.
 
 ## Letak tahanan batch
 
 1. Pada “Inventory”, buka “Batch safety holds” dan cari batch pada cawangan yang betul.
 2. Pilih “Place safety hold”, pilih “Controlled reason”, kemudian “Place hold”.
-3. Tahanan menghalang batch daripada digunakan di cawangan itu tetapi tidak mengubah kuantiti stok. Untuk melepaskannya, orang berkuasa yang berbeza memilih “Release hold” dengan sebab terkawal.
+3. Tahanan menghalang batch daripada digunakan di cawangan itu tetapi tidak mengubah kuantiti stok. CA Supervisor boleh meletakkan tahanan tetapi tidak boleh melepaskannya. Minta Finance Officer atau Director yang berbeza daripada orang yang meletakkan tahanan memilih “Release hold” dengan sebab terkawal.
 
 ## Jangan gunakan aliran lama
 
