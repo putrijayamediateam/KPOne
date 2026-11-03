@@ -181,7 +181,15 @@ const clearLimit = (row: ApproverRow, capability: 'panel' | 'deferment') => {
                                                     keyOf(row.id, 'panel')
                                                 ]
                                             "
-                                            :aria-describedby="`limit-echo-${row.id}-panel`"
+                                            :aria-describedby="
+                                                limitEcho(
+                                                    formValues[
+                                                        keyOf(row.id, 'panel')
+                                                    ],
+                                                )
+                                                    ? `limit-echo-${row.id}-panel`
+                                                    : undefined
+                                            "
                                             type="number"
                                             min="0"
                                             max="999999999999"
@@ -206,6 +214,13 @@ const clearLimit = (row: ApproverRow, capability: 'panel' | 'deferment') => {
                                         </Button>
                                     </div>
                                     <p
+                                        v-if="
+                                            limitEcho(
+                                                formValues[
+                                                    keyOf(row.id, 'panel')
+                                                ],
+                                            )
+                                        "
                                         :id="`limit-echo-${row.id}-panel`"
                                         class="mt-1 text-xs text-muted-foreground"
                                     >
@@ -236,7 +251,18 @@ const clearLimit = (row: ApproverRow, capability: 'panel' | 'deferment') => {
                                                     keyOf(row.id, 'deferment')
                                                 ]
                                             "
-                                            :aria-describedby="`limit-echo-${row.id}-deferment`"
+                                            :aria-describedby="
+                                                limitEcho(
+                                                    formValues[
+                                                        keyOf(
+                                                            row.id,
+                                                            'deferment',
+                                                        )
+                                                    ],
+                                                )
+                                                    ? `limit-echo-${row.id}-deferment`
+                                                    : undefined
+                                            "
                                             type="number"
                                             min="0"
                                             max="999999999999"
@@ -265,6 +291,13 @@ const clearLimit = (row: ApproverRow, capability: 'panel' | 'deferment') => {
                                         </Button>
                                     </div>
                                     <p
+                                        v-if="
+                                            limitEcho(
+                                                formValues[
+                                                    keyOf(row.id, 'deferment')
+                                                ],
+                                            )
+                                        "
                                         :id="`limit-echo-${row.id}-deferment`"
                                         class="mt-1 text-xs text-muted-foreground"
                                     >
