@@ -37,6 +37,7 @@ defineEmits<{
     dispense: [row: PatientBoardRow];
     callDispensary: [row: PatientBoardRow];
     cancel: [row: PatientBoardRow];
+    readinessChanged: [];
 }>();
 
 // A completed visit opens its read-only history when its row is clicked. Clicks on links,
@@ -269,6 +270,7 @@ const statusClass = (tone: PatientBoardRow['statusTone']) =>
                                 :row="row"
                                 :branch-id="branchId"
                                 :from="from ?? 'queue'"
+                                @changed="$emit('readinessChanged')"
                             />
                         </div>
                     </td>

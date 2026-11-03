@@ -51,6 +51,9 @@ const page = usePage();
 const user = computed(() => page.props.auth.user!);
 // Show the authorized visit note only when non-empty.
 const panelNote = computed(() => props.clinical.visit.panelNote);
+const consultationCompleted = computed(
+    () => props.clinical.treatmentPlan.checkout !== null,
+);
 const canViewPatient = computed(() =>
     page.props.auth.permissions.includes('patients.view.organisation'),
 );
@@ -407,6 +410,10 @@ const setPrimary = (index: number) => {
     });
 };
 const save = () => {
+    if (consultationCompleted.value) {
+        return;
+    }
+
     form.patch(
         `/visits/${encodeURIComponent(props.clinical.visit.visitNumber)}/encounter`,
         {
@@ -469,13 +476,26 @@ const changeHoldState = (action: 'hold' | 'resume') => {
                 }}</span>
                 <span class="text-[11px] text-muted-foreground"
                     >{{ clinical.visit.visitNumber }} ·
-                    {{ clinical.hold.isHeld ? 'On Hold' : 'In progress' }}</span
+                    {{
+                        consultationCompleted
+                            ? 'Completed'
+                            : clinical.hold.isHeld
+                              ? 'On Hold'
+                              : 'In progress'
+                    }}</span
                 >
                 <span class="text-[11px] text-muted-foreground"
                     >{{ waitedDurationLabel(waitedMinutes) }} · Active
                     {{ clinical.hold.activeMinutes }} min · Held
                     {{ clinical.hold.heldMinutes }} min</span
                 >
+                <p
+                    v-if="consultationCompleted"
+                    class="w-full text-xs text-muted-foreground"
+                >
+                    Completed means the consultation was handed off, not that
+                    payment is finished.
+                </p>
             </div>
             <div
                 class="flex flex-wrap items-center justify-end gap-2 text-right text-xs text-muted-foreground"
@@ -1059,7 +1079,8 @@ const changeHoldState = (action: 'hold' | 'resume') => {
                                         type="submit"
                                         :disabled="
                                             form.processing ||
-                                            clinical.hold.isHeld
+                                            clinical.hold.isHeld ||
+                                            consultationCompleted
                                         "
                                     >
                                         <LoaderCircle

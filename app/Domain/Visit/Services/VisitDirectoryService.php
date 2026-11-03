@@ -372,6 +372,12 @@ class VisitDirectoryService
         // DS-01b-3: an OTC visit has no checkout; its Dispensary case is the source Billing reads.
         $otcCase = $visit->visit_type === 'otc' ? $cases->firstWhere('case_type', DispensaryCase::TYPE_OTC) : null;
         $otcOpen = $otcCase !== null && $otcCase->status !== DispensaryCase::STATUS_COMPLETED;
+        $consultationCase = $visit->visit_type === 'consultation' && $visit->status === Visit::STATUS_REGISTERED
+            && $actor->can('dispensary.view.branch') && $actor->hasAnyRole(['ca', 'ca_supervisor'])
+            ? $cases->first(fn (DispensaryCase $case): bool => $case->case_type === DispensaryCase::TYPE_CONSULTATION
+                && in_array($case->status, [DispensaryCase::STATUS_PENDING, DispensaryCase::STATUS_DISPENSING], true))
+            : null;
+        $openCase = $otcOpen ? $otcCase : $consultationCase;
         $canBilling = $actor->can('billing.view.branch') && ($visit->status === Visit::STATUS_COMPLETED || ($otcCase !== null && ! $otcOpen) || ($checkout !== null && ($checkout->route === 'billing'
             || $cases->contains('status', 'completed'))));
 
@@ -399,8 +405,8 @@ class VisitDirectoryService
             'durationMinutes' => $durationMinutes,
             'visitLockVersion' => $visit->lock_version,
             'billingUrl' => $canBilling ? route('billing.show', $visit) : null,
-            'dispensaryStatus' => $otcOpen ? $otcCase->status : null,
-            'dispensaryUrl' => $otcOpen && $actor->can('dispensary.view.branch') ? route('dispensary.show', $otcCase->public_id) : null,
+            'dispensaryStatus' => $openCase?->status,
+            'dispensaryUrl' => $openCase && $actor->can('dispensary.view.branch') ? route('dispensary.show', $openCase->public_id) : null,
             'historyUrl' => $this->history->available($actor, $visit) ? route('visits.invoice', $visit) : null,
             'awaitingBilling' => $canBilling && $visit->status === Visit::STATUS_REGISTERED,
             'completedAt' => $visit->completed_at?->setTimezone($branch->timezone)->format('j M Y, g:i A'),
@@ -419,7 +425,7 @@ class VisitDirectoryService
                 'openConsultation' => $canOpenEncounter,
                 'openBilling' => $canBilling,
                 'dispense' => $visit->visit_type === 'otc' && $visit->status === Visit::STATUS_REGISTERED && $otcCase === null && $actor->can('dispensary.otc.create.branch'),
-                'openDispensary' => $otcOpen && $actor->can('dispensary.view.branch'),
+                'openDispensary' => $openCase !== null && $actor->can('dispensary.view.branch'),
             ],
         ];
     }

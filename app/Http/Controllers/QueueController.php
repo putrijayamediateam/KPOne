@@ -114,10 +114,15 @@ class QueueController extends Controller
 
             return to_route('registration.index');
         }
-        $queue->enter($request->user(), $visit, $request->validated());
+        $target = $request->validated('from') === 'registration' ? route('registration.index') : route('queue.index');
+        try {
+            $queue->enter($request->user(), $visit, $request->validated());
+        } catch (ValidationException $exception) {
+            throw $exception->redirectTo($target);
+        }
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Patient sent to Waiting.')]);
 
-        return to_route('queue.index');
+        return redirect($target);
     }
 
     public function call(

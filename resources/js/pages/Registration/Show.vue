@@ -38,6 +38,7 @@ const cancelForm = useForm({
     cancellation_reason: '',
 });
 const queueForm = useForm({
+    from: 'registration',
     expected_branch_id: page.props.branchContext?.active?.id ?? 0,
     visit_lock_version: props.visit.lockVersion,
 });
