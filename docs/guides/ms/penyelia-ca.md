@@ -19,7 +19,7 @@ Draf untuk semakan klinik. Bukan dokumen rasmi.
 4. Jumlah lot mesti sepadan dengan kuantiti fizikal. Tarikh luput sebenar diperlukan; jangan gunakan tarikh pengganti. Bagi penghantaran pendek, tandakan “Declared short delivery (requires approval)”.
 5. Untuk lot diterima sepenuhnya tanpa pengecualian, pilih “accepted” dan “Post receipt”.
 6. Untuk lot “quarantined”, “rejected”, atau kekurangan/pelanggaran yang memerlukan pengecualian, pilih sebab terkawal dan “Request exception approval”. Jangan pilih “Post receipt” untuk permintaan pengecualian.
-7. Penyemak berkuasa yang bukan penerima memilih “Approve delivery exception” pada “Receiving reviews”. Selepas diluluskan, penerima asal kembali dan memilih “Post approved delivery”.
+7. Pada “Inventory”, penyemak berkuasa yang bukan penerima membuka “Receiving reviews” dan memilih “Load receiving reviews (25 per page)”. Selepas ulasan dimuatkan, pilih “Approve delivery exception”. Selepas diluluskan, penerima asal kembali dan memilih “Post approved delivery”.
 8. “Quarantined” meletakkan tahanan pada seluruh batch di cawangan itu, termasuk baki terdahulu. Penerimaan tidak melepaskan tahanan.
 
 ## Buat kiraan, kiraan semula dan hapus kira

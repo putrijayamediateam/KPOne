@@ -9,6 +9,7 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
+import { formatInventoryReason } from '@/lib/inventory-picker';
 type Target = {
     id: number;
     quantity: string;
@@ -340,7 +341,10 @@ watch(
                     Case {{ row.id }} · {{ row.sku_code }} ·
                     {{ row.batch_number }}
                 </h3>
-                <p>{{ row.location }} · {{ row.kind }} · {{ row.reason }}</p>
+                <p>
+                    {{ row.location }} · {{ row.kind }} ·
+                    {{ formatInventoryReason(row.reason) }}
+                </p>
                 <p>Snapshot {{ row.expected_quantity }} {{ row.stock_unit }}</p>
                 <p v-if="row.quantity">Requested quantity {{ row.quantity }}</p>
                 <p v-if="row.disposal_reference" class="break-words">

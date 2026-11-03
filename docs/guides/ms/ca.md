@@ -28,7 +28,8 @@ Jika skrin mewajibkan tarikh lahir, jangan masukkan tarikh anggaran. Cara mengur
 
 1. Selepas pendaftaran, cari pesakit pada halaman “Registration”.
 2. Pada menu tindakan pesakit, pilih “Send to Waiting”.
-3. Pastikan status pesakit menunjukkan bahawa dia sedang menunggu.
+3. Selepas memilih “Send to Waiting”, halaman “Queue” dibuka. Kembali ke “Registration” jika mahu meneruskan urusan di sana.
+4. Pastikan status pesakit menunjukkan bahawa dia sedang menunggu.
 
 ## Tandakan pesakit belum bersedia dipanggil
 
@@ -47,11 +48,12 @@ Jika skrin mewajibkan tarikh lahir, jangan masukkan tarikh anggaran. Cara mengur
 
 ## Cetak label ubat
 
-1. Pada kes “Dispensary”, buka “Medicine label preview”.
-2. Semak label ubat yang telah disimpan. Label hanya tersedia untuk kuantiti akhir yang positif; kandungan terlalu panjang akan disekat, bukan dipendekkan.
-3. Pilih “Print current labels” dan gunakan dialog cetak pelayar.
+1. Pada kes “Dispensary”, pilih “Print all labels” untuk semua ubat atau “Print Label” pada ubat berkenaan.
+2. Halaman yang dibuka bertajuk “Medicine label preview”.
+3. Semak label ubat yang telah disimpan. Label hanya tersedia untuk kuantiti akhir yang positif; kandungan terlalu panjang akan disekat, bukan dipendekkan.
+4. Pilih “Print current labels” dan gunakan dialog cetak pelayar.
 
-Saiz 100 × 150 mm telah disahkan, tetapi pencetak, stok pelekat dan ujian cetak sebenar belum disahkan: [PERLU DISAHKAN].
+Saiz 100 × 150 mm masih berstatus “Provisional”. Pencetak sebenar dan stok pelekat sebenar masih perlu diuji dengan cetakan ujian: [PERLU DISAHKAN].
 
 ## Bil, pelarasan dan bayaran
 

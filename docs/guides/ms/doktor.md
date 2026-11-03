@@ -38,8 +38,9 @@ Jika anda sedang melayani pesakit berstatus Serving yang tidak ditahan, anda tid
 ## Panggil pesakit yang belum bersedia
 
 1. Tindakan ini hanya untuk pesakit sendiri yang sedang menunggu dan ditandakan “Not ready to call”.
-2. Pilih “Call In”. Dalam dialog, pilih sebab yang benar: “Patient is urgent”, “Issue resolved verbally” atau “Patient is at the door”.
-3. Pilih “Call Patient”. Sebab override direkodkan bersama panggilan.
+2. Pada menu tindakan pesakit, pilih “Override flag and call”. Butang “Call In” biasa dilumpuhkan untuk pesakit ini.
+3. Pilih satu sebab yang benar: “Patient is urgent”, “Issue resolved verbally” atau “Patient is at the door”.
+4. Pilih “Call Patient” untuk mengesahkan panggilan. Sebab override direkodkan bersama panggilan.
 
 ## Lengkapkan konsultasi
 
