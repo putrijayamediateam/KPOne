@@ -174,7 +174,7 @@ class StockReviewTest extends VisitTestCase
                 $this->assertArrayHasKey('retry_key', $e->errors());
             }
         }
-        foreach ([$this->command(0), [...$this->command(1), 'review_by' => now()->addDays(15)->toDateString()], [...$this->command(1), 'review_by' => now()->subDay()->toDateString()], [...$this->command(1), 'review_by' => null], [...$this->command(1), 'outcome' => 'send_message']] as $invalid) {
+        foreach ([$this->command(0), [...$this->command(1), 'review_by' => now()->setTimezone($this->branch->timezone)->addDays(15)->toDateString()], [...$this->command(1), 'review_by' => now()->setTimezone($this->branch->timezone)->subDay()->toDateString()], [...$this->command(1), 'review_by' => null], [...$this->command(1), 'outcome' => 'send_message']] as $invalid) {
             try {
                 $service->acknowledge($actor, 'low_stock', $f['reorder'], $invalid);
                 $this->fail('Invalid review accepted');
