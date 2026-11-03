@@ -105,9 +105,12 @@ const endAssignment = () =>
                 </div>
                 <div class="grid gap-4 sm:grid-cols-2">
                     <div class="grid gap-2">
-                        <label class="text-sm font-medium"
+                        <label
+                            class="text-sm font-medium"
+                            for="branch-assignment-type"
                             >Assignment type</label
                         ><select
+                            id="branch-assignment-type"
                             v-model="form.assignment_type"
                             class="h-9 rounded-md border bg-background px-3 text-sm"
                         >
@@ -128,17 +131,24 @@ const endAssignment = () =>
                 </div>
                 <div class="grid gap-4 sm:grid-cols-2">
                     <div class="grid gap-2">
-                        <label class="text-sm font-medium">Valid from</label
+                        <label
+                            class="text-sm font-medium"
+                            for="branch-assignment-valid-from"
+                            >Valid from</label
                         ><input
+                            id="branch-assignment-valid-from"
                             v-model="form.valid_from"
                             type="date"
                             class="h-9 rounded-md border bg-background px-3 text-sm"
                         /><InputError :message="form.errors.valid_from" />
                     </div>
                     <div class="grid gap-2">
-                        <label class="text-sm font-medium"
+                        <label
+                            class="text-sm font-medium"
+                            for="branch-assignment-valid-through"
                             >Valid through (inclusive)</label
                         ><input
+                            id="branch-assignment-valid-through"
                             v-model="form.valid_until"
                             type="date"
                             class="h-9 rounded-md border bg-background px-3 text-sm"
