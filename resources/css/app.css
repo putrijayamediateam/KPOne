@@ -242,3 +242,13 @@
         @apply text-right tabular-nums;
     }
 }
+
+@media print {
+    html:has(.document-print, .label-preview),
+    body:has(.document-print, .label-preview),
+    .document-print,
+    .label-preview {
+        background: #fff !important;
+        color: #000 !important;
+    }
+}
