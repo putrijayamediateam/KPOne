@@ -8,7 +8,14 @@ import {
     SlidersHorizontal,
     X,
 } from '@lucide/vue';
-import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue';
+import {
+    computed,
+    nextTick,
+    onBeforeUnmount,
+    onMounted,
+    reactive,
+    ref,
+} from 'vue';
 import InputError from '@/components/InputError.vue';
 import PatientBoard from '@/components/patient-board/PatientBoard.vue';
 import VisitCancellationDialog from '@/components/patient-board/VisitCancellationDialog.vue';
@@ -473,6 +480,13 @@ const resetFilters = () => {
     void search(1);
 };
 const source = (row: PatientBoardRow) => row.source as VisitRow;
+const refreshAppliedBoard = () => {
+    pollFailures = 0;
+    pollingStopped = false;
+    // Wait for dialogs and busy controls to close; the existing automatic search
+    // keeps the applied filters/page and checks typing, menus and stale responses.
+    void nextTick(() => search(currentPage.value, true));
+};
 const runMutation = (
     row: PatientBoardRow,
     method: 'post' | 'patch',
@@ -480,8 +494,13 @@ const runMutation = (
     data: Record<string, number | string>,
 ) => {
     busyKey.value = row.key;
+    let succeeded = false;
     router[method](url, data, {
         preserveScroll: true,
+        preserveState: true,
+        onSuccess: () => {
+            succeeded = true;
+        },
         onError: (errors) => {
             error.value =
                 Object.values(errors)[0] ??
@@ -489,6 +508,10 @@ const runMutation = (
         },
         onFinish: () => {
             busyKey.value = null;
+
+            if (succeeded) {
+                refreshAppliedBoard();
+            }
         },
     });
 };
@@ -500,6 +523,7 @@ const sendToWaiting = (row: PatientBoardRow) =>
         {
             expected_branch_id: props.options.branch.id,
             visit_lock_version: source(row).visitLockVersion,
+            from: 'registration',
         },
     );
 const callIn = (row: PatientBoardRow) =>
@@ -760,6 +784,7 @@ onBeforeUnmount(() => {
                     :busy-key="busyKey"
                     :empty-message="boardEmptyMessage"
                     @send-to-waiting="sendToWaiting"
+                    @readiness-changed="refreshAppliedBoard"
                     @call="callIn"
                     @open-consultation="openConsultation"
                     @dispense="dispenseOtc"

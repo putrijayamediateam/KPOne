@@ -16,6 +16,7 @@ const props = defineProps<{
     branchId: number;
     from: 'queue' | 'registration';
 }>();
+const emit = defineEmits<{ changed: [] }>();
 const open = ref(false);
 const reason = ref('');
 const error = ref('');
@@ -60,6 +61,7 @@ const submit = () => {
     busy.value = true;
     error.value = '';
     const entry = props.row.source as QueueRow;
+    let succeeded = false;
     router.visit(
         `/visits/${encodeURIComponent(props.row.visitNumber)}/queue/readiness`,
         {
@@ -77,14 +79,20 @@ const submit = () => {
                 from: props.from,
             },
             preserveScroll: true,
+            preserveState: props.from === 'registration',
             onError: (errors) => {
                 error.value = Object.values(errors)[0] ?? 'The action failed.';
             },
             onSuccess: () => {
                 open.value = false;
+                succeeded = true;
             },
             onFinish: () => {
                 busy.value = false;
+
+                if (succeeded) {
+                    emit('changed');
+                }
             },
         },
     );
