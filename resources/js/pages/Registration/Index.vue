@@ -105,6 +105,8 @@ const currentPage = ref(props.visits.currentPage);
 const lastPage = ref(props.visits.lastPage);
 const loading = ref(false);
 const error = ref('');
+const liveRefreshNotice = ref('');
+const searchComposing = ref(false);
 const busyKey = ref<string | null>(null);
 const showMoreFilters = ref(false);
 const cancellationRow = ref<PatientBoardRow | null>(null);
@@ -273,12 +275,15 @@ const clearPollTimer = () => {
 const pollProtected = () =>
     cancelOpen.value ||
     busyKey.value !== null ||
+    searchComposing.value ||
     !!document.querySelector(
         '[role="menu"][data-state="open"], [role="dialog"]:not([data-state="closed"]), [role="alertdialog"]:not([data-state="closed"]), [role="listbox"][data-state="open"], dialog[open]',
     ) ||
-    !!document.activeElement?.matches(
+    (!!document.activeElement?.matches(
         'input, textarea, select, [contenteditable]:not([contenteditable="false"]), [role="textbox"], [role="combobox"]',
-    );
+    ) &&
+        (document.activeElement.id !== 'registration-board-search' ||
+            form.patient_query !== appliedFilters.patient_query));
 const schedulePoll = () => {
     clearPollTimer();
 
@@ -299,6 +304,18 @@ const schedulePoll = () => {
         },
         pollFailures ? Math.min(60_000, 10_000 * 2 ** pollFailures) : 10_000,
     );
+};
+const recordSearchFailure = (automatic: boolean, message: string) => {
+    pollingStopped = ++pollFailures >= 3;
+
+    if (automatic) {
+        liveRefreshNotice.value =
+            'Live refresh paused. Showing last successful results.' +
+            (pollingStopped ? ' Press Search to try again.' : '');
+    } else {
+        error.value = message;
+        clearBoard();
+    }
 };
 const search = async (page = 1, automatic = false) => {
     if (disposed) {
@@ -337,6 +354,7 @@ const search = async (page = 1, automatic = false) => {
         pollFailures = 0;
         pollingStopped = false;
         error.value = '';
+        liveRefreshNotice.value = '';
     }
 
     const request = new AbortController();
@@ -368,17 +386,17 @@ const search = async (page = 1, automatic = false) => {
         if (!response.ok) {
             const validationErrors = payload.errors as
                 Record<string, string[]> | undefined;
-            error.value =
+            recordSearchFailure(
+                automatic,
                 payload.message ??
-                (validationErrors
-                    ? Object.values(validationErrors)[0]?.[0]
-                    : undefined) ??
-                'Registration search could not be completed.';
-            clearBoard();
+                    (validationErrors
+                        ? Object.values(validationErrors)[0]?.[0]
+                        : undefined) ??
+                    'Registration search could not be completed.',
+            );
             console.error(
                 `Registration search failed with status ${response.status}`,
             );
-            pollingStopped = ++pollFailures >= 3;
 
             return;
         }
@@ -388,14 +406,16 @@ const search = async (page = 1, automatic = false) => {
         currentPage.value = payload.currentPage;
         lastPage.value = payload.lastPage;
         error.value = '';
+        liveRefreshNotice.value = '';
         pollFailures = 0;
     } catch (thrown) {
         if (generation === searchGeneration) {
             if (!disposed && (!automatic || !pollProtected())) {
-                error.value = 'Registration search could not be completed.';
-                clearBoard();
+                recordSearchFailure(
+                    automatic,
+                    'Registration search could not be completed.',
+                );
                 console.error('Registration search request failed', thrown);
-                pollingStopped = ++pollFailures >= 3;
             }
         }
     } finally {
@@ -628,8 +648,11 @@ onBeforeUnmount(() => {
                             class="absolute top-2.5 left-3 size-4 text-muted-foreground"
                         />
                         <input
+                            id="registration-board-search"
                             v-model="form.patient_query"
                             autocomplete="off"
+                            @compositionstart="searchComposing = true"
+                            @compositionend="searchComposing = false"
                             class="h-9 w-full rounded-lg border border-transparent bg-muted/45 pr-3 pl-9 text-[13px] transition-colors outline-none hover:bg-muted/65 focus:border-ring/40 focus:bg-background focus:ring-2 focus:ring-ring/25"
                             placeholder="Patient name or exact Patient No."
                         />
@@ -708,6 +731,14 @@ onBeforeUnmount(() => {
                 </div>
                 <InputError class="mt-2" :message="error" />
             </form>
+
+            <p
+                v-if="liveRefreshNotice"
+                role="status"
+                class="text-xs text-muted-foreground"
+            >
+                {{ liveRefreshNotice }}
+            </p>
 
             <section class="overflow-hidden border-y bg-background">
                 <div

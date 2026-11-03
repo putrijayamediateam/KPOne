@@ -621,7 +621,7 @@ test('REG-LIVE-1 errors back off for twenty then forty seconds, stop at three, a
     const mounted = mount();
     await environment.advance(10000);
     assert.equal(environment.requests.length, 1);
-    assert.deepEqual(boardRowKeys(mounted.root), []);
+    assert.deepEqual(boardRowKeys(mounted.root), ['ORIGINAL']);
     await environment.advance(19999);
     assert.equal(environment.requests.length, 1);
     await environment.advance(1);
@@ -633,8 +633,9 @@ test('REG-LIVE-1 errors back off for twenty then forty seconds, stop at three, a
     assert.equal(environment.timers.size, 0);
     assert.equal(
         board(mounted.root).props['data-empty-message'],
-        'Registration search could not be completed.',
+        '',
     );
+    assert.equal(liveNotice(mounted.root), pausedNotice + ' Press Search to try again.');
     document.hidden = true;
     environment.listeners.get('visibilitychange')();
     document.hidden = false;
@@ -702,4 +703,172 @@ test('REG-LIVE-1 a slow request cannot overlap a scheduled poll', async () => {
     await environment.advance(1);
     assert.equal(environment.requests.length, 2);
     assert.deepEqual(boardRowKeys(mounted.root), ['ARRIVAL']);
+});
+
+const pausedNotice = 'Live refresh paused. Showing last successful results.';
+const liveNotice = (root) => {
+    const notice = descendants(root, 'p').find((node) => node.props.role === 'status');
+
+    return notice ? content(notice).trim() : '';
+};
+const searchField = (root) => descendants(root, 'input')[0];
+const focusBoardSearch = () => {
+    const element = { id: 'registration-board-search', matches: () => true };
+    document.activeElement = element;
+
+    return element;
+};
+
+test('REG-LIVE-1 Enter submission leaves search focused and permits polling the applied value', async () => {
+    const mounted = mount();
+    const field = searchField(mounted.root);
+    field.props['onUpdate:modelValue']('Synthetic');
+    const focused = focusBoardSearch();
+    submit(mounted.root);
+    await flush();
+    assert.equal(document.activeElement, focused);
+    assert.equal(environment.requests.length, 1);
+    await environment.advance(10000);
+    assert.equal(environment.requests.length, 2);
+    assert.equal(environment.requests[1].body.patient_query, 'Synthetic');
+    assert.equal(document.activeElement, focused);
+});
+
+test('REG-LIVE-1 typing after submission pauses until that draft is submitted without requiring blur', async () => {
+    const mounted = mount();
+    const field = searchField(mounted.root);
+    const focused = focusBoardSearch();
+    submit(mounted.root);
+    await flush();
+    field.props['onUpdate:modelValue']('Unsubmitted');
+    await environment.advance(30000);
+    assert.equal(environment.requests.length, 1);
+    submit(mounted.root);
+    await flush();
+    await environment.advance(10000);
+    assert.equal(environment.requests.length, 3);
+    assert.equal(environment.requests.at(-1).body.patient_query, 'Unsubmitted');
+    assert.equal(document.activeElement, focused);
+});
+
+test('REG-LIVE-1 an in-flight response cannot replace rows or show a failure notice while search becomes dirty', async () => {
+    for (const status of [200, 500]) {
+        const pending = deferred();
+        environment.respond = async () => pending.promise;
+        const mounted = mount();
+        focusBoardSearch();
+        await environment.advance(10000);
+        const before = environment.requests.length;
+        assert.ok(before > 0);
+        searchField(mounted.root).props['onUpdate:modelValue']('Draft');
+        pending.resolve(status === 200 ? response('IGNORED') : jsonResponse(500, {}));
+        await flush();
+        assert.deepEqual(boardRowKeys(mounted.root), ['ORIGINAL']);
+        assert.equal(liveNotice(mounted.root), '');
+        mounted.app.unmount();mountedApps.pop();
+    }
+});
+
+test('REG-LIVE-1 IME composition protects an unchanged search value until composition ends', async () => {
+    const mounted = mount();
+    focusBoardSearch();
+    const field = searchField(mounted.root);
+    field.props.onCompositionstart();
+    await environment.advance(20000);
+    assert.equal(environment.requests.length, 0);
+    field.props.onCompositionend();
+    await environment.advance(10000);
+    assert.equal(environment.requests.length, 1);
+});
+
+test('REG-LIVE-1 IME composition also protects against an already in-flight response', async () => {
+    const pending = deferred();
+    environment.respond = async () => pending.promise;
+    const mounted = mount();
+    focusBoardSearch();
+    await environment.advance(10000);
+    searchField(mounted.root).props.onCompositionstart();
+    pending.resolve(response('IGNORED'));
+    await flush();
+    assert.deepEqual(boardRowKeys(mounted.root), ['ORIGINAL']);
+    searchField(mounted.root).props.onCompositionend();
+    environment.respond = async () => response('UPRIGHT');
+    await environment.advance(10000);
+    assert.deepEqual(boardRowKeys(mounted.root), ['UPRIGHT']);
+});
+
+test('REG-LIVE-1 automatic HTTP and network failures retain rows total and both page controls', async () => {
+    for (const mode of ['http', 'network']) {
+        environment.respond = async () => {
+            if (mode === 'network') {
+throw new Error('Synthetic connection failure');
+}
+
+            return jsonResponse(500, {});
+        };
+        const mounted = mount({page: 2, lastPage: 3});
+        await environment.advance(10000);
+        assert.deepEqual(boardRowKeys(mounted.root), ['ORIGINAL']);
+        assert.match(content(mounted.root), /1 Visit/);
+        assert.equal(button(mounted.root, 'Previous').props.disabled, false);
+        assert.equal(button(mounted.root, 'Next').props.disabled, false);
+        assert.equal(environment.requests.at(-1).body.page, 2);
+        assert.equal(board(mounted.root).props['data-empty-message'], '');
+        assert.equal(liveNotice(mounted.root), pausedNotice);
+        environment.respond = async () => response('RECOVERED', 3);
+        button(mounted.root, 'Next').props.onClick();
+        await flush();
+        assert.equal(environment.requests.at(-1).body.page, 3);
+        assert.equal(button(mounted.root, 'Next').props.disabled, true);
+        assert.equal(liveNotice(mounted.root), '');
+        mounted.app.unmount();mountedApps.pop();
+    }
+});
+
+test('REG-LIVE-1 a successful automatic retry clears the pause notice and resets the cadence', async () => {
+    environment.respond = async () => jsonResponse(500, {});
+    const mounted = mount();
+    await environment.advance(10000);
+    assert.equal(liveNotice(mounted.root), pausedNotice);
+    environment.respond = async () => response('RECOVERED');
+    await environment.advance(20000);
+    assert.deepEqual(boardRowKeys(mounted.root), ['RECOVERED']);
+    assert.equal(liveNotice(mounted.root), '');
+    await environment.advance(10000);
+    assert.equal(environment.requests.length, 3);
+});
+
+test('REG-LIVE-1 starting a manual search clears the pause notice and manual network failure still clears the board', async () => {
+    environment.respond = async () => jsonResponse(500, {});
+    const mounted = mount();
+    await environment.advance(10000);
+    assert.equal(liveNotice(mounted.root), pausedNotice);
+    const pending = deferred();
+    environment.respond = async () => {
+ await pending.promise;
+
+ throw new Error('Synthetic manual failure');
+};
+    submit(mounted.root);
+    await flush();
+    assert.equal(liveNotice(mounted.root), '');
+    pending.resolve();
+    await flush();
+    assert.deepEqual(boardRowKeys(mounted.root), []);
+    assert.equal(board(mounted.root).props['data-empty-message'], 'Registration search could not be completed.');
+    assert.equal(liveNotice(mounted.root), '');
+});
+
+test('REG-LIVE-1 a stale automatic failure cannot restore a notice after a newer manual success', async () => {
+    const pending = deferred();
+    let calls = 0;
+    environment.respond = async () => ++calls === 1 ? pending.promise : response('LATEST');
+    const mounted = mount();
+    await environment.advance(10000);
+    submit(mounted.root);
+    await flush();
+    pending.resolve(jsonResponse(500, {}));
+    await flush();
+    assert.deepEqual(boardRowKeys(mounted.root), ['LATEST']);
+    assert.equal(liveNotice(mounted.root), '');
 });
