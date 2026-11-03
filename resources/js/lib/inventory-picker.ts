@@ -5,8 +5,10 @@ export type InventoryPickerOption = {
 };
 export type InventoryPickerRow = Record<
     string,
-    string | number | boolean | null
->;
+    string | number | boolean | null | undefined
+> & {
+    holdReason?: string | null;
+};
 export function inventoryPickerUrl(input: {
     kind: string;
     context: string;
@@ -36,7 +38,7 @@ export function inventoryPickerOptions(
         value: String(row.publicId ?? row.id),
         label:
             (row.held
-                ? `Held: ${formatInventoryReason(String(row.holdReason))} · `
+                ? `${formatInventoryHoldLabel(formatInventoryReason(row.holdReason))} · `
                 : '') +
             String(
                 row.skuCode ??
@@ -107,4 +109,8 @@ export const formatInventoryReason = (
             .replaceAll('_', ' ')
             .replace(/^./, (character) => character.toUpperCase())
     );
+};
+
+export const formatInventoryHoldLabel = (reason: string): string => {
+    return reason ? `Held: ${reason}` : 'Held';
 };

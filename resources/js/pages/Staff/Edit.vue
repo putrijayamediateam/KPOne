@@ -58,37 +58,55 @@ const submit = () => form.patch(`/staff/${props.staff.id}`);
                     @submit.prevent="submit"
                 >
                     <div class="grid gap-2 sm:col-span-2">
-                        <label class="text-sm font-medium">Full name</label
+                        <label class="text-sm font-medium" for="staff-edit-name"
+                            >Full name</label
                         ><input
+                            id="staff-edit-name"
                             v-model="form.name"
                             class="h-9 rounded-md border bg-background px-3 text-sm"
                         /><InputError :message="form.errors.name" />
                     </div>
                     <div class="grid gap-2 sm:col-span-2">
-                        <label class="text-sm font-medium">Work email</label
+                        <label
+                            class="text-sm font-medium"
+                            for="staff-edit-email"
+                            >Work email</label
                         ><input
+                            id="staff-edit-email"
                             v-model="form.email"
                             type="email"
                             class="h-9 rounded-md border bg-background px-3 text-sm"
                         /><InputError :message="form.errors.email" />
                     </div>
                     <div class="grid gap-2">
-                        <label class="text-sm font-medium">Staff number</label
+                        <label
+                            class="text-sm font-medium"
+                            for="staff-edit-number"
+                            >Staff number</label
                         ><input
+                            id="staff-edit-number"
                             v-model="form.staff_number"
                             class="h-9 rounded-md border bg-background px-3 text-sm"
                         /><InputError :message="form.errors.staff_number" />
                     </div>
                     <div class="grid gap-2">
-                        <label class="text-sm font-medium">Job title</label
+                        <label
+                            class="text-sm font-medium"
+                            for="staff-edit-job-title"
+                            >Job title</label
                         ><input
+                            id="staff-edit-job-title"
                             v-model="form.job_title"
                             class="h-9 rounded-md border bg-background px-3 text-sm"
                         /><InputError :message="form.errors.job_title" />
                     </div>
                     <div class="grid gap-2 sm:col-span-2">
-                        <label class="text-sm font-medium">Department</label
+                        <label
+                            class="text-sm font-medium"
+                            for="staff-edit-department"
+                            >Department</label
                         ><select
+                            id="staff-edit-department"
                             v-model="form.department_id"
                             class="h-9 rounded-md border bg-background px-3 text-sm"
                         >
