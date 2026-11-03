@@ -8,7 +8,7 @@ import {
     SlidersHorizontal,
     X,
 } from '@lucide/vue';
-import { computed, reactive, ref } from 'vue';
+import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue';
 import InputError from '@/components/InputError.vue';
 import PatientBoard from '@/components/patient-board/PatientBoard.vue';
 import VisitCancellationDialog from '@/components/patient-board/VisitCancellationDialog.vue';
@@ -129,6 +129,13 @@ const csrf = () =>
     document.querySelector<HTMLMetaElement>('meta[name="csrf-token"]')
         ?.content ?? '';
 let searchGeneration = 0;
+let appliedFilters = { ...form };
+let pollTimer: ReturnType<typeof setTimeout> | undefined;
+let requestController: AbortController | undefined;
+let pollingEnabled = false;
+let disposed = false;
+let pollFailures = 0;
+let pollingStopped = false;
 const plannedTab = computed(() => false);
 const isQrIntake = computed(() => activeTab.value === 'qr-intake');
 const doctorOptions = computed(() => [
@@ -257,8 +264,65 @@ const clearBoard = () => {
     currentPage.value = 1;
     lastPage.value = 1;
 };
-const search = async (page = 1) => {
+const clearPollTimer = () => {
+    if (pollTimer !== undefined) {
+        clearTimeout(pollTimer);
+        pollTimer = undefined;
+    }
+};
+const pollProtected = () =>
+    cancelOpen.value ||
+    busyKey.value !== null ||
+    !!document.querySelector(
+        '[role="menu"][data-state="open"], [role="dialog"]:not([data-state="closed"]), [role="alertdialog"]:not([data-state="closed"]), [role="listbox"][data-state="open"], dialog[open]',
+    ) ||
+    !!document.activeElement?.matches(
+        'input, textarea, select, [contenteditable]:not([contenteditable="false"]), [role="textbox"], [role="combobox"]',
+    );
+const schedulePoll = () => {
+    clearPollTimer();
+
+    if (
+        !pollingEnabled ||
+        disposed ||
+        document.hidden ||
+        pollingStopped ||
+        isQrIntake.value
+    ) {
+        return;
+    }
+
+    pollTimer = setTimeout(
+        () => {
+            pollTimer = undefined;
+            void search(currentPage.value, true);
+        },
+        pollFailures ? Math.min(60_000, 10_000 * 2 ** pollFailures) : 10_000,
+    );
+};
+const search = async (page = 1, automatic = false) => {
+    if (disposed) {
+        return;
+    }
+
+    if (
+        automatic &&
+        (!pollingEnabled ||
+            document.hidden ||
+            pollingStopped ||
+            isQrIntake.value ||
+            requestController ||
+            pollProtected())
+    ) {
+        schedulePoll();
+
+        return;
+    }
+
     const generation = ++searchGeneration;
+    clearPollTimer();
+    requestController?.abort();
+    requestController = undefined;
 
     if (plannedTab.value) {
         clearBoard();
@@ -268,8 +332,16 @@ const search = async (page = 1) => {
         return;
     }
 
-    loading.value = true;
-    error.value = '';
+    if (!automatic) {
+        appliedFilters = { ...form };
+        pollFailures = 0;
+        pollingStopped = false;
+        error.value = '';
+    }
+
+    const request = new AbortController();
+    requestController = request;
+    loading.value = !automatic;
 
     try {
         const response = await fetch('/registration/search', {
@@ -280,11 +352,16 @@ const search = async (page = 1) => {
                 'Content-Type': 'application/json',
                 'X-CSRF-TOKEN': csrf(),
             },
-            body: JSON.stringify({ ...form, page }),
+            signal: request.signal,
+            body: JSON.stringify({ ...appliedFilters, page }),
         });
         const payload = await response.json();
 
         if (generation !== searchGeneration) {
+            return;
+        }
+
+        if (disposed || (automatic && pollProtected())) {
             return;
         }
 
@@ -301,6 +378,7 @@ const search = async (page = 1) => {
             console.error(
                 `Registration search failed with status ${response.status}`,
             );
+            pollingStopped = ++pollFailures >= 3;
 
             return;
         }
@@ -309,15 +387,27 @@ const search = async (page = 1) => {
         total.value = payload.total;
         currentPage.value = payload.currentPage;
         lastPage.value = payload.lastPage;
+        error.value = '';
+        pollFailures = 0;
     } catch (thrown) {
         if (generation === searchGeneration) {
-            error.value = 'Registration search could not be completed.';
-            clearBoard();
-            console.error('Registration search request failed', thrown);
+            if (!disposed && (!automatic || !pollProtected())) {
+                error.value = 'Registration search could not be completed.';
+                clearBoard();
+                console.error('Registration search request failed', thrown);
+                pollingStopped = ++pollFailures >= 3;
+            }
         }
     } finally {
         if (generation === searchGeneration) {
-            loading.value = false;
+            if (!disposed) {
+                if (requestController === request) {
+                    requestController = undefined;
+                }
+
+                loading.value = false;
+                schedulePoll();
+            }
         }
     }
 };
@@ -325,6 +415,11 @@ const selectTab = (tab: BoardTab) => {
     activeTab.value = tab;
 
     if (tab === 'qr-intake') {
+        ++searchGeneration;
+        clearPollTimer();
+        requestController?.abort();
+        requestController = undefined;
+        loading.value = false;
         window.history.replaceState({}, '', '/registration?tab=qr-intake');
 
         return;
@@ -438,6 +533,47 @@ const changeQrHistoryPage = (qrHistoryPage: number) => {
         data: { qr_history_page: qrHistoryPage },
     });
 };
+const handleVisibility = () => {
+    if (!pollingEnabled || disposed) {
+        return;
+    }
+
+    if (document.hidden) {
+        ++searchGeneration;
+        clearPollTimer();
+        requestController?.abort();
+        requestController = undefined;
+        loading.value = false;
+    } else if (!pollingStopped) {
+        void search(currentPage.value, true);
+    }
+};
+onMounted(() => {
+    // Browser polling requires a document lifecycle; SSR/non-DOM rendering has none.
+    if (
+        typeof document === 'undefined' ||
+        typeof document.addEventListener !== 'function' ||
+        typeof document.removeEventListener !== 'function'
+    ) {
+        return;
+    }
+
+    pollingEnabled = true;
+    document.addEventListener('visibilitychange', handleVisibility);
+    schedulePoll();
+});
+onBeforeUnmount(() => {
+    disposed = true;
+    pollingEnabled = false;
+    ++searchGeneration;
+    clearPollTimer();
+    requestController?.abort();
+    requestController = undefined;
+
+    if (typeof document !== 'undefined') {
+        document.removeEventListener?.('visibilitychange', handleVisibility);
+    }
+});
 </script>
 
 <template>
