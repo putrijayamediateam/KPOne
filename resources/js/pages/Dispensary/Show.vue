@@ -777,8 +777,8 @@ const inputClass = 'mt-1 h-9 w-full rounded-md border px-2';
                     class="rounded-xl border p-4 text-sm"
                     :class="
                         otcAllergyConfirmed
-                            ? 'border-emerald-200 bg-emerald-50/50'
-                            : 'border-amber-300 bg-amber-50/70'
+                            ? 'border-emerald-200 bg-emerald-50/50 dark:border-emerald-900 dark:bg-emerald-950/30'
+                            : 'border-amber-300 bg-amber-50/70 dark:border-amber-900 dark:bg-amber-950/30'
                     "
                     data-testid="otc-allergy"
                 >
@@ -838,7 +838,7 @@ const inputClass = 'mt-1 h-9 w-full rounded-md border px-2';
                         </Button>
                         <span
                             v-if="otcAllergyConfirmed"
-                            class="text-xs text-emerald-800"
+                            class="text-xs text-emerald-800 dark:text-emerald-300"
                             >Recorded</span
                         >
                     </div>
