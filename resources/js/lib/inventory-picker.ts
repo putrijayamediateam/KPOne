@@ -93,6 +93,7 @@ const reasonLabels: Record<string, string> = {
     correction: 'Receipt correction',
     duplicate_delivery: 'Duplicate delivery',
     incorrect_quantity: 'Incorrect quantity',
+    count_variance: 'Count variance',
     incorrect_batch: 'Incorrect batch',
 };
 
