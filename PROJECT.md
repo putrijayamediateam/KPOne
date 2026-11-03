@@ -1,8 +1,17 @@
 # KPOne project
 
-Latest merged delivery: PR #189 — D02 invoice and receipt footer release, merged as `4c3fda4`. Recent merges, newest first
+Latest merged delivery: PR #202 — TV-5 "Last called" after 15 minutes, merged as `d213653`. Recent merges, newest first
 (documentation-only PRs omitted):
 
+- PR #202 (`d213653`) — TV-5: the waiting-room TV shows "Last called" instead of "Now calling" once the current call is 15 minutes old, using server time so a wrong TV clock cannot change it. Recall stays as a small secondary indicator. Frontend only.
+- PR #201 (`b04e585`) — FLOW-FIXES-1: Registration keeps its filter and page after not-ready, Send to Waiting and Call to Dispensary actions and refreshes; the All tab offers Open Dispensary for a consultation with medicines waiting; a handed-off consultation shows Completed with Save disabled; Send to Waiting started from Registration stays on Registration.
+- PR #200 (`da0aa8c`) — PRINT-1: invoice, receipt and drug-label prints stay white in dark mode. Physical printer test still outstanding.
+- PR #199 and #197 (`a8f097a`, `019139c`) — draft Malay quick guides for the Clinic Assistant, Resident Doctor and CA Supervisor under `docs/guides/ms/` (drafts for clinic review) and their DRY-RUN-2 corrections, with a readable "Count variance" label. A CA guide update after FLOW-FIXES-1 merged in PR #203 (`9def349`).
+- PR #198 (`f40b20c`) — REG-LIVE-1: the open Registration board refreshes about every 10 seconds, with care for typing, menus and failed refreshes.
+- PR #196 and #195 (`43936db`, `d1212d6`) — UI-LEFTOVERS-1 and UI-POLISH-1: label, guidance, wording and small layout fixes from the first rehearsal. Receiver still shown as "staff #ID".
+- PR #194 (`a819887`) — D002-ECHO: a ringgit value beside the sen approval limits.
+- PR #193 (`7bf9300`) — THROTTLE-1: each numeric throttle has its own counter per user and route, so polling can no longer block registration, calling or payment. Limits unchanged.
+- PR #192 (`87009eb`) — D03: invoice and receipt layout (OFFICIAL INVOICE or RECEIPT titles, header, To block, headings, receipt sentence, centred footer). Amounts and labels unchanged. Tax and e-Invoice suitability is to confirm with the clinic's accountant or tax adviser.
 - PR #189 (`4c3fda4`) — D02: invoices and receipts print the configured branch footer and no longer print the unconditional development disclaimer. A branch with no footer prints nothing extra, so the footer must be set in Business details before real use. Print view only: no permission, migration, route, payload or financial change. Whether the print meets tax or e-Invoice rules is to confirm with the clinic's accountant or tax adviser.
 - PR #188 (`c3df068`) — STK-6A: the legacy demo stocktake (create, start, count, post, cancel) and manual adjustment, plus the two public legacy ledger helpers, are refused in the domain after fresh permission and branch checks; unauthorised roles keep 403 and an authorised CA Supervisor is pointed to the governed Stock count and Write-off. Controls removed, history kept read-only. Opening balance, receiving and approved corrections, dispensing, transfers, STK-5, holds and reporting are unchanged. No permission or migration. A source test fails if a new writer bypasses the ledger.
 - PR #186 (`eba4336`) — STK-5: governed stock count and write-off path (frozen source snapshots, independent recount, approval by someone other than the counter, recounter and proposer, atomic reason-coded movement, linked reversal proposals) and the new `inventory.variances.approve.branch` permission for `ca_supervisor`, `finance_officer` and `director`. The legacy bypass it left open was closed by STK-6A (PR #188).
