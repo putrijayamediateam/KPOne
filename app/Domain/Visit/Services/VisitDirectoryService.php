@@ -20,6 +20,7 @@ use App\Domain\Visit\Models\Visit;
 use App\Domain\Visit\Policies\VisitPolicy;
 use App\Models\User;
 use Carbon\CarbonInterface;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
@@ -44,9 +45,8 @@ class VisitDirectoryService
     public function search(User $actor, array $criteria): array
     {
         Gate::forUser($actor)->authorize('viewAny', Visit::class);
-        if (($criteria['board_status'] ?? null) === 'dispensary') {
-            return $this->dispensary->board($actor, $criteria);
-        }
+        $dispensaryBoard = ($criteria['board_status'] ?? null) === 'dispensary'
+            ? $this->dispensary->board($actor, $criteria) : null;
         $branch = $this->activeBranch($actor);
         [$from, $to] = $this->dateRange($branch, $criteria);
         $query = Visit::query()
@@ -79,28 +79,6 @@ class VisitDirectoryService
                 'clinicalEncounter.holds',
             ]);
 
-        $boardStatus = (string) ($criteria['board_status'] ?? 'all');
-        if ($boardStatus === QueueEntry::STATUS_WAITING) {
-            $query->where('status', Visit::STATUS_REGISTERED)
-                ->where(fn ($waiting) => $waiting
-                    ->whereHas('queueEntry', fn ($queue) => $queue->where('status', QueueEntry::STATUS_WAITING))
-                    ->orWhere(fn ($otc) => $otc->where('visit_type', 'otc')
-                        ->whereHas('otcQueueEntry', fn ($entry) => $entry->where('status', OtcQueueEntry::STATUS_WAITING))));
-        } elseif ($boardStatus === QueueEntry::STATUS_SERVING) {
-            $query->where('status', Visit::STATUS_REGISTERED)
-                ->whereHas('queueEntry', fn ($queue) => $queue->where('status', QueueEntry::STATUS_SERVING));
-        } elseif ($boardStatus === Visit::STATUS_CANCELLED) {
-            $query->where('status', Visit::STATUS_CANCELLED);
-        } elseif ($boardStatus === 'completed') {
-            $query->where('status', Visit::STATUS_COMPLETED);
-        } elseif ($boardStatus === 'billing') {
-            abort_unless($actor->can('billing.view.branch'), 404);
-            $query->where('status', Visit::STATUS_REGISTERED)->whereExists(function ($q): void {
-                $q->selectRaw('1')->from('consultation_checkouts as checkout')->whereColumn('checkout.current_visit_guard', 'visits.id')
-                    ->where(fn ($r) => $r->where('checkout.route', 'billing')->orWhereExists(fn ($c) => $c->selectRaw('1')->from('dispensary_cases as dc')->whereColumn('dc.visit_id', 'visits.id')->where('dc.status', 'completed')));
-            });
-        }
-
         $patientQuery = trim((string) ($criteria['patient_query'] ?? ''));
         if ($patientQuery !== '') {
             $query->whereHas('patient', function ($patient) use ($patientQuery): void {
@@ -120,7 +98,20 @@ class VisitDirectoryService
             $query->where('assigned_doctor_user_id', (int) $criteria['doctor_id']);
         }
 
-        $paginator = $query->latest('registered_at')->paginate(25, page: (int) ($criteria['page'] ?? 1));
+        $tabCounts = $this->tabCounts($query, $actor, $branch, $criteria);
+        if ($dispensaryBoard !== null) {
+            return [...$dispensaryBoard, 'tabCounts' => $tabCounts];
+        }
+        $boardStatus = (string) ($criteria['board_status'] ?? 'all');
+        if ($boardStatus === 'billing') {
+            abort_unless($actor->can('billing.view.branch'), 404);
+        }
+        $predicate = $this->tabPredicates()[$boardStatus] ?? null;
+        if ($predicate !== null) {
+            $query->whereRaw($predicate);
+        }
+
+        $paginator = $query->latest('registered_at')->paginate(25, page: (int) ($criteria['page'] ?? 1), total: $tabCounts[$boardStatus] ?? $tabCounts['all']);
         $effectiveDate = now()->setTimezone($branch->timezone)->toDateString();
         $eligibleDoctorIds = $this->doctors->eligibleDoctors($branch, $effectiveDate)
             ->pluck('id')->map(fn ($id): int => (int) $id)->values()->all();
@@ -146,10 +137,52 @@ class VisitDirectoryService
                     return $this->row($actor, $visit, $branch, $eligibleDoctorIds, $actionHints, $checkouts->get($visit->id), $cases->get($visit->id) ?? collect(), $queueHints);
                 })
                 ->values(),
+            'tabCounts' => $tabCounts,
             'total' => $paginator->total(),
             'currentPage' => $paginator->currentPage(),
             'lastPage' => $paginator->lastPage(),
         ];
+    }
+
+    /** @return array<literal-string, literal-string> */
+    private function tabPredicates(): array
+    {
+        // Shared by the list and the single aggregate, so tab membership cannot drift.
+        return [
+            'waiting' => "visits.status = 'registered' AND (EXISTS (SELECT 1 FROM queue_entries q WHERE q.visit_id = visits.id AND q.status = 'waiting') OR (visits.visit_type = 'otc' AND EXISTS (SELECT 1 FROM otc_queue_entries o WHERE o.visit_id = visits.id AND o.status = 'waiting')))",
+            'serving' => "visits.status = 'registered' AND EXISTS (SELECT 1 FROM queue_entries q WHERE q.visit_id = visits.id AND q.status = 'serving')",
+            'completed' => "visits.status = 'completed'",
+            'cancelled' => "visits.status = 'cancelled'",
+            'billing' => "visits.status = 'registered' AND EXISTS (SELECT 1 FROM consultation_checkouts checkout WHERE checkout.current_visit_guard = visits.id AND (checkout.route = 'billing' OR EXISTS (SELECT 1 FROM dispensary_cases dc WHERE dc.visit_id = visits.id AND dc.status = 'completed')))",
+        ];
+    }
+
+    /**
+     * @param  Builder<Visit>  $query
+     * @param  array<string, mixed>  $criteria
+     * @return array<string, int>
+     */
+    private function tabCounts(Builder $query, User $actor, Branch $branch, array $criteria): array
+    {
+        $aggregate = (clone $query)->withoutEagerLoads()->select([])->selectRaw('COUNT(*) AS all_count');
+        $predicates = $this->tabPredicates();
+        if (! $actor->can('billing.view.branch')) {
+            unset($predicates['billing']);
+        }
+        foreach ($predicates as $tab => $predicate) {
+            $aggregate->selectRaw("COUNT(CASE WHEN {$predicate} THEN 1 END) AS {$tab}");
+        }
+        $row = (array) $aggregate->toBase()->first();
+        $counts = ['all' => (int) $row['all_count']];
+        foreach ($predicates as $tab => $predicate) {
+            $counts[$tab] = (int) $row[$tab];
+        }
+        $dispensary = $this->dispensary->boardCount($actor, $branch, $criteria);
+        if ($dispensary !== null) {
+            $counts['dispensary'] = $dispensary;
+        }
+
+        return $counts;
     }
 
     /** @return array<string, mixed> */

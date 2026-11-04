@@ -40,6 +40,12 @@ export type QueueRow = {
 };
 
 export type QueuePollSnapshot = {
+    tabCounts?: {
+        all: number;
+        waiting: number;
+        serving: number;
+        removed: number;
+    };
     scope: 'branch' | 'own';
     serverNow: string;
     operationalDate: string;

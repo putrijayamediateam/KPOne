@@ -88,12 +88,26 @@ const chooseRoom = (value: string | number) => {
     );
 };
 type QueueTab = 'all' | 'waiting' | 'serving' | 'removed';
-const tabs: Array<{ value: QueueTab; label: string }> = [
-    { value: 'all', label: 'All active' },
-    { value: 'waiting', label: 'Waiting' },
-    { value: 'serving', label: 'Serving Now' },
-    { value: 'removed', label: 'Consultation Completed' },
-];
+const tabs = computed<
+    Array<{ value: QueueTab; label: string; count?: number }>
+>(() => [
+    { value: 'all', label: 'All active', count: live.value.tabCounts?.all },
+    {
+        value: 'waiting',
+        label: 'Waiting',
+        count: live.value.tabCounts?.waiting,
+    },
+    {
+        value: 'serving',
+        label: 'Serving Now',
+        count: live.value.tabCounts?.serving,
+    },
+    {
+        value: 'removed',
+        label: 'Consultation Completed',
+        count: live.value.tabCounts?.removed,
+    },
+]);
 const live = ref(props.snapshot);
 const readyAlerts = useCallReadinessAlerts(true);
 const activeTab = ref<QueueTab>('all');

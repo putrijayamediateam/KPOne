@@ -68,6 +68,7 @@ class QueueDirectoryService
             ? array_values($eligibleDoctors->pluck('id')->map(fn ($id) => (int) $id)->all())
             : $this->doctors->eligibleDoctorIds($branch, $today);
         $base = $this->baseQuery($actor, $branch, $criteria);
+        $counts = $this->tabCounts($base, $today);
         $status = (string) ($criteria['status'] ?? '');
         $page = (int) ($criteria['page'] ?? 1);
         $carryPage = (int) ($criteria['carry_page'] ?? 1);
@@ -83,7 +84,7 @@ class QueueDirectoryService
                 ->orderByRaw("CASE visits.priority WHEN 'urgent' THEN 0 ELSE 1 END")
                 ->orderBy('queue_entries.queued_at')
                 ->orderBy('queue_entries.id')
-                ->paginate(25, page: $page);
+                ->paginate(25, page: $page, total: $counts['today']);
             $waitingEntries = $paginator->getCollection();
             $waitingMeta = [
                 'total' => $paginator->total(),
@@ -103,7 +104,7 @@ class QueueDirectoryService
                 ->orderBy('queue_entries.operational_date')
                 ->orderBy('queue_entries.queued_at')
                 ->orderBy('queue_entries.id')
-                ->paginate(25, pageName: 'carry_page', page: $carryPage);
+                ->paginate(25, pageName: 'carry_page', page: $carryPage, total: $counts['carryOver']);
             $carryOverEntries = $carryPaginator->getCollection();
             $carryOverMeta = [
                 'total' => $carryPaginator->total(),
@@ -161,6 +162,7 @@ class QueueDirectoryService
         }
 
         $dynamic = [
+            'tabCounts' => $counts['tabs'],
             'scope' => $actor->can('queue.view.branch') ? 'branch' : 'own',
             'serverNow' => $now->toIso8601String(),
             'operationalDate' => $today,
@@ -204,6 +206,27 @@ class QueueDirectoryService
                 return $this->row($actor, $entry, $branch, $now, $eligibleDoctorIds, $visitActionHints, $removedHints[$entry->visit_id] ?? false);
             })
             ->values();
+    }
+
+    /**
+     * @param  Builder<QueueEntry>  $base
+     * @return array{today: int, carryOver: int, tabs: array{all: int, waiting: int, serving: int, removed: int}}
+     */
+    private function tabCounts(Builder $base, string $today): array
+    {
+        $row = (array) (clone $base)->select([])->selectRaw(
+            "COUNT(CASE WHEN queue_entries.status = 'waiting' AND queue_entries.operational_date = ? THEN 1 END) AS today,
+             COUNT(CASE WHEN queue_entries.status = 'waiting' AND queue_entries.operational_date < ? THEN 1 END) AS carry_over,
+             COUNT(CASE WHEN queue_entries.status = 'serving' THEN 1 END) AS serving,
+             COUNT(CASE WHEN queue_entries.status = 'removed' THEN 1 END) AS removed",
+            [$today, $today],
+        )->toBase()->first();
+        $current = (int) $row['today'];
+        $carryOver = (int) $row['carry_over'];
+        $waiting = $current + $carryOver;
+        $serving = (int) $row['serving'];
+
+        return ['today' => $current, 'carryOver' => $carryOver, 'tabs' => ['all' => $waiting + $serving, 'waiting' => $waiting, 'serving' => $serving, 'removed' => (int) $row['removed']]];
     }
 
     /**
