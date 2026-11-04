@@ -18,6 +18,7 @@ use App\Domain\Patient\Services\VisitWhatsAppEligibility;
 use App\Domain\Visit\Services\VisitReasonService;
 use App\Models\User;
 use Carbon\CarbonImmutable;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Str;
 
 class DispensaryDirectoryService
@@ -32,15 +33,8 @@ class DispensaryDirectoryService
     {
         $branch = $this->branches->activeBranch($actor);
         abort_unless($branch && $actor->can('dispensary.view.branch') && $actor->hasAnyRole(['ca', 'ca_supervisor']), 404);
-        $query = DispensaryCase::query()->where('dispensary_cases.organisation_id', $actor->organisation_id)->where('dispensary_cases.branch_id', $branch->id)->whereIn('dispensary_cases.status', [DispensaryCase::STATUS_PENDING, DispensaryCase::STATUS_DISPENSING])
+        $query = $this->boardQuery($actor, $branch, $criteria)
             ->with(['visit.patient:id,organisation_id,patient_number,full_name,mobile_phone', 'visit.assignedDoctor:id,name', 'visit.reasonAssignments.reason:id,public_id,name', 'handoffs' => fn ($q) => $q->where('status', DispensaryHandoff::STATUS_OPEN)->withCount('items')]);
-        $term = trim((string) ($criteria['patient_query'] ?? ''));
-        if ($term !== '') {
-            $query->whereHas('visit.patient', fn ($q) => preg_match('/\AKP-\d{8}\z/i', $term) === 1 ? $q->where('patient_number', Str::upper($term)) : $q->whereRaw("search_name LIKE ? ESCAPE '\\'", ['%'.$this->escapeLike(Str::lower($term)).'%']));
-        }
-        if (filled($criteria['doctor_id'] ?? null)) {
-            $query->whereHas('visit', fn ($q) => $q->where('assigned_doctor_user_id', (int) $criteria['doctor_id']));
-        }
         $paginator = $query->latest('received_at')->paginate(25, page: (int) ($criteria['page'] ?? 1));
 
         return ['data' => $paginator->getCollection()->map(function (DispensaryCase $case) use ($actor, $branch): array {
@@ -51,6 +45,35 @@ class DispensaryDirectoryService
 
             return ['canWhatsapp' => VisitWhatsAppEligibility::allows($actor, $visit, $branch), 'visitNumber' => $visit->visit_number, 'patientNumber' => $visit->patient->patient_number, 'patientName' => $visit->patient->full_name, 'visitType' => $visit->visit_type, 'registeredAt' => $receivedAt->setTimezone($branch->timezone)->format('H:i'), 'visitReasonExcerpt' => ($summary = $this->visitReasons->summary($visit)) ? Str::limit($summary, 80) : null, 'doctorName' => $visit->assignedDoctor?->name, 'panelNote' => $visit->coverage_type === 'panel' ? $visit->coverage_panel_note : null, 'coverageLabel' => $visit->coverage_type === 'panel' ? $visit->coverage_panel_name_snapshot : 'Self-pay', 'priority' => $visit->priority, 'status' => $visit->status, 'queueNumber' => null, 'queueStatus' => 'removed', 'durationMinutes' => max(0, (int) $receivedAt->diffInMinutes(now()->utc())), 'visitLockVersion' => $visit->lock_version, 'queueLockVersion' => null, 'dispensaryStatus' => $case->status, 'medicineCount' => (int) $handoff->getAttribute('items_count'), 'dispensaryUrl' => route('dispensary.show', $case), 'can' => ['viewPatient' => false, 'update' => false, 'cancel' => false, 'sendToWaiting' => false, 'call' => false, 'openConsultation' => false, 'openDispensary' => true]];
         })->values(), 'total' => $paginator->total(), 'currentPage' => $paginator->currentPage(), 'lastPage' => $paginator->lastPage()];
+    }
+
+    /** @param array<string, mixed> $criteria */
+    public function boardCount(User $actor, Branch $branch, array $criteria): ?int
+    {
+        if (! $actor->can('dispensary.view.branch') || ! $actor->hasAnyRole(['ca', 'ca_supervisor'])) {
+            return null;
+        }
+
+        return $this->boardQuery($actor, $branch, $criteria)->count();
+    }
+
+    /**
+     * @param  array<string, mixed>  $criteria
+     * @return Builder<DispensaryCase>
+     */
+    private function boardQuery(User $actor, Branch $branch, array $criteria): Builder
+    {
+        // The badge intentionally ignores dates and advanced filters, exactly like this list.
+        $query = DispensaryCase::query()->where('dispensary_cases.organisation_id', $actor->organisation_id)->where('dispensary_cases.branch_id', $branch->id)->whereIn('dispensary_cases.status', [DispensaryCase::STATUS_PENDING, DispensaryCase::STATUS_DISPENSING]);
+        $term = trim((string) ($criteria['patient_query'] ?? ''));
+        if ($term !== '') {
+            $query->whereHas('visit.patient', fn ($q) => preg_match('/\AKP-\d{8}\z/i', $term) === 1 ? $q->where('patient_number', Str::upper($term)) : $q->whereRaw("search_name LIKE ? ESCAPE '\\'", ['%'.$this->escapeLike(Str::lower($term)).'%']));
+        }
+        if (filled($criteria['doctor_id'] ?? null)) {
+            $query->whereHas('visit', fn ($q) => $q->where('assigned_doctor_user_id', (int) $criteria['doctor_id']));
+        }
+
+        return $query;
     }
 
     /** @return array<string,mixed> */

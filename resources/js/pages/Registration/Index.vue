@@ -41,6 +41,7 @@ const props = defineProps<{
         total: number;
         currentPage: number;
         lastPage: number;
+        tabCounts?: Record<string, number>;
     };
     options: Pick<VisitOptions, 'branch' | 'doctors'>;
     canCreate: boolean;
@@ -80,16 +81,33 @@ type BoardTab =
     | 'completed'
     | 'cancelled'
     | 'qr-intake';
+const tabCounts = ref(props.visits.tabCounts);
 const tabs = computed<
     Array<{ value: BoardTab; label: string; count?: number }>
 >(() => [
-    { value: 'all', label: 'All' },
-    { value: 'waiting', label: 'Waiting' },
-    { value: 'serving', label: 'Serving Now' },
-    { value: 'dispensary', label: 'Dispensary' },
-    { value: 'billing', label: 'Awaiting Billing' },
-    { value: 'completed', label: 'Completed' },
-    { value: 'cancelled', label: 'Cancelled' },
+    { value: 'all', label: 'All', count: tabCounts.value?.all },
+    { value: 'waiting', label: 'Waiting', count: tabCounts.value?.waiting },
+    { value: 'serving', label: 'Serving Now', count: tabCounts.value?.serving },
+    {
+        value: 'dispensary',
+        label: 'Dispensary',
+        count: tabCounts.value?.dispensary,
+    },
+    {
+        value: 'billing',
+        label: 'Awaiting Billing',
+        count: tabCounts.value?.billing,
+    },
+    {
+        value: 'completed',
+        label: 'Completed',
+        count: tabCounts.value?.completed,
+    },
+    {
+        value: 'cancelled',
+        label: 'Cancelled',
+        count: tabCounts.value?.cancelled,
+    },
     ...(props.qrIntakes
         ? [
               {
@@ -268,6 +286,7 @@ const boardRows = computed<PatientBoardRow[]>(() =>
 );
 
 const clearBoard = () => {
+    tabCounts.value = undefined;
     rows.value = [];
     total.value = 0;
     currentPage.value = 1;
@@ -408,6 +427,7 @@ const search = async (page = 1, automatic = false) => {
             return;
         }
 
+        tabCounts.value = payload.tabCounts;
         rows.value = payload.data;
         total.value = payload.total;
         currentPage.value = payload.currentPage;
