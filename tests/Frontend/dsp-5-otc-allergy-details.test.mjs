@@ -71,3 +71,17 @@ test('a line that matches an allergy added later can be ticked and saved again',
         'the form shows only when the server allows it',
     );
 });
+
+test('a greyed-out Complete says what is still needed (Daniel review)', () => {
+    assert.ok(
+        show.includes('data-testid="dispensary-complete-blocked-reason"'),
+    );
+    assert.ok(
+        show.includes(
+            'Before completing, save the line with the allergy box ticked.',
+        ),
+    );
+    assert.ok(
+        form.includes('<span class="text-muted-foreground">(required)</span>'),
+    );
+});

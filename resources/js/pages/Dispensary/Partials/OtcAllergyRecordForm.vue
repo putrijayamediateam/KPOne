@@ -73,7 +73,7 @@ const submit = () => {
         <p class="text-sm font-semibold">Allergy details</p>
         <label class="text-sm" for="otc-allergy-allergen">
             Allergen
-            <span class="text-destructive">(required)</span>
+            <span class="text-muted-foreground">(required)</span>
             <input
                 id="otc-allergy-allergen"
                 ref="allergenInput"

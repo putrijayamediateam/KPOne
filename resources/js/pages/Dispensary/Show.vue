@@ -769,6 +769,22 @@ const confirmOtcAllergy = () =>
 
 // The CA's own verification, after the doctor's, before stock moves.
 const confirming = ref(false);
+// Daniel's review of DSP-5: say next to the greyed-out button what is still needed.
+const completeBlockedReason = computed(() => {
+    if (unsaved.value.length > 0 || unsavedServices.value.length > 0) {
+        return 'Save the lines that are not saved yet, then complete.';
+    }
+
+    if (props.dispensary.items.some((item) => item.allergyUnconfirmed)) {
+        return 'Before completing, save the line with the allergy box ticked.';
+    }
+
+    if (isOtc.value && !otcAllergyConfirmed.value) {
+        return 'Confirm what the patient reports about allergies, then complete.';
+    }
+
+    return '';
+});
 const completeCase = () => {
     caseAction('complete');
 };
@@ -1992,6 +2008,13 @@ const inputClass = 'mt-1 h-9 w-full rounded-md border px-2';
                         ><CheckCircle2 class="size-4" />Complete
                         Dispensary</Button
                     >
+                    <p
+                        v-if="dispensary.can.complete && completeBlockedReason"
+                        class="w-full text-xs text-muted-foreground"
+                        data-testid="dispensary-complete-blocked-reason"
+                    >
+                        {{ completeBlockedReason }}
+                    </p>
                 </section>
                 <section
                     v-if="confirming && dispensary.can.complete"
