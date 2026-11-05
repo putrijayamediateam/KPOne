@@ -82,7 +82,9 @@ coordinator at the owner's request (2026-11-05).
 | STK-1 | Dispensing refused when a SKU's dispensing unit differs from its stock unit | #180 |
 | FLOW-FIXES-1 | Call to Dispensary keeps the Registration filter; Open Dispensary on the All tab | #201 |
 | DARK-1 | OTC allergy panel readable in dark mode | #207 |
-| DSP-1 | Allergy warning: a CA add, edit or put-back of a medicine that matches a patient's active allergy record by text shows a warning and needs "I have checked with the patient/doctor"; enforced in `DispensaryService`; append-only `dispensary_allergy_confirmations` and a text-free audit; text matching can miss and the screen says so | pending (branch `feature/dsp-1-allergy-warning`) |
+| DSP-1 | Allergy warning: a CA add, edit or put-back of a medicine that matches a patient's active allergy record by text shows a warning and needs "I have checked with the patient/doctor"; enforced in `DispensaryService`; append-only `dispensary_allergy_confirmations` and a text-free audit; text matching can miss and the screen says so | #214 (merged `bf4126a`) |
+| DSP-2 | Drug label prints "No. Batch" and "Tarikh luput" when exactly one batch was allocated to the line; otherwise nothing extra and the preview says why; batch number within the 48-character label budget or the label is blocked; read only | #218 (merged `dad3b49`) |
+| DSP-3 | Controlled-medicine flag on the Medicine Catalogue (mark or unmark, confirmed, stale change refused, audited with field and value only) and a bold "Ubat Terkawal / Controlled Medicine" line under the medicine name on the drug label | PR #223 |
 
 ## 6. Owner decisions already made (never ask again)
 
@@ -102,14 +104,25 @@ coordinator at the owner's request (2026-11-05).
 11. Allergy match when a CA adds or edits a medicine: warn, and the CA must confirm to save; recorded; no
     block (2026-11-05).
 12. The controlled-medicine flag is set by Medicine Catalogue editors (Director, CA Supervisor), audited
-    (2026-11-05).
+    (2026-11-05). Administrator, which also holds `medicines.manage.organisation` (ADM-01), keeps it too
+    (owner decision 2026-11-05).
 
 ## 7. Open items and known limits
 
+- **Controlled-medicine flag (DSP-3):** Director, CA Supervisor and Administrator set it (decision 12). The flag is read live: reprints of
+  past dispenses follow the current flag. It adds one bold line, which counts toward the line limit, so a
+  controlled medicine with long directions may now be blocked (include one in the printer test). Medicines have
+  no `lock_version`; the change uses an expected-value guard on the one boolean instead (a quick A→B→A
+  sequence is not detected; every change is audited).
 - **Real printer and sticker test** for drug labels at the pilot branch (owner to do by hand).
-- **Pharmacist review**: the 384 and 192 character direction limits, and whether a controlled-medicine marker
-  is needed (Yezza prints "Ubat Terkawal/Controlled Medicine" and the indication; KPOne omits both).
-- **Labels:** no batch or expiry printed, no barcode, no label history (STK-9 planned, not built).
+- **Pharmacist review**: the 384 and 192 character direction limits, and the controlled-medicine marker wording
+  "Ubat Terkawal / Controlled Medicine" (DSP-3). Yezza also prints the indication; KPOne still omits it. Which
+  medicines are controlled is set by catalogue editors; KPOne does not decide it.
+- **Labels:** batch and expiry print only for a line with exactly one allocated batch (DSP-2); a line split
+  across batches, or a batch with the old `9999-12-31` placeholder expiry, prints neither. No barcode, no label
+  history (STK-9 planned, not built). The two or three extra lines count toward the 35-line limit (33 with a
+  logo), so a label with long directions may now be blocked; include one in the real printer test. A batch
+  number over 48 characters blocks the label. "No. Batch" / "Tarikh luput" wording joins the pharmacist review.
 - **Allergy matching is text only (DSP-1):** a CA add or edit that matches an active allergy record needs a
   recorded confirmation, but the match cannot see drug groups (penicillin vs amoxicillin), brand names or
   misspellings, and allergy text with extra words not split by a comma may miss a name with a strength. It is a
@@ -134,12 +147,17 @@ coordinator at the owner's request (2026-11-05).
   lint, format, build, frontend tests, `migrate:fresh --seed`, `git diff --check`; screenshots at 1440 and
   390 px, light and dark, for any screen change.
 - Commit, push and PR only after the owner says "ship it"; never merge.
+- **Do not edit `docs/BASELINE.md`** in a new PR or in unpushed work (owner rule 2026-11-05: parallel team rows
+  made every PR conflict). Record each finished piece only in this file (section 5 with the PR number, section 6
+  for new owner decisions). If a piece changes an authorisation boundary (for example a BASELINE section 4
+  "not authorised" item), say so clearly in the PR description; the coordinator records all BASELINE updates in
+  one docs-only PR after each batch of merges.
 - Record every new owner decision in section 6 and every finished piece in section 5, in the same PR.
 
 ## 9. Backlog (next pieces, in order)
 
 Chosen by the owner on 2026-11-05; built one by one in this order, each its own PR. Choosing them is the owner's
-authorisation to build them; record that in `docs/BASELINE.md` with the first PR of each.
+authorisation to build them; the coordinator records it in `docs/BASELINE.md`.
 
 1. **DSP-1 Allergy warning — built 2026-11-05, awaiting owner review (branch `feature/dsp-1-allergy-warning`).** When a CA adds or edits a medicine (consultation or OTC), warn if it matches a
    recorded active allergy for the patient and require the CA to confirm before saving; the confirmation is
@@ -147,10 +165,10 @@ authorisation to build them; record that in `docs/BASELINE.md` with the first PR
    text against the medicine's name and generic name and can miss; the screen must say so, and the visible
    allergy list stays. **Owner decision 2026-11-05: warn, and the CA must confirm** ("I have checked with the
    patient/doctor") to save; the confirmation is recorded with who and when; no block.
-2. **DSP-2 Batch and expiry on the label.** Print the batch number and expiry date when exactly one batch was
+2. **DSP-2 Batch and expiry on the label — built 2026-11-05, awaiting owner review (branch `feature/dsp-2-label-batch-expiry`).** Print the batch number and expiry date when exactly one batch was
    allocated to the line; otherwise print nothing extra and say why on screen. Shared with the Inventory team.
    Lifts the "batch and expiry printing" item from the not-authorised list for this case only.
-3. **DSP-3 Controlled medicine marker.** A "controlled medicine" flag on the medicine catalogue (none exists
+3. **DSP-3 Controlled medicine marker — built 2026-11-05, awaiting owner review (branch `feature/dsp-3-controlled-medicine`).** A "controlled medicine" flag on the medicine catalogue (none exists
    today) and the marker on the drug label. Wording "Ubat Terkawal / Controlled Medicine" to confirm with a
    pharmacist; changes a shared catalogue screen. **Owner decision 2026-11-05: whoever can already edit the
    Medicine Catalogue (`medicines.manage.organisation`: Director, CA Supervisor) sets the flag; every change

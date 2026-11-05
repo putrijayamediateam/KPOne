@@ -1,0 +1,110 @@
+<?php
+
+namespace App\Domain\Agents\Tools;
+
+use App\Domain\Organisation\Inventory\Services\InventoryBatchEligibility;
+use App\Domain\Organisation\Inventory\Services\InventoryStockReviewService;
+use App\Domain\Organisation\Models\Branch;
+use App\Models\User;
+use Carbon\CarbonImmutable;
+use Illuminate\Database\Query\Builder;
+use Illuminate\Support\Facades\DB;
+
+/**
+ * `inventory.stock_review`: low-stock, expiring (90 days) and expired counts per SKU at one branch.
+ * Uses the same rules as the Stock review page (InventoryStockReviewService); the list totals are
+ * proven equal to that page's totals by test.
+ */
+final class InventoryStockReviewTool implements AgentTool
+{
+    use ReadsBranches;
+
+    public function __construct(private InventoryBatchEligibility $eligibility) {}
+
+    public function code(): string
+    {
+        return 'inventory.stock_review';
+    }
+
+    public function requiredPermission(): string
+    {
+        return 'inventory.view.branch';
+    }
+
+    public function inputSchema(): array
+    {
+        return [];
+    }
+
+    public function run(User $requester, ?Branch $branch, array $input): array
+    {
+        assert($branch !== null);
+        $skus = [];
+        $totals = [];
+        foreach (['low_stock', 'expiring', 'expired'] as $kind) {
+            $rows = $this->rows($requester->organisation_id, $branch, $kind)->get();
+            $totals[$kind] = $rows->count();
+            foreach ($rows as $row) {
+                $sku = $skus[$row->sku_id] ?? ['sku' => $row->sku_public_id, 'skuCode' => $row->sku_code, 'item' => $row->item, 'stockUnit' => $row->stock_unit,
+                    'lowStockLocations' => 0, 'expiringBatches' => 0, 'expiringQuantity' => 0, 'expiredBatches' => 0, 'expiredQuantity' => 0];
+                if ($kind === 'low_stock') {
+                    $sku['lowStockLocations']++;
+                } elseif ($kind === 'expiring') {
+                    $sku['expiringBatches']++;
+                    $sku['expiringQuantity'] += $this->milli($row->quantity);
+                } else {
+                    $sku['expiredBatches']++;
+                    $sku['expiredQuantity'] += $this->milli($row->quantity);
+                }
+                $skus[$row->sku_id] = $sku;
+            }
+        }
+        $rows = array_values(array_map(fn (array $sku): array => [...$sku, 'expiringQuantity' => $this->fromMilli($sku['expiringQuantity']), 'expiredQuantity' => $this->fromMilli($sku['expiredQuantity'])], $skus));
+        usort($rows, fn (array $a, array $b): int => strcmp((string) $a['skuCode'], (string) $b['skuCode']));
+
+        return [
+            'branch' => $branch->code,
+            'date' => $this->eligibility->localDate($branch),
+            'expiryWindowDays' => InventoryStockReviewService::EXPIRY_WINDOW_DAYS,
+            'totals' => ['lowStock' => $totals['low_stock'], 'expiring' => $totals['expiring'], 'expired' => $totals['expired']],
+            'skus' => $rows,
+        ];
+    }
+
+    /** Mirrors InventoryStockReviewService::items() for one list. */
+    private function rows(int $organisationId, Branch $branch, string $kind): Builder
+    {
+        if ($kind === 'low_stock') {
+            $totals = DB::table('inventory_stock_balances as balance')
+                ->joinSub($this->eligibility->query($organisationId, $branch), 'e', fn ($j) => $j->on('e.id', '=', 'balance.inventory_batch_id')->on('e.organisation_id', '=', 'balance.organisation_id'))
+                ->where('balance.organisation_id', $organisationId)
+                ->groupBy('balance.inventory_location_id', 'balance.inventory_sku_id')
+                ->selectRaw('balance.inventory_location_id, balance.inventory_sku_id, SUM(CASE WHEN e.eligibility_reason IS NULL THEN balance.quantity ELSE 0 END) as eligible');
+
+            return DB::table('inventory_reorder_levels as r')
+                ->join('inventory_locations as l', 'l.id', '=', 'r.inventory_location_id')
+                ->join('inventory_skus as s', 's.id', '=', 'r.inventory_sku_id')
+                ->join('inventory_items as i', 'i.id', '=', 's.inventory_item_id')
+                ->leftJoinSub($totals, 't', fn ($j) => $j->on('t.inventory_location_id', '=', 'l.id')->on('t.inventory_sku_id', '=', 's.id'))
+                ->where('r.organisation_id', $organisationId)->where('l.organisation_id', $organisationId)->where('s.organisation_id', $organisationId)->where('i.organisation_id', $organisationId)
+                ->where('l.branch_id', $branch->id)->where('l.is_active', true)->where('s.is_active', true)->where('i.is_active', true)
+                ->where('r.reorder_level', '>', 0)->whereRaw('COALESCE(t.eligible, 0) <= r.reorder_level')
+                ->selectRaw('s.id as sku_id, s.public_id as sku_public_id, s.sku_code, i.generic_name as item, s.stock_unit, COALESCE(t.eligible, 0) as quantity');
+        }
+        $query = DB::table('inventory_stock_balances as r')
+            ->join('inventory_locations as l', 'l.id', '=', 'r.inventory_location_id')
+            ->join('inventory_skus as s', 's.id', '=', 'r.inventory_sku_id')
+            ->join('inventory_items as i', 'i.id', '=', 's.inventory_item_id')
+            ->joinSub($this->eligibility->query($organisationId, $branch), 'e', fn ($j) => $j->on('e.id', '=', 'r.inventory_batch_id')->on('e.organisation_id', '=', 'r.organisation_id'))
+            ->where('r.organisation_id', $organisationId)->where('l.organisation_id', $organisationId)->where('s.organisation_id', $organisationId)->where('i.organisation_id', $organisationId)
+            ->where('l.branch_id', $branch->id)->where('r.quantity', '>', 0);
+        if ($kind === 'expiring') {
+            $query->where('l.is_active', true)->whereNull('e.eligibility_reason')
+                ->whereDate('e.expiry_date', '<=', CarbonImmutable::parse($this->eligibility->localDate($branch))->addDays(InventoryStockReviewService::EXPIRY_WINDOW_DAYS)->toDateString());
+        } else {
+            $query->whereDate('e.expiry_date', '<=', $this->eligibility->localDate($branch));
+        }
+
+        return $query->selectRaw('s.id as sku_id, s.public_id as sku_public_id, s.sku_code, i.generic_name as item, s.stock_unit, r.quantity');
+    }
+}

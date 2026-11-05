@@ -24,6 +24,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -82,6 +83,7 @@ class MedicineCatalogueController extends Controller
                     'selfPayAmountRm' => $catalogueTariffs[$medicine->id]['selfPayAmountRm'] ?? null,
                     'panelDefaultAmountRm' => $catalogueTariffs[$medicine->id]['panelDefaultAmountRm'] ?? null,
                     'isActive' => $medicine->is_active,
+                    'isControlled' => (bool) $medicine->is_controlled,
                 ])->values(),
                 'total' => $paginator->total(),
                 'currentPage' => $paginator->currentPage(),
@@ -308,6 +310,20 @@ class MedicineCatalogueController extends Controller
     {
         $service->activate($request->user(), $medicine);
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Medicine reactivated.')]);
+
+        return to_route('medicines.index');
+    }
+
+    /** DSP-3: mark or unmark a medicine as controlled. */
+    public function controlled(Request $request, MedicineCatalogueItem $medicine, MedicineAdministrationService $service): RedirectResponse
+    {
+        $data = $request->validate(['is_controlled' => ['required', 'boolean'], 'expected_is_controlled' => ['required', 'boolean']]);
+        try {
+            $service->setControlled($request->user(), $medicine, (bool) $data['is_controlled'], (bool) $data['expected_is_controlled']);
+        } catch (ValidationException $e) {
+            throw $e->redirectTo(route('medicines.index'));
+        }
+        Inertia::flash('toast', ['type' => 'success', 'message' => $data['is_controlled'] ? __('Marked as a controlled medicine.') : __('Controlled medicine mark removed.')]);
 
         return to_route('medicines.index');
     }
