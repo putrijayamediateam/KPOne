@@ -1,6 +1,14 @@
 <script setup lang="ts">
 import { Head, router } from '@inertiajs/vue3';
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import {
+    computed,
+    nextTick,
+    onBeforeUnmount,
+    onMounted,
+    ref,
+    useTemplateRef,
+    watch,
+} from 'vue';
 import { JsonRequestError, requestJson } from '@/lib/json-client';
 import type { DisplayCall, DisplayFeed } from '@/lib/queue-display';
 import {
@@ -36,6 +44,47 @@ const seen = new Set<number>(props.feed.calls.map((call) => call.id));
 
 const timeZone = computed(() => feed.value.branch.timezone);
 const current = computed<DisplayCall | null>(() => feed.value.calls[0] ?? null);
+// Q-3b (owner decision 2026-11-05): on a TV-size screen the current call keeps the number and the short name on one
+// line. The line is never larger than the normal heading size and shrinks only as much as the card needs, down to
+// 24 px. A name that still does not fit then wraps at 24 px rather than losing letters.
+const FIT_MIN_PX = 24;
+const currentLabelRef = useTemplateRef<HTMLElement>('currentLabel');
+const currentLabelFontPx = ref<number | null>(null);
+const currentLabelWraps = ref(false);
+const fitCurrentLabel = async () => {
+    currentLabelFontPx.value = null;
+    currentLabelWraps.value = false;
+    await nextTick();
+    const label = currentLabelRef.value;
+
+    if (
+        !label ||
+        typeof window.matchMedia !== 'function' ||
+        typeof getComputedStyle !== 'function' ||
+        !window.matchMedia('(min-width: 1024px)').matches ||
+        label.scrollWidth <= label.clientWidth
+    ) {
+        return;
+    }
+
+    const largest = parseFloat(getComputedStyle(label).fontSize);
+    currentLabelFontPx.value = Math.max(
+        FIT_MIN_PX,
+        Math.floor((largest * label.clientWidth) / label.scrollWidth),
+    );
+    await nextTick();
+    currentLabelWraps.value = label.scrollWidth > label.clientWidth + 1;
+};
+watch(
+    () => [
+        current.value?.number,
+        current.value?.name,
+        feed.value.settings.callDisplayMode,
+    ],
+    () => void fitCurrentLabel(),
+    { flush: 'post' },
+);
+const onResize = () => void fitCurrentLabel();
 const previous = computed(() => feed.value.calls.slice(1, 6));
 const callAgeServerAnchor = ref(Date.parse(props.feed.serverTime));
 let callAgeMonotonicAnchor = performance.now();
@@ -287,6 +336,8 @@ onMounted(() => {
     }, 1_000);
     schedulePosters();
     document.addEventListener('visibilitychange', onVisibility);
+    window.addEventListener?.('resize', onResize);
+    void fitCurrentLabel();
 });
 onBeforeUnmount(() => {
     window.clearInterval(pollTimer);
@@ -295,6 +346,7 @@ onBeforeUnmount(() => {
     window.clearInterval(posterTimer);
     window.clearTimeout(highlightTimer);
     document.removeEventListener('visibilitychange', onVisibility);
+    window.removeEventListener?.('resize', onResize);
     document.removeEventListener('fullscreenchange', syncFullscreen);
     window.speechSynthesis?.removeEventListener('voiceschanged', loadVoices);
     window.speechSynthesis?.cancel();
@@ -518,7 +570,14 @@ onBeforeUnmount(() => {
                     <template v-if="current">
                         <p
                             v-if="shortNameParts(current, displayMode)"
-                            class="text-5xl leading-tight font-black text-balance break-words lg:text-[clamp(3rem,10vh,6rem)]"
+                            ref="currentLabel"
+                            class="text-5xl leading-tight font-black text-balance break-words lg:w-full lg:text-[clamp(3rem,10vh,6rem)]"
+                            :class="currentLabelWraps ? '' : 'lg:truncate'"
+                            :style="
+                                currentLabelFontPx
+                                    ? { fontSize: `${currentLabelFontPx}px` }
+                                    : undefined
+                            "
                             data-testid="current-label"
                         >
                             <span class="whitespace-nowrap"

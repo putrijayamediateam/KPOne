@@ -127,3 +127,30 @@ test('settings offer the three modes in privacy order with help text tied to the
     assert.match(settings, /This is the least private choice\./);
     assert.match(settings, /\(only the first word if both are long\)/);
 });
+
+test('Q-3b: on a TV the current call keeps the number and short name on one line, shrinking only to fit', () => {
+    // Owner decision 2026-11-05: "keep number and name on one line for 720p".
+    const screen = read('resources/js/pages/QueueDisplay/Screen.vue');
+    // The normal heading size stays the largest size; the fit only ever makes it smaller.
+    assert.match(
+        screen,
+        /ref="currentLabel"[\s\S]*?lg:w-full lg:text-\[clamp\(3rem,10vh,6rem\)\]"\s*:class="currentLabelWraps \? '' : 'lg:truncate'"/,
+    );
+    assert.match(screen, /fontSize: `\$\{currentLabelFontPx\}px`/);
+    assert.match(screen, /const FIT_MIN_PX = 24;/);
+    assert.match(
+        screen,
+        /Math\.floor\(\(largest \* label\.clientWidth\) \/ label\.scrollWidth\)/,
+    );
+    // Only on TV-size screens and only in short-name mode, and never cut: a name that cannot fit wraps instead.
+    assert.match(screen, /window\.matchMedia\('\(min-width: 1024px\)'\)/);
+    assert.match(
+        screen,
+        /currentLabelWraps\.value = label\.scrollWidth > label\.clientWidth \+ 1;/,
+    );
+    assert.match(screen, /window\.addEventListener\?\.\('resize', onResize\)/);
+    assert.match(
+        screen,
+        /window\.removeEventListener\?\.\('resize', onResize\)/,
+    );
+});

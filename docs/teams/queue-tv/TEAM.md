@@ -77,6 +77,7 @@ coordinator (2026-11-05); Yasmin added by owner decision 2026-11-05 (every build
 | Q-2 | Treatment progress: CA, CA Supervisor or the attending doctor mark a controlled step (8 steps) started then done on a Serving consultation; blue/green chip on the Queue board and consultation page; attending-doctor pop-up and count; cleared by Resume or opening the consultation; append-only evidence (`app/Domain/Queue/Treatment/`, migrations `2026_11_08_000100` and `000200`); TV shows nothing | #256 |
 | Q-2b | Shared board (Queue and Registration): Status column widened from 9% to 15% and Payment narrowed from 24% to 18%, so status, not-ready and treatment chips stop wrapping; Payment keeps its two-line Panel name and note tooltip; 390 px cards unchanged. The consultation dropdown's "ready to resume" count line is `font-medium` (dark-mode legibility). Frontend only | #264 |
 | Q-3 | Gentler TV name mode: a third branch call display mode "Number and short name" (`short_name`) beside number and full name. The server builds the short name (`app/Domain/Queue/Display/ShortDisplayName.php`): the first two words, only the first if the pair is over 24 characters, skipping bin, binti, bt, bte, a/l, a/p, s/o, d/o and "@"; no usable word falls back to the number. The full name never reaches the TV in this mode. The TV list, current call ("A-012 · Ahmad Ismail") and spoken call (number, name, room) use it; number and full-name modes are unchanged. Settings explains each mode's privacy. Migration `2026_11_08_000300` widens the PostgreSQL mode check. TVs need a reload after deploy | this PR |
+| Q-3b | On a TV-size screen (1024 px and wider) the short-name current call keeps the number and name on one line ("A-001 · Ahmad Ismail"): the normal heading size is the largest, and the line shrinks only as much as the card needs, down to 24 px; a name that still does not fit wraps rather than losing letters. Measured at 1280 × 720: 38 px on one line (was four lines), room line and earlier calls visible. Phones, number mode and full-name mode unchanged. Frontend only (`QueueDisplay/Screen.vue`) | this PR |
 
 ## 6. Owner decisions already made (never ask again)
 
@@ -113,11 +114,13 @@ coordinator (2026-11-05); Yasmin added by owner decision 2026-11-05 (every build
     only the first word if both together are over 24 characters), skipping bin, binti, bt, bte, a/l, a/p, s/o, d/o and
     "@". It is a per-branch choice like full-name mode; number mode stays the default. The coordinator session is now
     called B.E.R.N.I.S.S (formerly LUCY); earlier references to LUCY mean the same session.
+15. Q-3b (2026-11-05): keep the number and the short name on one line on the TV, including a 720p TV (owner, after
+    Daniel's review). Number 14 is Q-4.
 
 ## 7. Open items and known limits
 
 - Sound, real fullscreen and staying signed in overnight are verified on a real TV only by the owner's report (2026-10-13).
-- Name mode shows full names to the waiting room (privacy review before go-live). Short-name mode (Q-3) shows and speaks part of the name, which is still identifying in a small waiting room; it is included in the same privacy review. In short-name mode at 1280 x 720 only one earlier call fits in the list (whole rows only); a long one-word name ends in "…" in the list.
+- Name mode shows full names to the waiting room (privacy review before go-live). Short-name mode (Q-3) shows and speaks part of the name, which is still identifying in a small waiting room; it is included in the same privacy review. In short-name mode at 1280 x 720 the current call is one line at about 38 px (Q-3b) and about two earlier calls fit in the list (whole rows only); an extreme 24-character pair wraps to two lines at 24 px; a long one-word name ends in "…" in the list.
 - Q-1 behaviour: colours show on every Registration tab that lists waiting rows (All and Waiting), including OTC B-number rows waiting for the dispensary (counted from the OTC `queued_at`). A previous-day carry-over row counts from its original `queued_at`, so it is red at once. Held, serving, removed and cancelled rows are never coloured. The Queue board recomputes on each 3-second poll and at least once a minute; the Registration board on its 10-second poll; when polling backs off or the tab is hidden, a colour can change up to about a minute late. The TV and public QR pages are unchanged.
 
 ## 8. Rules (every task)
