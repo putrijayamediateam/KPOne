@@ -12,7 +12,7 @@ the same PR as the code.
 | Reviewer | **Mira** | Checks every piece against the rules below, the tests and the owner's decisions before it reaches the owner |
 | Designer | **Yasmin** | Sketches the layout of any screen change before it is built, and checks the screenshots before hand-off (under Lead UI/UX Designer Daniel, Design team) |
 
-All are Claude sessions working for the owner through the coordinator session (LUCY). Names chosen by the
+All are Claude sessions working for the owner through the coordinator session, B.E.R.N.I.S.S (formerly LUCY). Names chosen by the
 coordinator (2026-11-05); Yasmin added by owner decision 2026-11-05 (every builder team gets a designer).
 
 ## 2. What this area covers
@@ -75,7 +75,8 @@ coordinator (2026-11-05); Yasmin added by owner decision 2026-11-05 (every build
 | TV-5 | "Last called" after 15 minutes | #202 |
 | Q-1 | Waiting time on the Queue board and the Registration board (All and Waiting tabs, A and B numbers) turns amber from 30 min and red from 60 min (frontend only, from the existing `queued_at`; shared `PatientBoard.vue` gains one optional `waitingMinutes` row field; rule in `resources/js/lib/waiting-time.ts`) | #240 |
 | Q-2 | Treatment progress: CA, CA Supervisor or the attending doctor mark a controlled step (8 steps) started then done on a Serving consultation; blue/green chip on the Queue board and consultation page; attending-doctor pop-up and count; cleared by Resume or opening the consultation; append-only evidence (`app/Domain/Queue/Treatment/`, migrations `2026_11_08_000100` and `000200`); TV shows nothing | #256 |
-| Q-2b | Shared board (Queue and Registration): Status column widened from 9% to 15% and Payment narrowed from 24% to 18%, so status, not-ready and treatment chips stop wrapping; Payment keeps its two-line Panel name and note tooltip; 390 px cards unchanged. The consultation dropdown's "ready to resume" count line is `font-medium` (dark-mode legibility). Frontend only | this PR |
+| Q-2b | Shared board (Queue and Registration): Status column widened from 9% to 15% and Payment narrowed from 24% to 18%, so status, not-ready and treatment chips stop wrapping; Payment keeps its two-line Panel name and note tooltip; 390 px cards unchanged. The consultation dropdown's "ready to resume" count line is `font-medium` (dark-mode legibility). Frontend only | #264 |
+| Q-3 | Gentler TV name mode: a third branch call display mode "Number and short name" (`short_name`) beside number and full name. The server builds the short name (`app/Domain/Queue/Display/ShortDisplayName.php`): the first two words, only the first if the pair is over 24 characters, skipping bin, binti, bt, bte, a/l, a/p, s/o, d/o and "@"; no usable word falls back to the number. The full name never reaches the TV in this mode. The TV list, current call ("A-012 · Ahmad Ismail") and spoken call (number, name, room) use it; number and full-name modes are unchanged. Settings explains each mode's privacy. Migration `2026_11_08_000300` widens the PostgreSQL mode check. TVs need a reload after deploy | #274 |
 | Q-4 | Call next: one button on the Consultation queue board that calls a doctor's next eligible patient through the ordinary Call In (same permission, branch, lock-version, room, busy and audit rules). The doctor's own queue calls their own next patient; a branch caller (`queue.call.branch`) first applies a doctor filter. Today's Waiting first (Urgent, then arrival), carry-over only when nobody today can be called; entries with an active not-ready flag are skipped (no override here). The person confirms a named patient; if that patient is no longer next the server refuses (`next_changed`) and the dialog shows the new one and asks again, never calling on its own. Disabled with a muted reason when no doctor is chosen, the doctor cannot work at the branch today, is already seeing a patient, has no room, nobody is waiting or everyone is not ready. `app/Domain/Queue/Services/CallNextService.php`, `POST /queue/call-next`, a `callNext` block on the queue poll, `components/queue/CallNextControl.vue`. No migration or permission | this PR |
 
 ## 6. Owner decisions already made (never ask again)
@@ -109,6 +110,10 @@ coordinator (2026-11-05); Yasmin added by owner decision 2026-11-05 (every build
 12. Q-2b column widths (2026-11-05): Status 15%, Payment 18% on the shared board (Daniel's recommendation, agreed with
     Nurul for Patients & Registration). The owner approved the one existing assertion change in
     `tests/Frontend/panel-note.test.mjs` (`w-[24%]` to `w-[18%]`).
+13. Q-3 short name (2026-11-05): show the queue number and a short name (the first two words of the registered name;
+    only the first word if both together are over 24 characters), skipping bin, binti, bt, bte, a/l, a/p, s/o, d/o and
+    "@". It is a per-branch choice like full-name mode; number mode stays the default. The coordinator session is now
+    called B.E.R.N.I.S.S (formerly LUCY); earlier references to LUCY mean the same session.
 14. Q-4 Call next (2026-11-05): the doctor's own queue, and the branch board for `queue.call.branch` holders once a
     doctor is chosen; today first, then carry-over; skip not-ready entries; confirm a named patient first and refuse a
     stale one. Carry-over can be called when everyone waiting today is marked not ready (owner, 2026-11-05). The
@@ -117,7 +122,7 @@ coordinator (2026-11-05); Yasmin added by owner decision 2026-11-05 (every build
 ## 7. Open items and known limits
 
 - Sound, real fullscreen and staying signed in overnight are verified on a real TV only by the owner's report (2026-10-13).
-- Name mode shows full names to the waiting room (privacy review before go-live).
+- Name mode shows full names to the waiting room (privacy review before go-live). Short-name mode (Q-3) shows and speaks part of the name, which is still identifying in a small waiting room; it is included in the same privacy review. In short-name mode at 1280 x 720 only one earlier call fits in the list (whole rows only); a long one-word name ends in "…" in the list.
 - Q-1 behaviour: colours show on every Registration tab that lists waiting rows (All and Waiting), including OTC B-number rows waiting for the dispensary (counted from the OTC `queued_at`). A previous-day carry-over row counts from its original `queued_at`, so it is red at once. Held, serving, removed and cancelled rows are never coloured. The Queue board recomputes on each 3-second poll and at least once a minute; the Registration board on its 10-second poll; when polling backs off or the tab is hidden, a colour can change up to about a minute late. The TV and public QR pages are unchanged.
 
 ## 8. Rules (every task)
@@ -164,8 +169,9 @@ authorisation to build them; the coordinator records it in `docs/BASELINE.md`.
    started" / "Nebuliser done"), shown on the board with an alert when done (owner's parked staff-communication
    idea (b), BASELINE section 6 item 12). Write a short design note first (controlled step list, who sets and
    clears, append-only evidence, what the TV shows: nothing) and show the owner before building.
-3. **Q-3 Gentler TV name mode.** Add "first name + initial" beside "number" and "full name" in the branch call
-   display mode, used on the TV list, current call and spoken call. Safer for waiting-room privacy.
+3. **Q-3 Gentler TV name mode.** Add "number and short name" (the first two words of the name, see decision 13)
+   beside "number" and "full name" in the branch call display mode, used on the TV list, current call and spoken
+   call. Safer for waiting-room privacy. Built in #274.
 4. **Q-4 Call next.** One button for the doctor (and on the branch board for `queue.call.branch` holders) that
    calls the next eligible patient in the existing order (Urgent first), skipping entries with an active
    not-ready flag; same Call In rules, room requirement and audit as today. Built in this PR (decision 14).
