@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useForm } from '@inertiajs/vue3';
-import { computed, nextTick, ref } from 'vue';
+import { computed, nextTick, ref, watch } from 'vue';
 import { Button } from '@/components/ui/button';
 import OperationalConfirmDialog from '@/components/ui/OperationalConfirmDialog.vue';
 import { OperationalSelect } from '@/components/ui/select';
@@ -50,6 +50,24 @@ const form = useForm({
     retry_key: crypto.randomUUID(),
 });
 const confirmOpen = ref(false);
+// Clear a field's error as soon as the field is corrected, so a fixed field never keeps its message.
+watch(
+    () => form.outcome,
+    () => form.clearErrors(),
+);
+
+for (const field of [
+    'refuse_reason',
+    'refuse_note',
+    'location_public_id',
+    'batch_public_id',
+] as const) {
+    watch(
+        () => form[field],
+        () => form.clearErrors(field),
+    );
+}
+
 const tileClass =
     'flex min-h-11 cursor-pointer items-start gap-2 rounded-md border px-3 py-2 text-sm focus-within:ring-3 focus-within:ring-ring/40 has-[:checked]:border-brand has-[:disabled]:cursor-not-allowed has-[:disabled]:opacity-60 sm:min-h-9';
 const amount = computed(() => `${props.row.quantity} ${props.line.unit}`);
@@ -267,7 +285,6 @@ const serverAlert = computed(() => {
                             label: l.name,
                         }))
                     "
-                    data-field="check-location"
                 />
                 <span class="mt-1 block text-xs text-muted-foreground"
                     >Only returns locations at this branch are listed.</span
@@ -279,6 +296,8 @@ const serverAlert = computed(() => {
             </p>
             <span
                 v-if="form.errors.location_public_id"
+                :id="id('location-error')"
+                role="alert"
                 class="text-xs text-destructive"
                 >{{ form.errors.location_public_id }}</span
             >
@@ -302,18 +321,26 @@ const serverAlert = computed(() => {
                             label: b.label,
                         }))
                     "
-                    data-field="check-batch"
                 />
             </div>
             <span
                 v-if="form.errors.batch_public_id"
+                :id="id('batch-error')"
+                role="alert"
                 class="text-xs text-destructive"
                 >{{ form.errors.batch_public_id }}</span
             >
         </template>
 
         <template v-if="form.outcome === 'refuse'">
-            <fieldset class="grid gap-2 text-sm">
+            <fieldset
+                class="grid gap-2 text-sm"
+                :aria-describedby="
+                    form.errors.refuse_reason
+                        ? id('refuse-reason-error')
+                        : undefined
+                "
+            >
                 <legend class="mb-1 font-medium">
                     Reason for refusing
                     <span class="text-muted-foreground">(required)</span>
@@ -341,6 +368,7 @@ const serverAlert = computed(() => {
                 </div>
                 <span
                     v-if="form.errors.refuse_reason"
+                    :id="id('refuse-reason-error')"
                     class="text-xs text-destructive"
                     >{{ form.errors.refuse_reason }}</span
                 >
@@ -357,7 +385,11 @@ const serverAlert = computed(() => {
                     :maxlength="returns.noteMax"
                     :disabled="form.processing"
                     :aria-invalid="form.errors.refuse_note ? 'true' : undefined"
-                    :aria-describedby="`${id('refuse-note')}-help`"
+                    :aria-describedby="
+                        form.errors.refuse_note
+                            ? `${id('refuse-note')}-help ${id('refuse-note')}-error`
+                            : `${id('refuse-note')}-help`
+                    "
                     class="mt-1 w-full rounded-md border border-input bg-card px-3 py-2 outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/40"
                     data-field="check-refuse-note"
                 />
@@ -369,6 +401,7 @@ const serverAlert = computed(() => {
                 >
                 <span
                     v-if="form.errors.refuse_note"
+                    :id="`${id('refuse-note')}-error`"
                     class="mt-1 block text-xs text-destructive"
                     >{{ form.errors.refuse_note }}</span
                 >
@@ -376,30 +409,38 @@ const serverAlert = computed(() => {
         </template>
 
         <div class="flex flex-col gap-2 sm:flex-row">
+            <template v-if="line.controlled && form.outcome !== 'refuse'">
+                <Button
+                    type="button"
+                    variant="destructive"
+                    class="h-11 w-full sm:h-9 sm:w-auto"
+                    :disabled="form.processing"
+                    data-action="confirm-disposal"
+                    @click="openConfirm"
+                >
+                    Confirm disposal
+                </Button>
+                <Button
+                    type="button"
+                    variant="outline"
+                    class="h-11 w-full sm:h-9 sm:w-auto"
+                    :disabled="form.processing"
+                    data-action="refuse-instead"
+                    @click="form.outcome = 'refuse'"
+                >
+                    Refuse instead
+                </Button>
+            </template>
             <Button
-                v-if="line.controlled"
-                type="button"
-                variant="destructive"
-                class="h-11 w-full sm:h-9 sm:w-auto"
-                :disabled="form.processing"
-                data-action="confirm-disposal"
-                @click="
-                    form.outcome = 'dispose';
-                    openConfirm();
-                "
-            >
-                Confirm disposal
-            </Button>
-            <Button
-                v-if="line.controlled"
+                v-if="line.controlled && form.outcome === 'refuse'"
                 type="button"
                 variant="outline"
                 class="h-11 w-full sm:h-9 sm:w-auto"
                 :disabled="form.processing"
-                data-action="refuse-instead"
-                @click="form.outcome = 'refuse'"
+                data-action="dispose-instead"
+                @click="form.outcome = 'dispose'"
             >
-                Refuse instead
+                Dispose instead
             </Button>
             <Button
                 v-if="!line.controlled || form.outcome === 'refuse'"

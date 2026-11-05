@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useForm } from '@inertiajs/vue3';
-import { computed, nextTick, ref } from 'vue';
+import { computed, nextTick, ref, watch } from 'vue';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { StatusBadge } from '@/components/ui/status';
@@ -35,6 +35,15 @@ const form = useForm({
     condition: '',
     retry_key: newRetryKey(),
 });
+
+// Clear a field's error as soon as the field is corrected, so a fixed field never keeps its message.
+for (const field of ['quantity', 'reason', 'note', 'condition'] as const) {
+    watch(
+        () => form[field],
+        () => form.clearErrors(field),
+    );
+}
+
 const fieldClass =
     'mt-1 w-full rounded-md border border-input bg-card px-3 outline-none hover:border-foreground/25 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/40';
 const tileClass =
