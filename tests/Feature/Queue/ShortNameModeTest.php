@@ -38,6 +38,8 @@ class ShortNameModeTest extends QueueTestCase
             'exactly 24 characters keeps both' => ['Abcdefghijk Mnopqrstuvwx', 'Abcdefghijk Mnopqrstuvwx'],
             'a very long first word is never cut' => ['Abcdefghijklmnopqrstuvwxyzab Lee', 'Abcdefghijklmnopqrstuvwxyzab'],
             'trailing comma on a skip word' => ['Ahmad bin, Ismail', 'Ahmad Ismail'],
+            'attached at sign' => ['Ali @Abu bin Hassan', 'Ali Abu'],
+            'comma after a name word' => ['Tan, Mei Ling', 'Tan Mei'],
             'non-breaking space' => ["Ahmad\u{00A0}bin\u{00A0}Ismail", 'Ahmad Ismail'],
             'only skipped words' => ['bin binti a/l', null],
             'empty' => ['', null],

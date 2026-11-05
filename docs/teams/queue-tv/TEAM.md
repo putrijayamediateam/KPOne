@@ -164,8 +164,9 @@ authorisation to build them; the coordinator records it in `docs/BASELINE.md`.
    started" / "Nebuliser done"), shown on the board with an alert when done (owner's parked staff-communication
    idea (b), BASELINE section 6 item 12). Write a short design note first (controlled step list, who sets and
    clears, append-only evidence, what the TV shows: nothing) and show the owner before building.
-3. **Q-3 Gentler TV name mode.** Add "first name + initial" beside "number" and "full name" in the branch call
-   display mode, used on the TV list, current call and spoken call. Safer for waiting-room privacy.
+3. **Q-3 Gentler TV name mode.** Add "number and short name" (the first two words of the name, see decision 13)
+   beside "number" and "full name" in the branch call display mode, used on the TV list, current call and spoken
+   call. Safer for waiting-room privacy. Built in this PR.
 4. **Q-4 Call next.** One button for the doctor (and on the branch board for `queue.call.branch` holders) that
    calls the next eligible patient in the existing order (Urgent first), skipping entries with an active
    not-ready flag; same Call In rules, room requirement and audit as today.
