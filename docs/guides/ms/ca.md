@@ -34,8 +34,8 @@ Jika penapis atau halaman tertentu sedang aktif, kedudukannya kekal selepas tind
 
 ## Bilangan pada tab dan warna masa menunggu
 
-- Tab pada halaman “Registration” (“All”, “Waiting”, “Serving Now”, “Dispensary”, “Awaiting Billing”, “Completed”, “Cancelled”, “QR Intake”) menunjukkan bilangan dalam bulatan kecil. Bilangan mengikut penapis yang telah digunakan, bukan tab yang sedang dibuka, dan dikemas kini sendiri setiap kali papan menyegar semula. Bilangan “Dispensary” hanya mengira kes yang belum bermula atau sedang disediakan.
-- Pada baris pesakit yang sedang menunggu, label “Waiting N min” bertukar kuning (amber) selepas 30 minit dan merah selepas 60 minit, dengan tulisan lebih tebal. Ini juga berlaku pada papan “Consultation”. Warna hanya peringatan; susunan giliran tidak berubah. Pesakit yang ditahan (held), sedang dirawat atau dibatalkan tidak diwarnakan.
+- Tab pada halaman “Registration” (“All”, “Waiting”, “Serving Now”, “Dispensary”, “Awaiting Billing”, “Completed”, “Cancelled”, “QR Intake”) menunjukkan bilangan dalam bulatan kecil. Bilangan mengikut penapis yang telah digunakan (bukan tab yang sedang dibuka) dan dikemas kini setiap kali papan menyegar semula. Pengecualian: “Dispensary” hanya mengira kes yang belum bermula atau sedang disediakan, dan hanya mengikut carian nama atau nombor KP, bukan tarikh atau penapis lain; “QR Intake” menunjukkan semua pendaftaran QR yang menunggu semakan.
+- Pada baris pesakit yang sedang menunggu, label “Waiting N min” bertukar kuning (amber) dari 30 minit dan merah dari 60 minit, dengan tulisan lebih tebal. Ini juga berlaku pada papan “Consultation”. Warna hanya peringatan; susunan giliran tidak berubah. Pesakit yang ditahan (held), sedang dirawat atau dibatalkan tidak diwarnakan.
 
 ## Tandakan pesakit belum bersedia dipanggil
 
@@ -51,7 +51,7 @@ Jika penapis atau halaman tertentu sedang aktif, kedudukannya kekal selepas tind
 3. Pada halaman “Dispensary”, kad “Ask the patient about allergies” menunjukkan “Recorded allergies” dahulu. Tiada pilihan dibuat pada mulanya; anda mesti memilih sendiri.
     - Jika pesakit tiada alahan, pilih “Patient reports no allergy”, kemudian “Confirm”.
     - Jika pesakit ada alahan, pilih “Patient reports an allergy”. Dalam “Allergy details”, isi “Allergen (required)”, dan jika diketahui “Category (optional)”, “Severity (optional)” dan “Reaction (optional)”. Pilih “Add allergy” (atau “Add another allergy” untuk alahan seterusnya), kemudian “Confirm”. Alahan disimpan dalam profil alahan pesakit; hanya doktor boleh mengubah atau membuangnya.
-    - Skrin akan menunjukkan “Recorded”. Jika anda menambah alahan selepas itu, pilih semula dan tekan “Update”.
+    - Selepas disahkan, skrin menunjukkan “Recorded”. Jika anda menambah alahan selepas itu, pengesahan dibuka semula: pilih jawapan pesakit sekali lagi dan tekan “Confirm”. (Butang “Update” hanya muncul jika anda menukar pilihan tanpa menambah alahan.)
 4. Semak senarai ubat akhir. Jika ada baris belum disimpan, pilih “Save line” pada baris itu atau “Save all lines”. Jika satu ubat sepadan dengan alahan yang direkod selepas baris itu disimpan, skrin akan menyatakan “This medicine matches an allergy recorded after it was saved. Tick the box, then press Save line.” Tandakan kotak dan simpan semula baris itu; “Complete Dispensary” tidak dibenarkan sehingga ini dibuat.
 5. Pilih “Complete Dispensary”, semak senarai pada “Verify before completing”, kemudian pilih “Confirm and complete”.
 
@@ -72,9 +72,9 @@ Semakan ini hanya membandingkan teks alahan dengan nama ubat, nama generik dan k
 
 Perkara lain pada label:
 
-- Jika satu baris ubat menggunakan satu kumpulan (batch) sahaja, label mencetak “No. Batch: …” dan “Tarikh luput: dd/mm/yyyy”. Jika lebih daripada satu batch, tiada batch, atau tiada tarikh luput sebenar, kedua-duanya tidak dicetak dan bahagian “Batch and expiry” di atas pratonton menerangkan sebabnya.
+- Jika satu baris ubat menggunakan satu batch sahaja, label mencetak “No. Batch: …” dan “Tarikh luput: dd/mm/yyyy”. Jika lebih daripada satu batch, tiada batch, atau tiada tarikh luput sebenar, kedua-duanya tidak dicetak dan bahagian “Batch and expiry” di atas pratonton menerangkan sebabnya.
 - Ubat yang ditanda terkawal mencetak “Ubat Terkawal / Controlled Medicine” di bawah nama ubat. Perkataan ini masih perlu disemak oleh ahli farmasi: [PERLU DISAHKAN].
-- Jika label pernah dicetak, pratonton menyatakan “This label was printed before. It will print marked REPRINT.” dan label dicetak dengan kotak “REPRINT”. Buang label lama yang sudah tidak betul.
+- Jika label pernah dicetak, pratonton menyatakan “This label was printed before. It will print marked REPRINT.” (atau “… of these labels were printed before …” jika beberapa label) dan label dicetak dengan kotak “REPRINT”. Buang label lama yang sudah tidak betul.
 - Cetakan hanya direkod apabila anda menekan “Print current labels” (butang menunjukkan “Checking saved record…” seketika). Jangan cetak terus dengan Ctrl+P.
 - Jika skrin menyatakan “The saved dispensing record or access changed. Reload and review before printing.”, muat semula halaman dan semak sebelum mencetak.
 
@@ -108,7 +108,7 @@ Setiap resit pada tab “Documents”, senarai bayaran dan halaman “Payments�
 2. Pilih “Business date”, kemudian “Load day”.
 3. Keluarkan wang apungan (float) dahulu, kemudian kira hanya kutipan tunai hari itu. Masukkan jumlah dalam “Counted cash takings (RM)”. Jika lebih banyak wang dipulangkan daripada diterima, masukkan amaun negatif (contohnya -20.00).
 4. Jika ada beza (“short” atau “over”), tulis “Reason for the difference”. Jangan tulis nama atau pengenalan pesakit.
-5. Pilih “Record count”. Orang lain (CA Supervisor, Pegawai Kewangan atau Pengarah) mesti meluluskan atau memulangkannya untuk dikira semula. Anda tidak boleh meluluskan kiraan anda sendiri.
+5. Pilih “Record count”. Orang lain (CA Supervisor, Finance Officer atau Director) mesti meluluskan atau memulangkannya untuk dikira semula. Anda tidak boleh meluluskan kiraan anda sendiri.
 
 ## Cetak invois dan resit
 
@@ -132,7 +132,7 @@ Langkah baharu tidak boleh dimulakan selagi langkah yang selesai masih menunggu 
 3. Dalam “What happened?”, pilih “Used in treatment” atau “Wasted”, pilih “Reason”, masukkan kuantiti dan, jika perlu, “Treatment room (optional)”.
 4. Pilih “Record and take out of stock”. Rekod ini tidak dikaitkan dengan pesakit dan tidak menghasilkan bil.
 
-Stok yang luput, ditahan atau tidak tersedia tidak boleh digunakan di sini; skrin menunjuk ke “Write-off”. Jika tersalah rekod, minta CA Supervisor, Pegawai Kewangan atau Pengarah (bukan anda sendiri) untuk membalikkannya.
+Stok yang luput, ditahan atau tidak tersedia tidak boleh digunakan di sini; skrin memberi pautan “Use the governed Write-off”. Jika tersalah rekod, minta CA Supervisor, Finance Officer atau Director (bukan anda sendiri) untuk membalikkannya.
 
 ## Imbas kod bar stok
 
@@ -143,7 +143,7 @@ Stok yang luput, ditahan atau tidak tersedia tidak boleh digunakan di sini; skri
 ## Terima pemindahan stok
 
 1. Pada “Stock Requests & Transfers”, buka pemindahan yang sampai.
-2. Untuk setiap baris, masukkan “Accepted into stock”, dan jika ada, “Short”, “Damaged” atau “Extra”.
+2. Untuk setiap baris, masukkan “Accepted into stock”, dan jika ada, “Short”, “Damaged” atau “Extra”. Jumlah accepted, short dan damaged mesti sama dengan kuantiti yang dihantar; “Extra” dikira berasingan.
 3. Pilih “Confirm receipt”. Hanya stok yang diterima masuk ke stok. Sebarang beza diselesaikan oleh orang lain, bukan penerima.
 
 ## Cadangkan gabungan rekod pendua

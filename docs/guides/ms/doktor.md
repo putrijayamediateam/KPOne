@@ -14,7 +14,7 @@ Draf untuk semakan klinik. Bukan dokumen rasmi.
 2. Semak dialog dan pilih “Call Patient”.
 3. Jika pesakit ditandakan belum bersedia, gunakan bahagian “Not ready to call” di bawah; jangan cuba panggil berulang kali.
 
-Tab “All active”, “Waiting”, “Serving Now” dan “Consultation Completed” menunjukkan bilangan pesakit anda sendiri pada setiap tab. Cip “Waiting N min” bertukar warna kuning (amber) selepas 30 minit dan merah selepas 60 minit. Warna hanya peringatan; susunan giliran tidak berubah dan pesakit yang ditahan atau sedang dilayan tidak diwarnakan.
+Tab “All active”, “Waiting”, “Serving Now” dan “Consultation Completed” menunjukkan bilangan pesakit anda sendiri pada setiap tab. Cip “Waiting N min” bertukar warna kuning (amber) dari 30 minit dan merah dari 60 minit. Warna hanya peringatan; susunan giliran tidak berubah dan pesakit yang ditahan atau sedang dilayan tidak diwarnakan.
 
 Jika anda sedang melayani pesakit berstatus Serving yang tidak ditahan, anda tidak boleh memilih “Call In” untuk pesakit lain di mana-mana cawangan. Tahan konsultasi semasa dengan “On Hold” atau lengkapkannya dengan “Complete Consultation” dahulu.
 
@@ -45,7 +45,7 @@ Langkah rawatan hanya untuk papan giliran. Ia bukan rekod klinikal dan tidak dip
 2. Pada “Treatment step *”, pilih satu langkah: “Nebuliser”, “Wound dressing”, “Injection and observation”, “IV drip”, “Observation after medicine”, “ECG”, “Blood test (point-of-care)” atau “Other procedure”. Pilih “Start”.
 3. Cip seperti “Nebuliser: started 5 min ago” dipaparkan pada lajur Status dan pada pengepala konsultasi.
 4. Apabila rawatan selesai, CA atau anda memilih “Mark done”, kemudian “Mark done” sekali lagi dalam dialog.
-5. Jika CA menandakan langkah selesai, anda menerima mesej di bahagian atas skrin, contohnya “Treatment done: A-004 Nebuliser. Ready to resume.” Pada halaman konsultasi, butang “patients waiting” turut menunjukkan “treatment done, ready to resume”. Bunyi hanya kedengaran jika “Notification sound: On” dipilih pada papan giliran “Consultation”.
+5. Jika CA menandakan langkah selesai, anda menerima mesej di bahagian atas skrin, contohnya “Treatment done: A-004 Nebuliser. Ready to resume.” Pada halaman konsultasi, butang “patients waiting” turut menunjukkan, contohnya, “1 treatment done, ready to resume”. Bunyi hanya kedengaran jika “Notification sound: On” dipilih pada papan giliran “Consultation” atau dalam senarai “patients waiting”.
 6. Buka konsultasi pesakit itu atau pilih “Resume Consultation”. Tanda “Ready to resume” akan hilang dengan sendirinya.
 7. Jika langkah dimasukkan secara salah, buka dialog langkah itu, buka “Entered in error?”, pilih “Reason *” (“Wrong patient”, “Wrong step” atau “Marked too early”) dan pilih “Cancel step”. Langkah tidak dipadam; ia direkodkan sebagai dibatalkan.
 
@@ -73,4 +73,3 @@ Langkah baharu tidak boleh dimulakan selagi langkah yang sudah selesai belum dis
 ## Mesej pada skrin
 
 Mesej seperti “Treatment Plan saved.” kini muncul di bahagian atas tengah skrin, jadi butang “Complete Consultation” di bawah tidak tertutup. Mesej itu hilang selepas beberapa saat.
-

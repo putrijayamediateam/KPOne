@@ -61,7 +61,7 @@ Aliran lama “Stocktake” dan “Manual Adjustment” telah ditutup. Gunakan �
 1. Resit mesti diterbalikkan dahulu oleh Finance Officer (“Reverse recording error”). Penyelia CA tidak boleh menterbalikkan resit.
 2. Pada halaman “Patient Billing” lawatan itu, buka bahagian “Refunds”. Pilih “Given back by” (cara wang dipulangkan) dan “Reason” (“Overpaid”, “Service not given”, “Invoice corrected” atau “Other”).
 3. Pilih “Record refund of RM …”. Amaun ialah amaun penuh resit yang diterbalikkan; ia tidak ditaip.
-4. Finance Officer atau Director yang bukan perekod memilih “Approve refund” atau “Reject”.
+4. Finance Officer atau Director yang bukan perekod memilih “Approve refund” atau “Reject” (dengan sebab).
 5. Bayaran balik tidak tersedia selepas “Complete Visitation”. Hanya resit yang telah diterbalikkan boleh dibayar balik.
 
 ## Pemindahan stok: terima dan selesaikan perbezaan
@@ -76,9 +76,9 @@ Aliran lama “Stocktake” dan “Manual Adjustment” telah ditutup. Gunakan �
 
 1. Pada “Inventory”, buka “Supplier returns”. Dalam “Received stock you can return”, pilih “Request return” pada lot yang betul.
 2. Masukkan “Quantity”, pilih “Reason”, tambah “Supplier return authorisation (optional)” jika ada, dan pilih “Send for approval”.
-3. Finance Officer atau Director yang bukan peminta memilih “Approve” atau “Reject”.
+3. Finance Officer atau Director yang bukan peminta memilih “Approve” atau “Reject” (dengan sebab).
 4. Selepas diluluskan, pilih “Dispatch to supplier” dan masukkan “Return delivery note or courier reference”. Stok keluar dari cawangan pada langkah ini.
-5. Finance Officer atau Director merekod “Record credit note”. Ini rujukan sahaja; KPOne tidak merekod bayaran.
+5. Finance Officer atau Director memilih “Record credit note” dan memasukkan rujukan nota kredit (amaun RM pilihan). Ini rujukan sahaja; KPOne tidak merekod bayaran.
 6. Peminta boleh memilih “Cancel” sebelum barang dihantar. Selepas dihantar, pulangan tidak boleh dibatalkan.
 
 ## Penggunaan bilik rawatan: terbalikkan entri orang lain
@@ -92,7 +92,7 @@ Aliran lama “Stocktake” dan “Manual Adjustment” telah ditutup. Gunakan �
 1. Buka “Clinic management” > “Inventory & services” > “Medicine Catalogue”.
 2. Pada baris ubat, buka menu “…” dan pilih “Drug groups”. Masukkan satu kumpulan ubat setiap baris (maksimum 10, contohnya Penicillins atau NSAIDs) dan pilih “Save”. Amaran alahan di farmasi turut menyemak kumpulan ini.
 3. Kumpulan ubat perlu disemak dengan rujukan yang boleh dipercayai; KPOne tidak menentukannya. Jangan keliru dengan medan “Group” dalam dialog “Edit medicine”.
-4. Untuk ubat terkawal, buka menu “…”, pilih “Mark controlled”, kemudian “Mark”. Label ubat baharu akan mencetak “Ubat Terkawal / Controlled Medicine”. Untuk membuang tanda, pilih “Unmark controlled” dan “Remove mark”.
+4. Untuk ubat terkawal, buka menu “…”, pilih “Mark controlled”, kemudian “Mark”. Label (termasuk cetakan semula) akan mencetak “Ubat Terkawal / Controlled Medicine”. Untuk membuang tanda, pilih “Unmark controlled” dan “Remove mark”.
 
 Senarai kumpulan ubat dan ubat terkawal perlu disemak oleh ahli farmasi sebelum digunakan: [PERLU DISAHKAN].
 
@@ -110,4 +110,3 @@ Pada “Pricing”, isi “Price book *” dan “Amount (RM) *”, kemudian pil
 ## Sejarah perubahan pesakit
 
 Pada halaman pesakit, bahagian “Change history” menunjukkan siapa menukar bahagian rekod dan bila. Nilai lama dan baharu tidak dipaparkan. Pilih “Show older changes” untuk melihat perubahan lebih awal.
-
