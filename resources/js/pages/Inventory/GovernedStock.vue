@@ -2,6 +2,7 @@
 import { Head, router, useForm, usePage } from '@inertiajs/vue3';
 import { ref, watch } from 'vue';
 import InputError from '@/components/InputError.vue';
+import ScanInput from '@/components/inventory/ScanInput.vue';
 import {
     Dialog,
     DialogContent,
@@ -10,6 +11,7 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog';
 import { formatInventoryReason } from '@/lib/inventory-picker';
+import type { ScannedSku } from '@/lib/scan';
 type Target = {
     id: number;
     quantity: string;
@@ -101,6 +103,10 @@ const form = useForm({
     reverses_case_id: 0,
     return_to: props.stock.mode,
 });
+function scanned(sku: ScannedSku) {
+    q.value = sku.sku_code;
+    search();
+}
 function search(page = 1, targets = 1) {
     router.get(
         path,
@@ -245,6 +251,11 @@ watch(
             disposal. Held batches may be counted and written off without
             releasing their hold.
         </p>
+        <ScanInput
+            context="search"
+            :refocus-key="`governed-${stock.mode}`"
+            @found="scanned"
+        />
         <form class="flex flex-wrap items-end gap-2" @submit.prevent="search()">
             <label class="min-w-[min(100%,18rem)] flex-1 basis-72"
                 >Search SKU, batch or location<input

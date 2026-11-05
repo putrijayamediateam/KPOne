@@ -96,6 +96,13 @@ Tick each box, or write what went wrong.
 
 T4: the preview shows the blocked message and "Print current labels" is disabled. ☐
 
+**Reprint (DSP-6).** Print T1 a second time with "Print current labels". It prints with a small boxed
+**REPRINT** at the right end of the last line ("berbeza."). Check that the whole box, all four borders and the
+full word are on the sticker, that the border is unbroken and the word readable. ☐
+
+Always print with the "Print current labels" button, not the browser's own Print menu or Ctrl+P: only the button
+records the print and adds the REPRINT mark. A cancelled print dialog still counts as a print.
+
 ## Record
 
 | | |

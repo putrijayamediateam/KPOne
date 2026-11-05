@@ -5,6 +5,7 @@ namespace Tests\Feature\Clinical;
 use App\Domain\Access\PermissionCatalogue;
 use App\Domain\Clinical\Dispensary\Labels\DrugLabelLayout;
 use App\Domain\Clinical\Dispensary\Labels\DrugLabelService;
+use App\Domain\Clinical\Dispensary\Models\DispensaryLabelPrint;
 use App\Domain\Clinical\Dispensary\Services\DispensaryService;
 use App\Domain\Organisation\Models\Branch;
 use App\Domain\Visit\Billing\Models\PaymentMethod;
@@ -168,7 +169,11 @@ class DrugLabelTest extends BillingTestCase
         $this->assertStringContainsString('no-store', $this->get($url)->assertOk()->headers->get('Cache-Control'));
         $this->get($url)->assertOk();
         $this->getJson($url.'?'.http_build_query(['verify' => 1, 'token' => $labels['token'], 'branch' => $case->branch_id]))->assertOk();
-        $this->assertSame($before, $this->evidence());
+        // DSP-6 (owner-approved change): a print now adds only its print-log row and one audit row; every other table is identical.
+        $after = $this->evidence();
+        $this->assertSame(array_diff_key($before, array_flip(['dispensary_label_prints', 'audit_logs'])), array_diff_key($after, array_flip(['dispensary_label_prints', 'audit_logs'])));
+        $this->assertSame(1, DispensaryLabelPrint::query()->count());
+        $this->assertSame(['dispensary.labels_printed'], array_column(array_slice(json_decode($after['audit_logs'], true), count(json_decode($before['audit_logs'], true))), 'event'));
         $this->get(route('dispensary.show', $case))->assertInertia(fn (Assert $page) => $page->where('dispensary.labelUrl', $url)->missing('dispensary.items'));
     }
 

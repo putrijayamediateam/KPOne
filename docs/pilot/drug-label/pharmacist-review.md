@@ -23,6 +23,8 @@ needs the doctor's acknowledgement first):
    assistant typed them
 7. `Dibekalkan:` date supplied (or `Disediakan:` before the case is completed), `Dijana:` date and time printed,
    and `Rekod semasa; cetakan semula mungkin berbeza.` (a reprint shows the current record)
+8. On a label printed before, a small boxed **REPRINT** at the end of that last line (DSP-6; it uses no line of
+   the limit)
 
 **Not printed:** the indication (reason for the medicine), identity card number, date of birth or age, phone,
 address of the patient, allergies, the name of the person who dispensed, the queue number, and any barcode.
@@ -146,7 +148,8 @@ shortened. KPOne never cuts text off or shrinks it.
 | Q7 | Are these **length limits** acceptable for real directions: instruction 384 characters, precaution 192, dosage 96, frequency 96, duration 48, route 48, medicine name 96? Sample C shows how long that is. | |
 | Q8 | A label that does not fit is **blocked** until the directions are shortened (Sample D). Is blocking right, or should long directions continue on a second sticker? | |
 | Q9 | A reprint shows the **current** saved record, so it can differ from a label already on a box, and the label says so. Is that acceptable, and should staff discard old labels after an edit? | |
-| Q10 | Anything else you would change? | |
+| Q10 | A label printed again carries a small boxed **REPRINT** at the end of the last line ("…mungkin berbeza. [REPRINT]"). Is the word right, or should it read "CETAKAN SEMULA / REPRINT" like the controlled-medicine line? | |
+| Q11 | Anything else you would change? | |
 
 ## 4. Sign-off
 

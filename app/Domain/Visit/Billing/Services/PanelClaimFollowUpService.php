@@ -3,6 +3,7 @@
 namespace App\Domain\Visit\Billing\Services;
 
 use App\Domain\Access\BranchAccessService;
+use App\Domain\Access\StaffAccessService;
 use App\Domain\Access\TransactionalActorAuthority;
 use App\Domain\Visit\Billing\Models\PanelClaimPaymentReversal;
 use App\Models\User;
@@ -48,6 +49,7 @@ final class PanelClaimFollowUpService
     public function __construct(
         private BranchAccessService $branches,
         private TransactionalActorAuthority $authority,
+        private StaffAccessService $staff,
     ) {}
 
     /**
@@ -92,9 +94,6 @@ final class PanelClaimFollowUpService
                     $join->on('pn.id', '=', 'c.panel_id')->on('pn.organisation_id', '=', 'c.organisation_id');
                 })
                 ->joinSub($latest, 'l', 'l.panel_claim_id', '=', 'c.id')
-                ->leftJoin('users as u', function ($join): void {
-                    $join->on('u.id', '=', 'l.user_id')->on('u.organisation_id', '=', 'c.organisation_id');
-                })
                 ->where('c.organisation_id', $org)->where('c.branch_id', $branchId)
                 ->whereIn('c.status', self::OPEN)
                 ->whereRaw('l.acted_at <= CAST(? AS timestamp) - make_interval(days => pn.claim_follow_up_days)', [$now->utc()->toDateTimeString()]);
@@ -104,10 +103,13 @@ final class PanelClaimFollowUpService
 
             $rows = (clone $base)
                 ->select(['c.id', 'c.public_id', 'c.status', 'c.patient_name_snapshot', 'c.invoice_number', 'c.claim_amount_sen',
-                    'c.accepted_amount_sen', 'pn.name as panel_name', 'pn.claim_follow_up_days', 'l.acted_at', 'l.kind', 'u.name as actor_name'])
+                    'c.accepted_amount_sen', 'pn.name as panel_name', 'pn.claim_follow_up_days', 'l.acted_at', 'l.kind', 'l.user_id'])
                 ->selectRaw("{$received} as received_sen")
                 ->orderBy('l.acted_at')->orderBy('c.id')
                 ->paginate(20, ['*'], 'page', $page);
+            // Staff names follow the staff-directory visibility rule (owner BIL-2 decision); others read "Staff member".
+            $names = $this->staff->visibleUsers($actor)
+                ->whereIn('id', $rows->getCollection()->pluck('user_id')->filter()->unique()->values()->all())->pluck('name', 'id');
 
             return [
                 'branch' => ['id' => $branch->id, 'name' => $branch->name],
@@ -116,7 +118,7 @@ final class PanelClaimFollowUpService
                     ->get(['code', 'name', 'claim_follow_up_days'])
                     ->map(static fn ($row): array => ['code' => (string) $row->code, 'name' => (string) $row->name, 'followUpDays' => (int) $row->claim_follow_up_days])->all(),
                 'claims' => [
-                    'data' => $rows->getCollection()->map(function ($row) use ($branch, $now): array {
+                    'data' => $rows->getCollection()->map(function ($row) use ($branch, $now, $names): array {
                         $actedAt = CarbonImmutable::parse((string) $row->acted_at, 'UTC');
                         // Before a decision nothing is owed yet (as in the Panel summary): show the claimed amount.
                         $decided = $row->accepted_amount_sen !== null;
@@ -132,7 +134,7 @@ final class PanelClaimFollowUpService
                             'amountSen' => $decided ? max(0, (int) $row->accepted_amount_sen - (int) $row->received_sen) : (int) $row->claim_amount_sen,
                             'lastAction' => self::ACTIONS[(string) $row->kind] ?? 'Updated',
                             'lastActionDate' => $actedAt->setTimezone($branch->timezone)->format('j M Y'),
-                            'lastActionBy' => $row->actor_name === null ? '' : (string) $row->actor_name,
+                            'lastActionBy' => $row->user_id === null ? '' : (string) ($names[(int) $row->user_id] ?? 'Staff member'),
                             'daysSinceAction' => (int) $actedAt->diffInDays($now, true),
                             'followUpDays' => (int) $row->claim_follow_up_days,
                             'showUrl' => route('panel-claims.show', ['claim' => (string) $row->public_id]),

@@ -38,6 +38,7 @@ use App\Http\Controllers\InventoryMovementController;
 use App\Http\Controllers\InventoryOperationsController;
 use App\Http\Controllers\InventoryReadinessController;
 use App\Http\Controllers\InventoryReferenceController;
+use App\Http\Controllers\InventoryScanController;
 use App\Http\Controllers\InventoryStockReviewController;
 use App\Http\Controllers\InvoiceActivityController;
 use App\Http\Controllers\InvoiceBillToController;
@@ -419,12 +420,14 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('inventory/treatment-usage', [TreatmentUsageController::class, 'index'])->middleware(['permission:inventory.view.branch', 'sensitive.no-store'])->name('inventory.treatment-usage');
         Route::post('inventory/treatment-usage', [TreatmentUsageController::class, 'store'])->middleware(['permission:inventory.usage.record.branch', 'sensitive.no-store', 'throttle:30,1'])->name('inventory.treatment-usage.store');
         Route::post('inventory/treatment-usage/{treatmentUsage}/reverse', [TreatmentUsageController::class, 'reverse'])->whereNumber('treatmentUsage')->middleware(['permission:inventory.variances.approve.branch', 'sensitive.no-store', 'throttle:30,1'])->name('inventory.treatment-usage.reverse');
+        Route::get('inventory/scan', [InventoryScanController::class, 'lookup'])->middleware(['permission:inventory.view.branch', 'sensitive.no-store', 'throttle:120,1'])->name('inventory.scan');
         Route::get('inventory/stock-review', [InventoryStockReviewController::class, 'index'])->middleware(['permission:inventory.view.branch', 'sensitive.no-store'])->name('inventory.stock-review');
         Route::post('inventory/stock-review/{kind}/{reviewItem}', [InventoryStockReviewController::class, 'store'])->whereIn('kind', ['low_stock', 'expiring', 'expired'])->whereNumber('reviewItem')->middleware(['permission:inventory.stock_reviews.manage.branch', 'sensitive.no-store', 'throttle:30,1'])->name('inventory.stock-review.store');
         Route::get('inventory/batch-holds', [InventoryBatchHoldController::class, 'index'])->middleware(['permission:inventory.view.branch', 'sensitive.no-store'])->name('inventory.batch-holds');
         Route::post('inventory/batch-holds/{batch}/{action}', [InventoryBatchHoldController::class, 'store'])->whereUuid('batch')->whereIn('action', ['place', 'release'])->middleware(['sensitive.no-store', 'throttle:30,1'])->name('inventory.batch-holds.store');
         Route::get('inventory/readiness', [InventoryReadinessController::class, 'index'])->middleware('permission:inventory.view.branch')->name('inventory.readiness');
         Route::post('inventory/readiness/{kind}/{key}', [InventoryReadinessController::class, 'verify'])->whereIn('kind', ['unit', 'opening'])->whereUuid('key')->middleware('throttle:30,1')->name('inventory.readiness.verify');
+        Route::post('inventory/readiness/barcode/{sku}', [InventoryReadinessController::class, 'barcode'])->whereUuid('sku')->middleware(['permission:inventory.references.manage.organisation', 'sensitive.no-store', 'throttle:30,1'])->name('inventory.readiness.barcode');
 
         Route::get('inventory/picker', [InventoryController::class, 'picker'])
             ->middleware(['permission:inventory.view.branch', 'throttle:120,1'])->name('inventory.picker');
@@ -551,9 +554,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::get('{invoice}/receipts/{payment}/print', 'printReceipt')->middleware(['permission:billing.print.branch', 'sensitive.no-store'])->name('billing.receipt');
         });
         Route::get('dispensary/{dispensaryCase}/labels', [DispensaryController::class, 'labels'])
-            ->whereUuid('dispensaryCase')->middleware('permission:dispensary.labels.print.branch')->name('dispensary.labels');
+            ->whereUuid('dispensaryCase')->middleware(['permission:dispensary.labels.print.branch', 'throttle:30,1'])->name('dispensary.labels');
         Route::get('dispensary/{dispensaryCase}/items/{itemPublicId}/label', [DispensaryController::class, 'labels'])
-            ->whereUuid('dispensaryCase')->middleware('permission:dispensary.labels.print.branch')->whereUuid('itemPublicId')->name('dispensary.items.label');
+            ->whereUuid('dispensaryCase')->middleware(['permission:dispensary.labels.print.branch', 'throttle:30,1'])->whereUuid('itemPublicId')->name('dispensary.items.label');
         Route::post('dispensary/{dispensaryCase}/call', [RoomCallController::class, 'dispensary'])
             ->whereUuid('dispensaryCase')->middleware(['permission:dispensary.start.branch', 'throttle:30,1'])->name('dispensary.call');
         Route::post('dispensary/{dispensaryCase}/start', [DispensaryController::class, 'start'])
