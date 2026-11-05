@@ -18,13 +18,9 @@ const more = computed(() => Math.max(0, props.numbers.length - VISIBLE));
         data-test="merged-from-note"
     >
         <span aria-hidden="true"
-            >Merged from
-            <span class="font-mono">{{ shown.join(', ') }}</span
+            >Merged from <span class="font-mono">{{ shown.join(', ') }}</span
             ><template v-if="more > 0"> and {{ more }} more</template></span
         >
-        <span class="sr-only"
-            >Merged from
-            {{ numbers.join(', ') }}</span
-        >
+        <span class="sr-only">Merged from {{ numbers.join(', ') }}</span>
     </span>
 </template>
