@@ -17,6 +17,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property string $name
  * @property bool $is_active
  * @property int $claim_due_days
+ * @property int $claim_follow_up_days
  * @property string|null $verification_url
  * @property string|null $panel_type
  * @property string|null $company_registration_number
@@ -52,7 +53,8 @@ class Panel extends Model
 
     protected function casts(): array
     {
-        return ['is_active' => 'boolean'];
+        return [
+            'claim_follow_up_days' => 'integer', 'is_active' => 'boolean'];
     }
 
     /** @return BelongsTo<Organisation, $this> */
