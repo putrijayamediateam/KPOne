@@ -34,4 +34,12 @@ test('each identifier box on Patient create is a shrinkable one-column grid on p
         create,
         /class="grid grid-cols-1 gap-3 rounded-md border p-4 md:grid-cols-3"/,
     );
+    assert.match(
+        create,
+        /class="h-10 w-full min-w-0 rounded-md border bg-background px-3 text-sm uppercase"/,
+    );
+    assert.match(
+        create,
+        /autocomplete="off"\s+class="h-10 w-full min-w-0 rounded-md border bg-background px-3 text-sm"\s+placeholder="Identifier value"/,
+    );
 });
