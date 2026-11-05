@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { useForm } from '@inertiajs/vue3';
+import { Ban, PackageOpen, Trash2 } from '@lucide/vue';
 import { computed, nextTick, ref, watch } from 'vue';
 import { Button } from '@/components/ui/button';
 import OperationalConfirmDialog from '@/components/ui/OperationalConfirmDialog.vue';
@@ -83,6 +84,7 @@ const dialog = computed(() => {
             description:
                 'The units go on hold at the returns location and cannot be dispensed. This check cannot be undone.',
             confirm: 'Move to returns location',
+            icon: PackageOpen,
             busy: 'Moving…',
             destructive: false,
         };
@@ -94,6 +96,7 @@ const dialog = computed(() => {
             description:
                 'Nothing changes in stock. The return stays in the history as refused, and its quantity can be recorded again.',
             confirm: 'Refuse return',
+            icon: Ban,
             busy: 'Refusing…',
             destructive: false,
         };
@@ -104,6 +107,7 @@ const dialog = computed(() => {
         description:
             'The units are destroyed and no stock goes back. This check cannot be undone.',
         confirm: `Dispose ${amount.value}`,
+        icon: Trash2,
         busy: 'Disposing…',
         destructive: true,
     };
@@ -463,6 +467,10 @@ const serverAlert = computed(() => {
             :processing="form.processing"
             :destructive="dialog.destructive"
             @confirm="submit"
-        />
+        >
+            <template #icon>
+                <component :is="dialog.icon" class="size-5" />
+            </template>
+        </OperationalConfirmDialog>
     </div>
 </template>

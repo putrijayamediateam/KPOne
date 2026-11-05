@@ -110,3 +110,16 @@ test('refusing uses the fixed list and the note hint keeps clinical and identity
     assert.ok(section.includes('<ReturnCheckPanel'));
     assert.ok(section.includes('v-if="row.canCheck"'));
 });
+
+test('each confirm dialog shows its own icon (Daniel: no empty icon box)', () => {
+    assert.ok(
+        panel.includes(
+            "import { Ban, PackageOpen, Trash2 } from '@lucide/vue';",
+        ),
+    );
+    assert.ok(panel.includes('<template #icon>'));
+
+    for (const icon of ['icon: Trash2', 'icon: PackageOpen', 'icon: Ban']) {
+        assert.ok(panel.includes(icon));
+    }
+});
