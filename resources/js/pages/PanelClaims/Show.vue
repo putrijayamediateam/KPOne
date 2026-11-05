@@ -425,7 +425,7 @@ const eventTitle = (type: string) =>
                             >
                                 {{ claim.patientIdentifier }}
                             </dd>
-                            <dd class="text-muted-foreground">
+                            <dd class="wrap-anywhere text-muted-foreground">
                                 Member reference:
                                 {{ claim.memberReference || 'N/A' }}
                             </dd>
@@ -632,7 +632,7 @@ const eventTitle = (type: string) =>
                                 :href="document.url"
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                class="font-medium underline"
+                                class="min-w-0 font-medium wrap-anywhere underline"
                             >
                                 {{ document.name }}
                             </a>
@@ -660,7 +660,7 @@ const eventTitle = (type: string) =>
                             class="flex flex-wrap justify-between gap-2 p-3 text-sm"
                         >
                             <span>{{ payment.receivedAt }}</span>
-                            <span>{{
+                            <span class="min-w-0 wrap-anywhere">{{
                                 payment.reference || 'No reference'
                             }}</span>
                             <strong>{{ myr(payment.amountSen) }}</strong>
@@ -672,7 +672,7 @@ const eventTitle = (type: string) =>
                     <h2 class="text-lg font-semibold">Remarks</h2>
                     <p
                         v-if="!editing || !claim.canEditRemarks"
-                        class="text-sm"
+                        class="text-sm wrap-anywhere"
                         :class="claim.remarks ? '' : 'text-muted-foreground'"
                     >
                         {{ claim.remarks || 'N/A' }}
@@ -739,12 +739,12 @@ const eventTitle = (type: string) =>
                             <p class="text-xs text-muted-foreground">
                                 {{ event.occurredAt }} · {{ event.actor }}
                             </p>
-                            <p v-if="event.note" class="mt-1">
+                            <p v-if="event.note" class="mt-1 wrap-anywhere">
                                 {{ event.note }}
                             </p>
                             <p
                                 v-if="event.externalReference"
-                                class="mt-1 text-xs text-muted-foreground"
+                                class="mt-1 text-xs wrap-anywhere text-muted-foreground"
                             >
                                 Portal reference: {{ event.externalReference }}
                             </p>

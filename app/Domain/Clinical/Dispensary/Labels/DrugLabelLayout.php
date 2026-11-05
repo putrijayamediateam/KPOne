@@ -16,6 +16,8 @@ final class DrugLabelLayout
     public const FIELD_BUDGETS = [
         'clinic' => 64, 'address' => 128, 'contact' => 64, 'patient' => 96, 'reference' => 64,
         'name' => 96, 'strength' => 32, 'form' => 24, 'quantity' => 48,
+        // DSP-2: printed only when exactly one batch was allocated to the line.
+        'batch' => 48, 'expiry' => 10,
         'dosage' => 96, 'frequency' => 96, 'duration' => 48, 'route' => 48,
         'instruction' => 384, 'precaution' => 192,
     ];
@@ -44,7 +46,7 @@ final class DrugLabelLayout
         }
         $lines = [];
         $emphasis = [];
-        $prefixes = ['quantity' => 'Kuantiti: ', 'dosage' => 'Dos: ', 'frequency' => 'Kekerapan: ', 'duration' => 'Tempoh: ', 'route' => 'Laluan: ', 'instruction' => 'Arahan: ', 'precaution' => 'Peringatan: '];
+        $prefixes = ['quantity' => 'Kuantiti: ', 'batch' => 'No. Batch: ', 'expiry' => 'Tarikh luput: ', 'dosage' => 'Dos: ', 'frequency' => 'Kekerapan: ', 'duration' => 'Tempoh: ', 'route' => 'Laluan: ', 'instruction' => 'Arahan: ', 'precaution' => 'Peringatan: '];
         foreach ($fields as $name => $text) {
             if ($text !== null && $text !== '') {
                 if (in_array($name, ['patient', 'name'], true)) {

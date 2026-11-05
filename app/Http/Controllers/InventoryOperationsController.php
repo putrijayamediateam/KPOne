@@ -234,12 +234,23 @@ class InventoryOperationsController extends Controller
     public function receiveStockRequest(Request $request, StockRequest $stockRequest, StockRequestService $service): RedirectResponse
     {
         try {
-            $service->receive($request->user(), $stockRequest, $request->only(['expected_branch_id', 'lock_version', 'receive_idempotency_key']));
+            $service->receive($request->user(), $stockRequest, $request->only(['expected_branch_id', 'lock_version', 'receive_idempotency_key', 'lines']));
         } catch (ValidationException $exception) {
             throw $this->stayOnInventory($exception);
         }
 
         return $this->success('Transfer received.');
+    }
+
+    public function resolveTransferDifference(Request $request, StockRequest $stockRequest, StockRequestService $service): RedirectResponse
+    {
+        try {
+            $service->resolveDifference($request->user(), $stockRequest, $request->only(['expected_branch_id', 'lock_version', 'retry_key', 'difference_public_id', 'outcome', 'reference']));
+        } catch (ValidationException $exception) {
+            throw $this->stayOnInventory($exception);
+        }
+
+        return $this->success('Transfer difference resolved. The original receipt evidence is kept.');
     }
 
     public function createStocktake(Request $request, InventoryControlService $service): RedirectResponse
