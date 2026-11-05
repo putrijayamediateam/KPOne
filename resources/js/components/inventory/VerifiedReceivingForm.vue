@@ -141,7 +141,8 @@ watch(
                 :key="line.line_public_id"
                 class="min-w-0 space-y-3 rounded border p-3"
                 :class="{
-                    'ring-2 ring-primary': scannedLine === line.line_public_id,
+                    'border-2 border-primary':
+                        scannedLine === line.line_public_id,
                 }"
             >
                 <legend class="max-w-full px-1 text-sm wrap-anywhere">

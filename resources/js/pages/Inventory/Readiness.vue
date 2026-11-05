@@ -57,7 +57,9 @@ const barcodeDrafts = ref<Record<string, string>>({});
 function barcodeDraft(skuPublicId: string, code: string): string {
     return barcodeDrafts.value[skuPublicId] ?? code;
 }
+const savedSku = ref<string | null>(null);
 function saveBarcode(skuPublicId: string, value: string) {
+    savedSku.value = skuPublicId;
     busy.value = true;
     router.post(
         `/inventory/readiness/barcode/${skuPublicId}`,
@@ -335,7 +337,6 @@ watch(
             >
                 No shared barcodes.
             </p>
-            <InputError :message="page.props.errors?.barcode" />
             <article
                 v-for="shared in readiness.sharedBarcodes.rows"
                 :key="shared.code"
@@ -347,9 +348,6 @@ watch(
                     :key="sku.public_id"
                     class="flex flex-wrap items-end gap-2"
                 >
-                    <span class="min-w-0 flex-1 basis-40 text-sm break-words">{{
-                        sku.sku_code
-                    }}</span>
                     <template v-if="readiness.canFixBarcodes">
                         <label class="min-w-0 flex-1 basis-56 text-sm"
                             >Barcode for {{ sku.sku_code
@@ -393,7 +391,15 @@ watch(
                                 Clear
                             </button>
                         </div>
+                        <InputError
+                            v-if="savedSku === sku.public_id"
+                            class="w-full"
+                            :message="page.props.errors?.barcode"
+                        />
                     </template>
+                    <span v-else class="text-sm break-words">{{
+                        sku.sku_code
+                    }}</span>
                 </div>
             </article>
             <p

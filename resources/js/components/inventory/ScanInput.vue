@@ -16,7 +16,7 @@ import {
     isRepeat,
     scanMessage,
 } from '@/lib/scan';
-import type { ScanLookup, ScannedSku } from '@/lib/scan';
+import type { CameraSupport, ScanLookup, ScannedSku } from '@/lib/scan';
 
 /**
  * STK-9: scan or type a barcode to find a SKU. Works with handheld scanners that type the code and press Enter,
@@ -38,6 +38,8 @@ const status = ref('Ready to scan.');
 const failed = ref(false);
 const busy = ref(false);
 const starting = ref(false);
+// Checked once on mount, so an unsupported device shows the reason instead of a button that only fails.
+const cameraState = ref<CameraSupport>('supported');
 const input = ref<HTMLInputElement | null>(null);
 const open = ref(false);
 const video = ref<HTMLVideoElement | null>(null);
@@ -233,6 +235,9 @@ function onVisibility() {
 }
 
 onMounted(() => {
+    cameraState.value = cameraSupport(
+        window as unknown as Parameters<typeof cameraSupport>[0],
+    );
     document.addEventListener('visibilitychange', onVisibility);
 
     try {
@@ -268,13 +273,13 @@ onBeforeUnmount(() => {
                     maxlength="100"
                     :aria-describedby="`${inputId}-help ${inputId}-status`"
                     :aria-invalid="failed"
-                    class="mt-1 min-h-11 w-full rounded border bg-background px-3"
+                    class="mt-1 min-h-11 w-full rounded border bg-background px-3 outline-none focus-visible:ring-[3px] focus-visible:ring-ring/40 aria-[invalid=true]:border-destructive"
                     @keydown.enter.prevent.stop="lookup(code)"
             /></label>
             <div class="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto">
                 <button
                     type="button"
-                    class="min-h-11 rounded bg-primary px-4 text-primary-foreground disabled:opacity-50"
+                    class="min-h-11 rounded border px-4 outline-none focus-visible:ring-[3px] focus-visible:ring-ring/40 disabled:opacity-50"
                     :disabled="busy"
                     @click="lookup(code)"
                 >
@@ -282,8 +287,13 @@ onBeforeUnmount(() => {
                 </button>
                 <button
                     type="button"
-                    class="min-h-11 rounded border px-4 disabled:opacity-50"
-                    :disabled="starting"
+                    class="min-h-11 rounded border px-4 outline-none focus-visible:ring-[3px] focus-visible:ring-ring/40 disabled:opacity-50"
+                    :disabled="starting || cameraState !== 'supported'"
+                    :aria-describedby="
+                        cameraState === 'supported'
+                            ? undefined
+                            : `${inputId}-camera`
+                    "
                     @click="startCamera"
                 >
                     Use camera
@@ -291,19 +301,22 @@ onBeforeUnmount(() => {
             </div>
         </div>
         <p :id="`${inputId}-help`" class="text-xs text-muted-foreground">
-            Use a handheld scanner, type the code, or use the camera. Click the
+            Use a handheld scanner, type the code, or use the camera. Select the
             box before scanning. Scanning only finds the SKU; it does not save
             anything.
+        </p>
+        <p
+            v-if="cameraState !== 'supported'"
+            :id="`${inputId}-camera`"
+            class="text-xs text-muted-foreground"
+        >
+            {{ cameraMessages[cameraState] }}
         </p>
         <div :id="`${inputId}-status`" class="min-w-0 text-sm break-words">
             <p role="status" aria-live="polite" class="text-muted-foreground">
                 {{ failed ? '' : status }}
             </p>
-            <p
-                role="alert"
-                aria-live="assertive"
-                class="text-red-600 dark:text-red-400"
-            >
+            <p role="alert" aria-live="assertive" class="text-destructive">
                 {{ failed ? status : '' }}
             </p>
         </div>
