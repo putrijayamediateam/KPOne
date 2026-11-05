@@ -185,13 +185,17 @@ const print = () => window.print();
                         <thead>
                             <tr>
                                 <th scope="col" class="pack-optional">#</th>
-                                <th scope="col" class="whitespace-nowrap">
+                                <th scope="col" class="sm:whitespace-nowrap">
                                     Claim no
                                 </th>
                                 <th scope="col">Patient</th>
-                                <th scope="col">Visit date</th>
+                                <th scope="col" class="pack-optional">
+                                    Visit date
+                                </th>
                                 <th scope="col">Invoice</th>
-                                <th scope="col">Status</th>
+                                <th scope="col" class="pack-optional">
+                                    Status
+                                </th>
                                 <th
                                     scope="col"
                                     class="text-right whitespace-nowrap"
@@ -212,11 +216,13 @@ const print = () => window.print();
                                     {{ claim.claimNo }}
                                 </td>
                                 <td>{{ claim.patientName }}</td>
-                                <td class="whitespace-nowrap">
+                                <td class="pack-optional whitespace-nowrap">
                                     {{ claim.visitDate }}
                                 </td>
                                 <td>{{ claim.invoiceNumber }}</td>
-                                <td>{{ claim.status }}</td>
+                                <td class="pack-optional">
+                                    {{ claim.status }}
+                                </td>
                                 <td class="text-right tabular-nums">
                                     {{
                                         myr(claim.claimAmountSen).replace(
@@ -429,6 +435,10 @@ const print = () => window.print();
     }
     .pack-optional {
         display: none;
+    }
+    .pack-table th,
+    .pack-table td {
+        padding: 0.35rem 0.25rem;
     }
 }
 .pack-letterhead {
