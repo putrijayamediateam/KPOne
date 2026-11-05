@@ -40,6 +40,7 @@ final class PanelRemittanceService
         private TransactionalActorAuthority $authority,
         private AuditRecorder $audit,
         private StaffAccessService $staff,
+        private PanelStatementService $statements,
     ) {}
 
     /**
@@ -48,9 +49,16 @@ final class PanelRemittanceService
      */
     public function page(User $actor, array $query, int $page = 1): array
     {
-        $filters = Validator::make($query, ['panel' => ['sometimes', 'nullable', 'string', 'max:80']])->valid();
+        $filters = Validator::make($query, [
+            'panel' => ['sometimes', 'nullable', 'string', 'max:80'],
+            'statement' => ['sometimes', 'nullable', 'uuid'],
+            'amount_col' => ['sometimes', 'nullable', 'string', 'max:3'],
+            'claim_col' => ['sometimes', 'nullable', 'string', 'max:3'],
+            'invoice_col' => ['sometimes', 'nullable', 'string', 'max:3'],
+            'member_col' => ['sometimes', 'nullable', 'string', 'max:3'],
+        ])->valid();
 
-        return DB::transaction(function () use ($actor, $filters, $page): array {
+        return DB::transaction(function () use ($actor, $filters, $page, $query): array {
             $branch = $this->branches->activeBranch($actor);
             abort_unless($branch && $branch->organisation_id === $actor->organisation_id, 404);
             $actor = $this->authority->lock($actor, $branch, self::PERMISSION);
@@ -59,6 +67,11 @@ final class PanelRemittanceService
                 ->where('organisation_id', $actor->organisation_id)->where('code', (string) $filters['panel'])->first();
 
             $openClaims = $panel === null ? [] : $this->openClaims($actor, $branch, $panel);
+            // PNL-7: suggestions from an uploaded Panel statement. A column left out of the query is guessed from
+            // the header names; an empty one means "not used".
+            $statement = $panel === null || ($filters['statement'] ?? null) === null ? null : $this->statements->suggestions(
+                $actor, $branch, $panel, (string) $filters['statement'], collect(['amount', 'claim', 'invoice', 'member'])
+                    ->mapWithKeys(fn (string $key): array => [$key => array_key_exists($key.'_col', $query) ? (string) ($filters[$key.'_col'] ?? '') : null])->all());
             $history = PanelRemittance::query()->where('organisation_id', $actor->organisation_id)
                 ->where('branch_id', $branch->id)->orderByDesc('received_at')->orderByDesc('id')
                 ->paginate(20, ['*'], 'page', $page);
@@ -91,6 +104,8 @@ final class PanelRemittanceService
                     ->map(static fn ($row): array => ['code' => (string) $row->code, 'name' => (string) $row->name])->all(),
                 'filters' => ['panel' => $panel->code ?? ''],
                 'maxSplits' => self::MAX_SPLITS,
+                'statement' => $statement,
+                'statementLimits' => ['maxRows' => PanelStatementService::MAX_ROWS, 'retentionDays' => PanelStatementService::RETENTION_DAYS],
                 'canReverse' => $actor->can(PanelPaymentCorrectionService::PERMISSION),
                 'openClaims' => array_slice($openClaims, 0, self::MAX_OPEN_CLAIMS),
                 'openClaimsTruncated' => count($openClaims) > self::MAX_OPEN_CLAIMS,

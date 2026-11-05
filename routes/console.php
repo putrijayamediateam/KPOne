@@ -1,6 +1,7 @@
 <?php
 
 use App\Console\Commands\CleanupPublicPatientIntakes;
+use App\Console\Commands\PurgePanelStatements;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
@@ -10,6 +11,12 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote');
 
 Schedule::command(CleanupPublicPatientIntakes::class)
+    ->daily()
+    ->withoutOverlapping()
+    ->onOneServer();
+
+// PNL-7: uploaded Panel statement files are deleted 30 days after upload.
+Schedule::command(PurgePanelStatements::class)
     ->daily()
     ->withoutOverlapping()
     ->onOneServer();
