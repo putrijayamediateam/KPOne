@@ -61,7 +61,8 @@ const issue = () => {
         <Button
             :variant="variant"
             :size="size"
-            class="h-11 justify-self-start sm:h-8"
+            class="justify-self-start max-sm:min-h-11"
+            data-touch-target
             :disabled="busy"
             data-testid="issue-print"
             @click="issue"

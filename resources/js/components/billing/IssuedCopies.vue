@@ -122,8 +122,13 @@ const name = (copy: IssuedCopy) =>
                         <td class="px-2">
                             <StatusBadge :status="copy.firstPrintedAs" />
                         </td>
-                        <td class="px-2">
-                            {{ copy.issuedAt }}, {{ copy.issuedBy }}
+                        <td class="px-2 py-1">
+                            <span class="block whitespace-nowrap">{{
+                                copy.issuedAt
+                            }}</span>
+                            <span class="block text-muted-foreground"
+                                >by {{ copy.issuedBy }}</span
+                            >
                         </td>
                         <td
                             class="px-2 text-right whitespace-nowrap tabular-nums"
@@ -154,12 +159,13 @@ const name = (copy: IssuedCopy) =>
                         <StatusBadge :status="copy.firstPrintedAs" />
                     </p>
                     <p class="mt-1 text-muted-foreground">
-                        {{ copy.issuedAt }}, {{ copy.issuedBy }} ·
+                        {{ copy.issuedAt }} · by {{ copy.issuedBy }} ·
                         {{ copy.prints }}
                         {{ copy.prints === 1 ? 'print' : 'prints' }}
                     </p>
                     <Button
                         class="mt-2 h-11 w-full"
+                        data-touch-target
                         variant="outline"
                         :disabled="busy !== null"
                         :aria-label="`Reprint ${name(copy)} version ${copy.version} as COPY`"
