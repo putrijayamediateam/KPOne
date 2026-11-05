@@ -491,13 +491,19 @@ const reverse = (receipt: Receipt) =>
                         :key="receipt.publicId"
                         class="flex flex-wrap items-center justify-between gap-2 border-t pt-3"
                     >
-                        <div>
+                        <div class="min-w-0">
                             <p class="font-medium tabular-nums">
                                 {{ receipt.number }} ·
                                 {{ myr(receipt.amountSen) }}
                             </p>
                             <p class="text-xs text-muted-foreground">
                                 {{ receipt.method }} · {{ receipt.receivedAt }}
+                            </p>
+                            <p
+                                v-if="receipt.recordedBy"
+                                class="text-xs break-words text-muted-foreground"
+                            >
+                                Recorded by {{ receipt.recordedBy }}
                             </p>
                             <StatusBadge
                                 class="mt-1"
@@ -797,6 +803,12 @@ const reverse = (receipt: Receipt) =>
                                     </td>
                                     <td class="p-3">
                                         {{ receipt.receivedAt }}
+                                        <span
+                                            v-if="receipt.recordedBy"
+                                            class="block text-xs text-muted-foreground"
+                                            >Recorded by
+                                            {{ receipt.recordedBy }}</span
+                                        >
                                     </td>
                                     <td
                                         class="p-3 text-right whitespace-nowrap tabular-nums"
@@ -854,6 +866,12 @@ const reverse = (receipt: Receipt) =>
                             <p class="text-[11px] text-muted-foreground">
                                 {{ receipt.number }} · {{ receipt.receivedAt }}
                             </p>
+                            <p
+                                v-if="receipt.recordedBy"
+                                class="text-[11px] break-words text-muted-foreground"
+                            >
+                                Recorded by {{ receipt.recordedBy }}
+                            </p>
                             <StatusBadge :status="receipt.status" />
                             <div class="flex flex-wrap gap-2">
                                 <ActionLink
@@ -901,6 +919,12 @@ const reverse = (receipt: Receipt) =>
                                     receipt.status
                                 }}</span>
                             </div>
+                            <p
+                                v-if="receipt.recordedBy"
+                                class="text-[11px] break-words text-muted-foreground"
+                            >
+                                Recorded by {{ receipt.recordedBy }}
+                            </p>
                         </li>
                     </ul>
                 </section>
@@ -957,6 +981,34 @@ const reverse = (receipt: Receipt) =>
                             >Approve</Button
                         ></template
                     >
+                </div>
+                <div
+                    v-if="billing.panelShortfall"
+                    role="note"
+                    data-testid="panel-shortfall"
+                    class="rounded-lg border border-amber-300 bg-amber-50 p-3 text-xs text-amber-900 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-100"
+                >
+                    <p class="font-semibold">
+                        Panel shortfall:
+                        {{ myr(billing.panelShortfall.shortfallSen) }}
+                    </p>
+                    <p>
+                        {{
+                            billing.panelShortfall.decision === 'rejected'
+                                ? 'The Panel rejected the claim.'
+                                : billing.panelShortfall.decision ===
+                                    'partially_accepted'
+                                  ? 'The Panel accepted only part of the claim.'
+                                  : 'The claim was for less than the Panel share.'
+                        }}
+                        The Panel accepted
+                        {{ myr(billing.panelShortfall.acceptedSen) }} of its
+                        {{ myr(billing.panelShortfall.panelShareSen) }} share.
+                    </p>
+                    <p class="mt-1">
+                        Shown for information only. What the patient owes is
+                        unchanged.
+                    </p>
                 </div>
                 <details v-if="!manage && billing.can.void">
                     <summary class="cursor-pointer">

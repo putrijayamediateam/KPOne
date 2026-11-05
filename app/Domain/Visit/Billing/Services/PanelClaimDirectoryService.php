@@ -20,6 +20,9 @@ use Illuminate\Support\Facades\DB;
 /**
  * @phpstan-type EligibleAllocationRow object{
  *     allocation_id: string,
+ *     allocation_lock_version: int|string,
+ *     panel_code: string,
+ *     invoice_lock_version: int|string,
  *     amount_sen: int|string,
  *     panel_name_snapshot: string,
  *     invoice_number: string,
@@ -145,16 +148,20 @@ final class PanelClaimDirectoryService
 
         return [
             'allocationId' => $row->allocation_id,
+            'allocationLockVersion' => (int) $row->allocation_lock_version,
+            'invoiceLockVersion' => (int) $row->invoice_lock_version,
             'patientName' => $row->patient_name,
             'visitNumber' => $row->visit_number,
             'invoiceNumber' => $row->invoice_number,
             'invoiceUrl' => route('billing.show', ['visit' => $row->visit_number]),
             'panelName' => $row->panel_name_snapshot,
+            'panelCode' => (string) $row->panel_code,
             'amountSen' => (int) $row->amount_sen,
             'invoiceTotalSen' => (int) $row->invoice_total_sen,
             'visitType' => (string) $row->visit_type,
             'doctorName' => $row->doctor_name === null ? null : (string) $row->doctor_name,
             'visitDate' => $visitAt->format('j F Y'),
+            'visitDateIso' => $visitAt->toDateString(),
             'dueDate' => $due->format('j F Y'),
             'overdue' => PanelClaimDueRule::isOverdue($row, $due, $today),
             'remarkNote' => (string) $row->reason,
@@ -175,8 +182,11 @@ final class PanelClaimDirectoryService
         $query = app(PanelClaimEligibility::class)->query($actor->organisation_id, $branch->id)
             ->select([
                 'c.public_id as allocation_id',
+                'c.lock_version as allocation_lock_version',
+                'i.lock_version as invoice_lock_version',
                 'c.amount_sen',
                 'c.panel_name_snapshot',
+                'pn.code as panel_code',
                 'c.reason',
                 'pn.claim_due_days',
                 'pn.claim_due_rule',

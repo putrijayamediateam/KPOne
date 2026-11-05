@@ -51,6 +51,7 @@ final class ClinicManagementNavigation
         $add('Patients', 'patients', [
             [$actor->can('patients.search.organisation'), 'Patient Records', 'Find patients within your existing access.', 'patients.index'],
             [$branch && $this->billing->finance($actor), 'Finance / Billing', 'Review invoices and outstanding balances for this branch.', 'billing.work'],
+            [$branch && $actor->can('outstanding.view.branch'), 'Pay later to collect', 'Approved pay-later amounts still to collect at this branch, oldest due first.', 'billing.pay-later-collections'],
             [$branch && $actor->can('payments.reconcile.branch'), 'Terminal Reconciliation', 'Review the branch terminal closing and recorded payments.', 'payment-reconciliations.index'],
         ]);
         $add('Queue', 'queue', [

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { router, usePage } from '@inertiajs/vue3';
+import { Link, router, usePage } from '@inertiajs/vue3';
 import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import { Button } from '@/components/ui/button';
 import {
@@ -16,6 +16,14 @@ import type { OutstandingBillPage, OutstandingBills } from '@/types/billing';
 
 const props = defineProps<{ groups: OutstandingBills | null }>();
 const page = usePage();
+// BIL-3: the Billing page sends this link to outstanding viewers only; other pages (Invoice) do not.
+const collectionsUrl = computed(
+    () =>
+        (
+            page.props.billing as
+                { payLaterCollectionsUrl?: string | null } | undefined
+        )?.payLaterCollectionsUrl ?? null,
+);
 const open = ref(false);
 const contextBlocked = ref(false);
 const blocked = computed(
@@ -169,6 +177,12 @@ onBeforeUnmount(() => {
                 </div>
             </dl>
         </div>
+        <Link
+            v-if="collectionsUrl"
+            :href="collectionsUrl"
+            class="mt-3 block border-t pt-3 text-xs font-medium text-primary hover:underline"
+            >View all pay-later to collect at this branch</Link
+        >
     </section>
     <Dialog v-model:open="open">
         <DialogContent
