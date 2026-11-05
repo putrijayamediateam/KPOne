@@ -325,16 +325,22 @@ final class StockRequestService
         ])->validate()['lines'];
         $declared = [];
         foreach ($values as $line) {
-            $counts = [];
-            foreach (['accepted', 'short', 'damaged', 'extra'] as $field) {
-                $value = $line[$field.'_quantity'];
-                $counts[$field] = StockUnitQuantity::scaled(is_int($value) ? $value : (is_string($value) ? $value : ''), true);
-            }
-            $declared[(string) $line['line_public_id']] = $counts;
+            $declared[(string) $line['line_public_id']] = [
+                'accepted' => $this->receiptQuantity($line['accepted_quantity']),
+                'short' => $this->receiptQuantity($line['short_quantity']),
+                'damaged' => $this->receiptQuantity($line['damaged_quantity']),
+                'extra' => $this->receiptQuantity($line['extra_quantity']),
+            ];
         }
         ksort($declared);
 
         return $declared;
+    }
+
+    /** Exact thousandths; zero allowed; non-string, non-integer input is refused by StockUnitQuantity. */
+    private function receiptQuantity(mixed $value): int
+    {
+        return StockUnitQuantity::scaled(is_int($value) ? $value : (is_string($value) ? $value : ''), true);
     }
 
     /** @param array<string, mixed> $attributes */
