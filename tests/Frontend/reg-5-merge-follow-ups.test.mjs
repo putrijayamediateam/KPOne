@@ -28,13 +28,14 @@ test('REG-5: search rows and the Registration picker show who was merged in', ()
     );
     assert.match(note, /and \{\{ more \}\} more/);
     assert.match(note, /class="sr-only"/);
+    assert.match(note, /class="font-mono whitespace-nowrap"/);
     assert.doesNotMatch(note, /Badge|bg-/);
 });
 
 test('REG-5: a merged guardian shows read only and only when the record has none', () => {
     assert.match(show, /v-else-if="mergedGuardian"/);
     assert.match(show, /From merged record/);
-    assert.match(show, /Read only\./);
+    assert.match(show, /Read-only\./);
     assert.doesNotMatch(
         show.slice(show.indexOf('data-test="merged-guardian"')),
         /<Button|@click/,
@@ -55,7 +56,7 @@ test('REG-5: merged problems are a separate read-only group with no actions', ()
     assert.match(problems, /:open="mergedActiveCount > 0"/);
     assert.match(
         problems,
-        /class="font-medium text-foreground"[\s\S]*?\{\{ mergedActiveCount \}\} active/,
+        /This record: \{\{ problems\.active\.length \}\} active[\s\S]*?From merged\s+records:[\s\S]*?'text-foreground'[\s\S]*?\{\{ mergedActiveCount \}\} active/,
     );
     assert.match(problems, /record\.status === 'active'/);
     assert.match(

@@ -35,6 +35,11 @@ const mergedActiveCount = computed(
         props.problems?.merged?.filter((record) => record.status === 'active')
             .length ?? 0,
 );
+const mergedResolvedCount = computed(
+    () =>
+        props.problems?.merged?.filter((record) => record.status === 'resolved')
+            .length ?? 0,
+);
 const baseUrl = computed(
     () => `/visits/${encodeURIComponent(props.visitNumber)}/encounter`,
 );
@@ -485,19 +490,23 @@ const saveProblem = () => {
                         class="text-xs leading-[18.75px] text-muted-foreground"
                         title="No automated medicine checks. No active structured conditions recorded does not imply that no medical conditions exist."
                     >
-                        {{ problems.active.length }} active ·
-                        {{ problems.resolved.length }} resolved<template
-                            v-if="problems.merged?.length"
-                        >
-                            · {{ problems.merged.length }} from merged
-                            records<template v-if="mergedActiveCount">
-                                (<span
-                                    class="font-medium text-foreground"
-                                    data-test="merged-active-count"
-                                    >{{ mergedActiveCount }} active</span
-                                >)</template
-                            ></template
-                        >
+                        <template v-if="problems.merged?.length">
+                            This record: {{ problems.active.length }} active ·
+                            {{ problems.resolved.length }} resolved. From merged
+                            records:
+                            <span
+                                :class="
+                                    mergedActiveCount ? 'text-foreground' : ''
+                                "
+                                data-test="merged-active-count"
+                                >{{ mergedActiveCount }} active</span
+                            >
+                            · {{ mergedResolvedCount }} resolved
+                        </template>
+                        <template v-else>
+                            {{ problems.active.length }} active ·
+                            {{ problems.resolved.length }} resolved
+                        </template>
                     </p>
                     <div class="flex min-h-[30px] items-center">
                         <Button
@@ -653,7 +662,8 @@ const saveProblem = () => {
                                 }}</span>
                                 ·
                                 <template v-if="record.status === 'active'"
-                                    >Active<template v-if="record.onsetDate">
+                                    ><span class="text-foreground">Active</span
+                                    ><template v-if="record.onsetDate">
                                         · Onset:
                                         {{ record.onsetDate }}</template
                                     ></template

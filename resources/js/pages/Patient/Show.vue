@@ -367,7 +367,7 @@ const formatTime = (value: string) =>
                 <span class="font-mono">{{
                     mergedGuardian.fromPatientNumber
                 }}</span
-                >. Read only.
+                >. Read-only.
             </p>
             <p class="break-words">
                 {{ mergedGuardian.full_name }}
