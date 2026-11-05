@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { useForm } from '@inertiajs/vue3';
-import { watch } from 'vue';
+import { nextTick, ref, watch } from 'vue';
+import ScanInput from '@/components/inventory/ScanInput.vue';
 import { formatInventoryReason } from '@/lib/inventory-picker';
+import type { ScannedSku } from '@/lib/scan';
 import type { InventoryDocument } from '@/types/inventory-operations';
 const props = defineProps<{
     row: InventoryDocument;
@@ -67,6 +69,31 @@ const submit = (review: boolean) => {
         { preserveScroll: true },
     );
 };
+// STK-9: a scan only finds and highlights the order line; it never ticks, fills or saves anything.
+const scannedLine = ref<string | null>(null);
+function lineFor(sku: ScannedSku) {
+    return props.row.lines.find((line) => line.skuPublicId === sku.public_id);
+}
+function onOrder(sku: ScannedSku): string | null {
+    return lineFor(sku)
+        ? null
+        : `SKU ${sku.sku_code} · ${sku.item_name} is not on this receiving order. Nothing was changed.`;
+}
+async function highlight(sku: ScannedSku) {
+    const line = lineFor(sku);
+
+    if (!line) {
+        return;
+    }
+
+    scannedLine.value = line.publicId;
+    await nextTick();
+    // Keep focus in the scan box: moving it into a quantity field would let the next scan type into it and
+    // submit the receipt with its Enter.
+    document
+        .getElementById(`receiving-line-${line.publicId}`)
+        ?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+}
 watch(
     () => [form.delivery_reference, JSON.stringify(form.lines)],
     () => {
@@ -94,6 +121,12 @@ watch(
             before posting. Quarantine holds the whole batch at this branch,
             including any earlier balance. Nothing here releases a hold.
         </p>
+        <ScanInput
+            context="receiving"
+            :refocus-key="`receiving-${row.publicId}`"
+            :accept="onOrder"
+            @found="highlight"
+        />
         <form class="space-y-4" @submit.prevent="submit(false)">
             <label class="grid gap-1 text-sm"
                 >Delivery note or supplier invoice reference<input
@@ -104,11 +137,20 @@ watch(
             /></label>
             <fieldset
                 v-for="(line, index) in form.lines"
+                :id="`receiving-line-${line.line_public_id}`"
                 :key="line.line_public_id"
                 class="min-w-0 space-y-3 rounded border p-3"
+                :class="{
+                    'ring-2 ring-primary': scannedLine === line.line_public_id,
+                }"
             >
                 <legend class="max-w-full px-1 text-sm wrap-anywhere">
                     {{ row.lines[index].sku }}
+                    <span
+                        v-if="scannedLine === line.line_public_id"
+                        class="ml-1 rounded-full bg-muted px-2 py-0.5 text-xs font-medium whitespace-nowrap"
+                        >Scanned</span
+                    >
                 </legend>
                 <label class="flex min-h-11 items-center gap-2"
                     ><input
