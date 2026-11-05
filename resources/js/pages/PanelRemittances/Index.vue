@@ -1,8 +1,12 @@
 <script setup lang="ts">
 import { Head, Link, router, usePage } from '@inertiajs/vue3';
-import { computed, reactive, ref, watch } from 'vue';
+import { computed, nextTick, reactive, ref, watch } from 'vue';
+import { toast } from 'vue-sonner';
+import PanelStatementHelper from '@/components/panel/PanelStatementHelper.vue';
+import type { Statement } from '@/components/panel/PanelStatementHelper.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import OperationalConfirmDialog from '@/components/ui/OperationalConfirmDialog.vue';
 import { PageHeader } from '@/components/ui/page-header';
 import { CompactPagination } from '@/components/ui/pagination';
 import { StatusBadge } from '@/components/ui/status';
@@ -40,6 +44,8 @@ const props = defineProps<{
     filters: { panel: string };
     maxSplits: number;
     canReverse?: boolean;
+    statement?: Statement | null;
+    statementLimits?: { maxRows: number; retentionDays: number };
     openClaims: OpenClaim[];
     openClaimsTruncated?: boolean;
     remittances: {
@@ -177,6 +183,33 @@ const fillOldestFirst = () => {
 const clearSplit = () => {
     parts.value = {};
 };
+// PNL-7: ticked statement rows fill the split; amounts already typed are replaced only after a confirmation.
+const pendingStatementParts = ref<{ claim: string; sen: number }[] | null>(
+    null,
+);
+const applyStatementParts = (rows: { claim: string; sen: number }[]) => {
+    const listed = new Set(props.openClaims.map((claim) => claim.publicId));
+    const usable = rows.filter((row) => listed.has(row.claim));
+    parts.value = Object.fromEntries(
+        usable.map((row) => [row.claim, fromSen(row.sen)]),
+    );
+    pendingStatementParts.value = null;
+    toast.success(
+        usable.length === rows.length
+            ? 'Split filled from the statement. Check the total, then record the payment.'
+            : `Split filled from the statement. ${rows.length - usable.length} of the claims are not in the list below; record this payment, then use the statement again.`,
+    );
+    nextTick(() => document.getElementById('split-summary')?.focus());
+};
+const useStatement = (rows: { claim: string; sen: number }[]) => {
+    if (splitRows.value.length > 0) {
+        pendingStatementParts.value = rows;
+
+        return;
+    }
+
+    applyStatementParts(rows);
+};
 const turnPage = (value: number) =>
     router.get(
         '/panel-remittances',
@@ -310,6 +343,15 @@ const record = () => {
                 branch.
             </p>
             <template v-else>
+                <PanelStatementHelper
+                    :branch-id="branch.id"
+                    :panel="filters.panel"
+                    :statement="statement ?? null"
+                    :max-rows="statementLimits?.maxRows ?? 500"
+                    :retention-days="statementLimits?.retentionDays ?? 30"
+                    :error="errors.statement"
+                    @use="useStatement"
+                />
                 <p
                     v-if="openClaimsTruncated"
                     class="text-sm text-amber-700 dark:text-amber-300"
@@ -462,6 +504,8 @@ const record = () => {
                     </table>
                 </div>
                 <div
+                    id="split-summary"
+                    tabindex="-1"
                     class="flex flex-wrap items-center justify-between gap-3 rounded-lg bg-muted/40 p-3 text-sm"
                     data-testid="split-summary"
                 >
@@ -615,5 +659,20 @@ const record = () => {
                 @change="turnPage"
             />
         </section>
+        <OperationalConfirmDialog
+            :open="pendingStatementParts !== null"
+            title="Replace the current split?"
+            description="Amounts you typed will be cleared."
+            confirm-label="Replace split"
+            @update:open="
+                (value) => {
+                    if (!value) pendingStatementParts = null;
+                }
+            "
+            @confirm="
+                pendingStatementParts &&
+                applyStatementParts(pendingStatementParts)
+            "
+        />
     </main>
 </template>

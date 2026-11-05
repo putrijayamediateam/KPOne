@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Domain\Visit\Billing\Services\PanelRemittanceService;
+use App\Domain\Visit\Billing\Services\PanelStatementService;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -17,7 +18,7 @@ class PanelRemittancesController extends Controller
     {
         return Inertia::render('PanelRemittances/Index', $remittances->page(
             $this->actor($request),
-            $request->only(['panel']),
+            $request->only(['panel', 'statement', 'amount_col', 'claim_col', 'invoice_col', 'member_col']),
             max(1, min(10000, (int) $request->query('page', 1))),
         ));
     }
@@ -32,6 +33,29 @@ class PanelRemittancesController extends Controller
             throw $e->redirectTo(route('panel-remittances.index', array_filter(['panel' => $panel])));
         }
         Inertia::flash('toast', ['type' => 'success', 'message' => 'Panel payment recorded and split across the claims.']);
+
+        return to_route('panel-remittances.index', array_filter(['panel' => $panel]));
+    }
+
+    /** PNL-7: upload a Panel statement (CSV) to get claim suggestions; nothing is recorded from it. */
+    public function storeStatement(Request $request, PanelStatementService $statements): RedirectResponse
+    {
+        $actor = $this->actor($request);
+        $panel = is_string($request->input('panel')) ? $request->input('panel') : null;
+        try {
+            $upload = $statements->upload($actor, $request->only(['expected_branch_id', 'panel']), $request->file('statement'));
+        } catch (ValidationException $e) {
+            throw $e->redirectTo(route('panel-remittances.index', array_filter(['panel' => $panel])));
+        }
+
+        return to_route('panel-remittances.index', array_filter(['panel' => $panel, 'statement' => $upload->public_id]));
+    }
+
+    public function destroyStatement(Request $request, string $statement, PanelStatementService $statements): RedirectResponse
+    {
+        $panel = is_string($request->input('panel')) ? $request->input('panel') : null;
+        $statements->remove($this->actor($request), $statement, $request->only(['expected_branch_id']));
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'Statement file deleted.']);
 
         return to_route('panel-remittances.index', array_filter(['panel' => $panel]));
     }
