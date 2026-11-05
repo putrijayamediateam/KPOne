@@ -14,11 +14,13 @@ import { Button } from '@/components/ui/button';
 import { OperationalSelect } from '@/components/ui/select';
 import { formatInventoryReason } from '@/lib/inventory-picker';
 import { formatStatusLabel } from '@/lib/presentation';
+import AllergyMatchWarning from '@/pages/Dispensary/Partials/AllergyMatchWarning.vue';
 
 defineOptions({
     layout: { breadcrumbs: [{ title: 'Dispensary', href: '/registration' }] },
 });
 
+type AllergyMatch = { publicId: string; allergen: string };
 type Availability = {
     locationPublicId: string;
     locationName: string;
@@ -66,6 +68,7 @@ type Item = {
         status: string;
         proposed_quantity_dispensed: string;
     } | null;
+    allergyMatches?: AllergyMatch[];
 };
 type ServiceLine = {
     publicId: string;
@@ -130,6 +133,7 @@ type Medicine = {
     unit: string;
     sku: { publicId: string; unit: string };
     availability: Availability[];
+    allergyMatches?: AllergyMatch[];
 };
 type LineForm = {
     quantity: string;
@@ -166,6 +170,26 @@ const formFor = (item: Item): LineForm => ({
 });
 const forms = reactive<Record<string, LineForm>>({});
 const baseLock = reactive<Record<string, number>>({});
+// DSP-1: the CA's "I have checked with the patient/doctor" tick, per line. It is keyed by the exact
+// allergies shown when ticked, so a newly matched allergy is never covered by an older tick. It is
+// sent with one save only; the server asks again on every later save of a matching line.
+const allergyChecks = reactive<Record<string, boolean>>({});
+const matchesFor = (item: { allergyMatches?: AllergyMatch[] }) =>
+    item.allergyMatches ?? [];
+const checkKey = (item: Item) =>
+    `${item.publicId}:${matchesFor(item)
+        .map((match) => match.publicId)
+        .join(',')}`;
+const needsAllergyCheck = (item: Item) =>
+    matchesFor(item).length > 0 && !allergyChecks[checkKey(item)];
+const allergyPayload = (matches: AllergyMatch[], checked: boolean) =>
+    matches.length && checked
+        ? {
+              allergy_confirmed_record_ids: matches.map(
+                  (match) => match.publicId,
+              ),
+          }
+        : {};
 const isDirty = (item: Item): boolean => {
     const form = forms[item.publicId];
     const saved = formFor(item);
@@ -499,16 +523,31 @@ const saveItem = (item: Item, done?: () => void) => {
                 form.quantity,
                 form.fefoReason,
             ),
+            ...allergyPayload(
+                matchesFor(item),
+                allergyChecks[checkKey(item)] === true,
+            ),
         },
         {
             preserveScroll: true,
             onError: showActionError,
-            onSuccess: () => done?.(),
+            onSuccess: () => {
+                allergyChecks[checkKey(item)] = false;
+                done?.();
+            },
             onFinish: () => (busy.value = false),
         },
     );
 };
 const saveAll = () => {
+    const unticked = unsaved.value.find((item) => needsAllergyCheck(item));
+
+    if (unticked) {
+        actionError.value = `${unticked.name} may match a recorded allergy. Tick "I have checked with the patient/doctor" on that line first.`;
+
+        return;
+    }
+
     const next = unsaved.value[0];
     const nextService = unsavedServices.value[0];
 
@@ -555,10 +594,15 @@ const restoreItem = (item: Item) => {
             administration_instruction: item.original.instruction,
             precaution: item.original.precaution,
             allocations: allocationFor(first, item.sku?.publicId, quantity),
+            ...allergyPayload(
+                matchesFor(item),
+                allergyChecks[checkKey(item)] === true,
+            ),
         },
         {
             preserveScroll: true,
             onError: showActionError,
+            onSuccess: () => (allergyChecks[checkKey(item)] = false),
             onFinish: () => (busy.value = false),
         },
     );
@@ -569,6 +613,7 @@ const searchTerm = ref('');
 const results = ref<Medicine[]>([]);
 const searching = ref(false);
 const chosen = ref<Medicine | null>(null);
+const addAllergyCheck = ref(false);
 const addForm = reactive<LineForm>({
     quantity: '1.000',
     dosage: '',
@@ -619,11 +664,18 @@ const searchMedicines = async () => {
 };
 const chooseMedicine = (medicine: Medicine) => {
     chosen.value = medicine;
+    addAllergyCheck.value = false;
     addForm.availabilityIndex = Math.max(
         0,
         medicine.availability.findIndex((stock) => !stock.held),
     );
     addForm.fefoReason = '';
+};
+const refreshChosen = async (publicId: string) => {
+    await searchMedicines();
+    chosen.value =
+        results.value.find((medicine) => medicine.publicId === publicId) ??
+        null;
 };
 const addMedicine = () => {
     const medicine = chosen.value;
@@ -647,12 +699,22 @@ const addMedicine = () => {
                 addForm.quantity,
                 addForm.fefoReason,
             ),
+            ...allergyPayload(matchesFor(medicine), addAllergyCheck.value),
         },
         {
             preserveScroll: true,
-            onError: showActionError,
+            onError: (errors: Record<string, string>) => {
+                showActionError(errors);
+
+                // A newly recorded allergy may now match: reload the matches and ask for a fresh tick.
+                if (errors.allergy_confirmation) {
+                    addAllergyCheck.value = false;
+                    void refreshChosen(medicine.publicId);
+                }
+            },
             onSuccess: () => {
                 chosen.value = null;
+                addAllergyCheck.value = false;
                 results.value = [];
                 searchTerm.value = '';
                 Object.assign(addForm, {
@@ -1145,11 +1207,19 @@ const inputClass = 'mt-1 h-9 w-full rounded-md border px-2';
                                 Stock at other locations requires transfer
                                 before fulfilment.
                             </p>
+                            <AllergyMatchWarning
+                                v-if="matchesFor(item).length"
+                                v-model="allergyChecks[checkKey(item)]"
+                                :matches="matchesFor(item)"
+                                :field-id="`allergy-check-${item.publicId}`"
+                                class="sm:col-span-4"
+                            />
                             <div class="flex items-end gap-2 sm:col-span-4">
                                 <Button
                                     size="sm"
                                     :disabled="
                                         busy ||
+                                        needsAllergyCheck(item) ||
                                         (item.status !== 'pending' &&
                                             !isDirty(item))
                                     "
@@ -1225,20 +1295,38 @@ const inputClass = 'mt-1 h-9 w-full rounded-md border px-2';
                         <li
                             v-for="item in removedItems"
                             :key="item.publicId"
-                            class="flex items-center justify-between gap-2"
+                            class="grid gap-2"
                         >
-                            <span class="text-muted-foreground line-through">{{
-                                item.name
-                            }}</span>
-                            <Button
-                                v-if="dispensary.can.update"
-                                size="sm"
-                                variant="outline"
-                                :disabled="busy || !item.availability.length"
-                                data-action="restore-line"
-                                @click="restoreItem(item)"
-                                >Put back</Button
+                            <div
+                                class="flex items-center justify-between gap-2"
                             >
+                                <span
+                                    class="text-muted-foreground line-through"
+                                    >{{ item.name }}</span
+                                >
+                                <Button
+                                    v-if="dispensary.can.update"
+                                    size="sm"
+                                    variant="outline"
+                                    :disabled="
+                                        busy ||
+                                        !item.availability.length ||
+                                        needsAllergyCheck(item)
+                                    "
+                                    data-action="restore-line"
+                                    @click="restoreItem(item)"
+                                    >Put back</Button
+                                >
+                            </div>
+                            <AllergyMatchWarning
+                                v-if="
+                                    dispensary.can.update &&
+                                    matchesFor(item).length
+                                "
+                                v-model="allergyChecks[checkKey(item)]"
+                                :matches="matchesFor(item)"
+                                :field-id="`allergy-check-${item.publicId}`"
+                            />
                         </li>
                     </ul>
                 </section>
@@ -1285,7 +1373,13 @@ const inputClass = 'mt-1 h-9 w-full rounded-md border px-2';
                                     [medicine.strength, medicine.code]
                                         .filter(Boolean)
                                         .join(' · ')
-                                }}</span></span
+                                }}</span>
+                                <span
+                                    v-if="matchesFor(medicine).length"
+                                    class="ml-1 inline-block rounded-md bg-red-100 px-1.5 py-0.5 text-[11px] font-medium text-red-800 dark:bg-red-950/70 dark:text-red-100"
+                                    data-testid="allergy-match-badge"
+                                    >Possible allergy match</span
+                                ></span
                             >
                             <Button
                                 size="sm"
@@ -1436,11 +1530,20 @@ const inputClass = 'mt-1 h-9 w-full rounded-md border px-2';
                             {{ dispensary.labelLimits?.precaution }} characters.
                             Printing does not truncate saved text.
                         </p>
+                        <AllergyMatchWarning
+                            v-if="matchesFor(chosen).length"
+                            v-model="addAllergyCheck"
+                            :matches="matchesFor(chosen)"
+                            field-id="allergy-check-add"
+                            class="sm:col-span-4"
+                        />
                         <div class="flex gap-2 sm:col-span-4">
                             <Button
                                 size="sm"
                                 :disabled="
                                     busy ||
+                                    (matchesFor(chosen).length > 0 &&
+                                        !addAllergyCheck) ||
                                     !addForm.dosage.trim() ||
                                     !addForm.frequency.trim()
                                 "
