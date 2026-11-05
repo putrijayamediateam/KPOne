@@ -88,9 +88,9 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php` and `BillingPermiss
 | D02 / D03 | Footer release (no development disclaimer); OFFICIAL INVOICE / RECEIPT layout | #189, #192 |
 | D002-ECHO | Ringgit shown beside sen approval limits | #194 |
 | PRINT-1 | Prints stay white in dark mode | #200 |
-| BIL-1 | Route-level feature tests and a browser walk (1440 and 390 px) of invoice void and reissue, adjustment reversal, later settlement of pay-later debt on a return visit, and rejected and partially accepted Panel decisions (screenshots handed to the owner, not committed). All four flows worked; no application code changed | this PR |
-| BIL-1b | "Panel shortfall" warning on the Billing page when a Panel rejects or only partly accepts a claim (approved Panel share minus accepted amount). Display only; what the patient owes is unchanged | next PR |
-| BIL-2 | "Recorded by <name>" on each receipt on the Billing page and Manage payments, with the activity log's name rule; prints unchanged | next PR |
+| BIL-1 | Route-level feature tests and a browser walk (1440 and 390 px) of invoice void and reissue, adjustment reversal, later settlement of pay-later debt on a return visit, and rejected and partially accepted Panel decisions (screenshots handed to the owner, not committed). All four flows worked; no application code changed | #213 |
+| BIL-1b | "Panel shortfall" warning on the Billing page when a Panel rejects or only partly accepts a claim (approved Panel share minus accepted amount). Display only; what the patient owes is unchanged | #219 |
+| BIL-2 | "Recorded by <name>" on each receipt on the Billing page and Manage payments, with the activity log's name rule; prints unchanged | #222 |
 
 ## 6. Owner decisions already made (never ask again)
 
@@ -172,12 +172,17 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php` and `BillingPermiss
 - Full gate before hand-off on a task-owned PostgreSQL 18 database, including the billing contention tests
   with none skipped; screenshots at 1440 and 390 px, light and dark, for any screen or print change.
 - Commit, push and PR only after the owner says "ship it"; never merge.
-- Record every new owner decision in section 6 and every finished piece in section 5, in the same PR.
+- Record every new owner decision in section 6 and every finished piece in section 5 (with its PR number), in
+  the same PR.
+- **Do not edit `docs/BASELINE.md`** (owner rule, 2026-11-05): rows added by several teams at once made every
+  open PR conflict and re-run CI. Record finished work only in this file; the coordinator records all BASELINE
+  updates in one docs-only PR after each batch of merges. If a piece changes an authorisation boundary (for
+  example a BASELINE section 4 "not authorised" item), say so clearly in the PR description.
 
 ## 9. Backlog (next pieces, in order)
 
 Chosen by the owner on 2026-11-05; built one by one in this order, each its own PR. Choosing them is the owner's
-authorisation to build them; record that in `docs/BASELINE.md` with the first PR of each.
+authorisation to build them; the coordinator records it in `docs/BASELINE.md`.
 
 1. **BIL-1 Untested money flows.** *(Built 2026-11-05; owner approved "ship it" the same day.)* Walk and test, with synthetic data, the flows DRY-RUN-2 did not cover: invoice
    void and reissue, adjustment reversal, later settlement of pay-later debt, rejected and partially accepted
