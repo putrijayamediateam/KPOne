@@ -245,7 +245,7 @@ class KPOneDemoSetupSeeder extends Seeder
             ->where('organisation_id', $organisation->id)
             ->where('branch_id', $branch->id)
             ->first();
-        if ($profile !== null && $branchProfile !== null && $branchProfile->clinic_name !== null) {
+        if ($profile !== null && $branchProfile !== null) {
             return;
         }
 
