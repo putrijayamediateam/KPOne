@@ -13,10 +13,17 @@ permissions:
   contents: read
   pull-requests: read
 
+# CI-PAR-1: a new push to a pull request cancels that pull request's older run. Pushes to main and exact-SHA
+# validation dispatches each keep their own group (the run id), so they are never cancelled.
+concurrency:
+  group: tests-${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || format('run-{0}', github.run_id) }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   ci:
     name: ${{ github.event_name == 'repository_dispatch' && 'exact-SHA candidate validation' || 'ci' }}
     runs-on: ubuntu-latest
+    timeout-minutes: 45
 
     services:
       postgres:
@@ -562,9 +569,22 @@ jobs:
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: '22'
+          cache: npm
 
       - name: Prepare ephemeral CI environment
         run: cp .env.example .env
+
+      - name: Locate Composer cache
+        id: composer_cache
+        shell: bash
+        run: echo "dir=$(composer config cache-files-dir)" >>"$GITHUB_OUTPUT"
+
+      - name: Cache Composer downloads
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ steps.composer_cache.outputs.dir }}
+          key: composer-${{ runner.os }}-${{ hashFiles('composer.lock') }}
+          restore-keys: composer-${{ runner.os }}-
 
       - name: Install PHP dependencies
         run: composer install --no-interaction --prefer-dist --no-progress
@@ -575,11 +595,49 @@ jobs:
       - name: Generate Wayfinder routes
         run: php artisan wayfinder:generate --with-form --no-interaction
 
+      # CI-PAR-1: the quick static checks run first, so a lint, format or type error shows within minutes.
+      # Together with the test steps below they run everything `composer ci:check` runs.
+      - name: Frontend lint, format and types
+        run: |
+          npm run lint:check
+          npm run format:check
+          npm run types:check
+
+      # composer ci:check used to lift Composer's 300-second process limit; these steps keep that.
+      - name: PHP format (Pint)
+        env:
+          COMPOSER_PROCESS_TIMEOUT: 0
+        run: |
+          php artisan config:clear --ansi
+          composer lint:check
+
+      - name: PHP static analysis (PHPStan)
+        env:
+          COMPOSER_PROCESS_TIMEOUT: 0
+        run: composer types:check
+
       - name: Run frontend behavior tests
         shell: bash
         run: |
           shopt -s failglob
           node --test tests/Frontend/*.test.mjs
+
+      # CI-PAR-1: four test processes each rebuild the full schema of their own database, sometimes at the same
+      # moment, which overflows PostgreSQL's default lock table ("out of shared memory"). Raise it on this
+      # throwaway service container only.
+      - name: Raise the test database lock table for parallel tests
+        shell: bash
+        env:
+          PG_CONTAINER: ${{ job.services.postgres.id }}
+        run: |
+          set -euo pipefail
+          docker exec "$PG_CONTAINER" psql -U postgres -d kpone_test -c 'ALTER SYSTEM SET max_locks_per_transaction = 1024'
+          docker restart "$PG_CONTAINER" >/dev/null
+          for _ in $(seq 1 60); do
+            docker exec "$PG_CONTAINER" pg_isready -U postgres -d kpone_test >/dev/null 2>&1 && break
+            sleep 1
+          done
+          docker exec "$PG_CONTAINER" psql -U postgres -d kpone_test -tAc 'SHOW max_locks_per_transaction' | grep -qx 1024
 
       - name: Migrate isolated test database
         run: php artisan migrate --force
@@ -587,5 +645,11 @@ jobs:
       - name: Build frontend assets
         run: npm run build
 
-      - name: Run CI Checks
-        run: composer ci:check
+      # Unit and Feature run in parallel: four processes, each on its own database (kpone_test_test_1..4,
+      # created and migrated by Laravel's parallel testing).
+      - name: Backend tests (parallel)
+        run: php artisan test --parallel --processes=4 --testsuite=Unit,Feature
+
+      # Tests whose worker subprocesses connect to kpone_test itself run here, serially and never skipped.
+      - name: PostgreSQL contention tests (serial)
+        run: php artisan test --testsuite=Contention
