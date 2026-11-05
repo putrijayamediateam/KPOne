@@ -649,6 +649,7 @@ onBeforeUnmount(() => {
     <main
         class="mx-auto flex w-full max-w-[1600px] flex-1 flex-col gap-2 px-3 py-2 md:px-5"
     >
+        <h1 class="sr-only">Registration</h1>
         <div class="flex items-center gap-2 border-b">
             <OperationalTabs
                 class="min-w-0 flex-1"
@@ -692,6 +693,7 @@ onBeforeUnmount(() => {
                     class="grid gap-2 md:grid-cols-2 xl:grid-cols-[minmax(260px,1.6fr)_minmax(150px,0.8fr)_140px_140px_auto_auto]"
                 >
                     <label class="relative md:col-span-2 xl:col-span-1">
+                        <span class="sr-only">Search patients</span>
                         <Search
                             class="absolute top-2.5 left-3 size-4 text-muted-foreground"
                         />
