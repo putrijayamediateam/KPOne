@@ -465,7 +465,8 @@ const submitMapping = () => {
                     class="text-xs text-muted-foreground"
                 >
                     Medicines patients bring back go here. Stock here is never
-                    dispensed. It leaves only by Write-off or Transfer.
+                    dispensed. It leaves only by Stock count, Write-off, or a
+                    move to another returns location.
                 </p>
                 <InputError :message="locationForm.errors.type" />
             </div>

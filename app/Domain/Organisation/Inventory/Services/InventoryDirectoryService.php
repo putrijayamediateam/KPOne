@@ -3,6 +3,7 @@
 namespace App\Domain\Organisation\Inventory\Services;
 
 use App\Domain\Access\BranchAccessService;
+use App\Domain\Organisation\Inventory\Models\InventoryLocation;
 use App\Domain\Organisation\Inventory\Models\StockMovement;
 use App\Domain\Organisation\Models\Branch;
 use App\Models\User;
@@ -132,7 +133,8 @@ final class InventoryDirectoryService
         foreach ($results->items() as $row) {
             $values = (array) $row;
             $expiryDate = CarbonImmutable::parse($values['expiry_date'])->toDateString();
-            $available = (float) $values['quantity'] > 0 && (bool) $values['location_active'] && $values['eligibility_reason'] === null;
+            $returned = $values['location_type'] === InventoryLocation::TYPE_DISPENSARY_RETURNS;
+            $available = ! $returned && (float) $values['quantity'] > 0 && (bool) $values['location_active'] && $values['eligibility_reason'] === null;
             $data[] = [
                 'skuCode' => (string) $values['sku_code'], 'itemName' => $this->itemName($values),
                 'medicineName' => $medicineNames[(int) $values['inventory_sku_id']] ?? null,
@@ -142,7 +144,7 @@ final class InventoryDirectoryService
                 'expiryDate' => CarbonImmutable::parse($expiryDate)->format('j M Y'),
                 'active' => (bool) $values['item_active'] && (bool) $values['sku_active'],
                 'available' => $available,
-                'availabilityStatus' => $values['hold_reason'] ? 'Held' : ($available ? 'Available' : 'Unavailable'),
+                'availabilityStatus' => $returned ? 'Patient return (not for dispensing)' : ($values['hold_reason'] ? 'Held' : ($available ? 'Available' : 'Unavailable')),
                 ...($values['hold_reason'] ? ['holdReason' => $values['hold_reason']] : []),
             ];
         }
@@ -369,7 +371,7 @@ final class InventoryDirectoryService
             ->where('balance.organisation_id', $actor->organisation_id)->where('l.branch_id', $branch->id);
 
         return [
-            'skusWithStock' => (clone $base)->where('balance.quantity', '>', 0)->distinct()->count('balance.inventory_sku_id'),
+            'skusWithStock' => (clone $base)->where('balance.quantity', '>', 0)->where('l.type', '<>', InventoryLocation::TYPE_DISPENSARY_RETURNS)->distinct()->count('balance.inventory_sku_id'),
             'totalBatches' => (clone $base)->distinct()->count('balance.inventory_batch_id'),
             'expiredBatches' => (clone $base)->where('balance.quantity', '>', 0)->whereDate('batch.expiry_date', '<=', $localDate)->distinct()->count('balance.inventory_batch_id'),
         ];

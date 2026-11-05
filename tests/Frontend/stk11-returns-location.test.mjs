@@ -16,7 +16,7 @@ test('Stock setup offers the patient returns location type with a help line', ()
     assert.match(panel, /v-if="locationForm\.type === 'dispensary_returns'"/);
     assert.match(
         panel,
-        /Medicines patients bring back go here\. Stock here is never\s+dispensed\. It leaves only by Write-off or Transfer\./,
+        /Medicines patients bring back go here\.\s+Stock here is never\s+dispensed\.\s+It leaves only by Stock count, Write-off, or a\s+move to another returns location\./,
     );
     assert.match(
         panel,

@@ -13,6 +13,8 @@ use App\Domain\Organisation\Inventory\Services\InventoryDirectoryService;
 use App\Domain\Organisation\Inventory\Services\InventoryMovementService;
 use App\Domain\Organisation\Inventory\Services\InventoryReferenceAdministrationService;
 use App\Domain\Organisation\Inventory\Services\InventoryStockReviewService;
+use App\Domain\Organisation\Inventory\Services\ProcurementService;
+use App\Domain\Organisation\Inventory\Services\StockRequestService;
 use App\Domain\Organisation\Inventory\Services\TreatmentUsageService;
 use App\Models\User;
 use Illuminate\Database\QueryException;
@@ -181,6 +183,43 @@ final class DispensaryReturnsLocationTest extends VisitTestCase
         $alerts = collect($this->actingAs($supervisor)->get(route('inventory.index'))->assertOk()->inertiaProps('operations.expiringBatches'));
         $this->assertTrue($alerts->contains('location', $f['location']->name));
         $this->assertFalse($alerts->contains('location', $returns->name));
+    }
+
+    public function test_staff_create_it_on_screen_and_no_order_or_stock_request_can_reach_it(): void
+    {
+        $f = $this->fx()->received('10.000');
+        $supervisor = $this->fx()->actor('ca_supervisor');
+        $this->actingAs($supervisor)->post(route('inventory-references.locations.store'), ['branch_id' => $this->branch->id, 'code' => 'SYN-RET-HTTP', 'name' => 'Synthetic returns shelf', 'type' => 'dispensary_returns'])
+            ->assertRedirect(route('inventory.index'))->assertSessionHasNoErrors();
+        $returns = InventoryLocation::query()->where('code', 'SYN-RET-HTTP')->sole();
+        $this->assertSame([InventoryLocation::TYPE_DISPENSARY_RETURNS, $this->branch->id], [$returns->type, $returns->branch_id]);
+        $this->actingAs($supervisor)->post(route('inventory-references.locations.store'), ['code' => 'SYN-RET-NOBRANCH', 'name' => 'Shared returns', 'type' => 'dispensary_returns'])
+            ->assertSessionHasErrors('branch_id');
+
+        // Two-stage transfers and purchase orders never touch a returns location.
+        [$sku] = $this->skuAndBatch($f);
+        $lines = [['sku_public_id' => $sku->public_id, 'quantity' => '1.000']];
+        foreach ([[$f['location'], $returns], [$returns, $f['location']]] as [$from, $to]) {
+            $this->refused(fn () => app(StockRequestService::class)->create($supervisor, ['expected_branch_id' => $this->branch->id,
+                'source_location_public_id' => $from->public_id, 'destination_location_public_id' => $to->public_id, 'lines' => $lines]), 'location');
+        }
+        $this->refused(fn () => app(ProcurementService::class)->create($f['finance'], ['expected_branch_id' => $this->branch->id,
+            'supplier_public_id' => $f['supplier']->public_id, 'destination_location_public_id' => $returns->public_id, 'lines' => [['sku_public_id' => $sku->public_id, 'quantity' => '1.000', 'unit_cost_sen' => 125]]]), 'destination_location_public_id');
+        $this->assertSame(0, DB::table('inventory_stock_requests')->count());
+
+        // The stock view never calls returned medicine available, and the summary does not count it as stock.
+        $this->credit($supervisor, $returns, $f, '1.000');
+        $this->actingAs($supervisor)->get(route('inventory.index', ['tab' => 'stock']))->assertInertia(fn ($page) => $page
+            ->where('inventory.data', fn ($rows) => collect($rows)->where('location', $returns->name)->every(fn ($row) => $row['available'] === false && $row['availabilityStatus'] === 'Patient return (not for dispensing)')
+                && collect($rows)->contains('location', $returns->name)));
+
+        // A governed count gain may correct a returns location; any other credit with another reference may not.
+        [$sku, $batch] = $this->skuAndBatch($f);
+        DB::transaction(fn () => app(InventoryMovementService::class)->recordGovernedChange($supervisor, $returns, $sku, $batch, '0.500', StockMovement::TYPE_STOCKTAKE_GAIN, (string) Str::uuid()));
+        $this->assertSame('1.500', $this->balance($returns, $f));
+        $base = ['public_id' => (string) Str::uuid(), 'organisation_id' => $this->organisation->id, 'inventory_sku_id' => $sku->id, 'inventory_batch_id' => $batch->id,
+            'quantity' => '1.000', 'actor_user_id' => $supervisor->id, 'occurred_at' => now(), 'reference_public_id' => (string) Str::uuid(), 'created_at' => now(), 'updated_at' => now()];
+        $this->pgRefused(fn () => DB::table('stock_movements')->insert([...$base, 'movement_type' => 'adjustment_in', 'destination_location_id' => $returns->id, 'reference_type' => 'inventory_adjustment']), 'Only returned medicine');
     }
 
     public function test_a_returns_location_keeps_its_type(): void

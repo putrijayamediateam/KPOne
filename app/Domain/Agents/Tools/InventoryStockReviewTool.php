@@ -99,12 +99,10 @@ final class InventoryStockReviewTool implements AgentTool
             ->joinSub($this->eligibility->query($organisationId, $branch), 'e', fn ($j) => $j->on('e.id', '=', 'r.inventory_batch_id')->on('e.organisation_id', '=', 'r.organisation_id'))
             ->where('r.organisation_id', $organisationId)->where('l.organisation_id', $organisationId)->where('s.organisation_id', $organisationId)->where('i.organisation_id', $organisationId)
             ->where('l.branch_id', $branch->id)->where('r.quantity', '>', 0);
-        // STK-11: returned medicine is not usable stock, so it never counts as expiring. Expired returned stock stays
-        // listed, because it still has to be written off.
         if ($kind === 'expiring') {
+            // STK-11: returned medicine is not usable stock, so it never counts as expiring. Expired returned
+            // stock stays listed below, because it still has to be written off.
             $query->where('l.type', '<>', InventoryLocation::TYPE_DISPENSARY_RETURNS);
-        }
-        if ($kind === 'expiring') {
             $query->where('l.is_active', true)->whereNull('e.eligibility_reason')
                 ->whereDate('e.expiry_date', '<=', CarbonImmutable::parse($this->eligibility->localDate($branch))->addDays(InventoryStockReviewService::EXPIRY_WINDOW_DAYS)->toDateString());
         } else {

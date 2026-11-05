@@ -338,6 +338,9 @@ final class ProcurementService
     {
         $supplier = InventorySupplier::query()->where('public_id', $supplierPublicId)->where('organisation_id', $actor->organisation_id)->where('is_active', true)->lockForUpdate()->firstOrFail();
         $location = InventoryLocation::query()->where('public_id', $locationPublicId)->where('organisation_id', $actor->organisation_id)->where('is_active', true)->lockForUpdate()->firstOrFail();
+        if ($location->type === InventoryLocation::TYPE_DISPENSARY_RETURNS) {
+            throw ValidationException::withMessages(['destination_location_public_id' => 'A purchase order cannot be delivered to a patient returns location.']);
+        }
 
         return [$supplier, $location];
     }

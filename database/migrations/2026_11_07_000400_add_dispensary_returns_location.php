@@ -35,7 +35,8 @@ BEGIN
  IF from_returns AND NEW.movement_type NOT IN ('transfer','stocktake_loss','adjustment_out','expiry_writeoff','stock_writeoff') THEN
   RAISE EXCEPTION 'Stock in a returns location can only be written off or transferred' USING ERRCODE='23514';
  END IF;
- IF to_returns AND NEW.movement_type NOT IN ('dispensary_return','stocktake_gain','adjustment_in','transfer') THEN
+ IF to_returns AND (NEW.movement_type NOT IN ('dispensary_return','stocktake_gain','adjustment_in','transfer')
+   OR (NEW.movement_type IN ('stocktake_gain','adjustment_in') AND NEW.reference_type<>'inventory_governed_case')) THEN
   RAISE EXCEPTION 'Only returned medicine can go into a returns location' USING ERRCODE='23514';
  END IF;
  IF NEW.movement_type='dispensary_return' AND (NEW.reference_type<>'dispensary_return_check' OR NOT EXISTS (

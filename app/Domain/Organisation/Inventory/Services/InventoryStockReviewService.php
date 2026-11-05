@@ -55,12 +55,10 @@ final class InventoryStockReviewService
             ->joinSub($eligibility->query($actor->organisation_id, $branch), 'e', fn ($j) => $j->on('e.id', '=', 'r.inventory_batch_id')->on('e.organisation_id', '=', 'r.organisation_id'))
             ->where('r.organisation_id', $actor->organisation_id)->where('l.organisation_id', $actor->organisation_id)->where('s.organisation_id', $actor->organisation_id)->where('i.organisation_id', $actor->organisation_id)
             ->where('l.branch_id', $branch->id)->where('r.quantity', '>', 0);
-        // STK-11: returned medicine is not usable stock, so it never counts as expiring. Expired returned stock stays
-        // listed, because it still has to be written off.
         if ($kind === 'expiring') {
+            // STK-11: returned medicine is not usable stock, so it never counts as expiring. Expired returned
+            // stock stays listed below, because it still has to be written off.
             $query->where('l.type', '<>', InventoryLocation::TYPE_DISPENSARY_RETURNS);
-        }
-        if ($kind === 'expiring') {
             $query->where('l.is_active', true)->whereNull('e.eligibility_reason')->whereDate('e.expiry_date', '<=', CarbonImmutable::parse($eligibility->localDate($branch))->addDays(self::EXPIRY_WINDOW_DAYS)->toDateString());
         } else {
             // Never hide expired stock because its references are inactive, unavailable or held.
