@@ -99,6 +99,11 @@ coordinator (2026-11-05); Yasmin added by owner decision 2026-11-05 (every build
     - Defaults taken: pop-up to the attending doctor only; no overdue warning and no Registration chip in v1.
     - The TV shows nothing.
     - Design note: [Q-2-DESIGN.md](Q-2-DESIGN.md).
+11. Backup push (owner rule 2026-11-05, relayed by LUCY): whenever the team stops to wait for the owner and has work
+    not yet on GitHub, commit it to its own feature branch and `git push -u origin <branch>`. Backup only: no PR, never
+    push to `main` or another team's branch, never merge, never force-push. If the branch already has an open PR, push
+    only when the change is ready (it re-runs CI). The PR still opens only after "ship it", with latest `origin/main`
+    merged first. On a fresh machine, fetch the branch before continuing.
 
 ## 7. Open items and known limits
 
