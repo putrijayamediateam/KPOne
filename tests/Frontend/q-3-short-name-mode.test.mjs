@@ -134,7 +134,7 @@ test('Q-3b: on a TV the current call keeps the number and short name on one line
     // The normal heading size stays the largest size; the fit only ever makes it smaller.
     assert.match(
         screen,
-        /ref="currentLabel"[\s\S]*?lg:w-full lg:text-\[clamp\(3rem,10vh,6rem\)\]"\s*:class="currentLabelWraps \? '' : 'lg:truncate'"/,
+        /ref="currentLabel"[\s\S]*?lg:w-full lg:text-\[clamp\(3rem,10vh,6rem\)\]"\s*:class="currentLabelOneLine \? 'lg:truncate' : ''"/,
     );
     assert.match(screen, /fontSize: `\$\{currentLabelFontPx\}px`/);
     assert.match(screen, /const FIT_MIN_PX = 24;/);
@@ -146,9 +146,12 @@ test('Q-3b: on a TV the current call keeps the number and short name on one line
     assert.match(screen, /window\.matchMedia\('\(min-width: 1024px\)'\)/);
     assert.match(
         screen,
-        /currentLabelWraps\.value = label\.scrollWidth > label\.clientWidth \+ 1;/,
+        /currentLabelOneLine\.value = label\.scrollWidth <= label\.clientWidth \+ 1;/,
     );
     assert.match(screen, /window\.addEventListener\?\.\('resize', onResize\)/);
+    // Yasmin: wraps by default until measured, and measures again once the web font is ready.
+    assert.match(screen, /const currentLabelOneLine = ref\(false\);/);
+    assert.match(screen, /document\.fonts\?\.ready\.then\(onResize\)/);
     assert.match(
         screen,
         /window\.removeEventListener\?\.\('resize', onResize\)/,
