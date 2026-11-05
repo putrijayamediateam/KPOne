@@ -41,8 +41,9 @@ not apply. Rules and examples are in [GUIDE.md](GUIDE.md) (section numbers in br
 ## Feedback
 
 - [ ] Confirmations use `OperationalConfirmDialog`, never browser `confirm()`. (8)
-- [ ] Success is a short past-tense toast at the top (shared placement, no per-page position); errors stay on the
-      page; no sticky action bar at 64 px or under the toast. (9)
+- [ ] Success is a short past-tense toast at the top (shared placement, no per-page position; the only exception is
+      the consultation page from 1024 px, UX-5); errors stay on the page; no sticky action bar at 64 px or under the
+      toast. (9)
 - [ ] Statuses use `StatusBadge` with a word, keys added to `lib/presentation.ts` if new. (10)
 - [ ] Empty, loading and error states use the `components/ui/state` components. (11)
 
