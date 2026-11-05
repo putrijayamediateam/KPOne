@@ -21,6 +21,7 @@ Team designers (each works inside their own builder team and follows Daniel's gu
 | Patients & Registration | Balqis |
 | Agent platform | Ezra |
 | Queue & TV | Yasmin |
+| Catalogue & settings | Nadia (team set up 2026-11-05: Adlina, Lead; Ravi, Reviewer) |
 | Staff Experience | Kavitha's team is itself the UX team; it builds the shared shell to Daniel's guide |
 
 All are Claude builder sessions or roles working for the owner through the coordinator session (LUCY). Daniel is
