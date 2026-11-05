@@ -3,6 +3,7 @@
 namespace App\Domain\Clinical\Dispensary\Services;
 
 use App\Domain\Audit\AuditRecorder;
+use App\Domain\Clinical\Dispensary\Models\DispensaryAllergyConfirmation;
 use App\Domain\Clinical\Dispensary\Models\DispensaryCase;
 use App\Domain\Clinical\Dispensary\Models\DispensaryHandoff;
 use App\Domain\Clinical\Dispensary\Models\DispensaryItem;
@@ -43,7 +44,7 @@ use Illuminate\Validation\ValidationException;
 
 class DispensaryService
 {
-    public function __construct(private DispensaryAuthorityService $authority, private DispensarySafetyValidator $safety, private InventoryMovementService $inventory, private AuditRecorder $audit) {}
+    public function __construct(private DispensaryAuthorityService $authority, private DispensarySafetyValidator $safety, private InventoryMovementService $inventory, private AuditRecorder $audit, private DispensaryAllergyMatcher $allergyMatcher) {}
 
     /** @param array<string,mixed> $attributes */
     public function start(User $actor, DispensaryCase $case, array $attributes): DispensaryCase
@@ -63,7 +64,7 @@ class DispensaryService
     public function updateItem(User $actor, DispensaryCase $case, DispensaryItem $item, array $attributes): DispensaryItem
     {
         $this->caTransaction($actor, $case, $attributes, 'dispensary.update.branch', function ($context) use ($item, $attributes): void {
-            [$actor,$branch,$case,$handoff,$items] = $context;
+            [$actor,$branch,$case,$handoff,$items,,,,,$profile] = $context;
             $this->refuseOtc($case);
             $locked = $items->firstWhere('id', $item->id);
             abort_unless($locked && $locked->dispensary_handoff_id === $handoff->id, 404);
@@ -74,11 +75,18 @@ class DispensaryService
                 $this->stale('item_lock_version');
             }
             [$status,$quantity,$reason] = $this->itemState($locked, $attributes);
+            // DSP-1: the legacy status path dispenses a line too, so it needs the same allergy confirmation.
+            $matches = [];
+            if (in_array($status, [DispensaryItem::STATUS_DISPENSED, DispensaryItem::STATUS_PARTIAL], true)) {
+                $medicine = MedicineCatalogueItem::query()->whereKey($locked->medicine_catalogue_item_id)->where('organisation_id', $actor->organisation_id)->first();
+                $matches = $this->confirmedAllergyMatches($profile, [$locked->medicine_name_snapshot, $medicine?->display_name, $medicine?->generic_name], $attributes);
+            }
             DispensaryItemException::query()->where('dispensary_item_id', $locked->id)->whereIn('status', [DispensaryItemException::STATUS_AWAITING, DispensaryItemException::STATUS_ACKNOWLEDGED])->each(function ($exception): void {
                 $exception->forceFill(['status' => DispensaryItemException::STATUS_SUPERSEDED])->save();
             });
             DB::table('dispensary_item_batch_allocations')->where('dispensary_item_id', $locked->id)->delete();
             $locked->forceFill(['quantity_dispensed' => $quantity, 'status' => $status, 'reason' => $reason, 'handled_by_user_id' => $actor->id, 'handled_at' => now()->utc(), 'lock_version' => $locked->lock_version + 1])->save();
+            $this->recordAllergyConfirmations($actor, $branch, $case, $handoff, $locked, $profile, $matches, DispensaryAllergyConfirmation::ACTION_EDIT);
             foreach (($attributes['allocations'] ?? []) as $allocation) {
                 $this->allocation($actor, $case, $locked, $allocation);
             }
@@ -88,6 +96,7 @@ class DispensaryService
             }
             $case->forceFill(['lock_version' => $case->lock_version + 1])->save();
             $this->audit->record('dispensary.updated', $case, ['record_version' => $case->lock_version, 'changed_sections' => ['fulfilment']], $actor, $branch);
+            $this->auditAllergyConfirmations($actor, $branch, $case, $matches, DispensaryAllergyConfirmation::ACTION_EDIT);
         });
 
         return $item->fresh(['allocations', 'exceptions']);
@@ -102,11 +111,15 @@ class DispensaryService
     public function editItem(User $actor, DispensaryCase $case, DispensaryItem $item, array $attributes): DispensaryItem
     {
         $this->caTransaction($actor, $case, $attributes, 'dispensary.update.branch', function ($context) use ($item, $attributes): void {
-            [$actor,$branch,$case,$handoff,$items] = $context;
+            [$actor,$branch,$case,$handoff,$items,,,,,$profile] = $context;
             $locked = $this->lockedLine($actor, $case, $handoff, $items, $item, $attributes);
+            $medicine = MedicineCatalogueItem::query()->whereKey($locked->medicine_catalogue_item_id)->where('organisation_id', $actor->organisation_id)->first();
+            $matches = $this->confirmedAllergyMatches($profile, [$locked->medicine_name_snapshot, $medicine?->display_name, $medicine?->generic_name], $attributes);
             $this->saveLine($actor, $branch, $case, $locked, $attributes, $locked->source === DispensaryItem::SOURCE_CA);
+            $this->recordAllergyConfirmations($actor, $branch, $case, $handoff, $locked, $profile, $matches, DispensaryAllergyConfirmation::ACTION_EDIT);
             $case->forceFill(['lock_version' => $case->lock_version + 1])->save();
             $this->audit->record('dispensary.item_edited', $case, ['record_version' => $case->lock_version, 'change_state' => $locked->change_state], $actor, $branch);
+            $this->auditAllergyConfirmations($actor, $branch, $case, $matches, DispensaryAllergyConfirmation::ACTION_EDIT);
         });
 
         return $item->fresh(['allocations']);
@@ -134,6 +147,7 @@ class DispensaryService
             if ($items->contains(fn (DispensaryItem $line): bool => $line->medicine_catalogue_item_id === $medicine->id && $line->change_state !== DispensaryItem::CHANGE_REMOVED)) {
                 throw ValidationException::withMessages(['medicine_public_id' => 'This medicine is already on the list. Edit the existing line instead.']);
             }
+            $matches = $this->confirmedAllergyMatches($profile, [$medicine->display_name, $medicine->generic_name], $attributes);
             $quantity = $this->positiveQuantity($attributes['quantity_dispensed'] ?? null);
             $text = $this->cleanText($attributes);
             if ($text['dosage'] === null || $text['frequency'] === null) {
@@ -152,8 +166,10 @@ class DispensaryService
                 'edited_by_user_id' => $actor->id, 'edited_at' => now()->utc(), 'handled_by_user_id' => $actor->id, 'handled_at' => now()->utc(), 'lock_version' => 1,
             ])->save();
             $this->replaceAllocations($actor, $case, $line, $quantity, $attributes['allocations'] ?? []);
+            $this->recordAllergyConfirmations($actor, $branch, $case, $handoff, $line, $profile, $matches, DispensaryAllergyConfirmation::ACTION_ADD);
             $case->forceFill(['lock_version' => $case->lock_version + 1])->save();
             $this->audit->record('dispensary.item_added', $case, ['record_version' => $case->lock_version], $actor, $branch);
+            $this->auditAllergyConfirmations($actor, $branch, $case, $matches, DispensaryAllergyConfirmation::ACTION_ADD);
             $created = $line;
         });
 
@@ -182,6 +198,66 @@ class DispensaryService
         });
 
         return $item->fresh(['allocations']);
+    }
+
+    /**
+     * DSP-1 (owner decision 2026-11-05): when the medicine's name or generic name matches one of the
+     * patient's active allergy records, the CA must confirm "I have checked with the patient/doctor"
+     * for every matched record before the save is accepted. A warning, never a block. The profile and
+     * its records are already locked by caTransaction, so the match is computed on current data.
+     *
+     * @param  array<int, string|null>  $medicineNames
+     * @param  array<string,mixed>  $attributes
+     * @return list<PatientAllergyRecord>
+     */
+    private function confirmedAllergyMatches(?PatientAllergyProfile $profile, array $medicineNames, array $attributes): array
+    {
+        if (! $profile) {
+            return [];
+        }
+        $records = PatientAllergyRecord::query()->where('patient_allergy_profile_id', $profile->id)->where('organisation_id', $profile->organisation_id)
+            ->where('status', PatientAllergyRecord::STATUS_ACTIVE)->orderBy('id')->get();
+        $matches = $this->allergyMatcher->matches($records, $medicineNames);
+        if ($matches === []) {
+            return [];
+        }
+        $confirmed = array_map('strval', array_filter((array) ($attributes['allergy_confirmed_record_ids'] ?? []), 'is_string'));
+        $missing = array_values(array_filter($matches, fn (PatientAllergyRecord $record): bool => ! in_array($record->public_id, $confirmed, true)));
+        if ($missing !== []) {
+            // Generic on purpose: validation errors are flashed to the session, and allergy text stays out of it
+            // (allergen_text is in dontFlash). The warning on the page already names the allergy.
+            throw ValidationException::withMessages(['allergy_confirmation' => 'This medicine may match a recorded allergy shown on this page. Check with the patient or doctor, then tick "I have checked with the patient/doctor" to save.']);
+        }
+
+        return $matches;
+    }
+
+    /** @param list<PatientAllergyRecord> $matches */
+    private function recordAllergyConfirmations(User $actor, Branch $branch, DispensaryCase $case, DispensaryHandoff $handoff, DispensaryItem $line, ?PatientAllergyProfile $profile, array $matches, string $action): void
+    {
+        foreach ($matches as $record) {
+            $confirmation = new DispensaryAllergyConfirmation;
+            $confirmation->forceFill([
+                'public_id' => (string) Str::uuid(), 'organisation_id' => $actor->organisation_id, 'branch_id' => $branch->id,
+                'dispensary_case_id' => $case->id, 'dispensary_handoff_id' => $handoff->id, 'dispensary_item_id' => $line->id,
+                'patient_allergy_record_id' => $record->id, 'allergy_profile_lock_version' => (int) ($profile->lock_version ?? 0),
+                'action' => $action, 'item_lock_version' => $line->lock_version,
+                'confirmed_by_user_id' => $actor->id, 'confirmed_at' => now()->utc(),
+            ])->save();
+        }
+    }
+
+    /**
+     * Structural audit only: counts and the action, never the medicine or allergy text.
+     *
+     * @param  list<PatientAllergyRecord>  $matches
+     */
+    private function auditAllergyConfirmations(User $actor, Branch $branch, DispensaryCase $case, array $matches, string $action): void
+    {
+        if ($matches === []) {
+            return;
+        }
+        $this->audit->record('dispensary.allergy_match_confirmed', $case, ['record_version' => $case->lock_version, 'action' => $action, 'matched_records' => count($matches)], $actor, $branch);
     }
 
     /**
