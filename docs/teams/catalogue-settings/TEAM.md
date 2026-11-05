@@ -67,7 +67,8 @@ Server checks stay the authority; hiding a control is a usability aid only.
 | SET-02, SET-05, SET-05b | Medicine details options, preset diagnoses and the picker | #107, #108, #109 |
 | BIZ-01, DOC-01, D02 | Business details, logo, letterhead, branch footer on prints | #119, #128, #189 |
 | **CAT-1 (this team)** | DD-04 and DD-13 fixed: every Pricing field has a visible connected label (per-row fields named after the charge); Pricing becomes charge cards below 768 px; Medicine Catalogue rows show one Edit button plus a named "..." menu (Deactivate or Activate, Drug groups, Mark or Unmark controlled); Medicine and Clinical Service become cards below 1024 px; connected filter labels; Consultation tariff prices labelled on a phone; neutral Controlled badge. Frontend only: no backend, payload, route or permission change; one owner-approved assertion changed (decision 7). Pinned by `tests/Frontend/cat-1-catalogue-screens.test.mjs` | #263 (`705b0f5`) |
-| **CAT-1b (this team)** | Publishing a price with an empty amount is refused with "Enter an amount. Type 0.00 if this is free." under the field: the Pricing page no longer reads an empty box as RM 0.00, `PricePublishRequest` gives the message, and `PricePublicationService` refuses an empty amount on every path. A typed 0.00 is still published. No permission, migration or route change; no existing assertion changed. Also carries Daniel's CAT-1 follow-ups: sentence-case dialog titles on Medicine and Clinical Service, a ghost Deactivate on the Pricing phone cards, before shots renamed `*-before-*` and every after shot re-taken. Tests: `tests/Feature/Billing/PricePublishEmptyAmountTest.php`, `tests/Frontend/cat-1b-refuse-empty-price.test.mjs` | PR after CAT-1 |
+| **CAT-1b (this team)** | Publishing a price with an empty amount is refused with "Enter an amount. Type 0.00 if this is free." under the field: the Pricing page no longer reads an empty box as RM 0.00, `PricePublishRequest` gives the message, and `PricePublicationService` refuses an empty amount on every path. A typed 0.00 is still published. No permission, migration or route change; no existing assertion changed. Also carries Daniel's CAT-1 follow-ups: sentence-case dialog titles on Medicine and Clinical Service, a ghost Deactivate on the Pricing phone cards, before shots renamed `*-before-*` and every after shot re-taken. Tests: `tests/Feature/Billing/PricePublishEmptyAmountTest.php`, `tests/Frontend/cat-1b-refuse-empty-price.test.mjs` | #266 (`681c8a9`) |
+| **CAT-2 (this team)** | Price list check at `/pricing/price-check` (linked from the Pricing header): every active medicine, clinical service and the consultation with the Self-pay, default Panel and per-Panel prices billing would use at the active branch, and checks for no charge, charge inactive, no Self-pay price, unit differs, no default Panel price and RM 0.00. Read-only, existing `pricing.references.manage.organisation` permission, no migration or export. The price choice is billing's own: `PriceResolutionService::select()` was extracted from `price()` with no behaviour change and is shared by both, with a test that the page and a real invoice line agree. Tests: `tests/Feature/Billing/PriceListCheckTest.php`, `tests/Frontend/cat-2-price-list-check.test.mjs` | PR after CAT-1b |
 
 ## 6. Owner decisions already made (never ask again)
 
@@ -88,6 +89,8 @@ Server checks stay the authority; hiding a control is a usability aid only.
    neutral badge is fine as long as it reads "Controlled" clearly; amber had no Dispensary meaning.
 8. Publishing a price with an empty amount is refused on the server with a message under the field; a typed 0.00
    stays allowed. Built as its own small piece, CAT-1b, after CAT-1 (owner, 2026-11-05, relayed by LUCY).
+9. CAT-2 is authorised: "go ahead with CAT-2" (owner, 2026-11-05, in this team's session). Read-only, existing
+   permissions only, no new permission, migration or export.
 
 ## 7. Open items and known limits
 
@@ -140,7 +143,7 @@ Server checks stay the authority; hiding a control is a usability aid only.
    payload, route or permission change.
 2. **CAT-1b Refuse an empty price amount (owner decision 8).** Server-side refusal of an empty amount on publish,
    message under the field, explicit 0.00 still allowed; backend and frontend tests.
-3. **CAT-2 Price list check (proposed, owner to confirm).** A read-only page listing every active medicine and
+3. **CAT-2 Price list check (authorised, decision 9).** A read-only page listing every active medicine and
    service with its Self-pay, default Panel and per-Panel prices, flagging missing or zero prices, to help the
    pilot catalogue review. Existing pricing permissions only.
 4. **CAT-3 Price history (proposed, owner to confirm).** Read-only history of published prices per charge: who
