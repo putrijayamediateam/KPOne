@@ -71,6 +71,7 @@ use App\Http\Controllers\StaffBranchAssignmentController;
 use App\Http\Controllers\StaffController;
 use App\Http\Controllers\StaffRoleController;
 use App\Http\Controllers\StaffStatusController;
+use App\Http\Controllers\SupplierReturnController;
 use App\Http\Controllers\SupplierSettingsController;
 use App\Http\Controllers\TreatmentPlanCatalogueController;
 use App\Http\Controllers\TreatmentPlanController;
@@ -401,6 +402,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('inventory/writeoffs', [GovernedStockController::class, 'writeoffs'])->middleware(['permission:inventory.view.branch', 'sensitive.no-store'])->name('inventory.governed-writeoffs');
         Route::post('inventory/governed/{kind}', [GovernedStockController::class, 'store'])->whereIn('kind', ['count', 'writeoff', 'reversal'])->middleware(['sensitive.no-store', 'throttle:30,1'])->name('inventory.governed.store');
         Route::post('inventory/governed/{governedCase}/{action}', [GovernedStockController::class, 'act'])->whereNumber('governedCase')->whereIn('action', ['counted', 'recounted', 'approved'])->middleware(['sensitive.no-store', 'throttle:30,1'])->name('inventory.governed.act');
+        Route::get('inventory/supplier-returns', [SupplierReturnController::class, 'index'])->middleware(['permission:inventory.view.branch', 'sensitive.no-store'])->name('inventory.supplier-returns');
+        Route::post('inventory/supplier-returns', [SupplierReturnController::class, 'store'])->middleware(['permission:inventory.supplier_returns.request.branch', 'sensitive.no-store', 'throttle:30,1'])->name('inventory.supplier-returns.store');
+        Route::post('inventory/supplier-returns/{supplierReturn}/{action}', [SupplierReturnController::class, 'act'])->whereNumber('supplierReturn')->whereIn('action', ['approved', 'rejected', 'cancelled', 'dispatched', 'credit_recorded'])->middleware(['sensitive.no-store', 'throttle:30,1'])->name('inventory.supplier-returns.act');
         Route::get('inventory/stock-review', [InventoryStockReviewController::class, 'index'])->middleware(['permission:inventory.view.branch', 'sensitive.no-store'])->name('inventory.stock-review');
         Route::post('inventory/stock-review/{kind}/{reviewItem}', [InventoryStockReviewController::class, 'store'])->whereIn('kind', ['low_stock', 'expiring', 'expired'])->whereNumber('reviewItem')->middleware(['permission:inventory.stock_reviews.manage.branch', 'sensitive.no-store', 'throttle:30,1'])->name('inventory.stock-review.store');
         Route::get('inventory/batch-holds', [InventoryBatchHoldController::class, 'index'])->middleware(['permission:inventory.view.branch', 'sensitive.no-store'])->name('inventory.batch-holds');
