@@ -355,6 +355,9 @@ class PublicIntakeReviewService
                     ->where('patient_number', $validated['patient_number'])
                     ->lockForUpdate()
                     ->firstOrFail();
+                if ($patient->isMergedAway()) {
+                    throw ValidationException::withMessages(['patient_number' => 'This record was merged into another patient. Choose the kept record instead.']);
+                }
                 $this->record('public_intake.matched', $intake, $actor, $intake->status, ['patient_id' => $patient->id]);
             } else {
                 $patient = $this->patients->createForIntake($actor, $intake, (bool) ($validated['duplicate_override'] ?? false), $validated['guardian_relationship'] ?? null);
@@ -507,7 +510,8 @@ class PublicIntakeReviewService
             if ($exactId) {
                 $exact = Patient::query()->whereKey($exactId)->where('organisation_id', $actor->organisation_id)->first();
                 if ($exact) {
-                    $candidates->prepend($exact);
+                    // REG-3: an IC or passport on a merged-away record offers its kept record.
+                    $candidates->prepend(PatientMergeLinks::kept($exact));
                 }
             }
         }

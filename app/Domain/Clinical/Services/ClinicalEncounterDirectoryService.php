@@ -7,6 +7,7 @@ use App\Domain\Clinical\Dispensary\Services\DoctorDispensaryAttentionService;
 use App\Domain\Clinical\Models\ClinicalEncounter;
 use App\Domain\Clinical\Models\EncounterDiagnosis;
 use App\Domain\Clinical\Models\EncounterVitalObservation;
+use App\Domain\Patient\Services\PatientMergeLinks;
 use App\Domain\Queue\Models\QueueEntry;
 use App\Domain\Queue\QueueNumberFormat;
 use App\Domain\Visit\Models\Visit;
@@ -207,8 +208,9 @@ class ClinicalEncounterDirectoryService
         $history = ClinicalEncounter::query()
             ->where('clinical_encounters.organisation_id', $current->organisation_id)
             ->whereKeyNot($current->id)
+            // REG-3: history also lists visits of records merged into this patient (read only).
             ->whereHas('visit', fn ($query) => $query
-                ->where('patient_id', $current->visit->patient_id))
+                ->whereIn('patient_id', PatientMergeLinks::groupIds($current->visit->patient_id)))
             ->with([
                 'visit' => fn ($query) => $query->select([
                     'id', 'organisation_id', 'branch_id', 'visit_number', 'patient_id', 'visit_reason', 'status',

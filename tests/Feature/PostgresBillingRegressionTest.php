@@ -27,6 +27,7 @@ use App\Domain\Organisation\Models\Branch;
 use App\Domain\Organisation\Models\Organisation;
 use App\Domain\Patient\Models\Patient;
 use App\Domain\Queue\Services\QueueEntryService;
+use App\Domain\Visit\Billing\Models\CashClosingDecision;
 use App\Domain\Visit\Billing\Models\ChargeDefinition;
 use App\Domain\Visit\Billing\Models\Invoice;
 use App\Domain\Visit\Billing\Models\Payment;
@@ -34,6 +35,7 @@ use App\Domain\Visit\Billing\Models\PaymentMethod;
 use App\Domain\Visit\Billing\Models\PriceBook;
 use App\Domain\Visit\Billing\Models\PriceEntry;
 use App\Domain\Visit\Billing\Services\BillingBuilderService;
+use App\Domain\Visit\Billing\Services\CashClosingService;
 use App\Domain\Visit\Billing\Services\CompleteVisitationService;
 use App\Domain\Visit\Billing\Services\FinancialLedger;
 use App\Domain\Visit\Billing\Services\PaymentMethodAdministrationService;
@@ -41,6 +43,7 @@ use App\Domain\Visit\Billing\Services\PaymentService;
 use App\Domain\Visit\Billing\Services\ResponsibilityService;
 use App\Domain\Visit\Models\Visit;
 use App\Models\User;
+use Carbon\CarbonImmutable;
 use Illuminate\Database\Connection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Config;
@@ -426,6 +429,42 @@ class PostgresBillingRegressionTest extends TestCase
         $this->assertSame($f['visit']->refresh()->status === 'completed' ? 0 : 4000, $state['due_now']);
     }
 
+    public function test_cash_receipt_reversal_holding_its_lock_makes_a_cash_closing_approval_wait_and_refuse(): void
+    {
+        $f = $this->cashClosingFixture();
+        $out = $this->leaderThenFollower(
+            $this->billWorker($f, 'bill-reverse', ['payment' => $f['receipt']->public_id, 'payment_lock_version' => 1, 'recording_error_only' => true, 'reason' => 'Synthetic recording correction', 'hold' => true], 'finance'),
+            $this->billWorker($f, 'bill-cash-decide', ['closing' => $f['closing']->public_id, 'decision' => 'approved', 'reason' => null, 'business_date' => $f['day']->toDateString(), 'idempotency_key' => (string) Str::uuid()], 'supervisor'),
+        );
+
+        // The approval waited for the reversal, then saw the receipt reversed and refused: no approval of stale figures.
+        $this->assertSame(1, substr_count($out, 'SUCCESS'), $out);
+        $this->assertSame(1, substr_count($out, 'STALE cash_closing'), $out);
+        $this->assertSame('reversed', $f['receipt']->refresh()->status);
+        $this->assertSame(0, CashClosingDecision::query()->where('organisation_id', $f['organisation']->id)->count());
+        $this->assertSame(['count' => 0, 'sen' => 0], app(CashClosingService::class)->expected($f['branch'], $f['day']));
+    }
+
+    public function test_cash_closing_approval_holding_its_share_lock_makes_a_receipt_reversal_wait_then_succeed(): void
+    {
+        $f = $this->cashClosingFixture();
+        $out = $this->leaderThenFollower(
+            $this->billWorker($f, 'bill-cash-decide', ['closing' => $f['closing']->public_id, 'decision' => 'approved', 'reason' => null, 'business_date' => $f['day']->toDateString(), 'idempotency_key' => (string) Str::uuid(), 'hold' => true], 'supervisor'),
+            $this->billWorker($f, 'bill-reverse', ['payment' => $f['receipt']->public_id, 'payment_lock_version' => 1, 'recording_error_only' => true, 'reason' => 'Synthetic recording correction'], 'finance'),
+        );
+
+        // The reversal waited until the approval committed: the approval matched the receipts at that moment, and the
+        // later reversal leaves the approved snapshot unchanged (the page then shows "changed after approval").
+        $this->assertSame(2, substr_count($out, 'SUCCESS'), $out);
+        $decision = CashClosingDecision::query()->where('organisation_id', $f['organisation']->id)->sole();
+        $this->assertSame([$f['closing']->id, 'approved'], [$decision->cash_closing_id, $decision->decision]);
+        $this->assertSame('reversed', $f['receipt']->refresh()->status);
+        // The reversal was recorded only after the approval: it waited behind the approval's share lock.
+        $reversedAt = CarbonImmutable::parse((string) DB::table('payment_reversals')->where('payment_id', $f['receipt']->id)->value('reversed_at'), 'UTC');
+        $this->assertTrue($reversedAt->greaterThanOrEqualTo($decision->decided_at), 'Reversal must follow the approval.');
+        $this->assertSame(['count' => 0, 'sen' => 0], app(CashClosingService::class)->expected($f['branch'], $f['day']));
+    }
+
     public function test_void_reissue_and_payment_cannot_both_win(): void
     {
         $f = $this->billingFixture();
@@ -515,6 +554,35 @@ class PostgresBillingRegressionTest extends TestCase
             $this->assertFalse(DB::connection()->getPdo()->inTransaction());
             $this->assertSame($before, $snapshot(), 'The independent observer must see the original committed evidence after rollback.');
         }
+    }
+
+    /**
+     * BIL-4: a real RM 40.00 cash receipt on a finalised invoice, moved to yesterday (branch time) so the day has
+     * ended and can be approved, and an exact cash count of that day by the CA.
+     *
+     * @return array<string, mixed>
+     */
+    private function cashClosingFixture(): array
+    {
+        $f = $this->billingFixture();
+        $f['receipt'] = app(PaymentService::class)->add($f['ca'], $f['visit'], $f['invoice'], [...$this->payArgs($f, 4000), 'expected_branch_id' => $f['branch']->id, 'lock_version' => $f['invoice']->lock_version]);
+        $f['invoice']->refresh();
+        $f['day'] = CarbonImmutable::now($f['branch']->timezone)->subDay()->startOfDay();
+        DB::transaction(function () use ($f): void {
+            // Only this isolated fixture moves a receipt to yesterday (retained receipts are otherwise immutable).
+            DB::table('payment_methods')->where('organisation_id', $f['organisation']->id)->where('code', 'cash')->update(['classification' => 'cash']);
+            DB::statement('ALTER TABLE payments DISABLE TRIGGER USER');
+            DB::table('payments')->where('id', $f['receipt']->id)->update(['received_at' => $f['day']->addHours(10)->utc()]);
+            DB::statement('ALTER TABLE payments ENABLE TRIGGER USER');
+        });
+        $f['finance'] = $this->user($f['organisation'], $f['branch'], null, ['payments.reverse.branch', 'branch_context.switch.branch']);
+        $f['supervisor'] = $this->user($f['organisation'], $f['branch'], null, [CashClosingService::APPROVE_PERMISSION, 'payments.reconcile.branch', 'branch_context.switch.branch']);
+        session([BranchAccessService::SESSION_KEY => $f['branch']->id]);
+        $f['closing'] = app(CashClosingService::class)->count($f['ca'], ['expected_branch_id' => $f['branch']->id, 'business_date' => $f['day']->toDateString(),
+            'counted_cash' => '40.00', 'variance_reason' => null, 'idempotency_key' => (string) Str::uuid()]);
+        $this->assertSame([1, 4000], [$f['closing']->expected_receipt_count, $f['closing']->expected_cash_sen]);
+
+        return $f;
     }
 
     /** @return array<string, string> */
@@ -972,7 +1040,7 @@ class PostgresBillingRegressionTest extends TestCase
     {
         DB::transaction(function () use ($id): void {
             // Only this isolated PostgreSQL test fixture cleanup may discard retained synthetic evidence.
-            foreach (['invoice_adjustment_reversals', 'invoice_adjustments', 'invoice_adjustment_limits'] as $table) {
+            foreach (['cash_closing_decisions', 'cash_closings', 'invoice_adjustment_reversals', 'invoice_adjustments', 'invoice_adjustment_limits'] as $table) {
                 DB::statement("ALTER TABLE {$table} DISABLE TRIGGER USER");
                 DB::table($table)->where('organisation_id', $id)->delete();
                 DB::statement("ALTER TABLE {$table} ENABLE TRIGGER USER");

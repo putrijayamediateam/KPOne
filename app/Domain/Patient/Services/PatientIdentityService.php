@@ -130,9 +130,8 @@ class PatientIdentityService
             return new Collection;
         }
 
-        return Patient::query()
+        $matches = Patient::query()
             ->where('organisation_id', $organisationId)
-            ->when($except, fn ($query) => $query->whereKeyNot($except->getKey()))
             ->where(function ($query) use ($name, $dob, $phone): void {
                 if ($dob !== null) {
                     $query->orWhere(fn ($match) => $match
@@ -151,7 +150,11 @@ class PatientIdentityService
                             ->where('mobile_phone', $phone));
                     }
                 }
-            })
+            });
+
+        // REG-3: a match on a merged-away record is shown as its kept record.
+        return PatientMergeLinks::keptOf($matches)
+            ->when($except, fn ($query) => $query->whereKeyNot($except->getKey()))
             ->limit(5)
             ->get();
     }

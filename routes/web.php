@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AccessControlController;
 use App\Http\Controllers\AgentInboxController;
+use App\Http\Controllers\AgentOfficeController;
 use App\Http\Controllers\AgentRegistryController;
 use App\Http\Controllers\AttendanceController;
 use App\Http\Controllers\AuditLogController;
@@ -52,6 +53,7 @@ use App\Http\Controllers\PanelSettingsController;
 use App\Http\Controllers\PatientBillingReportController;
 use App\Http\Controllers\PatientController;
 use App\Http\Controllers\PatientIdentifierController;
+use App\Http\Controllers\PatientMergeController;
 use App\Http\Controllers\PatientSearchController;
 use App\Http\Controllers\PatientWhatsAppController;
 use App\Http\Controllers\PayLaterCollectionController;
@@ -77,6 +79,7 @@ use App\Http\Controllers\SupplierReturnController;
 use App\Http\Controllers\SupplierSettingsController;
 use App\Http\Controllers\TreatmentPlanCatalogueController;
 use App\Http\Controllers\TreatmentPlanController;
+use App\Http\Controllers\TreatmentUsageController;
 use App\Http\Controllers\VisitController;
 use App\Http\Controllers\VisitHistoryController;
 use App\Http\Controllers\VisitReasonController;
@@ -412,6 +415,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('inventory/supplier-returns', [SupplierReturnController::class, 'index'])->middleware(['permission:inventory.view.branch', 'sensitive.no-store'])->name('inventory.supplier-returns');
         Route::post('inventory/supplier-returns', [SupplierReturnController::class, 'store'])->middleware(['permission:inventory.supplier_returns.request.branch', 'sensitive.no-store', 'throttle:30,1'])->name('inventory.supplier-returns.store');
         Route::post('inventory/supplier-returns/{supplierReturn}/{action}', [SupplierReturnController::class, 'act'])->whereNumber('supplierReturn')->whereIn('action', ['approved', 'rejected', 'cancelled', 'dispatched', 'credit_recorded'])->middleware(['sensitive.no-store', 'throttle:30,1'])->name('inventory.supplier-returns.act');
+        Route::get('inventory/treatment-usage', [TreatmentUsageController::class, 'index'])->middleware(['permission:inventory.view.branch', 'sensitive.no-store'])->name('inventory.treatment-usage');
+        Route::post('inventory/treatment-usage', [TreatmentUsageController::class, 'store'])->middleware(['permission:inventory.usage.record.branch', 'sensitive.no-store', 'throttle:30,1'])->name('inventory.treatment-usage.store');
+        Route::post('inventory/treatment-usage/{treatmentUsage}/reverse', [TreatmentUsageController::class, 'reverse'])->whereNumber('treatmentUsage')->middleware(['permission:inventory.variances.approve.branch', 'sensitive.no-store', 'throttle:30,1'])->name('inventory.treatment-usage.reverse');
         Route::get('inventory/stock-review', [InventoryStockReviewController::class, 'index'])->middleware(['permission:inventory.view.branch', 'sensitive.no-store'])->name('inventory.stock-review');
         Route::post('inventory/stock-review/{kind}/{reviewItem}', [InventoryStockReviewController::class, 'store'])->whereIn('kind', ['low_stock', 'expiring', 'expired'])->whereNumber('reviewItem')->middleware(['permission:inventory.stock_reviews.manage.branch', 'sensitive.no-store', 'throttle:30,1'])->name('inventory.stock-review.store');
         Route::get('inventory/batch-holds', [InventoryBatchHoldController::class, 'index'])->middleware(['permission:inventory.view.branch', 'sensitive.no-store'])->name('inventory.batch-holds');
@@ -671,6 +677,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::middleware(['permission:ai_agents.view.organisation', 'sensitive.no-store'])->prefix('agents')->group(function () {
             Route::get('/', [AgentRegistryController::class, 'index'])->name('agents.index');
             Route::get('office-feed', [AgentRegistryController::class, 'feed'])->middleware('throttle:30,1')->name('agents.office-feed');
+            Route::get('office', [AgentOfficeController::class, 'index'])->name('agents.office');
+            Route::get('office/agents/{code}', [AgentOfficeController::class, 'agent'])->where('code', '[a-z][a-z0-9_]{1,59}')
+                ->middleware('throttle:60,1')->name('agents.office.agent');
             Route::post('{agent}/enabled', [AgentRegistryController::class, 'enabled'])->whereNumber('agent')
                 ->middleware(['permission:ai_agents.manage.organisation', 'throttle:20,1'])->name('agents.enabled');
         });
@@ -801,6 +810,25 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('patients/{patient}', [PatientController::class, 'show'])
             ->middleware('permission:patients.view.organisation')
             ->name('patients.show');
+        // REG-3: two-person patient merge (link only).
+        Route::get('patients/{patient}/merge-compare', [PatientMergeController::class, 'compare'])
+            ->middleware(['permission:patients.merge.propose.organisation', 'sensitive.no-store', 'throttle:30,1'])
+            ->name('patients.merge-compare');
+        Route::post('patients/{patient}/merge-requests', [PatientMergeController::class, 'store'])
+            ->middleware(['permission:patients.merge.propose.organisation', 'throttle:20,1'])
+            ->name('patients.merge-requests.store');
+        Route::get('patient-merges', [PatientMergeController::class, 'index'])
+            ->middleware('permission:patients.merge.propose.organisation,patients.merge.approve.organisation')
+            ->name('patient-merges.index');
+        Route::post('patient-merges/{mergeRequest}/approve', [PatientMergeController::class, 'approve'])
+            ->whereUuid('mergeRequest')->middleware(['permission:patients.merge.approve.organisation', 'throttle:20,1'])
+            ->name('patient-merges.approve');
+        Route::post('patient-merges/{mergeRequest}/reject', [PatientMergeController::class, 'reject'])
+            ->whereUuid('mergeRequest')->middleware(['permission:patients.merge.approve.organisation', 'throttle:20,1'])
+            ->name('patient-merges.reject');
+        Route::post('patient-merges/{mergeRequest}/withdraw', [PatientMergeController::class, 'withdraw'])
+            ->whereUuid('mergeRequest')->middleware(['permission:patients.merge.propose.organisation', 'throttle:20,1'])
+            ->name('patient-merges.withdraw');
         Route::get('patients/{patient}/edit', [PatientController::class, 'edit'])
             ->middleware('permission:patients.update.organisation')
             ->name('patients.edit');

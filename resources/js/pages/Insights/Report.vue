@@ -882,7 +882,7 @@ const occupancyMax = computed(() =>
             <article
                 v-for="group in visibleGroups"
                 :key="group.title"
-                class="overflow-hidden rounded-xl border bg-card"
+                class="min-w-0 overflow-hidden rounded-xl border bg-card"
             >
                 <div
                     class="flex flex-wrap items-center justify-between gap-3 border-b p-4"
@@ -909,7 +909,7 @@ const occupancyMax = computed(() =>
                         :class="
                             group.title === 'Panel claim outcomes'
                                 ? 'min-w-[760px]'
-                                : 'min-w-[420px]'
+                                : 'sm:min-w-[420px]'
                         "
                     >
                         <thead>
@@ -945,7 +945,11 @@ const occupancyMax = computed(() =>
                                 <td class="p-2 text-muted-foreground">
                                     {{ rowIndex + 1 }}
                                 </td>
-                                <td class="p-2 font-medium">{{ row.name }}</td>
+                                <td
+                                    class="p-2 font-medium max-sm:[overflow-wrap:anywhere]"
+                                >
+                                    {{ row.name }}
+                                </td>
                                 <template
                                     v-if="
                                         group.title === 'Panel claim outcomes'

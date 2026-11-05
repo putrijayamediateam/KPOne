@@ -27,6 +27,9 @@ export type PatientBoardRow = {
     coverageLabel: string;
     panelNote?: string | null;
     durationLabel: string;
+    // Q-1: minutes since joining the queue, set only for a waiting, not-held
+    // row. The board turns the duration amber or red past the fixed limits.
+    waitingMinutes?: number | null;
     priority: 'normal' | 'urgent';
     returnedFromDispensary?: boolean;
     dispensaryUrl?: string;

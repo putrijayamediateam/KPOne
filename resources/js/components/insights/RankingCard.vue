@@ -60,13 +60,13 @@ const money = (value: number) =>
 
 <template>
     <section
-        class="flex min-h-72 flex-col rounded-xl border border-border bg-card"
+        class="flex min-h-72 min-w-0 flex-col rounded-xl border border-border bg-card"
     >
         <header class="border-b border-border px-4 py-3">
             <h2 class="text-sm font-semibold">{{ title }}</h2>
         </header>
         <div class="flex-1 overflow-x-auto px-4">
-            <table class="w-full min-w-[440px] text-left text-xs">
+            <table class="w-full text-left text-xs sm:min-w-[440px]">
                 <thead>
                     <tr
                         class="border-b border-border text-[10px] text-muted-foreground"
@@ -128,7 +128,7 @@ const money = (value: number) =>
                             {{ index + 1 }}
                         </td>
                         <td
-                            class="max-w-52 truncate py-2.5 pr-3 font-medium"
+                            class="max-w-32 truncate py-2.5 pr-3 font-medium sm:max-w-52"
                             :title="item.name"
                         >
                             {{ item.name }}

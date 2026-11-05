@@ -142,6 +142,7 @@ class PatientAdministrationService
     public function update(Patient $patient, array $attributes, User $actor): Patient
     {
         Gate::forUser($actor)->authorize('update', $patient);
+        $this->refuseMergedAway($patient);
         if (is_string($attributes['adult_confirmation_key'] ?? null) && Str::isUuid($attributes['adult_confirmation_key']) && DB::table('patient_adult_confirmations')->where('organisation_id', $actor->organisation_id)->where('confirmed_by_user_id', $actor->id)->where('retry_key', $attributes['adult_confirmation_key'])->exists()) {
             $retry = DB::transaction(function () use ($actor, $attributes, $patient): ?Patient {
                 $adult = app(PatientAdultConfirmationService::class);
@@ -183,6 +184,7 @@ class PatientAdministrationService
                 }
             }
             $locked = Patient::query()->whereKey($patient->id)->lockForUpdate()->firstOrFail();
+            $this->refuseMergedAway($locked);
             $this->assertSameOrganisation($actor, $locked);
 
             if ($expectedVersion < 1 || $locked->lock_version !== $expectedVersion) {
@@ -226,6 +228,7 @@ class PatientAdministrationService
         try {
             return DB::transaction(function () use ($patient, $actor, $identifier): PatientIdentifier {
                 $locked = Patient::query()->whereKey($patient->id)->lockForUpdate()->firstOrFail();
+                $this->refuseMergedAway($locked);
                 $this->assertSameOrganisation($actor, $locked);
                 $hasTypeHistory = $locked->identifiers()->where('identifier_type', $identifier['identifier_type'])->exists();
 
@@ -256,6 +259,7 @@ class PatientAdministrationService
         try {
             return DB::transaction(function () use ($patient, $current, $replacement, $actor): PatientIdentifier {
                 $lockedPatient = Patient::query()->whereKey($patient->id)->lockForUpdate()->firstOrFail();
+                $this->refuseMergedAway($lockedPatient);
                 $lockedIdentifier = PatientIdentifier::query()
                     ->whereKey($current->id)
                     ->where('patient_id', $lockedPatient->id)
@@ -411,5 +415,13 @@ class PatientAdministrationService
         }
 
         throw $exception;
+    }
+
+    /** REG-3: a merged-away record is read-only; edits go to the kept record. */
+    private function refuseMergedAway(Patient $patient): void
+    {
+        if ($patient->merged_into_patient_id !== null) {
+            throw ValidationException::withMessages(['patient' => 'This record was merged into another patient and can no longer be edited. Edit the kept record instead.']);
+        }
     }
 }

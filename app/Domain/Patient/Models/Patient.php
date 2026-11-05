@@ -6,6 +6,7 @@ use App\Domain\Clinical\Models\PatientAllergyProfile;
 use App\Domain\Clinical\Models\PatientProblemRecord;
 use App\Domain\Organisation\Models\Organisation;
 use App\Models\User;
+use Carbon\CarbonImmutable;
 use Database\Factories\PatientFactory;
 use Illuminate\Database\Eloquent\Attributes\Guarded;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -33,6 +34,8 @@ use Illuminate\Support\Carbon;
  * @property string|null $state
  * @property string|null $country_code
  * @property int $lock_version
+ * @property int|null $merged_into_patient_id
+ * @property CarbonImmutable|null $merged_at
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
@@ -47,6 +50,8 @@ class Patient extends Model
         return [
             'date_of_birth' => 'immutable_date',
             'lock_version' => 'integer',
+            'merged_into_patient_id' => 'integer',
+            'merged_at' => 'immutable_datetime',
             'created_at' => 'immutable_datetime',
             'updated_at' => 'immutable_datetime',
         ];
@@ -61,6 +66,19 @@ class Patient extends Model
     public function organisation(): BelongsTo
     {
         return $this->belongsTo(Organisation::class);
+    }
+
+    /** REG-3: the kept patient this record was merged into (link only; nothing is re-pointed).
+     * @return BelongsTo<Patient, $this>
+     */
+    public function mergedInto(): BelongsTo
+    {
+        return $this->belongsTo(Patient::class, 'merged_into_patient_id');
+    }
+
+    public function isMergedAway(): bool
+    {
+        return $this->merged_into_patient_id !== null;
     }
 
     /** @return HasMany<PatientIdentifier, $this> */

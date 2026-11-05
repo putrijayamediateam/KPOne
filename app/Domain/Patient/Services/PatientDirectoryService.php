@@ -44,6 +44,15 @@ class PatientDirectoryService
             ),
         };
 
+        // REG-3: merged-away records never appear; a match on one (old KP number, IC, passport, phone or
+        // name) shows its kept record.
+        $patients = PatientMergeLinks::keptOf($patients)
+            ->select(['id', 'patient_number', 'full_name', 'date_of_birth', 'sex', 'mobile_phone'])
+            ->with(['identifiers' => fn ($builder) => $builder
+                ->select(['id', 'patient_id', 'identifier_type', 'normalized_value'])
+                ->whereNull('retired_at')
+                ->oldest('id')]);
+
         return $this->projectPaginator($actor, $patients->orderBy('full_name')->paginate(20, page: $page));
     }
 
@@ -70,6 +79,7 @@ class PatientDirectoryService
             ->select(['id', 'patient_number', 'full_name', 'date_of_birth', 'sex', 'mobile_phone'])
             ->where('organisation_id', $actor->organisation_id)
             ->whereKey($ids->all())
+            ->whereNull('merged_into_patient_id')
             ->with(['identifiers' => fn ($builder) => $builder
                 ->select(['id', 'patient_id', 'identifier_type', 'normalized_value'])
                 ->whereNull('retired_at')
