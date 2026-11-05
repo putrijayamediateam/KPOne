@@ -67,6 +67,38 @@ class PatientGuardianService
         return [...json_decode(Crypt::decryptString($row->encrypted_contact), true, 512, JSON_THROW_ON_ERROR), 'relationship' => $row->relationship, 'lock_version' => $row->lock_version];
     }
 
+    /**
+     * REG-5: while the kept record has no guardian contact of its own, the newest merged record's contact is shown on
+     * the kept page, read only, to the viewers who may already open that page. Saving it on the kept record is a
+     * normal patient edit.
+     *
+     * @return array{full_name: mixed, relationship: mixed, phone: mixed, email: mixed, fromPatientNumber: string}|null
+     */
+    public function mergedFallback(Patient $kept): ?array
+    {
+        if ($this->contact($kept) !== null) {
+            return null;
+        }
+        $merged = Patient::query()->where('organisation_id', $kept->organisation_id)
+            ->where('merged_into_patient_id', $kept->id)
+            ->orderByDesc('merged_at')->orderByDesc('id')
+            ->get(['id', 'organisation_id', 'patient_number']);
+        foreach ($merged as $record) {
+            $contact = $this->contact($record);
+            if ($contact !== null) {
+                return [
+                    'full_name' => $contact['full_name'] ?? null,
+                    'relationship' => $contact['relationship'] ?? null,
+                    'phone' => $contact['phone'] ?? null,
+                    'email' => $contact['email'] ?? null,
+                    'fromPatientNumber' => $record->patient_number,
+                ];
+            }
+        }
+
+        return null;
+    }
+
     /** @param array<string,mixed> $input
      * @return array<string,mixed>|null
      */

@@ -7,6 +7,7 @@ use App\Domain\Clinical\Models\ClinicalEncounterAllergyReview;
 use App\Domain\Clinical\Models\PatientAllergyProfile;
 use App\Domain\Clinical\Models\PatientAllergyRecord;
 use App\Domain\Clinical\Models\PatientProblemRecord;
+use App\Domain\Patient\Services\PatientMergeLinks;
 use App\Domain\Queue\Models\QueueEntry;
 use App\Domain\Visit\Models\Visit;
 use App\Models\User;
@@ -16,6 +17,8 @@ use Illuminate\Support\Facades\Gate;
 
 class ClinicalSafetyDirectoryService
 {
+    private const MERGED_PROBLEM_LIMIT = 50;
+
     /** @return array<string, mixed>|null */
     public function allergies(User $actor, ClinicalEncounter $encounter): ?array
     {
@@ -65,9 +68,32 @@ class ClinicalSafetyDirectoryService
             'lockVersion' => $record->lock_version,
         ];
 
+        // REG-5: problems recorded on records merged into this patient, read only. They are never editable here:
+        // PatientProblemService only finds problems of the consultation's own patient.
+        $mergedIds = array_values(array_diff(PatientMergeLinks::groupIds($encounter->visit->patient_id), [$encounter->visit->patient_id]));
+        $merged = $mergedIds === [] ? [] : PatientProblemRecord::query()
+            ->where('organisation_id', $actor->organisation_id)
+            ->whereIn('patient_id', $mergedIds)
+            ->whereIn('status', [PatientProblemRecord::STATUS_ACTIVE, PatientProblemRecord::STATUS_RESOLVED])
+            ->with('patient:id,patient_number')
+            ->orderByRaw('CASE WHEN status = ? THEN 0 ELSE 1 END', [PatientProblemRecord::STATUS_ACTIVE])
+            ->orderByDesc('updated_at')->orderByDesc('id')
+            ->limit(self::MERGED_PROBLEM_LIMIT + 1)
+            ->get()
+            ->map(fn (PatientProblemRecord $record): array => [
+                'key' => 'merged-'.$record->id,
+                'condition' => $record->condition_text,
+                'status' => $record->status,
+                'onsetDate' => $record->onset_date?->toDateString(),
+                'resolvedDate' => $record->resolved_date?->toDateString(),
+                'fromPatientNumber' => $record->patient?->patient_number,
+            ])->values()->all();
+
         return [
             'active' => $active->map($project)->values(),
             'resolved' => $resolved->map($project)->values(),
+            'merged' => array_slice($merged, 0, self::MERGED_PROBLEM_LIMIT),
+            'mergedTruncated' => count($merged) > self::MERGED_PROBLEM_LIMIT,
             'canUpdate' => Gate::forUser($actor)->allows('updateProblems', $encounter),
         ];
     }
