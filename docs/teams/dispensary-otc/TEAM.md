@@ -82,8 +82,8 @@ coordinator at the owner's request (2026-11-05).
 | STK-1 | Dispensing refused when a SKU's dispensing unit differs from its stock unit | #180 |
 | FLOW-FIXES-1 | Call to Dispensary keeps the Registration filter; Open Dispensary on the All tab | #201 |
 | DARK-1 | OTC allergy panel readable in dark mode | #207 |
-| DSP-1 | Allergy warning: a CA add, edit or put-back of a medicine that matches a patient's active allergy record by text shows a warning and needs "I have checked with the patient/doctor"; enforced in `DispensaryService`; append-only `dispensary_allergy_confirmations` and a text-free audit; text matching can miss and the screen says so | PR #214 |
-| DSP-2 | Drug label prints "No. Batch" and "Tarikh luput" when exactly one batch was allocated to the line; otherwise nothing extra and the preview says why; batch number within the 48-character label budget or the label is blocked; read only | PR #218 |
+| DSP-1 | Allergy warning: a CA add, edit or put-back of a medicine that matches a patient's active allergy record by text shows a warning and needs "I have checked with the patient/doctor"; enforced in `DispensaryService`; append-only `dispensary_allergy_confirmations` and a text-free audit; text matching can miss and the screen says so | #214 (merged `bf4126a`) |
+| DSP-2 | Drug label prints "No. Batch" and "Tarikh luput" when exactly one batch was allocated to the line; otherwise nothing extra and the preview says why; batch number within the 48-character label budget or the label is blocked; read only | #218 (merged `dad3b49`) |
 | DSP-3 | Controlled-medicine flag on the Medicine Catalogue (mark or unmark, confirmed, stale change refused, audited with field and value only) and a bold "Ubat Terkawal / Controlled Medicine" line under the medicine name on the drug label | PR #223 |
 | DSP-4 | "OTC (no doctor)" row, always last, in the Insights Today and Sales Provider tables when no doctor is selected; the rows now add up to headline sales; nothing else changes | pending (branch `feature/dsp-4-otc-provider-row`) |
 
@@ -152,12 +152,17 @@ coordinator at the owner's request (2026-11-05).
   lint, format, build, frontend tests, `migrate:fresh --seed`, `git diff --check`; screenshots at 1440 and
   390 px, light and dark, for any screen change.
 - Commit, push and PR only after the owner says "ship it"; never merge.
+- **Do not edit `docs/BASELINE.md`** in a new PR or in unpushed work (owner rule 2026-11-05: parallel team rows
+  made every PR conflict). Record each finished piece only in this file (section 5 with the PR number, section 6
+  for new owner decisions). If a piece changes an authorisation boundary (for example a BASELINE section 4
+  "not authorised" item), say so clearly in the PR description; the coordinator records all BASELINE updates in
+  one docs-only PR after each batch of merges.
 - Record every new owner decision in section 6 and every finished piece in section 5, in the same PR.
 
 ## 9. Backlog (next pieces, in order)
 
 Chosen by the owner on 2026-11-05; built one by one in this order, each its own PR. Choosing them is the owner's
-authorisation to build them; record that in `docs/BASELINE.md` with the first PR of each.
+authorisation to build them; the coordinator records it in `docs/BASELINE.md`.
 
 1. **DSP-1 Allergy warning — built 2026-11-05, awaiting owner review (branch `feature/dsp-1-allergy-warning`).** When a CA adds or edits a medicine (consultation or OTC), warn if it matches a
    recorded active allergy for the patient and require the CA to confirm before saving; the confirmation is
