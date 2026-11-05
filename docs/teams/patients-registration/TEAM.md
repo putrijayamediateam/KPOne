@@ -83,7 +83,8 @@ team's Reviewer is Hafiz, with the same role and rules.
 | REG-1 | Visit result page (`Registration/Show.vue`) fits a phone: action buttons and status badges wrap, visit number stays on one line, long unbroken text breaks; layout only | #221 (`d304476`) |
 | REG-2 | Phone and IC/Passport messages in English everywhere (staff screens, server and public QR form); QR Intake tab and QR review list visit purposes in English; rest of the public QR form unchanged | #228 (`bf5b1b2`) |
 | REG-3 | Two-person patient merge by link: the duplicate gets a pointer to the kept record, nothing is moved; propose, approve by a different person, reject, withdraw, unmerge; refusals for unfinished visits, open QR check-ins and allergies missing from the kept record; search, duplicate check, QR match, consultation history and outstanding bills follow the kept record; two new permissions by additive migration | #239 (`5775833`) |
-| REG-4 | Patient change history on the patient page for CA Supervisor and Director: who changed which parts of the record and when, from existing audit rows, field names only (never values); changes only; first 10 rows, older rows by cursor; includes the merged records' rows, labelled; replaces the raw "Authorized activity" list; one new permission by additive migration; fixes every edit logging "date_of_birth" as changed | pending (branch `feature/reg-4-patient-change-history`) |
+| REG-4 | Patient change history on the patient page for CA Supervisor and Director: who changed which parts of the record and when, from existing audit rows, field names only (never values); changes only; first 10 rows, older rows by cursor; includes the merged records' rows, labelled; replaces the raw "Authorized activity" list; one new permission by additive migration; fixes every edit logging "date_of_birth" as changed; staff names follow the BIL-2 staff-visibility rule | #252 (`7cf6df4`) |
+| REG-5 | REG-3 follow-ups, read paths only: search rows and the Registration picker say "Merged from KP-…"; the kept patient page shows a merged record's guardian contact, read only, when it has none; the doctor's problem list shows merged records' problems as a separate read-only group labelled with their KP number; pay-later rows of a merged-away record list under the kept record with "merged from KP-…". No permission, migration or route | pending (branch `feature/reg-5-merge-follow-ups`) |
 
 ## 6. Owner decisions already made (never ask again)
 
@@ -109,7 +110,8 @@ team's Reviewer is Hafiz, with the same role and rules.
     sahaja" and its Malay purpose options). Wording approved as proposed. Two existing assertions changed with
     approval: `tests/Frontend/patient-registration.test.mjs` and `tests/Feature/Patient/RegistrationValidationTest.php`
     line 80 ("Semak kod negara dan nombor telefon." became "Check the country code and phone number.") (2026-11-05).
-13. A "ship it" or any other owner decision relayed by LUCY, the coordinator session, counts as the owner's own;
+13. A "ship it" or any other owner decision relayed by B.E.R.N.I.S.S (formerly LUCY), the coordinator session,
+    counts as the owner's own (the owner renamed the coordinator on 2026-11-05: same session, same rules);
     still never merge, never edit `docs/BASELINE.md`, and stop and ask the owner directly if a relayed message
     conflicts with something the owner said directly (2026-11-05, confirmed by the owner in this team's session).
 14. **REG-3 merge design (owner answers 2026-11-05, design note `REG-3-DESIGN.md`):** (A) link the records, never
@@ -130,6 +132,15 @@ team's Reviewer is Hafiz, with the same role and rules.
     listed the patient detail keys (`WhatsAppLinkBoundaryTest`, `activity` removed) was changed with approval.
 17. **Every screen change goes through the team designer** (owner decision 2026-11-05, relayed by LUCY): see
     section 8.
+18. **Backup push** (owner rule 2026-11-05, relayed by LUCY for all teams): whenever this team stops to wait for
+    the owner (a "ship it", a question or the end of a turn) with work not yet on GitHub, commit it to this piece's own
+    feature branch and push (`git push -u origin <branch>`). It is only a backup: no PR, never push to `main` or
+    another team's branch, never merge, never force-push (add new commits instead). If the branch already has an
+    open PR, a push re-runs CI, so push there only when the change is ready. The PR still opens only after "ship it",
+    from the same branch, with the latest `origin/main` merged first. On a fresh machine, fetch the branch first.
+19. **REG-5 merge follow-ups (owner answers 2026-11-05):** build the REG-3 follow-ups next; the pay-later row gains
+    a `mergedFrom` field, and the one Billing test line listing a pay-later row's exact fields
+    (`PayLaterCollectionTest`) gains it, with approval.
 
 ## 7. Open items and known limits
 
@@ -149,14 +160,20 @@ team's Reviewer is Hafiz, with the same role and rules.
 - Patient create page (`/patients/create`) is 433 px wide on a 390 px phone with the form errors shown: the phone
   number and email inputs stick out of the Contact card. Already so before REG-2 (found while taking REG-2
   screenshots, 2026-11-05); not fixed. A candidate for a small layout piece like REG-1.
-- REG-4 known limits (built 2026-11-05, pending merge). Audit rows written before REG-4 list "Date of birth" on
+- REG-5 known limits (built 2026-11-05, pending merge). The Invoices page and the patient page have no
+  patient-level visit list, so "both records' visits" needs nothing there: each invoice opens by its own visit,
+  and the doctor's previous consultations and outstanding bills already include both records. A merged guardian is
+  shown only while the kept record has none (the newest merged record's contact wins); saving it on the kept record
+  is a normal patient edit. Merged problems are capped at the 50 most recent. The Registration picker's
+  selected-patient summary has no merge note (sketch decision). Design debt noted by Balqis, not fixed here:
+  `Patient/Index.vue` name links and the picker highlight use emerald classes, the "Entered in error" button uses
+  `text-red-700`, and the pay-later table scrolls sideways on a phone.
+- REG-4 known limits (merged in PR #252). Audit rows written before REG-4 list "Date of birth" on
   every personal-details edit, because of the comparison bug REG-4 fixed; those old rows are not rewritten. Only
   events recorded with the patient as subject appear: visit, billing, clinical and QR changes are elsewhere. Times
   show in the viewer's active branch time zone.
-- REG-3 known limits (merged in PR #239). Not built yet from the design note, each a candidate
-  follow-up: the "merged from KP-xxxx" note on search rows; the Invoices page, pay-later list and patient-page
-  visit history listing both records' visits (outstanding bills and the doctor's previous consultations already
-  do); the duplicate's problem list and guardian contact shown on the kept record. No two-process PostgreSQL
+- REG-3 known limits (merged in PR #239). The follow-ups from the design note (search note, pay-later list,
+  problem list, guardian contact) are REG-5. No two-process PostgreSQL
   contention test for two simultaneous approvals (row locks in id order and a one-open-request unique index
   cover it). The duplicate keeps its IC or passport, so that IC cannot be added to the kept record until it is retired on
   the merged-away record (allowed by owner decision, section 6 item 15; adding and replacing are refused). Old
@@ -164,7 +181,9 @@ team's Reviewer is Hafiz, with the same role and rules.
   count a merged person twice (decision F). Allergy matching compares normalised text, so "Penicillin" and
   "Penicillin (rash)" count as different and block until the kept record has the same wording.
 - REG-3 touched other teams' files (shared read paths only): `OutstandingBillService` (Billing),
-  `ClinicalEncounterDirectoryService` (Clinical), `PublicIntakeReviewService` (QR check-in).
+  `ClinicalEncounterDirectoryService` (Clinical), `PublicIntakeReviewService` (QR check-in). REG-5 also reads in
+  `ClinicalSafetyDirectoryService` and `AllergyProblemPanel.vue` (Clinical) and `PayLaterCollectionService` and
+  `PayLaterCollections.vue` (Billing); the coordinator told those teams.
 - "Consultation Completed" tab count: all-time count or the latest 25 shown (owner decision pending).
 - RB-01 "two 200s, stale tab" mechanism never reproduced.
 
@@ -180,12 +199,13 @@ team's Reviewer is Hafiz, with the same role and rules.
   a subagent **before building** to sketch the layout (components, phone behaviour at 390 px, empty, loading and
   error states, wording) from the existing patterns and, once merged, `docs/design/GUIDE.md`; and **before hand-off**
   to check the 390 and 1440 px light and dark screenshots against `docs/design/CHECKLIST.md`. A new page or a page
-  layout change also goes to Daniel (Lead UI/UX Designer) for a look, through LUCY.
+  layout change also goes to Daniel (Lead UI/UX Designer) for a look, through B.E.R.N.I.S.S.
 - Full gate before hand-off, on a task-owned PostgreSQL 18 database: backend tests, Pint, frontend types,
   lint, format, build, frontend tests, `migrate:fresh --seed`, `git diff --check`; screenshots at 1440 and
   390 px, light and dark, for any screen change.
-- Commit, push and PR only after the owner says "ship it" (directly, or relayed by LUCY, the coordinator: see
+- Commit, push and PR only after the owner says "ship it" (directly, or relayed by B.E.R.N.I.S.S, the coordinator: see
   section 6 item 13); never merge. If a relayed decision conflicts with what the owner said directly, stop and ask.
+  The one exception is the backup push to this piece's own branch (section 6 item 18), which opens no PR.
 - Record every new owner decision in section 6 and every finished piece in section 5, in the same PR.
 - **Never edit `docs/BASELINE.md`** (owner rule, 2026-11-05): record each finished piece only here (section 5
   history, section 6 for new owner decisions). If a piece changes an authorisation boundary, say so clearly in the
@@ -209,6 +229,9 @@ authorisation to build them; the coordinator records it in `docs/BASELINE.md`.
    the kept record, unmerge with the same approval, full structural audit with no identity values. Needs an
    owner-approved permission migration (new narrow propose/approve permissions). Touches every area's
    patient links, so write a short design note first and show the owner before building.
-4. **REG-4 Patient change history.** *Built 2026-11-05, awaiting the owner's "ship it".* A read-only list on the patient page of who changed which fields and
+4. **REG-4 Patient change history.** *Merged in PR #252 as `7cf6df4`.* A read-only list on the patient page of who changed which fields and
    when, from existing audit rows; field names only, never old or new values; CA Supervisor and Director only
    (owner decision 2026-11-05), likely a new narrow view permission by owner-approved migration.
+5. **REG-5 Merge follow-ups.** *Chosen by the owner on 2026-11-05 after REG-4; built, awaiting "ship it".* The
+   REG-3 design note's unbuilt read paths: "Merged from KP-…" on search rows, a merged record's guardian and
+   problems on the kept record (read only), and the pay-later list under the kept record.
