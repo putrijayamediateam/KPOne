@@ -7,6 +7,7 @@ use App\Domain\Clinical\Models\MedicineCatalogueItem;
 use App\Domain\Organisation\Models\Branch;
 use App\Domain\Visit\Billing\Models\ChargeDefinition;
 use App\Domain\Visit\Billing\Models\PriceBook;
+use App\Domain\Visit\Billing\Models\PriceEntry;
 use App\Domain\Visit\Billing\Services\PriceListCheckService;
 use App\Domain\Visit\Billing\Services\PricePublicationService;
 use App\Domain\Visit\Billing\Services\PriceResolutionService;
@@ -248,6 +249,7 @@ class PriceListCheckTest extends ClinicalTestCase
             ->assertInertia(fn ($page) => $page->component('Pricing/PriceCheck')
                 ->where('branch.id', $this->branch->id)
                 ->where('filters.attention', true)
+                // The consultation is always the first row (PriceListCheckService::items()).
                 ->where('result.rows.0.code', 'CONSULTATION')
                 ->has('result.summary'));
 
@@ -270,9 +272,48 @@ class PriceListCheckTest extends ClinicalTestCase
         app(PriceListCheckService::class)->check($this->actor('ca'), $this->branch, [], 1);
     }
 
-    public function test_invalid_filters_are_refused(): void
+    public function test_invalid_filters_stay_on_this_page_with_the_message(): void
     {
-        $this->get(route('pricing.price-check', ['type' => 'invoice']))->assertSessionHasErrors('type');
-        $this->get(route('pricing.price-check', ['search' => str_repeat('x', 101)]))->assertSessionHasErrors('search');
+        $this->from(route('pricing.index'))
+            ->get(route('pricing.price-check', ['type' => 'invoice']))
+            ->assertRedirect(route('pricing.price-check'))
+            ->assertSessionHasErrors('type');
+        $this->from(route('pricing.index'))
+            ->get(route('pricing.price-check', ['search' => str_repeat('x', 101)]))
+            ->assertRedirect(route('pricing.price-check'))
+            ->assertSessionHasErrors('search');
+    }
+
+    public function test_panel_fallbacks_inactive_panels_and_future_prices_are_not_shown_as_current(): void
+    {
+        $selfPay = $this->book('self_pay');
+        $panelDefault = $this->book('panel');
+        $ownNoPrice = Panel::factory()->create(['organisation_id' => $this->organisation->id, 'code' => 'SYNTH-NOPRICE', 'name' => 'Synthetic No Price Panel']);
+        $this->book('panel', panel: $ownNoPrice);
+        $retired = Panel::factory()->create(['organisation_id' => $this->organisation->id, 'code' => 'SYNTH-RETIRED', 'name' => 'Synthetic Retired Panel']);
+        $retiredBook = $this->book('panel', panel: $retired);
+        $medicine = $this->medicine('CHK-EDGE');
+        $charge = $this->references->createMedicineCharge($this->supervisor, $medicine, ['code' => 'CHK-EDGE', 'display_name' => 'Synthetic CHK-EDGE']);
+        $this->publish($selfPay, $charge, 100);
+        $this->publish($panelDefault, $charge, 90);
+        $this->publish($retiredBook, $charge, 80);
+        $retired->forceFill(['is_active' => false])->save();
+
+        // A price that is not in effect yet is ignored, as billing ignores it.
+        (new PriceEntry)->forceFill([
+            'organisation_id' => $this->organisation->id,
+            'price_book_id' => $selfPay->id,
+            'charge_definition_id' => $charge->id,
+            'unit_price_sen' => 0,
+            'version' => 2,
+            'effective_at' => now()->utc()->addDay(),
+            'published_by_user_id' => $this->supervisor->id,
+        ])->save();
+
+        $row = $this->rows()['CHK-EDGE'];
+        $this->assertSame(100, $row['selfPaySen'], 'A future price is not current.');
+        $this->assertSame(90, $row['panelDefaultSen']);
+        $this->assertSame([], $row['panelPrices'], 'A Panel without its own price, and an inactive Panel, list nothing.');
+        $this->assertSame([], $row['checks']);
     }
 }

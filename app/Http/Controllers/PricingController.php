@@ -19,6 +19,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -99,12 +100,17 @@ class PricingController extends Controller
     /** CAT-2: read-only price list check. Writes nothing. */
     public function priceCheck(Request $request, BranchAccessService $branches, PriceListCheckService $checks): Response
     {
-        $data = $request->validate([
-            'search' => ['nullable', 'string', 'max:100'],
-            'type' => ['nullable', Rule::in(['consultation', 'medicine', 'service'])],
-            'attention' => ['nullable', 'boolean'],
-            'page' => ['sometimes', 'integer', 'min:1', 'max:10000'],
-        ]);
+        try {
+            $data = $request->validate([
+                'search' => ['nullable', 'string', 'max:100'],
+                'type' => ['nullable', Rule::in(['consultation', 'medicine', 'service'])],
+                'attention' => ['nullable', 'boolean'],
+                'page' => ['sometimes', 'integer', 'min:1', 'max:10000'],
+            ]);
+        } catch (ValidationException $exception) {
+            // Stay on this page with the message, never back() to wherever the session last was.
+            throw $exception->redirectTo(route('pricing.price-check'));
+        }
         $actor = $request->user();
         $branch = $branches->activeBranch($actor);
         $filters = [

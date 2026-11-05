@@ -36,7 +36,11 @@ test('billing and the page share one price choice', () => {
     );
     assert.match(
         service,
-        /\$resolver->select\(\$books, \$entries, \$charge, \$panel, \$panelId, \$branchId\)/,
+        /\$resolver->select\(\s*\$books,\s*\$charge === null \? collect\(\) : \$entriesByCharge->get\(\(int\) \$charge->id, collect\(\)\),\s*\$charge,\s*\$panel,\s*\$panelId,\s*\$branchId,\s*\)/,
+    );
+    assert.match(
+        service,
+        /\$entriesByCharge = \$entries->groupBy\('charge_definition_id'\);/,
     );
     assert.doesNotMatch(
         service,
@@ -134,14 +138,21 @@ test('"Branch price" is muted text, not a badge, and money is tabular RM 0.00', 
     assert.ok((template.match(/tabular-nums/g) ?? []).length >= 8);
 });
 
-test('"Need attention" is a button that turns the filter on', () => {
+test('"Need attention" toggles the filter using the applied filters only', () => {
     assert.match(
         template,
-        /<button\s+type="button"[\s\S]*:aria-pressed="filters\.attention"[\s\S]*data-action="show-attention"[\s\S]*@click="showAttention"/,
+        /<button\s+type="button"[\s\S]*:aria-pressed="filters\.attention"[\s\S]*data-action="show-attention"[\s\S]*@click="toggleAttention"/,
     );
+    assert.match(page, /const next = !props\.filters\.attention;/);
+    assert.match(page, /search\.value = props\.filters\.search \?\? '';/);
+    assert.match(page, /type\.value = props\.filters\.type \?\? '';/);
+    assert.match(page, /'Show all items' : 'Show only these'/);
+});
+
+test('"Nothing needs attention" shows only when the attention filter alone is on', () => {
     assert.match(
         page,
-        /const showAttention = \(\) => \{\s*attention\.value = true;\s*visit\(\{ page: 1 \}\);/,
+        /props\.filters\.attention && !props\.filters\.search && !props\.filters\.type/,
     );
 });
 
@@ -155,7 +166,10 @@ test('empty, filtered-empty, error and no-branch states use the shared component
 });
 
 test('cards below 1024 px shrink instead of widening the page', () => {
-    assert.match(template, /class="grid grid-cols-1 gap-3 md:grid-cols-2 lg:hidden"/);
+    assert.match(
+        template,
+        /class="grid grid-cols-1 gap-3 md:grid-cols-2 lg:hidden"/,
+    );
     assert.match(
         template,
         /class="grid min-w-0 grid-cols-1 gap-3 rounded-xl border bg-card p-4"/,

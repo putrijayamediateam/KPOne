@@ -74,6 +74,7 @@ final class PriceListCheckService
         $panelBooks = $books
             ->filter(fn (PriceBook $book): bool => $book->price_tier === 'panel' && $book->panel_id !== null && $activePanels->has((int) $book->panel_id))
             ->unique('panel_id')
+            ->sortBy(fn (PriceBook $book): string => mb_strtolower((string) $activePanels->get((int) $book->panel_id)?->name))
             ->values();
 
         $entries = $charges->isEmpty() || $books->isEmpty() ? collect() : PriceEntry::query()
@@ -87,7 +88,16 @@ final class PriceListCheckService
         $branchId = (int) $branch->id;
         // Billing's own choice (PriceResolutionService::select), so this page and a real bill always agree.
         $resolver = $this->resolver;
-        $choose = fn (?ChargeDefinition $charge, bool $panel, ?int $panelId): ?PriceEntry => $resolver->select($books, $entries, $charge, $panel, $panelId, $branchId);
+        // Each charge only needs its own entries; the choice itself is unchanged.
+        $entriesByCharge = $entries->groupBy('charge_definition_id');
+        $choose = fn (?ChargeDefinition $charge, bool $panel, ?int $panelId): ?PriceEntry => $resolver->select(
+            $books,
+            $charge === null ? collect() : $entriesByCharge->get((int) $charge->id, collect()),
+            $charge,
+            $panel,
+            $panelId,
+            $branchId,
+        );
 
         $rows = $items->map(function (array $item) use ($charges, $panelBooks, $activePanels, $bookById, $branchId, $choose): array {
             $charge = $charges->get($item['sourceKey']);
@@ -192,7 +202,8 @@ final class PriceListCheckService
             'sourceKey' => 'consultation',
             'code' => 'CONSULTATION',
             'displayName' => 'Consultation',
-            'orderUnit' => null,
+            // Billing bills the consultation in the unit 'consultation' (BillingSourceService).
+            'orderUnit' => 'consultation',
         ]]);
         $medicines = MedicineCatalogueItem::query()
             ->where('organisation_id', $organisationId)

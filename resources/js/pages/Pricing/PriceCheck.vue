@@ -92,8 +92,12 @@ const visit = (overrides: Record<string, string | number | boolean> = {}) => {
         { preserveState: true, preserveScroll: true, replace: true },
     );
 };
-const showAttention = () => {
-    attention.value = true;
+// Toggles the attention filter using the filters already applied, not unsent text.
+const toggleAttention = () => {
+    const next = !props.filters.attention;
+    attention.value = next;
+    search.value = props.filters.search ?? '';
+    type.value = props.filters.type ?? '';
     visit({ page: 1 });
 };
 const reload = () => router.reload();
@@ -120,13 +124,18 @@ const panelText = (row: Row) =>
         .map((price) => `${price.panel}: ${rm(price.amountSen)}`)
         .join(', ');
 
+// "Nothing needs attention" only when the attention filter alone is on.
+const onlyAttention = computed(
+    () =>
+        props.filters.attention && !props.filters.search && !props.filters.type,
+);
 const emptyTitle = computed(() =>
-    props.filters.attention
+    onlyAttention.value
         ? 'Nothing needs attention.'
         : 'No active medicines or services match.',
 );
 const emptyDescription = computed(() =>
-    props.filters.attention
+    onlyAttention.value
         ? 'All active items have the prices billing needs.'
         : 'Change the search or type, or add items in the catalogues.',
 );
@@ -194,7 +203,7 @@ const emptyDescription = computed(() =>
                     class="min-w-0 rounded-xl border bg-card p-4 text-left transition-colors hover:bg-muted/40 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
                     :aria-pressed="filters.attention"
                     data-action="show-attention"
-                    @click="showAttention"
+                    @click="toggleAttention"
                 >
                     <span class="block text-xs text-muted-foreground"
                         >Need attention</span
@@ -203,9 +212,9 @@ const emptyDescription = computed(() =>
                         class="mt-1 block text-2xl font-semibold tabular-nums"
                         >{{ result.summary.attention }}</span
                     >
-                    <span class="mt-1 block text-xs text-muted-foreground"
-                        >Show only these</span
-                    >
+                    <span class="mt-1 block text-xs text-muted-foreground">{{
+                        filters.attention ? 'Show all items' : 'Show only these'
+                    }}</span>
                 </button>
                 <div class="min-w-0 rounded-xl border bg-card p-4">
                     <p class="text-xs text-muted-foreground">
