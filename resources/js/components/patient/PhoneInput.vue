@@ -76,7 +76,7 @@ const countries = getCountries()
                 :required="required"
                 :aria-invalid="!!message"
                 :aria-describedby="message ? id + '-error' : undefined"
-                class="h-10 w-full min-w-0 flex-1 rounded-md border bg-background px-3 text-sm"
+                class="h-10 w-full min-w-0 rounded-md border bg-background px-3 text-sm sm:flex-1"
                 @input="
                     emit(
                         'update:modelValue',

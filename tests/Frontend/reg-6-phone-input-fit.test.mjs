@@ -13,9 +13,12 @@ test('the phone number box can shrink inside a narrow column', () => {
     assert.ok(input, 'the tel input exists');
     const classes = input.match(/class="([^"]+)"/)?.[1].split(/\s+/) ?? [];
 
-    for (const name of ['w-full', 'min-w-0', 'flex-1']) {
+    for (const name of ['w-full', 'min-w-0', 'sm:flex-1']) {
         assert.ok(classes.includes(name), `tel input has ${name}`);
     }
+
+    // A bare flex-1 in the stacked (column) row sets the box's height basis to 0 and collapses it.
+    assert.ok(!classes.includes('flex-1'), 'tel input has no bare flex-1');
 });
 
 test('below sm the country list stacks above the number box', () => {
@@ -41,5 +44,13 @@ test('each identifier box on Patient create is a shrinkable one-column grid on p
     assert.match(
         create,
         /autocomplete="off"\s+class="h-10 w-full min-w-0 rounded-md border bg-background px-3 text-sm"\s+placeholder="Identifier value"/,
+    );
+});
+
+test('the Quick create identity number box can shrink beside its fixed-width type list', () => {
+    const quick = read('resources/js/pages/Registration/Create.vue');
+    assert.match(
+        quick,
+        /class="h-10 w-full min-w-0 flex-1 rounded-r-md border border-l-0 bg-background px-3 text-sm"/,
     );
 });

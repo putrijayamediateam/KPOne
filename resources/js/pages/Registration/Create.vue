@@ -662,7 +662,7 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
                             "
                             aria-describedby="quick-identity-error"
                             autocomplete="off"
-                            class="h-10 min-w-0 flex-1 rounded-r-md border border-l-0 bg-background px-3 text-sm"
+                            class="h-10 w-full min-w-0 flex-1 rounded-r-md border border-l-0 bg-background px-3 text-sm"
                         />
                     </div>
                     <InputError
