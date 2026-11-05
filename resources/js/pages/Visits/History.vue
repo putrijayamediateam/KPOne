@@ -90,6 +90,7 @@ const totals = computed(() => {
             <div class="ml-auto flex flex-wrap gap-2 text-sm">
                 <ActionLink
                     v-if="
+                        history.consultation &&
                         page.props.auth.permissions.some((p) =>
                             [
                                 'medical_certificates.view.own',

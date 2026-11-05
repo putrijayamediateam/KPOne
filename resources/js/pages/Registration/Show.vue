@@ -30,6 +30,15 @@ watch(
 const canCreate = computed(() =>
     page.props.auth.permissions.includes('visits.create.branch'),
 );
+// UX-2 (S1-005): the MC page needs the doctor's consultation record. Offer the link only
+// once the server says that record exists; otherwise say why there is none instead of
+// linking to a 404.
+const canViewMedicalCertificates = computed(
+    () =>
+        page.props.auth.permissions.includes(
+            'medical_certificates.view.branch',
+        ) && props.visit.visitType === 'consultation',
+);
 const cancelling = ref(false);
 const cancelForm = useForm({
     expected_branch_id: page.props.branchContext?.active?.id ?? 0,
@@ -83,16 +92,29 @@ const submitCancel = () => {
                 print</a
             >
         </template>
-        <Link
-            v-if="
-                page.props.auth.permissions.includes(
-                    'medical_certificates.view.branch',
-                ) && visit.visitType === 'consultation'
-            "
-            :href="`/visits/${visit.visitNumber}/medical-certificates`"
-            class="text-sm underline"
-            >Medical certificates</Link
-        >
+        <template v-if="canViewMedicalCertificates">
+            <Link
+                v-if="visit.hasConsultation"
+                :href="`/visits/${visit.visitNumber}/medical-certificates`"
+                class="text-sm underline"
+                >Medical certificates</Link
+            >
+            <p
+                v-else-if="visit.status === 'cancelled'"
+                class="text-sm text-muted-foreground"
+                data-testid="mc-unavailable"
+            >
+                No medical certificate: this visit was cancelled.
+            </p>
+            <p
+                v-else
+                class="text-sm text-muted-foreground"
+                data-testid="mc-unavailable"
+            >
+                Medical certificates are available after the doctor starts the
+                consultation.
+            </p>
+        </template>
         <div
             class="flex flex-col justify-between gap-3 md:flex-row md:items-start"
         >

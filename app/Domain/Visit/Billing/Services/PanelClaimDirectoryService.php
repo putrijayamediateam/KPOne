@@ -11,6 +11,7 @@ use App\Domain\Visit\Billing\Models\CoverageAllocation;
 use App\Domain\Visit\Billing\Models\Invoice;
 use App\Domain\Visit\Billing\Models\InvoiceLine;
 use App\Domain\Visit\Billing\Models\PanelClaim;
+use App\Domain\Visit\Billing\Models\PanelClaimPaymentReversal;
 use App\Domain\Visit\Models\Visit;
 use App\Models\User;
 use Carbon\CarbonImmutable;
@@ -405,7 +406,7 @@ final class PanelClaimDirectoryService
      */
     private function summary(callable $base, callable $invoices): array
     {
-        $paid = '(select coalesce(sum(p.amount_sen), 0) from panel_claim_payments p where p.panel_claim_id = panel_claims.id)';
+        $paid = '(select coalesce(sum(p.amount_sen), 0) from panel_claim_payments p where p.panel_claim_id = panel_claims.id and '.PanelClaimPaymentReversal::NOT_REVERSED_P.')';
         $approved = $base()->whereIn('status', self::APPROVED);
         $received = $base()->where('status', 'paid');
         $rejected = $base()->where('status', 'rejected');
@@ -457,6 +458,7 @@ final class PanelClaimDirectoryService
         $rows = DB::table('panel_claim_payments')
             ->where('organisation_id', $actor->organisation_id)->where('branch_id', $branch->id)
             ->whereIn('panel_claim_id', $claimIds)->whereNotNull('reference')
+            ->whereRaw(PanelClaimPaymentReversal::NOT_REVERSED)
             ->orderBy('received_at')->orderBy('id')
             ->get(['panel_claim_id', 'reference']);
         foreach ($rows as $row) {
@@ -544,8 +546,9 @@ final class PanelClaimDirectoryService
             [$actor, $branch] = $this->context($actor);
             $claim = PanelClaim::query()->whereKey($routeClaim->id)
                 ->where('organisation_id', $actor->organisation_id)->where('branch_id', $branch->id)
-                ->with(['lines', 'payments', 'documents'])->firstOrFail();
-            $paid = (int) $claim->payments->sum('amount_sen');
+                ->with(['lines', 'payments', 'documents', 'paymentReversals'])->firstOrFail();
+            $reversals = $claim->paymentReversals->keyBy('panel_claim_payment_id');
+            $paid = (int) $claim->payments->reject(fn ($payment): bool => $reversals->has($payment->id))->sum('amount_sen');
             $amounts = PanelClaimAmounts::summary($claim, $paid);
             // Only saved claim evidence: never reconstruct older claims from the live Invoice.
             $originalSubtotal = (int) $claim->lines->sum('line_total_sen');
@@ -590,6 +593,8 @@ final class PanelClaimDirectoryService
                 'amountSen' => $payment->amount_sen,
                 'reference' => $payment->reference,
                 'receivedAt' => $payment->received_at->setTimezone($branch->timezone)->format('j M Y'),
+                'reversed' => $reversals->has($payment->id),
+                'reversedOn' => $reversals->get($payment->id)?->reversed_at->setTimezone($branch->timezone)->format('j M Y'),
             ])->all();
 
             $panel = DB::table('panels')->where('id', $claim->panel_id)->where('organisation_id', $actor->organisation_id)->first(['claim_due_days', 'claim_due_rule', 'claim_due_time', 'claim_due_offset', 'verification_url']);
@@ -604,7 +609,7 @@ final class PanelClaimDirectoryService
             }
             $submittedEvent = collect($events)->firstWhere('type', 'submitted');
             $lastEvent = collect($events)->last();
-            $lastPayment = $claim->payments->last();
+            $lastPayment = $claim->payments->reject(fn ($payment): bool => $reversals->has($payment->id))->last();
             $statusKey = $claim->status;
             $payoutBase = $claim->accepted_amount_sen ?? $claim->claim_amount_sen;
             $documents = $claim->documents->map(fn ($document): array => [

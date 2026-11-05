@@ -16,7 +16,10 @@
             "Due approved pay-later outstanding (invoice finalisation date, MYR)",
             "Total original receipts (receipt date, MYR)",
             "Total reversed receipts (receipt date, MYR)",
-            "Total received (Cash + Non-cash) (receipt date, MYR)"
+            "Total received (Cash + Non-cash) (receipt date, MYR)",
+            "Cash refunds paid (payout date, MYR)",
+            "Cash reversed, refund recorded (receipt date, MYR)",
+            "Non-cash refunds paid (payout date, MYR)"
         ],
         "rows": [
             [
@@ -29,6 +32,9 @@
                 "0.00",
                 "20.00",
                 "10.00",
+                "0.00",
+                "0.00",
+                "0.00",
                 "0.00",
                 "0.00",
                 "0.00"
@@ -45,10 +51,16 @@
                 "0.00",
                 "55.00",
                 "25.00",
-                "30.00"
+                "30.00",
+                "0.00",
+                "0.00",
+                "0.00"
             ],
             [
                 "2027-01-02",
+                "0.00",
+                "0.00",
+                "0.00",
                 "0.00",
                 "0.00",
                 "0.00",
@@ -73,10 +85,13 @@
             "Due approved pay-later outstanding (invoice finalisation date, MYR)": "10.00",
             "Total original receipts (receipt date, MYR)": "55.00",
             "Total reversed receipts (receipt date, MYR)": "25.00",
-            "Total received (Cash + Non-cash) (receipt date, MYR)": "30.00"
+            "Total received (Cash + Non-cash) (receipt date, MYR)": "30.00",
+            "Cash refunds paid (payout date, MYR)": "0.00",
+            "Cash reversed, refund recorded (receipt date, MYR)": "0.00",
+            "Non-cash refunds paid (payout date, MYR)": "0.00"
         }
     },
-    "daily-csv": "﻿Report,\"Daily summary\"\r\nBranch,Cheras\r\nTimezone,Asia\/Kuala_Lumpur\r\nFrom,2026-12-31\r\nTo,2027-01-02\r\n\"Generated at UTC\",2027-01-02T02:00:00+00:00\r\nBasis,\"Cash, Non-cash and Total use original receipt date, not invoice finalisation; original, reversed and net are explicit. Reversals restate the original receipt date, not refund-date cash flow. Panel is approved responsibility; Due is approved pay-later outstanding, both from the invoice finalisation-date cohort. Total is net receipts only: Total received (Cash + Non-cash). Panel and Due are not included in Total received. Payment-method filters apply to receipt columns only. Visit type filters apply to both cohorts; unallocated receipts cannot match a visit filter. Current classification applies to historical periods; Not classified counts as Non-cash. MYR, two decimals. Empty dates are zero rows. Current records at generation, not a historical snapshot.\"\r\n\"Payment method IDs\",all\r\n\"Visit types\",all\r\nRows,3\r\n\"Total Cash original (receipt date, MYR)\",25.00\r\n\"Total Cash reversed (receipt date, MYR)\",25.00\r\n\"Total Cash net (receipt date, MYR)\",0.00\r\n\"Total Non-cash original (receipt date, MYR)\",30.00\r\n\"Total Non-cash reversed (receipt date, MYR)\",0.00\r\n\"Total Non-cash net (receipt date, MYR)\",30.00\r\n\"Total Panel approved (invoice finalisation date, MYR)\",20.00\r\n\"Total Due approved pay-later outstanding (invoice finalisation date, MYR)\",10.00\r\n\"Total Total original receipts (receipt date, MYR)\",55.00\r\n\"Total Total reversed receipts (receipt date, MYR)\",25.00\r\n\"Total Total received (Cash + Non-cash) (receipt date, MYR)\",30.00\r\n\r\n\"Local date\",\"Cash original (receipt date, MYR)\",\"Cash reversed (receipt date, MYR)\",\"Cash net (receipt date, MYR)\",\"Non-cash original (receipt date, MYR)\",\"Non-cash reversed (receipt date, MYR)\",\"Non-cash net (receipt date, MYR)\",\"Panel approved (invoice finalisation date, MYR)\",\"Due approved pay-later outstanding (invoice finalisation date, MYR)\",\"Total original receipts (receipt date, MYR)\",\"Total reversed receipts (receipt date, MYR)\",\"Total received (Cash + Non-cash) (receipt date, MYR)\"\r\n2026-12-31,0.00,0.00,0.00,0.00,0.00,0.00,20.00,10.00,0.00,0.00,0.00\r\n2027-01-01,25.00,25.00,0.00,30.00,0.00,30.00,0.00,0.00,55.00,25.00,30.00\r\n2027-01-02,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00\r\n",
+    "daily-csv": "﻿Report,\"Daily summary\"\r\nBranch,Cheras\r\nTimezone,Asia\/Kuala_Lumpur\r\nFrom,2026-12-31\r\nTo,2027-01-02\r\n\"Generated at UTC\",2027-01-02T02:00:00+00:00\r\nBasis,\"Cash, Non-cash and Total use original receipt date, not invoice finalisation; original, reversed and net are explicit. Reversals restate the original receipt date, not refund-date cash flow (see refund columns). Panel is approved responsibility; Due is approved pay-later outstanding, both from the invoice finalisation-date cohort. Total is net receipts only: Total received (Cash + Non-cash). Panel and Due are not included in Total received. Refunds (waiting or approved, not rejected) use payout date and the refund's method, and are not deducted from Total received. Cash closing = Cash net + Cash reversed, refund recorded minus Cash refunds paid. Payment-method filters apply to receipt columns only, and to refunds by refund method (refunds paid) or receipt method (refund recorded). Visit type filters apply to both cohorts and to refunds (through the receipt's invoice); unallocated receipts cannot match a visit filter. Current classification applies to historical periods; Not classified counts as Non-cash. MYR, two decimals. Empty dates are zero rows. Current records at generation, not a historical snapshot.\"\r\n\"Payment method IDs\",all\r\n\"Visit types\",all\r\nRows,3\r\n\"Total Cash original (receipt date, MYR)\",25.00\r\n\"Total Cash reversed (receipt date, MYR)\",25.00\r\n\"Total Cash net (receipt date, MYR)\",0.00\r\n\"Total Non-cash original (receipt date, MYR)\",30.00\r\n\"Total Non-cash reversed (receipt date, MYR)\",0.00\r\n\"Total Non-cash net (receipt date, MYR)\",30.00\r\n\"Total Panel approved (invoice finalisation date, MYR)\",20.00\r\n\"Total Due approved pay-later outstanding (invoice finalisation date, MYR)\",10.00\r\n\"Total Total original receipts (receipt date, MYR)\",55.00\r\n\"Total Total reversed receipts (receipt date, MYR)\",25.00\r\n\"Total Total received (Cash + Non-cash) (receipt date, MYR)\",30.00\r\n\"Total Cash refunds paid (payout date, MYR)\",0.00\r\n\"Total Cash reversed, refund recorded (receipt date, MYR)\",0.00\r\n\"Total Non-cash refunds paid (payout date, MYR)\",0.00\r\n\r\n\"Local date\",\"Cash original (receipt date, MYR)\",\"Cash reversed (receipt date, MYR)\",\"Cash net (receipt date, MYR)\",\"Non-cash original (receipt date, MYR)\",\"Non-cash reversed (receipt date, MYR)\",\"Non-cash net (receipt date, MYR)\",\"Panel approved (invoice finalisation date, MYR)\",\"Due approved pay-later outstanding (invoice finalisation date, MYR)\",\"Total original receipts (receipt date, MYR)\",\"Total reversed receipts (receipt date, MYR)\",\"Total received (Cash + Non-cash) (receipt date, MYR)\",\"Cash refunds paid (payout date, MYR)\",\"Cash reversed, refund recorded (receipt date, MYR)\",\"Non-cash refunds paid (payout date, MYR)\"\r\n2026-12-31,0.00,0.00,0.00,0.00,0.00,0.00,20.00,10.00,0.00,0.00,0.00,0.00,0.00,0.00\r\n2027-01-01,25.00,25.00,0.00,30.00,0.00,30.00,0.00,0.00,55.00,25.00,30.00,0.00,0.00,0.00\r\n2027-01-02,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00\r\n",
     "panel-page": {
         "generatedAt": "2027-01-02T02:00:00+00:00",
         "count": 1,
