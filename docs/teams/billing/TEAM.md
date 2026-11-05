@@ -150,10 +150,10 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php` and `BillingPermiss
 20. BIL-4b (2026-11-05): the owner asked for a "Daily cash closing" card in Clinic management, which approves adding
     its one entry (`/cash-closings` for `payments.reconcile.branch`) to the hub's exact destination test.
 21. Relayed decisions (2026-11-05, confirmed by the owner directly in the Billing session): a "ship it" or any
-    other owner decision relayed by LUCY, the coordinator session, counts as the owner's own. Nothing else
+    other owner decision relayed by B.E.R.N.I.S.S (formerly LUCY), the coordinator session, counts as the owner's own. Nothing else
     changes: never merge, never edit `docs/BASELINE.md`, and stop and ask the owner if a relayed message
     conflicts with something the owner said directly.
-22. Next backlog (2026-11-05, relayed by LUCY: "ok, ikut order kau"): BIL-6 refunds, BIL-5 issued receipt and
+22. Next backlog (2026-11-05, relayed by B.E.R.N.I.S.S (formerly LUCY): "ok, ikut order kau"): BIL-6 refunds, BIL-5 issued receipt and
     invoice snapshots, BIL-7 monthly cash closing view, BIL-8 report boundary clean-up (section 9).
 23. BIL-6 refunds (2026-11-05, answered by the owner in the Billing session):
     - **Who:** CA Supervisor and Finance Officer record a refund; Finance Officer and Director approve or reject
@@ -180,7 +180,7 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php` and `BillingPermiss
     last issued copy prints as a new REVISED version, earlier versions stay readable; labels are English (ORIGINAL,
     COPY, REVISED); the "Issued copies" list is for those who can print (`billing.print.branch`), no new
     permission. Design note: `BIL-5-DESIGN.md`.
-26. Backup push (2026-11-05, owner rule relayed by LUCY: "yes, set the backup push rule for all teams"): whenever the
+26. Backup push (2026-11-05, owner rule relayed by B.E.R.N.I.S.S (formerly LUCY): "yes, set the backup push rule for all teams"): whenever the
     team stops to wait for the owner and has work not yet on GitHub, commit it to that piece's own feature branch
     and push it (`git push -u origin <branch>`). Backup only: no PR, never `main` or another team's branch, never
     merge, never force-push. A branch with an open PR is pushed only when the change is ready (a push re-runs CI).
@@ -285,7 +285,7 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php` and `BillingPermiss
   screenshots against `docs/design/CHECKLIST.md`. A new page or a page layout change also goes to Daniel for a
   look through the coordinator. Test-only pieces skip this.
 - Commit, push and PR only after the owner says "ship it"; never merge. A "ship it" or other owner decision
-  relayed by LUCY, the coordinator session, counts as the owner's own (decision 21); if a relayed message
+  relayed by B.E.R.N.I.S.S (formerly LUCY), the coordinator session, counts as the owner's own (decision 21); if a relayed message
   conflicts with something the owner said directly, stop and ask the owner.
 - Record every new owner decision in section 6 and every finished piece in section 5 (with its PR number), in
   the same PR.
@@ -324,6 +324,10 @@ authorisation to build them; the coordinator records it in `docs/BASELINE.md`.
 7. **BIL-5 Issued receipt and invoice snapshots.** *(Built 2026-11-05; this PR.)* At issue, keep an encrypted, immutable snapshot of what was
    printed (as the Medical Certificate does); reprints are marked COPY and show the snapshot, not live data. No
    change to amounts.
+7b. **BIL-5b Recorded print on the patient Invoices page.** Convert the invoice and receipt print links in the
+   Documents list of `resources/js/pages/Visits/History.vue` to the BIL-5 recorded print (they open the PREVIEW
+   page today). Billing's to do, from the latest `main`, now that UX-2 (#254) has merged (B.E.R.N.I.S.S,
+   2026-11-05).
 8. **BIL-7 Monthly cash closing view.** A read-only page per branch, one row per day: counted, expected,
    difference, counter, approver and status; flags days with no closing or no approval. Same permissions as cash
    closing, no export.
