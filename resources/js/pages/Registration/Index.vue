@@ -271,6 +271,10 @@ const boardRows = computed<PatientBoardRow[]>(() =>
                   : visit.queueStatus === 'waiting'
                     ? waitingDurationLabel(visit.durationMinutes)
                     : '—',
+            waitingMinutes:
+                !visit.isHeld && visit.queueStatus === 'waiting'
+                    ? visit.durationMinutes
+                    : null,
             priority: visit.priority,
             returnedFromDispensary: visit.returnedFromDispensary,
             dispensaryUrl: visit.dispensaryUrl,
