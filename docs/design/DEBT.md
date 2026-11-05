@@ -39,6 +39,7 @@ own PR and tells LUCY. See [REVIEW.md](REVIEW.md) for how items are added.
 | DD-27 | "Added by CA" badge on Dispensary lines, `pages/Dispensary/Show.vue` | Low contrast in dark mode (hand-styled pink chip) | 1, 10, 13 | Dispensary & OTC | Major | Aisyah, DSP-8 | Open |
 | DD-28 | Panel statement results, `pages/PanelRemittances/Index.vue` (PNL-7 "Fill the split from a Panel statement") | Desktop results are a plain table, not `OperationalTable` (no shared label, empty or loading row, focus region) | 6 | Panel | Minor | Arjun, PNL-7 | Open |
 | DD-29 | Billing workspace buttons, `components/billing/BillingWorkspace.vue` | A scoped rule `.billing-workspace :deep(button) { height: 30px; min-height: 28px }` overrides utility classes, so compact Billing buttons are 30 px on a phone. BIL-5b fixes print, Reprint, the refund decision buttons and the visit-page prints (`data-touch-target`, 44 px at 390); the rest are still 30 px | 12 | Billing | Major | Farah, BIL-5b | Open |
+| DD-30 | Queue board tabs at 390 px, `pages/Queue/Index.vue` | The third tab is cut to "Se" under the "Live · every 3 seconds" label, so Serving Now and Consultation Completed are hidden on a phone | 16, 12 | Queue & TV | Minor | Q-4 design look | Open |
 
 ## Not debt (out of scope, owner-approved)
 
@@ -54,3 +55,4 @@ receipt and drug-label print layouts.
 - 2026-11-05: DD-12 widened to the governed Inventory pages (seen during the STK-9 look).
 - 2026-11-05: DD-24 to DD-27 added (Dispensary items found by Aisyah during DSP-8).
 - 2026-11-05: DD-28 added (PNL-7 statement table) and DD-29 added (Billing workspace button height, found by Farah during BIL-5b).
+- 2026-11-05: DD-30 added (Queue board tab strip at 390 px, seen during the Q-4 look).
