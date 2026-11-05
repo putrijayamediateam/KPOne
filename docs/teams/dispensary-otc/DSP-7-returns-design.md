@@ -1,7 +1,8 @@
 # DSP-7: medicine returns after dispensing (design note)
 
-**Status:** draft for the owner's decision. Nothing is built. It touches the Inventory team (stock) and the Billing team
-(money), so their leads should read it too.
+**Status:** design accepted in part by the owner on 2026-11-05 ("go with your recommendations"; see section 5).
+Nothing is built. It touches the Inventory team (stock) and the Billing team (money), so their leads should read it
+before any build.
 
 **Backlog wording (owner, 2026-11-05):** the CA records a returned quantity and reason after completion, a different
 person checks it, and the stock goes into quarantine (the STK-2 hold), not back to sellable. Any money goes through
@@ -79,19 +80,23 @@ Option A works with the side effect noted above.
 - Reports: Stock movement summary shows quarantine credits under "Adjusted"; disposals change no stock. Insights and
   invoices are unchanged unless money is handled (question 4).
 
-## 5. Questions for the owner
+## 5. Owner decisions (2026-11-05) and open questions
 
-1. **Default outcome:** should "Dispose" be the default (returned medicine is never given to another patient), with
-   quarantine only on a supervisor's choice?
-2. **Quarantine place:** Option A (STK-2 hold on the whole batch, already built) or Option B (a separate returns
-   place, small Inventory change, recommended)?
-3. **Who records:** any CA at the branch (reuse `dispensary.update.branch`), or a new narrow permission for CA and
+The owner said "go with your recommendations". Decided:
+
+1. **Default outcome: Dispose.** Returned medicine is never given to another patient by default; quarantine is
+   only a checker's choice.
+2. **Quarantine place: Option B,** a separate returns place at the branch (needs the Inventory change in section 6).
+   Option A is not used, so a return never holds a whole batch.
+3. **Money: record the return only** in the first version; any refund stays outside KPOne. A refund after a
+   completed visit is a separate Billing piece, not part of DSP-7.
+
+Still open (the note made no recommendation, so these need the owner's answer before the build):
+
+4. **Who records:** any CA at the branch (reuse `dispensary.update.branch`), or a new narrow permission for CA and
    CA Supervisor?
-4. **Money:** for now, record the return only and keep any refund outside KPOne (recommended for the first version),
-   or ask the Billing team to extend refunds to completed visits (a credit note or a post-completion refund) as a
-   separate Billing piece first?
 5. **Controlled medicines:** should a returned controlled medicine always need a CA Supervisor or Director as the
-   checker, and always be disposed? (Professional question; worth adding to the pharmacist review.)
+   checker, and always be disposed? (Professional question; to add to the pharmacist review.)
 
 ## 6. Teams to involve
 
