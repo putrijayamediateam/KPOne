@@ -6,6 +6,7 @@ import type { DisplayCall, DisplayFeed } from '@/lib/queue-display';
 import {
     announcementText,
     callLabel,
+    shortNameParts,
     formatCallTime,
     formatDisplayDate,
     formatDisplayTime,
@@ -59,6 +60,8 @@ const videoUrl = computed(() =>
     youtubeEmbedUrl(feed.value.settings.youtubeVideoId),
 );
 const posters = computed(() => feed.value.settings.posters);
+// Q-3: the branch's call display mode decides whether a call shows "A-012 · Ahmad Ismail".
+const displayMode = computed(() => feed.value.settings.callDisplayMode);
 const poster = computed(
     () => posters.value[posterIndex.value % Math.max(posters.value.length, 1)],
 );
@@ -137,7 +140,7 @@ const speak = (calls: DisplayCall[]) => {
     const { voice, language } = pickAnnouncementVoice(voices);
     calls.slice(-MAX_SPOKEN_CALLS).forEach((call) => {
         const utterance = new SpeechSynthesisUtterance(
-            announcementText(call, language),
+            announcementText(call, language, displayMode.value),
         );
         utterance.lang = voice?.lang ?? (language === 'ms' ? 'ms-MY' : 'en-GB');
         utterance.voice = voice;
@@ -513,6 +516,17 @@ onBeforeUnmount(() => {
                     </p>
                     <template v-if="current">
                         <p
+                            v-if="shortNameParts(current, displayMode)"
+                            class="text-5xl leading-tight font-black text-balance break-words lg:text-8xl"
+                            data-testid="current-label"
+                        >
+                            <span class="whitespace-nowrap"
+                                >{{ current.number }} ·</span
+                            >
+                            {{ current.name?.trim() }}
+                        </p>
+                        <p
+                            v-else
                             class="text-balance break-words"
                             :class="
                                 current.name
@@ -577,6 +591,20 @@ onBeforeUnmount(() => {
                             "
                         >
                             <span
+                                v-if="shortNameParts(call, displayMode)"
+                                class="flex min-w-0 flex-col"
+                            >
+                                <span
+                                    class="font-mono text-3xl font-bold whitespace-nowrap tabular-nums lg:text-5xl"
+                                    >{{ call.number }}</span
+                                >
+                                <span
+                                    class="truncate text-xl font-semibold lg:text-3xl"
+                                    >{{ call.name?.trim() }}</span
+                                >
+                            </span>
+                            <span
+                                v-else
                                 class="truncate text-3xl font-bold lg:text-5xl"
                                 :class="
                                     call.name ? '' : 'font-mono tabular-nums'

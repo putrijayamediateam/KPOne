@@ -14,6 +14,7 @@ use Illuminate\Support\Collection;
  * What a waiting-room TV may show: called queue numbers with their room and time, plus the branch's
  * own posters, video and scrolling text. It never includes identifiers or clinical data. A patient's full
  * registered name is included only when the branch has chosen to call by name (owner decision 2026-10-09);
+ * in short-name mode only the first two name words are sent (Q-3, owner decision 2026-11-05);
  * the call record itself stays free of patient data and the name is read at display time.
  */
 class QueueDisplayFeedService
@@ -25,7 +26,7 @@ class QueueDisplayFeedService
     {
         $today = now()->setTimezone($branch->timezone)->toDateString();
         $settings = $this->settings($branch);
-        $byName = $settings['callDisplayMode'] === BranchDisplaySetting::MODE_NAME;
+        $byName = in_array($settings['callDisplayMode'], [BranchDisplaySetting::MODE_NAME, BranchDisplaySetting::MODE_SHORT_NAME], true);
 
         $calls = QueueCall::query()
             ->where('organisation_id', $branch->organisation_id)
@@ -41,6 +42,10 @@ class QueueDisplayFeedService
             ->take(self::RECENT_CALLS)
             ->values();
         $names = $byName ? $this->names($calls) : [];
+        if ($settings['callDisplayMode'] === BranchDisplaySetting::MODE_SHORT_NAME) {
+            // Q-3: only the short name leaves the server in this mode; a call without a usable name shows its number.
+            $names = array_filter(array_map(ShortDisplayName::from(...), $names));
+        }
 
         return [
             'branch' => ['id' => $branch->id, 'name' => $branch->name, 'timezone' => $branch->timezone],

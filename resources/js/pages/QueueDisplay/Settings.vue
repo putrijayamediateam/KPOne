@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { router, useForm } from '@inertiajs/vue3';
-import { ref, watch } from 'vue';
+import { computed, ref, watch } from 'vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -88,6 +88,18 @@ const settingsForm = useForm({
     call_display_mode: props.settings.callDisplayMode ?? 'number',
     lock_version: props.settings.lockVersion,
 });
+// Q-3 (Yasmin's wording): the help text names the privacy level of the chosen mode.
+const callModeHelp = computed(
+    () =>
+        ({
+            number: 'The TV and the spoken call use the queue number only. No patient name is shown or spoken.',
+            short_name:
+                "The TV shows and speaks the queue number and the first two words of the patient's name, without bin, binti, a/l or a/p. Everyone in the waiting room sees and hears part of the name.",
+            name: "The TV shows and speaks each patient's full registered name to everyone in the waiting room. This is the least private choice.",
+        })[
+            settingsForm.call_display_mode as 'number' | 'short_name' | 'name'
+        ] ?? '',
+);
 watch(
     () => [props.settings, props.youtubeUrl] as const,
     ([settings, youtubeUrl]) => {
@@ -372,20 +384,26 @@ const removePoster = (posterId: string) => {
                     Call patients by
                     <select
                         v-model="settingsForm.call_display_mode"
-                        class="h-9 rounded-md border bg-background px-2 text-sm"
+                        class="h-9 w-full min-w-0 rounded-md border bg-background px-2 text-sm"
                         data-testid="call-display-mode"
+                        aria-describedby="call-display-mode-help"
                     >
                         <option value="number">
                             Queue number (A-001, B-001)
+                        </option>
+                        <option value="short_name">
+                            Queue number and short name (A-012 · Ahmad Ismail)
                         </option>
                         <option value="name">
                             Patient full name (as registered)
                         </option>
                     </select>
-                    <span class="text-muted-foreground">
-                        Applies to the TV list and the spoken call. In name mode
-                        the TV shows each patient's full name to everyone in the
-                        waiting room.
+                    <span
+                        id="call-display-mode-help"
+                        class="text-muted-foreground"
+                        data-testid="call-display-mode-help"
+                    >
+                        {{ callModeHelp }}
                     </span>
                     <InputError
                         :message="settingsForm.errors.call_display_mode"
