@@ -206,6 +206,11 @@ class IssuedBillingDocumentTest extends BillingTestCase
         $print = IssuedBillingDocumentPrint::query()->sole();
         $this->get(route('billing.issued.show', [$visit, $print->public_id, 'from' => 'invoice']))->assertInertia(fn (Assert $page) => $page
             ->where('issued.label', 'original')->where('issued.backUrl', route('visits.invoice', $visit, absolute: false))->where('issued.backLabel', 'Back to invoice'));
+        // BIL-5b: a print started from the visit page goes back there.
+        $this->post(route('billing.issue', [$visit, $invoice]), [...$this->input($visit), 'return_to' => 'history'])
+            ->assertRedirect(route('billing.issued.show', [$visit, IssuedBillingDocumentPrint::query()->latest('id')->value('public_id'), 'from' => 'history']));
+        $this->get(route('billing.issued.show', [$visit, $print->public_id, 'from' => 'history']))->assertInertia(fn (Assert $page) => $page
+            ->where('issued.backUrl', route('visits.history', $visit, absolute: false))->where('issued.backLabel', 'Back to visit'));
         $this->get(route('billing.issued.show', [$visit, $print->public_id, 'from' => 'https://example.test']))->assertInertia(fn (Assert $page) => $page
             ->where('issued.backUrl', route('billing.show', $visit, absolute: false)));
 

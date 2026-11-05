@@ -11,7 +11,7 @@ const props = withDefaults(
     defineProps<{
         url: string;
         label: string;
-        returnTo?: 'billing' | 'payments' | 'invoice';
+        returnTo?: 'billing' | 'payments' | 'invoice' | 'history';
         variant?: 'secondary' | 'ghost' | 'outline';
         size?: 'sm' | 'default';
     }>(),

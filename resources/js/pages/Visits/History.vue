@@ -2,6 +2,7 @@
 import { Head, usePage } from '@inertiajs/vue3';
 import { ArrowLeft } from '@lucide/vue';
 import { computed, ref } from 'vue';
+import IssuePrintButton from '@/components/billing/IssuePrintButton.vue';
 import { ActionLink } from '@/components/ui/action-link';
 import { StatusBadge } from '@/components/ui/status';
 import { OperationalTabs } from '@/components/ui/tabs';
@@ -16,6 +17,8 @@ const props = defineProps<{ history: VisitHistoryPage }>();
 
 const page = usePage();
 const tab = ref('all');
+// BIL-5b: billing prints are recorded; the old print address is only a PREVIEW.
+const issueUrl = (url: string) => url.replace(/\/print$/, '/issue');
 const tabs = computed(() => [
     { value: 'all', label: 'All' },
     { value: 'consultation', label: 'Consultation' },
@@ -543,22 +546,24 @@ const totals = computed(() => {
                     </p>
                     <ul v-else class="grid gap-1 text-sm">
                         <li v-if="history.financial?.printUrl">
-                            <ActionLink :href="history.financial.printUrl"
-                                >Invoice
-                                {{
-                                    history.financial.invoiceNumber
-                                }}</ActionLink
-                            >
+                            <IssuePrintButton
+                                :url="issueUrl(history.financial.printUrl)"
+                                :label="`Print invoice ${history.financial.invoiceNumber}`"
+                                variant="ghost"
+                                return-to="history"
+                            />
                         </li>
                         <li
                             v-for="payment in history.financial?.payments ?? []"
                             :key="payment.receiptNumber"
                         >
-                            <ActionLink
+                            <IssuePrintButton
                                 v-if="payment.printUrl"
-                                :href="payment.printUrl"
-                                >Receipt {{ payment.receiptNumber }}</ActionLink
-                            >
+                                :url="issueUrl(payment.printUrl)"
+                                :label="`Print receipt ${payment.receiptNumber}`"
+                                variant="ghost"
+                                return-to="history"
+                            />
                         </li>
                     </ul>
                 </div>
