@@ -35,7 +35,7 @@ final class InsightsSalesSummaryTool implements AgentTool
 
     public function run(User $requester, ?Branch $branch, array $input): array
     {
-        $yesterday = CarbonImmutable::now($branch?->timezone ?? 'Asia/Kuala_Lumpur')->subDay()->toDateString();
+        $yesterday = CarbonImmutable::now($branch->timezone ?? 'Asia/Kuala_Lumpur')->subDay()->toDateString();
         $from = $input['from'] ?? ($input['to'] ?? $yesterday);
         $to = $input['to'] ?? $from;
         if ($to < $from) {
@@ -44,11 +44,11 @@ final class InsightsSalesSummaryTool implements AgentTool
         if (CarbonImmutable::parse($from)->diffInDays(CarbonImmutable::parse($to)) >= self::MAX_DAYS) {
             throw ValidationException::withMessages(['to' => 'Choose at most '.self::MAX_DAYS.' days.']);
         }
-        $result = $this->reports->report($requester, 'sales', $branch?->code ?? 'all', $from, $to, null);
+        $result = $this->reports->report($requester, 'sales', $branch->code ?? 'all', $from, $to, null);
         $summary = $result['report']['summary'];
 
         return [
-            'scope' => $branch?->code ?? 'all',
+            'scope' => $branch->code ?? 'all',
             'from' => $result['from'],
             'to' => $result['to'],
             'previousFrom' => $result['previousFrom'],

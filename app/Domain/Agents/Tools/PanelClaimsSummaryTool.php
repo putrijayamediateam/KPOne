@@ -101,6 +101,6 @@ final class PanelClaimsSummaryTool implements AgentTool
             $result[] = ['branch' => $each->code, 'date' => $now->toDateString(), 'from' => $input['from'] ?? null, 'to' => $input['to'] ?? null, 'totals' => $totals, 'panels' => $rows];
         }
 
-        return ['scope' => $branch?->code ?? 'all', 'branches' => $result];
+        return ['scope' => $branch->code ?? 'all', 'branches' => $result];
     }
 }

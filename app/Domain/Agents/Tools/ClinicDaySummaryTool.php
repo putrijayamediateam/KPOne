@@ -53,7 +53,7 @@ final class ClinicDaySummaryTool implements AgentTool
                 ->selectRaw('v.assigned_doctor_user_id as doctor_id, COUNT(DISTINCT v.id) as seen')->pluck('seen', 'doctor_id');
             $perDoctor = [];
             foreach ($seen as $doctorId => $count) {
-                if ($doctorId === null || ! $doctors->has($doctorId)) {
+                if ($doctorId === '' || ! $doctors->has($doctorId)) { // visits with no assigned doctor group under the '' key
                     continue;
                 }
                 $serving = $this->reports->report($requester, 'in-clinic', $each->code, $date, $date, (int) $doctorId)['report']['time']['serving'];
@@ -73,6 +73,6 @@ final class ClinicDaySummaryTool implements AgentTool
             ];
         }
 
-        return ['scope' => $branch?->code ?? 'all', 'branches' => $result];
+        return ['scope' => $branch->code ?? 'all', 'branches' => $result];
     }
 }

@@ -86,6 +86,6 @@ final class MoneyDaySummaryTool implements AgentTool
             ];
         }
 
-        return ['scope' => $branch?->code ?? 'all', 'branches' => $result];
+        return ['scope' => $branch->code ?? 'all', 'branches' => $result];
     }
 }
