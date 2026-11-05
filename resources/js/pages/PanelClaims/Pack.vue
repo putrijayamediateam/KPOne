@@ -212,14 +212,16 @@ const print = () => window.print();
                                 <td class="pack-optional tabular-nums">
                                     {{ index + 1 }}
                                 </td>
-                                <td class="tabular-nums">
+                                <td class="tabular-nums sm:whitespace-nowrap">
                                     {{ claim.claimNo }}
                                 </td>
                                 <td>{{ claim.patientName }}</td>
                                 <td class="pack-optional whitespace-nowrap">
                                     {{ claim.visitDate }}
                                 </td>
-                                <td>{{ claim.invoiceNumber }}</td>
+                                <td class="sm:whitespace-nowrap">
+                                    {{ claim.invoiceNumber }}
+                                </td>
                                 <td class="pack-optional">
                                     {{ claim.status }}
                                 </td>
