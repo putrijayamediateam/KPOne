@@ -3,6 +3,14 @@ export type StatusTone =
 
 const statusLabels: Record<string, string> = {
     approved: 'Approved',
+    // CAT-2 price list check
+    price_charge_inactive: 'Charge inactive',
+    price_no_charge: 'No charge',
+    price_no_panel_default: 'No default Panel price',
+    price_no_self_pay: 'No Self-pay price',
+    price_ok: 'OK',
+    price_unit_differs: 'Unit differs',
+    price_zero: 'Free (RM 0.00)',
     cancelled: 'Cancelled',
     completed: 'Completed',
     dispensed: 'Dispensed',
@@ -24,6 +32,13 @@ const statusLabels: Record<string, string> = {
 };
 
 const toneByStatus: Record<string, StatusTone> = {
+    price_charge_inactive: 'danger',
+    price_no_charge: 'danger',
+    price_no_panel_default: 'warning',
+    price_no_self_pay: 'danger',
+    price_ok: 'success',
+    price_unit_differs: 'danger',
+    price_zero: 'warning',
     approved: 'success',
     completed: 'success',
     dispensed: 'success',
