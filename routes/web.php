@@ -541,6 +541,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::get('{invoice}/letterhead-logo/{asset}', 'letterheadLogo')->whereUuid('asset')->middleware(['permission:billing.print.branch', 'sensitive.no-store'])->name('billing.letterhead-logo');
             Route::get('{invoice}/print', 'printInvoice')->middleware(['permission:billing.print.branch', 'sensitive.no-store'])->name('billing.print');
             Route::get('{invoice}/receipts/{payment}/print', 'printReceipt')->middleware(['permission:billing.print.branch', 'sensitive.no-store'])->name('billing.receipt');
+            // BIL-5: printing is recorded; the frozen copy is shown from its own page.
+            Route::post('{invoice}/issue', 'issueInvoice')->middleware(['permission:billing.print.branch', 'throttle:30,1'])->name('billing.issue');
+            Route::post('{invoice}/receipts/{payment}/issue', 'issueReceipt')->middleware(['permission:billing.print.branch', 'throttle:30,1'])->name('billing.receipt.issue');
+            Route::post('issued/{document}/reprint', 'reprintIssued')->whereUuid('document')->middleware(['permission:billing.print.branch', 'throttle:30,1'])->name('billing.issued.reprint');
+            Route::get('issued/prints/{print}', 'showIssued')->whereUuid('print')->middleware(['permission:billing.print.branch', 'sensitive.no-store'])->name('billing.issued.show');
         });
         Route::get('dispensary/{dispensaryCase}/labels', [DispensaryController::class, 'labels'])
             ->whereUuid('dispensaryCase')->middleware('permission:dispensary.labels.print.branch')->name('dispensary.labels');
