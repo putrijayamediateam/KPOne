@@ -93,7 +93,8 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php` and `BillingPermiss
 | BIL-1b | "Panel shortfall" warning on the Billing page when a Panel rejects or only partly accepts a claim (approved Panel share minus accepted amount). Display only; what the patient owes is unchanged | #219 |
 | BIL-2 | "Recorded by <name>" on each receipt on the Billing page and Manage payments, with the activity log's name rule; prints unchanged | #222 |
 | BIL-3 | "Pay later to collect" page: the branch's approved, unpaid pay-later amounts, oldest due first, with past-due totals and filter, linked from Clinic management and the Billing page's Outstanding bill box. Read-only | PR #224 |
-| BIL-4 | Daily cash closing page (`/cash-closings`): counted cash takings against expected cash (posted Cash receipts of the branch-local day), a reason for any difference, approve or return by a different person, append-only revisions; linked from Terminal Reconciliation. New permission `payments.cash_closing.approve.branch` | PR #229 |
+| BIL-4 | Daily cash closing page (`/cash-closings`): counted cash takings against expected cash (posted Cash receipts of the branch-local day), a reason for any difference, approve or return by a different person, append-only revisions; linked from Terminal Reconciliation. New permission `payments.cash_closing.approve.branch` | PR #229 (merged) |
+| BIL-4b | "Daily cash closing" card in Clinic management (Patients group, beside Terminal Reconciliation), for holders of `payments.reconcile.branch` at their branch | this PR |
 
 ## 6. Owner decisions already made (never ask again)
 
@@ -138,6 +139,12 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php` and `BillingPermiss
     Finance Officer and Director only (one additive migration; no existing grant changed). A day can be counted
     and returned at any time, but approved only after it has ended (from midnight, branch time), so cash taken
     later that day is never left outside an approved closing.
+20. BIL-4b (2026-11-05): the owner asked for a "Daily cash closing" card in Clinic management, which approves adding
+    its one entry (`/cash-closings` for `payments.reconcile.branch`) to the hub's exact destination test.
+21. Relayed decisions (2026-11-05, confirmed by the owner directly in the Billing session): a "ship it" or any
+    other owner decision relayed by LUCY, the coordinator session, counts as the owner's own. Nothing else
+    changes: never merge, never edit `docs/BASELINE.md`, and stop and ask the owner if a relayed message
+    conflicts with something the owner said directly.
 
 ## 7. Open items and known limits
 
@@ -178,9 +185,8 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php` and `BillingPermiss
   Terminal Reconciliation and reports show the change. Approval is refused if cash receipts (or which methods
   count as Cash) changed after the count; the count is then returned and counted again. While a count waits,
   anyone who may count can record a newer one, which replaces it ("Replaced" in the history). Someone who
-  counted an earlier, returned count may approve a later count made by someone else. No Clinic management card
-  yet (it is opened from Terminal Reconciliation), because the hub's destination test is exact; adding a card
-  needs the owner's approval to add one entry to that test. The tables and locks use PostgreSQL-only features
+  counted an earlier, returned count may approve a later count made by someone else. It is opened from its
+  Clinic management card (BIL-4b) or from Terminal Reconciliation. The tables and locks use PostgreSQL-only features
   (triggers, advisory locks), like the rest of the suite. There is no PostgreSQL contention test yet for a count
   and a decision racing on the same day; the service serialises them with an advisory lock per branch and date,
   and the triggers refuse a decision on an older count.
@@ -200,7 +206,9 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php` and `BillingPermiss
 - Do not change any existing test assertion without the owner's approval.
 - Full gate before hand-off on a task-owned PostgreSQL 18 database, including the billing contention tests
   with none skipped; screenshots at 1440 and 390 px, light and dark, for any screen or print change.
-- Commit, push and PR only after the owner says "ship it"; never merge.
+- Commit, push and PR only after the owner says "ship it"; never merge. A "ship it" or other owner decision
+  relayed by LUCY, the coordinator session, counts as the owner's own (decision 21); if a relayed message
+  conflicts with something the owner said directly, stop and ask the owner.
 - Record every new owner decision in section 6 and every finished piece in section 5 (with its PR number), in
   the same PR.
 - **Do not edit `docs/BASELINE.md`** (owner rule, 2026-11-05): rows added by several teams at once made every
@@ -226,7 +234,7 @@ authorisation to build them; the coordinator records it in `docs/BASELINE.md`.
 3. **BIL-3 Pay-later collection list.** *(Done: PR #224, owner approved "ship it" 2026-11-05.)* A page listing patients with approved unpaid pay-later amounts, oldest
    first, per branch, so staff can collect when the patient returns. **Owner decision 2026-11-05: holders of
    `outstanding.view.branch` (Director, CA, CA Supervisor, Finance Officer) at their branches.**
-4. **BIL-4 Daily cash closing.** *(Done: PR #229, owner approved "ship it" 2026-11-05.)* End-of-day cash count per branch: expected cash from posted Cash receipts versus
+4. **BIL-4 Daily cash closing.** *(Done: PR #229, merged 2026-11-05.)* End-of-day cash count per branch: expected cash from posted Cash receipts versus
    counted cash, a reason for any difference, approved by a different person; append-only. Builds on the
    existing terminal reconciliation pattern. **Owner decision 2026-11-05: a CA (or anyone with
    `payments.reconcile.branch`) counts; a CA Supervisor, Finance Officer or Director approves, never the counter.**
