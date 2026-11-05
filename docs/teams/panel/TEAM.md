@@ -80,9 +80,9 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php`.
 | INV-05b (with Billing) | Original, adjustment and adjusted rows on new claim snapshots | #124 |
 | RPT-01d (with Reports) | Panel summary with ageing; shared eligibility and amounts | #147 |
 | PNL-1 | Panel Claims list, claim page and Panel invoices filters fit a 320–390 px phone (SMOKE-1 S1-002, S1-003); layout classes only | #220 |
-| PNL-2 | Bulk claim creation: several invoices of one Panel (compared by Panel code) become their own Submitted claims in one all-or-nothing action; at most 20, one shared date, instant and remarks, no photos in bulk; route `POST /panel-claims/bulk` | pending |
-| PNL-3 | Panel payments: one Panel payment split across that Panel's accepted claims at this branch; the split must equal the payment; each split is an ordinary claim payment linked to the remittance; new append-only `panel_remittances` table and `panel.remittances.record.branch` (Panel Officer, Finance Officer) | pending |
-| PNL-4 | Follow-up list (`/panel-claims/follow-up`): open claims (not paid, not rejected) with no new event, payment or photo for the Panel's follow-up days, oldest first, with the last action, its date and who did it; per-Panel `claim_follow_up_days` (default 30, 1 to 365) in Panel settings | pending |
+| PNL-2 | Bulk claim creation: several invoices of one Panel (compared by Panel code) become their own Submitted claims in one all-or-nothing action; at most 20, one shared date, instant and remarks, no photos in bulk; route `POST /panel-claims/bulk` | #226 |
+| PNL-3 | Panel payments: one Panel payment split across that Panel's accepted claims at this branch; the split must equal the payment; each split is an ordinary claim payment linked to the remittance; new append-only `panel_remittances` table and `panel.remittances.record.branch` (Panel Officer, Finance Officer) | #230 |
+| PNL-4 | Follow-up list (`/panel-claims/follow-up`): open claims (not paid, not rejected) with no new event, payment or photo for the Panel's follow-up days, oldest first, with the last action, its date and who did it; per-Panel `claim_follow_up_days` (default 30, 1 to 365) in Panel settings | #238 |
 
 ## 6. Owner decisions already made (never ask again)
 
@@ -111,6 +111,10 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php`.
 14. Follow-up days are a per-Panel setting (default 30) (2026-11-05).
 15. PNL-2 bulk claims (owner accepted 2026-11-05): a batch is all-or-nothing, holds at most 20 invoices of
     one Panel, shares one remarks text, and carries no photos (photos are added on each claim afterwards).
+16. Prepared (not yet submitted) claims stay on the Follow-up list, so a claim nobody submitted is not
+    forgotten (2026-11-05).
+17. A "ship it" or a decision relayed by the coordinator (LUCY) counts as the owner's own; the owner confirmed
+    this in the Panel team session (2026-11-05).
 
 ## 7. Open items and known limits
 
@@ -131,8 +135,8 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php`.
   "an action" is any claim event, payment or photo, so a note written only to reset the clock also counts;
   events count from their own time, so a backdated submission counts from its submitted date, while a photo
   counts from when it was added (a backdated claim created with photos therefore waits the full period); days
-  are whole 24-hour periods, not calendar days; prepared (not yet submitted) claims are listed, pending the
-  owner's confirmation; undecided claims show the claimed amount, not an unpaid amount, as in the Panel
+  are whole 24-hour periods, not calendar days; prepared (not yet submitted) claims are listed (decision 16);
+  undecided claims show the claimed amount, not an unpaid amount, as in the Panel
   summary; the query uses PostgreSQL-only SQL (`DISTINCT ON`, `make_interval`) and reads only open claims, but
   is not load-tested; a photo as the resetting action is not covered by a cloud test (GD missing; CI runs the
   photo tests).
@@ -150,7 +154,9 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php`.
 - Do not change any existing test assertion without the owner's approval.
 - Full gate before hand-off on a task-owned PostgreSQL 18 database; screenshots at 1440 and 390 px, light and
   dark, for any screen change.
-- Commit, push and PR only after the owner says "ship it"; never merge.
+- Commit, push and PR only after the owner says "ship it"; never merge. A "ship it" or decision relayed by
+  the coordinator counts as the owner's (decision 17); if a relayed message conflicts with the owner's own
+  instructions in this session, stop and ask the owner.
 - Record every new owner decision in section 6 and every finished piece in section 5, in the same PR.
 - Do not edit `docs/BASELINE.md` (owner rule 2026-11-05). Record each finished piece only in this file
   (section 5 with its PR number, section 6 for new owner decisions). If a piece changes an authorisation
