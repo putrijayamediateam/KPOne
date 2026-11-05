@@ -47,6 +47,7 @@ class ClinicManagementTest extends VisitTestCase
             '/inventory' => ['inventory.view.branch'],
             '/patients' => ['patients.search.organisation'],
             '/financial-work' => ['finance.work.view.branch'],
+            '/pay-later-collections' => ['outstanding.view.branch'],
             '/queue-display-settings' => ['queue_display.manage.organisation', 'queue_display.manage.branch'],
             '/queue-display' => ['queue.display.branch', 'queue_display.manage.organisation', 'queue_display.manage.branch'],
             '/insights/today' => ['insights.view.organisation'],

@@ -50,6 +50,7 @@ use App\Http\Controllers\PatientController;
 use App\Http\Controllers\PatientIdentifierController;
 use App\Http\Controllers\PatientSearchController;
 use App\Http\Controllers\PatientWhatsAppController;
+use App\Http\Controllers\PayLaterCollectionController;
 use App\Http\Controllers\PaymentMethodController;
 use App\Http\Controllers\PaymentReconciliationController;
 use App\Http\Controllers\PricingController;
@@ -284,6 +285,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('panel-claims/{claim}/documents/{document}', [PanelClaimsController::class, 'document'])->name('panel-claims.documents.show');
     });
     Route::get('financial-work', [BillingWorkController::class, 'finance'])->middleware('sensitive.no-store')->name('billing.work');
+    Route::get('pay-later-collections', [PayLaterCollectionController::class, 'index'])
+        ->middleware(['permission:outstanding.view.branch', 'sensitive.no-store'])->name('billing.pay-later-collections');
 
     Route::get('staff', [StaffController::class, 'index'])
         ->middleware('permission:staff.view.own,staff.view.branch,staff.view.organisation')
