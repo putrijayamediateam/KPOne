@@ -58,3 +58,13 @@ test('BIL-5b: the visit page prints through the recorded print too', () => {
     assert.ok(history.includes('return-to="history"'));
     assert.match(history, /'\/issue'/);
 });
+
+test('phone touch targets escape the compact Billing button height', () => {
+    assert.match(
+        workspace,
+        /@media \(max-width: 639\.98px\)[\s\S]*\[data-touch-target\][\s\S]*min-height: 44px/,
+    );
+    assert.ok(button.includes('data-touch-target'));
+    assert.ok(copies.includes('data-touch-target'));
+    assert.ok(copies.includes("copy.prints === 1 ? 'print' : 'prints'"));
+});
