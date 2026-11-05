@@ -125,6 +125,12 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php`.
     `panel.claim_payments.reverse.branch`); the reverser must not be the person who recorded it; one step with
     a reason from a fixed list plus a required short note; no time limit; reports correct the figure in the
     period of the original payment date.
+19. Backup push (owner rule for all teams, relayed by the coordinator, 2026-11-05): whenever the team stops to
+    wait for the owner with work not yet on GitHub, it commits that work to the piece's own feature branch and
+    pushes it as a backup (no PR, never `main` or another team's branch, never merge, never force-push). On a
+    branch that already has an open PR, push only when the change is ready, because a push re-runs CI. The PR
+    still opens only after "ship it", with the latest `main` merged first. After a session restart on a fresh
+    machine, fetch the branch before continuing.
 
 ## 7. Open items and known limits
 

@@ -139,7 +139,12 @@ const turnPage = (value: number) =>
             :description="`${branch.name} · Reverse a Panel payment recorded by mistake. Nothing is deleted.`"
         />
         <div class="flex flex-wrap gap-2">
-            <Button as-child variant="outline" size="sm">
+            <Button
+                as-child
+                variant="outline"
+                size="sm"
+                class="max-sm:min-h-11"
+            >
                 <Link href="/panel-invoices">Back to Panel invoices</Link>
             </Button>
         </div>
@@ -225,7 +230,7 @@ const turnPage = (value: number) =>
                             {{ claim.patientName }}
                         </span>
                         <span
-                            class="tabular-nums"
+                            class="ml-auto text-right tabular-nums"
                             :class="{
                                 'text-muted-foreground line-through':
                                     payment.reversal,
@@ -264,7 +269,7 @@ const turnPage = (value: number) =>
                     </Button>
                     <form
                         v-else
-                        class="grid gap-3 rounded-lg border p-3"
+                        class="grid max-w-xl gap-3 rounded-lg border p-3"
                         @submit.prevent="reverse(payment)"
                     >
                         <label class="grid min-w-0 gap-1 text-xs">
@@ -273,7 +278,6 @@ const turnPage = (value: number) =>
                                 :id="`reverse-reason-${payment.publicId}`"
                                 v-model="form.reason"
                                 class="h-9 w-full min-w-0 rounded-md border bg-background px-2 text-sm"
-                                aria-label="Reason"
                                 :aria-invalid="
                                     errors.reason_code ? 'true' : undefined
                                 "
@@ -302,12 +306,11 @@ const turnPage = (value: number) =>
                             >
                         </label>
                         <label class="grid min-w-0 gap-1 text-xs">
-                            What was wrong (no patient details) *
+                            What was wrong *
                             <textarea
                                 v-model="form.note"
                                 maxlength="200"
                                 rows="2"
-                                aria-label="What was wrong"
                                 :aria-invalid="errors.note ? 'true' : undefined"
                                 :aria-describedby="`reverse-note-hint-${payment.publicId}`"
                                 class="w-full min-w-0 rounded-md border bg-background px-3 py-2 text-sm"
@@ -321,7 +324,7 @@ const turnPage = (value: number) =>
                                 "
                                 >{{
                                     errors.note ||
-                                    `Required, up to 200 characters (${form.note.length}/200).`
+                                    `Required, up to 200 characters (${form.note.length}/200). Do not type patient or clinical details: this note is stored as plain text.`
                                 }}</span
                             >
                         </label>

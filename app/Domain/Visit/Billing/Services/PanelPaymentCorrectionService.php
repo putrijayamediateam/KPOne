@@ -3,6 +3,7 @@
 namespace App\Domain\Visit\Billing\Services;
 
 use App\Domain\Access\BranchAccessService;
+use App\Domain\Access\StaffAccessService;
 use App\Domain\Access\TransactionalActorAuthority;
 use App\Domain\Audit\AuditRecorder;
 use App\Domain\Visit\Billing\Models\PanelClaim;
@@ -41,6 +42,7 @@ final class PanelPaymentCorrectionService
         private BranchAccessService $branches,
         private TransactionalActorAuthority $authority,
         private AuditRecorder $audit,
+        private StaffAccessService $staff,
     ) {}
 
     /** @return array<string, mixed> */
@@ -82,7 +84,8 @@ final class PanelPaymentCorrectionService
                 ->whereIn('panel_claim_payment_id', $payments->pluck('id')->all())
                 ->get(['panel_claim_payment_id', 'reason_code', 'note', 'reversed_at', 'reversed_by_user_id'])->keyBy('panel_claim_payment_id');
             $userIds = $items->pluck('recorded_by_user_id')->merge($reversals->pluck('reversed_by_user_id'))->unique()->values()->all();
-            $users = DB::table('users')->where('organisation_id', $org)->whereIn('id', $userIds)->pluck('name', 'id');
+            // Staff names follow the staff-directory visibility rule (as BIL-2 receipts do); others read "Staff member".
+            $users = $this->staff->visibleUsers($actor)->whereIn('id', $userIds)->pluck('name', 'id');
             $panelNames = DB::table('panels')->where('organisation_id', $org)->whereIn('id', $items->pluck('panel_id')->all())->pluck('name', 'id');
 
             return [
@@ -104,7 +107,7 @@ final class PanelPaymentCorrectionService
                             'amountSen' => (int) $row->amount_sen,
                             'receivedDate' => CarbonImmutable::parse((string) $row->received_at, 'UTC')->setTimezone($branch->timezone)->format('j M Y'),
                             'reference' => $row->reference === null ? null : (string) $row->reference,
-                            'recordedBy' => (string) ($users[$recordedBy] ?? ''),
+                            'recordedBy' => (string) ($users[$recordedBy] ?? 'Staff member'),
                             'recordedByMe' => $recordedBy === $actor->id,
                             'claims' => $parts->map(static fn (object $part): array => [
                                 'claimNo' => (string) $part->claim_id,
@@ -115,7 +118,7 @@ final class PanelPaymentCorrectionService
                             'reversal' => $reversal === null ? null : [
                                 'reason' => self::REASONS[(string) $reversal->reason_code] ?? 'Other',
                                 'note' => (string) $reversal->note,
-                                'reversedBy' => (string) ($users[(int) $reversal->reversed_by_user_id] ?? ''),
+                                'reversedBy' => (string) ($users[(int) $reversal->reversed_by_user_id] ?? 'Staff member'),
                                 'reversedDate' => CarbonImmutable::parse((string) $reversal->reversed_at, 'UTC')->setTimezone($branch->timezone)->format('j M Y'),
                             ],
                         ];

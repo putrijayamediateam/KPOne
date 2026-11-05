@@ -35,6 +35,7 @@ test('Reversing needs a reason, a note and the not-a-refund confirmation', () =>
     }
 
     assert.match(page, /maxlength="200"/);
+    assert.match(page, /Do not type patient or clinical details/);
     assert.match(page, /Not a refund/);
     assert.match(
         page,

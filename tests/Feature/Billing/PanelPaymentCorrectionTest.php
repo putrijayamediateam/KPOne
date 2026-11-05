@@ -3,6 +3,7 @@
 namespace Tests\Feature\Billing;
 
 use App\Domain\Access\BillingPermissions;
+use App\Domain\Access\StaffAccessService;
 use App\Domain\Organisation\Models\Branch;
 use App\Domain\Visit\Billing\Models\PanelClaim;
 use App\Domain\Visit\Billing\Models\PanelClaimPaymentReversal;
@@ -62,7 +63,9 @@ class PanelPaymentCorrectionTest extends BillingTestCase
 
         $this->get(route('panel-payment-corrections.index'))->assertInertia(fn (Assert $page) => $page
             ->where('payments.data.0.reversal.reason', 'Wrong amount')
-            ->where('payments.data.0.reversal.reversedBy', $finance->name));
+            ->where('payments.data.0.reversal.reversedBy', $finance->name)
+            // The recorder's name follows the staff-directory visibility rule (BIL-2), otherwise "Staff member".
+            ->where('payments.data.0.recordedBy', app(StaffAccessService::class)->canView($finance, $this->officer()) ? $this->officer()->name : 'Staff member'));
 
         // The Panel Officer sees it struck out on the claim page, and the claim can be paid again correctly.
         $this->selectBranch($this->officer(), $this->branch);
