@@ -67,26 +67,48 @@ class DemoSetupSeederTest extends TestCase
 
     public function test_it_moves_the_three_roles_to_cheras_only_through_audited_assignments(): void
     {
-        $this->seed(KPOneDemoSetupSeeder::class);
         $cheras = $this->cheras();
-
+        $oldAssignments = [];
         foreach (KPOneDemoSetupSeeder::MOVED_EMAILS as $email) {
-            $user = User::query()->where('email', $email)->firstOrFail();
+            $profileId = User::query()->where('email', $email)->firstOrFail()->staffProfile->id;
+            $old = StaffBranchAssignment::query()->where('staff_profile_id', $profileId)->where('is_primary', true)->sole();
+            $this->assertNotSame($cheras->id, $old->branch_id, "{$email} must start outside CHERAS");
+            $oldAssignments[$email] = $old;
+        }
+
+        $this->seed(KPOneDemoSetupSeeder::class);
+
+        $director = User::query()->where('email', 'demo.director@kpone.test')->firstOrFail();
+        $yesterday = now()->subDay()->toDateString();
+        $assignmentType = (new StaffBranchAssignment)->getMorphClass();
+        foreach (KPOneDemoSetupSeeder::MOVED_EMAILS as $email) {
+            $old = $oldAssignments[$email]->fresh();
             $effective = StaffBranchAssignment::query()
-                ->where('staff_profile_id', $user->staffProfile->id)
+                ->where('staff_profile_id', $old->staff_profile_id)
                 ->effectiveAt()
                 ->get();
 
-            $this->assertSame([$cheras->id], $effective->pluck('branch_id')->unique()->values()->all(), $email);
-            $this->assertSame(1, $effective->where('is_primary', true)->count(), $email);
-            $this->assertSame($cheras->id, $effective->firstWhere('is_primary', true)?->branch_id, $email);
+            // Exactly one effective assignment: permanent, primary, open-ended, at CHERAS.
+            $this->assertCount(1, $effective, $email);
+            $new = $effective->sole();
+            $this->assertSame($cheras->id, $new->branch_id, $email);
+            $this->assertTrue($new->is_primary, $email);
+            $this->assertNull($new->valid_until, $email);
+            $this->assertSame('permanent', $new->assignment_type, $email);
+
+            // The old branch assignment was demoted and ended yesterday, by the Director, with an audit record.
+            $this->assertFalse($old->is_primary, $email);
+            $this->assertSame($yesterday, $old->valid_until?->toDateString(), $email);
+            foreach (['staff.branch_assignment.primary.demoted', 'staff.branch_assignment.ended'] as $event) {
+                $this->assertSame(1, DB::table('audit_logs')->where('event', $event)
+                    ->where('subject_type', $assignmentType)->where('subject_id', $old->id)->where('actor_user_id', $director->id)->count(), "{$email} {$event}");
+            }
+            $this->assertSame(1, DB::table('audit_logs')->where('event', 'staff.branch_assignment.created')
+                ->where('subject_type', $assignmentType)->where('subject_id', $new->id)->where('actor_user_id', $director->id)->count(), $email);
         }
 
-        $director = User::query()->where('email', 'demo.director@kpone.test')->firstOrFail();
-        $this->assertGreaterThanOrEqual(3, DB::table('audit_logs')
-            ->where('event', 'staff.branch_assignment.created')
-            ->where('actor_user_id', $director->id)
-            ->count());
+        // Only the three moved accounts had an assignment ended.
+        $this->assertSame(3, DB::table('audit_logs')->where('event', 'staff.branch_assignment.ended')->count());
     }
 
     public function test_it_provisions_a_second_independent_ca_supervisor_at_cheras(): void
