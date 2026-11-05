@@ -99,7 +99,7 @@ test('explicit international numbers cannot have digits silently repaired', () =
     for (const value of ['+600123456789', '+4402079460018']) {
         assert.equal(
             phoneError(value, 'MY'),
-            'Semak kod negara dan nombor telefon.',
+            'Check the country code and phone number.',
         );
     }
 });

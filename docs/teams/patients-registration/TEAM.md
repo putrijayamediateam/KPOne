@@ -74,7 +74,8 @@ coordinator at the owner's request (2026-11-05).
 | REG-LIVE-1 | Board refreshes about every 10 seconds | #198 |
 | FLOW-FIXES-1 | Board keeps its filter and page after actions | #201 |
 | TAB-COUNTS-1 | Tab counts on the Registration board | #210 |
-| REG-1 | Visit result page (`Registration/Show.vue`) fits a phone: action buttons and status badges wrap, visit number stays on one line, long unbroken text breaks; layout only | pending (branch `fix/reg-1-registration-phone-fit`) |
+| REG-1 | Visit result page (`Registration/Show.vue`) fits a phone: action buttons and status badges wrap, visit number stays on one line, long unbroken text breaks; layout only | #221 (`d304476`) |
+| REG-2 | Phone and IC/Passport messages in English everywhere (staff screens, server and public QR form); QR Intake tab and QR review list visit purposes in English; rest of the public QR form unchanged | pending (branch `fix/reg-2-english-labels`) |
 
 ## 6. Owner decisions already made (never ask again)
 
@@ -93,6 +94,13 @@ coordinator at the owner's request (2026-11-05).
     hidden, never deleted; every step audited (2026-11-05).
 11. Patient change history (who and when, field names only, never old values) is visible to **CA Supervisor
     and Director** only (2026-11-05).
+12. **English everywhere** for the nine phone and IC/Passport validation messages and the five QR visit-purpose
+    labels in the staff lists (QR Intake tab, QR review list): staff screens **and the public QR form** show the same
+    English messages. This is an explicit owner exception to the "patient-facing text in Bahasa Melayu" rule, **for
+    these messages only**; the rest of the public QR form keeps its own wording (including "Jumpa doktor / Beli ubat
+    sahaja" and its Malay purpose options). Wording approved as proposed. Two existing assertions changed with
+    approval: `tests/Frontend/patient-registration.test.mjs` and `tests/Feature/Patient/RegistrationValidationTest.php`
+    line 80 ("Semak kod negara dan nombor telefon." became "Check the country code and phone number.") (2026-11-05).
 
 ## 7. Open items and known limits
 
@@ -101,7 +109,17 @@ coordinator at the owner's request (2026-11-05).
   768 px, and now matches the viewport at 320, 390, 768 and 1440 px, including long text without spaces. Not
   measured on the real page: the Consultation Queue card on a consultation visit.
 - TAB-COUNTS-1 (#210) is listed in section 5 but has no row in `docs/BASELINE.md` yet (drift noticed during REG-1 review).
-- SMOKE-1 S1-016: mixed Bahasa Melayu and English labels.
+- ~~SMOKE-1 S1-016: mixed Bahasa Melayu and English labels.~~ Fixed for this team's screens by REG-2 (pending merge).
+  Left for another team: the Queue message "Doktor sedang menjalankan konsultasi lain..." (Queue & TV). Other
+  Malay messages from the public QR validator (guardian, consent, date of birth) are part of the QR form's own
+  wording and unchanged.
+- Public QR form now mixes languages next to the nine REG-2 messages, as the owner chose ("these nine only"): an
+  empty phone shows "Phone number is required." but a too-long phone shows "Nombor telefon terlalu panjang.", the ID
+  field shows "Nombor pengenalan diperlukan.", and the guardian phone's invalid message is now English. A whole-form
+  language decision would be a separate piece (QR check-in team).
+- Patient create page (`/patients/create`) is 433 px wide on a 390 px phone with the form errors shown: the phone
+  number and email inputs stick out of the Contact card. Already so before REG-2 (found while taking REG-2
+  screenshots, 2026-11-05); not fixed. A candidate for a small layout piece like REG-1.
 - "Consultation Completed" tab count: all-time count or the latest 25 shown (owner decision pending).
 - RB-01 "two 200s, stale tab" mechanism never reproduced.
 
@@ -127,10 +145,10 @@ coordinator at the owner's request (2026-11-05).
 Chosen by the owner on 2026-11-05; built one by one in this order, each its own PR. Choosing them is the owner's
 authorisation to build them; the coordinator records it in `docs/BASELINE.md`.
 
-1. **REG-1 Phone fit.** *Built and owner-approved for PR 2026-11-05; pending merge.* The Registration result page is about 567 px wide on a 390 px phone and scrolls
+1. **REG-1 Phone fit.** *Merged in PR #221 as `d304476`.* The Registration result page is about 567 px wide on a 390 px phone and scrolls
    sideways. Make it fit at 390 px with no horizontal page scroll. Layout only: no backend, permission or data
    change. Screenshots at 1440 and 390 px, light and dark, before and after.
-2. **REG-2 Labels in one language.** SMOKE-1 S1-016: Registration and Patient screens mix Malay and English.
+2. **REG-2 Labels in one language.** *Built and owner-approved for PR 2026-11-05; pending merge. The Malay CA guide needs no change.* SMOKE-1 S1-016: Registration and Patient screens mix Malay and English.
    Make them **English** (owner decision 2026-11-05); "Panggil semula" stays. Update any exact-text test only
    with the owner's approval, listing each one first. Tell the owner if the Malay CA guide
    (`docs/guides/ms/`) needs a matching update.

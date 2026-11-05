@@ -37,13 +37,13 @@ defineEmits<{
 }>();
 
 const purposeLabel: Record<string, string> = {
-    doctor_illness: 'Jumpa doktor / sakit',
-    pregnancy_check: 'Pemeriksaan kehamilan',
+    doctor_illness: 'See a doctor / illness',
+    pregnancy_check: 'Pregnancy check',
     scan: 'Scan',
-    vaccination: 'Vaksin',
+    vaccination: 'Vaccination',
     medical_checkup: 'Medical check-up',
-    procedure: 'Prosedur',
-    other: 'Lain-lain',
+    procedure: 'Procedure',
+    other: 'Other',
 };
 const statusLabel: Record<QrIntakeItem['displayStatus'], string> = {
     pending: 'Pending',

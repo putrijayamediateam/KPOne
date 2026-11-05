@@ -44,10 +44,10 @@ class PatientIdentityService
         try {
             $issuer = $this->countryCode($identifier['issuing_country_code'] ?? null);
         } catch (ValidationException) {
-            throw ValidationException::withMessages(['issuing_country_code' => 'Negara pengeluar Passport diperlukan.']);
+            throw ValidationException::withMessages(['issuing_country_code' => 'Passport issuing country is required.']);
         }
         if (! is_string($identifier['value'] ?? null)) {
-            throw ValidationException::withMessages(['value' => 'No. IC atau Passport diperlukan.']);
+            throw ValidationException::withMessages(['value' => 'IC or Passport number is required.']);
         }
         $value = $identifier['value'];
 
@@ -60,17 +60,17 @@ class PatientIdentityService
             $normalized = str_replace([' ', '-'], '', $value);
 
             if (preg_match('/\A[0-9]{12}\z/', $normalized) !== 1) {
-                throw ValidationException::withMessages(['value' => 'No. IC mesti mempunyai 12 digit.']);
+                throw ValidationException::withMessages(['value' => 'IC number must have 12 digits.']);
             }
         } else {
             if ($issuer === null) {
-                throw ValidationException::withMessages(['issuing_country_code' => 'Negara pengeluar Passport diperlukan.']);
+                throw ValidationException::withMessages(['issuing_country_code' => 'Passport issuing country is required.']);
             }
 
             $normalized = Str::upper(preg_replace('/\s+/u', '', trim($this->unicode($value))) ?? '');
 
             if (preg_match('/\A[A-Z0-9][A-Z0-9-]{2,31}\z/', $normalized) !== 1) {
-                throw ValidationException::withMessages(['value' => strlen($normalized) < 3 ? 'No. Passport tidak lengkap.' : 'Semak format No. Passport.']);
+                throw ValidationException::withMessages(['value' => strlen($normalized) < 3 ? 'Passport number is incomplete.' : 'Check the Passport number format.']);
             }
         }
 
