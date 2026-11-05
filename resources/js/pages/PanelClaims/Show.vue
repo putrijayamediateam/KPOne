@@ -52,6 +52,8 @@ type ClaimData = {
         amountSen: number;
         reference: string | null;
         receivedAt: string;
+        reversed?: boolean;
+        reversedOn?: string | null;
     }[];
     createdAt: string | null;
     claimNo: string;
@@ -663,7 +665,20 @@ const eventTitle = (type: string) =>
                             <span class="min-w-0 wrap-anywhere">{{
                                 payment.reference || 'No reference'
                             }}</span>
-                            <strong>{{ myr(payment.amountSen) }}</strong>
+                            <strong
+                                :class="{
+                                    'text-muted-foreground line-through':
+                                        payment.reversed,
+                                }"
+                                >{{ myr(payment.amountSen) }}</strong
+                            >
+                            <span
+                                v-if="payment.reversed"
+                                class="w-full text-xs text-muted-foreground"
+                            >
+                                Reversed on {{ payment.reversedOn }}: recorded
+                                by mistake, not counted as received.
+                            </span>
                         </li>
                     </ul>
                 </section>

@@ -3,11 +3,13 @@
 namespace App\Domain\Visit\Billing\Services;
 
 use App\Domain\Access\BranchAccessService;
+use App\Domain\Access\StaffAccessService;
 use App\Domain\Access\TransactionalActorAuthority;
 use App\Domain\Audit\AuditRecorder;
 use App\Domain\Organisation\Models\Branch;
 use App\Domain\Visit\Billing\Models\PanelClaim;
 use App\Domain\Visit\Billing\Models\PanelClaimPayment;
+use App\Domain\Visit\Billing\Models\PanelClaimPaymentReversal;
 use App\Domain\Visit\Billing\Models\PanelRemittance;
 use App\Domain\Visit\Models\Panel;
 use App\Models\User;
@@ -37,6 +39,7 @@ final class PanelRemittanceService
         private BranchAccessService $branches,
         private TransactionalActorAuthority $authority,
         private AuditRecorder $audit,
+        private StaffAccessService $staff,
     ) {}
 
     /**
@@ -71,8 +74,11 @@ final class PanelRemittanceService
                 ->groupBy('panel_remittance_id');
             $panelNames = DB::table('panels')->where('organisation_id', $actor->organisation_id)
                 ->whereIn('id', $history->getCollection()->pluck('panel_id')->all())->pluck('name', 'id');
-            $recorders = DB::table('users')->where('organisation_id', $actor->organisation_id)
-                ->whereIn('id', $history->getCollection()->pluck('recorded_by_user_id')->all())->pluck('name', 'id');
+            $reversed = DB::table('panel_claim_payment_reversals')->where('organisation_id', $actor->organisation_id)
+                ->whereIn('panel_remittance_id', $remittanceIds)->distinct()->pluck('panel_remittance_id')->flip();
+            // Staff names follow the staff-directory visibility rule (owner BIL-2 decision); others read "Staff member".
+            $recorders = $this->staff->visibleUsers($actor)
+                ->whereIn('id', $history->getCollection()->pluck('recorded_by_user_id')->filter()->unique()->values()->all())->pluck('name', 'id');
 
             return [
                 'branch' => ['id' => $branch->id, 'name' => $branch->name, 'today' => $today->toDateString()],
@@ -85,6 +91,7 @@ final class PanelRemittanceService
                     ->map(static fn ($row): array => ['code' => (string) $row->code, 'name' => (string) $row->name])->all(),
                 'filters' => ['panel' => $panel->code ?? ''],
                 'maxSplits' => self::MAX_SPLITS,
+                'canReverse' => $actor->can(PanelPaymentCorrectionService::PERMISSION),
                 'openClaims' => array_slice($openClaims, 0, self::MAX_OPEN_CLAIMS),
                 'openClaimsTruncated' => count($openClaims) > self::MAX_OPEN_CLAIMS,
                 'remittances' => [
@@ -94,7 +101,8 @@ final class PanelRemittanceService
                         'amountSen' => $remittance->amount_sen,
                         'receivedDate' => $remittance->received_at->setTimezone($branch->timezone)->format('j M Y'),
                         'reference' => $remittance->reference,
-                        'recordedBy' => (string) ($recorders[$remittance->recorded_by_user_id] ?? ''),
+                        'recordedBy' => (string) ($recorders[$remittance->recorded_by_user_id] ?? 'Staff member'),
+                        'reversed' => $reversed->has($remittance->id),
                         'splits' => collect($splits->get($remittance->id, []))->map(static fn ($row): array => [
                             'claimNo' => (string) $row->claim_id,
                             'invoiceNumber' => (string) $row->invoice_number,
@@ -113,7 +121,7 @@ final class PanelRemittanceService
     /** @return list<array<string, mixed>> */
     private function openClaims(User $actor, Branch $branch, Panel $panel): array
     {
-        $received = '(select coalesce(sum(p.amount_sen), 0) from panel_claim_payments p where p.panel_claim_id = panel_claims.id and p.organisation_id = panel_claims.organisation_id and p.branch_id = panel_claims.branch_id)';
+        $received = '(select coalesce(sum(p.amount_sen), 0) from panel_claim_payments p where p.panel_claim_id = panel_claims.id and p.organisation_id = panel_claims.organisation_id and p.branch_id = panel_claims.branch_id and '.PanelClaimPaymentReversal::NOT_REVERSED_P.')';
 
         return array_values(PanelClaim::query()->where('organisation_id', $actor->organisation_id)->where('branch_id', $branch->id)
             ->where('panel_id', $panel->id)->whereIn('status', self::PAYABLE)->whereNotNull('accepted_amount_sen')
@@ -238,8 +246,7 @@ final class PanelRemittanceService
                 if (! in_array($claim->status, self::PAYABLE, true) || $claim->accepted_amount_sen === null) {
                     throw ValidationException::withMessages(['splits' => 'Claim '.$claim->id.' has no accepted amount waiting for payment.']);
                 }
-                $received = (int) PanelClaimPayment::query()->where('panel_claim_id', $claim->id)
-                    ->where('organisation_id', $claim->organisation_id)->where('branch_id', $claim->branch_id)->sum('amount_sen');
+                $received = (int) $claim->receivedPayments()->sum('amount_sen');
                 $outstanding = $claim->accepted_amount_sen - $received;
                 if ($part > $outstanding) {
                     throw ValidationException::withMessages(['splits' => 'Claim '.$claim->id.': RM '.number_format($part / 100, 2).' is more than the RM '.number_format($outstanding / 100, 2).' still unpaid.']);

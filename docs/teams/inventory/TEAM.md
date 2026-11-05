@@ -10,6 +10,7 @@ the same PR as the code.
 |---|---|---|
 | Lead | **Zulkifli** | Plans each piece, builds it (backend, pages, tests), keeps this file current |
 | Reviewer | **Mei Ling** | Checks every piece against the rules below, the tests and the owner's decisions before it reaches the owner |
+| UI/UX designer | **Wei Jie** | Sketches every screen change before it is built and checks the 390 and 1440 px light and dark screenshots before hand-off; works under the Lead UI/UX Designer, Daniel (Design team) |
 
 Both are Claude builder sessions working for the owner through the coordinator session. Names chosen by the
 coordinator at the owner's request (2026-11-05).
@@ -41,11 +42,11 @@ coordinator at the owner's request (2026-11-05).
 
 | Kind | Files |
 |---|---|
-| Domain services | `app/Domain/Organisation/Inventory/Services/` — `InventoryMovementService`, `InventoryBatchEligibility`, `InventoryBatchHoldService`, `GovernedStockService`, `InventoryStockReviewService`, `InventoryReadinessService`, `ProcurementService`, `ReceivingReviewService`, `ReceiptCorrectionService`, `StockRequestService`, `SupplierReturnService`, `TreatmentUsageService`, `InventoryReferenceAdministrationService`, `SupplierSettingsService`, `InventoryPickerService`, `InventoryMovementProjection`, `StockUnitQuantity`, `LegacyStockPath` and others |
+| Domain services | `app/Domain/Organisation/Inventory/Services/` — `InventoryMovementService`, `InventoryBatchEligibility`, `InventoryBatchHoldService`, `GovernedStockService`, `InventoryStockReviewService`, `InventoryReadinessService`, `ProcurementService`, `ReceivingReviewService`, `ReceiptCorrectionService`, `StockRequestService`, `SupplierReturnService`, `TreatmentUsageService`, `InventoryCodeLookupService`, `InventoryReferenceAdministrationService`, `SupplierSettingsService`, `InventoryPickerService`, `InventoryMovementProjection`, `StockUnitQuantity`, `LegacyStockPath` and others |
 | Models | `app/Domain/Organisation/Inventory/Models/` — items, SKUs, batches, locations, balances, movements, purchase orders, goods receipts, stock requests, stocktakes, adjustments, reorder levels, suppliers |
 | Pages | `resources/js/pages/Inventory/*.vue` |
 | Analysis | `docs/reports/ANALYSIS-STOCK.md` (proposals STK-1 to STK-10, owner and pharmacist questions) |
-| Delivery reports | `docs/reports/STK-1.md` to `STK-8.md` |
+| Delivery reports | `docs/reports/STK-1.md` to `STK-9.md` |
 | Tests | `tests/Feature/Inventory/*` (including the PostgreSQL contention tests), `PostgresDispensaryInventoryRegressionTest`, `InventoryOperationsTest`, `NAV01ExplicitRedirectsTest` |
 
 ## 4. Permissions (who can do what today)
@@ -85,7 +86,8 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php`. Key ones:
 | CLOCK-1 | Stock review test uses branch dates | #208 |
 | STK-6 | Transfer shortages: receipt lines (accepted, short, damaged, extra), only accepted enters stock, append-only differences resolved by a different write-off approver (domain and PostgreSQL) | #217 |
 | STK-7 | Supplier returns: request from a verified receipt lot, approval by a different person (Finance Officer or Director), dispatch through a new `supplier_return` ledger movement, credit-note reference (no payment); append-only evidence guarded by PostgreSQL | #233 |
-| STK-8 | Treatment-room usage and waste: CA or CA Supervisor records stock used or wasted outside dispensing (new `treatment_usage` and `treatment_waste` ledger movements), optional treatment room, no patient link or bill; a different CA Supervisor, Finance Officer or Director may reverse an entry once (credit back as `adjustment_in`); append-only evidence guarded by PostgreSQL | pending (branch `feature/stk-8-treatment-room-usage`) |
+| STK-8 | Treatment-room usage and waste: CA or CA Supervisor records stock used or wasted outside dispensing (new `treatment_usage` and `treatment_waste` ledger movements), optional treatment room, no patient link or bill; a different CA Supervisor, Finance Officer or Director may reverse an entry once (credit back as `adjustment_in`); append-only evidence guarded by PostgreSQL | #244 |
+| STK-9 | Barcode scanning on Inventory screens (receiving, governed count and write-off, treatment-room usage, supplier returns): handheld scanner, typing, or the browser's built-in camera reader; one barcode, one SKU per organisation (domain and PostgreSQL, existing duplicates listed on Pilot readiness); a scan only finds | pending (branch `feature/stk-9-barcode-scanning`) |
 
 ## 6. Owner decisions already made (never ask again)
 
@@ -130,11 +132,29 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php`. Key ones:
     the Reports team adds a column (2026-11-05).
 21. STK-8 waste rule: usage and waste are for usable stock only; expired, held or unavailable stock is refused and
     goes through the governed Write-off, keeping its second approver (2026-11-05, after Mei Ling's review).
+22. STK-9 screens: scanning on Inventory screens only (receiving, governed count and write-off, treatment-room
+    usage, supplier returns); dispensing is the Dispensary & OTC team's own piece, reusing `GET /inventory/scan`
+    (2026-11-05).
+23. STK-9 codes: one barcode, one SKU per organisation (trimmed, case-insensitive), enforced in the domain and
+    PostgreSQL; existing duplicates are not changed and are listed on Pilot readiness to fix by hand; the batch is
+    still picked by hand (2026-11-05).
+24. STK-9 hardware: handheld USB or Bluetooth scanners, typing, and the phone or tablet camera through the
+    browser's built-in barcode reader only (Android Chrome); no barcode library, so iPhone and iPad fall back to a
+    scanner or typing (2026-11-05).
+25. Design team rule (relayed by LUCY, 2026-11-05): every piece that changes a screen has Wei Jie sketch it before
+    building and check the screenshots against `docs/design/CHECKLIST.md` before hand-off; a new page or page layout
+    change also goes to Daniel through LUCY. Pieces with no screen change skip this.
+26. Backup push (relayed by LUCY, 2026-11-05): whenever the team stops to wait for the owner (a "ship it", a
+    question or the end of a turn) with work not yet on GitHub, it commits that work to the piece's own feature
+    branch and pushes it (`git push -u origin <branch>`). Backup only: no PR, never `main` or another team's branch,
+    never merge, never force-push. If the branch already has an open PR, push only when the change is ready (a push
+    re-runs CI). The PR still opens only after "ship it", from the same branch, with the latest `origin/main`
+    merged first. After a session restart on a fresh machine, fetch the branch before continuing.
 
 ## 7. Open items and known limits
 
-- **Planned, not built:** STK-9 barcode scanning (label batch and expiry moves
-  to the Dispensary team's DSP-2), STK-10 valuation (accountant policy first).
+- **Planned, not built:** STK-10 valuation (accountant policy first). Label batch and expiry is the Dispensary
+  team's DSP-2 (merged).
 - **Parked review (2026-10-21):** no match against a supplier's invoice, no printable purchase order, reorder levels raise no alert by themselves (STK-4 worklists now show
   low stock). `InventoryController::referenceData()` still projects all items, SKUs and locations unbounded.
 - **Professional questions** for a pharmacist or the regulator: regulated items, registers, FEFO policy,
@@ -160,6 +180,12 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php`. Key ones:
   or bundles; the treatment room is optional and only a label; a reversal returns the whole entry (no partial
   reversal) and an entry can be reversed once; the Stock movement summary shows usage, waste and their reversals
   under "Adjusted" (report owned by the Reports team).
+- STK-9 limits: a scan only finds a SKU (or highlights a receiving line); it never ticks, fills or posts anything,
+  and the batch is still picked by hand; supplier GS1 batch and expiry data in a barcode is not read; camera
+  scanning works only where the browser has a built-in barcode reader and on a secure (https) page, so iPhone and
+  iPad use a scanner or typing; a legacy shared code is refused by the lookup until it is fixed on Pilot readiness
+  (reference managers only); a typed exact SKU code also matches; dispensing has no scanning yet (Dispensary team);
+  there is still no general SKU edit screen in Stock setup.
 
 ## 8. Rules (every task)
 
@@ -173,7 +199,11 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php`. Key ones:
 - Do not change any existing test assertion without the owner's approval.
 - Full gate before hand-off on a task-owned PostgreSQL 18 database, including every inventory contention
   test with none skipped; screenshots at 1440 and 390 px, light and dark, for any screen change.
-- Commit, push and PR only after the owner says "ship it" (directly, or relayed by LUCY, the coordinator
+- Screen changes: Wei Jie sketches the layout before building and checks the 390 and 1440 px light and dark
+  screenshots against `docs/design/CHECKLIST.md` before hand-off; new pages and layout changes also go to Daniel
+  through LUCY (section 6 item 25).
+- Backup push to the piece's own feature branch whenever stopping to wait for the owner (section 6 item 26).
+- Open the PR only after the owner says "ship it" (directly, or relayed by LUCY, the coordinator
   session; see section 6 item 16); never merge. If a relayed message conflicts with something the owner said
   directly, stop and ask the owner.
 - Record every new owner decision in section 6 and every finished piece in section 5, in the same PR.
@@ -193,9 +223,9 @@ matching proposal in `docs/reports/ANALYSIS-STOCK.md` section 8 unless an owner 
 2. **STK-7 Supplier returns.** *Merged in PR #233.* Return request, approval and dispatch tied to the receipt and batch, with a
    credit-note reference; no payment engine; Finance sees commercial references without patient data. **Owner
    decision 2026-11-05: a CA Supervisor requests; a Finance Officer or Director approves, never the requester.**
-3. **STK-8 Treatment-room usage.** *Built 2026-11-05, awaiting owner review.* Dedicated non-dispensed usage and waste records and movements (not hidden
+3. **STK-8 Treatment-room usage.** *Merged in PR #244.* Dedicated non-dispensed usage and waste records and movements (not hidden
    in adjustments); no billing bundles; not linked to a patient unless separately authorised. **Owner decision
    2026-11-05: CA and CA Supervisor record usage; every entry audited and shown in stock reports.**
-4. **STK-9 Barcode scanning.** Scan a known code to pick the item and batch when receiving, counting or
+4. **STK-9 Barcode scanning.** *Built 2026-11-05, awaiting owner review.* Scan a known code to pick the item and batch when receiving, counting or
    dispensing; codes map locally; no external lookup; scanning never authorises an action by itself. Label
    batch and expiry printing belongs to the Dispensary team's DSP-2.

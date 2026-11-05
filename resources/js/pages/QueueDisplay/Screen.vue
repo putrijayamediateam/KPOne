@@ -485,6 +485,7 @@ onBeforeUnmount(() => {
         <main
             class="grid min-h-0 flex-1 grid-cols-1 gap-4 p-4 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)] lg:gap-6 lg:p-6"
         >
+            <h1 class="sr-only">Queue display</h1>
             <section
                 class="flex min-h-0 min-w-0 flex-col gap-4"
                 aria-label="Queue calls"

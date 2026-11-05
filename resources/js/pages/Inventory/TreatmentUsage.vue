@@ -2,6 +2,7 @@
 import { Head, router, useForm, usePage } from '@inertiajs/vue3';
 import { computed, ref, watch } from 'vue';
 import InputError from '@/components/InputError.vue';
+import ScanInput from '@/components/inventory/ScanInput.vue';
 import {
     Dialog,
     DialogContent,
@@ -9,6 +10,7 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
+import type { ScannedSku } from '@/lib/scan';
 import {
     firstReason,
     ineligibleBatchLabels,
@@ -101,6 +103,10 @@ watch(
     },
 );
 
+function scanned(sku: ScannedSku) {
+    stockQ.value = sku.sku_code;
+    search(1, 1);
+}
 function search(page = 1, stockPage = 1) {
     router.get(
         '/inventory/treatment-usage',
@@ -197,6 +203,11 @@ watch(
             <h2 id="stock-heading" class="text-lg font-semibold">
                 Stock on hand ({{ usage.stock.total }})
             </h2>
+            <ScanInput
+                context="search"
+                refocus-key="treatment-usage"
+                @found="scanned"
+            />
             <form
                 class="flex flex-wrap items-end gap-2"
                 @submit.prevent="search(1, 1)"

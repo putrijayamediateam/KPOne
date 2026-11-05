@@ -4,6 +4,7 @@ namespace App\Domain\Shared\Services;
 
 use App\Domain\Organisation\Models\Branch;
 use App\Domain\Visit\Billing\Models\PanelClaim;
+use App\Domain\Visit\Billing\Models\PanelClaimPaymentReversal;
 use App\Domain\Visit\Billing\Services\PanelClaimAmounts;
 use App\Domain\Visit\Billing\Services\PanelClaimEligibility;
 use App\Models\User;
@@ -46,7 +47,7 @@ class PanelSummaryReportService extends BranchReportService
             $submittedDates = DB::table('panel_claim_events')->where('organisation_id', $actor->organisation_id)->where('branch_id', $branch->id)
                 ->whereIn('panel_claim_id', $claims->pluck('id'))->where('event_type', 'submitted')->selectRaw('panel_claim_id, MIN(occurred_at) AS first_submitted')->groupBy('panel_claim_id')->pluck('first_submitted', 'panel_claim_id');
             $payments = DB::table('panel_claim_payments')->where('organisation_id', $actor->organisation_id)->where('branch_id', $branch->id)
-                ->whereIn('panel_claim_id', $claims->pluck('id'))->selectRaw('panel_claim_id, SUM(amount_sen) AS paid')->groupBy('panel_claim_id')->pluck('paid', 'panel_claim_id');
+                ->whereIn('panel_claim_id', $claims->pluck('id'))->whereRaw(PanelClaimPaymentReversal::NOT_REVERSED)->selectRaw('panel_claim_id, SUM(amount_sen) AS paid')->groupBy('panel_claim_id')->pluck('paid', 'panel_claim_id');
             foreach ($allocations as $allocation) {
                 $id = (int) $allocation->panel_id;
                 $group = $groups[$id] ?? ['name' => (string) $allocation->name, 'values' => array_fill(0, 18, 0)];

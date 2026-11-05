@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
-import { BadgeCheck, FileClock, Pencil, Plus } from '@lucide/vue';
+import { BadgeCheck, Pencil, Plus } from '@lucide/vue';
 import { ref } from 'vue';
 import InputError from '@/components/InputError.vue';
+import PatientChangeHistory from '@/components/patient/PatientChangeHistory.vue';
+import type { PatientChangeHistoryData } from '@/components/patient/PatientChangeHistory.vue';
 import PatientMergePanel from '@/components/patient/PatientMergePanel.vue';
 import type { PatientMergePanelData } from '@/components/patient/PatientMergePanel.vue';
 import WhatsAppLink from '@/components/patient/WhatsAppLink.vue';
@@ -20,6 +22,7 @@ defineOptions({
 const props = defineProps<{
     patient: PatientDetail;
     merge?: PatientMergePanelData;
+    history?: PatientChangeHistoryData | null;
 }>();
 const addOpen = ref(false);
 const correcting = ref<PatientIdentifier | null>(null);
@@ -216,6 +219,7 @@ const formatTime = (value: string) =>
             >
                 <select
                     v-model="identifierForm.identifier_type"
+                    aria-label="Identifier type"
                     :disabled="!!correcting"
                     class="h-10 rounded-md border bg-background px-3 text-sm"
                 >
@@ -226,11 +230,13 @@ const formatTime = (value: string) =>
                     v-model="identifierForm.issuing_country_code"
                     :disabled="identifierForm.identifier_type === 'nric'"
                     maxlength="2"
+                    aria-label="Issuing country"
                     class="h-10 rounded-md border bg-background px-3 text-sm uppercase"
                     placeholder="Issuer"
                 />
                 <input
                     v-model="identifierForm.value"
+                    aria-label="Identifier value"
                     autocomplete="off"
                     class="h-10 rounded-md border bg-background px-3 text-sm"
                     :placeholder="
@@ -320,41 +326,7 @@ const formatTime = (value: string) =>
             </div>
         </section>
 
-        <section
-            v-if="patient.activity.length"
-            class="rounded-lg border bg-card"
-        >
-            <div class="border-b px-5 py-4">
-                <h2 class="flex items-center gap-2 font-semibold">
-                    <FileClock class="size-4" /> Authorized activity
-                </h2>
-            </div>
-            <div class="divide-y text-sm">
-                <div
-                    v-for="(event, index) in patient.activity"
-                    :key="event.occurredAt + index"
-                    class="flex justify-between gap-4 px-5 py-3"
-                >
-                    <div>
-                        <span class="font-medium">{{ event.event }}</span
-                        ><span v-if="event.identifierType">
-                            · {{ event.identifierType.toUpperCase() }}</span
-                        >
-                        <div
-                            v-if="event.changedFields.length"
-                            class="text-xs text-muted-foreground"
-                        >
-                            {{ event.changedFields.join(', ') }}
-                        </div>
-                    </div>
-                    <div class="text-right text-xs text-muted-foreground">
-                        {{ event.actor }}<br />{{
-                            formatTime(event.occurredAt)
-                        }}
-                    </div>
-                </div>
-            </div>
-        </section>
+        <PatientChangeHistory v-if="history" :history="history" />
         <PatientMergePanel
             v-if="merge"
             :patient-number="patient.patientNumber"
