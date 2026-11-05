@@ -113,7 +113,7 @@ final class PanelClaimDirectoryService
                     'diagnosis' => $actor->can('panel.claims.clinical_filters.branch') ? (string) ($filters['diagnosis'] ?? '') : '',
                     'treatment' => $actor->can('panel.claims.clinical_filters.branch') ? (string) ($filters['treatment'] ?? '') : '',
                 ],
-                'can' => ['clinicalFilters' => $actor->can('panel.claims.clinical_filters.branch')],
+                'can' => ['clinicalFilters' => $actor->can('panel.claims.clinical_filters.branch'), 'recordRemittances' => $actor->can(PanelRemittanceService::PERMISSION)],
                 'claims' => [
                     'data' => $claims->getCollection()->map(fn (PanelClaim $claim): array => [
                         'publicId' => $claim->public_id,
