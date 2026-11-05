@@ -516,7 +516,6 @@ const reverse = (receipt: Receipt) =>
                                 v-if="billing.can.print"
                                 :url="`${invoiceBase}/receipts/${receipt.publicId}/issue`"
                                 label="Print receipt"
-                                variant="ghost"
                                 :return-to="manage ? 'payments' : 'billing'"
                             />
                             <Button
@@ -1427,6 +1426,14 @@ const reverse = (receipt: Receipt) =>
     height: 30px;
     padding-inline: 10px;
     font-size: 12px;
+}
+/* Phone touch targets (GUIDE: 44 px): buttons marked data-touch-target escape the compact height above. */
+@media (max-width: 639.98px) {
+    .billing-entry :deep([data-touch-target]),
+    .billing-workspace :deep([data-touch-target]) {
+        height: auto;
+        min-height: 44px;
+    }
 }
 .billing-entry :deep(input),
 .billing-entry :deep(textarea),
