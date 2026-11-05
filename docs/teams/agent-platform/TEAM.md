@@ -43,6 +43,7 @@ HR, finance, marketing, Panel or management agents, the 3D office, and the desig
 | Pages | `resources/js/pages/Agents/` (`Index.vue` is the registry) |
 | Routes | `routes/web.php`, prefix `/agents`, names `agents.*` |
 | Data sources (AG-4) | `app/Domain/Agents/Tools/`: `AgentTool`, `AgentToolRegistry`, `AgentToolGateway`, `AggregatePayloadGuard`, one class per tool. **AG-10 adds `system.health` without editing this folder:** put the class in `app/Domain/Agents/Health/` and tag it in a service provider, `$this->app->tag([SystemHealthTool::class], AgentToolRegistry::TAG);`. The registry test accepts any subset of the ten contract codes that includes AG-4's nine. |
+| Approval inbox (AG-2) | `app/Domain/Agents/Proposals/`: `ProposalTypes` (proposer, deciding permission, payload fields per type), `AiProposal`, `ProposalService` (`propose`, `approve`, `reject`, `withdraw`, `canDecide`), `ProposalInbox` (page read model); `AgentInboxController`; page `resources/js/pages/Agents/Inbox.vue` at `/agents/inbox`; migration `2026_11_05_200000_create_ai_proposals.php` |
 | Tests | `tests/Feature/Agents/`, `tests/Frontend/ag-*.test.mjs`; no-AI guard `tests/Feature/Agents/NoAiServiceGuardTest.php` |
 | Reserved names per slice | Contract section 10 |
 
@@ -74,6 +75,21 @@ tool without a branch the requester is assigned to, and any result key naming pe
 (`AggregatePayloadGuard::FORBIDDEN_WORDS`, e.g. `name`, `patient`, `phone`): use `item`, `panel`, `doctor`,
 `locationLabel`, `uniqueVisitors` instead.
 
+Proposing (AG-2), from an agent's run, idempotent per key:
+
+```php
+app(ProposalService::class)->propose($run, 'inventory.restock_suggestion', $branch, [
+    'sku_public_id' => $skuId, 'location_public_id' => $locationId, 'current_quantity' => '3.000',
+    'reorder_level' => '10.000', 'suggested_quantity' => '7.000', 'reason_code' => 'at_or_below_reorder_level',
+], "restock:{$branch->id}:{$skuId}:{$localDate}");
+```
+
+Payloads must hold exactly the fields in `ProposalTypes`; a transfer is proposed at the receiving branch.
+Approval records the decision and an audit row only.
+An agent withdraws its own pending proposal with `withdraw($run, $proposal)`: any active run of the same agent
+may do it (not only the run that proposed), and only at the proposal's branch. Whoever started a run (its requester)
+cannot decide that run's proposals.
+
 Summaries are at most 200 characters, messages at most 2,000; text that looks like an IC number, email address
 or phone number is refused. A finished run cannot change. A disabled agent cannot start a run.
 
@@ -96,6 +112,11 @@ All in the contract; the main ones:
 - Team names: Lead Irfan, Reviewer Shalini (2026-11-05).
 - Nadia's title: "QA Reviewer (AI agent)", Technology (2026-11-05).
 - Team PRs never edit `docs/BASELINE.md`; the coordinator records BASELINE updates (2026-11-05).
+- Per-doctor figures (Lina, daily summary) show doctors' display names, as the Insights Provider table does (2026-11-05).
+- Scheduled 07:00 and 14:00 runs run as "system" (no person's authority), reading only their allowlisted
+  aggregate data sources; each daily summary viewer sees only the sections their own permissions allow
+  (filtering at view time) (2026-11-05). Recorded in CONTRACT.md sections 5 and 14.
+- AG-2 may update the one AG-1 office-feed test to use the real `ai_proposals` table, same checks (2026-11-05).
 
 ## Open items
 
@@ -107,10 +128,7 @@ All in the contract; the main ones:
 4. **Tool allowlist editing:** `ai_agents.manage.organisation` covers it (contract section 4), but AG-1 builds
    only enable and disable; allowlists are set by the seeder.
 5. **Knowledge pack files** (`docs/agents/<code>.md`, contract section 9) are not written yet; no slice owns them.
-6. **Scheduled runs and data sources:** contract section 5 gives `run()` a `User $requester`, and the gateway
-   checks that person's permission. The 07:00 and 14:00 runs (AG-8) have no requester, so AG-8 needs a contract
-   decision on whose permission a scheduled read uses (for example, a section's figures are read for each viewer
-   when the page is built, or a named system rule). Do not bypass the gateway.
+6. **Scheduled runs and data sources:** decided 2026-11-05 (see Owner decisions); AG-8 builds the system path.
 7. **Data source notes (for AG-5 and AG-8):**
    - `uniqueVisitors` / `perVisitorSen` mean distinct patients (renamed because result keys may not say "patient").
    - `insights.today` leaves out the Insights rankings.
@@ -121,14 +139,10 @@ All in the contract; the main ones:
      which every role holds. Section 14's stricter `reports.daily_summary.view.branch` and
      `reports.panel_summary.view.branch` for the daily summary page must be checked by AG-8 when it shows them.
    - A run with no requester (scheduled) can currently be read through by any requester who passes the checks;
-     settle this with item 6.
+     AG-8 replaces this with the system path decided in item 6.
    - Not yet proven by a test with real money: `money.day_summary` and `panel.claims_summary` are tested at zero
      only; AG-8's brief requires equality tests against the Daily summary and Panel summary reports.
-9. **Owner question, doctor names:** `clinic.day_summary` returns the doctor's display name for per-doctor
-   figures, as contract section 14 asks, but principle 4 says no staff personal data. Owner to confirm: show
-   the doctor's display name, or show only an anonymous label (Doctor 1, 2, ...).
-8. **AG-2 foreign keys:** `ai_proposals` references `ai_agents` and `ai_agent_runs` from AG-1. The office feed
-   already counts `pending` proposals once that table exists.
+9. **Doctor names:** decided 2026-11-05: display names (see Owner decisions).
 
 ## History
 
@@ -136,6 +150,7 @@ All in the contract; the main ones:
 |---|---|---|
 | AG-1 Agent registry and activity log | #216, merged as `6f3de3a` (head `1a70cab`) | First CI run failed on five PHPStan type errors (PHPStan cannot run in cloud sessions); fixed with no behaviour change, CI green. 1,612 backend tests, 0 failures; 26 new agent tests; 615 frontend. Migrations `2026_11_05_100000`, `100100`. |
 | AG-4 Read-only data sources and the no-AI guard | this PR (owner approved 2026-11-05) | Full gate: 1,637 backend tests, 0 failures (95 GD image tests left to CI), 44 agent tests, 615 frontend. Nine data sources (`system.health` is AG-10), `AgentToolGateway` (every read inside a run, logged as a step), `AggregatePayloadGuard` (keys and values), `NoAiServiceGuardTest`. No migration, permission, route or page. Independent review: no blocker; S1–S5 and S7 fixed, S6 test gaps partly closed (see open item 7). |
+| AG-2 Approval inbox | not yet opened | Built, awaiting owner review. `ai_proposals` with PostgreSQL rules (decided proposals never change, never deleted, `executed`/`execution_failed` refused), `ProposalService`, `/agents/inbox`. One AG-1 test changed with owner approval (office feed counts real proposals): it now inserts real `ai_proposals` rows and gains one setup line (`complete($run)`) so the light reads yellow from the proposal, not from a running run; every assertion is unchanged. No new permission. Independent review: no blocker; findings fixed (shared personal-text check, scope check for branchless runs, reason trimming, stale-version refresh). |
 
 ## Backlog (in order)
 
@@ -143,8 +158,8 @@ All in the contract; the main ones:
 |---|---|
 | AG-1 Agent registry and activity log | Merged in PR #216 as `6f3de3a` |
 | AG-4 Read-only data sources and the no-AI guard test | Owner approved; PR open (not merged) |
-| AG-2 Approval inbox | Next |
-| AG-3 Agent office page | |
+| AG-2 Approval inbox | Built, awaiting owner review (not committed) |
+| AG-3 Agent office page | Next |
 | AG-7 Ask KPOne | |
 | AG-9 Rizal (stocktake officer) | |
 | AG-10 Faris (system health) | |
