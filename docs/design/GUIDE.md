@@ -176,6 +176,11 @@ scroll region, a hidden `<caption>`, a loading row, an empty row and consistent 
 - **Do** show staff toasts at the top, centred, just under the 52 px sticky header (64 px from the top), at every
   width, desktop included (owner decision 2026-11-05, Staff Experience PR #241, UX-1). The placement lives in
   `resources/js/lib/toastPlacement.ts`, used by `ClinicLayout` and `AdminLayout`; don't set a position per page.
+- **One exception (owner decision 2026-11-05, Staff Experience PR #277, UX-5):** the consultation page in focus mode,
+  from 1024 px wide, shows toasts at the bottom left, at most 20 rem wide
+  (`resources/js/lib/focusToastPlacement.ts`). The page has no staff header and keeps its own toolbar pinned at the
+  top, so a top toast covered Panggil semula and the waiting count. **Don't** copy this to another page: ask the
+  Lead UI/UX Designer first.
 - **Don't** let a toast sit on a page's sticky action bar (SMOKE-1 S1-015: a toast covered Complete Consultation at
   390 px). **Don't** pin a new sticky bar at `top-16` (64 px): that is where toasts appear (the Quick create bar
   clashes today).
