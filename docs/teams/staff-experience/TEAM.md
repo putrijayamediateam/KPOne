@@ -60,7 +60,7 @@ usability aid only and must follow the permission the backend already enforces.
 | UI-POLISH-1 / UI-LEFTOVERS-1 | Labels, guidance, wording fixes from DRY-RUN-1 | #195, #196 |
 | DARK-1 | Dark-mode contrast on four pages (S1-001, S1-006, S1-007, S1-008) | #207 |
 | Guides | Draft Malay quick guides for CA, doctor, CA Supervisor | #197, #199, #203 |
-| UX-1 | Phone annoyances: the mobile drawer closes after a link is followed (S1-017); below 1024 px staff toasts show at the top under the header instead of over sticky bottom actions (S1-015; `lib/toastPlacement.ts`, Clinic and Admin layouts only, public QR layout unchanged); Insights ranking cards fit 320 to 768 px with no sideways page scroll (S1-004). Frontend only; 1440 px unchanged | pending |
+| UX-1 | Phone annoyances: the mobile drawer closes after a link is followed (S1-017); staff toasts show at the top centre under the header at every width instead of over sticky bottom actions (S1-015; `lib/toastPlacement.ts`, Clinic and Admin layouts only, public QR layout unchanged); Insights ranking cards fit 320 to 768 px with no sideways page scroll (S1-004). Frontend only; apart from the toast position, 1440 px unchanged | #241 |
 
 ## 6. Owner decisions already made (never ask again)
 
@@ -70,19 +70,22 @@ usability aid only and must follow the permission the backend already enforces.
    real screens before use.
 3. The backlog in section 9 was chosen by the owner (2026-11-05).
 4. A "ship it" or decision relayed by LUCY counts as the owner's own (owner rule 2026-11-05).
+5. Staff toasts show at the top centre at every width, desktop included, never over a sticky bottom action bar
+   (owner decision 2026-11-05, UX-1).
 
 ## 7. Open items and known limits
 
 - SMOKE-1 open findings: S1-005 Medical Certificates link offered before an encounter exists (404); S1-009 to
   S1-014 missing accessible names and page headings; S1-016 mixed Malay and English labels (Registration and
-  Patient done in REG-2; "Panggil semula" kept). S1-004, S1-015 and S1-017 are fixed by UX-1 (PR pending).
-- UX-1 known limits: from 1024 px up toasts stay bottom-right (unchanged, as asked), and at 1440 px the
-  "Treatment Plan saved." toast still covers Complete Consultation for its few seconds (measured 2026-11-05;
-  open owner choice: also move desktop toasts to the top, or leave). At 320 px a Today ranking card can scroll
+  Patient done in REG-2; "Panggil semula" kept). S1-004, S1-015 and S1-017 are fixed by UX-1 (PR #241).
+- UX-1 known limits: at 320 px a Today ranking card can scroll
   inside the card when every column holds a large ringgit figure; the page itself does not scroll sideways.
   Long ranking names are cut with "…" on phones (full name in the tooltip and in View all).
+- UX-1 toast at the top (measured 2026-11-05): at 1440 px on the consultation page (focus mode, no header), when
+  the page is scrolled to the top, the toast covers the "Panggil semula", waiting-count and Attendance
+  confirmation buttons for its few seconds. Complete Consultation is clear at every width.
 - UX-1 review note: Quick create (`Registration/Create.vue`) keeps its Register Visit card sticky at `max-lg:top-16`
-  (64 px), the same height as a phone or tablet toast, so a flash toast there would briefly cover it. That page
+  (64 px), the same height as the staff toast, so a flash toast there would briefly cover it. That page
   fires no toast of its own today; owned by Patients & Registration, so left unchanged.
 - `/patients/create` is about 433 px wide at 390 px when errors show: Patients & Registration team's item, not ours.
 

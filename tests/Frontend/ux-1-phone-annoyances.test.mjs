@@ -58,19 +58,15 @@ test('UX-1 S1-017: the mobile drawer is controlled and closes when one of its li
     assert.doesNotMatch(source, /router\.on\(\s*['"]navigate/);
 });
 
-test('UX-1 S1-015: staff toasts move to the top below the lg breakpoint and keep the desktop default', () => {
+test('UX-1 S1-015: staff toasts show at the top centre at every width, below the sticky header', () => {
     const source = read('resources/js/lib/toastPlacement.ts');
 
-    assert.match(source, /STAFF_TOAST_DESKTOP_QUERY = '\(min-width: 1024px\)'/);
     assert.match(source, /STAFF_TOAST_TOP_OFFSET = '64px'/);
-    assert.match(
-        source,
-        /if \(desktop\) \{\s*return \{\};\s*\}/,
-        'desktop keeps the library default (bottom-right) unchanged',
-    );
     assert.match(source, /position: 'top-center'/);
     assert.match(source, /offset: \{ top: STAFF_TOAST_TOP_OFFSET \}/);
     assert.match(source, /mobileOffset: \{ top: STAFF_TOAST_TOP_OFFSET \}/);
+    // Owner decision 2026-11-05: desktop too, so no width condition and no bottom position.
+    assert.doesNotMatch(source, /useMediaQuery|min-width|bottom-/);
 });
 
 test('UX-1 S1-015: every staff layout passes the staff placement to its Toaster; the public QR layout is untouched', () => {
@@ -85,15 +81,11 @@ test('UX-1 S1-015: every staff layout passes the staff placement to its Toaster;
 
         assert.match(
             source,
-            /import \{ useStaffToastPlacement \} from '@\/lib\/toastPlacement';/,
-        );
-        assert.match(
-            source,
-            /const toastPlacement = useStaffToastPlacement\(\);/,
+            /import \{ STAFF_TOAST_PLACEMENT \} from '@\/lib\/toastPlacement';/,
         );
         assert.equal(
             directive(toaster, 'bind')?.exp?.content,
-            'toastPlacement',
+            'STAFF_TOAST_PLACEMENT',
         );
     }
 

@@ -2,9 +2,7 @@
 import AppShell from '@/components/AppShell.vue';
 import { Toaster } from '@/components/ui/sonner';
 import WorkspaceHeader from '@/components/workspace/WorkspaceHeader.vue';
-import { useStaffToastPlacement } from '@/lib/toastPlacement';
-
-const toastPlacement = useStaffToastPlacement();
+import { STAFF_TOAST_PLACEMENT } from '@/lib/toastPlacement';
 </script>
 
 <template>
@@ -13,6 +11,6 @@ const toastPlacement = useStaffToastPlacement();
         <div class="mx-auto flex min-h-0 w-full max-w-7xl flex-1 flex-col">
             <slot />
         </div>
-        <Toaster v-bind="toastPlacement" />
+        <Toaster v-bind="STAFF_TOAST_PLACEMENT" />
     </AppShell>
 </template>
