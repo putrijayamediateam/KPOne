@@ -340,7 +340,7 @@ class PatientAdministrationService
     private function normalizeIdentifierList(mixed $identifiers): array
     {
         if (! is_array($identifiers) || count($identifiers) !== 1 || ! is_array($identifiers[0] ?? null)) {
-            throw ValidationException::withMessages(['identifiers' => 'Pilih satu No. IC atau Passport.']);
+            throw ValidationException::withMessages(['identifiers' => 'Choose IC number or Passport.']);
         }
 
         $normalized = [];

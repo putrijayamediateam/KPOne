@@ -2,6 +2,7 @@
 import { router, useForm, usePage } from '@inertiajs/vue3';
 import { computed } from 'vue';
 import InputError from '@/components/InputError.vue';
+import { ActionLink } from '@/components/ui/action-link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { PageHeader } from '@/components/ui/page-header';
@@ -144,7 +145,13 @@ const recordClose = () => {
         <PageHeader
             title="Terminal Reconciliation"
             description="Record a terminal closing summary and compare approved sales with KPOne receipts."
-        />
+        >
+            <template #actions>
+                <ActionLink href="/cash-closings" variant="secondary">
+                    Daily cash closing
+                </ActionLink>
+            </template>
+        </PageHeader>
 
         <section class="rounded-xl border bg-card p-4">
             <div class="flex flex-wrap items-start justify-between gap-4">

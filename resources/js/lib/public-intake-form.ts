@@ -175,7 +175,7 @@ export const validateIntakeStep = (
             !filled(form.mobile_phone) &&
             !(dateOfBirth && ageOn(dateOfBirth, options.today) < 18)
         ) {
-            add('mobile_phone', 'Nombor telefon diperlukan.');
+            add('mobile_phone', 'Phone number is required.');
         } else if (tooLong(form.mobile_phone, 64)) {
             add('mobile_phone', 'Nombor telefon terlalu panjang.');
         }
