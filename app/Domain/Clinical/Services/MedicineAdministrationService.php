@@ -134,6 +134,87 @@ class MedicineAdministrationService
         }, 3);
     }
 
+    public const MAX_ALLERGY_GROUPS = 10;
+
+    public const MAX_ALLERGY_GROUP_LENGTH = 60;
+
+    /**
+     * DSP-1b (owner decision 2026-11-05): catalogue editors tag a medicine with drug groups (for example
+     * "Penicillins", "NSAIDs") so the Dispensary allergy warning can match an allergy to the group. KPOne
+     * ships no clinical list; the editors decide. The caller sends the list it saw, so a change made
+     * meanwhile is refused instead of overwritten. Audited with the field name and the count only.
+     *
+     * @param  array<int, mixed>  $groups
+     * @param  array<int, mixed>  $expectedCurrent
+     */
+    public function setAllergyGroups(User $actor, MedicineCatalogueItem $medicine, array $groups, array $expectedCurrent): MedicineCatalogueItem
+    {
+        $this->authorize($actor);
+        $normalised = $this->normaliseAllergyGroups($groups);
+
+        return DB::transaction(function () use ($actor, $medicine, $normalised, $expectedCurrent): MedicineCatalogueItem {
+            $this->lockOrganisation($actor);
+            $locked = $this->lockMedicine($actor, $medicine);
+            $current = $locked->allergyGroupList();
+            if ($current === $normalised) {
+                return $locked;
+            }
+            if ($current !== array_values(array_map('strval', $expectedCurrent))) {
+                throw ValidationException::withMessages(['allergy_groups' => 'This medicine changed. Reload and review it again.']);
+            }
+
+            $locked->forceFill([
+                'allergy_groups' => $normalised,
+                'updated_by_user_id' => $actor->id,
+            ])->save();
+
+            $this->audit->record('medicine_catalogue.allergy_groups_changed', $locked, [
+                'medicine_public_id' => $locked->public_id,
+                'changed_fields' => ['allergy_groups'],
+                'group_count' => count($normalised),
+            ], $actor, organisationId: $actor->organisation_id);
+
+            return $locked;
+        }, 3);
+    }
+
+    /**
+     * Trim, collapse spaces, drop empties and case-insensitive duplicates; keep the editor's order and case.
+     *
+     * @param  array<int, mixed>  $groups
+     * @return list<string>
+     */
+    private function normaliseAllergyGroups(array $groups): array
+    {
+        $result = [];
+        $seen = [];
+        foreach ($groups as $group) {
+            if ($group === null) {
+                continue;
+            }
+            if (! is_string($group)) {
+                throw ValidationException::withMessages(['allergy_groups' => 'Each drug group must be text.']);
+            }
+            $clean = trim((string) preg_replace('/\s+/u', ' ', $group));
+            if ($clean === '') {
+                continue;
+            }
+            if (preg_match('/[\x00-\x1F\x7F\x{200B}-\x{200F}\x{202A}-\x{202E}\x{2060}\x{2066}-\x{2069}\x{FEFF}]/u', $clean) || mb_strlen($clean) < 3 || mb_strlen($clean) > self::MAX_ALLERGY_GROUP_LENGTH) {
+                throw ValidationException::withMessages(['allergy_groups' => 'Each drug group must be 3 to '.self::MAX_ALLERGY_GROUP_LENGTH.' characters of plain text.']);
+            }
+            $key = Str::lower($clean);
+            if (! isset($seen[$key])) {
+                $seen[$key] = true;
+                $result[] = $clean;
+            }
+        }
+        if (count($result) > self::MAX_ALLERGY_GROUPS) {
+            throw ValidationException::withMessages(['allergy_groups' => 'A medicine can have at most '.self::MAX_ALLERGY_GROUPS.' drug groups.']);
+        }
+
+        return $result;
+    }
+
     private function setActive(User $actor, MedicineCatalogueItem $medicine, bool $active): MedicineCatalogueItem
     {
         $this->authorize($actor);

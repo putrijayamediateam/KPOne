@@ -79,7 +79,7 @@ class DispensaryService
             $matches = [];
             if (in_array($status, [DispensaryItem::STATUS_DISPENSED, DispensaryItem::STATUS_PARTIAL], true)) {
                 $medicine = MedicineCatalogueItem::query()->whereKey($locked->medicine_catalogue_item_id)->where('organisation_id', $actor->organisation_id)->first();
-                $matches = $this->confirmedAllergyMatches($profile, [$locked->medicine_name_snapshot, $medicine?->display_name, $medicine?->generic_name], $attributes);
+                $matches = $this->confirmedAllergyMatches($profile, [$locked->medicine_name_snapshot, $medicine?->display_name, $medicine?->generic_name, ...($medicine?->allergyGroupList() ?? [])], $attributes);
             }
             DispensaryItemException::query()->where('dispensary_item_id', $locked->id)->whereIn('status', [DispensaryItemException::STATUS_AWAITING, DispensaryItemException::STATUS_ACKNOWLEDGED])->each(function ($exception): void {
                 $exception->forceFill(['status' => DispensaryItemException::STATUS_SUPERSEDED])->save();
@@ -114,7 +114,7 @@ class DispensaryService
             [$actor,$branch,$case,$handoff,$items,,,,,$profile] = $context;
             $locked = $this->lockedLine($actor, $case, $handoff, $items, $item, $attributes);
             $medicine = MedicineCatalogueItem::query()->whereKey($locked->medicine_catalogue_item_id)->where('organisation_id', $actor->organisation_id)->first();
-            $matches = $this->confirmedAllergyMatches($profile, [$locked->medicine_name_snapshot, $medicine?->display_name, $medicine?->generic_name], $attributes);
+            $matches = $this->confirmedAllergyMatches($profile, [$locked->medicine_name_snapshot, $medicine?->display_name, $medicine?->generic_name, ...($medicine?->allergyGroupList() ?? [])], $attributes);
             $this->saveLine($actor, $branch, $case, $locked, $attributes, $locked->source === DispensaryItem::SOURCE_CA);
             $this->recordAllergyConfirmations($actor, $branch, $case, $handoff, $locked, $profile, $matches, DispensaryAllergyConfirmation::ACTION_EDIT);
             $case->forceFill(['lock_version' => $case->lock_version + 1])->save();
@@ -147,7 +147,7 @@ class DispensaryService
             if ($items->contains(fn (DispensaryItem $line): bool => $line->medicine_catalogue_item_id === $medicine->id && $line->change_state !== DispensaryItem::CHANGE_REMOVED)) {
                 throw ValidationException::withMessages(['medicine_public_id' => 'This medicine is already on the list. Edit the existing line instead.']);
             }
-            $matches = $this->confirmedAllergyMatches($profile, [$medicine->display_name, $medicine->generic_name], $attributes);
+            $matches = $this->confirmedAllergyMatches($profile, [$medicine->display_name, $medicine->generic_name, ...$medicine->allergyGroupList()], $attributes);
             $quantity = $this->positiveQuantity($attributes['quantity_dispensed'] ?? null);
             $text = $this->cleanText($attributes);
             if ($text['dosage'] === null || $text['frequency'] === null) {
