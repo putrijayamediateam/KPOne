@@ -4,7 +4,7 @@ Draf untuk semakan klinik. Bukan dokumen rasmi.
 
 ## Pilih bilik untuk hari ini
 
-1. Buka halaman “Queue”.
+1. Buka halaman “Consultation” (papan giliran doktor).
 2. Pada pilihan “My room today”, pilih bilik konsultasi untuk hari itu. Pilihan disimpan apabila dibuat.
 3. Jika cawangan menggunakan bilik konsultasi dan nama bilik tiada, hubungi penyelia sebelum membuat panggilan. “Call In” boleh ditolak jika bilik belum dipilih.
 
@@ -14,7 +14,7 @@ Draf untuk semakan klinik. Bukan dokumen rasmi.
 2. Semak dialog dan pilih “Call Patient”.
 3. Jika pesakit ditandakan belum bersedia, gunakan bahagian “Not ready to call” di bawah; jangan cuba panggil berulang kali.
 
-Tab “All active”, “Waiting”, “Serving Now” dan “Consultation Completed” menunjukkan bilangan pesakit pada setiap tab. Cip “Waiting N min” bertukar warna kuning (amber) selepas 30 minit dan merah selepas 60 minit. Warna hanya peringatan; susunan giliran tidak berubah dan pesakit yang ditahan atau sedang dilayan tidak diwarnakan.
+Tab “All active”, “Waiting”, “Serving Now” dan “Consultation Completed” menunjukkan bilangan pesakit anda sendiri pada setiap tab. Cip “Waiting N min” bertukar warna kuning (amber) selepas 30 minit dan merah selepas 60 minit. Warna hanya peringatan; susunan giliran tidak berubah dan pesakit yang ditahan atau sedang dilayan tidak diwarnakan.
 
 Jika anda sedang melayani pesakit berstatus Serving yang tidak ditahan, anda tidak boleh memilih “Call In” untuk pesakit lain di mana-mana cawangan. Tahan konsultasi semasa dengan “On Hold” atau lengkapkannya dengan “Complete Consultation” dahulu.
 
@@ -41,11 +41,11 @@ Jika anda sedang melayani pesakit berstatus Serving yang tidak ditahan, anda tid
 
 Langkah rawatan hanya untuk papan giliran. Ia bukan rekod klinikal dan tidak dipaparkan pada TV. Anda boleh menandakannya untuk pesakit sendiri yang sedang dilayan (Serving), sama ada ditahan atau tidak.
 
-1. Pada halaman “Queue”, buka menu tindakan pesakit dan pilih “Treatment progress…”. Pada halaman konsultasi, gunakan butang “Start treatment step” di bahagian atas.
+1. Pada papan giliran “Consultation”, buka menu tindakan pesakit dan pilih “Treatment progress…”. Pada halaman konsultasi, gunakan butang “Start treatment step” di bahagian atas.
 2. Pada “Treatment step *”, pilih satu langkah: “Nebuliser”, “Wound dressing”, “Injection and observation”, “IV drip”, “Observation after medicine”, “ECG”, “Blood test (point-of-care)” atau “Other procedure”. Pilih “Start”.
 3. Cip seperti “Nebuliser: started 5 min ago” dipaparkan pada lajur Status dan pada pengepala konsultasi.
 4. Apabila rawatan selesai, CA atau anda memilih “Mark done”, kemudian “Mark done” sekali lagi dalam dialog.
-5. Jika CA menandakan langkah selesai, anda menerima mesej di bahagian atas skrin, contohnya “Treatment done: A-004 Nebuliser. Ready to resume.” Pada halaman konsultasi, butang “patients waiting” turut menunjukkan “treatment done, ready to resume”. Bunyi hanya kedengaran jika “Notification sound: On” dipilih pada halaman “Queue”.
+5. Jika CA menandakan langkah selesai, anda menerima mesej di bahagian atas skrin, contohnya “Treatment done: A-004 Nebuliser. Ready to resume.” Pada halaman konsultasi, butang “patients waiting” turut menunjukkan “treatment done, ready to resume”. Bunyi hanya kedengaran jika “Notification sound: On” dipilih pada papan giliran “Consultation”.
 6. Buka konsultasi pesakit itu atau pilih “Resume Consultation”. Tanda “Ready to resume” akan hilang dengan sendirinya.
 7. Jika langkah dimasukkan secara salah, buka dialog langkah itu, buka “Entered in error?”, pilih “Reason *” (“Wrong patient”, “Wrong step” atau “Marked too early”) dan pilih “Cancel step”. Langkah tidak dipadam; ia direkodkan sebagai dibatalkan.
 
