@@ -812,6 +812,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('patients/{patient}', [PatientController::class, 'show'])
             ->middleware('permission:patients.view.organisation')
             ->name('patients.show');
+        // REG-4: patient change history (field names only).
+        Route::get('patients/{patient}/history', [PatientController::class, 'history'])
+            ->middleware(['permission:patients.history.view.organisation', 'sensitive.no-store', 'throttle:60,1'])
+            ->name('patients.history');
         // REG-3: two-person patient merge (link only).
         Route::get('patients/{patient}/merge-compare', [PatientMergeController::class, 'compare'])
             ->middleware(['permission:patients.merge.propose.organisation', 'sensitive.no-store', 'throttle:30,1'])
