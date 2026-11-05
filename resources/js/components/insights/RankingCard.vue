@@ -8,6 +8,7 @@ type RankingItem = {
     salesSen: number;
     unitsSold?: number;
     patients: number;
+    fixed?: boolean;
 };
 
 const props = defineProps<{
@@ -22,8 +23,10 @@ const emit = defineEmits<{
 }>();
 const sortKey = ref<'name' | 'salesSen' | 'patients' | 'unitsSold'>('salesSen');
 const descending = ref(true);
-const rows = computed(() =>
-    [...props.items]
+// DSP-4: a fixed row (OTC) is never sorted or cut; it always follows the top doctors.
+const rows = computed(() => [
+    ...props.items
+        .filter((item) => !item.fixed)
         .sort((left, right) => {
             const a = left[sortKey.value] ?? 0;
             const b = right[sortKey.value] ?? 0;
@@ -35,7 +38,8 @@ const rows = computed(() =>
             return descending.value ? -comparison : comparison;
         })
         .slice(0, 10),
-);
+    ...props.items.filter((item) => item.fixed),
+]);
 
 const sort = (key: typeof sortKey.value) => {
     if (sortKey.value === key) {

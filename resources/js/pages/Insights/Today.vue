@@ -61,18 +61,26 @@ let refreshTimer: number | undefined;
 const filteredRows = computed(() => {
     const query = search.value.trim().toLocaleLowerCase();
 
-    return [...detailRows.value]
-        .filter((row) => !query || row.name.toLocaleLowerCase().includes(query))
-        .sort((left, right) => {
-            const a = left[sortKey.value] ?? 0;
-            const b = right[sortKey.value] ?? 0;
-            const comparison =
-                typeof a === 'string'
-                    ? a.localeCompare(String(b))
-                    : Number(a) - Number(b);
+    const matching = detailRows.value.filter(
+        (row) => !query || row.name.toLocaleLowerCase().includes(query),
+    );
 
-            return descending.value ? -comparison : comparison;
-        });
+    // DSP-4: the fixed OTC row stays last whatever the sort.
+    return [
+        ...matching
+            .filter((row) => !row.fixed)
+            .sort((left, right) => {
+                const a = left[sortKey.value] ?? 0;
+                const b = right[sortKey.value] ?? 0;
+                const comparison =
+                    typeof a === 'string'
+                        ? a.localeCompare(String(b))
+                        : Number(a) - Number(b);
+
+                return descending.value ? -comparison : comparison;
+            }),
+        ...matching.filter((row) => row.fixed),
+    ];
 });
 
 const salesTrendSummary = computed(() => {

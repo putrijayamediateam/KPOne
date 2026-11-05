@@ -198,7 +198,7 @@ class ClinicInsightsService
 
     /**
      * @param  array<int, array{branch: Branch, todayStart: CarbonImmutable, tomorrowStart: CarbonImmutable, yesterdayStart: CarbonImmutable}>  $periods
-     * @return list<array{name: string, salesSen: int, patients: int}>
+     * @return list<array{name: string, salesSen: int, patients: int, fixed?: true}>
      */
     private function providerRankings(User $actor, array $periods): array
     {
@@ -209,7 +209,11 @@ class ClinicInsightsService
             ->where('invoices.status', 'finalized');
         $this->applyPeriod($query, $periods, 'invoices.finalized_at', 'today', 'invoices.branch_id');
 
-        return array_values($query->selectRaw('users.id, users.name, SUM(kpone_invoice_payable(invoices.id)) as sales_sen, COUNT(DISTINCT invoices.patient_id) as patients')
+        $otcQuery = DB::table('invoices')->where('invoices.organisation_id', $actor->organisation_id)->where('invoices.status', 'finalized');
+        $this->applyPeriod($otcQuery, $periods, 'invoices.finalized_at', 'today', 'invoices.branch_id');
+        $otc = OtcProviderRow::from($otcQuery);
+
+        $doctors = array_values($query->selectRaw('users.id, users.name, SUM(kpone_invoice_payable(invoices.id)) as sales_sen, COUNT(DISTINCT invoices.patient_id) as patients')
             ->groupBy('users.id', 'users.name')
             ->orderByDesc('sales_sen')
             ->orderBy('users.name')
@@ -219,6 +223,9 @@ class ClinicInsightsService
                 'salesSen' => (int) $row->sales_sen,
                 'patients' => (int) $row->patients,
             ])->all());
+
+        // DSP-4: OTC sales have no doctor; one fixed row, always last.
+        return $otc === null ? $doctors : [...$doctors, $otc];
     }
 
     /**
