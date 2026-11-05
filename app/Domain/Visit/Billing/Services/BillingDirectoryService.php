@@ -75,6 +75,7 @@ class BillingDirectoryService
                     ...($printing ? [] : ['recordedBy' => $recorders[$p->recorded_by_user_id] ?? 'Staff member'])])->all(),
                 // BIL-6: reversed receipts of this visit and their refunds, for refund recorders and approvers only.
                 'refunds' => $printing ? null : app(RefundService::class)->forVisit($actor, $visit, $branch->timezone),
+                'issuedCopies' => $printing ? null : app(IssuedBillingDocumentService::class)->forVisit($actor, $visit, $branch->timezone),
                 'methods' => $actor->can('payments.add.branch') ? PaymentMethod::query()->where('organisation_id', $actor->organisation_id)->operational()->orderBy('sort_order')->orderBy('name')->get()->map(fn ($m): array => ['code' => $m->code, 'name' => $m->name, 'requiresReference' => $m->requires_reference])->all() : [],
                 'panels' => $actor->can('coverage.propose.branch') ? Panel::query()->where('organisation_id', $actor->organisation_id)->where('is_active', true)->orderBy('name')->limit(100)->get(['id', 'name'])->toArray() : [],
                 'can' => ['build' => $actor->can('billing.build.branch') && $visit->status === Visit::STATUS_REGISTERED && (($checkout !== null && ($checkout->route === 'billing' || $case?->status === DispensaryCase::STATUS_COMPLETED)) || ($visit->visit_type === 'otc' && $case?->case_type === DispensaryCase::TYPE_OTC && $case->status === DispensaryCase::STATUS_COMPLETED)) && (! $invoice || $invoice->status === 'draft'),
