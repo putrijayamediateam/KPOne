@@ -145,7 +145,9 @@ const printLabels = async () => {
                 {{
                     labels.items.length === 1
                         ? 'This label was printed before. It will print marked REPRINT.'
-                        : `${reprintCount} of these labels were printed before. They will print marked REPRINT.`
+                        : reprintCount === 1
+                          ? '1 of these labels was printed before. It will print marked REPRINT.'
+                          : `${reprintCount} of these labels were printed before. They will print marked REPRINT.`
                 }}
             </p>
             <Button
@@ -267,6 +269,15 @@ const printLabels = async () => {
     max-width: 680px;
     margin: 0 auto 20px;
     font-size: 14px;
+}
+/* DSP-8: phone tap target of at least 44 px (design guide, section 12); screen only. */
+@media screen and (max-width: 639.98px) {
+    .print-toolbar :deep(button),
+    .print-toolbar :deep(a) {
+        display: inline-flex;
+        align-items: center;
+        min-height: 44px;
+    }
 }
 .print-toolbar h1,
 .print-toolbar h2 {
