@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Head, router, usePage } from '@inertiajs/vue3';
+import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import { computed, reactive, ref } from 'vue';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -61,7 +61,7 @@ type Props = {
             diagnosis: string;
             treatment: string;
         };
-        can: { clinicalFilters: boolean };
+        can: { clinicalFilters: boolean; recordRemittances?: boolean };
         eligible: PageSet<{
             allocationId: string;
             allocationLockVersion: number;
@@ -466,6 +466,17 @@ const visitTypeLabel = (value: string) =>
                 </p>
             </div>
             <div class="flex flex-wrap items-center gap-2">
+                <Button as-child variant="secondary" size="sm">
+                    <Link href="/panel-claims/follow-up">Follow-up list</Link>
+                </Button>
+                <Button
+                    v-if="work.can.recordRemittances"
+                    as-child
+                    variant="secondary"
+                    size="sm"
+                >
+                    <Link href="/panel-remittances">Record Panel payment</Link>
+                </Button>
                 <template v-if="work.filters.range === 'custom'">
                     <label class="sr-only" for="claims-from">From</label>
                     <input

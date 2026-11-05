@@ -30,6 +30,7 @@ type PanelDetail = {
     claimDueRule: 'days_after_visit' | 'daily' | 'weekly' | 'monthly';
     claimDueTime: string | null;
     claimDueOffset: number | null;
+    claimFollowUpDays?: number;
     incomeTaxNumber: string | null;
 };
 
@@ -58,6 +59,7 @@ const form = useForm({
     claim_due_days: props.panel?.claimDueDays ?? 30,
     claim_due_time: props.panel?.claimDueTime ?? '',
     claim_due_offset: props.panel?.claimDueOffset ?? ('' as number | ''),
+    claim_follow_up_days: props.panel?.claimFollowUpDays ?? 30,
     income_tax_number: props.panel?.incomeTaxNumber ?? '',
     lock_version: props.panel?.lockVersion ?? 1,
 });
@@ -422,6 +424,27 @@ const submit = () => {
                     <InputError :message="form.errors.claim_due_time" />
                     <InputError :message="form.errors.claim_due_offset" />
                 </fieldset>
+                <label class="grid gap-1 text-xs">
+                    Follow-up days
+                    <span class="flex flex-wrap items-center gap-2 text-sm">
+                        Follow up a claim after
+                        <Input
+                            v-model.number="form.claim_follow_up_days"
+                            type="number"
+                            min="1"
+                            max="365"
+                            class="w-24"
+                            aria-label="Follow-up days"
+                        />
+                        days with no new action
+                    </span>
+                    <span class="text-muted-foreground">
+                        A claim of this Panel appears on the Follow-up list once
+                        this many days pass without a query, decision, payment,
+                        note or photo.
+                    </span>
+                    <InputError :message="form.errors.claim_follow_up_days" />
+                </label>
                 <p class="text-xs text-muted-foreground">
                     Prices: a Panel uses the default Panel price book unless it
                     has its own. Manage them in Pricing.

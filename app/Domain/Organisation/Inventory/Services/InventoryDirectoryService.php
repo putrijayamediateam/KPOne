@@ -28,6 +28,7 @@ final class InventoryDirectoryService
         StockMovement::TYPE_STOCKTAKE_LOSS,
         StockMovement::TYPE_ADJUSTMENT_IN,
         StockMovement::TYPE_ADJUSTMENT_OUT,
+        StockMovement::TYPE_SUPPLIER_RETURN,
     ];
 
     private const MOVEMENT_LABELS = [
@@ -43,6 +44,7 @@ final class InventoryDirectoryService
         StockMovement::TYPE_STOCKTAKE_LOSS => 'Stocktake Loss',
         StockMovement::TYPE_ADJUSTMENT_IN => 'Adjustment In',
         StockMovement::TYPE_ADJUSTMENT_OUT => 'Adjustment Out',
+        StockMovement::TYPE_SUPPLIER_RETURN => 'Supplier Return',
     ];
 
     public function __construct(private BranchAccessService $branches) {}
@@ -220,7 +222,8 @@ final class InventoryDirectoryService
                     StockMovement::TYPE_DISPENSE,
                     StockMovement::TYPE_TRANSFER_DISPATCH,
                     StockMovement::TYPE_STOCKTAKE_LOSS,
-                    StockMovement::TYPE_ADJUSTMENT_OUT => '-'.$quantity,
+                    StockMovement::TYPE_ADJUSTMENT_OUT,
+                    StockMovement::TYPE_SUPPLIER_RETURN => '-'.$quantity,
                     StockMovement::TYPE_TRANSFER => '-'.$quantity.' / +'.$quantity,
                     default => $quantity,
                 },
@@ -234,7 +237,8 @@ final class InventoryDirectoryService
                     StockMovement::TYPE_DISPENSE,
                     StockMovement::TYPE_TRANSFER_DISPATCH,
                     StockMovement::TYPE_STOCKTAKE_LOSS,
-                    StockMovement::TYPE_ADJUSTMENT_OUT => 'From '.($values['source_name'] ?? 'inventory'),
+                    StockMovement::TYPE_ADJUSTMENT_OUT,
+                    StockMovement::TYPE_SUPPLIER_RETURN => 'From '.($values['source_name'] ?? 'inventory'),
                     StockMovement::TYPE_TRANSFER => ($values['source_name'] ?? 'Inventory').' → '.($values['destination_name'] ?? 'Inventory'),
                     default => $values['source_name'] && $values['destination_name']
                         ? $values['source_name'].' → '.$values['destination_name']
@@ -249,6 +253,7 @@ final class InventoryDirectoryService
                     'inventory_stock_request' => 'Stock request transfer',
                     'inventory_stocktake' => 'Stocktake',
                     'inventory_adjustment' => 'Manual adjustment',
+                    'inventory_supplier_return' => 'Supplier return',
                     default => 'Inventory movement'
                 },
             ];

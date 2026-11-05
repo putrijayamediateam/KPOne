@@ -174,6 +174,14 @@ class InventoryMovementService
         return $this->debitOperation($actor, $location, $sku, $batch, $quantity, StockMovement::TYPE_ADJUSTMENT_OUT, 'inventory_receipt_correction', $correctionPublicId);
     }
 
+    /** STK-7: approved supplier return dispatch; the caller holds the return, SKU, batch and balance locks. */
+    public function recordSupplierReturn(User $actor, InventoryLocation $location, InventorySku $sku, InventoryBatch $batch, string $quantity, string $returnPublicId): StockMovement
+    {
+        abort_unless(DB::transactionLevel() > 0, 500);
+
+        return $this->debitOperation($actor, $location, $sku, $batch, $quantity, StockMovement::TYPE_SUPPLIER_RETURN, 'inventory_supplier_return', $returnPublicId);
+    }
+
     /** New governed caller holds SKU, batch and balance locks inside its approval transaction. */
     public function recordGovernedChange(User $actor, InventoryLocation $location, InventorySku $sku, InventoryBatch $batch, string $quantity, string $type, string $casePublicId): StockMovement
     {
