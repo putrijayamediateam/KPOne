@@ -48,6 +48,7 @@ use App\Http\Controllers\MedicineCatalogueController;
 use App\Http\Controllers\MedicineOptionSettingsController;
 use App\Http\Controllers\PanelClaimsController;
 use App\Http\Controllers\PanelInvoicesController;
+use App\Http\Controllers\PanelPaymentCorrectionsController;
 use App\Http\Controllers\PanelRemittancesController;
 use App\Http\Controllers\PanelSettingsController;
 use App\Http\Controllers\PatientBillingReportController;
@@ -258,6 +259,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::middleware(['permission:panel.remittances.record.branch', 'sensitive.no-store'])->group(function () {
         Route::get('panel-remittances', [PanelRemittancesController::class, 'index'])->name('panel-remittances.index');
         Route::post('panel-remittances', [PanelRemittancesController::class, 'store'])->middleware('throttle:20,1')->name('panel-remittances.store');
+    });
+    Route::middleware(['permission:panel.claim_payments.reverse.branch', 'sensitive.no-store'])->group(function () {
+        Route::get('panel-payment-corrections', [PanelPaymentCorrectionsController::class, 'index'])->name('panel-payment-corrections.index');
+        Route::post('panel-payment-corrections', [PanelPaymentCorrectionsController::class, 'store'])->middleware('throttle:10,1')->name('panel-payment-corrections.store');
     });
 
     Route::middleware(['permission:panel.invoices.export.branch', 'sensitive.no-store'])->group(function () {
@@ -810,6 +815,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('patients/{patient}', [PatientController::class, 'show'])
             ->middleware('permission:patients.view.organisation')
             ->name('patients.show');
+        // REG-4: patient change history (field names only).
+        Route::get('patients/{patient}/history', [PatientController::class, 'history'])
+            ->middleware(['permission:patients.history.view.organisation', 'sensitive.no-store', 'throttle:60,1'])
+            ->name('patients.history');
         // REG-3: two-person patient merge (link only).
         Route::get('patients/{patient}/merge-compare', [PatientMergeController::class, 'compare'])
             ->middleware(['permission:patients.merge.propose.organisation', 'sensitive.no-store', 'throttle:30,1'])

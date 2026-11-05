@@ -4,6 +4,7 @@ namespace App\Domain\Visit\Billing\Services;
 
 use App\Domain\Access\BranchAccessService;
 use App\Domain\Access\TransactionalActorAuthority;
+use App\Domain\Visit\Billing\Models\PanelClaimPaymentReversal;
 use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
@@ -12,7 +13,7 @@ use Illuminate\Support\Facades\Validator;
 /**
  * PNL-4: the Follow-up list. An open Panel claim (not paid and not rejected) appears once its Panel's
  * follow-up days (default 30) pass with no new action on it: a claim event (prepared, submitted, query,
- * decision, amount change, note), a recorded payment or an uploaded photo. Read-only; nothing is changed.
+ * decision, amount change, note), a recorded payment, an uploaded photo or a reversed payment (PNL-6). Read-only; nothing is changed.
  */
 final class PanelClaimFollowUpService
 {
@@ -32,6 +33,7 @@ final class PanelClaimFollowUpService
         'note' => 'Note added',
         'payment' => 'Payment recorded',
         'document' => 'Photo added',
+        'reversal' => 'Payment reversed',
     ];
 
     private const STATUSES = [
@@ -74,14 +76,17 @@ final class PanelClaimFollowUpService
                 ->unionAll(DB::table('panel_claim_payments')->where('organisation_id', $org)->where('branch_id', $branchId)->whereIn('panel_claim_id', $open)
                     ->select(['panel_claim_id', 'created_at as acted_at', DB::raw("'payment' as kind"), 'recorded_by_user_id as user_id', DB::raw('1 as source'), 'id']))
                 ->unionAll(DB::table('panel_claim_documents')->where('organisation_id', $org)->where('branch_id', $branchId)->whereIn('panel_claim_id', $open)
-                    ->select(['panel_claim_id', 'created_at as acted_at', DB::raw("'document' as kind"), 'uploaded_by_user_id as user_id', DB::raw('2 as source'), 'id']));
+                    ->select(['panel_claim_id', 'created_at as acted_at', DB::raw("'document' as kind"), 'uploaded_by_user_id as user_id', DB::raw('2 as source'), 'id']))
+                // PNL-6: reversing a wrong payment is an action too, so the claim's clock restarts from it.
+                ->unionAll(DB::table('panel_claim_payment_reversals')->where('organisation_id', $org)->where('branch_id', $branchId)->whereIn('panel_claim_id', $open)
+                    ->select(['panel_claim_id', 'created_at as acted_at', DB::raw("'reversal' as kind"), 'reversed_by_user_id as user_id', DB::raw('3 as source'), 'id']));
             // The latest action per claim (PostgreSQL DISTINCT ON). Actions in the same second are ordered as
             // recorded: by id within a table, and a payment or photo after an event.
             $latest = DB::query()->fromSub($actions, 'a')
                 ->selectRaw('DISTINCT ON (a.panel_claim_id) a.panel_claim_id, a.acted_at, a.kind, a.user_id')
                 ->orderBy('a.panel_claim_id')->orderByDesc('a.acted_at')->orderByDesc('a.source')->orderByDesc('a.id');
 
-            $received = '(select coalesce(sum(p.amount_sen), 0) from panel_claim_payments p where p.panel_claim_id = c.id and p.organisation_id = c.organisation_id and p.branch_id = c.branch_id)';
+            $received = '(select coalesce(sum(p.amount_sen), 0) from panel_claim_payments p where p.panel_claim_id = c.id and p.organisation_id = c.organisation_id and p.branch_id = c.branch_id and '.PanelClaimPaymentReversal::NOT_REVERSED_P.')';
             $base = DB::table('panel_claims as c')
                 ->join('panels as pn', function ($join): void {
                     $join->on('pn.id', '=', 'c.panel_id')->on('pn.organisation_id', '=', 'c.organisation_id');
