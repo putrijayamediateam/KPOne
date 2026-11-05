@@ -11,7 +11,30 @@ const props = defineProps<{
     receipt: Receipt | null;
     billTo?: BillToRecipientData | null;
     letterhead: PrintLetterhead;
+    /** BIL-5: present only on a recorded print of a frozen copy; absent on the live preview. */
+    issued?: {
+        label: 'original' | 'revised' | 'copy';
+        recordedLabel: 'original' | 'revised' | 'copy';
+        version: number;
+        issuedAt: string;
+        printedAt: string;
+        printedByYou: boolean;
+        notes: string[];
+        backUrl: string;
+        backLabel: string;
+    } | null;
 }>();
+const labelText = computed(() => {
+    if (!props.issued) {
+        return null;
+    }
+
+    return props.issued.label === 'original'
+        ? 'ORIGINAL'
+        : props.issued.label === 'revised'
+          ? `REVISED (version ${props.issued.version})`
+          : 'COPY';
+});
 const addressLines = computed(() =>
     [
         props.letterhead.details.address_line_1,
@@ -31,12 +54,28 @@ const print = () => window.print();
     <main
         class="document-print mx-auto max-w-3xl min-w-0 p-4 text-sm sm:p-8 print:bg-white print:text-black"
     >
-        <button
-            class="mb-4 rounded border px-3 py-2 print:hidden"
-            @click="print"
+        <div
+            class="mb-4 flex flex-wrap items-center gap-3 print:hidden"
+            data-testid="print-toolbar"
         >
-            Print {{ receipt ? 'Receipt' : 'Invoice' }}
-        </button>
+            <button class="rounded border px-3 py-2" @click="print">
+                Print {{ receipt ? 'Receipt' : 'Invoice' }}
+            </button>
+            <a
+                v-if="issued"
+                :href="issued.backUrl"
+                class="rounded px-3 py-2 underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                >{{ issued.backLabel }}</a
+            >
+            <p v-if="issued" class="text-xs text-muted-foreground">
+                This print was recorded as
+                {{ issued.recordedLabel.toUpperCase() }} (version
+                {{ issued.version }}){{
+                    issued.printedByYou ? ' by you' : ''
+                }}
+                at {{ issued.printedAt }} (branch time).
+            </p>
+        </div>
         <header
             class="mb-5 flex items-start gap-4 border-b pb-4"
             aria-label="Clinic letterhead"
@@ -63,6 +102,36 @@ const print = () => window.print();
         <h2 class="my-6 text-center text-lg font-bold underline">
             {{ receipt ? 'OFFICIAL RECEIPT' : 'OFFICIAL INVOICE' }}
         </h2>
+        <div
+            v-if="issued"
+            class="-mt-3 mb-4 text-center"
+            data-testid="issued-label"
+        >
+            <p
+                class="inline-block border-[1.5px] border-current px-3 py-0.5 text-xs font-bold tracking-wider uppercase"
+            >
+                {{ labelText }}
+            </p>
+            <p class="mt-1 text-[11px]">
+                Version {{ issued.version }} · issued {{ issued.issuedAt }}
+                (branch time)
+            </p>
+            <p
+                v-for="note in issued.notes"
+                :key="note"
+                class="mx-auto mt-2 max-w-xl border px-3 py-1 text-xs"
+            >
+                {{ note }}
+            </p>
+        </div>
+        <p
+            v-else
+            class="-mt-3 mb-4 border px-3 py-1 text-center text-xs font-bold"
+            data-testid="preview-label"
+        >
+            PREVIEW — not an issued copy. Print from the Billing page to issue
+            one.
+        </p>
         <section
             class="my-4 grid min-w-0 gap-4 sm:grid-cols-2"
             aria-label="Document details"
