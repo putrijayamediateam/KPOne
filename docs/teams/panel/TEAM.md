@@ -164,17 +164,12 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php`.
   payment never changes, a second reversal is refused and the idempotency key covers a double submit; reports
   change in the period of the original payment (decision 18), so past Insights and Panel summary figures can
   move; Insights, the Panel summary and the agent Panel claims summary (owned by other teams) now leave reversed
-<<<<<<< HEAD
   payments out (one condition each). A reversal racing a new payment, and two reversals of one payment, are
   covered by the PNL-5 contention test.
-=======
-  payments out (one condition each). Not yet tested: a PostgreSQL contention test of a reversal against a new
-  payment on the same claim.
 - **Staff names still outside the BIL-2 rule (possible PNL-6c):** the last actor on the Panel Claims list and the
   actor in a claim page's Logs (`PanelClaimDirectoryService`) still read names straight from `users`, through an
   inner join that also drops events without an actor. Doctor names on Panel invoices are doctor display names
   and are not covered by the staff-name rule.
->>>>>>> origin/main
 - A submitted-but-undecided claim counts as zero outstanding in the Panel summary.
 - Panel summary runs about three queries per approved allocation; not load-tested.
 

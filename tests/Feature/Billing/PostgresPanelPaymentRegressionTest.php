@@ -99,35 +99,35 @@ class PostgresPanelPaymentRegressionTest extends BillingTestCase
         // Whichever runs first leaves RM 10.00 unpaid, so the second is refused rather than over-paying.
         $this->assertSame(1, substr_count($out, 'SUCCESS'), $out);
         $this->assertSame(1, substr_count($out, 'STALE '), $out);
+        $this->assertMatchesRegularExpression('/exceeds the accepted amount still outstanding|is more than the RM 10\.00 still unpaid/', $out);
         $this->assertSame(2000, $this->received($claim));
         $this->assertSame('partially_paid', $claim->refresh()->status);
         $this->assertSame(1, DB::table('audit_logs')->where('event', 'panel_claim.payment_received')->count());
     }
 
-    public function test_a_reversal_racing_a_new_payment_leaves_the_claim_status_true(): void
+    public function test_a_reversal_queued_before_a_new_payment_lets_the_payment_through(): void
     {
-        [, $claim] = $this->acceptedClaim(paid: 3000);
-        $paid = (string) DB::table('panel_claim_payments')->where('panel_claim_id', $claim->id)->value('public_id');
-        $this->commitFixture();
-        $out = $this->race($claim, [
-            $this->worker('reverse', $this->finance(), ['kind' => 'payment', 'target' => $paid, 'reason_code' => 'wrong_amount',
-                'note' => 'Synthetic: wrong amount', 'recording_error_only' => true]),
-            $this->worker('claim-payment', $this->officer(), ['claim' => $claim->public_id, 'amount_sen' => 1000]),
-        ]);
+        [$claim, $workers] = $this->reversalAndPayment();
+        $out = $this->race($claim, $workers, inOrder: true);
 
-        // The reversal always succeeds. The new payment succeeds only if it ran after the reversal; before it,
-        // nothing was left unpaid. Either way the claim's status matches what it has still received.
+        // The reversal ran first, so RM 30.00 was unpaid again when the RM 10.00 payment ran.
         $this->assertStringContainsString('SUCCESS reversed:1', $out);
+        $this->assertSame(2, substr_count($out, 'SUCCESS'), $out);
+        $this->assertSame(1000, $this->received($claim));
+        $this->assertSame('partially_paid', $claim->refresh()->status);
+    }
+
+    public function test_a_new_payment_queued_before_a_reversal_is_refused_and_the_reversal_still_applies(): void
+    {
+        [$claim, $workers] = $this->reversalAndPayment();
+        $out = $this->race($claim, array_reverse($workers), inOrder: true);
+
+        // The payment ran first, on a claim already paid in full, so it was refused; the reversal then applied.
+        $this->assertStringContainsString('STALE payment: A Panel remittance can only be recorded after an accepted decision.', $out);
+        $this->assertStringContainsString('SUCCESS reversed:1', $out);
+        $this->assertSame(0, $this->received($claim));
+        $this->assertSame('accepted', $claim->refresh()->status);
         $this->assertSame(1, PanelClaimPaymentReversal::query()->count());
-        $claim->refresh();
-        if (substr_count($out, 'SUCCESS') === 2) {
-            $this->assertSame(1000, $this->received($claim));
-            $this->assertSame('partially_paid', $claim->status);
-        } else {
-            $this->assertStringContainsString('exceeds the accepted amount still outstanding', $out);
-            $this->assertSame(0, $this->received($claim));
-            $this->assertSame('accepted', $claim->status);
-        }
     }
 
     public function test_two_people_reversing_the_same_payment_record_one_reversal(): void
@@ -135,7 +135,6 @@ class PostgresPanelPaymentRegressionTest extends BillingTestCase
         [, $claim] = $this->acceptedClaim(paid: 3000);
         $paid = (string) DB::table('panel_claim_payments')->where('panel_claim_id', $claim->id)->value('public_id');
         $reversal = ['kind' => 'payment', 'target' => $paid, 'reason_code' => 'recorded_twice', 'note' => 'Synthetic: entered twice', 'recording_error_only' => true];
-        $this->commitFixture();
         $out = $this->race($claim, [
             $this->worker('reverse', $this->finance(), $reversal),
             $this->worker('reverse', $this->actor('director'), $reversal),
@@ -161,6 +160,24 @@ class PostgresPanelPaymentRegressionTest extends BillingTestCase
         $this->assertSame(2, substr_count($out, 'SUCCESS '.$remittance->public_id), $out);
         $this->assertSame(1500, $this->received($claim));
         $this->assertSame(1, DB::table('audit_logs')->where('event', 'panel_remittance.recorded')->count());
+    }
+
+    /**
+     * A claim the Panel Officer paid in full, a Finance Officer reversing that payment, and the Panel Officer
+     * recording a new RM 10.00 payment on the same claim.
+     *
+     * @return array{0: PanelClaim, 1: list<Worker>}
+     */
+    private function reversalAndPayment(): array
+    {
+        [, $claim] = $this->acceptedClaim(paid: 3000);
+        $paid = (string) DB::table('panel_claim_payments')->where('panel_claim_id', $claim->id)->value('public_id');
+
+        return [$claim, [
+            $this->worker('reverse', $this->finance(), ['kind' => 'payment', 'target' => $paid, 'reason_code' => 'wrong_amount',
+                'note' => 'Synthetic: wrong amount', 'recording_error_only' => true]),
+            $this->worker('claim-payment', $this->officer(), ['claim' => $claim->public_id, 'amount_sen' => 1000]),
+        ]];
     }
 
     /**
@@ -235,11 +252,12 @@ class PostgresPanelPaymentRegressionTest extends BillingTestCase
 
     /**
      * Holds the claim row the services lock, starts both workers, proves each one is waiting behind this session,
-     * then releases the lock so they run strictly one after the other.
+     * then releases the lock so they run strictly one after the other. With $inOrder, each worker is started only
+     * after the one before it is proven to be waiting, so they queue for the claim lock, and run, in list order.
      *
      * @param  list<Worker>  $workers
      */
-    private function race(PanelClaim $claim, array $workers): string
+    private function race(PanelClaim $claim, array $workers, bool $inOrder = false): string
     {
         $this->commitFixture();
         DB::beginTransaction();
@@ -253,6 +271,9 @@ class PostgresPanelPaymentRegressionTest extends BillingTestCase
             foreach ($workers as $worker) {
                 $worker['input']->write("GO\n");
                 $worker['input']->close();
+                if ($inOrder) {
+                    $this->waitForDatabaseBlock($worker['process'], $parentPid);
+                }
             }
             foreach ($workers as $worker) {
                 $this->waitForDatabaseBlock($worker['process'], $parentPid);
