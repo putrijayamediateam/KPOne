@@ -33,6 +33,10 @@ own PR and tells LUCY. See [REVIEW.md](REVIEW.md) for how items are added.
 | DD-21 | Raw tables (28) against `OperationalTable` (11), no phone layout on several lists | Missing caption or label, focus region and phone cards | 6 | Each page's team as it next touches the page | Minor | DES-1 | Open |
 | DD-22 | Patient board Status column, `components/patient-board/PatientBoard.vue` (Queue and Registration boards) | With Q-2 treatment-progress chips the Status cell wraps onto 4 or 5 lines at 1440 px. Proposed: Status 9% to 15%, Payment 24% to 18% | 6 | Queue & TV with Patients & Registration (shared board; needs Nurul's agreement) | Major | Q-2 hand-off | Open: owner approved the column change on 2026-11-05 (including the `panel-note.test.mjs` `w-[24%]` assertion change); Amirul (Queue & TV) builds it as Q-2b after Q-2, with Nurul's agreement; design OK needs 1440 px screenshots with a long Panel name and note, the note tooltip working, and the 390 px cards unchanged |
 | DD-23 | Shared branch report page, `pages/Reports/BranchReport.vue` (Daily summary, Panel summary, Stock movement and the other branch reports) | Money cells left-aligned and not `tabular-nums`; raw ISO dates (`2026-11-05`) on screen; a raw `<table>` instead of `OperationalTable`; no collapsible "How this report counts" block (the long basis text is DD-14); dark date-picker icons are DD-07 | 2, 4, 6, 15 | Staff Experience (interim; the reports have no team) | Major | Siti (Billing), BIL-6b review | Open |
+| DD-24 | Dispensary pages (`pages/Dispensary/Show.vue`, `Completed.vue`) at tablet widths | Tap targets still 32 to 36 px (phones fixed by DSP-8) | 12 | Dispensary & OTC | Minor | Aisyah, DSP-8 | Open |
+| DD-25 | Dispensary case page header, `pages/Dispensary/Show.vue` | Patient name shows twice at the top (page title and patient card) | 4 | Dispensary & OTC | Minor | Aisyah, DSP-8 | Open |
+| DD-26 | Dispensary medicine line at 320 px, `pages/Dispensary/Show.vue` | The batch dropdown cuts off the quantity | 16 | Dispensary & OTC | Major | Aisyah, DSP-8 | Open |
+| DD-27 | "Added by CA" badge on Dispensary lines, `pages/Dispensary/Show.vue` | Low contrast in dark mode (hand-styled pink chip) | 1, 10, 13 | Dispensary & OTC | Major | Aisyah, DSP-8 | Open |
 
 ## Not debt (out of scope, owner-approved)
 
@@ -46,3 +50,4 @@ receipt and drug-label print layouts.
 - 2026-11-05: Catalogue & settings team set up (owner); DD-04 and DD-13 assigned to it as CAT-1; DD-22 planned as Q-2b.
 - 2026-11-05: DD-23 added (shared report page, found by Siti during BIL-6b).
 - 2026-11-05: DD-12 widened to the governed Inventory pages (seen during the STK-9 look).
+- 2026-11-05: DD-24 to DD-27 added (Dispensary items found by Aisyah during DSP-8).
