@@ -57,8 +57,8 @@ class LegacyStockWriterBoundaryTest extends TestCase
             'recordGovernedChange' => ['app/Domain/Organisation/Inventory/Services/GovernedStockService.php'],
             'recordSupplierReturn' => ['app/Domain/Organisation/Inventory/Services/SupplierReturnService.php'],
             'recordTreatmentUsage' => ['app/Domain/Organisation/Inventory/Services/TreatmentUsageService.php'],
-            // STK-11: called only by the Dispensary return check (DSP-7), which adds its file here when it is built.
-            'recordDispensaryReturn' => [],
+            // STK-11: called only by the Dispensary return check (DSP-7; owner-approved 2026-11-05).
+            'recordDispensaryReturn' => ['app/Domain/Clinical/Dispensary/Services/DispensaryReturnService.php'],
             'recordAdjustment' => [],
             'recordStocktakeVariance' => [],
         ];
