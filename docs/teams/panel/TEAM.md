@@ -166,6 +166,10 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php`.
   move; Insights, the Panel summary and the agent Panel claims summary (owned by other teams) now leave reversed
   payments out (one condition each). Not yet tested: a PostgreSQL contention test of a reversal against a new
   payment on the same claim.
+- **Staff names still outside the BIL-2 rule (possible PNL-6c):** the last actor on the Panel Claims list and the
+  actor in a claim page's Logs (`PanelClaimDirectoryService`) still read names straight from `users`, through an
+  inner join that also drops events without an actor. Doctor names on Panel invoices are doctor display names
+  and are not covered by the staff-name rule.
 - A submitted-but-undecided claim counts as zero outstanding in the Panel summary.
 - Panel summary runs about three queries per approved allocation; not load-tested.
 

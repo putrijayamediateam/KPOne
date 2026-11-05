@@ -78,7 +78,7 @@ final class PanelRemittanceService
                 ->whereIn('panel_remittance_id', $remittanceIds)->distinct()->pluck('panel_remittance_id')->flip();
             // Staff names follow the staff-directory visibility rule (owner BIL-2 decision); others read "Staff member".
             $recorders = $this->staff->visibleUsers($actor)
-                ->whereIn('id', $history->getCollection()->pluck('recorded_by_user_id')->all())->pluck('name', 'id');
+                ->whereIn('id', $history->getCollection()->pluck('recorded_by_user_id')->filter()->unique()->values()->all())->pluck('name', 'id');
 
             return [
                 'branch' => ['id' => $branch->id, 'name' => $branch->name, 'today' => $today->toDateString()],

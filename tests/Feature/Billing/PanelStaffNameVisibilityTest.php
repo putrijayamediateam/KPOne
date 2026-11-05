@@ -62,5 +62,12 @@ class PanelStaffNameVisibilityTest extends BillingTestCase
         $this->selectBranch($recorder, $this->branch);
         $this->get(route('panel-claims.follow-up'))->assertInertia(fn (Assert $page) => $page->where('claims.data.0.lastActionBy', $recorder->name));
         $this->get(route('panel-remittances.index'))->assertInertia(fn (Assert $page) => $page->where('remittances.data.0.recordedBy', $recorder->name));
+
+        // A branch-scoped staff view shows colleagues assigned to the same branch.
+        Role::findByName('panel_officer', 'web')->givePermissionTo('staff.view.branch');
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
+        $this->selectBranch($colleague, $this->branch);
+        $this->get(route('panel-claims.follow-up'))->assertInertia(fn (Assert $page) => $page->where('claims.data.0.lastActionBy', $recorder->name));
+        $this->get(route('panel-remittances.index'))->assertInertia(fn (Assert $page) => $page->where('remittances.data.0.recordedBy', $recorder->name));
     }
 }
