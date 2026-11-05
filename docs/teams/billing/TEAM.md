@@ -174,6 +174,18 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php` and `BillingPermiss
     pilot-scale golden file. Column names, order and the basis wording follow Siti's sketch: the two columns used
     for the cash closing sum sit side by side, and "paid" marks payout-date figures.
 
+25. BIL-5 issued invoice and receipt copies (2026-11-05, answered by the owner in the Billing session): the copy is
+    frozen at first print, per version (ORIGINAL, then COPY for the same content); an invoice that changed since its
+    last issued copy prints as a new REVISED version, earlier versions stay readable; labels are English (ORIGINAL,
+    COPY, REVISED); the "Issued copies" list is for those who can print (`billing.print.branch`), no new
+    permission. Design note: `BIL-5-DESIGN.md`.
+26. Backup push (2026-11-05, owner rule relayed by LUCY: "yes, set the backup push rule for all teams"): whenever the
+    team stops to wait for the owner and has work not yet on GitHub, commit it to that piece's own feature branch
+    and push it (`git push -u origin <branch>`). Backup only: no PR, never `main` or another team's branch, never
+    merge, never force-push. A branch with an open PR is pushed only when the change is ready (a push re-runs CI).
+    The PR still opens only after "ship it", from the same branch, with the latest `main` merged first. After a
+    restart on a fresh machine, fetch the branch before continuing.
+
 ## 7. Open items and known limits
 
 - **Walked and tested in BIL-1 (2026-11-05):** invoice void and reissue, adjustment reversal, later settlement

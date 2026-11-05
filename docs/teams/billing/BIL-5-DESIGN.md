@@ -1,6 +1,6 @@
 # BIL-5 design note: issued invoice and receipt copies
 
-Status: draft for owner decisions (2026-11-05).
+Status: owner decisions taken 2026-11-05 (section 6); being built as BIL-5.
 
 ## 1. The gap
 
@@ -52,3 +52,13 @@ limit; the Medical Certificate (DOC-02b) already solves the same problem with an
 - No PDF archive or file storage, no e-Invoice or tax format, no change to the print layout (D03) beyond the label
   and status line.
 - No change to Panel claim packs, reports or the Medical Certificate.
+
+## 6. Owner decisions (2026-11-05, answered by the owner in the Billing session)
+
+1. A copy is frozen **at first print**, per version: printing is a recorded action; the first print is ORIGINAL and
+   later prints of the same content are COPY.
+2. When an invoice changed after its last issued copy, the next print issues a **REVISED** version (2, 3 ...);
+   earlier versions stay readable in the "Issued copies" list.
+3. Labels on paper are **English**: ORIGINAL, COPY, REVISED.
+4. The "Issued copies" list is shown to **those who can print** (`billing.print.branch`: CA, CA Supervisor). No new
+   permission.
