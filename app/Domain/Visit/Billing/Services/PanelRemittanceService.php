@@ -83,7 +83,7 @@ final class PanelRemittanceService
                             ->where('branch_id', $branch->id)->whereIn('status', self::PAYABLE)))
                     ->orderBy('name')->get(['code', 'name'])
                     ->map(static fn ($row): array => ['code' => (string) $row->code, 'name' => (string) $row->name])->all(),
-                'filters' => ['panel' => $panel?->code ?? ''],
+                'filters' => ['panel' => $panel->code ?? ''],
                 'maxSplits' => self::MAX_SPLITS,
                 'openClaims' => array_slice($openClaims, 0, self::MAX_OPEN_CLAIMS),
                 'openClaimsTruncated' => count($openClaims) > self::MAX_OPEN_CLAIMS,
@@ -115,7 +115,7 @@ final class PanelRemittanceService
     {
         $received = '(select coalesce(sum(p.amount_sen), 0) from panel_claim_payments p where p.panel_claim_id = panel_claims.id and p.organisation_id = panel_claims.organisation_id and p.branch_id = panel_claims.branch_id)';
 
-        return PanelClaim::query()->where('organisation_id', $actor->organisation_id)->where('branch_id', $branch->id)
+        return array_values(PanelClaim::query()->where('organisation_id', $actor->organisation_id)->where('branch_id', $branch->id)
             ->where('panel_id', $panel->id)->whereIn('status', self::PAYABLE)->whereNotNull('accepted_amount_sen')
             ->whereRaw("accepted_amount_sen > {$received}")
             ->select('panel_claims.*')->selectRaw("{$received} as received_sen")
@@ -129,7 +129,7 @@ final class PanelRemittanceService
                 'acceptedSen' => (int) $claim->accepted_amount_sen,
                 'receivedSen' => (int) $claim->getAttribute('received_sen'),
                 'outstandingSen' => (int) $claim->accepted_amount_sen - (int) $claim->getAttribute('received_sen'),
-            ])->values()->all();
+            ])->values()->all());
     }
 
     /** @param array<string, mixed> $a */
