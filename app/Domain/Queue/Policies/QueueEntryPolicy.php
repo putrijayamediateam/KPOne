@@ -6,6 +6,7 @@ use App\Domain\Access\BranchAccessService;
 use App\Domain\Organisation\Models\Branch;
 use App\Domain\Queue\Models\QueueEntry;
 use App\Domain\Queue\Readiness\CallHoldPermissions;
+use App\Domain\Queue\Treatment\TreatmentStepPermissions;
 use App\Models\User;
 use Closure;
 
@@ -84,5 +85,13 @@ class QueueEntryPolicy
     public function clearReadiness(User $actor, QueueEntry $entry): bool
     {
         return $actor->is_active && $this->view($actor, $entry) && ($actor->can(CallHoldPermissions::SET) || $actor->can(CallHoldPermissions::CLEAR));
+    }
+
+    /** Q-2: CA and CA Supervisor at the branch; the attending Resident Doctor on their own patient. */
+    public function manageTreatment(User $actor, QueueEntry $entry): bool
+    {
+        return $actor->is_active && $this->view($actor, $entry)
+            && ($actor->can(TreatmentStepPermissions::SET_BRANCH)
+                || ($actor->can(TreatmentStepPermissions::SET_OWN) && $entry->visit->assigned_doctor_user_id === $actor->id));
     }
 }

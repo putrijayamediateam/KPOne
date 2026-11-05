@@ -8,6 +8,7 @@ use App\Domain\Clinical\Documents\MedicalCertificatePermissions;
 use App\Domain\Clinical\Documents\ReferralPermissions;
 use App\Domain\Organisation\Website\WebsitePermissions;
 use App\Domain\Queue\Readiness\CallHoldPermissions;
+use App\Domain\Queue\Treatment\TreatmentStepPermissions;
 
 final class PermissionCatalogue
 {
@@ -39,6 +40,7 @@ final class PermissionCatalogue
     {
         return [
             ...array_keys(CallHoldPermissions::grants()),
+            ...array_keys(TreatmentStepPermissions::grants()),
             ...BillingPermissions::all(),
             ...array_keys(WebsitePermissions::grants()),
             ...array_keys(ReportPermissions::grants()),
@@ -370,6 +372,12 @@ final class PermissionCatalogue
         }
 
         foreach (CallHoldPermissions::grants() as $permission => $holders) {
+            foreach ($holders as $role) {
+                $roles[$role][] = $permission;
+            }
+        }
+
+        foreach (TreatmentStepPermissions::grants() as $permission => $holders) {
             foreach ($holders as $role) {
                 $roles[$role][] = $permission;
             }
