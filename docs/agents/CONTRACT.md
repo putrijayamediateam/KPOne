@@ -12,7 +12,9 @@ follows. Change it only in its own PR, before the slices that depend on the chan
    approved proposal records the decision only; executing it through a domain service is a later,
    separately authorised step per proposal type.
 2. **An agent never sees more than the person who asked.** Every tool call is checked against the
-   requesting user's permissions and effective branch, and against the agent's own tool allowlist.
+   requesting user's permissions and effective branch, and against the agent's own tool allowlist. A
+   scheduled run, which no person asked for, runs as "system" (section 5): its results are filtered by
+   each viewer's own permissions when shown.
 3. **No AI service calls in wave 1.** KPOne sends nothing to Anthropic or any other AI provider. Agents
    are deterministic PHP rules over the data sources in section 5; every figure shown comes from a query.
 4. **Aggregate data only on agent screens.** Data sources return totals, counts and catalogue item names
@@ -68,6 +70,13 @@ these is in `AUTHORITY_OVER_PEOPLE_AND_ACCESS`.
 A data source is a PHP class implementing `App\Domain\Agents\Tools\AgentTool` with `code()`,
 `requiredPermission()`, `inputSchema()` and `run(User $requester, ?Branch $branch, array $input): array`.
 Every call checks the requester's permission and effective branch and the agent's allowlist.
+
+**Scheduled runs (owner decision 2026-11-05).** The 07:00 and 14:00 runs (section 14) run as "system":
+they act with no person's authority and read only the read-only aggregate data sources on their agent's
+allowlist. People's permissions are applied when the results are shown: each viewer of the daily summary
+sees only the sections their own permissions allow (filtering at view time). The builder of AG-8 adds a
+system path to the gateway for this; it must still check the agent's allowlist and record every read as a
+step, and must never be reachable from a request made by a person.
 
 | Tool code | Wraps | Permission checked |
 |---|---|---|
@@ -142,7 +151,7 @@ credentials in these files**; that data lives in KPOne's database and reaches an
 | Slice | Migration prefix | Owns |
 |---|---|---|
 | AG-1 registry and activity log | `2026_11_05_100000` to `100900` | `app/Domain/Agents/` (models, registry, run log), the permission migration, `PermissionCatalogue` lines |
-| AG-2 approval inbox | `2026_11_05_200000` to `200900` | `app/Domain/Agents/Proposals/` |
+| AG-2 approval inbox | `2026_11_05_210000` to `210900` | `app/Domain/Agents/Proposals/` |
 | AG-3 agent office page | none | `resources/js/pages/Agents/Office.vue` and its components |
 | AG-4 data sources | none | `app/Domain/Agents/Tools/` and the no-AI guard test |
 | AG-5 Director quick answers | none | `app/Domain/Agents/Assistant/`, `resources/js/pages/Agents/Assistant.vue` |
@@ -262,3 +271,5 @@ production gate.
 - No message, email, push notification or WhatsApp is sent. Hana's items wait in the approval inbox for a
   decision; the summary links to them. Office lights follow section 3.
 - The summary keeps no free text; it is rebuilt from stored run results and data sources.
+- **Doctor names (owner decision 2026-11-05).** Per-doctor figures in Lina's report and on the daily summary
+  show each doctor's display name, as the Insights Provider table does, not an anonymous label.

@@ -6,6 +6,7 @@ use App\Domain\Visit\Billing\Models\CoverageAllocation;
 use App\Domain\Visit\Billing\Models\PanelClaim;
 use App\Domain\Visit\Billing\Models\PanelClaimDocument;
 use App\Domain\Visit\Billing\Services\PanelClaimDirectoryService;
+use App\Domain\Visit\Billing\Services\PanelClaimFollowUpService;
 use App\Domain\Visit\Billing\Services\PanelClaimService;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
@@ -56,6 +57,19 @@ class PanelClaimsController extends Controller
             'due_from' => ['sometimes', 'nullable', 'date_format:Y-m-d'],
             'due_to' => ['sometimes', 'nullable', 'date_format:Y-m-d', 'after_or_equal:due_from'],
         ];
+    }
+
+    /** PNL-4: open claims with no new action for longer than their Panel's follow-up days. */
+    public function followUp(Request $request, PanelClaimFollowUpService $followUp): Response
+    {
+        $actor = $request->user();
+        abort_unless($actor instanceof User, 403);
+
+        return Inertia::render('PanelClaims/FollowUp', $followUp->page(
+            $actor,
+            $request->only(['panel']),
+            max(1, min(10000, (int) $request->query('page', 1))),
+        ));
     }
 
     public function create(Request $request, CoverageAllocation $allocation, PanelClaimDirectoryService $directory): Response|RedirectResponse
