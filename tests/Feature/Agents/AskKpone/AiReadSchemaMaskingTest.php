@@ -7,6 +7,7 @@ use App\Domain\Clinical\Models\EncounterDiagnosis;
 use App\Domain\Visit\Models\Panel;
 use Illuminate\Support\Facades\DB;
 use Tests\Feature\Queue\QueueTestCase;
+use Tests\Support\AiReadViewList;
 
 /**
  * AG-7: every view of schema ai_read masks patients and staff. The exact view and column lists are pinned here,
@@ -66,12 +67,7 @@ class AiReadSchemaMaskingTest extends QueueTestCase
         $views = DB::table('information_schema.views')->where('table_schema', 'ai_read')->orderBy('table_name')->pluck('table_name')->all();
         $expected = array_keys(self::COLUMNS);
         sort($expected);
-        $missing = array_values(array_diff($expected, $views));
-        $added = array_values(array_diff($views, $expected));
-        $this->assertSame([], $missing, 'These ai_read views are missing, so a migration dropped them (for example with CASCADE) '
-            .'without recreating them: ai_read.'.implode(', ai_read.', $missing).'. Recreate each view in the same migration; see '
-            .'docs/DEVELOPMENT.md, "Ask KPOne read login".');
-        $this->assertSame([], $added, 'New ai_read views need a privacy review before this test lists them: ai_read.'.implode(', ai_read.', $added).'.');
+        $this->assertSame([], AiReadViewList::problems($expected, $views), 'The ai_read views changed.');
         $this->assertSame($expected, $views);
 
         $tables = DB::table('information_schema.tables')->where('table_schema', 'ai_read')->where('table_type', '<>', 'VIEW')->count();
