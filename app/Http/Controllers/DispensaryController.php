@@ -8,6 +8,7 @@ use App\Domain\Clinical\Dispensary\Models\DispensaryItem;
 use App\Domain\Clinical\Dispensary\Models\DispensaryItemException;
 use App\Domain\Clinical\Dispensary\Models\DispensaryServiceLine;
 use App\Domain\Clinical\Dispensary\Services\DispensaryDirectoryService;
+use App\Domain\Clinical\Dispensary\Services\DispensaryReturnService;
 use App\Domain\Clinical\Dispensary\Services\DispensaryService;
 use App\Domain\Clinical\Dispensary\Services\OtcDispensaryService;
 use App\Domain\Organisation\Models\Branch;
@@ -56,7 +57,12 @@ class DispensaryController extends Controller
             $detail['billingUrl'] = route('billing.show', $dispensaryCase->visit);
         }
 
-        return Inertia::render($detail['status'] === DispensaryCase::STATUS_COMPLETED ? 'Dispensary/Completed' : 'Dispensary/Show', ['dispensary' => $detail]);
+        if ($detail['status'] === DispensaryCase::STATUS_COMPLETED) {
+            // DSP-7: the returns section is its own prop, so the completed-case payload keeps its keys.
+            return Inertia::render('Dispensary/Completed', ['dispensary' => $detail, 'returns' => app(DispensaryReturnService::class)->panel($request->user(), $dispensaryCase, Branch::query()->findOrFail($dispensaryCase->branch_id))]);
+        }
+
+        return Inertia::render('Dispensary/Show', ['dispensary' => $detail]);
     }
 
     public function openOtc(OpenOtcDispensaryRequest $request, Visit $visit, OtcDispensaryService $service): RedirectResponse
@@ -83,6 +89,15 @@ class DispensaryController extends Controller
     {
         $this->stayOnCase($dispensaryCase, fn () => $service->addOtcAllergy($request->user(), $dispensaryCase, $request->validated()));
         Inertia::flash('toast', ['type' => 'success', 'message' => 'Allergy added.']);
+
+        return to_route('dispensary.show', $dispensaryCase);
+    }
+
+    /** DSP-7: record medicine a patient brought back on one line of a completed case. Moves no stock. */
+    public function recordReturn(Request $request, DispensaryCase $dispensaryCase, string $itemPublicId, DispensaryReturnService $returns): RedirectResponse
+    {
+        $this->stayOnCase($dispensaryCase, fn () => $returns->record($request->user(), $dispensaryCase, $itemPublicId, $request->only(['expected_branch_id', 'retry_key', 'expected_return_count', 'quantity', 'reason', 'note', 'condition'])));
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'Return recorded. It now waits for a check by someone else.']);
 
         return to_route('dispensary.show', $dispensaryCase);
     }
