@@ -8,7 +8,8 @@ and dark, 140 screenshots, synthetic `.test` data only.
 **How to use this guide.** It describes what KPOne already does well and names the patterns to stop using. It
 never changes a screen by itself: the team that owns a screen fixes it in its own PR. When the guide and an
 existing screen disagree, follow the guide for new work and add the old screen to the design debt list (DES-2).
-Run [CHECKLIST.md](CHECKLIST.md) before every hand-off.
+Run [CHECKLIST.md](CHECKLIST.md) before every hand-off. How a screen change reaches Daniel is in [REVIEW.md](REVIEW.md); known gaps are in
+[DEBT.md](DEBT.md).
 
 **Out of scope** (owner-approved, do not restyle): the waiting-room TV (`pages/QueueDisplay/Screen.vue`), the public
 website design profile, and the invoice, receipt and drug-label print layouts.

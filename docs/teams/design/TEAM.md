@@ -67,10 +67,11 @@ pharmacist decisions).
 
 ## 6. Backlog
 
-1. **DES-1 KPOne design guide.** Survey the current screens (headless Chromium on a task-owned server with seeded
+1. **DES-1 KPOne design guide (merged in PR #245 as `8014a6d`).** Survey the current screens (headless Chromium on a task-owned server with seeded
    synthetic data, at 390 and 1440 px, light and dark) and write `docs/design/GUIDE.md` with examples and
    do / don't pairs, plus `docs/design/CHECKLIST.md`: a one-page checklist each team designer runs before
    hand-off. Docs only.
-2. **DES-2 Screen review loop.** Agree with LUCY how PRs that change layout reach Daniel for a look (screenshots
+2. **DES-2 Screen review loop (this PR).** Agree with LUCY how PRs that change layout reach Daniel for a look (screenshots
    in the PR body), and keep a short "design debt" list of screens that break the guide, for the Staff Experience
    team and the owning teams.
+   The loop is written in `docs/design/REVIEW.md` and the list in `docs/design/DEBT.md`.
