@@ -41,7 +41,7 @@ coordinator at the owner's request (2026-11-05).
 
 | Kind | Files |
 |---|---|
-| Domain services | `app/Domain/Visit/Billing/Services/PanelClaimService.php`, `PanelClaimDirectoryService`, `PanelClaimEligibility`, `PanelClaimAmounts`, `PanelClaimDueRule`, `PanelClaimMessageService`, `PanelInvoiceReportService`; `app/Domain/Visit/Services/PanelSettingsService.php` |
+| Domain services | `app/Domain/Visit/Billing/Services/PanelClaimService.php` (single and bulk creation share `createLocked`), `PanelClaimDirectoryService`, `PanelClaimEligibility`, `PanelClaimAmounts`, `PanelClaimDueRule`, `PanelClaimMessageService`, `PanelInvoiceReportService`; `app/Domain/Visit/Services/PanelSettingsService.php` |
 | Models | `app/Domain/Visit/Billing/Models/PanelClaim*.php`, the `Panel` model |
 | Controllers | `PanelClaimsController`, the Panel settings and Panel invoices controllers |
 | Pages | `resources/js/pages/PanelClaims/*`, `PanelSettings/*`, `PanelInvoices/*` |
@@ -76,7 +76,8 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php`.
 | PANEL-NOTE-01 | Per-visit Panel notes and Payment column | #113 |
 | INV-05b (with Billing) | Original, adjustment and adjusted rows on new claim snapshots | #124 |
 | RPT-01d (with Reports) | Panel summary with ageing; shared eligibility and amounts | #147 |
-| PNL-1 | Panel Claims list, claim page and Panel invoices filters fit a 320–390 px phone (SMOKE-1 S1-002, S1-003); layout classes only | pending |
+| PNL-1 | Panel Claims list, claim page and Panel invoices filters fit a 320–390 px phone (SMOKE-1 S1-002, S1-003); layout classes only | #220 |
+| PNL-2 | Bulk claim creation: several invoices of one Panel (compared by Panel code) become their own Submitted claims in one all-or-nothing action; at most 20, one shared date, instant and remarks, no photos in bulk; route `POST /panel-claims/bulk` | pending |
 
 ## 6. Owner decisions already made (never ask again)
 
@@ -103,6 +104,8 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php`.
     finalisation, buckets 0-30, 31-60, 61-90 and over 90 days (2026-10-20).
 13. Lump-sum Panel payments may be recorded and split by the Panel Officer or the Finance Officer (2026-11-05).
 14. Follow-up days are a per-Panel setting (default 30) (2026-11-05).
+15. PNL-2 bulk claims (owner accepted 2026-11-05): a batch is all-or-nothing, holds at most 20 invoices of
+    one Panel, shares one remarks text, and carries no photos (photos are added on each claim afterwards).
 
 ## 7. Open items and known limits
 
@@ -111,6 +114,8 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php`.
 - SMOKE-1 S1-002 and S1-003 are fixed by PNL-1. Follow-up outside this team: the shared `OperationalTable`
   wrapper and the Billing workspace have the same hidden "Actions" header label that can widen a page; a
   `relative` on the shared wrapper would fix every page (needs agreement with the other teams).
+- PNL-2 not yet tested: a PostgreSQL contention test of bulk against single creation, and one batch whose
+  visits fall on different dates.
 - A submitted-but-undecided claim counts as zero outstanding in the Panel summary.
 - Panel summary runs about three queries per approved allocation; not load-tested.
 
@@ -139,7 +144,7 @@ authorisation to build them; the coordinator records it in `docs/BASELINE.md`.
 
 1. **PNL-1 Phone layout fixes. (Built 2026-11-05, waiting for the owner's "ship it".)** SMOKE-1 S1-002 (Panel Claims page width at 390 px) and S1-003 (Panel invoices
    filter row at 390 px). Layout only; no behaviour change.
-2. **PNL-2 Bulk claim.** Select several Pending invoices of one Panel and create their claims in one action,
+2. **PNL-2 Bulk claim. (Shipped 2026-11-05.)** Select several Pending invoices of one Panel and create their claims in one action,
    each claim still its own record with its own idempotency, all Submitted on the same date; still submitted
    manually on the Panel's portal. Lifts the earlier "bulk claim not built" note (decision 9) for creation only.
 3. **PNL-3 Remittance matching.** Record one Panel payment (amount, date, reference) and split it across
