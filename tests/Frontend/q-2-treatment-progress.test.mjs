@@ -344,7 +344,10 @@ test('the dialog posts controlled values with a retry key and keeps consultation
     assert.match(actions, />Treatment step \*/);
     assert.match(actions, />Reason \*/);
     assert.match(actions, /data-testid="treatment-progress-subject"/);
-    assert.match(actions, /variant="link"\s+class="[^"]*text-destructive/);
+    assert.match(
+        actions,
+        /variant="destructive"[\s\S]*?data-testid="treatment-progress-cancel"/,
+    );
     assert.doesNotMatch(
         read('resources/js/components/queue/TreatmentProgressBadge.vue') +
             actions,
@@ -371,4 +374,43 @@ test('the TV and public QR pages never mention treatment progress', () => {
             /treatmentProgress|treatment_step|TreatmentStep|treatment-progress/,
         );
     }
+});
+
+test('Daniel: the dialog opens on its main action with the cancel part collapsed', () => {
+    const actions = read(
+        'resources/js/components/queue/TreatmentProgressActions.vue',
+    );
+    // Collapsed by default and again every time the dialog opens.
+    assert.match(actions, /const showCancel = ref\(false\);/);
+    assert.match(
+        actions,
+        /watch\(open, \(value\) => \{\s*if \(value\) \{\s*showCancel\.value = false;/,
+    );
+    assert.match(
+        actions,
+        /:aria-expanded="showCancel"[\s\S]*?>Entered in error\?</,
+    );
+    assert.match(
+        actions,
+        /v-if="showCancel"\s+id="treatment-progress-cancel-panel"/,
+    );
+    // The disclosure sits before the panel, so the Reason select is not the first control.
+    assert.ok(
+        actions.indexOf('Entered in error?') <
+            actions.indexOf('Cancel this step (entered in error)'),
+    );
+    // Focus: Mark done while running, Close once done; the empty state keeps the default (step select).
+    assert.match(actions, /@open-auto-focus="focusMainAction"/);
+    assert.match(
+        actions,
+        /:data-treatment-autofocus="\s*state === 'done' \? '' : undefined\s*"\s+@click="open = false"\s+>Close</,
+    );
+    assert.match(
+        actions,
+        /:data-treatment-autofocus="\s*state === 'started' \? '' : undefined\s*"\s+@click="submit\(state === 'started' \? 'done' : 'start'\)"/,
+    );
+    assert.match(
+        actions,
+        /if \(!state\.value\) \{\s*return;\s*\}\s*event\.preventDefault\(\);/,
+    );
 });

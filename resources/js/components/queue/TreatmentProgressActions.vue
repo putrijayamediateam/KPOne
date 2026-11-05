@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { router } from '@inertiajs/vue3';
 import { Activity, CheckCircle2, LoaderCircle, XCircle } from '@lucide/vue';
-import { computed, ref, watch } from 'vue';
+import { computed, nextTick, ref, watch } from 'vue';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -34,6 +34,26 @@ const props = defineProps<{
 }>();
 const emit = defineEmits<{ changed: [] }>();
 const open = defineModel<boolean>('open', { default: false });
+// Daniel's review of #256: the rare "entered in error" path stays collapsed until asked for.
+const showCancel = ref(false);
+watch(open, (value) => {
+    if (value) {
+        showCancel.value = false;
+    }
+});
+// Focus the main action: "Mark done" while running, Close once done (the step select when empty).
+const focusMainAction = (event: Event) => {
+    if (!state.value) {
+        return;
+    }
+
+    event.preventDefault();
+    void nextTick(() =>
+        document
+            .querySelector<HTMLElement>('[data-treatment-autofocus]')
+            ?.focus(),
+    );
+};
 const stepCode = ref('');
 const cancelReason = ref('');
 const error = ref('');
@@ -47,6 +67,7 @@ watch(
     () => {
         open.value = false;
         stepCode.value = '';
+        showCancel.value = false;
         cancelReason.value = '';
         error.value = '';
         key = '';
@@ -156,6 +177,7 @@ const submit = (action: 'start' | 'done' | 'cancel') => {
         <DialogContent
             :show-close-button="false"
             class="max-h-[90dvh] overflow-y-auto"
+            @open-auto-focus="focusMainAction"
         >
             <DialogHeader>
                 <DialogTitle>{{
@@ -207,53 +229,71 @@ const submit = (action: 'start' | 'done' | 'cancel') => {
                     >{{ error }}</span
                 >
             </label>
-            <div v-else class="grid gap-2 rounded-md border p-3">
-                <p class="text-sm font-medium">
-                    Cancel this step (entered in error)
-                </p>
-                <label class="grid gap-2 text-sm"
-                    >Reason *
-                    <select
-                        v-model="cancelReason"
-                        required
-                        :aria-invalid="!!error && !cancelReason"
-                        aria-describedby="treatment-progress-error"
-                        class="min-h-11 w-full rounded-md border bg-background px-3 aria-invalid:border-destructive dark:scheme-dark"
-                    >
-                        <option value="">Select a reason</option>
-                        <option
-                            v-for="item in TREATMENT_CANCEL_REASONS"
-                            :key="item[0]"
-                            :value="item[0]"
-                        >
-                            {{ item[1] }}
-                        </option>
-                    </select>
-                    <span
-                        v-if="error"
-                        id="treatment-progress-error"
-                        role="alert"
-                        class="text-sm text-destructive"
-                        >{{ error }}</span
-                    >
-                </label>
+            <div v-else class="grid gap-2">
                 <Button
                     type="button"
-                    variant="link"
-                    class="h-auto min-h-11 justify-start gap-1.5 px-0 text-destructive"
-                    :disabled="busy"
-                    data-testid="treatment-progress-cancel"
-                    @click="submit('cancel')"
+                    variant="ghost"
+                    class="h-auto min-h-11 justify-start px-2 text-sm"
+                    :aria-expanded="showCancel"
+                    aria-controls="treatment-progress-cancel-panel"
+                    data-testid="treatment-progress-cancel-toggle"
+                    @click="showCancel = !showCancel"
+                    >Entered in error?</Button
                 >
-                    <LoaderCircle
-                        v-if="busyAction === 'cancel'"
-                        class="size-4 animate-spin"
-                        aria-hidden="true"
-                    />
-                    {{
-                        busyAction === 'cancel' ? 'Cancelling…' : 'Cancel step'
-                    }}
-                </Button>
+                <div
+                    v-if="showCancel"
+                    id="treatment-progress-cancel-panel"
+                    class="grid gap-2 rounded-md border p-3"
+                >
+                    <p class="text-sm font-medium">
+                        Cancel this step (entered in error)
+                    </p>
+                    <label class="grid gap-2 text-sm"
+                        >Reason *
+                        <select
+                            v-model="cancelReason"
+                            required
+                            :aria-invalid="!!error && !cancelReason"
+                            aria-describedby="treatment-progress-error"
+                            class="min-h-11 w-full rounded-md border bg-background px-3 aria-invalid:border-destructive dark:scheme-dark"
+                        >
+                            <option value="">Select a reason</option>
+                            <option
+                                v-for="item in TREATMENT_CANCEL_REASONS"
+                                :key="item[0]"
+                                :value="item[0]"
+                            >
+                                {{ item[1] }}
+                            </option>
+                        </select>
+                        <span
+                            v-if="error"
+                            id="treatment-progress-error"
+                            role="alert"
+                            class="text-sm text-destructive"
+                            >{{ error }}</span
+                        >
+                    </label>
+                    <Button
+                        type="button"
+                        variant="destructive"
+                        class="min-h-11 gap-1.5"
+                        :disabled="busy"
+                        data-testid="treatment-progress-cancel"
+                        @click="submit('cancel')"
+                    >
+                        <LoaderCircle
+                            v-if="busyAction === 'cancel'"
+                            class="size-4 animate-spin"
+                            aria-hidden="true"
+                        />
+                        {{
+                            busyAction === 'cancel'
+                                ? 'Cancelling…'
+                                : 'Cancel step'
+                        }}
+                    </Button>
+                </div>
             </div>
             <DialogFooter>
                 <Button
@@ -261,6 +301,9 @@ const submit = (action: 'start' | 'done' | 'cancel') => {
                     variant="outline"
                     class="min-h-11"
                     :disabled="busy"
+                    :data-treatment-autofocus="
+                        state === 'done' ? '' : undefined
+                    "
                     @click="open = false"
                     >Close</Button
                 >
@@ -269,6 +312,9 @@ const submit = (action: 'start' | 'done' | 'cancel') => {
                     type="button"
                     class="min-h-11 gap-1.5"
                     :disabled="busy"
+                    :data-treatment-autofocus="
+                        state === 'started' ? '' : undefined
+                    "
                     @click="submit(state === 'started' ? 'done' : 'start')"
                 >
                     <LoaderCircle
