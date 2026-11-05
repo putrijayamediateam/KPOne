@@ -94,30 +94,30 @@ const canDownload = computed(() => props.ready && props.total > 0);
         />
 
         <form
-            class="grid gap-3 rounded-xl border bg-card p-4 md:grid-cols-4"
+            class="grid grid-cols-1 gap-3 rounded-xl border bg-card p-4 md:grid-cols-4"
             @submit.prevent="search()"
         >
-            <label class="grid gap-1 text-xs">
+            <label class="grid min-w-0 gap-1 text-xs">
                 Visit date from
                 <Input v-model="form.from" type="date" />
             </label>
-            <label class="grid gap-1 text-xs">
+            <label class="grid min-w-0 gap-1 text-xs">
                 Visit date to
                 <Input v-model="form.to" type="date" />
             </label>
-            <label class="grid gap-1 text-xs">
+            <label class="grid min-w-0 gap-1 text-xs">
                 Time from
                 <Input v-model="form.timeFrom" type="time" />
             </label>
-            <label class="grid gap-1 text-xs">
+            <label class="grid min-w-0 gap-1 text-xs">
                 Time to
                 <Input v-model="form.timeTo" type="time" />
             </label>
-            <label class="grid gap-1 text-xs md:col-span-2">
+            <label class="grid min-w-0 gap-1 text-xs md:col-span-2">
                 Panel
                 <select
                     v-model="form.panel"
-                    class="h-9 rounded-md border bg-background px-2 text-sm"
+                    class="h-9 w-full min-w-0 rounded-md border bg-background px-2 text-sm"
                     aria-label="Panel"
                 >
                     <option value="">Select a Panel</option>
@@ -126,15 +126,15 @@ const canDownload = computed(() => props.ready && props.total > 0);
                     </option>
                 </select>
             </label>
-            <label class="grid gap-1 text-xs">
+            <label class="grid min-w-0 gap-1 text-xs">
                 Doctor
                 <Input v-model="form.doctor" maxlength="100" />
             </label>
-            <label class="grid gap-1 text-xs">
+            <label class="grid min-w-0 gap-1 text-xs">
                 Visit type
                 <select
                     v-model="form.visitType"
-                    class="h-9 rounded-md border bg-background px-2 text-sm"
+                    class="h-9 w-full min-w-0 rounded-md border bg-background px-2 text-sm"
                     aria-label="Visit type"
                 >
                     <option value="">All</option>
@@ -142,11 +142,14 @@ const canDownload = computed(() => props.ready && props.total > 0);
                     <option value="otc">OTC</option>
                 </select>
             </label>
-            <label v-if="can.clinicalFilters" class="grid gap-1 text-xs">
+            <label
+                v-if="can.clinicalFilters"
+                class="grid min-w-0 gap-1 text-xs"
+            >
                 Treatment
                 <Input v-model="form.treatment" maxlength="100" />
             </label>
-            <div class="flex items-end gap-2 md:col-span-4">
+            <div class="flex flex-wrap items-end gap-2 md:col-span-4">
                 <Button type="submit">Show invoices</Button>
                 <Button type="button" variant="outline" @click="reset">
                     Reset filters
