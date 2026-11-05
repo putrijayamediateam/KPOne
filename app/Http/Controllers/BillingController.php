@@ -128,10 +128,10 @@ class BillingController extends Controller
     {
         $data = $service->show($request->user(), $visit, $print);
         $from = $request->query('from');
-        $data['issued']['backUrl'] = match ($from) {
-            'payments' => route('billing.payments', $visit, absolute: false),
-            'invoice' => route('visits.invoice', $visit, absolute: false),
-            default => route('billing.show', $visit, absolute: false),
+        [$data['issued']['backUrl'], $data['issued']['backLabel']] = match ($from) {
+            'payments' => [route('billing.payments', $visit, absolute: false), 'Back to payments'],
+            'invoice' => [route('visits.invoice', $visit, absolute: false), 'Back to invoice'],
+            default => [route('billing.show', $visit, absolute: false), 'Back to billing'],
         };
 
         return Inertia::render('Billing/Print', $data);

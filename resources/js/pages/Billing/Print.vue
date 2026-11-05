@@ -14,12 +14,14 @@ const props = defineProps<{
     /** BIL-5: present only on a recorded print of a frozen copy; absent on the live preview. */
     issued?: {
         label: 'original' | 'revised' | 'copy';
+        recordedLabel: 'original' | 'revised' | 'copy';
         version: number;
         issuedAt: string;
         printedAt: string;
         printedByYou: boolean;
         notes: string[];
         backUrl: string;
+        backLabel: string;
     } | null;
 }>();
 const labelText = computed(() => {
@@ -63,12 +65,15 @@ const print = () => window.print();
                 v-if="issued"
                 :href="issued.backUrl"
                 class="rounded px-3 py-2 underline"
-                >Back to billing</a
+                >{{ issued.backLabel }}</a
             >
             <p v-if="issued" class="text-xs text-muted-foreground">
-                Recorded as {{ labelText }}, version {{ issued.version }},
-                {{ issued.printedByYou ? 'by you' : '' }} at
-                {{ issued.printedAt }}.
+                This print was recorded as
+                {{ issued.recordedLabel.toUpperCase() }} (version
+                {{ issued.version }}){{
+                    issued.printedByYou ? ' by you' : ''
+                }}
+                at {{ issued.printedAt }}.
             </p>
         </div>
         <header

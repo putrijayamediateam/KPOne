@@ -84,7 +84,9 @@ CREATE OR REPLACE FUNCTION guard_issued_billing_document_print() RETURNS trigger
 DECLARE doc issued_billing_documents%ROWTYPE; printed boolean;
 BEGIN
   SELECT * INTO doc FROM issued_billing_documents WHERE id = NEW.issued_billing_document_id;
-  IF doc.organisation_id <> NEW.organisation_id THEN RAISE EXCEPTION 'Print must stay in its organisation' USING ERRCODE = '23514'; END IF;
+  IF doc.organisation_id <> NEW.organisation_id OR NOT EXISTS (SELECT 1 FROM users WHERE id = NEW.printed_by_user_id AND organisation_id = NEW.organisation_id) THEN
+    RAISE EXCEPTION 'Print must stay in its organisation' USING ERRCODE = '23514';
+  END IF;
   PERFORM 1 FROM invoices WHERE id = doc.invoice_id FOR UPDATE;
   printed := EXISTS (SELECT 1 FROM issued_billing_document_prints WHERE issued_billing_document_id = doc.id);
   IF (NEW.label = 'copy') <> printed OR (NEW.label = 'original' AND doc.version <> 1) OR (NEW.label = 'revised' AND doc.version = 1) THEN

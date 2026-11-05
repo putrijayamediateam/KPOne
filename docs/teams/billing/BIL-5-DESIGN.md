@@ -65,3 +65,14 @@ limit; the Medical Certificate (DOC-02b) already solves the same problem with an
 5. The old live print pages stay viewable but are marked "PREVIEW — not an issued copy" on paper; every Billing
    print button records the print (Siti's sketch found several entry points, including the patient Invoices page).
 6. The recorded print view opens in the same tab, with "Back to billing".
+
+## 7. Known limits (built)
+
+- Each version stores its own copy of the logo (as the Medical Certificate does), up to about 3.6 MB once
+  base64-encoded and encrypted, and sends it to the print page.
+- A change is detected against the latest version only: content that changes and then changes back (for example
+  Bill to changed, then restored) becomes a new version whose content matches an earlier one.
+- Every press of Print is a new request; a resent request (same idempotency key) is recorded once. "Prints" counts
+  presses, not sheets of paper.
+- The old live print pages still open (marked PREVIEW). The patient Invoices page (`Visits/History.vue`, another
+  team's page) still links to them.

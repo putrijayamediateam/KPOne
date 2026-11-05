@@ -35,7 +35,7 @@ test('Billing print buttons record the print instead of opening the live page', 
     assert.ok(invoicePage.includes("url.replace(/\\/print$/, '/issue')"));
 });
 
-test('issuing is retry-safe and busy, and old versions reprint only after a confirm', () => {
+test('a resent request is safe, the button shows it is busy, and old versions reprint only after a confirm', () => {
     assert.ok(button.includes('idempotency_key: crypto.randomUUID()'));
     assert.ok(button.includes("'Issuing…'"));
     assert.ok(button.includes('Nothing was printed or recorded.'));

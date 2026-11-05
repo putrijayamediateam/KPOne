@@ -44,6 +44,9 @@ const issue = () => {
         },
         {
             preserveScroll: true,
+            onSuccess: () => {
+                sent.value = false;
+            },
             onFinish: () => {
                 busy.value = false;
             },

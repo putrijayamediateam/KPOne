@@ -13,6 +13,8 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Inertia\Testing\AssertableInertia as Assert;
 use PHPUnit\Framework\Attributes\DataProvider;
+use Spatie\Permission\Models\Role;
+use Spatie\Permission\PermissionRegistrar;
 
 /**
  * BIL-5 (owner decisions 2026-11-05): an invoice or receipt is frozen at first print (ORIGINAL), a reprint of the same
@@ -172,6 +174,75 @@ class IssuedBillingDocumentTest extends BillingTestCase
         $this->assertDatabaseRefuses('23514', fn () => DB::table('issued_billing_document_prints')->insert([...$print, 'public_id' => (string) Str::uuid(), 'label' => 'original', 'idempotency_key' => (string) Str::uuid()]), 'label does not match');
         DB::table('issued_billing_document_prints')->insert([...$print, 'public_id' => (string) Str::uuid(), 'label' => 'copy', 'idempotency_key' => (string) Str::uuid()]);
         $this->assertSame(2, IssuedBillingDocumentPrint::query()->count());
+    }
+
+    public function test_a_later_payment_does_not_revise_an_earlier_receipt_but_a_footer_change_revises_the_invoice(): void
+    {
+        [, $ca, $visit, $invoice] = $this->finalizedFixture();
+        $this->cashMethod($visit);
+        $this->selectBranch($ca);
+        $pay = fn (string $sen) => $this->post(route('billing.payment', [$visit, $invoice]), ['expected_branch_id' => $visit->branch_id, 'lock_version' => $invoice->refresh()->lock_version, 'amount_sen' => $sen, 'method' => 'cash', 'idempotency_key' => (string) Str::uuid()])->assertSessionHasNoErrors();
+        $pay('1000');
+        $first = Payment::query()->sole();
+        $this->post(route('billing.receipt.issue', [$visit, $invoice, $first]), $this->input($visit))->assertRedirect();
+        $pay('3000');
+        $this->post(route('billing.receipt.issue', [$visit, $invoice, $first]), $this->input($visit))->assertRedirect();
+        $this->assertSame(1, IssuedBillingDocument::query()->where('payment_id', $first->id)->count());
+        $this->assertSame('copy', IssuedBillingDocumentPrint::query()->latest('id')->value('label'));
+
+        $this->post(route('billing.issue', [$visit, $invoice]), $this->input($visit))->assertRedirect();
+        DB::table('branch_document_footers')->updateOrInsert(['branch_id' => $visit->branch_id], ['organisation_id' => $visit->organisation_id, 'text' => 'Synthetic changed footer', 'lock_version' => 2]);
+        $this->post(route('billing.issue', [$visit, $invoice]), $this->input($visit))->assertRedirect();
+        $this->assertSame([1, 2], IssuedBillingDocument::query()->whereNull('payment_id')->orderBy('version')->pluck('version')->all());
+        $this->assertSame('revised', IssuedBillingDocumentPrint::query()->latest('id')->value('label'));
+    }
+
+    public function test_reopening_a_print_shows_copy_except_to_its_own_printer_and_the_way_back_follows_where_it_started(): void
+    {
+        [, $ca, $visit, $invoice] = $this->finalizedFixture();
+        $this->selectBranch($ca);
+        $this->post(route('billing.issue', [$visit, $invoice]), [...$this->input($visit), 'return_to' => 'invoice'])
+            ->assertRedirect(route('billing.issued.show', [$visit, IssuedBillingDocumentPrint::query()->sole()->public_id, 'from' => 'invoice']));
+        $print = IssuedBillingDocumentPrint::query()->sole();
+        $this->get(route('billing.issued.show', [$visit, $print->public_id, 'from' => 'invoice']))->assertInertia(fn (Assert $page) => $page
+            ->where('issued.label', 'original')->where('issued.backUrl', route('visits.invoice', $visit, absolute: false))->where('issued.backLabel', 'Back to invoice'));
+        $this->get(route('billing.issued.show', [$visit, $print->public_id, 'from' => 'https://example.test']))->assertInertia(fn (Assert $page) => $page
+            ->where('issued.backUrl', route('billing.show', $visit, absolute: false)));
+
+        $supervisor = $this->actor('ca_supervisor');
+        $this->selectBranch($supervisor);
+        $this->get(route('billing.issued.show', [$visit, $print->public_id]))->assertInertia(fn (Assert $page) => $page
+            ->where('issued.label', 'copy')->where('issued.recordedLabel', 'original')->where('issued.printedByYou', false));
+        // A later print supersedes the earlier one, even for its own printer.
+        $this->post(route('billing.issue', [$visit, $invoice]), $this->input($visit))->assertRedirect();
+        $this->selectBranch($ca);
+        $this->get(route('billing.issued.show', [$visit, $print->public_id]))->assertInertia(fn (Assert $page) => $page->where('issued.label', 'copy'));
+    }
+
+    public function test_a_document_cannot_be_issued_through_another_visit_and_every_printer_sees_every_printed_part(): void
+    {
+        [, $ca, $visit, $invoice] = $this->finalizedFixture();
+        $this->cashMethod($visit);
+        $this->selectBranch($ca);
+        $this->post(route('billing.payment', [$visit, $invoice]), ['expected_branch_id' => $visit->branch_id, 'lock_version' => $invoice->refresh()->lock_version, 'amount_sen' => '4000', 'method' => 'cash', 'idempotency_key' => (string) Str::uuid()])->assertSessionHasNoErrors();
+        [, , $other] = $this->servingFixture();
+        $this->selectBranch($ca);
+        // This invoice's real receipt, through another visit's address: not found, nothing issued.
+        $this->post(route('billing.receipt.issue', [$other, $invoice, Payment::query()->sole()]), $this->input($other))->assertNotFound();
+        $this->post(route('billing.issue', [$other, $invoice]), $this->input($other))->assertNotFound();
+        $this->assertSame(0, IssuedBillingDocument::query()->count());
+
+        // The frozen copy must not depend on who prints: everyone who may print sees lines and Bill to.
+        foreach (['ca', 'ca_supervisor'] as $role) {
+            $actor = $this->actor($role);
+            $this->assertTrue($actor->can('billing.bill_to.view.branch') && ($actor->can('billing.view.branch') || $actor->can('billing.lines.view.branch')), $role);
+        }
+        // If print were ever granted without Bill to, issuing is refused (role change rolled back with this test).
+        Role::findByName('ca', 'web')->revokePermissionTo('billing.bill_to.view.branch');
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
+        $ca->unsetRelation('roles')->unsetRelation('permissions');
+        $this->post(route('billing.issue', [$visit, $invoice]), $this->input($visit))->assertSessionHasErrors('document');
+        $this->assertSame(0, IssuedBillingDocument::query()->count());
     }
 
     /** @return array<string, mixed> */

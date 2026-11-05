@@ -15,6 +15,7 @@ use App\Domain\Visit\Billing\Models\Payment;
 use App\Domain\Visit\Billing\Models\PaymentAllocation;
 use App\Domain\Visit\Models\Visit;
 use App\Models\User;
+use Illuminate\Contracts\Encryption\DecryptException;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -71,7 +72,7 @@ final class IssuedBillingDocumentService
             $document = new IssuedBillingDocument;
             $document->forceFill(['public_id' => (string) Str::uuid(), 'organisation_id' => $actor->organisation_id, 'branch_id' => $branch->id,
                 'invoice_id' => $invoice->id, 'payment_id' => $payment?->id, 'document_type' => $payment ? 'receipt' : 'invoice',
-                'version' => ($latest?->version ?? 0) + 1, 'content_sha256' => $contentHash, 'encrypted_snapshot' => $encrypted,
+                'version' => ($latest->version ?? 0) + 1, 'content_sha256' => $contentHash, 'encrypted_snapshot' => $encrypted,
                 'ciphertext_sha256' => hash('sha256', $encrypted), 'issued_by_user_id' => $actor->id, 'issued_at' => now()->utc()])->save();
             $this->audit->record('billing.document_issued', $document, ['document_type' => $document->document_type, 'version' => $document->version], $actor, $branch);
 
@@ -79,7 +80,11 @@ final class IssuedBillingDocumentService
         }, 3);
     }
 
-    /** Reprint an earlier (or the latest) issued version, always as COPY. @param array<string, mixed> $input */
+    /**
+     * Reprint an earlier (or the latest) issued version, always as COPY.
+     *
+     * @param  array<string, mixed>  $input
+     */
     public function reprint(User $actor, Visit $visit, string $documentPublicId, array $input): IssuedBillingDocumentPrint
     {
         $key = $this->key($input['idempotency_key'] ?? null);
@@ -109,11 +114,16 @@ final class IssuedBillingDocumentService
             $print = IssuedBillingDocumentPrint::query()->where('organisation_id', $actor->organisation_id)->where('public_id', $printPublicId)->first();
             abort_if($print === null, 404);
             $document = $this->visitDocument($actor, $visit, $branch, IssuedBillingDocument::query()->whereKey($print->issued_billing_document_id)->value('public_id'));
+            $failed = ValidationException::withMessages(['document' => 'This issued copy failed its integrity check. Do not print it; report it.']);
             if (! hash_equals($document->ciphertext_sha256, hash('sha256', $document->encrypted_snapshot))) {
-                throw ValidationException::withMessages(['document' => 'This issued copy failed its integrity check. Do not print it; report it.']);
+                throw $failed;
             }
-            /** @var array<string, mixed> $content */
-            $content = json_decode(Crypt::decryptString($document->encrypted_snapshot), true, flags: JSON_THROW_ON_ERROR);
+            try {
+                /** @var array<string, mixed> $content */
+                $content = json_decode(Crypt::decryptString($document->encrypted_snapshot), true, flags: JSON_THROW_ON_ERROR);
+            } catch (DecryptException|\JsonException) {
+                throw $failed;
+            }
             $latest = (int) IssuedBillingDocument::query()->where('invoice_id', $document->invoice_id)
                 ->where(fn ($q) => $document->payment_id ? $q->where('payment_id', $document->payment_id) : $q->whereNull('payment_id'))->max('version');
             $notes = [];
@@ -125,12 +135,19 @@ final class IssuedBillingDocumentService
                 $notes[] = 'Current status: This receipt was later reversed (recording error).';
             }
 
+            // Only the person who made the latest print of this document sees its ORIGINAL or REVISED label again;
+            // reopening any other print (history, bookmark, another person) shows COPY, so no second ORIGINAL sheet.
+            $lastPrint = IssuedBillingDocumentPrint::query()->where('issued_billing_document_id', $document->id)->max('id');
+            $mine = $print->printed_by_user_id === $actor->id;
+            $label = $mine && (int) $lastPrint === $print->id ? $print->label : 'copy';
+
             return $content + ['issued' => [
-                'label' => $print->label,
+                'label' => $label,
+                'recordedLabel' => $print->label,
                 'version' => $document->version,
                 'issuedAt' => $document->issued_at->setTimezone($branch->timezone)->format('j M Y, g:i A'),
                 'printedAt' => $print->printed_at->setTimezone($branch->timezone)->format('j M Y, g:i A'),
-                'printedByYou' => $print->printed_by_user_id === $actor->id,
+                'printedByYou' => $mine,
                 'notes' => $notes,
                 'backUrl' => route('billing.show', $visit, absolute: false),
             ]];
@@ -140,7 +157,7 @@ final class IssuedBillingDocumentService
     /**
      * Issued versions of this visit's invoices and receipts, newest last, for the Billing page.
      *
-     * @return list<array<string, mixed>>|null
+     * @return array<int, array<string, mixed>>|null
      */
     public function forVisit(User $actor, Visit $visit, string $timezone): ?array
     {
@@ -176,11 +193,20 @@ final class IssuedBillingDocumentService
      */
     private function content(User $actor, Visit $visit, Invoice $invoice, ?Payment $payment, Branch $branch): array
     {
+        // The frozen content must not depend on who prints: issue only for people who see every printed part.
+        if (! $actor->can('billing.bill_to.view.branch') || (! $actor->can('billing.view.branch') && ! $actor->can('billing.lines.view.branch'))) {
+            throw ValidationException::withMessages(['document' => 'You cannot see every part of this document, so you cannot issue it.']);
+        }
         $data = $this->directory->detail($actor, $visit, $invoice, true);
         $source = $data['invoice'];
         $receipt = null;
         if ($payment !== null) {
-            $row = collect($data['payments'])->firstWhere('publicId', $payment->public_id);
+            $row = null;
+            foreach ($data['payments'] as $candidate) {
+                if ($candidate['publicId'] === $payment->public_id) {
+                    $row = $candidate;
+                }
+            }
             abort_if($row === null, 404);
             $receipt = ['number' => $row['number'], 'receivedAt' => $row['receivedAt'], 'status' => $row['status'], 'amountSen' => $row['amountSen'], 'method' => $row['method']];
         }

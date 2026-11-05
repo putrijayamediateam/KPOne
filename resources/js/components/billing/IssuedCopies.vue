@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { router, usePage } from '@inertiajs/vue3';
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
+import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import OperationalConfirmDialog from '@/components/ui/OperationalConfirmDialog.vue';
 import EmptyState from '@/components/ui/state/EmptyState.vue';
@@ -16,10 +17,24 @@ const props = defineProps<{
 
 const page = usePage();
 const busy = ref<string | null>(null);
+const sent = ref(false);
+const error = computed(() => {
+    const errors = (page.props.errors ?? {}) as Record<
+        string,
+        string | undefined
+    >;
+
+    return sent.value
+        ? (errors.document ??
+              errors.expected_branch_id ??
+              errors.idempotency_key)
+        : undefined;
+});
 const confirming = ref<IssuedCopy | null>(null);
 
 const reprint = (copy: IssuedCopy) => {
     busy.value = copy.publicId;
+    sent.value = true;
     router.post(
         `${props.base}/issued/${copy.publicId}/reprint`,
         {
@@ -29,6 +44,9 @@ const reprint = (copy: IssuedCopy) => {
         },
         {
             preserveScroll: true,
+            onSuccess: () => {
+                sent.value = false;
+            },
             onFinish: () => {
                 busy.value = null;
                 confirming.value = null;
@@ -51,6 +69,10 @@ const name = (copy: IssuedCopy) =>
                 not sheets of paper.
             </p>
         </div>
+        <InputError
+            v-if="error"
+            :message="`Could not reprint. Nothing was printed or recorded. ${error}`"
+        />
         <EmptyState
             v-if="copies.length === 0"
             title="No copies issued yet."
