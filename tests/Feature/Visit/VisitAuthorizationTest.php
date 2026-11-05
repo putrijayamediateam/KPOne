@@ -152,7 +152,8 @@ class VisitAuthorizationTest extends VisitTestCase
     {
         $routes = collect(app('router')->getRoutes());
         $this->assertFalse($routes->contains(fn ($route) => in_array('DELETE', $route->methods(), true) && str_starts_with($route->uri(), 'visits')));
-        foreach (['prescription', 'refund', 'procurement', 'qr', 'otp', 'portal'] as $term) {
+        // 'refund' was removed with the owner's approval (2026-11-05): BIL-6 refunds are an approved surface.
+        foreach (['prescription', 'procurement', 'qr', 'otp', 'portal'] as $term) {
             $this->assertFalse($routes->contains(fn ($route) => str_contains(strtolower($route->uri()), $term)));
         }
         $this->assertSame('completed', Visit::STATUS_COMPLETED);
