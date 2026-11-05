@@ -77,7 +77,7 @@ class RegistrationValidationTest extends PatientTestCase
                 $normalizer->normalize($ambiguous, 'MY', true);
                 $this->fail('The parser must not silently remove international digits.');
             } catch (ValidationException $exception) {
-                $this->assertSame(['Semak kod negara dan nombor telefon.'], $exception->errors()['mobile_phone']);
+                $this->assertSame(['Check the country code and phone number.'], $exception->errors()['mobile_phone']);
             }
         }
         foreach ([['0123456789', 'MY', '+60123456789'], [' (012) 345-6789 ', 'MY', '+60123456789'], ['+60 12-3456789', 'MY', '+60123456789'], ['020 7946 0018', 'GB', '+442079460018'], ['+44 20 7946 0018', 'MY', '+442079460018']] as [$raw, $country, $expected]) {
