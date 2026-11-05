@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Head, Link, router, usePage } from '@inertiajs/vue3';
-import { computed, reactive, ref } from 'vue';
+import { computed, reactive, ref, watch } from 'vue';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
@@ -89,6 +89,7 @@ type Props = {
             visitNumber: string;
             invoiceNumber: string;
             panelName: string;
+            panelId: number;
             claimAmountSen: number;
             status: string;
             overdue: boolean;
@@ -195,7 +196,7 @@ const columnList = computed(() =>
 const shownColumnCount = computed(
     () =>
         columnList.value.filter((column) => visibleColumns.value[column.key])
-            .length + (invoiceMode.value ? 2 : 1),
+            .length + 2,
 );
 const tabs = computed(() =>
     tabLabels.map(([value, label]) => ({
@@ -228,6 +229,8 @@ const filtersActive = computed(() =>
 );
 
 const selected = ref<Record<string, EligibleRow>>({});
+type ClaimRow = Props['work']['claims']['data'][number];
+const packSelected = ref<Record<string, ClaimRow>>({});
 const query = (overrides: Record<string, string | number | null> = {}) => {
     const values: Record<string, string | number | null> = {
         tab: props.work.filters.tab,
@@ -406,6 +409,95 @@ const toggleAll = (value: boolean) => {
 };
 const clearSelection = () => {
     selected.value = {};
+};
+
+// PNL-8: tick claims of one Panel (at most 50) and print them as one pack: a cover page, then one page per claim.
+const packMax = 50;
+// A new tab, filter or page brings new claim rows, which start a fresh pack selection.
+watch(
+    () => props.work.claims,
+    () => {
+        packSelected.value = {};
+    },
+);
+const packRows = computed(() => Object.values(packSelected.value));
+const packPanelId = computed(() => packRows.value[0]?.panelId ?? null);
+const packPanel = computed(() => packRows.value[0]?.panelName ?? null);
+const packPagePanels = computed(() => [
+    ...new Set(props.work.claims.data.map((row) => row.panelId)),
+]);
+const packAllPanelId = computed(
+    () =>
+        packPanelId.value ??
+        (packPagePanels.value.length === 1 ? packPagePanels.value[0] : null),
+);
+const packAllRows = computed(() =>
+    props.work.claims.data.filter(
+        (row) => row.panelId === packAllPanelId.value,
+    ),
+);
+const packAllPanel = computed(() => packAllRows.value[0]?.panelName ?? null);
+const atPackMax = computed(() => packRows.value.length >= packMax);
+const packAllSelected = computed(
+    () =>
+        packAllRows.value.length > 0 &&
+        packAllRows.value.every((row) => packSelected.value[row.publicId]),
+);
+const packHeaderState = computed<boolean | 'indeterminate'>(() => {
+    const rows = props.work.claims.data;
+    const ticked = rows.filter((row) => packSelected.value[row.publicId]);
+
+    if (ticked.length === 0) {
+        return false;
+    }
+
+    return ticked.length === rows.length ? true : 'indeterminate';
+});
+const packTotalSen = computed(() =>
+    packRows.value.reduce((sum, row) => sum + row.claimAmountSen, 0),
+);
+const canPack = (row: ClaimRow) =>
+    packPanelId.value === null || row.panelId === packPanelId.value;
+const packLockedReason = (row: ClaimRow) =>
+    canPack(row)
+        ? undefined
+        : `Only claims of ${packPanel.value} can be added to this pack`;
+const togglePackRow = (row: ClaimRow, value: boolean) => {
+    const next = { ...packSelected.value };
+
+    if (value && canPack(row) && Object.keys(next).length < packMax) {
+        next[row.publicId] = row;
+    } else {
+        delete next[row.publicId];
+    }
+
+    packSelected.value = next;
+};
+const togglePackAll = (value: boolean) => {
+    const next = { ...packSelected.value };
+
+    for (const row of packAllRows.value) {
+        if (value && Object.keys(next).length < packMax) {
+            next[row.publicId] = row;
+        } else if (!value) {
+            delete next[row.publicId];
+        }
+    }
+
+    packSelected.value = next;
+};
+const clearPack = () => {
+    packSelected.value = {};
+    document.getElementById('pack-select-all')?.focus();
+};
+const printPack = () => {
+    if (packRows.value.length === 0) {
+        return;
+    }
+
+    router.get('/panel-claims/pack', {
+        claims: packRows.value.map((row) => row.publicId),
+    });
 };
 const keyFor = (allocationId: string) => {
     if (!bulkKeys.has(allocationId)) {
@@ -1060,6 +1152,54 @@ const visitTypeLabel = (value: string) =>
                 />
             </template>
             <template v-else>
+                <section
+                    v-if="packRows.length > 0"
+                    class="flex flex-col gap-3 rounded-xl border border-primary/30 bg-primary/5 p-4 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between"
+                    aria-label="Print the selected claims"
+                    data-testid="claim-pack-bar"
+                >
+                    <div class="min-w-0 space-y-1">
+                        <p class="text-sm font-medium wrap-anywhere">
+                            {{ packRows.length }} claim{{
+                                packRows.length === 1 ? '' : 's'
+                            }}
+                            selected · {{ packPanel }} ·
+                            <span class="tabular-nums">{{
+                                myr(packTotalSen)
+                            }}</span>
+                        </p>
+                        <p class="text-xs text-muted-foreground">
+                            Prints a cover page and one A4 page per claim, with
+                            IC or passport numbers. Each print is recorded.
+                        </p>
+                        <p
+                            v-if="atPackMax"
+                            class="text-sm text-warning-strong"
+                            role="status"
+                        >
+                            {{ packMax }} claims selected, the most for one
+                            pack. Print these first, then select more.
+                        </p>
+                    </div>
+                    <div class="flex flex-col gap-2 sm:flex-row">
+                        <Button
+                            type="button"
+                            class="min-h-11 w-full sm:w-auto"
+                            data-testid="claim-pack-print"
+                            @click="printPack"
+                        >
+                            Print pack
+                        </Button>
+                        <Button
+                            type="button"
+                            variant="outline"
+                            class="min-h-11 w-full sm:w-auto"
+                            @click="clearPack"
+                        >
+                            Clear
+                        </Button>
+                    </div>
+                </section>
                 <EmptyState
                     v-if="work.claims.data.length === 0"
                     title="No claims match"
@@ -1073,6 +1213,26 @@ const visitTypeLabel = (value: string) =>
                 >
                     <template #head>
                         <tr>
+                            <th scope="col" class="w-12">
+                                <label
+                                    class="inline-flex min-h-11 min-w-11 items-center justify-center"
+                                >
+                                    <Checkbox
+                                        id="pack-select-all"
+                                        :model-value="packHeaderState"
+                                        :disabled="packAllRows.length === 0"
+                                        :aria-label="
+                                            packAllPanel
+                                                ? `Select all ${packAllPanel} claims on this page`
+                                                : 'Filter by one Panel to select all claims on this page'
+                                        "
+                                        @update:model-value="
+                                            () =>
+                                                togglePackAll(!packAllSelected)
+                                        "
+                                    />
+                                </label>
+                            </th>
                             <th v-if="visibleColumns.amount" scope="col">
                                 Amount
                             </th>
@@ -1102,6 +1262,31 @@ const visitTypeLabel = (value: string) =>
                     </template>
                     <template #body>
                         <tr v-for="row in work.claims.data" :key="row.publicId">
+                            <td>
+                                <label
+                                    class="inline-flex min-h-11 min-w-11 items-center justify-center"
+                                >
+                                    <Checkbox
+                                        :model-value="
+                                            Boolean(packSelected[row.publicId])
+                                        "
+                                        :disabled="
+                                            !canPack(row) ||
+                                            (atPackMax &&
+                                                !packSelected[row.publicId])
+                                        "
+                                        :title="packLockedReason(row)"
+                                        :aria-label="`Select claim ${row.claimNo} for a claim pack`"
+                                        @update:model-value="
+                                            (value) =>
+                                                togglePackRow(
+                                                    row,
+                                                    value === true,
+                                                )
+                                        "
+                                    />
+                                </label>
+                            </td>
                             <td
                                 v-if="visibleColumns.amount"
                                 class="whitespace-nowrap tabular-nums"

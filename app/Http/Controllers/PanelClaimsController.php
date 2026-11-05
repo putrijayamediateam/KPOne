@@ -7,6 +7,7 @@ use App\Domain\Visit\Billing\Models\PanelClaim;
 use App\Domain\Visit\Billing\Models\PanelClaimDocument;
 use App\Domain\Visit\Billing\Services\PanelClaimDirectoryService;
 use App\Domain\Visit\Billing\Services\PanelClaimFollowUpService;
+use App\Domain\Visit\Billing\Services\PanelClaimPackService;
 use App\Domain\Visit\Billing\Services\PanelClaimService;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
@@ -17,6 +18,7 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class PanelClaimsController extends Controller
@@ -143,6 +145,31 @@ class PanelClaimsController extends Controller
         $claim = $claims->prepare($actor, $allocation, $request->all());
 
         return to_route('panel-claims.show', $claim);
+    }
+
+    /** PNL-8: a printable pack of one claim or up to 50 claims of one Panel. */
+    public function pack(Request $request, PanelClaimPackService $packs): Response
+    {
+        $actor = $request->user();
+        abort_unless($actor instanceof User, 403);
+        $from = $request->validate(['from' => ['sometimes', 'nullable', 'uuid']])['from'] ?? null;
+
+        return Inertia::render('PanelClaims/Pack', $packs->pack($actor, ['claims' => $request->query('claims')]) + [
+            'backUrl' => is_string($from) ? route('panel-claims.show', ['claim' => strtolower($from)]) : route('panel-claims.index'),
+            'backLabel' => is_string($from) ? 'Back to claim' : 'Back to Panel Claims',
+        ]);
+    }
+
+    public function packLogo(Request $request, string $asset, PanelClaimPackService $packs): BinaryFileResponse
+    {
+        $actor = $request->user();
+        abort_unless($actor instanceof User, 403);
+        $image = $packs->logo($actor, $asset);
+        abort_unless(Storage::disk('local')->exists($image['path']), 404);
+
+        return response()->file(Storage::disk('local')->path($image['path']), ['Content-Type' => $image['mime'],
+            'Content-Disposition' => 'inline; filename="clinic-logo.'.($image['mime'] === 'image/png' ? 'png' : 'jpg').'"',
+            'Cache-Control' => 'private, no-store', 'X-Content-Type-Options' => 'nosniff']);
     }
 
     public function show(Request $request, PanelClaim $claim, PanelClaimDirectoryService $directory): Response
