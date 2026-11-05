@@ -84,6 +84,7 @@ class MedicineCatalogueController extends Controller
                     'panelDefaultAmountRm' => $catalogueTariffs[$medicine->id]['panelDefaultAmountRm'] ?? null,
                     'isActive' => $medicine->is_active,
                     'isControlled' => (bool) $medicine->is_controlled,
+                    'allergyGroups' => $medicine->allergyGroupList(),
                 ])->values(),
                 'total' => $paginator->total(),
                 'currentPage' => $paginator->currentPage(),
@@ -324,6 +325,23 @@ class MedicineCatalogueController extends Controller
             throw $e->redirectTo(route('medicines.index'));
         }
         Inertia::flash('toast', ['type' => 'success', 'message' => $data['is_controlled'] ? __('Marked as a controlled medicine.') : __('Controlled medicine mark removed.')]);
+
+        return to_route('medicines.index');
+    }
+
+    /** DSP-1b: save the drug groups the allergy warning matches against. */
+    public function allergyGroups(Request $request, MedicineCatalogueItem $medicine, MedicineAdministrationService $service): RedirectResponse
+    {
+        $data = $request->validate([
+            'allergy_groups' => ['present', 'array', 'max:20'], 'allergy_groups.*' => ['nullable', 'string', 'max:200'],
+            'expected_allergy_groups' => ['present', 'array', 'max:20'], 'expected_allergy_groups.*' => ['string', 'max:200'],
+        ]);
+        try {
+            $service->setAllergyGroups($request->user(), $medicine, $data['allergy_groups'], $data['expected_allergy_groups']);
+        } catch (ValidationException $e) {
+            throw $e->redirectTo(route('medicines.index'));
+        }
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('Drug groups saved.')]);
 
         return to_route('medicines.index');
     }

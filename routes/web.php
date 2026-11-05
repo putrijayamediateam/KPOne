@@ -607,6 +607,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::post('{medicine}/activate', [MedicineCatalogueController::class, 'activate'])->whereUuid('medicine')->middleware('throttle:20,1')->name('medicines.activate');
             Route::post('{medicine}/deactivate', [MedicineCatalogueController::class, 'deactivate'])->whereUuid('medicine')->middleware('throttle:20,1')->name('medicines.deactivate');
             Route::post('{medicine}/controlled', [MedicineCatalogueController::class, 'controlled'])->whereUuid('medicine')->middleware('throttle:20,1')->name('medicines.controlled');
+            Route::post('{medicine}/allergy-groups', [MedicineCatalogueController::class, 'allergyGroups'])->whereUuid('medicine')->middleware('throttle:20,1')->name('medicines.allergy-groups');
         });
 
         Route::middleware(['permission:clinical_services.manage.organisation'])->prefix('clinical-services')->group(function () {
