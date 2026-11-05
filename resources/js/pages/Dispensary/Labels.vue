@@ -22,8 +22,11 @@ const props = defineProps<{
         excludedCount: number;
         pageSize: { width: number; height: number };
     };
+    // DSP-2: lines whose batch and expiry are not printed, with the reason (screen only).
+    labelBatchNotes?: Array<{ name: string; previewUrl: string; note: string }>;
 }>();
 const page = usePage();
+const batchNotes = computed(() => props.labelBatchNotes ?? []);
 const busy = ref(false);
 const error = ref('');
 const retired = ref(false);
@@ -128,6 +131,23 @@ const printLabels = async () => {
             >
         </header>
         <template v-if="!changed && !retired">
+            <section
+                v-if="batchNotes.length"
+                class="print-toolbar"
+                aria-label="Batch and expiry"
+                data-testid="label-batch-notes"
+            >
+                <p>
+                    Batch number and expiry are printed only when exactly one
+                    batch was used for a medicine.
+                </p>
+                <ul>
+                    <li v-for="note in batchNotes" :key="note.previewUrl">
+                        <strong>{{ note.name }}</strong
+                        >: {{ note.note }}
+                    </li>
+                </ul>
+            </section>
             <section
                 v-if="labels.blocked.length"
                 class="print-toolbar"
