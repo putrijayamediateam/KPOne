@@ -23,7 +23,8 @@ final class MinimumStaffingService
     /** @return array<string, array<string, int>> session => role => minimum (zeros filled in) */
     public function minimums(Branch $branch): array
     {
-        $stored = MinimumStaffing::query()->where('branch_id', $branch->id)->first()?->minimums ?? [];
+        $row = MinimumStaffing::query()->where('branch_id', $branch->id)->first();
+        $stored = $row === null ? [] : $row->minimums;
 
         return $this->normalise($stored);
     }
@@ -92,7 +93,7 @@ final class MinimumStaffingService
         foreach (array_keys(RosterRules::SESSIONS) as $session) {
             foreach (array_keys(RosterRules::STAFFING_ROLES) as $role) {
                 $raw = is_array($input[$session] ?? null) ? ($input[$session][$role] ?? 0) : 0;
-                $value = $raw === '' || $raw === null ? 0 : filter_var($raw, FILTER_VALIDATE_INT, ['options' => ['min_range' => 0, 'max_range' => self::MAX]]);
+                $value = $raw === '' ? 0 : filter_var($raw, FILTER_VALIDATE_INT, ['options' => ['min_range' => 0, 'max_range' => self::MAX]]);
                 if ($value === false) {
                     $errors["minimums.{$session}.{$role}"] = 'Enter a number from 0 to 20.';
                     $value = 0;

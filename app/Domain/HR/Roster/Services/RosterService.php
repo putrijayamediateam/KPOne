@@ -43,6 +43,7 @@ final class RosterService
         $key = $this->key($input['idempotency_key'] ?? null);
 
         return DB::transaction(function () use ($actor, $input, $mode, $key): array {
+            $this->lockPeople($actor, $mode === 'blank' ? [] : $this->possibleSourceSubjects($actor, $input, $mode));
             $actor = $this->authority->lock($actor, RosterPermissions::MANAGE);
             $branch = $this->authority->branch($actor, $input['branch_id'] ?? null);
             $weekStart = $this->rules->weekStart($branch, $input['week'] ?? null);
@@ -102,13 +103,17 @@ final class RosterService
         $key = $this->key($input['idempotency_key'] ?? null);
 
         return DB::transaction(function () use ($actor, $versionId, $input, $key): RosterVersion {
-            [$actor, $branch, $week, $version] = $this->lockDraft($actor, $versionId, $input);
+            $this->lockPeople($actor, [$input['staff_user_id'] ?? null]);
+            $actor = $this->authority->lock($actor, RosterPermissions::MANAGE);
             $this->serializeKey($actor, $key);
-            $shift = $this->rules->parse($branch, $this->weekStartOf($week, $branch), $input);
-            $hash = $this->hash([$actor->id, 'add', $version->id, $shift['staff_user_id'], $shift['starts_at']->toIso8601String(), $shift['ends_at']->toIso8601String(), $shift['break_minutes'], $shift['session_type'], $shift['branch_room_id']]);
+            // A retry is answered from the stored result before anything that may have changed since (status, rooms).
+            $hash = $this->hash([$actor->id, 'add', $versionId, ...array_map(fn (string $f): string => is_scalar($input[$f] ?? null) ? (string) $input[$f] : '',
+                ['staff_user_id', 'date', 'start_time', 'end_time', 'break_minutes', 'session_type', 'branch_room_id'])]);
             if (($replay = $this->replay($actor, $key, 'add_shift', $hash)) !== null) {
                 return $replay;
             }
+            [$actor, $branch, $week, $version] = $this->lockDraft($actor, $versionId, $input);
+            $shift = $this->rules->parse($branch, $this->weekStartOf($week, $branch), $input);
             $this->assertVersionLock($version, $input);
             $subject = $this->lockSubject($branch, $shift['staff_user_id']);
             $this->rules->assertShiftAllowed($version, $branch, $subject, $shift['starts_at'], $shift['ends_at']);
@@ -129,6 +134,8 @@ final class RosterService
     public function updateShift(User $actor, string $versionId, string $shiftId, array $input): RosterShift
     {
         return DB::transaction(function () use ($actor, $versionId, $shiftId, $input): RosterShift {
+            $previous = Str::isUuid($shiftId) ? RosterShift::query()->where('organisation_id', $actor->organisation_id)->where('public_id', $shiftId)->value('staff_user_id') : null;
+            $this->lockPeople($actor, [$input['staff_user_id'] ?? null, $previous]);
             [$actor, $branch, $week, $version] = $this->lockDraft($actor, $versionId, $input);
             $this->assertVersionLock($version, $input);
             $row = $this->lockShift($version, $shiftId);
@@ -203,6 +210,7 @@ final class RosterService
         $key = $this->key($input['idempotency_key'] ?? null);
 
         return DB::transaction(function () use ($actor, $versionId, $input, $key): RosterVersion {
+            $this->lockPeople($actor, $this->subjectsOf($actor, $versionId));
             $actor = $this->authority->lock($actor, RosterPermissions::APPROVE);
             [$branch, $week, $version] = $this->lockVersion($actor, $versionId);
             $this->serializeKey($actor, $key);
@@ -266,7 +274,7 @@ final class RosterService
             if ($version->submitted_by_user_id === $actor->id) {
                 throw ValidationException::withMessages(['roster' => 'You sent this week for approval. Someone else must decide it.']);
             }
-            $version->forceFill(['status' => 'draft', 'submitted_by_user_id' => null, 'submitted_at' => null, 'return_reason' => $reason,
+            $version->forceFill(['status' => 'draft', 'submitted_by_user_id' => null, 'submitted_at' => null, 'return_reason' => $reason, 'returned_by_user_id' => $actor->id,
                 'lock_version' => $version->lock_version + 1])->save();
             $this->action($week, $version, 'returned', $actor, reason: $reason);
             $this->remember($actor, $key, 'return', $hash, $version);
@@ -326,7 +334,7 @@ final class RosterService
                 $room = $shift->branch_room_id !== null && DB::table('branch_rooms')->where('id', $shift->branch_room_id)->where('is_active', true)->exists() ? $shift->branch_room_id : null;
             } catch (ValidationException $e) {
                 $reason = collect($e->errors())->flatten()->first();
-                $skipped[] = ($subject?->name ?? 'A staff member')." on {$day}: ".(is_string($reason) && $reason !== 'not available' ? $reason : 'no longer available.');
+                $skipped[] = ($subject === null ? 'A staff member' : $subject->name)." on {$day}: ".(is_string($reason) && $reason !== 'not available' ? $reason : 'no longer available.');
 
                 continue;
             }
@@ -387,6 +395,55 @@ final class RosterService
         return $row;
     }
 
+    /**
+     * Every account row a write touches (the actor and each rostered person) is locked in one pass in id order, before
+     * any roster row, so two writers never wait on each other's people in opposite orders.
+     *
+     * @param  list<mixed>  $subjectIds
+     */
+    private function lockPeople(User $actor, array $subjectIds): void
+    {
+        $ids = [$actor->id];
+        foreach ($subjectIds as $id) {
+            $value = filter_var($id, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+            if ($value !== false) {
+                $ids[] = (int) $value;
+            }
+        }
+        $ids = array_values(array_unique($ids));
+        sort($ids);
+        User::query()->whereIn('id', $ids)->where('organisation_id', $actor->organisation_id)->orderBy('id')->lockForUpdate()->get(['id']);
+    }
+
+    /** @return list<int> People rostered in a version (read before locking, to lock them in order). */
+    private function subjectsOf(User $actor, string $versionId): array
+    {
+        if (! Str::isUuid($versionId)) {
+            return [];
+        }
+        $id = RosterVersion::query()->where('organisation_id', $actor->organisation_id)->where('public_id', $versionId)->value('id');
+
+        return $id === null ? [] : array_values(RosterShift::query()->where('roster_version_id', $id)->distinct()->pluck('staff_user_id')->map(fn ($v): int => (int) $v)->values()->all());
+    }
+
+    /**
+     * @param  array<string, mixed>  $input
+     * @return list<int> People in the approved version a copy or change would start from.
+     */
+    private function possibleSourceSubjects(User $actor, array $input, string $mode): array
+    {
+        try {
+            $branch = $this->authority->branch($actor, $input['branch_id'] ?? null);
+            $weekStart = $this->rules->weekStart($branch, $input['week'] ?? null);
+        } catch (ValidationException) {
+            return [];
+        }
+        $week = RosterWeek::query()->where('branch_id', $branch->id)->whereDate('week_start', ($mode === 'copy' ? $weekStart->subWeek() : $weekStart)->toDateString())->first();
+        $source = $week === null ? null : RosterVersion::query()->where('roster_week_id', $week->id)->where('status', 'approved')->first();
+
+        return $source === null ? [] : $this->subjectsOf($actor, $source->public_id);
+    }
+
     /** The rostered person's account row serialises every roster write for that person across branches. */
     private function lockSubject(Branch $branch, int $subjectId, string $field = 'staff_user_id'): User
     {
@@ -423,7 +480,7 @@ final class RosterService
 
     private function action(RosterWeek $week, RosterVersion $version, string $action, User $actor, ?RosterShift $shift = null, ?int $subjectId = null, ?string $reason = null): void
     {
-        DB::table('hr_roster_actions')->insert(['organisation_id' => $week->organisation_id, 'roster_week_id' => $week->id, 'roster_version_id' => $version->id,
+        DB::table('hr_roster_actions')->insert(['organisation_id' => $week->organisation_id, 'branch_id' => $week->branch_id, 'roster_week_id' => $week->id, 'roster_version_id' => $version->id,
             'action' => $action, 'actor_user_id' => $actor->id, 'shift_public_id' => $shift?->public_id, 'subject_user_id' => $subjectId,
             'reason' => $reason, 'occurred_at' => now()->utc()]);
     }
@@ -443,7 +500,7 @@ final class RosterService
             throw ValidationException::withMessages(['roster' => 'This request was already used for a different change. Reload and try again.']);
         }
 
-        return RosterVersion::query()->findOrFail($row->roster_version_id);
+        return RosterVersion::query()->whereKey($row->roster_version_id)->firstOrFail();
     }
 
     private function remember(User $actor, string $key, string $action, string $hash, RosterVersion $version): void

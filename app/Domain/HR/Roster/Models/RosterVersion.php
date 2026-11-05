@@ -23,6 +23,7 @@ use Illuminate\Support\Carbon;
  * @property int|null $decided_by_user_id
  * @property Carbon|null $decided_at
  * @property string|null $return_reason
+ * @property int|null $returned_by_user_id
  * @property Carbon|null $superseded_at
  * @property int $lock_version
  * @property Carbon $updated_at
@@ -35,7 +36,8 @@ class RosterVersion extends Model
 
     protected function casts(): array
     {
-        return ['submitted_at' => 'datetime', 'decided_at' => 'datetime', 'superseded_at' => 'datetime', 'lock_version' => 'integer', 'version_number' => 'integer'];
+        return ['submitted_at' => 'datetime', 'decided_at' => 'datetime', 'superseded_at' => 'datetime', 'lock_version' => 'integer', 'version_number' => 'integer',
+            'created_by_user_id' => 'integer', 'submitted_by_user_id' => 'integer', 'decided_by_user_id' => 'integer', 'returned_by_user_id' => 'integer'];
     }
 
     /** @return BelongsTo<RosterWeek, $this> */

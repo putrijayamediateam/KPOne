@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\HR;
 
+use App\Domain\Access\ClinicManagementNavigation;
 use App\Domain\Access\PermissionCatalogue;
 use App\Domain\HR\Roster\Models\RosterShift;
 use App\Domain\HR\Roster\Models\RosterVersion;
@@ -13,6 +14,7 @@ use Carbon\CarbonImmutable;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Illuminate\Testing\TestResponse;
 use Inertia\Testing\AssertableInertia as Assert;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Spatie\Permission\Models\Role;
@@ -147,6 +149,20 @@ class RosterTest extends VisitTestCase
         $this->approve($secondDirector, $version)->assertSessionHasNoErrors();
         $this->assertSame('approved', $version->refresh()->status);
 
+        // PostgreSQL refuses a return by the person who sent the week.
+        $returned = $this->startDraft($director, $this->week->addWeeks(2));
+        $this->addShift($director, $returned, $ca, 0, '09:00', '17:00', [], $this->week->addWeeks(2))->assertSessionHasNoErrors();
+        $this->submit($director, $returned->refresh())->assertSessionHasNoErrors();
+        DB::beginTransaction();
+        try {
+            DB::table('hr_roster_versions')->where('id', $returned->id)->update(['status' => 'draft', 'submitted_by_user_id' => null, 'submitted_at' => null, 'returned_by_user_id' => $director->id, 'return_reason' => 'other']);
+            $this->fail('A return by the sender was not refused.');
+        } catch (QueryException) {
+            $this->addToAssertionCount(1);
+        } finally {
+            DB::rollBack();
+        }
+
         // PostgreSQL refuses a self-approval written around the service.
         $other = $this->startDraft($director, $this->week->addWeek());
         $this->addShift($director, $other, $ca, 0, '09:00', '17:00', [], $this->week->addWeek())->assertSessionHasNoErrors();
@@ -248,6 +264,11 @@ class RosterTest extends VisitTestCase
         $this->addShift($hr, $version, $ca, 0, '08:00', '14:00', ['idempotency_key' => $key, 'expected_version_lock' => $lock])->assertSessionHasNoErrors();
         $this->addShift($hr, $version, $ca, 0, '08:00', '14:00', ['idempotency_key' => $key, 'expected_version_lock' => $lock])->assertSessionHasNoErrors(); // Same retry.
         $this->assertSame(1, RosterShift::query()->count());
+        // A retry after the week was sent is still answered from the stored result.
+        $this->submit($hr, $version->refresh())->assertSessionHasNoErrors();
+        $this->addShift($hr, $version, $ca, 0, '08:00', '14:00', ['idempotency_key' => $key, 'expected_version_lock' => $lock])->assertSessionHasNoErrors();
+        $this->selectBranch($this->actor('director'));
+        $this->post(route('hr.roster.return', $version->public_id), ['expected_version_lock' => $version->refresh()->lock_version, 'reason' => 'other', 'idempotency_key' => (string) Str::uuid()])->assertSessionHasNoErrors();
         $this->addShift($hr, $version, $ca, 1, '08:00', '14:00', ['idempotency_key' => $key, 'expected_version_lock' => $lock])
             ->assertSessionHasErrors(['roster' => 'This request was already used for a different change. Reload and try again.']);
         $this->addShift($hr, $version, $ca, 1, '08:00', '14:00', ['expected_version_lock' => $lock])
@@ -331,7 +352,7 @@ class RosterTest extends VisitTestCase
         $this->selectBranch($hr);
         $next = $this->week->addWeek();
         $this->post(route('hr.roster.drafts.store'), ['branch_id' => $this->branch->id, 'week' => $next->toDateString(), 'mode' => 'copy', 'idempotency_key' => (string) Str::uuid()])
-            ->assertSessionHasNoErrors()->assertInertiaFlash('rosterSkipped', fn ($notes) => count($notes) === 1 && str_contains($notes[0], $leaves->name));
+            ->assertSessionHasNoErrors()->assertInertiaFlash('rosterSkipped', ["{$leaves->name} on {$this->week->addWeek()->addDay()->format('D j M')}: Choose an active staff member."]);
         $copy = RosterVersion::query()->where('roster_week_id', '<>', $v1->roster_week_id)->sole();
         $shift = $copy->shifts()->sole();
         $this->assertSame([$stays->id, $next->setTime(8, 0)->utc()->toIso8601String()], [$shift->staff_user_id, $shift->starts_at->utc()->toIso8601String()]);
@@ -355,8 +376,14 @@ class RosterTest extends VisitTestCase
         $this->selectBranch($hr);
         $day = $this->week->format('D j M');
         $this->get(route('hr.roster.index', ['tab' => 'planner', 'week' => $this->week->toDateString(), 'branch' => $this->branch->id]))->assertInertia(fn (Assert $p) => $p
-            ->where('roster.planner.warnings', fn ($w) => collect($w)->contains("Short: {$day}, Morning: 1 CA (minimum 2).") && collect($w)->contains("Short: {$day}, Morning: 0 Resident Doctors (minimum 1)."))
+            ->where('roster.planner.warnings', fn ($w) => collect($w)->contains("Short on {$day}: Morning 0 Resident Doctors (minimum 1); Morning 1 CA (minimum 2)."))
             ->where('roster.planner.shortDays.0.date', $this->week->toDateString()));
+        // A full-day doctor shift covers the Morning minimum.
+        $this->addShift($hr, $version, $this->actor('resident_doctor'), 0, '09:00', '17:00', ['session_type' => 'full_day'])->assertSessionHasNoErrors();
+        $this->selectBranch($hr);
+        $this->get(route('hr.roster.index', ['tab' => 'planner', 'week' => $this->week->toDateString(), 'branch' => $this->branch->id]))
+            ->assertInertia(fn (Assert $p) => $p->where('roster.planner.warnings', fn ($w) => collect($w)->contains("Short on {$day}: Morning 1 CA (minimum 2)."))
+                ->where('roster.planner.totals.0', 2));
         $this->submit($hr, $version->refresh())->assertSessionHasNoErrors();
         $this->approve($director, $version->refresh())->assertSessionHasNoErrors(); // Never blocks.
 
@@ -393,7 +420,7 @@ class RosterTest extends VisitTestCase
         foreach (['director', 'hr_manager', 'ca', 'technical_admin', 'queue_display'] as $role) {
             $actor = $this->actor($role);
             $this->selectBranch($actor);
-            $links = collect(app(\App\Domain\Access\ClinicManagementNavigation::class)->groups($actor))->flatMap(fn ($g) => $g['links'])->pluck('href')->all();
+            $links = collect(app(ClinicManagementNavigation::class)->groups($actor))->flatMap(fn ($g) => $g['links'])->pluck('href')->all();
             $this->assertSame($role !== 'queue_display', in_array('/hr/roster', $links, true), $role);
         }
     }
@@ -409,7 +436,7 @@ class RosterTest extends VisitTestCase
     }
 
     /** @param array<string, mixed> $overrides */
-    private function addShift(User $actor, RosterVersion $version, User $subject, int $day, string $start, string $end, array $overrides = [], ?CarbonImmutable $week = null, ?Branch $branch = null): \Illuminate\Testing\TestResponse
+    private function addShift(User $actor, RosterVersion $version, User $subject, int $day, string $start, string $end, array $overrides = [], ?CarbonImmutable $week = null, ?Branch $branch = null): TestResponse
     {
         $this->selectBranch($actor);
 
@@ -428,14 +455,14 @@ class RosterTest extends VisitTestCase
             'break_minutes' => 0, 'session_type' => 'morning', 'branch_room_id' => null, 'idempotency_key' => (string) Str::uuid(), ...$overrides];
     }
 
-    private function submit(User $actor, RosterVersion $version): \Illuminate\Testing\TestResponse
+    private function submit(User $actor, RosterVersion $version): TestResponse
     {
         $this->selectBranch($actor);
 
         return $this->post(route('hr.roster.submit', $version->public_id), ['expected_version_lock' => $version->refresh()->lock_version, 'idempotency_key' => (string) Str::uuid()]);
     }
 
-    private function approve(User $actor, RosterVersion $version): \Illuminate\Testing\TestResponse
+    private function approve(User $actor, RosterVersion $version): TestResponse
     {
         $this->selectBranch($actor);
 
@@ -453,13 +480,13 @@ class RosterTest extends VisitTestCase
     /** @return array<string, mixed> Rows HR must never write: accounts, roles, assignments, rooms and clinical work. */
     private function untouchedRows(): array
     {
-        return [
+        return json_decode((string) json_encode([
             'users' => DB::table('users')->orderBy('id')->get(['id', 'is_active', 'organisation_id', 'email'])->toArray(),
             'roles' => DB::table('model_has_roles')->orderBy('model_id')->orderBy('role_id')->get()->toArray(),
             'assignments' => DB::table('staff_branch_assignments')->orderBy('id')->get()->toArray(),
             'rooms' => DB::table('doctor_room_assignments')->count(),
             'visits' => DB::table('visits')->count(),
             'queue' => DB::table('queue_entries')->count(),
-        ];
+        ]), true);
     }
 }

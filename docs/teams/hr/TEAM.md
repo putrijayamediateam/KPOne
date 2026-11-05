@@ -57,7 +57,7 @@ Development, Finance and the TV account get no HR data by implication. Server ch
 
 | Slice | What it did | PR |
 |---|---|---|
-| (none yet) | | |
+| HR-1 | Roster planner at `/hr/roster` (My roster, Planner, Minimum staffing); weekly branch versions draft, waiting for approval, approved, replaced; two-person send and approve or return backed by PostgreSQL; refusals for missing branch assignment, overlaps across branches, shifts over 16 hours; warnings for other drafts, shared rooms and minimum staffing; one hub link. Permissions `hr.roster.manage.organisation` (Director, HR Manager), `hr.roster.approve.organisation` (Director), `hr.roster.view.own` (every human role, not the TV account). Migrations `2026_11_10_000100` and `000200`. | (PR pending) |
 
 ## 6. Decisions (never ask again)
 
@@ -107,7 +107,11 @@ Decisions marked **B.E.R.N.I.S.S for the owner** were made by the coordinator un
 15. Existing-assertion change approved: the `ClinicManagementTest` hub destination map gains `/hr/roster` for
     `hr.roster.manage.organisation`, `hr.roster.approve.organisation` and `hr.roster.view.own` (B.E.R.N.I.S.S for
     the owner, 2026-11-05).
-16. A clinic compliance slice (clinic document licences, internal audit checklist, vaccine fridge temperature log)
+16. Daniel (Lead UI/UX) on the HR-1 note: OK with changes. Status tones Draft neutral, "Waiting for approval"
+    warning, Approved success, Replaced neutral; the 8-column week grid only from 1024 px with day cards below; the
+    version switch is a two-button group with `aria-pressed`; grid chips at least 44 px high; dark-mode icons of
+    native date and time inputs are design debt DD-07 (not HR's to fix) (relayed by B.E.R.N.I.S.S, 2026-11-05).
+17. A clinic compliance slice (clinic document licences, internal audit checklist, vaccine fridge temperature log)
     joins the backlog as HR-11, after HR-10 (B.E.R.N.I.S.S for the owner, 2026-11-05; "Check this" on the owner's
     board because it is clinic data, not staff data).
 
@@ -117,6 +121,15 @@ Decisions marked **B.E.R.N.I.S.S for the owner** were made by the coordinator un
   accountant, HR adviser or lawyer, not the team.
 - The clinic HR proposal's WhatsApp, OTP, locum portal and MySyarikat-integration items are not authorised.
 - A privacy (PDPA) review is needed before real staff data and before any location check at clock-in.
+- **Authorisation record (Reviewer, HR-1):** `AGENTS.md` still lists "HR workflow" as not authorised, and
+  `docs/BASELINE.md` section 4 and section 6 item 25 still say HR workflows and the staff roster are not
+  authorised. The coordinator records BASELINE; an owner-approved narrow clause in `AGENTS.md` (as WA-01 did) is
+  needed before HR-1 merges. The team does not edit either file.
+- HR-1 known limits: minimum staffing applies to every day, so a day the branch is closed shows as short (no
+  opening-days setting yet); a CA Supervisor counts as a CA Supervisor only, not as a CA; a staff member's own roster
+  shows one week at a time; the planner reads other drafts' overlaps with one query per shift (fine for a clinic
+  week, not load-tested); shift swaps and a branch view for CA Supervisors are HR-1b; dark-mode icons of native
+  date and time inputs are design debt DD-07.
 
 ## 8. Rules (every task)
 

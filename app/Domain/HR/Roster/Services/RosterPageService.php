@@ -36,7 +36,7 @@ final class RosterPageService
         abort_unless($canManage || $canApprove || $canOwn, 403);
         $planner = $canManage || $canApprove;
         $tabs = array_values(array_filter([$canOwn ? 'my' : null, $planner ? 'planner' : null, $canManage ? 'minimums' : null]));
-        $tab = in_array($query['tab'] ?? null, $tabs, true) ? $query['tab'] : $tabs[0];
+        $tab = in_array($query['tab'] ?? null, $tabs, true) ? $query['tab'] : ($tabs[0] ?? 'my');
 
         $branches = Branch::query()->where('organisation_id', $actor->organisation_id)->where('is_active', true)->orderBy('id')->get();
         $active = $this->branches->activeBranch($actor);
@@ -209,11 +209,11 @@ final class RosterPageService
         $profiles = StaffBranchAssignment::query()->where('branch_id', $branch->id)->whereDate('valid_from', '<=', $end)
             ->where(fn ($q) => $q->whereNull('valid_until')->orWhereDate('valid_until', '>=', $start))->pluck('staff_profile_id');
 
-        return User::query()->with('roles')->where('organisation_id', $actor->organisation_id)->where('is_active', true)
+        return array_values(User::query()->with('roles')->where('organisation_id', $actor->organisation_id)->where('is_active', true)
             ->whereHas('staffProfile', fn ($q) => $q->whereIn('id', $profiles))
             ->whereDoesntHave('roles', fn ($q) => $q->where('name', 'queue_display'))
             ->orderBy('name')->get()
-            ->map(fn (User $u): array => ['id' => $u->id, 'label' => trim($u->name.' · '.$this->roleLabel($u), ' ·')])->values()->all();
+            ->map(fn (User $u): array => ['id' => $u->id, 'label' => trim($u->name.' · '.$this->roleLabel($u), ' ·')])->all());
     }
 
     /**
@@ -232,6 +232,8 @@ final class RosterPageService
     }
 
     /**
+     * One line per short day. A "Full day" shift also counts towards Morning and Afternoon.
+     *
      * @param  Collection<int, RosterShift>  $shifts
      * @param  Collection<int, User>  $people
      * @return list<array{date:string, day:string, message:string}>
@@ -242,21 +244,24 @@ final class RosterPageService
         $out = [];
         for ($i = 0; $i < 7; $i++) {
             $day = $weekStart->addDays($i);
+            $gaps = [];
             foreach ($minimums as $session => $roles) {
                 foreach ($roles as $role => $minimum) {
                     if ($minimum <= 0) {
                         continue;
                     }
-                    $count = $shifts->filter(fn (RosterShift $s): bool => $s->session_type === $session
+                    $count = $shifts->filter(fn (RosterShift $s): bool => ($s->session_type === $session || ($s->session_type === 'full_day' && in_array($session, ['morning', 'afternoon'], true)))
                         && $s->starts_at->setTimezone($branch->timezone)->toDateString() === $day->toDateString()
                         && ($people->get($s->staff_user_id)?->roles->contains('name', $role) ?? false))
                         ->pluck('staff_user_id')->unique()->count();
                     if ($count < $minimum) {
                         [$one, $many] = RosterRules::STAFFING_ROLES[$role];
-                        $out[] = ['date' => $day->toDateString(), 'day' => $this->rules->shortDayLabel($day),
-                            'message' => "Short: {$this->rules->shortDayLabel($day)}, ".RosterRules::SESSIONS[$session].': '.$count.' '.($count === 1 ? $one : $many)." (minimum {$minimum})."];
+                        $gaps[] = RosterRules::SESSIONS[$session].' '.$count.' '.($count === 1 ? $one : $many)." (minimum {$minimum})";
                     }
                 }
+            }
+            if ($gaps !== []) {
+                $out[] = ['date' => $day->toDateString(), 'day' => $this->rules->shortDayLabel($day), 'message' => "Short on {$this->rules->shortDayLabel($day)}: ".implode('; ', $gaps).'.'];
             }
         }
 

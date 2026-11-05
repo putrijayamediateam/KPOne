@@ -3,10 +3,10 @@
 namespace App\Domain\HR\Roster\Models;
 
 use App\Models\User;
+use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Attributes\Guarded;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Support\Carbon;
 
 /**
  * @property int $id
@@ -15,8 +15,8 @@ use Illuminate\Support\Carbon;
  * @property int $branch_id
  * @property int $roster_version_id
  * @property int $staff_user_id
- * @property Carbon $starts_at
- * @property Carbon $ends_at
+ * @property CarbonImmutable $starts_at
+ * @property CarbonImmutable $ends_at
  * @property string $timezone
  * @property int $break_minutes
  * @property string $session_type
@@ -33,7 +33,7 @@ class RosterShift extends Model
 
     protected function casts(): array
     {
-        return ['starts_at' => 'immutable_datetime', 'ends_at' => 'immutable_datetime', 'break_minutes' => 'integer', 'lock_version' => 'integer'];
+        return ['starts_at' => 'immutable_datetime', 'ends_at' => 'immutable_datetime', 'break_minutes' => 'integer', 'lock_version' => 'integer', 'staff_user_id' => 'integer', 'branch_room_id' => 'integer'];
     }
 
     /** @return BelongsTo<RosterVersion, $this> */

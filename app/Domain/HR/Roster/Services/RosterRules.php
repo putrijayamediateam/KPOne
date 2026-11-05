@@ -82,7 +82,7 @@ final class RosterRules
             $errors['end_time'] = 'Enter an end time, for example 14:00.';
         }
         $break = $input['break_minutes'] ?? 0;
-        $break = $break === null || $break === '' ? 0 : filter_var($break, FILTER_VALIDATE_INT, ['options' => ['min_range' => 0, 'max_range' => self::MAX_BREAK_MINUTES]]);
+        $break = $break === '' ? 0 : filter_var($break, FILTER_VALIDATE_INT, ['options' => ['min_range' => 0, 'max_range' => self::MAX_BREAK_MINUTES]]);
         if ($break === false) {
             $errors['break_minutes'] = 'Enter a break from 0 to 180 minutes.';
         }
@@ -143,8 +143,11 @@ final class RosterRules
     /** Every branch-local date the shift touches needs an effective assignment of the person to the branch. */
     public function assertAssigned(User $subject, Branch $branch, CarbonImmutable $startsAt, CarbonImmutable $endsAt, string $field = 'staff_user_id'): void
     {
-        $profileId = StaffProfile::query()->where('user_id', $subject->id)->value('id');
-        $assignments = $profileId === null ? collect() : StaffBranchAssignment::query()->where('staff_profile_id', $profileId)->where('branch_id', $branch->id)->get();
+        // Lock the profile and its assignments (the order BranchAssignmentService uses), so an assignment change
+        // cannot commit between this check and the roster write.
+        $profileId = StaffProfile::query()->where('user_id', $subject->id)->lockForUpdate()->value('id');
+        $assignments = $profileId === null ? collect() : StaffBranchAssignment::query()->where('staff_profile_id', $profileId)->orderBy('id')->lockForUpdate()->get()
+            ->filter(fn (StaffBranchAssignment $a): bool => $a->branch_id === $branch->id);
         foreach ($this->touchedDates($branch, $startsAt, $endsAt) as $date) {
             $covered = $assignments->contains(fn (StaffBranchAssignment $a): bool => $a->valid_from->toDateString() <= $date
                 && ($a->valid_until === null || $a->valid_until->toDateString() >= $date));

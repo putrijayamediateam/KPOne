@@ -42,6 +42,7 @@ return new class extends Migration
             $t->unsignedBigInteger('decided_by_user_id')->nullable();
             $t->timestampTz('decided_at')->nullable();
             $t->string('return_reason', 32)->nullable();
+            $t->unsignedBigInteger('returned_by_user_id')->nullable();
             $t->timestampTz('superseded_at')->nullable();
             $t->unsignedInteger('lock_version')->default(1);
             $t->timestampsTz();
@@ -50,6 +51,7 @@ return new class extends Migration
             $t->foreign(['created_by_user_id', 'organisation_id'], 'hr_roster_versions_creator_fk')->references(['id', 'organisation_id'])->on('users')->restrictOnDelete();
             $t->foreign(['submitted_by_user_id', 'organisation_id'], 'hr_roster_versions_submitter_fk')->references(['id', 'organisation_id'])->on('users')->restrictOnDelete();
             $t->foreign(['decided_by_user_id', 'organisation_id'], 'hr_roster_versions_decider_fk')->references(['id', 'organisation_id'])->on('users')->restrictOnDelete();
+            $t->foreign(['returned_by_user_id', 'organisation_id'], 'hr_roster_versions_returner_fk')->references(['id', 'organisation_id'])->on('users')->restrictOnDelete();
             $t->unique(['roster_week_id', 'version_number'], 'hr_roster_versions_number_unique');
             $t->unique(['id', 'organisation_id', 'branch_id'], 'hr_roster_versions_scope_unique');
         });
@@ -89,8 +91,10 @@ return new class extends Migration
             $t->unsignedBigInteger('subject_user_id')->nullable();
             $t->string('reason', 32)->nullable();
             $t->timestampTz('occurred_at');
-            $t->foreign('roster_week_id', 'hr_roster_actions_week_fk')->references('id')->on('hr_roster_weeks')->restrictOnDelete();
-            $t->foreign('roster_version_id', 'hr_roster_actions_version_fk')->references('id')->on('hr_roster_versions')->restrictOnDelete();
+            $t->unsignedBigInteger('branch_id');
+            $t->foreign(['roster_week_id', 'organisation_id', 'branch_id'], 'hr_roster_actions_week_fk')->references(['id', 'organisation_id', 'branch_id'])->on('hr_roster_weeks')->restrictOnDelete();
+            $t->foreign(['roster_version_id', 'organisation_id', 'branch_id'], 'hr_roster_actions_version_fk')->references(['id', 'organisation_id', 'branch_id'])->on('hr_roster_versions')->restrictOnDelete();
+            $t->foreign(['subject_user_id', 'organisation_id'], 'hr_roster_actions_subject_fk')->references(['id', 'organisation_id'])->on('users')->restrictOnDelete();
             $t->foreign(['actor_user_id', 'organisation_id'], 'hr_roster_actions_actor_fk')->references(['id', 'organisation_id'])->on('users')->restrictOnDelete();
             $t->index(['roster_version_id', 'id'], 'hr_roster_actions_version_index');
         });
@@ -142,7 +146,7 @@ ALTER TABLE hr_roster_shifts ADD CONSTRAINT hr_roster_shifts_shape CHECK (
  AND lock_version > 0 AND length(timezone) > 0
 )
 SQL);
-        DB::statement("ALTER TABLE hr_roster_actions ADD CONSTRAINT hr_roster_actions_shape CHECK (action IN ('draft_started', 'week_copied', 'shift_added', 'shift_updated', 'shift_removed', 'submitted', 'returned', 'approved', 'superseded', 'discarded'))");
+        DB::statement("ALTER TABLE hr_roster_actions ADD CONSTRAINT hr_roster_actions_shape CHECK (action IN ('draft_started', 'week_copied', 'shift_added', 'shift_updated', 'shift_removed', 'submitted', 'returned', 'approved', 'superseded', 'discarded') AND (reason IS NULL OR reason IN ('needs_changes', 'wrong_staff', 'wrong_times', 'other')))");
 
         DB::unprepared(<<<'SQL'
 CREATE OR REPLACE FUNCTION guard_hr_roster_version() RETURNS trigger LANGUAGE plpgsql AS $$
@@ -158,6 +162,10 @@ BEGIN
   IF OLD.status = 'approved' AND (NEW.status <> 'superseded' OR NEW.submitted_by_user_id IS DISTINCT FROM OLD.submitted_by_user_id
      OR NEW.decided_by_user_id IS DISTINCT FROM OLD.decided_by_user_id OR NEW.decided_at IS DISTINCT FROM OLD.decided_at) THEN
    RAISE EXCEPTION 'An approved roster version can only be replaced' USING ERRCODE = 'P0001';
+  END IF;
+  -- Two-person rule for a return: the person who sent the week never returns it.
+  IF OLD.status = 'submitted' AND NEW.status = 'draft' AND (NEW.returned_by_user_id IS NULL OR NEW.returned_by_user_id = OLD.submitted_by_user_id) THEN
+   RAISE EXCEPTION 'The person who sent a roster week cannot return it' USING ERRCODE = '23514';
   END IF;
   IF NOT ((OLD.status = 'draft' AND NEW.status IN ('draft', 'submitted', 'discarded'))
        OR (OLD.status = 'submitted' AND NEW.status IN ('draft', 'approved'))
