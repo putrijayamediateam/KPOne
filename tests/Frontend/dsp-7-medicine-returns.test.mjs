@@ -80,3 +80,33 @@ test('the recorder is told someone else must check the return', () => {
         ),
     );
 });
+
+const panel = read(
+    'resources/js/pages/Dispensary/Partials/ReturnCheckPanel.vue',
+);
+
+test('each check outcome has its own confirm; Dispose is destructive and names the amount', () => {
+    assert.ok(panel.includes('<OperationalConfirmDialog'));
+    assert.ok(panel.includes('confirm: `Dispose ${amount.value}`'));
+    assert.ok(panel.includes("confirm: 'Move to returns location'"));
+    assert.ok(panel.includes("confirm: 'Refuse return'"));
+    assert.ok(panel.includes(':destructive="dialog.destructive"'));
+    assert.ok(panel.includes('/returns/${props.row.publicId}/check'));
+});
+
+test('a controlled medicine is only disposed, or refused when recorded by mistake', () => {
+    assert.ok(
+        flat(panel).includes('Controlled medicines are always disposed.'),
+    );
+    assert.ok(panel.includes('data-action="refuse-instead"'));
+    assert.equal(/value="quarantine"/.test(panel), false);
+});
+
+test('refusing uses the fixed list and the note hint keeps clinical and identity details out', () => {
+    assert.ok(panel.includes('returns.refuseReasons'));
+    assert.ok(
+        flat(panel).includes('Do not write a diagnosis or identity details.'),
+    );
+    assert.ok(section.includes('<ReturnCheckPanel'));
+    assert.ok(section.includes('v-if="row.canCheck"'));
+});

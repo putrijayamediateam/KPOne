@@ -102,6 +102,22 @@ class DispensaryController extends Controller
         return to_route('dispensary.show', $dispensaryCase);
     }
 
+    /** DSP-7: a CA Supervisor who did not record the return checks it: Dispose, Quarantine or Refuse. */
+    public function checkReturn(Request $request, DispensaryCase $dispensaryCase, string $returnPublicId, DispensaryReturnService $returns): RedirectResponse
+    {
+        $check = null;
+        $this->stayOnCase($dispensaryCase, function () use (&$check, $request, $dispensaryCase, $returnPublicId, $returns): void {
+            $check = $returns->check($request->user(), $dispensaryCase, $returnPublicId, $request->only(['expected_branch_id', 'retry_key', 'outcome', 'refuse_reason', 'refuse_note', 'location_public_id', 'batch_public_id']));
+        });
+        Inertia::flash('toast', ['type' => 'success', 'message' => match ($check?->outcome) {
+            'quarantine' => 'Return moved to the returns location.',
+            'refuse' => 'Return refused.',
+            default => 'Return disposed.',
+        }]);
+
+        return to_route('dispensary.show', $dispensaryCase);
+    }
+
     public function labels(Request $request, DispensaryCase $dispensaryCase, DispensaryDirectoryService $directory, ?string $itemPublicId = null): Response|JsonResponse
     {
         if ($request->boolean('verify')) {

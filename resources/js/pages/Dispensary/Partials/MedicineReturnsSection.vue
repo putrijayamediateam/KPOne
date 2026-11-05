@@ -4,11 +4,17 @@ import { computed, nextTick, ref } from 'vue';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { StatusBadge } from '@/components/ui/status';
+import {
+    refuseReasonLabels,
+    returnConditionLabels,
+    returnReasonLabels,
+} from '@/lib/dispensary-returns';
 import type {
     DispensaryReturnLine,
     DispensaryReturnRow,
     DispensaryReturnsPanel,
 } from '@/lib/dispensary-returns';
+import ReturnCheckPanel from './ReturnCheckPanel.vue';
 
 // DSP-7 step 1 (owner decisions 2026-11-05): the CA or CA Supervisor records medicine the patient brought back.
 // Recording moves no stock; a CA Supervisor who did not record it checks it next (v1). The server repeats every check.
@@ -16,18 +22,8 @@ type ReturnRow = DispensaryReturnRow;
 type ReturnLine = DispensaryReturnLine;
 const props = defineProps<{ returns: DispensaryReturnsPanel }>();
 
-const reasonLabels: Record<string, string> = {
-    not_used: 'Patient did not use it',
-    wrong_medicine_or_strength: 'Wrong medicine or strength given',
-    patient_reaction: 'Patient reaction',
-    dispensing_error: 'Dispensing error',
-    other: 'Other',
-};
-const conditionLabels: Record<string, string> = {
-    sealed_in_date: 'Sealed and in date',
-    opened_or_damaged: 'Opened or damaged',
-    cannot_tell: 'Cannot tell',
-};
+const reasonLabels = returnReasonLabels;
+const conditionLabels = returnConditionLabels;
 
 const openLine = ref<string | null>(null);
 const announcement = ref('');
@@ -208,6 +204,24 @@ const waitingText = (row: ReturnRow) =>
     row.recordedByMe
         ? 'Waiting for a check by someone else. You recorded this return, so you cannot check it.'
         : 'Waiting for a check by a CA Supervisor.';
+const outcomeLine = (row: ReturnRow) => {
+    if (!row.check) {
+        return '';
+    }
+
+    if (row.check.outcome === 'quarantine') {
+        return `Moved to ${row.check.locationName ?? 'a returns location'} by ${row.check.checkedBy} · ${row.check.checkedAt}`;
+    }
+
+    return `${row.check.outcome === 'refuse' ? 'Refused' : 'Disposed'} by ${row.check.checkedBy} · ${row.check.checkedAt}`;
+};
+const onChecked = async (row: ReturnRow, message: string) => {
+    announcement.value = message;
+    await nextTick();
+    document
+        .querySelector<HTMLElement>(`[data-return-id="${row.publicId}"]`)
+        ?.focus();
+};
 </script>
 
 <template>
@@ -584,6 +598,7 @@ const waitingText = (row: ReturnRow) =>
                                     :key="row.publicId"
                                     tabindex="-1"
                                     data-return-item
+                                    :data-return-id="row.publicId"
                                     class="grid gap-1 rounded-md border bg-background p-3 text-xs outline-none focus-visible:ring-3 focus-visible:ring-ring/40"
                                 >
                                     <p
@@ -611,7 +626,37 @@ const waitingText = (row: ReturnRow) =>
                                         {{ row.recordedAt }}
                                     </p>
                                     <p
-                                        v-if="row.status === 'waiting_check'"
+                                        v-if="row.check"
+                                        class="text-muted-foreground"
+                                    >
+                                        {{ outcomeLine(row) }}
+                                    </p>
+                                    <p
+                                        v-if="row.check?.refuseReason"
+                                        class="break-words"
+                                    >
+                                        Refused because:
+                                        {{
+                                            refuseReasonLabels[
+                                                row.check.refuseReason
+                                            ] ?? row.check.refuseReason
+                                        }}<template v-if="row.check.refuseNote"
+                                            >: “{{
+                                                row.check.refuseNote
+                                            }}”</template
+                                        >
+                                    </p>
+                                    <ReturnCheckPanel
+                                        v-if="row.canCheck"
+                                        :returns="returns"
+                                        :line="line"
+                                        :row="row"
+                                        @checked="onChecked(row, $event)"
+                                    />
+                                    <p
+                                        v-else-if="
+                                            row.status === 'waiting_check'
+                                        "
                                         class="text-muted-foreground"
                                     >
                                         {{ waitingText(row) }}
