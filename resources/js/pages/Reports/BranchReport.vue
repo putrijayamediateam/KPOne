@@ -284,7 +284,15 @@ function applySelection(key: 'methods' | 'visit_types', value: string[]) {
                 aria-label="Report table; scroll horizontally"
                 tabindex="0"
             >
-                <table class="w-full min-w-[1200px] text-left text-sm">
+                <!-- Wider when a report has more than 12 columns (Daily summary has 15 since BIL-6b). -->
+                <table
+                    class="w-full text-left text-sm"
+                    :class="
+                        data.columns.length > 12
+                            ? 'min-w-[1500px]'
+                            : 'min-w-[1200px]'
+                    "
+                >
                     <thead class="bg-muted">
                         <tr>
                             <th
