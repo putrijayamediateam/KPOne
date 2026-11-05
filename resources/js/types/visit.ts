@@ -26,6 +26,7 @@ export type PatientRegistrationSummary = {
     sex: string;
     identifier: { type: string; maskedValue: string } | null;
     maskedPhone: string | null;
+    mergedFrom?: string[];
 };
 
 export type VisitRow = {

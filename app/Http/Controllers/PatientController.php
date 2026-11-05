@@ -59,6 +59,7 @@ class PatientController extends Controller
         return Inertia::render('Patient/Show', [
             'patient' => $directory->detail($request->user(), $patient),
             'merge' => $merges->panel($request->user(), $patient),
+            'mergedGuardian' => app(PatientGuardianService::class)->mergedFallback($patient),
             'history' => $request->user()->can(PatientChangeHistoryService::PERMISSION)
                 ? app(PatientChangeHistoryService::class)->page($request->user(), $patient, null, PatientChangeHistoryService::FIRST_PAGE)
                 : null,
