@@ -146,8 +146,10 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php`.
 - SMOKE-1 S1-002 and S1-003 are fixed by PNL-1. Follow-up outside this team: the shared `OperationalTable`
   wrapper and the Billing workspace have the same hidden "Actions" header label that can widen a page; a
   `relative` on the shared wrapper would fix every page (needs agreement with the other teams).
-- PNL-2 not yet tested: a PostgreSQL contention test of bulk against single creation, and one batch whose
-  visits fall on different dates.
+- PNL-2: bulk against single creation, and two overlapping batches, are covered by the PNL-9 contention test
+  (`PostgresPanelBulkClaimRegressionTest`, serial Contention suite; B.E.R.N.I.S.S for the owner, 2026-11-05): one
+  claim per allocation, and a refused batch keeps nothing. Still not tested: one batch whose visits fall on
+  different dates.
 - **PNL-3 limits:** a payment is recorded per branch (a Panel paying several branches in one transfer is
   recorded once per branch); at most 50 claims per payment; the date received is today or earlier; a recorded
   payment cannot be reversed or corrected in KPOne (as with the existing single-claim remittance), so a wrong
