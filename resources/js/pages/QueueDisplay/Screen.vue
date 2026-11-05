@@ -607,10 +607,15 @@ onBeforeUnmount(() => {
                                     >{{ call.number }}</span
                                 >
                                 <span
-                                    class="text-lg leading-tight font-semibold break-words lg:text-xl"
+                                    class="truncate text-lg leading-tight font-semibold lg:text-xl"
                                     >{{ call.name?.trim() }}</span
                                 >
                             </span>
+                            <span
+                                v-else-if="displayMode === 'short_name'"
+                                class="font-mono text-3xl leading-tight font-bold whitespace-nowrap tabular-nums lg:text-4xl"
+                                >{{ call.number }}</span
+                            >
                             <span
                                 v-else
                                 class="truncate text-3xl font-bold lg:text-5xl"

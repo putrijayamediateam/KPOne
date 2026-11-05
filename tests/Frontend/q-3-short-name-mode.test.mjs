@@ -78,7 +78,12 @@ test('the TV keeps the number whole: one line with the name in the current call,
     );
     assert.match(
         screen,
-        /v-if="shortNameParts\(call, displayMode\)"[\s\S]*?class="font-mono text-3xl leading-tight font-bold whitespace-nowrap tabular-nums lg:text-4xl"\s*>\{\{ call\.number \}\}<\/span[\s\S]*?class="text-lg leading-tight font-semibold break-words lg:text-xl"/,
+        /v-if="shortNameParts\(call, displayMode\)"[\s\S]*?class="font-mono text-3xl leading-tight font-bold whitespace-nowrap tabular-nums lg:text-4xl"\s*>\{\{ call\.number \}\}<\/span[\s\S]*?class="truncate text-lg leading-tight font-semibold lg:text-xl"/,
+    );
+    // Yasmin: a row with no usable name keeps the short-mode number size.
+    assert.match(
+        screen,
+        /v-else-if="displayMode === 'short_name'"\s*class="font-mono text-3xl leading-tight font-bold whitespace-nowrap tabular-nums lg:text-4xl"\s*>\{\{ call\.number \}\}/,
     );
     assert.match(
         screen,
@@ -86,7 +91,7 @@ test('the TV keeps the number whole: one line with the name in the current call,
     );
     // Yasmin: the current call scales with screen height so the room line always fits.
     assert.match(screen, /lg:text-\[clamp\(3rem,10vh,6rem\)\]/);
-    // Short-name mode shows only whole list rows; a name never ends in an ellipsis.
+    // Short-name mode shows only whole list rows.
     assert.match(
         screen,
         /displayMode === 'short_name'\s*\?\s*'flex min-h-0 flex-1 flex-col flex-wrap content-start overflow-hidden \[&>li\]:w-full'/,
@@ -106,10 +111,7 @@ test('settings offer the three modes in privacy order with help text tied to the
         [...order].sort((a, b) => a - b),
         order,
     );
-    assert.match(
-        settings,
-        /Number and short name \(A-012 · Ahmad Ismail\)/,
-    );
+    assert.match(settings, /Number and short name \(A-012 · Ahmad Ismail\)/);
     assert.match(settings, /aria-describedby="call-display-mode-help"/);
     assert.match(settings, /id="call-display-mode-help"/);
     assert.match(settings, /No patient name is shown or spoken\./);
