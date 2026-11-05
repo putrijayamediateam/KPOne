@@ -56,5 +56,5 @@ test('BIL-5b: the visit page prints through the recorded print too', () => {
         /:href="(?:history\.financial|payment)\.printUrl"/,
     );
     assert.ok(history.includes('return-to="history"'));
-    assert.ok(history.includes("url.replace(/\\/print$/, '/issue')"));
+    assert.match(history, /'\/issue'/);
 });

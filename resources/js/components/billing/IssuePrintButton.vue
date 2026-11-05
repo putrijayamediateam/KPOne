@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { router, usePage } from '@inertiajs/vue3';
+import { Printer } from '@lucide/vue';
 import { computed, ref } from 'vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
@@ -60,12 +61,13 @@ const issue = () => {
         <Button
             :variant="variant"
             :size="size"
-            class="h-11 sm:h-8"
+            class="h-11 justify-self-start sm:h-8"
             :disabled="busy"
             data-testid="issue-print"
             @click="issue"
         >
-            {{ busy ? 'Issuing…' : label }}
+            <Printer class="size-4" aria-hidden="true" />
+            <span aria-live="polite">{{ busy ? 'Issuing…' : label }}</span>
         </Button>
         <InputError
             v-if="error"

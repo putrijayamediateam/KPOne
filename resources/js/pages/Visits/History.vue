@@ -553,18 +553,19 @@ const totals = computed(() => {
                                 return-to="history"
                             />
                         </li>
-                        <li
+                        <template
                             v-for="payment in history.financial?.payments ?? []"
                             :key="payment.receiptNumber"
                         >
-                            <IssuePrintButton
-                                v-if="payment.printUrl"
-                                :url="issueUrl(payment.printUrl)"
-                                :label="`Print receipt ${payment.receiptNumber}`"
-                                variant="ghost"
-                                return-to="history"
-                            />
-                        </li>
+                            <li v-if="payment.printUrl">
+                                <IssuePrintButton
+                                    :url="issueUrl(payment.printUrl)"
+                                    :label="`Print receipt ${payment.receiptNumber}`"
+                                    variant="ghost"
+                                    return-to="history"
+                                />
+                            </li>
+                        </template>
                     </ul>
                 </div>
             </section>
