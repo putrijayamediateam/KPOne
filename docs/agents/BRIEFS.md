@@ -1,8 +1,8 @@
 # Wave 1 builder briefs
 
 One brief per builder. Each builder is a separate Claude session on its own branch. Paste the brief as the
-first message. Order: AG-1, AG-2, AG-3, AG-4, AG-7 and DEMO-1 can start once this contract is merged; AG-5 waits
-for AG-1 and AG-4; AG-6 waits for AG-1, AG-2 and AG-4. No slice calls an AI service (contract section 7).
+first message. Order: AG-1, AG-2, AG-3, AG-4, AG-7 and DEMO-1 can start once this contract is merged; AG-5 and
+AG-9 wait for AG-1 and AG-4; AG-6 waits for AG-1, AG-2 and AG-4; AG-10 waits for AG-1 and AG-4; AG-8 waits for AG-1, AG-4, AG-6, AG-9 and AG-10. No slice calls an AI service (contract section 7).
 
 ## Rules every brief includes
 
@@ -68,17 +68,19 @@ that fails if a result contains keys such as `name`, `patient`, `ic`, `nric`, `p
 Branch `feature/ag-5-director-quick-answers`. Page `/agents/assistant` (permission
 `ai_assistant.use.organisation`) for Dato' Arif: a list of preset questions (for example "Patients seen
 today per branch", "Sales this week against last week", "Items below reorder level") with branch and date
-filters. Each answer is one `director_assistant` run that reads the data sources and shows a table and a
-short sentence built from a fixed template, never generated text. The question list lives in code, in
+filters, grouped as **Clinic today**, **Money**, **Panel** and **Stock** (contract section 8). Each answer
+is one `director_assistant` run that reads the data sources and shows a table and a short sentence built
+from a fixed template, never generated text. The question list lives in code, in
 one place, so new questions are a small PR.
 
-## AG-6 — Inventory analyst (after AG-1, AG-2 and AG-4)
+## AG-6 — Inventory analyst, Hana (after AG-1, AG-2 and AG-4)
 
-Branch `feature/ag-6-inventory-analyst`. Command `agents:inventory-review {branch}` (and an optional
-scheduler entry, off by default) runs `inventory_analyst` over `inventory.stock_review` and creates
-`inventory.restock_suggestion` proposals through `ProposalService::propose()`, one per low-stock SKU, with
-a deterministic suggested quantity (reorder level minus current quantity, rounded up) and a controlled
-reason code, all computed in PHP. Idempotent per branch, SKU and local date.
+Branch `feature/ag-6-inventory-analyst`. Command `agents:inventory-review {branch}` runs `inventory_analyst`
+and creates, through `ProposalService::propose()`, the four proposal types of contract section 6:
+restock suggestions, expiry warnings, transfer suggestions and slow-moving items, each by the fixed rules
+in that section, computed in PHP. Idempotent per branch, SKU (and batch for expiry) and local date. The
+command is called by AG-8's morning run; it is not scheduled on its own. Tests cover each rule's boundaries
+(exactly at reorder level, 60 and 90 days, a transfer that would push the sender below its level).
 
 ## DEMO-1 — Synthetic demo setup (parallel)
 
@@ -102,3 +104,30 @@ address, clinical free text, encrypted or credential column (a test reads the co
 `kpone:read` refuses INSERT, UPDATE, DELETE, DDL, multiple statements and any table outside `ai_read`; the
 connection is read-only; the row cap and the audit row. A schema test fails if a new migration adds a view
 to `ai_read` without updating the masking test.
+
+## AG-8 — Daily summary page and Lina (after AG-1, AG-4, AG-6, AG-9 and AG-10)
+
+Branch `feature/ag-8-daily-summary`. Build contract section 14: the `agents:daily-run {slot}` command
+scheduled at 07:00 (full) and 14:00 (update) per branch time zone; Lina's report (yesterday at 07:00, today
+so far at 14:00) with per-doctor figures and a same-weekday-last-week comparison; and the
+`/agents/daily-summary` page with one section per agent per branch, each shown only with its underlying
+permission. Store run results so the page loads without recomputing; no free text, no outbound message of
+any kind. Tests: both schedule entries and time zones, idempotency per branch, slot and date, no duplicate
+Hana items at 14:00, permission filtering of each section, and that numbers on the page equal the existing
+Daily summary and Panel summary reports for the same date.
+
+## AG-9 — Stocktake officer, Rizal (after AG-1 and AG-4)
+
+Branch `feature/ag-9-stocktake-officer`. A `stocktake_officer` check called by AG-8's morning run: SKUs and
+locations with no approved governed stock count (STK-5) in the last 30 days, open count cases, and approved
+counts with unresolved variances, from the `inventory.stock_counts` data source. Results feed Rizal's section
+of the daily summary only; Rizal creates no proposal and changes nothing. Tests cover the 30-day boundary
+and branch scoping.
+
+## AG-10 — System health, Faris (after AG-1 and AG-4)
+
+Branch `feature/ag-10-system-health`. The `system.health` data source and a `technical_admin_agent` check
+called by both daily runs: counts of error-level application log entries since the last run (read the level
+only, never copy log text), failed agent runs, pending migrations, and failed queue jobs when that table
+exists. Results feed Faris's line on the daily summary only. Tests: counts without leaking log content, a
+missing log file, and pending-migration detection.

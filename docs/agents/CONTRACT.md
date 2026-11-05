@@ -56,6 +56,7 @@ the figures are recomputed on demand.
 | `ai_agents.manage.organisation` | `director` | Enable or disable an agent; change its tool allowlist. |
 | `ai_assistant.use.organisation` | `director` | Use the Director quick answers page. |
 | `ai_proposals.view.branch` | `director`, `ca_supervisor`, `finance_officer` | See the approval inbox for their branches. |
+| `ai_daily_summary.view.branch` | `director`, `ca_supervisor`, `finance_officer`, `administrator` | Open the daily summary page for their branches (sections are filtered further, section 14). |
 | Decision on a proposal | Holders of the proposal type's domain permission (section 6) | Approve or reject. |
 
 Added by one additive migration in the registry slice (firstOrCreate, give only what is missing, a missing
@@ -73,14 +74,34 @@ Every call checks the requester's permission and effective branch and the agent'
 | `insights.today` | `ClinicInsightsService::today()` | `insights.view.organisation` |
 | `insights.sales_summary` | the Sales summary figures used by RPT-01a | `insights.view.organisation` |
 | `inventory.stock_review` | `InventoryStockReviewService` low-stock, expiring and expired counts per SKU | `inventory.view.branch` |
+| `inventory.branch_balances` | Current quantity and reorder level per SKU for every branch of the organisation | `inventory.view.branch` at the requesting branch |
+| `inventory.dispensing_activity` | Last dispensing date and quantity dispensed per SKU over a window (default 60 days) | `inventory.view.branch` |
+| `inventory.stock_counts` | Governed stock count cases (STK-5): last approved count per SKU and location, open cases and unresolved variances | `inventory.view.branch` |
+| `clinic.day_summary` | Patients registered, waiting, served and average waiting time per branch and doctor for a local date | `insights.view.organisation` |
+| `money.day_summary` | Net sales, receipts by method, discounts and outstanding due for a local date (Daily summary definitions) | `insights.view.organisation` |
+| `system.health` | Counts only: error-level application log entries since the last run (never the log text), failed scheduled agent runs, pending database migrations, failed queue jobs if that table exists | `ai_agents.view.organisation` |
+| `panel.claims_summary` | Approved Panel invoices not yet claimed, overdue claims and accepted-but-unpaid amounts per Panel (Panel summary definitions) | `insights.view.organisation` |
 
 ## 6. Proposal types (wave 1)
 
 | Type | Proposed by | Decided by (permission) | Payload |
 |---|---|---|---|
 | `inventory.restock_suggestion` | `inventory_analyst` | `inventory.stock_reviews.manage.branch` | SKU public id, location, current quantity, reorder level, suggested quantity, reason code |
+| `inventory.expiry_warning` | `inventory_analyst` | `inventory.stock_reviews.manage.branch` | SKU and batch public ids, location, quantity, expiry date, days left, suggested action code (`use_first` / `write_off_review`) |
+| `inventory.transfer_suggestion` | `inventory_analyst` | `inventory.stock_reviews.manage.branch` at the receiving branch | SKU public id, from branch, to branch, quantity, both branches' current quantity and reorder level |
+| `inventory.slow_moving` | `inventory_analyst` | `inventory.stock_reviews.manage.branch` | SKU public id, location, quantity, last dispensed date, days without dispensing, suggested action code (`stop_reordering` / `review`) |
 
-Approval records the decision and audit only. It creates no purchase order, movement or stock change.
+Approval records the decision and audit only. It creates no purchase order, transfer, write-off, movement or
+stock change; staff act on an approved item through the existing Inventory screens.
+
+**Fixed rules (computed in PHP, never guessed):**
+- Restock: reorder level minus current quantity, rounded up, for SKUs at or below their reorder level.
+- Expiry: batches with positive quantity expiring within 90 days of the branch-local date; `use_first` when
+  60 to 90 days remain, `write_off_review` under 60 days or already expired.
+- Transfer: suggested only when the receiving branch is below its reorder level and the sending branch would
+  stay at or above its own reorder level after sending; quantity is the smaller of the shortage and that
+  surplus. Restock is still proposed for any shortage left.
+- Slow-moving: positive quantity and no dispensing for 60 days or more.
 
 ## 7. No AI service (owner decision 2026-11-05)
 
@@ -95,10 +116,18 @@ Approval records the decision and audit only. It creates no purchase order, move
 | Code | Name | Title | Department | Tools |
 |---|---|---|---|---|
 | `director_assistant` | Dato' Arif | Chief of Staff (AI agent) | Leadership | `insights.today`, `insights.sales_summary`, `inventory.stock_review` |
-| `inventory_analyst` | Hana | Inventory Analyst (AI agent) | Clinic Operations | `inventory.stock_review` |
+| `inventory_analyst` | Hana | Inventory Analyst (AI agent) | Clinic Operations | `inventory.stock_review`, `inventory.branch_balances`, `inventory.dispensing_activity` |
+| `stocktake_officer` | Rizal | Stocktake Officer (AI agent) | Clinic Operations | `inventory.stock_counts` |
+| `report_assistant` | Lina | Management Assistant (AI agent) | Leadership | `clinic.day_summary`, `money.day_summary`, `panel.claims_summary`, `inventory.stock_review` |
+| `technical_admin_agent` | Faris | Technical Admin (AI agent) | Technology | `system.health` |
 
-Build agents (shown in the office only, no tools): `ui_designer` Daniel, `technical_admin_agent` Faris,
-`qa_reviewer` Nadia. Names are the owner's draft and can be renamed in the registry.
+Dato' Arif's quick answers cover four groups (owner decision 2026-11-05): **Clinic today**, **Money**,
+**Panel** and **Stock**, using the data sources above.
+
+Build agent (shown in the office only, no tools): `qa_reviewer` Nadia. Faris is a runtime agent from
+wave 1 (owner decision 2026-11-05).
+**The design agent (Daniel) is deferred** until the owner has every function they want; the KPOne theme stays
+as it is until then. Names are the owner's draft and can be renamed in the registry.
 
 Seeded by a local and testing seeder only (fictional data), never by a migration.
 
@@ -118,6 +147,9 @@ credentials in these files**; that data lives in KPOne's database and reaches an
 | AG-4 data sources | none | `app/Domain/Agents/Tools/` and the no-AI guard test |
 | AG-5 Director quick answers | none | `app/Domain/Agents/Assistant/`, `resources/js/pages/Agents/Assistant.vue` |
 | AG-6 Inventory analyst | none | `app/Domain/Agents/Inventory/`, an Artisan command `agents:inventory-review` |
+| AG-8 Daily summary and Lina | `2026_11_05_800000` to `800900` | `app/Domain/Agents/DailySummary/`, `resources/js/pages/Agents/DailySummary.vue`, the `agents:daily-run` command and its scheduler entry |
+| AG-9 Rizal | none | `app/Domain/Agents/Stocktake/` |
+| AG-10 Faris | none | `app/Domain/Agents/Health/` |
 
 Routes live under `/agents/*` and are named `agents.*`. Only AG-1 edits `PermissionCatalogue`; later slices
 ask for a contract change instead.
@@ -204,3 +236,29 @@ production gate.
 | Slice | Migration prefix | Owns |
 |---|---|---|
 | AG-7 Ask KPOne | `2026_11_05_700000` to `700900` | schema `ai_read`, `config/database.php` `ai_reader` connection, `app/Console/Commands/Read*`, `.claude/skills/ask-kpone/` |
+
+## 14. How agents report: one daily summary page, twice a day (owner decisions 2026-11-05)
+
+- Agents run **twice a day** through Laravel's scheduler (the one already used for
+  `public-intakes:cleanup`; no job queue), in each branch's time zone, idempotent per branch, run slot and
+  local date:
+  - **07:00, full run:** Hana (all four checks), Rizal, Lina's report for **yesterday**, Faris.
+  - **14:00, update:** Lina's **today so far**, Hana's restock and expiry checks again (an item already
+    proposed today is not proposed twice), Faris.
+- Results appear on **one page, `/agents/daily-summary`** (permission `ai_daily_summary.view.branch`:
+  Director, CA Supervisor, Finance Officer, Administrator), one section per agent per branch:
+  - **Lina:** patients registered, waiting time, served, **per doctor (patients seen and average
+    consultation time)**, sales and receipts, outstanding, Panel claims due and overdue, stock alerts; each
+    figure shown **beside the same weekday last week** with an up or down arrow.
+  - **Hana:** restock, expiry, transfer and slow-moving counts with links to the matching inbox items.
+  - **Rizal:** stock counts due (no approved count for a SKU and location in the last 30 days), open count
+    cases and unresolved variances.
+  - **Faris:** one system-health line (all clear, or the counts from `system.health`).
+- Section visibility, on top of page access: clinic and per-doctor figures need
+  `insights.view.organisation`; money figures need `reports.daily_summary.view.branch`; Panel figures need
+  `reports.panel_summary.view.branch`; stock (Hana, Rizal) needs `inventory.view.branch` at that branch;
+  Faris needs `ai_agents.view.organisation`. These reuse existing grants, so nobody sees a figure here that
+  they cannot already see in KPOne.
+- No message, email, push notification or WhatsApp is sent. Hana's items wait in the approval inbox for a
+  decision; the summary links to them. Office lights follow section 3.
+- The summary keeps no free text; it is rebuilt from stored run results and data sources.
