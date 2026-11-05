@@ -13,6 +13,7 @@ use App\Models\User;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Str;
 use Illuminate\Testing\TestResponse;
+use Symfony\Component\HttpFoundation\Response;
 
 /** Q-4 Call next (owner decisions 2026-11-05). */
 class CallNextTest extends QueueTestCase
@@ -39,7 +40,10 @@ class CallNextTest extends QueueTestCase
             ->assertOk()->json('callNext');
     }
 
-    /** @param array<string, mixed> $candidate */
+    /**
+     * @param  array<string, mixed>  $candidate
+     * @return TestResponse<Response>
+     */
     private function callNext(User $actor, int $doctorId, array $candidate): TestResponse
     {
         $this->selectBranch($actor);
