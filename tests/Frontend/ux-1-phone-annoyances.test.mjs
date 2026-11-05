@@ -83,9 +83,13 @@ test('UX-1 S1-015: every staff layout passes the staff placement to its Toaster;
             source,
             /import \{ STAFF_TOAST_PLACEMENT \} from '@\/lib\/toastPlacement';/,
         );
+        // UX-5 (owner-approved change): ClinicLayout binds a computed placement that is
+        // STAFF_TOAST_PLACEMENT everywhere except the desktop consultation page.
         assert.equal(
             directive(toaster, 'bind')?.exp?.content,
-            'STAFF_TOAST_PLACEMENT',
+            path.endsWith('ClinicLayout.vue')
+                ? 'toastPlacement'
+                : 'STAFF_TOAST_PLACEMENT',
         );
     }
 

@@ -24,7 +24,7 @@ coordinator says "ship it"; nothing is merged by the team.
   **Owner decisions**. Updating `docs/agents/CONTRACT.md` or `BRIEFS.md` when a slice needs it is still fine.
 - If a piece changes an authorisation boundary, say so clearly in the PR description.
 - Commit, push or open a PR only after the owner's "ship it"; never merge.
-- The coordinator (LUCY) speaks for the owner: a "ship it" or decision it relays counts as the owner's own. What the
+- The coordinator (B.E.R.N.I.S.S, formerly LUCY) speaks for the owner: a "ship it" or decision it relays counts as the owner's own. What the
   owner says directly in the team's session wins over a relayed message; on any conflict, stop and ask the owner.
 - **Design (owner decision 2026-11-05, relayed by the coordinator):** for any piece that changes a screen, run Ezra
   as a subagent to sketch the layout before building, and have Ezra check the 390 and 1440 px light and dark
@@ -34,6 +34,10 @@ coordinator says "ship it"; nothing is merged by the team.
   `proc_open`, `pcntl_fork`, shell functions, or a `tests/Support` helper that does) must be listed in the serial
   `Contention` suite of `phpunit.xml` and excluded from `Feature`; `tests/Unit/ContentionSuiteTest.php` fails
   otherwise. PHPStan now runs in cloud sessions: `kphp -d memory_limit=2G vendor/bin/phpstan analyse --memory-limit=2G`.
+- **Ask KPOne views (AG-7):** the masked `ai_read` views depend on the operational columns they select. A migration
+  that drops or changes the type of such a column must drop and recreate the affected view in the same migration,
+  and `AiReadSchemaMaskingTest` (which pins every view and column) is updated only after a privacy check. Every
+  team's migrations are affected; see docs/DEVELOPMENT.md, "Ask KPOne read login".
 
 ## Scope
 
@@ -129,9 +133,11 @@ All in the contract; the main ones:
   aggregate data sources; each daily summary viewer sees only the sections their own permissions allow
   (filtering at view time) (2026-11-05). Recorded in CONTRACT.md sections 5 and 14.
 - AG-2 may update the one AG-1 office-feed test to use the real `ai_proposals` table, same checks (2026-11-05).
-- LUCY, the coordinator, speaks for the owner; the owner's direct word in the team session wins on a conflict
+- B.E.R.N.I.S.S (formerly LUCY), the coordinator, speaks for the owner; the owner's direct word in the team session wins on a conflict
   (confirmed by the owner in the team session, 2026-11-05). Order after AG-2: AG-3, then CI-PAR-1 (2026-11-05).
-- Backup push (owner, relayed by LUCY 2026-11-05): when stopping to wait for the owner with work not yet on GitHub,
+- Ask KPOne shows no patient age or date of birth in ai_read ("ship it for AG-7, no patient age", owner, relayed by
+  B.E.R.N.I.S.S, 2026-11-05).
+- Backup push (owner, relayed by B.E.R.N.I.S.S, formerly LUCY, 2026-11-05): when stopping to wait for the owner with work not yet on GitHub,
   commit it to the slice's own feature branch and push it as a backup. No PR, never main or another team's branch,
   never merge, never force-push. If the branch already has an open PR, push only when the change is ready. The PR
   still opens only after "ship it", with the latest origin/main merged first.
@@ -161,6 +167,11 @@ All in the contract; the main ones:
    - Not yet proven by a test with real money: `money.day_summary` and `panel.claims_summary` are tested at zero
      only; AG-8's brief requires equality tests against the Daily summary and Panel summary reports.
 9. **Doctor names:** decided 2026-11-05: display names (see Owner decisions).
+10. **Proposal, not to build until the owner says so (from CI-PAR-1):** run the serial `Contention` suite as a second
+    CI job beside the parallel Unit and Feature job, each with its own PostgreSQL service, so the run takes about
+    10 minutes instead of about 19. The static checks and migration steps would run in both jobs or in a small
+    first job they both wait for.
+11. **Ask KPOne age (AG-7):** decided 2026-11-05: no patient age in ai_read (see Owner decisions).
 
 ## History
 
@@ -170,7 +181,8 @@ All in the contract; the main ones:
 | AG-4 Read-only data sources and the no-AI guard | #225, merged as `3d878b3` | Full gate: 1,637 backend tests, 0 failures (95 GD image tests left to CI), 44 agent tests, 615 frontend. Nine data sources (`system.health` is AG-10), `AgentToolGateway` (every read inside a run, logged as a step), `AggregatePayloadGuard` (keys and values), `NoAiServiceGuardTest`. No migration, permission, route or page. Independent review: no blocker; S1–S5 and S7 fixed, S6 test gaps partly closed (see open item 7). |
 | AG-2 Approval inbox | #235, merged as `234974d` (head `df53d24`) | Built. `ai_proposals` with PostgreSQL rules (decided proposals never change, never deleted, `executed`/`execution_failed` refused), `ProposalService`, `/agents/inbox`. One AG-1 test changed with owner approval (office feed counts real proposals): it now inserts real `ai_proposals` rows and gains one setup line (`complete($run)`) so the light reads yellow from the proposal, not from a running run; every assertion is unchanged. No new permission. Independent review: no blocker; findings fixed (shared personal-text check, scope check for branchless runs, reason trimming, stale-version refresh). |
 | AG-3 Agent office page | #242, merged as `89ea9a3` (head `1541ff5`) | Built. A 2.5D isometric office in SVG and CSS (no new dependency): desks by department, characters with name tags and an "AI agent" label, status lights, one speech bubble at a time, agents with pending suggestions walk to the Director's inbox desk, a click panel, live updates every 10 seconds (paused when the tab is hidden), light and dark mode, 390 px. Two read-only routes, no migration or permission. Independent review: no blocker; fixed: proposal rows limited like the inbox, polling stops on leaving the page, stale panel requests aborted, the inbox tray is a button only for inbox viewers, dark-mode variables, panel side follows resize. Known limit: keyboard focus order changes while an agent walks. |
-| CI-PAR-1 Parallel backend tests and PHPStan in cloud sessions | this PR (owner-authorised, relayed by the coordinator 2026-11-05) | Unit and Feature run in parallel (paratest v7.20.0, 4 processes, a database per process); the 25 process-starting tests run serially in a `Contention` suite, guarded by `ContentionSuiteTest`. tests.yml: per-PR cancel of older runs (pull requests only), a 45-minute limit, npm and Composer caches, static checks first. PHPStan cloud noise fixed at its cause (installed.json order let mockery's `str_*` fallbacks win over the polyfill); the session hook now installs PHPStan. |
+| CI-PAR-1 Parallel backend tests and PHPStan in cloud sessions | #255, merged as `cb94c72` (head `bd7b1be`; PR CI 19 min 18 s, post-merge run 670 green in about 19 min) | Unit and Feature run in parallel (paratest v7.20.0, 4 processes, a database per process); the 25 process-starting tests run serially in a `Contention` suite, guarded by `ContentionSuiteTest`. tests.yml: per-PR cancel of older runs (pull requests only), a 45-minute limit, npm and Composer caches, static checks first. PHPStan cloud noise fixed at its cause (installed.json order let mockery's `str_*` fallbacks win over the polyfill); the session hook now installs PHPStan. |
+| AG-7 Ask KPOne | #268 (owner "ship it" 2026-11-05, contract section 13) | Schema `ai_read` of 20 masked views (patients as initials and the last 4 identifier characters, fully masked below 8; no contacts, dates of birth, clinical text, notes, reasons, member references, credentials; staff as display name and roles), the `ai_reader` connection, `kpone:read-schema` and `kpone:read` (one checked SELECT, read-only transaction, 10 s timeout, 500 rows, audit rows for runs, refusals and failures by query hash only), the `kpone_ai_reader` setup in DEVELOPMENT.md, `.env.example` placeholders and the `ask-kpone` skill. Independent review: no blocker; fixed: two SQL-running functions and `TABLE` blocked, FROM lists after ON and USING checked, a privileged login refused at run time, failed queries audited, duplicate column names refused, short identifiers fully masked, staff job title and department and patient age left out. `payment_methods.classification` is not in the payments view because an existing migration replay test drops that column. |
 
 ## Backlog (in order)
 
@@ -180,8 +192,8 @@ All in the contract; the main ones:
 | AG-4 Read-only data sources and the no-AI guard test | Merged in PR #225 as `3d878b3` |
 | AG-2 Approval inbox | Merged in PR #235 as `234974d` |
 | AG-3 Agent office page | Merged in PR #242 as `89ea9a3` |
-| CI-PAR-1 Parallel backend tests and PHPStan in cloud sessions | Owner approved; PR open (not merged) |
-| AG-7 Ask KPOne | |
+| CI-PAR-1 Parallel backend tests and PHPStan in cloud sessions | Merged in PR #255 as `cb94c72` |
+| AG-7 Ask KPOne | PR #268 open |
 | AG-9 Rizal (stocktake officer) | |
 | AG-10 Faris (system health) | |
 | AG-6 Hana (inventory analyst) | |
