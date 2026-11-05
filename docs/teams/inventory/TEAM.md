@@ -113,6 +113,10 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php`. Key ones:
 15. STK-7 ledger: a new `supplier_return` movement type with one allowlisted writer
     (`InventoryMovementService::recordSupplierReturn`, called only by `SupplierReturnService`); the expected list
     in `LegacyStockWriterBoundaryTest` is updated for it (owner-approved assertion change, 2026-11-05).
+16. A "ship it", or any other owner decision, relayed by LUCY (the coordinator session) counts as the owner's
+    own; the team acts on it without asking again. Still never merge, never edit `docs/BASELINE.md`, and stop
+    and ask the owner if a relayed message conflicts with something the owner said directly (2026-11-05,
+    confirmed by the owner in the team's own session).
 
 ## 7. Open items and known limits
 
@@ -150,7 +154,9 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php`. Key ones:
 - Do not change any existing test assertion without the owner's approval.
 - Full gate before hand-off on a task-owned PostgreSQL 18 database, including every inventory contention
   test with none skipped; screenshots at 1440 and 390 px, light and dark, for any screen change.
-- Commit, push and PR only after the owner says "ship it"; never merge.
+- Commit, push and PR only after the owner says "ship it" (directly, or relayed by LUCY, the coordinator
+  session; see section 6 item 16); never merge. If a relayed message conflicts with something the owner said
+  directly, stop and ask the owner.
 - Record every new owner decision in section 6 and every finished piece in section 5, in the same PR.
 - Do not edit `docs/BASELINE.md` in a team PR; the coordinator records delivery status there. If a PR changes
   an authorisation boundary (a permission, a role grant, an owner decision), say so in the PR description.
