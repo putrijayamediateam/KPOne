@@ -23,6 +23,8 @@ coordinator says "ship it"; nothing is merged by the team.
   **Owner decisions**. Updating `docs/agents/CONTRACT.md` or `BRIEFS.md` when a slice needs it is still fine.
 - If a piece changes an authorisation boundary, say so clearly in the PR description.
 - Commit, push or open a PR only after the owner's "ship it"; never merge.
+- The coordinator (LUCY) speaks for the owner: a "ship it" or decision it relays counts as the owner's own. What the
+  owner says directly in the team's session wins over a relayed message; on any conflict, stop and ask the owner.
 
 ## Scope
 
@@ -43,7 +45,7 @@ HR, finance, marketing, Panel or management agents, the 3D office, and the desig
 | Pages | `resources/js/pages/Agents/` (`Index.vue` is the registry) |
 | Routes | `routes/web.php`, prefix `/agents`, names `agents.*` |
 | Data sources (AG-4) | `app/Domain/Agents/Tools/`: `AgentTool`, `AgentToolRegistry`, `AgentToolGateway`, `AggregatePayloadGuard`, one class per tool. **AG-10 adds `system.health` without editing this folder:** put the class in `app/Domain/Agents/Health/` and tag it in a service provider, `$this->app->tag([SystemHealthTool::class], AgentToolRegistry::TAG);`. The registry test accepts any subset of the ten contract codes that includes AG-4's nine. |
-| Approval inbox (AG-2) | `app/Domain/Agents/Proposals/`: `ProposalTypes` (proposer, deciding permission, payload fields per type), `AiProposal`, `ProposalService` (`propose`, `approve`, `reject`, `withdraw`, `canDecide`), `ProposalInbox` (page read model); `AgentInboxController`; page `resources/js/pages/Agents/Inbox.vue` at `/agents/inbox`; migration `2026_11_05_200100_create_ai_proposals.php` |
+| Approval inbox (AG-2) | `app/Domain/Agents/Proposals/`: `ProposalTypes` (proposer, deciding permission, payload fields per type), `AiProposal`, `ProposalService` (`propose`, `approve`, `reject`, `withdraw`, `canDecide`), `ProposalInbox` (page read model); `AgentInboxController`; page `resources/js/pages/Agents/Inbox.vue` at `/agents/inbox`; migration `2026_11_05_210000_create_ai_proposals.php` |
 | Tests | `tests/Feature/Agents/`, `tests/Frontend/ag-*.test.mjs`; no-AI guard `tests/Feature/Agents/NoAiServiceGuardTest.php` |
 | Reserved names per slice | Contract section 10 |
 
@@ -117,6 +119,8 @@ All in the contract; the main ones:
   aggregate data sources; each daily summary viewer sees only the sections their own permissions allow
   (filtering at view time) (2026-11-05). Recorded in CONTRACT.md sections 5 and 14.
 - AG-2 may update the one AG-1 office-feed test to use the real `ai_proposals` table, same checks (2026-11-05).
+- LUCY, the coordinator, speaks for the owner; the owner's direct word in the team session wins on a conflict
+  (confirmed by the owner in the team session, 2026-11-05). Order after AG-2: AG-3, then CI-PAR-1 (2026-11-05).
 
 ## Open items
 

@@ -151,7 +151,7 @@ credentials in these files**; that data lives in KPOne's database and reaches an
 | Slice | Migration prefix | Owns |
 |---|---|---|
 | AG-1 registry and activity log | `2026_11_05_100000` to `100900` | `app/Domain/Agents/` (models, registry, run log), the permission migration, `PermissionCatalogue` lines |
-| AG-2 approval inbox | `2026_11_05_200000` to `200900` | `app/Domain/Agents/Proposals/` |
+| AG-2 approval inbox | `2026_11_05_210000` to `210900` | `app/Domain/Agents/Proposals/` |
 | AG-3 agent office page | none | `resources/js/pages/Agents/Office.vue` and its components |
 | AG-4 data sources | none | `app/Domain/Agents/Tools/` and the no-AI guard test |
 | AG-5 Director quick answers | none | `app/Domain/Agents/Assistant/`, `resources/js/pages/Agents/Assistant.vue` |
