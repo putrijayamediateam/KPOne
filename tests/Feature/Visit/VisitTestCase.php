@@ -13,7 +13,6 @@ use App\Domain\Visit\Models\Visit;
 use App\Domain\Visit\Services\VisitReasonService;
 use App\Domain\Visit\Services\VisitRegistrationService;
 use App\Models\User;
-use Database\Seeders\KPOneReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
 use Tests\Support\StaffBranchAssignmentBootstrapper;
@@ -30,7 +29,7 @@ abstract class VisitTestCase extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->seed(KPOneReferenceSeeder::class);
+        $this->ensureReferenceData();
         $this->organisation = Organisation::query()->where('code', 'KLINIK_PUTRIJAYA')->firstOrFail();
         $this->branch = Branch::query()->where('organisation_id', $this->organisation->id)->where('code', 'CHERAS')->firstOrFail();
     }
