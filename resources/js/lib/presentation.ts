@@ -29,6 +29,11 @@ const statusLabels: Record<string, string> = {
     serving: 'Serving',
     void: 'Void',
     waiting: 'Waiting',
+    // DSP-7 medicine returns (Daniel 2026-11-05): waiting is warning; the three outcomes are neutral.
+    waiting_check: 'Waiting for check',
+    disposed: 'Disposed',
+    quarantined: 'Quarantined',
+    refused: 'Refused',
 };
 
 const toneByStatus: Record<string, StatusTone> = {
@@ -51,6 +56,7 @@ const toneByStatus: Record<string, StatusTone> = {
     pending: 'warning',
     proposed: 'warning',
     waiting: 'warning',
+    waiting_check: 'warning',
     cancelled: 'danger',
     not_dispensed: 'danger',
     rejected: 'danger',
