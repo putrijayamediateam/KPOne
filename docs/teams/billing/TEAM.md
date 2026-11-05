@@ -94,7 +94,8 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php` and `BillingPermiss
 | BIL-2 | "Recorded by <name>" on each receipt on the Billing page and Manage payments, with the activity log's name rule; prints unchanged | #222 |
 | BIL-3 | "Pay later to collect" page: the branch's approved, unpaid pay-later amounts, oldest due first, with past-due totals and filter, linked from Clinic management and the Billing page's Outstanding bill box. Read-only | PR #224 |
 | BIL-4 | Daily cash closing page (`/cash-closings`): counted cash takings against expected cash (posted Cash receipts of the branch-local day), a reason for any difference, approve or return by a different person, append-only revisions; linked from Terminal Reconciliation. New permission `payments.cash_closing.approve.branch` | PR #229 (merged) |
-| BIL-4b | "Daily cash closing" card in Clinic management (Patients group, beside Terminal Reconciliation), for holders of `payments.reconcile.branch` at their branch | PR #231 |
+| BIL-4b | "Daily cash closing" card in Clinic management (Patients group, beside Terminal Reconciliation), for holders of `payments.reconcile.branch` at their branch | PR #231 (merged) |
+| BIL-4c | PostgreSQL contention test for daily cash closing (`PostgresCashClosingRegressionTest`, 4 races in real separate sessions): two counts for one day, a new count against an approval of the old count, two approvers on one count, the same request sent twice. Test only | PR #236 |
 
 ## 6. Owner decisions already made (never ask again)
 
@@ -187,9 +188,12 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php` and `BillingPermiss
   anyone who may count can record a newer one, which replaces it ("Replaced" in the history). Someone who
   counted an earlier, returned count may approve a later count made by someone else. It is opened from its
   Clinic management card (BIL-4b) or from Terminal Reconciliation. The tables and locks use PostgreSQL-only features
-  (triggers, advisory locks), like the rest of the suite. There is no PostgreSQL contention test yet for a count
-  and a decision racing on the same day; the service serialises them with an advisory lock per branch and date,
-  and the triggers refuse a decision on an older count.
+  (triggers, advisory locks), like the rest of the suite. The PostgreSQL contention test (BIL-4c) proves the
+  advisory lock per branch and date serialises counts and decisions on the same day; the triggers also refuse a
+  decision on an older count. Its fixture inserts bare synthetic Cash receipts with all user triggers on
+  `payments` switched off inside that one insert transaction (re-enabled before commit), because the deferred
+  billing check would refuse a receipt with no invoice allocation. Not raced yet: a payment reversal against an
+  approval (the approval share-locks the counted receipts for this).
 
 ## 8. Rules (every task)
 

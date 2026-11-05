@@ -47,7 +47,7 @@ final class PanelInvoiceReportService
                 'branch' => ['id' => $branch->id, 'name' => $branch->name],
                 'filters' => $filters['echo'],
                 'panels' => $panels,
-                'can' => ['clinicalFilters' => $actor->can('panel.claims.clinical_filters.branch')],
+                'can' => ['clinicalFilters' => $actor->can('panel.claims.clinical_filters.branch'), 'recordRemittances' => $actor->can(PanelRemittanceService::PERMISSION)],
                 'maxRows' => self::MAX_ROWS,
                 'downloadUrl' => null,
             ];

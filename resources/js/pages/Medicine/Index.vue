@@ -38,6 +38,7 @@ type MedicineRow = {
     orderUnit: string;
     isActive: boolean;
     isControlled: boolean;
+    allergyGroups: string[];
     genericName?: string | null;
     category?: string | null;
     groupName?: string | null;
@@ -393,6 +394,46 @@ const controlledDescription = computed(() => {
         ? `${row.displayName} will no longer show "Ubat Terkawal / Controlled Medicine" on drug labels, including reprints. The change is recorded.`
         : `New drug labels for ${row.displayName} will show "Ubat Terkawal / Controlled Medicine". The change is recorded.`;
 });
+// DSP-1b: drug groups the Dispensary allergy warning matches against (one per line).
+const groupsRow = ref<MedicineRow | null>(null);
+const groupsText = ref('');
+const groupsBusy = ref(false);
+const openGroups = (row: MedicineRow) => {
+    groupsRow.value = row;
+    groupsText.value = row.allergyGroups.join('\n');
+};
+const saveGroups = () => {
+    const row = groupsRow.value;
+
+    if (!row) {
+        return;
+    }
+
+    groupsBusy.value = true;
+    router.post(
+        `/medicines/${row.publicId}/allergy-groups`,
+        {
+            allergy_groups: groupsText.value
+                .split('\n')
+                .map((group) => group.trim())
+                .filter((group) => group !== ''),
+            expected_allergy_groups: row.allergyGroups,
+        },
+        {
+            preserveScroll: true,
+            onSuccess: () => (groupsRow.value = null),
+            onError: (errors: Record<string, string>) => {
+                // Close the dialog so the next attempt starts from the reloaded list.
+                groupsRow.value = null;
+                toast.error(
+                    errors.allergy_groups ??
+                        'Could not save the drug groups. Reload and try again.',
+                );
+            },
+            onFinish: () => (groupsBusy.value = false),
+        },
+    );
+};
 const toggleDescription = computed(() => {
     const row = pendingToggle.row;
 
@@ -465,7 +506,16 @@ const toggleDescription = computed(() => {
                     <td class="font-medium whitespace-nowrap tabular-nums">
                         {{ row.code }}
                     </td>
-                    <td>{{ row.displayName }}</td>
+                    <td>
+                        {{ row.displayName }}
+                        <span
+                            v-if="row.allergyGroups.length"
+                            class="mt-0.5 block text-xs text-muted-foreground"
+                            data-testid="allergy-groups"
+                            >Drug groups:
+                            {{ row.allergyGroups.join(', ') }}</span
+                        >
+                    </td>
                     <td>{{ row.strengthText ?? '—' }}</td>
                     <td>{{ row.dosageForm ?? '—' }}</td>
                     <td>{{ row.orderUnit }}</td>
@@ -532,6 +582,14 @@ const toggleDescription = computed(() => {
                             >
                                 {{ row.isActive ? 'Deactivate' : 'Activate' }}
                             </Button>
+                            <Button
+                                size="sm"
+                                variant="ghost"
+                                data-action="edit-allergy-groups"
+                                :aria-label="`Drug groups for ${row.displayName}`"
+                                @click="openGroups(row)"
+                                >Drug groups</Button
+                            >
                             <Button
                                 size="sm"
                                 variant="ghost"
@@ -1142,6 +1200,51 @@ const toggleDescription = computed(() => {
             "
             @confirm="confirmToggle"
         />
+
+        <Dialog
+            :open="groupsRow !== null"
+            @update:open="(open) => !open && (groupsRow = null)"
+        >
+            <DialogContent class="sm:max-w-lg">
+                <DialogHeader>
+                    <DialogTitle>Drug groups</DialogTitle>
+                    <DialogDescription>
+                        {{ groupsRow?.displayName }}: the drug groups this
+                        medicine belongs to, one per line (for example
+                        Penicillins, NSAIDs). The Dispensary allergy warning
+                        checks a patient's recorded allergies against these as
+                        well as the medicine's names. KPOne does not decide the
+                        groups; check them against a reliable reference. Use
+                        drug-class names, not dosage forms or broad words such
+                        as Tablets.
+                    </DialogDescription>
+                </DialogHeader>
+                <label class="grid gap-1 text-sm"
+                    >Drug groups (up to 10, 3 to 60 characters each)
+                    <textarea
+                        v-model="groupsText"
+                        rows="5"
+                        maxlength="700"
+                        class="w-full rounded-md border bg-background p-2 text-sm"
+                        data-field="allergy-groups"
+                    ></textarea>
+                </label>
+                <DialogFooter>
+                    <Button
+                        variant="outline"
+                        :disabled="groupsBusy"
+                        @click="groupsRow = null"
+                        >Cancel</Button
+                    >
+                    <Button
+                        :disabled="groupsBusy"
+                        data-action="save-allergy-groups"
+                        @click="saveGroups"
+                        >Save</Button
+                    >
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
 
         <OperationalConfirmDialog
             :open="pendingControlled.row !== null"
