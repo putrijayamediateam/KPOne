@@ -88,8 +88,9 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php` and `BillingPermiss
 | D02 / D03 | Footer release (no development disclaimer); OFFICIAL INVOICE / RECEIPT layout | #189, #192 |
 | D002-ECHO | Ringgit shown beside sen approval limits | #194 |
 | PRINT-1 | Prints stay white in dark mode | #200 |
-| BIL-1 | Route-level feature tests and a browser walk (1440 and 390 px) of invoice void and reissue, adjustment reversal, later settlement of pay-later debt on a return visit, and rejected and partially accepted Panel decisions (screenshots handed to the owner, not committed). All four flows worked; no application code changed | this PR |
-| BIL-1b | "Panel shortfall" warning on the Billing page when a Panel rejects or only partly accepts a claim (approved Panel share minus accepted amount). Display only; what the patient owes is unchanged | next PR |
+| BIL-1 | Route-level feature tests and a browser walk (1440 and 390 px) of invoice void and reissue, adjustment reversal, later settlement of pay-later debt on a return visit, and rejected and partially accepted Panel decisions (screenshots handed to the owner, not committed). All four flows worked; no application code changed | #213 |
+| BIL-1b | "Panel shortfall" warning on the Billing page when a Panel rejects or only partly accepts a claim (approved Panel share minus accepted amount). Display only; what the patient owes is unchanged | #219 |
+| BIL-2 | "Recorded by <name>" on each receipt on the Billing page and Manage payments, with the activity log's name rule; prints unchanged | #222 |
 
 ## 6. Owner decisions already made (never ask again)
 
@@ -122,6 +123,10 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php` and `BillingPermiss
 16. Panel shortfall (Option B, 2026-11-05): when a Panel rejects a claim or accepts only part of it, the Billing
     page shows a "Panel shortfall" warning with the amount. It is shown only; the patient's amount owed does not
     change, and nothing is moved to the patient (BIL-1b).
+17. BIL-2 scope (2026-11-05): "Receiver: staff #ID" turned out to be on the stock receiving screen (Inventory
+    team). The owner chose to show "Recorded by <name>" on each receipt on the Billing page and Manage payments
+    instead, with the same name rule as the activity log ("Staff member" when the viewer may not see that
+    person); printed invoices and receipts show no staff name.
 
 ## 7. Open items and known limits
 
@@ -144,6 +149,12 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php` and `BillingPermiss
 - Physical printer test of invoice and receipt still outstanding.
 - No tax or e-Invoice fields (accountant first).
 - BNPL provider fee and settlement tracking parked for the finance phase.
+- Receipt "Recorded by" names (BIL-2) are not on the completed-visit Invoice page, only on the Billing page and
+  Manage payments. The stock receiving screen still shows "Receiver: staff #ID"; that screen belongs to the
+  Inventory team.
+- Staff name visibility (activity log and receipts) compares branch assignment dates with the UTC date, so
+  between 00:00 and 08:00 Kuala Lumpur time an assignment starting that day is not yet visible to branch-level
+  viewers (existing behaviour of `StaffAccessService`).
 
 ## 8. Rules (every task)
 
@@ -161,12 +172,17 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php` and `BillingPermiss
 - Full gate before hand-off on a task-owned PostgreSQL 18 database, including the billing contention tests
   with none skipped; screenshots at 1440 and 390 px, light and dark, for any screen or print change.
 - Commit, push and PR only after the owner says "ship it"; never merge.
-- Record every new owner decision in section 6 and every finished piece in section 5, in the same PR.
+- Record every new owner decision in section 6 and every finished piece in section 5 (with its PR number), in
+  the same PR.
+- **Do not edit `docs/BASELINE.md`** (owner rule, 2026-11-05): rows added by several teams at once made every
+  open PR conflict and re-run CI. Record finished work only in this file; the coordinator records all BASELINE
+  updates in one docs-only PR after each batch of merges. If a piece changes an authorisation boundary (for
+  example a BASELINE section 4 "not authorised" item), say so clearly in the PR description.
 
 ## 9. Backlog (next pieces, in order)
 
 Chosen by the owner on 2026-11-05; built one by one in this order, each its own PR. Choosing them is the owner's
-authorisation to build them; record that in `docs/BASELINE.md` with the first PR of each.
+authorisation to build them; the coordinator records it in `docs/BASELINE.md`.
 
 1. **BIL-1 Untested money flows.** *(Built 2026-11-05; owner approved "ship it" the same day.)* Walk and test, with synthetic data, the flows DRY-RUN-2 did not cover: invoice
    void and reissue, adjustment reversal, later settlement of pay-later debt, rejected and partially accepted
@@ -175,7 +191,7 @@ authorisation to build them; record that in `docs/BASELINE.md` with the first PR
 1b. **BIL-1b Panel shortfall warning.** *(Built 2026-11-05; owner approved "ship it" the same day.)* **Owner decision 2026-11-05 (Option B):** on the Billing page, show a
    "Panel shortfall" warning with the amount when a Panel claim is rejected or partly accepted. Shown only: the
    patient's amount owed, the invoice and the claim are unchanged, and nothing is charged to the patient.
-2. **BIL-2 Receiver's name.** Show the staff member's name instead of "Receiver: staff #ID" (replaces decision
+2. **BIL-2 Receiver's name.** *(Built 2026-11-05 as "Recorded by" on receipts, see decision 17; owner approved "ship it" the same day.)* Show the staff member's name instead of "Receiver: staff #ID" (replaces decision
    9 in section 6, owner 2026-11-05). **Owner decision 2026-11-05: screens only** (Billing, Manage
    payments, activity log); the printed receipt shows no staff name.
 3. **BIL-3 Pay-later collection list.** A page listing patients with approved unpaid pay-later amounts, oldest
