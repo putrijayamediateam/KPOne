@@ -141,14 +141,17 @@ class PricingController extends Controller
             ]);
         } catch (ValidationException $exception) {
             // Stay on this page with the message, never back() to wherever the session last was.
-            throw $exception->redirectTo(route('pricing.charges.history', $charge));
+            // Keep the way back when it was valid.
+            $from = $request->query('from') === 'price-check' ? ['from' => 'price-check'] : [];
+            throw $exception->redirectTo(route('pricing.charges.history', ['charge' => $charge, ...$from]));
         }
         $actor = $request->user();
+        $result = $history->history($actor, $charge, $branches->activeBranch($actor), $data['book'] ?? null, (int) ($data['page'] ?? 1));
 
         return Inertia::render('Pricing/PriceHistory', [
-            'filters' => ['book' => $data['book'] ?? null],
+            'filters' => ['book' => $result['book']],
             'from' => $data['from'] ?? null,
-            'result' => $history->history($actor, $charge, $branches->activeBranch($actor), $data['book'] ?? null, (int) ($data['page'] ?? 1)),
+            'result' => $result,
         ]);
     }
 

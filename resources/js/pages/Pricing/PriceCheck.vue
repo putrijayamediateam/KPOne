@@ -397,7 +397,7 @@ const emptyDescription = computed(() =>
                             v-for="row in result.rows"
                             :key="`${row.type}:${row.code}`"
                         >
-                            <td class="min-w-56">
+                            <td>
                                 <div class="font-medium">
                                     <Link
                                         v-if="row.chargePublicId"
@@ -429,7 +429,7 @@ const emptyDescription = computed(() =>
                             >
                                 {{ rm(row.panelDefaultSen) }}
                             </td>
-                            <td class="max-w-56">
+                            <td>
                                 <template v-if="row.panelPrices.length">
                                     <span class="text-sm">{{
                                         panelSummary(row)
@@ -444,7 +444,7 @@ const emptyDescription = computed(() =>
                                     >—</span
                                 >
                             </td>
-                            <td class="min-w-64">
+                            <td>
                                 <div
                                     class="flex flex-wrap items-center gap-1.5"
                                 >

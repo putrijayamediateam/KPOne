@@ -9,6 +9,7 @@ use App\Domain\Visit\Billing\Models\ChargeDefinition;
 use App\Domain\Visit\Billing\Models\PriceBook;
 use App\Domain\Visit\Billing\Models\PriceEntry;
 use App\Domain\Visit\Billing\Services\PriceHistoryService;
+use App\Domain\Visit\Billing\Services\PriceListCheckService;
 use App\Domain\Visit\Billing\Services\PricePublicationService;
 use App\Domain\Visit\Billing\Services\PricingReferenceAdministrationService;
 use App\Domain\Visit\Models\Panel;
@@ -225,5 +226,61 @@ class PriceHistoryTest extends ClinicalTestCase
             ->assertSessionHasErrors('from');
         $this->actingAs($this->supervisor)->get(route('pricing.charges.history', $charge).'?from=price-check')
             ->assertOk()->assertInertia(fn ($page) => $page->where('from', 'price-check'));
+    }
+
+    public function test_a_version_in_an_inactive_book_is_never_in_use_and_the_applied_filter_is_returned(): void
+    {
+        $charge = $this->charge('HIS-INACTIVE-BOOK');
+        $selfPay = $this->book('self_pay');
+        $branchBook = $this->book('self_pay', $this->branch);
+        $this->publish($selfPay, $charge, 600);
+        $this->publish($branchBook, $charge, 650);
+        $this->publish($branchBook, $charge, 700);
+        $this->references->deactivatePriceBook($this->supervisor, $branchBook);
+
+        $rows = $this->history($charge)['rows'];
+
+        $this->assertSame(
+            [[700, 'not_in_use'], [650, 'replaced'], [600, 'in_use']],
+            array_map(fn (array $row): array => [$row['amountSen'], $row['status']], $rows),
+        );
+        $this->assertFalse($rows[0]['bookActive']);
+        // The inactive book holds versions, so it can still be chosen.
+        $this->assertContains($branchBook->public_id, array_column($this->history($charge)['books'], 'publicId'));
+        $this->assertSame($branchBook->public_id, $this->history($charge, $branchBook->public_id)['book']);
+        $this->assertNull($this->history($charge, '00000000-0000-4000-8000-000000000000')['book']);
+        $this->actingAs($this->supervisor)
+            ->get(route('pricing.charges.history', $charge).'?book=00000000-0000-4000-8000-000000000000')
+            ->assertOk()->assertInertia(fn ($page) => $page->where('filters.book', null)->where('result.total', 3));
+    }
+
+    public function test_a_bad_filter_keeps_the_way_back_to_the_price_list_check(): void
+    {
+        $charge = $this->charge('HIS-BACK');
+
+        $this->actingAs($this->supervisor)->get(route('pricing.charges.history', $charge).'?from=price-check&book=nope')
+            ->assertRedirect(route('pricing.charges.history', ['charge' => $charge, 'from' => 'price-check']))
+            ->assertSessionHasErrors(['book' => 'Choose a price book from the list.']);
+    }
+
+    public function test_the_price_list_check_shows_no_price_for_an_inactive_charge_and_links_each_charge(): void
+    {
+        $medicine = MedicineCatalogueItem::factory()->create([
+            'organisation_id' => $this->organisation->id, 'code' => 'HIS-CHK-OFF', 'display_name' => 'Synthetic HIS-CHK-OFF', 'order_unit' => 'tablet',
+            'created_by_user_id' => $this->supervisor->id, 'updated_by_user_id' => $this->supervisor->id,
+        ]);
+        $charge = $this->references->createMedicineCharge($this->supervisor, $medicine, ['code' => 'HIS-CHK-OFF', 'display_name' => 'Synthetic HIS-CHK-OFF']);
+        $this->publish($this->book('self_pay'), $charge, 300);
+        $this->publish($this->book('panel'), $charge, 280);
+        $this->references->deactivateCharge($this->supervisor, $charge);
+
+        $row = collect(app(PriceListCheckService::class)->check($this->supervisor, $this->branch, [], 1)['rows'])->firstWhere('code', 'HIS-CHK-OFF');
+
+        $this->assertSame(['charge_inactive'], $row['checks']);
+        $this->assertNull($row['selfPaySen']);
+        $this->assertFalse($row['selfPayFromBranch']);
+        $this->assertNull($row['panelDefaultSen']);
+        $this->assertSame([], $row['panelPrices']);
+        $this->assertSame($charge->public_id, $row['chargePublicId']);
     }
 }

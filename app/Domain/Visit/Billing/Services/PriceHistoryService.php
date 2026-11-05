@@ -18,7 +18,8 @@ use Illuminate\Support\Collection;
  *
  * Lists every published price version of the charge in every price book, newest first, with who published it and
  * when it took effect. "In use" marks the version billing picks in that book now (PriceResolutionService: the
- * highest version already in effect); a version whose effective time is still ahead is "Scheduled". Publisher names
+ * highest version already in effect, in an active book); a version whose effective time is still ahead is "Scheduled";
+ * the newest version in effect in an inactive book is "Not in use". Publisher names
  * follow the staff-directory visibility rule (as BIL-2 receipts and cash closing do); others read "Staff member".
  * It writes nothing.
  */
@@ -32,6 +33,7 @@ final class PriceHistoryService
      * @return array{
      *     charge: array{publicId: string, code: string, displayName: string, unit: ?string, isActive: bool},
      *     books: array<int, array{publicId: string, label: string, isActive: bool}>,
+     *     book: ?string,
      *     rows: array<int, array<string, mixed>>,
      *     total: int, currentPage: int, lastPage: int
      * }
@@ -54,7 +56,6 @@ final class PriceHistoryService
         /** @var Collection<int, PriceBook> $books */
         $books = PriceBook::query()
             ->where('organisation_id', $organisationId)
-            ->where('currency', 'MYR')
             // Every active book can be chosen (so "no price in this book" is visible), plus any inactive book that
             // still holds a version of this charge.
             ->where(fn ($query) => $query->where('is_active', true)->orWhereIn('id', $entries->pluck('price_book_id')->unique()->values()))
@@ -77,9 +78,11 @@ final class PriceHistoryService
             ->values();
 
         // The version billing would use in each book now: the highest version already in effect.
-        $now = now()->utc();
+        $now = CarbonImmutable::now('UTC');
+        // Billing reads active books only, so a version in an inactive book is never in use.
         $inUse = $entries
-            ->filter(fn (PriceEntry $entry): bool => self::effectiveAt($entry)->lessThanOrEqualTo($now))
+            ->filter(fn (PriceEntry $entry): bool => (bool) $books->get($entry->price_book_id)?->is_active
+                && self::effectiveAt($entry)->lessThanOrEqualTo($now))
             ->groupBy('price_book_id')
             ->map(fn (Collection $versions): int => (int) $versions->sortByDesc('version')->first()->id);
 
@@ -106,7 +109,9 @@ final class PriceHistoryService
                 'isActive' => (bool) $charge->is_active,
             ],
             'books' => $bookOptions->all(),
-            'rows' => $pageEntries->map(function (PriceEntry $entry) use ($books, $label, $inUse, $now, $names, $timezone): array {
+            // The filter actually applied: an unknown book shows every version, so the page shows "All".
+            'book' => $selected === null ? null : (string) $selected->public_id,
+            'rows' => $pageEntries->map(function (PriceEntry $entry) use ($books, $entries, $label, $inUse, $now, $names, $timezone): array {
                 $book = $books->get($entry->price_book_id);
 
                 return [
@@ -118,14 +123,34 @@ final class PriceHistoryService
                     'effectiveAt' => self::effectiveAt($entry)->setTimezone($timezone)->format('j M Y, g:i A'),
                     'effectiveAtIso' => self::effectiveAt($entry)->toIso8601String(),
                     'publishedBy' => $names[$entry->published_by_user_id] ?? 'Staff member',
-                    'status' => self::effectiveAt($entry)->greaterThan($now) ? 'scheduled'
-                        : (($inUse[$entry->price_book_id] ?? null) === (int) $entry->id ? 'in_use' : 'replaced'),
+                    'status' => match (true) {
+                        self::effectiveAt($entry)->greaterThan($now) => 'scheduled',
+                        ($inUse[$entry->price_book_id] ?? null) === (int) $entry->id => 'in_use',
+                        ! $book?->is_active && $this->isLatestInEffect($entries, $entry, $now) => 'not_in_use',
+                        default => 'replaced',
+                    },
                 ];
             })->all(),
             'total' => $total,
             'currentPage' => $currentPage,
             'lastPage' => $lastPage,
         ];
+    }
+
+    /**
+     * The newest version already in effect in its book (what billing would use if the book were active).
+     *
+     * @param  Collection<int, PriceEntry>  $entries
+     */
+    private function isLatestInEffect(Collection $entries, PriceEntry $entry, CarbonImmutable $now): bool
+    {
+        $latest = $entries
+            ->where('price_book_id', $entry->price_book_id)
+            ->filter(fn (PriceEntry $candidate): bool => self::effectiveAt($candidate)->lessThanOrEqualTo($now))
+            ->sortByDesc('version')
+            ->first();
+
+        return $latest !== null && (int) $latest->id === (int) $entry->id;
     }
 
     private static function effectiveAt(PriceEntry $entry): CarbonImmutable

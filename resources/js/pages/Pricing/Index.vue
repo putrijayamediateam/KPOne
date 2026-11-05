@@ -572,7 +572,7 @@ const toggleCharge = (charge: ChargeRow) => {
                                     <Link
                                         :href="`/pricing/charges/${charge.publicId}/history`"
                                         :aria-label="`Price history for ${charge.displayName}`"
-                                        >History</Link
+                                        >Price history</Link
                                     >
                                 </Button>
                                 <Button

@@ -14,7 +14,7 @@ import { OperationalTable } from '@/components/ui/table';
 // CAT-3: read-only price history of one charge. Every published version comes from the server, newest first;
 // "In use" is the version billing picks in that book now. Prices are published on the Pricing page.
 
-type Status = 'in_use' | 'scheduled' | 'replaced';
+type Status = 'in_use' | 'scheduled' | 'replaced' | 'not_in_use';
 type Row = {
     id: number;
     book: string;
@@ -105,9 +105,14 @@ const rm = (sen: number) =>
     `RM ${Math.floor(sen / 100)}.${String(sen % 100).padStart(2, '0')}`;
 const bookLabel = (row: Row) =>
     row.bookActive ? row.book : `${row.book} (inactive)`;
-// A replaced RM 0.00 version is history: only a price in use or scheduled is flagged as free.
-const flagFree = (row: Row) => row.amountSen === 0 && row.status !== 'replaced';
 const statusKey = (status: Status) => `price_${status}`;
+// Only a version billing uses now or will use is a badge; older or unused versions are muted text.
+const isBadge = (row: Row) =>
+    row.status === 'in_use' || row.status === 'scheduled';
+const mutedStatus = (row: Row) =>
+    row.status === 'not_in_use' ? 'Not in use (book inactive)' : 'Replaced';
+// A replaced RM 0.00 version is history: only a price in use or scheduled is flagged as free.
+const flagFree = (row: Row) => row.amountSen === 0 && isBadge(row);
 
 const emptyTitle = computed(() =>
     props.filters.book
@@ -196,12 +201,12 @@ const emptyDescription = computed(() =>
                         {{ rm(row.amountSen) }}
                     </p>
                     <StatusBadge
-                        v-if="row.status !== 'replaced'"
+                        v-if="isBadge(row)"
                         :status="statusKey(row.status)"
                     />
-                    <span v-else class="text-xs text-muted-foreground"
-                        >Replaced</span
-                    >
+                    <span v-else class="text-xs text-muted-foreground">{{
+                        mutedStatus(row)
+                    }}</span>
                 </div>
                 <p class="text-sm break-words">
                     {{ bookLabel(row) }} ·
@@ -264,13 +269,13 @@ const emptyDescription = computed(() =>
                         <td>
                             <div class="flex flex-wrap items-center gap-1.5">
                                 <StatusBadge
-                                    v-if="row.status !== 'replaced'"
+                                    v-if="isBadge(row)"
                                     :status="statusKey(row.status)"
                                 />
                                 <span
                                     v-else
                                     class="text-xs text-muted-foreground"
-                                    >Replaced</span
+                                    >{{ mutedStatus(row) }}</span
                                 >
                                 <StatusBadge
                                     v-if="flagFree(row)"

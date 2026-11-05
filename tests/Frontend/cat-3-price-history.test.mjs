@@ -62,15 +62,17 @@ test('the price book filter has a visible connected label and inactive books say
     assert.match(page, /`\$\{option\.label\} \(inactive\)`/);
 });
 
-test('"In use" and "Scheduled" are badges, "Replaced" is muted text', () => {
-    assert.equal(
-        (template.match(/v-if="row\.status !== 'replaced'"/g) ?? []).length,
-        2,
+test('"In use" and "Scheduled" are badges, "Replaced" and "Not in use" are muted text', () => {
+    assert.match(
+        page,
+        /const isBadge = \(row: Row\) =>\s*row\.status === 'in_use' \|\| row\.status === 'scheduled';/,
     );
+    assert.match(page, /'Not in use \(book inactive\)' : 'Replaced'/);
+    assert.equal((template.match(/v-if="isBadge\(row\)"/g) ?? []).length, 2);
     assert.equal(
         (
             template.match(
-                /class="text-xs text-muted-foreground"\s*>Replaced<\/span/g,
+                /class="text-xs text-muted-foreground"\s*>\{\{\s*mutedStatus\(row\)\s*\}\}<\/span/g,
             ) ?? []
         ).length,
         2,
@@ -80,7 +82,7 @@ test('"In use" and "Scheduled" are badges, "Replaced" is muted text', () => {
 test('"Free (RM 0.00)" is flagged only on a version in use or scheduled', () => {
     assert.match(
         page,
-        /const flagFree = \(row: Row\) => row\.amountSen === 0 && row\.status !== 'replaced';/,
+        /const flagFree = \(row: Row\) => row\.amountSen === 0 && isBadge\(row\);/,
     );
     assert.equal((template.match(/v-if="flagFree\(row\)"/g) ?? []).length, 2);
 });
