@@ -2,6 +2,7 @@
 
 namespace App\Domain\Agents\Tools;
 
+use App\Domain\Organisation\Inventory\Models\InventoryLocation;
 use App\Domain\Organisation\Inventory\Models\StockMovement;
 use App\Domain\Organisation\Models\Branch;
 use App\Models\User;
@@ -43,7 +44,7 @@ final class InventoryDispensingActivityTool implements AgentTool
         $windowStart = $today->subDays($days - 1);
 
         $onHand = DB::table('inventory_stock_balances as b')->join('inventory_locations as l', 'l.id', '=', 'b.inventory_location_id')
-            ->where('b.organisation_id', $organisationId)->where('l.organisation_id', $organisationId)->where('l.branch_id', $branch->id)->where('l.is_active', true)
+            ->where('b.organisation_id', $organisationId)->where('l.organisation_id', $organisationId)->where('l.branch_id', $branch->id)->where('l.is_active', true)->where('l.type', '<>', InventoryLocation::TYPE_DISPENSARY_RETURNS)
             ->groupBy('b.inventory_sku_id')->havingRaw('SUM(b.quantity) > 0')->selectRaw('b.inventory_sku_id as sku_id, SUM(b.quantity) as quantity')->pluck('quantity', 'sku_id');
         $dispensed = DB::table('stock_movements as m')->join('inventory_locations as l', 'l.id', '=', 'm.source_location_id')
             ->where('m.organisation_id', $organisationId)->where('l.organisation_id', $organisationId)->where('l.branch_id', $branch->id)
