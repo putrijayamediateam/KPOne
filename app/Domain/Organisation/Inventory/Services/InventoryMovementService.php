@@ -174,6 +174,20 @@ class InventoryMovementService
         return $this->debitOperation($actor, $location, $sku, $batch, $quantity, StockMovement::TYPE_ADJUSTMENT_OUT, 'inventory_receipt_correction', $correctionPublicId);
     }
 
+    /**
+     * STK-8: treatment-room usage or waste (debit) and its supervisor reversal (credit back as adjustment_in).
+     * The caller holds the usage, SKU, batch and balance locks.
+     */
+    public function recordTreatmentUsage(User $actor, InventoryLocation $location, InventorySku $sku, InventoryBatch $batch, string $quantity, string $type, string $usagePublicId): StockMovement
+    {
+        abort_unless(DB::transactionLevel() > 0, 500);
+        abort_unless(in_array($type, [StockMovement::TYPE_TREATMENT_USAGE, StockMovement::TYPE_TREATMENT_WASTE, StockMovement::TYPE_ADJUSTMENT_IN], true), 422);
+
+        return $type === StockMovement::TYPE_ADJUSTMENT_IN
+            ? $this->creditOperation($actor, $location, $sku, $batch, $quantity, $type, 'inventory_treatment_usage', $usagePublicId)
+            : $this->debitOperation($actor, $location, $sku, $batch, $quantity, $type, 'inventory_treatment_usage', $usagePublicId);
+    }
+
     /** STK-7: approved supplier return dispatch; the caller holds the return, SKU, batch and balance locks. */
     public function recordSupplierReturn(User $actor, InventoryLocation $location, InventorySku $sku, InventoryBatch $batch, string $quantity, string $returnPublicId): StockMovement
     {
