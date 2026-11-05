@@ -12,6 +12,7 @@ class DatabaseSeeder extends Seeder
 
         if (app()->environment(['local', 'testing'])) {
             $this->call(KPOneDevelopmentSeeder::class);
+            $this->call(KPOneAgentSeeder::class);
         }
     }
 }

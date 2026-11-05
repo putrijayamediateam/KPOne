@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AccessControlController;
+use App\Http\Controllers\AgentRegistryController;
 use App\Http\Controllers\AttendanceController;
 use App\Http\Controllers\AuditLogController;
 use App\Http\Controllers\Auth\GoogleAuthController;
@@ -635,6 +636,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::get('panels/{panel}/edit', [PanelSettingsController::class, 'edit'])->whereNumber('panel')->name('panel-settings.edit');
             Route::patch('panels/{panel}', [PanelSettingsController::class, 'update'])->whereNumber('panel')->middleware('throttle:30,1')->name('panel-settings.update');
             Route::post('panels/{panel}/active', [PanelSettingsController::class, 'active'])->whereNumber('panel')->middleware('throttle:30,1')->name('panel-settings.active');
+        });
+
+        Route::middleware(['permission:ai_agents.view.organisation', 'sensitive.no-store'])->prefix('agents')->group(function () {
+            Route::get('/', [AgentRegistryController::class, 'index'])->name('agents.index');
+            Route::get('office-feed', [AgentRegistryController::class, 'feed'])->middleware('throttle:30,1')->name('agents.office-feed');
+            Route::post('{agent}/enabled', [AgentRegistryController::class, 'enabled'])->whereNumber('agent')
+                ->middleware(['permission:ai_agents.manage.organisation', 'throttle:20,1'])->name('agents.enabled');
         });
 
         Route::middleware(['permission:payment_methods.manage.organisation'])->prefix('payment-methods')->group(function () {
