@@ -379,7 +379,7 @@ class PatientMergeTest extends VisitTestCase
     public function test_rolling_back_the_migration_is_refused_once_evidence_exists(): void
     {
         $this->propose($this->actor('ca'), $this->patient(), $this->patient());
-        $migration = require database_path('migrations/2026_11_06_000300_create_patient_merges.php');
+        $migration = require database_path('migrations/2026_11_06_100100_create_patient_merges.php');
 
         $this->expectException(RuntimeException::class);
         $migration->down();

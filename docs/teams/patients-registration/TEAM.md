@@ -114,6 +114,10 @@ coordinator at the owner's request (2026-11-05).
     Director; approve: a different CA Supervisor or Director; (E) fixed reason list, no free text; (F) past Insights
     distinct-patient counts may count a merged person twice (known limit); (G) two new permissions
     `patients.merge.propose.organisation` and `patients.merge.approve.organisation` by one additive migration.
+15. **Retiring an identifier on a merged-away record stays allowed** (owner answer "yes", relayed by LUCY,
+    2026-11-05): only the existing `patients.identifiers.manage.organisation` holders (CA Supervisor, Director), audited
+    as today. It is how the IC or passport is freed for the kept record; adding or replacing an identifier on a
+    merged-away record stays refused.
 
 ## 7. Open items and known limits
 
@@ -138,8 +142,8 @@ coordinator at the owner's request (2026-11-05).
   visit history listing both records' visits (outstanding bills and the doctor's previous consultations already
   do); the duplicate's problem list and guardian contact shown on the kept record. No two-process PostgreSQL
   contention test for two simultaneous approvals (row locks in id order and a one-open-request unique index
-  cover it). The duplicate keeps its IC or passport, so that IC cannot be added to the kept record while merged;
-  retiring an identifier on a merged-away record is still allowed (adding and replacing are refused). Old
+  cover it). The duplicate keeps its IC or passport, so that IC cannot be added to the kept record until it is retired on
+  the merged-away record (allowed by owner decision, section 6 item 15; adding and replacing are refused). Old
   registration rows of the duplicate still offer WhatsApp to the duplicate's own phone. Past Insights counts may
   count a merged person twice (decision F). Allergy matching compares normalised text, so "Penicillin" and
   "Penicillin (rash)" count as different and block until the kept record has the same wording.
