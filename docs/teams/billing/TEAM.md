@@ -91,6 +91,7 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php` and `BillingPermiss
 | BIL-1 | Route-level feature tests and a browser walk (1440 and 390 px) of invoice void and reissue, adjustment reversal, later settlement of pay-later debt on a return visit, and rejected and partially accepted Panel decisions (screenshots handed to the owner, not committed). All four flows worked; no application code changed | #213 |
 | BIL-1b | "Panel shortfall" warning on the Billing page when a Panel rejects or only partly accepts a claim (approved Panel share minus accepted amount). Display only; what the patient owes is unchanged | #219 |
 | BIL-2 | "Recorded by <name>" on each receipt on the Billing page and Manage payments, with the activity log's name rule; prints unchanged | #222 |
+| BIL-3 | "Pay later to collect" page: the branch's approved, unpaid pay-later amounts, oldest due first, with past-due totals and filter, linked from Clinic management and the Billing page's Outstanding bill box. Read-only | this PR |
 
 ## 6. Owner decisions already made (never ask again)
 
@@ -127,6 +128,9 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php` and `BillingPermiss
     team). The owner chose to show "Recorded by <name>" on each receipt on the Billing page and Manage payments
     instead, with the same name rule as the activity log ("Staff member" when the viewer may not see that
     person); printed invoices and receipts show no staff name.
+18. BIL-3 links (2026-11-05): the pay-later list is opened from a "Pay later to collect" card in Clinic management
+    (the owner approved adding its one entry to the hub's exact destination test) and from a link in the
+    Billing page's Outstanding bill box.
 
 ## 7. Open items and known limits
 
@@ -155,6 +159,12 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php` and `BillingPermiss
 - Staff name visibility (activity log and receipts) compares branch assignment dates with the UTC date, so
   between 00:00 and 08:00 Kuala Lumpur time an assignment starting that day is not yet visible to branch-level
   viewers (existing behaviour of `StaffAccessService`).
+- The pay-later collection list (BIL-3) is not audited per view, like the Finance / Billing work list and the
+  Registration board; it shows patient name and KP number only. Payments are still recorded on each patient's
+  Billing page.
+- The pay-later collection list (BIL-3) shows approved pay later only, not everything a patient owes. If a payment
+  that paid off part of a pay-later debt is reversed, that amount moves back into the invoice's due now (pay later
+  never grows back), so it shows on the Billing page but not on this list. The page says so.
 
 ## 8. Rules (every task)
 
@@ -194,7 +204,7 @@ authorisation to build them; the coordinator records it in `docs/BASELINE.md`.
 2. **BIL-2 Receiver's name.** *(Built 2026-11-05 as "Recorded by" on receipts, see decision 17; owner approved "ship it" the same day.)* Show the staff member's name instead of "Receiver: staff #ID" (replaces decision
    9 in section 6, owner 2026-11-05). **Owner decision 2026-11-05: screens only** (Billing, Manage
    payments, activity log); the printed receipt shows no staff name.
-3. **BIL-3 Pay-later collection list.** A page listing patients with approved unpaid pay-later amounts, oldest
+3. **BIL-3 Pay-later collection list.** *(Built 2026-11-05; awaiting owner review.)* A page listing patients with approved unpaid pay-later amounts, oldest
    first, per branch, so staff can collect when the patient returns. **Owner decision 2026-11-05: holders of
    `outstanding.view.branch` (Director, CA, CA Supervisor, Finance Officer) at their branches.**
 4. **BIL-4 Daily cash closing.** End-of-day cash count per branch: expected cash from posted Cash receipts versus

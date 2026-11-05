@@ -78,6 +78,8 @@ export type BillingPage = {
     clinic: string;
     branch: string;
     outstanding: OutstandingBills | null;
+    /** BIL-3: the branch pay-later collection list, for outstanding viewers only. */
+    payLaterCollectionsUrl?: string | null;
     invoice: null | {
         publicId: string;
         number: string | null;
