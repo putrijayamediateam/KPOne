@@ -16,6 +16,7 @@ use App\Domain\Visit\Billing\Services\CashClosingService;
 use App\Domain\Visit\Billing\Services\CompleteVisitationService;
 use App\Domain\Visit\Billing\Services\InvoiceAdjustmentService;
 use App\Domain\Visit\Billing\Services\InvoiceCorrectionService;
+use App\Domain\Visit\Billing\Services\IssuedBillingDocumentService;
 use App\Domain\Visit\Billing\Services\PaymentMethodAdministrationService;
 use App\Domain\Visit\Billing\Services\PaymentService;
 use App\Domain\Visit\Billing\Services\PricePublicationService;
@@ -72,6 +73,7 @@ try {
         'bill-checkout' => app(CompleteConsultationService::class)->complete($actor, $visit, $a),
         'bill-reopen' => app(ReopenConsultationCheckoutService::class)->reopen($actor, $visit, $a),
         'bill-edit' => app(ClinicalEncounterService::class)->update($actor, $visit, $a),
+        'bill-issue' => app(IssuedBillingDocumentService::class)->issue($actor, $visit, $invoice, null, $a),
         'bill-refund' => app(RefundService::class)->record($actor, $visit, $a['payment'], $a),
         'bill-refund-decide' => app(RefundService::class)->decide($actor, $visit, $a['refund'], $a['decision'], $a),
         'bill-cash-decide' => app(CashClosingService::class)->decide($actor, $a['closing'], $a['decision'], $a),
