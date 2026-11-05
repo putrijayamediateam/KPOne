@@ -43,3 +43,16 @@ test('one reprint among several labels reads "was", more read "were"', () => {
     );
     assert.ok(labels.includes('of these labels were printed before.'));
 });
+
+test('the OTC allergy card says the check also uses catalogue drug groups (DSP-1b)', () => {
+    const text = show.replace(/\s+/g, ' ');
+    assert.ok(
+        text.includes(
+            'compared with medicine names and catalogue drug groups by text only',
+        ),
+    );
+    assert.equal(
+        text.includes('compared with medicine names by text only'),
+        false,
+    );
+});

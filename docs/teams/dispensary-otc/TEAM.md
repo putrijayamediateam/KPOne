@@ -92,7 +92,7 @@ coordinator at the owner's request (2026-11-05); the designer was added by owner
 | DSP-9 | Pharmacist review pack (documents only): a printer-test checklist with worst-case labels and a pharmacist review sheet with sample labels made by the real label layout, under `docs/pilot/drug-label/` | #243 (merged `16fa1ee`) |
 | DSP-5 | OTC allergy details: when an OTC walk-in has an allergy, the CA records it on the patient's allergy profile (add only), so the DSP-1 warning matches it; "has an allergy" needs a recorded allergy; a new allergy reopens the statement; Complete refuses a line that matches an allergy recorded after the line was saved until it is ticked and saved again; new permission `allergies.record_otc.branch` (migration `2026_11_06_200000`); Clinical allergy service change agreed with the coordinator | #250 (merged `bb604bc`) |
 | DSP-6 | Label print log: each press of "Print current labels" that passes the fresh check logs who printed which line's label and when (append-only `dispensary_label_prints`, per-line print number, audit with counts only, no label content); a line printed before carries a small boxed REPRINT at the end of the last row (outside the line budget) and the preview says so; label pages throttled 30 a minute; migration `2026_11_06_200100` | #261 (merged `0df2ed8`) |
-| DSP-8 | Dispensary pages on phones and tablets: at 768 px the medicine and service line grids (2 columns there) had rows spanning 3 or 4 columns, so the browser added near-zero-width columns and Quantity, Dosage, Route and Precaution became 18 px slivers with overlapping labels; rows now span the full width (or 2, then 3 on wide screens). On phones (below 640 px) every button, text field and dropdown on the Dispensary, Completed and label preview pages is at least 44 px tall; wide screens unchanged. Also the "1 of these labels was printed before" wording | pending (branch `feature/dsp-8-dispensary-mobile`) |
+| DSP-8 | Dispensary pages on phones and tablets: at 768 px the medicine and service line grids (2 columns there) had rows spanning 3 or 4 columns, so the browser added near-zero-width columns and Quantity, Dosage, Route and Precaution became 18 px slivers with overlapping labels; rows now span the full width (or 2, then 3 on wide screens). On phones (below 640 px) every button, text field and dropdown on the Dispensary, Completed and label preview pages is at least 44 px tall; wide screens unchanged. Also the "1 of these labels was printed before" wording, and the OTC allergy card now says the check also uses catalogue drug groups | pending (branch `feature/dsp-8-dispensary-mobile`) |
 
 ## 6. Owner decisions already made (never ask again)
 
@@ -139,6 +139,17 @@ coordinator at the owner's request (2026-11-05); the designer was added by owner
     printer, so a cancelled dialog counts). The mark reads plain **REPRINT** (2026-11-05). The owner approved one
     changed assertion in `DrugLabelTest` (a completed-case print may add exactly its print rows and one audit row;
     every other table must stay identical) and a set-up-only change to the `drug-labels.test.mjs` harness.
+20. DSP-7 medicine returns (2026-11-05, "go with your recommendations", relayed by B.E.R.N.I.S.S): **Dispose** is
+    the default outcome; quarantine goes to a separate non-dispensing **returns location** (Option B, never an STK-2
+    hold on the whole batch); v1 **records the return only**, with no refund in KPOne. **Who records:** reuse
+    `dispensary.update.branch` (CA, CA Supervisor), no new permission; the control is the independent check
+    (`inventory.variances.approve.branch`, never the recorder). **Controlled medicines:** the checker must be a CA
+    Supervisor or Director (not a Finance Officer) and the outcome is always Dispose, enforced in the domain and in
+    PostgreSQL; added to the pharmacist review list. The Inventory piece is **STK-11** (Inventory team: the
+    `dispensary_returns` location type, the `dispensary_return` movement and the `recordDispensaryReturn` writer,
+    migration `2026_11_07_000400`); DSP-7 migrations that depend on it use `2026_11_07_000500` to `000599` (a one-off
+    exception to this team's range). Iman sketches the return section first and it goes to Daniel; the DSP-7 PR
+    merges only after STK-11.
 
 ## 7. Open items and known limits
 

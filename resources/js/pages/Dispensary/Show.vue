@@ -887,8 +887,8 @@ const inputClass = 'mt-1 h-9 w-full rounded-md border px-2';
                     <p class="font-medium">Ask the patient about allergies</p>
                     <p class="text-xs text-muted-foreground">
                         Record what the patient tells you. Saved allergies are
-                        compared with medicine names by text only, so the check
-                        can miss one. Always ask.
+                        compared with medicine names and catalogue drug groups
+                        by text only, so the check can miss one. Always ask.
                     </p>
                     <p
                         v-if="dispensary.allergySafety.allergies.length"
