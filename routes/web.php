@@ -51,6 +51,7 @@ use App\Http\Controllers\PanelSettingsController;
 use App\Http\Controllers\PatientBillingReportController;
 use App\Http\Controllers\PatientController;
 use App\Http\Controllers\PatientIdentifierController;
+use App\Http\Controllers\PatientMergeController;
 use App\Http\Controllers\PatientSearchController;
 use App\Http\Controllers\PatientWhatsAppController;
 use App\Http\Controllers\PayLaterCollectionController;
@@ -798,6 +799,25 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('patients/{patient}', [PatientController::class, 'show'])
             ->middleware('permission:patients.view.organisation')
             ->name('patients.show');
+        // REG-3: two-person patient merge (link only).
+        Route::get('patients/{patient}/merge-compare', [PatientMergeController::class, 'compare'])
+            ->middleware(['permission:patients.merge.propose.organisation', 'sensitive.no-store', 'throttle:30,1'])
+            ->name('patients.merge-compare');
+        Route::post('patients/{patient}/merge-requests', [PatientMergeController::class, 'store'])
+            ->middleware(['permission:patients.merge.propose.organisation', 'throttle:20,1'])
+            ->name('patients.merge-requests.store');
+        Route::get('patient-merges', [PatientMergeController::class, 'index'])
+            ->middleware('permission:patients.merge.propose.organisation,patients.merge.approve.organisation')
+            ->name('patient-merges.index');
+        Route::post('patient-merges/{mergeRequest}/approve', [PatientMergeController::class, 'approve'])
+            ->whereUuid('mergeRequest')->middleware(['permission:patients.merge.approve.organisation', 'throttle:20,1'])
+            ->name('patient-merges.approve');
+        Route::post('patient-merges/{mergeRequest}/reject', [PatientMergeController::class, 'reject'])
+            ->whereUuid('mergeRequest')->middleware(['permission:patients.merge.approve.organisation', 'throttle:20,1'])
+            ->name('patient-merges.reject');
+        Route::post('patient-merges/{mergeRequest}/withdraw', [PatientMergeController::class, 'withdraw'])
+            ->whereUuid('mergeRequest')->middleware(['permission:patients.merge.propose.organisation', 'throttle:20,1'])
+            ->name('patient-merges.withdraw');
         Route::get('patients/{patient}/edit', [PatientController::class, 'edit'])
             ->middleware('permission:patients.update.organisation')
             ->name('patients.edit');

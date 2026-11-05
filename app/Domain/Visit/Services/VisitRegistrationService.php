@@ -84,6 +84,10 @@ class VisitRegistrationService
 
                     return $existing;
                 }
+                if ($lockedPatient->merged_into_patient_id !== null) {
+                    // REG-3: a merged-away record never gets new visits; register on the kept record.
+                    throw ValidationException::withMessages(['patient_number' => 'This record was merged into another patient. Register the visit on the kept record.']);
+                }
 
                 $now = now()->utc();
                 [$dayStart, $dayEnd, $effectiveDate] = $this->branchDay($branch, $now);

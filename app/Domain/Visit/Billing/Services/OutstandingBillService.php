@@ -5,6 +5,7 @@ namespace App\Domain\Visit\Billing\Services;
 use App\Domain\Access\BillingWorkAccess;
 use App\Domain\Access\BranchAccessService;
 use App\Domain\Organisation\Models\Branch;
+use App\Domain\Patient\Services\PatientMergeLinks;
 use App\Domain\Visit\Models\Visit;
 use App\Models\User;
 use Carbon\CarbonImmutable;
@@ -83,7 +84,7 @@ final class OutstandingBillService
     {
         if ($group === 'panel') {
             return DB::query()->fromSub($this->eligibility->query($actor->organisation_id, $visit->branch_id)
-                ->where('i.patient_id', $visit->patient_id)->where('i.visit_id', '<>', $visit->id)
+                ->whereIn('i.patient_id', PatientMergeLinks::groupIds($visit->patient_id))->where('i.visit_id', '<>', $visit->id)
                 ->select(['i.id', 'i.invoice_number', 'v.visit_number', 'v.registered_at'])
                 ->selectRaw('sum(c.amount_sen) as amount_sen, false as review_required')
                 ->groupBy('i.id', 'i.invoice_number', 'v.visit_number', 'v.registered_at'), 'bills');
@@ -93,7 +94,7 @@ final class OutstandingBillService
         $query = DB::table('invoices as i')->join('visits as v', 'v.id', '=', 'i.visit_id')
             ->where('i.organisation_id', $actor->organisation_id)->where('i.branch_id', $visit->branch_id)
             ->where('v.organisation_id', $actor->organisation_id)->where('v.branch_id', $visit->branch_id)
-            ->where('i.patient_id', $visit->patient_id)->whereColumn('v.patient_id', 'i.patient_id')
+            ->whereIn('i.patient_id', PatientMergeLinks::groupIds($visit->patient_id))->whereColumn('v.patient_id', 'i.patient_id')
             ->where('i.visit_id', '<>', $visit->id)->whereColumn('i.current_visit_guard', 'v.id')->where('i.status', 'finalized')
             ->leftJoinSub($sum('payment_allocations'), 'paid', 'paid.invoice_id', '=', 'i.id')
             ->leftJoinSub($sum('payment_reversals'), 'reversed', 'reversed.invoice_id', '=', 'i.id')
