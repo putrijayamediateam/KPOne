@@ -10,6 +10,7 @@ use App\Domain\Identity\Models\StaffBranchAssignment;
 use App\Domain\Identity\Models\StaffProfile;
 use App\Domain\Organisation\Models\Branch;
 use App\Domain\Queue\Models\QueueEntry;
+use App\Domain\Queue\Treatment\TreatmentStepService;
 use App\Domain\Visit\Models\Visit;
 use App\Models\User;
 use Illuminate\Auth\Access\AuthorizationException;
@@ -153,6 +154,8 @@ class ConsultationHoldService
                 'from_state' => 'held',
                 'to_state' => 'active',
             ], $doctor, $branch, $doctor->organisation_id);
+            // Q-2: resuming clears a "Ready to resume" treatment step, under the locks already held.
+            app(TreatmentStepService::class)->acknowledgeLocked($queue, $doctor);
 
             return $hold->refresh();
         }, 3);

@@ -57,6 +57,21 @@ export const statusTone = (status: string): StatusTone =>
     toneByStatus[status.trim().toLocaleLowerCase().replaceAll('-', '_')] ??
     'neutral';
 
+/** Token classes for a status tone (the same values StatusBadge uses). */
+export const statusToneClasses: Record<StatusTone, string> = {
+    neutral: 'border-border bg-muted text-foreground',
+    accent: 'border-brand/25 bg-brand/10 text-brand-strong',
+    success: 'border-success/25 bg-success/10 text-success',
+    warning: 'border-warning/25 bg-warning/10 text-warning-strong',
+    danger: 'border-destructive/25 bg-destructive/10 text-destructive',
+};
+
+/** Q-2 (Daniel's design review 2026-11-05): a running treatment step is neutral (the icon and the word
+ * "started" carry the meaning, keeping amber free); a done step uses the success tone. */
+export const treatmentProgressTone = (
+    state: 'started' | 'done' | null | undefined,
+): StatusTone => (state === 'done' ? 'success' : 'neutral');
+
 export type DateInput = Date | number | string | null | undefined;
 
 const dateOnlyPattern = /^\d{4}-\d{2}-\d{2}$/;

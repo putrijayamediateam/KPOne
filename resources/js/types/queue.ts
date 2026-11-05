@@ -1,8 +1,9 @@
-import type { CallReadiness } from './patientBoard';
+import type { CallReadiness, TreatmentProgress } from './patientBoard';
 export type QueueStatus = 'waiting' | 'serving' | 'removed';
 
 export type QueueRow = {
     callHold?: CallReadiness | null;
+    treatmentProgress?: TreatmentProgress | null;
     canWhatsapp: boolean;
     queueNumber: string;
     operationalDate: string;

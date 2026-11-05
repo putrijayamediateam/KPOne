@@ -147,6 +147,8 @@ const renderBoard = async (rows) => {
         '@lucide/vue': new Proxy({}, { get: () => icon }),
         '@/components/patient/WhatsAppLink.vue': { default: empty },
         '@/components/queue/CallReadinessActions.vue': { default: empty },
+        '@/components/queue/TreatmentProgressActions.vue': { default: empty },
+        '@/components/queue/TreatmentProgressBadge.vue': { default: empty },
         '@/components/ui/button': { Button: passthrough },
         '@/components/ui/disclosure': { DisclosureText: passthrough },
         '@/components/ui/dropdown-menu': stubs,

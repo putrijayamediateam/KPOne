@@ -7,6 +7,8 @@ use App\Domain\Clinical\Services\ClinicalEncounterService;
 use App\Domain\Clinical\Services\EncounterDiagnosisPresetDirectoryService;
 use App\Domain\Queue\Display\RoomCallService;
 use App\Domain\Queue\Models\BranchRoom;
+use App\Domain\Queue\Treatment\TreatmentStepProjection;
+use App\Domain\Queue\Treatment\TreatmentStepService;
 use App\Domain\Visit\Models\Visit;
 use App\Http\Requests\StartClinicalEncounterRequest;
 use App\Http\Requests\UpdateClinicalEncounterRequest;
@@ -33,10 +35,24 @@ class ClinicalEncounterController extends Controller
         Visit $visit,
         ClinicalEncounterDirectoryService $directory,
         RoomCallService $calls,
+        TreatmentStepService $treatment,
+        TreatmentStepProjection $treatmentProjection,
     ): Response {
+        // detail() authorises the encounter view first; only then may the attending doctor's open acknowledge Q-2.
+        $clinical = $directory->detail($request->user(), $visit);
+        try {
+            $treatment->acknowledgeOnOpen($request->user(), $visit);
+        } catch (\Throwable $exception) {
+            // The acknowledgement is a convenience; a failure (for example the audit) never blocks the page.
+            report($exception);
+        }
+        $entry = $visit->queueEntry()->first();
+        $entry?->setRelation('visit', $visit->refresh());
+
         return Inertia::render('Clinical/Show', [
-            'clinical' => $directory->detail($request->user(), $visit),
+            'clinical' => $clinical,
             'treatmentRooms' => $calls->rooms($visit->branch, BranchRoom::KIND_TREATMENT),
+            'treatmentProgress' => $entry ? ($treatmentProjection->rows($request->user(), [$entry])[$entry->id] ?? null) : null,
         ]);
     }
 
