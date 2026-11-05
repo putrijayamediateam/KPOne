@@ -72,6 +72,8 @@ class OtcDispensaryRoutesTest extends VisitTestCase
         $payload = ['expected_branch_id' => $f['visit']->branch_id, 'case_lock_version' => $case->lock_version];
 
         $this->post(route('dispensary.otc-allergy', $case), [...$payload, 'allergy_statement' => 'maybe'])->assertSessionHasErrors('allergy_statement');
+        app(DispensaryService::class)->addOtcAllergy($f['ca'], $case->refresh(), ['expected_branch_id' => $f['visit']->branch_id, 'case_lock_version' => $case->lock_version, 'profile_lock_version' => null, 'allergen_text' => 'Synthetic latex']); // DSP-5 set-up (owner-approved): "has an allergy" now needs a recorded allergy.
+        $payload['case_lock_version'] = $case->refresh()->lock_version;
         $this->post(route('dispensary.otc-allergy', $case), [...$payload, 'allergy_statement' => 'has_allergy'])->assertRedirect(route('dispensary.show', $case));
 
         $this->assertSame('has_allergy', $case->handoffs()->sole()->otc_allergy_statement);

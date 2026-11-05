@@ -507,6 +507,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
             ->middleware(['permission:dispensary.otc.create.branch', 'throttle:30,1'])->name('visits.dispense');
         Route::post('dispensary/{dispensaryCase}/otc-allergy', [DispensaryController::class, 'confirmOtcAllergy'])
             ->whereUuid('dispensaryCase')->middleware(['permission:dispensary.update.branch', 'throttle:30,1'])->name('dispensary.otc-allergy');
+        Route::post('dispensary/{dispensaryCase}/otc-allergy-records', [DispensaryController::class, 'addOtcAllergy'])
+            ->whereUuid('dispensaryCase')->middleware(['permission:allergies.record_otc.branch', 'throttle:30,1'])->name('dispensary.otc-allergy-records');
         Route::get('dispensary/{dispensaryCase}', [DispensaryController::class, 'show'])
             ->whereUuid('dispensaryCase')->middleware('permission:dispensary.view.branch')->name('dispensary.show');
 
