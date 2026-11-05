@@ -93,7 +93,7 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php` and `BillingPermiss
 | BIL-1b | "Panel shortfall" warning on the Billing page when a Panel rejects or only partly accepts a claim (approved Panel share minus accepted amount). Display only; what the patient owes is unchanged | #219 |
 | BIL-2 | "Recorded by <name>" on each receipt on the Billing page and Manage payments, with the activity log's name rule; prints unchanged | #222 |
 | BIL-3 | "Pay later to collect" page: the branch's approved, unpaid pay-later amounts, oldest due first, with past-due totals and filter, linked from Clinic management and the Billing page's Outstanding bill box. Read-only | PR #224 |
-| BIL-4 | Daily cash closing page (`/cash-closings`): counted cash takings against expected cash (posted Cash receipts of the branch-local day), a reason for any difference, approve or return by a different person, append-only revisions; linked from Terminal Reconciliation. New permission `payments.cash_closing.approve.branch` | this PR |
+| BIL-4 | Daily cash closing page (`/cash-closings`): counted cash takings against expected cash (posted Cash receipts of the branch-local day), a reason for any difference, approve or return by a different person, append-only revisions; linked from Terminal Reconciliation. New permission `payments.cash_closing.approve.branch` | PR #229 |
 
 ## 6. Owner decisions already made (never ask again)
 
@@ -226,7 +226,7 @@ authorisation to build them; the coordinator records it in `docs/BASELINE.md`.
 3. **BIL-3 Pay-later collection list.** *(Done: PR #224, owner approved "ship it" 2026-11-05.)* A page listing patients with approved unpaid pay-later amounts, oldest
    first, per branch, so staff can collect when the patient returns. **Owner decision 2026-11-05: holders of
    `outstanding.view.branch` (Director, CA, CA Supervisor, Finance Officer) at their branches.**
-4. **BIL-4 Daily cash closing.** *(Built 2026-11-05; awaiting owner review.)* End-of-day cash count per branch: expected cash from posted Cash receipts versus
+4. **BIL-4 Daily cash closing.** *(Done: PR #229, owner approved "ship it" 2026-11-05.)* End-of-day cash count per branch: expected cash from posted Cash receipts versus
    counted cash, a reason for any difference, approved by a different person; append-only. Builds on the
    existing terminal reconciliation pattern. **Owner decision 2026-11-05: a CA (or anyone with
    `payments.reconcile.branch`) counts; a CA Supervisor, Finance Officer or Director approves, never the counter.**
