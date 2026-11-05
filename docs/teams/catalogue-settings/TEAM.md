@@ -12,7 +12,7 @@ the same PR as the code.
 | Reviewer | **Ravi** | Checks every piece against the rules below, the tests and the owner's decisions before it reaches the owner |
 | Team designer | **Nadia** | Sketches each screen change from `docs/design/GUIDE.md` before Adlina builds it, then runs `docs/design/CHECKLIST.md` on the screenshots before hand-off |
 
-All three are Claude builder roles working for the owner through the coordinator session (LUCY). Names chosen by
+All three are Claude builder roles working for the owner through the coordinator session, B.E.R.N.I.S.S (formerly LUCY; renamed by the owner on 2026-11-05). Names chosen by
 the coordinator (2026-11-05). Nadia works under Daniel, the Lead UI/UX Designer.
 
 ## 2. What this area covers
@@ -32,7 +32,7 @@ own details printed on documents.
   `CatalogueOptionService`) and Preset diagnoses (`pages/ConsultationSettings/Index.vue`,
   `DiagnosisPresetSettingsService`).
 
-**Shared with other teams (change only through a small agreed change, told to LUCY first):**
+**Shared with other teams (change only through a small agreed change, told to B.E.R.N.I.S.S first):**
 - Medicine flags used at Dispensary (controlled medicine DSP-3, drug groups DSP-1b): Dispensary & OTC owns their
   meaning; this team owns the catalogue screen they appear on.
 - Inventory items, SKUs, stock units and Suppliers: Inventory team.
@@ -72,7 +72,7 @@ Server checks stay the authority; hiding a control is a usability aid only.
 
 1. The team exists because Pricing, the Medicine Catalogue and the settings screens had no owner (owner, 2026-11-05).
 2. Each builder team has a UI/UX designer under Daniel; Nadia is this team's (owner, 2026-11-05).
-3. A "ship it" or decision relayed by LUCY counts as the owner's own (owner rule 2026-11-05).
+3. A "ship it" or decision relayed by the coordinator (B.E.R.N.I.S.S, formerly LUCY) counts as the owner's own (owner rule 2026-11-05).
 4. Price tiers (SET-01) stay skipped: KPOne prices by visit coverage (owner, 2026-10-18).
 5. The invoice and receipt footer wording is the owner's ("This is a computer-generated document. No signature is
    required."); a clinic user types it into Business details for each pilot branch (owner, 2026-10-30).
@@ -83,7 +83,8 @@ Server checks stay the authority; hiding a control is a usability aid only.
    `origin/main` merged first. After a restart on a fresh machine, fetch the branch before continuing.
 7. The Controlled badge on the Medicine Catalogue is a neutral word badge (outline, theme tokens, no amber), as Daniel
    asked; the one existing assertion in `tests/Frontend/dsp-3-controlled-medicine.test.mjs` ("readable in dark mode",
-   formerly `dark:bg-amber-950/70`) now asserts that badge instead (owner, 2026-11-05, relayed by LUCY).
+   formerly `dark:bg-amber-950/70`) now asserts that badge instead (owner, 2026-11-05, relayed by LUCY). Aisyah (Dispensary & OTC) confirmed the
+   neutral badge is fine as long as it reads "Controlled" clearly; amber had no Dispensary meaning.
 8. Publishing a price with an empty amount is refused on the server with a message under the field; a typed 0.00
    stays allowed. Built as its own small piece, CAT-1b, after CAT-1 (owner, 2026-11-05, relayed by LUCY).
 
@@ -115,7 +116,7 @@ Server checks stay the authority; hiding a control is a usability aid only.
 - Do not change any existing test assertion without the owner's approval; list each one first.
 - Migrations for this team use timestamps from `2026_11_09_000100` onward (other teams own other ranges).
 - Design: Nadia sketches before building any visible change and runs the checklist; a new page or changed layout
-  also goes to Daniel through LUCY (`docs/design/REVIEW.md`). A "Not OK" from Daniel blocks the merge unless the
+  also goes to Daniel through B.E.R.N.I.S.S (`docs/design/REVIEW.md`). A "Not OK" from Daniel blocks the merge unless the
   owner accepts it as debt.
 - Full gate before hand-off, on a task-owned PostgreSQL 18 database (verify host, port and name first): backend
   tests, Pint, PHPStan, frontend types, lint, format, build, frontend tests, `migrate:fresh --seed`,
@@ -132,7 +133,7 @@ Server checks stay the authority; hiding a control is a usability aid only.
 ## 9. Backlog (next pieces, in order)
 
 1. **CAT-1 Catalogue screens tidy-up (start now).** Fix DD-04 and DD-13 from `docs/design/DEBT.md` (read the
-   entries on main or ask LUCY for them), then check Medicine, Clinical Service, Pricing, Business details, Medicine
+   entries on main or ask B.E.R.N.I.S.S for them), then check Medicine, Clinical Service, Pricing, Business details, Medicine
    details and Preset diagnoses at 320, 390, 768 and 1440 px in light and dark: labels connected to inputs, one `h1`,
    named icon buttons, no sideways scroll, readable dark mode. Layout, labels and accessibility only: no backend,
    payload, route or permission change.
