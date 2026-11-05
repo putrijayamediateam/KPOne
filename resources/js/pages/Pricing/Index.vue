@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { router, useForm, usePage } from '@inertiajs/vue3';
+import { Link, router, useForm, usePage } from '@inertiajs/vue3';
 import { reactive } from 'vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
@@ -204,7 +204,13 @@ const toggleCharge = (charge: ChargeRow) => {
         <PageHeader
             title="Pricing"
             description="Manage charge definitions, price books and published prices."
-        />
+        >
+            <template #actions>
+                <Button variant="outline" size="sm" as-child>
+                    <Link href="/pricing/price-check">Check price list</Link>
+                </Button>
+            </template>
+        </PageHeader>
 
         <section class="grid gap-4 md:grid-cols-2">
             <div class="min-w-0 rounded-xl border bg-card p-4">
