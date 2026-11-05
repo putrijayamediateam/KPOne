@@ -2,12 +2,14 @@
 
 namespace App\Http\Controllers;
 
+use App\Domain\Access\BranchAccessService;
 use App\Domain\Clinical\Models\ClinicalServiceCatalogueItem;
 use App\Domain\Clinical\Models\MedicineCatalogueItem;
 use App\Domain\Organisation\Models\Branch;
 use App\Domain\Visit\Billing\Models\ChargeDefinition;
 use App\Domain\Visit\Billing\Models\PriceBook;
 use App\Domain\Visit\Billing\Models\PriceEntry;
+use App\Domain\Visit\Billing\Services\PriceListCheckService;
 use App\Domain\Visit\Billing\Services\PricePublicationService;
 use App\Domain\Visit\Billing\Services\PricingReferenceAdministrationService;
 use App\Http\Requests\PriceBookStoreRequest;
@@ -16,6 +18,7 @@ use App\Http\Requests\PricingChargeStoreRequest;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -90,6 +93,30 @@ class PricingController extends Controller
                     ] : null,
                 ];
             })->values(),
+        ]);
+    }
+
+    /** CAT-2: read-only price list check. Writes nothing. */
+    public function priceCheck(Request $request, BranchAccessService $branches, PriceListCheckService $checks): Response
+    {
+        $data = $request->validate([
+            'search' => ['nullable', 'string', 'max:100'],
+            'type' => ['nullable', Rule::in(['consultation', 'medicine', 'service'])],
+            'attention' => ['nullable', 'boolean'],
+            'page' => ['sometimes', 'integer', 'min:1', 'max:10000'],
+        ]);
+        $actor = $request->user();
+        $branch = $branches->activeBranch($actor);
+        $filters = [
+            'search' => $data['search'] ?? null,
+            'type' => $data['type'] ?? null,
+            'attention' => (bool) ($data['attention'] ?? false),
+        ];
+
+        return Inertia::render('Pricing/PriceCheck', [
+            'branch' => $branch ? ['id' => $branch->id, 'name' => $branch->name] : null,
+            'filters' => $filters,
+            'result' => $branch ? $checks->check($actor, $branch, $filters, (int) ($data['page'] ?? 1)) : null,
         ]);
     }
 
