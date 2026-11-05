@@ -53,11 +53,11 @@ class StorePatientRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'mobile_phone.required' => 'Nombor telefon diperlukan.',
-            'mobile_phone.string' => 'Masukkan nombor telefon yang sah untuk negara yang dipilih.',
-            'mobile_phone.max' => 'Masukkan nombor telefon yang sah untuk negara yang dipilih.',
-            'identifiers.required' => 'Pilih satu No. IC atau Passport.',
-            'identifiers.0.value.required' => $this->input('identifiers.0.identifier_type') === 'passport' ? 'No. Passport tidak lengkap.' : 'No. IC mesti mempunyai 12 digit.',
+            'mobile_phone.required' => 'Phone number is required.',
+            'mobile_phone.string' => 'Enter a valid phone number for the selected country.',
+            'mobile_phone.max' => 'Enter a valid phone number for the selected country.',
+            'identifiers.required' => 'Choose IC number or Passport.',
+            'identifiers.0.value.required' => $this->input('identifiers.0.identifier_type') === 'passport' ? 'Passport number is incomplete.' : 'IC number must have 12 digits.',
         ];
     }
 }

@@ -12,6 +12,7 @@ use App\Http\Controllers\BranchContextController;
 use App\Http\Controllers\BranchController;
 use App\Http\Controllers\BranchReportController;
 use App\Http\Controllers\BusinessDetailsController;
+use App\Http\Controllers\CashClosingController;
 use App\Http\Controllers\CatalogueOptionController;
 use App\Http\Controllers\CataloguePanelController;
 use App\Http\Controllers\CatalogueSetupReferenceController;
@@ -671,6 +672,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::middleware(['permission:payments.reconcile.branch', 'sensitive.no-store'])->prefix('payment-reconciliations')->group(function () {
             Route::get('/', [PaymentReconciliationController::class, 'index'])->name('payment-reconciliations.index');
             Route::post('/', [PaymentReconciliationController::class, 'store'])->middleware('throttle:20,1')->name('payment-reconciliations.store');
+        });
+        Route::middleware(['permission:payments.reconcile.branch', 'sensitive.no-store'])->prefix('cash-closings')->group(function () {
+            Route::get('/', [CashClosingController::class, 'index'])->name('cash-closings.index');
+            Route::post('/', [CashClosingController::class, 'store'])->middleware('throttle:20,1')->name('cash-closings.store');
+            Route::post('{closing}/{decision}', [CashClosingController::class, 'decide'])->whereUuid('closing')->whereIn('decision', ['approved', 'returned'])
+                ->middleware(['permission:payments.cash_closing.approve.branch', 'throttle:20,1'])->name('cash-closings.decide');
         });
 
         Route::middleware(['permission:inventory.references.manage.organisation'])->prefix('inventory-references')->group(function () {
