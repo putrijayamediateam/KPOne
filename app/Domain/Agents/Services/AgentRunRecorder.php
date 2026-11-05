@@ -298,17 +298,8 @@ final class AgentRunRecorder
         if ($text === '' || mb_strlen($text) > $max) {
             throw ValidationException::withMessages(['summary' => "The text must be between 1 and {$max} characters."]);
         }
-        $patterns = [
-            '/\b\d{6}[\s-]?\d{2}[\s-]?\d{4}\b/u',                                  // NRIC, with or without separators
-            '/\d{9,}/u',                                                          // long digit runs (passport, phone, IC)
-            '/[^\s@]+@[^\s@]+\.[^\s@]+/u',                                        // email address
-            '/(?<!\d)(?:\+?60[\s-]?|0)\d{1,2}[\s-]?\d{3,4}[\s-]?\d{4}(?!\d)/u',       // Malaysian phone
-            '/(?<![\d-])1\d-\d{3,4}[\s-]?\d{4}(?!\d)/u',                              // mobile without the leading 0
-        ];
-        foreach ($patterns as $pattern) {
-            if (preg_match($pattern, $text)) {
-                throw ValidationException::withMessages(['summary' => 'The text must not contain identity numbers, email addresses or phone numbers.']);
-            }
+        if (PersonalText::looksPersonal($text)) {
+            throw ValidationException::withMessages(['summary' => 'The text must not contain identity numbers, email addresses or phone numbers.']);
         }
 
         return $text;

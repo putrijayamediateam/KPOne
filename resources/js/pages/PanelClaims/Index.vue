@@ -466,6 +466,9 @@ const visitTypeLabel = (value: string) =>
                 </p>
             </div>
             <div class="flex flex-wrap items-center gap-2">
+                <Button as-child variant="secondary" size="sm">
+                    <Link href="/panel-claims/follow-up">Follow-up list</Link>
+                </Button>
                 <Button
                     v-if="work.can.recordRemittances"
                     as-child

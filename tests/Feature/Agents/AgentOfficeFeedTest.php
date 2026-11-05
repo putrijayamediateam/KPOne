@@ -6,7 +6,6 @@ use App\Domain\Agents\Services\AgentRunRecorder;
 use Carbon\CarbonImmutable;
 use Database\Seeders\KPOneAgentSeeder;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
 use Tests\Feature\Visit\VisitTestCase;
 
 /** AG-1: GET /agents/office-feed (docs/agents/CONTRACT.md sections 3 and 11). */
@@ -120,19 +119,20 @@ class AgentOfficeFeedTest extends VisitTestCase
         $this->assertSame($foreign, $run->ai_agent_id);
     }
 
-    public function test_pending_proposals_are_counted_once_the_inbox_table_exists(): void
+    public function test_pending_proposals_are_counted_from_the_inbox(): void
     {
-        $this->assertFalse(Schema::hasTable('ai_proposals'), 'AG-2 owns the inbox table');
-        Schema::create('ai_proposals', function ($t): void {
-            $t->id();
-            $t->unsignedBigInteger('organisation_id');
-            $t->unsignedBigInteger('ai_agent_id');
-            $t->string('status');
-        });
-        $hana = DB::table('ai_agents')->where('code', 'inventory_analyst')->value('id');
-        foreach (['pending', 'pending', 'approved'] as $status) {
-            DB::table('ai_proposals')->insert(['organisation_id' => $this->organisation->id, 'ai_agent_id' => $hana, 'status' => $status]);
+        // Owner-approved change (2026-11-05): AG-2 created the real ai_proposals table, so this test now
+        // inserts real proposals instead of building a temporary table; the checks are unchanged.
+        $run = app(AgentRunRecorder::class)->start('inventory_analyst', 'daily_stock_review', $this->branch);
+        foreach (['pending', 'pending', 'approved'] as $i => $status) {
+            DB::table('ai_proposals')->insert([
+                'organisation_id' => $this->organisation->id, 'branch_id' => $this->branch->id, 'ai_agent_run_id' => $run->id, 'ai_agent_id' => $run->ai_agent_id,
+                'type' => 'inventory.restock_suggestion', 'payload' => encrypt('{}', false), 'payload_hash' => str_repeat('a', 64),
+                'status' => $status, 'decided_at' => $status === 'approved' ? now() : null, 'decided_by_user_id' => $status === 'approved' ? $this->actor('director')->id : null,
+                'lock_version' => $status === 'approved' ? 1 : 0, 'idempotency_key' => 'feed-test-'.$i, 'created_at' => now(), 'updated_at' => now(),
+            ]);
         }
+        app(AgentRunRecorder::class)->complete($run);
 
         $response = $this->getJson(route('agents.office-feed'))->assertOk();
         $this->assertSame(2, $response->json('pendingProposals'));

@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AccessControlController;
+use App\Http\Controllers\AgentInboxController;
 use App\Http\Controllers\AgentRegistryController;
 use App\Http\Controllers\AttendanceController;
 use App\Http\Controllers\AuditLogController;
@@ -278,6 +279,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('panel-responsibility', [BillingWorkController::class, 'panel'])->middleware('sensitive.no-store')->name('clinic.panel-responsibility');
     Route::middleware(['permission:panel.claims.manage.branch', 'sensitive.no-store'])->group(function () {
         Route::get('panel-claims', [PanelClaimsController::class, 'index'])->name('panel-claims.index');
+        Route::get('panel-claims/follow-up', [PanelClaimsController::class, 'followUp'])->name('panel-claims.follow-up');
         Route::get('panel-claims/allocations/{allocation}/create', [PanelClaimsController::class, 'create'])->name('panel-claims.create');
         Route::post('panel-claims/allocations/{allocation}', [PanelClaimsController::class, 'store'])->middleware('throttle:20,1')->name('panel-claims.store');
         Route::post('panel-claims/bulk', [PanelClaimsController::class, 'bulkStore'])->middleware('throttle:10,1')->name('panel-claims.bulk-store');
@@ -608,6 +610,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::post('{medicine}/activate', [MedicineCatalogueController::class, 'activate'])->whereUuid('medicine')->middleware('throttle:20,1')->name('medicines.activate');
             Route::post('{medicine}/deactivate', [MedicineCatalogueController::class, 'deactivate'])->whereUuid('medicine')->middleware('throttle:20,1')->name('medicines.deactivate');
             Route::post('{medicine}/controlled', [MedicineCatalogueController::class, 'controlled'])->whereUuid('medicine')->middleware('throttle:20,1')->name('medicines.controlled');
+            Route::post('{medicine}/allergy-groups', [MedicineCatalogueController::class, 'allergyGroups'])->whereUuid('medicine')->middleware('throttle:20,1')->name('medicines.allergy-groups');
         });
 
         Route::middleware(['permission:clinical_services.manage.organisation'])->prefix('clinical-services')->group(function () {
@@ -654,6 +657,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::get('panels/{panel}/edit', [PanelSettingsController::class, 'edit'])->whereNumber('panel')->name('panel-settings.edit');
             Route::patch('panels/{panel}', [PanelSettingsController::class, 'update'])->whereNumber('panel')->middleware('throttle:30,1')->name('panel-settings.update');
             Route::post('panels/{panel}/active', [PanelSettingsController::class, 'active'])->whereNumber('panel')->middleware('throttle:30,1')->name('panel-settings.active');
+        });
+
+        Route::middleware(['permission:ai_proposals.view.branch', 'sensitive.no-store'])->prefix('agents/inbox')->group(function () {
+            Route::get('/', [AgentInboxController::class, 'index'])->name('agents.inbox');
+            Route::post('{proposal}/approve', [AgentInboxController::class, 'approve'])->whereNumber('proposal')->middleware('throttle:30,1')->name('agents.inbox.approve');
+            Route::post('{proposal}/reject', [AgentInboxController::class, 'reject'])->whereNumber('proposal')->middleware('throttle:30,1')->name('agents.inbox.reject');
         });
 
         Route::middleware(['permission:ai_agents.view.organisation', 'sensitive.no-store'])->prefix('agents')->group(function () {
