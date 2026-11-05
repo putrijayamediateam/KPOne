@@ -253,4 +253,53 @@ class CallNextTest extends QueueTestCase
         ])->assertSessionHasErrors('queue');
         $this->assertSame(QueueEntry::STATUS_WAITING, $secondEntry->refresh()->status);
     }
+
+    public function test_carry_over_is_offered_when_everyone_today_is_marked_not_ready(): void
+    {
+        // Owner decision 2026-11-05: "carry-over can be called when all today's patients are flagged".
+        $ca = $this->actor('ca');
+        $doctor = $this->doctor();
+        Date::setTestNow('2026-08-24 01:00:00 UTC');
+        $carry = $this->consultationVisit($ca, $doctor);
+        $this->send($ca, $carry);
+        Date::setTestNow('2026-08-25 01:00:00 UTC');
+        $today = $this->consultationVisit($ca, $doctor, ['priority' => 'urgent']);
+        $todayEntry = $this->send($ca, $today);
+        $this->flag($ca, $today, $todayEntry);
+
+        $block = $this->block($doctor);
+        $this->assertSame(CallNextService::STATE_READY, $block['state']);
+        $this->assertSame($carry->visit_number, $block['candidate']['visitNumber']);
+        $this->assertTrue($block['candidate']['carryOver']);
+    }
+
+    public function test_patients_at_another_branch_are_never_offered(): void
+    {
+        $doctor = $this->doctor();
+        $this->patient($this->actor('ca'));
+        $otherBranch = $this->organisation->branches()->whereKeyNot($this->branch->id)->firstOrFail();
+        $foreign = Visit::factory()->create(['organisation_id' => $this->organisation->id, 'branch_id' => $otherBranch->id, 'visit_type' => 'consultation', 'visit_reason' => 'Synthetic foreign queue reason', 'assigned_doctor_user_id' => $doctor->id]);
+        QueueEntry::factory()->create(['visit_id' => $foreign->id, 'organisation_id' => $this->organisation->id, 'branch_id' => $otherBranch->id]);
+
+        $block = $this->block($doctor);
+        $this->assertSame(CallNextService::STATE_NONE_WAITING, $block['state']);
+        $branchBlock = $this->block($this->actor('director'), $doctor->id);
+        $this->assertSame(CallNextService::STATE_NONE_WAITING, $branchBlock['state']);
+        $this->assertNull($branchBlock['candidate']);
+    }
+
+    public function test_a_flag_set_after_the_dialog_opened_stops_the_call(): void
+    {
+        $ca = $this->actor('ca');
+        $doctor = $this->doctor();
+        $visit = $this->consultationVisit($ca, $doctor);
+        $entry = $this->send($ca, $visit);
+        $candidate = $this->block($doctor)['candidate'];
+
+        $this->flag($ca, $visit, $entry);
+        $this->callNext($doctor, $doctor->id, $candidate)
+            ->assertSessionHasErrors(['next_none' => 'Nobody is waiting who can be called now.']);
+        $this->assertSame(QueueEntry::STATUS_WAITING, $entry->refresh()->status);
+        $this->assertSame(0, QueueCall::query()->count());
+    }
 }
