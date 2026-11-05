@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { Head, router, usePage } from '@inertiajs/vue3';
 import { ref, watch } from 'vue';
-import InputError from '@/components/InputError.vue';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 
 type Row = {
     id: number;
@@ -43,7 +44,11 @@ const props = defineProps<{
         sharedBarcodes: {
             rows: {
                 code: string;
-                skus: { public_id: string; sku_code: string }[];
+                skus: {
+                    public_id: string;
+                    sku_code: string;
+                    item_name: string;
+                }[];
             }[];
             more: boolean;
         };
@@ -348,28 +353,47 @@ watch(
                     :key="sku.public_id"
                     class="flex flex-wrap items-end gap-2"
                 >
+                    <p class="w-full min-w-0 text-sm break-words">
+                        <span class="font-medium">{{ sku.sku_code }}</span>
+                        · {{ sku.item_name }}
+                    </p>
                     <template v-if="readiness.canFixBarcodes">
-                        <label class="min-w-0 flex-1 basis-56 text-sm"
-                            >Barcode for {{ sku.sku_code
-                            }}<input
-                                :value="
+                        <label
+                            :for="`barcode-${sku.public_id}`"
+                            class="min-w-0 flex-1 basis-56 text-sm"
+                            >Barcode for {{ sku.sku_code }}
+                            <Input
+                                :id="`barcode-${sku.public_id}`"
+                                :model-value="
                                     barcodeDraft(sku.public_id, shared.code)
                                 "
                                 maxlength="100"
-                                class="mt-1 min-h-11 w-full rounded border bg-background px-3"
-                                @input="
-                                    barcodeDrafts[sku.public_id] = (
-                                        $event.target as HTMLInputElement
-                                    ).value
+                                autocomplete="off"
+                                :aria-invalid="
+                                    savedSku === sku.public_id &&
+                                    !!page.props.errors?.barcode
+                                "
+                                :aria-describedby="
+                                    savedSku === sku.public_id &&
+                                    page.props.errors?.barcode
+                                        ? `barcode-${sku.public_id}-error`
+                                        : undefined
+                                "
+                                class="mt-1 min-h-11"
+                                @update:model-value="
+                                    barcodeDrafts[sku.public_id] =
+                                        String($event)
                                 "
                         /></label>
                         <div
                             class="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto"
                         >
-                            <button
+                            <Button
                                 type="button"
-                                class="min-h-11 rounded-md bg-primary px-3 text-sm text-primary-foreground disabled:opacity-40"
+                                variant="outline"
+                                class="min-h-11"
                                 :disabled="busy"
+                                :aria-label="`Save barcode for ${sku.sku_code}`"
                                 @click="
                                     saveBarcode(
                                         sku.public_id,
@@ -381,25 +405,30 @@ watch(
                                 "
                             >
                                 Save
-                            </button>
-                            <button
+                            </Button>
+                            <Button
                                 type="button"
-                                class="min-h-11 rounded-md border px-3 text-sm disabled:opacity-40"
+                                variant="outline"
+                                class="min-h-11"
                                 :disabled="busy"
+                                :aria-label="`Clear barcode for ${sku.sku_code}`"
                                 @click="saveBarcode(sku.public_id, '')"
                             >
                                 Clear
-                            </button>
+                            </Button>
                         </div>
-                        <InputError
-                            v-if="savedSku === sku.public_id"
-                            class="w-full"
-                            :message="page.props.errors?.barcode"
-                        />
+                        <p
+                            v-if="
+                                savedSku === sku.public_id &&
+                                page.props.errors?.barcode
+                            "
+                            :id="`barcode-${sku.public_id}-error`"
+                            role="alert"
+                            class="w-full text-sm break-words text-destructive"
+                        >
+                            {{ page.props.errors.barcode }}
+                        </p>
                     </template>
-                    <span v-else class="text-sm break-words">{{
-                        sku.sku_code
-                    }}</span>
                 </div>
             </article>
             <p

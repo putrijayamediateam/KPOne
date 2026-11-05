@@ -102,14 +102,14 @@ final class BarcodeScanTest extends VisitTestCase
     public function test_a_legacy_shared_code_is_never_resolved_to_one_sku_and_is_listed_for_fixing(): void
     {
         $director = $this->staff('director');
-        $this->sku($director, 'SYN-SCAN-A', '3333333333333');
-        $b = $this->sku($director, 'SYN-SCAN-B', null);
+        $this->sku($director, 'SYN-SCAN-A', '3333333333333', 'Synthetic item A');
+        $b = $this->sku($director, 'SYN-SCAN-B', null, 'Synthetic item B');
         $this->legacyDuplicate($b, '3333333333333');
         $ca = $this->staff('ca');
         $this->assertSame(['status' => 'shared', 'code' => '3333333333333', 'skus' => ['SYN-SCAN-A', 'SYN-SCAN-B']], app(InventoryCodeLookupService::class)->find($ca, ['code' => '3333333333333']));
         $shared = app(InventoryCodeLookupService::class)->sharedCodes($this->organisation->id);
         $this->assertFalse($shared['more']);
-        $this->assertSame([['code' => '3333333333333', 'skus' => [['public_id' => DB::table('inventory_skus')->where('sku_code', 'SYN-SCAN-A')->value('public_id'), 'sku_code' => 'SYN-SCAN-A'], ['public_id' => $b->public_id, 'sku_code' => 'SYN-SCAN-B']]]], $shared['rows']);
+        $this->assertSame([['code' => '3333333333333', 'skus' => [['public_id' => DB::table('inventory_skus')->where('sku_code', 'SYN-SCAN-A')->value('public_id'), 'sku_code' => 'SYN-SCAN-A', 'item_name' => 'Synthetic item A'], ['public_id' => $b->public_id, 'sku_code' => 'SYN-SCAN-B', 'item_name' => 'Synthetic item B']]]], $shared['rows']);
         // Other fields of a SKU holding a legacy duplicate can still be edited.
         $edited = app(InventoryReferenceAdministrationService::class)->updateSku($director, $b->refresh(), ['pack_size' => '3']);
         $this->assertSame('3333333333333', $edited->barcode);

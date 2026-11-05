@@ -111,7 +111,16 @@ test('the scanner Enter never submits a surrounding form, and the camera always 
     );
     assert.match(scan, /if \(starting\.value \|\| open\.value\)/);
     assert.doesNotMatch(scan, /setInterval/);
-    assert.match(scan, /input\.value\?\.select\(\)/);
+    assert.match(scan, /box\(\)\?\.select\(\)/);
+    // Daniel's design check: shared Button and Input, and the result line survives the search reload.
+    assert.match(scan, /<Input\s+:id="inputId"/);
+    assert.match(scan, /<Button[\s\S]*?Look up/);
+    assert.match(
+        scan,
+        /JSON\.stringify\(\{ key: props\.refocusKey, message \}\)/,
+    );
+    assert.match(scan, /show\(saved\.message, false\)/);
+    assert.match(scan, /Tap or\s+click the box before scanning/);
     assert.doesNotMatch(scan, /v-html/);
 });
 
@@ -149,4 +158,9 @@ test('the Pilot readiness page lists shared barcodes', () => {
     );
     assert.match(readiness, /v-if="readiness\.canFixBarcodes"/);
     assert.doesNotMatch(readiness, /Fix in Stock setup/);
+    assert.match(readiness, /\{\{ sku\.item_name \}\}/);
+    assert.match(readiness, /`Save barcode for \$\{sku\.sku_code\}`/);
+    assert.match(readiness, /`Clear barcode for \$\{sku\.sku_code\}`/);
+    assert.match(readiness, /savedSku === sku\.public_id &&/);
+    assert.doesNotMatch(readiness, /text-red-/);
 });

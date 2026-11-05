@@ -48,7 +48,7 @@ final class InventoryCodeLookupService
     /**
      * Barcodes held by more than one SKU of the organisation (legacy data from before the STK-9 rule), as stored.
      *
-     * @return array{rows: list<array{code: string, skus: list<array{public_id: string, sku_code: string}>}>, more: bool}
+     * @return array{rows: list<array{code: string, skus: list<array{public_id: string, sku_code: string, item_name: string}>}>, more: bool}
      */
     public function sharedCodes(int $organisationId, int $limit = 50): array
     {
@@ -57,14 +57,15 @@ final class InventoryCodeLookupService
             ->orderByRaw('upper(trim(barcode))')->limit($limit + 1)->get();
         $more = $groups->count() > $limit;
         $groups = $groups->take($limit);
-        $holders = $groups->isEmpty() ? collect() : DB::table('inventory_skus')->where('organisation_id', $organisationId)->whereNotNull('barcode')
-            ->whereRaw('upper(trim(barcode)) in ('.implode(',', array_fill(0, $groups->count(), '?')).')', $groups->pluck('normalised')->map(fn ($value): string => (string) $value)->all())
-            ->orderBy('sku_code')->get(['public_id', 'sku_code', 'barcode'])->groupBy(fn ($row): string => mb_strtoupper(trim((string) $row->barcode)));
+        $holders = $groups->isEmpty() ? collect() : DB::table('inventory_skus as s')->join('inventory_items as i', 'i.id', '=', 's.inventory_item_id')
+            ->where('s.organisation_id', $organisationId)->whereNotNull('s.barcode')
+            ->whereRaw('upper(trim(s.barcode)) in ('.implode(',', array_fill(0, $groups->count(), '?')).')', $groups->pluck('normalised')->map(fn ($value): string => (string) $value)->all())
+            ->orderBy('s.sku_code')->get(['s.public_id', 's.sku_code', 's.barcode', 'i.generic_name as item_name'])->groupBy(fn ($row): string => mb_strtoupper(trim((string) $row->barcode)));
         $rows = [];
         foreach ($groups as $group) {
             $skus = [];
             foreach ($holders->get((string) $group->normalised, collect()) as $holder) {
-                $skus[] = ['public_id' => (string) $holder->public_id, 'sku_code' => (string) $holder->sku_code];
+                $skus[] = ['public_id' => (string) $holder->public_id, 'sku_code' => (string) $holder->sku_code, 'item_name' => (string) $holder->item_name];
             }
             $rows[] = ['code' => (string) $group->code, 'skus' => $skus];
         }

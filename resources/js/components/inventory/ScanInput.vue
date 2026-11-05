@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { nextTick, onBeforeUnmount, onMounted, ref } from 'vue';
+import { Button } from '@/components/ui/button';
 import {
     Dialog,
     DialogContent,
@@ -7,6 +8,7 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
 import { requestJson } from '@/lib/json-client';
 import {
     BARCODE_FORMATS,
@@ -40,7 +42,6 @@ const busy = ref(false);
 const starting = ref(false);
 // Checked once on mount, so an unsupported device shows the reason instead of a button that only fails.
 const cameraState = ref<CameraSupport>('supported');
-const input = ref<HTMLInputElement | null>(null);
 const open = ref(false);
 const video = ref<HTMLVideoElement | null>(null);
 let stream: MediaStream | null = null;
@@ -54,9 +55,13 @@ function show(text: string, isError: boolean) {
     failed.value = isError;
 }
 
+function box(): HTMLInputElement | null {
+    return document.getElementById(inputId) as HTMLInputElement | null;
+}
+
 /** Select the box so the next handheld scan replaces the code instead of appending to it. */
 function selectBox() {
-    window.setTimeout(() => input.value?.select(), 0);
+    window.setTimeout(() => box()?.select(), 0);
 }
 
 async function lookup(raw: string) {
@@ -91,12 +96,17 @@ async function lookup(raw: string) {
             return;
         }
 
-        show(scanMessage(result, props.context), false);
+        const message = scanMessage(result, props.context);
+        show(message, false);
         code.value = '';
 
         if (props.context === 'search') {
             try {
-                window.sessionStorage.setItem(STORAGE_KEY, props.refocusKey);
+                // The search reloads the page; keep the result line and the cursor for the next scan.
+                window.sessionStorage.setItem(
+                    STORAGE_KEY,
+                    JSON.stringify({ key: props.refocusKey, message }),
+                );
             } catch {
                 // Browser storage is only a convenience for refocusing.
             }
@@ -241,9 +251,18 @@ onMounted(() => {
     document.addEventListener('visibilitychange', onVisibility);
 
     try {
-        if (window.sessionStorage.getItem(STORAGE_KEY) === props.refocusKey) {
+        const saved = JSON.parse(
+            window.sessionStorage.getItem(STORAGE_KEY) ?? 'null',
+        ) as { key?: unknown; message?: unknown } | null;
+
+        if (saved?.key === props.refocusKey) {
             window.sessionStorage.removeItem(STORAGE_KEY);
-            input.value?.focus();
+
+            if (typeof saved.message === 'string' && saved.message !== '') {
+                show(saved.message, false);
+            }
+
+            box()?.focus();
         }
     } catch {
         // Ignore unavailable browser storage.
@@ -262,9 +281,8 @@ onBeforeUnmount(() => {
             <label
                 :for="inputId"
                 class="min-w-[min(100%,18rem)] flex-1 basis-72"
-                >Scan or type barcode<input
+                >Scan or type barcode<Input
                     :id="inputId"
-                    ref="input"
                     v-model="code"
                     type="text"
                     inputmode="text"
@@ -273,21 +291,22 @@ onBeforeUnmount(() => {
                     maxlength="100"
                     :aria-describedby="`${inputId}-help ${inputId}-status`"
                     :aria-invalid="failed"
-                    class="mt-1 min-h-11 w-full rounded border bg-background px-3 outline-none focus-visible:ring-[3px] focus-visible:ring-ring/40 aria-[invalid=true]:border-destructive"
+                    class="mt-1 min-h-11"
                     @keydown.enter.prevent.stop="lookup(code)"
             /></label>
             <div class="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto">
-                <button
+                <Button
                     type="button"
-                    class="min-h-11 rounded border px-4 outline-none focus-visible:ring-[3px] focus-visible:ring-ring/40 disabled:opacity-50"
+                    class="min-h-11"
                     :disabled="busy"
                     @click="lookup(code)"
                 >
                     Look up
-                </button>
-                <button
+                </Button>
+                <Button
                     type="button"
-                    class="min-h-11 rounded border px-4 outline-none focus-visible:ring-[3px] focus-visible:ring-ring/40 disabled:opacity-50"
+                    variant="outline"
+                    class="min-h-11"
                     :disabled="starting || cameraState !== 'supported'"
                     :aria-describedby="
                         cameraState === 'supported'
@@ -297,13 +316,13 @@ onBeforeUnmount(() => {
                     @click="startCamera"
                 >
                     Use camera
-                </button>
+                </Button>
             </div>
         </div>
         <p :id="`${inputId}-help`" class="text-xs text-muted-foreground">
-            Use a handheld scanner, type the code, or use the camera. Select the
-            box before scanning. Scanning only finds the SKU; it does not save
-            anything.
+            Use a handheld scanner, type the code, or use the camera. Tap or
+            click the box before scanning. Scanning only finds the SKU; it does
+            not save anything.
         </p>
         <p
             v-if="cameraState !== 'supported'"
@@ -343,13 +362,14 @@ onBeforeUnmount(() => {
                         aria-hidden="true"
                     ></div>
                 </div>
-                <button
+                <Button
                     type="button"
-                    class="min-h-11 w-full rounded border px-4"
+                    variant="outline"
+                    class="min-h-11 w-full"
                     @click="closeCamera"
                 >
                     Cancel
-                </button>
+                </Button>
             </DialogContent>
         </Dialog>
     </div>
