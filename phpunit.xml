@@ -10,6 +10,7 @@
         </testsuite>
         <testsuite name="Feature">
             <directory>tests/Feature</directory>
+            <exclude>tests/Feature/Billing/PostgresPanelPaymentRegressionTest.php</exclude>
             <exclude>tests/Feature/Inventory/PostgresBatchHoldTest.php</exclude>
             <exclude>tests/Feature/Inventory/PostgresGovernedStockTest.php</exclude>
             <exclude>tests/Feature/Inventory/PostgresStockReadinessTest.php</exclude>
@@ -41,6 +42,7 @@
              test that starts a process is missing here. Order does not matter: TestCase restores the unseeded
              schema when seeded role grants were left committed. -->
         <testsuite name="Contention">
+            <file>tests/Feature/Billing/PostgresPanelPaymentRegressionTest.php</file>
             <file>tests/Feature/Inventory/PostgresBatchHoldTest.php</file>
             <file>tests/Feature/Inventory/PostgresGovernedStockTest.php</file>
             <file>tests/Feature/Inventory/PostgresStockReadinessTest.php</file>
