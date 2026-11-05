@@ -2,6 +2,7 @@
 import { Head, router, useForm, usePage } from '@inertiajs/vue3';
 import { computed, ref, watch } from 'vue';
 import InputError from '@/components/InputError.vue';
+import ScanInput from '@/components/inventory/ScanInput.vue';
 import {
     Dialog,
     DialogContent,
@@ -9,6 +10,7 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
+import type { ScannedSku } from '@/lib/scan';
 import {
     rmToSen,
     supplierReturnActionLabels,
@@ -107,6 +109,10 @@ const form = useForm({
 const errors = computed(
     () => form.errors as Record<string, string | undefined>,
 );
+function scanned(sku: ScannedSku) {
+    q.value = sku.sku_code;
+    search();
+}
 function search(page = 1, lots = 1) {
     router.get(
         '/inventory/supplier-returns',
@@ -213,6 +219,11 @@ watch(
             is dispatched, and a credit note is recorded as a reference only:
             KPOne moves no money and restocks nothing automatically.
         </p>
+        <ScanInput
+            context="search"
+            refocus-key="supplier-returns"
+            @found="scanned"
+        />
         <form class="flex flex-wrap items-end gap-2" @submit.prevent="search()">
             <label class="min-w-[min(100%,18rem)] flex-1 basis-72"
                 >Search SKU, batch, supplier, return or delivery reference<input

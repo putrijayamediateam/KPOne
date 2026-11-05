@@ -78,7 +78,7 @@ final class UnifiedCatalogueSetupService
                     $this->inventory->updateItem($actor, $sku->item, Arr::only($attributes, [
                         'route', 'manufacturer', 'mal_number',
                     ]));
-                    $this->inventory->updateSku($actor, $sku, $attributes['sku']);
+                    $this->skuErrors(fn () => $this->inventory->updateSku($actor, $sku, $attributes['sku']));
                 }
             }
 
@@ -157,7 +157,7 @@ final class UnifiedCatalogueSetupService
                 ]);
             }
             if ($sku === null) {
-                $sku = $this->inventory->createSku($actor, $item, [
+                $sku = $this->skuErrors(fn () => $this->inventory->createSku($actor, $item, [
                     ...$skuInput,
                     'sku_code' => $skuCode,
                     'pack_size' => $skuInput['pack_size'] ?? '1',
@@ -165,7 +165,7 @@ final class UnifiedCatalogueSetupService
                     'stock_unit' => $skuInput['stock_unit'] ?? $medicine->order_unit,
                     'dispensing_unit' => $skuInput['dispensing_unit'] ?? $medicine->order_unit,
                     'unit_conversion' => $skuInput['unit_conversion'] ?? '1',
-                ]);
+                ]));
             }
         }
 
@@ -307,6 +307,28 @@ final class UnifiedCatalogueSetupService
                 'unit_cost_sen' => $unitCost === null || $unitCost === '' ? null : ExactMoney::sen($unitCost, 'opening_stock.unit_cost_sen'),
                 'supplier_public_id' => $supplierPublicId,
             ]);
+        }
+    }
+
+    /**
+     * The Medicine Catalogue form shows SKU errors under `sku.*`; the Inventory reference service raises them under
+     * the bare field name; relabel the STK-9 one-barcode-one-SKU refusal so the form shows it under the barcode field.
+     *
+     * @template T
+     *
+     * @param  callable(): T  $call
+     * @return T
+     */
+    private function skuErrors(callable $call): mixed
+    {
+        try {
+            return $call();
+        } catch (ValidationException $e) {
+            $errors = [];
+            foreach ($e->errors() as $key => $messages) {
+                $errors[$key === 'barcode' ? 'sku.barcode' : $key] = $messages;
+            }
+            throw ValidationException::withMessages($errors);
         }
     }
 }

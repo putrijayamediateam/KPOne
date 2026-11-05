@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { Head, router, usePage } from '@inertiajs/vue3';
 import { ref, watch } from 'vue';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 
 type Row = {
     id: number;
@@ -39,10 +41,42 @@ const props = defineProps<{
         openingPage: number;
         openingLastPage: number;
         canVerifyUnits: boolean;
+        sharedBarcodes: {
+            rows: {
+                code: string;
+                skus: {
+                    public_id: string;
+                    sku_code: string;
+                    item_name: string;
+                }[];
+            }[];
+            more: boolean;
+        };
+        canFixBarcodes: boolean;
     };
 }>();
 const search = ref(props.readiness.q);
 const busy = ref(false);
+// STK-9: per-SKU barcode drafts for fixing codes shared by more than one SKU.
+const barcodeDrafts = ref<Record<string, string>>({});
+function barcodeDraft(skuPublicId: string, code: string): string {
+    return barcodeDrafts.value[skuPublicId] ?? code;
+}
+const savedSku = ref<string | null>(null);
+function saveBarcode(skuPublicId: string, value: string) {
+    savedSku.value = skuPublicId;
+    busy.value = true;
+    router.post(
+        `/inventory/readiness/barcode/${skuPublicId}`,
+        { barcode: value },
+        {
+            preserveScroll: true,
+            onFinish: () => {
+                busy.value = false;
+            },
+        },
+    );
+}
 const retryKeys = ref<Record<string, string>>({});
 const page = usePage();
 const run = (number = 1) =>
@@ -289,6 +323,120 @@ watch(
                     Next openings
                 </button>
             </nav>
+        </section>
+        <section class="space-y-3" aria-labelledby="shared-barcodes-heading">
+            <h2 id="shared-barcodes-heading" class="text-lg font-semibold">
+                Barcodes shared by more than one SKU
+            </h2>
+            <p class="text-sm text-muted-foreground">
+                Scanning refuses these codes until each is on one SKU only. Give
+                each SKU its own barcode, or clear the wrong one.
+                <span v-if="!readiness.canFixBarcodes"
+                    >A Director, CA Supervisor or Administrator can change
+                    barcodes here.</span
+                >
+            </p>
+            <p
+                v-if="readiness.sharedBarcodes.rows.length === 0"
+                class="text-sm text-muted-foreground"
+            >
+                No shared barcodes.
+            </p>
+            <article
+                v-for="shared in readiness.sharedBarcodes.rows"
+                :key="shared.code"
+                class="space-y-2 rounded-md border p-3"
+            >
+                <p class="font-mono text-sm break-all">{{ shared.code }}</p>
+                <div
+                    v-for="sku in shared.skus"
+                    :key="sku.public_id"
+                    class="flex flex-wrap items-end gap-2"
+                >
+                    <p class="w-full min-w-0 text-sm break-words">
+                        <span class="font-medium">{{ sku.sku_code }}</span>
+                        · {{ sku.item_name }}
+                    </p>
+                    <template v-if="readiness.canFixBarcodes">
+                        <label
+                            :for="`barcode-${sku.public_id}`"
+                            class="min-w-0 flex-1 basis-56 text-sm"
+                            >Barcode for {{ sku.sku_code }}
+                            <Input
+                                :id="`barcode-${sku.public_id}`"
+                                :model-value="
+                                    barcodeDraft(sku.public_id, shared.code)
+                                "
+                                maxlength="100"
+                                autocomplete="off"
+                                :aria-invalid="
+                                    savedSku === sku.public_id &&
+                                    !!page.props.errors?.barcode
+                                "
+                                :aria-describedby="
+                                    savedSku === sku.public_id &&
+                                    page.props.errors?.barcode
+                                        ? `barcode-${sku.public_id}-error`
+                                        : undefined
+                                "
+                                class="mt-1 min-h-11"
+                                @update:model-value="
+                                    barcodeDrafts[sku.public_id] =
+                                        String($event)
+                                "
+                        /></label>
+                        <div
+                            class="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto"
+                        >
+                            <Button
+                                type="button"
+                                variant="outline"
+                                class="min-h-11"
+                                :disabled="busy"
+                                :aria-label="`Save barcode for ${sku.sku_code}`"
+                                @click="
+                                    saveBarcode(
+                                        sku.public_id,
+                                        barcodeDraft(
+                                            sku.public_id,
+                                            shared.code,
+                                        ),
+                                    )
+                                "
+                            >
+                                Save
+                            </Button>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                class="min-h-11"
+                                :disabled="busy"
+                                :aria-label="`Clear barcode for ${sku.sku_code}`"
+                                @click="saveBarcode(sku.public_id, '')"
+                            >
+                                Clear
+                            </Button>
+                        </div>
+                        <p
+                            v-if="
+                                savedSku === sku.public_id &&
+                                page.props.errors?.barcode
+                            "
+                            :id="`barcode-${sku.public_id}-error`"
+                            role="alert"
+                            class="w-full text-sm break-words text-destructive"
+                        >
+                            {{ page.props.errors.barcode }}
+                        </p>
+                    </template>
+                </div>
+            </article>
+            <p
+                v-if="readiness.sharedBarcodes.more"
+                class="text-sm text-muted-foreground"
+            >
+                Only the first 50 shared codes are shown. Fix these first.
+            </p>
         </section>
     </main>
 </template>

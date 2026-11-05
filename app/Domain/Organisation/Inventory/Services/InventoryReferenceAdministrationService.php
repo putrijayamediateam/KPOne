@@ -98,6 +98,7 @@ class InventoryReferenceAdministrationService
                 $this->invalid('inventory_item', 'Select an active Inventory Item.');
             }
             $this->assertUnique('inventory_skus', 'sku_code', $actor->organisation_id, $values['sku_code'], 'sku_code', 'An Inventory SKU with this code already exists.');
+            $this->assertBarcodeFree($actor->organisation_id, $values['barcode'] ?? null, null);
             $sku = new InventorySku;
             $sku->forceFill([
                 'public_id' => (string) Str::uuid(),
@@ -123,6 +124,9 @@ class InventoryReferenceAdministrationService
             }
             if (array_key_exists('sku_code', $changes)) {
                 $this->assertUnique('inventory_skus', 'sku_code', $actor->organisation_id, $changes['sku_code'], 'sku_code', 'An Inventory SKU with this code already exists.', $locked->id);
+            }
+            if (array_key_exists('barcode', $changes)) {
+                $this->assertBarcodeFree($actor->organisation_id, is_string($changes['barcode']) ? $changes['barcode'] : null, $locked->id);
             }
 
             return $changes;
@@ -457,6 +461,20 @@ class InventoryReferenceAdministrationService
         }
         if ($query->exists()) {
             $this->invalid('mapping', 'This Medicine already has an active Inventory SKU mapping. Deactivate it before activating another.');
+        }
+    }
+
+    /** STK-9: one barcode, one SKU per organisation (trimmed, case-insensitive). PostgreSQL enforces the same rule. */
+    private function assertBarcodeFree(int $organisationId, ?string $barcode, ?int $exceptId): void
+    {
+        if ($barcode === null || trim($barcode) === '') {
+            return;
+        }
+        $holder = DB::table('inventory_skus')->where('organisation_id', $organisationId)->whereNotNull('barcode')
+            ->whereRaw('upper(trim(barcode)) = ?', [mb_strtoupper(trim($barcode))])
+            ->when($exceptId !== null, fn ($q) => $q->where('id', '<>', $exceptId))->value('sku_code');
+        if ($holder !== null) {
+            $this->invalid('barcode', 'This barcode is already used by SKU '.$holder.'. Each barcode can belong to one SKU only.');
         }
     }
 
