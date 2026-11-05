@@ -13,6 +13,7 @@ use App\Models\User;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
@@ -101,6 +102,10 @@ class TreatmentStepService
     public function leavingServing(QueueEntry $entry): void
     {
         if (! $entry->isDirty('status') || $entry->getOriginal('status') !== QueueEntry::STATUS_SERVING || $entry->status === QueueEntry::STATUS_SERVING) {
+            return;
+        }
+        // A historical schema (some migration regression tests stop before Q-2) has no step table; nothing to close.
+        if (! Schema::connection($entry->getConnectionName())->hasTable('queue_treatment_steps')) {
             return;
         }
         $step = TreatmentStep::query()->where('queue_entry_id', $entry->id)->whereNull('closed_at')->lockForUpdate()->first();
