@@ -145,8 +145,8 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php`.
   recorded once per branch); at most 50 claims per payment; the date received is today or earlier; a recorded
   payment cannot be reversed or corrected in KPOne (as with the existing single-claim remittance), so a wrong
   entry needs a separate, later correction design. The Finance Officer sees patient names (from the claim
-  snapshot) on this page, as decision 11 allows on Panel invoices; no clinical data is shown. Not yet tested: a
-  PostgreSQL contention test of a split payment against a single-claim payment.
+  snapshot) on this page, as decision 11 allows on Panel invoices; no clinical data is shown. A split payment
+  racing a single-claim payment is covered by the PNL-5 contention test (`PostgresPanelPaymentRegressionTest`).
 - **PNL-4 limits:** the Follow-up list is for Panel Officers only (it reuses `panel.claims.manage.branch`);
   "an action" is any claim event, payment or photo, so a note written only to reset the clock also counts;
   events count from their own time, so a backdated submission counts from its submitted date, while a photo
@@ -162,8 +162,8 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php`.
   payment never changes, a second reversal is refused and the idempotency key covers a double submit; reports
   change in the period of the original payment (decision 18), so past Insights and Panel summary figures can
   move; Insights, the Panel summary and the agent Panel claims summary (owned by other teams) now leave reversed
-  payments out (one condition each). Not yet tested: a PostgreSQL contention test of a reversal against a new
-  payment on the same claim.
+  payments out (one condition each). A reversal racing a new payment, and two reversals of one payment, are
+  covered by the PNL-5 contention test.
 - A submitted-but-undecided claim counts as zero outstanding in the Panel summary.
 - Panel summary runs about three queries per approved allocation; not load-tested.
 
@@ -216,8 +216,10 @@ Second backlog, chosen by the owner on 2026-11-05 ("panel order ok", relayed by 
 5. **PNL-6 Payment correction (authorised 2026-11-05, built).** Reverse a wrongly recorded Panel payment;
    design in `docs/reports/PNL-6-analysis.md`, owner answers in decision 18 (the owner confirmed in this session
    to keep them: Finance Officer or Director, one step, never the recorder).
-6. **PNL-5 Contention test.** A split Panel payment and a single-claim payment on the same claim at the same
-   moment cannot over-pay; test only. Closes the PNL-3 known limit.
+6. **PNL-5 Contention test. (Built 2026-11-05.)** A split Panel payment and a single-claim payment on the same
+   claim at the same moment cannot over-pay; test only. Closes the PNL-3 known limit. Also covers a reversal
+   racing a new payment, two reversals of one payment and a double-submitted split payment
+   (`tests/Feature/Billing/PostgresPanelPaymentRegressionTest.php`, serial Contention suite).
 7. **PNL-7 Panel statement upload helper.** The Panel Officer uploads the Panel's remittance statement (CSV);
    KPOne suggests matches to claims (claim number, invoice number, member reference); the officer confirms each
    match and records through the PNL-3 flow. Nothing is recorded automatically. The file is stored privately and
