@@ -65,6 +65,10 @@ final class StockRequestService
             [$source, $destination] = $this->lockLocations($lockedActor, (string) ($attributes['source_location_public_id'] ?? ''), (string) ($attributes['destination_location_public_id'] ?? ''));
             $this->assertSourceAuthority($lockedActor, $branch, $source);
             $this->assertDestinationAuthority($lockedActor, $branch, $destination);
+            // STK-11: a two-stage transfer never touches a patient returns location.
+            if (in_array(InventoryLocation::TYPE_DISPENSARY_RETURNS, [$source->type, $destination->type], true)) {
+                throw ValidationException::withMessages(['location' => 'Patient returns stock is not sent on a stock request. Write it off, or move it to another returns location.']);
+            }
             $skus = InventorySku::query()->where('organisation_id', $lockedActor->organisation_id)->where('is_active', true)->whereIn('public_id', array_column($lines, 'sku_public_id'))->orderBy('id')->lockForUpdate()->get()->keyBy('public_id');
             abort_unless($skus->count() === count($lines), 404);
             $request = new StockRequest;

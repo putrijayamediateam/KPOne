@@ -2,6 +2,7 @@
 
 namespace App\Domain\Agents\Tools;
 
+use App\Domain\Organisation\Inventory\Models\InventoryLocation;
 use App\Domain\Organisation\Inventory\Services\InventoryBatchEligibility;
 use App\Domain\Organisation\Models\Branch;
 use App\Models\User;
@@ -43,13 +44,13 @@ final class InventoryBranchBalancesTool implements AgentTool
             $stock = DB::table('inventory_stock_balances as b')
                 ->join('inventory_locations as l', 'l.id', '=', 'b.inventory_location_id')
                 ->joinSub($this->eligibility->query($organisationId, $each), 'e', fn ($j) => $j->on('e.id', '=', 'b.inventory_batch_id')->on('e.organisation_id', '=', 'b.organisation_id'))
-                ->where('b.organisation_id', $organisationId)->where('l.organisation_id', $organisationId)->where('l.branch_id', $each->id)->where('l.is_active', true)
+                ->where('b.organisation_id', $organisationId)->where('l.organisation_id', $organisationId)->where('l.branch_id', $each->id)->where('l.is_active', true)->where('l.type', '<>', InventoryLocation::TYPE_DISPENSARY_RETURNS)
                 ->groupBy('b.inventory_sku_id')
                 ->selectRaw('b.inventory_sku_id as sku_id, SUM(b.quantity) as on_hand, SUM(CASE WHEN e.eligibility_reason IS NULL THEN b.quantity ELSE 0 END) as eligible')
                 ->get()->keyBy('sku_id');
             $levels = DB::table('inventory_reorder_levels as r')
                 ->join('inventory_locations as l', 'l.id', '=', 'r.inventory_location_id')
-                ->where('r.organisation_id', $organisationId)->where('l.organisation_id', $organisationId)->where('l.branch_id', $each->id)->where('l.is_active', true)
+                ->where('r.organisation_id', $organisationId)->where('l.organisation_id', $organisationId)->where('l.branch_id', $each->id)->where('l.is_active', true)->where('l.type', '<>', InventoryLocation::TYPE_DISPENSARY_RETURNS)
                 ->groupBy('r.inventory_sku_id')->selectRaw('r.inventory_sku_id as sku_id, SUM(r.reorder_level) as reorder_level')
                 ->pluck('reorder_level', 'sku_id');
             foreach ($stock->keys()->merge($levels->keys())->unique() as $skuId) {
