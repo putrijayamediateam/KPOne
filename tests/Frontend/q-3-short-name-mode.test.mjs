@@ -154,6 +154,12 @@ test('Q-3b: on a TV the current call keeps the number and short name on one line
         /currentLabelOneLine\.value = label\.scrollWidth <= label\.clientWidth \+ 1;/,
     );
     assert.match(screen, /window\.addEventListener\?\.\('resize', onResize\)/);
+    // Daniel: on those TVs the room line is capped at the call line's size and keeps wrapping, never cut.
+    assert.match(screen, /currentRoomFontPx\.value = callPx;/);
+    assert.match(
+        screen,
+        /data-testid="current-room"\s*ref="currentRoom"\s*:style="\s*currentRoomFontPx/,
+    );
     // Yasmin: wraps by default until measured, and measures again once the web font is ready.
     assert.match(screen, /const currentLabelOneLine = ref\(false\);/);
     assert.match(screen, /document\.fonts\?\.ready\.then\(onResize\)/);

@@ -54,9 +54,21 @@ const currentLabelRef = useTemplateRef<HTMLElement>('currentLabel');
 const currentLabelFontPx = ref<number | null>(null);
 // One line only once the fit has measured it; until then (or where it cannot run) the line wraps, so no name is cut.
 const currentLabelOneLine = ref(false);
+// Daniel (2026-11-05): on those TVs the room line is never larger than the call line, so the call stays the largest
+// text and the room line does not wrap.
+const currentRoomRef = useTemplateRef<HTMLElement>('currentRoom');
+const currentRoomFontPx = ref<number | null>(null);
+const capCurrentRoom = (callPx: number) => {
+    const room = currentRoomRef.value;
+
+    if (room && parseFloat(getComputedStyle(room).fontSize) > callPx) {
+        currentRoomFontPx.value = callPx;
+    }
+};
 const fitCurrentLabel = async () => {
     currentLabelFontPx.value = null;
     currentLabelOneLine.value = false;
+    currentRoomFontPx.value = null;
 
     if (
         typeof window.matchMedia !== 'function' ||
@@ -76,15 +88,19 @@ const fitCurrentLabel = async () => {
         return;
     }
 
+    const largest = parseFloat(getComputedStyle(label).fontSize);
+
     if (label.scrollWidth <= label.clientWidth) {
+        capCurrentRoom(largest);
+
         return;
     }
 
-    const largest = parseFloat(getComputedStyle(label).fontSize);
     currentLabelFontPx.value = Math.max(
         FIT_MIN_PX,
         Math.floor((largest * label.clientWidth) / label.scrollWidth),
     );
+    capCurrentRoom(currentLabelFontPx.value);
     await nextTick();
     currentLabelOneLine.value = label.scrollWidth <= label.clientWidth + 1;
 };
@@ -615,6 +631,12 @@ onBeforeUnmount(() => {
                         <p
                             class="mt-3 text-3xl font-bold text-balance break-words lg:text-5xl"
                             data-testid="current-room"
+                            ref="currentRoom"
+                            :style="
+                                currentRoomFontPx
+                                    ? { fontSize: `${currentRoomFontPx}px` }
+                                    : undefined
+                            "
                         >
                             {{ roomLabel(current.room, current.service) }}
                         </p>
