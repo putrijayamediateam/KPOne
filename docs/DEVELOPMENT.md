@@ -193,6 +193,51 @@ services as a named demo account, so permissions, branch checks, locks and audit
 It creates no patients beyond the presentation seeder's, and no visits, payment methods, Panels or bills; those
 are entered through the screens during the demo. Never run it with real data or in production.
 
+## Ask KPOne read login (AG-7)
+
+Ask KPOne lets the owner ask Claude Code, on the computer that runs KPOne, about the data in KPOne. Claude reads
+only the masked views of schema `ai_read` (patient names as initials, IC and passport numbers as their last 4
+characters, no phone, email, address, clinical free text, notes, encrypted or credential data) through two
+read-only commands:
+
+```bash
+php artisan kpone:read-schema                 # the views and their columns
+php artisan kpone:read "SELECT visit_type, count(*) FROM visits GROUP BY 1"
+php artisan kpone:read --json "SELECT ..."    # rows as JSON
+```
+
+`kpone:read` accepts one `SELECT` or `WITH` statement over `ai_read` views only, refuses everything else, runs
+in a read-only transaction with a 10-second timeout, prints at most 500 rows and writes an audit row with the
+row count and a hash of the query (never the results). Query results reach Anthropic as part of the owner's
+Claude use, so **before real patient data is in KPOne this path needs the PDPA and legal review.**
+
+The commands need their own PostgreSQL login, `kpone_ai_reader`, which can read nothing but `ai_read`. Create it
+once, after `php artisan migrate`, as a database administrator, replacing the password and, if different, the
+database name `kpone` and the application login `kpone`:
+
+```sql
+CREATE ROLE kpone_ai_reader LOGIN PASSWORD 'replace-with-a-different-strong-password' NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT;
+ALTER ROLE kpone_ai_reader SET default_transaction_read_only = on;
+ALTER ROLE kpone_ai_reader SET statement_timeout = '10s';
+ALTER ROLE kpone_ai_reader SET search_path = ai_read;
+GRANT CONNECT ON DATABASE kpone TO kpone_ai_reader;
+GRANT USAGE ON SCHEMA ai_read TO kpone_ai_reader;
+GRANT SELECT ON ALL TABLES IN SCHEMA ai_read TO kpone_ai_reader;
+ALTER DEFAULT PRIVILEGES FOR ROLE kpone IN SCHEMA ai_read GRANT SELECT ON TABLES TO kpone_ai_reader;
+```
+
+Then set `AI_READER_DB_USERNAME=kpone_ai_reader` and `AI_READER_DB_PASSWORD` in the server's environment.
+Without them, `kpone:read` refuses to run; it never falls back to the application's own login, and it also
+refuses a login that can read the operational tables or is a superuser. Later migrations that add a view to
+`ai_read` grant it to this login automatically.
+
+**For anyone writing a migration:** the `ai_read` views depend on the operational columns they select. A
+migration that drops a column used by a view, or changes its type, fails with "cannot drop column ... other
+objects depend on it". Such a migration must drop the affected view first (`DROP VIEW ai_read.<view>`) and
+recreate it with its new SQL in the same migration, and `AiReadSchemaMaskingTest` must be updated after a
+privacy check. List the columns a view uses with
+`SELECT * FROM information_schema.view_column_usage WHERE view_schema = 'ai_read'`.
+
 ## Google sign-in
 
 Leave the following placeholders empty unless configuring a local Google OAuth client:
