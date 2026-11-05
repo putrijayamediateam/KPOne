@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { Head, router, usePage } from '@inertiajs/vue3';
+import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import { computed, reactive, ref, watch } from 'vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { PageHeader } from '@/components/ui/page-header';
 import { CompactPagination } from '@/components/ui/pagination';
+import { StatusBadge } from '@/components/ui/status';
 import { myr } from '@/types/billing';
 
 type OpenClaim = {
@@ -24,6 +25,7 @@ type Remittance = {
     receivedDate: string;
     reference: string | null;
     recordedBy: string;
+    reversed?: boolean;
     splits: {
         claimNo: string;
         invoiceNumber: string;
@@ -37,6 +39,7 @@ const props = defineProps<{
     panels: { code: string; name: string }[];
     filters: { panel: string };
     maxSplits: number;
+    canReverse?: boolean;
     openClaims: OpenClaim[];
     openClaimsTruncated?: boolean;
     remittances: {
@@ -531,7 +534,19 @@ const record = () => {
             class="space-y-3 rounded-xl border bg-card p-4"
             aria-label="Recorded Panel payments"
         >
-            <h2 class="text-base font-semibold">Recorded Panel payments</h2>
+            <div class="flex flex-wrap items-center justify-between gap-2">
+                <h2 class="text-base font-semibold">Recorded Panel payments</h2>
+                <Button v-if="canReverse" as-child variant="outline" size="sm">
+                    <Link href="/panel-payment-corrections"
+                        >Correct a Panel payment</Link
+                    >
+                </Button>
+            </div>
+            <p class="text-xs text-muted-foreground">
+                A payment recorded by mistake cannot be edited. The Finance
+                Officer or the Director reverses it, then the correct payment is
+                recorded again.
+            </p>
             <p
                 v-if="remittances.data.length === 0"
                 class="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground"
@@ -550,10 +565,20 @@ const record = () => {
                         <span class="min-w-0 font-medium wrap-anywhere">
                             {{ remittance.panelName }} ·
                             {{ remittance.receivedDate }}
+                            <StatusBadge
+                                v-if="remittance.reversed"
+                                status="reversed"
+                                class="ml-1"
+                            />
                         </span>
-                        <strong class="tabular-nums">{{
-                            myr(remittance.amountSen)
-                        }}</strong>
+                        <strong
+                            class="tabular-nums"
+                            :class="{
+                                'text-muted-foreground line-through':
+                                    remittance.reversed,
+                            }"
+                            >{{ myr(remittance.amountSen) }}</strong
+                        >
                     </div>
                     <p class="text-xs wrap-anywhere text-muted-foreground">
                         Reference: {{ remittance.reference || 'None' }} ·
@@ -570,9 +595,14 @@ const record = () => {
                                 {{ split.invoiceNumber }} ·
                                 {{ split.patientName }}
                             </span>
-                            <span class="tabular-nums">{{
-                                myr(split.amountSen)
-                            }}</span>
+                            <span
+                                class="tabular-nums"
+                                :class="{
+                                    'text-muted-foreground line-through':
+                                        remittance.reversed,
+                                }"
+                                >{{ myr(split.amountSen) }}</span
+                            >
                         </li>
                     </ul>
                 </li>

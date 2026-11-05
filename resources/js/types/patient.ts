@@ -33,13 +33,6 @@ export type PatientDetail = {
         createdAt: string;
         updatedAt: string;
     };
-    activity: Array<{
-        event: string;
-        actor: string;
-        occurredAt: string;
-        changedFields: string[];
-        identifierType: string | null;
-    }>;
     can: { update: boolean; manageIdentifiers: boolean };
 };
 

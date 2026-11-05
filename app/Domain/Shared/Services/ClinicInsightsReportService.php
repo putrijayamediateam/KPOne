@@ -3,6 +3,7 @@
 namespace App\Domain\Shared\Services;
 
 use App\Domain\Organisation\Models\Branch;
+use App\Domain\Visit\Billing\Models\PanelClaimPaymentReversal;
 use App\Domain\Visit\Billing\Models\PaymentMethod;
 use App\Domain\Visit\Billing\Services\PostedReceiptProjection;
 use App\Models\User;
@@ -614,7 +615,9 @@ class ClinicInsightsReportService
                 ->whereColumn('consultation_checkouts.id', 'invoices.consultation_checkout_id')
                 ->where('consultation_checkouts.attending_doctor_user_id', $doctorId));
         }
+        // PNL-6: reversed Panel payments are left out, so a correction changes the period of the original payment.
         $claimPaymentTotals = DB::table('panel_claim_payments')
+            ->whereRaw(PanelClaimPaymentReversal::NOT_REVERSED)
             ->select('panel_claim_id')
             ->selectRaw('SUM(amount_sen) as amount_sen')
             ->groupBy('panel_claim_id');
@@ -638,6 +641,7 @@ class ClinicInsightsReportService
             ->join('panel_claims', 'panel_claims.id', '=', 'panel_claim_payments.panel_claim_id')
             ->join('invoices', 'invoices.id', '=', 'panel_claims.invoice_id')
             ->where('panel_claim_payments.organisation_id', $actor->organisation_id)
+            ->whereRaw(PanelClaimPaymentReversal::NOT_REVERSED)
             ->whereColumn('panel_claims.organisation_id', 'panel_claim_payments.organisation_id')
             ->whereColumn('panel_claims.branch_id', 'panel_claim_payments.branch_id')
             ->whereColumn('invoices.organisation_id', 'panel_claims.organisation_id')
@@ -654,6 +658,7 @@ class ClinicInsightsReportService
             ->join('panel_claims', 'panel_claims.id', '=', 'panel_claim_payments.panel_claim_id')
             ->join('invoices', 'invoices.id', '=', 'panel_claims.invoice_id')
             ->where('panel_claim_payments.organisation_id', $actor->organisation_id)
+            ->whereRaw(PanelClaimPaymentReversal::NOT_REVERSED)
             ->whereColumn('panel_claims.organisation_id', 'panel_claim_payments.organisation_id')
             ->whereColumn('panel_claims.branch_id', 'panel_claim_payments.branch_id')
             ->whereColumn('invoices.organisation_id', 'panel_claims.organisation_id')
