@@ -80,74 +80,76 @@ const name = (copy: IssuedCopy) =>
             description="Press Print invoice to issue the first one."
         />
         <template v-else>
-            <table class="hidden w-full text-left text-xs sm:table">
-                <thead class="text-muted-foreground">
-                    <tr>
-                        <th class="px-2 py-1 font-medium whitespace-nowrap">
-                            Document
-                        </th>
-                        <th class="px-2 py-1 font-medium whitespace-nowrap">
-                            Version
-                        </th>
-                        <th class="px-2 py-1 font-medium whitespace-nowrap">
-                            First printed as
-                        </th>
-                        <th class="px-2 py-1 font-medium whitespace-nowrap">
-                            Issued
-                        </th>
-                        <th
-                            class="px-2 py-1 text-right font-medium whitespace-nowrap"
-                        >
-                            Prints
-                        </th>
-                        <th class="py-1">
-                            <span class="sr-only">Action</span>
-                        </th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr
-                        v-for="copy in copies"
-                        :key="copy.publicId"
-                        class="border-t"
-                        data-testid="issued-copy"
-                    >
-                        <td
-                            class="max-w-48 truncate px-2 py-2 whitespace-nowrap"
-                            :title="name(copy)"
-                        >
-                            {{ name(copy) }}
-                        </td>
-                        <td class="px-2 tabular-nums">{{ copy.version }}</td>
-                        <td class="px-2">
-                            <StatusBadge :status="copy.firstPrintedAs" />
-                        </td>
-                        <td class="px-2 py-1">
-                            <span class="block whitespace-nowrap">{{
-                                copy.issuedAt
-                            }}</span>
-                            <span class="block text-muted-foreground"
-                                >by {{ copy.issuedBy }}</span
+            <div class="hidden overflow-x-auto sm:block">
+                <table class="w-full text-left text-xs">
+                    <thead class="text-muted-foreground">
+                        <tr>
+                            <th class="px-2 py-1 font-medium whitespace-nowrap">
+                                Document
+                            </th>
+                            <th class="px-2 py-1 font-medium whitespace-nowrap">
+                                Version
+                            </th>
+                            <th class="px-2 py-1 font-medium whitespace-nowrap">
+                                Issued
+                            </th>
+                            <th
+                                class="px-2 py-1 text-right font-medium whitespace-nowrap"
                             >
-                        </td>
-                        <td
-                            class="px-2 text-right whitespace-nowrap tabular-nums"
+                                Prints
+                            </th>
+                            <th class="py-1">
+                                <span class="sr-only">Action</span>
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr
+                            v-for="copy in copies"
+                            :key="copy.publicId"
+                            class="border-t"
+                            data-testid="issued-copy"
                         >
-                            {{ copy.prints }}
-                        </td>
-                        <td class="px-2 text-right">
-                            <Button
-                                size="sm"
-                                variant="outline"
-                                :disabled="busy !== null"
-                                :aria-label="`Reprint ${name(copy)} version ${copy.version} as COPY`"
-                                @click="ask(copy)"
-                                >Reprint</Button
+                            <td
+                                class="max-w-48 truncate px-2 py-2 whitespace-nowrap"
+                                :title="name(copy)"
                             >
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
+                                {{ name(copy) }}
+                            </td>
+                            <td class="px-2 whitespace-nowrap tabular-nums">
+                                {{ copy.version }}
+                                <StatusBadge
+                                    class="ml-1"
+                                    :status="copy.firstPrintedAs"
+                                />
+                            </td>
+                            <td class="px-2 py-1">
+                                <span class="block whitespace-nowrap">{{
+                                    copy.issuedAt
+                                }}</span>
+                                <span class="block text-muted-foreground"
+                                    >by {{ copy.issuedBy }}</span
+                                >
+                            </td>
+                            <td
+                                class="px-2 text-right whitespace-nowrap tabular-nums"
+                            >
+                                {{ copy.prints }}
+                            </td>
+                            <td class="px-2 text-right">
+                                <Button
+                                    size="sm"
+                                    variant="outline"
+                                    :disabled="busy !== null"
+                                    :aria-label="`Reprint ${name(copy)} version ${copy.version} as COPY`"
+                                    @click="ask(copy)"
+                                    >Reprint</Button
+                                >
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
             <ul class="space-y-2 sm:hidden">
                 <li
                     v-for="copy in copies"
