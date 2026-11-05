@@ -631,6 +631,7 @@ onBeforeUnmount(() => {
     <main
         class="mx-auto flex w-full max-w-[1600px] flex-1 flex-col gap-2 px-3 py-2 md:px-5"
     >
+        <h1 class="sr-only">Consultation queue</h1>
         <div
             v-if="roomChoice"
             class="flex flex-wrap items-center gap-2 rounded-lg border px-3 py-2 text-[13px]"
@@ -686,6 +687,7 @@ onBeforeUnmount(() => {
             @submit.prevent="applyFilters"
         >
             <label class="relative md:col-span-2 xl:col-span-1"
+                ><span class="sr-only">Search patients or queue numbers</span
                 ><Search
                     class="absolute top-2.5 left-3 size-4 text-muted-foreground" /><input
                     v-model="draftFilters.query"

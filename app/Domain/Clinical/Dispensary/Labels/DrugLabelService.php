@@ -4,10 +4,12 @@ namespace App\Domain\Clinical\Dispensary\Labels;
 
 use App\Domain\Access\BranchAccessService;
 use App\Domain\Access\TransactionalActorAuthority;
+use App\Domain\Audit\AuditRecorder;
 use App\Domain\Clinical\Dispensary\Models\DispensaryCase;
 use App\Domain\Clinical\Dispensary\Models\DispensaryHandoff;
 use App\Domain\Clinical\Dispensary\Models\DispensaryItem;
 use App\Domain\Clinical\Dispensary\Models\DispensaryItemBatchAllocation;
+use App\Domain\Clinical\Dispensary\Models\DispensaryLabelPrint;
 use App\Domain\Clinical\Dispensary\Services\DispensarySafetyValidator;
 use App\Domain\Clinical\Models\ClinicalEncounterAllergyReview;
 use App\Domain\Clinical\Models\MedicineCatalogueItem;
@@ -22,6 +24,7 @@ use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 final class DrugLabelService
 {
@@ -29,7 +32,7 @@ final class DrugLabelService
 
     public const PLACEHOLDER_EXPIRY = '9999-12-31';
 
-    public function __construct(private BranchAccessService $branches, private TransactionalActorAuthority $authority, private BranchLetterheadAssembler $letterheads, private DrugLabelLayout $layout, private DispensarySafetyValidator $safety) {}
+    public function __construct(private BranchAccessService $branches, private TransactionalActorAuthority $authority, private BranchLetterheadAssembler $letterheads, private DrugLabelLayout $layout, private DispensarySafetyValidator $safety, private AuditRecorder $audit) {}
 
     /** @return array<string, mixed> */
     public function preview(User $actor, DispensaryCase $case, ?string $itemPublicId = null): array
@@ -41,14 +44,50 @@ final class DrugLabelService
      * DSP-2: the same preview plus, separately, why batch and expiry are not printed on some lines.
      * Kept beside the label payload (not inside it) so the label contract and its token are unchanged.
      *
-     * @return array{labels: array<string, mixed>, batchNotes: list<array{name: string, previewUrl: string, note: string}>}
+     * DSP-6: also the preview URLs of labels printed before (they print with the REPRINT mark).
+     *
+     * @return array{labels: array<string, mixed>, batchNotes: list<array{name: string, previewUrl: string, note: string}>, reprints: list<string>}
      */
     public function previewWithBatchNotes(User $actor, DispensaryCase $case, ?string $itemPublicId = null): array
     {
-        return $this->build($actor, $case, $itemPublicId);
+        $built = $this->build($actor, $case, $itemPublicId);
+
+        return ['labels' => $built['labels'], 'batchNotes' => $built['batchNotes'], 'reprints' => $built['reprints']];
     }
 
-    /** @return array{labels: array<string, mixed>, batchNotes: list<array{name: string, previewUrl: string, note: string}>} */
+    /**
+     * DSP-6: the fresh check before the browser print dialog (owner decision: a press of "Print current labels"
+     * counts as a print, because KPOne cannot see the printer). Under the same locks as the preview it refuses a
+     * stale or blocked label, then appends one numbered print row per label (append-only, no label content) and a
+     * structural audit with counts only. Returns the preview URLs of labels in this print that are reprints.
+     *
+     * @return list<string>
+     */
+    public function recordPrint(User $actor, DispensaryCase $case, ?string $itemPublicId, string $token, int $branchId): array
+    {
+        return DB::transaction(function () use ($actor, $case, $itemPublicId, $token, $branchId): array {
+            $built = $this->build($actor, $case, $itemPublicId);
+            $labels = $built['labels'];
+            abort_unless($branchId === $labels['branchId'] && hash_equals($labels['token'], $token) && $labels['blocked'] === [], 409);
+            $reprints = [];
+            $now = now()->utc();
+            foreach ($built['printable'] as [$item, $previewUrl]) {
+                // The case row is locked by build(), so print numbers per line cannot race.
+                $number = 1 + (int) DispensaryLabelPrint::query()->where('dispensary_item_id', $item->id)->max('print_number');
+                (new DispensaryLabelPrint)->forceFill(['public_id' => (string) Str::uuid(), 'organisation_id' => $item->organisation_id, 'branch_id' => $labels['branchId'],
+                    'dispensary_case_id' => $case->id, 'dispensary_item_id' => $item->id, 'print_number' => $number, 'printed_by_user_id' => $actor->id, 'printed_at' => $now])->save();
+                if ($number > 1) {
+                    $reprints[] = $previewUrl;
+                }
+            }
+            $branch = Branch::query()->whereKey($labels['branchId'])->firstOrFail();
+            $this->audit->record('dispensary.labels_printed', $case, ['label_count' => count($built['printable']), 'reprint_count' => count($reprints)], $actor, $branch);
+
+            return $reprints;
+        }, 3);
+    }
+
+    /** @return array{labels: array<string, mixed>, batchNotes: list<array{name: string, previewUrl: string, note: string}>, printable: list<array{0: DispensaryItem, 1: string}>, reprints: list<string>} */
     private function build(User $actor, DispensaryCase $case, ?string $itemPublicId): array
     {
         return DB::transaction(function () use ($actor, $case, $itemPublicId): array {
@@ -95,6 +134,8 @@ final class DrugLabelService
             $blocked = [];
             $output = [];
             $batchNotes = [];
+            $printable = [];
+            $reprints = [];
             $manifest = [$branch->id, $branch->timezone, $case->lock_version, $patient->lock_version, $handoff->id, $handoff->status, $head->organisationVersion, $head->branchVersion, $head->logo];
             foreach ($items as $item) {
                 if ($item->status === 'partial' && ! $item->exceptions()->where('status', 'acknowledged')->where('expected_item_lock_version', $item->lock_version)->where('proposed_quantity_dispensed', $item->quantity_dispensed)->exists()) {
@@ -116,14 +157,19 @@ final class DrugLabelService
                 if ($render['errors'] !== []) {
                     $blocked[] = ['name' => $item->medicine_name_snapshot, 'errors' => $render['errors']];
                 } else {
-                    $output[] = ['name' => $item->medicine_name_snapshot, 'strength' => $item->strength_snapshot, 'quantity' => $item->quantity_dispensed, 'unit' => $item->unit_snapshot, 'dosage' => $item->effective('dosage'), 'frequency' => $item->effective('frequency'), 'duration' => $item->effective('duration'), 'instruction' => $item->effective('administration_instruction'), 'lines' => $render['lines'], 'emphasis' => $render['emphasis'], 'previewUrl' => route('dispensary.items.label', [$case, $item->public_id])];
+                    $previewUrl = route('dispensary.items.label', [$case, $item->public_id]);
+                    $printable[] = [$item, $previewUrl];
+                    if (DispensaryLabelPrint::query()->where('dispensary_item_id', $item->id)->exists()) {
+                        $reprints[] = $previewUrl;
+                    }
+                    $output[] = ['name' => $item->medicine_name_snapshot, 'strength' => $item->strength_snapshot, 'quantity' => $item->quantity_dispensed, 'unit' => $item->unit_snapshot, 'dosage' => $item->effective('dosage'), 'frequency' => $item->effective('frequency'), 'duration' => $item->effective('duration'), 'instruction' => $item->effective('administration_instruction'), 'lines' => $render['lines'], 'emphasis' => $render['emphasis'], 'previewUrl' => $previewUrl];
                     if ($batchNote !== null) {
-                        $batchNotes[] = ['name' => $item->medicine_name_snapshot, 'previewUrl' => route('dispensary.items.label', [$case, $item->public_id]), 'note' => $batchNote];
+                        $batchNotes[] = ['name' => $item->medicine_name_snapshot, 'previewUrl' => $previewUrl, 'note' => $batchNote];
                     }
                 }
             }
 
-            return ['batchNotes' => $batchNotes, 'labels' => ['clinic' => $details['clinic_name'], 'branch' => $branch->name, 'patient' => ['name' => $patient->full_name, 'patientNumber' => $patient->patient_number], 'date' => now()->setTimezone($branch->timezone)->format('d/m/Y H:i').' ('.$branch->timezone.')',
+            return ['batchNotes' => $batchNotes, 'printable' => $printable, 'reprints' => $reprints, 'labels' => ['clinic' => $details['clinic_name'], 'branch' => $branch->name, 'patient' => ['name' => $patient->full_name, 'patientNumber' => $patient->patient_number], 'date' => now()->setTimezone($branch->timezone)->format('d/m/Y H:i').' ('.$branch->timezone.')',
                 'items' => $output, 'blocked' => $blocked, 'logo' => $logo, 'pageSize' => DrugLabelLayout::DRUG_LABEL_PAGE_SIZE, 'token' => hash_hmac('sha256', json_encode($manifest, JSON_THROW_ON_ERROR), (string) config('app.key')), 'branchId' => $branch->id, 'excludedCount' => $itemPublicId === null ? $all->count() - $items->count() : 0]];
         }, 3);
     }

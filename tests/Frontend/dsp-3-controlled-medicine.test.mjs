@@ -12,9 +12,17 @@ test('catalogue editors see a Controlled badge and a confirmed mark or unmark ac
     assert.ok(catalogue.includes('data-action="toggle-controlled"'));
     assert.ok(catalogue.includes("'Mark as controlled medicine'"));
     assert.ok(catalogue.includes('Ubat Terkawal / Controlled Medicine'));
-    assert.ok(
-        catalogue.includes('dark:bg-amber-950/70'),
+    // Owner-approved change (CAT-1, 2026-11-05): the Controlled badge is a
+    // neutral word badge built from theme tokens (Daniel's design review), so
+    // it stays readable in dark mode without a palette colour.
+    assert.match(
+        catalogue,
+        /<Badge\s+v-if="row\.isControlled"\s+variant="outline"\s+class="ml-1 border-border bg-card text-foreground"\s+data-testid="controlled-badge"/,
         'readable in dark mode',
+    );
+    assert.ok(
+        !catalogue.includes('bg-amber-'),
+        'no amber: Controlled is a property, not a status',
     );
 });
 

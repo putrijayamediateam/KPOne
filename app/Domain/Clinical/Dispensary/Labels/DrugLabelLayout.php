@@ -62,6 +62,8 @@ final class DrugLabelLayout
         if ($generatedAt !== '') {
             array_push($lines, ...$this->wrap('Dijana: '.$generatedAt));
         }
+        // DSP-6: this closing sentence leaves a short last row ('berbeza.'); the REPRINT mark sits at its right end.
+        // Keep that row short (DrugLabelPrintLogTest pins it) or the mark would cover text.
         array_push($lines, ...$this->wrap('Rekod semasa; cetakan semula mungkin berbeza.'));
         $limit = $logo ? self::MAX_LINES_WITH_LOGO : self::MAX_LINES;
         if (count($lines) > $limit) {
