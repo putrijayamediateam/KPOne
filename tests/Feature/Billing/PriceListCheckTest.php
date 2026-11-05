@@ -9,8 +9,10 @@ use App\Domain\Visit\Billing\Models\ChargeDefinition;
 use App\Domain\Visit\Billing\Models\PriceBook;
 use App\Domain\Visit\Billing\Services\PriceListCheckService;
 use App\Domain\Visit\Billing\Services\PricePublicationService;
+use App\Domain\Visit\Billing\Services\PriceResolutionService;
 use App\Domain\Visit\Billing\Services\PricingReferenceAdministrationService;
 use App\Domain\Visit\Models\Panel;
+use App\Domain\Visit\Models\Visit;
 use App\Models\User;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\DB;
@@ -149,6 +151,43 @@ class PriceListCheckTest extends ClinicalTestCase
         $otherRow = collect($other['rows'])->firstWhere('code', 'CHK-BRANCH');
         $this->assertSame(500, $otherRow['selfPaySen'], 'Another branch uses the organisation price.');
         $this->assertFalse($otherRow['selfPayFromBranch']);
+    }
+
+    public function test_the_page_and_a_real_billing_price_agree_for_branch_and_panel_prices(): void
+    {
+        $organisationBook = $this->book('self_pay');
+        $branchBook = $this->book('self_pay', $this->branch);
+        $panelDefault = $this->book('panel');
+        $panel = Panel::factory()->create(['organisation_id' => $this->organisation->id, 'code' => 'SYNTH-AGREE-PANEL', 'name' => 'Synthetic Agree Panel']);
+        $panelBook = $this->book('panel', panel: $panel);
+        $medicine = $this->medicine('CHK-AGREE');
+        $charge = $this->references->createMedicineCharge($this->supervisor, $medicine, ['code' => 'CHK-AGREE', 'display_name' => 'Synthetic CHK-AGREE']);
+        $this->publish($organisationBook, $charge, 900);
+        $this->publish($branchBook, $charge, 850);
+        $this->publish($panelDefault, $charge, 700);
+        $this->publish($panelBook, $charge, 650);
+
+        $row = $this->rows()['CHK-AGREE'];
+        $billed = fn (string $coverage, ?int $panelId): int => DB::transaction(function () use ($coverage, $panelId, $medicine): int {
+            $visit = (new Visit)->forceFill([
+                'organisation_id' => $this->organisation->id,
+                'branch_id' => $this->branch->id,
+                'coverage_type' => $coverage,
+                'panel_id' => $panelId,
+            ]);
+
+            return (int) app(PriceResolutionService::class)->price($visit, [[
+                'charge_key' => 'medicine:'.$medicine->id,
+                'unit_snapshot' => 'tablet',
+                'quantity' => '1.000',
+            ]])[0]['unit_price_sen'];
+        });
+
+        $this->assertSame($billed('self_pay', null), $row['selfPaySen'], 'Self-pay with a branch book.');
+        $this->assertSame(850, $row['selfPaySen']);
+        $this->assertSame($billed('panel', null), $row['panelDefaultSen'], 'A Panel visit with no Panel of its own.');
+        $this->assertSame($billed('panel', $panel->id), $row['panelPrices'][0]['amountSen'], 'A Panel with its own price.');
+        $this->assertSame(650, $row['panelPrices'][0]['amountSen']);
     }
 
     public function test_only_the_latest_published_price_counts(): void

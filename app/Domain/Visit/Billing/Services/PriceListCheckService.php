@@ -11,7 +11,6 @@ use App\Domain\Visit\Billing\Models\PriceEntry;
 use App\Domain\Visit\Models\Panel;
 use App\Models\User;
 use Illuminate\Auth\Access\AuthorizationException;
-use Illuminate\Support\Collection;
 
 /**
  * CAT-2: read-only price list check.
@@ -24,6 +23,8 @@ use Illuminate\Support\Collection;
  */
 final class PriceListCheckService
 {
+    public function __construct(private readonly PriceResolutionService $resolver) {}
+
     public const PER_PAGE = 25;
 
     public const CHECKS = ['no_charge', 'charge_inactive', 'no_self_pay', 'unit_differs', 'no_panel_default', 'zero_price'];
@@ -70,35 +71,42 @@ final class PriceListCheckService
             ->get(['id', 'name'])
             ->keyBy('id');
 
-        $branchSelfPay = $books->first(fn (PriceBook $book): bool => $book->price_tier === 'self_pay' && (int) $book->branch_id === (int) $branch->id);
-        $organisationSelfPay = $books->first(fn (PriceBook $book): bool => $book->price_tier === 'self_pay' && $book->branch_id === null);
-        $panelDefault = $books->first(fn (PriceBook $book): bool => $book->price_tier === 'panel' && $book->panel_id === null);
-        /** @var Collection<int, PriceBook> $panelBooks */
         $panelBooks = $books
             ->filter(fn (PriceBook $book): bool => $book->price_tier === 'panel' && $book->panel_id !== null && $activePanels->has((int) $book->panel_id))
             ->unique('panel_id')
             ->values();
 
-        $latest = $this->latestPrices(
-            $organisationId,
-            $charges->pluck('id')->map(fn (mixed $id): int => (int) $id)->values()->all(),
-            $books->pluck('id')->map(fn (mixed $id): int => (int) $id)->values()->all(),
-        );
-        $priceIn = fn (?PriceBook $book, ?ChargeDefinition $charge): ?int => $book && $charge
-            ? ($latest[(int) $book->id][(int) $charge->id] ?? null)
-            : null;
+        $entries = $charges->isEmpty() || $books->isEmpty() ? collect() : PriceEntry::query()
+            ->where('organisation_id', $organisationId)
+            ->whereIn('charge_definition_id', $charges->pluck('id'))
+            ->whereIn('price_book_id', $books->pluck('id'))
+            ->where('effective_at', '<=', now()->utc())
+            ->orderBy('id')
+            ->get(['id', 'price_book_id', 'charge_definition_id', 'version', 'unit_price_sen']);
+        $bookById = $books->keyBy('id');
+        $branchId = (int) $branch->id;
+        // Billing's own choice (PriceResolutionService::select), so this page and a real bill always agree.
+        $resolver = $this->resolver;
+        $choose = fn (?ChargeDefinition $charge, bool $panel, ?int $panelId): ?PriceEntry => $resolver->select($books, $entries, $charge, $panel, $panelId, $branchId);
 
-        $rows = $items->map(function (array $item) use ($charges, $branchSelfPay, $organisationSelfPay, $panelDefault, $panelBooks, $activePanels, $priceIn): array {
+        $rows = $items->map(function (array $item) use ($charges, $panelBooks, $activePanels, $bookById, $branchId, $choose): array {
             $charge = $charges->get($item['sourceKey']);
-            $branchPrice = $priceIn($branchSelfPay, $charge);
-            $selfPay = $branchPrice ?? $priceIn($organisationSelfPay, $charge);
-            $panelDefaultPrice = $priceIn($panelDefault, $charge);
+            $selfPayEntry = $choose($charge, false, null);
+            $selfPay = $selfPayEntry?->unit_price_sen === null ? null : (int) $selfPayEntry->unit_price_sen;
+            $selfPayFromBranch = $selfPayEntry !== null
+                && (int) $bookById->get((int) $selfPayEntry->price_book_id)?->branch_id === $branchId;
+            $panelDefaultEntry = $choose($charge, true, null);
+            $panelDefaultPrice = $panelDefaultEntry === null ? null : (int) $panelDefaultEntry->unit_price_sen;
             $panelPrices = $panelBooks
-                ->map(fn (PriceBook $book): array => [
-                    'panel' => (string) $activePanels->get((int) $book->panel_id)?->name,
-                    'amountSen' => $priceIn($book, $charge),
-                ])
-                ->filter(fn (array $price): bool => $price['amountSen'] !== null)
+                ->map(function (PriceBook $book) use ($choose, $charge, $activePanels): ?array {
+                    $entry = $choose($charge, true, (int) $book->panel_id);
+
+                    // Only a Panel's own price is listed; a fall-back to the default Panel price is not.
+                    return $entry !== null && (int) $entry->price_book_id === (int) $book->id
+                        ? ['panel' => (string) $activePanels->get((int) $book->panel_id)?->name, 'amountSen' => (int) $entry->unit_price_sen]
+                        : null;
+                })
+                ->filter()
                 ->values()
                 ->all();
 
@@ -132,7 +140,7 @@ final class PriceListCheckService
                 'orderUnit' => $item['orderUnit'],
                 'chargeUnit' => $charge?->unit,
                 'selfPaySen' => $selfPay,
-                'selfPayFromBranch' => $branchPrice !== null,
+                'selfPayFromBranch' => $selfPayFromBranch,
                 'panelDefaultSen' => $panelDefaultPrice,
                 'panelPrices' => $panelPrices,
                 'checks' => $checks,
@@ -214,37 +222,5 @@ final class PriceListCheckService
             ]);
 
         return [...$consultation->all(), ...$medicines->all(), ...$services->all()];
-    }
-
-    /**
-     * The latest version in effect of each charge in each book, as PriceResolutionService picks it.
-     *
-     * @param  array<int, int>  $chargeIds
-     * @param  array<int, int>  $bookIds
-     * @return array<int, array<int, int>> unit price in sen, by book id then charge id
-     */
-    private function latestPrices(int $organisationId, array $chargeIds, array $bookIds): array
-    {
-        if ($chargeIds === [] || $bookIds === []) {
-            return [];
-        }
-        $prices = [];
-        $versions = [];
-        PriceEntry::query()
-            ->where('organisation_id', $organisationId)
-            ->whereIn('charge_definition_id', $chargeIds)
-            ->whereIn('price_book_id', $bookIds)
-            ->where('effective_at', '<=', now()->utc())
-            ->get(['price_book_id', 'charge_definition_id', 'version', 'unit_price_sen'])
-            ->each(function (PriceEntry $entry) use (&$prices, &$versions): void {
-                $book = (int) $entry->price_book_id;
-                $charge = (int) $entry->charge_definition_id;
-                if (($versions[$book][$charge] ?? -1) < (int) $entry->version) {
-                    $versions[$book][$charge] = (int) $entry->version;
-                    $prices[$book][$charge] = (int) $entry->unit_price_sen;
-                }
-            });
-
-        return $prices;
     }
 }
