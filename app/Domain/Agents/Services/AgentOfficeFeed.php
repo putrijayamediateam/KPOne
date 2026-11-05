@@ -119,7 +119,7 @@ final class AgentOfficeFeed
     private function shorten(AiAgentMessage $message): string
     {
         try {
-            $body = $message->body;
+            $body = (string) $message->getAttribute('body');
         } catch (DecryptException) {
             return 'Message unavailable';
         }

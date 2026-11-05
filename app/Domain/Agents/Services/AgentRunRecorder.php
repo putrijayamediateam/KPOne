@@ -152,7 +152,12 @@ final class AgentRunRecorder
 
     private function startLocked(AiAgent|string $agent, string $taskType, ?Branch $branch, ?User $requester, ?string $permission, ?string $idempotencyKey, bool $queued, ?int $organisationId): AiAgentRun
     {
-        $organisationId = $requester?->organisation_id ?? $branch?->organisation_id ?? ($agent instanceof AiAgent ? $agent->organisation_id : $organisationId);
+        $organisationId = match (true) {
+            $requester !== null => $requester->organisation_id,
+            $branch !== null => $branch->organisation_id,
+            $agent instanceof AiAgent => $agent->organisation_id,
+            default => $organisationId,
+        };
         if ($organisationId === null) {
             throw new AuthorizationException('An agent run needs an organisation.');
         }

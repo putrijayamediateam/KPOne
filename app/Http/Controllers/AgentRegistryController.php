@@ -22,7 +22,9 @@ class AgentRegistryController extends Controller
     public function index(Request $request, AgentOfficeFeed $feed): Response
     {
         $organisationId = $request->user()->organisation_id;
-        $office = collect($feed->build($organisationId)['agents'])->keyBy('code');
+        /** @var list<array<string, mixed>> $officeAgents */
+        $officeAgents = $feed->build($organisationId)['agents'];
+        $office = collect($officeAgents)->keyBy('code');
         $agents = AiAgent::query()->with(['department:id,name', 'tools' => fn ($q) => $q->orderBy('tool_code')])
             ->where('organisation_id', $organisationId)->orderByDesc('kind')->orderBy('display_name')->orderBy('id')->get();
 
