@@ -123,12 +123,15 @@ test('the control explains why it is unavailable, swaps politely and never calls
     );
     assert.match(
         control,
-        /props\.block\.reason \?\? 'Nobody is waiting who can be called now\.'/,
+        /props\.block\.reason \?\?\s*refusal \?\?\s*'Nobody is waiting who can be called now\.'/,
     );
     assert.match(control, /doctor_user_id: confirmedDoctorId\.value/);
     assert.match(control, /for \(let attempt = 0; attempt < 2; attempt\+\+\)/);
     // Yasmin: the swap is also a visible muted line, not only screen-reader text.
     assert.match(control, /data-testid="call-next-notice"/);
+    // Daniel: any other refusal re-checks the board, so a blocking reason (no room, busy) leaves only Close.
+    assert.match(control, /void showLatest\(refusal\)\.catch/);
+    assert.match(control, /\? 'Nobody to call'\s*: 'Cannot call now'/);
     // Nobody left: Close only.
     assert.match(control, /\{\{ gone \? 'Close' : 'Cancel' \}\}/);
     assert.match(control, /v-if="confirmed && !gone"\s*ref="confirm"/);

@@ -41,6 +41,7 @@ const confirmed = ref<CallNextCandidate | null>(null);
 const confirmedDoctorId = ref<number | null>(null);
 const gone = ref(false);
 const goneReason = ref('');
+const goneTitle = ref('Nobody to call');
 /** Visible, muted line under the patient card; the same words go to the live region. */
 const notice = ref('');
 const processing = ref(false);
@@ -66,6 +67,7 @@ const start = () => {
     confirmedDoctorId.value = props.block.doctorUserId;
     gone.value = false;
     goneReason.value = '';
+    goneTitle.value = 'Nobody to call';
     error.value = '';
     notice.value = '';
     liveMessage.value = '';
@@ -86,7 +88,11 @@ const focusTitle = async () => {
 };
 const latestCandidate = () =>
     props.block.state === 'ready' ? props.block.candidate : null;
-const showLatest = async () => {
+/**
+ * Re-poll and show the latest state. After "no longer next" this swaps to the new patient; after any other refusal
+ * (for example the room was cleared) it shows why nobody can be called now, with Close as the only action.
+ */
+const showLatest = async (refusal?: string) => {
     let next: CallNextCandidate | null = null;
 
     try {
@@ -101,6 +107,7 @@ const showLatest = async () => {
         }
     } catch {
         error.value =
+            refusal ??
             'The queue could not be reloaded. Close this and try again.';
 
         return;
@@ -109,7 +116,14 @@ const showLatest = async () => {
     if (next === null) {
         // The real reason: nobody left, the doctor became busy, or the room was cleared.
         goneReason.value =
-            props.block.reason ?? 'Nobody is waiting who can be called now.';
+            props.block.reason ??
+            refusal ??
+            'Nobody is waiting who can be called now.';
+        goneTitle.value = ['none_waiting', 'all_not_ready'].includes(
+            props.block.state,
+        )
+            ? 'Nobody to call'
+            : 'Cannot call now';
         gone.value = true;
         error.value = '';
         notice.value = '';
@@ -120,8 +134,10 @@ const showLatest = async () => {
     }
 
     if (sameCandidate(next, confirmed.value)) {
-        // The board had not caught up yet; never call silently, ask for another press.
+        // The same patient is still next: show the refusal, or ask for another press if the board had not caught
+        // up yet. Never call silently.
         error.value =
+            refusal ??
             'The queue changed. Check the patient and press Call again.';
 
         return;
@@ -173,9 +189,12 @@ const submit = () => {
                     return;
                 }
 
-                error.value =
+                const refusal =
                     Object.values(errors)[0] ??
                     'The patient could not be called.';
+                error.value = refusal;
+                // Daniel: re-check, so a refusal that blocks calling (no room, busy) leaves only Close.
+                void showLatest(refusal).catch(() => undefined);
             },
             onFinish: () => {
                 processing.value = false;
@@ -242,7 +261,7 @@ onBeforeUnmount(() => clearTimeout(pauseTimer));
                             class="text-lg leading-6 break-words outline-none"
                             >{{
                                 gone || !confirmed
-                                    ? 'Nobody to call'
+                                    ? goneTitle
                                     : callNextTitle(confirmed)
                             }}</DialogTitle
                         >
