@@ -207,6 +207,20 @@ class InventoryMovementService
             : $this->debitOperation($actor, $location, $sku, $batch, $quantity, $type, 'inventory_governed_case', $casePublicId);
     }
 
+    /**
+     * STK-11, for the Dispensary return check (DSP-7): credit returned medicine to a returns location at the
+     * location's branch. The caller authorises the checker and holds the return, case, line, SKU and batch locks.
+     */
+    public function recordDispensaryReturn(User $actor, InventoryLocation $location, InventorySku $sku, InventoryBatch $batch, string $quantity, string $returnCheckPublicId): StockMovement
+    {
+        abort_unless(DB::transactionLevel() > 0, 500);
+        if ($location->type !== InventoryLocation::TYPE_DISPENSARY_RETURNS) {
+            throw ValidationException::withMessages(['location' => 'Returned medicine can only go to a returns location.']);
+        }
+
+        return $this->creditOperation($actor, $location, $sku, $batch, $quantity, StockMovement::TYPE_DISPENSARY_RETURN, 'dispensary_return_check', $returnCheckPublicId);
+    }
+
     private function creditOperation(User $actor, InventoryLocation $location, InventorySku $sku, InventoryBatch $batch, mixed $quantity, string $type, string $referenceType, string $referencePublicId): StockMovement
     {
         $this->assertOperationReferences($actor, $location, $sku, $batch);
@@ -318,6 +332,7 @@ class InventoryMovementService
         ?int $unitCostSen = null,
         ?int $supplierId = null,
     ): StockMovement {
+        $this->assertReturnsRules($type, $source, $destination);
         $movement = new StockMovement;
         $movement->forceFill([
             'public_id' => (string) Str::uuid(),
@@ -339,6 +354,31 @@ class InventoryMovementService
         ])->save();
 
         return $movement;
+    }
+
+    /**
+     * Movements a returns location may take part in (STK-11); PostgreSQL repeats this rule. A direct transfer is
+     * allowed only between two returns locations, so returned medicine never becomes dispensable stock again.
+     */
+    public const RETURNS_IN = [StockMovement::TYPE_DISPENSARY_RETURN, StockMovement::TYPE_STOCKTAKE_GAIN, StockMovement::TYPE_ADJUSTMENT_IN, StockMovement::TYPE_TRANSFER];
+
+    public const RETURNS_OUT = [StockMovement::TYPE_STOCKTAKE_LOSS, StockMovement::TYPE_ADJUSTMENT_OUT, StockMovement::TYPE_EXPIRY_WRITEOFF, StockMovement::TYPE_STOCK_WRITEOFF, StockMovement::TYPE_TRANSFER];
+
+    private function assertReturnsRules(string $type, ?InventoryLocation $source, ?InventoryLocation $destination): void
+    {
+        $returns = InventoryLocation::TYPE_DISPENSARY_RETURNS;
+        if ($type === StockMovement::TYPE_TRANSFER && ($source?->type === $returns) !== ($destination?->type === $returns)) {
+            throw ValidationException::withMessages(['location' => 'Returned medicine can only move to another returns location, or be written off.']);
+        }
+        if ($source?->type === $returns && ! in_array($type, self::RETURNS_OUT, true)) {
+            throw ValidationException::withMessages(['location' => 'Stock in a returns location can only be written off or transferred.']);
+        }
+        if ($destination?->type === $returns && ! in_array($type, self::RETURNS_IN, true)) {
+            throw ValidationException::withMessages(['location' => 'Only returned medicine can go into a returns location.']);
+        }
+        if ($type === StockMovement::TYPE_DISPENSARY_RETURN && ($source !== null || $destination?->type !== $returns)) {
+            throw ValidationException::withMessages(['location' => 'Returned medicine can only go to a returns location.']);
+        }
     }
 
     private function quantity(mixed $value): string

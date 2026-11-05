@@ -38,7 +38,7 @@ class LegacyStockWriterBoundaryTest extends TestCase
 
     public function test_kept_posting_helpers_and_reorder_never_call_the_closed_helpers(): void
     {
-        foreach (['openingBalance', 'transfer', 'debitForDispense', 'recordPurchaseReceipt', 'recordTransferDispatch', 'recordTransferReceipt', 'recordReceiptCorrection', 'recordGovernedChange', 'recordSupplierReturn', 'recordTreatmentUsage', 'creditOperation', 'debitOperation', 'movement'] as $method) {
+        foreach (['openingBalance', 'transfer', 'debitForDispense', 'recordPurchaseReceipt', 'recordTransferDispatch', 'recordTransferReceipt', 'recordReceiptCorrection', 'recordGovernedChange', 'recordSupplierReturn', 'recordTreatmentUsage', 'recordDispensaryReturn', 'creditOperation', 'debitOperation', 'movement'] as $method) {
             $this->assertDoesNotMatchRegularExpression('/LegacyStockPath|->(?:recordAdjustment|recordStocktakeVariance)\s*\(/', $this->body(InventoryMovementService::class, $method), $method);
         }
         $this->assertDoesNotMatchRegularExpression('/LegacyStockPath|->(?:adjust|postStocktake)\s*\(/', $this->body(InventoryControlService::class, 'setReorderLevel'));
@@ -57,6 +57,8 @@ class LegacyStockWriterBoundaryTest extends TestCase
             'recordGovernedChange' => ['app/Domain/Organisation/Inventory/Services/GovernedStockService.php'],
             'recordSupplierReturn' => ['app/Domain/Organisation/Inventory/Services/SupplierReturnService.php'],
             'recordTreatmentUsage' => ['app/Domain/Organisation/Inventory/Services/TreatmentUsageService.php'],
+            // STK-11: called only by the Dispensary return check (DSP-7), which adds its file here when it is built.
+            'recordDispensaryReturn' => [],
             'recordAdjustment' => [],
             'recordStocktakeVariance' => [],
         ];
@@ -104,7 +106,7 @@ class LegacyStockWriterBoundaryTest extends TestCase
     {
         $expected = [
             'movement' => ['creditOperation', 'debitForDispense', 'debitOperation', 'openingBalance', 'recordPurchaseReceipt', 'transfer'],
-            'creditOperation' => ['recordGovernedChange', 'recordTransferReceipt', 'recordTreatmentUsage'],
+            'creditOperation' => ['recordDispensaryReturn', 'recordGovernedChange', 'recordTransferReceipt', 'recordTreatmentUsage'],
             'debitOperation' => ['recordGovernedChange', 'recordReceiptCorrection', 'recordSupplierReturn', 'recordTransferDispatch', 'recordTreatmentUsage'],
         ];
         foreach ($expected as $callee => $callers) {

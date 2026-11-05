@@ -2,6 +2,7 @@
 
 namespace App\Domain\Shared\Services;
 
+use App\Domain\Organisation\Inventory\Models\InventoryLocation;
 use App\Domain\Organisation\Models\Branch;
 use App\Domain\Visit\Billing\Models\PanelClaimPaymentReversal;
 use App\Domain\Visit\Billing\Models\PaymentMethod;
@@ -744,6 +745,7 @@ class ClinicInsightsReportService
             ->where('balances.organisation_id', $actor->organisation_id)
             ->where('locations.organisation_id', $actor->organisation_id)
             ->whereIn('locations.branch_id', $branchIds)
+            ->where('locations.type', '<>', InventoryLocation::TYPE_DISPENSARY_RETURNS)
             ->selectRaw('balances.inventory_location_id, balances.inventory_sku_id, skus.sku_code, items.generic_name, SUM(balances.quantity) as quantity, MAX(COALESCE(levels.reorder_level, 0)) as reorder_level')
             ->groupBy('balances.inventory_location_id', 'balances.inventory_sku_id', 'skus.sku_code', 'items.generic_name')
             ->get();
@@ -754,6 +756,7 @@ class ClinicInsightsReportService
             ->join('inventory_locations as locations', 'locations.id', '=', 'balances.inventory_location_id')
             ->where('batches.organisation_id', $actor->organisation_id)
             ->whereIn('locations.branch_id', $branchIds)
+            ->where('locations.type', '<>', InventoryLocation::TYPE_DISPENSARY_RETURNS)
             ->where('batches.status', 'available')
             ->where('batches.expiry_date', '>=', now()->toDateString())
             ->where('batches.expiry_date', '<=', $expiryEnd)
