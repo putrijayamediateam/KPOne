@@ -115,6 +115,20 @@ test('the control explains why it is unavailable, swaps politely and never calls
     // Exactly one POST, only from submit(): nothing calls automatically after a swap.
     assert.equal(control.match(/router\.post\(/g)?.length, 1);
     assert.doesNotMatch(control, /showLatest[\s\S]*?\bsubmit\(\)/);
+    // Mira: a failed reload is said out loud, the real reason is shown when nobody can be called, and the
+    // doctor sent is the one confirmed with the patient.
+    assert.match(
+        control,
+        /The queue could not be reloaded\. Close this and try again\./,
+    );
+    assert.match(
+        control,
+        /props\.block\.reason \?\? 'Nobody is waiting who can be called now\.'/,
+    );
+    assert.match(control, /doctor_user_id: confirmedDoctorId\.value/);
+    assert.match(control, /for \(let attempt = 0; attempt < 2; attempt\+\+\)/);
+    // Yasmin: the swap is also a visible muted line, not only screen-reader text.
+    assert.match(control, /data-testid="call-next-notice"/);
     // Nobody left: Close only.
     assert.match(control, /\{\{ gone \? 'Close' : 'Cancel' \}\}/);
     assert.match(control, /v-if="confirmed && !gone"\s*ref="confirm"/);

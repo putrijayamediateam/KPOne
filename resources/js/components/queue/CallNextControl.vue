@@ -38,7 +38,11 @@ const emit = defineEmits<{ processing: [busy: boolean] }>();
 
 const open = ref(false);
 const confirmed = ref<CallNextCandidate | null>(null);
+const confirmedDoctorId = ref<number | null>(null);
 const gone = ref(false);
+const goneReason = ref('');
+/** Visible, muted line under the patient card; the same words go to the live region. */
+const notice = ref('');
 const processing = ref(false);
 const paused = ref(false);
 const error = ref('');
@@ -59,8 +63,11 @@ const start = () => {
     }
 
     confirmed.value = { ...props.block.candidate! };
+    confirmedDoctorId.value = props.block.doctorUserId;
     gone.value = false;
+    goneReason.value = '';
     error.value = '';
+    notice.value = '';
     liveMessage.value = '';
     open.value = true;
 };
@@ -73,32 +80,66 @@ const onOpenAutoFocus = (event: Event) => {
     event.preventDefault();
     (confirmRef.value?.$el as HTMLElement | undefined)?.focus();
 };
+const focusTitle = async () => {
+    await nextTick();
+    (titleRef.value?.$el as HTMLElement | undefined)?.focus();
+};
+const latestCandidate = () =>
+    props.block.state === 'ready' ? props.block.candidate : null;
 const showLatest = async () => {
-    await props.refresh();
-    const next = props.block.state === 'ready' ? props.block.candidate : null;
+    let next: CallNextCandidate | null = null;
 
-    if (next === null) {
-        gone.value = true;
-        error.value = '';
-        liveMessage.value = 'Nobody is waiting who can be called now.';
+    try {
+        // A poll already in flight can predate the refusal; poll once more before asking the person again.
+        for (let attempt = 0; attempt < 2; attempt++) {
+            await props.refresh();
+            next = latestCandidate();
+
+            if (!sameCandidate(next, confirmed.value)) {
+                break;
+            }
+        }
+    } catch {
+        error.value =
+            'The queue could not be reloaded. Close this and try again.';
 
         return;
     }
 
-    if (!sameCandidate(next, confirmed.value)) {
-        confirmed.value = { ...next };
+    if (next === null) {
+        // The real reason: nobody left, the doctor became busy, or the room was cleared.
+        goneReason.value =
+            props.block.reason ?? 'Nobody is waiting who can be called now.';
+        gone.value = true;
         error.value = '';
-        liveMessage.value = callNextSwapMessage(next);
-        // Daniel: hold the new Call button for a moment, so a second press meant for the old patient cannot land.
-        paused.value = true;
-        clearTimeout(pauseTimer);
-        pauseTimer = setTimeout(
-            () => (paused.value = false),
-            CALL_NEXT_SWAP_PAUSE_MS,
-        );
-        await nextTick();
-        (titleRef.value?.$el as HTMLElement | undefined)?.focus();
+        notice.value = '';
+        liveMessage.value = goneReason.value;
+        await focusTitle();
+
+        return;
     }
+
+    if (sameCandidate(next, confirmed.value)) {
+        // The board had not caught up yet; never call silently, ask for another press.
+        error.value =
+            'The queue changed. Check the patient and press Call again.';
+
+        return;
+    }
+
+    confirmed.value = { ...next };
+    confirmedDoctorId.value = props.block.doctorUserId;
+    error.value = '';
+    notice.value = callNextSwapMessage(next);
+    liveMessage.value = notice.value;
+    // Daniel: hold the new Call button for a moment, so a second press meant for the old patient cannot land.
+    paused.value = true;
+    clearTimeout(pauseTimer);
+    pauseTimer = setTimeout(
+        () => (paused.value = false),
+        CALL_NEXT_SWAP_PAUSE_MS,
+    );
+    await focusTitle();
 };
 const submit = () => {
     const candidate = confirmed.value;
@@ -114,7 +155,7 @@ const submit = () => {
         '/queue/call-next',
         {
             expected_branch_id: props.branchId,
-            doctor_user_id: props.block.doctorUserId,
+            doctor_user_id: confirmedDoctorId.value,
             visit_number: candidate.visitNumber,
             visit_lock_version: candidate.visitLockVersion,
             queue_lock_version: candidate.queueLockVersion,
@@ -127,7 +168,7 @@ const submit = () => {
             },
             onError: (errors) => {
                 if (errors.next_changed || errors.next_none) {
-                    void showLatest();
+                    void showLatest().catch(() => undefined);
 
                     return;
                 }
@@ -207,7 +248,7 @@ onBeforeUnmount(() => clearTimeout(pauseTimer));
                         >
                         <DialogDescription class="leading-5">{{
                             gone || !confirmed
-                                ? 'Nobody is waiting who can be called now.'
+                                ? goneReason
                                 : callNextDescription(confirmed)
                         }}</DialogDescription>
                     </div>
@@ -248,6 +289,13 @@ onBeforeUnmount(() => clearTimeout(pauseTimer));
                 </p>
             </div>
 
+            <p
+                v-if="notice && !gone"
+                class="-mt-2 text-xs text-muted-foreground"
+                data-testid="call-next-notice"
+            >
+                {{ notice }}
+            </p>
             <p class="sr-only" aria-live="polite" data-testid="call-next-live">
                 {{ liveMessage }}
             </p>
