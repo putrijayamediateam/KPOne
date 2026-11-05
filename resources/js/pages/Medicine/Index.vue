@@ -10,6 +10,7 @@ import LocationPicker from '@/components/catalogue/LocationPicker.vue';
 import PanelTariffEditor from '@/components/catalogue/PanelTariffEditor.vue';
 import SupplierPicker from '@/components/catalogue/SupplierPicker.vue';
 import InputError from '@/components/InputError.vue';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -528,10 +529,11 @@ const toggleDescription = computed(() => {
                             :status="row.isActive ? 'active' : 'inactive'"
                             :tone="row.isActive ? 'success' : 'neutral'"
                         />
-                        <span
+                        <Badge
                             v-if="row.isControlled"
-                            class="inline-block rounded-md bg-amber-100 px-1.5 py-0.5 text-[11px] font-medium text-amber-900 dark:bg-amber-950/70 dark:text-amber-100"
-                            >Controlled</span
+                            variant="outline"
+                            class="border-border bg-card text-foreground"
+                            >Controlled</Badge
                         >
                     </div>
                 </div>
@@ -701,11 +703,12 @@ const toggleDescription = computed(() => {
                                 :status="row.isActive ? 'active' : 'inactive'"
                                 :tone="row.isActive ? 'success' : 'neutral'"
                             />
-                            <span
+                            <Badge
                                 v-if="row.isControlled"
-                                class="ml-1 inline-block rounded-md bg-amber-100 px-1.5 py-0.5 text-[11px] font-medium text-amber-900 dark:bg-amber-950/70 dark:text-amber-100"
+                                variant="outline"
+                                class="ml-1 border-border bg-card text-foreground"
                                 data-testid="controlled-badge"
-                                >Controlled</span
+                                >Controlled</Badge
                             >
                         </td>
                         <td class="text-right">

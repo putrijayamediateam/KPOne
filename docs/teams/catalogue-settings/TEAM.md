@@ -66,7 +66,7 @@ Server checks stay the authority; hiding a control is a usability aid only.
 | Unified Catalogue Setup | One medicine setup flow with tariffs and optional opening stock | #43 |
 | SET-02, SET-05, SET-05b | Medicine details options, preset diagnoses and the picker | #107, #108, #109 |
 | BIZ-01, DOC-01, D02 | Business details, logo, letterhead, branch footer on prints | #119, #128, #189 |
-| **CAT-1 (this team)** | DD-04 and DD-13 fixed: every Pricing field has a visible connected label (per-row fields named after the charge); Pricing becomes charge cards below 768 px; Medicine Catalogue rows show one Edit button plus a named "..." menu (Deactivate or Activate, Drug groups, Mark or Unmark controlled); Medicine and Clinical Service become cards below 1024 px; connected filter labels; Consultation tariff prices labelled on a phone. Frontend only: no backend, payload, route or permission change; no existing assertion changed. Pinned by `tests/Frontend/cat-1-catalogue-screens.test.mjs` | PR to follow |
+| **CAT-1 (this team)** | DD-04 and DD-13 fixed: every Pricing field has a visible connected label (per-row fields named after the charge); Pricing becomes charge cards below 768 px; Medicine Catalogue rows show one Edit button plus a named "..." menu (Deactivate or Activate, Drug groups, Mark or Unmark controlled); Medicine and Clinical Service become cards below 1024 px; connected filter labels; Consultation tariff prices labelled on a phone; neutral Controlled badge. Frontend only: no backend, payload, route or permission change; one owner-approved assertion changed (decision 7). Pinned by `tests/Frontend/cat-1-catalogue-screens.test.mjs` | PR to follow |
 
 ## 6. Owner decisions already made (never ask again)
 
@@ -81,6 +81,11 @@ Server checks stay the authority; hiding a control is a usability aid only.
    (`git push -u origin <branch>`). It is a backup only: no PR, never `main` or another team's branch, never merge,
    never force-push (add new commits). The PR still opens only after "ship it", from the same branch, with latest
    `origin/main` merged first. After a restart on a fresh machine, fetch the branch before continuing.
+7. The Controlled badge on the Medicine Catalogue is a neutral word badge (outline, theme tokens, no amber), as Daniel
+   asked; the one existing assertion in `tests/Frontend/dsp-3-controlled-medicine.test.mjs` ("readable in dark mode",
+   formerly `dark:bg-amber-950/70`) now asserts that badge instead (owner, 2026-11-05, relayed by LUCY).
+8. Publishing a price with an empty amount is refused on the server with a message under the field; a typed 0.00
+   stays allowed. Built as its own small piece, CAT-1b, after CAT-1 (owner, 2026-11-05, relayed by LUCY).
 
 ## 7. Open items and known limits
 
@@ -89,18 +94,13 @@ Server checks stay the authority; hiding a control is a usability aid only.
 - Pilot readiness (BASELINE section 6 items 16 and 17) needs a reviewed catalogue, prices and units, and the footer
   typed per pilot branch. These are setup work by the clinic; this team can make them easier to check.
 - Bulk import of catalogue or prices is not authorised (no import of any kind without the owner).
-- **Waiting for the owner (CAT-1):** Daniel asked for the "Controlled" badge to be a neutral word badge instead of
-  amber. The existing assertion in `dsp-3-controlled-medicine.test.mjs` ("readable in dark mode", which requires
-  `dark:bg-amber-950/70`) pins the amber colour, and the flag's meaning belongs to Dispensary & OTC, so the badge is
-  unchanged until the owner approves changing that assertion.
 - CAT-1 layout choice: Medicine and Clinical Service switch to cards below `lg` (1024 px), not `md` as in GUIDE
   section 6, because at 768 px the catalogue tables still pushed Edit and the row menu out of view (measured: 12
   buttons outside the table frame). Pricing keeps `md`, where its table fits.
-- **Found in CAT-1, not fixed (owner to decide):** on Pricing, publishing with an empty "Amount (RM)" box publishes
-  RM 0.00 without a warning (the page reads an empty box as zero, and the server accepts zero). This is how the page
-  already worked; CAT-1 did not change `publish()`.
+- Found in CAT-1: on Pricing, publishing with an empty "Amount (RM)" box published RM 0.00 without a warning. The
+  owner chose to refuse it (decision 8); fixed in CAT-1b, not in CAT-1.
 - Seen in CAT-1, not built (for the owner): Medicine details shows a "Price tier" tab although SET-01 is skipped;
-  the Controlled badge and Business details inputs use their own colours or styles instead of the shared
+  Business details inputs use their own colours or styles instead of the shared
   components; Business details puts its back link before the page title and uses a 1440 px width instead of the
   form width; Medicine details and Preset diagnoses use raw tables, not `OperationalTable`; the Pricing price book
   dropdown cuts long names at 1440 px.
@@ -136,10 +136,12 @@ Server checks stay the authority; hiding a control is a usability aid only.
    details and Preset diagnoses at 320, 390, 768 and 1440 px in light and dark: labels connected to inputs, one `h1`,
    named icon buttons, no sideways scroll, readable dark mode. Layout, labels and accessibility only: no backend,
    payload, route or permission change.
-2. **CAT-2 Price list check (proposed, owner to confirm).** A read-only page listing every active medicine and
+2. **CAT-1b Refuse an empty price amount (owner decision 8).** Server-side refusal of an empty amount on publish,
+   message under the field, explicit 0.00 still allowed; backend and frontend tests.
+3. **CAT-2 Price list check (proposed, owner to confirm).** A read-only page listing every active medicine and
    service with its Self-pay, default Panel and per-Panel prices, flagging missing or zero prices, to help the
    pilot catalogue review. Existing pricing permissions only.
-3. **CAT-3 Price history (proposed, owner to confirm).** Read-only history of published prices per charge: who
+4. **CAT-3 Price history (proposed, owner to confirm).** Read-only history of published prices per charge: who
    published which amount and when, from the existing versioned price entries.
-4. **CAT-4 Document readiness (proposed, owner to confirm).** On Business details, show per branch whether the
+5. **CAT-4 Document readiness (proposed, owner to confirm).** On Business details, show per branch whether the
    name, address, phone or email, logo and footer are complete, because prints and referral letters depend on them.
