@@ -47,10 +47,18 @@ test('each identifier box on Patient create is a shrinkable one-column grid on p
     );
 });
 
-test('the Quick create identity number box can shrink beside its fixed-width type list', () => {
+test('the Quick create identity row stacks below sm and joins from sm up', () => {
     const quick = read('resources/js/pages/Registration/Create.vue');
     assert.match(
         quick,
-        /class="h-10 w-full min-w-0 flex-1 rounded-r-md border border-l-0 bg-background px-3 text-sm"/,
+        /<div class="flex flex-col gap-2 sm:flex-row sm:gap-0">/,
+    );
+    assert.match(
+        quick,
+        /trigger-class="h-10 w-full sm:w-40 sm:rounded-r-none"/,
+    );
+    assert.match(
+        quick,
+        /class="h-10 w-full min-w-0 rounded-md border bg-background px-3 text-sm sm:flex-1 sm:rounded-l-none sm:border-l-0"/,
     );
 });
