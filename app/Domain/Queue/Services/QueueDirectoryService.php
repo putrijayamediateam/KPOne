@@ -173,6 +173,12 @@ class QueueDirectoryService
             'carryOver' => ['data' => $this->rows($actor, $carryOverEntries, $branch, $now, $eligibleDoctorIds, $visitActionHints), ...$carryOverMeta],
             'serving' => $this->rows($actor, $servingEntries, $branch, $now, $eligibleDoctorIds, $visitActionHints),
             'removed' => $this->rows($actor, $removedEntries, $branch, $now, $eligibleDoctorIds, $visitActionHints, $removedHints),
+            // Q-4: who "Call next" would call. Only the applied doctor filter matters; null when this board cannot call.
+            'callNext' => app(CallNextService::class)->block(
+                $actor,
+                $branch,
+                filled($criteria['doctor_id'] ?? null) ? (int) $criteria['doctor_id'] : null,
+            ),
         ];
 
         if (! $includeStableMetadata) {
