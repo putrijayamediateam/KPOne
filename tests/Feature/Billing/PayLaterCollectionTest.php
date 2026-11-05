@@ -131,7 +131,7 @@ class PayLaterCollectionTest extends BillingTestCase
         $this->selectBranch($this->ca);
         $this->get(route('billing.pay-later-collections', ['page' => 999]))->assertOk()->assertInertia(fn (Assert $page) => $page
             ->where('collections.currentPage', 1)->where('collections.lastPage', 1)->count('collections.data', 2)
-            ->where('collections.data.0', fn ($row) => array_keys(collect($row)->all()) === ['patientName', 'patientNumber', 'visitNumber', 'invoiceNumber', 'visitDate', 'dueDate', 'daysOverdue', 'approvedSen', 'remainingSen', 'url']));
+            ->where('collections.data.0', fn ($row) => array_keys(collect($row)->all()) === ['patientName', 'patientNumber', 'mergedFrom', 'visitNumber', 'invoiceNumber', 'visitDate', 'dueDate', 'daysOverdue', 'approvedSen', 'remainingSen', 'url']));
 
         $org = new Organisation;
         $org->forceFill(['code' => 'UAT_FOREIGN', 'name' => 'Synthetic foreign organisation', 'is_active' => true])->save();
