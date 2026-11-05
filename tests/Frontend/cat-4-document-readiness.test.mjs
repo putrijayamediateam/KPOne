@@ -34,8 +34,14 @@ test('"Letters blocked" names the letters, and a missing footer is a warning', (
         page,
         /row\.status === 'letters_blocked'\s*\? 'danger'\s*: row\.status === 'needs_footer'\s*\? 'warning'\s*: 'success'/,
     );
-    assert.match(service, /\? \['MC', 'referral', 'attendance'\]/);
-    assert.match(service, /\? \['referral', 'attendance'\] : \[\]/);
+    assert.match(
+        service,
+        /\$logoState === 'unavailable' => \['MC', 'referral', 'attendance'\],/,
+    );
+    assert.match(
+        service,
+        /! \$detailsComplete \|\| \$logoState === 'retired' => \['referral', 'attendance'\],/,
+    );
     assert.match(
         service,
         /'status' => \$blockedLetters !== \[\] \? 'letters_blocked' : \(\$hasFooter \? 'ready' : 'needs_footer'\)/,
@@ -73,6 +79,19 @@ test('the active branch can jump to the fix; other branches say how to switch', 
     ]) {
         assert.ok(page.includes(`'${anchor}'`), `no target ${anchor}`);
     }
+});
+
+test('a viewer who cannot edit is sent to an editor unless only the footer is missing', () => {
+    assert.match(
+        page,
+        /const canFix = \(row: Readiness\) =>\s*props\.canEdit \|\| \(row\.detailsComplete && !logoBroken\(row\)\);/,
+    );
+    assert.match(template, /v-if="row\.isActive && canFix\(row\)"/);
+    assert.match(template, /Ask an editor to complete these details\./);
+    assert.match(
+        page,
+        /row\.logoState === 'retired' \|\| row\.logoState === 'unavailable'/,
+    );
 });
 
 test('no logo is fine, the empty state uses the shared component, and the page writes nothing new', () => {

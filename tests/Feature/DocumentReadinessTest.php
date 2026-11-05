@@ -77,7 +77,7 @@ class DocumentReadinessTest extends VisitTestCase
         $this->assertSame(['print footer'], $row['missing']);
         $this->assertSame([], $row['blockedLetters']);
         $this->assertTrue($row['isActive']);
-        $this->assertFalse($row['hasLogo']);
+        $this->assertSame('none', $row['logoState']);
 
         $this->footer();
         $row = $this->row();
@@ -117,7 +117,7 @@ class DocumentReadinessTest extends VisitTestCase
         $this->footer();
 
         $this->logo();
-        $this->assertSame(['ready', true], [$this->row()['status'], $this->row()['hasLogo']]);
+        $this->assertSame(['ready', 'ok'], [$this->row()['status'], $this->row()['logoState']]);
 
         $this->logo(intact: false);
         $row = $this->row();
@@ -128,6 +128,24 @@ class DocumentReadinessTest extends VisitTestCase
         $this->logo(onDisk: false);
         Storage::disk('local')->delete('business-details/synthetic.png');
         $this->assertSame(['MC', 'referral', 'attendance'], $this->row()['blockedLetters']);
+        $this->assertSame('unavailable', $this->row()['logoState']);
+    }
+
+    public function test_a_retired_logo_blocks_referral_and_attendance_but_not_the_mc(): void
+    {
+        $this->saveDetails();
+        $this->footer();
+        $this->logo();
+        // The assembler drops a retired logo, so the MC issues without one; the letters refuse a configured logo that
+        // is gone (DocumentLetterheadCapture).
+        DB::table('business_detail_assets')->where('organisation_id', $this->organisation->id)->update(['retired_at' => now()]);
+
+        $row = $this->row();
+        $this->assertSame('letters_blocked', $row['status']);
+        $this->assertSame(['referral', 'attendance'], $row['blockedLetters']);
+        $this->assertSame(['logo (configured but retired)'], $row['missing']);
+        $this->assertSame('retired', $row['logoState']);
+        $this->assertTrue($row['detailsComplete']);
     }
 
     public function test_every_active_branch_is_listed_with_the_active_one_first_and_inactive_ones_left_out(): void

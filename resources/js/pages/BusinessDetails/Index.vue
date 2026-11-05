@@ -44,7 +44,8 @@ type Readiness = {
     status: 'ready' | 'needs_footer' | 'letters_blocked';
     missing: string[];
     blockedLetters: string[];
-    hasLogo: boolean;
+    logoState: 'none' | 'ok' | 'retired' | 'unavailable';
+    detailsComplete: boolean;
     hasFooter: boolean;
 };
 const props = withDefaults(
@@ -68,12 +69,15 @@ const readinessTone = (row: Readiness): 'danger' | 'warning' | 'success' =>
           ? 'warning'
           : 'success';
 const logoBroken = (row: Readiness) =>
-    row.missing.some((item) => item.startsWith('logo'));
+    row.logoState === 'retired' || row.logoState === 'unavailable';
+// A viewer without edit rights can fix only the footer; the rest needs an editor.
+const canFix = (row: Readiness) =>
+    props.canEdit || (row.detailsComplete && !logoBroken(row));
 const shownMissing = (row: Readiness) => row.missing.slice(0, 2);
 const hiddenMissing = (row: Readiness) => row.missing.slice(2);
 // Where the fix lives in the form below (active branch only).
 const fixTarget = (row: Readiness) =>
-    row.missing.length === 1 && row.missing[0] === 'print footer'
+    row.detailsComplete && !logoBroken(row)
         ? '#print-footer-heading'
         : logoBroken(row)
           ? '#logo'
@@ -333,7 +337,7 @@ const reload = () =>
                             />
                         </div>
                         <p
-                            v-if="!row.hasLogo && !logoBroken(row)"
+                            v-if="row.logoState === 'none'"
                             class="text-xs text-muted-foreground"
                         >
                             No logo (optional)
@@ -341,7 +345,7 @@ const reload = () =>
                     </div>
                     <div v-if="row.missing.length" class="min-w-0 text-xs">
                         <Button
-                            v-if="row.isActive"
+                            v-if="row.isActive && canFix(row)"
                             variant="ghost"
                             size="sm"
                             class="min-h-11 md:min-h-8"
@@ -353,6 +357,11 @@ const reload = () =>
                                 >Fix below</a
                             >
                         </Button>
+                        <span
+                            v-else-if="row.isActive"
+                            class="text-muted-foreground"
+                            >Ask an editor to complete these details.</span
+                        >
                         <span v-else class="text-muted-foreground"
                             >Switch to {{ row.name }} in the header to
                             edit.</span

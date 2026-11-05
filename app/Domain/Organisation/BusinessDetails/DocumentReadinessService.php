@@ -13,8 +13,9 @@ use Illuminate\Support\Facades\Storage;
  *
  * It repeats, without writing anything, the checks the document code already makes at issue time:
  * - Referral and attendance letters (DocumentLetterheadCapture) need the branch clinic name, a complete address and a
- *   phone or email, and a configured logo that is present and unchanged.
- * - The Medical Certificate (MedicalCertificateSnapshot) needs only a configured logo to be available.
+ *   phone or email, and refuse a configured logo that is retired, missing on disk or changed.
+ * - The Medical Certificate (MedicalCertificateSnapshot) checks only the logo file: missing on disk or changed blocks
+ *   it; a retired logo is dropped and the MC issues without one.
  * - Invoices and receipts print without a footer (D02), so a missing footer is a warning, not a block.
  */
 final class DocumentReadinessService
@@ -26,7 +27,7 @@ final class DocumentReadinessService
     /**
      * @return array<int, array{
      *     branchId: int, name: string, isActive: bool, status: string,
-     *     missing: array<int, string>, blockedLetters: array<int, string>, hasLogo: bool, hasFooter: bool
+     *     missing: array<int, string>, blockedLetters: array<int, string>, logoState: string, detailsComplete: bool, hasFooter: bool
      * }>
      */
     public function branches(User $actor): array
@@ -58,7 +59,10 @@ final class DocumentReadinessService
             if ($blank('phone') && $blank('email')) {
                 $missing[] = 'phone or email';
             }
-            if ($logoState === 'broken') {
+            $detailsComplete = $missing === [];
+            if ($logoState === 'retired') {
+                $missing[] = 'logo (configured but retired)';
+            } elseif ($logoState === 'unavailable') {
                 $missing[] = 'logo (configured but unavailable)';
             }
             $hasFooter = trim((string) $footers->get($branch->id)?->text) !== '';
@@ -66,9 +70,11 @@ final class DocumentReadinessService
                 $missing[] = 'print footer';
             }
 
-            $blockedLetters = $logoState === 'broken'
-                ? ['MC', 'referral', 'attendance']
-                : (count(array_diff($missing, ['print footer'])) > 0 ? ['referral', 'attendance'] : []);
+            $blockedLetters = match (true) {
+                $logoState === 'unavailable' => ['MC', 'referral', 'attendance'],
+                ! $detailsComplete || $logoState === 'retired' => ['referral', 'attendance'],
+                default => [],
+            };
 
             return [
                 'branchId' => (int) $branch->id,
@@ -77,7 +83,8 @@ final class DocumentReadinessService
                 'status' => $blockedLetters !== [] ? 'letters_blocked' : ($hasFooter ? 'ready' : 'needs_footer'),
                 'missing' => $missing,
                 'blockedLetters' => $blockedLetters,
-                'hasLogo' => $logoState === 'ok',
+                'logoState' => $logoState,
+                'detailsComplete' => $detailsComplete,
                 'hasFooter' => $hasFooter,
             ];
         });
@@ -86,7 +93,10 @@ final class DocumentReadinessService
         return $rows->sortBy(fn (array $row): string => ($row['isActive'] ? '0' : '1').mb_strtolower($row['name']))->values()->all();
     }
 
-    /** 'none' (no logo configured, fine), 'ok', or 'broken' (configured but retired, missing or changed on disk). */
+    /**
+     * 'none' (no logo configured, fine), 'ok', 'retired' (configured but retired or gone: letters refuse it, the MC
+     * drops it) or 'unavailable' (file missing on disk or changed: every letter refuses it).
+     */
     private function logoState(int $organisationId): string
     {
         $assetId = OrganisationBusinessProfile::query()->where('organisation_id', $organisationId)->value('logo_asset_id');
@@ -95,10 +105,13 @@ final class DocumentReadinessService
         }
         $asset = BusinessDetailAsset::query()->where('organisation_id', $organisationId)->whereKey($assetId)->whereNull('retired_at')->first();
         $disk = Storage::disk('local');
-        if ($asset === null || ! $disk->exists($asset->path)) {
-            return 'broken';
+        if ($asset === null) {
+            return 'retired';
+        }
+        if (! $disk->exists($asset->path) || $disk->size($asset->path) !== (int) $asset->bytes) {
+            return 'unavailable';
         }
 
-        return hash_equals((string) $asset->sha256, hash('sha256', (string) $disk->get($asset->path))) ? 'ok' : 'broken';
+        return hash_equals((string) $asset->sha256, hash('sha256', (string) $disk->get($asset->path))) ? 'ok' : 'unavailable';
     }
 }
