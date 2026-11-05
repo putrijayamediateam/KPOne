@@ -118,11 +118,14 @@ coordinator at the owner's request (2026-11-05).
   390 px, light and dark, for any screen change.
 - Commit, push and PR only after the owner says "ship it"; never merge.
 - Record every new owner decision in section 6 and every finished piece in section 5, in the same PR.
+- **Never edit `docs/BASELINE.md`** (owner rule, 2026-11-05): record each finished piece only here (section 5
+  history, section 6 for new owner decisions). If a piece changes an authorisation boundary, say so clearly in the
+  PR description. The coordinator records all BASELINE updates in one docs-only PR after each batch of merges.
 
 ## 9. Backlog (next pieces, in order)
 
 Chosen by the owner on 2026-11-05; built one by one in this order, each its own PR. Choosing them is the owner's
-authorisation to build them; record that in `docs/BASELINE.md` with the first PR of each.
+authorisation to build them; the coordinator records it in `docs/BASELINE.md`.
 
 1. **REG-1 Phone fit.** *Built and owner-approved for PR 2026-11-05; pending merge.* The Registration result page is about 567 px wide on a 390 px phone and scrolls
    sideways. Make it fit at 390 px with no horizontal page scroll. Layout only: no backend, permission or data
