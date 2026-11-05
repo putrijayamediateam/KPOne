@@ -111,7 +111,12 @@ test('settings offer the three modes in privacy order with help text tied to the
         [...order].sort((a, b) => a - b),
         order,
     );
-    assert.match(settings, /Number and short name \(A-012 · Ahmad Ismail\)/);
+    // Daniel: the option stays short so it fits a closed 390 px select; the example lives in the help text.
+    assert.match(
+        settings,
+        /<option value="short_name">\s*Number and short name\s*<\/option>/,
+    );
+    assert.match(settings, /For example A-012 · Ahmad Ismail\./);
     assert.match(settings, /aria-describedby="call-display-mode-help"/);
     assert.match(settings, /id="call-display-mode-help"/);
     assert.match(settings, /No patient name is shown or spoken\./);

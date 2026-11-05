@@ -94,7 +94,7 @@ const callModeHelp = computed(
         ({
             number: 'The TV and the spoken call use the queue number only. No patient name is shown or spoken.',
             short_name:
-                "The TV shows and speaks the queue number and the first two words of the patient's name (only the first word if both are long), without bin, binti, a/l or a/p. Everyone in the waiting room sees and hears part of the name.",
+                "The TV shows and speaks the queue number and the first two words of the patient's name (only the first word if both are long), without bin, binti, a/l or a/p. For example A-012 · Ahmad Ismail. Everyone in the waiting room sees and hears part of the name.",
             name: "The TV shows and speaks each patient's full registered name to everyone in the waiting room. This is the least private choice.",
         })[
             settingsForm.call_display_mode as 'number' | 'short_name' | 'name'
@@ -392,7 +392,7 @@ const removePoster = (posterId: string) => {
                             Queue number (A-001, B-001)
                         </option>
                         <option value="short_name">
-                            Number and short name (A-012 · Ahmad Ismail)
+                            Number and short name
                         </option>
                         <option value="name">
                             Patient full name (as registered)
