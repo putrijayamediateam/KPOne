@@ -24,9 +24,16 @@ test('each public QR back button is named "Kembali" on the button, with the arro
     }
 });
 
-test('the shared select names its open option list with the same label as its trigger', () => {
+test('the shared select names its open option list the same way as its trigger', () => {
     const select = read(
         'resources/js/components/ui/select/OperationalSelect.vue',
     );
-    assert.match(select, /<SelectContent\s+:aria-label="label"/);
+    // The trigger uses aria-labelledby when a caller passes labelledby, otherwise aria-label; the list matches it.
+    assert.match(
+        select,
+        /:aria-label="labelledby \? undefined : label"\s+:aria-labelledby="labelledby"/,
+    );
+    const content = select.match(/<SelectContent[\s\S]*?>/)?.[0] ?? '';
+    assert.match(content, /:aria-label="labelledby \? undefined : label"/);
+    assert.match(content, /:aria-labelledby="labelledby"/);
 });

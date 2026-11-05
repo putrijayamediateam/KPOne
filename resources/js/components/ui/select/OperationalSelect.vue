@@ -66,7 +66,8 @@ const update = (value: unknown) => {
             <SelectValue :placeholder="placeholder" />
         </SelectTrigger>
         <SelectContent
-            :aria-label="label"
+            :aria-label="labelledby ? undefined : label"
+            :aria-labelledby="labelledby"
             :avoid-collisions="contentAvoidCollisions"
             :class="contentAvoidCollisions ? undefined : 'w-(--reka-select-trigger-width) max-w-(--reka-select-trigger-width) [&_span]:min-w-0 [&_span]:whitespace-normal [overflow-wrap:anywhere]'"
         >
