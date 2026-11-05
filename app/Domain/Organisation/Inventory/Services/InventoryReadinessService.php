@@ -114,7 +114,24 @@ final class InventoryReadinessService
             return [...(array) $row, 'mapped' => $map !== null && (int) $map->maximum_paths === 1, 'ambiguous' => $map !== null && (int) $map->maximum_paths > 1, 'opening_count' => (int) ($opening->recorded ?? 0), 'signed_count' => (int) ($opening->verified ?? 0)];
         })->all();
 
-        return ['branchId' => $branch->id, 'branchName' => $branch->name, 'rows' => $rows, 'q' => $data['q'] ?? '', 'page' => $page->currentPage(), 'lastPage' => $page->lastPage(), 'total' => $page->total(), 'pending' => collect($pending->items())->map(fn ($row): array => [...(array) $row, 'canVerify' => $actor->can(self::VERIFY) && $row->actor_user_id !== $actor->id])->values()->all(), 'pendingLimited' => $pending->total() > 25, 'openingPage' => $pending->currentPage(), 'openingLastPage' => $pending->lastPage(), 'canVerifyUnits' => $actor->can(InventoryReferenceAdministrationService::PERMISSION)];
+        return ['branchId' => $branch->id, 'branchName' => $branch->name, 'rows' => $rows, 'q' => $data['q'] ?? '', 'page' => $page->currentPage(), 'lastPage' => $page->lastPage(), 'total' => $page->total(), 'pending' => collect($pending->items())->map(fn ($row): array => [...(array) $row, 'canVerify' => $actor->can(self::VERIFY) && $row->actor_user_id !== $actor->id])->values()->all(), 'pendingLimited' => $pending->total() > 25, 'openingPage' => $pending->currentPage(), 'openingLastPage' => $pending->lastPage(), 'canVerifyUnits' => $actor->can(InventoryReferenceAdministrationService::PERMISSION),
+            'sharedBarcodes' => app(InventoryCodeLookupService::class)->sharedCodes($actor->organisation_id),
+            'canFixBarcodes' => $actor->can(InventoryReferenceAdministrationService::PERMISSION)];
+    }
+
+    /**
+     * STK-9: change or clear one SKU's barcode from the shared-codes list, through the governed SKU update
+     * (existing reference permission, organisation lock, one-code-one-SKU check and audit).
+     *
+     * @param  array<string, mixed>  $input
+     */
+    public function changeBarcode(User $actor, string $skuPublicId, array $input): void
+    {
+        $data = Validator::make($input, ['barcode' => ['nullable', 'string', 'max:100']])->validate();
+        $sku = InventorySku::query()->where('public_id', $skuPublicId)->where('organisation_id', $actor->organisation_id)->first();
+        abort_unless($sku !== null, 404);
+        $barcode = isset($data['barcode']) ? trim((string) $data['barcode']) : '';
+        app(InventoryReferenceAdministrationService::class)->updateSku($actor, $sku, ['barcode' => $barcode === '' ? null : $barcode]);
     }
 
     private function refuse(string $field, string $message): never
