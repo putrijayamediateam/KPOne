@@ -16,6 +16,9 @@ export type PatientBoardRow = {
     key: string;
     canWhatsapp: boolean;
     callHold?: CallReadiness | null;
+    treatmentProgress?: TreatmentProgress | null;
+    // Minutes since the open step started, or since it was marked done.
+    treatmentMinutes?: number | null;
     patientName: string;
     patientNumber: string;
     visitNumber: string;
@@ -53,4 +56,16 @@ export type PatientBoardRow = {
         callDispensary?: boolean;
     };
     source: unknown;
+};
+
+// Q-2 treatment progress on a Serving consultation. Board and consultation page only; never the TV.
+export type TreatmentProgress = {
+    id: number | null;
+    code: string | null;
+    label: string | null;
+    state: 'started' | 'done' | null;
+    startedAt: string | null;
+    doneAt: string | null;
+    lockVersion: number | null;
+    canManage: boolean;
 };

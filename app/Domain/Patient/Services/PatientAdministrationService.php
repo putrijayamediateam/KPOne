@@ -389,7 +389,10 @@ class PatientAdministrationService
      */
     private function auditChangedGroup(Patient $patient, User $actor, string $event, array $fields, array $before, array $after): void
     {
-        $changed = array_values(array_filter($fields, fn (string $field) => ($before[$field] ?? null) !== ($after[$field] ?? null)));
+        // Dates are cast to objects, which are never identical; compare the stored day instead (REG-4 found every
+        // edit logging "date_of_birth" as changed).
+        $value = fn (mixed $value): mixed => $value instanceof \DateTimeInterface ? $value->format('Y-m-d') : $value;
+        $changed = array_values(array_filter($fields, fn (string $field) => $value($before[$field] ?? null) !== $value($after[$field] ?? null)));
         if ($changed !== []) {
             $this->audit->record($event, $patient, [
                 'changed_fields' => $changed,

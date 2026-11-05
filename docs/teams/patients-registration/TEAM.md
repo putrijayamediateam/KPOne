@@ -9,10 +9,13 @@ updates it in the same PR as the code.
 | Role | Name | Job |
 |---|---|---|
 | Lead | **Nurul** | Plans each piece, builds it (backend, pages, tests), keeps this file current |
-| Reviewer | **Daniel** | Checks every piece against the rules below, the tests and the owner's decisions before it reaches the owner |
+| Reviewer | **Hafiz** | Checks every piece against the rules below, the tests and the owner's decisions before it reaches the owner |
+| Designer | **Balqis** | Sketches every screen change before it is built and checks the screenshots before hand-off |
 
-Both are Claude builder sessions working for the owner through the coordinator session. Names chosen by the
-coordinator at the owner's request (2026-11-05).
+All are Claude sessions working for the owner through the coordinator session. Names chosen by the coordinator at
+the owner's request (2026-11-05). The Reviewer was called Daniel until the owner set up the Design team
+(2026-11-05): **Daniel** is now the Lead UI/UX Designer for all teams (`docs/teams/design/TEAM.md`), and this
+team's Reviewer is Hafiz, with the same role and rules.
 
 ## 2. What this area covers
 
@@ -54,6 +57,7 @@ coordinator at the owner's request (2026-11-05).
 | `visits.view.branch`, `visits.history.view.branch` | Director, CA, CA Supervisor, Resident Doctor | Open a visit and its history |
 | `visits.create.branch`, `visits.update.branch`, `visits.cancel.branch` | Director, CA, CA Supervisor | Register, edit, cancel a visit |
 | `catalogue.settings.manage.organisation` | Director, Administrator, Finance Officer, Panel Officer | Registration settings |
+| `patients.history.view.organisation` | Director, CA Supervisor | Patient change history on the patient page (REG-4) |
 | `patients.merge.propose.organisation` | Director, CA, CA Supervisor | Propose a merge or unmerge, withdraw own request (REG-3) |
 | `patients.merge.approve.organisation` | Director, CA Supervisor | Approve or reject someone else's merge request (REG-3) |
 
@@ -78,7 +82,8 @@ coordinator at the owner's request (2026-11-05).
 | TAB-COUNTS-1 | Tab counts on the Registration board | #210 |
 | REG-1 | Visit result page (`Registration/Show.vue`) fits a phone: action buttons and status badges wrap, visit number stays on one line, long unbroken text breaks; layout only | #221 (`d304476`) |
 | REG-2 | Phone and IC/Passport messages in English everywhere (staff screens, server and public QR form); QR Intake tab and QR review list visit purposes in English; rest of the public QR form unchanged | #228 (`bf5b1b2`) |
-| REG-3 | Two-person patient merge by link: the duplicate gets a pointer to the kept record, nothing is moved; propose, approve by a different person, reject, withdraw, unmerge; refusals for unfinished visits, open QR check-ins and allergies missing from the kept record; search, duplicate check, QR match, consultation history and outstanding bills follow the kept record; two new permissions by additive migration | pending (branch `feature/reg-3-patient-merge`) |
+| REG-3 | Two-person patient merge by link: the duplicate gets a pointer to the kept record, nothing is moved; propose, approve by a different person, reject, withdraw, unmerge; refusals for unfinished visits, open QR check-ins and allergies missing from the kept record; search, duplicate check, QR match, consultation history and outstanding bills follow the kept record; two new permissions by additive migration | #239 (`5775833`) |
+| REG-4 | Patient change history on the patient page for CA Supervisor and Director: who changed which parts of the record and when, from existing audit rows, field names only (never values); changes only; first 10 rows, older rows by cursor; includes the merged records' rows, labelled; replaces the raw "Authorized activity" list; one new permission by additive migration; fixes every edit logging "date_of_birth" as changed | pending (branch `feature/reg-4-patient-change-history`) |
 
 ## 6. Owner decisions already made (never ask again)
 
@@ -118,6 +123,13 @@ coordinator at the owner's request (2026-11-05).
     2026-11-05): only the existing `patients.identifiers.manage.organisation` holders (CA Supervisor, Director), audited
     as today. It is how the IC or passport is freed for the kept record; adding or replacing an identifier on a
     merged-away record stays refused.
+16. **REG-4 patient change history (owner answers 2026-11-05):** a new view-only permission
+    `patients.history.view.organisation` for CA Supervisor and Director only, by an additive migration; changes only
+    (WhatsApp opens and other views are not listed); it **replaces** the older raw "Authorized activity" list, so HR
+    Manager and Technical Admin no longer see patient history on the patient page; the one existing assertion that
+    listed the patient detail keys (`WhatsAppLinkBoundaryTest`, `activity` removed) was changed with approval.
+17. **Every screen change goes through the team designer** (owner decision 2026-11-05, relayed by LUCY): see
+    section 8.
 
 ## 7. Open items and known limits
 
@@ -137,7 +149,11 @@ coordinator at the owner's request (2026-11-05).
 - Patient create page (`/patients/create`) is 433 px wide on a 390 px phone with the form errors shown: the phone
   number and email inputs stick out of the Contact card. Already so before REG-2 (found while taking REG-2
   screenshots, 2026-11-05); not fixed. A candidate for a small layout piece like REG-1.
-- REG-3 known limits (built 2026-11-05, pending merge). Not built yet from the design note, each a candidate
+- REG-4 known limits (built 2026-11-05, pending merge). Audit rows written before REG-4 list "Date of birth" on
+  every personal-details edit, because of the comparison bug REG-4 fixed; those old rows are not rewritten. Only
+  events recorded with the patient as subject appear: visit, billing, clinical and QR changes are elsewhere. Times
+  show in the viewer's active branch time zone.
+- REG-3 known limits (merged in PR #239). Not built yet from the design note, each a candidate
   follow-up: the "merged from KP-xxxx" note on search rows; the Invoices page, pay-later list and patient-page
   visit history listing both records' visits (outstanding bills and the doctor's previous consultations already
   do); the duplicate's problem list and guardian contact shown on the kept record. No two-process PostgreSQL
@@ -160,6 +176,11 @@ coordinator at the owner's request (2026-11-05).
   idempotency where retried, and a structural audit row with **no NRIC, phone, address or clinical text**.
 - Never widen who sees identity data, never weaken masking or duplicate checks, without an owner decision in section 6.
 - Do not change any existing test assertion without the owner's approval.
+- **Design (owner decision 2026-11-05):** for any piece that changes a screen, run Balqis (the team designer) as
+  a subagent **before building** to sketch the layout (components, phone behaviour at 390 px, empty, loading and
+  error states, wording) from the existing patterns and, once merged, `docs/design/GUIDE.md`; and **before hand-off**
+  to check the 390 and 1440 px light and dark screenshots against `docs/design/CHECKLIST.md`. A new page or a page
+  layout change also goes to Daniel (Lead UI/UX Designer) for a look, through LUCY.
 - Full gate before hand-off, on a task-owned PostgreSQL 18 database: backend tests, Pint, frontend types,
   lint, format, build, frontend tests, `migrate:fresh --seed`, `git diff --check`; screenshots at 1440 and
   390 px, light and dark, for any screen change.
@@ -182,12 +203,12 @@ authorisation to build them; the coordinator records it in `docs/BASELINE.md`.
    Make them **English** (owner decision 2026-11-05); "Panggil semula" stays. Update any exact-text test only
    with the owner's approval, listing each one first. Tell the owner if the Malay CA guide
    (`docs/guides/ms/`) needs a matching update.
-3. **REG-3 Merge duplicate patients.** *Design approved 2026-11-05 ([REG-3-DESIGN.md](REG-3-DESIGN.md)); built,
-   awaiting the owner's "ship it".* Two-person merge (propose, then a different person approves), the
+3. **REG-3 Merge duplicate patients.** *Merged in PR #239 as `5775833` (design:
+   [REG-3-DESIGN.md](REG-3-DESIGN.md)).* Two-person merge (propose, then a different person approves), the
    merged-away record kept hidden and never deleted, all visits, allergies, documents and invoices pointing to
    the kept record, unmerge with the same approval, full structural audit with no identity values. Needs an
    owner-approved permission migration (new narrow propose/approve permissions). Touches every area's
    patient links, so write a short design note first and show the owner before building.
-4. **REG-4 Patient change history.** A read-only list on the patient page of who changed which fields and
+4. **REG-4 Patient change history.** *Built 2026-11-05, awaiting the owner's "ship it".* A read-only list on the patient page of who changed which fields and
    when, from existing audit rows; field names only, never old or new values; CA Supervisor and Director only
    (owner decision 2026-11-05), likely a new narrow view permission by owner-approved migration.

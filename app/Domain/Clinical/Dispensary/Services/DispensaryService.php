@@ -22,6 +22,7 @@ use App\Domain\Clinical\Models\TreatmentPlanMedicineOrder;
 use App\Domain\Clinical\Services\CheckoutEvidenceService;
 use App\Domain\Clinical\Services\ConsultationHoldService;
 use App\Domain\Clinical\Services\ConsultationLocks;
+use App\Domain\Clinical\Services\PatientAllergyService;
 use App\Domain\Identity\Models\StaffBranchAssignment;
 use App\Domain\Identity\Models\StaffProfile;
 use App\Domain\Organisation\Inventory\Models\InventoryBatch;
@@ -44,7 +45,7 @@ use Illuminate\Validation\ValidationException;
 
 class DispensaryService
 {
-    public function __construct(private DispensaryAuthorityService $authority, private DispensarySafetyValidator $safety, private InventoryMovementService $inventory, private AuditRecorder $audit, private DispensaryAllergyMatcher $allergyMatcher) {}
+    public function __construct(private DispensaryAuthorityService $authority, private DispensarySafetyValidator $safety, private InventoryMovementService $inventory, private AuditRecorder $audit, private DispensaryAllergyMatcher $allergyMatcher, private PatientAllergyService $allergies) {}
 
     /** @param array<string,mixed> $attributes */
     public function start(User $actor, DispensaryCase $case, array $attributes): DispensaryCase
@@ -497,6 +498,7 @@ class DispensaryService
     {
         return $this->caTransaction($actor, $case, $attributes, 'dispensary.update.branch', function ($context) use ($attributes): void {
             [$actor,$branch,$case,$handoff] = $context;
+            $profile = $context[9];
             if ($case->case_type !== DispensaryCase::TYPE_OTC) {
                 throw ValidationException::withMessages(['case' => 'Allergy confirmation by the CA applies to OTC cases only.']);
             }
@@ -505,14 +507,41 @@ class DispensaryService
             if (! in_array($statement, ['none', 'has_allergy'], true)) {
                 throw ValidationException::withMessages(['allergy_statement' => 'Choose what the patient reported about allergies.']);
             }
+            // DSP-5: "has an allergy" needs the allergy itself on the patient's profile, so the DSP-1 warning can match it.
+            if ($statement === 'has_allergy' && ! ($profile && PatientAllergyRecord::query()->where('patient_allergy_profile_id', $profile->id)->where('status', PatientAllergyRecord::STATUS_ACTIVE)->exists())) {
+                throw ValidationException::withMessages(['allergy_statement' => 'Add the allergy before you confirm.']);
+            }
             $handoff->forceFill(['otc_allergy_statement' => $statement, 'otc_allergy_confirmed_at' => now()->utc()])->save();
             $case->forceFill(['lock_version' => $case->lock_version + 1])->save();
             $this->audit->record('dispensary.otc_allergy_confirmed', $case, ['record_version' => $case->lock_version], $actor, $branch);
         });
     }
 
+    /**
+     * DSP-5: the CA adds an allergy record for the patient of an open OTC case they handle (add only). The
+     * Dispensary transaction checks the permission, the branch and the case, and locks the patient and the allergy
+     * profile first; the allergy service then writes the record, a new profile version and its audits.
+     *
+     * @param  array<string,mixed>  $attributes
+     */
+    public function addOtcAllergy(User $actor, DispensaryCase $case, array $attributes): DispensaryCase
+    {
+        return $this->caTransaction($actor, $case, $attributes, 'allergies.record_otc.branch', function ($context) use ($attributes): void {
+            [$actor, $branch, $case, $handoff] = $context;
+            if ($case->case_type !== DispensaryCase::TYPE_OTC) {
+                throw ValidationException::withMessages(['case' => 'Allergies are added here for OTC cases only.']);
+            }
+            $this->assertEditable($actor, $case);
+            $this->allergies->addForOtcCase($actor, $branch, $case, $attributes);
+            // A new allergy reopens the statement: the CA confirms again with the allergy now on file.
+            $handoff->forceFill(['otc_allergy_statement' => null, 'otc_allergy_confirmed_at' => null])->save();
+            $case->forceFill(['lock_version' => $case->lock_version + 1])->save();
+            $this->audit->record('dispensary.otc_allergy_added', $case, ['record_version' => $case->lock_version], $actor, $branch);
+        });
+    }
+
     /** @param Collection<int,DispensaryItem> $items */
-    private function assertOtcCompletable(User $actor, DispensaryCase $case, DispensaryHandoff $handoff, Collection $items, Visit $visit): void
+    private function assertOtcCompletable(User $actor, DispensaryCase $case, DispensaryHandoff $handoff, Collection $items, Visit $visit, ?PatientAllergyProfile $profile): void
     {
         if ($case->status !== DispensaryCase::STATUS_DISPENSING || $case->current_handler_user_id !== $actor->id || $handoff->status !== DispensaryHandoff::STATUS_OPEN
             || $visit->status !== Visit::STATUS_REGISTERED || $visit->visit_type !== 'otc') {
@@ -523,6 +552,37 @@ class DispensaryService
         }
         if (! $items->contains(fn (DispensaryItem $item): bool => $item->change_state !== DispensaryItem::CHANGE_REMOVED && (float) $item->quantity_dispensed > 0)) {
             throw ValidationException::withMessages(['items' => 'Add at least one medicine to dispense before completing.']);
+        }
+        $this->assertAllergyMatchesConfirmed($items, $profile);
+    }
+
+    /**
+     * DSP-5: an allergy can be recorded after a medicine line was saved (DSP-1 only checks at save). Before
+     * completing, every line that matches an active allergy must have a confirmation for that allergy.
+     *
+     * @param  Collection<int,DispensaryItem>  $items
+     */
+    private function assertAllergyMatchesConfirmed(Collection $items, ?PatientAllergyProfile $profile): void
+    {
+        if (! $profile) {
+            return;
+        }
+        $records = PatientAllergyRecord::query()->where('patient_allergy_profile_id', $profile->id)->where('organisation_id', $profile->organisation_id)
+            ->where('status', PatientAllergyRecord::STATUS_ACTIVE)->orderBy('id')->get();
+        if ($records->isEmpty()) {
+            return;
+        }
+        foreach ($items as $item) {
+            if ($item->change_state === DispensaryItem::CHANGE_REMOVED || (float) $item->quantity_dispensed <= 0) {
+                continue;
+            }
+            $medicine = MedicineCatalogueItem::query()->whereKey($item->medicine_catalogue_item_id)->where('organisation_id', $profile->organisation_id)->first();
+            $matches = $this->allergyMatcher->matches($records, [$item->medicine_name_snapshot, $medicine?->display_name, $medicine?->generic_name, ...($medicine?->allergyGroupList() ?? [])]);
+            foreach ($matches as $record) {
+                if (! DispensaryAllergyConfirmation::query()->where('dispensary_item_id', $item->id)->where('patient_allergy_record_id', $record->id)->exists()) {
+                    throw ValidationException::withMessages(['allergy_confirmation' => 'A medicine on this case may match an allergy recorded after the medicine was saved. Tick "I have checked with the patient/doctor" on that medicine and save it again before completing.']);
+                }
+            }
         }
     }
 
@@ -604,7 +664,7 @@ class DispensaryService
             // DS-01a: pressing Complete is the CA's own verification of the final list, after the doctor's;
             // it is stamped on the handoff below. The doctor's allergy confirmation stands (owner decision).
             if ($case->case_type === DispensaryCase::TYPE_OTC) {
-                $this->assertOtcCompletable($actor, $case, $handoff, $items, $visit);
+                $this->assertOtcCompletable($actor, $case, $handoff, $items, $visit, $profile);
             } else {
                 if ($case->status !== DispensaryCase::STATUS_DISPENSING || $case->current_handler_user_id !== $actor->id || $handoff->status !== DispensaryHandoff::STATUS_OPEN || $visit->status !== Visit::STATUS_REGISTERED || $queue->status !== QueueEntry::STATUS_REMOVED || $queue->removal_reason !== 'sent_to_dispensary' || $encounter->status !== ClinicalEncounter::STATUS_IN_PROGRESS) {
                     $this->stale('case');

@@ -11,6 +11,7 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { Button } from '@/components/ui/button';
 import { OperationalTabs } from '@/components/ui/tabs';
 import { useCallReadinessAlerts } from '@/composables/useCallReadinessAlerts';
+import { useTreatmentDoneAlerts } from '@/composables/useTreatmentDoneAlerts';
 import { requestJson } from '@/lib/json-client';
 import { createQueuePollingLifecycle } from '@/lib/queue-polling';
 
@@ -22,6 +23,8 @@ type Counts = {
     notReady: number;
 };
 const readyAlerts = useCallReadinessAlerts(false);
+// Q-2: count only, for the attending doctor's own patients whose treatment is done.
+const treatmentAlerts = useTreatmentDoneAlerts(false);
 const open = ref(false);
 const selected = ref('own');
 const counts = ref<Counts | null>(null);
@@ -72,6 +75,9 @@ const refresh = async () => {
             `/queue/waiting-counts?${params}`,
             { signal: controller.signal },
         );
+        const treatment = await treatmentAlerts
+            .read(branchId, controller.signal)
+            .catch(() => null);
 
         if (!lifecycle.accepts(generation)) {
             return;
@@ -88,6 +94,7 @@ const refresh = async () => {
             readiness,
             previous !== undefined && result.notReady < previous,
         );
+        treatmentAlerts.announce(treatment);
     } catch {
         if (lifecycle.accepts(generation)) {
             counts.value = null;
@@ -125,6 +132,7 @@ watch(
     () => {
         counts.value = null;
         readyAlerts.reset();
+        treatmentAlerts.reset();
         selected.value = 'own';
         open.value = false;
         void refresh();
@@ -191,6 +199,20 @@ onBeforeUnmount(() => {
                                 ? 'Loading waiting count…'
                                 : `${total} waiting, ${counts?.notReady ?? 0} not ready to be called`
                         }}
+                    </p>
+                    <p
+                        v-if="!error && treatmentAlerts.doneCount.value > 0"
+                        role="status"
+                        class="mt-2 rounded-md border border-success/25 bg-success/10 px-2 py-1.5 text-success"
+                        data-testid="treatment-done-count"
+                    >
+                        {{ treatmentAlerts.doneCount.value }}
+                        {{
+                            treatmentAlerts.doneCount.value === 1
+                                ? 'treatment'
+                                : 'treatments'
+                        }}
+                        done, ready to resume
                     </p>
                     <p
                         v-if="!canViewBranch"
