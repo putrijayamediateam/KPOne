@@ -10,7 +10,7 @@ import { OperationalSelect } from '@/components/ui/select';
 defineOptions({
     layout: { breadcrumbs: [{ title: 'Patients', href: '/patients' }] },
 });
-defineProps<{ canCreate: boolean }>();
+defineProps<{ canCreate: boolean; canSeeMergeRequests?: boolean }>();
 
 type Result = {
     canWhatsapp: boolean;
@@ -113,11 +113,16 @@ const identifierLabel = (result: Result) =>
                     </p>
                 </div>
             </div>
-            <Button v-if="canCreate" as-child
-                ><Link href="/patients/create"
-                    ><Plus class="size-4" /> Create patient</Link
-                ></Button
-            >
+            <div class="flex flex-wrap gap-2">
+                <Button v-if="canSeeMergeRequests" variant="outline" as-child
+                    ><Link href="/patient-merges">Merge requests</Link></Button
+                >
+                <Button v-if="canCreate" as-child
+                    ><Link href="/patients/create"
+                        ><Plus class="size-4" /> Create patient</Link
+                    ></Button
+                >
+            </div>
         </div>
 
         <section class="rounded-lg border bg-card">

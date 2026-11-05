@@ -3,6 +3,8 @@ import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import { BadgeCheck, FileClock, Pencil, Plus } from '@lucide/vue';
 import { ref } from 'vue';
 import InputError from '@/components/InputError.vue';
+import PatientMergePanel from '@/components/patient/PatientMergePanel.vue';
+import type { PatientMergePanelData } from '@/components/patient/PatientMergePanel.vue';
 import WhatsAppLink from '@/components/patient/WhatsAppLink.vue';
 import { Button } from '@/components/ui/button';
 import type { PatientDetail, PatientIdentifier } from '@/types';
@@ -15,7 +17,10 @@ defineOptions({
         ],
     },
 });
-const props = defineProps<{ patient: PatientDetail }>();
+const props = defineProps<{
+    patient: PatientDetail;
+    merge?: PatientMergePanelData;
+}>();
 const addOpen = ref(false);
 const correcting = ref<PatientIdentifier | null>(null);
 const identifierForm = useForm({
@@ -350,6 +355,11 @@ const formatTime = (value: string) =>
                 </div>
             </div>
         </section>
+        <PatientMergePanel
+            v-if="merge"
+            :patient-number="patient.patientNumber"
+            :merge="merge"
+        />
         <section
             v-if="patient.guardian"
             class="space-y-2 rounded-lg border bg-card p-5"
