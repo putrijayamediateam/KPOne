@@ -202,7 +202,7 @@ const locationTypeOptions = [
     { value: 'dispensary', label: 'Dispensary' },
     {
         value: 'dispensary_returns',
-        label: 'Patient returns (not for dispensing)',
+        label: 'Patient Returns (not for dispensing)',
     },
 ];
 const submitLocation = () => {
@@ -446,22 +446,38 @@ const submitMapping = () => {
             class="mt-4 grid gap-3 md:grid-cols-2"
             @submit.prevent="submitLocation"
         >
-            <div class="grid gap-1">
+            <div class="grid gap-1 text-xs">
+                <label id="location-branch-label" for="location-branch"
+                    >Branch</label
+                >
                 <OperationalSelect
+                    id="location-branch"
                     v-model="locationForm.branch_id"
                     label="Branch"
+                    labelledby="location-branch-label"
                     :options="branchOptions"
                 />
                 <InputError :message="locationForm.errors.branch_id" />
             </div>
-            <div class="grid gap-1">
+            <div class="grid gap-1 text-xs">
+                <label id="location-type-label" for="location-type"
+                    >Location type</label
+                >
                 <OperationalSelect
+                    id="location-type"
                     v-model="locationForm.type"
-                    label="Type"
+                    label="Location type"
+                    labelledby="location-type-label"
+                    :describedby="
+                        locationForm.type === 'dispensary_returns'
+                            ? 'location-type-help'
+                            : undefined
+                    "
                     :options="locationTypeOptions"
                 />
                 <p
                     v-if="locationForm.type === 'dispensary_returns'"
+                    id="location-type-help"
                     class="text-xs text-muted-foreground"
                 >
                     Medicines patients bring back go here. Stock here is never

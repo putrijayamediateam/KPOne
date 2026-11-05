@@ -11,7 +11,7 @@ test('Stock setup offers the patient returns location type with a help line', ()
     );
     assert.match(
         panel,
-        /value: 'dispensary_returns',\s+label: 'Patient returns \(not for dispensing\)'/,
+        /value: 'dispensary_returns',\s+label: 'Patient Returns \(not for dispensing\)'/,
     );
     assert.match(panel, /v-if="locationForm\.type === 'dispensary_returns'"/);
     assert.match(
@@ -21,6 +21,19 @@ test('Stock setup offers the patient returns location type with a help line', ()
     assert.match(
         panel,
         /<InputError :message="locationForm\.errors\.type" \/>/,
+    );
+    // Daniel: both selects have a visible label tied to them, and the help line describes the type select.
+    assert.match(
+        panel,
+        /<label id="location-branch-label" for="location-branch"/,
+    );
+    assert.match(panel, /<label id="location-type-label" for="location-type"/);
+    assert.match(panel, /labelledby="location-type-label"/);
+    assert.match(panel, /'location-type-help'/);
+    assert.match(panel, /id="location-type-help"/);
+    assert.match(
+        read('resources/js/components/ui/select/OperationalSelect.vue'),
+        /:aria-describedby="describedby"/,
     );
     // The catalogue's quick location picker never offers the returns type.
     assert.doesNotMatch(

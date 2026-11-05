@@ -15,10 +15,11 @@ and the one stock movement that fills it. Nothing writes to it until DSP-7 merge
 
 ## What changes for staff
 
-- **Stock setup → New Location** has one more type: **"Patient returns (not for dispensing)"**. When it is
+- **Stock setup → New Location** has one more type: **"Patient Returns (not for dispensing)"**, in the Title Case of the list it sits in. When it is
   chosen, a short line explains: "Medicines patients bring back go here. Stock here is never dispensed. It leaves
   only by Stock count, Write-off, or a move to another returns location." A returns location must belong to a
-  branch.
+  branch. The Branch and Location type selects now have visible labels, and the help line describes the type
+  select (Daniel's design review; `OperationalSelect` gains an optional `describedby` prop).
 - The movement list shows the new movement as **"Patient Return"** (for example "+2 · To Cheras Patient
   Returns", reference "Patient return check"). The stock view and the location filter show the type as "Patient
   Returns", and returned stock has the status "Patient return" (never "Available").
