@@ -14,6 +14,7 @@ use App\Domain\Visit\Billing\Services\InvoiceBillToService;
 use App\Domain\Visit\Billing\Services\InvoiceCorrectionService;
 use App\Domain\Visit\Billing\Services\OutstandingBillService;
 use App\Domain\Visit\Billing\Services\PaymentService;
+use App\Domain\Visit\Billing\Services\RefundService;
 use App\Domain\Visit\Billing\Services\ResponsibilityService;
 use App\Domain\Visit\Models\Visit;
 use Illuminate\Http\JsonResponse;
@@ -82,6 +83,23 @@ class BillingController extends Controller
     public function reverse(Request $request, Visit $visit, Invoice $invoice, Payment $payment, InvoiceCorrectionService $service): RedirectResponse
     {
         $this->stayOnSettlement($request, $visit, fn () => $service->reverse($request->user(), $visit, $invoice, $payment, $request->only(['expected_branch_id', 'lock_version', 'payment_lock_version', 'reason', 'recording_error_only'])));
+
+        return redirect($this->settlementDestination($request, $visit));
+    }
+
+    /** BIL-6: record money handed back for a reversed receipt (approved later by someone else). */
+    public function refund(Request $request, Visit $visit, string $payment, RefundService $service): RedirectResponse
+    {
+        $this->stayOnSettlement($request, $visit, fn () => $service->record($request->user(), $visit, $payment, $request->only(['expected_branch_id', 'payment_method_id', 'reason_code', 'idempotency_key'])));
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'Refund recorded. Someone else must now approve it.']);
+
+        return redirect($this->settlementDestination($request, $visit));
+    }
+
+    public function decideRefund(Request $request, Visit $visit, string $refund, string $decision, RefundService $service): RedirectResponse
+    {
+        $this->stayOnSettlement($request, $visit, fn () => $service->decide($request->user(), $visit, $refund, $decision, $request->only(['expected_branch_id', 'reason_code', 'idempotency_key'])));
+        Inertia::flash('toast', ['type' => 'success', 'message' => $decision === 'approved' ? 'Refund approved.' : 'Refund rejected.']);
 
         return redirect($this->settlementDestination($request, $visit));
     }

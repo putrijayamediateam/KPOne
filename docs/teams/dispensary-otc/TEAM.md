@@ -61,6 +61,7 @@ coordinator at the owner's request (2026-11-05); the designer was added by owner
 | `dispensary.return_to_doctor.branch` | CA, CA Supervisor | Return the case to the doctor |
 | `dispensary.otc.create.branch` | CA, CA Supervisor | Open an OTC case from Registration |
 | `dispensary.labels.print.branch` | CA, CA Supervisor | Print drug labels |
+| `allergies.record_otc.branch` | CA, CA Supervisor | Add (never edit or remove) an allergy for the patient of an OTC case they handle (DSP-5, decision 18) |
 | `dispensary.acknowledge_partial.own` | Resident Doctor | Acknowledge legacy partial lines |
 | `treatment_plans.send_to_dispensary.own` | Resident Doctor | Send the plan to Dispensary |
 
@@ -88,7 +89,8 @@ coordinator at the owner's request (2026-11-05); the designer was added by owner
 | DSP-3 | Controlled-medicine flag on the Medicine Catalogue (mark or unmark, confirmed, stale change refused, audited with field and value only) and a bold "Ubat Terkawal / Controlled Medicine" line under the medicine name on the drug label | #223 (merged `975b93b`) |
 | DSP-4 | "OTC (no doctor)" row, always last, in the Insights Today and Sales Provider tables when no doctor is selected; the rows now add up to headline sales; nothing else changes | #227 (merged `3c74daa`) |
 | DSP-1b | Catalogue editors tag medicines with drug groups ("Drug groups" on the Medicine Catalogue; up to 10, stale change refused, audited by count); the Dispensary allergy warning also matches allergies against those groups | #234 (merged `3a876b9`) |
-| DSP-9 | Pharmacist review pack (documents only): a printer-test checklist with worst-case labels and a pharmacist review sheet with sample labels made by the real label layout, under `docs/pilot/drug-label/` | pending (branch `feature/dsp-9-pharmacist-review-pack`; named DSP-9 by owner decision 16) |
+| DSP-9 | Pharmacist review pack (documents only): a printer-test checklist with worst-case labels and a pharmacist review sheet with sample labels made by the real label layout, under `docs/pilot/drug-label/` | #243 (merged `16fa1ee`) |
+| DSP-5 | OTC allergy details: when an OTC walk-in has an allergy, the CA records it on the patient's allergy profile (add only), so the DSP-1 warning matches it; "has an allergy" needs a recorded allergy; a new allergy reopens the statement; Complete refuses a line that matches an allergy recorded after the line was saved until it is ticked and saved again; new permission `allergies.record_otc.branch`; Clinical allergy service change agreed with the coordinator | pending (branch `feature/dsp-5-otc-allergy-details`) |
 
 ## 6. Owner decisions already made (never ask again)
 
@@ -127,6 +129,10 @@ coordinator at the owner's request (2026-11-05); the designer was added by owner
 17. Every builder team has a UI/UX designer under the Lead UI/UX Designer, Daniel (Design team); this team's is
     **Iman**, who sketches screen changes before building and checks screenshots before hand-off (section 8)
     (2026-11-05, relayed by the coordinator).
+18. DSP-5: CA and CA Supervisor may **add** (never edit or remove) an allergy for the patient of an OTC case they
+    handle, through the new permission `allergies.record_otc.branch` (2026-11-05). Editing and entered-in-error stay
+    with the doctor. The owner approved set-up-only lines in two existing tests (`OtcDispensaryTest`,
+    `OtcDispensaryRoutesTest`) that now record an allergy before confirming "has an allergy"; no assertion changed.
 
 ## 7. Open items and known limits
 
@@ -152,7 +158,9 @@ coordinator at the owner's request (2026-11-05); the designer was added by owner
   still missed, and allergy text with extra words not split by a comma may miss a name with a strength. It is a
   warning, not a block (owner decision 11); the visible allergy list stays the main safeguard. Simple wrapper
   words ("allergic to", "allergy", "alahan") are ignored, so "Allergic to aspirin" matches "Aspirin 100mg".
-  The OTC allergy statement (none / has an allergy) is not text and is not matched. The doctor's Treatment
+  For OTC the CA now records the allergy itself (DSP-5), so it is matched like any other record; the OTC step
+  starts with no choice made (the CA guide in `docs/guides/ms/` should say so). An allergy added at OTC raises the
+  profile version, so a doctor's earlier review of that profile is no longer current. The doctor's Treatment
   Plan has no such check. A very broad drug group name (for example "Tablets") causes false alarms, so
   editors should use drug-class names only.
 - **Insights:** OTC sales show as one "OTC (no doctor)" Provider row (DSP-4). Waiting and serving times still
@@ -210,8 +218,7 @@ authorisation to build them; the coordinator records it in `docs/BASELINE.md`.
    unexpectedly, so each changed figure is listed for the owner first.
 5. **DSP-1b Better allergy matching — merged in #234.** Drug groups tagged on each medicine by catalogue
    editors, matched by the Dispensary allergy warning (decision 14).
-6. **DSP-9 Pharmacist review pack — built 2026-11-05, awaiting owner review (branch
-   `feature/dsp-9-pharmacist-review-pack`).** Chosen by the owner on 2026-11-05; ships before DSP-5. Documents only, in
+6. **DSP-9 Pharmacist review pack — merged in #243.** Chosen by the owner on 2026-11-05; ships before DSP-5. Documents only, in
    `docs/pilot/drug-label/`: the printer test (T1 to T4 worst-case labels and what to check) and the pharmacist
    sheet (what prints, sample labels from `DrugLabelLayout`, ten questions, sign-off). Answers come back to the
    owner; any label change is a separate piece of work.
@@ -219,7 +226,8 @@ authorisation to build them; the coordinator records it in `docs/BASELINE.md`.
 Second backlog, chosen by the owner on 2026-11-05 (decision 16); choosing it authorises building it, in this
 order, each its own PR:
 
-7. **DSP-5 OTC allergy details.** When an OTC walk-in says "has allergies", the CA records what the allergy is,
+7. **DSP-5 OTC allergy details — built 2026-11-05, awaiting owner review (branch
+   `feature/dsp-5-otc-allergy-details`).** When an OTC walk-in says "has allergies", the CA records what the allergy is,
    structured like a normal allergy record and saved to the patient's allergy profile through the existing
    allergy service and versioning, so the DSP-1/DSP-1b warning also works for OTC. Closes the "OTC yes/no
    statement is not matched" limit. Agree the small change to the Clinical allergy services with the

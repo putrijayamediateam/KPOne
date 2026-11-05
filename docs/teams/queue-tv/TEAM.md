@@ -10,9 +10,10 @@ the same PR as the code.
 |---|---|---|
 | Lead | **Amirul** | Plans each piece, builds it (backend, pages, tests), keeps this file current |
 | Reviewer | **Mira** | Checks every piece against the rules below, the tests and the owner's decisions before it reaches the owner |
+| Designer | **Yasmin** | Sketches the layout of any screen change before it is built, and checks the screenshots before hand-off (under Lead UI/UX Designer Daniel, Design team) |
 
-Both are Claude builder sessions working for the owner through the coordinator session (LUCY). Names chosen by
-the coordinator (2026-11-05).
+All are Claude sessions working for the owner through the coordinator session (LUCY). Names chosen by the
+coordinator (2026-11-05); Yasmin added by owner decision 2026-11-05 (every builder team gets a designer).
 
 ## 2. What this area covers
 
@@ -72,7 +73,8 @@ the coordinator (2026-11-05).
 | Not-ready flag | Structured not-ready-to-call flag with doctor override | #177 |
 | THROTTLE-1 | Per-route throttle counters (polling no longer blocks Call In) | #193 |
 | TV-5 | "Last called" after 15 minutes | #202 |
-| Q-1 | Waiting time on the Queue board and the Registration board (All and Waiting tabs, A and B numbers) turns amber from 30 min and red from 60 min (frontend only, from the existing `queued_at`; shared `PatientBoard.vue` gains one optional `waitingMinutes` row field; rule in `resources/js/lib/waiting-time.ts`) | this PR |
+| Q-1 | Waiting time on the Queue board and the Registration board (All and Waiting tabs, A and B numbers) turns amber from 30 min and red from 60 min (frontend only, from the existing `queued_at`; shared `PatientBoard.vue` gains one optional `waitingMinutes` row field; rule in `resources/js/lib/waiting-time.ts`) | #240 |
+| Q-2 | Treatment progress: CA, CA Supervisor or the attending doctor mark a controlled step (8 steps) started then done on a Serving consultation; blue/green chip on the Queue board and consultation page; attending-doctor pop-up and count; cleared by Resume or opening the consultation; append-only evidence (`app/Domain/Queue/Treatment/`, migrations `2026_11_08_000100` and `000200`); TV shows nothing | this PR |
 
 ## 6. Owner decisions already made (never ask again)
 
@@ -86,6 +88,22 @@ the coordinator (2026-11-05).
 6. The backlog in section 9 was chosen by the owner (2026-11-05).
 7. A "ship it" or decision relayed by LUCY counts as the owner's own (owner rule 2026-11-05).
 8. Q-1 waiting-time limits: amber from 30 minutes, red from 60 minutes, fixed for every branch (no setting) (2026-11-05).
+9. Every builder team has a UI/UX designer under Lead Designer Daniel; ours is Yasmin. The waiting-room TV look is
+   owner-approved and stays as it is (2026-11-05).
+10. Q-2 treatment progress (2026-11-05):
+    - Steps: Nebuliser, Wound dressing, Injection and observation, IV drip, Observation after medicine, ECG,
+      Blood test (point-of-care), Other procedure. Each step has started and done.
+    - CA and CA Supervisor (branch) and the attending Resident Doctor (own patient) mark steps. New permissions
+      `queue.treatment_progress.set.branch` and `.set.own` are approved.
+    - "Ready to resume" clears on Resume or when the doctor opens that consultation.
+    - Defaults taken: pop-up to the attending doctor only; no overdue warning and no Registration chip in v1.
+    - The TV shows nothing.
+    - Design note: [Q-2-DESIGN.md](Q-2-DESIGN.md).
+11. Backup push (owner rule 2026-11-05, relayed by LUCY): whenever the team stops to wait for the owner and has work
+    not yet on GitHub, commit it to its own feature branch and `git push -u origin <branch>`. Backup only: no PR, never
+    push to `main` or another team's branch, never merge, never force-push. If the branch already has an open PR, push
+    only when the change is ready (it re-runs CI). The PR still opens only after "ship it", with latest `origin/main`
+    merged first. On a fresh machine, fetch the branch before continuing.
 
 ## 7. Open items and known limits
 
@@ -113,6 +131,11 @@ the coordinator (2026-11-05).
 - Independent review by the Reviewer (a subagent given the diff, this file and the rules, not the Lead's
   conclusions) before hand-off.
 - Commit, push and PR only after the owner says "ship it"; never merge.
+- Design (owner rule 2026-11-05): for any screen change, run Yasmin as a subagent before building, to sketch the
+  layout (components, 390 px behaviour, empty, loading and error states, wording) from existing patterns and
+  `docs/design/GUIDE.md` once merged. Before hand-off, Yasmin checks the 390 and 1440 px light and dark screenshots
+  against `docs/design/CHECKLIST.md`. A new page or layout change also goes to Daniel for a look through LUCY. The
+  TV look stays as approved.
 - A "ship it" or owner decision relayed by LUCY (the coordinator session) counts as the owner's own (owner rule 2026-11-05); stop and ask if it conflicts with something the owner told you directly.
 - Never edit `docs/BASELINE.md`; record finished pieces here and flag any authorisation change in the PR description. The coordinator updates BASELINE in one docs PR per batch (owner rule 2026-11-05).
 - Migrations: pick a timestamp no other open PR uses (ask LUCY); today's taken slots include 2026_11_05_200000 to 240000 and 2026_11_06_0001xx.
