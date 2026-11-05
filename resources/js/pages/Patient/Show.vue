@@ -216,6 +216,7 @@ const formatTime = (value: string) =>
             >
                 <select
                     v-model="identifierForm.identifier_type"
+                    aria-label="Identifier type"
                     :disabled="!!correcting"
                     class="h-10 rounded-md border bg-background px-3 text-sm"
                 >
@@ -226,11 +227,13 @@ const formatTime = (value: string) =>
                     v-model="identifierForm.issuing_country_code"
                     :disabled="identifierForm.identifier_type === 'nric'"
                     maxlength="2"
+                    aria-label="Issuing country"
                     class="h-10 rounded-md border bg-background px-3 text-sm uppercase"
                     placeholder="Issuer"
                 />
                 <input
                     v-model="identifierForm.value"
+                    aria-label="Identifier value"
                     autocomplete="off"
                     class="h-10 rounded-md border bg-background px-3 text-sm"
                     :placeholder="

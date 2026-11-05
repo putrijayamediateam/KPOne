@@ -61,6 +61,7 @@ usability aid only and must follow the permission the backend already enforces.
 | DARK-1 | Dark-mode contrast on four pages (S1-001, S1-006, S1-007, S1-008) | #207 |
 | Guides | Draft Malay quick guides for CA, doctor, CA Supervisor | #197, #199, #203 |
 | UX-1 | Phone annoyances: the mobile drawer closes after a link is followed (S1-017); staff toasts show at the top centre under the header at every width instead of over sticky bottom actions (S1-015; `lib/toastPlacement.ts`, Clinic and Admin layouts only, public QR layout unchanged); Insights ranking cards fit 320 to 768 px with no sideways page scroll (S1-004). Frontend only; apart from the toast position, 1440 px unchanged | #241 |
+| UX-3 | Screen-reader names and page headings (S1-009 to S1-014): a scripted pass (Chromium accessibility tree, 11 demo roles, 120 pages at 1440 and 390 px) found 8 pages with problems and finds none after the change; the review found 3 more in places the pass cannot open. Added a visually hidden `h1` to the Registration board, Consultation queue and TV screen; hidden labels on the Registration, Queue and Patient search boxes; names on the Billing approval limit fields, the Panel claim due days field, the Quick create results list (named by its visible caption), the Patient identifier fields and the Pricing publish amount. Frontend only; nothing changes on screen | pending |
 
 ## 6. Owner decisions already made (never ask again)
 
@@ -72,12 +73,17 @@ usability aid only and must follow the permission the backend already enforces.
 4. A "ship it" or decision relayed by LUCY counts as the owner's own (owner rule 2026-11-05).
 5. Staff toasts show at the top centre at every width, desktop included, never over a sticky bottom action bar
    (owner decision 2026-11-05, UX-1).
+7. Backup push: whenever the team stops to wait for the owner with work not yet on GitHub, it commits that work to
+   the piece's own feature branch and pushes it as a backup. No PR, never to `main` or another team's branch,
+   never merge, never force-push. On a branch with an open PR, push only when the change is ready (it re-runs CI).
+   The PR still opens only after "ship it", with the latest `origin/main` merged first. Confirmed by the owner
+   directly in the Staff Experience session (2026-11-05).
 
 ## 7. Open items and known limits
 
-- SMOKE-1 open findings: S1-005 Medical Certificates link offered before an encounter exists (404); S1-009 to
-  S1-014 missing accessible names and page headings; S1-016 mixed Malay and English labels (Registration and
-  Patient done in REG-2; "Panggil semula" kept). S1-004, S1-015 and S1-017 are fixed by UX-1 (PR #241).
+- SMOKE-1 open findings: S1-005 Medical Certificates link offered before an encounter exists (404; fixed by
+  UX-2, PR #254); S1-016 mixed Malay and English labels (Registration and Patient done in REG-2; "Panggil
+  semula" kept). S1-004, S1-015 and S1-017 are fixed by UX-1 (PR #241); S1-009 to S1-014 by UX-3.
 - UX-1 known limits: at 320 px a Today ranking card can scroll
   inside the card when every column holds a large ringgit figure; the page itself does not scroll sideways.
   Long ranking names are cut with "…" on phones (full name in the tooltip and in View all).
@@ -87,6 +93,16 @@ usability aid only and must follow the permission the backend already enforces.
 - UX-1 review note: Quick create (`Registration/Create.vue`) keeps its Register Visit card sticky at `max-lg:top-16`
   (64 px), the same height as the staff toast, so a flash toast there would briefly cover it. That page
   fires no toast of its own today; owned by Patients & Registration, so left unchanged.
+- UX-3 limits: the pass opens pages, not dialogs, menus or forms that appear after a click; a code scan found no
+  unnamed icon button on staff screens, and the review checked the click-to-open forms. The demo data has no
+  Administrator account, so its pages were checked as the Director. Left for later (named only by their
+  placeholder, so they work but read weakly): the clinical note box (`Clinical/Show.vue`), the visit
+  cancellation reason (`Registration/Show.vue`), the Patient list "Issuer" box, and the inline add fields in
+  `catalogue/LocationPicker.vue`, `SupplierPicker.vue` and `PanelTariffEditor.vue`. Also for the owning teams,
+  not fixed here: the Quick create list holds wrapper divs and WhatsApp links besides its options and its search
+  box is not a combobox; the Panel due-rule radios share no `name`; Billing approval limit Save and Clear
+  buttons repeat the same name on every row. The public QR form's back buttons (`pages/PublicCheckIn/Show.vue`)
+  name only their icon: a patient-facing page owned by Patients & Registration, passed to LUCY.
 - `/patients/create` is about 433 px wide at 390 px when errors show: Patients & Registration team's item, not ours.
 
 ## 8. Rules (every task)

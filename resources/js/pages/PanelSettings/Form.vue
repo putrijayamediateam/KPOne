@@ -357,6 +357,7 @@ const submit = () => {
                         Submit
                         <Input
                             v-model.number="form.claim_due_days"
+                            aria-label="Claim due days after the visit"
                             type="number"
                             min="0"
                             max="365"
