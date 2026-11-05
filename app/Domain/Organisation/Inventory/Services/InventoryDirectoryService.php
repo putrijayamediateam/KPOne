@@ -31,6 +31,7 @@ final class InventoryDirectoryService
         StockMovement::TYPE_SUPPLIER_RETURN,
         StockMovement::TYPE_TREATMENT_USAGE,
         StockMovement::TYPE_TREATMENT_WASTE,
+        StockMovement::TYPE_DISPENSARY_RETURN,
     ];
 
     private const MOVEMENT_LABELS = [
@@ -49,6 +50,7 @@ final class InventoryDirectoryService
         StockMovement::TYPE_SUPPLIER_RETURN => 'Supplier Return',
         StockMovement::TYPE_TREATMENT_USAGE => 'Treatment Room Use',
         StockMovement::TYPE_TREATMENT_WASTE => 'Treatment Room Waste',
+        StockMovement::TYPE_DISPENSARY_RETURN => 'Patient Return',
     ];
 
     public function __construct(private BranchAccessService $branches) {}
@@ -222,7 +224,8 @@ final class InventoryDirectoryService
                     StockMovement::TYPE_PURCHASE_RECEIPT,
                     StockMovement::TYPE_TRANSFER_RECEIPT,
                     StockMovement::TYPE_STOCKTAKE_GAIN,
-                    StockMovement::TYPE_ADJUSTMENT_IN => '+'.$quantity,
+                    StockMovement::TYPE_ADJUSTMENT_IN,
+                    StockMovement::TYPE_DISPENSARY_RETURN => '+'.$quantity,
                     StockMovement::TYPE_DISPENSE,
                     StockMovement::TYPE_TRANSFER_DISPATCH,
                     StockMovement::TYPE_STOCKTAKE_LOSS,
@@ -239,7 +242,8 @@ final class InventoryDirectoryService
                     StockMovement::TYPE_PURCHASE_RECEIPT,
                     StockMovement::TYPE_TRANSFER_RECEIPT,
                     StockMovement::TYPE_STOCKTAKE_GAIN,
-                    StockMovement::TYPE_ADJUSTMENT_IN => 'To '.($values['destination_name'] ?? 'inventory'),
+                    StockMovement::TYPE_ADJUSTMENT_IN,
+                    StockMovement::TYPE_DISPENSARY_RETURN => 'To '.($values['destination_name'] ?? 'inventory'),
                     StockMovement::TYPE_DISPENSE,
                     StockMovement::TYPE_TRANSFER_DISPATCH,
                     StockMovement::TYPE_STOCKTAKE_LOSS,
@@ -263,6 +267,7 @@ final class InventoryDirectoryService
                     'inventory_adjustment' => 'Manual adjustment',
                     'inventory_supplier_return' => 'Supplier return',
                     'inventory_treatment_usage' => 'Treatment room usage',
+                    'dispensary_return_check' => 'Patient return check',
                     default => 'Inventory movement'
                 },
             ];

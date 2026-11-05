@@ -2,6 +2,7 @@
 
 namespace App\Domain\Agents\Tools;
 
+use App\Domain\Organisation\Inventory\Models\InventoryLocation;
 use App\Domain\Organisation\Inventory\Services\InventoryBatchEligibility;
 use App\Domain\Organisation\Inventory\Services\InventoryStockReviewService;
 use App\Domain\Organisation\Models\Branch;
@@ -87,7 +88,7 @@ final class InventoryStockReviewTool implements AgentTool
                 ->join('inventory_items as i', 'i.id', '=', 's.inventory_item_id')
                 ->leftJoinSub($totals, 't', fn ($j) => $j->on('t.inventory_location_id', '=', 'l.id')->on('t.inventory_sku_id', '=', 's.id'))
                 ->where('r.organisation_id', $organisationId)->where('l.organisation_id', $organisationId)->where('s.organisation_id', $organisationId)->where('i.organisation_id', $organisationId)
-                ->where('l.branch_id', $branch->id)->where('l.is_active', true)->where('s.is_active', true)->where('i.is_active', true)
+                ->where('l.branch_id', $branch->id)->where('l.is_active', true)->where('l.type', '<>', InventoryLocation::TYPE_DISPENSARY_RETURNS)->where('s.is_active', true)->where('i.is_active', true)
                 ->where('r.reorder_level', '>', 0)->whereRaw('COALESCE(t.eligible, 0) <= r.reorder_level')
                 ->selectRaw('s.id as sku_id, s.public_id as sku_public_id, s.sku_code, i.generic_name as item, s.stock_unit, COALESCE(t.eligible, 0) as quantity');
         }
@@ -98,6 +99,11 @@ final class InventoryStockReviewTool implements AgentTool
             ->joinSub($this->eligibility->query($organisationId, $branch), 'e', fn ($j) => $j->on('e.id', '=', 'r.inventory_batch_id')->on('e.organisation_id', '=', 'r.organisation_id'))
             ->where('r.organisation_id', $organisationId)->where('l.organisation_id', $organisationId)->where('s.organisation_id', $organisationId)->where('i.organisation_id', $organisationId)
             ->where('l.branch_id', $branch->id)->where('r.quantity', '>', 0);
+        // STK-11: returned medicine is not usable stock, so it never counts as expiring. Expired returned stock stays
+        // listed, because it still has to be written off.
+        if ($kind === 'expiring') {
+            $query->where('l.type', '<>', InventoryLocation::TYPE_DISPENSARY_RETURNS);
+        }
         if ($kind === 'expiring') {
             $query->where('l.is_active', true)->whereNull('e.eligibility_reason')
                 ->whereDate('e.expiry_date', '<=', CarbonImmutable::parse($this->eligibility->localDate($branch))->addDays(InventoryStockReviewService::EXPIRY_WINDOW_DAYS)->toDateString());

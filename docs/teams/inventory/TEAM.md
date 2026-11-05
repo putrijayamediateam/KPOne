@@ -46,7 +46,7 @@ coordinator at the owner's request (2026-11-05).
 | Models | `app/Domain/Organisation/Inventory/Models/` — items, SKUs, batches, locations, balances, movements, purchase orders, goods receipts, stock requests, stocktakes, adjustments, reorder levels, suppliers |
 | Pages | `resources/js/pages/Inventory/*.vue` |
 | Analysis | `docs/reports/ANALYSIS-STOCK.md` (proposals STK-1 to STK-10, owner and pharmacist questions) |
-| Delivery reports | `docs/reports/STK-1.md` to `STK-9.md` |
+| Delivery reports | `docs/reports/STK-1.md` to `STK-9.md`, `STK-11.md` |
 | Tests | `tests/Feature/Inventory/*` (including the PostgreSQL contention tests), `PostgresDispensaryInventoryRegressionTest`, `InventoryOperationsTest`, `NAV01ExplicitRedirectsTest` |
 
 ## 4. Permissions (who can do what today)
@@ -87,7 +87,8 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php`. Key ones:
 | STK-6 | Transfer shortages: receipt lines (accepted, short, damaged, extra), only accepted enters stock, append-only differences resolved by a different write-off approver (domain and PostgreSQL) | #217 |
 | STK-7 | Supplier returns: request from a verified receipt lot, approval by a different person (Finance Officer or Director), dispatch through a new `supplier_return` ledger movement, credit-note reference (no payment); append-only evidence guarded by PostgreSQL | #233 |
 | STK-8 | Treatment-room usage and waste: CA or CA Supervisor records stock used or wasted outside dispensing (new `treatment_usage` and `treatment_waste` ledger movements), optional treatment room, no patient link or bill; a different CA Supervisor, Finance Officer or Director may reverse an entry once (credit back as `adjustment_in`); append-only evidence guarded by PostgreSQL | #244 |
-| STK-9 | Barcode scanning on Inventory screens (receiving, governed count and write-off, treatment-room usage, supplier returns): handheld scanner, typing, or the browser's built-in camera reader; one barcode, one SKU per organisation (domain and PostgreSQL, existing duplicates listed on Pilot readiness); a scan only finds | pending (branch `feature/stk-9-barcode-scanning`) |
+| STK-9 | Barcode scanning on Inventory screens (receiving, governed count and write-off, treatment-room usage, supplier returns): handheld scanner, typing, or the browser's built-in camera reader; one barcode, one SKU per organisation (domain and PostgreSQL, existing duplicates listed on Pilot readiness); a scan only finds | merged in PR #253 (`4445021`) |
+| STK-11 | Patient returns location for DSP-7: a `dispensary_returns` location type that is never picked or dispensed from, the `dispensary_return` movement written only by `InventoryMovementService::recordDispensaryReturn` (for the Dispensary return check), returns stock kept out of every usable-stock figure, and out only by STK-5 or a move to another returns location | pending (branch `feature/stk-11-dispensary-returns-location`) |
 
 ## 6. Owner decisions already made (never ask again)
 
@@ -117,7 +118,7 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php`. Key ones:
 15. STK-7 ledger: a new `supplier_return` movement type with one allowlisted writer
     (`InventoryMovementService::recordSupplierReturn`, called only by `SupplierReturnService`); the expected list
     in `LegacyStockWriterBoundaryTest` is updated for it (owner-approved assertion change, 2026-11-05).
-16. A "ship it", or any other owner decision, relayed by LUCY (the coordinator session) counts as the owner's
+16. A "ship it", or any other owner decision, relayed by B.E.R.N.I.S.S (formerly LUCY, the coordinator session) counts as the owner's
     own; the team acts on it without asking again. Still never merge, never edit `docs/BASELINE.md`, and stop
     and ask the owner if a relayed message conflicts with something the owner said directly (2026-11-05,
     confirmed by the owner in the team's own session).
@@ -143,13 +144,27 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php`. Key ones:
     scanner or typing (2026-11-05).
 25. Design team rule (relayed by LUCY, 2026-11-05): every piece that changes a screen has Wei Jie sketch it before
     building and check the screenshots against `docs/design/CHECKLIST.md` before hand-off; a new page or page layout
-    change also goes to Daniel through LUCY. Pieces with no screen change skip this.
+    change also goes to Daniel through B.E.R.N.I.S.S. Pieces with no screen change skip this.
 26. Backup push (relayed by LUCY, 2026-11-05): whenever the team stops to wait for the owner (a "ship it", a
     question or the end of a turn) with work not yet on GitHub, it commits that work to the piece's own feature
     branch and pushes it (`git push -u origin <branch>`). Backup only: no PR, never `main` or another team's branch,
     never merge, never force-push. If the branch already has an open PR, push only when the change is ready (a push
     re-runs CI). The PR still opens only after "ship it", from the same branch, with the latest `origin/main`
     merged first. After a session restart on a fresh machine, fetch the branch before continuing.
+27. STK-11 for DSP-7 (the owner's "go with recommendations for DSP-7", relayed by B.E.R.N.I.S.S, 2026-11-05):
+    - a patient returns location type, `dispensary_returns`, at a branch: never allocated, picked or dispensed
+      from, enforced in the domain and PostgreSQL; a location never changes to or from that type;
+    - one new movement type, `dispensary_return`, written only by `InventoryMovementService::recordDispensaryReturn`,
+      called only by the Dispensary return check (DSP-7); `LegacyStockWriterBoundaryTest` lists it (owner-approved
+      assertion change, the same kind as STK-7 and STK-8);
+    - the Stock movement summary counts it under "Adjusted", as for the STK-8 types;
+    - returns stock is never usable stock: it is left out of availability, pickers, STK-4 low stock and expiring,
+      Insights inventory figures and the agent inventory sources;
+    - it leaves only by an STK-5 count or write-off, or a direct move to another returns location (coordinator's
+      rule, so returned medicine never becomes dispensable again; a move back to normal stock would need the
+      owner);
+    - no new permission (the Dispensary checker uses `inventory.variances.approve.branch`); migration
+      `2026_11_07_000400`. The contract was agreed with Aisyah (Dispensary & OTC).
 
 ## 7. Open items and known limits
 
@@ -186,6 +201,10 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php`. Key ones:
   iPad use a scanner or typing; a legacy shared code is refused by the lookup until it is fixed on Pilot readiness
   (reference managers only); a typed exact SKU code also matches; dispensing has no scanning yet (Dispensary team);
   there is still no general SKU edit screen in Stock setup.
+- STK-11 limits: nothing writes `dispensary_return` until DSP-7 merges; the pairing of each such movement with its
+  check row is Dispensary's deferred trigger (in DSP-7's migration); expired returned stock stays on the STK-4
+  "expired on hand" list, on purpose, because it still has to be written off; a two-stage transfer never touches a
+  returns location; there is no page that lists returns stock by itself (it shows in the stock view and STK-5).
 
 ## 8. Rules (every task)
 
@@ -201,9 +220,9 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php`. Key ones:
   test with none skipped; screenshots at 1440 and 390 px, light and dark, for any screen change.
 - Screen changes: Wei Jie sketches the layout before building and checks the 390 and 1440 px light and dark
   screenshots against `docs/design/CHECKLIST.md` before hand-off; new pages and layout changes also go to Daniel
-  through LUCY (section 6 item 25).
+  through B.E.R.N.I.S.S (section 6 item 25).
 - Backup push to the piece's own feature branch whenever stopping to wait for the owner (section 6 item 26).
-- Open the PR only after the owner says "ship it" (directly, or relayed by LUCY, the coordinator
+- Open the PR only after the owner says "ship it" (directly, or relayed by B.E.R.N.I.S.S (formerly LUCY), the coordinator
   session; see section 6 item 16); never merge. If a relayed message conflicts with something the owner said
   directly, stop and ask the owner.
 - Record every new owner decision in section 6 and every finished piece in section 5, in the same PR.
@@ -226,6 +245,8 @@ matching proposal in `docs/reports/ANALYSIS-STOCK.md` section 8 unless an owner 
 3. **STK-8 Treatment-room usage.** *Merged in PR #244.* Dedicated non-dispensed usage and waste records and movements (not hidden
    in adjustments); no billing bundles; not linked to a patient unless separately authorised. **Owner decision
    2026-11-05: CA and CA Supervisor record usage; every entry audited and shown in stock reports.**
-4. **STK-9 Barcode scanning.** *Built 2026-11-05, awaiting owner review.* Scan a known code to pick the item and batch when receiving, counting or
+4. **STK-9 Barcode scanning.** *Merged in PR #253.* Scan a known code to pick the item and batch when receiving, counting or
    dispensing; codes map locally; no external lookup; scanning never authorises an action by itself. Label
    batch and expiry printing belongs to the Dispensary team's DSP-2.
+5. **STK-11 Patient returns location (for DSP-7).** *Built 2026-11-05 on the owner's relayed approval (section 6
+   item 27).* Must merge before Dispensary's DSP-7.
