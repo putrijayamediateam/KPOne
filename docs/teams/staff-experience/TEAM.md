@@ -67,7 +67,8 @@ usability aid only and must follow the permission the backend already enforces.
 | Guides | Draft Malay quick guides for CA, doctor, CA Supervisor | #197, #199, #203 |
 | UX-1 | Phone annoyances: the mobile drawer closes after a link is followed (S1-017); staff toasts show at the top centre under the header at every width instead of over sticky bottom actions (S1-015; `lib/toastPlacement.ts`, Clinic and Admin layouts only, public QR layout unchanged); Insights ranking cards fit 320 to 768 px with no sideways page scroll (S1-004). Frontend only; apart from the toast position, 1440 px unchanged | #241 |
 | UX-2 | Medical certificates link (S1-005): the visit page offers it only when the visit has a consultation record, using one new boolean `visit.hasConsultation` from `VisitDirectoryService::detail` (owner decision 2026-11-05; Patients & Registration told through LUCY); otherwise a quiet line says why: "Medical certificates are available after the doctor starts the consultation." or, on a cancelled visit, "No medical certificate: this visit was cancelled." (design reviewed by Daniel). The visit history page offers it only when it holds a consultation record. No route or permission change | #254 |
-| UX-3 | Screen-reader names and page headings (S1-009 to S1-014): a scripted pass (Chromium accessibility tree, 11 demo roles, 120 pages at 1440 and 390 px) found 8 pages with problems and finds none after the change; the review added the Patient identifier form, which only opens after a click, and a truer name for the Quick create list. Added a visually hidden `h1` to the Registration board, Consultation queue and TV screen; hidden labels on the Registration, Queue and Patient search boxes; names on the Billing approval limit fields, the Panel claim due days field, the Quick create results list (named by its visible caption), and the Patient identifier fields (the Pricing publish amount is left to Catalogue & settings' CAT-1). Frontend only; nothing changes on screen | pending |
+| UX-3 | Screen-reader names and page headings (S1-009 to S1-014): a scripted pass (Chromium accessibility tree, 11 demo roles, 120 pages at 1440 and 390 px) found 8 pages with problems and finds none after the change; the review added the Patient identifier form, which only opens after a click, and a truer name for the Quick create list. Added a visually hidden `h1` to the Registration board, Consultation queue and TV screen; hidden labels on the Registration, Queue and Patient search boxes; names on the Billing approval limit fields, the Panel claim due days field, the Quick create results list (named by its visible caption), and the Patient identifier fields (the Pricing publish amount is left to Catalogue & settings' CAT-1). Frontend only; nothing changes on screen | #265 |
+| UX-4 | Malay staff quick guides (`docs/guides/ms/`) brought up to date with screens merged since PR #203, read from the code: CA (tab counts, waiting colours, OTC allergy details, Dispensary allergy warning, label batch and expiry, controlled marker and REPRINT, Panel shortfall, Recorded by, Pay later to collect, Daily cash closing count, treatment steps, treatment-room usage, barcode scan, receiving transfers, proposing a merge, the Medical certificates line, toasts at the top), doctor (waiting colours, tab counts, treatment steps, MC links) and CA Supervisor (cash closing approval, refunds, transfer differences, supplier returns, usage reversal, drug groups, controlled flag, pricing, merges, change history, scanning). Docs only; still drafts for clinic review | pending |
 
 ## 6. Owner decisions already made (never ask again)
 
@@ -91,7 +92,7 @@ usability aid only and must follow the permission the backend already enforces.
 
 - SMOKE-1 open findings: S1-016 mixed Malay and English labels (Registration and Patient done in REG-2;
   "Panggil semula" kept). S1-004, S1-015 and S1-017 are fixed by UX-1 (PR #241); S1-005 by UX-2 (PR #254);
-  S1-009 to S1-014 by UX-3.
+  S1-009 to S1-014 by UX-3 (PR #265).
 - UX-2 note: the Call In to consultation gap (when the link was still a 404) is closed by `visit.hasConsultation`.
   On the history page a doctor who was not the attending clinician can still see the link and get 404
   (own-scope permission, from reading `MedicalCertificateAuthority::lock`, not measured); the link follows the
@@ -118,6 +119,9 @@ usability aid only and must follow the permission the backend already enforces.
   box is not a combobox; the Panel due-rule radios share no `name`; Billing approval limit Save and Clear
   buttons repeat the same name on every row. The public QR form's back buttons (`pages/PublicCheckIn/Show.vue`)
   name only their icon: a patient-facing page owned by Patients & Registration, passed to LUCY.
+- UX-4 note for Dispensary & OTC: the OTC allergy card still says the check is "compared with medicine names by
+  text only", but since DSP-1b it also compares catalogue drug groups. Passed to B.E.R.N.I.S.S; not changed here.
+  The guides still need a CA, a doctor and a CA Supervisor to follow them on the real screens before use.
 - `/patients/create` is about 433 px wide at 390 px when errors show: Patients & Registration team's item, not ours.
 
 ## 8. Rules (every task)
