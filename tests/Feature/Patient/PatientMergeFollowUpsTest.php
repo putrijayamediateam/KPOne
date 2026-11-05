@@ -73,6 +73,33 @@ class PatientMergeFollowUpsTest extends VisitTestCase
             ->assertInertia(fn ($page) => $page->where('mergedGuardian', null));
     }
 
+    public function test_the_newest_merged_guardian_wins_and_an_unmerge_takes_the_fallback_and_note_away(): void
+    {
+        $ca = $this->actor('ca');
+        $supervisor = $this->actor('ca_supervisor');
+        $kept = $this->patient();
+        $older = $this->patient();
+        $newer = $this->patient();
+        $this->guardian($older, 'Synthetic Older Guardian');
+        $this->guardian($newer, 'Synthetic Newer Guardian');
+        MergeFixture::merge($kept, $older, $ca, $supervisor);
+        $this->travel(1)->minutes();
+        MergeFixture::merge($kept, $newer, $ca, $supervisor);
+
+        $this->selectBranch($ca);
+        $this->actingAs($ca)->get('/patients/'.$kept->patient_number)->assertOk()
+            ->assertInertia(fn ($page) => $page->where('mergedGuardian.full_name', 'Synthetic Newer Guardian')
+                ->where('mergedGuardian.fromPatientNumber', $newer->patient_number));
+
+        MergeFixture::unmerge($kept, $newer, $ca, $supervisor);
+        MergeFixture::unmerge($kept, $older, $ca, $supervisor);
+        $this->actingAs($ca)->get('/patients/'.$kept->patient_number)->assertOk()
+            ->assertInertia(fn ($page) => $page->where('mergedGuardian', null));
+        $directory = app(PatientDirectoryService::class);
+        $this->assertSame([], $directory->summaries($ca, [$kept->id])[0]['mergedFrom']);
+        $this->assertSame($older->patient_number, $directory->summaries($ca, [$older->id])[0]['patientNumber']);
+    }
+
     private function guardian(Patient $patient, string $name): void
     {
         DB::table('patient_guardian_contacts')->insert([

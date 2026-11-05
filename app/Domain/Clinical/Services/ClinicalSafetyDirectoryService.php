@@ -17,6 +17,8 @@ use Illuminate\Support\Facades\Gate;
 
 class ClinicalSafetyDirectoryService
 {
+    private const MERGED_PROBLEM_LIMIT = 50;
+
     /** @return array<string, mixed>|null */
     public function allergies(User $actor, ClinicalEncounter $encounter): ?array
     {
@@ -76,7 +78,7 @@ class ClinicalSafetyDirectoryService
             ->with('patient:id,patient_number')
             ->orderByRaw('CASE WHEN status = ? THEN 0 ELSE 1 END', [PatientProblemRecord::STATUS_ACTIVE])
             ->orderByDesc('updated_at')->orderByDesc('id')
-            ->limit(50)
+            ->limit(self::MERGED_PROBLEM_LIMIT + 1)
             ->get()
             ->map(fn (PatientProblemRecord $record): array => [
                 'key' => 'merged-'.$record->id,
@@ -90,7 +92,8 @@ class ClinicalSafetyDirectoryService
         return [
             'active' => $active->map($project)->values(),
             'resolved' => $resolved->map($project)->values(),
-            'merged' => $merged,
+            'merged' => array_slice($merged, 0, self::MERGED_PROBLEM_LIMIT),
+            'mergedTruncated' => count($merged) > self::MERGED_PROBLEM_LIMIT,
             'canUpdate' => Gate::forUser($actor)->allows('updateProblems', $encounter),
         ];
     }

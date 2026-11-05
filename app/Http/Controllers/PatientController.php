@@ -59,41 +59,11 @@ class PatientController extends Controller
         return Inertia::render('Patient/Show', [
             'patient' => $directory->detail($request->user(), $patient),
             'merge' => $merges->panel($request->user(), $patient),
-            'mergedGuardian' => $this->mergedGuardian($patient),
+            'mergedGuardian' => app(PatientGuardianService::class)->mergedFallback($patient),
             'history' => $request->user()->can(PatientChangeHistoryService::PERMISSION)
                 ? app(PatientChangeHistoryService::class)->page($request->user(), $patient, null, PatientChangeHistoryService::FIRST_PAGE)
                 : null,
         ]);
-    }
-
-    /**
-     * REG-5: when the kept record has no guardian contact but a record merged into it does, show that one read only.
-     * It reaches only viewers who may already open this patient record.
-     *
-     * @return array<string, mixed>|null
-     */
-    private function mergedGuardian(Patient $patient): ?array
-    {
-        $guardians = app(PatientGuardianService::class);
-        if ($guardians->contact($patient) !== null) {
-            return null;
-        }
-        $merged = Patient::query()->where('organisation_id', $patient->organisation_id)
-            ->where('merged_into_patient_id', $patient->id)->orderByDesc('merged_at')->orderByDesc('id')->get();
-        foreach ($merged as $record) {
-            $contact = $guardians->contact($record);
-            if ($contact !== null) {
-                return [
-                    'full_name' => $contact['full_name'] ?? null,
-                    'relationship' => $contact['relationship'] ?? null,
-                    'phone' => $contact['phone'] ?? null,
-                    'email' => $contact['email'] ?? null,
-                    'fromPatientNumber' => $record->patient_number,
-                ];
-            }
-        }
-
-        return null;
     }
 
     /** REG-4: older change-history rows for the "Show older changes" button. */

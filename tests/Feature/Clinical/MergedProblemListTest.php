@@ -48,7 +48,29 @@ class MergedProblemListTest extends ClinicalTestCase
         $this->problem($this->patient(), 'Synthetic unrelated condition', 'active', $doctor);
 
         $this->selectBranch($doctor, $visit->branch);
-        $this->assertSame([], app(ClinicalSafetyDirectoryService::class)->problems($doctor, $encounter->refresh())['merged']);
+        $problems = app(ClinicalSafetyDirectoryService::class)->problems($doctor, $encounter->refresh());
+        $this->assertSame([], $problems['merged']);
+        $this->assertFalse($problems['mergedTruncated']);
+    }
+
+    public function test_active_merged_problems_come_first_and_the_list_says_when_it_is_cut(): void
+    {
+        [$doctor, $ca, $visit, $queue] = $this->servingFixture();
+        $encounter = $this->startEncounter($doctor, $visit, $queue);
+        $duplicate = $this->patient();
+        foreach (range(1, 50) as $index) {
+            $this->problem($duplicate, 'Synthetic resolved '.$index, 'resolved', $doctor);
+        }
+        $this->problem($duplicate, 'Synthetic active one', 'active', $doctor);
+        MergeFixture::merge($visit->patient, $duplicate, $ca, $this->actor('ca_supervisor'));
+
+        $this->selectBranch($doctor, $visit->branch);
+        $problems = app(ClinicalSafetyDirectoryService::class)->problems($doctor, $encounter->refresh());
+
+        $this->assertCount(50, $problems['merged']);
+        $this->assertTrue($problems['mergedTruncated']);
+        $this->assertSame('Synthetic active one', $problems['merged'][0]['condition']);
+        $this->assertSame('active', $problems['merged'][0]['status']);
     }
 
     private function problem(Patient $patient, string $condition, string $status, User $by): string

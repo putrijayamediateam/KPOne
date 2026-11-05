@@ -164,7 +164,11 @@ team's Reviewer is Hafiz, with the same role and rules.
   patient-level visit list, so "both records' visits" needs nothing there: each invoice opens by its own visit,
   and the doctor's previous consultations and outstanding bills already include both records. A merged guardian is
   shown only while the kept record has none (the newest merged record's contact wins); saving it on the kept record
-  is a normal patient edit. Merged problems are capped at the 50 most recent. The Registration picker's
+  is a normal patient edit. Merged problems are capped at 50 (active first) and the panel says so when cut. Clinical
+  safety (Hafiz and Balqis, REG-5 review): the "From merged records" group opens by default while it holds an active
+  problem, and the count line names the active ones, for example "3 from merged records (2 active)"; Daniel and the
+  Clinical team are asked to confirm that default. Problem dates show as 2019-02-01 rather than the GUIDE's
+  1 Feb 2019, the same as the existing resolved list (DES-2 design debt). The Registration picker's
   selected-patient summary has no merge note (sketch decision). Design debt noted by Balqis, not fixed here:
   `Patient/Index.vue` name links and the picker highlight use emerald classes, the "Entered in error" button uses
   `text-red-700`, and the pay-later table scrolls sideways on a phone.

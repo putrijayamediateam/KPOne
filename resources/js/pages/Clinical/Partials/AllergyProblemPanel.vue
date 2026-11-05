@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { router, useForm } from '@inertiajs/vue3';
 import { AlertTriangle, Check, Plus } from '@lucide/vue';
-import { computed, ref } from 'vue';
+import { computed, ref, useId } from 'vue';
 import ClinicalSafetyConfirmDialog from '@/components/clinical/ClinicalSafetyConfirmDialog.vue';
 import { Button } from '@/components/ui/button';
 import { OperationalSelect } from '@/components/ui/select';
@@ -27,6 +27,14 @@ type ClinicalSafetyConfirmationKind =
     | 'problem-resolve'
     | 'problem-entered-in-error';
 
+// REG-5: problems from merged records are read only. The group opens by default while any of them is active, and the
+// count line names the active ones, so a doctor never reads "0 active" past an active merged condition.
+const mergedHeadingId = useId();
+const mergedActiveCount = computed(
+    () =>
+        props.problems?.merged?.filter((record) => record.status === 'active')
+            .length ?? 0,
+);
 const baseUrl = computed(
     () => `/visits/${encodeURIComponent(props.visitNumber)}/encounter`,
 );
@@ -482,7 +490,9 @@ const saveProblem = () => {
                             v-if="problems.merged?.length"
                         >
                             · {{ problems.merged.length }} from merged
-                            records</template
+                            records<template v-if="mergedActiveCount">
+                                ({{ mergedActiveCount }} active)</template
+                            ></template
                         >
                     </p>
                     <div class="flex min-h-[30px] items-center">
@@ -606,17 +616,22 @@ const saveProblem = () => {
                     v-if="problems.merged?.length"
                     class="border-t pt-2 text-sm text-muted-foreground"
                     data-test="merged-problems"
+                    :open="mergedActiveCount > 0"
                 >
                     <summary
-                        id="merged-problems-heading"
+                        :id="mergedHeadingId"
                         class="cursor-pointer font-medium text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
                     >
                         From merged records ({{ problems.merged.length }})
                     </summary>
-                    <div aria-labelledby="merged-problems-heading">
+                    <div role="group" :aria-labelledby="mergedHeadingId">
                         <p class="pt-1 text-xs">
                             Read only. Shown from merged records; they cannot be
                             changed here.
+                        </p>
+                        <p v-if="problems.mergedTruncated" class="pt-1 text-xs">
+                            Showing the {{ problems.merged.length }} most
+                            recent.
                         </p>
                         <div
                             v-for="record in problems.merged"

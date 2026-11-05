@@ -77,6 +77,7 @@ export type ClinicalProblemList = {
     active: ClinicalProblemRecord[];
     resolved: ClinicalProblemRecord[];
     merged?: MergedClinicalProblem[];
+    mergedTruncated?: boolean;
     canUpdate: boolean;
 };
 

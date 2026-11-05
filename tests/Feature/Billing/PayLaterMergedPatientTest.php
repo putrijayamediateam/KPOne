@@ -39,5 +39,14 @@ class PayLaterMergedPatientTest extends BillingTestCase
             ->where('collections.data.0.patientNumber', $kept->patient_number)
             ->where('collections.data.0.mergedFrom', $old)
             ->where('collections.all.count', 1));
+
+        $this->travel(3)->days(); // now overdue in the branch time zone
+        $this->get(route('billing.pay-later-collections', ['overdue' => 1]))->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('collections.shown.count', 1)->where('collections.data.0.mergedFrom', $old));
+
+        MergeFixture::unmerge($kept, $visit->patient, $ca, $supervisor);
+        $this->get(route('billing.pay-later-collections'))->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('collections.data.0.patientNumber', $old)
+            ->where('collections.data.0.mergedFrom', null));
     }
 }

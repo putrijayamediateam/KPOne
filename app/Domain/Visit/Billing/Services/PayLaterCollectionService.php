@@ -66,7 +66,7 @@ final class PayLaterCollectionService
             ->join('invoices as i', 'i.id', '=', 'r.invoice_id')
             ->join('visits as v', 'v.id', '=', 'i.visit_id')
             ->join('patients as p', 'p.id', '=', 'i.patient_id')
-            ->leftJoin('patients as kp', 'kp.id', '=', 'p.merged_into_patient_id')
+            ->leftJoin('patients as kp', fn ($join) => $join->on('kp.id', '=', 'p.merged_into_patient_id')->on('kp.organisation_id', '=', 'p.organisation_id'))
             ->where('r.organisation_id', $organisationId)->where('r.branch_id', $branchId)
             ->where('r.status', 'approved')->where('r.remaining_sen', '>', 0)->whereColumn('r.current_invoice_guard', 'i.id')
             ->where('i.organisation_id', $organisationId)->where('i.branch_id', $branchId)->where('i.status', 'finalized')

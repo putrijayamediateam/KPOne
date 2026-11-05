@@ -144,7 +144,9 @@ const visit = (page: number, overdueOnly = props.collections.overdueOnly) =>
                         <span class="block font-medium text-foreground">
                             {{ row.patientName }}
                         </span>
-                        <span class="block text-xs text-muted-foreground">
+                        <span
+                            class="block font-mono text-xs text-muted-foreground"
+                        >
                             {{ row.patientNumber }}
                         </span>
                         <MergedFromNote

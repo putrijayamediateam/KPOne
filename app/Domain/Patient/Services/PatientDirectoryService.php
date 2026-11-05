@@ -86,7 +86,7 @@ class PatientDirectoryService
             ->get()
             ->keyBy('id');
 
-        $merged = $this->mergedFrom($actor, $patients->keys()->all());
+        $merged = $this->mergedFrom($actor, array_values(array_map('intval', $patients->keys()->all())));
         $summaries = [];
         foreach ($ids as $id) {
             $patient = $patients->get($id);
@@ -185,7 +185,7 @@ class PatientDirectoryService
      */
     private function projectPaginator(User $actor, LengthAwarePaginator $paginator): array
     {
-        $merged = $this->mergedFrom($actor, collect($paginator->items())->pluck('id')->all());
+        $merged = $this->mergedFrom($actor, array_values(array_map('intval', collect($paginator->items())->pluck('id')->all())));
 
         return [
             'data' => collect($paginator->items())->map(fn (Patient $patient): array => $this->projectPatient($actor, $patient, $merged[$patient->id] ?? []))->values()->all(),
@@ -208,14 +208,16 @@ class PatientDirectoryService
             return [];
         }
 
-        return Patient::query()
+        $merged = [];
+        foreach (Patient::query()
             ->where('organisation_id', $actor->organisation_id)
             ->whereIn('merged_into_patient_id', $keptIds)
             ->orderBy('merged_at')->orderBy('id')
-            ->get(['merged_into_patient_id', 'patient_number'])
-            ->groupBy('merged_into_patient_id')
-            ->map(fn ($rows): array => $rows->pluck('patient_number')->values()->all())
-            ->all();
+            ->get(['merged_into_patient_id', 'patient_number']) as $record) {
+            $merged[(int) $record->merged_into_patient_id][] = $record->patient_number;
+        }
+
+        return $merged;
     }
 
     /**

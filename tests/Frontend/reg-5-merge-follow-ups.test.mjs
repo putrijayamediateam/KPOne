@@ -54,6 +54,15 @@ test('REG-5: merged problems are a separate read-only group with no actions', ()
         /Read only\. Shown from merged records; they cannot be/,
     );
     assert.doesNotMatch(group, /<Button|@click|requestConfirmation/);
+    // Clinical safety: an active merged condition is never hidden behind "0 active".
+    assert.match(problems, /:open="mergedActiveCount > 0"/);
+    assert.match(problems, /\(\{\{ mergedActiveCount \}\} active\)/);
+    assert.match(problems, /record\.status === 'active'/);
+    assert.match(
+        problems,
+        /Showing the \{\{ problems\.merged\.length \}\}\s+most\s+recent\./,
+    );
+    assert.match(problems, /:id="mergedHeadingId"/);
 });
 
 test('REG-5: pay-later rows note the old KP number of a merged-away record', () => {
