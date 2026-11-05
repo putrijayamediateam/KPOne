@@ -460,7 +460,7 @@ final class PanelClaimService
             if (! in_array($claim->status, ['accepted', 'partially_accepted', 'partially_paid'], true) || $claim->accepted_amount_sen === null) {
                 throw ValidationException::withMessages(['payment' => 'A Panel remittance can only be recorded after an accepted decision.']);
             }
-            $received = (int) $claim->payments()->sum('amount_sen');
+            $received = (int) $claim->receivedPayments()->sum('amount_sen');
             if ($amount > $claim->accepted_amount_sen - $received) {
                 throw ValidationException::withMessages(['amount_sen' => 'The remittance exceeds the accepted amount still outstanding on this claim.']);
             }
