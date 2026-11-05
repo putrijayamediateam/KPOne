@@ -23,7 +23,7 @@ test('the print page shows the issued label or a PREVIEW line', () => {
         assert.ok(print.includes(label), label);
     }
 
-    assert.ok(print.includes('Back to billing'));
+    assert.ok(print.includes('{{ issued.backLabel }}'));
 });
 
 test('Billing print buttons record the print instead of opening the live page', () => {
