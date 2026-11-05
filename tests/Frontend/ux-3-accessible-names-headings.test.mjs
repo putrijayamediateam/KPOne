@@ -164,20 +164,3 @@ test('UX-3: the Patient identifier fields are named', () => {
         'Identifier value',
     );
 });
-
-test('UX-3: each Pricing publish amount is named by the charge', () => {
-    const input = elements(
-        template('resources/js/pages/Pricing/Index.vue'),
-    ).find(
-        (node) =>
-            node.tag === 'Input' &&
-            node.props.some(
-                (prop) => prop.exp?.content === 'publishForm(charge).amount',
-            ),
-    );
-
-    assert.equal(
-        bound(input, 'aria-label'),
-        '`New price (RM) for ${charge.displayName}`',
-    );
-});

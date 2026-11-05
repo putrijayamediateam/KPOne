@@ -320,7 +320,6 @@ const toggleCharge = (charge: ChargeRow) => {
                             />
                             <Input
                                 v-model="publishForm(charge).amount"
-                                :aria-label="`New price (RM) for ${charge.displayName}`"
                                 class="w-24"
                                 inputmode="decimal"
                                 placeholder="0.00"
