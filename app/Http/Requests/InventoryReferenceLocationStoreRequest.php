@@ -22,7 +22,7 @@ class InventoryReferenceLocationStoreRequest extends FormRequest
             'branch_id' => ['nullable', 'integer', 'min:1'],
             'code' => ['required', 'string', 'max:64'],
             'name' => ['required', 'string', 'max:200'],
-            'type' => ['required', Rule::in(['medical_stock', 'branch_store', 'dispensary'])],
+            'type' => ['required', Rule::in(['medical_stock', 'branch_store', 'dispensary', 'dispensary_returns'])],
         ];
     }
 }

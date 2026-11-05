@@ -17,6 +17,9 @@ class InventoryLocation extends Model
 
     public const TYPE_DISPENSARY = 'dispensary';
 
+    /** STK-11: medicines returned after dispensing; never picked or dispensed, left only by write-off or transfer. */
+    public const TYPE_DISPENSARY_RETURNS = 'dispensary_returns';
+
     protected static function booted(): void
     {
         static::deleting(fn (): never => throw new LogicException('Inventory Locations are retained reference records.'));
