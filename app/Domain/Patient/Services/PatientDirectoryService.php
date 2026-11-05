@@ -2,7 +2,6 @@
 
 namespace App\Domain\Patient\Services;
 
-use App\Domain\Audit\Models\AuditLog;
 use App\Domain\Patient\Models\Patient;
 use App\Models\User;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
@@ -126,25 +125,6 @@ class PatientDirectoryService
         Gate::forUser($actor)->authorize('view', $patient);
         $patient->load(['identifiers' => fn ($query) => $query->latest('created_at')]);
 
-        $activity = [];
-        if ($actor->can('audit.view.organisation')) {
-            $activity = AuditLog::query()
-                ->where('organisation_id', $actor->organisation_id)
-                ->where('subject_type', $patient->getMorphClass())
-                ->where('subject_id', $patient->id)
-                ->with('actor:id,name')
-                ->latest('occurred_at')
-                ->limit(25)
-                ->get()
-                ->map(fn (AuditLog $log) => [
-                    'event' => $log->event,
-                    'actor' => $log->actor instanceof User ? $log->actor->name : 'System',
-                    'occurredAt' => $log->occurred_at->toIso8601String(),
-                    'changedFields' => $log->metadata['changed_fields'] ?? [],
-                    'identifierType' => $log->metadata['identifier_type'] ?? null,
-                ])->all();
-        }
-
         return [
             'canWhatsapp' => $actor->can('patients.view.organisation') && WhatsAppNumber::normalize($patient->mobile_phone) !== null,
             'patientNumber' => $patient->patient_number,
@@ -177,7 +157,6 @@ class PatientDirectoryService
                 'createdAt' => $patient->created_at?->toIso8601String(),
                 'updatedAt' => $patient->updated_at?->toIso8601String(),
             ],
-            'activity' => $activity,
             'can' => [
                 'update' => Gate::forUser($actor)->allows('update', $patient),
                 'manageIdentifiers' => Gate::forUser($actor)->allows('manageIdentifiers', $patient),
