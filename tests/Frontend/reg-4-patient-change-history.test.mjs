@@ -41,6 +41,8 @@ test('REG-4: older rows load by cursor and every state has its wording', () => {
     assert.match(section, /Could not load older changes\. Try again\./);
     assert.match(section, /All changes shown/);
     assert.match(section, /No changes recorded yet\./);
+    assert.match(section, /<LoadingState label="Loading older changes…"/);
+    assert.match(section, /<ErrorState\s+title="Could not load older changes"/);
 });
 
 test('REG-4: the section is accessible and has no fixed-width layout', () => {

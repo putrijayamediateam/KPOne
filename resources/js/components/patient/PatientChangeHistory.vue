@@ -3,7 +3,7 @@ import { FileClock } from '@lucide/vue';
 import { nextTick, ref, watch } from 'vue';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { EmptyState } from '@/components/ui/state';
+import { EmptyState, ErrorState, LoadingState } from '@/components/ui/state';
 
 export type PatientChangeHistoryRow = {
     id: number;
@@ -196,33 +196,29 @@ const loadOlder = async () => {
             <p class="sr-only" aria-live="polite" role="status">
                 {{ announcement }}
             </p>
-            <p
-                v-if="loading"
-                aria-hidden="true"
-                class="text-xs text-muted-foreground"
-            >
-                Loading older changes…
-            </p>
-            <p
-                v-else-if="failed"
-                aria-hidden="true"
-                class="rounded-md border border-destructive/30 px-3 py-2 text-xs text-destructive"
-            >
-                Could not load older changes. Try again.
-            </p>
+            <!-- The live region above makes the only announcement; these show the same state on screen. -->
+            <div v-if="loading" aria-hidden="true">
+                <LoadingState label="Loading older changes…" />
+            </div>
+            <div v-else-if="failed" aria-hidden="true" class="min-w-0">
+                <ErrorState
+                    title="Could not load older changes"
+                    message="Check the connection, then press Try again."
+                />
+            </div>
             <p
                 v-else-if="!nextCursor"
                 aria-hidden="true"
                 class="text-xs text-muted-foreground"
             >
-                All changes shown
+                All changes shown.
             </p>
             <span v-else />
             <Button
                 v-if="nextCursor"
                 type="button"
                 variant="outline"
-                class="min-h-11 text-xs md:h-[30px] md:min-h-0"
+                class="min-h-11 text-xs aria-disabled:opacity-50 md:h-[30px] md:min-h-0"
                 ref="olderButton"
                 :aria-disabled="loading"
                 data-test="patient-history-older"
