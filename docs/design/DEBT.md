@@ -21,7 +21,7 @@ own PR and tells LUCY. See [REVIEW.md](REVIEW.md) for how items are added.
 | DD-09 | Toast covering Complete Consultation at 390 px, `pages/Clinical/Show.vue` | Toast sits on the main action | 9 | Staff Experience | Blocker | S1-015 | In progress (UX-1, PR #241: toasts at the top, owner decision) |
 | DD-10 | Mobile drawer, `components/workspace/WorkspaceHeader.vue` | Drawer stays open after choosing a link | 12 | Staff Experience | Major | S1-017 | In progress (UX-1, PR #241) |
 | DD-11 | Medical Certificates link before an encounter exists, `pages/Registration/Show.vue`, `pages/Visits/History.vue` | Link opens a 404 page | 11 | Staff Experience | Major | S1-005 | In progress (UX-2, sketch OK with one change) |
-| DD-12 | Inventory, `pages/Inventory/Index.vue` | Five links in three styles above the page title; a second "Return to Workspace" beside the header's | 4, 15 | Inventory | Major | DES-1 | Open |
+| DD-12 | Inventory, `pages/Inventory/Index.vue`, and the governed Inventory pages (`GovernedStock.vue`, `SupplierReturns.vue`) | Links above the page title in several styles; a second "Return to Workspace" beside the header's | 4, 15 | Inventory | Major | DES-1 | Open |
 | DD-13 | Medicine Catalogue, `pages/Medicine/Index.vue` | Three text buttons per row, the third cut off at 1440 px; on a phone only Code and Name are visible (prices, status and actions off screen) | 5, 6 | Catalogue & settings (Adlina, Ravi; designer Nadia) | Major | DES-1 | Open: planned as CAT-1 with DD-04 |
 | DD-14 | Daily summary and other branch reports, text from `app/Domain/Shared/Services/DailySummaryReportService.php`, shown by `pages/Reports/BranchReport.vue` | About 15 lines of rule text before the form on a phone, in internal language | 4, 15 | Billing | Major | DES-1 | Open |
 | DD-15 | Patient board empty message, `components/patient-board/PatientBoard.vue` | "No Patients match this operational view.": jargon, capitalised noun, no next step | 11, 15 | Patients & Registration (board shared with Queue & TV) | Minor | DES-1 | Open |
@@ -45,3 +45,4 @@ receipt and drug-label print layouts.
 - 2026-11-05: DD-04 and DD-13 owner set to Catalogue & settings (no team yet), interim Staff Experience (LUCY). DD-22 added from the Q-2 hand-off; the owner approved the column change the same day.
 - 2026-11-05: Catalogue & settings team set up (owner); DD-04 and DD-13 assigned to it as CAT-1; DD-22 planned as Q-2b.
 - 2026-11-05: DD-23 added (shared report page, found by Siti during BIL-6b).
+- 2026-11-05: DD-12 widened to the governed Inventory pages (seen during the STK-9 look).
