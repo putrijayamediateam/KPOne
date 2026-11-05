@@ -8,6 +8,8 @@ import InvoiceActivityDrawer from '@/components/billing/InvoiceActivityDrawer.vu
 import InvoiceAdjustmentDialog from '@/components/billing/InvoiceAdjustmentDialog.vue';
 import InvoiceBillTo from '@/components/billing/InvoiceBillTo.vue';
 import InvoiceNotes from '@/components/billing/InvoiceNotes.vue';
+import IssuedCopies from '@/components/billing/IssuedCopies.vue';
+import IssuePrintButton from '@/components/billing/IssuePrintButton.vue';
 import OutstandingBills from '@/components/billing/OutstandingBills.vue';
 import ReceiptRefunds from '@/components/billing/ReceiptRefunds.vue';
 import { ActionLink } from '@/components/ui/action-link';
@@ -479,20 +481,12 @@ const reverse = (receipt: Receipt) =>
                     <BillingChargeRows v-else :lines="lines" />
                 </template>
                 <div v-else class="space-y-3 p-4">
-                    <Button
+                    <IssuePrintButton
                         v-if="billing.can.print"
-                        as-child
-                        variant="secondary"
-                        size="sm"
-                    >
-                        <a
-                            :href="`${invoiceBase}/print`"
-                            target="_blank"
-                            rel="noopener"
-                        >
-                            Print Invoice
-                        </a>
-                    </Button>
+                        :url="`${invoiceBase}/issue`"
+                        label="Print invoice"
+                        :return-to="manage ? 'payments' : 'billing'"
+                    />
                     <div
                         v-for="receipt in billing.payments"
                         :key="receipt.publicId"
@@ -518,20 +512,13 @@ const reverse = (receipt: Receipt) =>
                             />
                         </div>
                         <div class="flex flex-wrap gap-2">
-                            <Button
+                            <IssuePrintButton
                                 v-if="billing.can.print"
-                                as-child
+                                :url="`${invoiceBase}/receipts/${receipt.publicId}/issue`"
+                                label="Print receipt"
                                 variant="ghost"
-                                size="sm"
-                            >
-                                <a
-                                    :href="`${invoiceBase}/receipts/${receipt.publicId}/print`"
-                                    target="_blank"
-                                    rel="noopener"
-                                >
-                                    Print Receipt
-                                </a>
-                            </Button>
+                                :return-to="manage ? 'payments' : 'billing'"
+                            />
                             <Button
                                 v-if="
                                     billing.can.reverse &&
@@ -546,6 +533,12 @@ const reverse = (receipt: Receipt) =>
                             </Button>
                         </div>
                     </div>
+                    <IssuedCopies
+                        v-if="billing.issuedCopies"
+                        :copies="billing.issuedCopies"
+                        :base="base"
+                        :return-to="manage ? 'payments' : 'billing'"
+                    />
                 </div>
                 <div
                     v-if="billing.can.build || billing.can.finalize"
@@ -829,14 +822,17 @@ const reverse = (receipt: Receipt) =>
                                         <div
                                             class="flex flex-wrap justify-end gap-2"
                                         >
-                                            <ActionLink
+                                            <IssuePrintButton
                                                 v-if="billing.can.print"
-                                                :href="`${invoiceBase}/receipts/${receipt.publicId}/print`"
+                                                :url="`${invoiceBase}/receipts/${receipt.publicId}/issue`"
+                                                label="Print receipt"
                                                 variant="outline"
-                                                target="_blank"
-                                                rel="noopener"
-                                                >Print Receipt</ActionLink
-                                            ><Button
+                                                :return-to="
+                                                    manage
+                                                        ? 'payments'
+                                                        : 'billing'
+                                                "
+                                            /><Button
                                                 v-if="
                                                     billing.can.reverse &&
                                                     receipt.status === 'posted'
@@ -881,14 +877,13 @@ const reverse = (receipt: Receipt) =>
                             </p>
                             <StatusBadge :status="receipt.status" />
                             <div class="flex flex-wrap gap-2">
-                                <ActionLink
+                                <IssuePrintButton
                                     v-if="billing.can.print"
-                                    :href="`${invoiceBase}/receipts/${receipt.publicId}/print`"
+                                    :url="`${invoiceBase}/receipts/${receipt.publicId}/issue`"
+                                    label="Print receipt"
                                     variant="outline"
-                                    target="_blank"
-                                    rel="noopener"
-                                    >Print Receipt</ActionLink
-                                ><Button
+                                    :return-to="manage ? 'payments' : 'billing'"
+                                /><Button
                                     v-if="
                                         billing.can.reverse &&
                                         receipt.status === 'posted'

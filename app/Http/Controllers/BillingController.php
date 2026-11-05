@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Domain\Organisation\BusinessDetails\BranchLetterheadService;
 use App\Domain\Organisation\BusinessDetails\BusinessDetailAsset;
 use App\Domain\Visit\Billing\Models\Invoice;
+use App\Domain\Visit\Billing\Models\IssuedBillingDocumentPrint;
 use App\Domain\Visit\Billing\Models\Payment;
 use App\Domain\Visit\Billing\Services\BillingBuilderService;
 use App\Domain\Visit\Billing\Services\BillingDirectoryService;
@@ -12,6 +13,7 @@ use App\Domain\Visit\Billing\Services\CompleteVisitationService;
 use App\Domain\Visit\Billing\Services\InvoiceAdjustmentService;
 use App\Domain\Visit\Billing\Services\InvoiceBillToService;
 use App\Domain\Visit\Billing\Services\InvoiceCorrectionService;
+use App\Domain\Visit\Billing\Services\IssuedBillingDocumentService;
 use App\Domain\Visit\Billing\Services\OutstandingBillService;
 use App\Domain\Visit\Billing\Services\PaymentService;
 use App\Domain\Visit\Billing\Services\RefundService;
@@ -102,6 +104,55 @@ class BillingController extends Controller
         Inertia::flash('toast', ['type' => 'success', 'message' => $decision === 'approved' ? 'Refund approved.' : 'Refund rejected.']);
 
         return redirect($this->settlementDestination($request, $visit));
+    }
+
+    /** BIL-5: record the print of an invoice (ORIGINAL, REVISED or COPY) and open its frozen print view. */
+    public function issueInvoice(Request $request, Visit $visit, Invoice $invoice, IssuedBillingDocumentService $service): RedirectResponse
+    {
+        return $this->issued($request, $visit, fn () => $service->issue($request->user(), $visit, $invoice, null, $request->only(['expected_branch_id', 'idempotency_key'])));
+    }
+
+    /** BIL-5: the same for one receipt of the invoice. */
+    public function issueReceipt(Request $request, Visit $visit, Invoice $invoice, Payment $payment, IssuedBillingDocumentService $service): RedirectResponse
+    {
+        return $this->issued($request, $visit, fn () => $service->issue($request->user(), $visit, $invoice, $payment, $request->only(['expected_branch_id', 'idempotency_key'])));
+    }
+
+    /** BIL-5: reprint an issued version as COPY. */
+    public function reprintIssued(Request $request, Visit $visit, string $document, IssuedBillingDocumentService $service): RedirectResponse
+    {
+        return $this->issued($request, $visit, fn () => $service->reprint($request->user(), $visit, $document, $request->only(['expected_branch_id', 'idempotency_key'])));
+    }
+
+    public function showIssued(Request $request, Visit $visit, string $print, IssuedBillingDocumentService $service): Response
+    {
+        $data = $service->show($request->user(), $visit, $print);
+        $from = $request->query('from');
+        [$data['issued']['backUrl'], $data['issued']['backLabel']] = match ($from) {
+            'payments' => [route('billing.payments', $visit, absolute: false), 'Back to payments'],
+            'invoice' => [route('visits.invoice', $visit, absolute: false), 'Back to invoice'],
+            default => [route('billing.show', $visit, absolute: false), 'Back to billing'],
+        };
+
+        return Inertia::render('Billing/Print', $data);
+    }
+
+    /** @param \Closure(): IssuedBillingDocumentPrint $action */
+    private function issued(Request $request, Visit $visit, \Closure $action): RedirectResponse
+    {
+        $from = in_array($request->input('return_to'), ['billing', 'payments', 'invoice'], true) ? (string) $request->input('return_to') : 'billing';
+        $back = match ($from) {
+            'payments' => route('billing.payments', $visit),
+            'invoice' => route('visits.invoice', $visit),
+            default => route('billing.show', $visit),
+        };
+        try {
+            $print = $action();
+        } catch (ValidationException $exception) {
+            throw $exception->redirectTo($back);
+        }
+
+        return redirect()->route('billing.issued.show', [$visit, $print->public_id, 'from' => $from]);
     }
 
     public function void(Request $request, Visit $visit, Invoice $invoice, InvoiceCorrectionService $service): RedirectResponse
