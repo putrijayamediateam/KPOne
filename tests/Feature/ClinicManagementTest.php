@@ -32,6 +32,7 @@ class ClinicManagementTest extends VisitTestCase
             '/queue' => ['queue.view.own', 'queue.view.branch'],
             '/registration-review' => ['public_intakes.review.branch'],
             '/payment-reconciliations' => ['payments.reconcile.branch'],
+            '/cash-closings' => ['payments.reconcile.branch'],
             '/business-details' => ['catalogue.settings.manage.organisation'],
             '/public-checkin-links' => ['public_checkin_links.manage.organisation', 'public_checkin_links.manage.branch'],
             '/registration-settings' => ['catalogue.settings.manage.organisation'],
