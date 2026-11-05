@@ -415,6 +415,14 @@ class RosterTest extends VisitTestCase
         $this->assertSame(2, RosterVersion::query()->count());
     }
 
+    public function test_the_planner_opens_on_the_viewers_active_branch_and_stays_changeable(): void
+    {
+        $hr = $this->actor('hr_manager', $this->puchong);
+        $this->selectBranch($hr, $this->puchong);
+        $this->get(route('hr.roster.index', ['tab' => 'planner']))->assertInertia(fn (Assert $p) => $p->where('roster.planner.branch.id', $this->puchong->id));
+        $this->get(route('hr.roster.index', ['tab' => 'planner', 'branch' => $this->branch->id]))->assertInertia(fn (Assert $p) => $p->where('roster.planner.branch.id', $this->branch->id));
+    }
+
     public function test_hub_shows_the_roster_link_to_every_human_role_only(): void
     {
         foreach (['director', 'hr_manager', 'ca', 'technical_admin', 'queue_display'] as $role) {

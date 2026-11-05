@@ -862,15 +862,18 @@ const minimumError = (session: string, role: string) =>
                                     :key="day.date"
                                     class="tabular-nums"
                                 >
-                                    <span class="mr-2">{{
-                                        planner.totals[index]
-                                    }}</span>
-                                    <StatusBadge
-                                        v-if="isShort(day.date)"
-                                        status="roster_short"
-                                        label="Short"
-                                        tone="warning"
-                                    />
+                                    <span
+                                        class="inline-flex items-center gap-2 whitespace-nowrap"
+                                        data-test="day-total"
+                                    >
+                                        <span>{{ planner.totals[index] }}</span>
+                                        <StatusBadge
+                                            v-if="isShort(day.date)"
+                                            status="roster_short"
+                                            label="Short"
+                                            tone="warning"
+                                        />
+                                    </span>
                                 </td>
                             </tr>
                         </template>

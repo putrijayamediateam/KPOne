@@ -116,3 +116,14 @@ test('the hub link uses the roster permissions and never the word Scheduling', (
     );
     assert.match(nav, /hr\.roster\.view\.own/);
 });
+
+test('phone Edit buttons name the person, day and times, and the day total stays on one line', () => {
+    assert.match(
+        template,
+        /:aria-label="`Edit shift: \$\{item.row.name\}, \$\{day.long\}, \$\{item.shift.startLabel\} to \$\{item.shift.endLabel\}`"/,
+    );
+    assert.match(
+        template,
+        /class="inline-flex items-center gap-2 whitespace-nowrap"\s+data-test="day-total"/,
+    );
+});
