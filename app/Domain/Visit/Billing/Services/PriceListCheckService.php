@@ -143,16 +143,20 @@ final class PriceListCheckService
                 }
             }
 
+            $billable = $charge !== null && $charge->is_active;
+
             return [
                 'type' => $item['type'],
                 'code' => $item['code'],
                 'displayName' => $item['displayName'],
                 'orderUnit' => $item['orderUnit'],
                 'chargeUnit' => $charge?->unit,
-                'selfPaySen' => $selfPay,
-                'selfPayFromBranch' => $selfPayFromBranch,
-                'panelDefaultSen' => $panelDefaultPrice,
-                'panelPrices' => $panelPrices,
+                // Billing refuses every line of an inactive charge, so it shows no price ("—"); the checks above still
+                // read the stored prices, so "Charge inactive" is the flag, not a missing price.
+                'selfPaySen' => $billable ? $selfPay : null,
+                'selfPayFromBranch' => $billable && $selfPayFromBranch,
+                'panelDefaultSen' => $billable ? $panelDefaultPrice : null,
+                'panelPrices' => $billable ? $panelPrices : [],
                 'checks' => $checks,
             ];
         });

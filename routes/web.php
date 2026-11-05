@@ -661,6 +661,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::middleware(['permission:pricing.references.manage.organisation'])->group(function () {
                 Route::get('/', [PricingController::class, 'index'])->name('pricing.index');
                 Route::get('price-check', [PricingController::class, 'priceCheck'])->middleware('throttle:60,1')->name('pricing.price-check');
+                Route::get('charges/{charge}/history', [PricingController::class, 'history'])->whereUuid('charge')->middleware('throttle:60,1')->name('pricing.charges.history');
                 Route::post('charges', [PricingController::class, 'storeCharge'])->middleware('throttle:30,1')->name('pricing.charges.store');
                 Route::post('charges/{charge}/activate', [PricingController::class, 'activateCharge'])->whereUuid('charge')->middleware('throttle:20,1')->name('pricing.charges.activate');
                 Route::post('charges/{charge}/deactivate', [PricingController::class, 'deactivateCharge'])->whereUuid('charge')->middleware('throttle:20,1')->name('pricing.charges.deactivate');

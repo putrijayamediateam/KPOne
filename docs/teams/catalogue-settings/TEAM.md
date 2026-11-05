@@ -91,6 +91,10 @@ Server checks stay the authority; hiding a control is a usability aid only.
    stays allowed. Built as its own small piece, CAT-1b, after CAT-1 (owner, 2026-11-05, relayed by LUCY).
 9. CAT-2 is authorised: "go ahead with CAT-2" (owner, 2026-11-05, in this team's session). Read-only, existing
    permissions only, no new permission, migration or export.
+10. CAT-3 and CAT-4 are authorised: "go ahead with CAT-3 and CAT-4" (owner, 2026-11-05, in this team's session).
+   One at a time after CAT-2, each its own piece and PR, existing permissions only, no new permission, migration or
+   export; Nadia sketches each for Daniel first. The go-ahead counts as the ship-it for both: each opens as a PR
+   and merges on green unless Daniel says "Not OK".
 
 ## 7. Open items and known limits
 
@@ -146,7 +150,7 @@ Server checks stay the authority; hiding a control is a usability aid only.
 3. **CAT-2 Price list check (authorised, decision 9).** A read-only page listing every active medicine and
    service with its Self-pay, default Panel and per-Panel prices, flagging missing or zero prices, to help the
    pilot catalogue review. Existing pricing permissions only.
-4. **CAT-3 Price history (proposed, owner to confirm).** Read-only history of published prices per charge: who
+4. **CAT-3 Price history (authorised, decision 10).** Read-only history of published prices per charge: who
    published which amount and when, from the existing versioned price entries.
-5. **CAT-4 Document readiness (proposed, owner to confirm).** On Business details, show per branch whether the
+5. **CAT-4 Document readiness (authorised, decision 10).** On Business details, show per branch whether the
    name, address, phone or email, logo and footer are complete, because prints and referral letters depend on them.

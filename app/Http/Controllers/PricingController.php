@@ -9,6 +9,7 @@ use App\Domain\Organisation\Models\Branch;
 use App\Domain\Visit\Billing\Models\ChargeDefinition;
 use App\Domain\Visit\Billing\Models\PriceBook;
 use App\Domain\Visit\Billing\Models\PriceEntry;
+use App\Domain\Visit\Billing\Services\PriceHistoryService;
 use App\Domain\Visit\Billing\Services\PriceListCheckService;
 use App\Domain\Visit\Billing\Services\PricePublicationService;
 use App\Domain\Visit\Billing\Services\PricingReferenceAdministrationService;
@@ -123,6 +124,27 @@ class PricingController extends Controller
             'branch' => $branch ? ['id' => $branch->id, 'name' => $branch->name] : null,
             'filters' => $filters,
             'result' => $branch ? $checks->check($actor, $branch, $filters, (int) ($data['page'] ?? 1)) : null,
+        ]);
+    }
+
+    public function history(Request $request, ChargeDefinition $charge, BranchAccessService $branches, PriceHistoryService $history): Response
+    {
+        try {
+            $data = $request->validate([
+                'book' => ['nullable', 'uuid'],
+                'from' => ['nullable', Rule::in(['price-check'])],
+                'page' => ['sometimes', 'integer', 'min:1', 'max:10000'],
+            ]);
+        } catch (ValidationException $exception) {
+            // Stay on this page with the message, never back() to wherever the session last was.
+            throw $exception->redirectTo(route('pricing.charges.history', $charge));
+        }
+        $actor = $request->user();
+
+        return Inertia::render('Pricing/PriceHistory', [
+            'filters' => ['book' => $data['book'] ?? null],
+            'from' => $data['from'] ?? null,
+            'result' => $history->history($actor, $charge, $branches->activeBranch($actor), $data['book'] ?? null, (int) ($data['page'] ?? 1)),
         ]);
     }
 
