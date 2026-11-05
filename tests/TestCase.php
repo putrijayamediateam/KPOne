@@ -14,6 +14,7 @@ use Illuminate\Foundation\Testing\RefreshDatabaseState;
 use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Laravel\Fortify\Features;
 use RuntimeException;
 use Spatie\Permission\Models\Permission;
@@ -57,7 +58,10 @@ abstract class TestCase extends BaseTestCase
     private function restoreEmptyCommittedSchemaForCommittingTests(): void
     {
         $traits = class_uses_recursive(static::class);
-        if (isset($traits[RefreshDatabase::class]) || isset($traits[DatabaseTransactions::class]) || ! RefreshDatabaseState::$migrated) {
+        if (isset($traits[RefreshDatabase::class]) || isset($traits[DatabaseTransactions::class])) {
+            return;
+        }
+        if (! RefreshDatabaseState::$migrated && ! $this->committedRoleGrantsRemain()) {
             return;
         }
 
@@ -65,6 +69,21 @@ abstract class TestCase extends BaseTestCase
             throw new RuntimeException('Could not restore the unseeded test schema.');
         }
         RefreshDatabaseState::$migrated = false;
+    }
+
+    /**
+     * CI-PAR-1: committing tests that seed the reference data themselves (ensureReferenceData) leave the seeded
+     * role grants committed without RefreshDatabase noticing. A later committing test would then find, for
+     * example, the seeded resident_doctor role still granting a permission it revokes directly, so its outcome
+     * would depend on test order. Committed role-to-permission grants mean that state is present.
+     */
+    private function committedRoleGrantsRemain(): bool
+    {
+        if (! str_starts_with(static::class, 'Tests\\Feature\\')) {
+            return false;
+        }
+
+        return Schema::hasTable('role_has_permissions') && DB::table('role_has_permissions')->exists();
     }
 
     protected function tearDown(): void
