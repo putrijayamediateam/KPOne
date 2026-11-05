@@ -9,6 +9,7 @@ use App\Domain\Agents\Services\AgentRunRecorder;
 use App\Domain\Agents\Tools\AgentToolGateway;
 use App\Domain\Clinical\Dispensary\Services\DispensaryService;
 use App\Domain\Organisation\Inventory\Services\GovernedStockService;
+use App\Domain\Organisation\Inventory\Services\InventoryMovementService;
 use App\Domain\Organisation\Inventory\Services\InventoryStockReviewService;
 use App\Domain\Queue\Services\QueueEntryService;
 use Carbon\CarbonImmutable;
@@ -18,6 +19,7 @@ use Illuminate\Support\Str;
 use Tests\Feature\Queue\QueueTestCase;
 use Tests\Support\GovernedStockFixture;
 use Tests\Support\OtcDispensaryFixtures;
+use Tests\Support\ReturnsLocationFixture;
 
 /** AG-4: the figures each data source returns, against the screens and rules they mirror. */
 class AgentDataSourcesTest extends QueueTestCase
@@ -62,6 +64,32 @@ class AgentDataSourcesTest extends QueueTestCase
         $this->assertSame(1, $tool['totals']['expiring']);
         $sku = collect($tool['skus'])->firstWhere('sku', $f['sku']->public_id);
         $this->assertSame([1, 1, '10.000', 0], [$sku['lowStockLocations'], $sku['expiringBatches'], $sku['expiringQuantity'], $sku['expiredBatches']]);
+    }
+
+    /** STK-11: returned medicine is not usable stock for the agents either, but it is still counted. */
+    public function test_returns_location_stock_is_left_out_of_usable_figures_and_kept_in_stock_counts(): void
+    {
+        $f = (new GovernedStockFixture($this->branch))->build('10.000');
+        $supervisor = $f['proposer'];
+        $this->selectBranch($supervisor);
+        $returns = ReturnsLocationFixture::create($supervisor, $this->branch);
+        DB::transaction(fn () => app(InventoryMovementService::class)->recordDispensaryReturn($supervisor, $returns, $f['sku'], $f['batch'], '3.000', (string) Str::uuid()));
+        DB::table('inventory_reorder_levels')->insert(['organisation_id' => $this->organisation->id, 'inventory_location_id' => $returns->id, 'inventory_sku_id' => $f['sku']->id, 'reorder_level' => '50.000', 'updated_by_user_id' => $supervisor->id, 'created_at' => now(), 'updated_at' => now()]);
+
+        $balances = collect($this->read('inventory.branch_balances', $supervisor)['skus'])->firstWhere('sku', $f['sku']->public_id);
+        $this->assertSame(['branch' => 'CHERAS', 'onHand' => '10.000', 'eligible' => '10.000', 'reorderLevel' => '0.000'], $balances['perBranch'][0]);
+
+        $page = app(InventoryStockReviewService::class)->page($supervisor, []);
+        $review = $this->read('inventory.stock_review', $supervisor);
+        $this->assertSame(['lowStock' => $page['lists']['low_stock']['total'], 'expiring' => $page['lists']['expiring']['total'], 'expired' => $page['lists']['expired']['total']], $review['totals']);
+        $this->assertSame(0, $review['totals']['lowStock']);
+        $this->assertSame('10.000', collect($review['skus'])->firstWhere('sku', $f['sku']->public_id)['expiringQuantity']);
+
+        $this->assertSame('10.000', collect($this->read('inventory.dispensing_activity', $supervisor)['skus'])->firstWhere('sku', $f['sku']->public_id)['onHand']);
+
+        $counted = collect($this->read('inventory.stock_counts', $supervisor)['rows'])->pluck('location')->all();
+        $this->assertContains($returns->public_id, $counted);
+        $this->assertContains($f['location']->public_id, $counted);
     }
 
     public function test_branch_balances_cover_every_branch_with_on_hand_eligible_and_reorder_level(): void

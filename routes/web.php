@@ -260,6 +260,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::middleware(['permission:panel.remittances.record.branch', 'sensitive.no-store'])->group(function () {
         Route::get('panel-remittances', [PanelRemittancesController::class, 'index'])->name('panel-remittances.index');
         Route::post('panel-remittances', [PanelRemittancesController::class, 'store'])->middleware('throttle:20,1')->name('panel-remittances.store');
+        Route::post('panel-remittances/statements', [PanelRemittancesController::class, 'storeStatement'])->middleware('throttle:10,1')->name('panel-remittances.statements.store');
+        Route::delete('panel-remittances/statements/{statement}', [PanelRemittancesController::class, 'destroyStatement'])->whereUuid('statement')->middleware('throttle:20,1')->name('panel-remittances.statements.destroy');
     });
     Route::middleware(['permission:panel.claim_payments.reverse.branch', 'sensitive.no-store'])->group(function () {
         Route::get('panel-payment-corrections', [PanelPaymentCorrectionsController::class, 'index'])->name('panel-payment-corrections.index');
