@@ -186,6 +186,11 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php` and `BillingPermiss
     The PR still opens only after "ship it", from the same branch, with the latest `main` merged first. After a
     restart on a fresh machine, fetch the branch before continuing.
 
+27. BIL-5 print entry points (2026-11-05, answered by the owner in the Billing session): the old live print pages
+    (still reachable by URL and from the patient Invoices page) stay viewable but carry a clear "PREVIEW — not an
+    issued copy" line on the paper; every Billing print button records the print. The recorded print view opens in
+    the same tab with a "Back to billing" button (browsers block a new tab opened after the server records it).
+
 ## 7. Open items and known limits
 
 - **Walked and tested in BIL-1 (2026-11-05):** invoice void and reissue, adjustment reversal, later settlement

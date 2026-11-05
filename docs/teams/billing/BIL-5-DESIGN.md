@@ -62,3 +62,6 @@ limit; the Medical Certificate (DOC-02b) already solves the same problem with an
 3. Labels on paper are **English**: ORIGINAL, COPY, REVISED.
 4. The "Issued copies" list is shown to **those who can print** (`billing.print.branch`: CA, CA Supervisor). No new
    permission.
+5. The old live print pages stay viewable but are marked "PREVIEW — not an issued copy" on paper; every Billing
+   print button records the print (Siti's sketch found several entry points, including the patient Invoices page).
+6. The recorded print view opens in the same tab, with "Back to billing".
