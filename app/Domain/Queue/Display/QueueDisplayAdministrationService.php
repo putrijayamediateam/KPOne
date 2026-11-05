@@ -353,7 +353,7 @@ class QueueDisplayAdministrationService
     private function callMode(string $mode): string
     {
         if (! in_array($mode, BranchDisplaySetting::MODES, true)) {
-            $this->invalid('call_display_mode', 'Choose to call by queue number or by patient name.');
+            $this->invalid('call_display_mode', 'Choose to call by queue number, by number and short name, or by full registered name.');
         }
 
         return $mode;
