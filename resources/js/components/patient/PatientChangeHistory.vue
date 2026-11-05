@@ -51,6 +51,9 @@ watch(
 
 const spoken = (row: PatientChangeHistoryRow) =>
     `${row.label} by ${row.actorName} on ${row.occurredAtLocal}.` +
+    (!row.isThisRecord && row.recordNumber && !row.keptPatientNumber
+        ? ` From ${row.recordNumber}.`
+        : '') +
     (row.fields.length ? ` Fields: ${row.fields.join(', ')}.` : '') +
     (row.keptPatientNumber && row.mergedPatientNumber
         ? ` Kept ${row.keptPatientNumber}, merged ${row.mergedPatientNumber}.`
@@ -152,10 +155,14 @@ const loadOlder = async () => {
                     <p class="font-medium break-words">
                         {{ row.label }}
                         <span
-                            v-if="!row.isThisRecord && row.recordNumber"
+                            v-if="
+                                !row.isThisRecord &&
+                                row.recordNumber &&
+                                !row.keptPatientNumber
+                            "
                             class="font-normal text-muted-foreground tabular-nums"
                         >
-                            · {{ row.recordNumber }}</span
+                            From {{ row.recordNumber }}</span
                         >
                     </p>
                     <div v-if="row.fields.length" class="flex flex-wrap gap-1">
@@ -218,7 +225,8 @@ const loadOlder = async () => {
                 v-if="nextCursor"
                 type="button"
                 variant="outline"
-                class="min-h-11 text-xs aria-disabled:opacity-50 md:h-[30px] md:min-h-0"
+                size="sm"
+                class="min-h-11 aria-disabled:opacity-50 md:min-h-0"
                 ref="olderButton"
                 :aria-disabled="loading"
                 data-test="patient-history-older"
