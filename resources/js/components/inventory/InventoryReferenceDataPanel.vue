@@ -200,6 +200,10 @@ const locationTypeOptions = [
     { value: 'medical_stock', label: 'Medical Stock' },
     { value: 'branch_store', label: 'Branch Store' },
     { value: 'dispensary', label: 'Dispensary' },
+    {
+        value: 'dispensary_returns',
+        label: 'Patient returns (not for dispensing)',
+    },
 ];
 const submitLocation = () => {
     locationForm.post('/inventory-references/locations', {
@@ -442,16 +446,30 @@ const submitMapping = () => {
             class="mt-4 grid gap-3 md:grid-cols-2"
             @submit.prevent="submitLocation"
         >
-            <OperationalSelect
-                v-model="locationForm.branch_id"
-                label="Branch"
-                :options="branchOptions"
-            />
-            <OperationalSelect
-                v-model="locationForm.type"
-                label="Type"
-                :options="locationTypeOptions"
-            />
+            <div class="grid gap-1">
+                <OperationalSelect
+                    v-model="locationForm.branch_id"
+                    label="Branch"
+                    :options="branchOptions"
+                />
+                <InputError :message="locationForm.errors.branch_id" />
+            </div>
+            <div class="grid gap-1">
+                <OperationalSelect
+                    v-model="locationForm.type"
+                    label="Type"
+                    :options="locationTypeOptions"
+                />
+                <p
+                    v-if="locationForm.type === 'dispensary_returns'"
+                    class="text-xs text-muted-foreground"
+                >
+                    Medicines patients bring back go here. Stock here is never
+                    dispensed. It leaves only by Stock count, Write-off, or a
+                    move to another returns location.
+                </p>
+                <InputError :message="locationForm.errors.type" />
+            </div>
             <label class="grid gap-1 text-xs">
                 Code
                 <Input

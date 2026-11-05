@@ -104,11 +104,18 @@ const tabs = [
     { value: 'batches', label: 'Batch & Expiry' },
     { value: 'movements', label: 'Movements' },
 ];
+// Staff see plain words, never internal type codes (design guide section 15).
+const locationTypeLabels: Record<string, string> = {
+    medical_stock: 'Medical stock',
+    branch_store: 'Branch store',
+    dispensary: 'Dispensary',
+    dispensary_returns: 'Patient returns',
+};
 const locationOptions = computed(() => [
     { value: '', label: 'All branch locations' },
     ...props.inventory.locations.map((item) => ({
         value: item.publicId,
-        label: `${item.name} · ${item.type}`,
+        label: `${item.name} · ${locationTypeLabels[item.type] ?? item.type}`,
     })),
 ]);
 const statusOptions = [
@@ -131,6 +138,7 @@ const movementOptions = [
     { value: 'supplier_return', label: 'Supplier Return' },
     { value: 'treatment_usage', label: 'Treatment Room Use' },
     { value: 'treatment_waste', label: 'Treatment Room Waste' },
+    { value: 'dispensary_return', label: 'Patient Return' },
 ];
 
 const visit = (overrides: Record<string, string | number> = {}) => {
