@@ -13,6 +13,7 @@ use LogicException;
  * @property int $organisation_id
  * @property int $branch_id
  * @property int $panel_claim_id
+ * @property int|null $panel_remittance_id
  * @property int $amount_sen
  * @property string $currency
  * @property string|null $reference

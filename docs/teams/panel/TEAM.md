@@ -24,9 +24,10 @@ coordinator at the owner's request (2026-11-05).
   remark, claim due rule, e-invoice TIN), archive and restore; the claim message template.
 - Claim due rules (`PanelClaimDueRule`: N days after the visit, daily, weekly or monthly by a time).
 - Panel invoices page and CSV.
+- Panel payments (PNL-3): record one Panel payment and split it across that Panel's accepted claims.
 - Per-visit Panel notes and the Payment column.
 - Pages: `PanelClaims/Index.vue`, `Create.vue`, `Show.vue`; `PanelSettings/Index.vue`, `Form.vue`;
-  `PanelInvoices/Index.vue`.
+  `PanelInvoices/Index.vue`; `PanelRemittances/Index.vue`.
 
 **Shared with other teams (change only through a small agreed change):**
 - Panel responsibility proposal and approval on the invoice, BP-01 approval limits: **Billing** team
@@ -41,11 +42,11 @@ coordinator at the owner's request (2026-11-05).
 
 | Kind | Files |
 |---|---|
-| Domain services | `app/Domain/Visit/Billing/Services/PanelClaimService.php` (single and bulk creation share `createLocked`), `PanelClaimDirectoryService`, `PanelClaimEligibility`, `PanelClaimAmounts`, `PanelClaimDueRule`, `PanelClaimMessageService`, `PanelInvoiceReportService`; `app/Domain/Visit/Services/PanelSettingsService.php` |
-| Models | `app/Domain/Visit/Billing/Models/PanelClaim*.php`, the `Panel` model |
-| Controllers | `PanelClaimsController`, the Panel settings and Panel invoices controllers |
-| Pages | `resources/js/pages/PanelClaims/*`, `PanelSettings/*`, `PanelInvoices/*` |
-| Tests | `tests/Feature/Billing/PanelClaimsTest.php`, `tests/Feature/Visit/PanelSettingsTest.php`, `tests/Feature/Visit/VisitPanelNoteTest.php`, `tests/Unit/PanelClaimDueRuleTest.php`, `tests/Unit/PanelClaimMessageRenderTest.php`, frontend `panel-*.test.mjs` |
+| Domain services | `app/Domain/Visit/Billing/Services/PanelClaimService.php` (single and bulk creation share `createLocked`), `PanelClaimDirectoryService`, `PanelClaimEligibility`, `PanelClaimAmounts`, `PanelClaimDueRule`, `PanelClaimMessageService`, `PanelInvoiceReportService`, `PanelRemittanceService`; `app/Domain/Visit/Services/PanelSettingsService.php` |
+| Models | `app/Domain/Visit/Billing/Models/PanelClaim*.php`, `PanelRemittance.php`, the `Panel` model |
+| Controllers | `PanelClaimsController`, `PanelRemittancesController`, the Panel settings and Panel invoices controllers |
+| Pages | `resources/js/pages/PanelClaims/*`, `PanelSettings/*`, `PanelInvoices/*`, `PanelRemittances/*` |
+| Tests | `tests/Feature/Billing/PanelClaimsTest.php`, `PanelBulkClaimTest.php`, `PanelRemittanceTest.php` (shared fixture trait `ApprovedPanelAllocations`), `tests/Feature/Visit/PanelSettingsTest.php`, `tests/Feature/Visit/VisitPanelNoteTest.php`, `tests/Unit/PanelClaimDueRuleTest.php`, `tests/Unit/PanelClaimMessageRenderTest.php`, frontend `panel-*.test.mjs` |
 
 ## 4. Permissions (who can do what today)
 
@@ -57,6 +58,7 @@ coordinator at the owner's request (2026-11-05).
 | `panel.work.view.branch` | Director, Panel Officer | Panel Responsibility work view |
 | `panel.invoices.export.branch` | Director, Panel Officer, Finance Officer | Panel invoices page and CSV |
 | `panels.manage.organisation` | Director, Panel Officer, Finance Officer, Administrator | Panel settings and claim message template |
+| `panel.remittances.record.branch` | Panel Officer, Finance Officer | Panel payments page: record one Panel payment and split it across accepted claims (PNL-3, owner decision 2026-11-05) |
 
 Source of truth: `app/Domain/Access/PermissionCatalogue.php`.
 
@@ -78,6 +80,7 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php`.
 | RPT-01d (with Reports) | Panel summary with ageing; shared eligibility and amounts | #147 |
 | PNL-1 | Panel Claims list, claim page and Panel invoices filters fit a 320–390 px phone (SMOKE-1 S1-002, S1-003); layout classes only | #220 |
 | PNL-2 | Bulk claim creation: several invoices of one Panel (compared by Panel code) become their own Submitted claims in one all-or-nothing action; at most 20, one shared date, instant and remarks, no photos in bulk; route `POST /panel-claims/bulk` | pending |
+| PNL-3 | Panel payments: one Panel payment split across that Panel's accepted claims at this branch; the split must equal the payment; each split is an ordinary claim payment linked to the remittance; new append-only `panel_remittances` table and `panel.remittances.record.branch` (Panel Officer, Finance Officer) | pending |
 
 ## 6. Owner decisions already made (never ask again)
 
@@ -116,6 +119,12 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php`.
   `relative` on the shared wrapper would fix every page (needs agreement with the other teams).
 - PNL-2 not yet tested: a PostgreSQL contention test of bulk against single creation, and one batch whose
   visits fall on different dates.
+- **PNL-3 limits:** a payment is recorded per branch (a Panel paying several branches in one transfer is
+  recorded once per branch); at most 50 claims per payment; the date received is today or earlier; a recorded
+  payment cannot be reversed or corrected in KPOne (as with the existing single-claim remittance), so a wrong
+  entry needs a separate, later correction design. The Finance Officer sees patient names (from the claim
+  snapshot) on this page, as decision 11 allows on Panel invoices; no clinical data is shown. Not yet tested: a
+  PostgreSQL contention test of a split payment against a single-claim payment.
 - A submitted-but-undecided claim counts as zero outstanding in the Panel summary.
 - Panel summary runs about three queries per approved allocation; not load-tested.
 
@@ -147,7 +156,7 @@ authorisation to build them; the coordinator records it in `docs/BASELINE.md`.
 2. **PNL-2 Bulk claim. (Shipped 2026-11-05.)** Select several Pending invoices of one Panel and create their claims in one action,
    each claim still its own record with its own idempotency, all Submitted on the same date; still submitted
    manually on the Panel's portal. Lifts the earlier "bulk claim not built" note (decision 9) for creation only.
-3. **PNL-3 Remittance matching.** Record one Panel payment (amount, date, reference) and split it across
+3. **PNL-3 Remittance matching. (Shipped 2026-11-05, owner "ship it".)** Record one Panel payment (amount, date, reference) and split it across
    several accepted claims of that Panel; show what remains unpaid per claim; append-only; the split must equal
    the payment. **Owner decision 2026-11-05: both the Panel Officer and the Finance Officer may record and split a
    Panel payment** (Finance Officer gains this one action; needs a narrow additive permission, listed for the
