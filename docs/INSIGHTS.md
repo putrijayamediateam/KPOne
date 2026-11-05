@@ -38,7 +38,7 @@ truncation and explains that search covers only the rows shown.
 
 - **Sales:** net finalized invoice payable (original invoice subtotal plus an active surcharge or minus an active discount) grouped by local invoice-finalization date; drafts and voided invoices are
   excluded. New/returning classification uses the prior completed-visit rule. Service and medicine rankings
-  use original invoice-line snapshots, labelled **gross item sales**. Provider ranking uses net invoice payable and the attending doctor recorded at checkout.
+  use original invoice-line snapshots, labelled **gross item sales**. Provider ranking uses net invoice payable and the attending doctor recorded at checkout. Medicine-only (OTC) invoices have no doctor and appear as one fixed **OTC (no doctor)** row, always last and outside the 100-row doctor cap, only when no doctor filter is applied (DSP-4); with it, the Provider rows add up to the headline net invoice sales unless the doctor list is cut at 100. The row is kept last on screen too, whatever the column sort.
 - **In-clinic:** visit, queue, checkout, and hold timestamps provide the duration measures. Waiting time is
   queued-to-called; serving time is called-to-checkout less recorded On Hold intervals; total in-clinic time is
   registration-to-completion. Current-day in-progress visits use the current time as an endpoint, including the

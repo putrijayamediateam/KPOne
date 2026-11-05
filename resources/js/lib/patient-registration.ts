@@ -15,11 +15,10 @@ export function phoneError(
         value === '' ||
         (typeof value === 'string' && value.replace(/ /g, '') === '')
     ) {
-        return required ? 'Nombor telefon diperlukan.' : '';
+        return required ? 'Phone number is required.' : '';
     }
 
-    const invalid =
-        'Masukkan nombor telefon yang sah untuk negara yang dipilih.';
+    const invalid = 'Enter a valid phone number for the selected country.';
 
     if (
         typeof value !== 'string' ||
@@ -30,7 +29,7 @@ export function phoneError(
     }
 
     if (!getCountries().includes(country as CountryCode)) {
-        return 'Semak kod negara dan nombor telefon.';
+        return 'Check the country code and phone number.';
     }
 
     const compact = value.replace(/[ ()-]/g, '');
@@ -46,7 +45,7 @@ export function phoneError(
     }
 
     if (compact.startsWith('+') && parsed.number !== compact) {
-        return 'Semak kod negara dan nombor telefon.';
+        return 'Check the country code and phone number.';
     }
 
     return '';
@@ -62,15 +61,15 @@ export function identityError(
 
         return normalized.length === 12 && /^[0-9]+$/.test(normalized)
             ? ''
-            : 'No. IC mesti mempunyai 12 digit.';
+            : 'IC number must have 12 digits.';
     }
 
     if (type !== 'passport') {
-        return 'Pilih satu No. IC atau Passport.';
+        return 'Choose IC number or Passport.';
     }
 
     if (!/^[A-Z]{2}$/.test(normalizePassportIssuer(issuer))) {
-        return 'Negara pengeluar Passport diperlukan.';
+        return 'Passport issuing country is required.';
     }
 
     const normalized = trimPhpWhitespace(value.normalize('NFKC'))
@@ -78,12 +77,12 @@ export function identityError(
         .toUpperCase();
 
     if (normalized.length < 3) {
-        return 'No. Passport tidak lengkap.';
+        return 'Passport number is incomplete.';
     }
 
     return /^[A-Z0-9][A-Z0-9-]{2,31}$/.test(normalized)
         ? ''
-        : 'Semak format No. Passport.';
+        : 'Check the Passport number format.';
 }
 
 // Match the released PHP NFKC + PCRE Unicode whitespace normalization. JS \s

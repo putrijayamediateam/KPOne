@@ -288,6 +288,13 @@ class ClinicInsightsReportService
             ]);
         $providersTruncated = $providers->count() > 100;
         $providers = $providers->take(100)->values()->all();
+        if ($doctorId === null) {
+            $otcQuery = DB::table('invoices')->where('invoices.organisation_id', $actor->organisation_id)->where('invoices.status', 'finalized');
+            $this->scopePeriod($otcQuery, $periods, 'invoices.finalized_at', 'invoices.branch_id');
+            if ($otc = OtcProviderRow::from($otcQuery)) {
+                $providers[] = $otc;
+            }
+        }
 
         return [
             'kind' => 'sales',
