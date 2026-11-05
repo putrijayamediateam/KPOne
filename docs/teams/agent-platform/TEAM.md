@@ -149,16 +149,16 @@ All in the contract; the main ones:
 | Slice | PR | Result |
 |---|---|---|
 | AG-1 Agent registry and activity log | #216, merged as `6f3de3a` (head `1a70cab`) | First CI run failed on five PHPStan type errors (PHPStan cannot run in cloud sessions); fixed with no behaviour change, CI green. 1,612 backend tests, 0 failures; 26 new agent tests; 615 frontend. Migrations `2026_11_05_100000`, `100100`. |
-| AG-4 Read-only data sources and the no-AI guard | this PR (owner approved 2026-11-05) | Full gate: 1,637 backend tests, 0 failures (95 GD image tests left to CI), 44 agent tests, 615 frontend. Nine data sources (`system.health` is AG-10), `AgentToolGateway` (every read inside a run, logged as a step), `AggregatePayloadGuard` (keys and values), `NoAiServiceGuardTest`. No migration, permission, route or page. Independent review: no blocker; S1–S5 and S7 fixed, S6 test gaps partly closed (see open item 7). |
-| AG-2 Approval inbox | not yet opened | Built, awaiting owner review. `ai_proposals` with PostgreSQL rules (decided proposals never change, never deleted, `executed`/`execution_failed` refused), `ProposalService`, `/agents/inbox`. One AG-1 test changed with owner approval (office feed counts real proposals): it now inserts real `ai_proposals` rows and gains one setup line (`complete($run)`) so the light reads yellow from the proposal, not from a running run; every assertion is unchanged. No new permission. Independent review: no blocker; findings fixed (shared personal-text check, scope check for branchless runs, reason trimming, stale-version refresh). |
+| AG-4 Read-only data sources and the no-AI guard | #225, merged as `3d878b3` | Full gate: 1,637 backend tests, 0 failures (95 GD image tests left to CI), 44 agent tests, 615 frontend. Nine data sources (`system.health` is AG-10), `AgentToolGateway` (every read inside a run, logged as a step), `AggregatePayloadGuard` (keys and values), `NoAiServiceGuardTest`. No migration, permission, route or page. Independent review: no blocker; S1–S5 and S7 fixed, S6 test gaps partly closed (see open item 7). |
+| AG-2 Approval inbox | this PR (owner approved 2026-11-05) | Built. `ai_proposals` with PostgreSQL rules (decided proposals never change, never deleted, `executed`/`execution_failed` refused), `ProposalService`, `/agents/inbox`. One AG-1 test changed with owner approval (office feed counts real proposals): it now inserts real `ai_proposals` rows and gains one setup line (`complete($run)`) so the light reads yellow from the proposal, not from a running run; every assertion is unchanged. No new permission. Independent review: no blocker; findings fixed (shared personal-text check, scope check for branchless runs, reason trimming, stale-version refresh). |
 
 ## Backlog (in order)
 
 | Slice | Status |
 |---|---|
 | AG-1 Agent registry and activity log | Merged in PR #216 as `6f3de3a` |
-| AG-4 Read-only data sources and the no-AI guard test | Owner approved; PR open (not merged) |
-| AG-2 Approval inbox | Built, awaiting owner review (not committed) |
+| AG-4 Read-only data sources and the no-AI guard test | Merged in PR #225 as `3d878b3` |
+| AG-2 Approval inbox | Owner approved; PR open (not merged) |
 | AG-3 Agent office page | Next |
 | AG-7 Ask KPOne | |
 | AG-9 Rizal (stocktake officer) | |
