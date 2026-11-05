@@ -172,7 +172,7 @@ const submit = () => {
                     <div
                         v-for="(identifier, index) in form.identifiers"
                         :key="index"
-                        class="grid gap-3 rounded-md border p-4 md:grid-cols-3"
+                        class="grid grid-cols-1 gap-3 rounded-md border p-4 md:grid-cols-3"
                     >
                         <div class="grid gap-2">
                             <span
