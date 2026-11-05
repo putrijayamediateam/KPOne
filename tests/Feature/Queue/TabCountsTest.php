@@ -45,7 +45,9 @@ class TabCountsTest extends ClinicalTestCase
         $case->forceFill(['received_at' => now()->subDays(2)])->save();
         $this->selectBranch($ca);
         $directory = app(VisitDirectoryService::class);
-        $criteria = ['date_from' => now()->toDateString(), 'date_to' => now()->toDateString()];
+        // The board filters by the branch-local date, so the filter must use it too (not the UTC date).
+        $today = now()->setTimezone($this->branch->timezone)->toDateString();
+        $criteria = ['date_from' => $today, 'date_to' => $today];
         $initial = $directory->search($ca, $criteria);
         foreach (['all', 'waiting', 'serving', 'dispensary', 'billing', 'completed', 'cancelled'] as $tab) {
             $this->assertGreaterThan(0, $initial['tabCounts'][$tab], $tab);
