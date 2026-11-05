@@ -66,7 +66,8 @@ Server checks stay the authority; hiding a control is a usability aid only.
 | Unified Catalogue Setup | One medicine setup flow with tariffs and optional opening stock | #43 |
 | SET-02, SET-05, SET-05b | Medicine details options, preset diagnoses and the picker | #107, #108, #109 |
 | BIZ-01, DOC-01, D02 | Business details, logo, letterhead, branch footer on prints | #119, #128, #189 |
-| **CAT-1 (this team)** | DD-04 and DD-13 fixed: every Pricing field has a visible connected label (per-row fields named after the charge); Pricing becomes charge cards below 768 px; Medicine Catalogue rows show one Edit button plus a named "..." menu (Deactivate or Activate, Drug groups, Mark or Unmark controlled); Medicine and Clinical Service become cards below 1024 px; connected filter labels; Consultation tariff prices labelled on a phone; neutral Controlled badge. Frontend only: no backend, payload, route or permission change; one owner-approved assertion changed (decision 7). Pinned by `tests/Frontend/cat-1-catalogue-screens.test.mjs` | PR to follow |
+| **CAT-1 (this team)** | DD-04 and DD-13 fixed: every Pricing field has a visible connected label (per-row fields named after the charge); Pricing becomes charge cards below 768 px; Medicine Catalogue rows show one Edit button plus a named "..." menu (Deactivate or Activate, Drug groups, Mark or Unmark controlled); Medicine and Clinical Service become cards below 1024 px; connected filter labels; Consultation tariff prices labelled on a phone; neutral Controlled badge. Frontend only: no backend, payload, route or permission change; one owner-approved assertion changed (decision 7). Pinned by `tests/Frontend/cat-1-catalogue-screens.test.mjs` | #263 (`705b0f5`) |
+| **CAT-1b (this team)** | Publishing a price with an empty amount is refused with "Enter an amount. Type 0.00 if this is free." under the field: the Pricing page no longer reads an empty box as RM 0.00, `PricePublishRequest` gives the message, and `PricePublicationService` refuses an empty amount on every path. A typed 0.00 is still published. No permission, migration or route change; no existing assertion changed. Also carries Daniel's CAT-1 follow-ups: sentence-case dialog titles on Medicine and Clinical Service, a ghost Deactivate on the Pricing phone cards, before shots renamed `*-before-*` and every after shot re-taken. Tests: `tests/Feature/Billing/PricePublishEmptyAmountTest.php`, `tests/Frontend/cat-1b-refuse-empty-price.test.mjs` | PR after CAT-1 |
 
 ## 6. Owner decisions already made (never ask again)
 
@@ -99,7 +100,7 @@ Server checks stay the authority; hiding a control is a usability aid only.
   section 6, because at 768 px the catalogue tables still pushed Edit and the row menu out of view (measured: 12
   buttons outside the table frame). Pricing keeps `md`, where its table fits.
 - Found in CAT-1: on Pricing, publishing with an empty "Amount (RM)" box published RM 0.00 without a warning. The
-  owner chose to refuse it (decision 8); fixed in CAT-1b, not in CAT-1.
+  owner chose to refuse it (decision 8); fixed in CAT-1b.
 - Seen in CAT-1, not built (for the owner): Medicine details shows a "Price tier" tab although SET-01 is skipped;
   Business details inputs use their own colours or styles instead of the shared
   components; Business details puts its back link before the page title and uses a 1440 px width instead of the

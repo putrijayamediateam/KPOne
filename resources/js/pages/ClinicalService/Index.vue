@@ -483,8 +483,8 @@ const toggleDescription = computed(() => {
                 <DialogHeader>
                     <DialogTitle>{{
                         editing
-                            ? 'Edit Clinical Service'
-                            : 'Add Clinical Service'
+                            ? 'Edit clinical service'
+                            : 'Add clinical service'
                     }}</DialogTitle>
                     <DialogDescription>
                         {{
@@ -717,7 +717,7 @@ const toggleDescription = computed(() => {
                                     ? 'Loading…'
                                     : editing
                                       ? 'Save'
-                                      : 'Add Clinical Service'
+                                      : 'Add clinical service'
                             }}
                         </Button>
                     </DialogFooter>
