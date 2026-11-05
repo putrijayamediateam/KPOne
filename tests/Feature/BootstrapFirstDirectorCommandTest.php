@@ -10,7 +10,6 @@ use App\Domain\Organisation\Models\Branch;
 use App\Domain\Organisation\Models\Department;
 use App\Domain\Organisation\Models\Organisation;
 use App\Models\User;
-use Database\Seeders\KPOneReferenceSeeder;
 use Illuminate\Console\Command;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -27,7 +26,7 @@ class BootstrapFirstDirectorCommandTest extends TestCase
     {
         parent::setUp();
 
-        $this->seed(KPOneReferenceSeeder::class);
+        $this->ensureReferenceData();
         $this->organisation = Organisation::query()->where('code', 'KLINIK_PUTRIJAYA')->firstOrFail();
         $this->cheras = Branch::query()
             ->where('organisation_id', $this->organisation->id)
