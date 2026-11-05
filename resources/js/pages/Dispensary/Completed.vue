@@ -16,7 +16,9 @@ defineProps<{
 
 <template>
     <Head title="Dispensary completed" />
-    <main class="mx-auto w-full max-w-3xl px-4 py-6">
+    <main
+        class="mx-auto w-full max-w-3xl px-4 py-6 max-sm:[&_[data-slot=button]]:min-h-11 max-sm:[&_[data-slot=select-trigger]]:min-h-11 max-sm:[&_input:not([type=radio]):not([type=checkbox])]:min-h-11 max-sm:[&_select]:min-h-11 max-sm:[&_textarea]:min-h-11"
+    >
         <h1 class="text-lg font-medium">Dispensary completed</h1>
         <p class="mt-2 text-sm">{{ dispensary.patient.name }}</p>
         <p class="text-xs text-muted-foreground">
@@ -30,18 +32,24 @@ defineProps<{
             This case is read-only. Fulfilment has finished and it cannot be
             returned to the doctor.
         </p>
-        <Button v-if="dispensary.labelUrl" as-child variant="outline" size="sm"
-            ><a :href="dispensary.labelUrl" target="_blank" rel="noopener"
-                >Print current labels</a
-            ></Button
-        >
-        <Button as-child variant="outline" size="sm">
-            <Link href="/registration">Return to Registration</Link>
-        </Button>
-        <Button v-if="dispensary.billingUrl" as-child size="sm" class="ml-2"
-            ><Link :href="dispensary.billingUrl"
-                >Continue to Billing</Link
-            ></Button
-        >
+        <div class="flex flex-wrap gap-2">
+            <Button
+                v-if="dispensary.labelUrl"
+                as-child
+                variant="outline"
+                size="sm"
+                ><a :href="dispensary.labelUrl" target="_blank" rel="noopener"
+                    >Print current labels</a
+                ></Button
+            >
+            <Button as-child variant="outline" size="sm">
+                <Link href="/registration">Return to Registration</Link>
+            </Button>
+            <Button v-if="dispensary.billingUrl" as-child size="sm"
+                ><Link :href="dispensary.billingUrl"
+                    >Continue to Billing</Link
+                ></Button
+            >
+        </div>
     </main>
 </template>
