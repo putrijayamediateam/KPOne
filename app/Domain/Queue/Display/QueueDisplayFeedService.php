@@ -44,7 +44,7 @@ class QueueDisplayFeedService
         $names = $byName ? $this->names($calls) : [];
         if ($settings['callDisplayMode'] === BranchDisplaySetting::MODE_SHORT_NAME) {
             // Q-3: only the short name leaves the server in this mode; a call without a usable name shows its number.
-            $names = array_filter(array_map(ShortDisplayName::from(...), $names));
+            $names = array_filter(array_map(ShortDisplayName::from(...), $names), fn (?string $name): bool => $name !== null);
         }
 
         return [

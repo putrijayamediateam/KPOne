@@ -17,9 +17,9 @@ return new class extends Migration
     public function down(): void
     {
         if (DB::connection()->getDriverName() === 'pgsql') {
-            // Refuses (leaves the wider rule) while any branch still uses short_name, so no setting is lost.
+            // Refuse rather than lose a branch's chosen setting.
             if (DB::table('branch_display_settings')->where('call_display_mode', 'short_name')->exists()) {
-                return;
+                throw new RuntimeException('A branch still calls by short name. Change it to number or full name before rolling back.');
             }
             DB::statement('ALTER TABLE branch_display_settings DROP CONSTRAINT IF EXISTS branch_display_settings_call_mode_check');
             DB::statement("ALTER TABLE branch_display_settings ADD CONSTRAINT branch_display_settings_call_mode_check CHECK (call_display_mode IN ('number', 'name'))");

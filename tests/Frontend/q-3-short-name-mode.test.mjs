@@ -78,11 +78,18 @@ test('the TV keeps the number whole: one line with the name in the current call,
     );
     assert.match(
         screen,
-        /v-if="shortNameParts\(call, displayMode\)"[\s\S]*?class="font-mono text-3xl font-bold whitespace-nowrap tabular-nums lg:text-5xl"\s*>\{\{ call\.number \}\}<\/span[\s\S]*?class="truncate text-xl font-semibold lg:text-3xl"/,
+        /v-if="shortNameParts\(call, displayMode\)"[\s\S]*?class="font-mono text-3xl leading-tight font-bold whitespace-nowrap tabular-nums lg:text-4xl"\s*>\{\{ call\.number \}\}<\/span[\s\S]*?class="text-lg leading-tight font-semibold break-words lg:text-xl"/,
     );
     assert.match(
         screen,
         /announcementText\(call, language, displayMode\.value\)/,
+    );
+    // Yasmin: the current call scales with screen height so the room line always fits.
+    assert.match(screen, /lg:text-\[clamp\(3rem,10vh,6rem\)\]/);
+    // Short-name mode shows only whole list rows; a name never ends in an ellipsis.
+    assert.match(
+        screen,
+        /displayMode === 'short_name'\s*\?\s*'flex min-h-0 flex-1 flex-col flex-wrap content-start overflow-hidden \[&>li\]:w-full'/,
     );
     // Number and full-name modes keep their original markup.
     assert.match(screen, /callLabel\(current\)/);
@@ -101,7 +108,7 @@ test('settings offer the three modes in privacy order with help text tied to the
     );
     assert.match(
         settings,
-        /Queue number and short name \(A-012 · Ahmad Ismail\)/,
+        /Number and short name \(A-012 · Ahmad Ismail\)/,
     );
     assert.match(settings, /aria-describedby="call-display-mode-help"/);
     assert.match(settings, /id="call-display-mode-help"/);
@@ -111,4 +118,5 @@ test('settings offer the three modes in privacy order with help text tied to the
         /Everyone in the waiting room sees and hears part of the name\./,
     );
     assert.match(settings, /This is the least private choice\./);
+    assert.match(settings, /\(only the first word if both are long\)/);
 });

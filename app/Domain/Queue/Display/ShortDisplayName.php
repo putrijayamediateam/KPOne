@@ -22,7 +22,8 @@ final class ShortDisplayName
             if ($word === '' || ! preg_match('/[\p{L}\p{N}]/u', $word)) {
                 continue;
             }
-            if (in_array(mb_strtolower(rtrim($word, '.')), self::SKIPPED, true)) {
+            // Trailing punctuation ("bin," "bt.") does not hide a relationship word.
+            if (in_array(mb_strtolower(rtrim($word, '.,;:')), self::SKIPPED, true)) {
                 continue;
             }
             $words[] = $word;

@@ -37,6 +37,8 @@ class ShortNameModeTest extends QueueTestCase
             'long pair keeps the first word only' => ['Muhammadhafizuddin Shaharuddin', 'Muhammadhafizuddin'],
             'exactly 24 characters keeps both' => ['Abcdefghijk Mnopqrstuvwx', 'Abcdefghijk Mnopqrstuvwx'],
             'a very long first word is never cut' => ['Abcdefghijklmnopqrstuvwxyzab Lee', 'Abcdefghijklmnopqrstuvwxyzab'],
+            'trailing comma on a skip word' => ['Ahmad bin, Ismail', 'Ahmad Ismail'],
+            'non-breaking space' => ["Ahmad\u{00A0}bin\u{00A0}Ismail", 'Ahmad Ismail'],
             'only skipped words' => ['bin binti a/l', null],
             'empty' => ['', null],
             'null' => [null, null],
@@ -78,8 +80,21 @@ class ShortNameModeTest extends QueueTestCase
             ->assertJsonPath('calls.0.name', 'Synthetic Siti')
             ->assertJsonPath('settings.callDisplayMode', 'short_name');
 
+        // A recall in short mode still carries only the short name.
+        $this->travel(30)->seconds();
+        $this->selectBranch($doctor);
+        app(QueueEntryService::class)->recall($doctor, $visit->refresh(), ['expected_branch_id' => $this->branch->id, 'queue_lock_version' => $entry->refresh()->lock_version]);
+        $recalled = $feed->feed($this->branch)['calls'][0];
+        $this->assertTrue($recalled['isRecall']);
+        $this->assertSame('Synthetic Siti', $recalled['name']);
+
         app(QueueDisplayAdministrationService::class)->updateSettings($supervisor, $this->branch, [
-            'ticker_text' => null, 'youtube_url' => null, 'poster_seconds' => 10, 'call_display_mode' => 'number', 'lock_version' => 1,
+            'ticker_text' => null, 'youtube_url' => null, 'poster_seconds' => 10, 'call_display_mode' => 'name', 'lock_version' => 1,
+        ]);
+        $this->assertSame('Synthetic Siti Nur binti Contoh', $feed->feed($this->branch)['calls'][0]['name'], 'full-name mode is unchanged');
+
+        app(QueueDisplayAdministrationService::class)->updateSettings($supervisor, $this->branch, [
+            'ticker_text' => null, 'youtube_url' => null, 'poster_seconds' => 10, 'call_display_mode' => 'number', 'lock_version' => 2,
         ]);
         $this->assertArrayNotHasKey('name', $feed->feed($this->branch)['calls'][0]);
     }
@@ -104,6 +119,9 @@ class ShortNameModeTest extends QueueTestCase
 
     public function test_postgres_accepts_the_three_modes_and_refuses_others(): void
     {
+        if (DB::getDriverName() !== 'pgsql') {
+            $this->markTestSkipped('The mode check constraint is PostgreSQL-only.');
+        }
         $this->actor('ca_supervisor');
         app(QueueDisplayFeedService::class)->feed($this->branch);
         $supervisor = $this->actor('ca_supervisor');

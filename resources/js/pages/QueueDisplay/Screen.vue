@@ -517,7 +517,7 @@ onBeforeUnmount(() => {
                     <template v-if="current">
                         <p
                             v-if="shortNameParts(current, displayMode)"
-                            class="text-5xl leading-tight font-black text-balance break-words lg:text-8xl"
+                            class="text-5xl leading-tight font-black text-balance break-words lg:text-[clamp(3rem,10vh,6rem)]"
                             data-testid="current-label"
                         >
                             <span class="whitespace-nowrap"
@@ -557,11 +557,12 @@ onBeforeUnmount(() => {
 
                 <div
                     class="min-h-0 flex-1 overflow-hidden rounded-2xl"
-                    :class="
+                    :class="[
                         theme === 'dark'
                             ? 'bg-zinc-900'
-                            : 'border border-zinc-200 bg-white'
-                    "
+                            : 'border border-zinc-200 bg-white',
+                        displayMode === 'short_name' ? 'flex flex-col' : '',
+                    ]"
                 >
                     <div
                         class="grid grid-cols-[minmax(0,1fr)_minmax(0,2fr)_auto] gap-3 border-b px-5 py-3 text-sm font-semibold uppercase lg:text-lg"
@@ -575,31 +576,38 @@ onBeforeUnmount(() => {
                         <span>Room</span>
                         <span>Time</span>
                     </div>
-                    <ol>
+                    <ol
+                        :class="
+                            displayMode === 'short_name'
+                                ? 'flex min-h-0 flex-1 flex-col flex-wrap content-start overflow-hidden [&>li]:w-full'
+                                : ''
+                        "
+                    >
                         <li
                             v-for="call in previous"
                             :key="call.id"
-                            class="grid grid-cols-[minmax(0,1fr)_minmax(0,2fr)_auto] items-center gap-3 border-b px-5 py-3 last:border-0"
-                            :class="
+                            class="grid grid-cols-[minmax(0,1fr)_minmax(0,2fr)_auto] items-center gap-3 border-b px-5 last:border-0"
+                            :class="[
+                                displayMode === 'short_name' ? 'py-2' : 'py-3',
                                 highlightId === call.id
                                     ? theme === 'dark'
                                         ? 'border-zinc-800 bg-pink-950/50 text-pink-100'
                                         : 'border-zinc-200 bg-pink-100 text-pink-950'
                                     : theme === 'dark'
                                       ? 'border-zinc-800'
-                                      : 'border-zinc-200'
-                            "
+                                      : 'border-zinc-200',
+                            ]"
                         >
                             <span
                                 v-if="shortNameParts(call, displayMode)"
                                 class="flex min-w-0 flex-col"
                             >
                                 <span
-                                    class="font-mono text-3xl font-bold whitespace-nowrap tabular-nums lg:text-5xl"
+                                    class="font-mono text-3xl leading-tight font-bold whitespace-nowrap tabular-nums lg:text-4xl"
                                     >{{ call.number }}</span
                                 >
                                 <span
-                                    class="truncate text-xl font-semibold lg:text-3xl"
+                                    class="text-lg leading-tight font-semibold break-words lg:text-xl"
                                     >{{ call.name?.trim() }}</span
                                 >
                             </span>
