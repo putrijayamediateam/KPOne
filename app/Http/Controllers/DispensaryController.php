@@ -80,15 +80,16 @@ class DispensaryController extends Controller
 
     public function labels(Request $request, DispensaryCase $dispensaryCase, DispensaryDirectoryService $directory, ?string $itemPublicId = null): Response|JsonResponse
     {
-        ['labels' => $labels, 'batchNotes' => $batchNotes] = $directory->labelsWithBatchNotes($request->user(), $dispensaryCase, $itemPublicId);
         if ($request->boolean('verify')) {
             $request->validate(['token' => ['required', 'string', 'regex:/^[a-f0-9]{64}$/'], 'branch' => ['required', 'integer']]);
-            abort_unless((int) $request->query('branch') === $labels['branchId'] && hash_equals($labels['token'], $request->string('token')->toString()) && $labels['blocked'] === [], 409);
+            // DSP-6: the fresh check before the print dialog also logs the print (owner decision 2026-11-05).
+            $reprints = $directory->recordLabelPrint($request->user(), $dispensaryCase, $itemPublicId, $request->string('token')->toString(), (int) $request->query('branch'));
 
-            return response()->json(['current' => true]);
+            return response()->json(['current' => true, 'reprints' => $reprints]);
         }
+        ['labels' => $labels, 'batchNotes' => $batchNotes, 'reprints' => $reprints] = $directory->labelsWithBatchNotes($request->user(), $dispensaryCase, $itemPublicId);
 
-        return Inertia::render('Dispensary/Labels', ['labels' => $labels, 'labelBatchNotes' => $batchNotes]);
+        return Inertia::render('Dispensary/Labels', ['labels' => $labels, 'labelBatchNotes' => $batchNotes, 'labelReprints' => $reprints]);
     }
 
     public function start(DispensaryCaseActionRequest $request, DispensaryCase $dispensaryCase, DispensaryService $service): RedirectResponse

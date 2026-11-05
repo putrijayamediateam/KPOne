@@ -119,11 +119,21 @@ class DispensaryDirectoryService
     /**
      * DSP-2: the label preview with the screen-only batch notes beside it.
      *
-     * @return array{labels: array<string, mixed>, batchNotes: list<array{name: string, previewUrl: string, note: string}>}
+     * @return array{labels: array<string, mixed>, batchNotes: list<array{name: string, previewUrl: string, note: string}>, reprints: list<string>}
      */
     public function labelsWithBatchNotes(User $actor, DispensaryCase $case, ?string $itemPublicId = null): array
     {
         return app(DrugLabelService::class)->previewWithBatchNotes($actor, $case, $itemPublicId);
+    }
+
+    /**
+     * DSP-6: log a print after the fresh check; returns the preview URLs printed before.
+     *
+     * @return list<string>
+     */
+    public function recordLabelPrint(User $actor, DispensaryCase $case, ?string $itemPublicId, string $token, int $branchId): array
+    {
+        return app(DrugLabelService::class)->recordPrint($actor, $case, $itemPublicId, $token, $branchId);
     }
 
     private function authorizedBranch(User $actor, DispensaryCase $case): Branch

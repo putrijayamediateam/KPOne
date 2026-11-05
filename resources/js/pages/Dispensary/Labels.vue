@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Head, usePage } from '@inertiajs/vue3';
-import { computed, ref, watch } from 'vue';
+import { computed, nextTick, ref, watch } from 'vue';
 import { Button } from '@/components/ui/button';
 
 const props = defineProps<{
@@ -24,9 +24,18 @@ const props = defineProps<{
     };
     // DSP-2: lines whose batch and expiry are not printed, with the reason (screen only).
     labelBatchNotes?: Array<{ name: string; previewUrl: string; note: string }>;
+    // DSP-6: labels (by preview URL) printed before; they print with the REPRINT mark.
+    labelReprints?: string[];
 }>();
 const page = usePage();
 const batchNotes = computed(() => props.labelBatchNotes ?? []);
+const reprinted = ref<string[]>([...(props.labelReprints ?? [])]);
+const reprintCount = computed(
+    () =>
+        props.labels.items.filter((item) =>
+            reprinted.value.includes(item.previewUrl),
+        ).length,
+);
 const busy = ref(false);
 const error = ref('');
 const retired = ref(false);
@@ -62,15 +71,21 @@ const printLabels = async () => {
             headers: { Accept: 'application/json' },
         });
 
-        if (
-            !response.ok ||
-            !(await response.json()).current ||
-            changed.value ||
-            retired.value
-        ) {
+        if (!response.ok) {
             throw new Error('stale');
         }
 
+        // DSP-6: the check also logged this print; lines printed before carry the REPRINT mark.
+        const result = await response.json();
+
+        if (!result.current || changed.value || retired.value) {
+            throw new Error('stale');
+        }
+
+        reprinted.value = [
+            ...new Set([...reprinted.value, ...(result.reprints ?? [])]),
+        ];
+        await nextTick();
         window.print();
     } catch {
         error.value =
@@ -131,6 +146,20 @@ const printLabels = async () => {
             >
         </header>
         <template v-if="!changed && !retired">
+            <section
+                v-if="reprintCount"
+                class="print-toolbar"
+                aria-label="Printed before"
+                data-testid="label-reprint-note"
+            >
+                <p v-if="labels.items.length === 1">
+                    This label was printed before. It will print marked REPRINT.
+                </p>
+                <p v-else>
+                    {{ reprintCount }} of these labels were printed before. They
+                    will print marked REPRINT.
+                </p>
+            </section>
             <section
                 v-if="batchNotes.length"
                 class="print-toolbar"
@@ -209,7 +238,16 @@ const printLabels = async () => {
                             'safety-emphasis': item.emphasis.includes(n),
                         }"
                     >
-                        {{ line }}
+                        {{ line
+                        }}<span
+                            v-if="
+                                n === item.lines.length - 1 &&
+                                reprinted.includes(item.previewUrl)
+                            "
+                            class="reprint-mark"
+                            data-testid="label-reprint-mark"
+                            >REPRINT</span
+                        >
                     </p>
                 </article>
             </section>
@@ -256,6 +294,26 @@ const printLabels = async () => {
 }
 .safety-emphasis {
     font-weight: 700;
+}
+/* DSP-6: sits at the right end of the always-short last row, so it uses no line of the label budget. */
+.label-line:last-child {
+    position: relative;
+}
+.reprint-mark {
+    position: absolute;
+    top: 0;
+    right: 0;
+    box-sizing: border-box;
+    height: 4mm;
+    padding: 0 1mm;
+    font:
+        700 8pt/3.5mm 'Courier New',
+        monospace;
+    border: 0.25mm solid #000;
+    color: #000;
+    background: #fff;
+    print-color-adjust: exact;
+    white-space: nowrap;
 }
 .clinic-logo {
     display: block;
