@@ -15,6 +15,7 @@ import { OperationalSelect } from '@/components/ui/select';
 import { formatInventoryReason } from '@/lib/inventory-picker';
 import { formatStatusLabel } from '@/lib/presentation';
 import AllergyMatchWarning from '@/pages/Dispensary/Partials/AllergyMatchWarning.vue';
+import OtcAllergyRecordForm from '@/pages/Dispensary/Partials/OtcAllergyRecordForm.vue';
 
 defineOptions({
     layout: { breadcrumbs: [{ title: 'Dispensary', href: '/registration' }] },
@@ -69,6 +70,8 @@ type Item = {
         proposed_quantity_dispensed: string;
     } | null;
     allergyMatches?: AllergyMatch[];
+    // DSP-5: matches an allergy recorded after the line was saved; tick and save again before completing.
+    allergyUnconfirmed?: boolean;
 };
 type ServiceLine = {
     publicId: string;
@@ -119,6 +122,7 @@ type Page = {
         update: boolean;
         complete: boolean;
         return: boolean;
+        addOtcAllergy?: boolean;
     };
     tvCall?: {
         canCall: boolean;
@@ -734,10 +738,28 @@ const addMedicine = () => {
 
 // OTC: no doctor reviewed this order, so the CA records what the patient said about allergies first.
 const isOtc = computed(() => props.dispensary.caseType === 'otc');
-const otcAllergyChoice = ref<'none' | 'has_allergy'>(
-    props.dispensary.otc?.allergyStatement === 'has_allergy'
-        ? 'has_allergy'
-        : 'none',
+// DSP-5: no choice until the CA asks; "has an allergy" needs the allergy itself on the profile first.
+const otcAllergyChoice = ref<'' | 'none' | 'has_allergy'>(
+    props.dispensary.otc?.allergyStatement === 'has_allergy' ||
+        props.dispensary.otc?.allergyStatement === 'none'
+        ? props.dispensary.otc.allergyStatement
+        : '',
+);
+const otcHasRecordedAllergy = computed(
+    () => props.dispensary.allergySafety.allergies.length > 0,
+);
+const otcAddingAnother = ref(false);
+const showOtcAllergyForm = computed(
+    () =>
+        otcAllergyChoice.value === 'has_allergy' &&
+        props.dispensary.can.addOtcAllergy === true &&
+        (!otcHasRecordedAllergy.value || otcAddingAnother.value),
+);
+const otcConfirmBlocked = computed(
+    () =>
+        otcAllergyChoice.value === '' ||
+        (otcAllergyChoice.value === 'has_allergy' &&
+            !otcHasRecordedAllergy.value),
 );
 const otcAllergyConfirmed = computed(
     () => props.dispensary.otc?.allergyConfirmed === true,
@@ -846,12 +868,19 @@ const inputClass = 'mt-1 h-9 w-full rounded-md border px-2';
                 >
                     <p class="font-medium">Ask the patient about allergies</p>
                     <p class="text-xs text-muted-foreground">
-                        Record what the patient says. This is a note for the
-                        record; it does not check the medicines for you.
+                        Record what the patient tells you. Saved allergies are
+                        compared with medicine names by text only, so the check
+                        can miss one. Always ask.
+                    </p>
+                    <p
+                        v-if="dispensary.allergySafety.allergies.length"
+                        class="mt-2 text-xs font-medium"
+                    >
+                        Recorded allergies
                     </p>
                     <ul
                         v-if="dispensary.allergySafety.allergies.length"
-                        class="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-xs"
+                        class="mt-1 flex flex-col gap-1 text-xs"
                     >
                         <li
                             v-for="(allergy, index) in dispensary.allergySafety
@@ -863,46 +892,105 @@ const inputClass = 'mt-1 h-9 w-full rounded-md border px-2';
                                 — {{ allergy.reaction }}</span
                             >
                             <span v-if="allergy.severity">
-                                ({{ allergy.severity }})</span
+                                ({{
+                                    formatStatusLabel(allergy.severity)
+                                }})</span
                             >
                         </li>
                     </ul>
-                    <div
-                        v-if="dispensary.can.update"
-                        class="mt-2 flex flex-wrap items-center gap-4"
-                    >
-                        <label class="flex items-center gap-1">
-                            <input
-                                v-model="otcAllergyChoice"
-                                type="radio"
-                                value="none"
-                                data-field="otc-allergy-none"
-                            />
-                            Patient reports no allergy
-                        </label>
-                        <label class="flex items-center gap-1">
-                            <input
-                                v-model="otcAllergyChoice"
-                                type="radio"
-                                value="has_allergy"
-                                data-field="otc-allergy-has"
-                            />
-                            Patient reports an allergy
-                        </label>
+                    <div v-if="dispensary.can.update" class="mt-2">
+                        <fieldset class="flex flex-wrap gap-x-4">
+                            <legend class="sr-only">
+                                What the patient reports about allergies
+                            </legend>
+                            <label class="flex min-h-11 items-center gap-2">
+                                <input
+                                    v-model="otcAllergyChoice"
+                                    type="radio"
+                                    value="none"
+                                    data-field="otc-allergy-none"
+                                />
+                                Patient reports no allergy
+                            </label>
+                            <label class="flex min-h-11 items-center gap-2">
+                                <input
+                                    v-model="otcAllergyChoice"
+                                    type="radio"
+                                    value="has_allergy"
+                                    data-field="otc-allergy-has"
+                                />
+                                Patient reports an allergy
+                            </label>
+                        </fieldset>
+                        <OtcAllergyRecordForm
+                            v-if="showOtcAllergyForm"
+                            :case-public-id="dispensary.publicId"
+                            :branch-id="branchId()"
+                            :case-lock-version="dispensary.lockVersion"
+                            :profile-version="
+                                dispensary.allergySafety.profileVersion
+                            "
+                            :optional="otcHasRecordedAllergy"
+                            @cancel="otcAddingAnother = false"
+                            @saved="otcAddingAnother = false"
+                        />
                         <Button
-                            size="sm"
+                            v-else-if="
+                                otcAllergyChoice === 'has_allergy' &&
+                                dispensary.can.addOtcAllergy &&
+                                otcHasRecordedAllergy
+                            "
+                            type="button"
                             variant="outline"
-                            :disabled="busy"
-                            data-action="confirm-otc-allergy"
-                            @click="confirmOtcAllergy"
+                            class="mt-2 h-11 w-full sm:h-9 sm:w-auto"
+                            data-action="open-otc-allergy-form"
+                            @click="otcAddingAnother = true"
                         >
-                            {{ otcAllergyConfirmed ? 'Update' : 'Confirm' }}
+                            Add another allergy
                         </Button>
-                        <span
-                            v-if="otcAllergyConfirmed"
-                            class="text-xs text-emerald-800 dark:text-emerald-300"
-                            >Recorded</span
+                        <p
+                            v-if="
+                                otcAllergyChoice === 'has_allergy' &&
+                                !otcHasRecordedAllergy &&
+                                !dispensary.can.addOtcAllergy
+                            "
+                            class="mt-2 text-xs"
+                            data-testid="otc-allergy-readonly"
                         >
+                            No allergy recorded. You cannot add allergies here;
+                            ask a supervisor to check your access.
+                        </p>
+                        <div class="mt-3 flex flex-wrap items-center gap-3">
+                            <Button
+                                size="sm"
+                                variant="outline"
+                                class="h-11 w-full sm:h-9 sm:w-auto"
+                                :disabled="busy || otcConfirmBlocked"
+                                data-action="confirm-otc-allergy"
+                                @click="confirmOtcAllergy"
+                            >
+                                {{ otcAllergyConfirmed ? 'Update' : 'Confirm' }}
+                            </Button>
+                            <span
+                                v-if="otcAllergyConfirmed"
+                                class="text-xs text-emerald-800 dark:text-emerald-300"
+                                >Recorded</span
+                            >
+                            <span
+                                v-else-if="
+                                    otcAllergyChoice === 'has_allergy' &&
+                                    !otcHasRecordedAllergy
+                                "
+                                class="text-xs text-muted-foreground"
+                                >Add the allergy before you confirm.</span
+                            >
+                            <span
+                                v-else-if="!otcAllergyChoice"
+                                class="text-xs text-muted-foreground"
+                                >Choose what the patient reports, then
+                                confirm.</span
+                            >
+                        </div>
                     </div>
                 </div>
                 <div
@@ -1214,6 +1302,15 @@ const inputClass = 'mt-1 h-9 w-full rounded-md border px-2';
                                 :field-id="`allergy-check-${item.publicId}`"
                                 class="sm:col-span-4"
                             />
+                            <p
+                                v-if="item.allergyUnconfirmed"
+                                class="text-xs font-medium sm:col-span-4"
+                                data-testid="allergy-resave-hint"
+                            >
+                                This medicine matches an allergy recorded after
+                                it was saved. Tick the box, then press Save
+                                line.
+                            </p>
                             <div class="flex items-end gap-2 sm:col-span-4">
                                 <Button
                                     size="sm"
@@ -1221,7 +1318,8 @@ const inputClass = 'mt-1 h-9 w-full rounded-md border px-2';
                                         busy ||
                                         needsAllergyCheck(item) ||
                                         (item.status !== 'pending' &&
-                                            !isDirty(item))
+                                            !isDirty(item) &&
+                                            !item.allergyUnconfirmed)
                                     "
                                     data-action="save-line"
                                     @click="saveItem(item)"
