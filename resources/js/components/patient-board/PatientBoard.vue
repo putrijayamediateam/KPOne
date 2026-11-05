@@ -18,6 +18,8 @@ import {
     TooltipProvider,
     TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { waitingTone, waitingToneDescription } from '@/lib/waiting-time';
+import type { WaitingTone } from '@/lib/waiting-time';
 import type { PatientBoardRow } from '@/types';
 
 defineProps<{
@@ -72,6 +74,17 @@ const statusClass = (tone: PatientBoardRow['statusTone']) =>
         cancelled: 'bg-muted/70 text-muted-foreground',
         removed: 'bg-muted/40 text-muted-foreground',
     })[tone];
+// Q-1: the waiting-time chip turns amber, then red, past the fixed limits.
+const durationClass = (tone: WaitingTone) =>
+    ({
+        normal: 'bg-muted/65 font-normal',
+        amber: 'bg-amber-100 font-medium text-amber-900 dark:bg-amber-950/70 dark:text-amber-200',
+        red: 'bg-red-100 font-semibold text-red-800 dark:bg-red-950/70 dark:text-red-200',
+    })[tone];
+const durationIconClass = (tone: WaitingTone) =>
+    tone === 'normal' ? 'text-muted-foreground' : 'text-current';
+const rowWaitingTone = (row: PatientBoardRow) =>
+    waitingTone(row.waitingMinutes);
 </script>
 
 <template>
@@ -220,13 +233,25 @@ const statusClass = (tone: PatientBoardRow['statusTone']) =>
                     </td>
                     <td class="px-3 py-2.5 align-middle" data-label="Duration">
                         <span
-                            class="inline-flex items-center gap-1.5 rounded-md bg-muted/65 px-2 py-0.5 font-normal tabular-nums"
+                            class="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 tabular-nums"
+                            :class="durationClass(rowWaitingTone(row))"
+                            :data-waiting-tone="rowWaitingTone(row)"
                         >
                             <Clock3
-                                class="size-3 text-muted-foreground"
+                                class="size-3"
+                                :class="durationIconClass(rowWaitingTone(row))"
                                 aria-hidden="true"
                             />
                             {{ row.durationLabel }}
+                            <span
+                                v-if="
+                                    waitingToneDescription(rowWaitingTone(row))
+                                "
+                                class="sr-only"
+                                >({{
+                                    waitingToneDescription(rowWaitingTone(row))
+                                }})</span
+                            >
                         </span>
                     </td>
                     <td class="px-3 py-2.5 align-middle" data-label="Status">

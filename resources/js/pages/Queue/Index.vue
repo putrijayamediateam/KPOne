@@ -230,6 +230,10 @@ const boardRows = computed<PatientBoardRow[]>(() =>
               : row.status === 'waiting'
                 ? waitingDurationLabel(elapsedMinutes(row))
                 : '—',
+        waitingMinutes:
+            !row.isHeld && row.status === 'waiting'
+                ? elapsedMinutes(row)
+                : null,
         priority: row.priority,
         returnedFromDispensary: row.returnedFromDispensary,
         statusLabel: row.isHeld
