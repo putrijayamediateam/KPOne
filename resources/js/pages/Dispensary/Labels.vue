@@ -30,6 +30,12 @@ const props = defineProps<{
 const page = usePage();
 const batchNotes = computed(() => props.labelBatchNotes ?? []);
 const reprinted = ref<string[]>([...(props.labelReprints ?? [])]);
+watch(
+    () => props.labelReprints,
+    (urls) => {
+        reprinted.value = [...new Set([...reprinted.value, ...(urls ?? [])])];
+    },
+);
 const reprintCount = computed(
     () =>
         props.labels.items.filter((item) =>
@@ -131,6 +137,17 @@ const printLabels = async () => {
                 Reload this visit to review the current authorised record.
             </p>
             <p v-if="error" role="alert">{{ error }}</p>
+            <p
+                v-if="!changed && !retired && reprintCount"
+                aria-live="polite"
+                data-testid="label-reprint-note"
+            >
+                {{
+                    labels.items.length === 1
+                        ? 'This label was printed before. It will print marked REPRINT.'
+                        : `${reprintCount} of these labels were printed before. They will print marked REPRINT.`
+                }}
+            </p>
             <Button
                 :disabled="
                     busy ||
@@ -146,20 +163,6 @@ const printLabels = async () => {
             >
         </header>
         <template v-if="!changed && !retired">
-            <section
-                v-if="reprintCount"
-                class="print-toolbar"
-                aria-label="Printed before"
-                data-testid="label-reprint-note"
-            >
-                <p v-if="labels.items.length === 1">
-                    This label was printed before. It will print marked REPRINT.
-                </p>
-                <p v-else>
-                    {{ reprintCount }} of these labels were printed before. They
-                    will print marked REPRINT.
-                </p>
-            </section>
             <section
                 v-if="batchNotes.length"
                 class="print-toolbar"

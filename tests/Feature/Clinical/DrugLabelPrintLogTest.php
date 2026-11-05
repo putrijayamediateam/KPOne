@@ -8,6 +8,7 @@ use App\Domain\Clinical\Dispensary\Labels\DrugLabelService;
 use App\Domain\Clinical\Dispensary\Models\DispensaryCase;
 use App\Domain\Clinical\Dispensary\Models\DispensaryLabelPrint;
 use App\Domain\Clinical\Dispensary\Services\DispensaryService;
+use App\Domain\Organisation\Models\Branch;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use Inertia\Testing\AssertableInertia as Assert;
@@ -94,6 +95,23 @@ class DrugLabelPrintLogTest extends VisitTestCase
         $this->assertSame(0, AuditLog::query()->where('event', 'dispensary.labels_printed')->count());
     }
 
+    public function test_a_completed_case_reprints_and_another_branch_logs_nothing(): void
+    {
+        [$f, $case] = $this->ready();
+        $labels = app(DrugLabelService::class)->preview($f['ca'], $case);
+        $this->getJson($this->printUrl(route('dispensary.labels', $case), $labels))->assertOk();
+        $case = $this->complete($f, $case);
+
+        $completed = app(DrugLabelService::class)->preview($f['ca'], $case->refresh());
+        $this->getJson($this->printUrl(route('dispensary.labels', $case), $completed))->assertOk()->assertJson(['reprints' => array_column($completed['items'], 'previewUrl')]);
+        $this->assertSame([1, 2], DispensaryLabelPrint::query()->orderBy('id')->pluck('print_number')->all());
+
+        $other = Branch::query()->where('organisation_id', $case->organisation_id)->whereKeyNot($case->branch_id)->firstOrFail();
+        $this->selectBranch($this->actor('ca', $other), $other);
+        $this->getJson($this->printUrl(route('dispensary.labels', $case), $completed))->assertNotFound();
+        $this->assertSame(2, DispensaryLabelPrint::query()->count());
+    }
+
     public function test_the_log_is_append_only_in_the_model_and_the_database(): void
     {
         [$f, $case] = $this->ready();
@@ -108,7 +126,7 @@ class DrugLabelPrintLogTest extends VisitTestCase
             } catch (LogicException) {
             }
         }
-        foreach (['UPDATE dispensary_label_prints SET print_number = 9', 'DELETE FROM dispensary_label_prints'] as $sql) {
+        foreach (['UPDATE dispensary_label_prints SET print_number = 9', 'DELETE FROM dispensary_label_prints', 'TRUNCATE dispensary_label_prints'] as $sql) {
             try {
                 DB::transaction(fn () => DB::statement($sql));
                 $this->fail('PostgreSQL must refuse: '.$sql);
@@ -120,6 +138,14 @@ class DrugLabelPrintLogTest extends VisitTestCase
             DB::transaction(fn () => DB::table('dispensary_label_prints')->insert(['public_id' => (string) str()->uuid(), 'organisation_id' => $row->organisation_id, 'branch_id' => $row->branch_id,
                 'dispensary_case_id' => $row->dispensary_case_id, 'dispensary_item_id' => $row->dispensary_item_id, 'print_number' => 3, 'printed_by_user_id' => $row->printed_by_user_id, 'printed_at' => now()->utc()]));
             $this->fail('A skipped print number must be refused.');
+        } catch (QueryException $e) {
+            $this->assertStringContainsString('Invalid dispensary label print source', $e->getMessage());
+        }
+        $otherBranch = Branch::query()->whereKeyNot($row->branch_id)->firstOrFail();
+        try {
+            DB::transaction(fn () => DB::table('dispensary_label_prints')->insert(['public_id' => (string) str()->uuid(), 'organisation_id' => $row->organisation_id, 'branch_id' => $otherBranch->id,
+                'dispensary_case_id' => $row->dispensary_case_id, 'dispensary_item_id' => $row->dispensary_item_id, 'print_number' => 2, 'printed_by_user_id' => $row->printed_by_user_id, 'printed_at' => now()->utc()]));
+            $this->fail('A row for another branch than its case must be refused.');
         } catch (QueryException $e) {
             $this->assertStringContainsString('Invalid dispensary label print source', $e->getMessage());
         }

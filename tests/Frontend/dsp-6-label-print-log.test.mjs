@@ -28,5 +28,53 @@ test('the print check adds the reprint list before the print dialog opens', () =
 test('the screen-only toolbar says which labels were printed before', () => {
     assert.ok(labels.includes('data-testid="label-reprint-note"'));
     assert.ok(labels.includes('of these labels were printed before.'));
+    assert.ok(
+        labels.indexOf('label-reprint-note') <
+            labels.indexOf('Print current labels'),
+        'the note is read before pressing Print',
+    );
     assert.ok(labels.includes('This label was printed before.'));
+});
+
+test('the REPRINT list is updated from the check before the print dialog opens (behaviour)', async () => {
+    const { parse } = await import('@vue/compiler-sfc');
+    const { descriptor } = parse(labels);
+    const body = descriptor.scriptSetup.content.slice(
+        descriptor.scriptSetup.content.indexOf('const printLabels = async'),
+    );
+    const url = 'http://127.0.0.1/dispensary/synthetic/items/one/label';
+    const reprinted = { value: [] };
+    const seenAtPrint = [];
+    const fn = new Function(
+        'props',
+        'busy',
+        'changed',
+        'retired',
+        'error',
+        'fetch',
+        'window',
+        'URL',
+        'reprinted',
+        'nextTick',
+        body + ';return printLabels;',
+    )(
+        { labels: { blocked: [], token: 'a'.repeat(64), branchId: 1 } },
+        { value: false },
+        { value: false },
+        { value: false },
+        { value: '' },
+        async () => ({
+            ok: true,
+            json: async () => ({ current: true, reprints: [url] }),
+        }),
+        {
+            location: { href: 'http://127.0.0.1/dispensary/synthetic/labels' },
+            print: () => seenAtPrint.push([...reprinted.value]),
+        },
+        URL,
+        reprinted,
+        async () => {},
+    );
+    await fn();
+    assert.deepEqual(seenAtPrint, [[url]]);
 });

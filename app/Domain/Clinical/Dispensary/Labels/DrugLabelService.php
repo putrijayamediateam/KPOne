@@ -162,9 +162,9 @@ final class DrugLabelService
                     if (DispensaryLabelPrint::query()->where('dispensary_item_id', $item->id)->exists()) {
                         $reprints[] = $previewUrl;
                     }
-                    $output[] = ['name' => $item->medicine_name_snapshot, 'strength' => $item->strength_snapshot, 'quantity' => $item->quantity_dispensed, 'unit' => $item->unit_snapshot, 'dosage' => $item->effective('dosage'), 'frequency' => $item->effective('frequency'), 'duration' => $item->effective('duration'), 'instruction' => $item->effective('administration_instruction'), 'lines' => $render['lines'], 'emphasis' => $render['emphasis'], 'previewUrl' => route('dispensary.items.label', [$case, $item->public_id])];
+                    $output[] = ['name' => $item->medicine_name_snapshot, 'strength' => $item->strength_snapshot, 'quantity' => $item->quantity_dispensed, 'unit' => $item->unit_snapshot, 'dosage' => $item->effective('dosage'), 'frequency' => $item->effective('frequency'), 'duration' => $item->effective('duration'), 'instruction' => $item->effective('administration_instruction'), 'lines' => $render['lines'], 'emphasis' => $render['emphasis'], 'previewUrl' => $previewUrl];
                     if ($batchNote !== null) {
-                        $batchNotes[] = ['name' => $item->medicine_name_snapshot, 'previewUrl' => route('dispensary.items.label', [$case, $item->public_id]), 'note' => $batchNote];
+                        $batchNotes[] = ['name' => $item->medicine_name_snapshot, 'previewUrl' => $previewUrl, 'note' => $batchNote];
                     }
                 }
             }

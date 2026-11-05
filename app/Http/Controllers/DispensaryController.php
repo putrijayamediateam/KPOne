@@ -82,7 +82,8 @@ class DispensaryController extends Controller
     {
         if ($request->boolean('verify')) {
             $request->validate(['token' => ['required', 'string', 'regex:/^[a-f0-9]{64}$/'], 'branch' => ['required', 'integer']]);
-            // DSP-6: the fresh check before the print dialog also logs the print (owner decision 2026-11-05).
+            // DSP-6: the fresh check before the print dialog also logs the print (owner decision 2026-11-05). The branch,
+            // token and blocked-label checks (409) now live in DrugLabelService::recordPrint, before anything is written.
             $reprints = $directory->recordLabelPrint($request->user(), $dispensaryCase, $itemPublicId, $request->string('token')->toString(), (int) $request->query('branch'));
 
             return response()->json(['current' => true, 'reprints' => $reprints]);

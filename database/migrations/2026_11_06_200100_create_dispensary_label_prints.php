@@ -8,7 +8,8 @@ use Illuminate\Support\Facades\Schema;
 /**
  * DSP-6 (owner decisions 2026-11-05): append-only log of drug label prints. One row per medicine line each time
  * "Print current labels" passes the fresh check (KPOne cannot see the printer, so a cancelled print dialog still
- * counts). Who, which line, when and the print number only; no label content and no snapshot.
+ * counts). Who, which line, when and the print number only; no label content and no snapshot. The trigger re-checks
+ * the print number sequence, relying on the domain's case row lock (DrugLabelService::recordPrint) to serialise writers.
  */
 return new class extends Migration
 {
