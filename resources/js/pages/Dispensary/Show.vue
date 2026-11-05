@@ -800,7 +800,9 @@ const inputClass = 'mt-1 h-9 w-full rounded-md border px-2';
 
 <template>
     <Head title="Dispensary" />
-    <main class="mx-auto w-full max-w-[1500px] px-4 py-4 lg:px-6">
+    <main
+        class="mx-auto w-full max-w-[1500px] px-4 py-4 lg:px-6 max-sm:[&_[data-slot=button]]:min-h-11 max-sm:[&_[data-slot=select-trigger]]:min-h-11 max-sm:[&_input:not([type=radio]):not([type=checkbox])]:min-h-11 max-sm:[&_select]:min-h-11 max-sm:[&_textarea]:min-h-11"
+    >
         <header
             class="mb-4 flex flex-wrap items-center justify-between gap-3 border-b pb-3"
         >
@@ -885,8 +887,8 @@ const inputClass = 'mt-1 h-9 w-full rounded-md border px-2';
                     <p class="font-medium">Ask the patient about allergies</p>
                     <p class="text-xs text-muted-foreground">
                         Record what the patient tells you. Saved allergies are
-                        compared with medicine names by text only, so the check
-                        can miss one. Always ask.
+                        compared with medicine names and catalogue drug groups
+                        by text only, so the check can miss one. Always ask.
                     </p>
                     <p
                         v-if="dispensary.allergySafety.allergies.length"
@@ -1168,7 +1170,7 @@ const inputClass = 'mt-1 h-9 w-full rounded-md border px-2';
                             v-if="dispensary.can.update && forms[item.publicId]"
                             class="grid gap-2 text-xs sm:grid-cols-2 lg:grid-cols-4"
                         >
-                            <p class="text-muted-foreground sm:col-span-4">
+                            <p class="text-muted-foreground sm:col-span-full">
                                 Label limits (characters; saved clinical text is
                                 unchanged): dosage
                                 {{ dispensary.labelLimits?.dosage }}, frequency
@@ -1316,18 +1318,18 @@ const inputClass = 'mt-1 h-9 w-full rounded-md border px-2';
                                 v-model="allergyChecks[checkKey(item)]"
                                 :matches="matchesFor(item)"
                                 :field-id="`allergy-check-${item.publicId}`"
-                                class="sm:col-span-4"
+                                class="sm:col-span-full"
                             />
                             <p
                                 v-if="item.allergyUnconfirmed"
-                                class="text-xs font-medium sm:col-span-4"
+                                class="text-xs font-medium sm:col-span-full"
                                 data-testid="allergy-resave-hint"
                             >
                                 This medicine matches an allergy recorded after
                                 it was saved. Tick the box, then press Save
                                 line.
                             </p>
-                            <div class="flex items-end gap-2 sm:col-span-4">
+                            <div class="flex items-end gap-2 sm:col-span-full">
                                 <Button
                                     size="sm"
                                     :disabled="
@@ -1524,7 +1526,7 @@ const inputClass = 'mt-1 h-9 w-full rounded-md border px-2';
                         v-if="chosen"
                         class="mt-3 grid gap-2 text-xs sm:grid-cols-2 lg:grid-cols-4"
                     >
-                        <p class="text-sm font-medium sm:col-span-4">
+                        <p class="text-sm font-medium sm:col-span-full">
                             {{ chosen.name }}
                         </p>
                         <label
@@ -1608,7 +1610,7 @@ const inputClass = 'mt-1 h-9 w-full rounded-md border px-2';
                                 </option>
                             </select></label
                         >
-                        <label class="grid gap-2 sm:col-span-4"
+                        <label class="grid gap-2 sm:col-span-full"
                             >FEFO exception reason (later batch only)<select
                                 v-model="addForm.fefoReason"
                                 :class="inputClass"
@@ -1628,12 +1630,16 @@ const inputClass = 'mt-1 h-9 w-full rounded-md border px-2';
                                 </option>
                             </select></label
                         >
-                        <p class="text-xs text-muted-foreground sm:col-span-4">
+                        <p
+                            class="text-xs text-muted-foreground sm:col-span-full"
+                        >
                             Up to 100 batches shown. Held batches cannot be
                             selected. A later batch needs a controlled reason
                             when an eligible earlier-expiry batch exists.
                         </p>
-                        <p class="text-xs text-muted-foreground sm:col-span-4">
+                        <p
+                            class="text-xs text-muted-foreground sm:col-span-full"
+                        >
                             Label limits: dosage
                             {{ dispensary.labelLimits?.dosage }}, frequency
                             {{ dispensary.labelLimits?.frequency }}, duration
@@ -1649,9 +1655,9 @@ const inputClass = 'mt-1 h-9 w-full rounded-md border px-2';
                             v-model="addAllergyCheck"
                             :matches="matchesFor(chosen)"
                             field-id="allergy-check-add"
-                            class="sm:col-span-4"
+                            class="sm:col-span-full"
                         />
-                        <div class="flex gap-2 sm:col-span-4">
+                        <div class="flex gap-2 sm:col-span-full">
                             <Button
                                 size="sm"
                                 :disabled="
@@ -1756,7 +1762,7 @@ const inputClass = 'mt-1 h-9 w-full rounded-md border px-2';
                                         inputmode="decimal"
                                         data-field="service-quantity"
                                 /></label>
-                                <label class="sm:col-span-3"
+                                <label class="sm:col-span-2 lg:col-span-3"
                                     >Instruction<input
                                         v-model="
                                             serviceForms[line.publicId]
@@ -1767,11 +1773,13 @@ const inputClass = 'mt-1 h-9 w-full rounded-md border px-2';
                                         data-field="service-instruction"
                                 /></label>
                                 <p
-                                    class="text-xs text-muted-foreground sm:col-span-4"
+                                    class="text-xs text-muted-foreground sm:col-span-full"
                                 >
                                     Enter 0 if the service was not performed.
                                 </p>
-                                <div class="flex items-end gap-2 sm:col-span-4">
+                                <div
+                                    class="flex items-end gap-2 sm:col-span-full"
+                                >
                                     <Button
                                         size="sm"
                                         :disabled="
@@ -1889,7 +1897,7 @@ const inputClass = 'mt-1 h-9 w-full rounded-md border px-2';
                             v-if="chosenService"
                             class="mt-3 grid gap-2 text-xs sm:grid-cols-2 lg:grid-cols-4"
                         >
-                            <p class="text-sm font-medium sm:col-span-4">
+                            <p class="text-sm font-medium sm:col-span-full">
                                 {{ chosenService.name }}
                             </p>
                             <label
@@ -1899,13 +1907,13 @@ const inputClass = 'mt-1 h-9 w-full rounded-md border px-2';
                                     inputmode="decimal"
                                     data-field="add-service-quantity"
                             /></label>
-                            <label class="sm:col-span-3"
+                            <label class="sm:col-span-2 lg:col-span-3"
                                 >Instruction<input
                                     v-model="serviceAdd.instruction"
                                     :class="inputClass"
                                     maxlength="2000"
                             /></label>
-                            <div class="flex gap-2 sm:col-span-4">
+                            <div class="flex gap-2 sm:col-span-full">
                                 <Button
                                     size="sm"
                                     :disabled="busy"
