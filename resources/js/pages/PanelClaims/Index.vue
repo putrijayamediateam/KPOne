@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { Head, router } from '@inertiajs/vue3';
+import { Head, router, usePage } from '@inertiajs/vue3';
 import { computed, reactive, ref } from 'vue';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
     DropdownMenu,
     DropdownMenuCheckboxItem,
@@ -26,9 +27,9 @@ type PageSet<T> = {
 };
 type Figure = { count: number; amountSen: number };
 
-const props = defineProps<{
+type Props = {
     work: {
-        branch: { id: number; name: string };
+        branch: { id: number; name: string; today: string };
         summary: Record<
             | 'pending'
             | 'overdue'
@@ -63,16 +64,20 @@ const props = defineProps<{
         can: { clinicalFilters: boolean };
         eligible: PageSet<{
             allocationId: string;
+            allocationLockVersion: number;
+            invoiceLockVersion: number;
             patientName: string;
             visitNumber: string;
             invoiceNumber: string;
             invoiceUrl: string;
             panelName: string;
+            panelCode: string;
             amountSen: number;
             invoiceTotalSen: number;
             visitType: string;
             doctorName: string | null;
             visitDate: string;
+            visitDateIso: string;
             dueDate: string;
             overdue: boolean;
             remarkNote: string;
@@ -93,7 +98,9 @@ const props = defineProps<{
             showUrl: string;
         }>;
     };
-}>();
+};
+
+const props = defineProps<Props>();
 
 const rangeOptions = [
     { value: 'all', label: 'All time' },
@@ -188,7 +195,7 @@ const columnList = computed(() =>
 const shownColumnCount = computed(
     () =>
         columnList.value.filter((column) => visibleColumns.value[column.key])
-            .length + 1,
+            .length + (invoiceMode.value ? 2 : 1),
 );
 const tabs = computed(() =>
     tabLabels.map(([value, label]) => ({
@@ -220,6 +227,7 @@ const filtersActive = computed(() =>
     ].some((value) => value !== ''),
 );
 
+const selected = ref<Record<string, EligibleRow>>({});
 const query = (overrides: Record<string, string | number | null> = {}) => {
     const values: Record<string, string | number | null> = {
         tab: props.work.filters.tab,
@@ -253,12 +261,15 @@ const query = (overrides: Record<string, string | number | null> = {}) => {
         ),
     );
 };
-const go = (overrides: Record<string, string | number | null> = {}) =>
+// Any change of tab, filter or page starts a fresh bulk selection (see PNL-2 below).
+const go = (overrides: Record<string, string | number | null> = {}) => {
+    selected.value = {};
     router.get('/panel-claims', query(overrides), {
         preserveState: true,
         preserveScroll: true,
         replace: true,
     });
+};
 const resetFilters = () => {
     draft.panel = '';
     draft.claimNo = '';
@@ -283,6 +294,156 @@ const error = ref('');
 const createClaim = (allocationId: string) => {
     router.visit(
         `/panel-claims/allocations/${encodeURIComponent(allocationId)}/create`,
+    );
+};
+
+// PNL-2: bulk claim creation for several invoices of one Panel. Each claim keeps its own idempotency key,
+// so a retry after a refused batch reuses the same keys and never creates a duplicate.
+type EligibleRow = Props['work']['eligible']['data'][number];
+const page = usePage();
+const bulkErrors = computed(
+    () => (page.props.errors ?? {}) as Record<string, string | undefined>,
+);
+// Every refusal of a batch is shown: per-invoice and date messages, remarks, a changed branch and
+// the first per-item field error.
+const bulkErrorMessages = computed(() => {
+    const errors = bulkErrors.value;
+    const keys = ['claims', 'submitted_date', 'remarks', 'expected_branch_id'];
+    const itemKey = Object.keys(errors).find((key) =>
+        key.startsWith('claims.'),
+    );
+
+    return [...keys, ...(itemKey ? [itemKey] : [])]
+        .map((key) => errors[key])
+        .filter((message): message is string => Boolean(message));
+});
+const bulkMax = 20;
+const bulkKeys = new Map<string, string>();
+const bulk = reactive({
+    submittedDate: props.work.branch.today,
+    remarks: '',
+    busy: false,
+});
+const selectedRows = computed(() => Object.values(selected.value));
+// The one-Panel rule compares the Panel's fixed code; the name is for display only (it can be renamed).
+const selectedPanelCode = computed(
+    () => selectedRows.value[0]?.panelCode ?? null,
+);
+const selectedPanel = computed(() => selectedRows.value[0]?.panelName ?? null);
+const pagePanelCodes = computed(() => [
+    ...new Set(props.work.eligible.data.map((row) => row.panelCode)),
+]);
+const selectAllPanelCode = computed(
+    () =>
+        selectedPanelCode.value ??
+        (pagePanelCodes.value.length === 1 ? pagePanelCodes.value[0] : null),
+);
+const selectAllRows = computed(() =>
+    props.work.eligible.data.filter(
+        (row) => row.panelCode === selectAllPanelCode.value,
+    ),
+);
+const selectAllPanel = computed(
+    () => selectAllRows.value[0]?.panelName ?? null,
+);
+const atBulkMax = computed(() => selectedRows.value.length >= bulkMax);
+const allSelected = computed(
+    () =>
+        selectAllRows.value.length > 0 &&
+        selectAllRows.value.every((row) => selected.value[row.allocationId]),
+);
+// Fully ticked only when every row on this page is selected; a dash when some of them are.
+const headerState = computed<boolean | 'indeterminate'>(() => {
+    const rows = props.work.eligible.data;
+    const ticked = rows.filter((row) => selected.value[row.allocationId]);
+
+    if (ticked.length === 0) {
+        return false;
+    }
+
+    return ticked.length === rows.length ? true : 'indeterminate';
+});
+const selectedTotalSen = computed(() =>
+    selectedRows.value.reduce((sum, row) => sum + row.amountSen, 0),
+);
+const minSubmittedDate = computed(() =>
+    selectedRows.value.reduce(
+        (latest, row) =>
+            row.visitDateIso > latest ? row.visitDateIso : latest,
+        '',
+    ),
+);
+const canSelect = (row: EligibleRow) =>
+    selectedPanelCode.value === null ||
+    row.panelCode === selectedPanelCode.value;
+const lockedReason = (row: EligibleRow) =>
+    canSelect(row)
+        ? undefined
+        : `Only invoices of ${selectedPanel.value} can be added to this batch`;
+const toggleRow = (row: EligibleRow, value: boolean) => {
+    const next = { ...selected.value };
+
+    if (value && canSelect(row) && Object.keys(next).length < bulkMax) {
+        next[row.allocationId] = row;
+    } else {
+        delete next[row.allocationId];
+    }
+
+    selected.value = next;
+};
+const toggleAll = (value: boolean) => {
+    const next = { ...selected.value };
+
+    for (const row of selectAllRows.value) {
+        if (value && Object.keys(next).length < bulkMax) {
+            next[row.allocationId] = row;
+        } else if (!value) {
+            delete next[row.allocationId];
+        }
+    }
+
+    selected.value = next;
+};
+const clearSelection = () => {
+    selected.value = {};
+};
+const keyFor = (allocationId: string) => {
+    if (!bulkKeys.has(allocationId)) {
+        bulkKeys.set(allocationId, crypto.randomUUID());
+    }
+
+    return bulkKeys.get(allocationId) as string;
+};
+const createSelectedClaims = () => {
+    if (selectedRows.value.length === 0 || bulk.busy) {
+        return;
+    }
+
+    bulk.busy = true;
+    router.post(
+        '/panel-claims/bulk',
+        {
+            expected_branch_id: props.work.branch.id,
+            submitted_date: bulk.submittedDate,
+            remarks: bulk.remarks,
+            ...query({ allocations_page: props.work.eligible.currentPage }),
+            claims: selectedRows.value.map((row) => ({
+                allocation: row.allocationId,
+                allocation_lock_version: row.allocationLockVersion,
+                invoice_lock_version: row.invoiceLockVersion,
+                idempotency_key: keyFor(row.allocationId),
+            })),
+        },
+        {
+            preserveScroll: true,
+            onSuccess: () => {
+                selected.value = {};
+                bulk.remarks = '';
+            },
+            onFinish: () => {
+                bulk.busy = false;
+            },
+        },
     );
 };
 const canMarkSubmitted = (status: string) =>
@@ -618,6 +779,89 @@ const visitTypeLabel = (value: string) =>
             </form>
 
             <template v-if="invoiceMode">
+                <section
+                    v-if="selectedRows.length > 0"
+                    class="space-y-3 rounded-xl border border-primary/30 bg-primary/5 p-4"
+                    aria-label="Create claims for the selected invoices"
+                    data-testid="bulk-claim-bar"
+                >
+                    <p class="text-sm font-medium wrap-anywhere">
+                        {{ selectedRows.length }} invoice{{
+                            selectedRows.length === 1 ? '' : 's'
+                        }}
+                        selected · {{ selectedPanel }} ·
+                        {{ myr(selectedTotalSen) }}
+                    </p>
+                    <p class="text-xs text-muted-foreground">
+                        Each invoice gets its own Submitted claim at its
+                        approved amount, all with the same submitted date.
+                        Submit them on the Panel's portal yourself; KPOne sends
+                        nothing. Add photos on each claim page afterwards. If
+                        any invoice cannot be claimed, no claim is created. At
+                        most
+                        {{ bulkMax }} invoices at a time.
+                    </p>
+                    <div class="flex flex-wrap items-end gap-3">
+                        <label
+                            class="text-xs font-medium text-muted-foreground"
+                        >
+                            Submitted date
+                            <input
+                                v-model="bulk.submittedDate"
+                                type="date"
+                                :min="minSubmittedDate || undefined"
+                                :max="work.branch.today"
+                                class="mt-1 block h-9 rounded-md border bg-background px-2 text-sm"
+                            />
+                        </label>
+                        <label
+                            class="min-w-0 flex-1 text-xs font-medium text-muted-foreground"
+                        >
+                            Remarks (optional)
+                            <input
+                                v-model="bulk.remarks"
+                                maxlength="500"
+                                placeholder="The same remark goes on every claim"
+                                class="mt-1 block h-9 w-full min-w-0 rounded-md border bg-background px-2 text-sm"
+                            />
+                        </label>
+                        <div class="flex flex-wrap gap-2">
+                            <Button
+                                type="button"
+                                :disabled="bulk.busy"
+                                @click="createSelectedClaims"
+                            >
+                                Create {{ selectedRows.length }} claim{{
+                                    selectedRows.length === 1 ? '' : 's'
+                                }}
+                            </Button>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                :disabled="bulk.busy"
+                                @click="clearSelection"
+                            >
+                                Clear selection
+                            </Button>
+                        </div>
+                    </div>
+                    <p
+                        v-if="atBulkMax"
+                        class="text-sm text-amber-700 dark:text-amber-300"
+                        role="status"
+                    >
+                        {{ bulkMax }} invoices selected, the most for one batch.
+                        Create these claims first, then select more.
+                    </p>
+                    <p
+                        v-for="message in bulkErrorMessages"
+                        :key="message"
+                        role="alert"
+                        class="text-sm wrap-anywhere text-destructive"
+                    >
+                        {{ message }}
+                    </p>
+                </section>
                 <EmptyState
                     v-if="work.eligible.data.length === 0"
                     :title="
@@ -635,6 +879,20 @@ const visitTypeLabel = (value: string) =>
                 >
                     <template #head>
                         <tr>
+                            <th scope="col" class="w-10">
+                                <Checkbox
+                                    :model-value="headerState"
+                                    :disabled="selectAllRows.length === 0"
+                                    :aria-label="
+                                        selectAllPanel
+                                            ? `Select all ${selectAllPanel} invoices on this page`
+                                            : 'Filter by one Panel to select all invoices on this page'
+                                    "
+                                    @update:model-value="
+                                        () => toggleAll(!allSelected)
+                                    "
+                                />
+                            </th>
                             <th v-if="visibleColumns.amount" scope="col">
                                 Amount
                             </th>
@@ -672,6 +930,24 @@ const visitTypeLabel = (value: string) =>
                             v-for="row in work.eligible.data"
                             :key="row.allocationId"
                         >
+                            <td>
+                                <Checkbox
+                                    :model-value="
+                                        Boolean(selected[row.allocationId])
+                                    "
+                                    :disabled="
+                                        !canSelect(row) ||
+                                        (atBulkMax &&
+                                            !selected[row.allocationId])
+                                    "
+                                    :title="lockedReason(row)"
+                                    :aria-label="`Select invoice ${row.invoiceNumber} for a bulk claim`"
+                                    @update:model-value="
+                                        (value) =>
+                                            toggleRow(row, value === true)
+                                    "
+                                />
+                            </td>
                             <td
                                 v-if="visibleColumns.amount"
                                 class="whitespace-nowrap tabular-nums"

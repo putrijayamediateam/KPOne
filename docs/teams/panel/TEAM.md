@@ -41,7 +41,7 @@ coordinator at the owner's request (2026-11-05).
 
 | Kind | Files |
 |---|---|
-| Domain services | `app/Domain/Visit/Billing/Services/PanelClaimService.php`, `PanelClaimDirectoryService`, `PanelClaimEligibility`, `PanelClaimAmounts`, `PanelClaimDueRule`, `PanelClaimMessageService`, `PanelInvoiceReportService`; `app/Domain/Visit/Services/PanelSettingsService.php` |
+| Domain services | `app/Domain/Visit/Billing/Services/PanelClaimService.php` (single and bulk creation share `createLocked`), `PanelClaimDirectoryService`, `PanelClaimEligibility`, `PanelClaimAmounts`, `PanelClaimDueRule`, `PanelClaimMessageService`, `PanelInvoiceReportService`; `app/Domain/Visit/Services/PanelSettingsService.php` |
 | Models | `app/Domain/Visit/Billing/Models/PanelClaim*.php`, the `Panel` model |
 | Controllers | `PanelClaimsController`, the Panel settings and Panel invoices controllers |
 | Pages | `resources/js/pages/PanelClaims/*`, `PanelSettings/*`, `PanelInvoices/*` |
@@ -76,7 +76,8 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php`.
 | PANEL-NOTE-01 | Per-visit Panel notes and Payment column | #113 |
 | INV-05b (with Billing) | Original, adjustment and adjusted rows on new claim snapshots | #124 |
 | RPT-01d (with Reports) | Panel summary with ageing; shared eligibility and amounts | #147 |
-| PNL-1 | Panel Claims list, claim page and Panel invoices filters fit a 320–390 px phone (SMOKE-1 S1-002, S1-003); layout classes only | pending |
+| PNL-1 | Panel Claims list, claim page and Panel invoices filters fit a 320–390 px phone (SMOKE-1 S1-002, S1-003); layout classes only | #220 |
+| PNL-2 | Bulk claim creation: several invoices of one Panel become their own Submitted claims in one all-or-nothing action (at most 20, shared date and remarks, no photos) | pending |
 
 ## 6. Owner decisions already made (never ask again)
 
@@ -133,9 +134,9 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php`.
 Chosen by the owner on 2026-11-05; built one by one in this order, each its own PR. Choosing them is the owner's
 authorisation to build them; record that in `docs/BASELINE.md` with the first PR of each.
 
-1. **PNL-1 Phone layout fixes. (Built 2026-11-05, waiting for the owner's "ship it".)** SMOKE-1 S1-002 (Panel Claims page width at 390 px) and S1-003 (Panel invoices
+1. **PNL-1 Phone layout fixes. (Shipped as PR #220, 2026-11-05; not yet merged.)** SMOKE-1 S1-002 (Panel Claims page width at 390 px) and S1-003 (Panel invoices
    filter row at 390 px). Layout only; no behaviour change.
-2. **PNL-2 Bulk claim.** Select several Pending invoices of one Panel and create their claims in one action,
+2. **PNL-2 Bulk claim. (Built 2026-11-05, waiting for the owner's "ship it"; stacked on PNL-1.)** Select several Pending invoices of one Panel and create their claims in one action,
    each claim still its own record with its own idempotency, all Submitted on the same date; still submitted
    manually on the Panel's portal. Lifts the earlier "bulk claim not built" note (decision 9) for creation only.
 3. **PNL-3 Remittance matching.** Record one Panel payment (amount, date, reference) and split it across
