@@ -234,6 +234,9 @@ class VisitDirectoryService
             'cancelledAt' => $visit->cancelled_at?->setTimezone($visit->branch->timezone)->toIso8601String(),
             'cancellationReason' => $visit->cancellation_reason,
             'lockVersion' => $visit->lock_version,
+            // UX-2 (S1-005): whether the doctor has opened the consultation, so the visit page offers the
+            // Medical certificates link only when that page can work. A boolean only; no clinical content.
+            'hasConsultation' => $visit->visit_type === 'consultation' && $visit->clinicalEncounter()->exists(),
             'queue' => $visibleQueueEntry ? [
                 'queueNumber' => QueueNumberFormat::format($visibleQueueEntry->queue_number),
                 'operationalDate' => $visibleQueueEntry->operational_date->toDateString(),
