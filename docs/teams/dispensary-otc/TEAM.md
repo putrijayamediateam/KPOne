@@ -91,7 +91,8 @@ coordinator at the owner's request (2026-11-05); the designer was added by owner
 | DSP-1b | Catalogue editors tag medicines with drug groups ("Drug groups" on the Medicine Catalogue; up to 10, stale change refused, audited by count); the Dispensary allergy warning also matches allergies against those groups | #234 (merged `3a876b9`) |
 | DSP-9 | Pharmacist review pack (documents only): a printer-test checklist with worst-case labels and a pharmacist review sheet with sample labels made by the real label layout, under `docs/pilot/drug-label/` | #243 (merged `16fa1ee`) |
 | DSP-5 | OTC allergy details: when an OTC walk-in has an allergy, the CA records it on the patient's allergy profile (add only), so the DSP-1 warning matches it; "has an allergy" needs a recorded allergy; a new allergy reopens the statement; Complete refuses a line that matches an allergy recorded after the line was saved until it is ticked and saved again; new permission `allergies.record_otc.branch` (migration `2026_11_06_200000`); Clinical allergy service change agreed with the coordinator | #250 (merged `bb604bc`) |
-| DSP-6 | Label print log: each press of "Print current labels" that passes the fresh check logs who printed which line's label and when (append-only `dispensary_label_prints`, per-line print number, audit with counts only, no label content); a line printed before carries a small boxed REPRINT at the end of the last row (outside the line budget) and the preview says so; label pages throttled 30 a minute; migration `2026_11_06_200100` | pending (branch `feature/dsp-6-label-print-log`) |
+| DSP-6 | Label print log: each press of "Print current labels" that passes the fresh check logs who printed which line's label and when (append-only `dispensary_label_prints`, per-line print number, audit with counts only, no label content); a line printed before carries a small boxed REPRINT at the end of the last row (outside the line budget) and the preview says so; label pages throttled 30 a minute; migration `2026_11_06_200100` | #261 (merged `0df2ed8`) |
+| DSP-8 | Dispensary pages on phones and tablets: at 768 px the medicine and service line grids (2 columns there) had rows spanning 3 or 4 columns, so the browser added near-zero-width columns and Quantity, Dosage, Route and Precaution became 18 px slivers with overlapping labels; rows now span the full width (or 2, then 3 on wide screens). On phones (below 640 px) every button, text field and dropdown on the Dispensary, Completed and label preview pages is at least 44 px tall; wide screens unchanged. Also the "1 of these labels was printed before" wording | pending (branch `feature/dsp-8-dispensary-mobile`) |
 
 ## 6. Owner decisions already made (never ask again)
 
@@ -160,7 +161,8 @@ coordinator at the owner's request (2026-11-05); the designer was added by owner
 - **Label print log (DSP-6):** a print is logged when the fresh check passes, so a cancelled dialog, or a page that
   goes stale during the check, still counts. Printing from the browser's own menu or Ctrl+P is not logged and does
   not add the mark (the printer test says to use the button). The REPRINT mark relies on the label's closing sentence
-  leaving a short last row (a test pins it). Not yet tested: a consultation case and two prints of the same case at
+  leaving a short last row (a test pins it). The fresh check is a GET with side effects (a print row and an audit row),
+  as WA-01's redirect is; it is throttled and same-origin, and a POST would be stricter (a later follow-up). Not yet tested: a consultation case and two prints of the same case at
   the same moment (the case row lock and the database's print-number rule guard it).
 - **CA guide:** `docs/guides/ms/` should say the OTC allergy step now starts with no choice made (DSP-5).
 - **Allergy matching is text only (DSP-1, DSP-1b):** a CA add or edit that matches an active allergy record
@@ -242,14 +244,19 @@ order, each its own PR:
    allergy service and versioning, so the DSP-1/DSP-1b warning also works for OTC. Closes the "OTC yes/no
    statement is not matched" limit. Agree the small change to the Clinical allergy services with the
    coordinator first (there is no clinical team).
-8. **DSP-6 Label print log — built 2026-11-05, awaiting owner review (branch `feature/dsp-6-label-print-log`).** Each drug label print or reprint records who printed which line's label and when
+8. **DSP-6 Label print log — merged in #261.** Each drug label print or reprint records who printed which line's label and when
    (no label content, append-only, structural audit); a reprint shows a small "REPRINT" mark. Lifts the
    section 4 "no print counter or label history" limit for this log only; no label snapshot.
 9. **DSP-7 Medicine returns after dispensing.** The CA records a returned quantity and reason after
    completion, a different person checks it, and the stock goes into quarantine (the STK-2 hold), not back to
    sellable. Money goes through Billing's coming refund flow (BIL-6). Write a short design note first and show
-   the owner: it touches the Inventory and Billing teams.
-10. **DSP-8 Dispensary pages on phones and tablets.** Check and fix at 320, 390 and 768 px.
+   the owner: it touches the Inventory and Billing teams. **Design note written 2026-11-05** (branch
+   `feature/dsp-7-medicine-returns-design`, not merged). Owner decisions: Dispose by default, a separate returns
+   place (Option B, not the STK-2 hold), record only with no refund in v1. **Waiting** for the owner on who records
+   and on controlled medicines, and for the owner's OK for the Inventory piece (a returns location and a
+   `dispensary_return` movement). Do not build until all three are settled.
+10. **DSP-8 Dispensary pages on phones and tablets — built 2026-11-05 (branch `feature/dsp-8-dispensary-mobile`).**
+    Checked at 320, 390, 768 and 1440 px, light and dark.
 
 Team rules for this backlog: run the PHPStan stopgap before each push; migration timestamps from
 `2026_11_06_200000` up.
