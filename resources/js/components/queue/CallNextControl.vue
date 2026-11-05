@@ -194,7 +194,7 @@ onBeforeUnmount(() => clearTimeout(pauseTimer));
                     >
                         <PhoneCall class="size-5" />
                     </div>
-                    <div class="min-w-0 space-y-1.5">
+                    <div class="min-w-0 space-y-1.5 pr-6">
                         <DialogTitle
                             ref="title"
                             tabindex="-1"
