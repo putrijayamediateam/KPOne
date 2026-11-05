@@ -45,7 +45,7 @@ reviewed by Mei Ling, designed by Wei Jie. Synthetic data only. Not production-a
 - **Uniqueness:**
   - `InventoryReferenceAdministrationService` refuses a duplicate on SKU create and update, under the existing
     organisation lock.
-  - Migration `2026_11_08_000100_guard_unique_sku_barcodes` adds a PostgreSQL trigger. It refuses (23505) a new or
+  - Migration `2026_11_07_000300_guard_unique_sku_barcodes` adds a PostgreSQL trigger. It refuses (23505) a new or
     changed barcode that another SKU in the organisation holds, using a transaction advisory lock per organisation
     and code so concurrent saves cannot both pass.
   - Editing other fields of a SKU that already shares a legacy code is still allowed.
