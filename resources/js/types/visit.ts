@@ -99,6 +99,7 @@ export type VisitDetail = {
     cancelledAt: string | null;
     cancellationReason: string | null;
     lockVersion: number;
+    hasConsultation: boolean;
     queue: {
         queueNumber: string;
         operationalDate: string;

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Domain\Patient\Models\Patient;
 use App\Domain\Patient\Services\PatientAdministrationService;
+use App\Domain\Patient\Services\PatientChangeHistoryService;
 use App\Domain\Patient\Services\PatientDirectoryService;
 use App\Domain\Patient\Services\PatientGuardianService;
 use App\Domain\Patient\Services\PatientMergeDirectoryService;
@@ -11,6 +12,7 @@ use App\Domain\Patient\Services\PatientMergeLinks;
 use App\Domain\Patient\Services\RegistrationSettingsService;
 use App\Http\Requests\StorePatientRequest;
 use App\Http\Requests\UpdatePatientRequest;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -57,7 +59,21 @@ class PatientController extends Controller
         return Inertia::render('Patient/Show', [
             'patient' => $directory->detail($request->user(), $patient),
             'merge' => $merges->panel($request->user(), $patient),
+            'history' => $request->user()->can(PatientChangeHistoryService::PERMISSION)
+                ? app(PatientChangeHistoryService::class)->page($request->user(), $patient, null, PatientChangeHistoryService::FIRST_PAGE)
+                : null,
         ]);
+    }
+
+    /** REG-4: older change-history rows for the "Show older changes" button. */
+    public function history(Request $request, Patient $patient, PatientChangeHistoryService $history): JsonResponse
+    {
+        $this->authorize('view', $patient);
+        $validated = $request->validate(['cursor' => ['nullable', 'string', 'max:512']]);
+        $kept = $patient->isMergedAway() ? PatientMergeLinks::kept($patient) : $patient;
+
+        return response()->json($history->page($request->user(), $kept, $validated['cursor'] ?? null))
+            ->header('Cache-Control', 'no-store, private');
     }
 
     public function edit(Request $request, Patient $patient, PatientDirectoryService $directory): Response|RedirectResponse

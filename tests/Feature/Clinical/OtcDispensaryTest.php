@@ -125,6 +125,7 @@ class OtcDispensaryTest extends VisitTestCase
         $f = $this->fixture();
         $case = $this->open($f);
         app(DispensaryService::class)->addItem($f['ca'], $case, $this->addPayload($f, $case, '3.000'));
+        app(DispensaryService::class)->addOtcAllergy($f['ca'], $case->refresh(), ['expected_branch_id' => $f['visit']->branch_id, 'case_lock_version' => $case->lock_version, 'profile_lock_version' => null, 'allergen_text' => 'Synthetic latex']); // DSP-5 set-up (owner-approved): "has an allergy" now needs a recorded allergy.
         $this->confirmAllergy($f, $case, 'has_allergy');
 
         $completed = $this->complete($f, $case);

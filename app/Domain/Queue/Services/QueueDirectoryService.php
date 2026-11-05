@@ -11,6 +11,7 @@ use App\Domain\Patient\Services\VisitWhatsAppEligibility;
 use App\Domain\Queue\Models\QueueEntry;
 use App\Domain\Queue\QueueNumberFormat;
 use App\Domain\Queue\Readiness\CallHoldProjection;
+use App\Domain\Queue\Treatment\TreatmentStepProjection;
 use App\Domain\Visit\Policies\VisitPolicy;
 use App\Domain\Visit\Services\VisitDoctorEligibilityService;
 use App\Domain\Visit\Services\VisitReasonService;
@@ -157,8 +158,10 @@ class QueueDirectoryService
         $removedHints = $this->dispensaryAttention->pendingForVisits($actor, $removedVisits)
             + app(CheckoutReopenEligibility::class)->forVisits($actor, $removedVisits);
         $readiness = app(CallHoldProjection::class)->rows($actor, array_values($entries->modelKeys()));
+        $treatment = app(TreatmentStepProjection::class)->rows($actor, $entries);
         foreach ($entries as $entry) {
             $entry->setRelation('callReadiness', $readiness[$entry->id] ?? null);
+            $entry->setRelation('treatmentProgress', $treatment[$entry->id] ?? null);
         }
 
         $dynamic = [
@@ -326,6 +329,8 @@ class QueueDirectoryService
 
         return [
             'callHold' => $entry->getRelation('callReadiness'),
+            // Q-2: only Serving consultations carry this; never on the TV feed.
+            'treatmentProgress' => $entry->relationLoaded('treatmentProgress') ? $entry->getRelation('treatmentProgress') : null,
             'canWhatsapp' => VisitWhatsAppEligibility::allows($actor, $visit, $branch),
             'queueNumber' => QueueNumberFormat::format($entry->queue_number),
             'operationalDate' => $entry->operational_date->toDateString(),

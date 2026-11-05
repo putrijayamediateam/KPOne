@@ -11,8 +11,13 @@ the same PR as the code.
 | Lead | **Kavitha** | Plans each piece, builds it, keeps this file current |
 | Reviewer | **Aiman** | Checks every piece against the rules below, the tests and the owner's decisions before it reaches the owner |
 
-Both are Claude builder sessions working for the owner through the coordinator session (LUCY). Names chosen by
+Both are Claude builder sessions working for the owner through the coordinator session, B.E.R.N.I.S.S (formerly LUCY). Names chosen by
 the coordinator (2026-11-05).
+
+**Design (owner decision 2026-11-05, relayed by LUCY):** every builder team works with a UI/UX designer under the
+Lead UI/UX Designer, **Daniel** (Design team, `docs/teams/design/TEAM.md`, guide `docs/design/GUIDE.md`,
+checklist `docs/design/CHECKLIST.md`). This team is itself the UX team: it builds the shared shell and the
+SMOKE-1 fixes to Daniel's guide, and Daniel's "design debt" list feeds section 9.
 
 ## 2. What this area covers
 
@@ -30,11 +35,11 @@ screen does.
 - The Malay staff quick guides under `docs/guides/ms/` (`README.md`, `ca.md`, `doktor.md`, `penyelia-ca.md`,
   `bila-ada-masalah.md`): keep them in step with shipped screens. They stay marked "Draf untuk semakan klinik".
 
-**Shared with other teams (change only through a small agreed change, told to LUCY first):**
+**Shared with other teams (change only through a small agreed change, told to B.E.R.N.I.S.S first):**
 - Any page owned by another team (Registration and Patient: Patients & Registration; Dispensary: Dispensary &
   OTC; Inventory; Billing; Panel; Queue and TV: Queue & TV; Agents: Agent platform). A UX fix on their page is a
-  small, layout-or-wording-only change, and the owning team is told through LUCY before the PR.
-- Clinical pages (encounter, Medical Certificate links): no clinical team yet; small UX fixes allowed, tell LUCY.
+  small, layout-or-wording-only change, and the owning team is told through B.E.R.N.I.S.S before the PR.
+- Clinical pages (encounter, Medical Certificate links): no clinical team yet; small UX fixes allowed, tell B.E.R.N.I.S.S.
 - Insights pages: no team yet; small layout fixes allowed.
 - Permissions catalogue: never changed by this team.
 
@@ -61,6 +66,7 @@ usability aid only and must follow the permission the backend already enforces.
 | DARK-1 | Dark-mode contrast on four pages (S1-001, S1-006, S1-007, S1-008) | #207 |
 | Guides | Draft Malay quick guides for CA, doctor, CA Supervisor | #197, #199, #203 |
 | UX-1 | Phone annoyances: the mobile drawer closes after a link is followed (S1-017); staff toasts show at the top centre under the header at every width instead of over sticky bottom actions (S1-015; `lib/toastPlacement.ts`, Clinic and Admin layouts only, public QR layout unchanged); Insights ranking cards fit 320 to 768 px with no sideways page scroll (S1-004). Frontend only; apart from the toast position, 1440 px unchanged | #241 |
+| UX-2 | Medical certificates link (S1-005): the visit page offers it only when the visit has a consultation record, using one new boolean `visit.hasConsultation` from `VisitDirectoryService::detail` (owner decision 2026-11-05; Patients & Registration told through LUCY); otherwise a quiet line says why: "Medical certificates are available after the doctor starts the consultation." or, on a cancelled visit, "No medical certificate: this visit was cancelled." (design reviewed by Daniel). The visit history page offers it only when it holds a consultation record. No route or permission change | #254 |
 | UX-3 | Screen-reader names and page headings (S1-009 to S1-014): a scripted pass (Chromium accessibility tree, 11 demo roles, 120 pages at 1440 and 390 px) found 8 pages with problems and finds none after the change; the review found 3 more in places the pass cannot open. Added a visually hidden `h1` to the Registration board, Consultation queue and TV screen; hidden labels on the Registration, Queue and Patient search boxes; names on the Billing approval limit fields, the Panel claim due days field, the Quick create results list (named by its visible caption), the Patient identifier fields and the Pricing publish amount. Frontend only; nothing changes on screen | pending |
 
 ## 6. Owner decisions already made (never ask again)
@@ -70,9 +76,11 @@ usability aid only and must follow the permission the backend already enforces.
 2. The Malay guides are drafts for clinic review; a CA, a doctor and a CA Supervisor must follow them on the
    real screens before use.
 3. The backlog in section 9 was chosen by the owner (2026-11-05).
-4. A "ship it" or decision relayed by LUCY counts as the owner's own (owner rule 2026-11-05).
+4. A "ship it" or decision relayed by B.E.R.N.I.S.S (formerly LUCY) counts as the owner's own (owner rule 2026-11-05).
 5. Staff toasts show at the top centre at every width, desktop included, never over a sticky bottom action bar
    (owner decision 2026-11-05, UX-1).
+6. UX-2 adds one backend field, `visit.hasConsultation` (true when a clinical encounter exists), so the Medical
+   certificates link shows exactly when its page works (owner decision 2026-11-05, relayed by LUCY).
 7. Backup push: whenever the team stops to wait for the owner with work not yet on GitHub, it commits that work to
    the piece's own feature branch and pushes it as a backup. No PR, never to `main` or another team's branch,
    never merge, never force-push. On a branch with an open PR, push only when the change is ready (it re-runs CI).
@@ -81,9 +89,16 @@ usability aid only and must follow the permission the backend already enforces.
 
 ## 7. Open items and known limits
 
-- SMOKE-1 open findings: S1-005 Medical Certificates link offered before an encounter exists (404; fixed by
-  UX-2, PR #254); S1-016 mixed Malay and English labels (Registration and Patient done in REG-2; "Panggil
-  semula" kept). S1-004, S1-015 and S1-017 are fixed by UX-1 (PR #241); S1-009 to S1-014 by UX-3.
+- SMOKE-1 open findings: S1-016 mixed Malay and English labels (Registration and Patient done in REG-2;
+  "Panggil semula" kept). S1-004, S1-015 and S1-017 are fixed by UX-1 (PR #241); S1-005 by UX-2 (PR #254);
+  S1-009 to S1-014 by UX-3.
+- UX-2 note: the Call In to consultation gap (when the link was still a 404) is closed by `visit.hasConsultation`.
+  On the history page a doctor who was not the attending clinician can still see the link and get 404
+  (own-scope permission, from reading `MedicalCertificateAuthority::lock`, not measured); the link follows the
+  existing permission check only.
+- Design debt for Daniel (UX-2): on the visit page the Medical certificates line, like the Attendance
+  confirmation links before it, sits above the page title (`h1`), against the checklist's "nothing above the
+  h1". Pre-existing placement on a Patients & Registration page; left unchanged.
 - UX-1 known limits: at 320 px a Today ranking card can scroll
   inside the card when every column holds a large ringgit figure; the page itself does not scroll sideways.
   Long ranking names are cut with "…" on phones (full name in the tooltip and in View all).
@@ -123,8 +138,11 @@ usability aid only and must follow the permission the backend already enforces.
   `kphp -d memory_limit=2G vendor/phpstan/phpstan/phpstan analyse --memory-limit=2G --no-progress <changed files>`.
   About 25 "str_starts_with expects non-empty-string" errors are known local noise.
 - Independent review by the Reviewer (a subagent given the diff, this file and the rules) before hand-off.
+- Send every new page or layout change to Daniel for a look through B.E.R.N.I.S.S before pushing; when a slice settles a
+  pattern (for example toast placement or the drawer), tell B.E.R.N.I.S.S so Daniel can add it to the guide (owner
+  decision 2026-11-05).
 - Commit, push and PR only after the owner says "ship it"; never merge.
-- A "ship it" or owner decision relayed by LUCY (the coordinator session) counts as the owner's own (owner rule 2026-11-05); stop and ask if it conflicts with something the owner told you directly.
+- A "ship it" or owner decision relayed by B.E.R.N.I.S.S (the coordinator session, formerly LUCY) counts as the owner's own (owner rule 2026-11-05); stop and ask if it conflicts with something the owner told you directly.
 - Never edit `docs/BASELINE.md`; record finished pieces here and flag any change in the PR description. The coordinator updates BASELINE in one docs PR per batch (owner rule 2026-11-05).
 - Record every new owner decision in section 6 and every finished piece in section 5, in the same PR.
 
@@ -149,4 +167,4 @@ authorisation to build them; the coordinator records it in `docs/BASELINE.md`.
    (BIL-1b), allergy warning and drug groups at Dispensary (DSP-1, DSP-1b), controlled-medicine marker and batch
    and expiry on labels (DSP-2, DSP-3), transfer shortages (STK-6), supplier returns (STK-7), English
    Registration messages (REG-2), and any other merged screen staff use. Follow the real screens; mark anything
-   unconfirmed `[PERLU DISAHKAN]`. Ask LUCY for the list of merged PRs since the last guide update (PR #203).
+   unconfirmed `[PERLU DISAHKAN]`. Ask B.E.R.N.I.S.S for the list of merged PRs since the last guide update (PR #203).

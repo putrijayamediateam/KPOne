@@ -17,6 +17,7 @@ use App\Domain\Visit\Models\Visit;
 use App\Http\Requests\AcknowledgeDispensaryPartialRequest;
 use App\Http\Requests\AddDispensaryItemRequest;
 use App\Http\Requests\AddDispensaryServiceLineRequest;
+use App\Http\Requests\AddOtcAllergyRequest;
 use App\Http\Requests\ConfirmOtcAllergyRequest;
 use App\Http\Requests\DispensaryCaseActionRequest;
 use App\Http\Requests\EditDispensaryItemRequest;
@@ -74,6 +75,14 @@ class DispensaryController extends Controller
     {
         $this->stayOnCase($dispensaryCase, fn () => $service->confirmOtcAllergy($request->user(), $dispensaryCase, $request->validated()));
         Inertia::flash('toast', ['type' => 'success', 'message' => 'Allergy statement recorded.']);
+
+        return to_route('dispensary.show', $dispensaryCase);
+    }
+
+    public function addOtcAllergy(AddOtcAllergyRequest $request, DispensaryCase $dispensaryCase, DispensaryService $service): RedirectResponse
+    {
+        $this->stayOnCase($dispensaryCase, fn () => $service->addOtcAllergy($request->user(), $dispensaryCase, $request->validated()));
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'Allergy added.']);
 
         return to_route('dispensary.show', $dispensaryCase);
     }
