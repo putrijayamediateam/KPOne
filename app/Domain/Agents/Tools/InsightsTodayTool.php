@@ -32,7 +32,7 @@ final class InsightsTodayTool implements AgentTool
 
     public function run(User $requester, ?Branch $branch, array $input): array
     {
-        $today = $this->insights->today($requester, $branch?->code ?? 'all');
+        $today = $this->insights->today($requester, $branch->code ?? 'all');
         $sales = $today['sales'];
         $time = fn (string $key): array => [
             'averageMinutes' => (int) $today['time'][$key]['average'],
@@ -41,8 +41,8 @@ final class InsightsTodayTool implements AgentTool
         ];
 
         return [
-            'scope' => $branch?->code ?? 'all',
-            'date' => CarbonImmutable::now($branch?->timezone ?? self::DEFAULT_TIMEZONE)->toDateString(),
+            'scope' => $branch->code ?? 'all',
+            'date' => CarbonImmutable::now($branch->timezone ?? self::DEFAULT_TIMEZONE)->toDateString(),
             'sales' => [
                 'netSen' => (int) $sales['totalSen'],
                 'grossSen' => (int) $sales['reconciliation']['grossSen'],
