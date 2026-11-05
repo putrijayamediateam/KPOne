@@ -89,7 +89,8 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php`.
 | PNL-3 | Panel payments: one Panel payment split across that Panel's accepted claims at this branch; the split must equal the payment; each split is an ordinary claim payment linked to the remittance; new append-only `panel_remittances` table and `panel.remittances.record.branch` (Panel Officer, Finance Officer) | #230 |
 | PNL-4 | Follow-up list (`/panel-claims/follow-up`): open claims (not paid, not rejected) with no new event, payment or photo for the Panel's follow-up days, oldest first, with the last action, its date and who did it; per-Panel `claim_follow_up_days` (default 30, 1 to 365) in Panel settings | #238 |
 | PNL-6 | Payment correction (`/panel-payment-corrections`): Finance Officer or Director reverses a wrongly recorded Panel payment with a reason; whole payments only, a split Panel payment with all its splits, never by its recorder; new append-only `panel_claim_payment_reversals` and `panel.claim_payments.reverse.branch`; every payment total leaves reversed payments out; migrations `2026_11_06_300100_create_panel_claim_payment_reversals` and `2026_11_06_300200_grant_panel_payment_reversal_permission_additively` | #248 (merged as `dd8f4fe`) |
-| PNL-6b | The Panel payments history and the Follow-up list show a colleague's name only under the staff-directory visibility rule (owner BIL-2 decision), otherwise "Staff member"; no visible change for today's roles | #262 |
+| PNL-6b | The Panel payments history and the Follow-up list show a colleague's name only under the staff-directory visibility rule (owner BIL-2 decision), otherwise "Staff member"; no visible change for today's roles | #262 (merged as `e0d41d9`) |
+| PNL-5 | PostgreSQL contention tests on one Panel claim: split against single payment, two part payments, a reversal against a new payment in both orders, two reversals, a double-submitted split payment (`PostgresPanelPaymentRegressionTest`, serial Contention suite); tests only | #267 |
 
 ## 6. Owner decisions already made (never ask again)
 
@@ -151,8 +152,8 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php`.
   recorded once per branch); at most 50 claims per payment; the date received is today or earlier; a recorded
   payment cannot be reversed or corrected in KPOne (as with the existing single-claim remittance), so a wrong
   entry needs a separate, later correction design. The Finance Officer sees patient names (from the claim
-  snapshot) on this page, as decision 11 allows on Panel invoices; no clinical data is shown. Not yet tested: a
-  PostgreSQL contention test of a split payment against a single-claim payment.
+  snapshot) on this page, as decision 11 allows on Panel invoices; no clinical data is shown. A split payment
+  racing a single-claim payment is covered by the PNL-5 contention test (`PostgresPanelPaymentRegressionTest`).
 - **PNL-4 limits:** the Follow-up list is for Panel Officers only (it reuses `panel.claims.manage.branch`);
   "an action" is any claim event, payment or photo, so a note written only to reset the clock also counts;
   events count from their own time, so a backdated submission counts from its submitted date, while a photo
@@ -168,8 +169,8 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php`.
   payment never changes, a second reversal is refused and the idempotency key covers a double submit; reports
   change in the period of the original payment (decision 18), so past Insights and Panel summary figures can
   move; Insights, the Panel summary and the agent Panel claims summary (owned by other teams) now leave reversed
-  payments out (one condition each). Not yet tested: a PostgreSQL contention test of a reversal against a new
-  payment on the same claim.
+  payments out (one condition each). A reversal racing a new payment, and two reversals of one payment, are
+  covered by the PNL-5 contention test.
 - **Staff names still outside the BIL-2 rule (possible PNL-6c):** the last actor on the Panel Claims list and the
   actor in a claim page's Logs (`PanelClaimDirectoryService`) still read names straight from `users`, through an
   inner join that also drops events without an actor. Doctor names on Panel invoices are doctor display names
@@ -240,8 +241,10 @@ Second backlog, chosen by the owner on 2026-11-05 ("panel order ok", relayed by 
 5. **PNL-6 Payment correction (shipped 2026-11-05, PR #248).** Reverse a wrongly recorded Panel payment;
    design in `docs/reports/PNL-6-analysis.md`, owner answers in decision 18 (the owner confirmed in this session
    to keep them: Finance Officer or Director, one step, never the recorder).
-6. **PNL-5 Contention test.** A split Panel payment and a single-claim payment on the same claim at the same
-   moment cannot over-pay; test only. Closes the PNL-3 known limit.
+6. **PNL-5 Contention test. (Built 2026-11-05.)** A split Panel payment and a single-claim payment on the same
+   claim at the same moment cannot over-pay; test only. Closes the PNL-3 known limit. Also covers a reversal
+   racing a new payment, two reversals of one payment and a double-submitted split payment
+   (`tests/Feature/Billing/PostgresPanelPaymentRegressionTest.php`, serial Contention suite).
 7. **PNL-7 Panel statement upload helper. (Built 2026-11-05.)** The Panel Officer uploads the Panel's remittance statement (CSV);
    KPOne suggests matches to claims (invoice number, then claim number, then member reference); the officer
    confirms each match and records through the PNL-3 flow. Nothing is recorded automatically. The file is stored
