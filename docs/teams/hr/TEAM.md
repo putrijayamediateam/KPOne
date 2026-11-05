@@ -57,7 +57,7 @@ Development, Finance and the TV account get no HR data by implication. Server ch
 
 | Slice | What it did | PR |
 |---|---|---|
-| HR-1 | Roster planner at `/hr/roster` (My roster, Planner, Minimum staffing); weekly branch versions draft, waiting for approval, approved, replaced; two-person send and approve or return backed by PostgreSQL; refusals for missing branch assignment, overlaps across branches, shifts over 16 hours; warnings for other drafts, shared rooms and minimum staffing; one hub link. Permissions `hr.roster.manage.organisation` (Director, HR Manager), `hr.roster.approve.organisation` (Director), `hr.roster.view.own` (every human role, not the TV account). Migrations `2026_11_10_000100` and `000200`. | (PR pending) |
+| HR-1 | Roster planner at `/hr/roster` (My roster, Planner, Minimum staffing); weekly branch versions draft, waiting for approval, approved, replaced; two-person send and approve or return backed by PostgreSQL; refusals for missing branch assignment, overlaps across branches, shifts over 16 hours; warnings for other drafts, shared rooms and minimum staffing; one hub link. Permissions `hr.roster.manage.organisation` (Director, HR Manager), `hr.roster.approve.organisation` (Director), `hr.roster.view.own` (every human role, not the TV account). Migrations `2026_11_10_000100` and `000200`. | PR #295, merged as `dca171e` (head `a84e395`) |
 
 ## 6. Decisions (never ask again)
 
