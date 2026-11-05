@@ -182,11 +182,11 @@ return new class extends Migration
 
             'payments' => ['Patient receipts; amounts in sen. Payment references are not included.', <<<'SQL'
                 SELECT p.id, p.receipt_number, p.branch_id, p.patient_id, pm.code AS payment_method_code,
-                    p.method_snapshot AS payment_method_name, pm.classification, p.amount_sen, p.currency,
+                    p.method_snapshot AS payment_method_name, p.amount_sen, p.currency,
                     p.status, p.received_at
                 FROM public.payments p
                 LEFT JOIN public.payment_methods pm ON pm.id = p.payment_method_id
-                SQL, ['classification' => 'cash or non_cash (current classification of the method).']],
+                SQL, ['payment_method_code' => 'Payment method code, e.g. CASH.']],
 
             'payment_allocations' => ['How receipts are allocated to invoices; amounts in sen.', <<<'SQL'
                 SELECT a.id, a.payment_id, a.invoice_id, a.amount_sen FROM public.payment_allocations a
