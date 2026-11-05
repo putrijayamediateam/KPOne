@@ -82,6 +82,18 @@ class PanelClaim extends Model
         return $this->hasMany(PanelClaimPayment::class)->orderBy('received_at')->orderBy('id');
     }
 
+    /** @return HasMany<PanelClaimPayment, $this> Payments that still count (PNL-6: reversed ones left out). */
+    public function receivedPayments(): HasMany
+    {
+        return $this->payments()->whereRaw(PanelClaimPaymentReversal::NOT_REVERSED);
+    }
+
+    /** @return HasMany<PanelClaimPaymentReversal, $this> */
+    public function paymentReversals(): HasMany
+    {
+        return $this->hasMany(PanelClaimPaymentReversal::class);
+    }
+
     public function getRouteKeyName(): string
     {
         return 'public_id';

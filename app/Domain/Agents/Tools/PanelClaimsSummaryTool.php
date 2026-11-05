@@ -4,6 +4,7 @@ namespace App\Domain\Agents\Tools;
 
 use App\Domain\Organisation\Models\Branch;
 use App\Domain\Visit\Billing\Models\PanelClaim;
+use App\Domain\Visit\Billing\Models\PanelClaimPaymentReversal;
 use App\Domain\Visit\Billing\Services\PanelClaimAmounts;
 use App\Domain\Visit\Billing\Services\PanelClaimDueRule;
 use App\Domain\Visit\Billing\Services\PanelClaimEligibility;
@@ -64,7 +65,7 @@ final class PanelClaimsSummaryTool implements AgentTool
                 $submitted = DB::table('panel_claim_events')->where('organisation_id', $requester->organisation_id)->where('branch_id', $each->id)
                     ->whereIn('panel_claim_id', $claims->pluck('id'))->where('event_type', 'submitted')->distinct()->pluck('panel_claim_id')->flip();
                 $paid = DB::table('panel_claim_payments')->where('organisation_id', $requester->organisation_id)->where('branch_id', $each->id)
-                    ->whereIn('panel_claim_id', $claims->pluck('id'))->groupBy('panel_claim_id')->selectRaw('panel_claim_id, SUM(amount_sen) as paid')->pluck('paid', 'panel_claim_id');
+                    ->whereIn('panel_claim_id', $claims->pluck('id'))->whereRaw(PanelClaimPaymentReversal::NOT_REVERSED)->groupBy('panel_claim_id')->selectRaw('panel_claim_id, SUM(amount_sen) as paid')->pluck('paid', 'panel_claim_id');
                 foreach ($allocations as $allocation) {
                     $id = (int) $allocation->panel_id;
                     $panel = $panels[$id] ?? ['panel' => (string) $allocation->panel_label, 'approvedInvoices' => 0, 'approvedSen' => 0, 'claimedInvoices' => 0, 'claimedSen' => 0,

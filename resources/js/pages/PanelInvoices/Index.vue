@@ -34,7 +34,11 @@ const props = defineProps<{
         treatment: string;
     };
     panels: string[];
-    can: { clinicalFilters: boolean; recordRemittances?: boolean };
+    can: {
+        clinicalFilters: boolean;
+        recordRemittances?: boolean;
+        reversePayments?: boolean;
+    };
     maxRows: number;
     downloadUrl: string | null;
     ready: boolean;
@@ -92,9 +96,27 @@ const canDownload = computed(() => props.ready && props.total > 0);
             title="Panel invoices"
             description="Invoices billed to a Panel at this branch. Choose a Panel and a date range, then download the list as a CSV file."
         />
-        <div v-if="can.recordRemittances" class="flex flex-wrap gap-2">
-            <Button as-child variant="secondary" size="sm">
+        <div
+            v-if="can.recordRemittances || can.reversePayments"
+            class="flex flex-wrap gap-2"
+        >
+            <Button
+                v-if="can.recordRemittances"
+                as-child
+                variant="secondary"
+                size="sm"
+            >
                 <Link href="/panel-remittances">Record Panel payment</Link>
+            </Button>
+            <Button
+                v-if="can.reversePayments"
+                as-child
+                variant="outline"
+                size="sm"
+            >
+                <Link href="/panel-payment-corrections"
+                    >Correct a Panel payment</Link
+                >
             </Button>
         </div>
 
