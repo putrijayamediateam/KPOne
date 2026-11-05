@@ -440,6 +440,18 @@ const toggleCharge = (charge: ChargeRow) => {
                     </Button>
                 </div>
                 <Button
+                    variant="ghost"
+                    class="min-h-11 w-full"
+                    as-child
+                    data-action="price-history"
+                >
+                    <Link
+                        :href="`/pricing/charges/${charge.publicId}/history`"
+                        :aria-label="`Price history for ${charge.displayName}`"
+                        >Price history</Link
+                    >
+                </Button>
+                <Button
                     class="min-h-11 w-full"
                     :variant="charge.isActive ? 'ghost' : 'secondary'"
                     :aria-label="`${charge.isActive ? 'Deactivate' : 'Activate'} ${charge.displayName}`"
@@ -551,6 +563,18 @@ const toggleCharge = (charge: ChargeRow) => {
                                         charge.isActive ? 'success' : 'neutral'
                                     "
                                 />
+                                <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    as-child
+                                    data-action="price-history"
+                                >
+                                    <Link
+                                        :href="`/pricing/charges/${charge.publicId}/history`"
+                                        :aria-label="`Price history for ${charge.displayName}`"
+                                        >History</Link
+                                    >
+                                </Button>
                                 <Button
                                     size="sm"
                                     :variant="

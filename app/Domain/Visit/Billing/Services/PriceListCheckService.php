@@ -49,7 +49,7 @@ final class PriceListCheckService
         $charges = ChargeDefinition::query()
             ->where('organisation_id', $organisationId)
             ->whereIn('source_key', $items->pluck('sourceKey')->all())
-            ->get(['id', 'source_key', 'unit', 'is_active'])
+            ->get(['id', 'public_id', 'source_key', 'unit', 'is_active'])
             ->keyBy('source_key');
 
         $books = PriceBook::query()
@@ -150,6 +150,7 @@ final class PriceListCheckService
                 'code' => $item['code'],
                 'displayName' => $item['displayName'],
                 'orderUnit' => $item['orderUnit'],
+                'chargePublicId' => $charge === null ? null : (string) $charge->public_id,
                 'chargeUnit' => $charge?->unit,
                 // Billing refuses every line of an inactive charge, so it shows no price ("—"); the checks above still
                 // read the stored prices, so "Charge inactive" is the flag, not a missing price.

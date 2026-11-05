@@ -54,7 +54,10 @@ final class PriceHistoryService
         /** @var Collection<int, PriceBook> $books */
         $books = PriceBook::query()
             ->where('organisation_id', $organisationId)
-            ->whereIn('id', $entries->pluck('price_book_id')->unique()->values())
+            ->where('currency', 'MYR')
+            // Every active book can be chosen (so "no price in this book" is visible), plus any inactive book that
+            // still holds a version of this charge.
+            ->where(fn ($query) => $query->where('is_active', true)->orWhereIn('id', $entries->pluck('price_book_id')->unique()->values()))
             ->get(['id', 'public_id', 'price_tier', 'branch_id', 'panel_id', 'is_active'])
             ->keyBy('id');
         $branchNames = Branch::query()->where('organisation_id', $organisationId)

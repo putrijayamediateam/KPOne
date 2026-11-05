@@ -141,6 +141,10 @@ class PriceHistoryTest extends ClinicalTestCase
         $only = $this->history($charge, $panelDefault->public_id);
         $this->assertSame(1, $only['total']);
         $this->assertSame([90], array_column($only['rows'], 'amountSen'));
+        // An active book with no price for this charge can still be chosen, and shows nothing.
+        $branchBook = $this->book('self_pay', $this->branch);
+        $this->assertContains($branchBook->public_id, array_column($this->history($charge)['books'], 'publicId'));
+        $this->assertSame(0, $this->history($charge, $branchBook->public_id)['total']);
         // An unknown book shows everything rather than nothing; the controller only accepts a uuid.
         $this->assertSame(27, $this->history($charge, '00000000-0000-4000-8000-000000000000')['total']);
         // A page past the end shows the last page.
@@ -180,11 +184,11 @@ class PriceHistoryTest extends ClinicalTestCase
     {
         $charge = $this->charge('HIS-ROUTE');
         $this->publish($this->book('self_pay'), $charge, 700);
+        $allowed = array_map(fn (string $role): User => $this->actor($role), ['director', 'finance_officer', 'administrator', 'ca_supervisor']);
         $tables = ['price_entries', 'price_books', 'charge_definitions', 'audit_logs'];
         $before = array_map(fn (string $table): int => DB::table($table)->count(), $tables);
 
-        foreach (['director', 'finance_officer', 'administrator', 'ca_supervisor'] as $role) {
-            $user = $this->actor($role);
+        foreach ($allowed as $user) {
             $this->selectBranch($user);
             $this->actingAs($user)->get(route('pricing.charges.history', $charge))
                 ->assertOk()
