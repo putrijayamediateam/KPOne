@@ -97,8 +97,10 @@ const submitCancel = () => {
             class="flex flex-col justify-between gap-3 md:flex-row md:items-start"
         >
             <div>
-                <div class="flex items-center gap-2">
-                    <h1 class="font-mono text-2xl font-semibold">
+                <div class="flex flex-wrap items-center gap-2">
+                    <h1
+                        class="font-mono text-2xl font-semibold whitespace-nowrap"
+                    >
                         {{ visit.visitNumber }}
                     </h1>
                     <StatusBadge :status="visit.status" /><span
@@ -117,7 +119,7 @@ const submitCancel = () => {
                     }}
                 </p>
             </div>
-            <div class="flex gap-2">
+            <div class="flex flex-wrap gap-2">
                 <Button variant="outline" as-child
                     ><Link href="/registration"
                         ><ArrowLeft class="size-4" /> Console</Link
@@ -166,21 +168,21 @@ const submitCancel = () => {
                     Visit
                 </div>
                 <dl class="mt-2 space-y-2 text-sm">
-                    <div class="flex justify-between">
+                    <div class="flex justify-between gap-3">
                         <dt>Type</dt>
-                        <dd class="font-medium capitalize">
+                        <dd class="min-w-0 font-medium break-words capitalize">
                             {{ visit.visitType }}
                         </dd>
                     </div>
-                    <div class="flex justify-between">
+                    <div class="flex justify-between gap-3">
                         <dt>Doctor</dt>
-                        <dd class="font-medium">
+                        <dd class="min-w-0 text-right font-medium break-words">
                             {{ visit.doctor?.name ?? 'None' }}
                         </dd>
                     </div>
-                    <div class="flex justify-between">
+                    <div class="flex justify-between gap-3">
                         <dt>Coverage</dt>
-                        <dd class="font-medium">
+                        <dd class="min-w-0 text-right font-medium break-words">
                             {{ visit.coverage.panelName ?? 'Self-pay' }}
                         </dd>
                     </div>
@@ -244,7 +246,7 @@ const submitCancel = () => {
                     {{ visit.visitReasons.additional.join(' · ') }}
                 </p>
             </template>
-            <p v-else class="mt-2 text-sm whitespace-pre-wrap">
+            <p v-else class="mt-2 text-sm break-words whitespace-pre-wrap">
                 {{ visit.visitReasons.legacy ?? 'Not recorded.' }}
             </p>
         </section>
@@ -253,10 +255,12 @@ const submitCancel = () => {
             class="rounded-lg border bg-card p-4"
         >
             <h2 class="font-semibold">Provisional Panel coverage</h2>
-            <p class="mt-2 text-sm">{{ visit.coverage.panelName }}</p>
+            <p class="mt-2 text-sm break-words">
+                {{ visit.coverage.panelName }}
+            </p>
             <p
                 v-if="visit.coverage.memberReference"
-                class="text-sm text-muted-foreground"
+                class="text-sm break-words text-muted-foreground"
             >
                 Reference: {{ visit.coverage.memberReference }}
             </p>
@@ -269,7 +273,7 @@ const submitCancel = () => {
             <p class="mt-1 text-sm text-muted-foreground">
                 {{ formatDateTime(visit.cancelledAt, visit.branch.timezone) }}
             </p>
-            <p class="mt-2 text-sm whitespace-pre-wrap">
+            <p class="mt-2 text-sm break-words whitespace-pre-wrap">
                 {{ visit.cancellationReason }}
             </p>
         </section>

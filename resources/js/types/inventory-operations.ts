@@ -26,6 +26,22 @@ export type InventoryDocumentLine = {
     batch?: string | null;
 };
 
+export type InventoryTransferDifference = {
+    publicId: string;
+    kind: string;
+    quantity: string;
+    unit: string;
+    sku: string;
+    batch: string;
+    status: 'open' | 'resolved';
+    outcome: string | null;
+    reference: string | null;
+    resolvedAt: string | null;
+    outcomes: string[];
+    canResolve: boolean;
+    receivedByYou: boolean;
+};
+
 export type InventoryDocument = {
     publicId: string;
     number: string;
@@ -38,6 +54,7 @@ export type InventoryDocument = {
     destination?: string;
     location?: string;
     lines: InventoryDocumentLine[];
+    differences?: InventoryTransferDifference[];
 };
 
 export type InventoryOperations = {
@@ -608,6 +625,10 @@ export const inventoryOperationErrorContext = (url: string): string => {
 
     if (url.includes('/dispatch')) {
         return 'Transfer dispatch';
+    }
+
+    if (url.includes('/differences')) {
+        return 'Transfer difference';
     }
 
     if (url.includes('/stocktakes')) {

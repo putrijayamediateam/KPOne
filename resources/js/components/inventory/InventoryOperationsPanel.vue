@@ -5,6 +5,8 @@ import { computed, reactive, ref, shallowRef, watchEffect } from 'vue';
 import type { Ref } from 'vue';
 import InventorySearchSelect from '@/components/inventory/InventorySearchSelect.vue';
 import ReceivingReviews from '@/components/inventory/ReceivingReviews.vue';
+import TransferDifferences from '@/components/inventory/TransferDifferences.vue';
+import TransferReceiptForm from '@/components/inventory/TransferReceiptForm.vue';
 import VerifiedReceivingForm from '@/components/inventory/VerifiedReceivingForm.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,9 +16,11 @@ import {
     purchaseOrderActionAllowed,
     stockRequestActionAllowed,
 } from '@/lib/inventory-operation-transitions';
+import type { TransferReceiptLinePayload } from '@/lib/transfer-receipt';
 import type {
     InventoryDocument as DocumentRow,
     InventoryOperations,
+    InventoryTransferDifference,
     InventoryReceiptMemoryContext,
     InventoryReceiptRememberedState,
     InventoryReceiptRememberedVault,
@@ -549,18 +553,65 @@ const confirmStockRequestDispatch = (row: DocumentRow) =>
         confirmLabel: 'Dispatch stock',
         action: () => dispatchStockRequest(row),
     });
-const receiveStockRequest = (row: DocumentRow) =>
+const receiveStockRequest = (
+    row: DocumentRow,
+    lines: TransferReceiptLinePayload[],
+    retryKey: string,
+) =>
     send('post', `/inventory/stock-requests/${row.publicId}/receive`, {
         ...version(row),
-        receive_idempotency_key: crypto.randomUUID(),
+        receive_idempotency_key: retryKey,
+        lines,
     });
-const confirmStockRequestReceipt = (row: DocumentRow) =>
+const confirmStockRequestReceipt = (
+    row: DocumentRow,
+    lines: TransferReceiptLinePayload[],
+    differences: number,
+    retryKey: string,
+) =>
     requestConfirmation({
         title: `Confirm receipt of ${row.number}?`,
         description:
-            'This credits the dispatched batches to the destination location exactly once.',
+            differences === 0
+                ? 'This credits the accepted quantities to the destination location exactly once.'
+                : `This credits only the accepted quantities. ${differences} difference${differences === 1 ? '' : 's'} will stay open until someone who did not receive this transfer resolves them.`,
         confirmLabel: 'Confirm receipt',
-        action: () => receiveStockRequest(row),
+        action: () => receiveStockRequest(row, lines, retryKey),
+    });
+const resolveTransferDifference = (
+    row: DocumentRow,
+    difference: InventoryTransferDifference,
+    outcome: string,
+    reference: string,
+    retryKey: string,
+) =>
+    send('post', `/inventory/stock-requests/${row.publicId}/differences`, {
+        ...version(row),
+        retry_key: retryKey,
+        difference_public_id: difference.publicId,
+        outcome,
+        reference,
+    });
+const confirmTransferDifference = (
+    row: DocumentRow,
+    difference: InventoryTransferDifference,
+    outcome: string,
+    reference: string,
+    retryKey: string,
+) =>
+    requestConfirmation({
+        title: `Resolve this ${difference.kind} difference?`,
+        description:
+            'The resolution is permanent and recorded against your account. Original receipt evidence is kept.',
+        confirmLabel: 'Resolve difference',
+        action: () =>
+            resolveTransferDifference(
+                row,
+                difference,
+                outcome,
+                reference,
+                retryKey,
+            ),
     });
 const saveReorder = () =>
     send('put', '/inventory/reorder-levels', {
@@ -983,13 +1034,36 @@ const saveReorder = () =>
                             @click="decideStockRequest(row, 'reject')"
                             >Reject</Button
                         >
-                        <Button
-                            v-if="canRequest(row, 'receive')"
-                            size="sm"
-                            @click="confirmStockRequestReceipt(row)"
-                            >Confirm receipt</Button
-                        >
                     </div>
+                    <TransferReceiptForm
+                        v-if="canRequest(row, 'receive')"
+                        :row="row"
+                        :busy="busy"
+                        @submit="
+                            (lines, differences, retryKey) =>
+                                confirmStockRequestReceipt(
+                                    row,
+                                    lines,
+                                    differences,
+                                    retryKey,
+                                )
+                        "
+                    />
+                    <TransferDifferences
+                        :differences="row.differences ?? []"
+                        :number="row.number"
+                        :busy="busy"
+                        @resolve="
+                            (difference, outcome, reference, retryKey) =>
+                                confirmTransferDifference(
+                                    row,
+                                    difference,
+                                    outcome,
+                                    reference,
+                                    retryKey,
+                                )
+                        "
+                    />
                     <form
                         v-if="canRequest(row, 'dispatch')"
                         class="space-y-2"

@@ -104,6 +104,8 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php`.
     finalisation, buckets 0-30, 31-60, 61-90 and over 90 days (2026-10-20).
 13. Lump-sum Panel payments may be recorded and split by the Panel Officer or the Finance Officer (2026-11-05).
 14. Follow-up days are a per-Panel setting (default 30) (2026-11-05).
+15. PNL-2 bulk claims (owner accepted 2026-11-05): a batch is all-or-nothing, holds at most 20 invoices of
+    one Panel, shares one remarks text, and carries no photos (photos are added on each claim afterwards).
 
 ## 7. Open items and known limits
 
@@ -112,10 +114,8 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php`.
 - SMOKE-1 S1-002 and S1-003 are fixed by PNL-1. Follow-up outside this team: the shared `OperationalTable`
   wrapper and the Billing workspace have the same hidden "Actions" header label that can widen a page; a
   `relative` on the shared wrapper would fix every page (needs agreement with the other teams).
-- **PNL-2 design choices awaiting the owner's confirmation:** a batch is all-or-nothing, holds at most 20
-  invoices of one Panel, shares one submitted date and optional remarks, and carries no photos (added on each
-  claim page). Not yet tested: a PostgreSQL contention test of bulk against single creation, and one batch
-  whose visits fall on different dates.
+- PNL-2 not yet tested: a PostgreSQL contention test of bulk against single creation, and one batch whose
+  visits fall on different dates.
 - A submitted-but-undecided claim counts as zero outstanding in the Panel summary.
 - Panel summary runs about three queries per approved allocation; not load-tested.
 

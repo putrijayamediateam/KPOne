@@ -36,6 +36,8 @@ export type Receipt = {
     status: string;
     lockVersion: number;
     receivedAt: string;
+    /** Screens only (BIL-2); never sent to prints. */
+    recordedBy?: string;
 };
 export type Responsibility = {
     reason: string;
@@ -47,6 +49,13 @@ export type Responsibility = {
     lockVersion: number;
     remainingSen: number | null;
     dueDate: string | null;
+};
+/** Display only: the patient's amount owed is unchanged (BIL-1b). */
+export type PanelShortfall = {
+    shortfallSen: number;
+    panelShareSen: number;
+    acceptedSen: number;
+    decision: 'rejected' | 'partially_accepted' | 'claim_reduced';
 };
 export type InvoiceAdjustmentSummary = {
     subtotalSen: number;
@@ -100,6 +109,7 @@ export type BillingPage = {
         }>;
     };
     panel: Responsibility | null;
+    panelShortfall: PanelShortfall | null;
     deferment: Responsibility | null;
     payments: Receipt[];
     methods: Array<{ code: string; name: string; requiresReference: boolean }>;

@@ -80,7 +80,7 @@ class DispensaryController extends Controller
 
     public function labels(Request $request, DispensaryCase $dispensaryCase, DispensaryDirectoryService $directory, ?string $itemPublicId = null): Response|JsonResponse
     {
-        $labels = $directory->labels($request->user(), $dispensaryCase, $itemPublicId);
+        ['labels' => $labels, 'batchNotes' => $batchNotes] = $directory->labelsWithBatchNotes($request->user(), $dispensaryCase, $itemPublicId);
         if ($request->boolean('verify')) {
             $request->validate(['token' => ['required', 'string', 'regex:/^[a-f0-9]{64}$/'], 'branch' => ['required', 'integer']]);
             abort_unless((int) $request->query('branch') === $labels['branchId'] && hash_equals($labels['token'], $request->string('token')->toString()) && $labels['blocked'] === [], 409);
@@ -88,7 +88,7 @@ class DispensaryController extends Controller
             return response()->json(['current' => true]);
         }
 
-        return Inertia::render('Dispensary/Labels', ['labels' => $labels]);
+        return Inertia::render('Dispensary/Labels', ['labels' => $labels, 'labelBatchNotes' => $batchNotes]);
     }
 
     public function start(DispensaryCaseActionRequest $request, DispensaryCase $dispensaryCase, DispensaryService $service): RedirectResponse
