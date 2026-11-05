@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import { Head } from '@inertiajs/vue3';
-import { ArrowLeft, Download, FileText, UserRound } from '@lucide/vue';
+import { ArrowLeft, FileText, UserRound } from '@lucide/vue';
 import { computed, ref } from 'vue';
 import InvoiceActivityDrawer from '@/components/billing/InvoiceActivityDrawer.vue';
 import InvoiceBillTo from '@/components/billing/InvoiceBillTo.vue';
 import InvoiceNotes from '@/components/billing/InvoiceNotes.vue';
+import IssuePrintButton from '@/components/billing/IssuePrintButton.vue';
 import OutstandingBills from '@/components/billing/OutstandingBills.vue';
 import { ActionLink } from '@/components/ui/action-link';
 import { Button } from '@/components/ui/button';
@@ -14,6 +15,10 @@ import type { CompletedInvoicePage } from '@/types/completedInvoice';
 
 const props = defineProps<{ invoice: CompletedInvoicePage }>();
 const tab = ref('all');
+// BIL-5: billing prints are recorded; the old print address is only a PREVIEW.
+const billingPrint = /\/billing\/[^/]+\/(?:receipts\/[^/]+\/)?print$/;
+const isBillingPrint = (url: string) => billingPrint.test(url);
+const issueUrl = (url: string) => url.replace(/\/print$/, '/issue');
 const lines = computed(() => props.invoice.financial?.lines ?? []);
 const documents = computed(() => {
     const financial = props.invoice.financial;
@@ -161,12 +166,13 @@ const totals = computed(() => {
                                 Invoice
                             </h2>
                             <InvoiceNotes :context="invoice.notes" />
-                            <ActionLink
+                            <IssuePrintButton
                                 v-if="invoice.financial?.printUrl"
-                                :href="invoice.financial.printUrl"
+                                :url="issueUrl(invoice.financial.printUrl)"
+                                label="Print invoice"
                                 variant="outline"
-                                ><Download class="size-3" />Download</ActionLink
-                            >
+                                return-to="invoice"
+                            />
                         </div>
                         <InvoiceBillTo :context="invoice.billTo" class="mt-3" />
                         <dl
@@ -242,7 +248,19 @@ const totals = computed(() => {
                                 <span class="font-medium">{{
                                     document.name
                                 }}</span>
+                                <IssuePrintButton
+                                    v-if="isBillingPrint(document.url)"
+                                    :url="issueUrl(document.url)"
+                                    :label="
+                                        /\/receipts\//.test(document.url)
+                                            ? 'Print receipt'
+                                            : 'Print invoice'
+                                    "
+                                    variant="outline"
+                                    return-to="invoice"
+                                />
                                 <ActionLink
+                                    v-else
                                     :href="document.url"
                                     variant="outline"
                                     ><FileText class="size-3" />Print
