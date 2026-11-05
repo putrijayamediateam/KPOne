@@ -269,12 +269,13 @@ const emptyDescription = computed(() =>
             </form>
 
             <section
-                class="grid grid-cols-1 gap-3 lg:hidden"
+                class="grid grid-cols-1 gap-3 md:grid-cols-2 lg:hidden"
                 aria-label="Price list"
                 data-testid="price-check-cards"
             >
                 <EmptyState
                     v-if="result.rows.length === 0"
+                    class="md:col-span-2"
                     :title="emptyTitle"
                     :description="emptyDescription"
                 />

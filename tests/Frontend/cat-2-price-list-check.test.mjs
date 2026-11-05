@@ -155,7 +155,7 @@ test('empty, filtered-empty, error and no-branch states use the shared component
 });
 
 test('cards below 1024 px shrink instead of widening the page', () => {
-    assert.match(template, /class="grid grid-cols-1 gap-3 lg:hidden"/);
+    assert.match(template, /class="grid grid-cols-1 gap-3 md:grid-cols-2 lg:hidden"/);
     assert.match(
         template,
         /class="grid min-w-0 grid-cols-1 gap-3 rounded-xl border bg-card p-4"/,
