@@ -9,6 +9,7 @@ import InvoiceAdjustmentDialog from '@/components/billing/InvoiceAdjustmentDialo
 import InvoiceBillTo from '@/components/billing/InvoiceBillTo.vue';
 import InvoiceNotes from '@/components/billing/InvoiceNotes.vue';
 import OutstandingBills from '@/components/billing/OutstandingBills.vue';
+import ReceiptRefunds from '@/components/billing/ReceiptRefunds.vue';
 import { ActionLink } from '@/components/ui/action-link';
 import { Button } from '@/components/ui/button';
 import {
@@ -449,6 +450,12 @@ const reverse = (receipt: Receipt) =>
                     </div>
                 </section>
                 <OutstandingBills :groups="billing.outstanding" />
+                <ReceiptRefunds
+                    v-if="billing.refunds"
+                    :refunds="billing.refunds"
+                    :base="base"
+                    :manage="manage"
+                />
             </aside>
             <section
                 v-if="!manage"
