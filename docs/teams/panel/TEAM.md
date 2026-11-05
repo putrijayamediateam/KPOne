@@ -127,11 +127,15 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php`.
   dark, for any screen change.
 - Commit, push and PR only after the owner says "ship it"; never merge.
 - Record every new owner decision in section 6 and every finished piece in section 5, in the same PR.
+- Do not edit `docs/BASELINE.md` (owner rule 2026-11-05). Record each finished piece only in this file
+  (section 5 with its PR number, section 6 for new owner decisions). If a piece changes an authorisation
+  boundary (for example a BASELINE section 4 "not authorised" item), say so clearly in the PR description;
+  the coordinator records all BASELINE updates in one docs-only PR after each batch of merges.
 
 ## 9. Backlog (next pieces, in order)
 
 Chosen by the owner on 2026-11-05; built one by one in this order, each its own PR. Choosing them is the owner's
-authorisation to build them; record that in `docs/BASELINE.md` with the first PR of each.
+authorisation to build them; the coordinator records it in `docs/BASELINE.md`.
 
 1. **PNL-1 Phone layout fixes. (Built 2026-11-05, waiting for the owner's "ship it".)** SMOKE-1 S1-002 (Panel Claims page width at 390 px) and S1-003 (Panel invoices
    filter row at 390 px). Layout only; no behaviour change.
