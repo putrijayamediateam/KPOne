@@ -41,6 +41,9 @@ class StockMovement extends Model
 
     public const TYPE_TREATMENT_WASTE = 'treatment_waste';
 
+    /** STK-11: returned medicine credited to a returns location by the Dispensary return check (DSP-7). */
+    public const TYPE_DISPENSARY_RETURN = 'dispensary_return';
+
     protected static function booted(): void
     {
         static::updating(fn (): never => throw new LogicException('Stock Movements are immutable.'));

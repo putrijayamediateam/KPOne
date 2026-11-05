@@ -20,7 +20,7 @@ class InventoryAvailabilityService
         $rows = DB::table('inventory_stock_balances')->where('inventory_stock_balances.organisation_id', $actor->organisation_id)->where('inventory_stock_balances.inventory_sku_id', $skuId)->where('inventory_stock_balances.quantity', '>', 0)
             ->join('inventory_locations', 'inventory_locations.id', '=', 'inventory_stock_balances.inventory_location_id')
             ->joinSub(app(InventoryBatchEligibility::class)->query($actor->organisation_id, $branch), 'inventory_batches', 'inventory_batches.id', '=', 'inventory_stock_balances.inventory_batch_id')
-            ->where('inventory_locations.is_active', true)->where(fn ($q) => $q->where('inventory_locations.branch_id', $branchId)->orWhereNull('inventory_locations.branch_id'))
+            ->where('inventory_locations.is_active', true)->where('inventory_locations.type', '<>', InventoryLocation::TYPE_DISPENSARY_RETURNS)->where(fn ($q) => $q->where('inventory_locations.branch_id', $branchId)->orWhereNull('inventory_locations.branch_id'))
             ->when($dispensaryOnly, fn ($q) => $q->where('inventory_locations.branch_id', $branchId)->where('inventory_locations.type', InventoryLocation::TYPE_DISPENSARY))
             ->where(fn ($q) => $q->whereNull('inventory_batches.eligibility_reason')->orWhereNotNull('inventory_batches.hold_reason'))
             ->orderByRaw('CASE WHEN inventory_locations.branch_id = ? AND inventory_locations.type = ? THEN 0 WHEN inventory_locations.branch_id = ? THEN 1 ELSE 2 END', [$branchId, InventoryLocation::TYPE_DISPENSARY, $branchId])
