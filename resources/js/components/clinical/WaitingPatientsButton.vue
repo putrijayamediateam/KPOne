@@ -203,7 +203,7 @@ onBeforeUnmount(() => {
                     <p
                         v-if="!error && treatmentAlerts.doneCount.value > 0"
                         role="status"
-                        class="mt-2 rounded-md border border-success/25 bg-success/10 px-2 py-1.5 text-success"
+                        class="mt-2 rounded-md border border-success/25 bg-success/10 px-2 py-1.5 font-medium text-success"
                         data-testid="treatment-done-count"
                     >
                         {{ treatmentAlerts.doneCount.value }}
