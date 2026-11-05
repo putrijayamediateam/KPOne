@@ -27,7 +27,7 @@ return new class extends Migration
         DB::unprepared("COMMENT ON SCHEMA ai_read IS 'AG-7 Ask KPOne: masked read-only views. Synthetic data only until the PDPA and legal review.'");
 
         foreach ($this->views() as $name => [$description, $sql, $columns]) {
-            DB::unprepared("CREATE VIEW ai_read.{$name} AS {$sql}");
+            DB::unprepared("CREATE OR REPLACE VIEW ai_read.{$name} AS {$sql}");
             // Descriptions are fixed text without single quotes, so they are written as plain SQL literals.
             DB::unprepared("COMMENT ON VIEW ai_read.{$name} IS '{$description}'");
             foreach ($columns as $column => $text) {
@@ -65,10 +65,8 @@ return new class extends Migration
                     (SELECT string_agg(r.name, ', ' ORDER BY r.name) FROM public.model_has_roles mr
                         JOIN public.roles r ON r.id = mr.role_id
                         WHERE mr.model_id = u.id AND mr.model_type = 'App\Models\User') AS roles,
-                    sp.job_title, d.code AS department_code, u.is_active
+                    u.is_active
                 FROM public.users u
-                LEFT JOIN public.staff_profiles sp ON sp.user_id = u.id
-                LEFT JOIN public.departments d ON d.id = sp.department_id
                 SQL, ['roles' => 'Comma-separated role codes, e.g. ca, resident_doctor.']],
 
             'patients' => ['Patients, masked: initials and the last 4 identifier characters only.', <<<'SQL'
@@ -76,9 +74,8 @@ return new class extends Migration
                     (SELECT string_agg(upper(left(part, 1)) || '.', ' ')
                         FROM regexp_split_to_table(btrim(p.full_name), '\s+') AS part WHERE part <> '') AS initials,
                     ident.identifier_type, CASE WHEN ident.normalized_value IS NULL THEN NULL
+                        WHEN length(ident.normalized_value) < 8 THEN '••••'
                         ELSE '••••' || right(ident.normalized_value, 4) END AS identifier_last4,
-                    CASE WHEN p.date_of_birth IS NULL THEN NULL
-                        ELSE date_part('year', age(current_date, p.date_of_birth))::integer END AS age_years,
                     p.sex, p.nationality_code,
                     EXISTS (SELECT 1 FROM public.patient_guardian_contacts g WHERE g.patient_id = p.id) AS has_guardian_contact,
                     p.created_at
@@ -88,8 +85,7 @@ return new class extends Migration
                 SQL, [
                 'patient_number' => 'KP number; open the patient in KPOne by this number to see details.',
                 'initials' => 'Initials of the registered name, e.g. A. B.',
-                'identifier_last4' => 'Last 4 characters of the current NRIC or passport number.',
-                'age_years' => 'Age in whole years today; null when the date of birth is unknown.',
+                'identifier_last4' => 'Last 4 characters of the current NRIC or passport number; fully masked when shorter than 8.',
             ]],
 
             'visits' => ['Visits (registrations). Visit reasons and cancellation reasons are not included.', <<<'SQL'

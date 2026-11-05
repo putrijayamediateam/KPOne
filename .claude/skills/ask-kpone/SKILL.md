@@ -15,7 +15,8 @@ over the masked schema `ai_read` (agents contract section 13).
   commands or files under `storage/`), and never change any data.
 - Start with `php artisan kpone:read-schema` to see the views and columns. Write one `SELECT` or `WITH`
   statement per call, using only those views. Comments, semicolons between statements, double quotes,
-  backslashes and system functions are refused.
+  backslashes and system functions are refused. Give every result column its own name (`b.id AS branch_id`);
+  two columns with the same name are refused.
 - Output is capped at 500 rows. Prefer counts, sums and `GROUP BY` over listing rows. If the command says more
   rows exist, narrow the query rather than paging through people.
 - Take every number in your answer from the command output. Do not estimate or fill gaps; if the views cannot

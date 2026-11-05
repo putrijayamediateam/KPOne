@@ -33,7 +33,7 @@ class AiReadSchemaMaskingTest extends QueueTestCase
             'visit_date', 'invoice_total_sen', 'claim_amount_sen', 'accepted_amount_sen', 'status', 'created_at'],
         'panel_responsibilities' => ['id', 'invoice_id', 'branch_id', 'panel_id', 'amount_sen', 'status', 'approved_at'],
         'panels' => ['id', 'code', 'name', 'panel_type', 'claim_due_days', 'is_active'],
-        'patients' => ['id', 'patient_number', 'initials', 'identifier_type', 'identifier_last4', 'age_years', 'sex', 'nationality_code',
+        'patients' => ['id', 'patient_number', 'initials', 'identifier_type', 'identifier_last4', 'sex', 'nationality_code',
             'has_guardian_contact', 'created_at'],
         'payment_allocations' => ['id', 'payment_id', 'invoice_id', 'amount_sen'],
         'payment_refunds' => ['id', 'payment_id', 'branch_id', 'payment_method_name', 'amount_sen', 'reason_code', 'paid_out_at'],
@@ -41,7 +41,7 @@ class AiReadSchemaMaskingTest extends QueueTestCase
             'currency', 'status', 'received_at'],
         'queue_entries' => ['queue_kind', 'id', 'visit_id', 'branch_id', 'operational_date', 'queue_number', 'status', 'queued_at',
             'called_at', 'removed_at'],
-        'staff' => ['id', 'display_name', 'roles', 'job_title', 'department_code', 'is_active'],
+        'staff' => ['id', 'display_name', 'roles', 'is_active'],
         'stock_movements' => ['id', 'occurred_at', 'movement_type', 'sku_code', 'batch_number', 'source_location_id',
             'destination_location_id', 'quantity', 'unit_cost_sen'],
         'visits' => ['id', 'visit_number', 'branch_id', 'patient_id', 'visit_type', 'status', 'priority', 'intake_purpose', 'coverage_type',
@@ -51,7 +51,7 @@ class AiReadSchemaMaskingTest extends QueueTestCase
     /** Column names that must never appear in any ai_read view. */
     private const FORBIDDEN_COLUMN = '/phone|email|address|postcode|^city$|^state$|full_name|search_name|date_of_birth|normalized_value'
         .'|password|token|secret|google|remember|session|encrypted|payload|note|remark|reason(?!_code)|instruction|precaution'
-        .'|indication|diagnosis_text|member_reference|reference|person_in_charge|verification|income_tax|registration_number|allergy/';
+        .'|indication|diagnosis_text|member_reference|reference|person_in_charge|verification|income_tax|registration_number|allergy|(^|_)age(_|$)|birth|job_title/';
 
     protected function setUp(): void
     {
@@ -131,7 +131,10 @@ class AiReadSchemaMaskingTest extends QueueTestCase
         $this->assertNotNull($patient);
         $this->assertSame('S. S. B. A.', $patient->initials);
         $this->assertSame('••••5678', $patient->identifier_last4);
-        $this->assertSame((int) now()->diffInYears('1990-01-01', true), (int) $patient->age_years);
+
+        DB::table('patient_identifiers')->where('patient_id', $visit->patient_id)->update(['normalized_value' => 'A1234']);
+        $this->assertSame('••••', DB::table('ai_read.patients')->where('id', $visit->patient_id)->value('identifier_last4'),
+            'An identifier shorter than 8 characters is fully masked.');
 
         $consultation = DB::table('ai_read.consultations')->where('id', $encounter->id)->first();
         $this->assertNotNull($consultation);

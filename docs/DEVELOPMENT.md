@@ -227,8 +227,16 @@ ALTER DEFAULT PRIVILEGES FOR ROLE kpone IN SCHEMA ai_read GRANT SELECT ON TABLES
 ```
 
 Then set `AI_READER_DB_USERNAME=kpone_ai_reader` and `AI_READER_DB_PASSWORD` in the server's environment.
-Without them, `kpone:read` refuses to run; it never falls back to the application's own login. Later
-migrations that add a view to `ai_read` grant it to this login automatically.
+Without them, `kpone:read` refuses to run; it never falls back to the application's own login, and it also
+refuses a login that can read the operational tables or is a superuser. Later migrations that add a view to
+`ai_read` grant it to this login automatically.
+
+**For anyone writing a migration:** the `ai_read` views depend on the operational columns they select. A
+migration that drops a column used by a view, or changes its type, fails with "cannot drop column ... other
+objects depend on it". Such a migration must drop the affected view first (`DROP VIEW ai_read.<view>`) and
+recreate it with its new SQL in the same migration, and `AiReadSchemaMaskingTest` must be updated after a
+privacy check. List the columns a view uses with
+`SELECT * FROM information_schema.view_column_usage WHERE view_schema = 'ai_read'`.
 
 ## Google sign-in
 

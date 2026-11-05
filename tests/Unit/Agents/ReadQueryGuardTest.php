@@ -87,6 +87,15 @@ class ReadQueryGuardTest extends TestCase
             'copy' => ['COPY visits TO STDOUT', 'not_select'],
             'unclosed string' => ['SELECT \'x FROM visits', 'string'],
             'unbalanced' => ['SELECT count(* FROM visits', 'parenthesis'],
+            'sql in ts_stat' => ['SELECT ts_stat(\'SELECT to_tsvector(full_name) FROM public.patients\')', 'forbidden_word'],
+            'sql in ts_rewrite' => ['SELECT ts_rewrite(\'a\'::tsquery, \'SELECT 1\')', 'forbidden_word'],
+            'table syntax in cte' => ['WITH a AS (TABLE audit.logs) SELECT * FROM a', 'forbidden_word'],
+            'comma after join on' => ['SELECT * FROM visits v JOIN branches b ON true, audit.logs', 'outside_ai_read'],
+            'unknown after join on' => ['SELECT * FROM visits v JOIN branches b ON b.id = v.branch_id, users', 'unknown_view'],
+            'unknown after join using' => ['SELECT * FROM visits v JOIN invoices i USING (id), users', 'unknown_view'],
+            'rows from' => ['SELECT * FROM ROWS FROM (generate_series(1, 2)) AS t', 'unknown_view'],
+            'lateral function' => ['SELECT * FROM visits v JOIN LATERAL json_each(\'{}\') j ON true', 'table_function'],
+            'current user' => ['SELECT current_user FROM visits', 'forbidden_word'],
             'too long' => ['SELECT 1 FROM visits WHERE id IN ('.str_repeat('1,', 6000).'1)', 'too_long'],
         ];
     }

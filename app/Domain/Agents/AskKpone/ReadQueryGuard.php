@@ -18,14 +18,15 @@ final class ReadQueryGuard
         'set', 'reset', 'listen', 'notify', 'unlisten', 'comment', 'refresh', 'reindex', 'cluster', 'discard',
         'checkpoint', 'load', 'import', 'security', 'into', 'returning', 'share', 'nowait', 'savepoint', 'begin',
         'commit', 'rollback', 'release', 'start', 'abort', 'declare', 'fetch', 'move', 'close', 'explain',
-        'public', 'information_schema', 'dblink', 'current_setting', 'set_config', 'session_user',
+        'public', 'information_schema', 'dblink', 'current_setting', 'set_config', 'session_user', 'current_user',
+        'current_role', 'table', 'ts_stat', 'ts_rewrite',
     ];
 
     /** Functions whose `(... FROM ...)` syntax is not a relation. */
     private const FROM_FUNCTIONS = ['extract', 'substring', 'trim', 'overlay', 'position'];
 
     /** Words that close a FROM list at their parenthesis level. */
-    private const CLAUSE_ENDS = ['where', 'group', 'order', 'having', 'limit', 'offset', 'union', 'intersect', 'except', 'window', 'on', 'using', 'select'];
+    private const CLAUSE_ENDS = ['where', 'group', 'order', 'having', 'limit', 'offset', 'union', 'intersect', 'except', 'window', 'select'];
 
     /** Set-returning functions allowed after FROM or JOIN. */
     private const FROM_TABLE_FUNCTIONS = ['generate_series', 'unnest'];

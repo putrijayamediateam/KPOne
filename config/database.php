@@ -154,6 +154,7 @@ return [
 
     'ai_read' => [
         'connection' => 'ai_reader',
+        'allow_privileged_login' => false,
     ],
 
     'migrations' => [

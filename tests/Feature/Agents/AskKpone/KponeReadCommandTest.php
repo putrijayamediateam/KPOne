@@ -21,7 +21,10 @@ class KponeReadCommandTest extends QueueTestCase
         if (DB::getDriverName() !== 'pgsql') {
             $this->markTestSkipped('Ask KPOne reads PostgreSQL only.');
         }
-        config(['database.ai_read.connection' => config('database.default')]);
+        config([
+            'database.ai_read.connection' => config('database.default'),
+            'database.ai_read.allow_privileged_login' => true,
+        ]);
     }
 
     public function test_it_prints_rows_as_a_table_or_json_and_audits_the_run_without_the_query_or_results(): void
@@ -102,11 +105,42 @@ class KponeReadCommandTest extends QueueTestCase
         $this->assertSame('off', $db->selectOne("SELECT current_setting('transaction_read_only') AS ro")->ro);
     }
 
+    public function test_a_login_that_can_read_the_operational_tables_is_refused(): void
+    {
+        config(['database.ai_read.allow_privileged_login' => false]);
+
+        $this->artisan('kpone:read', ['sql' => 'SELECT count(*) FROM patients'])
+            ->expectsOutputToContain('The read login can read more than the ai_read views.')
+            ->assertFailed();
+        $this->artisan('kpone:read-schema')
+            ->expectsOutputToContain('The read login can read more than the ai_read views.')
+            ->assertFailed();
+    }
+
+    public function test_a_query_that_fails_in_postgresql_is_audited_by_state_code_only(): void
+    {
+        $sql = 'SELECT 1 / 0 AS boom FROM branches';
+        $this->artisan('kpone:read', ['sql' => $sql])
+            ->expectsOutputToContain('The query failed: ERROR:  division by zero')
+            ->assertFailed();
+
+        $failed = AuditLog::query()->where('event', 'ai_read.query_failed')->sole();
+        $this->assertSame(['query_sha256' => hash('sha256', $sql), 'sqlstate' => '22012'], $failed->metadata);
+    }
+
+    public function test_duplicate_column_names_are_refused_instead_of_silently_merged(): void
+    {
+        $this->artisan('kpone:read', ['sql' => 'SELECT b.id, v.id FROM branches b JOIN visits v ON v.branch_id = b.id'])
+            ->expectsOutputToContain('Two result columns have the same name.')
+            ->assertFailed();
+        $this->assertSame('duplicate_columns', AuditLog::query()->where('event', 'ai_read.query_refused')->sole()->metadata['reason_code']);
+    }
+
     public function test_read_schema_lists_every_view_with_its_columns_and_descriptions(): void
     {
         $this->artisan('kpone:read-schema')
             ->expectsOutputToContain('patients — Patients, masked: initials and the last 4 identifier characters only.')
-            ->expectsOutputToContain('  identifier_last4 (text) — Last 4 characters of the current NRIC or passport number.')
+            ->expectsOutputToContain('  identifier_last4 (text) — Last 4 characters of the current NRIC or passport number; fully masked when shorter than 8.')
             ->assertSuccessful();
 
         $schema = app(AiReadQueryRunner::class)->schema();
