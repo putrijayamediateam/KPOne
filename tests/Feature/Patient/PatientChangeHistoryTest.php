@@ -261,6 +261,25 @@ class PatientChangeHistoryTest extends VisitTestCase
         $this->assertLessThanOrEqual(12, $queries);
     }
 
+    public function test_staff_names_follow_the_staff_visibility_rule(): void
+    {
+        $patient = $this->patient();
+        $elsewhere = User::factory()->create(['organisation_id' => $patient->organisation_id, 'name' => 'Synthetic Elsewhere Staff', 'email' => 'elsewhere@reg4-history.test']);
+        DB::table('audit_logs')->insert([
+            'request_id' => (string) Str::uuid(), 'organisation_id' => $patient->organisation_id, 'actor_user_id' => $elsewhere->id,
+            'event' => 'patient.contact.updated', 'subject_type' => $patient->getMorphClass(), 'subject_id' => $patient->id,
+            'metadata' => json_encode(['changed_fields' => ['email'], 'record_version' => 2]), 'occurred_at' => now()->addMinute(),
+        ]);
+
+        $supervisor = $this->actor('ca_supervisor');
+        $this->selectBranch($supervisor);
+        $this->assertSame('Staff member', app(PatientChangeHistoryService::class)->page($supervisor, $patient)['rows'][0]['actorName']);
+
+        $director = $this->actor('director');
+        $this->selectBranch($director);
+        $this->assertSame('Synthetic Elsewhere Staff', app(PatientChangeHistoryService::class)->page($director, $patient)['rows'][0]['actorName']);
+    }
+
     private function mergeInto(Patient $kept, Patient $duplicate, string $kind = 'merge'): void
     {
         $ca = $this->actor('ca');

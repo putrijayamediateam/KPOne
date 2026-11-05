@@ -3,6 +3,7 @@
 namespace App\Domain\Patient\Services;
 
 use App\Domain\Access\BranchAccessService;
+use App\Domain\Access\StaffAccessService;
 use App\Domain\Audit\Models\AuditLog;
 use App\Domain\Patient\Models\Patient;
 use App\Domain\Patient\Models\PatientMergeRequest;
@@ -58,7 +59,10 @@ final class PatientChangeHistoryService
 
     private const IDENTIFIER_TYPES = ['nric' => 'NRIC', 'passport' => 'Passport'];
 
-    public function __construct(private BranchAccessService $branches) {}
+    public function __construct(
+        private BranchAccessService $branches,
+        private StaffAccessService $staff,
+    ) {}
 
     /** @return array<string, mixed> */
     public function page(User $actor, Patient $patient, ?string $cursor = null, int $perPage = self::PER_PAGE): array
@@ -90,7 +94,6 @@ final class PatientChangeHistoryService
                 ->whereIn('subject_id', $groupIds)
                 ->when($formerIds !== [], fn (Builder $former) => $former->orWhere(fn (Builder $merge) => $merge
                     ->whereIn('subject_id', $formerIds)->whereIn('event', ['patient.merged', 'patient.unmerged']))))
-            ->with('actor:id,name')
             ->orderByDesc('occurred_at')->orderByDesc('id')
             ->cursorPaginate(max(1, min($perPage, self::PER_PAGE)), ['id', 'event', 'subject_id', 'actor_user_id', 'metadata', 'occurred_at'], 'cursor', $this->cursor($cursor));
 
@@ -102,10 +105,15 @@ final class PatientChangeHistoryService
                 ->whereIn('id', $otherIds)->pluck('patient_number', 'id'));
         }
 
+        // BIL-2 rule: a staff name shows only to viewers who may see that staff member; otherwise "Staff member".
+        $names = $this->staff->visibleUsers($actor)
+            ->whereIn('id', collect($paginator->items())->pluck('actor_user_id')->filter()->unique()->values())
+            ->pluck('name', 'id')->all();
+
         return [
             'patientNumber' => $patient->patient_number,
             'timezone' => $timezone,
-            'rows' => collect($paginator->items())->map(fn (AuditLog $row): array => $this->row($row, $patient, $numbers->all(), $timezone))->values()->all(),
+            'rows' => collect($paginator->items())->map(fn (AuditLog $row): array => $this->row($row, $patient, $numbers->all(), $names, $timezone))->values()->all(),
             'nextCursor' => $paginator->nextCursor()?->encode(),
         ];
     }
@@ -133,9 +141,10 @@ final class PatientChangeHistoryService
 
     /**
      * @param  array<int, string>  $numbers
+     * @param  array<int, string>  $names
      * @return array<string, mixed>
      */
-    private function row(AuditLog $row, Patient $patient, array $numbers, string $timezone): array
+    private function row(AuditLog $row, Patient $patient, array $numbers, array $names, string $timezone): array
     {
         $metadata = $row->metadata ?? [];
         $fields = collect((array) ($metadata['changed_fields'] ?? []))
@@ -167,7 +176,7 @@ final class PatientChangeHistoryService
             'fields' => $fields,
             'recordNumber' => $numbers[(int) $row->subject_id] ?? null,
             'isThisRecord' => (int) $row->subject_id === $patient->id,
-            'actorName' => $row->actor instanceof User ? $row->actor->name : 'System',
+            'actorName' => $row->actor_user_id === null ? 'System' : ($names[(int) $row->actor_user_id] ?? 'Staff member'),
             'occurredAt' => $occurred->toIso8601String(),
             'occurredAtLocal' => $occurred->setTimezone($timezone)->format('j M Y, g:i A'),
         ];
