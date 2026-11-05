@@ -131,6 +131,7 @@ const movementOptions = [
     { value: 'supplier_return', label: 'Supplier Return' },
     { value: 'treatment_usage', label: 'Treatment Room Use' },
     { value: 'treatment_waste', label: 'Treatment Room Waste' },
+    { value: 'dispensary_return', label: 'Patient Return' },
 ];
 
 const visit = (overrides: Record<string, string | number> = {}) => {

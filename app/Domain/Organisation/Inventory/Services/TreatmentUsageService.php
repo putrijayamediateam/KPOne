@@ -72,6 +72,9 @@ final class TreatmentUsageService
             if (! $location->is_active) {
                 $this->refuse('location_id', 'This stock location is inactive.');
             }
+            if ($location->type === InventoryLocation::TYPE_DISPENSARY_RETURNS) {
+                $this->refuse('location_id', 'Stock in a patient returns location cannot be used in treatment. Write it off or transfer it.');
+            }
             $skuId = DB::table('inventory_batches')->where('id', (int) $data['batch_id'])->where('organisation_id', $actor->organisation_id)->value('inventory_sku_id');
             abort_unless($skuId !== null, 404);
             // SKU before batch, the shared inventory lock order.
@@ -210,7 +213,7 @@ final class TreatmentUsageService
                 ->join('inventory_locations as l', 'l.id', '=', 'bal.inventory_location_id')
                 ->join('inventory_skus as s', 's.id', '=', 'bal.inventory_sku_id')->join('inventory_items as i', 'i.id', '=', 's.inventory_item_id')
                 ->joinSub($this->eligibility->query($actor->organisation_id, $branch), 'e', 'e.id', '=', 'bal.inventory_batch_id')
-                ->where('bal.organisation_id', $actor->organisation_id)->where('l.branch_id', $branch->id)->where('l.is_active', true)->where('s.is_active', true)->where('bal.quantity', '>', 0)
+                ->where('bal.organisation_id', $actor->organisation_id)->where('l.branch_id', $branch->id)->where('l.is_active', true)->where('l.type', '<>', InventoryLocation::TYPE_DISPENSARY_RETURNS)->where('s.is_active', true)->where('bal.quantity', '>', 0)
                 ->when($stockNeedle, fn ($q) => $q->where(fn ($w) => $w->where('s.sku_code', 'ilike', $stockNeedle)->orWhere('i.generic_name', 'ilike', $stockNeedle)->orWhere('e.batch_number', 'ilike', $stockNeedle)))
                 ->orderBy('i.generic_name')->orderBy('e.expiry_date')->orderBy('bal.id')
                 ->paginate(25, ['bal.id', 'l.id as location_id', 'l.name as location', 's.sku_code', 's.stock_unit', 'i.generic_name as item_name', 'e.id as batch_id', 'e.batch_number', 'e.expiry_date', 'e.eligibility_reason', 'bal.quantity as on_hand'], 'stock_page', (int) ($data['stock_page'] ?? 1));

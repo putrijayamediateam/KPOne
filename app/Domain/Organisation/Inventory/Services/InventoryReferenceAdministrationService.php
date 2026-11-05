@@ -157,6 +157,9 @@ class InventoryReferenceAdministrationService
     {
         $this->authorize($actor);
         $values = $this->locationValues($attributes, false);
+        if ($values['type'] === InventoryLocation::TYPE_DISPENSARY_RETURNS && $branch === null) {
+            $this->invalid('branch_id', 'A patient returns location belongs to one branch. Choose the branch.');
+        }
 
         return DB::transaction(function () use ($actor, $branch, $parent, $values): InventoryLocation {
             $this->lockOrganisation($actor);
@@ -191,6 +194,10 @@ class InventoryReferenceAdministrationService
         return $this->updateReference($actor, $location, $attributes, function (InventoryLocation $locked, array $input) use ($actor): array {
             $values = $this->locationValues($input, true);
             $changes = $this->changes($locked, $values);
+            // STK-11: a returns location never becomes pickable, and no other location becomes one.
+            if (array_key_exists('type', $changes) && in_array(InventoryLocation::TYPE_DISPENSARY_RETURNS, [$locked->type, $changes['type']], true)) {
+                $this->invalid('type', 'A returns location keeps its type. Create a new location instead.');
+            }
             if ((array_key_exists('code', $changes) || array_key_exists('type', $changes)) && $this->locationHasEvidence($locked)) {
                 $this->invalid('location', 'Location code and type cannot change after stock or Dispensary evidence exists.');
             }
@@ -575,7 +582,7 @@ class InventoryReferenceAdministrationService
             'name' => fn (mixed $value): string => $this->text($value, 'name', 200, true),
             'type' => function (mixed $value): string {
                 $value = $this->text($value, 'type', 40);
-                if (! in_array($value, [InventoryLocation::TYPE_MEDICAL_STOCK, InventoryLocation::TYPE_BRANCH_STORE, InventoryLocation::TYPE_DISPENSARY], true)) {
+                if (! in_array($value, [InventoryLocation::TYPE_MEDICAL_STOCK, InventoryLocation::TYPE_BRANCH_STORE, InventoryLocation::TYPE_DISPENSARY, InventoryLocation::TYPE_DISPENSARY_RETURNS], true)) {
                     $this->invalid('type', 'Select a valid Inventory Location type.');
                 }
 
