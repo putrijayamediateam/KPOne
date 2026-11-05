@@ -41,11 +41,11 @@ coordinator at the owner's request (2026-11-05).
 
 | Kind | Files |
 |---|---|
-| Domain services | `app/Domain/Organisation/Inventory/Services/` — `InventoryMovementService`, `InventoryBatchEligibility`, `InventoryBatchHoldService`, `GovernedStockService`, `InventoryStockReviewService`, `InventoryReadinessService`, `ProcurementService`, `ReceivingReviewService`, `ReceiptCorrectionService`, `StockRequestService`, `InventoryReferenceAdministrationService`, `SupplierSettingsService`, `InventoryPickerService`, `InventoryMovementProjection`, `StockUnitQuantity`, `LegacyStockPath` and others |
+| Domain services | `app/Domain/Organisation/Inventory/Services/` — `InventoryMovementService`, `InventoryBatchEligibility`, `InventoryBatchHoldService`, `GovernedStockService`, `InventoryStockReviewService`, `InventoryReadinessService`, `ProcurementService`, `ReceivingReviewService`, `ReceiptCorrectionService`, `StockRequestService`, `SupplierReturnService`, `InventoryReferenceAdministrationService`, `SupplierSettingsService`, `InventoryPickerService`, `InventoryMovementProjection`, `StockUnitQuantity`, `LegacyStockPath` and others |
 | Models | `app/Domain/Organisation/Inventory/Models/` — items, SKUs, batches, locations, balances, movements, purchase orders, goods receipts, stock requests, stocktakes, adjustments, reorder levels, suppliers |
 | Pages | `resources/js/pages/Inventory/*.vue` |
 | Analysis | `docs/reports/ANALYSIS-STOCK.md` (proposals STK-1 to STK-10, owner and pharmacist questions) |
-| Delivery reports | `docs/reports/STK-1.md` to `STK-6A.md` |
+| Delivery reports | `docs/reports/STK-1.md` to `STK-7.md` |
 | Tests | `tests/Feature/Inventory/*` (including the PostgreSQL contention tests), `PostgresDispensaryInventoryRegressionTest`, `InventoryOperationsTest`, `NAV01ExplicitRedirectsTest` |
 
 ## 4. Permissions (who can do what today)
@@ -61,6 +61,8 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php`. Key ones:
 | `inventory.batch_holds.place.branch` / `.release.branch` | place: CA Supervisor, Finance Officer, Director; release: Finance Officer, Director | Batch holds |
 | `inventory.stock_reviews.manage.branch` | CA Supervisor, Finance Officer, Director | Stock review acknowledgements |
 | `inventory.variances.approve.branch` | CA Supervisor, Finance Officer, Director | Count and write-off approval |
+| `inventory.supplier_returns.request.branch` | CA Supervisor | Request, cancel (own) and dispatch supplier returns (STK-7) |
+| `inventory.supplier_returns.approve.branch` | Finance Officer, Director | Approve or reject supplier returns (never their own request) and record the credit note (STK-7) |
 
 ## 5. What is built (history)
 
@@ -80,7 +82,8 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php`. Key ones:
 | STK-6A | Legacy stocktake and manual adjustment closed; ledger writer allowlist | #188 |
 | RPT-01e | Stock movement summary (quantities only) | #148 |
 | CLOCK-1 | Stock review test uses branch dates | #208 |
-| STK-6 | Transfer shortages: receipt lines (accepted, short, damaged, extra), only accepted enters stock, append-only differences resolved by a different write-off approver (domain and PostgreSQL) | pending (branch `feature/stk-6-transfer-shortages`) |
+| STK-6 | Transfer shortages: receipt lines (accepted, short, damaged, extra), only accepted enters stock, append-only differences resolved by a different write-off approver (domain and PostgreSQL) | #217 |
+| STK-7 | Supplier returns: request from a verified receipt lot, approval by a different person (Finance Officer or Director), dispatch through a new `supplier_return` ledger movement, credit-note reference (no payment); append-only evidence guarded by PostgreSQL | pending (branch `feature/stk-7-supplier-returns`) |
 
 ## 6. Owner decisions already made (never ask again)
 
@@ -104,10 +107,16 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php`. Key ones:
 12. Treatment-room usage is recorded by CA and CA Supervisor, audited and shown in stock reports (2026-11-05).
 13. STK-6: the person who dispatched a transfer may resolve its differences; only the receiver is barred
     (2026-11-05, at "ship it").
+14. STK-7 permissions: two new ones, `inventory.supplier_returns.request.branch` for CA Supervisor and
+    `inventory.supplier_returns.approve.branch` for Finance Officer and Director, through one additive
+    migration (2026-11-05).
+15. STK-7 ledger: a new `supplier_return` movement type with one allowlisted writer
+    (`InventoryMovementService::recordSupplierReturn`, called only by `SupplierReturnService`); the expected list
+    in `LegacyStockWriterBoundaryTest` is updated for it (owner-approved assertion change, 2026-11-05).
 
 ## 7. Open items and known limits
 
-- **Planned, not built:** STK-7 supplier returns and credit-note references, STK-8 treatment-room (non-dispensed) usage, STK-9 barcode scanning (label batch and expiry moves
+- **Planned, not built:** STK-8 treatment-room (non-dispensed) usage, STK-9 barcode scanning (label batch and expiry moves
   to the Dispensary team's DSP-2), STK-10 valuation (accountant policy first).
 - **Parked review (2026-10-21):** no match against a supplier's invoice, no printable purchase order, reorder levels raise no alert by themselves (STK-4 worklists now show
   low stock). `InventoryController::referenceData()` still projects all items, SKUs and locations unbounded.
@@ -122,6 +131,12 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php`. Key ones:
   is not recorded here; receiving without lines still means "everything arrived"; direct one-step transfers
   within a branch have no in-transit stage and are unchanged; a warehouse destination needs the existing
   warehouse permission to receive or resolve.
+- STK-7 limits: one return covers part or all of one receipt lot (several lots need several returns); only
+  lots from a verified, uncorrected receipt at the branch's own receiving location can be returned; a credit
+  note is a reference and an optional amount only (no payment, invoice match or supplier balance); once
+  dispatched a return cannot be undone in KPOne (a supplier that sends stock back is received as a new
+  delivery); the Stock movement summary shows supplier returns under "Adjusted" (report owned by the Reports
+  team); returning stock never releases a batch hold.
 
 ## 8. Rules (every task)
 
@@ -137,18 +152,20 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php`. Key ones:
   test with none skipped; screenshots at 1440 and 390 px, light and dark, for any screen change.
 - Commit, push and PR only after the owner says "ship it"; never merge.
 - Record every new owner decision in section 6 and every finished piece in section 5, in the same PR.
+- Do not edit `docs/BASELINE.md` in a team PR; the coordinator records delivery status there. If a PR changes
+  an authorisation boundary (a permission, a role grant, an owner decision), say so in the PR description.
 
 ## 9. Backlog (next pieces, in order)
 
 Chosen by the owner on 2026-11-05; built one by one in this order, each its own PR. Choosing them is the owner's
-authorisation to build them; record that in `docs/BASELINE.md` with the first PR of each. Each follows the
+authorisation to build them; the coordinator records it in `docs/BASELINE.md`. Each follows the
 matching proposal in `docs/reports/ANALYSIS-STOCK.md` section 8 unless an owner decision below says otherwise.
 
-1. **STK-6 Transfer shortages.** *Built 2026-11-05, awaiting owner review.* The receiving branch records actual receipt lines (accepted, short, damaged,
+1. **STK-6 Transfer shortages.** *Merged in PR #217.* The receiving branch records actual receipt lines (accepted, short, damaged,
    extra); dispatch and receipt reconcile without forcing a full receipt; a different person resolves each
    difference, append-only. **Owner decision 2026-11-05: resolvers are the write-off approvers (CA Supervisor,
    Finance Officer, Director), never the person who received the transfer.**
-2. **STK-7 Supplier returns.** Return request, approval and dispatch tied to the receipt and batch, with a
+2. **STK-7 Supplier returns.** *Built 2026-11-05, awaiting owner review.* Return request, approval and dispatch tied to the receipt and batch, with a
    credit-note reference; no payment engine; Finance sees commercial references without patient data. **Owner
    decision 2026-11-05: a CA Supervisor requests; a Finance Officer or Director approves, never the requester.**
 3. **STK-8 Treatment-room usage.** Dedicated non-dispensed usage and waste records and movements (not hidden

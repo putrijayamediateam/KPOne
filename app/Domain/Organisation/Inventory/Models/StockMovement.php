@@ -35,6 +35,8 @@ class StockMovement extends Model
 
     public const TYPE_STOCK_WRITEOFF = 'stock_writeoff';
 
+    public const TYPE_SUPPLIER_RETURN = 'supplier_return';
+
     protected static function booted(): void
     {
         static::updating(fn (): never => throw new LogicException('Stock Movements are immutable.'));
