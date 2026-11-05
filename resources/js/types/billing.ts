@@ -144,6 +144,7 @@ export type BillingPage = {
     payments: Receipt[];
     /** BIL-6: reversed receipts of this visit and their refunds, for refund recorders and approvers. */
     refunds?: RefundsContext | null;
+    issuedCopies?: IssuedCopy[] | null;
     methods: Array<{ code: string; name: string; requiresReference: boolean }>;
     panels: Array<{ id: number; name: string }>;
     can: Record<
@@ -174,4 +175,17 @@ export const toSen = (text: string): string | null => {
               BigInt(match[1]) * 100n + BigInt((match[2] ?? '').padEnd(2, '0')),
           )
         : null;
+};
+
+/** BIL-5: one issued (frozen) version of an invoice or receipt. */
+export type IssuedCopy = {
+    publicId: string;
+    type: 'invoice' | 'receipt';
+    number: string;
+    version: number;
+    firstPrintedAs: 'original' | 'revised';
+    issuedAt: string;
+    issuedBy: string;
+    prints: number;
+    latest: boolean;
 };
