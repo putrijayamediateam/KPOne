@@ -47,6 +47,7 @@ use App\Http\Controllers\MedicineCatalogueController;
 use App\Http\Controllers\MedicineOptionSettingsController;
 use App\Http\Controllers\PanelClaimsController;
 use App\Http\Controllers\PanelInvoicesController;
+use App\Http\Controllers\PanelPaymentCorrectionsController;
 use App\Http\Controllers\PanelRemittancesController;
 use App\Http\Controllers\PanelSettingsController;
 use App\Http\Controllers\PatientBillingReportController;
@@ -78,6 +79,7 @@ use App\Http\Controllers\SupplierReturnController;
 use App\Http\Controllers\SupplierSettingsController;
 use App\Http\Controllers\TreatmentPlanCatalogueController;
 use App\Http\Controllers\TreatmentPlanController;
+use App\Http\Controllers\TreatmentProgressController;
 use App\Http\Controllers\TreatmentUsageController;
 use App\Http\Controllers\VisitController;
 use App\Http\Controllers\VisitHistoryController;
@@ -257,6 +259,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::middleware(['permission:panel.remittances.record.branch', 'sensitive.no-store'])->group(function () {
         Route::get('panel-remittances', [PanelRemittancesController::class, 'index'])->name('panel-remittances.index');
         Route::post('panel-remittances', [PanelRemittancesController::class, 'store'])->middleware('throttle:20,1')->name('panel-remittances.store');
+    });
+    Route::middleware(['permission:panel.claim_payments.reverse.branch', 'sensitive.no-store'])->group(function () {
+        Route::get('panel-payment-corrections', [PanelPaymentCorrectionsController::class, 'index'])->name('panel-payment-corrections.index');
+        Route::post('panel-payment-corrections', [PanelPaymentCorrectionsController::class, 'store'])->middleware('throttle:10,1')->name('panel-payment-corrections.store');
     });
 
     Route::middleware(['permission:panel.invoices.export.branch', 'sensitive.no-store'])->group(function () {
@@ -502,6 +508,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
             ->middleware(['permission:dispensary.otc.create.branch', 'throttle:30,1'])->name('visits.dispense');
         Route::post('dispensary/{dispensaryCase}/otc-allergy', [DispensaryController::class, 'confirmOtcAllergy'])
             ->whereUuid('dispensaryCase')->middleware(['permission:dispensary.update.branch', 'throttle:30,1'])->name('dispensary.otc-allergy');
+        Route::post('dispensary/{dispensaryCase}/otc-allergy-records', [DispensaryController::class, 'addOtcAllergy'])
+            ->whereUuid('dispensaryCase')->middleware(['permission:allergies.record_otc.branch', 'throttle:30,1'])->name('dispensary.otc-allergy-records');
         Route::get('dispensary/{dispensaryCase}', [DispensaryController::class, 'show'])
             ->whereUuid('dispensaryCase')->middleware('permission:dispensary.view.branch')->name('dispensary.show');
 
@@ -727,6 +735,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('visits/{visit}/queue/readiness', [QueueReadinessController::class, 'store'])->middleware(['permission:queue.call_hold.set.branch', 'sensitive.no-store', 'throttle:60,1'])->name('queue.readiness.set');
         Route::patch('visits/{visit}/queue/readiness', [QueueReadinessController::class, 'clear'])->middleware(['permission:queue.call_hold.set.branch,queue.call_hold.clear.branch', 'sensitive.no-store', 'throttle:60,1'])->name('queue.readiness.clear');
         Route::get('queue/readiness-updates', [QueueReadinessController::class, 'updates'])->middleware(['permission:queue.view.own,queue.view.branch', 'sensitive.no-store', 'throttle:60,1'])->name('queue.readiness.updates');
+        Route::post('visits/{visit}/queue/treatment-steps', [TreatmentProgressController::class, 'store'])->middleware(['permission:queue.treatment_progress.set.branch,queue.treatment_progress.set.own', 'sensitive.no-store', 'throttle:60,1'])->name('queue.treatment.start');
+        Route::patch('visits/{visit}/queue/treatment-steps/done', [TreatmentProgressController::class, 'done'])->middleware(['permission:queue.treatment_progress.set.branch,queue.treatment_progress.set.own', 'sensitive.no-store', 'throttle:60,1'])->name('queue.treatment.done');
+        Route::patch('visits/{visit}/queue/treatment-steps/cancel', [TreatmentProgressController::class, 'cancel'])->middleware(['permission:queue.treatment_progress.set.branch,queue.treatment_progress.set.own', 'sensitive.no-store', 'throttle:60,1'])->name('queue.treatment.cancel');
+        Route::get('queue/treatment-updates', [TreatmentProgressController::class, 'updates'])->middleware(['permission:queue.view.own', 'sensitive.no-store', 'throttle:60,1'])->name('queue.treatment.updates');
         Route::get('queue/waiting-counts', [QueueController::class, 'waitingCounts'])
             ->middleware(['permission:queue.view.own,queue.view.branch', 'sensitive.no-store', 'throttle:60,1'])
             ->name('queue.waiting-counts');
@@ -807,6 +819,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('patients/{patient}', [PatientController::class, 'show'])
             ->middleware('permission:patients.view.organisation')
             ->name('patients.show');
+        // REG-4: patient change history (field names only).
+        Route::get('patients/{patient}/history', [PatientController::class, 'history'])
+            ->middleware(['permission:patients.history.view.organisation', 'sensitive.no-store', 'throttle:60,1'])
+            ->name('patients.history');
         // REG-3: two-person patient merge (link only).
         Route::get('patients/{patient}/merge-compare', [PatientMergeController::class, 'compare'])
             ->middleware(['permission:patients.merge.propose.organisation', 'sensitive.no-store', 'throttle:30,1'])

@@ -29,10 +29,12 @@ EOF
 chmod +x /usr/local/bin/kphp
 
 # 3. Composer packages. The proxy blocks GitHub archive downloads but allows git clones, so packages are
-#    cloned from source at their locked commits. phpstan/phpstan ships only as an archive and is skipped;
-#    PHPStan runs in CI.
+#    cloned from source at their locked commits. A package published only as a GitHub archive (phpstan/phpstan)
+#    is cloned from its GitHub repository at the archive's locked commit, so PHPStan runs here as in CI.
+#    Re-run when the lock changes or PHPStan is missing (sessions set up before CI-PAR-1).
 export COMPOSER_ALLOW_SUPERUSER=1
-if [ ! -f vendor/composer/installed.php ] || [ composer.lock -nt vendor/composer/installed.php ]; then
+if [ ! -f vendor/composer/installed.php ] || [ composer.lock -nt vendor/composer/installed.php ] \
+  || { [ ! -e vendor/phpstan/phpstan/phpstan.phar ] && [ ! -e vendor/.phpstan-fetch-failed ]; }; then
   composer config -g use-github-api false
   composer config -g github-protocols https
   env -u GH_TOKEN -u GITHUB_TOKEN composer install --no-interaction --no-progress --no-scripts \
@@ -41,7 +43,14 @@ if [ ! -f vendor/composer/installed.php ] || [ composer.lock -nt vendor/composer
   python3 - <<'PY'
 import json, os, re, subprocess
 lock = json.load(open('composer.lock'))
+archive = re.compile(r'^https://api\.github\.com/repos/([^/]+/[^/]+)/zipball/([0-9a-f]{40})$')
+for p in lock['packages'] + lock['packages-dev']:
+    m = archive.match((p.get('dist') or {}).get('url', ''))
+    if 'source' not in p and m:
+        p['source'] = {'type': 'git', 'url': 'https://github.com/' + m.group(1) + '.git', 'reference': m.group(2)}
+        p['shallow'] = True  # e.g. phpstan/phpstan keeps a .phar in every commit: fetch only the locked one
 pkgs = [p for p in lock['packages'] + lock['packages-dev'] if 'source' in p]
+shallow = {p['name'] for p in pkgs if p.pop('shallow', False)}
 cache = os.path.expanduser('~/.cache/composer/vcs')
 entries = {d.lower(): d for d in os.listdir(cache)} if os.path.isdir(cache) else {}
 for p in pkgs:
@@ -49,6 +58,17 @@ for p in pkgs:
     dest = os.path.join('vendor', p['name'])
     src = entries.get(re.sub(r'[^a-zA-Z0-9.]', '-', url).lower())
     src = os.path.join(cache, src) if src else url
+    if p['name'] in shallow:
+        if subprocess.run(['git', '-C', dest, 'rev-parse', 'HEAD'], capture_output=True, text=True).stdout.strip() != ref:
+            subprocess.run(['rm', '-rf', dest])
+            os.makedirs(dest, exist_ok=True)
+            steps = [['init', '-q'], ['fetch', '-q', '--depth', '1', url, ref], ['checkout', '-q', 'FETCH_HEAD']]
+            if not all(subprocess.run(['git', '-C', dest] + step).returncode == 0 for step in steps):
+                # Not fatal: the session still starts, CI still runs it, and the marker stops a retry every start.
+                print('warning: could not fetch', p['name'], '- delete vendor/.phpstan-fetch-failed to retry')
+                open('vendor/.phpstan-fetch-failed', 'w').close()
+                subprocess.run(['rm', '-rf', dest])
+        continue
     if not os.path.isdir(os.path.join(dest, '.git')):
         subprocess.run(['rm', '-rf', dest])
         os.makedirs(os.path.dirname(dest), exist_ok=True)
@@ -62,7 +82,12 @@ for p in pkgs:
             os.remove(link)
         os.symlink(os.path.join('..', p['name'], b), link)
 os.makedirs('vendor/composer', exist_ok=True)
-json.dump({'packages': [dict(p, **{'install-path': '../' + p['name'], 'installation-source': 'source'}) for p in pkgs],
+# Sorted by name, as Composer writes it. PHPStan takes function definitions from the packages' autoload files in
+# this order, the later one winning. In lock order mockery/library/helpers.php (str_contains, str_starts_with and
+# str_ends_with fallbacks typed non-empty-string) comes after symfony/polyfill-php80, and PHPStan reported about 25
+# errors that CI does not; sorted by name, the whole project shows 0, as in CI (CI-PAR-1, 2026-11-05).
+json.dump({'packages': [dict(p, **{'install-path': '../' + p['name'], 'installation-source': 'source'})
+                        for p in sorted(pkgs, key=lambda p: p['name'])],
            'dev': True, 'dev-package-names': [p['name'] for p in lock['packages-dev'] if 'source' in p]},
           open('vendor/composer/installed.json', 'w'), indent=1)
 print('composer packages:', len(pkgs))
@@ -74,7 +99,7 @@ $lock = json_decode(file_get_contents("composer.lock"), true);
 $dev = array_column($lock["packages-dev"], "name"); $v = [];
 foreach (array_merge($lock["packages"], $lock["packages-dev"]) as $p) {
   $v[$p["name"]] = ["pretty_version" => $p["version"], "version" => $p["version_normalized"] ?? $p["version"],
-    "reference" => $p["source"]["reference"] ?? null, "type" => $p["type"] ?? "library",
+    "reference" => $p["source"]["reference"] ?? $p["dist"]["reference"] ?? null, "type" => $p["type"] ?? "library",
     "install_path" => "/app/vendor/".$p["name"], "aliases" => [], "dev_requirement" => in_array($p["name"], $dev, true)];
 }
 $d = ["root" => ["name" => "__root__", "pretty_version" => "dev-main", "version" => "dev-main", "reference" => null,

@@ -21,6 +21,7 @@ Team designers (each works inside their own builder team and follows Daniel's gu
 | Patients & Registration | Balqis |
 | Agent platform | Ezra |
 | Queue & TV | Yasmin |
+| Catalogue & settings | Nadia (team set up 2026-11-05: Adlina, Lead; Ravi, Reviewer) |
 | Staff Experience | Kavitha's team is itself the UX team; it builds the shared shell to Daniel's guide |
 
 All are Claude builder sessions or roles working for the owner through the coordinator session (LUCY). Daniel is
@@ -55,6 +56,13 @@ pharmacist decisions).
    black profile (2026-10-26).
 4. Prints stay white in dark mode (PRINT-1).
 5. A "ship it" or decision relayed by LUCY counts as the owner's own (owner rule 2026-11-05).
+6. **Backup push** (owner rule for all teams, 2026-11-05, relayed by LUCY): whenever the team stops to wait for the
+   owner (a "ship it", a question, or the end of a turn) with work not yet on GitHub, it commits that work to its own
+   branch for the piece and pushes it (`git push -u origin <branch>`). It is only a backup: no PR, never to `main` or
+   another team's branch, never a merge, never a force-push (add new commits). A branch with no PR runs no CI. If the
+   branch already has an open PR, a push updates the PR and re-runs CI, so push there only when the change is ready.
+   The PR still opens only after "ship it", from the same branch, with the latest `origin/main` merged first. After a
+   session restart on a fresh machine, fetch the branch before continuing.
 
 ## 5. Rules
 
@@ -63,7 +71,8 @@ pharmacist decisions).
   builder team in its own PR.
 - No new runtime dependency or font without the owner's approval.
 - Screenshots for any screen change: 390 and 1440 px, light and dark (Staff Experience adds 320 and 768).
-- Commit, push and PR only after the owner says "ship it"; never merge. Never edit `docs/BASELINE.md`.
+- Open a PR only after the owner says "ship it"; until then, backup-push to the piece's own branch (decision 6).
+  Never merge. Never edit `docs/BASELINE.md`.
 
 ## 6. Backlog
 

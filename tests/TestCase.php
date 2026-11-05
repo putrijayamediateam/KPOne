@@ -14,6 +14,7 @@ use Illuminate\Foundation\Testing\RefreshDatabaseState;
 use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Laravel\Fortify\Features;
 use RuntimeException;
 use Spatie\Permission\Models\Permission;
@@ -57,7 +58,10 @@ abstract class TestCase extends BaseTestCase
     private function restoreEmptyCommittedSchemaForCommittingTests(): void
     {
         $traits = class_uses_recursive(static::class);
-        if (isset($traits[RefreshDatabase::class]) || isset($traits[DatabaseTransactions::class]) || ! RefreshDatabaseState::$migrated) {
+        if (isset($traits[RefreshDatabase::class]) || isset($traits[DatabaseTransactions::class])) {
+            return;
+        }
+        if (! RefreshDatabaseState::$migrated && ! $this->committedRoleGrantsRemain()) {
             return;
         }
 
@@ -65,6 +69,32 @@ abstract class TestCase extends BaseTestCase
             throw new RuntimeException('Could not restore the unseeded test schema.');
         }
         RefreshDatabaseState::$migrated = false;
+    }
+
+    /**
+     * CI-PAR-1: committing tests that seed the reference data themselves leave every seeded role and its grants
+     * committed without RefreshDatabase noticing. A later committing test would then find, for example, the seeded
+     * resident_doctor role still granting a permission it revokes directly, so its outcome would depend on test
+     * order. All catalogue roles present with grants means that state is present; a role or grant a committing test
+     * creates for itself (and its next test may rely on) does not trigger a rebuild.
+     */
+    private function committedRoleGrantsRemain(): bool
+    {
+        if (! str_starts_with(static::class, 'Tests\\Feature\\')) {
+            return false;
+        }
+        if (! Schema::hasTable('role_has_permissions') || ! Schema::hasTable('roles')) {
+            return false;
+        }
+
+        $roles = array_keys(PermissionCatalogue::roles());
+        $present = Role::query()->where('guard_name', 'web')->whereIn('name', $roles)->count();
+
+        return $present === count($roles) && DB::table('role_has_permissions')
+            ->join('roles', 'roles.id', '=', 'role_has_permissions.role_id')
+            ->where('roles.guard_name', 'web')
+            ->whereIn('roles.name', $roles)
+            ->exists();
     }
 
     protected function tearDown(): void
