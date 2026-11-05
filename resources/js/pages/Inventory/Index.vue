@@ -104,18 +104,11 @@ const tabs = [
     { value: 'batches', label: 'Batch & Expiry' },
     { value: 'movements', label: 'Movements' },
 ];
-// Staff see plain words, never internal type codes (design guide section 15).
-const locationTypeLabels: Record<string, string> = {
-    medical_stock: 'Medical stock',
-    branch_store: 'Branch store',
-    dispensary: 'Dispensary',
-    dispensary_returns: 'Patient returns',
-};
 const locationOptions = computed(() => [
     { value: '', label: 'All branch locations' },
     ...props.inventory.locations.map((item) => ({
         value: item.publicId,
-        label: `${item.name} · ${locationTypeLabels[item.type] ?? item.type}`,
+        label: `${item.name} · ${item.type}`,
     })),
 ]);
 const statusOptions = [

@@ -3,6 +3,7 @@ import { Head, Link } from '@inertiajs/vue3';
 import { Plus, Search, UserRoundSearch } from '@lucide/vue';
 import { reactive, ref } from 'vue';
 import InputError from '@/components/InputError.vue';
+import MergedFromNote from '@/components/patient/MergedFromNote.vue';
 import WhatsAppLink from '@/components/patient/WhatsAppLink.vue';
 import { Button } from '@/components/ui/button';
 import { OperationalSelect } from '@/components/ui/select';
@@ -20,6 +21,7 @@ type Result = {
     sex: string;
     identifier: { type: string; maskedValue: string } | null;
     maskedPhone: string | null;
+    mergedFrom?: string[];
 };
 const form = reactive({
     query: '',
@@ -210,6 +212,9 @@ const identifierLabel = (result: Result) =>
                                 >
                                     {{ patient.patientNumber }}
                                 </div>
+                                <MergedFromNote
+                                    :numbers="patient.mergedFrom ?? []"
+                                />
                             </td>
                             <td class="order-3 px-3 pb-3 md:px-5 md:py-4">
                                 <span

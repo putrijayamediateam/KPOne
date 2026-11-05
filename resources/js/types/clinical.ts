@@ -63,9 +63,21 @@ export type ClinicalProblemRecord = {
     lockVersion: number;
 };
 
+/** REG-5: a problem recorded on a record merged into this patient; read only. */
+export type MergedClinicalProblem = {
+    key: string;
+    condition: string;
+    status: 'active' | 'resolved';
+    onsetDate: string | null;
+    resolvedDate: string | null;
+    fromPatientNumber: string | null;
+};
+
 export type ClinicalProblemList = {
     active: ClinicalProblemRecord[];
     resolved: ClinicalProblemRecord[];
+    merged?: MergedClinicalProblem[];
+    mergedTruncated?: boolean;
     canUpdate: boolean;
 };
 

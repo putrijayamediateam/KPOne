@@ -15,12 +15,14 @@ and the one stock movement that fills it. Nothing writes to it until DSP-7 merge
 
 ## What changes for staff
 
-- **Stock setup → New Location** has one more type: **"Patient returns (not for dispensing)"**. When it is
+- **Stock setup → New Location** has one more type: **"Patient Returns (not for dispensing)"**, in the Title Case of the list it sits in. When it is
   chosen, a short line explains: "Medicines patients bring back go here. Stock here is never dispensed. It leaves
-  only by Write-off or Transfer." A returns location must belong to a branch.
+  only by Stock count, Write-off, or a move to another returns location." A returns location must belong to a
+  branch. The Branch and Location type selects now have visible labels, and the help line describes the type
+  select (Daniel's design review; `OperationalSelect` gains an optional `describedby` prop).
 - The movement list shows the new movement as **"Patient Return"** (for example "+2 · To Cheras Patient
-  Returns", reference "Patient return check"). The location filter now shows plain type names instead of internal
-  codes.
+  Returns", reference "Patient return check"). The stock view and the location filter show the type as "Patient
+  Returns", and returned stock has the status "Patient return" (never "Available").
 - Stock in a returns location:
   - is never offered by Dispensary, any picker or the availability list, and never counts as usable stock;
   - can be counted and written off with the governed Stock count and Write-off (STK-5);
@@ -85,8 +87,8 @@ and the one stock movement that fills it. Nothing writes to it until DSP-7 merge
   - PostgreSQL refusals: dispense, treatment waste, purchase receipt into it, a transfer back, a two-stage
     dispatch, a mis-addressed or mis-referenced `dispensary_return`, an allocation row, a type change either way;
   - the migration replays.
-- `tests/Frontend/stk11-returns-location.test.mjs` (2 tests): the option, help line and errors, and plain
-  labels.
+- `tests/Frontend/stk11-returns-location.test.mjs` (2 tests): the option, help line and errors, and the
+  movement filter option.
 - **Owner-approved existing assertion change:** `LegacyStockWriterBoundaryTest` lists
   `recordDispensaryReturn` as a writer with no caller yet, and as a `creditOperation` caller (the same kind of
   change as STK-7 and STK-8). No other existing assertion changed.

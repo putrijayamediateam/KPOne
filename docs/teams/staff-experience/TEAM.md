@@ -67,7 +67,8 @@ usability aid only and must follow the permission the backend already enforces.
 | Guides | Draft Malay quick guides for CA, doctor, CA Supervisor | #197, #199, #203 |
 | UX-1 | Phone annoyances: the mobile drawer closes after a link is followed (S1-017); staff toasts show at the top centre under the header at every width instead of over sticky bottom actions (S1-015; `lib/toastPlacement.ts`, Clinic and Admin layouts only, public QR layout unchanged); Insights ranking cards fit 320 to 768 px with no sideways page scroll (S1-004). Frontend only; apart from the toast position, 1440 px unchanged | #241 |
 | UX-2 | Medical certificates link (S1-005): the visit page offers it only when the visit has a consultation record, using one new boolean `visit.hasConsultation` from `VisitDirectoryService::detail` (owner decision 2026-11-05; Patients & Registration told through LUCY); otherwise a quiet line says why: "Medical certificates are available after the doctor starts the consultation." or, on a cancelled visit, "No medical certificate: this visit was cancelled." (design reviewed by Daniel). The visit history page offers it only when it holds a consultation record. No route or permission change | #254 |
-| UX-3 | Screen-reader names and page headings (S1-009 to S1-014): a scripted pass (Chromium accessibility tree, 11 demo roles, 120 pages at 1440 and 390 px) found 8 pages with problems and finds none after the change; the review added the Patient identifier form, which only opens after a click, and a truer name for the Quick create list. Added a visually hidden `h1` to the Registration board, Consultation queue and TV screen; hidden labels on the Registration, Queue and Patient search boxes; names on the Billing approval limit fields, the Panel claim due days field, the Quick create results list (named by its visible caption), and the Patient identifier fields (the Pricing publish amount is left to Catalogue & settings' CAT-1). Frontend only; nothing changes on screen | pending |
+| UX-3 | Screen-reader names and page headings (S1-009 to S1-014): a scripted pass (Chromium accessibility tree, 11 demo roles, 120 pages at 1440 and 390 px) found 8 pages with problems and finds none after the change; the review added the Patient identifier form, which only opens after a click, and a truer name for the Quick create list. Added a visually hidden `h1` to the Registration board, Consultation queue and TV screen; hidden labels on the Registration, Queue and Patient search boxes; names on the Billing approval limit fields, the Panel claim due days field, the Quick create results list (named by its visible caption), and the Patient identifier fields (the Pricing publish amount is left to Catalogue & settings' CAT-1). Frontend only; nothing changes on screen | #265 |
+| UX-4 | Malay staff quick guides (`docs/guides/ms/`) brought up to date with screens merged since PR #203, read from the code: CA (tab counts, waiting colours, OTC allergy details, Dispensary allergy warning, label batch and expiry, controlled marker and REPRINT, Panel shortfall, Recorded by, Pay later to collect, Daily cash closing count, treatment steps, treatment-room usage, barcode scan, receiving transfers, proposing a merge, the Medical certificates line, toasts at the top), doctor (waiting colours, tab counts, treatment steps, MC links) and CA Supervisor (cash closing approval, refunds, transfer differences, supplier returns, usage reversal, drug groups, controlled flag, pricing, merges, change history, scanning). Docs only; still drafts for clinic review | pending |
 
 ## 6. Owner decisions already made (never ask again)
 
@@ -86,12 +87,15 @@ usability aid only and must follow the permission the backend already enforces.
    never merge, never force-push. On a branch with an open PR, push only when the change is ready (it re-runs CI).
    The PR still opens only after "ship it", with the latest `origin/main` merged first. Confirmed by the owner
    directly in the Staff Experience session (2026-11-05).
+8. UX-5: on the consultation page (focus mode), toasts show at the bottom left from 1024 px; below 1024 px and on
+   every other page decision 5 still applies. The owner approved the matching change to the UX-1 ClinicLayout
+   toast assertion (2026-11-05).
 
 ## 7. Open items and known limits
 
 - SMOKE-1 open findings: S1-016 mixed Malay and English labels (Registration and Patient done in REG-2;
   "Panggil semula" kept). S1-004, S1-015 and S1-017 are fixed by UX-1 (PR #241); S1-005 by UX-2 (PR #254);
-  S1-009 to S1-014 by UX-3.
+  S1-009 to S1-014 by UX-3 (PR #265).
 - UX-2 note: the Call In to consultation gap (when the link was still a 404) is closed by `visit.hasConsultation`.
   On the history page a doctor who was not the attending clinician can still see the link and get 404
   (own-scope permission, from reading `MedicalCertificateAuthority::lock`, not measured); the link follows the
@@ -102,9 +106,13 @@ usability aid only and must follow the permission the backend already enforces.
 - UX-1 known limits: at 320 px a Today ranking card can scroll
   inside the card when every column holds a large ringgit figure; the page itself does not scroll sideways.
   Long ranking names are cut with "…" on phones (full name in the tooltip and in View all).
-- UX-1 toast at the top (measured 2026-11-05): at 1440 px on the consultation page (focus mode, no header), when
-  the page is scrolled to the top, the toast covers the "Panggil semula", waiting-count and Attendance
-  confirmation buttons for its few seconds. Complete Consultation is clear at every width.
+- Consultation page toasts (UX-5, measured 2026-11-05): from 1280 to 1920 px the bottom-left toast covers no
+  control wherever the page is scrolled; at 1024 px with the page at the very top it briefly covers "Choose
+  preset". The toast is capped at 320 px (Daniel's design review) so at 1024 px it ends before "Save clinical
+  record"; with the page at the top it still briefly sits over the bottom-left of the clinical note box and its
+  character count. Below 1024 px the toast stays at the top, so on a tablet or phone scrolled to the top it still briefly
+  covers the toolbar links and buttons (Medical certificates, Panggil semula, Start treatment step, On Hold).
+  Complete Consultation is clear at every width.
 - UX-1 review note: Quick create (`Registration/Create.vue`) keeps its Register Visit card sticky at `max-lg:top-16`
   (64 px), the same height as the staff toast, so a flash toast there would briefly cover it. That page
   fires no toast of its own today; owned by Patients & Registration, so left unchanged.
@@ -118,6 +126,9 @@ usability aid only and must follow the permission the backend already enforces.
   box is not a combobox; the Panel due-rule radios share no `name`; Billing approval limit Save and Clear
   buttons repeat the same name on every row. The public QR form's back buttons (`pages/PublicCheckIn/Show.vue`)
   name only their icon: a patient-facing page owned by Patients & Registration, passed to LUCY.
+- UX-4 note for Dispensary & OTC: the OTC allergy card still says the check is "compared with medicine names by
+  text only", but since DSP-1b it also compares catalogue drug groups. Passed to B.E.R.N.I.S.S; not changed here.
+  The guides still need a CA, a doctor and a CA Supervisor to follow them on the real screens before use.
 - `/patients/create` is about 433 px wide at 390 px when errors show: Patients & Registration team's item, not ours.
 
 ## 8. Rules (every task)
@@ -168,3 +179,5 @@ authorisation to build them; the coordinator records it in `docs/BASELINE.md`.
    and expiry on labels (DSP-2, DSP-3), transfer shortages (STK-6), supplier returns (STK-7), English
    Registration messages (REG-2), and any other merged screen staff use. Follow the real screens; mark anything
    unconfirmed `[PERLU DISAHKAN]`. Ask B.E.R.N.I.S.S for the list of merged PRs since the last guide update (PR #203).
+5. **UX-5 Consultation page toasts.** Chosen by the owner on 2026-11-05 from the UX-1 known limit: on the
+   consultation page from 1024 px, toasts move to the bottom left so they no longer cover the toolbar.

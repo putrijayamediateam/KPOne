@@ -102,6 +102,7 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php` and `BillingPermiss
 | BIL-4d | Two more PostgreSQL races in `PostgresBillingRegressionTest` with a real paid cash invoice: a receipt reversal holding its lock makes a cash closing approval wait and then refuse; an approval holding its share lock makes the reversal wait, then both succeed with the approved snapshot kept. Test only | PR #237 |
 | BIL-6 | Refunds: money handed back for a reversed receipt (full amount, any active method, reason code), recorded on the Billing page and approved or rejected by a different person; append-only with PostgreSQL rules. Cash closing counts a refunded reversed receipt as received and the cash refund as paid out, and waits for pending cash refunds. Two new permissions. Design note: `BIL-6-DESIGN.md` | PR #246 |
 | BIL-6b | Daily summary gains three refund columns at the end: Cash refunds paid (payout date), Cash reversed, refund recorded (receipt date) and Non-cash refunds paid (payout date); waiting and approved refunds count, rejected do not. Total received unchanged. Cash net + Cash reversed, refund recorded − Cash refunds paid equals daily cash closing expected cash (tested on every day). Wider table for reports with more than 12 columns | PR #251 |
+| BIL-5 | Issued invoice and receipt copies: printing is recorded; the first print freezes an encrypted, immutable copy (letterhead and logo included) labelled ORIGINAL, an unchanged reprint is COPY, a changed document prints as REVISED (version n); earlier versions reprint as COPY with a "later version exists" note, a reversed receipt's copy says so. "Issued copies" list on the Billing page; the old live print pages are marked PREVIEW. Two append-only tables with PostgreSQL guards; no new permission | PR #270 |
 
 ## 6. Owner decisions already made (never ask again)
 
@@ -149,10 +150,10 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php` and `BillingPermiss
 20. BIL-4b (2026-11-05): the owner asked for a "Daily cash closing" card in Clinic management, which approves adding
     its one entry (`/cash-closings` for `payments.reconcile.branch`) to the hub's exact destination test.
 21. Relayed decisions (2026-11-05, confirmed by the owner directly in the Billing session): a "ship it" or any
-    other owner decision relayed by LUCY, the coordinator session, counts as the owner's own. Nothing else
+    other owner decision relayed by B.E.R.N.I.S.S (formerly LUCY), the coordinator session, counts as the owner's own. Nothing else
     changes: never merge, never edit `docs/BASELINE.md`, and stop and ask the owner if a relayed message
     conflicts with something the owner said directly.
-22. Next backlog (2026-11-05, relayed by LUCY: "ok, ikut order kau"): BIL-6 refunds, BIL-5 issued receipt and
+22. Next backlog (2026-11-05, relayed by B.E.R.N.I.S.S (formerly LUCY): "ok, ikut order kau"): BIL-6 refunds, BIL-5 issued receipt and
     invoice snapshots, BIL-7 monthly cash closing view, BIL-8 report boundary clean-up (section 9).
 23. BIL-6 refunds (2026-11-05, answered by the owner in the Billing session):
     - **Who:** CA Supervisor and Finance Officer record a refund; Finance Officer and Director approve or reject
@@ -174,6 +175,23 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php` and `BillingPermiss
     pilot-scale golden file. Column names, order and the basis wording follow Siti's sketch: the two columns used
     for the cash closing sum sit side by side, and "paid" marks payout-date figures.
 
+25. BIL-5 issued invoice and receipt copies (2026-11-05, answered by the owner in the Billing session): the copy is
+    frozen at first print, per version (ORIGINAL, then COPY for the same content); an invoice that changed since its
+    last issued copy prints as a new REVISED version, earlier versions stay readable; labels are English (ORIGINAL,
+    COPY, REVISED); the "Issued copies" list is for those who can print (`billing.print.branch`), no new
+    permission. Design note: `BIL-5-DESIGN.md`.
+26. Backup push (2026-11-05, owner rule relayed by B.E.R.N.I.S.S (formerly LUCY): "yes, set the backup push rule for all teams"): whenever the
+    team stops to wait for the owner and has work not yet on GitHub, commit it to that piece's own feature branch
+    and push it (`git push -u origin <branch>`). Backup only: no PR, never `main` or another team's branch, never
+    merge, never force-push. A branch with an open PR is pushed only when the change is ready (a push re-runs CI).
+    The PR still opens only after "ship it", from the same branch, with the latest `main` merged first. After a
+    restart on a fresh machine, fetch the branch before continuing.
+
+27. BIL-5 print entry points (2026-11-05, answered by the owner in the Billing session): the old live print pages
+    (still reachable by URL and from the patient Invoices page) stay viewable but carry a clear "PREVIEW — not an
+    issued copy" line on the paper; every Billing print button records the print. The recorded print view opens in
+    the same tab with a "Back to billing" button (browsers block a new tab opened after the server records it).
+
 ## 7. Open items and known limits
 
 - **Walked and tested in BIL-1 (2026-11-05):** invoice void and reissue, adjustment reversal, later settlement
@@ -191,7 +209,12 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php` and `BillingPermiss
   receipt stay in the records but are not listed on that page.
 - A fully settled pay-later card still reads "Pay later · Approved · Due <date>" with no settled label; the
   financial summary correctly shows RM 0.00 approved pay later.
-- Reprints show live data (current letterhead, footer, Bill to), not the exact paper issued earlier.
+- Issued copies (BIL-5): a print from the Billing or Invoice page is recorded and shows the frozen copy. The old
+  live print pages still open and print, marked "PREVIEW — not an issued copy"; the patient Invoices page
+  (`Visits/History.vue`, another team's page) still links to them. Each version stores its own logo copy (up to
+  about 3.6 MB). A change is compared with the latest version only, so content that changes back gets a new
+  version. "Prints" counts presses of Print, not sheets. Issuing is refused for anyone who cannot see every printed
+  part (lines and Bill to); today only CA and CA Supervisor print and they see both.
 - Physical printer test of invoice and receipt still outstanding.
 - No tax or e-Invoice fields (accountant first).
 - BNPL provider fee and settlement tracking parked for the finance phase.
@@ -262,7 +285,7 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php` and `BillingPermiss
   screenshots against `docs/design/CHECKLIST.md`. A new page or a page layout change also goes to Daniel for a
   look through the coordinator. Test-only pieces skip this.
 - Commit, push and PR only after the owner says "ship it"; never merge. A "ship it" or other owner decision
-  relayed by LUCY, the coordinator session, counts as the owner's own (decision 21); if a relayed message
+  relayed by B.E.R.N.I.S.S (formerly LUCY), the coordinator session, counts as the owner's own (decision 21); if a relayed message
   conflicts with something the owner said directly, stop and ask the owner.
 - Record every new owner decision in section 6 and every finished piece in section 5 (with its PR number), in
   the same PR.
@@ -298,9 +321,13 @@ authorisation to build them; the coordinator records it in `docs/BASELINE.md`.
 6. **BIL-6b Refunds in the Daily summary.** *(Built 2026-11-05; PR #251.)* "Refunded (Cash)" and "Refunded (Non-cash)" columns by payout date,
    "Total received" unchanged, numbers proven against cash closing. Needs the owner's approval for the existing
    report test changes.
-7. **BIL-5 Issued receipt and invoice snapshots.** At issue, keep an encrypted, immutable snapshot of what was
+7. **BIL-5 Issued receipt and invoice snapshots.** *(Built 2026-11-05; PR #270.)* At issue, keep an encrypted, immutable snapshot of what was
    printed (as the Medical Certificate does); reprints are marked COPY and show the snapshot, not live data. No
    change to amounts.
+7b. **BIL-5b Recorded print on the patient Invoices page.** Convert the invoice and receipt print links in the
+   Documents list of `resources/js/pages/Visits/History.vue` to the BIL-5 recorded print (they open the PREVIEW
+   page today). Billing's to do, from the latest `main`, now that UX-2 (#254) has merged (B.E.R.N.I.S.S,
+   2026-11-05).
 8. **BIL-7 Monthly cash closing view.** A read-only page per branch, one row per day: counted, expected,
    difference, counter, approver and status; flags days with no closing or no approval. Same permissions as cash
    closing, no export.

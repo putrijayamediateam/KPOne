@@ -11,7 +11,7 @@ test('Stock setup offers the patient returns location type with a help line', ()
     );
     assert.match(
         panel,
-        /value: 'dispensary_returns',\s+label: 'Patient returns \(not for dispensing\)'/,
+        /value: 'dispensary_returns',\s+label: 'Patient Returns \(not for dispensing\)'/,
     );
     assert.match(panel, /v-if="locationForm\.type === 'dispensary_returns'"/);
     assert.match(
@@ -22,6 +22,19 @@ test('Stock setup offers the patient returns location type with a help line', ()
         panel,
         /<InputError :message="locationForm\.errors\.type" \/>/,
     );
+    // Daniel: both selects have a visible label tied to them, and the help line describes the type select.
+    assert.match(
+        panel,
+        /<label id="location-branch-label" for="location-branch"/,
+    );
+    assert.match(panel, /<label id="location-type-label" for="location-type"/);
+    assert.match(panel, /labelledby="location-type-label"/);
+    assert.match(panel, /'location-type-help'/);
+    assert.match(panel, /id="location-type-help"/);
+    assert.match(
+        read('resources/js/components/ui/select/OperationalSelect.vue'),
+        /:aria-describedby="describedby"/,
+    );
     // The catalogue's quick location picker never offers the returns type.
     assert.doesNotMatch(
         read('resources/js/components/catalogue/LocationPicker.vue'),
@@ -29,13 +42,11 @@ test('Stock setup offers the patient returns location type with a help line', ()
     );
 });
 
-test('the movement filter and location list use plain words for returns', () => {
+test('the movement filter offers Patient Return', () => {
     const index = read('resources/js/pages/Inventory/Index.vue');
     assert.match(
         index,
         /\{ value: 'dispensary_return', label: 'Patient Return' \}/,
     );
-    assert.match(index, /dispensary_returns: 'Patient returns'/);
-    assert.match(index, /locationTypeLabels\[item\.type\] \?\? item\.type/);
-    assert.doesNotMatch(index, /\$\{item\.name\} · \$\{item\.type\}`/);
+    // The server labels location types (InventoryDirectoryService::label), so the filter shows "Patient Returns".
 });
