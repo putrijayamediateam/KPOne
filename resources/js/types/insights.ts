@@ -11,6 +11,8 @@ export type InsightRankingItem = {
     salesSen: number;
     unitsSold?: number;
     patients: number;
+    // DSP-4: the "OTC (no doctor)" Provider row; always shown last, never sorted among the doctors.
+    fixed?: boolean;
 };
 
 export type InsightTimeMetric = {

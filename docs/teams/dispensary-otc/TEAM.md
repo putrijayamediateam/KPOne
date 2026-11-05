@@ -84,7 +84,8 @@ coordinator at the owner's request (2026-11-05).
 | DARK-1 | OTC allergy panel readable in dark mode | #207 |
 | DSP-1 | Allergy warning: a CA add, edit or put-back of a medicine that matches a patient's active allergy record by text shows a warning and needs "I have checked with the patient/doctor"; enforced in `DispensaryService`; append-only `dispensary_allergy_confirmations` and a text-free audit; text matching can miss and the screen says so | PR #214 |
 | DSP-2 | Drug label prints "No. Batch" and "Tarikh luput" when exactly one batch was allocated to the line; otherwise nothing extra and the preview says why; batch number within the 48-character label budget or the label is blocked; read only | PR #218 |
-| DSP-3 | Controlled-medicine flag on the Medicine Catalogue (mark or unmark, confirmed, stale change refused, audited with field and value only) and a bold "Ubat Terkawal / Controlled Medicine" line under the medicine name on the drug label | pending (branch `feature/dsp-3-controlled-medicine`) |
+| DSP-3 | Controlled-medicine flag on the Medicine Catalogue (mark or unmark, confirmed, stale change refused, audited with field and value only) and a bold "Ubat Terkawal / Controlled Medicine" line under the medicine name on the drug label | PR #223 |
+| DSP-4 | "OTC (no doctor)" row, always last, in the Insights Today and Sales Provider tables when no doctor is selected; the rows now add up to headline sales; nothing else changes | pending (branch `feature/dsp-4-otc-provider-row`) |
 
 ## 6. Owner decisions already made (never ask again)
 
@@ -106,6 +107,9 @@ coordinator at the owner's request (2026-11-05).
 12. The controlled-medicine flag is set by Medicine Catalogue editors (Director, CA Supervisor), audited
     (2026-11-05). Administrator, which also holds `medicines.manage.organisation` (ADM-01), keeps it too
     (owner decision 2026-11-05).
+13. DSP-4 scope is only the OTC row in the Insights Provider tables, labelled "OTC (no doctor)", always last,
+    shown only without a doctor filter; waiting/serving times and an Insights visit-type filter are out of
+    scope (2026-11-05).
 
 ## 7. Open items and known limits
 
@@ -130,7 +134,8 @@ coordinator at the owner's request (2026-11-05).
   words ("allergic to", "allergy", "alahan") are ignored, so "Allergic to aspirin" matches "Aspirin 100mg".
   The OTC allergy statement (none / has an allergy) is not text and is not matched. The doctor's Treatment
   Plan has no such check.
-- **Insights:** doctor-based tables count consultation invoices only, not OTC.
+- **Insights:** OTC sales show as one "OTC (no doctor)" Provider row (DSP-4). Waiting and serving times still
+  read only the consultation queue, so OTC visits are absent from them; Insights has no visit-type filter.
 - **Name mode on the TV** shows full names to the waiting room; privacy review before go-live.
 - **SMOKE-1** findings touching this area: none open (S1-007 fixed in DARK-1).
 
@@ -168,6 +173,6 @@ authorisation to build them; record that in `docs/BASELINE.md` with the first PR
    pharmacist; changes a shared catalogue screen. **Owner decision 2026-11-05: whoever can already edit the
    Medicine Catalogue (`medicines.manage.organisation`: Director, CA Supervisor) sets the flag; every change
    audited.**
-4. **DSP-4 OTC in doctor reports.** Include OTC sales where Insights and the daily report count only
+4. **DSP-4 OTC in doctor reports — built 2026-11-05, awaiting owner review (branch `feature/dsp-4-otc-provider-row`).** Include OTC sales where Insights and the daily report count only
    consultation invoices today. Shared with the Reports team; numbers in existing reports must not change
    unexpectedly, so each changed figure is listed for the owner first.
