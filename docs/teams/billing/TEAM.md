@@ -10,9 +10,11 @@ the same PR as the code.
 |---|---|---|
 | Lead | **Farah** | Plans each piece, builds it (backend, pages, tests), keeps this file current |
 | Reviewer | **Kumar** | Checks every piece against the rules below, the tests and the owner's decisions before it reaches the owner |
+| UI/UX designer | **Siti** | Sketches the layout of any screen change before it is built and checks the 390 and 1440 px light and dark screenshots before hand-off; reports to Daniel, Lead UI/UX Designer ([Design team](../design/TEAM.md)) |
 
 Both are Claude builder sessions working for the owner through the coordinator session. Names chosen by the
-coordinator at the owner's request (2026-11-05).
+coordinator at the owner's request (2026-11-05). Siti was added by owner decision on 2026-11-05 (every builder team
+gets a designer under Daniel).
 
 ## 2. What this area covers
 
@@ -68,6 +70,7 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php` and `BillingPermiss
 | `billing.approval_limits.manage.organisation` | Director |
 | `payment_methods.manage.organisation` | Director, Finance Officer, Administrator |
 | `payments.cash_closing.approve.branch` (BIL-4) | Director, CA Supervisor, Finance Officer; never the person who counted |
+| `payments.refunds.record.branch` / `payments.refunds.approve.branch` (BIL-6) | record: CA Supervisor, Finance Officer; approve: Finance Officer, Director; never the person who recorded |
 
 ## 5. What is built (history)
 
@@ -97,6 +100,7 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php` and `BillingPermiss
 | BIL-4b | "Daily cash closing" card in Clinic management (Patients group, beside Terminal Reconciliation), for holders of `payments.reconcile.branch` at their branch | PR #231 (merged) |
 | BIL-4c | PostgreSQL contention test for daily cash closing (`PostgresCashClosingRegressionTest`, 4 races in real separate sessions): two counts for one day, a new count against an approval of the old count, two approvers on one count, the same request sent twice. Test only | PR #236 |
 | BIL-4d | Two more PostgreSQL races in `PostgresBillingRegressionTest` with a real paid cash invoice: a receipt reversal holding its lock makes a cash closing approval wait and then refuse; an approval holding its share lock makes the reversal wait, then both succeed with the approved snapshot kept. Test only | PR #237 |
+| BIL-6 | Refunds: money handed back for a reversed receipt (full amount, any active method, reason code), recorded on the Billing page and approved or rejected by a different person; append-only with PostgreSQL rules. Cash closing counts a refunded reversed receipt as received and the cash refund as paid out, and waits for pending cash refunds. Two new permissions. Design note: `BIL-6-DESIGN.md` | this PR |
 
 ## 6. Owner decisions already made (never ask again)
 
@@ -147,6 +151,22 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php` and `BillingPermiss
     other owner decision relayed by LUCY, the coordinator session, counts as the owner's own. Nothing else
     changes: never merge, never edit `docs/BASELINE.md`, and stop and ask the owner if a relayed message
     conflicts with something the owner said directly.
+22. Next backlog (2026-11-05, relayed by LUCY: "ok, ikut order kau"): BIL-6 refunds, BIL-5 issued receipt and
+    invoice snapshots, BIL-7 monthly cash closing view, BIL-8 report boundary clean-up (section 9).
+23. BIL-6 refunds (2026-11-05, answered by the owner in the Billing session):
+    - **Who:** CA Supervisor and Finance Officer record a refund; Finance Officer and Director approve or reject
+      it, never the person who recorded it. This uses two new permissions through one additive migration.
+    - **No threshold:** every refund needs a second person.
+    - **Scope of v1:** only receipts reversed before visit completion. A refund after completion is a later,
+      separate change.
+    - **Cash closing rule:**
+      - a reversed receipt that has a refund (waiting or approved) counts as received on its day;
+      - the Cash refund counts as paid out on its payout day;
+      - a day cannot be approved while one of its Cash refunds waits for approval.
+    - **Full amount only:** a refund is always for the full reversed amount. This was the team's choice, told to
+      the owner, so that the books and the drawer stay in step.
+    - **Existing test change:** the owner approved removing 'refund' from the forbidden route words in
+      `VisitAuthorizationTest` (refunds are now an approved surface).
 
 ## 7. Open items and known limits
 
@@ -198,6 +218,17 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php` and `BillingPermiss
   reversal first makes the approval wait and refuse; an approval first makes the reversal wait, and the approved
   snapshot is kept (the page shows "changed after approval").
 
+- Refunds (BIL-6): only for receipts reversed before visit completion, only for the full amount, and only while the
+  visit is not yet completed (a completed visit refuses new refunds); a partial refund or a refund after
+  completion is not possible yet. A refund recorded later for an earlier day's receipt changes that day's
+  expected cash; if the day is already approved it shows "changed after approval" (by design). A day cannot be
+  approved while a refund paid out that day, or a refund of one of that day's Cash receipts, still waits. The
+  counted-cash box takes a minus sign (keyboard set to text on phones). A day's expected cash, and the counted takings, can be
+  below zero when more was refunded than taken; staff enter a minus amount. The Daily summary does not show
+  refunds yet (BIL-6b): adding refund columns changes existing report tests and needs the owner's approval. The
+  refund reason is a controlled code; there is no free-text note. Refunds show only on the Billing page of the
+  visit whose receipt was reversed (including a voided invoice's receipts).
+
 ## 8. Rules (every task)
 
 - Read `CLAUDE.md`, `AGENTS.md`, `docs/BASELINE.md` and this file first.
@@ -213,6 +244,11 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php` and `BillingPermiss
 - Do not change any existing test assertion without the owner's approval.
 - Full gate before hand-off on a task-owned PostgreSQL 18 database, including the billing contention tests
   with none skipped; screenshots at 1440 and 390 px, light and dark, for any screen or print change.
+- **Design (owner rule, 2026-11-05):** for any piece that changes a screen, (1) before building, Siti sketches the
+  layout (components, phone behaviour at 390 px, empty, loading and error states, wording) from the existing
+  patterns and `docs/design/GUIDE.md`; (2) before hand-off, Siti checks the 390 and 1440 px light and dark
+  screenshots against `docs/design/CHECKLIST.md`. A new page or a page layout change also goes to Daniel for a
+  look through the coordinator. Test-only pieces skip this.
 - Commit, push and PR only after the owner says "ship it"; never merge. A "ship it" or other owner decision
   relayed by LUCY, the coordinator session, counts as the owner's own (decision 21); if a relayed message
   conflicts with something the owner said directly, stop and ask the owner.
@@ -245,3 +281,16 @@ authorisation to build them; the coordinator records it in `docs/BASELINE.md`.
    counted cash, a reason for any difference, approved by a different person; append-only. Builds on the
    existing terminal reconciliation pattern. **Owner decision 2026-11-05: a CA (or anyone with
    `payments.reconcile.branch`) counts; a CA Supervisor, Finance Officer or Director approves, never the counter.**
+5. **BIL-6 Refund recording with two-person approval.** *(Built 2026-11-05; awaiting owner review.)* Owner decisions in
+   section 6 (23); design note `BIL-6-DESIGN.md`.
+6. **BIL-6b Refunds in the Daily summary.** "Refunded (Cash)" and "Refunded (Non-cash)" columns by payout date,
+   "Total received" unchanged, numbers proven against cash closing. Needs the owner's approval for the existing
+   report test changes.
+7. **BIL-5 Issued receipt and invoice snapshots.** At issue, keep an encrypted, immutable snapshot of what was
+   printed (as the Medical Certificate does); reprints are marked COPY and show the snapshot, not live data. No
+   change to amounts.
+8. **BIL-7 Monthly cash closing view.** A read-only page per branch, one row per day: counted, expected,
+   difference, counter, approver and status; flags days with no closing or no approval. Same permissions as cash
+   closing, no export.
+9. **BIL-8 Report boundary clean-up.** Make `TransactionReportService` use `BranchReportService`, with output
+   proven byte-identical; test-led, no behaviour change.

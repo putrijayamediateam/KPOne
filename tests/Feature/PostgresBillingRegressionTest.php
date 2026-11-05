@@ -32,14 +32,18 @@ use App\Domain\Visit\Billing\Models\ChargeDefinition;
 use App\Domain\Visit\Billing\Models\Invoice;
 use App\Domain\Visit\Billing\Models\Payment;
 use App\Domain\Visit\Billing\Models\PaymentMethod;
+use App\Domain\Visit\Billing\Models\PaymentRefund;
+use App\Domain\Visit\Billing\Models\PaymentRefundDecision;
 use App\Domain\Visit\Billing\Models\PriceBook;
 use App\Domain\Visit\Billing\Models\PriceEntry;
 use App\Domain\Visit\Billing\Services\BillingBuilderService;
 use App\Domain\Visit\Billing\Services\CashClosingService;
 use App\Domain\Visit\Billing\Services\CompleteVisitationService;
 use App\Domain\Visit\Billing\Services\FinancialLedger;
+use App\Domain\Visit\Billing\Services\InvoiceCorrectionService;
 use App\Domain\Visit\Billing\Services\PaymentMethodAdministrationService;
 use App\Domain\Visit\Billing\Services\PaymentService;
+use App\Domain\Visit\Billing\Services\RefundService;
 use App\Domain\Visit\Billing\Services\ResponsibilityService;
 use App\Domain\Visit\Models\Visit;
 use App\Models\User;
@@ -465,6 +469,60 @@ class PostgresBillingRegressionTest extends TestCase
         $this->assertSame(['count' => 0, 'sen' => 0], app(CashClosingService::class)->expected($f['branch'], $f['day']));
     }
 
+    public function test_recording_a_refund_and_approving_the_receipt_day_cash_closing_go_one_after_the_other(): void
+    {
+        // Refund first: the approval waits, then sees the refunded receipt now counts as received and refuses.
+        $f = $this->refundFixture();
+        $out = $this->leaderThenFollower(
+            $this->billWorker($f, 'bill-refund', [...$this->refundArgs($f), 'hold' => true], 'supervisor'),
+            $this->billWorker($f, 'bill-cash-decide', $this->cashApproveArgs($f), 'director'),
+        );
+        $this->assertSame(1, substr_count($out, 'SUCCESS'), $out);
+        $this->assertSame(1, substr_count($out, 'STALE cash_closing'), $out);
+        $this->assertSame(1, PaymentRefund::query()->where('organisation_id', $f['organisation']->id)->count());
+        $this->assertSame(0, CashClosingDecision::query()->where('organisation_id', $f['organisation']->id)->count());
+        $this->assertSame(['count' => 1, 'sen' => 4000], app(CashClosingService::class)->expected($f['branch'], $f['day']));
+
+        // Approval first: the refund waits for the approval, then is recorded; the approved snapshot (RM 0) stays.
+        $g = $this->refundFixture();
+        $out = $this->leaderThenFollower(
+            $this->billWorker($g, 'bill-cash-decide', [...$this->cashApproveArgs($g), 'hold' => true], 'director'),
+            $this->billWorker($g, 'bill-refund', $this->refundArgs($g), 'supervisor'),
+        );
+        $this->assertSame(2, substr_count($out, 'SUCCESS'), $out);
+        $this->assertSame('approved', CashClosingDecision::query()->where('organisation_id', $g['organisation']->id)->sole()->decision);
+        $this->assertSame(0, $g['closing']->refresh()->expected_cash_sen);
+        $this->assertSame(1, PaymentRefund::query()->where('organisation_id', $g['organisation']->id)->count());
+    }
+
+    public function test_two_people_recording_a_refund_for_one_receipt_record_one_refund(): void
+    {
+        $f = $this->refundFixture();
+        $f['finance']->givePermissionTo(Permission::findOrCreate('payments.refunds.record.branch', 'web'));
+        $out = $this->race([
+            $this->billWorker($f, 'bill-refund', $this->refundArgs($f), 'supervisor'),
+            $this->billWorker($f, 'bill-refund', [...$this->refundArgs($f), 'reason_code' => 'overpaid'], 'finance'),
+        ], $f['receipt']);
+        $this->assertSame(1, substr_count($out, 'SUCCESS'), $out);
+        $this->assertSame(1, substr_count($out, 'STALE refund'), $out);
+        $this->assertSame(1, PaymentRefund::query()->where('organisation_id', $f['organisation']->id)->count());
+        $this->assertSame(1, DB::table('audit_logs')->where('organisation_id', $f['organisation']->id)->where('event', 'billing.refund_recorded')->count());
+    }
+
+    public function test_two_people_deciding_one_refund_record_one_decision(): void
+    {
+        $f = $this->refundFixture();
+        session([BranchAccessService::SESSION_KEY => $f['branch']->id]);
+        $refund = app(RefundService::class)->record($f['supervisor'], $f['visit'], $f['receipt']->public_id, [...$this->refundArgs($f), 'expected_branch_id' => $f['branch']->id]);
+        $out = $this->race([
+            $this->billWorker($f, 'bill-refund-decide', ['refund' => $refund->public_id, 'decision' => 'approved', 'reason_code' => null, 'idempotency_key' => (string) Str::uuid()], 'finance'),
+            $this->billWorker($f, 'bill-refund-decide', ['refund' => $refund->public_id, 'decision' => 'rejected', 'reason_code' => 'other', 'idempotency_key' => (string) Str::uuid()], 'director'),
+        ], $f['receipt']);
+        $this->assertSame(1, substr_count($out, 'SUCCESS'), $out);
+        $this->assertSame(1, substr_count($out, 'STALE refund'), $out);
+        $this->assertSame(1, PaymentRefundDecision::query()->where('organisation_id', $f['organisation']->id)->count());
+    }
+
     public function test_void_reissue_and_payment_cannot_both_win(): void
     {
         $f = $this->billingFixture();
@@ -583,6 +641,45 @@ class PostgresBillingRegressionTest extends TestCase
         $this->assertSame([1, 4000], [$f['closing']->expected_receipt_count, $f['closing']->expected_cash_sen]);
 
         return $f;
+    }
+
+    /**
+     * BIL-6: the cash closing fixture's receipt reversed by Finance (yesterday's day then expects RM 0 and is
+     * counted), plus a refund recorder (CA Supervisor) and a Director who approves refunds and cash closings.
+     *
+     * @return array<string, mixed>
+     */
+    private function refundFixture(): array
+    {
+        $f = $this->cashClosingFixture();
+        foreach (['payments.refunds.approve.branch', 'payments.reverse.branch'] as $permission) {
+            $f['finance']->givePermissionTo(Permission::findOrCreate($permission, 'web'));
+        }
+        $f['supervisor']->givePermissionTo(Permission::findOrCreate('payments.refunds.record.branch', 'web'));
+        $f['director'] = $this->user($f['organisation'], $f['branch'], null, ['payments.refunds.approve.branch', CashClosingService::APPROVE_PERMISSION, 'payments.reconcile.branch', 'branch_context.switch.branch']);
+        session([BranchAccessService::SESSION_KEY => $f['branch']->id]);
+        app(InvoiceCorrectionService::class)->reverse($f['finance'], $f['visit'], $f['invoice'], $f['receipt'], ['expected_branch_id' => $f['branch']->id, 'lock_version' => $f['invoice']->lock_version,
+            'payment_lock_version' => 1, 'recording_error_only' => true, 'reason' => 'Synthetic recording correction']);
+        $f['invoice']->refresh();
+        $f['receipt']->refresh();
+        $f['closing'] = app(CashClosingService::class)->count($f['ca'], ['expected_branch_id' => $f['branch']->id, 'business_date' => $f['day']->toDateString(),
+            'counted_cash' => '0.00', 'variance_reason' => null, 'idempotency_key' => (string) Str::uuid()]);
+        $this->assertSame(0, $f['closing']->expected_cash_sen);
+
+        return $f;
+    }
+
+    /** @return array<string, mixed> */
+    private function refundArgs(array $f): array
+    {
+        return ['payment' => $f['receipt']->public_id, 'payment_method_id' => PaymentMethod::query()->where('organisation_id', $f['organisation']->id)->where('code', 'cash')->value('id'),
+            'reason_code' => 'invoice_corrected', 'idempotency_key' => (string) Str::uuid()];
+    }
+
+    /** @return array<string, mixed> */
+    private function cashApproveArgs(array $f): array
+    {
+        return ['closing' => $f['closing']->public_id, 'decision' => 'approved', 'reason' => null, 'business_date' => $f['day']->toDateString(), 'idempotency_key' => (string) Str::uuid()];
     }
 
     /** @return array<string, string> */
@@ -1040,7 +1137,7 @@ class PostgresBillingRegressionTest extends TestCase
     {
         DB::transaction(function () use ($id): void {
             // Only this isolated PostgreSQL test fixture cleanup may discard retained synthetic evidence.
-            foreach (['cash_closing_decisions', 'cash_closings', 'invoice_adjustment_reversals', 'invoice_adjustments', 'invoice_adjustment_limits'] as $table) {
+            foreach (['payment_refund_decisions', 'payment_refunds', 'cash_closing_decisions', 'cash_closings', 'invoice_adjustment_reversals', 'invoice_adjustments', 'invoice_adjustment_limits'] as $table) {
                 DB::statement("ALTER TABLE {$table} DISABLE TRIGGER USER");
                 DB::table($table)->where('organisation_id', $id)->delete();
                 DB::statement("ALTER TABLE {$table} ENABLE TRIGGER USER");
