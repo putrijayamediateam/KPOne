@@ -372,7 +372,9 @@ const useTicked = () =>
                                     {{ row.reference || 'No reference' }}
                                     <template v-if="row.claim">
                                         → Claim {{ row.claim.claimNo }} ·
-                                        {{ row.claim.invoiceNumber }}
+                                        <span class="font-mono">{{
+                                            row.claim.invoiceNumber
+                                        }}</span>
                                     </template>
                                 </p>
                                 <StatusBadge
@@ -441,10 +443,12 @@ const useTicked = () =>
                                                 : myr(row.amountSen)
                                         }}
                                     </td>
-                                    <td class="p-2 font-mono text-xs">
+                                    <td class="p-2 text-xs">
                                         <template v-if="row.claim">
                                             Claim {{ row.claim.claimNo }} ·
-                                            {{ row.claim.invoiceNumber }}
+                                            <span class="font-mono">{{
+                                                row.claim.invoiceNumber
+                                            }}</span>
                                         </template>
                                         <template v-else>—</template>
                                     </td>
