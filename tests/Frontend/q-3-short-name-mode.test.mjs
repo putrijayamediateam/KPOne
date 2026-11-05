@@ -143,7 +143,12 @@ test('Q-3b: on a TV the current call keeps the number and short name on one line
         /Math\.floor\(\(largest \* label\.clientWidth\) \/ label\.scrollWidth\)/,
     );
     // Only on TV-size screens and only in short-name mode, and never cut: a name that cannot fit wraps instead.
-    assert.match(screen, /window\.matchMedia\('\(min-width: 1024px\)'\)/);
+    // Only on 720p-class TVs; larger TVs and phones keep the Q-3 look (B.E.R.N.I.S.S for the owner, 2026-11-05).
+    assert.match(
+        screen,
+        /const FIT_MEDIA = '\(min-width: 1024px\) and \(max-height: 800px\)';/,
+    );
+    assert.match(screen, /window\.matchMedia\(FIT_MEDIA\)/);
     assert.match(
         screen,
         /currentLabelOneLine\.value = label\.scrollWidth <= label\.clientWidth \+ 1;/,

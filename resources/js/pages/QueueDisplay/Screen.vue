@@ -44,11 +44,12 @@ const seen = new Set<number>(props.feed.calls.map((call) => call.id));
 
 const timeZone = computed(() => feed.value.branch.timezone);
 const current = computed<DisplayCall | null>(() => feed.value.calls[0] ?? null);
-// Q-3b (owner decision 2026-11-05): on a TV-size screen the current call keeps the number and the short name on one
-// line. The line is never larger than the normal heading size and shrinks only as much as the card needs, down to
+// Q-3b (owner decision 2026-11-05): on a 720p-class TV (1024 px wide or more, at most 800 px tall) the current call
+// keeps the number and the short name on one line; larger TVs and phones keep the Q-3 look. The line is never larger than the normal heading size and shrinks only as much as the card needs, down to
 // 24 px. A name that still does not fit then wraps at 24 px rather than losing letters.
 // The reset, measure and resize all run before the next frame is drawn, so the line never flashes at full size.
 const FIT_MIN_PX = 24;
+const FIT_MEDIA = '(min-width: 1024px) and (max-height: 800px)';
 const currentLabelRef = useTemplateRef<HTMLElement>('currentLabel');
 const currentLabelFontPx = ref<number | null>(null);
 // One line only once the fit has measured it; until then (or where it cannot run) the line wraps, so no name is cut.
@@ -60,7 +61,7 @@ const fitCurrentLabel = async () => {
     if (
         typeof window.matchMedia !== 'function' ||
         typeof getComputedStyle !== 'function' ||
-        !window.matchMedia('(min-width: 1024px)').matches
+        !window.matchMedia(FIT_MEDIA).matches
     ) {
         return;
     }
