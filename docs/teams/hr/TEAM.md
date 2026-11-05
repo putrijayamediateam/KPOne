@@ -95,6 +95,21 @@ Decisions marked **B.E.R.N.I.S.S for the owner** were made by the coordinator un
     clinic-editable settings, **to confirm with the clinic's HR adviser or accountant** before real pay use
     (B.E.R.N.I.S.S for the owner).
 11. Synthetic data only; nothing here approves real staff data or go-live (unchanged project rule).
+12. HR-1 design note approved; Daniel gets an early look and his screenshot review still applies before the PR
+    (B.E.R.N.I.S.S for the owner, 2026-11-05).
+13. Roster self-approval: whoever sends a week for approval cannot approve it, even a Director. The HR Manager
+    drafts and sends, the Director approves; a Director-drafted week is sent by someone else or approved by a second
+    Director (B.E.R.N.I.S.S for the owner, 2026-11-05; "Check this" on the owner's board for a one-Director clinic).
+14. HR-1 defaults: sessions Morning, Afternoon, Evening, Night, Full day, Other; 16-hour maximum shift; minimum
+    staffing for Resident Doctor, CA and CA Supervisor; no travel buffer between branches; CA Supervisors do not see
+    the whole branch roster in HR-1 (a branch view is the possible follow-up HR-1b) (B.E.R.N.I.S.S for the owner,
+    2026-11-05).
+15. Existing-assertion change approved: the `ClinicManagementTest` hub destination map gains `/hr/roster` for
+    `hr.roster.manage.organisation`, `hr.roster.approve.organisation` and `hr.roster.view.own` (B.E.R.N.I.S.S for
+    the owner, 2026-11-05).
+16. A clinic compliance slice (clinic document licences, internal audit checklist, vaccine fridge temperature log)
+    joins the backlog as HR-11, after HR-10 (B.E.R.N.I.S.S for the owner, 2026-11-05; "Check this" on the owner's
+    board because it is clinic data, not staff data).
 
 ## 7. Open items and known limits
 
@@ -165,5 +180,8 @@ Decisions marked **B.E.R.N.I.S.S for the owner** were made by the coordinator un
    monthly summary, staff cost (after HR-7); aggregates for the Director and HR Manager.
 10. **HR-10 Appraisal, letters and discipline.** Appraisal cycles, letter templates (offer, confirmation, warning)
     with immutable issued copies, restricted discipline records; incident reports.
-11. **Not authorised (needs the owner):** WhatsApp, SMS, email, OTP or push messages; an outside locum portal;
+11. **HR-11 Clinic compliance.** Clinic document licences and expiry (clinic registration, X-ray, clinical waste,
+    calibration), a monthly internal audit checklist with photos whose failed items become supervisor tasks, and a
+    daily vaccine fridge temperature log with out-of-range alerts inside KPOne.
+12. **Not authorised (needs the owner):** WhatsApp, SMS, email, OTP or push messages; an outside locum portal;
     selfie or continuous location at clock-in; integration with the outside HR product; applicant intake.

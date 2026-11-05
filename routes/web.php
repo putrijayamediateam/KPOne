@@ -15,6 +15,7 @@ use App\Http\Controllers\BranchController;
 use App\Http\Controllers\BranchReportController;
 use App\Http\Controllers\BusinessDetailsController;
 use App\Http\Controllers\CashClosingController;
+use App\Http\Controllers\HR\RosterController;
 use App\Http\Controllers\CatalogueOptionController;
 use App\Http\Controllers\CataloguePanelController;
 use App\Http\Controllers\CatalogueSetupReferenceController;
@@ -132,6 +133,24 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::get('clinic-management', ClinicManagementController::class)
         ->middleware('sensitive.no-store')->name('clinic-management.index');
+
+    // HR-1 roster planner (B.E.R.N.I.S.S for the owner, 2026-11-05). Rules live in app/Domain/HR/Roster.
+    Route::prefix('hr/roster')->controller(RosterController::class)->middleware('sensitive.no-store')->group(function (): void {
+        Route::get('/', 'index')->middleware('permission:hr.roster.view.own,hr.roster.manage.organisation,hr.roster.approve.organisation')->name('hr.roster.index');
+        Route::middleware(['permission:hr.roster.manage.organisation', 'throttle:60,1'])->group(function (): void {
+            Route::post('drafts', 'start')->name('hr.roster.drafts.store');
+            Route::post('versions/{version}/shifts', 'addShift')->whereUuid('version')->name('hr.roster.shifts.store');
+            Route::put('versions/{version}/shifts/{shift}', 'updateShift')->whereUuid(['version', 'shift'])->name('hr.roster.shifts.update');
+            Route::delete('versions/{version}/shifts/{shift}', 'removeShift')->whereUuid(['version', 'shift'])->name('hr.roster.shifts.destroy');
+            Route::post('versions/{version}/submit', 'submit')->whereUuid('version')->name('hr.roster.submit');
+            Route::post('versions/{version}/discard', 'discard')->whereUuid('version')->name('hr.roster.discard');
+            Route::put('minimum-staffing', 'minimums')->name('hr.roster.minimums');
+        });
+        Route::middleware(['permission:hr.roster.approve.organisation', 'throttle:30,1'])->group(function (): void {
+            Route::post('versions/{version}/approve', 'approve')->whereUuid('version')->name('hr.roster.approve');
+            Route::post('versions/{version}/return', 'returnToDraft')->whereUuid('version')->name('hr.roster.return');
+        });
+    });
 
     foreach (['doctor-profiles' => ['doctor_profile', 'doctors', 'website.doctor_profiles.manage.organisation'], 'careers' => ['career_posting', 'careers', 'website.careers.manage.organisation']] as $path => [$type, $name, $permission]) {
         Route::prefix('website/'.$path)->controller(WebsitePeopleController::class)->middleware('sensitive.no-store')->group(function () use ($type, $name, $permission): void {

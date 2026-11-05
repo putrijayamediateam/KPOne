@@ -28,6 +28,7 @@ Words used below:
 | HR-8 | Announcements and memos | E-memo to branches or roles with "I have read this" | S | nothing |
 | HR-9 | HR dashboard and reports | Who is on duty now, shortfalls, leave and attendance summaries, monthly summary, staff cost | M | HR-1 to HR-3 (cost after HR-7) |
 | HR-10 | Appraisal, letters, discipline, incidents | Appraisal cycles, letters with issued copies, restricted discipline file, incident reports | L (split) | HR-4 |
+| HR-11 | Clinic compliance | Clinic document licences and expiry, internal audit checklist with photos, vaccine fridge temperature log | M | nothing |
 
 Rules that hold for every slice (from TEAM.md sections 4, 6 and 8):
 - New permissions start with `hr.`, end in `.own` or `.organisation`, come in by additive migration and never join
@@ -95,13 +96,16 @@ would be a separate `hr.roster.view.branch` decision).
 5. A proposed room must be an active room of the same branch. Two people proposed in the same room at the same time
    is a warning ("Room 2 is proposed for two people at 9:00 AM"), because dispensary and treatment rooms are shared.
 6. The approver cannot be the person who submitted that version (decision 3: nobody approves their own request).
-   If the Director drafted and submitted, a second Director must approve. **[TO CONFIRM by B.E.R.N.I.S.S]**: allow
-   the Director to approve their own submission when no second Director exists? Our default is **no**: the HR
-   Manager drafts and submits, the Director approves.
+   The HR Manager drafts and sends, the Director approves; a Director-drafted week is sent by someone else or
+   approved by a second Director (TEAM.md decision 13).
 7. Approving supersedes the previous approved version of that week in the same transaction.
 8. Minimum staffing: for each branch-local day, session type and role, the planner counts shifts in the version
    being viewed and shows "Short: 1 CA" if below the minimum. Warning only; it never blocks submission or approval
    (TEAM.md backlog: "a shortfall warning on the planner").
+
+**Possible small follow-up HR-1b (owner to choose):** the CA Supervisor sees the approved roster of their
+branches (a read-only `hr.roster.view.branch`, names, times and sessions only); shift swaps between two staff
+approved by a manager.
 
 **What stays out of HR-1.** Clock-in, attendance, overtime, pay rates, leave, shift swaps between staff, recurring
 patterns (only a manual "Copy last approved week"), locums without accounts, Google Calendar sync, any change to
@@ -228,8 +232,7 @@ roles), `hr.sops.manage.organisation` (Director, HR Manager), `hr.sops.acknowled
 **Stays out.** Any change to DOC-02a verification (Director-only, unchanged); no regulator lookup; no clinical
 gate (decision 4); vaccination health details beyond "Hep B: done / not done / date" [TO CONFIRM]; the KKM audit
 file export (needs its own export decision); clinic document licences, internal audit checklists and the vaccine
-fridge temperature log (proposal part B: these are clinic compliance, not HR; proposed as a later "Compliance"
-slice after HR-10, see section 3).
+fridge temperature log (proposal part B: these are clinic compliance, not HR; now HR-11, after HR-10, see section 3).
 
 **[TO CONFIRM]** The full list of credentials per role; reminder windows (default 60/30/7); clinic opening hours
 per branch for the coverage rule; work-hour limits (adviser).
@@ -362,12 +365,12 @@ whether incident reports are an HR or a clinical-governance process (patient inc
 | Fair rotation (weekend, holiday, night counts) | HR-5 | |
 | Doctor shift swap with compliance manager approval | HR-1b swaps | Approver role [TO CONFIRM] |
 | Staff licence status APC, BLS/ACLS, Hep B, 60/30/7 days | HR-5 | |
-| Clinic documents (registration, X-ray, clinical waste, calibration expiry) | Later "Compliance" slice (HR-11, proposed) | Not HR data; needs its own authorisation |
+| Clinic documents (registration, X-ray, clinical waste, calibration expiry) | HR-11 Clinic compliance | Not HR data; needs its own authorisation |
 | SOP acknowledgement | HR-5 | |
 | KKM audit file export (one button PDF) | Later, after HR-5 | Needs an export decision |
 | Incident reports | HR-10 | Clinical incidents may need clinical review |
-| Internal audit checklist with photos | Later "Compliance" slice (HR-11, proposed) | Needs its own authorisation |
-| Vaccine fridge temperature log | Later "Compliance" slice (HR-11, proposed) | Clinic operations, not HR; needs its own authorisation |
+| Internal audit checklist with photos | HR-11 Clinic compliance | Needs its own authorisation |
+| Vaccine fridge temperature log | HR-11 Clinic compliance | Clinic operations, not HR; needs its own authorisation |
 
 **Part C: Locum**
 
