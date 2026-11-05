@@ -182,10 +182,11 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php`.
   longer than one A4 page repeats the table headings but not the letterhead or claim number; photo file names
   print as uploaded, so a name could carry clinical text; when the claim is below the invoice total the page
   shows "Amount claimed (Panel share)" but no "patient pays the rest" line.
-- **Staff names still outside the BIL-2 rule (possible PNL-6c):** the last actor on the Panel Claims list and the
-  actor in a claim page's Logs (`PanelClaimDirectoryService`) still read names straight from `users`, through an
-  inner join that also drops events without an actor. Doctor names on Panel invoices are doctor display names
-  and are not covered by the staff-name rule.
+- **Staff names (PNL-6c, built 2026-11-05, B.E.R.N.I.S.S for the owner):** the Panel Claims list "Updated by"
+  and a claim page's Logs now follow the BIL-2 staff-visibility rule like every other Panel page; a name the
+  viewer may not see reads "Staff member". Every claim event has an actor (the column is required), so no event
+  was ever dropped by the old join. Doctor names on Panel invoices are doctor display names and are not covered
+  by the staff-name rule.
 - **PNL-7 limits:** one statement covers one Panel at one branch; up to 1 MB and 500 rows; matching is exact
   (ignoring case) in a fixed order: invoice number first, then KPOne's claim number (if the two point at
   different claims the row is "More than one claim"), and a member reference only for a row with neither, and
