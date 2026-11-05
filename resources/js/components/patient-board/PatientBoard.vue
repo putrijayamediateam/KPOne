@@ -1,8 +1,11 @@
 <script setup lang="ts">
 import { Link, router } from '@inertiajs/vue3';
 import { Clock3, Ellipsis, LoaderCircle, UserRound } from '@lucide/vue';
+import { ref } from 'vue';
 import WhatsAppLink from '@/components/patient/WhatsAppLink.vue';
 import CallReadinessActions from '@/components/queue/CallReadinessActions.vue';
+import TreatmentProgressActions from '@/components/queue/TreatmentProgressActions.vue';
+import TreatmentProgressBadge from '@/components/queue/TreatmentProgressBadge.vue';
 import { Button } from '@/components/ui/button';
 import { DisclosureText } from '@/components/ui/disclosure';
 import {
@@ -41,6 +44,13 @@ defineEmits<{
     cancel: [row: PatientBoardRow];
     readinessChanged: [];
 }>();
+
+// Q-2: one treatment dialog at a time, opened from the row menu or the inline "Mark done" button.
+const treatmentDialogKey = ref<string | null>(null);
+const openTreatmentDialog = (key: string) => {
+    // Let the menu close and return focus first, so the dialog keeps focus.
+    setTimeout(() => (treatmentDialogKey.value = key), 0);
+};
 
 // A completed visit opens its read-only history when its row is clicked. Clicks on links,
 // buttons and the actions menu keep their own behaviour.
@@ -254,7 +264,16 @@ const rowWaitingTone = (row: PatientBoardRow) =>
                             >
                         </span>
                     </td>
-                    <td class="px-3 py-2.5 align-middle" data-label="Status">
+                    <td
+                        class="px-3 py-2.5 align-middle"
+                        data-label="Status"
+                        :data-treatment-row="
+                            row.treatmentProgress?.state ||
+                            row.treatmentProgress?.canManage
+                                ? ''
+                                : undefined
+                        "
+                    >
                         <div class="flex flex-wrap items-center gap-1.5">
                             <span
                                 class="inline-flex rounded-md px-2 py-0.5 text-[11px] font-normal"
@@ -296,6 +315,23 @@ const rowWaitingTone = (row: PatientBoardRow) =>
                                 :branch-id="branchId"
                                 :from="from ?? 'queue'"
                                 @changed="$emit('readinessChanged')"
+                            />
+                            <TreatmentProgressBadge
+                                :progress="row.treatmentProgress"
+                                :minutes="row.treatmentMinutes"
+                            />
+                            <TreatmentProgressActions
+                                v-if="branchId && row.treatmentProgress"
+                                :open="treatmentDialogKey === row.key"
+                                :progress="row.treatmentProgress"
+                                :visit-number="row.visitNumber"
+                                :branch-id="branchId"
+                                from="queue"
+                                inline="running"
+                                :subject="`${row.queueNumber ?? row.visitNumber} · ${row.patientName}`"
+                                @update:open="
+                                    treatmentDialogKey = $event ? row.key : null
+                                "
                             />
                         </div>
                     </td>
@@ -358,6 +394,16 @@ const rowWaitingTone = (row: PatientBoardRow) =>
                                             >Edit Visit</Link
                                         >
                                     </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                        v-if="
+                                            branchId &&
+                                            row.treatmentProgress?.canManage
+                                        "
+                                        class="min-h-11 rounded-lg px-2.5 text-[13px]"
+                                        data-testid="treatment-progress-menu"
+                                        @select="openTreatmentDialog(row.key)"
+                                        >Treatment progress…</DropdownMenuItem
+                                    >
                                     <DropdownMenuSeparator
                                         v-if="
                                             row.can.sendToWaiting ||
@@ -526,6 +572,10 @@ const rowWaitingTone = (row: PatientBoardRow) =>
     .patient-board td[data-label='Patient'],
     .patient-board td[data-label='Visit notes'],
     .patient-board td[data-label='Payment'] {
+        grid-column: 1 / -1;
+    }
+    /* Q-2: a row with treatment progress gives its Status cell the full card width. */
+    .patient-board td[data-label='Status'][data-treatment-row] {
         grid-column: 1 / -1;
     }
 }

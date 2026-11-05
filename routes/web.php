@@ -79,6 +79,7 @@ use App\Http\Controllers\SupplierReturnController;
 use App\Http\Controllers\SupplierSettingsController;
 use App\Http\Controllers\TreatmentPlanCatalogueController;
 use App\Http\Controllers\TreatmentPlanController;
+use App\Http\Controllers\TreatmentProgressController;
 use App\Http\Controllers\TreatmentUsageController;
 use App\Http\Controllers\VisitController;
 use App\Http\Controllers\VisitHistoryController;
@@ -734,6 +735,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('visits/{visit}/queue/readiness', [QueueReadinessController::class, 'store'])->middleware(['permission:queue.call_hold.set.branch', 'sensitive.no-store', 'throttle:60,1'])->name('queue.readiness.set');
         Route::patch('visits/{visit}/queue/readiness', [QueueReadinessController::class, 'clear'])->middleware(['permission:queue.call_hold.set.branch,queue.call_hold.clear.branch', 'sensitive.no-store', 'throttle:60,1'])->name('queue.readiness.clear');
         Route::get('queue/readiness-updates', [QueueReadinessController::class, 'updates'])->middleware(['permission:queue.view.own,queue.view.branch', 'sensitive.no-store', 'throttle:60,1'])->name('queue.readiness.updates');
+        Route::post('visits/{visit}/queue/treatment-steps', [TreatmentProgressController::class, 'store'])->middleware(['permission:queue.treatment_progress.set.branch,queue.treatment_progress.set.own', 'sensitive.no-store', 'throttle:60,1'])->name('queue.treatment.start');
+        Route::patch('visits/{visit}/queue/treatment-steps/done', [TreatmentProgressController::class, 'done'])->middleware(['permission:queue.treatment_progress.set.branch,queue.treatment_progress.set.own', 'sensitive.no-store', 'throttle:60,1'])->name('queue.treatment.done');
+        Route::patch('visits/{visit}/queue/treatment-steps/cancel', [TreatmentProgressController::class, 'cancel'])->middleware(['permission:queue.treatment_progress.set.branch,queue.treatment_progress.set.own', 'sensitive.no-store', 'throttle:60,1'])->name('queue.treatment.cancel');
+        Route::get('queue/treatment-updates', [TreatmentProgressController::class, 'updates'])->middleware(['permission:queue.view.own', 'sensitive.no-store', 'throttle:60,1'])->name('queue.treatment.updates');
         Route::get('queue/waiting-counts', [QueueController::class, 'waitingCounts'])
             ->middleware(['permission:queue.view.own,queue.view.branch', 'sensitive.no-store', 'throttle:60,1'])
             ->name('queue.waiting-counts');
