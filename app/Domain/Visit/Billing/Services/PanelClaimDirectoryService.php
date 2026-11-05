@@ -123,8 +123,9 @@ final class PanelClaimDirectoryService
                         'visitNumber' => $claim->visit_number,
                         'invoiceNumber' => $claim->invoice_number,
                         'panelName' => $claim->panel_name_snapshot,
+                        'panelId' => (int) $claim->panel_id,
                         'claimAmountSen' => $claim->claim_amount_sen,
-                        'status' => $this->status($claim),
+                        'status' => self::statusLabel($claim),
                         'createdAt' => $claim->created_at?->setTimezone($branch->timezone)->format('j F Y'),
                         'updatedBy' => $latest[$claim->id]['actor'] ?? null,
                         'remarks' => $paymentRemarks[$claim->id] ?? ($latest[$claim->id]['note'] ?? null),
@@ -642,7 +643,7 @@ final class PanelClaimDirectoryService
                     'publicId' => $claim->public_id,
                     'claimNo' => (string) $claim->id,
                     'lockVersion' => $claim->lock_version,
-                    'status' => $this->status($claim),
+                    'status' => self::statusLabel($claim),
                     'statusKey' => $statusKey,
                     'remarks' => $claim->remarks,
                     'submittedOn' => is_array($submittedEvent) ? $submittedEvent['occurredAt'] : null,
@@ -708,7 +709,7 @@ final class PanelClaimDirectoryService
         return [$actor, $branch];
     }
 
-    private function status(PanelClaim $claim): string
+    public static function statusLabel(PanelClaim $claim): string
     {
         return match ($claim->status) {
             'prepared' => 'Prepared',
