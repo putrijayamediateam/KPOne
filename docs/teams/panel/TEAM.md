@@ -12,7 +12,8 @@ the same PR as the code.
 | Reviewer | **Priya** | Checks every piece against the rules below, the tests and the owner's decisions before it reaches the owner |
 | UI/UX designer | **Arjun** | Sketches any screen change before it is built and checks the 390 and 1440 px light and dark screenshots before hand-off; works under the Lead UI/UX Designer, Daniel (Design team, owner decision 2026-11-05) |
 
-Both are Claude builder sessions working for the owner through the coordinator session. Names chosen by the
+Both are Claude builder sessions working for the owner through the coordinator session, B.E.R.N.I.S.S (formerly
+LUCY; renamed by the owner on 2026-11-05). Names chosen by the
 coordinator at the owner's request (2026-11-05).
 
 ## 2. What this area covers
@@ -86,7 +87,8 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php`.
 | PNL-2 | Bulk claim creation: several invoices of one Panel (compared by Panel code) become their own Submitted claims in one all-or-nothing action; at most 20, one shared date, instant and remarks, no photos in bulk; route `POST /panel-claims/bulk` | #226 |
 | PNL-3 | Panel payments: one Panel payment split across that Panel's accepted claims at this branch; the split must equal the payment; each split is an ordinary claim payment linked to the remittance; new append-only `panel_remittances` table and `panel.remittances.record.branch` (Panel Officer, Finance Officer) | #230 |
 | PNL-4 | Follow-up list (`/panel-claims/follow-up`): open claims (not paid, not rejected) with no new event, payment or photo for the Panel's follow-up days, oldest first, with the last action, its date and who did it; per-Panel `claim_follow_up_days` (default 30, 1 to 365) in Panel settings | #238 |
-| PNL-6 | Payment correction (`/panel-payment-corrections`): Finance Officer or Director reverses a wrongly recorded Panel payment with a reason; whole payments only, a split Panel payment with all its splits, never by its recorder; new append-only `panel_claim_payment_reversals` and `panel.claim_payments.reverse.branch`; every payment total leaves reversed payments out | #248 |
+| PNL-6 | Payment correction (`/panel-payment-corrections`): Finance Officer or Director reverses a wrongly recorded Panel payment with a reason; whole payments only, a split Panel payment with all its splits, never by its recorder; new append-only `panel_claim_payment_reversals` and `panel.claim_payments.reverse.branch`; every payment total leaves reversed payments out; migrations `2026_11_06_300100_create_panel_claim_payment_reversals` and `2026_11_06_300200_grant_panel_payment_reversal_permission_additively` | #248 (merged as `dd8f4fe`) |
+| PNL-6b | The Panel payments history and the Follow-up list show a colleague's name only under the staff-directory visibility rule (owner BIL-2 decision), otherwise "Staff member"; no visible change for today's roles | pending |
 
 ## 6. Owner decisions already made (never ask again)
 
@@ -117,7 +119,7 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php`.
     one Panel, shares one remarks text, and carries no photos (photos are added on each claim afterwards).
 16. Prepared (not yet submitted) claims stay on the Follow-up list, so a claim nobody submitted is not
     forgotten (2026-11-05).
-17. A "ship it" or a decision relayed by the coordinator (LUCY) counts as the owner's own; the owner confirmed
+17. A "ship it" or a decision relayed by the coordinator, B.E.R.N.I.S.S (formerly LUCY), counts as the owner's own; the owner confirmed
     this in the Panel team session (2026-11-05).
 18. PNL-6 payment correction (owner chose the recommendations, 2026-11-05): a wrong Panel payment is reversed,
     never edited, and the right one recorded again; whole payments only, and a split Panel payment is reversed
@@ -213,7 +215,7 @@ authorisation to build them; the coordinator records it in `docs/BASELINE.md`.
    settings (default 30); a claim appears after that many days with no new action.**
 Second backlog, chosen by the owner on 2026-11-05 ("panel order ok", relayed by the coordinator), in this order:
 
-5. **PNL-6 Payment correction (authorised 2026-11-05, built).** Reverse a wrongly recorded Panel payment;
+5. **PNL-6 Payment correction (shipped 2026-11-05, PR #248).** Reverse a wrongly recorded Panel payment;
    design in `docs/reports/PNL-6-analysis.md`, owner answers in decision 18 (the owner confirmed in this session
    to keep them: Finance Officer or Director, one step, never the recorder).
 6. **PNL-5 Contention test.** A split Panel payment and a single-claim payment on the same claim at the same
