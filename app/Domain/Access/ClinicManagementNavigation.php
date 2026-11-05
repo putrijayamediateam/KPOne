@@ -70,6 +70,10 @@ final class ClinicManagementNavigation
         $add('Panel', 'panel', [
             [$branch && $this->billing->panel($actor), 'Panel Responsibility', 'Review Panel responsibility and approvals for this branch.', 'clinic.panel-responsibility'],
             [$branch && $actor->can('panel.claims.manage.branch'), 'Panel Claims', 'Manage manual claims and their progress.', 'panel-claims.index'],
+            // PNL-10 (B.E.R.N.I.S.S for the owner; Staff Experience agreed): each Panel page under its own permission.
+            [$branch && $actor->can('panel.claims.manage.branch'), 'Claims follow-up', "Open claims with no action for their Panel's follow-up days.", 'panel-claims.follow-up'],
+            [$branch && $actor->can('panel.remittances.record.branch'), 'Panel payments', "Record a Panel's payment and split it across its accepted claims.", 'panel-remittances.index'],
+            [$branch && $actor->can('panel.claim_payments.reverse.branch'), 'Correct a Panel payment', 'Reverse a wrongly recorded Panel payment.', 'panel-payment-corrections.index'],
             [$branch && $actor->can('panel.invoices.export.branch'), 'Panel invoices', 'Review the existing branch Panel invoice report.', 'panel-invoices.index'],
             [$panels, 'Claims message template', 'Manage the claim message in Checkout settings.', 'panel-settings.index'],
         ]);
