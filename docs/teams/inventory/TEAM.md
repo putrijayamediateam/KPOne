@@ -166,6 +166,10 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php`. Key ones:
       owner);
     - no new permission (the Dispensary checker uses `inventory.variances.approve.branch`); migration
       `2026_11_07_000400`. The contract was agreed with Aisyah (Dispensary & OTC).
+28. STK-10 analysis docs PR: "ship it", given as **B.E.R.N.I.S.S for the owner** (2026-11-05, ~22:25 UTC, under
+    the owner's overnight hand-over of 22:12 UTC), because it is docs only and approves no valuation, like #172 to
+    #174. On the owner's board for review. Waiting on the owner in person: the accountant's name and package,
+    whether to do option B, and who may see cost.
 
 ## 7. Open items and known limits
 
