@@ -74,3 +74,27 @@ test('the amount box does not look as if it already holds 0.00', () => {
         4,
     );
 });
+
+// Daniel's follow-ups on the CAT-1 screens, carried in CAT-1b.
+test('catalogue dialog titles are in sentence case', () => {
+    const medicine = read('resources/js/pages/Medicine/Index.vue');
+    const service = read('resources/js/pages/ClinicalService/Index.vue');
+
+    assert.doesNotMatch(medicine, /'(Add|Edit) Medicine'/);
+    assert.match(medicine, /editing \? 'Edit medicine' : 'Add medicine'/);
+    assert.doesNotMatch(service, /'(Add|Edit) Clinical Service'/);
+    assert.match(service, /'Edit clinical service'/);
+});
+
+test('on a Pricing card "Publish price" is the clear main action', () => {
+    const cards = pricing.slice(
+        pricing.indexOf('data-testid="charge-card"'),
+        pricing.indexOf('<div class="hidden min-w-0 md:block">'),
+    );
+
+    assert.match(cards, /:variant="charge\.isActive \? 'ghost' : 'secondary'"/);
+    assert.match(
+        cards,
+        /variant="outline"\s+:disabled="publishForm\(charge\)\.busy"/,
+    );
+});

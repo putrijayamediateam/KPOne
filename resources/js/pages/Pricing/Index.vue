@@ -435,7 +435,7 @@ const toggleCharge = (charge: ChargeRow) => {
                 </div>
                 <Button
                     class="min-h-11 w-full"
-                    :variant="charge.isActive ? 'outline' : 'secondary'"
+                    :variant="charge.isActive ? 'ghost' : 'secondary'"
                     :aria-label="`${charge.isActive ? 'Deactivate' : 'Activate'} ${charge.displayName}`"
                     @click="toggleCharge(charge)"
                 >
