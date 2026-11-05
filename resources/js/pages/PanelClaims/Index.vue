@@ -496,7 +496,7 @@ const visitTypeLabel = (value: string) =>
                     </div>
                     <label class="text-xs font-medium text-muted-foreground">
                         Visit date
-                        <span class="mt-1 flex items-center gap-1">
+                        <span class="mt-1 flex flex-wrap items-center gap-1">
                             <input
                                 v-model="draft.visitFrom"
                                 type="date"
@@ -513,7 +513,7 @@ const visitTypeLabel = (value: string) =>
                     </label>
                     <label class="text-xs font-medium text-muted-foreground">
                         Due date
-                        <span class="mt-1 flex items-center gap-1">
+                        <span class="mt-1 flex flex-wrap items-center gap-1">
                             <input
                                 v-model="draft.dueFrom"
                                 type="date"
@@ -552,7 +552,7 @@ const visitTypeLabel = (value: string) =>
                 <template v-else>
                     <label class="text-xs font-medium text-muted-foreground">
                         Amount (RM)
-                        <span class="mt-1 flex items-center gap-1">
+                        <span class="mt-1 flex flex-wrap items-center gap-1">
                             <input
                                 v-model="draft.amountMin"
                                 inputmode="decimal"
@@ -662,7 +662,7 @@ const visitTypeLabel = (value: string) =>
                             <th v-if="visibleColumns.remarks" scope="col">
                                 Remark note
                             </th>
-                            <th scope="col" class="text-right">
+                            <th scope="col" class="relative text-right">
                                 <span class="sr-only">Actions</span>
                             </th>
                         </tr>
@@ -808,7 +808,7 @@ const visitTypeLabel = (value: string) =>
                             <th v-if="visibleColumns.remarks" scope="col">
                                 Remarks
                             </th>
-                            <th scope="col" class="text-right">
+                            <th scope="col" class="relative text-right">
                                 <span class="sr-only">Actions</span>
                             </th>
                         </tr>
