@@ -17,6 +17,7 @@ import { Button } from '@/components/ui/button';
 import { OperationalSelect } from '@/components/ui/select';
 import OperationalTabs from '@/components/ui/tabs/OperationalTabs.vue';
 import { useCallReadinessAlerts } from '@/composables/useCallReadinessAlerts';
+import { useTreatmentDoneAlerts } from '@/composables/useTreatmentDoneAlerts';
 import { formatDate } from '@/lib/presentation';
 import {
     applyQueueFilters,
@@ -32,6 +33,7 @@ import {
     servingDurationLabel,
     waitingDurationLabel,
 } from '@/lib/r1c2-presentation';
+import { treatmentMinutes } from '@/lib/treatment-progress';
 import type {
     PatientBoardRow,
     QueuePollSnapshot,
@@ -110,6 +112,8 @@ const tabs = computed<
 ]);
 const live = ref(props.snapshot);
 const readyAlerts = useCallReadinessAlerts(true);
+// Q-2: the attending doctor (own queue) is told when a treatment step is done.
+const treatmentAlerts = useTreatmentDoneAlerts(true);
 const activeTab = ref<QueueTab>('all');
 const isRefreshing = ref(false);
 const isApplyingFilters = ref(false);
@@ -142,16 +146,20 @@ watch(
     (snapshot) => {
         if (live.value.branch.id !== snapshot.branch.id) {
             readyAlerts.reset();
+            treatmentAlerts.reset();
         }
 
         live.value = snapshot;
         receivedAt.value = Date.now();
     },
 );
-const elapsedMinutes = (row: QueueRow) => {
+const effectiveNowMs = () => {
     void clockNow.value;
-    const effectiveNow =
-        Date.parse(live.value.serverNow) + (Date.now() - receivedAt.value);
+
+    return Date.parse(live.value.serverNow) + (Date.now() - receivedAt.value);
+};
+const elapsedMinutes = (row: QueueRow) => {
+    const effectiveNow = effectiveNowMs();
     const start =
         row.status === 'serving' && row.calledAt ? row.calledAt : row.queuedAt;
     const minutes = Math.max(
@@ -213,6 +221,11 @@ const boardRows = computed<PatientBoardRow[]>(() =>
         key: `${row.operationalDate}-${row.queueNumber}`,
         canWhatsapp: row.canWhatsapp,
         callHold: row.callHold,
+        treatmentProgress: row.treatmentProgress ?? null,
+        treatmentMinutes: treatmentMinutes(
+            row.treatmentProgress,
+            effectiveNowMs(),
+        ),
         patientName: row.patientName,
         patientNumber: row.patientNumber,
         visitNumber: row.visitNumber,
@@ -354,6 +367,12 @@ const refresh = (page = 1, carryPage = 1, reschedule = true) => {
             await readyAlerts
                 .poll(live.value.branch.id, request.signal)
                 .catch(() => undefined);
+
+            if (live.value.scope === 'own') {
+                await treatmentAlerts
+                    .poll(live.value.branch.id, request.signal)
+                    .catch(() => undefined);
+            }
         } catch (caught) {
             if (
                 pollingLifecycle.accepts(requestGeneration) &&
@@ -612,6 +631,7 @@ onBeforeUnmount(() => {
     <main
         class="mx-auto flex w-full max-w-[1600px] flex-1 flex-col gap-2 px-3 py-2 md:px-5"
     >
+        <h1 class="sr-only">Consultation queue</h1>
         <div
             v-if="roomChoice"
             class="flex flex-wrap items-center gap-2 rounded-lg border px-3 py-2 text-[13px]"
@@ -667,6 +687,7 @@ onBeforeUnmount(() => {
             @submit.prevent="applyFilters"
         >
             <label class="relative md:col-span-2 xl:col-span-1"
+                ><span class="sr-only">Search patients or queue numbers</span
                 ><Search
                     class="absolute top-2.5 left-3 size-4 text-muted-foreground" /><input
                     v-model="draftFilters.query"

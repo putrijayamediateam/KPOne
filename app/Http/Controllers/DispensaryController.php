@@ -17,6 +17,7 @@ use App\Domain\Visit\Models\Visit;
 use App\Http\Requests\AcknowledgeDispensaryPartialRequest;
 use App\Http\Requests\AddDispensaryItemRequest;
 use App\Http\Requests\AddDispensaryServiceLineRequest;
+use App\Http\Requests\AddOtcAllergyRequest;
 use App\Http\Requests\ConfirmOtcAllergyRequest;
 use App\Http\Requests\DispensaryCaseActionRequest;
 use App\Http\Requests\EditDispensaryItemRequest;
@@ -78,17 +79,27 @@ class DispensaryController extends Controller
         return to_route('dispensary.show', $dispensaryCase);
     }
 
+    public function addOtcAllergy(AddOtcAllergyRequest $request, DispensaryCase $dispensaryCase, DispensaryService $service): RedirectResponse
+    {
+        $this->stayOnCase($dispensaryCase, fn () => $service->addOtcAllergy($request->user(), $dispensaryCase, $request->validated()));
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'Allergy added.']);
+
+        return to_route('dispensary.show', $dispensaryCase);
+    }
+
     public function labels(Request $request, DispensaryCase $dispensaryCase, DispensaryDirectoryService $directory, ?string $itemPublicId = null): Response|JsonResponse
     {
-        ['labels' => $labels, 'batchNotes' => $batchNotes] = $directory->labelsWithBatchNotes($request->user(), $dispensaryCase, $itemPublicId);
         if ($request->boolean('verify')) {
             $request->validate(['token' => ['required', 'string', 'regex:/^[a-f0-9]{64}$/'], 'branch' => ['required', 'integer']]);
-            abort_unless((int) $request->query('branch') === $labels['branchId'] && hash_equals($labels['token'], $request->string('token')->toString()) && $labels['blocked'] === [], 409);
+            // DSP-6: the fresh check before the print dialog also logs the print (owner decision 2026-11-05). The branch,
+            // token and blocked-label checks (409) now live in DrugLabelService::recordPrint, before anything is written.
+            $reprints = $directory->recordLabelPrint($request->user(), $dispensaryCase, $itemPublicId, $request->string('token')->toString(), (int) $request->query('branch'));
 
-            return response()->json(['current' => true]);
+            return response()->json(['current' => true, 'reprints' => $reprints]);
         }
+        ['labels' => $labels, 'batchNotes' => $batchNotes, 'reprints' => $reprints] = $directory->labelsWithBatchNotes($request->user(), $dispensaryCase, $itemPublicId);
 
-        return Inertia::render('Dispensary/Labels', ['labels' => $labels, 'labelBatchNotes' => $batchNotes]);
+        return Inertia::render('Dispensary/Labels', ['labels' => $labels, 'labelBatchNotes' => $batchNotes, 'labelReprints' => $reprints]);
     }
 
     public function start(DispensaryCaseActionRequest $request, DispensaryCase $dispensaryCase, DispensaryService $service): RedirectResponse

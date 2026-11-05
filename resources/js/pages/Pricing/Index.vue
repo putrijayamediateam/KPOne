@@ -4,10 +4,13 @@ import { reactive } from 'vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { PageHeader } from '@/components/ui/page-header';
 import { OperationalSelect } from '@/components/ui/select';
+import { EmptyState } from '@/components/ui/state';
 import { StatusBadge } from '@/components/ui/status';
 import { OperationalTable } from '@/components/ui/table';
+import { rmToSen } from '@/lib/money';
 
 type ChargeRow = {
     publicId: string;
@@ -44,7 +47,7 @@ const page = usePage<{ branchContext?: { active?: { id: number } | null } }>();
 const activeBranchId = page.props.branchContext?.active?.id ?? null;
 
 const bookOptions = () => [
-    { value: '', label: 'Select a Price Book' },
+    { value: '', label: 'Select a price book' },
     ...props.priceBooks
         .filter((book) => book.isActive)
         .map((book) => ({
@@ -71,7 +74,7 @@ const bookScopeError = () =>
 const chargeTypeOptions = [
     { value: 'consultation', label: 'Consultation' },
     { value: 'medicine', label: 'Medicine' },
-    { value: 'service', label: 'Clinical Service' },
+    { value: 'service', label: 'Clinical service' },
 ];
 const chargeForm = useForm({
     type: 'consultation' as 'consultation' | 'medicine' | 'service',
@@ -128,6 +131,7 @@ const publishForm = (charge: ChargeRow) => {
 
     return publishForms[charge.publicId];
 };
+const emptyAmountMessage = 'Enter an amount. Type 0.00 if this is free.';
 const publish = (charge: ChargeRow) => {
     const state = publishForm(charge);
 
@@ -137,10 +141,18 @@ const publish = (charge: ChargeRow) => {
         return;
     }
 
-    const amountSen = Math.round(Number(state.amount) * 100);
+    // CAT-1b: an empty box is never read as RM 0.00; a typed 0.00 is allowed.
+    // The server refuses an empty amount with the same message.
+    const amountSen = rmToSen(state.amount);
+
+    if (amountSen === null) {
+        state.error = emptyAmountMessage;
+
+        return;
+    }
 
     if (!state.priceBook || !Number.isFinite(amountSen) || amountSen < 0) {
-        state.error = 'Select a Price Book and enter a valid amount.';
+        state.error = 'Select a price book and enter a valid amount.';
 
         return;
     }
@@ -169,6 +181,13 @@ const publish = (charge: ChargeRow) => {
     );
 };
 
+const typeLabel = (type: ChargeRow['type']) =>
+    chargeTypeOptions.find((option) => option.value === type)?.label ?? type;
+const priceText = (charge: ChargeRow) =>
+    charge.currentPrice
+        ? `RM ${(charge.currentPrice.amountSen / 100).toFixed(2)}`
+        : '—';
+
 const toggleCharge = (charge: ChargeRow) => {
     router.post(
         `/pricing/charges/${charge.publicId}/${charge.isActive ? 'deactivate' : 'activate'}`,
@@ -180,188 +199,371 @@ const toggleCharge = (charge: ChargeRow) => {
 
 <template>
     <main
-        class="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-4 py-6 md:px-6"
+        class="mx-auto flex w-full max-w-6xl min-w-0 flex-1 flex-col gap-6 px-4 py-6 md:px-6"
     >
         <PageHeader
             title="Pricing"
-            description="Manage Charge Definitions, Price Books and published prices."
+            description="Manage charge definitions, price books and published prices."
         />
 
         <section class="grid gap-4 md:grid-cols-2">
-            <div class="rounded-xl border bg-card p-4">
-                <h2 class="text-sm font-semibold">New Price Book</h2>
+            <div class="min-w-0 rounded-xl border bg-card p-4">
+                <h2 class="text-sm font-semibold">New price book</h2>
                 <form class="mt-3 grid gap-3" @submit.prevent="submitBook">
-                    <OperationalSelect
-                        v-model="bookForm.branch_id"
-                        label="Scope"
-                        :options="[
-                            { value: '', label: 'Organisation-wide' },
-                            ...branches.map((b) => ({
-                                value: String(b.id),
-                                label: b.name,
-                            })),
-                        ]"
-                    />
-                    <InputError :message="bookScopeError()" />
-                    <label class="grid gap-1 text-xs">
-                        Name
+                    <div class="grid gap-2">
+                        <Label id="book-scope-label" for="book-scope"
+                            >Scope</Label
+                        >
+                        <OperationalSelect
+                            id="book-scope"
+                            v-model="bookForm.branch_id"
+                            label="Scope"
+                            labelledby="book-scope-label"
+                            :invalid="!!bookScopeError()"
+                            :options="[
+                                { value: '', label: 'Organisation-wide' },
+                                ...branches.map((b) => ({
+                                    value: String(b.id),
+                                    label: b.name,
+                                })),
+                            ]"
+                        />
+                        <InputError :message="bookScopeError()" />
+                    </div>
+                    <div class="grid gap-2">
+                        <Label for="book-name">Name *</Label>
                         <Input
+                            id="book-name"
                             v-model="bookForm.name"
                             autocomplete="off"
                             maxlength="150"
+                            aria-required="true"
+                            :aria-invalid="!!bookForm.errors.name || undefined"
                         />
                         <InputError :message="bookForm.errors.name" />
-                    </label>
+                    </div>
                     <Button
                         type="submit"
                         size="sm"
+                        class="justify-self-start"
                         :disabled="bookForm.processing"
-                        >Create Price Book</Button
+                        >Create price book</Button
                     >
                 </form>
             </div>
 
-            <div class="rounded-xl border bg-card p-4">
-                <h2 class="text-sm font-semibold">New Charge Definition</h2>
+            <div class="min-w-0 rounded-xl border bg-card p-4">
+                <h2 class="text-sm font-semibold">New charge definition</h2>
                 <form class="mt-3 grid gap-3" @submit.prevent="submitCharge">
-                    <OperationalSelect
-                        v-model="chargeForm.type"
-                        label="Type"
-                        :options="chargeTypeOptions"
-                    />
-                    <InputError :message="chargeForm.errors.type" />
-                    <template v-if="chargeForm.type === 'medicine'">
+                    <div class="grid gap-2">
+                        <Label id="charge-type-label" for="charge-type"
+                            >Type</Label
+                        >
                         <OperationalSelect
+                            id="charge-type"
+                            v-model="chargeForm.type"
+                            label="Type"
+                            labelledby="charge-type-label"
+                            :invalid="!!chargeForm.errors.type"
+                            :options="chargeTypeOptions"
+                        />
+                        <InputError :message="chargeForm.errors.type" />
+                    </div>
+                    <div
+                        v-if="chargeForm.type === 'medicine'"
+                        class="grid gap-2"
+                    >
+                        <Label id="charge-medicine-label" for="charge-medicine"
+                            >Medicine *</Label
+                        >
+                        <OperationalSelect
+                            id="charge-medicine"
                             v-model="chargeForm.medicine_public_id"
                             label="Medicine"
+                            labelledby="charge-medicine-label"
+                            :invalid="!!chargeForm.errors.medicine_public_id"
                             :options="sourceOptions()"
                         />
                         <InputError
                             :message="chargeForm.errors.medicine_public_id"
                         />
-                    </template>
-                    <template v-else-if="chargeForm.type === 'service'">
+                    </div>
+                    <div
+                        v-else-if="chargeForm.type === 'service'"
+                        class="grid gap-2"
+                    >
+                        <Label id="charge-service-label" for="charge-service"
+                            >Clinical service *</Label
+                        >
                         <OperationalSelect
+                            id="charge-service"
                             v-model="chargeForm.service_public_id"
-                            label="Clinical Service"
+                            label="Clinical service"
+                            labelledby="charge-service-label"
+                            :invalid="!!chargeForm.errors.service_public_id"
                             :options="sourceOptions()"
                         />
                         <InputError
                             :message="chargeForm.errors.service_public_id"
                         />
-                    </template>
-                    <label class="grid gap-1 text-xs">
-                        Code
+                    </div>
+                    <div class="grid gap-2">
+                        <Label for="charge-code">Code *</Label>
                         <Input
+                            id="charge-code"
                             v-model="chargeForm.code"
                             autocomplete="off"
                             maxlength="64"
+                            aria-required="true"
+                            :aria-invalid="
+                                !!chargeForm.errors.code || undefined
+                            "
                         />
                         <InputError :message="chargeForm.errors.code" />
-                    </label>
-                    <label class="grid gap-1 text-xs">
-                        Display name
+                    </div>
+                    <div class="grid gap-2">
+                        <Label for="charge-display-name">Display name *</Label>
                         <Input
+                            id="charge-display-name"
                             v-model="chargeForm.display_name"
                             autocomplete="off"
                             maxlength="500"
+                            aria-required="true"
+                            :aria-invalid="
+                                !!chargeForm.errors.display_name || undefined
+                            "
                         />
                         <InputError :message="chargeForm.errors.display_name" />
-                    </label>
+                    </div>
                     <Button
                         type="submit"
                         size="sm"
+                        class="justify-self-start"
                         :disabled="chargeForm.processing"
-                        >Create Charge Definition</Button
+                        >Create charge definition</Button
                     >
                 </form>
             </div>
         </section>
 
-        <OperationalTable
-            label="Charge Definitions"
-            :columns="5"
-            :empty="charges.length === 0"
-            empty-message="No Charge Definitions yet."
-        >
-            <template #head>
-                <tr>
-                    <th>Charge</th>
-                    <th>Type</th>
-                    <th>Current price (RM)</th>
-                    <th v-if="canPublish">Publish price</th>
-                    <th class="text-right">Status</th>
-                </tr>
-            </template>
-            <template #body>
-                <tr v-for="charge in charges" :key="charge.publicId">
-                    <td>
-                        <div class="font-medium">{{ charge.displayName }}</div>
-                        <div class="text-xs text-muted-foreground">
-                            {{ charge.code }}
-                        </div>
-                    </td>
-                    <td class="capitalize">{{ charge.type }}</td>
-                    <td class="tabular-nums">
-                        {{
-                            charge.currentPrice
-                                ? (charge.currentPrice.amountSen / 100).toFixed(
-                                      2,
-                                  )
-                                : '—'
-                        }}
-                    </td>
-                    <td v-if="canPublish">
-                        <div class="flex items-center gap-2">
-                            <OperationalSelect
-                                v-model="publishForm(charge).priceBook"
-                                label="Price Book"
-                                :options="bookOptions()"
-                            />
-                            <Input
-                                v-model="publishForm(charge).amount"
-                                class="w-24"
-                                inputmode="decimal"
-                                placeholder="0.00"
-                            />
-                            <Button
-                                size="sm"
-                                :disabled="publishForm(charge).busy"
-                                @click="publish(charge)"
-                            >
-                                Publish
-                            </Button>
-                        </div>
-                        <p
-                            v-if="publishForm(charge).error"
-                            class="mt-1 text-xs text-destructive"
-                        >
-                            {{ publishForm(charge).error }}
+        <section class="grid gap-3 md:hidden" aria-label="Charge definitions">
+            <h2 class="text-sm font-semibold">Charge definitions</h2>
+            <EmptyState
+                v-if="charges.length === 0"
+                title="No charge definitions yet."
+                description="Create one above to start pricing."
+            />
+            <article
+                v-for="charge in charges"
+                :key="charge.publicId"
+                class="grid min-w-0 gap-3 rounded-xl border bg-card p-4"
+                data-testid="charge-card"
+            >
+                <div class="flex min-w-0 items-start justify-between gap-3">
+                    <div class="min-w-0">
+                        <h3 class="font-medium break-words">
+                            {{ charge.displayName }}
+                        </h3>
+                        <p class="text-xs break-words text-muted-foreground">
+                            {{ charge.code }} · {{ typeLabel(charge.type) }}
                         </p>
-                    </td>
-                    <td class="text-right">
-                        <div class="flex items-center justify-end gap-2">
-                            <StatusBadge
-                                :status="
-                                    charge.isActive ? 'active' : 'inactive'
-                                "
-                                :tone="charge.isActive ? 'success' : 'neutral'"
-                            />
-                            <Button
-                                size="sm"
-                                :variant="
-                                    charge.isActive ? 'ghost' : 'secondary'
-                                "
-                                @click="toggleCharge(charge)"
+                    </div>
+                    <StatusBadge
+                        :status="charge.isActive ? 'active' : 'inactive'"
+                        :tone="charge.isActive ? 'success' : 'neutral'"
+                    />
+                </div>
+                <div class="flex items-center justify-between gap-3 text-sm">
+                    <span class="text-muted-foreground">Current price</span>
+                    <span class="font-medium tabular-nums">{{
+                        priceText(charge)
+                    }}</span>
+                </div>
+                <div v-if="canPublish" class="grid gap-3">
+                    <div class="grid gap-2">
+                        <Label :for="`m-book-${charge.publicId}`"
+                            >Price book *</Label
+                        >
+                        <OperationalSelect
+                            :id="`m-book-${charge.publicId}`"
+                            v-model="publishForm(charge).priceBook"
+                            :label="`Price book for ${charge.displayName}`"
+                            :options="bookOptions()"
+                        />
+                    </div>
+                    <div class="grid gap-2">
+                        <Label :for="`m-amount-${charge.publicId}`"
+                            >Amount (RM) *</Label
+                        >
+                        <Input
+                            :id="`m-amount-${charge.publicId}`"
+                            :aria-describedby="
+                                publishForm(charge).error
+                                    ? `m-amount-error-${charge.publicId}`
+                                    : undefined
+                            "
+                            v-model="publishForm(charge).amount"
+                            :aria-label="`Amount (RM) for ${charge.displayName}`"
+                            aria-required="true"
+                            :aria-invalid="
+                                !!publishForm(charge).error || undefined
+                            "
+                            inputmode="decimal"
+                            placeholder="e.g. 25.00"
+                        />
+                    </div>
+                    <p
+                        v-if="publishForm(charge).error"
+                        :id="`m-amount-error-${charge.publicId}`"
+                        class="text-xs text-destructive"
+                        role="alert"
+                    >
+                        {{ publishForm(charge).error }}
+                    </p>
+                    <Button
+                        class="min-h-11 w-full"
+                        variant="outline"
+                        :disabled="publishForm(charge).busy"
+                        @click="publish(charge)"
+                    >
+                        {{
+                            publishForm(charge).busy
+                                ? 'Publishing…'
+                                : 'Publish price'
+                        }}
+                    </Button>
+                </div>
+                <Button
+                    class="min-h-11 w-full"
+                    :variant="charge.isActive ? 'ghost' : 'secondary'"
+                    :aria-label="`${charge.isActive ? 'Deactivate' : 'Activate'} ${charge.displayName}`"
+                    @click="toggleCharge(charge)"
+                >
+                    {{ charge.isActive ? 'Deactivate' : 'Activate' }}
+                </Button>
+            </article>
+        </section>
+
+        <div class="hidden min-w-0 md:block">
+            <OperationalTable
+                label="Charge definitions"
+                :columns="canPublish ? 5 : 4"
+                :empty="charges.length === 0"
+                empty-message="No charge definitions yet. Create one above to start pricing."
+            >
+                <template #head>
+                    <tr>
+                        <th>Charge</th>
+                        <th>Type</th>
+                        <th class="text-right">Current price</th>
+                        <th v-if="canPublish">Publish price</th>
+                        <th class="text-right">Status</th>
+                    </tr>
+                </template>
+                <template #body>
+                    <tr v-for="charge in charges" :key="charge.publicId">
+                        <td>
+                            <div class="font-medium">
+                                {{ charge.displayName }}
+                            </div>
+                            <div class="text-xs text-muted-foreground">
+                                {{ charge.code }}
+                            </div>
+                        </td>
+                        <td>{{ typeLabel(charge.type) }}</td>
+                        <td class="text-right whitespace-nowrap tabular-nums">
+                            {{ priceText(charge) }}
+                        </td>
+                        <td v-if="canPublish">
+                            <div class="flex flex-wrap items-end gap-2">
+                                <div class="grid min-w-48 flex-1 gap-1">
+                                    <Label
+                                        :for="`d-book-${charge.publicId}`"
+                                        class="text-xs"
+                                        >Price book *</Label
+                                    >
+                                    <OperationalSelect
+                                        :id="`d-book-${charge.publicId}`"
+                                        v-model="publishForm(charge).priceBook"
+                                        :label="`Price book for ${charge.displayName}`"
+                                        :options="bookOptions()"
+                                    />
+                                </div>
+                                <div class="grid w-28 gap-1">
+                                    <Label
+                                        :for="`d-amount-${charge.publicId}`"
+                                        class="text-xs"
+                                        >Amount (RM) *</Label
+                                    >
+                                    <Input
+                                        :id="`d-amount-${charge.publicId}`"
+                                        :aria-describedby="
+                                            publishForm(charge).error
+                                                ? `d-amount-error-${charge.publicId}`
+                                                : undefined
+                                        "
+                                        v-model="publishForm(charge).amount"
+                                        :aria-label="`Amount (RM) for ${charge.displayName}`"
+                                        aria-required="true"
+                                        :aria-invalid="
+                                            !!publishForm(charge).error ||
+                                            undefined
+                                        "
+                                        inputmode="decimal"
+                                        placeholder="e.g. 25.00"
+                                    />
+                                </div>
+                                <Button
+                                    size="sm"
+                                    variant="outline"
+                                    :disabled="publishForm(charge).busy"
+                                    @click="publish(charge)"
+                                >
+                                    {{
+                                        publishForm(charge).busy
+                                            ? 'Publishing…'
+                                            : 'Publish price'
+                                    }}
+                                </Button>
+                            </div>
+                            <p
+                                v-if="publishForm(charge).error"
+                                :id="`d-amount-error-${charge.publicId}`"
+                                class="mt-1 text-xs text-destructive"
+                                role="alert"
                             >
-                                {{
-                                    charge.isActive ? 'Deactivate' : 'Activate'
-                                }}
-                            </Button>
-                        </div>
-                    </td>
-                </tr>
-            </template>
-        </OperationalTable>
+                                {{ publishForm(charge).error }}
+                            </p>
+                        </td>
+                        <td class="text-right">
+                            <div class="flex items-center justify-end gap-2">
+                                <StatusBadge
+                                    :status="
+                                        charge.isActive ? 'active' : 'inactive'
+                                    "
+                                    :tone="
+                                        charge.isActive ? 'success' : 'neutral'
+                                    "
+                                />
+                                <Button
+                                    size="sm"
+                                    :variant="
+                                        charge.isActive ? 'ghost' : 'secondary'
+                                    "
+                                    :aria-label="`${charge.isActive ? 'Deactivate' : 'Activate'} ${charge.displayName}`"
+                                    @click="toggleCharge(charge)"
+                                >
+                                    {{
+                                        charge.isActive
+                                            ? 'Deactivate'
+                                            : 'Activate'
+                                    }}
+                                </Button>
+                            </div>
+                        </td>
+                    </tr>
+                </template>
+            </OperationalTable>
+        </div>
     </main>
 </template>

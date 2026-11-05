@@ -92,7 +92,7 @@ test('Registration and Queue share one two-line Payment column with full-name/no
         assert.match(source, /coverageLabel: (?:visit|row)\.coverageLabel/);
     }
 
-    assert.match(board, /w-\[24%\][^>]*>Payment<\/th>/);
+    assert.match(board, /w-\[18%\][^>]*>Payment<\/th>/);
     assert.doesNotMatch(board, /<th[^>]*>(?:Coverage|Panel note)<\/th>/);
     assert.match(
         board,

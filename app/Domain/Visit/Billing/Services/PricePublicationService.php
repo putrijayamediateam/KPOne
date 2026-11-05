@@ -14,10 +14,16 @@ use Illuminate\Validation\ValidationException;
 
 class PricePublicationService
 {
+    public const EMPTY_AMOUNT_MESSAGE = 'Enter an amount. Type 0.00 if this is free.';
+
     public function __construct(private TransactionalActorAuthority $authority, private AuditRecorder $audit) {}
 
     public function publish(User $actor, PriceBook $book, ChargeDefinition $charge, mixed $amountSen, int $expectedVersion, int $expectedBranch): PriceEntry
     {
+        // CAT-1b: an empty amount is refused with a clear message, never read as zero.
+        if ($amountSen === null || (is_string($amountSen) && trim($amountSen) === '')) {
+            throw ValidationException::withMessages(['amount_sen' => self::EMPTY_AMOUNT_MESSAGE]);
+        }
         $amount = ExactMoney::sen($amountSen, 'unit_price_sen');
         $branch = $this->authority->branch($actor, $expectedBranch);
 

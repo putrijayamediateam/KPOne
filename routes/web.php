@@ -38,6 +38,7 @@ use App\Http\Controllers\InventoryMovementController;
 use App\Http\Controllers\InventoryOperationsController;
 use App\Http\Controllers\InventoryReadinessController;
 use App\Http\Controllers\InventoryReferenceController;
+use App\Http\Controllers\InventoryScanController;
 use App\Http\Controllers\InventoryStockReviewController;
 use App\Http\Controllers\InvoiceActivityController;
 use App\Http\Controllers\InvoiceBillToController;
@@ -79,6 +80,7 @@ use App\Http\Controllers\SupplierReturnController;
 use App\Http\Controllers\SupplierSettingsController;
 use App\Http\Controllers\TreatmentPlanCatalogueController;
 use App\Http\Controllers\TreatmentPlanController;
+use App\Http\Controllers\TreatmentProgressController;
 use App\Http\Controllers\TreatmentUsageController;
 use App\Http\Controllers\VisitController;
 use App\Http\Controllers\VisitHistoryController;
@@ -418,12 +420,14 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('inventory/treatment-usage', [TreatmentUsageController::class, 'index'])->middleware(['permission:inventory.view.branch', 'sensitive.no-store'])->name('inventory.treatment-usage');
         Route::post('inventory/treatment-usage', [TreatmentUsageController::class, 'store'])->middleware(['permission:inventory.usage.record.branch', 'sensitive.no-store', 'throttle:30,1'])->name('inventory.treatment-usage.store');
         Route::post('inventory/treatment-usage/{treatmentUsage}/reverse', [TreatmentUsageController::class, 'reverse'])->whereNumber('treatmentUsage')->middleware(['permission:inventory.variances.approve.branch', 'sensitive.no-store', 'throttle:30,1'])->name('inventory.treatment-usage.reverse');
+        Route::get('inventory/scan', [InventoryScanController::class, 'lookup'])->middleware(['permission:inventory.view.branch', 'sensitive.no-store', 'throttle:120,1'])->name('inventory.scan');
         Route::get('inventory/stock-review', [InventoryStockReviewController::class, 'index'])->middleware(['permission:inventory.view.branch', 'sensitive.no-store'])->name('inventory.stock-review');
         Route::post('inventory/stock-review/{kind}/{reviewItem}', [InventoryStockReviewController::class, 'store'])->whereIn('kind', ['low_stock', 'expiring', 'expired'])->whereNumber('reviewItem')->middleware(['permission:inventory.stock_reviews.manage.branch', 'sensitive.no-store', 'throttle:30,1'])->name('inventory.stock-review.store');
         Route::get('inventory/batch-holds', [InventoryBatchHoldController::class, 'index'])->middleware(['permission:inventory.view.branch', 'sensitive.no-store'])->name('inventory.batch-holds');
         Route::post('inventory/batch-holds/{batch}/{action}', [InventoryBatchHoldController::class, 'store'])->whereUuid('batch')->whereIn('action', ['place', 'release'])->middleware(['sensitive.no-store', 'throttle:30,1'])->name('inventory.batch-holds.store');
         Route::get('inventory/readiness', [InventoryReadinessController::class, 'index'])->middleware('permission:inventory.view.branch')->name('inventory.readiness');
         Route::post('inventory/readiness/{kind}/{key}', [InventoryReadinessController::class, 'verify'])->whereIn('kind', ['unit', 'opening'])->whereUuid('key')->middleware('throttle:30,1')->name('inventory.readiness.verify');
+        Route::post('inventory/readiness/barcode/{sku}', [InventoryReadinessController::class, 'barcode'])->whereUuid('sku')->middleware(['permission:inventory.references.manage.organisation', 'sensitive.no-store', 'throttle:30,1'])->name('inventory.readiness.barcode');
 
         Route::get('inventory/picker', [InventoryController::class, 'picker'])
             ->middleware(['permission:inventory.view.branch', 'throttle:120,1'])->name('inventory.picker');
@@ -507,6 +511,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
             ->middleware(['permission:dispensary.otc.create.branch', 'throttle:30,1'])->name('visits.dispense');
         Route::post('dispensary/{dispensaryCase}/otc-allergy', [DispensaryController::class, 'confirmOtcAllergy'])
             ->whereUuid('dispensaryCase')->middleware(['permission:dispensary.update.branch', 'throttle:30,1'])->name('dispensary.otc-allergy');
+        Route::post('dispensary/{dispensaryCase}/otc-allergy-records', [DispensaryController::class, 'addOtcAllergy'])
+            ->whereUuid('dispensaryCase')->middleware(['permission:allergies.record_otc.branch', 'throttle:30,1'])->name('dispensary.otc-allergy-records');
         Route::get('dispensary/{dispensaryCase}', [DispensaryController::class, 'show'])
             ->whereUuid('dispensaryCase')->middleware('permission:dispensary.view.branch')->name('dispensary.show');
 
@@ -548,9 +554,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::get('{invoice}/receipts/{payment}/print', 'printReceipt')->middleware(['permission:billing.print.branch', 'sensitive.no-store'])->name('billing.receipt');
         });
         Route::get('dispensary/{dispensaryCase}/labels', [DispensaryController::class, 'labels'])
-            ->whereUuid('dispensaryCase')->middleware('permission:dispensary.labels.print.branch')->name('dispensary.labels');
+            ->whereUuid('dispensaryCase')->middleware(['permission:dispensary.labels.print.branch', 'throttle:30,1'])->name('dispensary.labels');
         Route::get('dispensary/{dispensaryCase}/items/{itemPublicId}/label', [DispensaryController::class, 'labels'])
-            ->whereUuid('dispensaryCase')->middleware('permission:dispensary.labels.print.branch')->whereUuid('itemPublicId')->name('dispensary.items.label');
+            ->whereUuid('dispensaryCase')->middleware(['permission:dispensary.labels.print.branch', 'throttle:30,1'])->whereUuid('itemPublicId')->name('dispensary.items.label');
         Route::post('dispensary/{dispensaryCase}/call', [RoomCallController::class, 'dispensary'])
             ->whereUuid('dispensaryCase')->middleware(['permission:dispensary.start.branch', 'throttle:30,1'])->name('dispensary.call');
         Route::post('dispensary/{dispensaryCase}/start', [DispensaryController::class, 'start'])
@@ -732,6 +738,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('visits/{visit}/queue/readiness', [QueueReadinessController::class, 'store'])->middleware(['permission:queue.call_hold.set.branch', 'sensitive.no-store', 'throttle:60,1'])->name('queue.readiness.set');
         Route::patch('visits/{visit}/queue/readiness', [QueueReadinessController::class, 'clear'])->middleware(['permission:queue.call_hold.set.branch,queue.call_hold.clear.branch', 'sensitive.no-store', 'throttle:60,1'])->name('queue.readiness.clear');
         Route::get('queue/readiness-updates', [QueueReadinessController::class, 'updates'])->middleware(['permission:queue.view.own,queue.view.branch', 'sensitive.no-store', 'throttle:60,1'])->name('queue.readiness.updates');
+        Route::post('visits/{visit}/queue/treatment-steps', [TreatmentProgressController::class, 'store'])->middleware(['permission:queue.treatment_progress.set.branch,queue.treatment_progress.set.own', 'sensitive.no-store', 'throttle:60,1'])->name('queue.treatment.start');
+        Route::patch('visits/{visit}/queue/treatment-steps/done', [TreatmentProgressController::class, 'done'])->middleware(['permission:queue.treatment_progress.set.branch,queue.treatment_progress.set.own', 'sensitive.no-store', 'throttle:60,1'])->name('queue.treatment.done');
+        Route::patch('visits/{visit}/queue/treatment-steps/cancel', [TreatmentProgressController::class, 'cancel'])->middleware(['permission:queue.treatment_progress.set.branch,queue.treatment_progress.set.own', 'sensitive.no-store', 'throttle:60,1'])->name('queue.treatment.cancel');
+        Route::get('queue/treatment-updates', [TreatmentProgressController::class, 'updates'])->middleware(['permission:queue.view.own', 'sensitive.no-store', 'throttle:60,1'])->name('queue.treatment.updates');
         Route::get('queue/waiting-counts', [QueueController::class, 'waitingCounts'])
             ->middleware(['permission:queue.view.own,queue.view.branch', 'sensitive.no-store', 'throttle:60,1'])
             ->name('queue.waiting-counts');

@@ -147,6 +147,7 @@ const identifierLabel = (result: Result) =>
                     trigger-class="h-10"
                 />
                 <label class="relative"
+                    ><span class="sr-only">Search patients</span
                     ><Search
                         class="absolute top-3 left-3 size-4 text-muted-foreground" /><input
                         v-model="form.query"

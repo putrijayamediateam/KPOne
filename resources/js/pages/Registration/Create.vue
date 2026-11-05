@@ -522,6 +522,7 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
                 />
                 <div class="flex items-center justify-between pt-1">
                     <p
+                        id="patient-results-heading"
                         class="text-[11px] font-semibold tracking-wide text-muted-foreground uppercase"
                     >
                         {{
@@ -536,6 +537,7 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
                     id="patient-results"
                     v-if="patientResults.length"
                     role="listbox"
+                    aria-labelledby="patient-results-heading"
                 >
                     <div
                         v-for="(patient, index) in patientResults"

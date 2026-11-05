@@ -190,6 +190,7 @@ const clearLimit = (row: ApproverRow, capability: 'panel' | 'deferment') => {
                                                     ? `limit-echo-${row.id}-panel`
                                                     : undefined
                                             "
+                                            :aria-label="`Panel approval limit (sen) for ${row.name}`"
                                             type="number"
                                             min="0"
                                             max="999999999999"
@@ -263,6 +264,7 @@ const clearLimit = (row: ApproverRow, capability: 'panel' | 'deferment') => {
                                                     ? `limit-echo-${row.id}-deferment`
                                                     : undefined
                                             "
+                                            :aria-label="`Pay later approval limit (sen) for ${row.name}`"
                                             type="number"
                                             min="0"
                                             max="999999999999"

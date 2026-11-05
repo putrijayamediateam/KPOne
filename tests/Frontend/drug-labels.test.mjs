@@ -25,14 +25,16 @@ const printHarness = (current = true) => {
     const calls = {reads:0, prints:0};
     const busy = {value:false}; const changed = {value:false}; const retired = {value:false}; const error = {value:''};
     const props = {labels:{blocked:[],token:'a'.repeat(64),branchId:1}};
-    const fn = new Function('props','busy','changed','retired','error','fetch','window','URL',body+';return printLabels;')(
+    // DSP-6 (owner-approved set-up change): the print step also takes the REPRINT list and Vue's nextTick.
+    const reprinted = {value:[]};
+    const fn = new Function('props','busy','changed','retired','error','fetch','window','URL','reprinted','nextTick',body+';return printLabels;')(
         props,busy,changed,retired,error,
         async (url, options) => {
  calls.reads++; assert.equal(url.searchParams.get('verify'),'1'); assert.equal(options.cache,'no-store'); assert.equal(options.method,undefined);
 
  return {ok:current,json:async()=>({current})};
 },
-        {location:{href:'http://127.0.0.1/dispensary/synthetic/labels'},print:()=>calls.prints++},URL,
+        {location:{href:'http://127.0.0.1/dispensary/synthetic/labels'},print:()=>calls.prints++},URL,reprinted,async()=>{},
     );
 
     return {fn,calls,props,busy,changed,retired,error};
