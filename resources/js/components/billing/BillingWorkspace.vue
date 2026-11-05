@@ -516,7 +516,6 @@ const reverse = (receipt: Receipt) =>
                                 v-if="billing.can.print"
                                 :url="`${invoiceBase}/receipts/${receipt.publicId}/issue`"
                                 label="Print receipt"
-                                variant="ghost"
                                 :return-to="manage ? 'payments' : 'billing'"
                             />
                             <Button
