@@ -56,6 +56,14 @@ class PatientMergeFollowUpsTest extends VisitTestCase
                 ->where('mergedGuardian.fromPatientNumber', $duplicate->patient_number)
                 ->missing('mergedGuardian.lock_version'));
 
+        // GUARDIAN-CONTACT-1 rules still hold: the merged guardian never reaches search, matching or WhatsApp data.
+        $search = json_encode(app(PatientDirectoryService::class)->search($ca, ['search_type' => 'name', 'query' => 'Synthetic Merged Guardian']));
+        $this->assertStringNotContainsString('Synthetic Merged Guardian', (string) $search);
+        $this->assertSame([], app(PatientDirectoryService::class)->search($ca, ['search_type' => 'phone', 'query' => '+12025550120'])['data']);
+        $detail = app(PatientDirectoryService::class)->detail($ca, $kept->refresh());
+        $this->assertNull($detail['guardian']);
+        $this->assertStringNotContainsString('Synthetic Merged Guardian', (string) json_encode($detail));
+
         $this->guardian($kept, 'Synthetic Own Guardian');
         $this->actingAs($ca)->get('/patients/'.$kept->patient_number)->assertOk()
             ->assertInertia(fn ($page) => $page->where('patient.guardian.full_name', 'Synthetic Own Guardian')->where('mergedGuardian', null));

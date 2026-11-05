@@ -73,6 +73,28 @@ class MergedProblemListTest extends ClinicalTestCase
         $this->assertSame('active', $problems['merged'][0]['status']);
     }
 
+    public function test_the_kept_patients_problem_routes_refuse_a_merged_records_problem_and_leave_its_own_as_today(): void
+    {
+        [$doctor, $ca, $visit, $queue] = $this->servingFixture();
+        $encounter = $this->startEncounter($doctor, $visit, $queue);
+        $own = $this->problem($visit->patient, 'Synthetic own condition', 'active', $doctor);
+        $duplicate = $this->patient();
+        $merged = $this->problem($duplicate, 'Synthetic merged condition', 'active', $doctor);
+        MergeFixture::merge($visit->patient, $duplicate, $ca, $this->actor('ca_supervisor'));
+
+        $this->selectBranch($doctor, $visit->branch);
+        $base = '/visits/'.$visit->visit_number.'/encounter/problems/'.$merged;
+        $this->actingAs($doctor)->patch($base, ['expected_branch_id' => $visit->branch_id, 'condition_text' => 'Synthetic changed', 'lock_version' => 1])->assertNotFound();
+        $this->actingAs($doctor)->patch($base.'/resolve', ['expected_branch_id' => $visit->branch_id, 'lock_version' => 1, 'resolved_date' => now()->toDateString()])->assertNotFound();
+        $this->actingAs($doctor)->patch($base.'/entered-in-error', ['expected_branch_id' => $visit->branch_id, 'lock_version' => 1])->assertNotFound();
+        $this->assertSame(['active', 'Synthetic merged condition', 1], array_values((array) DB::table('patient_problem_records')->where('public_id', $merged)->first(['status', 'condition_text', 'lock_version'])));
+
+        $problems = app(ClinicalSafetyDirectoryService::class)->problems($doctor, $encounter->refresh());
+        $this->assertSame([$own], $problems['active']->pluck('publicId')->all());
+        $this->assertTrue($problems['canUpdate']);
+        $this->assertSame(['Synthetic merged condition'], array_column($problems['merged'], 'condition'));
+    }
+
     private function problem(Patient $patient, string $condition, string $status, User $by): string
     {
         $publicId = (string) Str::uuid();

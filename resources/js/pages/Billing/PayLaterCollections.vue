@@ -152,7 +152,6 @@ const visit = (page: number, overdueOnly = props.collections.overdueOnly) =>
                         <MergedFromNote
                             v-if="row.mergedFrom"
                             :numbers="[row.mergedFrom]"
-                            lowercase
                         />
                     </td>
                     <td>

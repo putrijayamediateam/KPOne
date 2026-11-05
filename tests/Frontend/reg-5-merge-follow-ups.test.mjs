@@ -51,12 +51,12 @@ test('REG-5: merged problems are a separate read-only group with no actions', ()
     );
     assert.match(
         group,
-        /Read only\. Shown from merged records; they cannot be/,
+        /Read-only\. To change one, a doctor records it again/,
     );
     assert.doesNotMatch(group, /<Button|@click|requestConfirmation/);
     // Clinical safety: an active merged condition is never hidden behind "0 active".
     assert.match(problems, /:open="mergedActiveCount > 0"/);
-    assert.match(problems, /\(\{\{ mergedActiveCount \}\} active\)/);
+    assert.match(problems, /class="font-medium text-foreground"[\s\S]*?\{\{ mergedActiveCount \}\} active/);
     assert.match(problems, /record\.status === 'active'/);
     assert.match(
         problems,

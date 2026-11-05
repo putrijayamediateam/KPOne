@@ -491,7 +491,11 @@ const saveProblem = () => {
                         >
                             · {{ problems.merged.length }} from merged
                             records<template v-if="mergedActiveCount">
-                                ({{ mergedActiveCount }} active)</template
+                                (<span
+                                    class="font-medium text-foreground"
+                                    data-test="merged-active-count"
+                                    >{{ mergedActiveCount }} active</span
+                                >)</template
                             ></template
                         >
                     </p>
@@ -626,8 +630,8 @@ const saveProblem = () => {
                     </summary>
                     <div role="group" :aria-labelledby="mergedHeadingId">
                         <p class="pt-1 text-xs">
-                            Read only. Shown from merged records; they cannot be
-                            changed here.
+                            Read-only. To change one, a doctor records it again
+                            on this record.
                         </p>
                         <p v-if="problems.mergedTruncated" class="pt-1 text-xs">
                             Showing the {{ problems.merged.length }} most
