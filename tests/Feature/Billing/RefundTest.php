@@ -236,6 +236,89 @@ class RefundTest extends BillingTestCase
         $this->assertSame(1, PaymentRefund::query()->count());
     }
 
+    public function test_daily_summary_shows_refunds_by_payout_date_and_matches_cash_closing_on_every_day(): void
+    {
+        // BIL-6b (owner approval 2026-11-05): three refund columns appended; Total received is unchanged.
+        $f = $this->reversedFixture();
+        $card = new PaymentMethod;
+        $card->forceFill(['organisation_id' => $f['visit']->organisation_id, 'code' => 'card', 'name' => 'Synthetic card', 'classification' => 'non_cash'])->save();
+        $this->travelTo($this->refundDay);
+        $supervisor = $this->actor('ca_supervisor');
+        $this->selectBranch($supervisor);
+        $this->post(route('billing.refund', [$f['visit'], $f['receipt']->public_id]), $this->refundInput($f, 'overpaid'))->assertSessionHasNoErrors();
+
+        $this->travelTo($this->refundDay->addDay());
+        $this->selectBranch($f['finance']);
+        $days = [$this->receiptDay->toDateString(), $this->refundDay->toDateString()];
+        $filters = ['expected_branch_id' => $f['visit']->branch_id, 'from' => $days[0], 'to' => $days[1]];
+        $run = fn (array $extra = []): array => $this->postJson(route('reports.daily-summary.run'), [...$filters, ...$extra])->assertOk()->json('result');
+        $closing = app(CashClosingService::class);
+        $matchesClosing = function (array $result) use ($closing, $f): void {
+            foreach ($result['rows'] as $row) {
+                $sen = fn (int $i): int => (int) round(((float) $row[$i]) * 100);
+                $expected = $closing->expected($f['visit']->branch, CarbonImmutable::parse($row[0], $f['visit']->branch->timezone));
+                $this->assertSame($expected['sen'], $sen(3) + $sen(13) - $sen(12), "cash closing for {$row[0]}");
+            }
+        };
+
+        // Waiting cash refund: the reversed receipt is "refund recorded" on its receipt day; the cash went out on the payout day.
+        $result = $run();
+        $this->assertSame(['Cash refunds paid (payout date, MYR)', 'Cash reversed, refund recorded (receipt date, MYR)', 'Non-cash refunds paid (payout date, MYR)'], array_slice($result['columns'], 12));
+        $this->assertSame([$days[0], '40.00', '40.00', '0.00', '0.00', '0.00', '0.00', '0.00', '0.00', '40.00', '40.00', '0.00', '0.00', '40.00', '0.00'], $result['rows'][0]);
+        $this->assertSame([$days[1], ...array_fill(0, 11, '0.00'), '40.00', '0.00', '0.00'], $result['rows'][1]);
+        $this->assertSame(['40.00', '40.00', '0.00'], array_slice(array_values($result['totals']), 11));
+        $matchesClosing($result);
+        // Filters: the refund method and the receipt's invoice visit.
+        $this->assertSame('0.00', $run(['methods' => [(string) $card->id]])['rows'][1][12]);
+        $this->assertSame('0.00', $run(['methods' => [(string) $card->id]])['rows'][0][13]);
+        $this->assertSame('40.00', $run(['methods' => [(string) $f['cash']->id]])['rows'][1][12]);
+        $this->assertSame(['0.00', '0.00'], [$run(['visit_types' => ['otc']])['rows'][0][13], $run(['visit_types' => ['otc']])['rows'][1][12]]);
+
+        // Rejected: no refund at all. A new refund by card of the cash receipt: the cash stayed in the drawer.
+        $this->post(route('billing.refund.decide', [$f['visit'], PaymentRefund::query()->sole()->public_id, 'rejected']), [...$this->decideInput($f), 'reason_code' => 'amount_wrong'])->assertSessionHasNoErrors();
+        $result = $run();
+        $this->assertSame(['0.00', '0.00', '0.00'], array_slice(array_values($result['totals']), 11));
+        $matchesClosing($result);
+        $this->travelTo($this->refundDay->setTime(15, 0)); // Paid out on the refund day, inside the report range.
+        $this->selectBranch($supervisor);
+        $this->post(route('billing.refund', [$f['visit'], $f['receipt']->public_id]), [...$this->refundInput($f, 'overpaid'), 'payment_method_id' => $card->id])->assertSessionHasNoErrors();
+        $this->selectBranch($f['finance']);
+        $result = $run();
+        $this->assertSame(['0.00', '40.00', '40.00'], [$result['rows'][1][12], $result['rows'][0][13], $result['rows'][1][14]]);
+        $this->assertSame('0.00', $result['totals']['Total received (Cash + Non-cash) (receipt date, MYR)']);
+        $matchesClosing($result);
+    }
+
+    public function test_daily_summary_matches_cash_closing_with_a_posted_receipt_an_approved_refund_and_a_payout_after_local_midnight(): void
+    {
+        $f = $this->reversedFixture();
+        $timezone = $f['visit']->branch->timezone;
+        // A second, posted cash receipt on the receipt day: Cash net is not zero.
+        $this->selectBranch($f['ca']);
+        $this->post(route('billing.payment', [$f['visit'], $f['invoice']]), ['expected_branch_id' => $f['visit']->branch_id, 'lock_version' => $f['invoice']->refresh()->lock_version, 'amount_sen' => '4000', 'method' => 'cash', 'idempotency_key' => (string) Str::uuid()])->assertSessionHasNoErrors();
+        // The refund is paid out 30 minutes after local midnight: it belongs to the next local day, not the UTC date.
+        $payout = CarbonImmutable::parse($this->receiptDay->toDateString(), $timezone)->addDay()->addMinutes(30);
+        $this->travelTo($payout);
+        $supervisor = $this->actor('ca_supervisor');
+        $this->selectBranch($supervisor);
+        $this->post(route('billing.refund', [$f['visit'], $f['receipt']->public_id]), $this->refundInput($f, 'overpaid'))->assertSessionHasNoErrors();
+        $this->assertSame($this->receiptDay->toDateString(), $payout->utc()->toDateString()); // Same UTC date as the receipt.
+        $this->travelTo($payout->addHour());
+        $this->selectBranch($f['finance']);
+        $this->post(route('billing.refund.decide', [$f['visit'], PaymentRefund::query()->sole()->public_id, 'approved']), $this->decideInput($f))->assertSessionHasNoErrors();
+
+        $days = [$this->receiptDay->toDateString(), $payout->toDateString()];
+        $result = $this->postJson(route('reports.daily-summary.run'), ['expected_branch_id' => $f['visit']->branch_id, 'from' => $days[0], 'to' => $days[1]])->assertOk()->json('result');
+        $this->assertSame([$days[0], '80.00', '40.00', '40.00', '0.00', '0.00', '0.00', '0.00', '0.00', '80.00', '40.00', '40.00', '0.00', '40.00', '0.00'], $result['rows'][0]);
+        $this->assertSame([$days[1], ...array_fill(0, 11, '0.00'), '40.00', '0.00', '0.00'], $result['rows'][1]);
+        $closing = app(CashClosingService::class);
+        foreach ($result['rows'] as $row) {
+            $sen = fn (int $i): int => (int) round(((float) $row[$i]) * 100);
+            $this->assertSame($closing->expected($f['visit']->branch, CarbonImmutable::parse($row[0], $timezone))['sen'], $sen(3) + $sen(13) - $sen(12), "cash closing for {$row[0]}");
+        }
+        $this->assertSame([8000, -4000], [$closing->expected($f['visit']->branch, CarbonImmutable::parse($days[0], $timezone))['sen'], $closing->expected($f['visit']->branch, CarbonImmutable::parse($days[1], $timezone))['sen']]);
+    }
+
     /** @return array<string, mixed> A RM 40.00 cash receipt paid on the receipt day and reversed by Finance the same day. */
     private function reversedFixture(): array
     {

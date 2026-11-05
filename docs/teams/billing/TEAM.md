@@ -101,6 +101,7 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php` and `BillingPermiss
 | BIL-4c | PostgreSQL contention test for daily cash closing (`PostgresCashClosingRegressionTest`, 4 races in real separate sessions): two counts for one day, a new count against an approval of the old count, two approvers on one count, the same request sent twice. Test only | PR #236 (merged) |
 | BIL-4d | Two more PostgreSQL races in `PostgresBillingRegressionTest` with a real paid cash invoice: a receipt reversal holding its lock makes a cash closing approval wait and then refuse; an approval holding its share lock makes the reversal wait, then both succeed with the approved snapshot kept. Test only | PR #237 |
 | BIL-6 | Refunds: money handed back for a reversed receipt (full amount, any active method, reason code), recorded on the Billing page and approved or rejected by a different person; append-only with PostgreSQL rules. Cash closing counts a refunded reversed receipt as received and the cash refund as paid out, and waits for pending cash refunds. Two new permissions. Design note: `BIL-6-DESIGN.md` | PR #246 |
+| BIL-6b | Daily summary gains three refund columns at the end: Cash refunds paid (payout date), Cash reversed, refund recorded (receipt date) and Non-cash refunds paid (payout date); waiting and approved refunds count, rejected do not. Total received unchanged. Cash net + Cash reversed, refund recorded − Cash refunds paid equals daily cash closing expected cash (tested on every day). Wider table for reports with more than 12 columns | this PR |
 
 ## 6. Owner decisions already made (never ask again)
 
@@ -167,6 +168,11 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php` and `BillingPermiss
       the owner, so that the books and the drawer stay in step.
     - **Existing test change:** the owner approved removing 'refund' from the forbidden route words in
       `VisitAuthorizationTest` (refunds are now an approved surface).
+24. BIL-6b refunds in the Daily summary (2026-11-05, the owner in the Billing session: "yes, change the report
+    tests, start BIL-6b"). The owner approved changing the existing Daily summary report tests for the new
+    columns: the three exact-row assertions in `DailySummaryReportTest` and the Daily summary entries of the
+    pilot-scale golden file. Column names, order and the basis wording follow Siti's sketch: the two columns used
+    for the cash closing sum sit side by side, and "paid" marks payout-date figures.
 
 ## 7. Open items and known limits
 
@@ -224,10 +230,16 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php` and `BillingPermiss
   expected cash; if the day is already approved it shows "changed after approval" (by design). A day cannot be
   approved while a refund paid out that day, or a refund of one of that day's Cash receipts, still waits. The
   counted-cash box takes a minus sign (keyboard set to text on phones). A day's expected cash, and the counted takings, can be
-  below zero when more was refunded than taken; staff enter a minus amount. The Daily summary does not show
-  refunds yet (BIL-6b): adding refund columns changes existing report tests and needs the owner's approval. The
+  below zero when more was refunded than taken; staff enter a minus amount. The
   refund reason is a controlled code; there is no free-text note. Refunds show only on the Billing page of the
   visit whose receipt was reversed (including a voided invoice's receipts).
+
+- Daily summary refunds (BIL-6b): a waiting refund counts before anyone approves it, so a past day's refund
+  columns change if it is later rejected ("current records at generation"). The refund-paid columns follow the
+  refund's own method and payout date, so they can be non-zero on a day with no receipts. Cash closing checks
+  only Cash; there is no Non-cash "reversed, refund recorded" column. The pilot-scale golden file
+  (`tests/Fixtures/PilotScale/original-small-reports.json`) was regenerated for the Daily summary entries only;
+  the Panel, Stock movement and Transaction Detail entries are byte-identical.
 
 ## 8. Rules (every task)
 
@@ -283,7 +295,7 @@ authorisation to build them; the coordinator records it in `docs/BASELINE.md`.
    `payments.reconcile.branch`) counts; a CA Supervisor, Finance Officer or Director approves, never the counter.**
 5. **BIL-6 Refund recording with two-person approval.** *(Built 2026-11-05; PR #246.)* Owner decisions in
    section 6 (23); design note `BIL-6-DESIGN.md`.
-6. **BIL-6b Refunds in the Daily summary.** "Refunded (Cash)" and "Refunded (Non-cash)" columns by payout date,
+6. **BIL-6b Refunds in the Daily summary.** *(Built 2026-11-05; this PR.)* "Refunded (Cash)" and "Refunded (Non-cash)" columns by payout date,
    "Total received" unchanged, numbers proven against cash closing. Needs the owner's approval for the existing
    report test changes.
 7. **BIL-5 Issued receipt and invoice snapshots.** At issue, keep an encrypted, immutable snapshot of what was
