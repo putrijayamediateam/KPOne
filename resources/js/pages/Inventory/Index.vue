@@ -191,6 +191,10 @@ const clearFilters = () => {
             href="/inventory/writeoffs"
             class="inline-flex min-h-11 items-center underline"
             >Write-off (governed)</a
+        ><a
+            href="/inventory/supplier-returns"
+            class="inline-flex min-h-11 items-center underline"
+            >Supplier returns</a
         >
     </div>
     <a

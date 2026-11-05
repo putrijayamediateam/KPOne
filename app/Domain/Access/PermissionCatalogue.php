@@ -115,6 +115,8 @@ final class PermissionCatalogue
             'dispensary.otc.create.branch',
             'dispensary.acknowledge_partial.own',
             'inventory.variances.approve.branch',
+            'inventory.supplier_returns.request.branch',
+            'inventory.supplier_returns.approve.branch',
             'inventory.stock_reviews.manage.branch',
             'inventory.view.branch',
             'inventory.opening_balance.branch',
@@ -404,6 +406,12 @@ final class PermissionCatalogue
 
         foreach (['ca_supervisor', 'finance_officer', 'director'] as $holder) {
             $roles[$holder][] = 'inventory.variances.approve.branch';
+        }
+
+        // STK-7 (owner decision 2026-11-05): a CA Supervisor requests; a Finance Officer or Director approves.
+        $roles['ca_supervisor'][] = 'inventory.supplier_returns.request.branch';
+        foreach (['finance_officer', 'director'] as $holder) {
+            $roles[$holder][] = 'inventory.supplier_returns.approve.branch';
         }
 
         foreach (AgentPermissions::grants() as $permission => $holders) {
