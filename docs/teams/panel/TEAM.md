@@ -175,11 +175,19 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php`.
   inner join that also drops events without an actor. Doctor names on Panel invoices are doctor display names
   and are not covered by the staff-name rule.
 - **PNL-7 limits:** one statement covers one Panel at one branch; up to 1 MB and 500 rows; matching is exact
-  (claim number digits, invoice number or member reference, ignoring case), so a typo or a different number
-  format is "Not found"; amounts read "1,000.00" and "10,00" (a comma before two final digits) as ringgit and sen,
-  but "1.000,00" is "Amount not readable"; only the 200 oldest open claims can be filled into the split; the
-  file is deleted by the daily `panel-statements:purge` run, so it can stay up to a day past its 30 days, and
-  the upload record (no rows) is kept.
+  (ignoring case) in a fixed order: invoice number first, then KPOne's claim number (if the two point at
+  different claims the row is "More than one claim"), and a member reference only for a row with neither, and
+  only among claims still waiting for payment; so a typo or a different number format is "Not found". The claim
+  number column is never pre-selected (a Panel's own claim number is not KPOne's). Amounts read "1,000.00" and
+  "10,00" (a comma before two final digits) as ringgit and sen, but "1.000,00" is "Amount not readable"; only
+  the 200 oldest open claims can be filled into the split. A file past its 30 days stops showing at once; the
+  daily `panel-statements:purge` run deletes it, so the encrypted file can stay up to a day past its 30 days,
+  and the upload record (no rows) is kept. **The scheduler must run at go-live** or files are not deleted.
+  Remove file takes no lock version (removing twice is harmless). **PDPA:** the file holds patient names and
+  Panel references for up to 30 days, encrypted on the private disk; this belongs to the privacy review before
+  real data. A first row that looks like an IC or phone number is refused (best effort). The retry clean-up
+  (a file from a rolled-back attempt is deleted after commit) has no automated test; the failure path does.
+  Design debt: the desktop results are a plain table, not the shared table component.
 - A submitted-but-undecided claim counts as zero outstanding in the Panel summary.
 - Panel summary runs about three queries per approved allocation; not load-tested.
 
@@ -235,8 +243,8 @@ Second backlog, chosen by the owner on 2026-11-05 ("panel order ok", relayed by 
 6. **PNL-5 Contention test.** A split Panel payment and a single-claim payment on the same claim at the same
    moment cannot over-pay; test only. Closes the PNL-3 known limit.
 7. **PNL-7 Panel statement upload helper. (Built 2026-11-05.)** The Panel Officer uploads the Panel's remittance statement (CSV);
-   KPOne suggests matches to claims (claim number, invoice number, member reference); the officer confirms each
-   match and records through the PNL-3 flow. Nothing is recorded automatically. The file is stored privately and
-   deleted after 30 days (to confirm with the owner). No outbound call.
+   KPOne suggests matches to claims (invoice number, then claim number, then member reference); the officer
+   confirms each match and records through the PNL-3 flow. Nothing is recorded automatically. The file is stored
+   privately and deleted after 30 days (owner-confirmed). No outbound call.
 8. **PNL-8 Printable claim pack.** A clean A4 print for one claim and for a selected batch, no clinical content,
    white in dark mode (PRINT-1 rule).

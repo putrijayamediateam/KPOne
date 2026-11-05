@@ -3,7 +3,7 @@ import { router, useForm } from '@inertiajs/vue3';
 import { computed, ref, watch } from 'vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
-import { EmptyState, LoadingState } from '@/components/ui/state';
+import { LoadingState } from '@/components/ui/state';
 import { StatusBadge } from '@/components/ui/status';
 import { myr } from '@/types/billing';
 
@@ -15,6 +15,8 @@ export type StatementRow = {
         | 'matched'
         | 'not_found'
         | 'ambiguous'
+        | 'not_accepted'
+        | 'rejected'
         | 'already_paid'
         | 'over_unpaid'
         | 'repeated'
@@ -55,6 +57,8 @@ const RESULTS: Record<
     matched: { label: 'Matched', tone: 'success' },
     not_found: { label: 'Not found', tone: 'neutral' },
     ambiguous: { label: 'More than one claim', tone: 'warning' },
+    not_accepted: { label: 'Not accepted yet', tone: 'neutral' },
+    rejected: { label: 'Rejected by the Panel', tone: 'neutral' },
     already_paid: { label: 'Already paid', tone: 'neutral' },
     over_unpaid: { label: 'Over unpaid amount', tone: 'warning' },
     repeated: { label: 'Claim used in an earlier row', tone: 'warning' },
@@ -201,7 +205,7 @@ const useTicked = () =>
         <button
             id="statement-heading"
             type="button"
-            class="flex w-full items-center justify-between gap-2 text-left text-sm font-semibold"
+            class="flex w-full items-center justify-between gap-2 rounded-md text-left text-sm font-semibold focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
             :aria-expanded="open"
             aria-controls="statement-body"
             @click="open = !open"
@@ -234,7 +238,7 @@ const useTicked = () =>
                         ref="fileInput"
                         type="file"
                         accept=".csv,text/csv,text/plain"
-                        class="block w-full min-w-0 text-sm"
+                        class="block w-full min-w-0 text-sm file:mr-3 file:rounded-md file:border file:bg-background file:px-3 file:py-1.5 file:text-sm file:text-foreground"
                         :aria-invalid="error ? 'true' : undefined"
                         :aria-describedby="
                             error ? 'statement-error' : undefined
@@ -281,7 +285,7 @@ const useTicked = () =>
                                     ? ''
                                     : String(statement.mapping[column.key])
                             "
-                            class="h-9 w-full min-w-0 rounded-md border bg-background px-2 text-sm"
+                            class="h-9 w-full min-w-0 rounded-md border bg-background px-2 text-sm focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
                             @change="
                                 chooseColumn(
                                     column.key,
@@ -315,16 +319,19 @@ const useTicked = () =>
                             : 'Choose at least one column to match claims by.'
                     }}
                 </p>
-                <EmptyState
-                    v-else-if="matchedCount === 0"
-                    title="No rows match an open claim"
-                    description="No rows match an open claim of this Panel at this branch. Check the columns, or enter the split by hand."
-                />
                 <template v-if="!needsColumns && statement.rows.length > 0">
                     <p class="text-xs" role="status">
                         {{ matchedCount }} matched,
                         {{ statement.rows.length - matchedCount }} cannot be
                         used
+                    </p>
+                    <p
+                        v-if="matchedCount === 0"
+                        class="rounded-md bg-muted p-2 text-sm"
+                        data-testid="statement-no-match"
+                    >
+                        No rows match an open claim of this Panel at this
+                        branch. Check the columns, or enter the split by hand.
                     </p>
                     <!-- Phones: one card per row. -->
                     <ul
@@ -336,15 +343,20 @@ const useTicked = () =>
                             :key="row.line"
                             class="flex items-start gap-3 p-3 text-sm"
                         >
-                            <input
-                                type="checkbox"
-                                class="mt-1 size-5"
-                                :checked="ticked.has(row.line)"
-                                :disabled="row.result !== 'matched'"
-                                :aria-label="`Use row ${row.line}${row.claim ? `, claim ${row.claim.claimNo}` : ''}`"
-                                :aria-describedby="`statement-result-m-${row.line}`"
-                                @change="toggle(row.line)"
-                            />
+                            <!-- A 44 px tap target around the tick box. -->
+                            <label
+                                class="-m-3 flex min-h-11 min-w-11 shrink-0 items-center justify-center p-3"
+                            >
+                                <input
+                                    type="checkbox"
+                                    class="size-5"
+                                    :checked="ticked.has(row.line)"
+                                    :disabled="row.result !== 'matched'"
+                                    :aria-label="`Use row ${row.line}${row.claim ? `, claim ${row.claim.claimNo}` : ''}`"
+                                    :aria-describedby="`statement-result-m-${row.line}`"
+                                    @change="toggle(row.line)"
+                                />
+                            </label>
                             <div class="min-w-0 flex-1 space-y-1">
                                 <p class="tabular-nums">
                                     Row {{ row.line }} ·
@@ -389,13 +401,13 @@ const useTicked = () =>
                                         Statement reference
                                     </th>
                                     <th scope="col" class="p-2 text-right">
-                                        Amount (RM)
+                                        Amount
                                     </th>
                                     <th scope="col" class="p-2">
                                         Suggested claim
                                     </th>
                                     <th scope="col" class="p-2 text-right">
-                                        Unpaid (RM)
+                                        Unpaid
                                     </th>
                                     <th scope="col" class="p-2">Result</th>
                                 </tr>

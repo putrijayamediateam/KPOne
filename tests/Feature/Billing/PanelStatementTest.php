@@ -2,16 +2,21 @@
 
 namespace Tests\Feature\Billing;
 
+use App\Domain\Audit\AuditRecorder;
+use App\Domain\Audit\Models\AuditLog;
 use App\Domain\Organisation\Models\Branch;
 use App\Domain\Visit\Billing\Models\PanelClaim;
 use App\Domain\Visit\Billing\Models\PanelStatementUpload;
 use App\Domain\Visit\Models\Panel;
+use App\Models\User;
 use Carbon\CarbonImmutable;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Inertia\Testing\AssertableInertia as Assert;
+use RuntimeException;
 
 /**
  * PNL-7 (owner decisions 2026-11-05): a Panel's CSV statement suggests claim matches for the PNL-3 split. Nothing
@@ -59,7 +64,13 @@ class PanelStatementTest extends BillingTestCase
         $this->assertStringNotContainsString('Synthetic', $audit);
         $this->assertSame(0, DB::table('panel_claim_payments')->where('panel_claim_id', '!=', $paid->id)->count(), 'Nothing is recorded.');
 
+        // The claim column is never pre-selected: a Panel's own claim number is not KPOne's.
         $this->get(route('panel-remittances.index', ['panel' => $panel->code, 'statement' => $upload->public_id]))->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('statement.mapping', ['amount' => 4, 'claim' => null, 'invoice' => 1, 'member' => 2])
+                ->where('statement.rows.2.result', 'not_found'));
+
+        $this->get(route('panel-remittances.index', ['panel' => $panel->code, 'statement' => $upload->public_id, 'claim_col' => '0']))->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->where('statement.mapping', ['amount' => 4, 'claim' => 0, 'invoice' => 1, 'member' => 2])
                 ->where('statement.headers.3.label', 'Patient Name')
@@ -71,6 +82,7 @@ class PanelStatementTest extends BillingTestCase
                 ->where('statement.rows.3.result', 'already_paid')
                 ->where('statement.rows.4.result', 'not_found')->where('statement.rows.4.claim', null)
                 ->where('statement.rows.5.result', 'repeated')->where('statement.rows.5.amountSen', 500)
+                // The invoice number and the claim number point at different claims.
                 ->where('statement.rows.6.result', 'ambiguous')
                 ->where('statement.rows.7.result', 'ambiguous')
                 ->where('statement.rows.8.result', 'unreadable_amount')
@@ -78,8 +90,10 @@ class PanelStatementTest extends BillingTestCase
                 ->missing('statement.rows.0.patientName'));
 
         // A column can be switched off or chosen by hand; the same file uploaded again reuses the first copy.
-        $this->get(route('panel-remittances.index', ['panel' => $panel->code, 'statement' => $upload->public_id, 'claim_col' => '', 'member_col' => '']))
-            ->assertInertia(fn (Assert $page) => $page->where('statement.mapping.claim', null)->where('statement.rows.2.result', 'not_found'));
+        $this->get(route('panel-remittances.index', ['panel' => $panel->code, 'statement' => $upload->public_id, 'claim_col' => '0', 'member_col' => '']))
+            ->assertInertia(fn (Assert $page) => $page->where('statement.mapping.member', null)->where('statement.rows.7.result', 'not_found'));
+        $this->get(route('panel-remittances.index', ['panel' => $panel->code, 'statement' => $upload->public_id, 'claim_col' => '1.5']))
+            ->assertInertia(fn (Assert $page) => $page->where('statement.mapping.claim', null));
         $this->post(route('panel-remittances.statements.store'), $this->upload($panel, $csv))->assertSessionHasNoErrors();
         $this->assertSame(1, PanelStatementUpload::query()->count());
     }
@@ -158,6 +172,87 @@ class PanelStatementTest extends BillingTestCase
             ->assertInertia(fn (Assert $page) => $page->where('statement', null));
         $this->delete(route('panel-remittances.statements.destroy', $upload->public_id), ['expected_branch_id' => $otherBranch->id]);
         $this->assertNull($upload->refresh()->deleted_at);
+    }
+
+    public function test_matching_prefers_the_invoice_and_explains_claims_that_cannot_take_a_payment(): void
+    {
+        $panel = Panel::factory()->create(['organisation_id' => $this->organisation->id, 'code' => 'SYNTH-ORDER']);
+        [$open, $second] = $this->acceptedClaims($panel, 2);
+        $this->pay($second, 3000);
+        [$allocation, $invoice] = $this->approvedAllocation($panel);
+        $this->post(route('panel-claims.store', $allocation), [
+            'expected_branch_id' => $this->branch->id, 'allocation_lock_version' => $allocation->lock_version,
+            'invoice_lock_version' => $invoice->lock_version, 'idempotency_key' => (string) Str::uuid(),
+            'submitted_date' => CarbonImmutable::now($this->branch->timezone)->toDateString(),
+        ])->assertSessionHasNoErrors();
+        $undecided = PanelClaim::query()->where('coverage_allocation_id', $allocation->id)->sole();
+
+        // "Claim Amount" comes first, but "Amount Paid" is the stronger hint. A quoted cell may hold a line break,
+        // and the file is saved in the Windows character set.
+        $csv = implode("\n", [
+            'Invoice,Member,Claim Amount,Amount Paid,Remark',
+            // A repeat patient: the member reference is shared, but the invoice decides.
+            "{$open->invoice_number},SYNTHETIC-TEST-REF,30.00,12.00,\"first\nsecond line\"",
+            // Only the member reference: the paid claim is left out, so the open claim is the only candidate.
+            ',SYNTHETIC-TEST-REF,30.00,5.00,caf'."\xE9",
+            "{$undecided->invoice_number},,30.00,10.00,",
+        ]);
+        $this->selectBranch($this->officer(), $this->branch);
+        $this->post(route('panel-remittances.statements.store'), $this->upload($panel, $csv))->assertSessionHasNoErrors();
+        $upload = PanelStatementUpload::query()->sole();
+        $this->assertSame(3, $upload->row_count);
+
+        $this->get(route('panel-remittances.index', ['panel' => $panel->code, 'statement' => $upload->public_id]))
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('statement.mapping', ['amount' => 3, 'claim' => null, 'invoice' => 0, 'member' => 1])
+                ->has('statement.rows', 3)
+                ->where('statement.rows.0.result', 'matched')->where('statement.rows.0.claim.publicId', $open->public_id)->where('statement.rows.0.amountSen', 1200)
+                ->where('statement.rows.1.result', 'repeated')->where('statement.rows.1.claim.publicId', $open->public_id)
+                ->where('statement.rows.2.result', 'not_accepted')->where('statement.rows.2.line', 4));
+
+        // Another Panel's code never shows this Panel's statement.
+        $other = Panel::factory()->create(['organisation_id' => $this->organisation->id, 'code' => 'SYNTH-OTHER']);
+        $this->get(route('panel-remittances.index', ['panel' => $other->code, 'statement' => $upload->public_id]))
+            ->assertInertia(fn (Assert $page) => $page->where('statement', null));
+
+        // A file past its 30 days stops showing at once, before the daily clean-up runs.
+        $this->travel(31)->days();
+        $this->get(route('panel-remittances.index', ['panel' => $panel->code, 'statement' => $upload->public_id]))
+            ->assertInertia(fn (Assert $page) => $page->where('statement', null));
+    }
+
+    public function test_a_first_row_that_holds_an_ic_or_phone_number_is_refused(): void
+    {
+        $panel = Panel::factory()->create(['organisation_id' => $this->organisation->id]);
+        $this->selectBranch($this->officer(), $this->branch);
+        foreach (["Synthetic Name,900101-14-5678,30.00\nA,B,C\n", "Synthetic Name,012-3456789,30.00\nA,B,C\n", "Synthetic Name,+60 12 345 6789,30.00\nA,B,C\n"] as $csv) {
+            $this->post(route('panel-remittances.statements.store'), $this->upload($panel, $csv))
+                ->assertSessionHasErrors(['statement' => 'The first row must hold column names.']);
+        }
+        $this->assertSame(0, PanelStatementUpload::query()->count());
+        $this->assertSame([], Storage::disk('local')->allFiles());
+    }
+
+    public function test_a_save_that_fails_after_the_file_is_written_leaves_no_file_behind(): void
+    {
+        $panel = Panel::factory()->create(['organisation_id' => $this->organisation->id]);
+        $this->selectBranch($this->officer(), $this->branch);
+        $this->app->instance(AuditRecorder::class, new class extends AuditRecorder
+        {
+            public function record(string $event, ?Model $subject = null, array $metadata = [], ?User $actor = null, ?Branch $branch = null, ?int $organisationId = null): ?AuditLog
+            {
+                throw new RuntimeException('Synthetic audit failure');
+            }
+        });
+        $this->withoutExceptionHandling();
+        try {
+            $this->post(route('panel-remittances.statements.store'), $this->upload($panel, "Invoice,Amount\nINV-X,10.00\n"));
+            $this->fail('The save should fail.');
+        } catch (RuntimeException $e) {
+            $this->assertSame('Synthetic audit failure', $e->getMessage());
+        }
+        $this->assertSame(0, PanelStatementUpload::query()->count());
+        $this->assertSame([], Storage::disk('local')->allFiles());
     }
 
     /** @return array<string, mixed> */

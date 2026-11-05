@@ -45,10 +45,15 @@ final class PanelStatementService
 
     private const PAYABLE = ['accepted', 'partially_accepted', 'partially_paid'];
 
-    /** Header words used to pre-select each column (lower case, matched as whole words or prefixes). */
+    private const UNDECIDED = ['prepared', 'submitted', 'queried'];
+
+    /**
+     * Header words used to pre-select each column (lower case, matched as whole words or prefixes), strongest first.
+     * The claim column is never pre-selected: a Panel's own claim number is not KPOne's claim number.
+     */
     private const HEADER_HINTS = [
-        'amount' => ['amount', 'amt', 'paid', 'payment', 'payable', 'jumlah', 'bayaran', 'rm', 'myr', 'total'],
-        'claim' => ['claim'],
+        'amount' => ['paid', 'bayaran', 'payment', 'payable', 'amount', 'amt', 'jumlah', 'rm', 'myr', 'total'],
+        'claim' => [],
         'invoice' => ['invoice', 'inv', 'bill', 'invois'],
         'member' => ['member', 'membership', 'staff', 'employee', 'policy', 'card', 'ahli'],
     ];
@@ -93,7 +98,8 @@ final class PanelStatementService
     public function suggestions(User $actor, Branch $branch, Panel $panel, string $publicId, array $mapping): ?array
     {
         $upload = PanelStatementUpload::query()->where('organisation_id', $actor->organisation_id)->where('branch_id', $branch->id)
-            ->where('panel_id', $panel->id)->whereNull('deleted_at')->where('public_id', strtolower($publicId))->first();
+            ->where('panel_id', $panel->id)->whereNull('deleted_at')->where('delete_after', '>', now()->utc())
+            ->where('public_id', strtolower($publicId))->first();
         if ($upload === null || ! Storage::disk(self::DISK)->exists($upload->stored_path)) {
             return null;
         }
@@ -105,7 +111,7 @@ final class PanelStatementService
             $chosen[$key] = match (true) {
                 $value === null => $this->guess($table['headers'], $key, $chosen),
                 $value === '' => null,
-                is_numeric($value) && (int) $value >= 0 && (int) $value < $columns => (int) $value,
+                (is_int($value) || (is_string($value) && ctype_digit($value))) && (int) $value < $columns => (int) $value,
                 default => null,
             };
         }
@@ -162,9 +168,10 @@ final class PanelStatementService
     /** @param array<string, mixed> $a */
     private function store(User $actor, array $a, string $content, string $hash, int $rowCount): PanelStatementUpload
     {
-        $path = null;
+        // Every file written by any attempt: a retried transaction writes a new one each time.
+        $written = [];
         try {
-            return DB::transaction(function () use ($actor, $a, $content, $hash, $rowCount, &$path): PanelStatementUpload {
+            $upload = DB::transaction(function () use ($actor, $a, $content, $hash, $rowCount, &$written): PanelStatementUpload {
                 $branch = $this->authority->branch($actor, $a['expected_branch_id']);
                 $actor = $this->authority->lock($actor, $branch, self::PERMISSION);
                 $panel = Panel::query()->where('organisation_id', $actor->organisation_id)->where('code', (string) $a['panel'])->first();
@@ -178,6 +185,7 @@ final class PanelStatementService
                 }
                 $publicId = (string) Str::uuid();
                 $path = 'panel-statements/'.$actor->organisation_id.'/'.$publicId.'.csv.enc';
+                $written[] = $path;
                 if (! Storage::disk(self::DISK)->put($path, Crypt::encryptString($content))) {
                     throw ValidationException::withMessages(['statement' => 'The file could not be saved. Try again.']);
                 }
@@ -205,11 +213,23 @@ final class PanelStatementService
                 return $upload;
             }, 3);
         } catch (Throwable $e) {
-            // The record was not saved, so the file written for it must not stay behind.
-            if ($path !== null && ! PanelStatementUpload::query()->where('stored_path', $path)->exists()) {
+            // No record was saved, so no file written for it may stay behind.
+            $this->deleteUnrecorded($written);
+            throw $e;
+        }
+        // Files from rolled-back attempts belong to no record.
+        $this->deleteUnrecorded(array_values(array_diff($written, [$upload->stored_path])));
+
+        return $upload;
+    }
+
+    /** @param list<string> $paths */
+    private function deleteUnrecorded(array $paths): void
+    {
+        foreach ($paths as $path) {
+            if (! PanelStatementUpload::query()->where('stored_path', $path)->exists()) {
                 Storage::disk(self::DISK)->delete($path);
             }
-            throw $e;
         }
     }
 
@@ -262,7 +282,9 @@ final class PanelStatementService
             }
             if ($headers === null) {
                 $headers = $cells;
-                if (count($headers) < 2 || count($headers) > self::MAX_COLUMNS || collect($headers)->every(fn (string $h): bool => $h === '' || $this->amount($h) !== null)) {
+                if (count($headers) < 2 || count($headers) > self::MAX_COLUMNS
+                    || collect($headers)->every(fn (string $h): bool => $h === '' || $this->amount($h) !== null)
+                    || collect($headers)->contains(fn (string $h): bool => $this->looksPersonal($h))) {
                     fclose($handle);
                     $this->refuse('The first row must hold column names.');
                 }
@@ -292,13 +314,13 @@ final class PanelStatementService
      */
     private function guess(array $headers, string $key, array $taken): ?int
     {
-        foreach ($headers as $index => $header) {
-            if (in_array($index, $taken, true)) {
-                continue;
-            }
-            $words = preg_split('/[^a-z0-9]+/', strtolower($header)) ?: [];
-            foreach (self::HEADER_HINTS[$key] as $hint) {
-                foreach ($words as $word) {
+        // Strongest hint first across every column, so "Amount paid" wins over an earlier "Claim amount".
+        foreach (self::HEADER_HINTS[$key] as $hint) {
+            foreach ($headers as $index => $header) {
+                if (in_array($index, $taken, true)) {
+                    continue;
+                }
+                foreach (preg_split('/[^a-z0-9]+/', strtolower($header)) ?: [] as $word) {
                     if ($word !== '' && ($word === $hint || (strlen($hint) > 3 && str_starts_with($word, $hint)))) {
                         return $index;
                     }
@@ -307,6 +329,16 @@ final class PanelStatementService
         }
 
         return null;
+    }
+
+    /** A header cell that looks like an IC number or a phone number means the first row is data, not column names. */
+    private function looksPersonal(string $text): bool
+    {
+        $compact = preg_replace('/[\s()+.]/', '', $text) ?? '';
+
+        return preg_match('/\b\d{6}-?\d{2}-?\d{4}\b/', $text) === 1
+            || preg_match('/\A(?:60|0)1\d-?\d{7,8}\z/', $compact) === 1
+            || preg_match('/\A(?:60|0)[3-9]-?\d{7,8}\z/', $compact) === 1;
     }
 
     /** Ringgit text such as "RM 1,234.50" in sen; null when it is not a positive amount. */
@@ -338,23 +370,34 @@ final class PanelStatementService
             $members[] = strtolower($cell($row, $columns['member']));
         }
         $claims = $this->claims($actor, $branch, $panel, array_values(array_filter($claimNumbers)), array_values(array_filter($invoices)), array_values(array_filter($members)));
+        $outstanding = static fn (PanelClaim $claim): int => max(0, (int) $claim->accepted_amount_sen - (int) $claim->getAttribute('received_sen'));
         $used = [];
         $out = [];
         foreach ($rows as $i => $row) {
-            $keys = array_filter(['claim' => $claimNumbers[$i], 'invoice' => $invoices[$i], 'member' => $members[$i]]);
-            $found = $claims->filter(fn (PanelClaim $claim): bool => (isset($keys['claim']) && (string) $claim->id === $keys['claim'])
-                || (isset($keys['invoice']) && strtolower($claim->invoice_number) === $keys['invoice'])
-                || (isset($keys['member']) && strtolower((string) $claim->member_reference) === $keys['member']));
+            // Invoice number first, then KPOne's claim number; a member reference is only a fallback, because one
+            // member can have many visits, and then only for a row with no invoice or claim number and only among
+            // claims that still wait for payment.
+            $byInvoice = $invoices[$i] === '' ? collect() : $claims->filter(fn (PanelClaim $c): bool => strtolower($c->invoice_number) === $invoices[$i]);
+            $byClaim = $claimNumbers[$i] === '' ? collect() : $claims->filter(fn (PanelClaim $c): bool => (string) $c->id === $claimNumbers[$i]);
+            $found = match (true) {
+                $byInvoice->isNotEmpty() => $byInvoice->count() === 1 && $byClaim->isNotEmpty() && $byClaim->first()->id !== $byInvoice->first()->id
+                    ? $byInvoice->concat($byClaim) : $byInvoice,
+                $byClaim->isNotEmpty() => $byClaim,
+                $members[$i] !== '' && $invoices[$i] === '' && $claimNumbers[$i] === '' => $claims->filter(fn (PanelClaim $c): bool => strtolower((string) $c->member_reference) === $members[$i]
+                    && in_array($c->status, self::PAYABLE, true) && $outstanding($c) > 0),
+                default => collect(),
+            };
             $amount = $this->amount($cell($row, $columns['amount']));
             $claim = $found->count() === 1 ? $found->first() : null;
-            $outstanding = $claim ? max(0, (int) $claim->accepted_amount_sen - (int) $claim->getAttribute('received_sen')) : 0;
+            $unpaid = $claim ? $outstanding($claim) : 0;
             $result = match (true) {
-                $keys === [] || $found->isEmpty() => 'not_found',
-                $found->count() > 1 => 'ambiguous',
+                $claim === null => $found->isEmpty() ? 'not_found' : 'ambiguous',
                 $amount === null => 'unreadable_amount',
-                ! in_array($claim->status, self::PAYABLE, true) || $outstanding === 0 => 'already_paid',
+                in_array($claim->status, self::UNDECIDED, true) => 'not_accepted',
+                $claim->status === 'rejected' => 'rejected',
+                ! in_array($claim->status, self::PAYABLE, true) || $unpaid === 0 => 'already_paid',
                 isset($used[$claim->id]) => 'repeated',
-                $amount > $outstanding => 'over_unpaid',
+                $amount > $unpaid => 'over_unpaid',
                 default => 'matched',
             };
             if ($result === 'matched') {
@@ -370,7 +413,7 @@ final class PanelStatementService
                     'publicId' => $claim->public_id,
                     'claimNo' => (string) $claim->id,
                     'invoiceNumber' => $claim->invoice_number,
-                    'outstandingSen' => $outstanding,
+                    'outstandingSen' => $unpaid,
                 ],
             ];
         }
