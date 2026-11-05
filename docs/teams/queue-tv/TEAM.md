@@ -76,6 +76,7 @@ coordinator (2026-11-05); Yasmin added by owner decision 2026-11-05 (every build
 | Q-1 | Waiting time on the Queue board and the Registration board (All and Waiting tabs, A and B numbers) turns amber from 30 min and red from 60 min (frontend only, from the existing `queued_at`; shared `PatientBoard.vue` gains one optional `waitingMinutes` row field; rule in `resources/js/lib/waiting-time.ts`) | #240 |
 | Q-2 | Treatment progress: CA, CA Supervisor or the attending doctor mark a controlled step (8 steps) started then done on a Serving consultation; blue/green chip on the Queue board and consultation page; attending-doctor pop-up and count; cleared by Resume or opening the consultation; append-only evidence (`app/Domain/Queue/Treatment/`, migrations `2026_11_08_000100` and `000200`); TV shows nothing | #256 |
 | Q-2b | Shared board (Queue and Registration): Status column widened from 9% to 15% and Payment narrowed from 24% to 18%, so status, not-ready and treatment chips stop wrapping; Payment keeps its two-line Panel name and note tooltip; 390 px cards unchanged. The consultation dropdown's "ready to resume" count line is `font-medium` (dark-mode legibility). Frontend only | this PR |
+| Q-4 | Call next: one button on the Consultation queue board that calls a doctor's next eligible patient through the ordinary Call In (same permission, branch, lock-version, room, busy and audit rules). The doctor's own queue calls their own next patient; a branch caller (`queue.call.branch`) first applies a doctor filter. Today's Waiting first (Urgent, then arrival), carry-over only when nobody today can be called; entries with an active not-ready flag are skipped (no override here). The person confirms a named patient; if that patient is no longer next the server refuses (`next_changed`) and the dialog shows the new one and asks again, never calling on its own. Disabled with a muted reason when no doctor is chosen, the doctor cannot work at the branch today, is already seeing a patient, has no room, nobody is waiting or everyone is not ready. `app/Domain/Queue/Services/CallNextService.php`, `POST /queue/call-next`, a `callNext` block on the queue poll, `components/queue/CallNextControl.vue`. No migration or permission | this PR |
 
 ## 6. Owner decisions already made (never ask again)
 
@@ -108,6 +109,10 @@ coordinator (2026-11-05); Yasmin added by owner decision 2026-11-05 (every build
 12. Q-2b column widths (2026-11-05): Status 15%, Payment 18% on the shared board (Daniel's recommendation, agreed with
     Nurul for Patients & Registration). The owner approved the one existing assertion change in
     `tests/Frontend/panel-note.test.mjs` (`w-[24%]` to `w-[18%]`).
+14. Q-4 Call next (2026-11-05): the doctor's own queue, and the branch board for `queue.call.branch` holders once a
+    doctor is chosen; today first, then carry-over; skip not-ready entries; confirm a named patient first and refuse a
+    stale one. Carry-over can be called when everyone waiting today is marked not ready (owner, 2026-11-05). The
+    ordinary `queue.called` audit row is kept; it does not say whether Call next or Call In was used.
 
 ## 7. Open items and known limits
 
@@ -163,4 +168,4 @@ authorisation to build them; the coordinator records it in `docs/BASELINE.md`.
    display mode, used on the TV list, current call and spoken call. Safer for waiting-room privacy.
 4. **Q-4 Call next.** One button for the doctor (and on the branch board for `queue.call.branch` holders) that
    calls the next eligible patient in the existing order (Urgent first), skipping entries with an active
-   not-ready flag; same Call In rules, room requirement and audit as today.
+   not-ready flag; same Call In rules, room requirement and audit as today. Built in this PR (decision 14).
