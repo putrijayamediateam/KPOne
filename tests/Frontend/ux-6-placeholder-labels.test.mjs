@@ -56,7 +56,7 @@ for (const [path, model, name] of [
     [
         'resources/js/pages/Patient/Index.vue',
         'form.issuing_country_code',
-        'Passport issuing country code',
+        'Passport issuing country (2-letter code)',
     ],
     [
         'resources/js/components/catalogue/LocationPicker.vue',
@@ -108,3 +108,15 @@ for (const [path, model, name] of [
         assert.equal(attr(field, 'aria-label'), name);
     });
 }
+
+test('UX-6: the shared Input passes these names through to the native input', () => {
+    const input = readFileSync(
+        new URL(
+            '../../resources/js/components/ui/input/Input.vue',
+            import.meta.url,
+        ),
+        'utf8',
+    );
+
+    assert.doesNotMatch(input, /inheritAttrs:\s*false/);
+});
