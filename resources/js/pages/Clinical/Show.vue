@@ -17,6 +17,8 @@ import DiagnosisPresetPicker from '@/components/clinical/DiagnosisPresetPicker.v
 import UnsavedClinicalWorkDialog from '@/components/clinical/UnsavedClinicalWorkDialog.vue';
 import WaitingPatientsButton from '@/components/clinical/WaitingPatientsButton.vue';
 import InputError from '@/components/InputError.vue';
+import TreatmentProgressActions from '@/components/queue/TreatmentProgressActions.vue';
+import TreatmentProgressBadge from '@/components/queue/TreatmentProgressBadge.vue';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import {
@@ -34,7 +36,7 @@ import AllergyProblemPanel from '@/pages/Clinical/Partials/AllergyProblemPanel.v
 import ClinicalHistoryPanel from '@/pages/Clinical/Partials/ClinicalHistoryPanel.vue';
 import DispensaryAttentionPanel from '@/pages/Clinical/Partials/DispensaryAttentionPanel.vue';
 import TreatmentPlanPanel from '@/pages/Clinical/Partials/TreatmentPlanPanel.vue';
-import type { ClinicalEncounterPage } from '@/types';
+import type { ClinicalEncounterPage, TreatmentProgress } from '@/types';
 
 defineOptions({
     layout: {
@@ -46,6 +48,8 @@ defineOptions({
 const props = defineProps<{
     clinical: ClinicalEncounterPage;
     treatmentRooms?: Array<{ id: number; name: string }>;
+    // Q-2: the Serving consultation's treatment step (board only; never the TV).
+    treatmentProgress?: TreatmentProgress | null;
 }>();
 const page = usePage();
 const user = computed(() => page.props.auth.user!);
@@ -489,6 +493,15 @@ const changeHoldState = (action: 'hold' | 'resume') => {
                     {{ clinical.hold.activeMinutes }} min · Held
                     {{ clinical.hold.heldMinutes }} min</span
                 >
+                <span
+                    v-if="treatmentProgress?.state"
+                    class="inline-flex max-w-full"
+                >
+                    <TreatmentProgressBadge
+                        :progress="treatmentProgress"
+                        live
+                    />
+                </span>
                 <p
                     v-if="consultationCompleted"
                     class="w-full text-xs text-muted-foreground"
@@ -597,6 +610,18 @@ const changeHoldState = (action: 'hold' | 'resume') => {
                     v-if="recallError"
                     class="max-w-56 text-right"
                     :message="recallError"
+                />
+                <TreatmentProgressActions
+                    v-if="
+                        treatmentProgress?.canManage && !consultationCompleted
+                    "
+                    :progress="treatmentProgress"
+                    :visit-number="clinical.visit.visitNumber"
+                    :branch-id="clinical.branch.id"
+                    from="consultation"
+                    inline="always"
+                    compact
+                    :subject="clinical.patient.name"
                 />
                 <Button
                     v-if="clinical.hold.canHold"
