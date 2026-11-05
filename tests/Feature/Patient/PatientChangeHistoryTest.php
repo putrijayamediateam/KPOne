@@ -151,7 +151,7 @@ class PatientChangeHistoryTest extends VisitTestCase
 
         Role::findByName('ca_supervisor', 'web')->revokePermissionTo(PatientChangeHistoryService::PERMISSION);
         app(PermissionRegistrar::class)->forgetCachedPermissions();
-        $migration = require database_path('migrations/2026_11_06_200100_grant_patient_history_permission.php');
+        $migration = require database_path('migrations/2026_11_06_100300_grant_patient_history_permission.php');
         $migration->up();
         $migration->up();
 
