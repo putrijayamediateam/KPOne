@@ -40,6 +40,10 @@ final class PanelClaimPackService
      */
     public function pack(User $actor, array $input): array
     {
+        // Lower-case first, so the same claim given twice in different case is refused as a repeat.
+        if (isset($input['claims']) && is_array($input['claims'])) {
+            $input['claims'] = array_map(static fn (mixed $id): mixed => is_string($id) ? strtolower($id) : $id, $input['claims']);
+        }
         $data = Validator::make($input, [
             'claims' => ['required', 'array', 'min:1', 'max:'.self::MAX_CLAIMS],
             'claims.*' => ['required', 'uuid', 'distinct'],
@@ -47,6 +51,9 @@ final class PanelClaimPackService
             'claims.required' => 'Choose at least one claim.',
             'claims.min' => 'Choose at least one claim.',
             'claims.max' => 'Choose at most '.self::MAX_CLAIMS.' claims.',
+            'claims.array' => 'Choose at least one claim.',
+            'claims.*.uuid' => 'A chosen claim could not be found. Refresh the list and try again.',
+            'claims.*.distinct' => 'A claim was chosen twice. Refresh the list and try again.',
         ])->validate();
         $publicIds = array_values(array_map(static fn (mixed $id): string => strtolower((string) $id), $data['claims']));
 

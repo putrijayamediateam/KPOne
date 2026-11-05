@@ -117,7 +117,8 @@ const print = () => window.print();
                 </Button>
             </div>
             <p class="text-sm text-muted-foreground">
-                Photos are not printed. Use A4 paper. Each print is recorded.
+                Photos are not printed. Use A4 paper. Opening this pack is
+                recorded.
             </p>
             <p
                 v-if="letterheadIncomplete"
@@ -183,13 +184,18 @@ const print = () => window.print();
                     <table class="pack-table" aria-label="Claims in this pack">
                         <thead>
                             <tr>
-                                <th scope="col">#</th>
-                                <th scope="col">Claim no</th>
+                                <th scope="col" class="pack-optional">#</th>
+                                <th scope="col" class="whitespace-nowrap">
+                                    Claim no
+                                </th>
                                 <th scope="col">Patient</th>
                                 <th scope="col">Visit date</th>
                                 <th scope="col">Invoice</th>
                                 <th scope="col">Status</th>
-                                <th scope="col" class="text-right">
+                                <th
+                                    scope="col"
+                                    class="text-right whitespace-nowrap"
+                                >
                                     Claim (RM)
                                 </th>
                             </tr>
@@ -199,7 +205,9 @@ const print = () => window.print();
                                 v-for="(claim, index) in pack.claims"
                                 :key="claim.publicId"
                             >
-                                <td class="tabular-nums">{{ index + 1 }}</td>
+                                <td class="pack-optional tabular-nums">
+                                    {{ index + 1 }}
+                                </td>
                                 <td class="tabular-nums">
                                     {{ claim.claimNo }}
                                 </td>
@@ -270,7 +278,7 @@ const print = () => window.print();
                     <h2 class="text-lg font-bold">
                         PANEL CLAIM {{ claim.claimNo }}
                     </h2>
-                    <div class="text-right">
+                    <div class="sm:text-right">
                         <p>Status: {{ claim.status }}</p>
                         <p v-if="claim.submittedOn">
                             Submitted: {{ claim.submittedOn }}
@@ -314,7 +322,7 @@ const print = () => window.print();
                         <thead>
                             <tr>
                                 <th scope="col">Item</th>
-                                <th scope="col">Code</th>
+                                <th scope="col" class="pack-optional">Code</th>
                                 <th scope="col" class="text-right">Qty</th>
                                 <th scope="col" class="text-right">
                                     Unit (RM)
@@ -327,7 +335,9 @@ const print = () => window.print();
                         <tbody>
                             <tr v-for="line in claim.lines" :key="line.number">
                                 <td>{{ line.name }}</td>
-                                <td>{{ line.code ?? '' }}</td>
+                                <td class="pack-optional">
+                                    {{ line.code ?? '' }}
+                                </td>
                                 <td class="text-right tabular-nums">
                                     {{ quantity(line.quantity) }}
                                 </td>
@@ -364,7 +374,7 @@ const print = () => window.print();
                         <dd>{{ signed(claim.claimOnlyAdjustmentSen) }}</dd>
                     </div>
                     <div class="pack-totals-final">
-                        <dt>Amount claimed</dt>
+                        <dt>Amount claimed (Panel share)</dt>
                         <dd>{{ myr(claim.claimAmountSen) }}</dd>
                     </div>
                 </dl>
@@ -412,9 +422,13 @@ const print = () => window.print();
     overflow-wrap: anywhere;
     box-shadow: 0 1px 3px rgb(0 0 0 / 0.25);
 }
-@media (max-width: 640px) {
+/* On a phone screen the row number and item code give way so the money columns stay in view. */
+@media screen and (max-width: 640px) {
     .pack-sheet {
         padding: 1rem;
+    }
+    .pack-optional {
+        display: none;
     }
 }
 .pack-letterhead {
@@ -500,6 +514,9 @@ const print = () => window.print();
     break-inside: avoid;
 }
 @media print {
+    .pack-table-frame {
+        overflow: visible;
+    }
     .pack-sheet {
         border-radius: 0;
         box-shadow: none;

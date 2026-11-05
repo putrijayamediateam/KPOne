@@ -15,6 +15,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -152,11 +153,19 @@ class PanelClaimsController extends Controller
     {
         $actor = $request->user();
         abort_unless($actor instanceof User, 403);
-        $from = $request->validate(['from' => ['sometimes', 'nullable', 'uuid']])['from'] ?? null;
+        $from = $request->query('from');
+        $from = is_string($from) && Str::isUuid($from) ? strtolower($from) : null;
+        $back = $from !== null ? route('panel-claims.show', ['claim' => $from]) : route('panel-claims.index');
+        try {
+            $pack = $packs->pack($actor, ['claims' => $request->query('claims')]);
+        } catch (ValidationException $e) {
+            // A GET has no form to return to: go back to the page the pack was asked from, never "previous".
+            throw $e->redirectTo($back);
+        }
 
-        return Inertia::render('PanelClaims/Pack', $packs->pack($actor, ['claims' => $request->query('claims')]) + [
-            'backUrl' => is_string($from) ? route('panel-claims.show', ['claim' => strtolower($from)]) : route('panel-claims.index'),
-            'backLabel' => is_string($from) ? 'Back to claim' : 'Back to Panel Claims',
+        return Inertia::render('PanelClaims/Pack', $pack + [
+            'backUrl' => $back,
+            'backLabel' => $from !== null ? 'Back to claim' : 'Back to Panel Claims',
         ]);
     }
 

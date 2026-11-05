@@ -134,6 +134,10 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php`.
     branch that already has an open PR, push only when the change is ready, because a push re-runs CI. The PR
     still opens only after "ship it", with the latest `main` merged first. After a session restart on a fresh
     machine, fetch the branch before continuing.
+21. PNL-8 claim pack (owner chose the recommendations, 2026-11-05): the print shows the patient's IC or
+    passport number (holders of the identity permission only); a batch is claims of one Panel, at most 50, with a
+    cover page and one A4 page per claim; uploaded photos are listed by name, never printed; the heading is the
+    branch letterhead with the branch footer.
 
 ## 7. Open items and known limits
 
@@ -167,6 +171,13 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php`.
   move; Insights, the Panel summary and the agent Panel claims summary (owned by other teams) now leave reversed
   payments out (one condition each). A reversal racing a new payment, and two reversals of one payment, are
   covered by the PNL-5 contention test.
+- **PNL-8 limits:** the pack is a live rendering of the saved claim evidence, so a reprint shows the current
+  status and letterhead, not the paper printed earlier; opening the pack is what is audited
+  (`panel_claim.pack_printed`, claim ids only, with the first claim as the audit subject), not the browser's
+  print itself, and a refresh adds a row; claims are ordered by claim number, not by the order ticked; a claim
+  longer than one A4 page repeats the table headings but not the letterhead or claim number; photo file names
+  print as uploaded, so a name could carry clinical text; when the claim is below the invoice total the page
+  shows "Amount claimed (Panel share)" but no "patient pays the rest" line.
 - **Staff names still outside the BIL-2 rule (possible PNL-6c):** the last actor on the Panel Claims list and the
   actor in a claim page's Logs (`PanelClaimDirectoryService`) still read names straight from `users`, through an
   inner join that also drops events without an actor. Doctor names on Panel invoices are doctor display names
@@ -231,5 +242,5 @@ Second backlog, chosen by the owner on 2026-11-05 ("panel order ok", relayed by 
    KPOne suggests matches to claims (claim number, invoice number, member reference); the officer confirms each
    match and records through the PNL-3 flow. Nothing is recorded automatically. The file is stored privately and
    deleted after 30 days (to confirm with the owner). No outbound call.
-8. **PNL-8 Printable claim pack.** A clean A4 print for one claim and for a selected batch, no clinical content,
-   white in dark mode (PRINT-1 rule).
+8. **PNL-8 Printable claim pack. (Built 2026-11-05.)** A clean A4 print for one claim and for a selected batch,
+   no clinical content, white in dark mode (PRINT-1 rule).

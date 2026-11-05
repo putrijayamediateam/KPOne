@@ -413,13 +413,15 @@ const clearSelection = () => {
 
 // PNL-8: tick claims of one Panel (at most 50) and print them as one pack: a cover page, then one page per claim.
 const packMax = 50;
-// A new tab, filter or page brings new claim rows, which start a fresh pack selection.
+// The pack selection is kept across pages of the list, so up to 50 claims can be gathered; a new tab,
+// date range or filter starts a fresh selection.
 watch(
-    () => props.work.claims,
+    () => JSON.stringify(props.work.filters),
     () => {
         packSelected.value = {};
     },
 );
+const packError = computed(() => bulkErrors.value.claims ?? null);
 const packRows = computed(() => Object.values(packSelected.value));
 const packPanelId = computed(() => packRows.value[0]?.panelId ?? null);
 const packPanel = computed(() => packRows.value[0]?.panelName ?? null);
@@ -1152,6 +1154,14 @@ const visitTypeLabel = (value: string) =>
                 />
             </template>
             <template v-else>
+                <p
+                    v-if="packError"
+                    role="alert"
+                    class="rounded-lg border border-destructive/40 bg-destructive/5 px-4 py-3 text-sm wrap-anywhere text-destructive"
+                    data-testid="claim-pack-error"
+                >
+                    {{ packError }}
+                </p>
                 <section
                     v-if="packRows.length > 0"
                     class="flex flex-col gap-3 rounded-xl border border-primary/30 bg-primary/5 p-4 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between"
@@ -1170,7 +1180,16 @@ const visitTypeLabel = (value: string) =>
                         </p>
                         <p class="text-xs text-muted-foreground">
                             Prints a cover page and one A4 page per claim, with
-                            IC or passport numbers. Each print is recorded.
+                            IC or passport numbers. Opening the pack is
+                            recorded. The selection is kept when you change
+                            page.
+                        </p>
+                        <p
+                            id="pack-panel-rule"
+                            class="text-xs text-muted-foreground"
+                        >
+                            Only claims of {{ packPanel }} can be added to this
+                            pack.
                         </p>
                         <p
                             v-if="atPackMax"
@@ -1276,6 +1295,11 @@ const visitTypeLabel = (value: string) =>
                                                 !packSelected[row.publicId])
                                         "
                                         :title="packLockedReason(row)"
+                                        :aria-describedby="
+                                            canPack(row)
+                                                ? undefined
+                                                : 'pack-panel-rule'
+                                        "
                                         :aria-label="`Select claim ${row.claimNo} for a claim pack`"
                                         @update:model-value="
                                             (value) =>

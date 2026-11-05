@@ -11,6 +11,8 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Inertia\Testing\AssertableInertia as Assert;
+use Spatie\Permission\Models\Role;
+use Spatie\Permission\PermissionRegistrar;
 
 /**
  * PNL-8 (owner decisions 2026-11-05): a printable claim pack for one claim or up to 50 claims of one Panel, with
@@ -89,8 +91,15 @@ class PanelClaimPackTest extends BillingTestCase
                 ->where('pack.claims.0.publicId', $first->public_id)
                 ->where('pack.claims.1.publicId', $second->public_id));
 
-        $this->from(route('panel-claims.index'))->get(route('panel-claims.pack', ['claims' => [$first->public_id, $elsewhere->public_id]]))
-            ->assertSessionHasErrors(['claims' => 'Choose claims of one Panel.']);
+        // A refused GET returns to the page it was asked from, never to a stale "previous" page.
+        $this->withSession(['_previous' => ['url' => route('panel-remittances.index')]])
+            ->get(route('panel-claims.pack', ['claims' => [$first->public_id, $elsewhere->public_id]]))
+            ->assertRedirect(route('panel-claims.index'))->assertSessionHasErrors(['claims' => 'Choose claims of one Panel.']);
+        $this->withSession(['_previous' => ['url' => route('panel-remittances.index')]])
+            ->get(route('panel-claims.pack', ['claims' => [$first->public_id, $elsewhere->public_id], 'from' => $first->public_id]))
+            ->assertRedirect(route('panel-claims.show', $first));
+        $this->get(route('panel-claims.pack', ['claims' => [$first->public_id, strtoupper($first->public_id)]]))
+            ->assertSessionHasErrors(['claims.1' => 'A claim was chosen twice. Refresh the list and try again.']);
         $this->from(route('panel-claims.index'))->get(route('panel-claims.pack', ['claims' => array_map(static fn (): string => (string) Str::uuid(), range(1, 51))]))
             ->assertSessionHasErrors(['claims' => 'Choose at most 50 claims.']);
         $this->from(route('panel-claims.index'))->get(route('panel-claims.pack'))->assertSessionHasErrors(['claims' => 'Choose at least one claim.']);
@@ -115,6 +124,20 @@ class PanelClaimPackTest extends BillingTestCase
         $this->get(route('panel-claims.pack', ['claims' => [$claim->public_id]]))->assertNotFound();
         $this->get(route('panel-claims.letterhead-logo', ['asset' => (string) Str::uuid()]))->assertNotFound();
         $this->assertSame(0, DB::table('audit_logs')->where('event', 'panel_claim.pack_printed')->count());
+    }
+
+    public function test_without_the_identity_permission_the_pack_leaves_out_the_ic_number(): void
+    {
+        $panel = Panel::factory()->create(['organisation_id' => $this->organisation->id]);
+        [$claim] = $this->submittedClaims($panel, 1);
+        Role::findByName('panel_officer')->revokePermissionTo('panel.claims.patient_identity.view.branch');
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
+
+        $this->get(route('panel-claims.pack', ['claims' => [$claim->public_id]]))->assertOk()
+            ->assertInertia(fn (Assert $page) => $page->where('pack.claims.0.identifier', null)
+                ->where('pack.claims.0.identifierType', null)->where('pack.claims.0.identityHidden', true));
+        $metadata = json_decode((string) DB::table('audit_logs')->where('event', 'panel_claim.pack_printed')->sole()->metadata, true);
+        $this->assertFalse($metadata['identity_shown']);
     }
 
     /** @return list<PanelClaim> RM 30.00 Submitted claims */

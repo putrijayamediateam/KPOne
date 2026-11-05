@@ -234,6 +234,9 @@ const recordPayment = () => {
 };
 const printPack = () => window.print();
 // PNL-8: the printable pack for this one claim (letterhead, IC or passport, photo names; no clinical content).
+const packError = computed(
+    () => (page.props.errors as Record<string, string> | undefined)?.claims,
+);
 const packUrl = computed(
     () =>
         `/panel-claims/pack?claims[]=${encodeURIComponent(props.claim.publicId)}&from=${encodeURIComponent(props.claim.publicId)}`,
@@ -395,6 +398,14 @@ const eventTitle = (type: string) =>
                 </Button>
             </div>
         </header>
+        <p
+            v-if="packError"
+            role="alert"
+            class="rounded-lg border border-destructive/40 bg-destructive/5 px-4 py-3 text-sm text-destructive print:hidden"
+            data-testid="claim-pack-error"
+        >
+            {{ packError }}
+        </p>
 
         <p
             v-if="error || uploadRecoveryError"

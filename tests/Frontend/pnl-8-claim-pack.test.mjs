@@ -11,8 +11,19 @@ const pack = read('resources/js/pages/PanelClaims/Pack.vue');
 const index = read('resources/js/pages/PanelClaims/Index.vue');
 const show = read('resources/js/pages/PanelClaims/Show.vue');
 const css = read('resources/css/app.css');
+const app = read('resources/js/app.ts');
 
 test('The pack prints white A4 sheets with the letterhead, a cover for several claims and no photos', () => {
+    // No staff header on paper: the pack renders without the app layout, as the invoice print does.
+    assert.match(
+        app,
+        /case name === 'PanelClaims\/Pack':\s*case name === 'QueueDisplay\/Screen':\s*return null;/,
+    );
+    assert.match(pack, /Amount claimed \(Panel share\)/);
+    assert.match(
+        pack,
+        /@media print \{\s*\.pack-table-frame \{\s*overflow: visible;/,
+    );
     assert.match(pack, /size: A4;/);
     assert.match(
         pack,
@@ -29,7 +40,7 @@ test('The pack prints white A4 sheets with the letterhead, a cover for several c
     assert.match(pack, /IC \/ Passport:/);
     assert.match(
         pack,
-        /Photos are not printed\. Use A4 paper\. Each print is recorded\./,
+        /Photos are not printed\. Use A4 paper\. Opening this pack is\s+recorded\./,
     );
     assert.match(
         pack,
@@ -53,10 +64,16 @@ test('The claims list selects claims of one Panel, at most 50, and opens the pac
     );
     assert.match(
         index,
-        /watch\(\s*\(\) => props\.work\.claims,\s*\(\) => \{\s*packSelected\.value = \{\};/,
+        /watch\(\s*\(\) => JSON\.stringify\(props\.work\.filters\),\s*\(\) => \{\s*packSelected\.value = \{\};/,
     );
     assert.match(index, /min-h-11 min-w-11/);
     assert.match(index, /Print pack/);
+    assert.match(index, /id="pack-panel-rule"/);
+    assert.match(index, /'pack-panel-rule'/);
+    assert.match(
+        index,
+        /const packError = computed\(\(\) => bulkErrors\.value\.claims \?\? null\);/,
+    );
 });
 
 test('The claim page keeps Download PDF and adds Print claim pack', () => {
