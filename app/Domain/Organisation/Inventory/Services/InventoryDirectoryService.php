@@ -3,6 +3,7 @@
 namespace App\Domain\Organisation\Inventory\Services;
 
 use App\Domain\Access\BranchAccessService;
+use App\Domain\Organisation\Inventory\Models\InventoryLocation;
 use App\Domain\Organisation\Inventory\Models\StockMovement;
 use App\Domain\Organisation\Models\Branch;
 use App\Models\User;
@@ -31,6 +32,7 @@ final class InventoryDirectoryService
         StockMovement::TYPE_SUPPLIER_RETURN,
         StockMovement::TYPE_TREATMENT_USAGE,
         StockMovement::TYPE_TREATMENT_WASTE,
+        StockMovement::TYPE_DISPENSARY_RETURN,
     ];
 
     private const MOVEMENT_LABELS = [
@@ -49,6 +51,7 @@ final class InventoryDirectoryService
         StockMovement::TYPE_SUPPLIER_RETURN => 'Supplier Return',
         StockMovement::TYPE_TREATMENT_USAGE => 'Treatment Room Use',
         StockMovement::TYPE_TREATMENT_WASTE => 'Treatment Room Waste',
+        StockMovement::TYPE_DISPENSARY_RETURN => 'Patient Return',
     ];
 
     public function __construct(private BranchAccessService $branches) {}
@@ -130,7 +133,8 @@ final class InventoryDirectoryService
         foreach ($results->items() as $row) {
             $values = (array) $row;
             $expiryDate = CarbonImmutable::parse($values['expiry_date'])->toDateString();
-            $available = (float) $values['quantity'] > 0 && (bool) $values['location_active'] && $values['eligibility_reason'] === null;
+            $returned = $values['location_type'] === InventoryLocation::TYPE_DISPENSARY_RETURNS;
+            $available = ! $returned && (float) $values['quantity'] > 0 && (bool) $values['location_active'] && $values['eligibility_reason'] === null;
             $data[] = [
                 'skuCode' => (string) $values['sku_code'], 'itemName' => $this->itemName($values),
                 'medicineName' => $medicineNames[(int) $values['inventory_sku_id']] ?? null,
@@ -140,7 +144,7 @@ final class InventoryDirectoryService
                 'expiryDate' => CarbonImmutable::parse($expiryDate)->format('j M Y'),
                 'active' => (bool) $values['item_active'] && (bool) $values['sku_active'],
                 'available' => $available,
-                'availabilityStatus' => $values['hold_reason'] ? 'Held' : ($available ? 'Available' : 'Unavailable'),
+                'availabilityStatus' => $returned ? 'Patient return' : ($values['hold_reason'] ? 'Held' : ($available ? 'Available' : 'Unavailable')),
                 ...($values['hold_reason'] ? ['holdReason' => $values['hold_reason']] : []),
             ];
         }
@@ -222,7 +226,8 @@ final class InventoryDirectoryService
                     StockMovement::TYPE_PURCHASE_RECEIPT,
                     StockMovement::TYPE_TRANSFER_RECEIPT,
                     StockMovement::TYPE_STOCKTAKE_GAIN,
-                    StockMovement::TYPE_ADJUSTMENT_IN => '+'.$quantity,
+                    StockMovement::TYPE_ADJUSTMENT_IN,
+                    StockMovement::TYPE_DISPENSARY_RETURN => '+'.$quantity,
                     StockMovement::TYPE_DISPENSE,
                     StockMovement::TYPE_TRANSFER_DISPATCH,
                     StockMovement::TYPE_STOCKTAKE_LOSS,
@@ -239,7 +244,8 @@ final class InventoryDirectoryService
                     StockMovement::TYPE_PURCHASE_RECEIPT,
                     StockMovement::TYPE_TRANSFER_RECEIPT,
                     StockMovement::TYPE_STOCKTAKE_GAIN,
-                    StockMovement::TYPE_ADJUSTMENT_IN => 'To '.($values['destination_name'] ?? 'inventory'),
+                    StockMovement::TYPE_ADJUSTMENT_IN,
+                    StockMovement::TYPE_DISPENSARY_RETURN => 'To '.($values['destination_name'] ?? 'inventory'),
                     StockMovement::TYPE_DISPENSE,
                     StockMovement::TYPE_TRANSFER_DISPATCH,
                     StockMovement::TYPE_STOCKTAKE_LOSS,
@@ -263,6 +269,7 @@ final class InventoryDirectoryService
                     'inventory_adjustment' => 'Manual adjustment',
                     'inventory_supplier_return' => 'Supplier return',
                     'inventory_treatment_usage' => 'Treatment room usage',
+                    'dispensary_return_check' => 'Patient return check',
                     default => 'Inventory movement'
                 },
             ];
@@ -364,7 +371,7 @@ final class InventoryDirectoryService
             ->where('balance.organisation_id', $actor->organisation_id)->where('l.branch_id', $branch->id);
 
         return [
-            'skusWithStock' => (clone $base)->where('balance.quantity', '>', 0)->distinct()->count('balance.inventory_sku_id'),
+            'skusWithStock' => (clone $base)->where('balance.quantity', '>', 0)->where('l.type', '<>', InventoryLocation::TYPE_DISPENSARY_RETURNS)->distinct()->count('balance.inventory_sku_id'),
             'totalBatches' => (clone $base)->distinct()->count('balance.inventory_batch_id'),
             'expiredBatches' => (clone $base)->where('balance.quantity', '>', 0)->whereDate('batch.expiry_date', '<=', $localDate)->distinct()->count('balance.inventory_batch_id'),
         ];
@@ -394,6 +401,7 @@ final class InventoryDirectoryService
 
     private function label(string $value): string
     {
-        return str($value)->replace('_', ' ')->title()->toString();
+        // STK-11: plain words for the returns type, as on Stock setup.
+        return $value === InventoryLocation::TYPE_DISPENSARY_RETURNS ? 'Patient Returns' : str($value)->replace('_', ' ')->title()->toString();
     }
 }
