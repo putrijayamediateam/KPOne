@@ -6,7 +6,10 @@ use App\Domain\Access\BranchAccessService;
 use App\Domain\Queue\Display\DoctorRoomService;
 use App\Domain\Queue\Display\RoomCallService;
 use App\Domain\Queue\Models\BranchRoom;
+use App\Domain\Queue\Models\QueueCall;
 use App\Domain\Queue\Models\QueueEntry;
+use App\Domain\Queue\QueueNumberFormat;
+use App\Domain\Queue\Services\CallNextService;
 use App\Domain\Queue\Services\OtcQueueService;
 use App\Domain\Queue\Services\QueueDirectoryService;
 use App\Domain\Queue\Services\QueueEntryService;
@@ -142,6 +145,22 @@ class QueueController extends Controller
             throw $exception->redirectTo($target);
         }
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Patient called in.')]);
+
+        return to_route('queue.index');
+    }
+
+    /** Q-4: call the confirmed patient if they are still the doctor's next eligible patient. */
+    public function callNext(Request $request, CallNextService $callNext): RedirectResponse
+    {
+        try {
+            $entry = $callNext->call($request->user(), $request->all());
+        } catch (ValidationException $exception) {
+            throw $exception->redirectTo(route('queue.index'));
+        }
+        $room = QueueCall::query()->where('queue_entry_id', $entry->id)->latest('id')->value('room_name');
+        Inertia::flash('toast', ['type' => 'success', 'message' => $room
+            ? __('Called :number to :room.', ['number' => QueueNumberFormat::format($entry->queue_number), 'room' => $room])
+            : __('Called :number to the counter.', ['number' => QueueNumberFormat::format($entry->queue_number)])]);
 
         return to_route('queue.index');
     }
