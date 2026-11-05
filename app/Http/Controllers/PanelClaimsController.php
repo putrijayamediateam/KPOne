@@ -12,6 +12,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -23,7 +24,17 @@ class PanelClaimsController extends Controller
     {
         $actor = $request->user();
         abort_unless($actor instanceof User, 403);
-        $data = $request->validate([
+        $data = $request->validate(self::listRules());
+
+        return Inertia::render('PanelClaims/Index', [
+            'work' => $directory->search($actor, (int) ($data['allocations_page'] ?? 1), (int) ($data['claims_page'] ?? 1), $data),
+        ]);
+    }
+
+    /** @return array<string, list<string>> */
+    private static function listRules(): array
+    {
+        return [
             'allocations_page' => ['sometimes', 'integer', 'min:1', 'max:10000'],
             'claims_page' => ['sometimes', 'integer', 'min:1', 'max:10000'],
             'tab' => ['sometimes', 'string', 'in:all,pending,overdue,submitted,approved,rejected,received'],
@@ -44,11 +55,7 @@ class PanelClaimsController extends Controller
             'visit_to' => ['sometimes', 'nullable', 'date_format:Y-m-d', 'after_or_equal:visit_from'],
             'due_from' => ['sometimes', 'nullable', 'date_format:Y-m-d'],
             'due_to' => ['sometimes', 'nullable', 'date_format:Y-m-d', 'after_or_equal:due_from'],
-        ]);
-
-        return Inertia::render('PanelClaims/Index', [
-            'work' => $directory->search($actor, (int) ($data['allocations_page'] ?? 1), (int) ($data['claims_page'] ?? 1), $data),
-        ]);
+        ];
     }
 
     public function create(Request $request, CoverageAllocation $allocation, PanelClaimDirectoryService $directory): Response|RedirectResponse
@@ -89,6 +96,30 @@ class PanelClaimsController extends Controller
         }
 
         return to_route('panel-claims.show', $claim);
+    }
+
+    /** PNL-2: create Submitted claims for several approved invoices of one Panel in one action. */
+    public function bulkStore(Request $request, PanelClaimService $claims): RedirectResponse
+    {
+        $actor = $request->user();
+        abort_unless($actor instanceof User, 403);
+        // A refused batch returns to the same list view: every valid list filter and the page are kept.
+        $filters = Validator::make($request->only(array_keys(self::listRules())), self::listRules())->valid();
+        $back = route('panel-claims.index', array_filter($filters, static fn ($value): bool => $value !== null && $value !== ''));
+        try {
+            $created = $claims->bulkCreate($actor, $request->only(['expected_branch_id', 'submitted_date', 'remarks', 'claims']));
+        } catch (ValidationException $e) {
+            throw $e->redirectTo($back);
+        }
+        $count = count($created);
+        $new = count(array_filter($created, static fn (PanelClaim $claim): bool => $claim->wasRecentlyCreated));
+        $message = $count === 1 ? '1 claim created as Submitted.' : $count.' claims created as Submitted.';
+        if ($new !== $count) {
+            $message = $count === 1 ? 'This claim was already created as Submitted.' : $count.' claims are Submitted; '.($count - $new).' had already been created.';
+        }
+        Inertia::flash('toast', ['type' => 'success', 'message' => $message]);
+
+        return to_route('panel-claims.index', ['tab' => 'submitted']);
     }
 
     public function prepare(Request $request, CoverageAllocation $allocation, PanelClaimService $claims): RedirectResponse
