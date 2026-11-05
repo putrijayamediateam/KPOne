@@ -62,21 +62,27 @@ BEGIN
     IF ret.recorded_by_user_id = NEW.checked_by_user_id THEN
         RAISE EXCEPTION 'A dispensary return must be checked by someone other than its recorder' USING ERRCODE = '23514';
     END IF;
-    SELECT COALESCE(m.is_controlled, false) INTO controlled
-    FROM dispensary_items i JOIN medicine_catalogue_items m ON m.id = i.medicine_catalogue_item_id
-    WHERE i.id = ret.dispensary_item_id;
+    controlled := COALESCE((SELECT m.is_controlled
+        FROM dispensary_items i JOIN medicine_catalogue_items m ON m.id = i.medicine_catalogue_item_id
+        WHERE i.id = ret.dispensary_item_id), false);
     IF NEW.outcome = 'quarantine' THEN
         IF controlled THEN
             RAISE EXCEPTION 'A returned controlled medicine is never quarantined' USING ERRCODE = '23514';
         END IF;
         SELECT * INTO mv FROM stock_movements WHERE id = NEW.stock_movement_id;
-        IF mv.id IS NULL OR mv.movement_type <> 'dispensary_return' OR mv.reference_type <> 'dispensary_return_check'
-           OR mv.reference_public_id <> NEW.public_id OR mv.organisation_id <> NEW.organisation_id
-           OR mv.destination_location_id IS DISTINCT FROM NEW.inventory_location_id OR mv.inventory_batch_id <> NEW.inventory_batch_id
-           OR mv.quantity <> ret.quantity
+        IF mv.id IS NULL OR mv.movement_type IS DISTINCT FROM 'dispensary_return' OR mv.reference_type IS DISTINCT FROM 'dispensary_return_check'
+           OR mv.reference_public_id IS DISTINCT FROM NEW.public_id OR mv.organisation_id IS DISTINCT FROM NEW.organisation_id
+           OR mv.destination_location_id IS DISTINCT FROM NEW.inventory_location_id OR mv.inventory_batch_id IS DISTINCT FROM NEW.inventory_batch_id
+           OR mv.quantity IS DISTINCT FROM ret.quantity OR mv.actor_user_id IS DISTINCT FROM NEW.checked_by_user_id
            OR NOT EXISTS (SELECT 1 FROM inventory_locations l WHERE l.id = NEW.inventory_location_id AND l.branch_id = NEW.branch_id AND l.type = 'dispensary_returns')
            OR NOT EXISTS (SELECT 1 FROM dispensary_item_batch_allocations a WHERE a.dispensary_item_id = ret.dispensary_item_id AND a.inventory_batch_id = NEW.inventory_batch_id) THEN
             RAISE EXCEPTION 'A quarantine check must pair with its own dispensary_return movement' USING ERRCODE = '23514';
+        END IF;
+        -- Never quarantine more of one batch than this line was dispensed from it.
+        IF ret.quantity + COALESCE((SELECT SUM(r2.quantity) FROM dispensary_return_checks k2 JOIN dispensary_returns r2 ON r2.id = k2.dispensary_return_id
+                WHERE r2.dispensary_item_id = ret.dispensary_item_id AND k2.outcome = 'quarantine' AND k2.inventory_batch_id = NEW.inventory_batch_id), 0)
+           > (SELECT SUM(a.quantity) FROM dispensary_item_batch_allocations a WHERE a.dispensary_item_id = ret.dispensary_item_id AND a.inventory_batch_id = NEW.inventory_batch_id) THEN
+            RAISE EXCEPTION 'More of this batch would be quarantined than the line dispensed from it' USING ERRCODE = '23514';
         END IF;
     END IF;
     RETURN NEW;
@@ -90,14 +96,15 @@ CREATE TRIGGER dispensary_return_checks_immutable BEFORE UPDATE OR DELETE OR TRU
 -- Every dispensary_return movement must be paired with its quarantine check by commit (STK-11 leaves this to DSP-7).
 CREATE OR REPLACE FUNCTION require_dispensary_return_check_pair() RETURNS trigger LANGUAGE plpgsql AS $$
 BEGIN
-    IF NEW.movement_type = 'dispensary_return' AND NOT EXISTS (
+    IF NOT EXISTS (
         SELECT 1 FROM dispensary_return_checks k WHERE k.stock_movement_id = NEW.id AND k.outcome = 'quarantine' AND k.public_id = NEW.reference_public_id
     ) THEN
         RAISE EXCEPTION 'A dispensary_return movement needs its quarantine check' USING ERRCODE = '23514';
     END IF;
     RETURN NULL;
 END; $$;
-CREATE CONSTRAINT TRIGGER stock_movements_dispensary_return_pair AFTER INSERT ON stock_movements DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION require_dispensary_return_check_pair();
+CREATE CONSTRAINT TRIGGER stock_movements_dispensary_return_pair AFTER INSERT ON stock_movements DEFERRABLE INITIALLY DEFERRED FOR EACH ROW
+    WHEN (NEW.movement_type = 'dispensary_return' OR NEW.reference_type = 'dispensary_return_check') EXECUTE FUNCTION require_dispensary_return_check_pair();
 SQL);
     }
 

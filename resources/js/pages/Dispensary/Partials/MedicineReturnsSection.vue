@@ -236,7 +236,7 @@ const onChecked = async (row: ReturnRow, message: string) => {
 <template>
     <section
         aria-labelledby="returns-heading"
-        class="mt-8 grid gap-4"
+        class="mt-8 grid gap-4 print:hidden"
         data-testid="medicine-returns"
     >
         <div

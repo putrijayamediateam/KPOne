@@ -9,8 +9,10 @@ use App\Domain\Clinical\Dispensary\Models\DispensaryReturnCheck;
 use App\Domain\Clinical\Dispensary\Services\DispensaryReturnService;
 use App\Domain\Clinical\Dispensary\Services\DispensaryService;
 use App\Domain\Clinical\Models\MedicineCatalogueItem;
+use App\Domain\Organisation\Inventory\Models\InventoryBatch;
 use App\Domain\Organisation\Inventory\Models\InventoryLocation;
 use App\Domain\Organisation\Inventory\Models\StockMovement;
+use App\Domain\Organisation\Inventory\Services\InventoryMovementService;
 use App\Models\User;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
@@ -123,6 +125,41 @@ class DispensaryReturnCheckTest extends VisitTestCase
         $this->get(route('dispensary.show', $w['case']))->assertInertia(fn (Assert $page) => $page->where('returns.lines.0.returned', '0')->where('returns.lines.0.returnable', '3')->where('returns.lines.0.returns.0.status', 'refused'));
         app(DispensaryReturnService::class)->record($w['f']['ca'], $w['case'], $w['item'], ['expected_branch_id' => $w['f']['visit']->branch_id, 'retry_key' => (string) Str::uuid(), 'expected_return_count' => 1, 'quantity' => '3', 'reason' => 'not_used', 'note' => null, 'condition' => 'sealed_in_date']);
         $this->assertSame(2, DispensaryReturn::query()->count());
+    }
+
+    public function test_one_batch_is_never_quarantined_beyond_what_the_line_dispensed_from_it(): void
+    {
+        $f = $this->fixture();
+        $supervisor = $this->actor('ca_supervisor');
+        $this->selectBranch($supervisor, $f['visit']->branch);
+        $later = new InventoryBatch;
+        $later->forceFill(['public_id' => (string) Str::uuid(), 'organisation_id' => $f['batch']->organisation_id, 'inventory_sku_id' => $f['sku']->id, 'batch_number' => 'SYN-LATER-'.Str::upper(Str::random(4)), 'expiry_date' => now()->setTimezone($f['visit']->branch->timezone)->addMonths(6)->toDateString(), 'received_at' => now()->subDay()->toDateString(), 'status' => InventoryBatch::STATUS_AVAILABLE])->save();
+        app(InventoryMovementService::class)->openingBalance($supervisor, ['expected_branch_id' => $f['visit']->branch_id, 'location_public_id' => $f['location']->public_id, 'sku_public_id' => $f['sku']->public_id, 'batch_public_id' => $later->public_id, 'quantity' => '10.000']);
+        $this->selectBranch($f['ca'], $f['visit']->branch);
+        $case = $this->open($f);
+        app(DispensaryService::class)->addItem($f['ca'], $case, $this->addPayload($f, $case, '3.000', ['allocations' => [
+            ['location_public_id' => $f['location']->public_id, 'sku_public_id' => $f['sku']->public_id, 'batch_public_id' => $f['batch']->public_id, 'quantity' => '2.000'],
+            ['location_public_id' => $f['location']->public_id, 'sku_public_id' => $f['sku']->public_id, 'batch_public_id' => $later->public_id, 'quantity' => '1.000', 'fefo_exception_reason' => 'earlier_batch_insufficient'],
+        ]]));
+        $this->confirmAllergy($f, $case->refresh());
+        $case = $this->complete($f, $case)->refresh();
+        $item = $case->handoffs()->sole()->items()->sole()->public_id;
+        $service = app(DispensaryReturnService::class);
+        $record = fn (int $count, string $quantity) => $service->record($f['ca'], $case, $item, ['expected_branch_id' => $f['visit']->branch_id, 'retry_key' => (string) Str::uuid(), 'expected_return_count' => $count, 'quantity' => $quantity, 'reason' => 'not_used', 'note' => null, 'condition' => 'sealed_in_date']);
+        $first = $record(0, '2');
+        $second = $record(1, '1');
+        $location = ReturnsLocationFixture::create($supervisor, $f['visit']->branch);
+        $quarantine = fn (DispensaryReturn $r, InventoryBatch $batch) => $service->check($supervisor, $case, $r->public_id, ['expected_branch_id' => $f['visit']->branch_id, 'retry_key' => (string) Str::uuid(), 'outcome' => 'quarantine', 'location_public_id' => $location->public_id, 'batch_public_id' => $batch->public_id]);
+
+        $quarantine($first, $f['batch']);
+        try {
+            $quarantine($second, $f['batch']);
+            $this->fail('Only 2 were dispensed from the first batch, and 2 are already quarantined into it.');
+        } catch (ValidationException $e) {
+            $this->assertArrayHasKey('batch_public_id', $e->errors());
+        }
+        $quarantine($second, $later);
+        $this->assertSame([$f['batch']->id, $later->id], DispensaryReturnCheck::query()->orderBy('id')->pluck('inventory_batch_id')->all());
     }
 
     public function test_a_controlled_medicine_is_never_quarantined_but_may_be_refused(): void

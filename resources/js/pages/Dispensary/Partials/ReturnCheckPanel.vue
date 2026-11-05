@@ -215,7 +215,7 @@ const serverAlert = computed(() => {
             {{ serverAlert }}
         </p>
 
-        <template v-if="line.controlled">
+        <template v-if="line.controlled && form.outcome !== 'refuse'">
             <p class="text-sm">
                 Outcome: <span class="font-semibold">Dispose</span>
             </p>
@@ -224,7 +224,7 @@ const serverAlert = computed(() => {
                 them.
             </p>
         </template>
-        <fieldset v-else class="grid gap-2 text-sm">
+        <fieldset v-else-if="!line.controlled" class="grid gap-2 text-sm">
             <legend class="mb-1 font-medium">
                 Outcome <span class="text-muted-foreground">(required)</span>
             </legend>

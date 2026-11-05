@@ -190,7 +190,12 @@ final class DispensaryReturnService
                     $this->refuse('batch_public_id', 'Choose a batch this line was dispensed from.');
                 }
                 $allocated = $chosen->sum(fn (DispensaryItemBatchAllocation $a): int => StockUnitQuantity::scaled((string) $a->quantity));
-                if (StockUnitQuantity::scaled((string) $return->quantity) > $allocated) {
+                // Earlier quarantines of this line into the same batch use up part of what was dispensed from it.
+                $alreadyQuarantined = DispensaryReturnCheck::query()->join('dispensary_returns', 'dispensary_returns.id', '=', 'dispensary_return_checks.dispensary_return_id')
+                    ->where('dispensary_returns.dispensary_item_id', $item->id)->where('dispensary_return_checks.outcome', DispensaryReturnCheck::OUTCOME_QUARANTINE)
+                    ->where('dispensary_return_checks.inventory_batch_id', $chosen->first()->inventory_batch_id)->pluck('dispensary_returns.quantity')
+                    ->sum(fn ($q): int => StockUnitQuantity::scaled((string) $q));
+                if (StockUnitQuantity::scaled((string) $return->quantity) + $alreadyQuarantined > $allocated) {
                     $this->refuse('batch_public_id', 'More was returned than was dispensed from this batch. Dispose the return, or refuse it and record one return per batch.');
                 }
                 $first = $chosen->first();
@@ -332,7 +337,8 @@ final class DispensaryReturnService
     /** @param array<int, mixed> $payload */
     private function fingerprint(array $payload): string
     {
-        return hash('sha256', json_encode($payload, JSON_THROW_ON_ERROR));
+        // Keyed, so a short note cannot be guessed back from the stored hash.
+        return hash_hmac('sha256', json_encode($payload, JSON_THROW_ON_ERROR), (string) config('app.key'));
     }
 
     /** @param array<string, int|string> $metadata */
