@@ -2,6 +2,7 @@
 import { router, useForm } from '@inertiajs/vue3';
 import { Plus } from '@lucide/vue';
 import { computed, reactive, ref } from 'vue';
+import { toast } from 'vue-sonner';
 import CatalogueFormSectionHeading from '@/components/catalogue/CatalogueFormSectionHeading.vue';
 import CatalogueOptionPicker from '@/components/catalogue/CatalogueOptionPicker.vue';
 import InventorySkuPicker from '@/components/catalogue/InventorySkuPicker.vue';
@@ -36,6 +37,7 @@ type MedicineRow = {
     dosageForm: string | null;
     orderUnit: string;
     isActive: boolean;
+    isControlled: boolean;
     genericName?: string | null;
     category?: string | null;
     groupName?: string | null;
@@ -347,6 +349,50 @@ const confirmToggle = () => {
         },
     );
 };
+// DSP-3: the controlled-medicine flag, printed as a marker on the drug label.
+const pendingControlled = reactive<{ row: MedicineRow | null }>({ row: null });
+const controlledBusy = ref(false);
+const confirmControlled = () => {
+    const row = pendingControlled.row;
+
+    if (!row) {
+        return;
+    }
+
+    controlledBusy.value = true;
+    router.post(
+        `/medicines/${row.publicId}/controlled`,
+        {
+            is_controlled: !row.isControlled,
+            expected_is_controlled: row.isControlled,
+        },
+        {
+            preserveScroll: true,
+            // A refusal (for example someone else changed it first) must be visible, not silent.
+            onError: (errors: Record<string, string>) => {
+                toast.error(
+                    errors.is_controlled ??
+                        'Could not change the controlled medicine mark. Reload and try again.',
+                );
+            },
+            onFinish: () => {
+                controlledBusy.value = false;
+                pendingControlled.row = null;
+            },
+        },
+    );
+};
+const controlledDescription = computed(() => {
+    const row = pendingControlled.row;
+
+    if (!row) {
+        return '';
+    }
+
+    return row.isControlled
+        ? `${row.displayName} will no longer show "Ubat Terkawal / Controlled Medicine" on drug labels, including reprints. The change is recorded.`
+        : `New drug labels for ${row.displayName} will show "Ubat Terkawal / Controlled Medicine". The change is recorded.`;
+});
 const toggleDescription = computed(() => {
     const row = pendingToggle.row;
 
@@ -464,6 +510,12 @@ const toggleDescription = computed(() => {
                             :status="row.isActive ? 'active' : 'inactive'"
                             :tone="row.isActive ? 'success' : 'neutral'"
                         />
+                        <span
+                            v-if="row.isControlled"
+                            class="ml-1 inline-block rounded-md bg-amber-100 px-1.5 py-0.5 text-[11px] font-medium text-amber-900 dark:bg-amber-950/70 dark:text-amber-100"
+                            data-testid="controlled-badge"
+                            >Controlled</span
+                        >
                     </td>
                     <td class="text-right">
                         <div class="flex items-center justify-end gap-1">
@@ -479,6 +531,19 @@ const toggleDescription = computed(() => {
                                 @click="requestToggle(row)"
                             >
                                 {{ row.isActive ? 'Deactivate' : 'Activate' }}
+                            </Button>
+                            <Button
+                                size="sm"
+                                variant="ghost"
+                                data-action="toggle-controlled"
+                                :aria-label="`${row.isControlled ? 'Unmark' : 'Mark'} ${row.displayName} as a controlled medicine`"
+                                @click="pendingControlled.row = row"
+                            >
+                                {{
+                                    row.isControlled
+                                        ? 'Unmark controlled'
+                                        : 'Mark controlled'
+                                }}
                             </Button>
                         </div>
                     </td>
@@ -1076,6 +1141,27 @@ const toggleDescription = computed(() => {
                 }
             "
             @confirm="confirmToggle"
+        />
+
+        <OperationalConfirmDialog
+            :open="pendingControlled.row !== null"
+            :title="
+                pendingControlled.row?.isControlled
+                    ? 'Remove controlled medicine mark'
+                    : 'Mark as controlled medicine'
+            "
+            :description="controlledDescription"
+            :confirm-label="
+                pendingControlled.row?.isControlled ? 'Remove mark' : 'Mark'
+            "
+            :destructive="pendingControlled.row?.isControlled ?? false"
+            :processing="controlledBusy"
+            @update:open="
+                (open) => {
+                    if (!open) pendingControlled.row = null;
+                }
+            "
+            @confirm="confirmControlled"
         />
     </main>
 </template>
