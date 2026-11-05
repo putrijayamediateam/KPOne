@@ -210,7 +210,7 @@ final class DispensaryReturnsLocationTest extends VisitTestCase
         // The stock view never calls returned medicine available, and the summary does not count it as stock.
         $this->credit($supervisor, $returns, $f, '1.000');
         $this->actingAs($supervisor)->get(route('inventory.index', ['tab' => 'stock']))->assertInertia(fn ($page) => $page
-            ->where('inventory.data', fn ($rows) => collect($rows)->where('location', $returns->name)->every(fn ($row) => $row['available'] === false && $row['availabilityStatus'] === 'Patient return (not for dispensing)')
+            ->where('inventory.data', fn ($rows) => collect($rows)->where('location', $returns->name)->every(fn ($row) => $row['available'] === false && $row['availabilityStatus'] === 'Patient return' && $row['locationType'] === 'Patient Returns')
                 && collect($rows)->contains('location', $returns->name)));
 
         // A governed count gain may correct a returns location; any other credit with another reference may not.

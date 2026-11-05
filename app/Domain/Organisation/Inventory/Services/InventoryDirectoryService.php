@@ -144,7 +144,7 @@ final class InventoryDirectoryService
                 'expiryDate' => CarbonImmutable::parse($expiryDate)->format('j M Y'),
                 'active' => (bool) $values['item_active'] && (bool) $values['sku_active'],
                 'available' => $available,
-                'availabilityStatus' => $returned ? 'Patient return (not for dispensing)' : ($values['hold_reason'] ? 'Held' : ($available ? 'Available' : 'Unavailable')),
+                'availabilityStatus' => $returned ? 'Patient return' : ($values['hold_reason'] ? 'Held' : ($available ? 'Available' : 'Unavailable')),
                 ...($values['hold_reason'] ? ['holdReason' => $values['hold_reason']] : []),
             ];
         }
@@ -401,6 +401,7 @@ final class InventoryDirectoryService
 
     private function label(string $value): string
     {
-        return str($value)->replace('_', ' ')->title()->toString();
+        // STK-11: plain words for the returns type, as on Stock setup.
+        return $value === InventoryLocation::TYPE_DISPENSARY_RETURNS ? 'Patient Returns' : str($value)->replace('_', ' ')->title()->toString();
     }
 }
