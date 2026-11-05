@@ -41,8 +41,22 @@ class MedicineCatalogueItem extends Model
         return [
             'is_active' => 'boolean',
             'is_controlled' => 'boolean',
+            'allergy_groups' => 'array',
             'default_dosage_amount' => 'decimal:3',
         ];
+    }
+
+    /**
+     * DSP-1b: drug groups used by the Dispensary allergy warning.
+     *
+     * @return list<string>
+     */
+    public function allergyGroupList(): array
+    {
+        $groups = $this->getAttribute('allergy_groups');
+
+        // Only text items count; anything else is ignored rather than allowed to break a page.
+        return is_array($groups) ? array_values(array_filter($groups, fn (mixed $group): bool => is_string($group) && $group !== '')) : [];
     }
 
     public function getRouteKeyName(): string

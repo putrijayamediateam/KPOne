@@ -41,7 +41,7 @@ final class ProposalInbox
         $counts = (clone $base)->whereIn('status', self::TABS)->groupBy('status')->selectRaw('status, count(*) as aggregate')->pluck('aggregate', 'status');
         $page = (clone $base)->where('status', $tab)->with(['agent:id,display_name,job_title', 'run:id,requested_by_user_id'])
             ->orderByDesc('id')->paginate(self::PER_PAGE, ['*'], 'page', (int) ($data['page'] ?? 1));
-        $names = $this->names($actor->organisation_id, collect($page->items())->pluck('payload')->all());
+        $names = $this->names($actor->organisation_id, array_values(array_map(fn (AiProposal $p): array => $p->payload, $page->items())));
 
         return [
             'branch' => ['code' => $branch->code, 'label' => $branch->name],
@@ -68,7 +68,7 @@ final class ProposalInbox
 
     /**
      * @param  list<array<string, mixed>>  $payloads
-     * @return array{skus: array<string, object>, locations: array<string, string>, batches: array<string, string>}
+     * @return array{skus: array<string, array{code: string, name: string, unit: string}>, locations: array<string, string>, batches: array<string, string>}
      */
     private function names(int $organisationId, array $payloads): array
     {
@@ -76,27 +76,28 @@ final class ProposalInbox
 
         return [
             'skus' => DB::table('inventory_skus as s')->join('inventory_items as i', 'i.id', '=', 's.inventory_item_id')->where('s.organisation_id', $organisationId)
-                ->whereIn('s.public_id', $ids('sku_public_id'))->get(['s.public_id', 's.sku_code', 'i.generic_name', 's.stock_unit'])->keyBy('public_id')->all(),
+                ->whereIn('s.public_id', $ids('sku_public_id'))->get(['s.public_id', 's.sku_code', 'i.generic_name', 's.stock_unit'])
+                ->mapWithKeys(fn (\stdClass $row): array => [(string) $row->public_id => ['code' => (string) $row->sku_code, 'name' => (string) $row->generic_name, 'unit' => (string) $row->stock_unit]])->all(),
             'locations' => DB::table('inventory_locations')->where('organisation_id', $organisationId)->whereIn('public_id', $ids('location_public_id'))->pluck('name', 'public_id')->all(),
             'batches' => DB::table('inventory_batches')->where('organisation_id', $organisationId)->whereIn('public_id', $ids('batch_public_id'))->pluck('batch_number', 'public_id')->all(),
         ];
     }
 
     /**
-     * @param  array{skus: array<string, object>, locations: array<string, string>, batches: array<string, string>}  $names
+     * @param  array{skus: array<string, array{code: string, name: string, unit: string}>, locations: array<string, string>, batches: array<string, string>}  $names
      * @return list<array{label: string, value: string}>
      */
     private function lines(AiProposal $proposal, array $names): array
     {
         $p = $proposal->payload;
         $sku = $names['skus'][$p['sku_public_id']] ?? null;
-        $unit = $sku ? ' '.$sku->stock_unit : '';
+        $unit = $sku ? ' '.$sku['unit'] : '';
         $qty = function (string $key) use ($p): string {
             $value = (string) $p[$key];
 
             return str_contains($value, '.') ? rtrim(rtrim($value, '0'), '.') : $value;
         };
-        $lines = [['label' => 'Item', 'value' => $sku ? $sku->generic_name.' ('.$sku->sku_code.')' : 'Unknown item']];
+        $lines = [['label' => 'Item', 'value' => $sku ? $sku['name'].' ('.$sku['code'].')' : 'Unknown item']];
         $location = fn (): array => ['label' => 'Location', 'value' => $names['locations'][$p['location_public_id']] ?? 'Unknown location'];
 
         return match ($proposal->type) {

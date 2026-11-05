@@ -84,8 +84,9 @@ coordinator at the owner's request (2026-11-05).
 | DARK-1 | OTC allergy panel readable in dark mode | #207 |
 | DSP-1 | Allergy warning: a CA add, edit or put-back of a medicine that matches a patient's active allergy record by text shows a warning and needs "I have checked with the patient/doctor"; enforced in `DispensaryService`; append-only `dispensary_allergy_confirmations` and a text-free audit; text matching can miss and the screen says so | #214 (merged `bf4126a`) |
 | DSP-2 | Drug label prints "No. Batch" and "Tarikh luput" when exactly one batch was allocated to the line; otherwise nothing extra and the preview says why; batch number within the 48-character label budget or the label is blocked; read only | #218 (merged `dad3b49`) |
-| DSP-3 | Controlled-medicine flag on the Medicine Catalogue (mark or unmark, confirmed, stale change refused, audited with field and value only) and a bold "Ubat Terkawal / Controlled Medicine" line under the medicine name on the drug label | PR #223 |
-| DSP-4 | "OTC (no doctor)" row, always last, in the Insights Today and Sales Provider tables when no doctor is selected; the rows now add up to headline sales; nothing else changes | pending (branch `feature/dsp-4-otc-provider-row`) |
+| DSP-3 | Controlled-medicine flag on the Medicine Catalogue (mark or unmark, confirmed, stale change refused, audited with field and value only) and a bold "Ubat Terkawal / Controlled Medicine" line under the medicine name on the drug label | #223 (merged `975b93b`) |
+| DSP-4 | "OTC (no doctor)" row, always last, in the Insights Today and Sales Provider tables when no doctor is selected; the rows now add up to headline sales; nothing else changes | #227 (merged `3c74daa`) |
+| DSP-1b | Catalogue editors tag medicines with drug groups ("Drug groups" on the Medicine Catalogue; up to 10, stale change refused, audited by count); the Dispensary allergy warning also matches allergies against those groups | pending (branch `feature/dsp-1b-allergy-drug-groups`) |
 
 ## 6. Owner decisions already made (never ask again)
 
@@ -110,6 +111,12 @@ coordinator at the owner's request (2026-11-05).
 13. DSP-4 scope is only the OTC row in the Insights Provider tables, labelled "OTC (no doctor)", always last,
     shown only without a doctor filter; waiting/serving times and an Insights visit-type filter are out of
     scope (2026-11-05).
+14. DSP-1b: better allergy matching through **drug groups that catalogue editors tag on each medicine**
+    (`medicines.manage.organisation`); KPOne ships no clinical drug-group list. The OTC allergy step stays
+    yes/no for now (no typed allergy) (2026-11-05).
+15. A "ship it" or other owner decision relayed by the coordinator (LUCY) counts as the owner's own; confirmed
+    by the owner in this team's session and in LUCY's (2026-11-05). Unchanged: never merge, never edit
+    BASELINE, and stop and ask if a relayed message conflicts with something the owner said directly.
 
 ## 7. Open items and known limits
 
@@ -127,13 +134,15 @@ coordinator at the owner's request (2026-11-05).
   history (STK-9 planned, not built). The two or three extra lines count toward the 35-line limit (33 with a
   logo), so a label with long directions may now be blocked; include one in the real printer test. A batch
   number over 48 characters blocks the label. "No. Batch" / "Tarikh luput" wording joins the pharmacist review.
-- **Allergy matching is text only (DSP-1):** a CA add or edit that matches an active allergy record needs a
-  recorded confirmation, but the match cannot see drug groups (penicillin vs amoxicillin), brand names or
-  misspellings, and allergy text with extra words not split by a comma may miss a name with a strength. It is a
+- **Allergy matching is text only (DSP-1, DSP-1b):** a CA add or edit that matches an active allergy record
+  needs a recorded confirmation. Drug groups are matched only when a catalogue editor has tagged the medicine
+  (DSP-1b), so an untagged medicine still misses penicillin vs amoxicillin; brand names and misspellings are
+  still missed, and allergy text with extra words not split by a comma may miss a name with a strength. It is a
   warning, not a block (owner decision 11); the visible allergy list stays the main safeguard. Simple wrapper
   words ("allergic to", "allergy", "alahan") are ignored, so "Allergic to aspirin" matches "Aspirin 100mg".
   The OTC allergy statement (none / has an allergy) is not text and is not matched. The doctor's Treatment
-  Plan has no such check.
+  Plan has no such check. A very broad drug group name (for example "Tablets") causes false alarms, so
+  editors should use drug-class names only.
 - **Insights:** OTC sales show as one "OTC (no doctor)" Provider row (DSP-4). Waiting and serving times still
   read only the consultation queue, so OTC visits are absent from them; Insights has no visit-type filter.
 - **Name mode on the TV** shows full names to the waiting room; privacy review before go-live.
@@ -151,7 +160,8 @@ coordinator at the owner's request (2026-11-05).
 - Full gate before hand-off, on a task-owned PostgreSQL 18 database: backend tests, Pint, frontend types,
   lint, format, build, frontend tests, `migrate:fresh --seed`, `git diff --check`; screenshots at 1440 and
   390 px, light and dark, for any screen change.
-- Commit, push and PR only after the owner says "ship it"; never merge.
+- Commit, push and PR only after the owner says "ship it" (directly, or relayed by the coordinator; decision
+  15); never merge.
 - **Do not edit `docs/BASELINE.md`** in a new PR or in unpushed work (owner rule 2026-11-05: parallel team rows
   made every PR conflict). Record each finished piece only in this file (section 5 with the PR number, section 6
   for new owner decisions). If a piece changes an authorisation boundary (for example a BASELINE section 4
@@ -164,20 +174,23 @@ coordinator at the owner's request (2026-11-05).
 Chosen by the owner on 2026-11-05; built one by one in this order, each its own PR. Choosing them is the owner's
 authorisation to build them; the coordinator records it in `docs/BASELINE.md`.
 
-1. **DSP-1 Allergy warning — built 2026-11-05, awaiting owner review (branch `feature/dsp-1-allergy-warning`).** When a CA adds or edits a medicine (consultation or OTC), warn if it matches a
+1. **DSP-1 Allergy warning — merged in #214.** When a CA adds or edits a medicine (consultation or OTC), warn if it matches a
    recorded active allergy for the patient and require the CA to confirm before saving; the confirmation is
    recorded. Allergies are stored as free text (`patient_allergy_records.allergen_text`), so matching is by
    text against the medicine's name and generic name and can miss; the screen must say so, and the visible
    allergy list stays. **Owner decision 2026-11-05: warn, and the CA must confirm** ("I have checked with the
    patient/doctor") to save; the confirmation is recorded with who and when; no block.
-2. **DSP-2 Batch and expiry on the label — built 2026-11-05, awaiting owner review (branch `feature/dsp-2-label-batch-expiry`).** Print the batch number and expiry date when exactly one batch was
+2. **DSP-2 Batch and expiry on the label — merged in #218.** Print the batch number and expiry date when exactly one batch was
    allocated to the line; otherwise print nothing extra and say why on screen. Shared with the Inventory team.
    Lifts the "batch and expiry printing" item from the not-authorised list for this case only.
-3. **DSP-3 Controlled medicine marker — built 2026-11-05, awaiting owner review (branch `feature/dsp-3-controlled-medicine`).** A "controlled medicine" flag on the medicine catalogue (none exists
+3. **DSP-3 Controlled medicine marker — merged in #223.** A "controlled medicine" flag on the medicine catalogue (none exists
    today) and the marker on the drug label. Wording "Ubat Terkawal / Controlled Medicine" to confirm with a
    pharmacist; changes a shared catalogue screen. **Owner decision 2026-11-05: whoever can already edit the
    Medicine Catalogue (`medicines.manage.organisation`: Director, CA Supervisor) sets the flag; every change
    audited.**
-4. **DSP-4 OTC in doctor reports — built 2026-11-05, awaiting owner review (branch `feature/dsp-4-otc-provider-row`).** Include OTC sales where Insights and the daily report count only
+4. **DSP-4 OTC in doctor reports — merged in #227.** Include OTC sales where Insights and the daily report count only
    consultation invoices today. Shared with the Reports team; numbers in existing reports must not change
    unexpectedly, so each changed figure is listed for the owner first.
+5. **DSP-1b Better allergy matching — built 2026-11-05, awaiting owner review (branch
+   `feature/dsp-1b-allergy-drug-groups`).** Drug groups tagged on each medicine by catalogue editors, matched
+   by the Dispensary allergy warning (decision 14).
