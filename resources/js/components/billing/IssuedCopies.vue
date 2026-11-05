@@ -62,7 +62,10 @@ const name = (copy: IssuedCopy) =>
 </script>
 
 <template>
-    <section class="space-y-2 border-t pt-3" data-testid="issued-copies">
+    <section
+        class="@container space-y-2 border-t pt-3"
+        data-testid="issued-copies"
+    >
         <div>
             <h3 class="font-medium">Issued copies</h3>
             <p class="text-xs text-muted-foreground">
@@ -80,7 +83,8 @@ const name = (copy: IssuedCopy) =>
             description="Press Print invoice to issue the first one."
         />
         <template v-else>
-            <div class="hidden overflow-x-auto sm:block">
+            <!-- The table needs about 33rem; a narrower column (1024 px screens, phones) shows cards. -->
+            <div class="hidden overflow-x-auto @[33rem]:block">
                 <table class="w-full text-left text-xs">
                     <thead class="text-muted-foreground">
                         <tr>
@@ -150,7 +154,7 @@ const name = (copy: IssuedCopy) =>
                     </tbody>
                 </table>
             </div>
-            <ul class="space-y-2 sm:hidden">
+            <ul class="space-y-2 @[33rem]:hidden">
                 <li
                     v-for="copy in copies"
                     :key="copy.publicId"
