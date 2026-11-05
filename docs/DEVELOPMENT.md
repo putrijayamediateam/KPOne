@@ -162,6 +162,37 @@ those workflows. Never run this seeder with real data or in production.
 
 Seeding is controlled bootstrap, not a runtime administration path. Runtime branch-assignment mutations must use `BranchAssignmentService` so validation, locking, and audit guarantees apply. A synthetic local/testing seeder or test fixture may use explicit guarded writes to establish initial fictional state when routing it through runtime services would create misleading operational audit history.
 
+## One-branch demo setup (DEMO-1)
+
+For a one-branch synthetic demo at CHERAS (for example, a review by an outside developer), run these commands
+in order against a disposable local database only. Confirm the database host, port and name first.
+
+```bash
+php artisan migrate:fresh --seed
+php artisan db:seed --class=KPOnePresentationSeeder
+php artisan db:seed --class=KPOneDemoSetupSeeder
+```
+
+`KPOneDemoSetupSeeder` refuses to run outside the `local` and `testing` environments, and stops with a message
+before changing anything if any user email does not end in `.test`. It is safe to run again: every step first
+checks whether its result already exists, so a rerun adds nothing. Every change goes through the existing domain
+services as a named demo account, so permissions, branch checks, locks and audit records apply:
+
+- As `demo.director@kpone.test`: moves `demo.ca`, `demo.ca_supervisor` and `demo.finance_officer` to a CHERAS
+  primary assignment through `BranchAssignmentService` and ends their assignment at the old branch (dated
+  yesterday); provisions `demo.ca_supervisor2@kpone.test` (CA Supervisor at CHERAS, same presentation password)
+  through `StaffProvisioningService`; saves demo Business details using the clinic's public Cheras address and
+  the CHERAS invoice and receipt footer "This is a computer-generated document. No signature is required."
+- As `demo.ca_supervisor@kpone.test`: creates a CHERAS dispensary location, a General consultation tariff, three
+  clinical services and six generic medicines (one SKU each, stock unit equal to dispensing unit) with published
+  Self-pay and default Panel prices; verifies each SKU's base stock unit; records 200 units of opening stock per
+  medicine in one batch with a real expiry date 18 to 23 months ahead.
+- As `demo.ca_supervisor2@kpone.test`: signs off every opening count, so the recorder and the verifier are
+  different people, as STK-1 requires.
+
+It creates no patients beyond the presentation seeder's, and no visits, payment methods, Panels or bills; those
+are entered through the screens during the demo. Never run it with real data or in production.
+
 ## Google sign-in
 
 Leave the following placeholders empty unless configuring a local Google OAuth client:
