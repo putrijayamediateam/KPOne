@@ -34,6 +34,7 @@ const props = defineProps<{
         businessDate: string;
         today: string;
         expected: { receiptCount: number; cashSen: number };
+        refunds: { count: number; sen: number; waiting: number };
         status: 'not_counted' | 'waiting' | 'returned' | 'approved';
         dayEnded: boolean;
         changedSinceApproval: boolean;
@@ -58,14 +59,21 @@ const form = useForm({
 });
 
 const parseSen = (value: string): number | null => {
-    if (!/^(?:0|[1-9]\d{0,9})(?:\.\d{1,2})?$/.test(value.trim())) {
+    const match = /^(-?)(0|[1-9]\d{0,9})(?:\.(\d{1,2}))?$/.exec(
+        value.trim().replace('\u2212', '-'),
+    );
+
+    if (!match) {
         return null;
     }
 
-    const [whole, fraction = ''] = value.trim().split('.');
+    const sen =
+        Number(match[2]) * 100 + Number((match[3] ?? '').padEnd(2, '0'));
 
-    return Number(whole) * 100 + Number(fraction.padEnd(2, '0'));
+    return match[1] === '-' ? -sen : sen;
 };
+// BIL-6: refunds can make a day's cash below zero, which the shared myr() does not format.
+const money = (sen: number) => (sen < 0 ? `−${myr(-sen)}` : myr(sen));
 const difference = computed(() => {
     const counted = parseSen(form.counted_cash);
 
@@ -190,12 +198,34 @@ const decide = (closing: Closing, decision: 'approved' | 'returned') => {
                     Expected cash for {{ day.businessDate }}
                 </p>
                 <p class="mt-1 text-2xl font-semibold tabular-nums">
-                    {{ myr(day.expected.cashSen) }}
+                    {{ money(day.expected.cashSen) }}
                 </p>
                 <p class="text-xs text-muted-foreground">
-                    {{ day.expected.receiptCount }} posted cash receipt(s).
-                    Reversed receipts are left out. Only payment methods marked
-                    Cash are counted.
+                    {{ day.expected.receiptCount }} cash receipt(s) counted.
+                    Reversed receipts are left out unless their money was
+                    refunded. Only payment methods marked Cash are counted.
+                </p>
+                <p
+                    v-if="day.refunds.count"
+                    class="mt-1 text-xs text-muted-foreground"
+                    data-testid="cash-refunds"
+                >
+                    Includes {{ day.refunds.count }} cash refund(s) paid out:
+                    −{{ myr(day.refunds.sen) }}.
+                    <span
+                        v-if="day.refunds.waiting"
+                        class="font-medium text-amber-700 dark:text-amber-300"
+                        >{{ day.refunds.waiting }} still waiting for approval{{
+                            day.status === 'approved'
+                                ? '.'
+                                : '; the day cannot be approved until they are decided.'
+                        }}</span
+                    >
+                </p>
+                <p class="mt-1 text-xs text-muted-foreground">
+                    A refund recorded later for one of this day's receipts
+                    changes this figure; an approved day then shows "changed
+                    after approval".
                 </p>
             </div>
 
@@ -209,7 +239,8 @@ const decide = (closing: Closing, decision: 'approved' | 'returned') => {
                     <h2 class="font-semibold">Record the cash count</h2>
                     <p class="mt-1 text-sm text-muted-foreground">
                         Take out the opening float first, then count only the
-                        day's takings.
+                        day's takings. If more was refunded than taken, enter a
+                        minus amount (for example -20.00).
                     </p>
                 </div>
                 <label class="grid gap-1 text-sm font-medium" for="counted">
@@ -217,7 +248,7 @@ const decide = (closing: Closing, decision: 'approved' | 'returned') => {
                     <Input
                         id="counted"
                         v-model="form.counted_cash"
-                        inputmode="decimal"
+                        inputmode="text"
                         placeholder="0.00"
                         required
                     />
@@ -289,8 +320,9 @@ const decide = (closing: Closing, decision: 'approved' | 'returned') => {
             data-testid="cash-changed-since-approval"
         >
             Cash receipts for this day changed after the closing was approved
-            (for example, a receipt was reversed). The approved figures are
-            kept; check Terminal Reconciliation for the change.
+            (for example, a receipt was reversed or a refund was recorded). The
+            approved figures are kept; check Terminal Reconciliation for the
+            change.
         </p>
 
         <section class="space-y-3" aria-label="Counts for this day">
@@ -326,8 +358,8 @@ const decide = (closing: Closing, decision: 'approved' | 'returned') => {
                         <dt class="text-xs text-muted-foreground">
                             Difference
                         </dt>
-                        <dd>{{ myr(closing.expectedCashSen) }}</dd>
-                        <dd>{{ myr(closing.countedCashSen) }}</dd>
+                        <dd>{{ money(closing.expectedCashSen) }}</dd>
+                        <dd>{{ money(closing.countedCashSen) }}</dd>
                         <dd
                             :class="
                                 closing.varianceSen === 0

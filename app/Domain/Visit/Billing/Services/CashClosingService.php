@@ -9,8 +9,11 @@ use App\Domain\Audit\AuditRecorder;
 use App\Domain\Organisation\Models\Branch;
 use App\Domain\Visit\Billing\Models\CashClosing;
 use App\Domain\Visit\Billing\Models\CashClosingDecision;
+use App\Domain\Visit\Billing\Models\Payment;
+use App\Domain\Visit\Billing\Models\PaymentRefund;
 use App\Models\User;
 use Carbon\CarbonImmutable;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -40,15 +43,50 @@ final class CashClosingService
     public function expected(Branch $branch, CarbonImmutable $date, bool $lock = false): array
     {
         $start = $date->startOfDay()->utc();
-        $query = PostedReceiptProjection::query($branch->organisation_id, $branch->id, $start, $date->addDay()->startOfDay()->utc())
-            ->whereIn('payment_method_id', DB::table('payment_methods')->select('id')->where('organisation_id', $branch->organisation_id)->where('classification', 'cash'));
+        $end = $date->addDay()->startOfDay()->utc();
+        $cash = DB::table('payment_methods')->select('id')->where('organisation_id', $branch->organisation_id)->where('classification', 'cash');
+        // BIL-6 (owner decision 2026-11-05): a reversed receipt whose money was refunded did come in, so it counts
+        // as received on its day; the refund counts as paid out on its own payout day. Rejected refunds count for nothing.
+        $refunded = $this->openRefunds()->select('payment_id');
+        $query = PostedReceiptProjection::query($branch->organisation_id, $branch->id, $start, $end, ['posted', 'reversed'])->whereIn('payment_method_id', $cash)
+            ->where(fn ($q) => $q->where('status', 'posted')->orWhere(fn ($r) => $r->where('status', 'reversed')->whereIn('id', $refunded)));
+        $refunds = $this->openRefunds()->where('organisation_id', $branch->organisation_id)->where('branch_id', $branch->id)
+            ->where('paid_out_at', '>=', $start)->where('paid_out_at', '<', $end)->whereIn('payment_method_id', clone $cash);
         if ($lock) {
-            $amounts = (clone $query)->orderBy('id')->sharedLock()->pluck('amount_sen');
-
-            return ['count' => $amounts->count(), 'sen' => (int) $amounts->sum()];
+            // Share-lock every Cash receipt of the day (posted or reversed) and the receipts of the day's refunds.
+            // Reversals, refund recordings and refund decisions all lock their receipt first, so none of them can
+            // change these figures until the approval commits; the figures are then read under those locks.
+            PostedReceiptProjection::query($branch->organisation_id, $branch->id, $start, $end, ['posted', 'reversed'])->whereIn('payment_method_id', clone $cash)
+                ->orderBy('id')->sharedLock()->get(['id']);
+            Payment::query()->whereIn('id', (clone $refunds)->select('payment_id'))->orderBy('id')->sharedLock()->get(['id']);
         }
 
-        return ['count' => (clone $query)->count(), 'sen' => (int) (clone $query)->sum('amount_sen')];
+        return ['count' => (clone $query)->count(), 'sen' => (int) (clone $query)->sum('amount_sen') - (int) (clone $refunds)->sum('amount_sen')];
+    }
+
+    /** @return array{count:int, sen:int, waiting:int} Cash refunds paid out on the day (not rejected), for display. */
+    public function cashRefunds(Branch $branch, CarbonImmutable $date): array
+    {
+        $rows = $this->openRefunds()->with('decision')->where('organisation_id', $branch->organisation_id)->where('branch_id', $branch->id)
+            ->where('paid_out_at', '>=', $date->startOfDay()->utc())->where('paid_out_at', '<', $date->addDay()->startOfDay()->utc())
+            ->whereIn('payment_method_id', DB::table('payment_methods')->select('id')->where('organisation_id', $branch->organisation_id)->where('classification', 'cash'))->get();
+
+        return ['count' => $rows->count(), 'sen' => (int) $rows->sum('amount_sen'), 'waiting' => $rows->filter(fn (PaymentRefund $r): bool => $r->decision === null)->count()];
+    }
+
+    /** Waiting refunds (any payout day) of this day's reversed Cash receipts: their decision moves this day's figure. */
+    private function waitingRefundsOfDayReceipts(Branch $branch, CarbonImmutable $date): int
+    {
+        return PaymentRefund::query()->whereDoesntHave('decision')
+            ->whereIn('payment_id', PostedReceiptProjection::query($branch->organisation_id, $branch->id, $date->startOfDay()->utc(), $date->addDay()->startOfDay()->utc(), ['reversed'])
+                ->whereIn('payment_method_id', DB::table('payment_methods')->select('id')->where('organisation_id', $branch->organisation_id)->where('classification', 'cash'))->select('id'))
+            ->count();
+    }
+
+    /** @return Builder<PaymentRefund> */
+    private function openRefunds(): Builder
+    {
+        return PaymentRefund::query()->whereDoesntHave('decision', fn ($d) => $d->where('decision', 'rejected'));
     }
 
     /** A business date has ended once the branch-local clock has reached the next day. */
@@ -78,6 +116,7 @@ final class CashClosingService
         return [
             'branch' => $branch->name, 'branchId' => $branch->id, 'businessDate' => $local->toDateString(), 'today' => now($branch->timezone)->toDateString(),
             'expected' => ['receiptCount' => $expected['count'], 'cashSen' => $expected['sen']],
+            'refunds' => $this->cashRefunds($branch, $local),
             'status' => $approved ? 'approved' : ($latest === null ? 'not_counted' : ($latest->decision === null ? 'waiting' : 'returned')),
             'dayEnded' => $dayEnded,
             // The approved closing keeps its snapshot; flag it when today's figures no longer match (e.g. a later reversal).
@@ -174,8 +213,11 @@ final class CashClosingService
             if ($decision === 'approved' && ! $this->dayEnded($branch, $date)) {
                 throw ValidationException::withMessages(['cash_closing' => 'A day can be approved only after it ends (from midnight, branch time). Return it now if it needs a recount.']);
             }
+            if ($decision === 'approved' && ($this->cashRefunds($branch, $date)['waiting'] > 0 || $this->waitingRefundsOfDayReceipts($branch, $date) > 0)) {
+                throw ValidationException::withMessages(['cash_closing' => 'A refund on this day\'s cash is still waiting for approval. Approve or reject it first.']);
+            }
             if ($decision === 'approved' && $this->expected($branch, $date, lock: true) !== ['count' => $closing->expected_receipt_count, 'sen' => $closing->expected_cash_sen]) {
-                throw ValidationException::withMessages(['cash_closing' => 'Cash receipts (or which payment methods count as Cash) changed after the count. Return it so the cash can be counted again.']);
+                throw ValidationException::withMessages(['cash_closing' => 'Cash receipts or refunds (or which payment methods count as Cash) changed after the count. Return it so the cash can be counted again.']);
             }
 
             $row = new CashClosingDecision;
@@ -218,11 +260,15 @@ final class CashClosingService
 
     private function money(mixed $value): int
     {
-        if ((! is_string($value) && ! is_int($value)) || preg_match('/\A(?:0|[1-9][0-9]{0,9})(?:\.([0-9]{1,2}))?\z/', (string) $value, $parts) !== 1) {
+        // A minus sign is allowed: with refunds paid out, the day's takings can be below zero.
+        if (is_string($value)) {
+            $value = str_replace("\u{2212}", '-', trim($value)); // The page shows a true minus sign; accept it back.
+        }
+        if ((! is_string($value) && ! is_int($value)) || preg_match('/\A(-?)(0|[1-9][0-9]{0,9})(?:\.([0-9]{1,2}))?\z/', (string) $value, $parts) !== 1) {
             throw ValidationException::withMessages(['counted_cash' => 'Enter the counted cash in ringgit, with no more than two decimal places.']);
         }
-        $sen = (int) explode('.', (string) $value)[0] * 100 + (int) str_pad($parts[1] ?? '', 2, '0');
-        if ($sen > ExactMoney::MAX_SEN) {
+        $sen = ((int) $parts[2] * 100 + (int) str_pad($parts[3] ?? '', 2, '0')) * ($parts[1] === '-' ? -1 : 1);
+        if (abs($sen) > ExactMoney::MAX_SEN) {
             throw ValidationException::withMessages(['counted_cash' => 'The amount exceeds the permitted limit.']);
         }
 
