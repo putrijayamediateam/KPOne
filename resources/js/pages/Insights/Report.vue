@@ -939,7 +939,7 @@ const occupancyMax = computed(() =>
                         <tbody>
                             <tr
                                 v-for="(row, rowIndex) in group.rows"
-                                :key="`${group.title}-${row.name}`"
+                                :key="`${group.title}-${rowIndex}`"
                                 class="border-b last:border-0"
                             >
                                 <td class="p-2 text-muted-foreground">
