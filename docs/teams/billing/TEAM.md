@@ -67,6 +67,7 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php` and `BillingPermiss
 | `billing.bill_to.view.branch` / `.manage.branch` | adds Panel Officer for view |
 | `billing.approval_limits.manage.organisation` | Director |
 | `payment_methods.manage.organisation` | Director, Finance Officer, Administrator |
+| `payments.cash_closing.approve.branch` (BIL-4) | Director, CA Supervisor, Finance Officer; never the person who counted |
 
 ## 5. What is built (history)
 
@@ -92,6 +93,7 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php` and `BillingPermiss
 | BIL-1b | "Panel shortfall" warning on the Billing page when a Panel rejects or only partly accepts a claim (approved Panel share minus accepted amount). Display only; what the patient owes is unchanged | #219 |
 | BIL-2 | "Recorded by <name>" on each receipt on the Billing page and Manage payments, with the activity log's name rule; prints unchanged | #222 |
 | BIL-3 | "Pay later to collect" page: the branch's approved, unpaid pay-later amounts, oldest due first, with past-due totals and filter, linked from Clinic management and the Billing page's Outstanding bill box. Read-only | PR #224 |
+| BIL-4 | Daily cash closing page (`/cash-closings`): counted cash takings against expected cash (posted Cash receipts of the branch-local day), a reason for any difference, approve or return by a different person, append-only revisions; linked from Terminal Reconciliation. New permission `payments.cash_closing.approve.branch` | this PR |
 
 ## 6. Owner decisions already made (never ask again)
 
@@ -131,6 +133,11 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php` and `BillingPermiss
 18. BIL-3 links (2026-11-05): the pay-later list is opened from a "Pay later to collect" card in Clinic management
     (the owner approved adding its one entry to the hub's exact destination test) and from a link in the
     Billing page's Outstanding bill box.
+19. BIL-4 cash closing (2026-11-05): staff take the opening float out and count only the day's takings; no float
+    is stored. Approving uses one new permission, `payments.cash_closing.approve.branch`, for CA Supervisor,
+    Finance Officer and Director only (one additive migration; no existing grant changed). A day can be counted
+    and returned at any time, but approved only after it has ended (from midnight, branch time), so cash taken
+    later that day is never left outside an approved closing.
 
 ## 7. Open items and known limits
 
@@ -165,6 +172,18 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php` and `BillingPermiss
 - The pay-later collection list (BIL-3) shows approved pay later only, not everything a patient owes. If a payment
   that paid off part of a pay-later debt is reversed, that amount moves back into the invoice's due now (pay later
   never grows back), so it shows on the Billing page but not on this list. The page says so.
+- Daily cash closing (BIL-4): expected cash counts only payment methods classified Cash on the Payment Methods
+  screen; a method left "Not classified" counts as non-cash. An approved day is final and keeps its snapshot: a
+  receipt reversed after approval does not reopen it; the page shows a "changed after approval" notice and the
+  Terminal Reconciliation and reports show the change. Approval is refused if cash receipts (or which methods
+  count as Cash) changed after the count; the count is then returned and counted again. While a count waits,
+  anyone who may count can record a newer one, which replaces it ("Replaced" in the history). Someone who
+  counted an earlier, returned count may approve a later count made by someone else. No Clinic management card
+  yet (it is opened from Terminal Reconciliation), because the hub's destination test is exact; adding a card
+  needs the owner's approval to add one entry to that test. The tables and locks use PostgreSQL-only features
+  (triggers, advisory locks), like the rest of the suite. There is no PostgreSQL contention test yet for a count
+  and a decision racing on the same day; the service serialises them with an advisory lock per branch and date,
+  and the triggers refuse a decision on an older count.
 
 ## 8. Rules (every task)
 
@@ -207,7 +226,7 @@ authorisation to build them; the coordinator records it in `docs/BASELINE.md`.
 3. **BIL-3 Pay-later collection list.** *(Done: PR #224, owner approved "ship it" 2026-11-05.)* A page listing patients with approved unpaid pay-later amounts, oldest
    first, per branch, so staff can collect when the patient returns. **Owner decision 2026-11-05: holders of
    `outstanding.view.branch` (Director, CA, CA Supervisor, Finance Officer) at their branches.**
-4. **BIL-4 Daily cash closing.** End-of-day cash count per branch: expected cash from posted Cash receipts versus
+4. **BIL-4 Daily cash closing.** *(Built 2026-11-05; awaiting owner review.)* End-of-day cash count per branch: expected cash from posted Cash receipts versus
    counted cash, a reason for any difference, approved by a different person; append-only. Builds on the
    existing terminal reconciliation pattern. **Owner decision 2026-11-05: a CA (or anyone with
    `payments.reconcile.branch`) counts; a CA Supervisor, Finance Officer or Director approves, never the counter.**
