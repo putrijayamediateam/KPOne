@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Head, router } from '@inertiajs/vue3';
+import { Head, Link, router } from '@inertiajs/vue3';
 import { computed, reactive } from 'vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -34,7 +34,7 @@ const props = defineProps<{
         treatment: string;
     };
     panels: string[];
-    can: { clinicalFilters: boolean };
+    can: { clinicalFilters: boolean; recordRemittances?: boolean };
     maxRows: number;
     downloadUrl: string | null;
     ready: boolean;
@@ -92,6 +92,11 @@ const canDownload = computed(() => props.ready && props.total > 0);
             title="Panel invoices"
             description="Invoices billed to a Panel at this branch. Choose a Panel and a date range, then download the list as a CSV file."
         />
+        <div v-if="can.recordRemittances" class="flex flex-wrap gap-2">
+            <Button as-child variant="secondary" size="sm">
+                <Link href="/panel-remittances">Record Panel payment</Link>
+            </Button>
+        </div>
 
         <form
             class="grid grid-cols-1 gap-3 rounded-xl border bg-card p-4 md:grid-cols-4"

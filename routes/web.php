@@ -45,6 +45,7 @@ use App\Http\Controllers\MedicineCatalogueController;
 use App\Http\Controllers\MedicineOptionSettingsController;
 use App\Http\Controllers\PanelClaimsController;
 use App\Http\Controllers\PanelInvoicesController;
+use App\Http\Controllers\PanelRemittancesController;
 use App\Http\Controllers\PanelSettingsController;
 use App\Http\Controllers\PatientBillingReportController;
 use App\Http\Controllers\PatientController;
@@ -247,6 +248,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->whereIn('section', ['sales', 'in-clinic', 'payments', 'inventory', 'patients'])
         ->middleware(['permission:insights.view.organisation', 'sensitive.no-store'])
         ->name('insights.report');
+
+    Route::middleware(['permission:panel.remittances.record.branch', 'sensitive.no-store'])->group(function () {
+        Route::get('panel-remittances', [PanelRemittancesController::class, 'index'])->name('panel-remittances.index');
+        Route::post('panel-remittances', [PanelRemittancesController::class, 'store'])->middleware('throttle:20,1')->name('panel-remittances.store');
+    });
 
     Route::middleware(['permission:panel.invoices.export.branch', 'sensitive.no-store'])->group(function () {
         Route::get('panel-invoices', [PanelInvoicesController::class, 'index'])->name('panel-invoices.index');
