@@ -4,6 +4,9 @@ import { useForm } from '@inertiajs/vue3';
 import { computed, nextTick, onUnmounted, ref, watch } from 'vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
+import { DisclosureText } from '@/components/ui/disclosure';
+import { EmptyState } from '@/components/ui/state';
+import { StatusBadge } from '@/components/ui/status';
 
 type Details = {
     clinic_name: string;
@@ -33,7 +36,48 @@ type Letterhead = {
     footerText: string | null;
     footerVersion: number;
 };
-const props = defineProps<{ letterhead: Letterhead; canEdit: boolean }>();
+// CAT-4: read-only readiness of every active branch for invoices, receipts and the doctor's letters.
+type Readiness = {
+    branchId: number;
+    name: string;
+    isActive: boolean;
+    status: 'ready' | 'needs_footer' | 'letters_blocked';
+    missing: string[];
+    blockedLetters: string[];
+    hasLogo: boolean;
+    hasFooter: boolean;
+};
+const props = withDefaults(
+    defineProps<{
+        letterhead: Letterhead;
+        canEdit: boolean;
+        readiness?: Readiness[];
+    }>(),
+    { readiness: () => [] },
+);
+const readinessLabel = (row: Readiness) =>
+    row.status === 'letters_blocked'
+        ? `Letters blocked: ${row.blockedLetters.join(', ')}`
+        : row.status === 'needs_footer'
+          ? 'Needs footer'
+          : 'Ready';
+const readinessTone = (row: Readiness): 'danger' | 'warning' | 'success' =>
+    row.status === 'letters_blocked'
+        ? 'danger'
+        : row.status === 'needs_footer'
+          ? 'warning'
+          : 'success';
+const logoBroken = (row: Readiness) =>
+    row.missing.some((item) => item.startsWith('logo'));
+const shownMissing = (row: Readiness) => row.missing.slice(0, 2);
+const hiddenMissing = (row: Readiness) => row.missing.slice(2);
+// Where the fix lives in the form below (active branch only).
+const fixTarget = (row: Readiness) =>
+    row.missing.length === 1 && row.missing[0] === 'print footer'
+        ? '#print-footer-heading'
+        : logoBroken(row)
+          ? '#logo'
+          : '#clinic-details-heading';
 defineOptions({
     layout: {
         breadcrumbs: [{ title: 'Business details', href: '/business-details' }],
@@ -226,6 +270,97 @@ const reload = () =>
             >
             <span class="ml-2 text-xs">Reload discards unsaved changes.</span>
         </p>
+        <section
+            class="mb-4 rounded-lg border bg-card p-4 md:p-5"
+            aria-labelledby="document-readiness-heading"
+            data-testid="document-readiness"
+        >
+            <h2 id="document-readiness-heading" class="text-sm font-semibold">
+                Document readiness
+            </h2>
+            <p class="mt-1 text-xs text-muted-foreground">
+                Letters: referral, MC and attendance. Invoices and receipts
+                print without a footer, but each branch should have one before
+                real use.
+            </p>
+            <EmptyState
+                v-if="readiness.length === 0"
+                class="mt-3"
+                title="No active branches."
+                description="Add or switch on a branch in Branches first."
+            />
+            <ul v-else class="mt-3 grid gap-2" aria-label="Branches">
+                <li
+                    v-for="row in readiness"
+                    :key="row.branchId"
+                    class="grid min-w-0 gap-1 rounded-md border p-3 md:grid-cols-[minmax(0,14rem)_minmax(0,1fr)_auto] md:items-center md:gap-3"
+                    data-testid="readiness-row"
+                >
+                    <p class="min-w-0 text-sm font-medium break-words">
+                        {{ row.name }}
+                        <span
+                            v-if="row.isActive"
+                            class="text-xs font-normal text-muted-foreground"
+                            >(this branch)</span
+                        >
+                    </p>
+                    <div class="grid min-w-0 gap-1">
+                        <div class="flex flex-wrap items-center gap-1.5">
+                            <StatusBadge
+                                status="document_readiness"
+                                :label="readinessLabel(row)"
+                                :tone="readinessTone(row)"
+                            />
+                        </div>
+                        <p
+                            v-if="row.missing.length"
+                            class="text-xs break-words text-muted-foreground"
+                        >
+                            Missing: {{ shownMissing(row).join(', ')
+                            }}<template v-if="hiddenMissing(row).length">
+                                · +{{
+                                    hiddenMissing(row).length
+                                }}
+                                more</template
+                            >
+                        </p>
+                        <div
+                            v-if="hiddenMissing(row).length"
+                            class="min-w-0 text-xs"
+                        >
+                            <DisclosureText
+                                :text="`All missing: ${row.missing.join(', ')}`"
+                            />
+                        </div>
+                        <p
+                            v-if="!row.hasLogo && !logoBroken(row)"
+                            class="text-xs text-muted-foreground"
+                        >
+                            No logo (optional)
+                        </p>
+                    </div>
+                    <div v-if="row.missing.length" class="min-w-0 text-xs">
+                        <Button
+                            v-if="row.isActive"
+                            variant="ghost"
+                            size="sm"
+                            class="min-h-11 md:min-h-8"
+                            as-child
+                        >
+                            <a
+                                :href="fixTarget(row)"
+                                :aria-label="`Fix below: ${row.name}`"
+                                >Fix below</a
+                            >
+                        </Button>
+                        <span v-else class="text-muted-foreground"
+                            >Switch to {{ row.name }} in the header to
+                            edit.</span
+                        >
+                    </div>
+                </li>
+            </ul>
+        </section>
         <p v-if="!canEdit" class="mb-3 text-xs text-muted-foreground">
             You can view these details. Only an authorised editor can save
             changes. The print footer below can be edited separately.
