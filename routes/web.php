@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AccessControlController;
+use App\Http\Controllers\AgentInboxController;
 use App\Http\Controllers\AgentRegistryController;
 use App\Http\Controllers\AttendanceController;
 use App\Http\Controllers\AuditLogController;
@@ -653,6 +654,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::get('panels/{panel}/edit', [PanelSettingsController::class, 'edit'])->whereNumber('panel')->name('panel-settings.edit');
             Route::patch('panels/{panel}', [PanelSettingsController::class, 'update'])->whereNumber('panel')->middleware('throttle:30,1')->name('panel-settings.update');
             Route::post('panels/{panel}/active', [PanelSettingsController::class, 'active'])->whereNumber('panel')->middleware('throttle:30,1')->name('panel-settings.active');
+        });
+
+        Route::middleware(['permission:ai_proposals.view.branch', 'sensitive.no-store'])->prefix('agents/inbox')->group(function () {
+            Route::get('/', [AgentInboxController::class, 'index'])->name('agents.inbox');
+            Route::post('{proposal}/approve', [AgentInboxController::class, 'approve'])->whereNumber('proposal')->middleware('throttle:30,1')->name('agents.inbox.approve');
+            Route::post('{proposal}/reject', [AgentInboxController::class, 'reject'])->whereNumber('proposal')->middleware('throttle:30,1')->name('agents.inbox.reject');
         });
 
         Route::middleware(['permission:ai_agents.view.organisation', 'sensitive.no-store'])->prefix('agents')->group(function () {

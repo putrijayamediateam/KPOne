@@ -12,7 +12,6 @@ use Illuminate\Contracts\Encryption\DecryptException;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 
 /**
@@ -99,17 +98,12 @@ final class AgentOfficeFeed
     }
 
     /**
-     * Pending proposals per agent. The `ai_proposals` table arrives with AG-2 (contract section 2);
-     * until then every count is zero.
+     * Pending proposals per agent (the approval inbox, AG-2).
      *
      * @return Collection<int, int>
      */
     private function pendingProposals(int $organisationId): Collection
     {
-        if (! Schema::hasTable('ai_proposals')) {
-            return collect();
-        }
-
         return DB::table('ai_proposals')->where('organisation_id', $organisationId)->where('status', 'pending')
             ->groupBy('ai_agent_id')->selectRaw('ai_agent_id, count(*) as aggregate')->pluck('aggregate', 'ai_agent_id')
             ->map(fn ($count): int => (int) $count);
