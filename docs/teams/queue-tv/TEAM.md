@@ -74,7 +74,8 @@ coordinator (2026-11-05); Yasmin added by owner decision 2026-11-05 (every build
 | THROTTLE-1 | Per-route throttle counters (polling no longer blocks Call In) | #193 |
 | TV-5 | "Last called" after 15 minutes | #202 |
 | Q-1 | Waiting time on the Queue board and the Registration board (All and Waiting tabs, A and B numbers) turns amber from 30 min and red from 60 min (frontend only, from the existing `queued_at`; shared `PatientBoard.vue` gains one optional `waitingMinutes` row field; rule in `resources/js/lib/waiting-time.ts`) | #240 |
-| Q-2 | Treatment progress: CA, CA Supervisor or the attending doctor mark a controlled step (8 steps) started then done on a Serving consultation; blue/green chip on the Queue board and consultation page; attending-doctor pop-up and count; cleared by Resume or opening the consultation; append-only evidence (`app/Domain/Queue/Treatment/`, migrations `2026_11_08_000100` and `000200`); TV shows nothing | this PR |
+| Q-2 | Treatment progress: CA, CA Supervisor or the attending doctor mark a controlled step (8 steps) started then done on a Serving consultation; blue/green chip on the Queue board and consultation page; attending-doctor pop-up and count; cleared by Resume or opening the consultation; append-only evidence (`app/Domain/Queue/Treatment/`, migrations `2026_11_08_000100` and `000200`); TV shows nothing | #256 |
+| Q-2b | Shared board (Queue and Registration): Status column widened from 9% to 15% and Payment narrowed from 24% to 18%, so status, not-ready and treatment chips stop wrapping; Payment keeps its two-line Panel name and note tooltip; 390 px cards unchanged. The consultation dropdown's "ready to resume" count line is `font-medium` (dark-mode legibility). Frontend only | this PR |
 
 ## 6. Owner decisions already made (never ask again)
 
@@ -104,6 +105,9 @@ coordinator (2026-11-05); Yasmin added by owner decision 2026-11-05 (every build
     push to `main` or another team's branch, never merge, never force-push. If the branch already has an open PR, push
     only when the change is ready (it re-runs CI). The PR still opens only after "ship it", with latest `origin/main`
     merged first. On a fresh machine, fetch the branch before continuing.
+12. Q-2b column widths (2026-11-05): Status 15%, Payment 18% on the shared board (Daniel's recommendation, agreed with
+    Nurul for Patients & Registration). The owner approved the one existing assertion change in
+    `tests/Frontend/panel-note.test.mjs` (`w-[24%]` to `w-[18%]`).
 
 ## 7. Open items and known limits
 
