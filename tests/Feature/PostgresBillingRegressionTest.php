@@ -130,6 +130,21 @@ class PostgresBillingRegressionTest extends TestCase
         return ['direction' => 'deduct', 'input_type' => 'fixed', 'input_value' => 1000, 'threshold_version' => 0, 'confirm_above_limit' => true, 'reason' => 'Synthetic private PG adjustment', 'idempotency_key' => (string) Str::uuid()];
     }
 
+    public function test_two_first_prints_of_one_invoice_at_once_give_one_original_and_one_copy(): void
+    {
+        // BIL-5: the invoice row lock (and the version and label triggers) put two presses of Print in order.
+        $f = $this->billingFixture();
+        foreach (['ca', 'ca2'] as $key) {
+            foreach (['billing.print.branch', 'billing.bill_to.view.branch', 'billing.view.branch'] as $permission) {
+                $f[$key]->givePermissionTo(Permission::findOrCreate($permission, 'web'));
+            }
+        }
+        $out = $this->race([$this->billWorker($f, 'bill-issue', ['idempotency_key' => (string) Str::uuid()]), $this->billWorker($f, 'bill-issue', ['idempotency_key' => (string) Str::uuid()], 'ca2')], $f['patient']);
+        $this->assertSame(2, substr_count($out, 'SUCCESS'), $out);
+        $this->assertSame(1, DB::table('issued_billing_documents')->where('invoice_id', $f['invoice']->id)->count());
+        $this->assertSame(['copy', 'original'], DB::table('issued_billing_document_prints')->where('organisation_id', $f['organisation']->id)->orderBy('label')->pluck('label')->all());
+    }
+
     public function test_adjustment_race_serializes_two_cashiers_and_payment_without_overpaying(): void
     {
         $f = $this->billingFixture();
@@ -1137,7 +1152,7 @@ class PostgresBillingRegressionTest extends TestCase
     {
         DB::transaction(function () use ($id): void {
             // Only this isolated PostgreSQL test fixture cleanup may discard retained synthetic evidence.
-            foreach (['payment_refund_decisions', 'payment_refunds', 'cash_closing_decisions', 'cash_closings', 'invoice_adjustment_reversals', 'invoice_adjustments', 'invoice_adjustment_limits'] as $table) {
+            foreach (['issued_billing_document_prints', 'issued_billing_documents', 'payment_refund_decisions', 'payment_refunds', 'cash_closing_decisions', 'cash_closings', 'invoice_adjustment_reversals', 'invoice_adjustments', 'invoice_adjustment_limits'] as $table) {
                 DB::statement("ALTER TABLE {$table} DISABLE TRIGGER USER");
                 DB::table($table)->where('organisation_id', $id)->delete();
                 DB::statement("ALTER TABLE {$table} ENABLE TRIGGER USER");
