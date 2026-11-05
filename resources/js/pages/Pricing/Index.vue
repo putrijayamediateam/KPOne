@@ -397,6 +397,11 @@ const toggleCharge = (charge: ChargeRow) => {
                         >
                         <Input
                             :id="`m-amount-${charge.publicId}`"
+                            :aria-describedby="
+                                publishForm(charge).error
+                                    ? `m-amount-error-${charge.publicId}`
+                                    : undefined
+                            "
                             v-model="publishForm(charge).amount"
                             :aria-label="`Amount (RM) for ${charge.displayName}`"
                             aria-required="true"
@@ -404,11 +409,12 @@ const toggleCharge = (charge: ChargeRow) => {
                                 !!publishForm(charge).error || undefined
                             "
                             inputmode="decimal"
-                            placeholder="0.00"
+                            placeholder="e.g. 25.00"
                         />
                     </div>
                     <p
                         v-if="publishForm(charge).error"
+                        :id="`m-amount-error-${charge.publicId}`"
                         class="text-xs text-destructive"
                         role="alert"
                     >
@@ -491,6 +497,11 @@ const toggleCharge = (charge: ChargeRow) => {
                                     >
                                     <Input
                                         :id="`d-amount-${charge.publicId}`"
+                                        :aria-describedby="
+                                            publishForm(charge).error
+                                                ? `d-amount-error-${charge.publicId}`
+                                                : undefined
+                                        "
                                         v-model="publishForm(charge).amount"
                                         :aria-label="`Amount (RM) for ${charge.displayName}`"
                                         aria-required="true"
@@ -499,7 +510,7 @@ const toggleCharge = (charge: ChargeRow) => {
                                             undefined
                                         "
                                         inputmode="decimal"
-                                        placeholder="0.00"
+                                        placeholder="e.g. 25.00"
                                     />
                                 </div>
                                 <Button
@@ -517,6 +528,7 @@ const toggleCharge = (charge: ChargeRow) => {
                             </div>
                             <p
                                 v-if="publishForm(charge).error"
+                                :id="`d-amount-error-${charge.publicId}`"
                                 class="mt-1 text-xs text-destructive"
                                 role="alert"
                             >

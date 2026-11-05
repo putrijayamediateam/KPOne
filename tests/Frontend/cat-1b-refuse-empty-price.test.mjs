@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
+import { runInNewContext } from 'node:vm';
+import ts from 'typescript';
 
 // CAT-1b (owner decision 2026-11-05): an empty price amount is refused, never
 // published as RM 0.00. A typed 0.00 stays allowed.
@@ -45,8 +47,30 @@ test('the server gives the same clear message on the request and service paths',
     assert.match(request, /'amount_sen' => \['required', 'integer', 'min:0'\]/);
 });
 
-test('rmToSen keeps the distinction between an empty box and a typed 0.00', async () => {
-    const source = read('resources/js/lib/money.ts');
+test('rmToSen keeps the distinction between an empty box and a typed 0.00', () => {
+    const javascript = ts.transpileModule(
+        read('resources/js/lib/money.ts').replaceAll('export ', ''),
+        { compilerOptions: { target: ts.ScriptTarget.ES2022 } },
+    ).outputText;
+    const rmToSen = runInNewContext(`${javascript}\nrmToSen`, {});
 
-    assert.match(source, /return normalized === '' \? null :/);
+    assert.equal(rmToSen(''), null);
+    assert.equal(rmToSen('   '), null);
+    assert.equal(rmToSen('0'), 0);
+    assert.equal(rmToSen('0.00'), 0);
+    assert.equal(rmToSen(' 1.50 '), 150);
+    assert.ok(Number.isNaN(rmToSen('abc')));
+});
+
+test('the amount box does not look as if it already holds 0.00', () => {
+    assert.doesNotMatch(pricing, /placeholder="0\.00"/);
+    assert.equal(
+        (pricing.match(/placeholder="e\.g\. 25\.00"/g) ?? []).length,
+        2,
+    );
+    // Each error is linked to its own field.
+    assert.equal(
+        (pricing.match(/amount-error-\$\{charge\.publicId\}`/g) ?? []).length,
+        4,
+    );
 });
