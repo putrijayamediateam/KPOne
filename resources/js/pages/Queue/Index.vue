@@ -12,6 +12,7 @@ import {
 import InputError from '@/components/InputError.vue';
 import PatientBoard from '@/components/patient-board/PatientBoard.vue';
 import VisitCancellationDialog from '@/components/patient-board/VisitCancellationDialog.vue';
+import CallNextControl from '@/components/queue/CallNextControl.vue';
 import QueueCallDialog from '@/components/queue/QueueCallDialog.vue';
 import { Button } from '@/components/ui/button';
 import { OperationalSelect } from '@/components/ui/select';
@@ -546,6 +547,13 @@ const submitTreatmentCall = () => {
         },
     );
 };
+// Q-4: re-poll with the applied filters (keeps the current pages) so Call next sees the latest next patient.
+const refreshBoard = () =>
+    refresh(
+        live.value.waiting.currentPage,
+        live.value.carryOver.currentPage,
+        false,
+    );
 const finishCall = () => {
     void refresh(1, 1, false).finally(schedule);
 };
@@ -706,7 +714,11 @@ onBeforeUnmount(() => {
                 label="Urgency"
                 :options="urgencyOptions"
             />
-            <Button type="submit" size="sm" :disabled="isApplyingFilters"
+            <Button
+                type="submit"
+                size="sm"
+                :variant="live.callNext ? 'outline' : 'default'"
+                :disabled="isApplyingFilters"
                 ><LoaderCircle
                     v-if="isApplyingFilters"
                     class="size-4 animate-spin"
@@ -724,12 +736,24 @@ onBeforeUnmount(() => {
 
         <section class="overflow-hidden border-y bg-background">
             <div
-                class="flex items-center justify-between px-3 py-2 text-xs text-muted-foreground"
+                class="flex flex-col gap-2 px-3 py-2 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between"
             >
-                <span>{{ boardRows.length }} visible entries</span
-                ><span>{{
-                    live.scope === 'own' ? 'Clinician scope' : 'Branch scope'
-                }}</span>
+                <span class="flex gap-3"
+                    ><span>{{ boardRows.length }} visible entries</span
+                    ><span>{{
+                        live.scope === 'own'
+                            ? 'Clinician scope'
+                            : 'Branch scope'
+                    }}</span></span
+                >
+                <CallNextControl
+                    v-if="live.callNext"
+                    :block="live.callNext"
+                    :branch-id="live.branch.id"
+                    :busy="busyKey !== null"
+                    :refresh="refreshBoard"
+                    @processing="busyKey = $event ? 'call-next' : null"
+                />
             </div>
             <Button
                 type="button"
