@@ -99,6 +99,22 @@ return [
             'sslmode' => env('DB_SSLMODE', 'require'),
         ],
 
+        // AG-7 Ask KPOne (agents contract section 13): the separate kpone_ai_reader login, which can SELECT only from
+        // the masked ai_read views. kpone:read refuses to run when this login is not configured.
+        'ai_reader' => [
+            'driver' => 'pgsql',
+            'host' => env('DB_HOST', '127.0.0.1'),
+            'port' => env('DB_PORT', '5432'),
+            'database' => env('DB_DATABASE', 'kpone'),
+            'username' => env('AI_READER_DB_USERNAME'),
+            'password' => env('AI_READER_DB_PASSWORD', ''),
+            'charset' => env('DB_CHARSET', 'utf8'),
+            'prefix' => '',
+            'prefix_indexes' => true,
+            'search_path' => 'ai_read',
+            'sslmode' => env('DB_SSLMODE', 'require'),
+        ],
+
         'sqlsrv' => [
             'driver' => 'sqlsrv',
             'url' => env('DB_URL'),
@@ -126,6 +142,19 @@ return [
     | the migrations on disk haven't actually been run on the database.
     |
     */
+
+    /*
+    |--------------------------------------------------------------------------
+    | Ask KPOne read connection
+    |--------------------------------------------------------------------------
+    |
+    | The connection kpone:read and kpone:read-schema use. It is fixed in code, not read from the environment.
+    |
+    */
+
+    'ai_read' => [
+        'connection' => 'ai_reader',
+    ],
 
     'migrations' => [
         'table' => 'migrations',
