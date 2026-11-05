@@ -1,7 +1,7 @@
 export type DisplayCall = {
     id: number;
     number: string;
-    /** Full registered name; present only when the branch calls by name. */
+    /** Full registered name in name mode; the server-made short name in short_name mode (Q-3); else absent. */
     name?: string | null;
     room: string | null;
     service?: CallService;
@@ -9,7 +9,7 @@ export type DisplayCall = {
     isRecall: boolean;
 };
 
-export type CallDisplayMode = 'number' | 'name';
+export type CallDisplayMode = 'number' | 'name' | 'short_name';
 
 export type CallService = 'consultation' | 'dispensary' | 'treatment';
 
@@ -185,15 +185,36 @@ export const callLabel = (
 ): string =>
     call.name && call.name.trim() !== '' ? call.name.trim() : call.number;
 
-/** The number one character at a time (or the name as written), then the room exactly as named in settings. */
+/**
+ * Q-3 (owner decision 2026-11-05): in short_name mode the TV shows the number and the server-made short name
+ * ("A-012 · Ahmad Ismail"). Returns null in every other mode or without a usable name, so the existing
+ * number and full-name rendering stays exactly as it was.
+ */
+export const shortNameParts = (
+    call: Pick<DisplayCall, 'number' | 'name'>,
+    mode: CallDisplayMode | undefined,
+): { number: string; name: string } | null =>
+    mode === 'short_name' && call.name && call.name.trim() !== ''
+        ? { number: call.number, name: call.name.trim() }
+        : null;
+
+/** The number one character at a time (or the name as written), then the room exactly as named in settings.
+ * In short_name mode: the number one character at a time, then the short name, then the room. */
 export const announcementText = (
     call: Pick<DisplayCall, 'number' | 'name' | 'room' | 'service'>,
     language: AnnouncementLanguage,
+    mode?: CallDisplayMode,
 ): string => {
     const room =
         call.room && call.room.trim() !== ''
             ? call.room.trim()
             : SERVICE_FALLBACK[call.service ?? 'consultation'][language];
+
+    const short = shortNameParts(call, mode);
+
+    if (short) {
+        return `${spokenQueueNumber(short.number, language)}. ${short.name}. ${room}.`;
+    }
 
     const who =
         call.name && call.name.trim() !== ''
