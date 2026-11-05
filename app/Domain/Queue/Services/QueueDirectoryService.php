@@ -178,6 +178,7 @@ class QueueDirectoryService
                 $actor,
                 $branch,
                 filled($criteria['doctor_id'] ?? null) ? (int) $criteria['doctor_id'] : null,
+                $eligibleDoctorIds,
             ),
         ];
 

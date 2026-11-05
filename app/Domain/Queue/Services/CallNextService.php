@@ -51,9 +51,10 @@ class CallNextService
      * The Call next block for the queue board. Null when the actor may not call from this board. Only the applied
      * doctor filter matters (a branch caller must choose a doctor); search, urgency and tabs never change who is next.
      *
+     * @param  list<int>|null  $eligibleDoctorIds  today's eligible doctors when the caller already has them
      * @return array<string, mixed>|null
      */
-    public function block(User $actor, Branch $branch, ?int $doctorId): ?array
+    public function block(User $actor, Branch $branch, ?int $doctorId, ?array $eligibleDoctorIds = null): ?array
     {
         $mode = $this->mode($actor);
         if ($mode === null) {
@@ -66,7 +67,7 @@ class CallNextService
         }
         $doctor = User::query()->whereKey($targetId)->where('organisation_id', $actor->organisation_id)->first(['id', 'organisation_id', 'name']);
         $today = now()->setTimezone($branch->timezone)->toDateString();
-        if (! $doctor || ! in_array($doctor->id, $this->doctors->eligibleDoctorIds($branch, $today), true)) {
+        if (! $doctor || ! in_array($doctor->id, $eligibleDoctorIds ?? $this->doctors->eligibleDoctorIds($branch, $today), true)) {
             return [...$base, 'state' => self::STATE_DOCTOR_UNAVAILABLE, 'reason' => 'This doctor cannot take consultations at this branch today.'];
         }
         $base['doctorName'] = $doctor->name;
@@ -167,6 +168,8 @@ class CallNextService
             ->orderBy('queue_entries.queued_at')
             ->orderBy('queue_entries.id')
             ->select('queue_entries.*')
+            // QueueEntryService::call() reads only these Visit columns before it re-locks the row; add any column
+            // it starts reading earlier here too.
             ->with(['visit:id,organisation_id,branch_id,patient_id,visit_number,priority,assigned_doctor_user_id,status,lock_version', 'visit.patient:id,patient_number,full_name'])
             ->first();
     }
