@@ -64,7 +64,7 @@ const print = () => window.print();
             <a
                 v-if="issued"
                 :href="issued.backUrl"
-                class="rounded px-3 py-2 underline"
+                class="rounded px-3 py-2 underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
                 >{{ issued.backLabel }}</a
             >
             <p v-if="issued" class="text-xs text-muted-foreground">
@@ -73,7 +73,7 @@ const print = () => window.print();
                 {{ issued.version }}){{
                     issued.printedByYou ? ' by you' : ''
                 }}
-                at {{ issued.printedAt }}.
+                at {{ issued.printedAt }} (branch time).
             </p>
         </div>
         <header

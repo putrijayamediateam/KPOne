@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { router, usePage } from '@inertiajs/vue3';
+import { Printer } from '@lucide/vue';
 import { computed, ref } from 'vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
@@ -82,11 +83,23 @@ const name = (copy: IssuedCopy) =>
             <table class="hidden w-full text-left text-xs sm:table">
                 <thead class="text-muted-foreground">
                     <tr>
-                        <th class="py-1 font-medium">Document</th>
-                        <th class="py-1 font-medium">Version</th>
-                        <th class="py-1 font-medium">First printed as</th>
-                        <th class="py-1 font-medium">Issued</th>
-                        <th class="py-1 text-right font-medium">Prints</th>
+                        <th class="px-2 py-1 font-medium whitespace-nowrap">
+                            Document
+                        </th>
+                        <th class="px-2 py-1 font-medium whitespace-nowrap">
+                            Version
+                        </th>
+                        <th class="px-2 py-1 font-medium whitespace-nowrap">
+                            First printed as
+                        </th>
+                        <th class="px-2 py-1 font-medium whitespace-nowrap">
+                            Issued
+                        </th>
+                        <th
+                            class="px-2 py-1 text-right font-medium whitespace-nowrap"
+                        >
+                            Prints
+                        </th>
                         <th class="py-1">
                             <span class="sr-only">Action</span>
                         </th>
@@ -99,14 +112,25 @@ const name = (copy: IssuedCopy) =>
                         class="border-t"
                         data-testid="issued-copy"
                     >
-                        <td class="py-2 break-words">{{ name(copy) }}</td>
-                        <td class="tabular-nums">{{ copy.version }}</td>
-                        <td><StatusBadge :status="copy.firstPrintedAs" /></td>
-                        <td>{{ copy.issuedAt }}, {{ copy.issuedBy }}</td>
-                        <td class="text-right tabular-nums">
+                        <td
+                            class="max-w-48 truncate px-2 py-2 whitespace-nowrap"
+                            :title="name(copy)"
+                        >
+                            {{ name(copy) }}
+                        </td>
+                        <td class="px-2 tabular-nums">{{ copy.version }}</td>
+                        <td class="px-2">
+                            <StatusBadge :status="copy.firstPrintedAs" />
+                        </td>
+                        <td class="px-2">
+                            {{ copy.issuedAt }}, {{ copy.issuedBy }}
+                        </td>
+                        <td
+                            class="px-2 text-right whitespace-nowrap tabular-nums"
+                        >
                             {{ copy.prints }}
                         </td>
-                        <td class="text-right">
+                        <td class="px-2 text-right">
                             <Button
                                 size="sm"
                                 variant="outline"
@@ -131,7 +155,8 @@ const name = (copy: IssuedCopy) =>
                     </p>
                     <p class="mt-1 text-muted-foreground">
                         {{ copy.issuedAt }}, {{ copy.issuedBy }} ·
-                        {{ copy.prints }} print(s)
+                        {{ copy.prints }}
+                        {{ copy.prints === 1 ? 'print' : 'prints' }}
                     </p>
                     <Button
                         class="mt-2 h-11 w-full"
@@ -146,13 +171,21 @@ const name = (copy: IssuedCopy) =>
         </template>
         <OperationalConfirmDialog
             :open="confirming !== null"
-            :title="`Reprint version ${confirming?.version ?? ''}?`"
+            :title="
+                confirming
+                    ? `Reprint ${confirming.type} ${confirming.number}, version ${confirming.version}?`
+                    : ''
+            "
             description="This is not the current version. The paper will say COPY and that a later version exists."
             confirm-label="Reprint as COPY"
             processing-label="Issuing…"
             :processing="busy !== null"
             @update:open="(open) => (confirming = open ? confirming : null)"
             @confirm="confirming && reprint(confirming)"
-        />
+        >
+            <template #icon>
+                <Printer class="size-5" aria-hidden="true" />
+            </template>
+        </OperationalConfirmDialog>
     </section>
 </template>

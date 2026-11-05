@@ -251,7 +251,11 @@ const totals = computed(() => {
                                 <IssuePrintButton
                                     v-if="isBillingPrint(document.url)"
                                     :url="issueUrl(document.url)"
-                                    label="Print document"
+                                    :label="
+                                        /\/receipts\//.test(document.url)
+                                            ? 'Print receipt'
+                                            : 'Print invoice'
+                                    "
                                     variant="outline"
                                     return-to="invoice"
                                 />
