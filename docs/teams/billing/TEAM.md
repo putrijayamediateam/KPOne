@@ -100,7 +100,7 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php` and `BillingPermiss
 | BIL-4b | "Daily cash closing" card in Clinic management (Patients group, beside Terminal Reconciliation), for holders of `payments.reconcile.branch` at their branch | PR #231 (merged) |
 | BIL-4c | PostgreSQL contention test for daily cash closing (`PostgresCashClosingRegressionTest`, 4 races in real separate sessions): two counts for one day, a new count against an approval of the old count, two approvers on one count, the same request sent twice. Test only | PR #236 (merged) |
 | BIL-4d | Two more PostgreSQL races in `PostgresBillingRegressionTest` with a real paid cash invoice: a receipt reversal holding its lock makes a cash closing approval wait and then refuse; an approval holding its share lock makes the reversal wait, then both succeed with the approved snapshot kept. Test only | PR #237 |
-| BIL-6 | Refunds: money handed back for a reversed receipt (full amount, any active method, reason code), recorded on the Billing page and approved or rejected by a different person; append-only with PostgreSQL rules. Cash closing counts a refunded reversed receipt as received and the cash refund as paid out, and waits for pending cash refunds. Two new permissions. Design note: `BIL-6-DESIGN.md` | this PR |
+| BIL-6 | Refunds: money handed back for a reversed receipt (full amount, any active method, reason code), recorded on the Billing page and approved or rejected by a different person; append-only with PostgreSQL rules. Cash closing counts a refunded reversed receipt as received and the cash refund as paid out, and waits for pending cash refunds. Two new permissions. Design note: `BIL-6-DESIGN.md` | PR #246 |
 
 ## 6. Owner decisions already made (never ask again)
 
@@ -281,7 +281,7 @@ authorisation to build them; the coordinator records it in `docs/BASELINE.md`.
    counted cash, a reason for any difference, approved by a different person; append-only. Builds on the
    existing terminal reconciliation pattern. **Owner decision 2026-11-05: a CA (or anyone with
    `payments.reconcile.branch`) counts; a CA Supervisor, Finance Officer or Director approves, never the counter.**
-5. **BIL-6 Refund recording with two-person approval.** *(Built 2026-11-05; awaiting owner review.)* Owner decisions in
+5. **BIL-6 Refund recording with two-person approval.** *(Built 2026-11-05; PR #246.)* Owner decisions in
    section 6 (23); design note `BIL-6-DESIGN.md`.
 6. **BIL-6b Refunds in the Daily summary.** "Refunded (Cash)" and "Refunded (Non-cash)" columns by payout date,
    "Total received" unchanged, numbers proven against cash closing. Needs the owner's approval for the existing
