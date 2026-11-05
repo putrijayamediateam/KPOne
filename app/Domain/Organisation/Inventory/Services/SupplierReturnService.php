@@ -252,7 +252,7 @@ final class SupplierReturnService
     {
         $sum = DB::table('inventory_supplier_returns as r')->where('r.receipt_lot_id', $lotId)
             ->whereNotExists(fn ($q) => $q->selectRaw('1')->from('inventory_supplier_return_actions as a')->whereColumn('a.return_id', 'r.id')->whereIn('a.state', ['rejected', 'cancelled']))
-            ->value(DB::raw('COALESCE(SUM(r.quantity), 0)'));
+            ->selectRaw('COALESCE(SUM(r.quantity), 0) AS total')->value('total');
 
         return StockUnitQuantity::scaled(is_numeric($sum) ? (string) $sum : '0', true);
     }
