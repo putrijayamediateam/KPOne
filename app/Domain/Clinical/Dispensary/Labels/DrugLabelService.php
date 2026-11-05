@@ -104,7 +104,7 @@ final class DrugLabelService
                 [$batch, $batchNote] = $this->singleBatch($item);
                 $fields = ['clinic' => $details['clinic_name'], 'address' => $address, 'contact' => $contact, 'patient' => $patient->full_name, 'reference' => $patient->patient_number.' / '.$visit->visit_number,
                     'name' => $item->medicine_name_snapshot, 'strength' => $item->strength_snapshot, 'form' => $item->dosage_form_snapshot, 'quantity' => DrugLabelLayout::displayQuantity($item->quantity_dispensed).' '.$item->unit_snapshot,
-                    ...($batch ? ['batch' => $batch->batch_number, 'expiry' => $batch->expiry_date->format('d/m/Y')] : []),
+                    ...($batch ? ['batch' => $batch->batch_number, 'expiry' => CarbonImmutable::parse($batch->expiry_date)->format('d/m/Y')] : []),
                     'dosage' => $item->effective('dosage'), 'frequency' => $item->effective('frequency'), 'duration' => $item->effective('duration'), 'route' => $item->effective('route'), 'instruction' => $item->effective('administration_instruction'), 'precaution' => $item->effective('precaution')];
                 $at = $completed ? $handoff->completed_at : $item->handled_at;
                 $date = $at ? CarbonImmutable::parse($at)->setTimezone($branch->timezone)->format('d/m/Y') : 'Tidak direkod';
@@ -143,7 +143,7 @@ final class DrugLabelService
 
         $batch = InventoryBatch::query()->whereKey($batchIds->first())->where('organisation_id', $item->organisation_id)->firstOrFail();
         // Before STK-3 a batch could carry the 9999-12-31 placeholder instead of a real expiry; never print it as a date.
-        if ($batch->expiry_date->format('Y-m-d') === self::PLACEHOLDER_EXPIRY) {
+        if (CarbonImmutable::parse($batch->expiry_date)->format('Y-m-d') === self::PLACEHOLDER_EXPIRY) {
             return [null, 'Batch and expiry not printed: this batch has no real expiry date recorded.'];
         }
 
