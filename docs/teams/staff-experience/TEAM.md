@@ -86,6 +86,9 @@ usability aid only and must follow the permission the backend already enforces.
    never merge, never force-push. On a branch with an open PR, push only when the change is ready (it re-runs CI).
    The PR still opens only after "ship it", with the latest `origin/main` merged first. Confirmed by the owner
    directly in the Staff Experience session (2026-11-05).
+8. UX-5: on the consultation page (focus mode), toasts show at the bottom left from 1024 px; below 1024 px and on
+   every other page decision 5 still applies. The owner approved the matching change to the UX-1 ClinicLayout
+   toast assertion (2026-11-05).
 
 ## 7. Open items and known limits
 
@@ -102,9 +105,11 @@ usability aid only and must follow the permission the backend already enforces.
 - UX-1 known limits: at 320 px a Today ranking card can scroll
   inside the card when every column holds a large ringgit figure; the page itself does not scroll sideways.
   Long ranking names are cut with "…" on phones (full name in the tooltip and in View all).
-- UX-1 toast at the top (measured 2026-11-05): at 1440 px on the consultation page (focus mode, no header), when
-  the page is scrolled to the top, the toast covers the "Panggil semula", waiting-count and Attendance
-  confirmation buttons for its few seconds. Complete Consultation is clear at every width.
+- Consultation page toasts (UX-5, measured 2026-11-05): from 1280 to 1920 px the bottom-left toast covers no
+  control wherever the page is scrolled; at 1024 px with the page at the very top it briefly covers "Choose
+  preset". Below 1024 px the toast stays at the top, so on a tablet or phone scrolled to the top it still briefly
+  covers the toolbar links and buttons (Medical certificates, Panggil semula, Start treatment step, On Hold).
+  Complete Consultation is clear at every width.
 - UX-1 review note: Quick create (`Registration/Create.vue`) keeps its Register Visit card sticky at `max-lg:top-16`
   (64 px), the same height as the staff toast, so a flash toast there would briefly cover it. That page
   fires no toast of its own today; owned by Patients & Registration, so left unchanged.
@@ -168,3 +173,5 @@ authorisation to build them; the coordinator records it in `docs/BASELINE.md`.
    and expiry on labels (DSP-2, DSP-3), transfer shortages (STK-6), supplier returns (STK-7), English
    Registration messages (REG-2), and any other merged screen staff use. Follow the real screens; mark anything
    unconfirmed `[PERLU DISAHKAN]`. Ask B.E.R.N.I.S.S for the list of merged PRs since the last guide update (PR #203).
+5. **UX-5 Consultation page toasts.** Chosen by the owner on 2026-11-05 from the UX-1 known limit: on the
+   consultation page from 1024 px, toasts move to the bottom left so they no longer cover the toolbar.
