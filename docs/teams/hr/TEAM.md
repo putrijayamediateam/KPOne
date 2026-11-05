@@ -121,10 +121,8 @@ Decisions marked **B.E.R.N.I.S.S for the owner** were made by the coordinator un
   accountant, HR adviser or lawyer, not the team.
 - The clinic HR proposal's WhatsApp, OTP, locum portal and MySyarikat-integration items are not authorised.
 - A privacy (PDPA) review is needed before real staff data and before any location check at clock-in.
-- **Authorisation record (Reviewer, HR-1):** `AGENTS.md` still lists "HR workflow" as not authorised, and
-  `docs/BASELINE.md` section 4 and section 6 item 25 still say HR workflows and the staff roster are not
-  authorised. The coordinator records BASELINE; an owner-approved narrow clause in `AGENTS.md` (as WA-01 did) is
-  needed before HR-1 merges. The team does not edit either file.
+- **Authorisation record (Reviewer, HR-1): resolved.** The coordinator recorded the KPOne HR authorisation in
+  `docs/BASELINE.md` and added a narrow KPOne HR clause to `AGENTS.md` (PR #291, merged as `837dd56`).
 - HR-1 known limits: minimum staffing applies to every day, so a day the branch is closed shows as short (no
   opening-days setting yet); a CA Supervisor counts as a CA Supervisor only, not as a CA; a staff member's own roster
   shows one week at a time; the planner reads other drafts' overlaps with one query per shift (fine for a clinic
