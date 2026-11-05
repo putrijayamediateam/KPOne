@@ -36,6 +36,9 @@ class EditDispensaryItemRequest extends FormRequest
             'allocations.*.sku_public_id' => ['required', 'uuid'],
             'allocations.*.batch_public_id' => ['required', 'uuid'],
             'allocations.*.fefo_exception_reason' => ['nullable', Rule::in(InventoryBatchEligibility::FEFO_REASONS)], 'allocations.*.quantity' => ['required', 'regex:/^\d{1,9}(?:\.\d{1,3})?$/'],
+            // DSP-1: public ids of the matched allergy records the CA ticked "I have checked with the patient/doctor" for.
+            'allergy_confirmed_record_ids' => ['nullable', 'array', 'max:50'],
+            'allergy_confirmed_record_ids.*' => ['uuid'],
         ];
     }
 }
