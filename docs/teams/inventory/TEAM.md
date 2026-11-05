@@ -41,11 +41,11 @@ coordinator at the owner's request (2026-11-05).
 
 | Kind | Files |
 |---|---|
-| Domain services | `app/Domain/Organisation/Inventory/Services/` — `InventoryMovementService`, `InventoryBatchEligibility`, `InventoryBatchHoldService`, `GovernedStockService`, `InventoryStockReviewService`, `InventoryReadinessService`, `ProcurementService`, `ReceivingReviewService`, `ReceiptCorrectionService`, `StockRequestService`, `SupplierReturnService`, `InventoryReferenceAdministrationService`, `SupplierSettingsService`, `InventoryPickerService`, `InventoryMovementProjection`, `StockUnitQuantity`, `LegacyStockPath` and others |
+| Domain services | `app/Domain/Organisation/Inventory/Services/` — `InventoryMovementService`, `InventoryBatchEligibility`, `InventoryBatchHoldService`, `GovernedStockService`, `InventoryStockReviewService`, `InventoryReadinessService`, `ProcurementService`, `ReceivingReviewService`, `ReceiptCorrectionService`, `StockRequestService`, `SupplierReturnService`, `TreatmentUsageService`, `InventoryReferenceAdministrationService`, `SupplierSettingsService`, `InventoryPickerService`, `InventoryMovementProjection`, `StockUnitQuantity`, `LegacyStockPath` and others |
 | Models | `app/Domain/Organisation/Inventory/Models/` — items, SKUs, batches, locations, balances, movements, purchase orders, goods receipts, stock requests, stocktakes, adjustments, reorder levels, suppliers |
 | Pages | `resources/js/pages/Inventory/*.vue` |
 | Analysis | `docs/reports/ANALYSIS-STOCK.md` (proposals STK-1 to STK-10, owner and pharmacist questions) |
-| Delivery reports | `docs/reports/STK-1.md` to `STK-7.md` |
+| Delivery reports | `docs/reports/STK-1.md` to `STK-8.md` |
 | Tests | `tests/Feature/Inventory/*` (including the PostgreSQL contention tests), `PostgresDispensaryInventoryRegressionTest`, `InventoryOperationsTest`, `NAV01ExplicitRedirectsTest` |
 
 ## 4. Permissions (who can do what today)
@@ -63,6 +63,7 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php`. Key ones:
 | `inventory.variances.approve.branch` | CA Supervisor, Finance Officer, Director | Count and write-off approval |
 | `inventory.supplier_returns.request.branch` | CA Supervisor | Request, cancel (own) and dispatch supplier returns (STK-7) |
 | `inventory.supplier_returns.approve.branch` | Finance Officer, Director | Approve or reject supplier returns (never their own request) and record the credit note (STK-7) |
+| `inventory.usage.record.branch` | CA, CA Supervisor | Record treatment-room usage and waste (STK-8); reversal uses `inventory.variances.approve.branch` |
 
 ## 5. What is built (history)
 
@@ -83,7 +84,8 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php`. Key ones:
 | RPT-01e | Stock movement summary (quantities only) | #148 |
 | CLOCK-1 | Stock review test uses branch dates | #208 |
 | STK-6 | Transfer shortages: receipt lines (accepted, short, damaged, extra), only accepted enters stock, append-only differences resolved by a different write-off approver (domain and PostgreSQL) | #217 |
-| STK-7 | Supplier returns: request from a verified receipt lot, approval by a different person (Finance Officer or Director), dispatch through a new `supplier_return` ledger movement, credit-note reference (no payment); append-only evidence guarded by PostgreSQL | pending (branch `feature/stk-7-supplier-returns`) |
+| STK-7 | Supplier returns: request from a verified receipt lot, approval by a different person (Finance Officer or Director), dispatch through a new `supplier_return` ledger movement, credit-note reference (no payment); append-only evidence guarded by PostgreSQL | #233 |
+| STK-8 | Treatment-room usage and waste: CA or CA Supervisor records stock used or wasted outside dispensing (new `treatment_usage` and `treatment_waste` ledger movements), optional treatment room, no patient link or bill; a different CA Supervisor, Finance Officer or Director may reverse an entry once (credit back as `adjustment_in`); append-only evidence guarded by PostgreSQL | pending (branch `feature/stk-8-treatment-room-usage`) |
 
 ## 6. Owner decisions already made (never ask again)
 
@@ -117,10 +119,21 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php`. Key ones:
     own; the team acts on it without asking again. Still never merge, never edit `docs/BASELINE.md`, and stop
     and ask the owner if a relayed message conflicts with something the owner said directly (2026-11-05,
     confirmed by the owner in the team's own session).
+17. STK-8 permission: one new permission, `inventory.usage.record.branch`, for CA and CA Supervisor only,
+    through one additive migration (2026-11-05).
+18. STK-8 ledger: two new movement types, `treatment_usage` and `treatment_waste`, with one allowlisted writer
+    (`InventoryMovementService::recordTreatmentUsage`, called only by `TreatmentUsageService`); the expected list
+    in `LegacyStockWriterBoundaryTest` is updated for it (owner-approved assertion change, 2026-11-05).
+19. STK-8 mistakes: a CA Supervisor, Finance Officer or Director who did not record an entry may reverse it once,
+    with a controlled reason; the stock goes back as `adjustment_in` (2026-11-05).
+20. STK-8 report: the Stock movement summary is left unchanged; usage and waste show there under "Adjusted" until
+    the Reports team adds a column (2026-11-05).
+21. STK-8 waste rule: usage and waste are for usable stock only; expired, held or unavailable stock is refused and
+    goes through the governed Write-off, keeping its second approver (2026-11-05, after Mei Ling's review).
 
 ## 7. Open items and known limits
 
-- **Planned, not built:** STK-8 treatment-room (non-dispensed) usage, STK-9 barcode scanning (label batch and expiry moves
+- **Planned, not built:** STK-9 barcode scanning (label batch and expiry moves
   to the Dispensary team's DSP-2), STK-10 valuation (accountant policy first).
 - **Parked review (2026-10-21):** no match against a supplier's invoice, no printable purchase order, reorder levels raise no alert by themselves (STK-4 worklists now show
   low stock). `InventoryController::referenceData()` still projects all items, SKUs and locations unbounded.
@@ -141,6 +154,12 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php`. Key ones:
   dispatched a return cannot be undone in KPOne (a supplier that sends stock back is received as a new
   delivery); the Stock movement summary shows supplier returns under "Adjusted" (report owned by the Reports
   team); returning stock never releases a batch hold.
+- STK-8 limits: one entry is one batch at one location; expired, held or unavailable batches are refused for
+  use and waste (use the governed Write-off); a reversal is refused once a governed count or write-off has
+  posted for that batch and location; entries are not linked to a patient or visit and create no bill; no kits
+  or bundles; the treatment room is optional and only a label; a reversal returns the whole entry (no partial
+  reversal) and an entry can be reversed once; the Stock movement summary shows usage, waste and their reversals
+  under "Adjusted" (report owned by the Reports team).
 
 ## 8. Rules (every task)
 
@@ -171,10 +190,10 @@ matching proposal in `docs/reports/ANALYSIS-STOCK.md` section 8 unless an owner 
    extra); dispatch and receipt reconcile without forcing a full receipt; a different person resolves each
    difference, append-only. **Owner decision 2026-11-05: resolvers are the write-off approvers (CA Supervisor,
    Finance Officer, Director), never the person who received the transfer.**
-2. **STK-7 Supplier returns.** *Built 2026-11-05, awaiting owner review.* Return request, approval and dispatch tied to the receipt and batch, with a
+2. **STK-7 Supplier returns.** *Merged in PR #233.* Return request, approval and dispatch tied to the receipt and batch, with a
    credit-note reference; no payment engine; Finance sees commercial references without patient data. **Owner
    decision 2026-11-05: a CA Supervisor requests; a Finance Officer or Director approves, never the requester.**
-3. **STK-8 Treatment-room usage.** Dedicated non-dispensed usage and waste records and movements (not hidden
+3. **STK-8 Treatment-room usage.** *Built 2026-11-05, awaiting owner review.* Dedicated non-dispensed usage and waste records and movements (not hidden
    in adjustments); no billing bundles; not linked to a patient unless separately authorised. **Owner decision
    2026-11-05: CA and CA Supervisor record usage; every entry audited and shown in stock reports.**
 4. **STK-9 Barcode scanning.** Scan a known code to pick the item and batch when receiving, counting or

@@ -128,6 +128,9 @@ const movementOptions = [
     { value: 'stocktake_loss', label: 'Stocktake Loss' },
     { value: 'adjustment_in', label: 'Adjustment In' },
     { value: 'adjustment_out', label: 'Adjustment Out' },
+    { value: 'supplier_return', label: 'Supplier Return' },
+    { value: 'treatment_usage', label: 'Treatment Room Use' },
+    { value: 'treatment_waste', label: 'Treatment Room Waste' },
 ];
 
 const visit = (overrides: Record<string, string | number> = {}) => {
@@ -195,6 +198,10 @@ const clearFilters = () => {
             href="/inventory/supplier-returns"
             class="inline-flex min-h-11 items-center underline"
             >Supplier returns</a
+        ><a
+            href="/inventory/treatment-usage"
+            class="inline-flex min-h-11 items-center underline"
+            >Treatment room usage</a
         >
     </div>
     <a

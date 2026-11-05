@@ -10,9 +10,10 @@ updates it in the same PR as the code.
 |---|---|---|
 | Lead | **Aisyah** | Plans each piece, builds it (backend, pages, tests), keeps this file current |
 | Reviewer | **Hakim** | Checks every piece against the rules below, the tests and the owner's decisions before it reaches the owner |
+| UI/UX designer | **Iman** | Sketches each screen change before it is built and checks the screenshots before hand-off; part of the Design team under the Lead UI/UX Designer, Daniel ([Design TEAM.md](../design/TEAM.md)) |
 
-Both are Claude builder sessions working for the owner through the coordinator session. Names chosen by the
-coordinator at the owner's request (2026-11-05).
+All three are Claude sessions working for the owner through the coordinator session. Names chosen by the
+coordinator at the owner's request (2026-11-05); the designer was added by owner decision the same day.
 
 ## 2. What this area covers
 
@@ -86,7 +87,8 @@ coordinator at the owner's request (2026-11-05).
 | DSP-2 | Drug label prints "No. Batch" and "Tarikh luput" when exactly one batch was allocated to the line; otherwise nothing extra and the preview says why; batch number within the 48-character label budget or the label is blocked; read only | #218 (merged `dad3b49`) |
 | DSP-3 | Controlled-medicine flag on the Medicine Catalogue (mark or unmark, confirmed, stale change refused, audited with field and value only) and a bold "Ubat Terkawal / Controlled Medicine" line under the medicine name on the drug label | #223 (merged `975b93b`) |
 | DSP-4 | "OTC (no doctor)" row, always last, in the Insights Today and Sales Provider tables when no doctor is selected; the rows now add up to headline sales; nothing else changes | #227 (merged `3c74daa`) |
-| DSP-1b | Catalogue editors tag medicines with drug groups ("Drug groups" on the Medicine Catalogue; up to 10, stale change refused, audited by count); the Dispensary allergy warning also matches allergies against those groups | pending (branch `feature/dsp-1b-allergy-drug-groups`) |
+| DSP-1b | Catalogue editors tag medicines with drug groups ("Drug groups" on the Medicine Catalogue; up to 10, stale change refused, audited by count); the Dispensary allergy warning also matches allergies against those groups | #234 (merged `3a876b9`) |
+| DSP-9 | Pharmacist review pack (documents only): a printer-test checklist with worst-case labels and a pharmacist review sheet with sample labels made by the real label layout, under `docs/pilot/drug-label/` | pending (branch `feature/dsp-9-pharmacist-review-pack`; named DSP-9 by owner decision 16) |
 
 ## 6. Owner decisions already made (never ask again)
 
@@ -113,10 +115,18 @@ coordinator at the owner's request (2026-11-05).
     scope (2026-11-05).
 14. DSP-1b: better allergy matching through **drug groups that catalogue editors tag on each medicine**
     (`medicines.manage.organisation`); KPOne ships no clinical drug-group list. The OTC allergy step stays
-    yes/no for now (no typed allergy) (2026-11-05).
+    yes/no for now (no typed allergy) (2026-11-05). *The OTC part is replaced by decision 16.*
 15. A "ship it" or other owner decision relayed by the coordinator (LUCY) counts as the owner's own; confirmed
     by the owner in this team's session and in LUCY's (2026-11-05). Unchanged: never merge, never edit
     BASELINE, and stop and ask if a relayed message conflicts with something the owner said directly.
+16. Next backlog (owner choice 2026-11-05, relayed by the coordinator and confirmed by the owner in this team's
+    session): DSP-5 OTC allergy details, DSP-6 label print log, DSP-7 medicine returns after dispensing,
+    DSP-8 Dispensary pages on phones and tablets, each its own PR. This **replaces the OTC part of decision 14**:
+    when an OTC patient says they have an allergy, the CA now records what it is. The pharmacist review pack,
+    started earlier the same day, ships first as DSP-9.
+17. Every builder team has a UI/UX designer under the Lead UI/UX Designer, Daniel (Design team); this team's is
+    **Iman**, who sketches screen changes before building and checks screenshots before hand-off (section 8)
+    (2026-11-05, relayed by the coordinator).
 
 ## 7. Open items and known limits
 
@@ -125,10 +135,12 @@ coordinator at the owner's request (2026-11-05).
   controlled medicine with long directions may now be blocked (include one in the printer test). Medicines have
   no `lock_version`; the change uses an expected-value guard on the one boolean instead (a quick A→B→A
   sequence is not detected; every change is audited).
-- **Real printer and sticker test** for drug labels at the pilot branch (owner to do by hand).
+- **Real printer and sticker test** for drug labels at the pilot branch (owner to do by hand; checklist in
+  [printer-test.md](../../pilot/drug-label/printer-test.md)).
 - **Pharmacist review**: the 384 and 192 character direction limits, and the controlled-medicine marker wording
   "Ubat Terkawal / Controlled Medicine" (DSP-3). Yezza also prints the indication; KPOne still omits it. Which
-  medicines are controlled is set by catalogue editors; KPOne does not decide it.
+  medicines are controlled is set by catalogue editors; KPOne does not decide it. Questions and sample labels
+  for the pharmacist: [pharmacist-review.md](../../pilot/drug-label/pharmacist-review.md) (DSP-9).
 - **Labels:** batch and expiry print only for a line with exactly one allocated batch (DSP-2); a line split
   across batches, or a batch with the old `9999-12-31` placeholder expiry, prints neither. No barcode, no label
   history (STK-9 planned, not built). The two or three extra lines count toward the 35-line limit (33 with a
@@ -157,6 +169,11 @@ coordinator at the owner's request (2026-11-05).
 - Never weaken a safety check, the allergy display, stock eligibility or the label budgets without an
   explicit owner decision recorded in section 6.
 - Do not change any existing test assertion without the owner's approval.
+- **Design (owner decision 2026-11-05):** for any piece that changes a screen, (1) before building, run Iman
+  as a subagent to sketch the layout (components, phone behaviour at 390 px, empty, loading and error states,
+  wording) from the existing patterns and `docs/design/GUIDE.md` once it exists; (2) before hand-off, Iman checks
+  the 390 and 1440 px light and dark screenshots against `docs/design/CHECKLIST.md`. A new page or a page layout
+  change also goes to Daniel for a look, through the coordinator. Pieces with no screen change skip this.
 - Full gate before hand-off, on a task-owned PostgreSQL 18 database: backend tests, Pint, frontend types,
   lint, format, build, frontend tests, `migrate:fresh --seed`, `git diff --check`; screenshots at 1440 and
   390 px, light and dark, for any screen change.
@@ -191,6 +208,30 @@ authorisation to build them; the coordinator records it in `docs/BASELINE.md`.
 4. **DSP-4 OTC in doctor reports — merged in #227.** Include OTC sales where Insights and the daily report count only
    consultation invoices today. Shared with the Reports team; numbers in existing reports must not change
    unexpectedly, so each changed figure is listed for the owner first.
-5. **DSP-1b Better allergy matching — built 2026-11-05, awaiting owner review (branch
-   `feature/dsp-1b-allergy-drug-groups`).** Drug groups tagged on each medicine by catalogue editors, matched
-   by the Dispensary allergy warning (decision 14).
+5. **DSP-1b Better allergy matching — merged in #234.** Drug groups tagged on each medicine by catalogue
+   editors, matched by the Dispensary allergy warning (decision 14).
+6. **DSP-9 Pharmacist review pack — built 2026-11-05, awaiting owner review (branch
+   `feature/dsp-9-pharmacist-review-pack`).** Chosen by the owner on 2026-11-05; ships before DSP-5. Documents only, in
+   `docs/pilot/drug-label/`: the printer test (T1 to T4 worst-case labels and what to check) and the pharmacist
+   sheet (what prints, sample labels from `DrugLabelLayout`, ten questions, sign-off). Answers come back to the
+   owner; any label change is a separate piece of work.
+
+Second backlog, chosen by the owner on 2026-11-05 (decision 16); choosing it authorises building it, in this
+order, each its own PR:
+
+7. **DSP-5 OTC allergy details.** When an OTC walk-in says "has allergies", the CA records what the allergy is,
+   structured like a normal allergy record and saved to the patient's allergy profile through the existing
+   allergy service and versioning, so the DSP-1/DSP-1b warning also works for OTC. Closes the "OTC yes/no
+   statement is not matched" limit. Agree the small change to the Clinical allergy services with the
+   coordinator first (there is no clinical team).
+8. **DSP-6 Label print log.** Each drug label print or reprint records who printed which line's label and when
+   (no label content, append-only, structural audit); a reprint shows a small "REPRINT" mark. Lifts the
+   section 4 "no print counter or label history" limit for this log only; no label snapshot.
+9. **DSP-7 Medicine returns after dispensing.** The CA records a returned quantity and reason after
+   completion, a different person checks it, and the stock goes into quarantine (the STK-2 hold), not back to
+   sellable. Money goes through Billing's coming refund flow (BIL-6). Write a short design note first and show
+   the owner: it touches the Inventory and Billing teams.
+10. **DSP-8 Dispensary pages on phones and tablets.** Check and fix at 320, 390 and 768 px.
+
+Team rules for this backlog: run the PHPStan stopgap before each push; migration timestamps from
+`2026_11_06_200000` up.

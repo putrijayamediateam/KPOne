@@ -46,6 +46,7 @@ HR, finance, marketing, Panel or management agents, the 3D office, and the desig
 | Routes | `routes/web.php`, prefix `/agents`, names `agents.*` |
 | Data sources (AG-4) | `app/Domain/Agents/Tools/`: `AgentTool`, `AgentToolRegistry`, `AgentToolGateway`, `AggregatePayloadGuard`, one class per tool. **AG-10 adds `system.health` without editing this folder:** put the class in `app/Domain/Agents/Health/` and tag it in a service provider, `$this->app->tag([SystemHealthTool::class], AgentToolRegistry::TAG);`. The registry test accepts any subset of the ten contract codes that includes AG-4's nine. |
 | Approval inbox (AG-2) | `app/Domain/Agents/Proposals/`: `ProposalTypes` (proposer, deciding permission, payload fields per type), `AiProposal`, `ProposalService` (`propose`, `approve`, `reject`, `withdraw`, `canDecide`), `ProposalInbox` (page read model); `AgentInboxController`; page `resources/js/pages/Agents/Inbox.vue` at `/agents/inbox`; migration `2026_11_05_210000_create_ai_proposals.php` |
+| Agent office (AG-3) | Page `resources/js/pages/Agents/Office.vue` at `/agents/office`; components in `resources/js/components/agents/office/` (`office-layout.ts` holds the geometry, seats and the fictional looks in `AVATARS`, `OfficeScene.vue`, `AgentFigure.vue`); `AgentOfficeController`; `AgentOfficeDetail` (click panel: last 5 steps; pending proposal rows only for `ai_proposals.view.branch` holders, at their active branch, as the inbox does) |
 | Tests | `tests/Feature/Agents/`, `tests/Frontend/ag-*.test.mjs`; no-AI guard `tests/Feature/Agents/NoAiServiceGuardTest.php` |
 | Reserved names per slice | Contract section 10 |
 
@@ -154,7 +155,8 @@ All in the contract; the main ones:
 |---|---|---|
 | AG-1 Agent registry and activity log | #216, merged as `6f3de3a` (head `1a70cab`) | First CI run failed on five PHPStan type errors (PHPStan cannot run in cloud sessions); fixed with no behaviour change, CI green. 1,612 backend tests, 0 failures; 26 new agent tests; 615 frontend. Migrations `2026_11_05_100000`, `100100`. |
 | AG-4 Read-only data sources and the no-AI guard | #225, merged as `3d878b3` | Full gate: 1,637 backend tests, 0 failures (95 GD image tests left to CI), 44 agent tests, 615 frontend. Nine data sources (`system.health` is AG-10), `AgentToolGateway` (every read inside a run, logged as a step), `AggregatePayloadGuard` (keys and values), `NoAiServiceGuardTest`. No migration, permission, route or page. Independent review: no blocker; S1–S5 and S7 fixed, S6 test gaps partly closed (see open item 7). |
-| AG-2 Approval inbox | this PR (owner approved 2026-11-05) | Built. `ai_proposals` with PostgreSQL rules (decided proposals never change, never deleted, `executed`/`execution_failed` refused), `ProposalService`, `/agents/inbox`. One AG-1 test changed with owner approval (office feed counts real proposals): it now inserts real `ai_proposals` rows and gains one setup line (`complete($run)`) so the light reads yellow from the proposal, not from a running run; every assertion is unchanged. No new permission. Independent review: no blocker; findings fixed (shared personal-text check, scope check for branchless runs, reason trimming, stale-version refresh). |
+| AG-2 Approval inbox | #235, merged as `234974d` (head `df53d24`) | Built. `ai_proposals` with PostgreSQL rules (decided proposals never change, never deleted, `executed`/`execution_failed` refused), `ProposalService`, `/agents/inbox`. One AG-1 test changed with owner approval (office feed counts real proposals): it now inserts real `ai_proposals` rows and gains one setup line (`complete($run)`) so the light reads yellow from the proposal, not from a running run; every assertion is unchanged. No new permission. Independent review: no blocker; findings fixed (shared personal-text check, scope check for branchless runs, reason trimming, stale-version refresh). |
+| AG-3 Agent office page | this PR (owner "ship it" 2026-11-05) | Built. A 2.5D isometric office in SVG and CSS (no new dependency): desks by department, characters with name tags and an "AI agent" label, status lights, one speech bubble at a time, agents with pending suggestions walk to the Director's inbox desk, a click panel, live updates every 10 seconds (paused when the tab is hidden), light and dark mode, 390 px. Two read-only routes, no migration or permission. Independent review: no blocker; fixed: proposal rows limited like the inbox, polling stops on leaving the page, stale panel requests aborted, the inbox tray is a button only for inbox viewers, dark-mode variables, panel side follows resize. Known limit: keyboard focus order changes while an agent walks. |
 
 ## Backlog (in order)
 
@@ -162,8 +164,8 @@ All in the contract; the main ones:
 |---|---|
 | AG-1 Agent registry and activity log | Merged in PR #216 as `6f3de3a` |
 | AG-4 Read-only data sources and the no-AI guard test | Merged in PR #225 as `3d878b3` |
-| AG-2 Approval inbox | Owner approved; PR open (not merged) |
-| AG-3 Agent office page | Next |
+| AG-2 Approval inbox | Merged in PR #235 as `234974d` |
+| AG-3 Agent office page | Owner approved; PR open (not merged) |
 | AG-7 Ask KPOne | |
 | AG-9 Rizal (stocktake officer) | |
 | AG-10 Faris (system health) | |
