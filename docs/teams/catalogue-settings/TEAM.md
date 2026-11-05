@@ -95,6 +95,10 @@ Server checks stay the authority; hiding a control is a usability aid only.
    One at a time after CAT-2, each its own piece and PR, existing permissions only, no new permission, migration or
    export; Nadia sketches each for Daniel first. The go-ahead counts as the ship-it for both: each opens as a PR
    and merges on green unless Daniel says "Not OK".
+11. Pricing rows and phone cards show one visible action ("Price history") with Deactivate/Activate in a "..."
+   menu, as Daniel asked in CAT-3. The one existing assertion in `tests/Frontend/cat-1b-refuse-empty-price.test.mjs`
+   (the card's ghost/secondary Deactivate button) now asserts the menu item instead (owner, 2026-11-05, in this team's
+   session: "yes, change the test and move the button").
 
 ## 7. Open items and known limits
 

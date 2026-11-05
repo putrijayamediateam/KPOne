@@ -381,10 +381,39 @@ const toggleCharge = (charge: ChargeRow) => {
                             {{ charge.code }} · {{ typeLabel(charge.type) }}
                         </p>
                     </div>
-                    <StatusBadge
-                        :status="charge.isActive ? 'active' : 'inactive'"
-                        :tone="charge.isActive ? 'success' : 'neutral'"
-                    />
+                    <div class="flex shrink-0 items-center gap-1">
+                        <StatusBadge
+                            :status="charge.isActive ? 'active' : 'inactive'"
+                            :tone="charge.isActive ? 'success' : 'neutral'"
+                        />
+                        <DropdownMenu>
+                            <DropdownMenuTrigger as-child>
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    class="min-h-11 min-w-11"
+                                    :aria-label="`More actions for ${charge.displayName}`"
+                                    data-action="charge-card-menu"
+                                >
+                                    <Ellipsis
+                                        class="size-4"
+                                        aria-hidden="true"
+                                    />
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" class="w-48">
+                                <DropdownMenuItem
+                                    class="min-h-11"
+                                    @select="toggleCharge(charge)"
+                                    >{{
+                                        charge.isActive
+                                            ? 'Deactivate'
+                                            : 'Activate'
+                                    }}</DropdownMenuItem
+                                >
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                    </div>
                 </div>
                 <div class="flex items-center justify-between gap-3 text-sm">
                     <span class="text-muted-foreground">Current price</span>
@@ -457,14 +486,6 @@ const toggleCharge = (charge: ChargeRow) => {
                         :aria-label="`Price history for ${charge.displayName}`"
                         >Price history</Link
                     >
-                </Button>
-                <Button
-                    class="min-h-11 w-full"
-                    :variant="charge.isActive ? 'ghost' : 'secondary'"
-                    :aria-label="`${charge.isActive ? 'Deactivate' : 'Activate'} ${charge.displayName}`"
-                    @click="toggleCharge(charge)"
-                >
-                    {{ charge.isActive ? 'Deactivate' : 'Activate' }}
                 </Button>
             </article>
         </section>
