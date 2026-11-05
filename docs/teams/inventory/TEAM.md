@@ -88,7 +88,7 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php`. Key ones:
 | STK-7 | Supplier returns: request from a verified receipt lot, approval by a different person (Finance Officer or Director), dispatch through a new `supplier_return` ledger movement, credit-note reference (no payment); append-only evidence guarded by PostgreSQL | #233 |
 | STK-8 | Treatment-room usage and waste: CA or CA Supervisor records stock used or wasted outside dispensing (new `treatment_usage` and `treatment_waste` ledger movements), optional treatment room, no patient link or bill; a different CA Supervisor, Finance Officer or Director may reverse an entry once (credit back as `adjustment_in`); append-only evidence guarded by PostgreSQL | #244 |
 | STK-9 | Barcode scanning on Inventory screens (receiving, governed count and write-off, treatment-room usage, supplier returns): handheld scanner, typing, or the browser's built-in camera reader; one barcode, one SKU per organisation (domain and PostgreSQL, existing duplicates listed on Pilot readiness); a scan only finds | merged in PR #253 (`4445021`) |
-| STK-11 | Patient returns location for DSP-7: a `dispensary_returns` location type that is never picked or dispensed from, the `dispensary_return` movement written only by `InventoryMovementService::recordDispensaryReturn` (for the Dispensary return check), returns stock kept out of every usable-stock figure, and out only by STK-5 or a move to another returns location | pending (branch `feature/stk-11-dispensary-returns-location`) |
+| STK-11 | Patient returns location for DSP-7: a `dispensary_returns` location type that is never picked or dispensed from, the `dispensary_return` movement written only by `InventoryMovementService::recordDispensaryReturn` (for the Dispensary return check), returns stock kept out of every usable-stock figure, and out only by STK-5 or a move to another returns location | merged in PR #279 (`d3fcea1`) |
 
 ## 6. Owner decisions already made (never ask again)
 
@@ -155,8 +155,9 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php`. Key ones:
     - a patient returns location type, `dispensary_returns`, at a branch: never allocated, picked or dispensed
       from, enforced in the domain and PostgreSQL; a location never changes to or from that type;
     - one new movement type, `dispensary_return`, written only by `InventoryMovementService::recordDispensaryReturn`,
-      called only by the Dispensary return check (DSP-7); `LegacyStockWriterBoundaryTest` lists it (owner-approved
-      assertion change, the same kind as STK-7 and STK-8);
+      called only by the Dispensary return check (DSP-7); `LegacyStockWriterBoundaryTest` lists it (assertion change
+      approved by the owner in the team's own session, 2026-11-05: "yes, approve the test change for STK-11"; the
+      same kind as STK-7 and STK-8);
     - the Stock movement summary counts it under "Adjusted", as for the STK-8 types;
     - returns stock is never usable stock: it is left out of availability, pickers, STK-4 low stock and expiring,
       Insights inventory figures and the agent inventory sources;
@@ -248,5 +249,7 @@ matching proposal in `docs/reports/ANALYSIS-STOCK.md` section 8 unless an owner 
 4. **STK-9 Barcode scanning.** *Merged in PR #253.* Scan a known code to pick the item and batch when receiving, counting or
    dispensing; codes map locally; no external lookup; scanning never authorises an action by itself. Label
    batch and expiry printing belongs to the Dispensary team's DSP-2.
-5. **STK-11 Patient returns location (for DSP-7).** *Built 2026-11-05 on the owner's relayed approval (section 6
-   item 27).* Must merge before Dispensary's DSP-7.
+5. **STK-11 Patient returns location (for DSP-7).** *Merged in PR #279.*
+6. **STK-10 Valuation.** *Analysis only (owner request 2026-11-05):* `docs/reports/ANALYSIS-STK-10.md` lists what
+   KPOne records about cost today, the gaps, and the questions an accountant must answer. Nothing is built until
+   the owner chooses an option and, for a valuation or export, the accountant's written policy exists.
