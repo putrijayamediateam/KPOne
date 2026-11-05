@@ -134,6 +134,10 @@ class PricingController extends Controller
                 'book' => ['nullable', 'uuid'],
                 'from' => ['nullable', Rule::in(['price-check'])],
                 'page' => ['sometimes', 'integer', 'min:1', 'max:10000'],
+            ], [
+                'book.uuid' => 'Choose a price book from the list.',
+                'from.in' => 'That page link is not recognised. Open the history from Pricing.',
+                'page.*' => 'That page number is not valid. Go back to the first page.',
             ]);
         } catch (ValidationException $exception) {
             // Stay on this page with the message, never back() to wherever the session last was.
