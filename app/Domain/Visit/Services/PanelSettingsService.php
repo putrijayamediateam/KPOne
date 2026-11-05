@@ -186,7 +186,7 @@ final class PanelSettingsService
             'addressLine1' => $panel->address_line_1, 'addressLine2' => $panel->address_line_2, 'postcode' => $panel->postcode,
             'city' => $panel->city, 'state' => $panel->state, 'country' => $panel->country,
             'verificationMode' => $panel->verification_mode, 'verificationUrl' => $panel->verification_url, 'verificationRemark' => $panel->verification_remark,
-            'claimDueDays' => $panel->claim_due_days, 'claimDueRule' => $panel->claim_due_rule, 'claimDueTime' => $panel->claim_due_time, 'claimDueOffset' => $panel->claim_due_offset, 'incomeTaxNumber' => $panel->income_tax_number,
+            'claimDueDays' => $panel->claim_due_days, 'claimDueRule' => $panel->claim_due_rule, 'claimDueTime' => $panel->claim_due_time, 'claimDueOffset' => $panel->claim_due_offset, 'claimFollowUpDays' => $panel->claim_follow_up_days, 'incomeTaxNumber' => $panel->income_tax_number,
         ];
     }
 
@@ -218,11 +218,13 @@ final class PanelSettingsService
             'claim_due_time' => ['required_unless:claim_due_rule,days_after_visit', 'nullable', 'regex:/^([01][0-9]|2[0-3]):[0-5][0-9]$/'],
             'claim_due_offset' => ['required_unless:claim_due_rule,days_after_visit', 'nullable', 'integer'],
             'income_tax_number' => ['nullable', 'string', 'max:20', 'regex:/^[A-Za-z0-9\-]+$/'],
+            'claim_follow_up_days' => ['sometimes', 'required', 'integer', 'between:1,365'],
         ], [
             'company_registration_number.regex' => 'The company registration number must be exactly 12 digits.',
             'verification_url.url' => 'Enter a secure link that starts with https://.',
             'phone.regex' => 'Enter a valid phone number.',
             'claim_due_time.regex' => 'Enter the time as HH:MM.',
+            'claim_follow_up_days.between' => 'Enter between 1 and 365 follow-up days.',
         ]);
         $clean = $v->validate();
         $text = static function (mixed $value): ?string {
@@ -243,7 +245,10 @@ final class PanelSettingsService
         $url = $clean['verification_mode'] === 'url' ? $text($clean['verification_url'] ?? null) : null;
         $remark = $clean['verification_mode'] === 'remark' ? $text($clean['verification_remark'] ?? null) : null;
 
-        return [
+        // PNL-4: follow-up days are only changed when the form sends them; older clients keep the saved value.
+        $followUp = array_key_exists('claim_follow_up_days', $clean) ? ['claim_follow_up_days' => (int) $clean['claim_follow_up_days']] : [];
+
+        return $followUp + [
             'name' => $name,
             'panel_type' => $clean['panel_type'] ?? null,
             'company_registration_number' => $clean['company_registration_number'] ?? null,
