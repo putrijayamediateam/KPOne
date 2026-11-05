@@ -25,12 +25,15 @@ class BranchDisplaySetting extends Model
 {
     public const MAX_POSTERS = 8;
 
-    /** How a called patient is shown and spoken: by queue number or by full registered name. */
+    /** How a called patient is shown and spoken: by queue number, by number and short name (Q-3), or by full registered name. */
     public const MODE_NUMBER = 'number';
 
     public const MODE_NAME = 'name';
 
-    public const MODES = [self::MODE_NUMBER, self::MODE_NAME];
+    /** Q-3: the number plus the first two name words (ShortDisplayName); the full name never leaves the server. */
+    public const MODE_SHORT_NAME = 'short_name';
+
+    public const MODES = [self::MODE_NUMBER, self::MODE_SHORT_NAME, self::MODE_NAME];
 
     protected function casts(): array
     {

@@ -3,6 +3,7 @@
 namespace App\Domain\Organisation\Inventory\Services;
 
 use App\Domain\Access\BranchAccessService;
+use App\Domain\Organisation\Inventory\Models\InventoryLocation;
 use App\Models\User;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Collection;
@@ -181,7 +182,7 @@ final class InventoryOperationsDirectoryService
         return array_values(DB::table('inventory_reorder_levels as reorder')->join('inventory_locations as location', 'location.id', '=', 'reorder.inventory_location_id')->join('inventory_skus as sku', 'sku.id', '=', 'reorder.inventory_sku_id')->join('inventory_items as item', 'item.id', '=', 'sku.inventory_item_id')
             ->leftJoin('inventory_stock_balances as balance', fn ($join) => $join->on('balance.organisation_id', '=', 'reorder.organisation_id')->on('balance.inventory_location_id', '=', 'reorder.inventory_location_id')->on('balance.inventory_sku_id', '=', 'reorder.inventory_sku_id'))
             ->leftJoin('inventory_batches as batch', 'batch.id', '=', 'balance.inventory_batch_id')->where('reorder.organisation_id', $organisationId)->whereIn('reorder.inventory_location_id', $locationIds)
-            ->where('location.is_active', true)->where('sku.is_active', true)->where('item.is_active', true)
+            ->where('location.is_active', true)->where('location.type', '<>', InventoryLocation::TYPE_DISPENSARY_RETURNS)->where('sku.is_active', true)->where('item.is_active', true)
             ->groupBy(['reorder.id', 'location.name', 'sku.sku_code', 'item.generic_name', 'reorder.reorder_level'])->havingRaw($availableQuantity.' <= reorder.reorder_level', [$localDate])
             ->orderByRaw('sku.sku_code COLLATE "C"')->orderBy('reorder.id')->limit(100)->selectRaw('location.name as location, sku.sku_code as sku, item.generic_name as item, reorder.reorder_level as "reorderLevel", '.$availableQuantity.' as "availableQuantity"', [$localDate])->get()->map(fn ($row): array => (array) $row)->all());
     }
@@ -197,7 +198,7 @@ final class InventoryOperationsDirectoryService
         return array_values(DB::table('inventory_stock_balances as balance')->join('inventory_locations as location', 'location.id', '=', 'balance.inventory_location_id')->join('inventory_skus as sku', 'sku.id', '=', 'balance.inventory_sku_id')
             ->join('inventory_items as item', 'item.id', '=', 'sku.inventory_item_id')->join('inventory_batches as batch', 'batch.id', '=', 'balance.inventory_batch_id')
             ->where('balance.organisation_id', $organisationId)->whereIn('balance.inventory_location_id', $locationIds)->where('balance.quantity', '>', 0)
-            ->where('location.is_active', true)->where('sku.is_active', true)->where('item.is_active', true)
+            ->where('location.is_active', true)->where('location.type', '<>', InventoryLocation::TYPE_DISPENSARY_RETURNS)->where('sku.is_active', true)->where('item.is_active', true)
             ->where('batch.status', 'available')->whereDate('batch.expiry_date', '>', $today)->whereDate('batch.expiry_date', '<=', $until)
             ->orderBy('batch.expiry_date')->orderByRaw('sku.sku_code COLLATE "C"')->orderBy('balance.id')->limit(100)->get(['sku.sku_code as sku', 'batch.batch_number as batch', 'batch.expiry_date as expiryDate', 'balance.quantity', 'location.name as location'])->map(fn ($row): array => (array) $row)->all());
     }

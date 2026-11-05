@@ -20,6 +20,7 @@ const props = withDefaults(
         label: string;
         id?: string;
         labelledby?: string;
+        describedby?: string;
         placeholder?: string;
         disabled?: boolean;
         invalid?: boolean;
@@ -59,6 +60,7 @@ const update = (value: unknown) => {
             :class="triggerClass"
             :aria-label="labelledby ? undefined : label"
             :aria-labelledby="labelledby"
+            :aria-describedby="describedby"
             :aria-invalid="invalid || undefined"
         >
             <SelectValue :placeholder="placeholder" />

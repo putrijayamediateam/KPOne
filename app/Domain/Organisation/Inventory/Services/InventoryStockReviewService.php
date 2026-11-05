@@ -4,6 +4,7 @@ namespace App\Domain\Organisation\Inventory\Services;
 
 use App\Domain\Access\BranchAccessService;
 use App\Domain\Audit\AuditRecorder;
+use App\Domain\Organisation\Inventory\Models\InventoryLocation;
 use App\Domain\Organisation\Inventory\Models\InventorySku;
 use App\Domain\Organisation\Models\Branch;
 use App\Models\User;
@@ -43,7 +44,7 @@ final class InventoryStockReviewService
                 ->join('inventory_items as i', 'i.id', '=', 's.inventory_item_id')
                 ->leftJoinSub($totals, 't', fn ($j) => $j->on('t.inventory_location_id', '=', 'l.id')->on('t.inventory_sku_id', '=', 's.id'))
                 ->where('r.organisation_id', $actor->organisation_id)->where('l.organisation_id', $actor->organisation_id)->where('s.organisation_id', $actor->organisation_id)->where('i.organisation_id', $actor->organisation_id)
-                ->where('l.branch_id', $branch->id)->where('l.is_active', true)->where('s.is_active', true)->where('i.is_active', true)
+                ->where('l.branch_id', $branch->id)->where('l.is_active', true)->where('l.type', '<>', InventoryLocation::TYPE_DISPENSARY_RETURNS)->where('s.is_active', true)->where('i.is_active', true)
                 ->where('r.reorder_level', '>', 0)->whereRaw('COALESCE(t.eligible, 0) <= r.reorder_level')
                 ->selectRaw('r.id as item_id, s.id as sku_id, l.id as location_id, NULL::bigint as batch_id, s.sku_code, i.generic_name as item, l.name as location, s.stock_unit, NULL::text as batch, NULL::date as expiry, r.reorder_level, COALESCE(t.eligible, 0)::text as quantity, COALESCE(t.held, 0)::text as held');
         }
@@ -55,6 +56,9 @@ final class InventoryStockReviewService
             ->where('r.organisation_id', $actor->organisation_id)->where('l.organisation_id', $actor->organisation_id)->where('s.organisation_id', $actor->organisation_id)->where('i.organisation_id', $actor->organisation_id)
             ->where('l.branch_id', $branch->id)->where('r.quantity', '>', 0);
         if ($kind === 'expiring') {
+            // STK-11: returned medicine is not usable stock, so it never counts as expiring. Expired returned
+            // stock stays listed below, because it still has to be written off.
+            $query->where('l.type', '<>', InventoryLocation::TYPE_DISPENSARY_RETURNS);
             $query->where('l.is_active', true)->whereNull('e.eligibility_reason')->whereDate('e.expiry_date', '<=', CarbonImmutable::parse($eligibility->localDate($branch))->addDays(self::EXPIRY_WINDOW_DAYS)->toDateString());
         } else {
             // Never hide expired stock because its references are inactive, unavailable or held.
