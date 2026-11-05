@@ -12,7 +12,6 @@ use App\Domain\Organisation\Models\Branch;
 use App\Domain\Organisation\Models\Department;
 use App\Domain\Organisation\Models\Organisation;
 use App\Models\User;
-use Database\Seeders\KPOneReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Validation\ValidationException;
 use Tests\TestCase;
@@ -31,7 +30,7 @@ class DirectorBootstrapTest extends TestCase
     {
         parent::setUp();
 
-        $this->seed(KPOneReferenceSeeder::class);
+        $this->ensureReferenceData();
 
         $this->organisation = Organisation::query()
             ->where('code', 'KLINIK_PUTRIJAYA')

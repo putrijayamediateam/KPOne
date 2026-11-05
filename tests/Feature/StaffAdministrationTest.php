@@ -13,7 +13,6 @@ use App\Domain\Organisation\Models\Branch;
 use App\Domain\Organisation\Models\Department;
 use App\Domain\Organisation\Models\Organisation;
 use App\Models\User;
-use Database\Seeders\KPOneReferenceSeeder;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
@@ -43,7 +42,7 @@ class StaffAdministrationTest extends TestCase
     {
         parent::setUp();
 
-        $this->seed(KPOneReferenceSeeder::class);
+        $this->ensureReferenceData();
         $this->organisation = Organisation::query()->where('code', 'KLINIK_PUTRIJAYA')->firstOrFail();
         $this->cheras = Branch::query()->where('code', 'CHERAS')->firstOrFail();
         $this->puchong = Branch::query()->where('code', 'PUCHONG')->firstOrFail();

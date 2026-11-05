@@ -7,7 +7,6 @@ use App\Domain\Patient\Models\Patient;
 use App\Domain\Patient\Services\PatientAdministrationService;
 use App\Domain\Patient\Services\PatientNumberGenerator;
 use App\Models\User;
-use Database\Seeders\KPOneReferenceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
 use Tests\TestCase;
@@ -21,7 +20,7 @@ abstract class PatientTestCase extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->seed(KPOneReferenceSeeder::class);
+        $this->ensureReferenceData();
         $this->organisation = Organisation::query()->where('code', 'KLINIK_PUTRIJAYA')->firstOrFail();
     }
 
