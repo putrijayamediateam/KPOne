@@ -13,13 +13,13 @@ final class PatientPhoneNormalizer
     {
         if ($value === null || $value === '') {
             if ($required) {
-                throw ValidationException::withMessages(['mobile_phone' => 'Nombor telefon diperlukan.']);
+                throw ValidationException::withMessages(['mobile_phone' => 'Phone number is required.']);
             }
 
             return null;
         }
 
-        $invalid = 'Masukkan nombor telefon yang sah untuk negara yang dipilih.';
+        $invalid = 'Enter a valid phone number for the selected country.';
         if (! is_string($value) || strlen($value) > 64 || preg_match('/\A[ +()0-9-]+\z/D', $value) !== 1) {
             throw ValidationException::withMessages(['mobile_phone' => $invalid]);
         }
@@ -31,7 +31,7 @@ final class PatientPhoneNormalizer
 
         $phone = PhoneNumberUtil::getInstance();
         if (! is_string($country) || ! in_array($country, $phone->getSupportedRegions(), true)) {
-            throw ValidationException::withMessages(['phone_country' => 'Semak kod negara dan nombor telefon.']);
+            throw ValidationException::withMessages(['phone_country' => 'Check the country code and phone number.']);
         }
 
         $compact = str_replace([' ', '-', '(', ')'], '', $value);
@@ -48,7 +48,7 @@ final class PatientPhoneNormalizer
             $canonical = $phone->format($parsed, PhoneNumberFormat::E164);
             // Explicit international input must not be repaired by the parser.
             if (str_starts_with($compact, '+') && $canonical !== $compact) {
-                throw ValidationException::withMessages(['mobile_phone' => 'Semak kod negara dan nombor telefon.']);
+                throw ValidationException::withMessages(['mobile_phone' => 'Check the country code and phone number.']);
             }
 
             return $canonical;
