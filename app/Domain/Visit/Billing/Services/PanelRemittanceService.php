@@ -3,6 +3,7 @@
 namespace App\Domain\Visit\Billing\Services;
 
 use App\Domain\Access\BranchAccessService;
+use App\Domain\Access\StaffAccessService;
 use App\Domain\Access\TransactionalActorAuthority;
 use App\Domain\Audit\AuditRecorder;
 use App\Domain\Organisation\Models\Branch;
@@ -38,6 +39,7 @@ final class PanelRemittanceService
         private BranchAccessService $branches,
         private TransactionalActorAuthority $authority,
         private AuditRecorder $audit,
+        private StaffAccessService $staff,
     ) {}
 
     /**
@@ -74,7 +76,8 @@ final class PanelRemittanceService
                 ->whereIn('id', $history->getCollection()->pluck('panel_id')->all())->pluck('name', 'id');
             $reversed = DB::table('panel_claim_payment_reversals')->where('organisation_id', $actor->organisation_id)
                 ->whereIn('panel_remittance_id', $remittanceIds)->distinct()->pluck('panel_remittance_id')->flip();
-            $recorders = DB::table('users')->where('organisation_id', $actor->organisation_id)
+            // Staff names follow the staff-directory visibility rule (owner BIL-2 decision); others read "Staff member".
+            $recorders = $this->staff->visibleUsers($actor)
                 ->whereIn('id', $history->getCollection()->pluck('recorded_by_user_id')->all())->pluck('name', 'id');
 
             return [
@@ -98,7 +101,7 @@ final class PanelRemittanceService
                         'amountSen' => $remittance->amount_sen,
                         'receivedDate' => $remittance->received_at->setTimezone($branch->timezone)->format('j M Y'),
                         'reference' => $remittance->reference,
-                        'recordedBy' => (string) ($recorders[$remittance->recorded_by_user_id] ?? ''),
+                        'recordedBy' => (string) ($recorders[$remittance->recorded_by_user_id] ?? 'Staff member'),
                         'reversed' => $reversed->has($remittance->id),
                         'splits' => collect($splits->get($remittance->id, []))->map(static fn ($row): array => [
                             'claimNo' => (string) $row->claim_id,
