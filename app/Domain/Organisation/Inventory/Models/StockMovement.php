@@ -37,6 +37,10 @@ class StockMovement extends Model
 
     public const TYPE_SUPPLIER_RETURN = 'supplier_return';
 
+    public const TYPE_TREATMENT_USAGE = 'treatment_usage';
+
+    public const TYPE_TREATMENT_WASTE = 'treatment_waste';
+
     protected static function booted(): void
     {
         static::updating(fn (): never => throw new LogicException('Stock Movements are immutable.'));

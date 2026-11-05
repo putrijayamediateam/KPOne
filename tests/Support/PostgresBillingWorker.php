@@ -12,6 +12,7 @@ use App\Domain\Visit\Billing\Models\Payment;
 use App\Domain\Visit\Billing\Models\PaymentMethod;
 use App\Domain\Visit\Billing\Models\PriceBook;
 use App\Domain\Visit\Billing\Services\BillingBuilderService;
+use App\Domain\Visit\Billing\Services\CashClosingService;
 use App\Domain\Visit\Billing\Services\CompleteVisitationService;
 use App\Domain\Visit\Billing\Services\InvoiceAdjustmentService;
 use App\Domain\Visit\Billing\Services\InvoiceCorrectionService;
@@ -70,6 +71,7 @@ try {
         'bill-checkout' => app(CompleteConsultationService::class)->complete($actor, $visit, $a),
         'bill-reopen' => app(ReopenConsultationCheckoutService::class)->reopen($actor, $visit, $a),
         'bill-edit' => app(ClinicalEncounterService::class)->update($actor, $visit, $a),
+        'bill-cash-decide' => app(CashClosingService::class)->decide($actor, $a['closing'], $a['decision'], $a),
         'bill-price' => app(PricePublicationService::class)->publish($actor, PriceBook::query()->findOrFail($a['book']), ChargeDefinition::query()->findOrFail($a['charge']), $a['amount_sen'], $a['price_version'], (int) $argv[3]),
         default => throw new RuntimeException('Unknown test worker mode'),
     };
@@ -82,11 +84,12 @@ try {
         DB::commit();
     }
     fwrite(STDOUT, 'SUCCESS'.PHP_EOL);
-} catch (ValidationException) {
+} catch (ValidationException $e) {
     while (DB::transactionLevel() > 0) {
         DB::rollBack();
     }
-    fwrite(STDOUT, 'STALE'.PHP_EOL);
+    // The refused field follows, so a test can tell which rule refused (counting 'STALE' still works).
+    fwrite(STDOUT, 'STALE '.(string) array_key_first($e->errors()).PHP_EOL);
 } catch (AuthorizationException|ModelNotFoundException|HttpException) {
     while (DB::transactionLevel() > 0) {
         DB::rollBack();

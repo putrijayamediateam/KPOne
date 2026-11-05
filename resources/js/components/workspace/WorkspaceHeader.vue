@@ -35,6 +35,10 @@ const items = computed(() =>
         : [],
 );
 const isActive = (href: string) => isWorkspaceDestinationActive(page.url, href);
+// UX-1 (S1-017): the header stays mounted across Inertia visits, so the drawer must
+// close itself when one of its links is followed. Closed on click only, never on
+// every Inertia navigate event, because live boards reload themselves in the background.
+const mobileNavOpen = ref(false);
 const desktopNav = ref<HTMLElement | null>(null);
 const desktopLinks = ref<HTMLElement | null>(null);
 const headerFits = ref(true);
@@ -51,7 +55,7 @@ useResizeObserver([desktopNav, desktopLinks], () => {
         <div
             class="mx-auto flex h-13 w-full max-w-[1600px] items-center gap-3 px-3 md:px-5"
         >
-            <Sheet>
+            <Sheet v-model:open="mobileNavOpen">
                 <SheetTrigger as-child>
                     <Button
                         variant="ghost"
@@ -83,6 +87,7 @@ useResizeObserver([desktopNav, desktopLinks], () => {
                                     ? 'border-pink-600 bg-muted text-foreground'
                                     : 'text-muted-foreground'
                             "
+                            @click="mobileNavOpen = false"
                         >
                             {{ item.label }}
                         </Link>
