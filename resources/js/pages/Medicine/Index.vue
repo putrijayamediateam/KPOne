@@ -788,7 +788,7 @@ const toggleDescription = computed(() => {
             >
                 <DialogHeader>
                     <DialogTitle>{{
-                        editing ? 'Edit Medicine' : 'Add Medicine'
+                        editing ? 'Edit medicine' : 'Add medicine'
                     }}</DialogTitle>
                     <DialogDescription>
                         {{
@@ -1333,7 +1333,7 @@ const toggleDescription = computed(() => {
                                 !!editLoadError
                             "
                         >
-                            {{ editing ? 'Save' : 'Add Medicine' }}
+                            {{ editing ? 'Save' : 'Add medicine' }}
                         </Button>
                     </DialogFooter>
                 </form>
