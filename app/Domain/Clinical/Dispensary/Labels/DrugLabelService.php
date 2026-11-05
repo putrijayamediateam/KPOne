@@ -10,6 +10,7 @@ use App\Domain\Clinical\Dispensary\Models\DispensaryItem;
 use App\Domain\Clinical\Dispensary\Models\DispensaryItemBatchAllocation;
 use App\Domain\Clinical\Dispensary\Services\DispensarySafetyValidator;
 use App\Domain\Clinical\Models\ClinicalEncounterAllergyReview;
+use App\Domain\Clinical\Models\MedicineCatalogueItem;
 use App\Domain\Clinical\Models\PatientAllergyProfile;
 use App\Domain\Organisation\BusinessDetails\BranchLetterheadAssembler;
 use App\Domain\Organisation\BusinessDetails\BusinessDetailAsset;
@@ -103,8 +104,10 @@ final class DrugLabelService
                 }
                 [$batch, $batchNote] = $this->singleBatch($item);
                 $fields = ['clinic' => $details['clinic_name'], 'address' => $address, 'contact' => $contact, 'patient' => $patient->full_name, 'reference' => $patient->patient_number.' / '.$visit->visit_number,
-                    'name' => $item->medicine_name_snapshot, 'strength' => $item->strength_snapshot, 'form' => $item->dosage_form_snapshot, 'quantity' => DrugLabelLayout::displayQuantity($item->quantity_dispensed).' '.$item->unit_snapshot,
-                    ...($batch ? ['batch' => $batch->batch_number, 'expiry' => $batch->expiry_date->format('d/m/Y')] : []),
+                    'name' => $item->medicine_name_snapshot,
+                    ...($this->isControlled($item) ? ['controlled' => DrugLabelLayout::CONTROLLED_MARKER] : []),
+                    'strength' => $item->strength_snapshot, 'form' => $item->dosage_form_snapshot, 'quantity' => DrugLabelLayout::displayQuantity($item->quantity_dispensed).' '.$item->unit_snapshot,
+                    ...($batch ? ['batch' => $batch->batch_number, 'expiry' => CarbonImmutable::parse($batch->expiry_date)->format('d/m/Y')] : []),
                     'dosage' => $item->effective('dosage'), 'frequency' => $item->effective('frequency'), 'duration' => $item->effective('duration'), 'route' => $item->effective('route'), 'instruction' => $item->effective('administration_instruction'), 'precaution' => $item->effective('precaution')];
                 $at = $completed ? $handoff->completed_at : $item->handled_at;
                 $date = $at ? CarbonImmutable::parse($at)->setTimezone($branch->timezone)->format('d/m/Y') : 'Tidak direkod';
@@ -126,6 +129,16 @@ final class DrugLabelService
     }
 
     /**
+     * DSP-3: read live from the catalogue (the medicine name, strength and form are handoff snapshots; this
+     * flag and the letterhead are live). A change retires open previews, and reprints of already-dispensed
+     * lines follow the current flag.
+     */
+    private function isControlled(DispensaryItem $item): bool
+    {
+        return (bool) MedicineCatalogueItem::query()->whereKey($item->medicine_catalogue_item_id)->where('organisation_id', $item->organisation_id)->value('is_controlled');
+    }
+
+    /**
      * DSP-2: the batch to print, only when every allocation of this line is the same one batch.
      * Otherwise nothing extra is printed and the preview says why. Read only; stock is unchanged.
      *
@@ -143,7 +156,7 @@ final class DrugLabelService
 
         $batch = InventoryBatch::query()->whereKey($batchIds->first())->where('organisation_id', $item->organisation_id)->firstOrFail();
         // Before STK-3 a batch could carry the 9999-12-31 placeholder instead of a real expiry; never print it as a date.
-        if ($batch->expiry_date->format('Y-m-d') === self::PLACEHOLDER_EXPIRY) {
+        if (CarbonImmutable::parse($batch->expiry_date)->format('Y-m-d') === self::PLACEHOLDER_EXPIRY) {
             return [null, 'Batch and expiry not printed: this batch has no real expiry date recorded.'];
         }
 

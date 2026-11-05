@@ -100,6 +100,40 @@ class MedicineAdministrationService
         return $this->setActive($actor, $medicine, false);
     }
 
+    /**
+     * DSP-3 (owner decision 2026-11-05): catalogue editors mark or unmark a medicine as controlled.
+     * The caller states the value it saw, so a change made meanwhile by someone else is refused
+     * rather than silently reversed. Audited with the field name and the new value only.
+     */
+    public function setControlled(User $actor, MedicineCatalogueItem $medicine, bool $controlled, bool $expectedCurrent): MedicineCatalogueItem
+    {
+        $this->authorize($actor);
+
+        return DB::transaction(function () use ($actor, $medicine, $controlled, $expectedCurrent): MedicineCatalogueItem {
+            $this->lockOrganisation($actor);
+            $locked = $this->lockMedicine($actor, $medicine);
+            if ($locked->is_controlled === $controlled) {
+                return $locked;
+            }
+            if ($locked->is_controlled !== $expectedCurrent) {
+                throw ValidationException::withMessages(['is_controlled' => 'This medicine changed. Reload and review it again.']);
+            }
+
+            $locked->forceFill([
+                'is_controlled' => $controlled,
+                'updated_by_user_id' => $actor->id,
+            ])->save();
+
+            $this->audit->record('medicine_catalogue.controlled_changed', $locked, [
+                'medicine_public_id' => $locked->public_id,
+                'changed_fields' => ['is_controlled'],
+                'is_controlled' => $controlled,
+            ], $actor, organisationId: $actor->organisation_id);
+
+            return $locked;
+        }, 3);
+    }
+
     private function setActive(User $actor, MedicineCatalogueItem $medicine, bool $active): MedicineCatalogueItem
     {
         $this->authorize($actor);

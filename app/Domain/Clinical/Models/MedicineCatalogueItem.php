@@ -40,6 +40,7 @@ class MedicineCatalogueItem extends Model
     {
         return [
             'is_active' => 'boolean',
+            'is_controlled' => 'boolean',
             'default_dosage_amount' => 'decimal:3',
         ];
     }
