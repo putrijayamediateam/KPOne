@@ -62,6 +62,34 @@ export type InvoiceAdjustmentSummary = {
     adjustmentSen: number;
     activeId: string | null;
 };
+export type RefundEntry = {
+    publicId: string;
+    amountSen: number;
+    method: string;
+    reason: string;
+    paidOutAt: string;
+    recordedBy: string;
+    state: 'waiting' | 'approved' | 'rejected';
+    decidedBy: string | null;
+    rejectReason: string | null;
+    canDecide: boolean;
+    recordedByYou: boolean;
+};
+export type RefundsContext = {
+    can: { record: boolean; approve: boolean };
+    reasons: Record<string, string>;
+    rejectReasons: Record<string, string>;
+    methods: Array<{ id: number; name: string }>;
+    visitCompleted: boolean;
+    receipts: Array<{
+        publicId: string;
+        number: string;
+        method: string;
+        amountSen: number;
+        canRecord: boolean;
+        refunds: RefundEntry[];
+    }>;
+};
 export type BillingPage = {
     billTo?: BillToContext | null;
     notes?: InvoiceNotesContext | null;
@@ -114,6 +142,8 @@ export type BillingPage = {
     panelShortfall: PanelShortfall | null;
     deferment: Responsibility | null;
     payments: Receipt[];
+    /** BIL-6: reversed receipts of this visit and their refunds, for refund recorders and approvers. */
+    refunds?: RefundsContext | null;
     methods: Array<{ code: string; name: string; requiresReference: boolean }>;
     panels: Array<{ id: number; name: string }>;
     can: Record<

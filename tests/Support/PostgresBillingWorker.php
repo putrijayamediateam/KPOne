@@ -19,6 +19,7 @@ use App\Domain\Visit\Billing\Services\InvoiceCorrectionService;
 use App\Domain\Visit\Billing\Services\PaymentMethodAdministrationService;
 use App\Domain\Visit\Billing\Services\PaymentService;
 use App\Domain\Visit\Billing\Services\PricePublicationService;
+use App\Domain\Visit\Billing\Services\RefundService;
 use App\Domain\Visit\Billing\Services\ResponsibilityService;
 use App\Domain\Visit\Models\Visit;
 use App\Models\User;
@@ -71,6 +72,8 @@ try {
         'bill-checkout' => app(CompleteConsultationService::class)->complete($actor, $visit, $a),
         'bill-reopen' => app(ReopenConsultationCheckoutService::class)->reopen($actor, $visit, $a),
         'bill-edit' => app(ClinicalEncounterService::class)->update($actor, $visit, $a),
+        'bill-refund' => app(RefundService::class)->record($actor, $visit, $a['payment'], $a),
+        'bill-refund-decide' => app(RefundService::class)->decide($actor, $visit, $a['refund'], $a['decision'], $a),
         'bill-cash-decide' => app(CashClosingService::class)->decide($actor, $a['closing'], $a['decision'], $a),
         'bill-price' => app(PricePublicationService::class)->publish($actor, PriceBook::query()->findOrFail($a['book']), ChargeDefinition::query()->findOrFail($a['charge']), $a['amount_sen'], $a['price_version'], (int) $argv[3]),
         default => throw new RuntimeException('Unknown test worker mode'),
