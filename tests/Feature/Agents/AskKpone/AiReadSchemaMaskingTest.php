@@ -66,7 +66,13 @@ class AiReadSchemaMaskingTest extends QueueTestCase
         $views = DB::table('information_schema.views')->where('table_schema', 'ai_read')->orderBy('table_name')->pluck('table_name')->all();
         $expected = array_keys(self::COLUMNS);
         sort($expected);
-        $this->assertSame($expected, $views, 'A view was added to or removed from ai_read: review its masking and update this test.');
+        $missing = array_values(array_diff($expected, $views));
+        $added = array_values(array_diff($views, $expected));
+        $this->assertSame([], $missing, 'These ai_read views are missing, so a migration dropped them (for example with CASCADE) '
+            .'without recreating them: ai_read.'.implode(', ai_read.', $missing).'. Recreate each view in the same migration; see '
+            .'docs/DEVELOPMENT.md, "Ask KPOne read login".');
+        $this->assertSame([], $added, 'New ai_read views need a privacy review before this test lists them: ai_read.'.implode(', ai_read.', $added).'.');
+        $this->assertSame($expected, $views);
 
         $tables = DB::table('information_schema.tables')->where('table_schema', 'ai_read')->where('table_type', '<>', 'VIEW')->count();
         $this->assertSame(0, $tables, 'ai_read holds views only.');
