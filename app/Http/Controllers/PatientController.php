@@ -6,6 +6,8 @@ use App\Domain\Patient\Models\Patient;
 use App\Domain\Patient\Services\PatientAdministrationService;
 use App\Domain\Patient\Services\PatientDirectoryService;
 use App\Domain\Patient\Services\PatientGuardianService;
+use App\Domain\Patient\Services\PatientMergeDirectoryService;
+use App\Domain\Patient\Services\PatientMergeLinks;
 use App\Domain\Patient\Services\RegistrationSettingsService;
 use App\Http\Requests\StorePatientRequest;
 use App\Http\Requests\UpdatePatientRequest;
@@ -22,6 +24,7 @@ class PatientController extends Controller
 
         return Inertia::render('Patient/Index', [
             'canCreate' => $request->user()->can('create', Patient::class),
+            'canSeeMergeRequests' => $request->user()->canAny(['patients.merge.propose.organisation', 'patients.merge.approve.organisation']),
         ]);
     }
 
@@ -40,14 +43,29 @@ class PatientController extends Controller
         return to_route('patients.show', $patient);
     }
 
-    public function show(Request $request, Patient $patient, PatientDirectoryService $directory): Response
+    public function show(Request $request, Patient $patient, PatientDirectoryService $directory, PatientMergeDirectoryService $merges): Response|RedirectResponse
     {
-        return Inertia::render('Patient/Show', ['patient' => $directory->detail($request->user(), $patient)]);
+        $this->authorize('view', $patient);
+        if ($patient->isMergedAway()) {
+            // REG-3: the merged-away record is hidden; its page opens the kept record.
+            $kept = PatientMergeLinks::kept($patient);
+            Inertia::flash('toast', ['type' => 'info', 'message' => __(':old was merged into :kept.', ['old' => $patient->patient_number, 'kept' => $kept->patient_number])]);
+
+            return to_route('patients.show', $kept);
+        }
+
+        return Inertia::render('Patient/Show', [
+            'patient' => $directory->detail($request->user(), $patient),
+            'merge' => $merges->panel($request->user(), $patient),
+        ]);
     }
 
-    public function edit(Request $request, Patient $patient, PatientDirectoryService $directory): Response
+    public function edit(Request $request, Patient $patient, PatientDirectoryService $directory): Response|RedirectResponse
     {
         $this->authorize('update', $patient);
+        if ($patient->isMergedAway()) {
+            return to_route('patients.show', $patient);
+        }
 
         return Inertia::render('Patient/Edit', ['requirements' => app(RegistrationSettingsService::class)->policy($request->user()->organisation_id), 'guardianToday' => app(PatientGuardianService::class)->today($request->user()), 'patient' => $directory->detail($request->user(), $patient)]);
     }
