@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AccessControlController;
 use App\Http\Controllers\AgentInboxController;
+use App\Http\Controllers\AgentOfficeController;
 use App\Http\Controllers\AgentRegistryController;
 use App\Http\Controllers\AttendanceController;
 use App\Http\Controllers\AuditLogController;
@@ -654,6 +655,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::middleware(['permission:ai_agents.view.organisation', 'sensitive.no-store'])->prefix('agents')->group(function () {
             Route::get('/', [AgentRegistryController::class, 'index'])->name('agents.index');
             Route::get('office-feed', [AgentRegistryController::class, 'feed'])->middleware('throttle:30,1')->name('agents.office-feed');
+            Route::get('office', [AgentOfficeController::class, 'index'])->name('agents.office');
+            Route::get('office/agents/{code}', [AgentOfficeController::class, 'agent'])->where('code', '[a-z][a-z0-9_]{1,59}')
+                ->middleware('throttle:60,1')->name('agents.office.agent');
             Route::post('{agent}/enabled', [AgentRegistryController::class, 'enabled'])->whereNumber('agent')
                 ->middleware(['permission:ai_agents.manage.organisation', 'throttle:20,1'])->name('agents.enabled');
         });
