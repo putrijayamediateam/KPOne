@@ -7,6 +7,7 @@ use App\Domain\Visit\Billing\Models\PanelClaim;
 use App\Domain\Visit\Billing\Models\PanelClaimDocument;
 use App\Domain\Visit\Billing\Services\PanelClaimDirectoryService;
 use App\Domain\Visit\Billing\Services\PanelClaimFollowUpService;
+use App\Domain\Visit\Billing\Services\PanelClaimPackService;
 use App\Domain\Visit\Billing\Services\PanelClaimService;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
@@ -14,9 +15,11 @@ use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class PanelClaimsController extends Controller
@@ -143,6 +146,39 @@ class PanelClaimsController extends Controller
         $claim = $claims->prepare($actor, $allocation, $request->all());
 
         return to_route('panel-claims.show', $claim);
+    }
+
+    /** PNL-8: a printable pack of one claim or up to 50 claims of one Panel. */
+    public function pack(Request $request, PanelClaimPackService $packs): Response
+    {
+        $actor = $request->user();
+        abort_unless($actor instanceof User, 403);
+        $from = $request->query('from');
+        $from = is_string($from) && Str::isUuid($from) ? strtolower($from) : null;
+        $back = $from !== null ? route('panel-claims.show', ['claim' => $from]) : route('panel-claims.index');
+        try {
+            $pack = $packs->pack($actor, ['claims' => $request->query('claims')]);
+        } catch (ValidationException $e) {
+            // A GET has no form to return to: go back to the page the pack was asked from, never "previous".
+            throw $e->redirectTo($back);
+        }
+
+        return Inertia::render('PanelClaims/Pack', $pack + [
+            'backUrl' => $back,
+            'backLabel' => $from !== null ? 'Back to claim' : 'Back to Panel Claims',
+        ]);
+    }
+
+    public function packLogo(Request $request, string $asset, PanelClaimPackService $packs): BinaryFileResponse
+    {
+        $actor = $request->user();
+        abort_unless($actor instanceof User, 403);
+        $image = $packs->logo($actor, $asset);
+        abort_unless(Storage::disk('local')->exists($image['path']), 404);
+
+        return response()->file(Storage::disk('local')->path($image['path']), ['Content-Type' => $image['mime'],
+            'Content-Disposition' => 'inline; filename="clinic-logo.'.($image['mime'] === 'image/png' ? 'png' : 'jpg').'"',
+            'Cache-Control' => 'private, no-store', 'X-Content-Type-Options' => 'nosniff']);
     }
 
     public function show(Request $request, PanelClaim $claim, PanelClaimDirectoryService $directory): Response
