@@ -11,6 +11,11 @@ test('UX-5: desktop consultation-page toasts show at the bottom left', () => {
 
     assert.match(source, /FOCUS_DESKTOP_TOAST_MEDIA = '\(min-width: 1024px\)'/);
     assert.match(source, /position: 'bottom-left'/);
+    assert.match(
+        source,
+        /FOCUS_DESKTOP_TOAST_WIDTH = 'min\(20rem, calc\(50vw - 2rem\)\)'/,
+    );
+    assert.match(source, /style: \{ '--width': FOCUS_DESKTOP_TOAST_WIDTH \}/);
     // No 64 px top offset: that belongs to the shared top placement.
     const placement = source.match(
         /FOCUS_DESKTOP_TOAST_PLACEMENT: ToasterProps = \{[\s\S]*?\};/,

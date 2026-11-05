@@ -107,7 +107,9 @@ usability aid only and must follow the permission the backend already enforces.
   Long ranking names are cut with "…" on phones (full name in the tooltip and in View all).
 - Consultation page toasts (UX-5, measured 2026-11-05): from 1280 to 1920 px the bottom-left toast covers no
   control wherever the page is scrolled; at 1024 px with the page at the very top it briefly covers "Choose
-  preset". Below 1024 px the toast stays at the top, so on a tablet or phone scrolled to the top it still briefly
+  preset". The toast is capped at 320 px (Daniel's design review) so at 1024 px it ends before "Save clinical
+  record"; with the page at the top it still briefly sits over the bottom-left of the clinical note box and its
+  character count. Below 1024 px the toast stays at the top, so on a tablet or phone scrolled to the top it still briefly
   covers the toolbar links and buttons (Medical certificates, Panggil semula, Start treatment step, On Hold).
   Complete Consultation is clear at every width.
 - UX-1 review note: Quick create (`Registration/Create.vue`) keeps its Register Visit card sticky at `max-lg:top-16`

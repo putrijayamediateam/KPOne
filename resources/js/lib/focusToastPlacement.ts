@@ -10,6 +10,13 @@ import type { ToasterProps } from 'vue-sonner';
  */
 export const FOCUS_DESKTOP_TOAST_MEDIA = '(min-width: 1024px)';
 
+/**
+ * Design review (Daniel, 2026-11-05): at 1024 px the default 356 px toast ran over the left end of
+ * "Save clinical record". Capped so it ends before the left column's right-aligned buttons.
+ */
+export const FOCUS_DESKTOP_TOAST_WIDTH = 'min(20rem, calc(50vw - 2rem))';
+
 export const FOCUS_DESKTOP_TOAST_PLACEMENT: ToasterProps = {
     position: 'bottom-left',
+    style: { '--width': FOCUS_DESKTOP_TOAST_WIDTH },
 };
