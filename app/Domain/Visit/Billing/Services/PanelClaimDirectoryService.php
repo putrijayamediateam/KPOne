@@ -3,6 +3,7 @@
 namespace App\Domain\Visit\Billing\Services;
 
 use App\Domain\Access\BranchAccessService;
+use App\Domain\Access\StaffAccessService;
 use App\Domain\Access\TransactionalActorAuthority;
 use App\Domain\Audit\AuditRecorder;
 use App\Domain\Organisation\Models\Branch;
@@ -46,6 +47,7 @@ final class PanelClaimDirectoryService
         private BranchAccessService $branches,
         private TransactionalActorAuthority $authority,
         private AuditRecorder $audit,
+        private StaffAccessService $staff,
     ) {}
 
     private const SUBMITTED = ['prepared', 'submitted', 'queried'];
@@ -478,20 +480,17 @@ final class PanelClaimDirectoryService
             return [];
         }
         $rows = DB::table('panel_claim_events')
-            ->join('users', function ($join): void {
-                $join->on('users.id', '=', 'panel_claim_events.actor_user_id')
-                    ->on('users.organisation_id', '=', 'panel_claim_events.organisation_id');
-            })
             ->where('panel_claim_events.organisation_id', $actor->organisation_id)
             ->where('panel_claim_events.branch_id', $branch->id)
             ->whereIn('panel_claim_events.panel_claim_id', $claimIds)
             ->orderBy('panel_claim_events.occurred_at')->orderBy('panel_claim_events.id')
-            ->get(['panel_claim_events.panel_claim_id', 'panel_claim_events.event_type', 'panel_claim_events.note', 'panel_claim_events.occurred_at', 'users.name as actor_name']);
+            ->get(['panel_claim_events.panel_claim_id', 'panel_claim_events.event_type', 'panel_claim_events.note', 'panel_claim_events.occurred_at', 'panel_claim_events.actor_user_id']);
+        $names = $this->staffNames($actor, $rows->pluck('actor_user_id')->all());
         $latest = [];
         foreach ($rows as $row) {
             $id = (int) $row->panel_claim_id;
             $latest[$id] ??= ['actor' => null, 'note' => null];
-            $latest[$id]['actor'] = (string) $row->actor_name;
+            $latest[$id]['actor'] = $names[(int) $row->actor_user_id] ?? 'Staff member';
             if ($row->note !== null) {
                 $latest[$id]['note'] = (string) $row->note;
             }
@@ -563,11 +562,7 @@ final class PanelClaimDirectoryService
                 'totalSen' => $line->line_total_sen,
                 'adjustment' => false,
             ])->all();
-            $events = DB::table('panel_claim_events')
-                ->join('users', function ($join): void {
-                    $join->on('users.id', '=', 'panel_claim_events.actor_user_id')
-                        ->on('users.organisation_id', '=', 'panel_claim_events.organisation_id');
-                })
+            $eventRows = DB::table('panel_claim_events')
                 ->where('panel_claim_events.panel_claim_id', $claim->id)
                 ->where('panel_claim_events.organisation_id', $actor->organisation_id)
                 ->where('panel_claim_events.branch_id', $branch->id)
@@ -579,16 +574,18 @@ final class PanelClaimDirectoryService
                     'panel_claim_events.external_reference',
                     'panel_claim_events.note',
                     'panel_claim_events.occurred_at',
-                    'users.name as actor_name',
-                ])->map(fn (object $event): array => [
-                    'type' => (string) $event->event_type,
-                    'previousAmountSen' => $event->previous_amount_sen === null ? null : (int) $event->previous_amount_sen,
-                    'amountSen' => $event->amount_sen === null ? null : (int) $event->amount_sen,
-                    'externalReference' => $event->external_reference === null ? null : (string) $event->external_reference,
-                    'note' => $event->note === null ? null : (string) $event->note,
-                    'occurredAt' => CarbonImmutable::parse((string) $event->occurred_at)->setTimezone($branch->timezone)->format('j M Y, g:i A'),
-                    'actor' => (string) $event->actor_name,
-                ])->all();
+                    'panel_claim_events.actor_user_id',
+                ]);
+            $actorNames = $this->staffNames($actor, $eventRows->pluck('actor_user_id')->all());
+            $events = $eventRows->map(fn (object $event): array => [
+                'type' => (string) $event->event_type,
+                'previousAmountSen' => $event->previous_amount_sen === null ? null : (int) $event->previous_amount_sen,
+                'amountSen' => $event->amount_sen === null ? null : (int) $event->amount_sen,
+                'externalReference' => $event->external_reference === null ? null : (string) $event->external_reference,
+                'note' => $event->note === null ? null : (string) $event->note,
+                'occurredAt' => CarbonImmutable::parse((string) $event->occurred_at)->setTimezone($branch->timezone)->format('j M Y, g:i A'),
+                'actor' => $actorNames[(int) $event->actor_user_id] ?? 'Staff member',
+            ])->all();
             $payments = $claim->payments->map(fn ($payment): array => [
                 'amountSen' => $payment->amount_sen,
                 'reference' => $payment->reference,
@@ -689,6 +686,24 @@ final class PanelClaimDirectoryService
                 ],
             ];
         });
+    }
+
+    /**
+     * PNL-6c: staff names follow the staff-directory visibility rule (owner BIL-2 decision); a name the viewer may
+     * not see reads "Staff member".
+     *
+     * @param  array<int, mixed>  $userIds
+     * @return array<int, string>
+     */
+    private function staffNames(User $viewer, array $userIds): array
+    {
+        $ids = array_values(array_unique(array_map('intval', array_filter($userIds, static fn (mixed $id): bool => $id !== null))));
+        if ($ids === []) {
+            return [];
+        }
+
+        return $this->staff->visibleUsers($viewer)->whereIn('id', $ids)->pluck('name', 'id')
+            ->map(static fn (mixed $name): string => (string) $name)->all();
     }
 
     /** Branch-scope check for claim attachments, without recording an identity view. */
