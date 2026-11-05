@@ -36,6 +36,8 @@ export type Receipt = {
     status: string;
     lockVersion: number;
     receivedAt: string;
+    /** Screens only (BIL-2); never sent to prints. */
+    recordedBy?: string;
 };
 export type Responsibility = {
     reason: string;

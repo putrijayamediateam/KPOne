@@ -491,13 +491,19 @@ const reverse = (receipt: Receipt) =>
                         :key="receipt.publicId"
                         class="flex flex-wrap items-center justify-between gap-2 border-t pt-3"
                     >
-                        <div>
+                        <div class="min-w-0">
                             <p class="font-medium tabular-nums">
                                 {{ receipt.number }} ·
                                 {{ myr(receipt.amountSen) }}
                             </p>
                             <p class="text-xs text-muted-foreground">
                                 {{ receipt.method }} · {{ receipt.receivedAt }}
+                            </p>
+                            <p
+                                v-if="receipt.recordedBy"
+                                class="text-xs break-words text-muted-foreground"
+                            >
+                                Recorded by {{ receipt.recordedBy }}
                             </p>
                             <StatusBadge
                                 class="mt-1"
@@ -797,6 +803,12 @@ const reverse = (receipt: Receipt) =>
                                     </td>
                                     <td class="p-3">
                                         {{ receipt.receivedAt }}
+                                        <span
+                                            v-if="receipt.recordedBy"
+                                            class="block text-xs text-muted-foreground"
+                                            >Recorded by
+                                            {{ receipt.recordedBy }}</span
+                                        >
                                     </td>
                                     <td
                                         class="p-3 text-right whitespace-nowrap tabular-nums"
@@ -854,6 +866,12 @@ const reverse = (receipt: Receipt) =>
                             <p class="text-[11px] text-muted-foreground">
                                 {{ receipt.number }} · {{ receipt.receivedAt }}
                             </p>
+                            <p
+                                v-if="receipt.recordedBy"
+                                class="text-[11px] break-words text-muted-foreground"
+                            >
+                                Recorded by {{ receipt.recordedBy }}
+                            </p>
                             <StatusBadge :status="receipt.status" />
                             <div class="flex flex-wrap gap-2">
                                 <ActionLink
@@ -901,6 +919,12 @@ const reverse = (receipt: Receipt) =>
                                     receipt.status
                                 }}</span>
                             </div>
+                            <p
+                                v-if="receipt.recordedBy"
+                                class="text-[11px] break-words text-muted-foreground"
+                            >
+                                Recorded by {{ receipt.recordedBy }}
+                            </p>
                         </li>
                     </ul>
                 </section>

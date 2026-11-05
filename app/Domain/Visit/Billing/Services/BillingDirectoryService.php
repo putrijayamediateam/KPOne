@@ -3,6 +3,7 @@
 namespace App\Domain\Visit\Billing\Services;
 
 use App\Domain\Access\BranchAccessService;
+use App\Domain\Access\StaffAccessService;
 use App\Domain\Clinical\Dispensary\Models\DispensaryCase;
 use App\Domain\Clinical\Models\ConsultationCheckout;
 use App\Domain\Visit\Billing\Models\CoverageAllocation;
@@ -19,7 +20,7 @@ use Illuminate\Support\Facades\DB;
 
 class BillingDirectoryService
 {
-    public function __construct(private BillingContextService $context, private FinancialLedger $ledger) {}
+    public function __construct(private BillingContextService $context, private FinancialLedger $ledger, private StaffAccessService $staff) {}
 
     /** Explicit projection: summary-only actors never receive medicine line descriptions; the owner-granted billing.lines.view.branch (finance_officer, 2026-10-08) adds them.
      * @return array<string,mixed>
@@ -37,6 +38,8 @@ class BillingDirectoryService
             $mutable = $visit->status === Visit::STATUS_REGISTERED && $invoice?->status === 'finalized' && ! $invoice->correction_hold;
             $state = $invoice ? $this->ledger->state($invoice) : null;
             $payments = $invoice ? Payment::query()->whereIn('id', PaymentAllocation::query()->where('invoice_id', $invoice->id)->select('payment_id'))->orderBy('id')->get() : collect();
+            $recorders = $printing ? collect() : $this->staff->visibleUsers($actor)
+                ->whereIn('id', $payments->pluck('recorded_by_user_id')->filter()->unique())->pluck('name', 'id');
             $approvalCapabilities = DB::table('billing_approval_limits')
                 ->where('organisation_id', $actor->organisation_id)
                 ->where('branch_id', $branch->id)
@@ -66,7 +69,9 @@ class BillingDirectoryService
                 'panel' => ($actor->can('coverage.propose.branch') || $actor->can('coverage.approve.branch')) ? $proposal(CoverageAllocation::class) : null,
                 'panelShortfall' => ! $printing && $invoice && ($actor->can('coverage.propose.branch') || $actor->can('coverage.approve.branch')) ? PanelShortfall::forInvoice($invoice) : null,
                 'deferment' => ($actor->can('outstanding.view.branch') || $actor->can('outstanding.request.branch') || $actor->can('outstanding.approve.branch')) ? $proposal(PatientReceivable::class) : null,
-                'payments' => $payments->map(fn (Payment $p): array => ['publicId' => $p->public_id, 'number' => $p->receipt_number, 'amountSen' => $p->amount_sen, 'method' => $p->method_snapshot, 'status' => $p->status, 'lockVersion' => $p->lock_version, 'receivedAt' => $p->received_at->setTimezone($branch->timezone)->format('j M Y, g:i A')])->all(),
+                'payments' => $payments->map(fn (Payment $p): array => ['publicId' => $p->public_id, 'number' => $p->receipt_number, 'amountSen' => $p->amount_sen, 'method' => $p->method_snapshot, 'status' => $p->status, 'lockVersion' => $p->lock_version, 'receivedAt' => $p->received_at->setTimezone($branch->timezone)->format('j M Y, g:i A'),
+                    // BIL-2: screens only, never prints; the same name rule as the invoice activity log.
+                    ...($printing ? [] : ['recordedBy' => $recorders[$p->recorded_by_user_id] ?? 'Staff member'])])->all(),
                 'methods' => $actor->can('payments.add.branch') ? PaymentMethod::query()->where('organisation_id', $actor->organisation_id)->operational()->orderBy('sort_order')->orderBy('name')->get()->map(fn ($m): array => ['code' => $m->code, 'name' => $m->name, 'requiresReference' => $m->requires_reference])->all() : [],
                 'panels' => $actor->can('coverage.propose.branch') ? Panel::query()->where('organisation_id', $actor->organisation_id)->where('is_active', true)->orderBy('name')->limit(100)->get(['id', 'name'])->toArray() : [],
                 'can' => ['build' => $actor->can('billing.build.branch') && $visit->status === Visit::STATUS_REGISTERED && (($checkout !== null && ($checkout->route === 'billing' || $case?->status === DispensaryCase::STATUS_COMPLETED)) || ($visit->visit_type === 'otc' && $case?->case_type === DispensaryCase::TYPE_OTC && $case->status === DispensaryCase::STATUS_COMPLETED)) && (! $invoice || $invoice->status === 'draft'),
