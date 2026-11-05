@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Head, router } from '@inertiajs/vue3';
+import MergedFromNote from '@/components/patient/MergedFromNote.vue';
 import { ActionLink } from '@/components/ui/action-link';
 import { PageHeader } from '@/components/ui/page-header';
 import { CompactPagination } from '@/components/ui/pagination';
@@ -26,6 +27,7 @@ const props = defineProps<{
         data: Array<{
             patientName: string;
             patientNumber: string;
+            mergedFrom: string | null;
             visitNumber: string;
             invoiceNumber: string;
             visitDate: string;
@@ -145,6 +147,11 @@ const visit = (page: number, overdueOnly = props.collections.overdueOnly) =>
                         <span class="block text-xs text-muted-foreground">
                             {{ row.patientNumber }}
                         </span>
+                        <MergedFromNote
+                            v-if="row.mergedFrom"
+                            :numbers="[row.mergedFrom]"
+                            lowercase
+                        />
                     </td>
                     <td>
                         <span class="block">{{ row.visitNumber }}</span>

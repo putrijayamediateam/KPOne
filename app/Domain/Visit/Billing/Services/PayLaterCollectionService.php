@@ -37,7 +37,9 @@ final class PayLaterCollectionService
             $shown = $this->totals(clone $query, $today);
             $lastPage = max(1, (int) ceil($shown['count'] / self::PER_PAGE));
             $page = min(max(1, $page), $lastPage);
-            $rows = $query->select(['r.id', 'r.amount_sen', 'r.remaining_sen', 'r.due_date', 'i.invoice_number', 'v.visit_number', 'v.registered_at', 'p.full_name', 'p.patient_number'])
+            $rows = $query->select(['r.id', 'r.amount_sen', 'r.remaining_sen', 'r.due_date', 'i.invoice_number', 'v.visit_number', 'v.registered_at', 'p.full_name', 'p.patient_number',
+                // REG-5: a bill of a merged-away record lists under the kept record, noting the old KP number.
+                'kp.full_name as kept_full_name', 'kp.patient_number as kept_patient_number'])
                 ->orderBy('r.due_date')->orderBy('r.approved_at')->orderBy('r.id')
                 ->offset(($page - 1) * self::PER_PAGE)->limit(self::PER_PAGE)->get();
 
@@ -46,7 +48,8 @@ final class PayLaterCollectionService
                 'data' => $rows->map(function (object $row) use ($branch, $today): array {
                     $due = CarbonImmutable::parse($row->due_date, $branch->timezone)->startOfDay();
 
-                    return ['patientName' => $row->full_name, 'patientNumber' => $row->patient_number, 'visitNumber' => $row->visit_number,
+                    return ['patientName' => $row->kept_full_name ?? $row->full_name, 'patientNumber' => $row->kept_patient_number ?? $row->patient_number,
+                        'mergedFrom' => $row->kept_patient_number === null ? null : $row->patient_number, 'visitNumber' => $row->visit_number,
                         'invoiceNumber' => $row->invoice_number,
                         'visitDate' => CarbonImmutable::parse($row->registered_at, 'UTC')->setTimezone($branch->timezone)->format('j M Y'),
                         'dueDate' => $due->format('j M Y'), 'daysOverdue' => $due->lessThan($today) ? (int) $due->diffInDays($today) : 0,
@@ -63,6 +66,7 @@ final class PayLaterCollectionService
             ->join('invoices as i', 'i.id', '=', 'r.invoice_id')
             ->join('visits as v', 'v.id', '=', 'i.visit_id')
             ->join('patients as p', 'p.id', '=', 'i.patient_id')
+            ->leftJoin('patients as kp', 'kp.id', '=', 'p.merged_into_patient_id')
             ->where('r.organisation_id', $organisationId)->where('r.branch_id', $branchId)
             ->where('r.status', 'approved')->where('r.remaining_sen', '>', 0)->whereColumn('r.current_invoice_guard', 'i.id')
             ->where('i.organisation_id', $organisationId)->where('i.branch_id', $branchId)->where('i.status', 'finalized')

@@ -23,6 +23,13 @@ const props = defineProps<{
     patient: PatientDetail;
     merge?: PatientMergePanelData;
     history?: PatientChangeHistoryData | null;
+    mergedGuardian?: {
+        full_name: string | null;
+        relationship: string | null;
+        phone: string | null;
+        email: string | null;
+        fromPatientNumber: string;
+    } | null;
 }>();
 const addOpen = ref(false);
 const correcting = ref<PatientIdentifier | null>(null);
@@ -344,6 +351,38 @@ const formatTime = (value: string) =>
             </p>
             <p class="text-sm text-muted-foreground">
                 This guardian number is not used by WhatsApp or patient search.
+            </p>
+        </section>
+        <section
+            v-else-if="mergedGuardian"
+            class="space-y-2 rounded-lg border bg-card p-5"
+            data-test="merged-guardian"
+        >
+            <h2 class="font-semibold">Guardian contact</h2>
+            <p class="text-xs text-muted-foreground">
+                From merged record
+                <span class="font-mono">{{
+                    mergedGuardian.fromPatientNumber
+                }}</span
+                >. Read only.
+            </p>
+            <p class="break-words">
+                {{ mergedGuardian.full_name }}
+                <template v-if="mergedGuardian.relationship">
+                    ·
+                    {{ mergedGuardian.relationship.replaceAll('_', ' ') }}
+                </template>
+            </p>
+            <p v-if="mergedGuardian.phone" class="break-words">
+                {{ mergedGuardian.phone }}
+            </p>
+            <p v-if="mergedGuardian.email" class="break-words">
+                {{ mergedGuardian.email }}
+            </p>
+            <p class="text-sm text-muted-foreground">
+                This guardian number is not used by WhatsApp or patient search.
+                To keep this contact on this record, use Edit patient and save
+                the guardian details.
             </p>
         </section>
     </main>

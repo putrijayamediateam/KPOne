@@ -86,11 +86,12 @@ class PatientDirectoryService
             ->get()
             ->keyBy('id');
 
+        $merged = $this->mergedFrom($actor, $patients->keys()->all());
         $summaries = [];
         foreach ($ids as $id) {
             $patient = $patients->get($id);
             if ($patient instanceof Patient) {
-                $summaries[] = $this->projectPatient($actor, $patient);
+                $summaries[] = $this->projectPatient($actor, $patient, $merged[$patient->id] ?? []);
             }
         }
 
@@ -184,8 +185,10 @@ class PatientDirectoryService
      */
     private function projectPaginator(User $actor, LengthAwarePaginator $paginator): array
     {
+        $merged = $this->mergedFrom($actor, collect($paginator->items())->pluck('id')->all());
+
         return [
-            'data' => collect($paginator->items())->map(fn (Patient $patient): array => $this->projectPatient($actor, $patient))->values()->all(),
+            'data' => collect($paginator->items())->map(fn (Patient $patient): array => $this->projectPatient($actor, $patient, $merged[$patient->id] ?? []))->values()->all(),
             'currentPage' => $paginator->currentPage(),
             'lastPage' => $paginator->lastPage(),
             'perPage' => $paginator->perPage(),
@@ -193,8 +196,33 @@ class PatientDirectoryService
         ];
     }
 
-    /** @return array<string, mixed> */
-    private function projectPatient(User $actor, Patient $patient): array
+    /**
+     * REG-5: the KP numbers merged into each kept record, so a search row can say "Merged from KP-…".
+     *
+     * @param  list<int>  $keptIds
+     * @return array<int, list<string>>
+     */
+    private function mergedFrom(User $actor, array $keptIds): array
+    {
+        if ($keptIds === []) {
+            return [];
+        }
+
+        return Patient::query()
+            ->where('organisation_id', $actor->organisation_id)
+            ->whereIn('merged_into_patient_id', $keptIds)
+            ->orderBy('merged_at')->orderBy('id')
+            ->get(['merged_into_patient_id', 'patient_number'])
+            ->groupBy('merged_into_patient_id')
+            ->map(fn ($rows): array => $rows->pluck('patient_number')->values()->all())
+            ->all();
+    }
+
+    /**
+     * @param  list<string>  $mergedFrom
+     * @return array<string, mixed>
+     */
+    private function projectPatient(User $actor, Patient $patient, array $mergedFrom = []): array
     {
         $identifier = $patient->identifiers->first();
 
@@ -209,6 +237,7 @@ class PatientDirectoryService
                 'maskedValue' => $this->identity->maskIdentifier($identifier->identifier_type, $identifier->normalized_value),
             ] : null,
             'maskedPhone' => $this->identity->maskPhone($patient->mobile_phone),
+            'mergedFrom' => $mergedFrom,
         ];
     }
 

@@ -478,7 +478,12 @@ const saveProblem = () => {
                         title="No automated medicine checks. No active structured conditions recorded does not imply that no medical conditions exist."
                     >
                         {{ problems.active.length }} active ·
-                        {{ problems.resolved.length }} resolved
+                        {{ problems.resolved.length }} resolved<template
+                            v-if="problems.merged?.length"
+                        >
+                            · {{ problems.merged.length }} from merged
+                            records</template
+                        >
                     </p>
                     <div class="flex min-h-[30px] items-center">
                         <Button
@@ -594,6 +599,55 @@ const saveProblem = () => {
                         >
                             Entered in error
                         </Button>
+                    </div>
+                </details>
+
+                <details
+                    v-if="problems.merged?.length"
+                    class="border-t pt-2 text-sm text-muted-foreground"
+                    data-test="merged-problems"
+                >
+                    <summary
+                        id="merged-problems-heading"
+                        class="cursor-pointer font-medium text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                    >
+                        From merged records ({{ problems.merged.length }})
+                    </summary>
+                    <div aria-labelledby="merged-problems-heading">
+                        <p class="pt-1 text-xs">
+                            Read only. Shown from merged records; they cannot be
+                            changed here.
+                        </p>
+                        <div
+                            v-for="record in problems.merged"
+                            :key="record.key"
+                            class="grid gap-1 border-t py-2 text-sm"
+                        >
+                            <span
+                                class="font-medium break-words text-foreground"
+                                >{{ record.condition }}</span
+                            >
+                            <span class="text-xs">
+                                From
+                                <span class="font-mono">{{
+                                    record.fromPatientNumber ?? 'merged record'
+                                }}</span>
+                                ·
+                                <template v-if="record.status === 'active'"
+                                    >Active<template v-if="record.onsetDate">
+                                        · Onset:
+                                        {{ record.onsetDate }}</template
+                                    ></template
+                                >
+                                <template v-else
+                                    >Resolved
+                                    {{
+                                        record.resolvedDate ??
+                                        'date not recorded'
+                                    }}</template
+                                >
+                            </span>
+                        </div>
                     </div>
                 </details>
 

@@ -12,6 +12,7 @@ import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue';
 import InputError from '@/components/InputError.vue';
 import AdultConfirmation from '@/components/patient/AdultConfirmation.vue';
 import GuardianFields from '@/components/patient/GuardianFields.vue';
+import MergedFromNote from '@/components/patient/MergedFromNote.vue';
 import PhoneInput from '@/components/patient/PhoneInput.vue';
 import RegistrationContactFields from '@/components/patient/RegistrationContactFields.vue';
 import WhatsAppLink from '@/components/patient/WhatsAppLink.vue';
@@ -562,6 +563,9 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
                                     class="font-mono text-xs text-muted-foreground"
                                     >{{ patient.patientNumber }}</span
                                 >
+                                <MergedFromNote
+                                    :numbers="patient.mergedFrom ?? []"
+                                />
                             </span>
                             <span
                                 class="shrink-0 text-right text-xs text-muted-foreground"
