@@ -538,6 +538,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::post('{invoice}/adjustments', 'adjustment')->middleware(['permission:billing.adjustments.add.branch', 'throttle:20,1'])->name('billing.adjustment');
             Route::post('{invoice}/adjustments/{adjustment}/reverse', 'reverseAdjustment')->whereUuid('adjustment')->middleware(['permission:billing.adjustments.reverse.branch', 'throttle:10,1'])->name('billing.adjustment.reverse');
             Route::post('{invoice}/void', 'void')->middleware(['permission:invoices.void.branch', 'throttle:10,1'])->name('billing.void');
+            Route::post('refunds/{payment}', 'refund')->whereUuid('payment')->middleware(['permission:payments.refunds.record.branch', 'throttle:10,1'])->name('billing.refund');
+            Route::post('refunds/{refund}/{decision}', 'decideRefund')->whereUuid('refund')->whereIn('decision', ['approved', 'rejected'])->middleware(['permission:payments.refunds.approve.branch', 'throttle:10,1'])->name('billing.refund.decide');
             Route::get('{invoice}/letterhead-logo/{asset}', 'letterheadLogo')->whereUuid('asset')->middleware(['permission:billing.print.branch', 'sensitive.no-store'])->name('billing.letterhead-logo');
             Route::get('{invoice}/print', 'printInvoice')->middleware(['permission:billing.print.branch', 'sensitive.no-store'])->name('billing.print');
             Route::get('{invoice}/receipts/{payment}/print', 'printReceipt')->middleware(['permission:billing.print.branch', 'sensitive.no-store'])->name('billing.receipt');
