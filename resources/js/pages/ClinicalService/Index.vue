@@ -17,10 +17,12 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import OperationalConfirmDialog from '@/components/ui/OperationalConfirmDialog.vue';
 import { PageHeader } from '@/components/ui/page-header';
 import { CompactPagination } from '@/components/ui/pagination';
 import { OperationalSelect } from '@/components/ui/select';
+import { EmptyState } from '@/components/ui/state';
 import { StatusBadge } from '@/components/ui/status';
 import { OperationalTable } from '@/components/ui/table';
 import { JsonRequestError, requestJson } from '@/lib/json-client';
@@ -247,7 +249,7 @@ const toggleDescription = computed(() => {
 
 <template>
     <main
-        class="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-4 px-4 py-6 md:px-6"
+        class="mx-auto flex w-full max-w-7xl min-w-0 flex-1 flex-col gap-4 px-4 py-6 md:px-6"
     >
         <PageHeader
             title="Clinical Service Catalogue"
@@ -255,7 +257,8 @@ const toggleDescription = computed(() => {
         >
             <template #actions>
                 <Button size="sm" @click="openCreate">
-                    <Plus class="size-4" /> Add Clinical Service
+                    <Plus class="size-4" aria-hidden="true" /> Add clinical
+                    service
                 </Button>
             </template>
         </PageHeader>
@@ -269,110 +272,202 @@ const toggleDescription = computed(() => {
             :panels="setup.panels"
         />
 
-        <form class="flex flex-wrap items-end gap-3" @submit.prevent="visit()">
-            <label class="grid w-full max-w-xs gap-1 text-xs">
-                Search
+        <form
+            class="grid gap-3 sm:flex sm:flex-wrap sm:items-end"
+            @submit.prevent="visit()"
+        >
+            <div class="grid w-full gap-2 sm:max-w-xs">
+                <Label for="service-search">Search</Label>
                 <Input
+                    id="service-search"
                     v-model="search"
                     placeholder="Code or name"
                     autocomplete="off"
                 />
-            </label>
-            <div class="w-full max-w-44">
+            </div>
+            <div class="grid w-full gap-2 sm:max-w-44">
+                <Label id="service-status-label" for="service-status"
+                    >Status</Label
+                >
                 <OperationalSelect
+                    id="service-status"
                     v-model="status"
                     label="Status"
+                    labelledby="service-status-label"
                     :options="statusOptions"
                 />
             </div>
-            <Button size="sm" type="submit">Apply</Button>
+            <Button size="sm" type="submit" class="min-h-11 sm:min-h-8"
+                >Apply</Button
+            >
         </form>
 
-        <OperationalTable
-            label="Clinical Service Catalogue"
-            variant="catalogue"
-            :columns="setup.canManagePrices ? 6 : 5"
-            min-width="820px"
-            :empty="services.data.length === 0"
-            empty-message="No clinical services match this filter."
+        <section
+            class="grid gap-3 lg:hidden"
+            aria-label="Clinical Service Catalogue"
         >
-            <template #head>
-                <tr>
-                    <th class="min-w-32">Code</th>
-                    <th class="min-w-56">Name</th>
-                    <th>Order unit</th>
-                    <th v-if="setup.canManagePrices">Prices</th>
-                    <th>Status</th>
-                    <th class="text-right">Actions</th>
-                </tr>
-            </template>
-            <template #body>
-                <tr v-for="row in services.data" :key="row.publicId">
-                    <td class="font-medium tabular-nums">{{ row.code }}</td>
-                    <td>{{ row.displayName }}</td>
-                    <td>{{ row.orderUnit }}</td>
-                    <td v-if="setup.canManagePrices" class="min-w-44">
-                        <div class="grid gap-1">
-                            <div
-                                class="flex items-center justify-between gap-3"
-                            >
-                                <span class="text-muted-foreground"
-                                    >Self-pay</span
+            <EmptyState
+                v-if="services.data.length === 0"
+                title="No clinical services match this filter."
+                description="Change the search or status, or add a clinical service."
+            />
+            <article
+                v-for="row in services.data"
+                :key="row.publicId"
+                class="grid min-w-0 gap-3 rounded-xl border bg-card p-4"
+                data-testid="service-card"
+            >
+                <div class="flex min-w-0 items-start justify-between gap-3">
+                    <div class="min-w-0">
+                        <h2 class="text-sm font-medium break-words">
+                            {{ row.displayName }}
+                        </h2>
+                        <p
+                            class="text-xs break-words text-muted-foreground tabular-nums"
+                        >
+                            {{ row.code }} · {{ row.orderUnit }}
+                        </p>
+                    </div>
+                    <StatusBadge
+                        :status="row.isActive ? 'active' : 'inactive'"
+                        :tone="row.isActive ? 'success' : 'neutral'"
+                    />
+                </div>
+                <dl v-if="setup.canManagePrices" class="grid gap-1 text-sm">
+                    <div class="flex items-center justify-between gap-3">
+                        <dt class="text-muted-foreground">Self-pay</dt>
+                        <dd class="font-medium tabular-nums">
+                            {{
+                                row.selfPayAmountRm
+                                    ? `RM ${row.selfPayAmountRm}`
+                                    : '—'
+                            }}
+                        </dd>
+                    </div>
+                    <div class="flex items-center justify-between gap-3">
+                        <dt class="text-muted-foreground">Default Panel</dt>
+                        <dd class="font-medium tabular-nums">
+                            {{
+                                row.panelDefaultAmountRm
+                                    ? `RM ${row.panelDefaultAmountRm}`
+                                    : '—'
+                            }}
+                        </dd>
+                    </div>
+                </dl>
+                <div class="grid grid-cols-2 gap-2">
+                    <Button
+                        variant="outline"
+                        class="min-h-11"
+                        :aria-label="`Edit ${row.displayName}`"
+                        @click="openEdit(row)"
+                        >Edit</Button
+                    >
+                    <Button
+                        class="min-h-11"
+                        :variant="row.isActive ? 'ghost' : 'secondary'"
+                        :aria-label="`${row.isActive ? 'Deactivate' : 'Activate'} ${row.displayName}`"
+                        @click="requestToggle(row)"
+                    >
+                        {{ row.isActive ? 'Deactivate' : 'Activate' }}
+                    </Button>
+                </div>
+            </article>
+        </section>
+
+        <div class="hidden min-w-0 lg:block">
+            <OperationalTable
+                label="Clinical Service Catalogue"
+                variant="catalogue"
+                :columns="setup.canManagePrices ? 6 : 5"
+                min-width="820px"
+                :empty="services.data.length === 0"
+                empty-message="No clinical services match this filter."
+            >
+                <template #head>
+                    <tr>
+                        <th class="min-w-32">Code</th>
+                        <th class="min-w-56">Name</th>
+                        <th>Order unit</th>
+                        <th v-if="setup.canManagePrices">Prices</th>
+                        <th>Status</th>
+                        <th class="text-right">Actions</th>
+                    </tr>
+                </template>
+                <template #body>
+                    <tr v-for="row in services.data" :key="row.publicId">
+                        <td class="font-medium tabular-nums">{{ row.code }}</td>
+                        <td>{{ row.displayName }}</td>
+                        <td>{{ row.orderUnit }}</td>
+                        <td v-if="setup.canManagePrices" class="min-w-44">
+                            <div class="grid gap-1">
+                                <div
+                                    class="flex items-center justify-between gap-3"
                                 >
-                                <span
-                                    class="font-medium whitespace-nowrap tabular-nums"
+                                    <span class="text-muted-foreground"
+                                        >Self-pay</span
+                                    >
+                                    <span
+                                        class="font-medium whitespace-nowrap tabular-nums"
+                                    >
+                                        {{
+                                            row.selfPayAmountRm
+                                                ? `RM ${row.selfPayAmountRm}`
+                                                : '—'
+                                        }}
+                                    </span>
+                                </div>
+                                <div
+                                    class="flex items-center justify-between gap-3"
+                                >
+                                    <span class="text-muted-foreground"
+                                        >Default Panel</span
+                                    >
+                                    <span
+                                        class="font-medium whitespace-nowrap tabular-nums"
+                                    >
+                                        {{
+                                            row.panelDefaultAmountRm
+                                                ? `RM ${row.panelDefaultAmountRm}`
+                                                : '—'
+                                        }}
+                                    </span>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="whitespace-nowrap">
+                            <StatusBadge
+                                :status="row.isActive ? 'active' : 'inactive'"
+                                :tone="row.isActive ? 'success' : 'neutral'"
+                            />
+                        </td>
+                        <td class="text-right">
+                            <div class="flex items-center justify-end gap-1">
+                                <Button
+                                    size="sm"
+                                    variant="outline"
+                                    :aria-label="`Edit ${row.displayName}`"
+                                    @click="openEdit(row)"
+                                    >Edit</Button
+                                >
+                                <Button
+                                    size="sm"
+                                    :variant="
+                                        row.isActive ? 'ghost' : 'secondary'
+                                    "
+                                    :aria-label="`${row.isActive ? 'Deactivate' : 'Activate'} ${row.displayName}`"
+                                    @click="requestToggle(row)"
                                 >
                                     {{
-                                        row.selfPayAmountRm
-                                            ? `RM ${row.selfPayAmountRm}`
-                                            : '—'
+                                        row.isActive ? 'Deactivate' : 'Activate'
                                     }}
-                                </span>
+                                </Button>
                             </div>
-                            <div
-                                class="flex items-center justify-between gap-3"
-                            >
-                                <span class="text-muted-foreground"
-                                    >Default Panel</span
-                                >
-                                <span
-                                    class="font-medium whitespace-nowrap tabular-nums"
-                                >
-                                    {{
-                                        row.panelDefaultAmountRm
-                                            ? `RM ${row.panelDefaultAmountRm}`
-                                            : '—'
-                                    }}
-                                </span>
-                            </div>
-                        </div>
-                    </td>
-                    <td class="whitespace-nowrap">
-                        <StatusBadge
-                            :status="row.isActive ? 'active' : 'inactive'"
-                            :tone="row.isActive ? 'success' : 'neutral'"
-                        />
-                    </td>
-                    <td class="text-right">
-                        <div class="flex items-center justify-end gap-1">
-                            <Button
-                                size="sm"
-                                variant="outline"
-                                @click="openEdit(row)"
-                                >Edit</Button
-                            >
-                            <Button
-                                size="sm"
-                                :variant="row.isActive ? 'ghost' : 'secondary'"
-                                @click="requestToggle(row)"
-                            >
-                                {{ row.isActive ? 'Deactivate' : 'Activate' }}
-                            </Button>
-                        </div>
-                    </td>
-                </tr>
-            </template>
-        </OperationalTable>
+                        </td>
+                    </tr>
+                </template>
+            </OperationalTable>
+        </div>
 
         <CompactPagination
             :current-page="services.currentPage"
@@ -388,8 +483,8 @@ const toggleDescription = computed(() => {
                 <DialogHeader>
                     <DialogTitle>{{
                         editing
-                            ? 'Edit Clinical Service'
-                            : 'Add Clinical Service'
+                            ? 'Edit clinical service'
+                            : 'Add clinical service'
                     }}</DialogTitle>
                     <DialogDescription>
                         {{
@@ -622,7 +717,7 @@ const toggleDescription = computed(() => {
                                     ? 'Loading…'
                                     : editing
                                       ? 'Save'
-                                      : 'Add Clinical Service'
+                                      : 'Add clinical service'
                             }}
                         </Button>
                     </DialogFooter>

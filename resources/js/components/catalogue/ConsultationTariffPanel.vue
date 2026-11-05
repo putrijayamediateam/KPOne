@@ -5,6 +5,7 @@ import CatalogueFormSectionHeading from '@/components/catalogue/CatalogueFormSec
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { OperationalSelect } from '@/components/ui/select';
 import { rmToSen } from '@/lib/money';
 
@@ -216,9 +217,15 @@ const submit = () => {
                             >Patients paying directly</span
                         >
                         <div class="grid gap-1">
+                            <Label
+                                for="consultation-self-pay-price"
+                                class="text-xs sm:sr-only"
+                                >Self-pay price (RM)</Label
+                            >
                             <Input
+                                id="consultation-self-pay-price"
                                 v-model="form.prices.self_pay_rm"
-                                aria-label="Consultation self-pay price in RM"
+                                aria-label="Self-pay price (RM) for consultation"
                                 type="number"
                                 min="0"
                                 step="0.01"
@@ -237,9 +244,15 @@ const submit = () => {
                             >Default for Panels without a custom rate</span
                         >
                         <div class="grid gap-1">
+                            <Label
+                                for="consultation-panel-default-price"
+                                class="text-xs sm:sr-only"
+                                >Default Panel price (RM)</Label
+                            >
                             <Input
+                                id="consultation-panel-default-price"
                                 v-model="form.prices.panel_default_rm"
-                                aria-label="Consultation default Panel price in RM"
+                                aria-label="Default Panel price (RM) for consultation"
                                 type="number"
                                 min="0"
                                 step="0.01"

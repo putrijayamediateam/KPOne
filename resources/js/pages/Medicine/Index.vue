@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { router, useForm } from '@inertiajs/vue3';
-import { Plus } from '@lucide/vue';
+import { Ellipsis, Plus } from '@lucide/vue';
 import { computed, reactive, ref } from 'vue';
 import { toast } from 'vue-sonner';
 import CatalogueFormSectionHeading from '@/components/catalogue/CatalogueFormSectionHeading.vue';
@@ -10,6 +10,7 @@ import LocationPicker from '@/components/catalogue/LocationPicker.vue';
 import PanelTariffEditor from '@/components/catalogue/PanelTariffEditor.vue';
 import SupplierPicker from '@/components/catalogue/SupplierPicker.vue';
 import InputError from '@/components/InputError.vue';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -19,11 +20,19 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import OperationalConfirmDialog from '@/components/ui/OperationalConfirmDialog.vue';
 import { PageHeader } from '@/components/ui/page-header';
 import { CompactPagination } from '@/components/ui/pagination';
 import { OperationalSelect } from '@/components/ui/select';
+import { EmptyState } from '@/components/ui/state';
 import { StatusBadge } from '@/components/ui/status';
 import { OperationalTable } from '@/components/ui/table';
 import { JsonRequestError, requestJson } from '@/lib/json-client';
@@ -449,7 +458,7 @@ const toggleDescription = computed(() => {
 
 <template>
     <main
-        class="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-4 px-4 py-6 md:px-6"
+        class="mx-auto flex w-full max-w-7xl min-w-0 flex-1 flex-col gap-4 px-4 py-6 md:px-6"
     >
         <PageHeader
             title="Medicine Catalogue"
@@ -457,157 +466,314 @@ const toggleDescription = computed(() => {
         >
             <template #actions>
                 <Button size="sm" @click="openCreate">
-                    <Plus class="size-4" /> Add Medicine
+                    <Plus class="size-4" aria-hidden="true" /> Add medicine
                 </Button>
             </template>
         </PageHeader>
 
-        <form class="flex flex-wrap items-end gap-3" @submit.prevent="visit()">
-            <label class="grid w-full max-w-xs gap-1 text-xs">
-                Search
+        <form
+            class="grid gap-3 sm:flex sm:flex-wrap sm:items-end"
+            @submit.prevent="visit()"
+        >
+            <div class="grid w-full gap-2 sm:max-w-xs">
+                <Label for="medicine-search">Search</Label>
                 <Input
+                    id="medicine-search"
                     v-model="search"
                     placeholder="Code or name"
                     autocomplete="off"
                 />
-            </label>
-            <div class="w-full max-w-44">
+            </div>
+            <div class="grid w-full gap-2 sm:max-w-44">
+                <Label id="medicine-status-label" for="medicine-status"
+                    >Status</Label
+                >
                 <OperationalSelect
+                    id="medicine-status"
                     v-model="status"
                     label="Status"
+                    labelledby="medicine-status-label"
                     :options="statusOptions"
                 />
             </div>
-            <Button size="sm" type="submit">Apply</Button>
+            <Button size="sm" type="submit" class="min-h-11 sm:min-h-8"
+                >Apply</Button
+            >
         </form>
 
-        <OperationalTable
-            label="Medicine Catalogue"
-            variant="catalogue"
-            :columns="setup.canManagePrices ? 8 : 7"
-            min-width="1040px"
-            :empty="medicines.data.length === 0"
-            empty-message="No medicines match this filter."
-        >
-            <template #head>
-                <tr>
-                    <th class="min-w-32">Code</th>
-                    <th class="min-w-56">Name</th>
-                    <th>Strength</th>
-                    <th>Dosage form</th>
-                    <th>Order unit</th>
-                    <th v-if="setup.canManagePrices">Prices</th>
-                    <th>Status</th>
-                    <th class="text-right">Actions</th>
-                </tr>
-            </template>
-            <template #body>
-                <tr v-for="row in medicines.data" :key="row.publicId">
-                    <td class="font-medium whitespace-nowrap tabular-nums">
-                        {{ row.code }}
-                    </td>
-                    <td>
-                        {{ row.displayName }}
-                        <span
-                            v-if="row.allergyGroups.length"
-                            class="mt-0.5 block text-xs text-muted-foreground"
-                            data-testid="allergy-groups"
-                            >Drug groups:
-                            {{ row.allergyGroups.join(', ') }}</span
+        <section class="grid gap-3 lg:hidden" aria-label="Medicine Catalogue">
+            <EmptyState
+                v-if="medicines.data.length === 0"
+                title="No medicines match this filter."
+                description="Change the search or status, or add a medicine."
+            />
+            <article
+                v-for="row in medicines.data"
+                :key="row.publicId"
+                class="grid min-w-0 gap-3 rounded-xl border bg-card p-4"
+                data-testid="medicine-card"
+            >
+                <div class="flex min-w-0 items-start justify-between gap-3">
+                    <div class="min-w-0">
+                        <h2 class="text-sm font-medium break-words">
+                            {{ row.displayName }}
+                        </h2>
+                        <p
+                            class="text-xs break-words text-muted-foreground tabular-nums"
                         >
-                    </td>
-                    <td>{{ row.strengthText ?? '—' }}</td>
-                    <td>{{ row.dosageForm ?? '—' }}</td>
-                    <td>{{ row.orderUnit }}</td>
-                    <td v-if="setup.canManagePrices" class="min-w-44">
-                        <div class="grid gap-1">
-                            <div
-                                class="flex items-center justify-between gap-3"
-                            >
-                                <span class="text-muted-foreground"
-                                    >Self-pay</span
-                                >
-                                <span
-                                    class="font-medium whitespace-nowrap tabular-nums"
-                                >
-                                    {{
-                                        row.selfPayAmountRm
-                                            ? `RM ${row.selfPayAmountRm}`
-                                            : '—'
-                                    }}
-                                </span>
-                            </div>
-                            <div
-                                class="flex items-center justify-between gap-3"
-                            >
-                                <span class="text-muted-foreground"
-                                    >Default Panel</span
-                                >
-                                <span
-                                    class="font-medium whitespace-nowrap tabular-nums"
-                                >
-                                    {{
-                                        row.panelDefaultAmountRm
-                                            ? `RM ${row.panelDefaultAmountRm}`
-                                            : '—'
-                                    }}
-                                </span>
-                            </div>
-                        </div>
-                    </td>
-                    <td class="whitespace-nowrap">
+                            {{ row.code }}
+                        </p>
+                    </div>
+                    <div class="flex shrink-0 flex-wrap justify-end gap-1">
                         <StatusBadge
                             :status="row.isActive ? 'active' : 'inactive'"
                             :tone="row.isActive ? 'success' : 'neutral'"
                         />
-                        <span
+                        <Badge
                             v-if="row.isControlled"
-                            class="ml-1 inline-block rounded-md bg-amber-100 px-1.5 py-0.5 text-[11px] font-medium text-amber-900 dark:bg-amber-950/70 dark:text-amber-100"
-                            data-testid="controlled-badge"
-                            >Controlled</span
+                            variant="outline"
+                            class="border-border bg-card text-foreground"
+                            >Controlled</Badge
                         >
-                    </td>
-                    <td class="text-right">
-                        <div class="flex items-center justify-end gap-1">
+                    </div>
+                </div>
+                <p class="text-xs break-words text-muted-foreground">
+                    {{
+                        [row.strengthText, row.dosageForm, row.orderUnit]
+                            .filter(Boolean)
+                            .join(' · ')
+                    }}
+                </p>
+                <p
+                    v-if="row.allergyGroups.length"
+                    class="text-xs break-words text-muted-foreground"
+                >
+                    Drug groups: {{ row.allergyGroups.slice(0, 3).join(', ')
+                    }}<template v-if="row.allergyGroups.length > 3">
+                        +{{ row.allergyGroups.length - 3 }} more</template
+                    >
+                </p>
+                <dl v-if="setup.canManagePrices" class="grid gap-1 text-sm">
+                    <div class="flex items-center justify-between gap-3">
+                        <dt class="text-muted-foreground">Self-pay</dt>
+                        <dd class="font-medium tabular-nums">
+                            {{
+                                row.selfPayAmountRm
+                                    ? `RM ${row.selfPayAmountRm}`
+                                    : '—'
+                            }}
+                        </dd>
+                    </div>
+                    <div class="flex items-center justify-between gap-3">
+                        <dt class="text-muted-foreground">Default Panel</dt>
+                        <dd class="font-medium tabular-nums">
+                            {{
+                                row.panelDefaultAmountRm
+                                    ? `RM ${row.panelDefaultAmountRm}`
+                                    : '—'
+                            }}
+                        </dd>
+                    </div>
+                </dl>
+                <div class="flex items-center gap-2">
+                    <Button
+                        variant="outline"
+                        class="min-h-11 flex-1"
+                        :aria-label="`Edit ${row.displayName}`"
+                        @click="openEdit(row)"
+                        >Edit</Button
+                    >
+                    <DropdownMenu>
+                        <DropdownMenuTrigger as-child>
                             <Button
-                                size="sm"
                                 variant="outline"
-                                @click="openEdit(row)"
-                                >Edit</Button
+                                size="icon"
+                                class="min-h-11 min-w-11"
+                                :aria-label="`More actions for ${row.displayName}`"
+                                data-action="medicine-row-menu"
                             >
-                            <Button
-                                size="sm"
-                                :variant="row.isActive ? 'ghost' : 'secondary'"
-                                @click="requestToggle(row)"
-                            >
-                                {{ row.isActive ? 'Deactivate' : 'Activate' }}
+                                <Ellipsis class="size-4" aria-hidden="true" />
                             </Button>
-                            <Button
-                                size="sm"
-                                variant="ghost"
-                                data-action="edit-allergy-groups"
-                                :aria-label="`Drug groups for ${row.displayName}`"
-                                @click="openGroups(row)"
-                                >Drug groups</Button
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" class="w-56">
+                            <DropdownMenuItem
+                                class="min-h-11"
+                                @select="requestToggle(row)"
+                                >{{
+                                    row.isActive ? 'Deactivate' : 'Activate'
+                                }}</DropdownMenuItem
                             >
-                            <Button
-                                size="sm"
-                                variant="ghost"
-                                data-action="toggle-controlled"
-                                :aria-label="`${row.isControlled ? 'Unmark' : 'Mark'} ${row.displayName} as a controlled medicine`"
-                                @click="pendingControlled.row = row"
+                            <DropdownMenuItem
+                                class="min-h-11"
+                                @select="openGroups(row)"
+                                >Drug groups</DropdownMenuItem
                             >
-                                {{
+                            <DropdownMenuItem
+                                class="min-h-11"
+                                @select="pendingControlled.row = row"
+                                >{{
                                     row.isControlled
                                         ? 'Unmark controlled'
                                         : 'Mark controlled'
-                                }}
-                            </Button>
-                        </div>
-                    </td>
-                </tr>
-            </template>
-        </OperationalTable>
+                                }}</DropdownMenuItem
+                            >
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+                </div>
+            </article>
+        </section>
+
+        <div class="hidden min-w-0 lg:block">
+            <OperationalTable
+                label="Medicine Catalogue"
+                variant="catalogue"
+                :columns="setup.canManagePrices ? 8 : 7"
+                min-width="960px"
+                :empty="medicines.data.length === 0"
+                empty-message="No medicines match this filter."
+            >
+                <template #head>
+                    <tr>
+                        <th class="min-w-32">Code</th>
+                        <th class="min-w-56">Name</th>
+                        <th>Strength</th>
+                        <th>Dosage form</th>
+                        <th>Order unit</th>
+                        <th v-if="setup.canManagePrices">Prices</th>
+                        <th>Status</th>
+                        <th class="text-right">Actions</th>
+                    </tr>
+                </template>
+                <template #body>
+                    <tr v-for="row in medicines.data" :key="row.publicId">
+                        <td class="font-medium whitespace-nowrap tabular-nums">
+                            {{ row.code }}
+                        </td>
+                        <td>
+                            {{ row.displayName }}
+                            <span
+                                v-if="row.allergyGroups.length"
+                                class="mt-0.5 block text-xs text-muted-foreground"
+                                data-testid="allergy-groups"
+                                >Drug groups:
+                                {{ row.allergyGroups.join(', ') }}</span
+                            >
+                        </td>
+                        <td>{{ row.strengthText ?? '—' }}</td>
+                        <td>{{ row.dosageForm ?? '—' }}</td>
+                        <td>{{ row.orderUnit }}</td>
+                        <td v-if="setup.canManagePrices" class="min-w-44">
+                            <div class="grid gap-1">
+                                <div
+                                    class="flex items-center justify-between gap-3"
+                                >
+                                    <span class="text-muted-foreground"
+                                        >Self-pay</span
+                                    >
+                                    <span
+                                        class="font-medium whitespace-nowrap tabular-nums"
+                                    >
+                                        {{
+                                            row.selfPayAmountRm
+                                                ? `RM ${row.selfPayAmountRm}`
+                                                : '—'
+                                        }}
+                                    </span>
+                                </div>
+                                <div
+                                    class="flex items-center justify-between gap-3"
+                                >
+                                    <span class="text-muted-foreground"
+                                        >Default Panel</span
+                                    >
+                                    <span
+                                        class="font-medium whitespace-nowrap tabular-nums"
+                                    >
+                                        {{
+                                            row.panelDefaultAmountRm
+                                                ? `RM ${row.panelDefaultAmountRm}`
+                                                : '—'
+                                        }}
+                                    </span>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="whitespace-nowrap">
+                            <StatusBadge
+                                :status="row.isActive ? 'active' : 'inactive'"
+                                :tone="row.isActive ? 'success' : 'neutral'"
+                            />
+                            <Badge
+                                v-if="row.isControlled"
+                                variant="outline"
+                                class="ml-1 border-border bg-card text-foreground"
+                                data-testid="controlled-badge"
+                                >Controlled</Badge
+                            >
+                        </td>
+                        <td class="text-right">
+                            <div class="flex items-center justify-end gap-1">
+                                <Button
+                                    size="sm"
+                                    variant="outline"
+                                    :aria-label="`Edit ${row.displayName}`"
+                                    @click="openEdit(row)"
+                                    >Edit</Button
+                                >
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger as-child>
+                                        <Button
+                                            size="icon"
+                                            variant="ghost"
+                                            class="size-8"
+                                            :aria-label="`More actions for ${row.displayName}`"
+                                            data-action="medicine-row-menu"
+                                        >
+                                            <Ellipsis
+                                                class="size-4"
+                                                aria-hidden="true"
+                                            />
+                                        </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent
+                                        align="end"
+                                        class="w-56"
+                                    >
+                                        <DropdownMenuItem
+                                            @select="requestToggle(row)"
+                                            >{{
+                                                row.isActive
+                                                    ? 'Deactivate'
+                                                    : 'Activate'
+                                            }}</DropdownMenuItem
+                                        >
+                                        <DropdownMenuItem
+                                            data-action="edit-allergy-groups"
+                                            :aria-label="`Drug groups for ${row.displayName}`"
+                                            @select="openGroups(row)"
+                                            >Drug groups</DropdownMenuItem
+                                        >
+                                        <DropdownMenuItem
+                                            data-action="toggle-controlled"
+                                            :aria-label="`${row.isControlled ? 'Unmark' : 'Mark'} ${row.displayName} as a controlled medicine`"
+                                            @select="
+                                                pendingControlled.row = row
+                                            "
+                                        >
+                                            {{
+                                                row.isControlled
+                                                    ? 'Unmark controlled'
+                                                    : 'Mark controlled'
+                                            }}
+                                        </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
+                            </div>
+                        </td>
+                    </tr>
+                </template>
+            </OperationalTable>
+        </div>
 
         <CompactPagination
             :current-page="medicines.currentPage"
@@ -622,7 +788,7 @@ const toggleDescription = computed(() => {
             >
                 <DialogHeader>
                     <DialogTitle>{{
-                        editing ? 'Edit Medicine' : 'Add Medicine'
+                        editing ? 'Edit medicine' : 'Add medicine'
                     }}</DialogTitle>
                     <DialogDescription>
                         {{
@@ -1167,7 +1333,7 @@ const toggleDescription = computed(() => {
                                 !!editLoadError
                             "
                         >
-                            {{ editing ? 'Save' : 'Add Medicine' }}
+                            {{ editing ? 'Save' : 'Add medicine' }}
                         </Button>
                     </DialogFooter>
                 </form>
