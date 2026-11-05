@@ -131,6 +131,7 @@ class BillingController extends Controller
         [$data['issued']['backUrl'], $data['issued']['backLabel']] = match ($from) {
             'payments' => [route('billing.payments', $visit, absolute: false), 'Back to payments'],
             'invoice' => [route('visits.invoice', $visit, absolute: false), 'Back to invoice'],
+            'history' => [route('visits.history', $visit, absolute: false), 'Back to visit'],
             default => [route('billing.show', $visit, absolute: false), 'Back to billing'],
         };
 
@@ -140,10 +141,11 @@ class BillingController extends Controller
     /** @param \Closure(): IssuedBillingDocumentPrint $action */
     private function issued(Request $request, Visit $visit, \Closure $action): RedirectResponse
     {
-        $from = in_array($request->input('return_to'), ['billing', 'payments', 'invoice'], true) ? (string) $request->input('return_to') : 'billing';
+        $from = in_array($request->input('return_to'), ['billing', 'payments', 'invoice', 'history'], true) ? (string) $request->input('return_to') : 'billing';
         $back = match ($from) {
             'payments' => route('billing.payments', $visit),
             'invoice' => route('visits.invoice', $visit),
+            'history' => route('visits.history', $visit),
             default => route('billing.show', $visit),
         };
         try {

@@ -3,6 +3,14 @@ export type StatusTone =
 
 const statusLabels: Record<string, string> = {
     approved: 'Approved',
+    // CAT-2 price list check
+    price_charge_inactive: 'Charge inactive',
+    price_no_charge: 'No charge',
+    price_no_panel_default: 'No default Panel price',
+    price_no_self_pay: 'No Self-pay price',
+    price_ok: 'OK',
+    price_unit_differs: 'Unit differs',
+    price_zero: 'Free (RM 0.00)',
     cancelled: 'Cancelled',
     completed: 'Completed',
     dispensed: 'Dispensed',
@@ -26,9 +34,21 @@ const statusLabels: Record<string, string> = {
     serving: 'Serving',
     void: 'Void',
     waiting: 'Waiting',
+    // DSP-7 medicine returns (Daniel 2026-11-05): waiting is warning; the three outcomes are neutral.
+    waiting_check: 'Waiting for check',
+    disposed: 'Disposed',
+    quarantined: 'Quarantined',
+    refused: 'Refused',
 };
 
 const toneByStatus: Record<string, StatusTone> = {
+    price_charge_inactive: 'danger',
+    price_no_charge: 'danger',
+    price_no_panel_default: 'warning',
+    price_no_self_pay: 'danger',
+    price_ok: 'success',
+    price_unit_differs: 'danger',
+    price_zero: 'warning',
     approved: 'success',
     completed: 'success',
     dispensed: 'success',
@@ -44,6 +64,7 @@ const toneByStatus: Record<string, StatusTone> = {
     waiting: 'warning',
     roster_submitted: 'warning',
     roster_short: 'warning',
+    waiting_check: 'warning',
     cancelled: 'danger',
     not_dispensed: 'danger',
     rejected: 'danger',

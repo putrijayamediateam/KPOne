@@ -59,7 +59,7 @@ const print = () => window.print();
             data-testid="print-toolbar"
         >
             <button class="rounded border px-3 py-2" @click="print">
-                Print {{ receipt ? 'Receipt' : 'Invoice' }}
+                Print {{ receipt ? 'receipt' : 'invoice' }}
             </button>
             <a
                 v-if="issued"
