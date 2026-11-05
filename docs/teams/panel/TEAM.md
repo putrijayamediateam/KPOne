@@ -28,6 +28,7 @@ coordinator at the owner's request (2026-11-05).
 - Panel invoices page and CSV.
 - Panel payments (PNL-3): record one Panel payment and split it across that Panel's accepted claims.
 - Follow-up list (PNL-4): open claims with no new action for longer than their Panel's follow-up days.
+- Panel statement helper (PNL-7): upload a Panel's CSV statement on the Panel payments page to fill the split.
 - Payment correction (PNL-6): reverse a wrongly recorded Panel payment (Finance Officer and Director).
 - Per-visit Panel notes and the Payment column.
 - Pages: `PanelClaims/Index.vue`, `Create.vue`, `Show.vue`, `FollowUp.vue`; `PanelSettings/Index.vue`, `Form.vue`;
@@ -46,7 +47,7 @@ coordinator at the owner's request (2026-11-05).
 
 | Kind | Files |
 |---|---|
-| Domain services | `app/Domain/Visit/Billing/Services/PanelClaimService.php` (single and bulk creation share `createLocked`), `PanelClaimDirectoryService`, `PanelClaimEligibility`, `PanelClaimAmounts`, `PanelClaimDueRule`, `PanelClaimMessageService`, `PanelInvoiceReportService`, `PanelRemittanceService`, `PanelClaimFollowUpService`, `PanelPaymentCorrectionService`; `app/Domain/Visit/Services/PanelSettingsService.php` |
+| Domain services | `app/Domain/Visit/Billing/Services/PanelClaimService.php` (single and bulk creation share `createLocked`), `PanelClaimDirectoryService`, `PanelClaimEligibility`, `PanelClaimAmounts`, `PanelClaimDueRule`, `PanelClaimMessageService`, `PanelInvoiceReportService`, `PanelRemittanceService`, `PanelClaimFollowUpService`, `PanelPaymentCorrectionService`, `PanelStatementService` (with the daily `panel-statements:purge` command); `app/Domain/Visit/Services/PanelSettingsService.php` |
 | Models | `app/Domain/Visit/Billing/Models/PanelClaim*.php`, `PanelRemittance.php`, `PanelClaimPaymentReversal.php` (its `NOT_REVERSED` SQL is used wherever claim payments are added up), the `Panel` model |
 | Controllers | `PanelClaimsController`, `PanelRemittancesController`, `PanelPaymentCorrectionsController`, the Panel settings and Panel invoices controllers |
 | Pages | `resources/js/pages/PanelClaims/*`, `PanelSettings/*`, `PanelInvoices/*`, `PanelRemittances/*`, `PanelPaymentCorrections/*` |
@@ -133,6 +134,9 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php`.
     branch that already has an open PR, push only when the change is ready, because a push re-runs CI. The PR
     still opens only after "ship it", with the latest `main` merged first. After a session restart on a fresh
     machine, fetch the branch before continuing.
+20. PNL-7 Panel statements (owner, 2026-11-05): an uploaded Panel statement file is deleted 30 days after upload.
+    The officer confirms each suggested match and records through the PNL-3 flow; nothing is recorded
+    automatically (coordinator backlog note, confirmed by the owner's "start PNL-7").
 
 ## 7. Open items and known limits
 
@@ -170,6 +174,12 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php`.
   actor in a claim page's Logs (`PanelClaimDirectoryService`) still read names straight from `users`, through an
   inner join that also drops events without an actor. Doctor names on Panel invoices are doctor display names
   and are not covered by the staff-name rule.
+- **PNL-7 limits:** one statement covers one Panel at one branch; up to 1 MB and 500 rows; matching is exact
+  (claim number digits, invoice number or member reference, ignoring case), so a typo or a different number
+  format is "Not found"; amounts read "1,000.00" and "10,00" (a comma before two final digits) as ringgit and sen,
+  but "1.000,00" is "Amount not readable"; only the 200 oldest open claims can be filled into the split; the
+  file is deleted by the daily `panel-statements:purge` run, so it can stay up to a day past its 30 days, and
+  the upload record (no rows) is kept.
 - A submitted-but-undecided claim counts as zero outstanding in the Panel summary.
 - Panel summary runs about three queries per approved allocation; not load-tested.
 
@@ -224,7 +234,7 @@ Second backlog, chosen by the owner on 2026-11-05 ("panel order ok", relayed by 
    to keep them: Finance Officer or Director, one step, never the recorder).
 6. **PNL-5 Contention test.** A split Panel payment and a single-claim payment on the same claim at the same
    moment cannot over-pay; test only. Closes the PNL-3 known limit.
-7. **PNL-7 Panel statement upload helper.** The Panel Officer uploads the Panel's remittance statement (CSV);
+7. **PNL-7 Panel statement upload helper. (Built 2026-11-05.)** The Panel Officer uploads the Panel's remittance statement (CSV);
    KPOne suggests matches to claims (claim number, invoice number, member reference); the officer confirms each
    match and records through the PNL-3 flow. Nothing is recorded automatically. The file is stored privately and
    deleted after 30 days (to confirm with the owner). No outbound call.

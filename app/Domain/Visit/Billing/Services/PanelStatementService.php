@@ -312,7 +312,9 @@ final class PanelStatementService
     /** Ringgit text such as "RM 1,234.50" in sen; null when it is not a positive amount. */
     private function amount(string $text): ?int
     {
-        $clean = preg_replace('/^(?:rm|myr)\s*/i', '', str_replace([',', ' '], '', trim($text))) ?? '';
+        $clean = preg_replace('/^(?:rm|myr)\s*/i', '', str_replace(' ', '', trim($text))) ?? '';
+        // "10,00" (a comma before exactly two final digits and no dot) is ringgit and sen; other commas group thousands.
+        $clean = preg_match('/\A[0-9]{1,9},[0-9]{2}\z/', $clean) === 1 ? str_replace(',', '.', $clean) : str_replace(',', '', $clean);
         if (preg_match('/\A([0-9]{1,9})(?:\.([0-9]{1,2}))?\z/', $clean, $m) !== 1) {
             return null;
         }

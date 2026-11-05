@@ -39,7 +39,7 @@ class PanelStatementTest extends BillingTestCase
             "C-{$byClaimNo->id},,,Synthetic Patient Three,30",
             ",{$paid->invoice_number},,Synthetic Patient Four,30.00",
             ',UNKNOWN-1,,Synthetic Patient Five,10.00',
-            ",{$byInvoice->invoice_number},,Synthetic Patient One,5.00",
+            ",{$byInvoice->invoice_number},,Synthetic Patient One,\"5,00\"",
             "{$byClaimNo->id},{$byInvoice->invoice_number},,Synthetic Mixed,10.00",
             // Every synthetic claim carries the same member reference, so matching by it alone is ambiguous.
             ',,synthetic-test-ref,Synthetic Shared,10.00',
@@ -70,7 +70,7 @@ class PanelStatementTest extends BillingTestCase
                 ->where('statement.rows.2.result', 'matched')->where('statement.rows.2.claim.publicId', $byClaimNo->public_id)
                 ->where('statement.rows.3.result', 'already_paid')
                 ->where('statement.rows.4.result', 'not_found')->where('statement.rows.4.claim', null)
-                ->where('statement.rows.5.result', 'repeated')
+                ->where('statement.rows.5.result', 'repeated')->where('statement.rows.5.amountSen', 500)
                 ->where('statement.rows.6.result', 'ambiguous')
                 ->where('statement.rows.7.result', 'ambiguous')
                 ->where('statement.rows.8.result', 'unreadable_amount')
