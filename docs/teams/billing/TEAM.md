@@ -89,6 +89,7 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php` and `BillingPermiss
 | D002-ECHO | Ringgit shown beside sen approval limits | #194 |
 | PRINT-1 | Prints stay white in dark mode | #200 |
 | BIL-1 | Route-level feature tests and a browser walk (1440 and 390 px) of invoice void and reissue, adjustment reversal, later settlement of pay-later debt on a return visit, and rejected and partially accepted Panel decisions (screenshots handed to the owner, not committed). All four flows worked; no application code changed | this PR |
+| BIL-1b | "Panel shortfall" warning on the Billing page when a Panel rejects or only partly accepts a claim (approved Panel share minus accepted amount). Display only; what the patient owes is unchanged | next PR |
 
 ## 6. Owner decisions already made (never ask again)
 
@@ -127,9 +128,9 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php` and `BillingPermiss
 - **Walked and tested in BIL-1 (2026-11-05):** invoice void and reissue, adjustment reversal, later settlement
   of pay-later debt on a return visit, rejected and partially accepted Panel decisions
   (`tests/Feature/Billing/MoneyFlowWalkTest.php`). All worked as the rules say.
-- **Panel shortfall (found in BIL-1; owner chose Option B on 2026-11-05, to build as BIL-1b):** when a Panel rejects a claim or accepts only part
-  of it, the invoice keeps the full approved Panel share and the patient owes RM 0 in KPOne. The shortfall is not
-  moved to the patient and no screen on the Billing side shows it; only the claim page shows "Panel accepted".
+- **Panel shortfall (BIL-1b, owner Option B 2026-11-05):** the Billing page now shows the shortfall as a
+  warning. It is still not moved to the patient: the patient owes RM 0 in KPOne and the clinic follows up any
+  shortfall outside KPOne. The warning is not on the printed invoice or the completed-visit Invoice page.
 - **No void once a Panel or pay-later amount is approved:** an approved responsibility cannot be withdrawn, so
   such an invoice cannot be voided and reissued (pinned by a refusal test in BIL-1).
 - **No corrections after completion:** a receipt recorded in error on a completed visit (including a later
@@ -171,7 +172,7 @@ authorisation to build them; record that in `docs/BASELINE.md` with the first PR
    void and reissue, adjustment reversal, later settlement of pay-later debt, rejected and partially accepted
    Panel decisions. Add feature tests for each; fix defects found (each fix listed for the owner). No change to
    money rules without an owner decision.
-1b. **BIL-1b Panel shortfall warning.** **Owner decision 2026-11-05 (Option B):** on the Billing page, show a
+1b. **BIL-1b Panel shortfall warning.** *(Built 2026-11-05; owner approved "ship it" the same day.)* **Owner decision 2026-11-05 (Option B):** on the Billing page, show a
    "Panel shortfall" warning with the amount when a Panel claim is rejected or partly accepted. Shown only: the
    patient's amount owed, the invoice and the claim are unchanged, and nothing is charged to the patient.
 2. **BIL-2 Receiver's name.** Show the staff member's name instead of "Receiver: staff #ID" (replaces decision

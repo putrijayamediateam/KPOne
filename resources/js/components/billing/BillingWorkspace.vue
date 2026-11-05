@@ -958,6 +958,34 @@ const reverse = (receipt: Receipt) =>
                         ></template
                     >
                 </div>
+                <div
+                    v-if="billing.panelShortfall"
+                    role="note"
+                    data-testid="panel-shortfall"
+                    class="rounded-lg border border-amber-300 bg-amber-50 p-3 text-xs text-amber-900 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-100"
+                >
+                    <p class="font-semibold">
+                        Panel shortfall:
+                        {{ myr(billing.panelShortfall.shortfallSen) }}
+                    </p>
+                    <p>
+                        {{
+                            billing.panelShortfall.decision === 'rejected'
+                                ? 'The Panel rejected the claim.'
+                                : billing.panelShortfall.decision ===
+                                    'partially_accepted'
+                                  ? 'The Panel accepted only part of the claim.'
+                                  : 'The claim was for less than the Panel share.'
+                        }}
+                        The Panel accepted
+                        {{ myr(billing.panelShortfall.acceptedSen) }} of its
+                        {{ myr(billing.panelShortfall.panelShareSen) }} share.
+                    </p>
+                    <p class="mt-1">
+                        Shown for information only. What the patient owes is
+                        unchanged.
+                    </p>
+                </div>
                 <details v-if="!manage && billing.can.void">
                     <summary class="cursor-pointer">
                         Governed correction

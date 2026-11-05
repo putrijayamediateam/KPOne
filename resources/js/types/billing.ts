@@ -48,6 +48,13 @@ export type Responsibility = {
     remainingSen: number | null;
     dueDate: string | null;
 };
+/** Display only: the patient's amount owed is unchanged (BIL-1b). */
+export type PanelShortfall = {
+    shortfallSen: number;
+    panelShareSen: number;
+    acceptedSen: number;
+    decision: 'rejected' | 'partially_accepted' | 'claim_reduced';
+};
 export type InvoiceAdjustmentSummary = {
     subtotalSen: number;
     adjustmentSen: number;
@@ -100,6 +107,7 @@ export type BillingPage = {
         }>;
     };
     panel: Responsibility | null;
+    panelShortfall: PanelShortfall | null;
     deferment: Responsibility | null;
     payments: Receipt[];
     methods: Array<{ code: string; name: string; requiresReference: boolean }>;
