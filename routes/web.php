@@ -50,6 +50,7 @@ use App\Http\Controllers\PatientController;
 use App\Http\Controllers\PatientIdentifierController;
 use App\Http\Controllers\PatientSearchController;
 use App\Http\Controllers\PatientWhatsAppController;
+use App\Http\Controllers\PayLaterCollectionController;
 use App\Http\Controllers\PaymentMethodController;
 use App\Http\Controllers\PaymentReconciliationController;
 use App\Http\Controllers\PricingController;
@@ -271,6 +272,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('panel-claims', [PanelClaimsController::class, 'index'])->name('panel-claims.index');
         Route::get('panel-claims/allocations/{allocation}/create', [PanelClaimsController::class, 'create'])->name('panel-claims.create');
         Route::post('panel-claims/allocations/{allocation}', [PanelClaimsController::class, 'store'])->middleware('throttle:20,1')->name('panel-claims.store');
+        Route::post('panel-claims/bulk', [PanelClaimsController::class, 'bulkStore'])->middleware('throttle:10,1')->name('panel-claims.bulk-store');
         Route::post('panel-claims/allocations/{allocation}/prepare', [PanelClaimsController::class, 'prepare'])->name('panel-claims.prepare');
         Route::get('panel-claims/{claim}', [PanelClaimsController::class, 'show'])->name('panel-claims.show');
         Route::patch('panel-claims/{claim}/amount', [PanelClaimsController::class, 'adjustAmount'])->name('panel-claims.amount');
@@ -284,6 +286,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('panel-claims/{claim}/documents/{document}', [PanelClaimsController::class, 'document'])->name('panel-claims.documents.show');
     });
     Route::get('financial-work', [BillingWorkController::class, 'finance'])->middleware('sensitive.no-store')->name('billing.work');
+    Route::get('pay-later-collections', [PayLaterCollectionController::class, 'index'])
+        ->middleware(['permission:outstanding.view.branch', 'sensitive.no-store'])->name('billing.pay-later-collections');
 
     Route::get('staff', [StaffController::class, 'index'])
         ->middleware('permission:staff.view.own,staff.view.branch,staff.view.organisation')
@@ -571,6 +575,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('inventory/stock-requests/{stockRequest}/reject', [InventoryOperationsController::class, 'rejectStockRequest'])->middleware(['permission:inventory.stock_requests.approve.branch', 'throttle:20,1'])->name('inventory.stock-requests.reject');
         Route::post('inventory/stock-requests/{stockRequest}/dispatch', [InventoryOperationsController::class, 'dispatchStockRequest'])->middleware(['permission:inventory.transfers.dispatch.branch', 'throttle:20,1'])->name('inventory.stock-requests.dispatch');
         Route::post('inventory/stock-requests/{stockRequest}/receive', [InventoryOperationsController::class, 'receiveStockRequest'])->middleware(['permission:inventory.transfers.receive.branch', 'throttle:20,1'])->name('inventory.stock-requests.receive');
+        Route::post('inventory/stock-requests/{stockRequest}/differences', [InventoryOperationsController::class, 'resolveTransferDifference'])->middleware(['permission:inventory.variances.approve.branch', 'throttle:20,1'])->name('inventory.stock-requests.differences.resolve');
         Route::post('inventory/stocktakes', [InventoryOperationsController::class, 'createStocktake'])->middleware(['permission:inventory.stocktake.branch', 'throttle:20,1'])->name('inventory.stocktakes.store');
         Route::post('inventory/stocktakes/{stocktake}/start', [InventoryOperationsController::class, 'startStocktake'])->middleware(['permission:inventory.stocktake.branch', 'throttle:20,1'])->name('inventory.stocktakes.start');
         Route::post('inventory/stocktakes/{stocktake}/count', [InventoryOperationsController::class, 'countStocktake'])->middleware(['permission:inventory.stocktake.branch', 'throttle:20,1'])->name('inventory.stocktakes.count');

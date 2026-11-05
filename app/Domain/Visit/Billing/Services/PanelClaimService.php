@@ -25,6 +25,9 @@ use Illuminate\Validation\ValidationException;
 
 final class PanelClaimService
 {
+    /** PNL-2: the most invoices one bulk creation may include (one list page holds 20). */
+    public const BULK_MAX = 20;
+
     public function __construct(private TransactionalActorAuthority $authority, private AuditRecorder $audit) {}
 
     /** @param array<string, mixed> $a */
@@ -136,47 +139,149 @@ final class PanelClaimService
             ];
         }
         $remarks = trim((string) ($a['remarks'] ?? ''));
-        $hash = hash('sha256', json_encode([
-            $allocation->id, (int) $a['expected_branch_id'], (int) $a['allocation_lock_version'],
-            (int) $a['invoice_lock_version'], $a['submitted_date'], $remarks, $hashes,
-        ], JSON_THROW_ON_ERROR));
+        $hash = $this->creationHash($allocation, $a, $remarks, $hashes);
 
         return DB::transaction(function () use ($actor, $allocation, $a, $remarks, $hash): PanelClaim {
             $branch = $this->authority->branch($actor, $a['expected_branch_id']);
             $actor = $this->authority->lock($actor, $branch, 'panel.claims.manage.branch');
-            // Actor authority locking serialises retries; the scoped unique key also guards the database.
-            $existing = PanelClaim::query()->where('organisation_id', $actor->organisation_id)
-                ->where('creation_idempotency_key', $a['idempotency_key'])->lockForUpdate()->first();
-            if ($existing !== null) {
-                if ($existing->branch_id !== $branch->id || $existing->creation_payload_hash !== $hash) {
-                    throw ValidationException::withMessages(['claim' => 'This creation key was already used with different details.']);
-                }
 
-                return $existing;
-            }
-            $claim = $this->buildLockedSnapshot($actor, $branch, $allocation, [
-                'status' => 'submitted', 'remarks' => $remarks === '' ? null : $remarks,
-                'creation_idempotency_key' => $a['idempotency_key'], 'creation_payload_hash' => $hash,
-            ]);
-            $lockedAllocation = CoverageAllocation::query()->findOrFail($claim->coverage_allocation_id);
-            $invoice = Invoice::query()->findOrFail($claim->invoice_id);
-            if ($lockedAllocation->lock_version !== (int) $a['allocation_lock_version'] || $invoice->lock_version !== (int) $a['invoice_lock_version']) {
-                throw ValidationException::withMessages(['claim' => 'The invoice or allocation has changed. Reload before creating the claim.']);
-            }
-            $today = CarbonImmutable::now($branch->timezone);
-            $date = CarbonImmutable::createFromFormat('!Y-m-d', $a['submitted_date'], $branch->timezone);
-            if ($date === null || $date->toDateString() > $today->toDateString() || $date->toDateString() < $claim->visit_date->toDateString()) {
-                throw ValidationException::withMessages(['submitted_date' => 'The submitted date must be between the visit date and today.']);
-            }
-            $occurredAt = ($date->isSameDay($today) ? $today : $date)->utc();
-            $this->event($claim, $actor, $branch, 'prepared', amount: $claim->claim_amount_sen, occurredAt: $occurredAt);
-            $this->event($claim, $actor, $branch, 'submitted', amount: $claim->claim_amount_sen, occurredAt: $occurredAt);
-            $this->audit->record('panel_claim.created', $claim, [
-                'claim_amount_sen' => $claim->claim_amount_sen, 'submitted_date' => $a['submitted_date'],
-            ], $actor, $branch);
-
-            return $claim;
+            return $this->createLocked($actor, $branch, $allocation, $a, $remarks, $hash);
         }, 3);
+    }
+
+    /**
+     * PNL-2: create several Submitted claims for one Panel in one action. Every claim is still its own
+     * record with its own idempotency key, version checks, locks, events and audit row, built by the same
+     * locked step as a single creation (no photos; they are added later on each claim page). The batch is
+     * all-or-nothing: if any invoice cannot be claimed, nothing is created and the error names the invoice.
+     *
+     * @param  array<string, mixed>  $a
+     * @return list<PanelClaim>
+     */
+    public function bulkCreate(User $actor, array $a): array
+    {
+        Validator::make($a, [
+            'expected_branch_id' => ['required', 'integer', 'min:1'],
+            'submitted_date' => ['required', 'date_format:Y-m-d'],
+            'remarks' => ['nullable', 'string', 'max:500'],
+            'claims' => ['required', 'array', 'list', 'min:1', 'max:'.self::BULK_MAX],
+            'claims.*' => ['required', 'array:allocation,allocation_lock_version,invoice_lock_version,idempotency_key'],
+            'claims.*.allocation' => ['required', 'uuid', 'distinct'],
+            'claims.*.allocation_lock_version' => ['required', 'integer', 'min:1'],
+            'claims.*.invoice_lock_version' => ['required', 'integer', 'min:1'],
+            'claims.*.idempotency_key' => ['required', 'uuid', 'distinct'],
+        ], [
+            'claims.max' => 'Select at most '.self::BULK_MAX.' invoices at a time.',
+            'claims.*.allocation.distinct' => 'An invoice was selected twice.',
+        ])->validate();
+        $remarks = trim((string) ($a['remarks'] ?? ''));
+
+        return DB::transaction(function () use ($actor, $a, $remarks): array {
+            $branch = $this->authority->branch($actor, $a['expected_branch_id']);
+            $actor = $this->authority->lock($actor, $branch, 'panel.claims.manage.branch');
+            /** @var list<array<string, mixed>> $requested */
+            $requested = $a['claims'];
+            /** @var list<array{0: CoverageAllocation, 1: array<string, mixed>}> $items */
+            $items = [];
+            foreach ($requested as $item) {
+                $allocation = CoverageAllocation::query()->where('public_id', $item['allocation'])
+                    ->where('organisation_id', $actor->organisation_id)->where('branch_id', $branch->id)->first();
+                if ($allocation === null) {
+                    throw ValidationException::withMessages(['claims' => 'A selected invoice is no longer available at this branch. Reload the list.']);
+                }
+                $items[] = [$allocation, $item];
+            }
+            if (count(array_unique(array_map(static fn (array $pair): int => (int) $pair[0]->panel_id, $items))) !== 1) {
+                throw ValidationException::withMessages(['claims' => 'Select invoices of one Panel only.']);
+            }
+            // One lock order for every batch (and the same invoice-then-allocation order as a single creation).
+            usort($items, static fn (array $x, array $y): int => [$x[0]->invoice_id, $x[0]->id] <=> [$y[0]->invoice_id, $y[0]->id]);
+
+            // Every claim in a batch shares one submitted instant.
+            $now = CarbonImmutable::now($branch->timezone);
+            $claims = [];
+            foreach ($items as [$allocation, $item]) {
+                $one = [
+                    'expected_branch_id' => $a['expected_branch_id'],
+                    'allocation_lock_version' => $item['allocation_lock_version'],
+                    'invoice_lock_version' => $item['invoice_lock_version'],
+                    'idempotency_key' => $item['idempotency_key'],
+                    'submitted_date' => $a['submitted_date'],
+                    'remarks' => $remarks,
+                ];
+                try {
+                    $claims[] = $this->createLocked($actor, $branch, $allocation, $one, $remarks,
+                        $this->creationHash($allocation, $one, $remarks, []), ['bulk_size' => count($items)], $now);
+                } catch (ValidationException $e) {
+                    $number = Invoice::query()->whereKey($allocation->invoice_id)->value('invoice_number') ?? 'selected';
+                    $errors = $e->validator->errors();
+                    throw ValidationException::withMessages([
+                        $errors->has('submitted_date') ? 'submitted_date' : 'claims' => 'Invoice '.$number.': '.$errors->first(),
+                    ]);
+                }
+            }
+            // Re-checked on the locked claim snapshots, not only on the first unlocked read.
+            if (count(array_unique(array_map(static fn (PanelClaim $claim): int => (int) $claim->panel_id, $claims))) !== 1) {
+                throw ValidationException::withMessages(['claims' => 'Select invoices of one Panel only.']);
+            }
+
+            return $claims;
+        }, 3);
+    }
+
+    /**
+     * @param  array<string, mixed>  $a
+     * @param  list<array<string, mixed>>  $photoHashes
+     */
+    private function creationHash(CoverageAllocation $allocation, array $a, string $remarks, array $photoHashes): string
+    {
+        return hash('sha256', json_encode([
+            $allocation->id, (int) $a['expected_branch_id'], (int) $a['allocation_lock_version'],
+            (int) $a['invoice_lock_version'], $a['submitted_date'], $remarks, $photoHashes,
+        ], JSON_THROW_ON_ERROR));
+    }
+
+    /**
+     * The locked creation step shared by single and bulk creation. Callers hold the transaction and the
+     * actor authority lock.
+     *
+     * @param  array<string, mixed>  $a
+     * @param  array<string, int>  $auditExtra
+     */
+    private function createLocked(User $actor, Branch $branch, CoverageAllocation $allocation, array $a, string $remarks, string $hash, array $auditExtra = [], ?CarbonImmutable $now = null): PanelClaim
+    {
+        // Actor authority locking serialises retries; the scoped unique key also guards the database.
+        $existing = PanelClaim::query()->where('organisation_id', $actor->organisation_id)
+            ->where('creation_idempotency_key', $a['idempotency_key'])->lockForUpdate()->first();
+        if ($existing !== null) {
+            if ($existing->branch_id !== $branch->id || $existing->creation_payload_hash !== $hash) {
+                throw ValidationException::withMessages(['claim' => 'This creation key was already used with different details.']);
+            }
+
+            return $existing;
+        }
+        $claim = $this->buildLockedSnapshot($actor, $branch, $allocation, [
+            'status' => 'submitted', 'remarks' => $remarks === '' ? null : $remarks,
+            'creation_idempotency_key' => $a['idempotency_key'], 'creation_payload_hash' => $hash,
+        ]);
+        $lockedAllocation = CoverageAllocation::query()->findOrFail($claim->coverage_allocation_id);
+        $invoice = Invoice::query()->findOrFail($claim->invoice_id);
+        if ($lockedAllocation->lock_version !== (int) $a['allocation_lock_version'] || $invoice->lock_version !== (int) $a['invoice_lock_version']) {
+            throw ValidationException::withMessages(['claim' => 'The invoice or allocation has changed. Reload before creating the claim.']);
+        }
+        $today = $now ?? CarbonImmutable::now($branch->timezone);
+        $date = CarbonImmutable::createFromFormat('!Y-m-d', $a['submitted_date'], $branch->timezone);
+        if ($date === null || $date->toDateString() > $today->toDateString() || $date->toDateString() < $claim->visit_date->toDateString()) {
+            throw ValidationException::withMessages(['submitted_date' => 'The submitted date must be between the visit date and today.']);
+        }
+        $occurredAt = ($date->isSameDay($today) ? $today : $date)->utc();
+        $this->event($claim, $actor, $branch, 'prepared', amount: $claim->claim_amount_sen, occurredAt: $occurredAt);
+        $this->event($claim, $actor, $branch, 'submitted', amount: $claim->claim_amount_sen, occurredAt: $occurredAt);
+        $this->audit->record('panel_claim.created', $claim, [
+            'claim_amount_sen' => $claim->claim_amount_sen, 'submitted_date' => $a['submitted_date'], ...$auditExtra,
+        ], $actor, $branch);
+
+        return $claim;
     }
 
     /** @param array<string, mixed> $a */

@@ -13,7 +13,9 @@ use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
 final class StockRequestService
@@ -27,6 +29,24 @@ final class StockRequestService
     public const RECEIVE_PERMISSION = 'inventory.transfers.receive.branch';
 
     public const WAREHOUSE_PERMISSION = 'inventory.warehouse.organisation';
+
+    /** Transfer differences are resolved by the write-off approvers, never by the receiver. */
+    public const RESOLVE_PERMISSION = 'inventory.variances.approve.branch';
+
+    public const DIFFERENCE_KINDS = ['short', 'damaged', 'extra'];
+
+    /** @var array<string, list<string>> */
+    public const OUTCOMES = [
+        'short' => ['lost_in_transit', 'arrived_later'],
+        'damaged' => ['written_off', 'accepted_after_inspection'],
+        'extra' => ['returned_to_source', 'recorded_by_stock_count'],
+    ];
+
+    /** Outcomes that credit the receiving location through the transfer receipt ledger writer. */
+    public const CREDIT_OUTCOMES = ['arrived_later', 'accepted_after_inspection'];
+
+    /** Every outcome, including the two that add stock, needs a delivery note, inspection log or other reference. */
+    public const REFERENCE_REQUIRED = ['lost_in_transit', 'arrived_later', 'written_off', 'accepted_after_inspection', 'returned_to_source', 'recorded_by_stock_count'];
 
     public function __construct(
         private InventoryAuthorityService $authority,
@@ -135,19 +155,31 @@ final class StockRequestService
         }, 3);
     }
 
-    /** @param array<string, mixed> $attributes */
+    /**
+     * Receipt records what physically arrived for every dispatched line. Only accepted quantity enters the
+     * destination; short, damaged and extra quantities stay open as append-only differences until a
+     * different, authorised person resolves them. Omitting `lines` keeps the original full-receipt contract.
+     *
+     * @param  array<string, mixed>  $attributes
+     */
     public function receive(User $actor, StockRequest $request, array $attributes): StockRequest
     {
         $branch = $this->authority->activeBranch($actor, $attributes);
         $key = $this->idempotencyKey($attributes, 'receive_idempotency_key');
+        $declared = array_key_exists('lines', $attributes) ? $this->validateReceiptLines($attributes['lines']) : null;
+        $hash = $this->fingerprint(['receive', $request->public_id, $declared]);
 
-        return DB::transaction(function () use ($actor, $request, $attributes, $branch, $key): StockRequest {
+        return DB::transaction(function () use ($actor, $request, $attributes, $branch, $key, $declared, $hash): StockRequest {
             $lockedActor = $this->authority->lockForBranch($actor, $branch, self::RECEIVE_PERMISSION);
             $locked = $this->lockRequest($lockedActor, $request, $attributes, false);
             $destination = InventoryLocation::query()->whereKey($locked->destination_location_id)->where('organisation_id', $lockedActor->organisation_id)->where('is_active', true)->lockForUpdate()->firstOrFail();
             $this->assertDestinationAuthority($lockedActor, $branch, $destination);
             if ($locked->status === StockRequest::STATUS_RECEIVED) {
                 if ($locked->receive_idempotency_key === $key) {
+                    if ($locked->receive_payload_hash !== null && ! hash_equals($locked->receive_payload_hash, $hash)) {
+                        throw ValidationException::withMessages(['receive_idempotency_key' => 'This retry key was used for a different receipt.']);
+                    }
+
                     return $locked->load('lines');
                 }
                 throw ValidationException::withMessages(['receive_idempotency_key' => 'This Stock Request was already received.']);
@@ -155,20 +187,160 @@ final class StockRequestService
             $this->requireCurrentVersion($locked, $attributes);
             $this->requireStatus($locked, StockRequest::STATUS_DISPATCHED);
             $lines = StockRequestLine::query()->where('stock_request_id', $locked->id)->where('organisation_id', $lockedActor->organisation_id)->orderBy('inventory_sku_id')->orderBy('id')->lockForUpdate()->get();
+            if ($declared !== null && ($lines->count() !== count($declared) || $lines->pluck('public_id')->diff(array_keys($declared))->isNotEmpty())) {
+                throw ValidationException::withMessages(['lines' => 'Record exactly one receipt line for every dispatched line.']);
+            }
+            $differenceCount = 0;
             foreach ($lines as $line) {
                 if (! $line->inventory_batch_id || ! $line->dispatched_quantity) {
                     throw ValidationException::withMessages(['stock_request' => 'The dispatch evidence is incomplete.']);
                 }
                 $sku = InventorySku::query()->whereKey($line->inventory_sku_id)->where('organisation_id', $lockedActor->organisation_id)->lockForUpdate()->firstOrFail();
                 $batch = InventoryBatch::query()->whereKey($line->inventory_batch_id)->where('organisation_id', $lockedActor->organisation_id)->where('inventory_sku_id', $sku->id)->lockForUpdate()->firstOrFail();
-                $this->movements->recordTransferReceipt($lockedActor, $destination, $sku, $batch, $line->dispatched_quantity, $locked->public_id);
-                $line->forceFill(['received_quantity' => $line->dispatched_quantity])->save();
+                $dispatched = StockUnitQuantity::scaled((string) $line->dispatched_quantity);
+                $counts = $declared === null
+                    ? ['accepted' => $dispatched, 'short' => 0, 'damaged' => 0, 'extra' => 0]
+                    : $declared[$line->public_id];
+                if ($dispatched !== $counts['accepted'] + $counts['short'] + $counts['damaged']) {
+                    throw ValidationException::withMessages(['lines' => 'For every line, accepted + short + damaged must equal the dispatched quantity ('.StockUnitQuantity::format($dispatched).' '.$sku->stock_unit.' of '.$sku->sku_code.').']);
+                }
+                $movement = $counts['accepted'] > 0
+                    ? $this->movements->recordTransferReceipt($lockedActor, $destination, $sku, $batch, StockUnitQuantity::format($counts['accepted']), $locked->public_id)
+                    : null;
+                $line->forceFill(['received_quantity' => $counts['accepted'] > 0 ? StockUnitQuantity::format($counts['accepted']) : null])->save();
+                $receiptLineId = DB::table('inventory_transfer_receipt_lines')->insertGetId([
+                    'public_id' => (string) Str::uuid(), 'organisation_id' => $lockedActor->organisation_id, 'stock_request_id' => $locked->id,
+                    'stock_request_line_id' => $line->id, 'inventory_sku_id' => $sku->id, 'inventory_batch_id' => $batch->id, 'base_unit' => $sku->stock_unit,
+                    'dispatched_quantity' => StockUnitQuantity::format($dispatched), 'accepted_quantity' => StockUnitQuantity::format($counts['accepted']),
+                    'short_quantity' => StockUnitQuantity::format($counts['short']), 'damaged_quantity' => StockUnitQuantity::format($counts['damaged']),
+                    'extra_quantity' => StockUnitQuantity::format($counts['extra']), 'received_by_user_id' => $lockedActor->id, 'movement_id' => $movement?->id,
+                    'created_at' => now()->utc(),
+                ]);
+                foreach (self::DIFFERENCE_KINDS as $kind) {
+                    if ($counts[$kind] > 0) {
+                        DB::table('inventory_transfer_differences')->insert([
+                            'public_id' => (string) Str::uuid(), 'organisation_id' => $lockedActor->organisation_id, 'stock_request_id' => $locked->id,
+                            'receipt_line_id' => $receiptLineId, 'kind' => $kind, 'quantity' => StockUnitQuantity::format($counts[$kind]),
+                            'received_by_user_id' => $lockedActor->id, 'created_at' => now()->utc(),
+                        ]);
+                        $differenceCount++;
+                    }
+                }
             }
-            $locked->forceFill(['status' => StockRequest::STATUS_RECEIVED, 'received_by_user_id' => $lockedActor->id, 'received_at' => now()->utc(), 'receive_idempotency_key' => $key, 'lock_version' => $locked->lock_version + 1])->save();
-            $this->audit->record('inventory.stock_request.received', $locked, ['line_count' => $lines->count()], $lockedActor, $branch);
+            $locked->forceFill(['status' => StockRequest::STATUS_RECEIVED, 'received_by_user_id' => $lockedActor->id, 'received_at' => now()->utc(), 'receive_idempotency_key' => $key, 'receive_payload_hash' => $hash, 'lock_version' => $locked->lock_version + 1])->save();
+            $this->audited($this->audit->record('inventory.stock_request.received', $locked, ['line_count' => $lines->count()], $lockedActor, $branch));
+            if ($differenceCount > 0) {
+                $this->audited($this->audit->record('inventory.transfer_difference.recorded', $locked, ['difference_count' => $differenceCount], $lockedActor, $branch));
+            }
 
             return $locked->refresh()->load('lines');
         }, 3);
+    }
+
+    /**
+     * Resolves one whole open difference. The resolver needs the write-off approval permission at the
+     * receiving branch and must not be the person who received the transfer (owner decision 2026-11-05).
+     *
+     * @param  array<string, mixed>  $attributes
+     */
+    public function resolveDifference(User $actor, StockRequest $request, array $attributes): StockRequest
+    {
+        $data = Validator::make($attributes, [
+            'expected_branch_id' => ['required', 'integer'], 'lock_version' => ['required', 'integer', 'min:1'], 'retry_key' => ['required', 'uuid'],
+            'difference_public_id' => ['required', 'uuid'], 'outcome' => ['required', 'string', Rule::in(array_merge(...array_values(self::OUTCOMES)))],
+            'reference' => ['nullable', 'string', 'max:200', 'not_regex:/[\p{Cc}\p{Cf}<>]/u'],
+        ])->validate();
+        $data['reference'] = isset($data['reference']) ? trim((string) $data['reference']) : '';
+        $branch = $this->authority->activeBranch($actor, $data);
+        $hash = $this->fingerprint(['resolve', $request->public_id, $data]);
+
+        return DB::transaction(function () use ($actor, $request, $data, $branch, $hash): StockRequest {
+            $lockedActor = $this->authority->lockForBranch($actor, $branch, self::RESOLVE_PERMISSION);
+            $locked = $this->lockRequest($lockedActor, $request, $data, false);
+            $destination = InventoryLocation::query()->whereKey($locked->destination_location_id)->where('organisation_id', $lockedActor->organisation_id)->lockForUpdate()->firstOrFail();
+            $this->assertDestinationAuthority($lockedActor, $branch, $destination);
+            // Checked under the request lock, so a concurrent replay of the same key waits and then replays.
+            $retry = DB::table('inventory_transfer_difference_resolutions')->where('organisation_id', $lockedActor->organisation_id)->where('resolved_by_user_id', $lockedActor->id)->where('retry_key', $data['retry_key'])->first();
+            if ($retry !== null) {
+                if (! hash_equals((string) $retry->payload_hash, $hash)) {
+                    throw ValidationException::withMessages(['retry_key' => 'This retry key was used for a different resolution.']);
+                }
+
+                return $locked->load('lines');
+            }
+            $this->requireStatus($locked, StockRequest::STATUS_RECEIVED);
+            $this->requireCurrentVersion($locked, $data);
+            $difference = DB::table('inventory_transfer_differences')->where('organisation_id', $lockedActor->organisation_id)->where('stock_request_id', $locked->id)->where('public_id', $data['difference_public_id'])->lockForUpdate()->first();
+            abort_unless($difference !== null, 404);
+            if (DB::table('inventory_transfer_difference_resolutions')->where('difference_id', $difference->id)->exists()) {
+                throw ValidationException::withMessages(['difference_public_id' => 'This difference is already resolved.']);
+            }
+            if ((int) $difference->received_by_user_id === $lockedActor->id) {
+                throw new AuthorizationException('The person who received this transfer may not resolve its differences.');
+            }
+            if (! in_array($data['outcome'], self::OUTCOMES[(string) $difference->kind] ?? [], true)) {
+                throw ValidationException::withMessages(['outcome' => 'Choose an outcome that fits this '.$difference->kind.' difference.']);
+            }
+            if (in_array($data['outcome'], self::REFERENCE_REQUIRED, true) && $data['reference'] === '') {
+                throw ValidationException::withMessages(['reference' => 'Enter a delivery note, inspection log or other document reference for this outcome.']);
+            }
+            $movement = null;
+            if (in_array($data['outcome'], self::CREDIT_OUTCOMES, true)) {
+                abort_unless($destination->is_active, 404);
+                $receiptLine = DB::table('inventory_transfer_receipt_lines')->where('id', $difference->receipt_line_id)->where('organisation_id', $lockedActor->organisation_id)->sole();
+                $sku = InventorySku::query()->whereKey($receiptLine->inventory_sku_id)->where('organisation_id', $lockedActor->organisation_id)->lockForUpdate()->firstOrFail();
+                $batch = InventoryBatch::query()->whereKey($receiptLine->inventory_batch_id)->where('organisation_id', $lockedActor->organisation_id)->where('inventory_sku_id', $sku->id)->lockForUpdate()->firstOrFail();
+                $movement = $this->movements->recordTransferReceipt($lockedActor, $destination, $sku, $batch, StockUnitQuantity::format(StockUnitQuantity::scaled((string) $difference->quantity)), $locked->public_id);
+            }
+            $resolutionId = DB::table('inventory_transfer_difference_resolutions')->insertGetId([
+                'public_id' => (string) Str::uuid(), 'organisation_id' => $lockedActor->organisation_id, 'difference_id' => $difference->id,
+                'outcome' => $data['outcome'], 'quantity' => $difference->quantity, 'reference' => $data['reference'] === '' ? null : $data['reference'],
+                'resolved_by_user_id' => $lockedActor->id, 'movement_id' => $movement?->id, 'retry_key' => $data['retry_key'], 'payload_hash' => $hash,
+                'created_at' => now()->utc(),
+            ]);
+            $locked->forceFill(['lock_version' => $locked->lock_version + 1])->save();
+            $this->audited($this->audit->record('inventory.transfer_difference.resolved', $locked, ['difference_id' => (int) $difference->id, 'resolution_id' => $resolutionId, 'kind' => $difference->kind, 'outcome' => $data['outcome']], $lockedActor, $branch));
+
+            return $locked->refresh()->load('lines');
+        }, 3);
+    }
+
+    private function audited(mixed $record): void
+    {
+        abort_if($record === null, 503, 'The transfer receipt could not be audited. Nothing was saved or posted.');
+    }
+
+    /** @param array<mixed> $payload */
+    private function fingerprint(array $payload): string
+    {
+        return hash_hmac('sha256', json_encode($payload, JSON_THROW_ON_ERROR), (string) config('app.key'));
+    }
+
+    /** @return array<string, array{accepted:int,short:int,damaged:int,extra:int}> */
+    private function validateReceiptLines(mixed $lines): array
+    {
+        $values = validator(['lines' => $lines], [
+            'lines' => ['required', 'array', 'min:1', 'max:100'], 'lines.*.line_public_id' => ['required', 'uuid', 'distinct'],
+            'lines.*.accepted_quantity' => ['required'], 'lines.*.short_quantity' => ['required'], 'lines.*.damaged_quantity' => ['required'], 'lines.*.extra_quantity' => ['required'],
+        ])->validate()['lines'];
+        $declared = [];
+        foreach ($values as $line) {
+            $declared[(string) $line['line_public_id']] = [
+                'accepted' => $this->receiptQuantity($line['accepted_quantity']),
+                'short' => $this->receiptQuantity($line['short_quantity']),
+                'damaged' => $this->receiptQuantity($line['damaged_quantity']),
+                'extra' => $this->receiptQuantity($line['extra_quantity']),
+            ];
+        }
+        ksort($declared);
+
+        return $declared;
+    }
+
+    /** Exact thousandths; zero allowed; non-string, non-integer input is refused by StockUnitQuantity. */
+    private function receiptQuantity(mixed $value): int
+    {
+        return StockUnitQuantity::scaled(is_int($value) ? $value : (is_string($value) ? $value : ''), true);
     }
 
     /** @param array<string, mixed> $attributes */
