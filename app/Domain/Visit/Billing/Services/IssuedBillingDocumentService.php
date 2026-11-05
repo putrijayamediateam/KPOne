@@ -180,7 +180,7 @@ final class IssuedBillingDocumentService
             'version' => $d->version,
             'firstPrintedAs' => $d->version === 1 ? 'original' : 'revised',
             'issuedAt' => $d->issued_at->setTimezone($timezone)->format('j M Y, g:i A'),
-            'issuedBy' => $people->get($d->issued_by_user_id, 'Staff'),
+            'issuedBy' => $people->get($d->issued_by_user_id, 'Staff member'),
             'prints' => (int) $d->getAttribute('prints_count'),
             'latest' => $latest->get($d->invoice_id.':'.($d->payment_id ?? 0)) === $d->version,
         ])->values()->all();
