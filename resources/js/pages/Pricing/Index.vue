@@ -10,6 +10,7 @@ import { OperationalSelect } from '@/components/ui/select';
 import { EmptyState } from '@/components/ui/state';
 import { StatusBadge } from '@/components/ui/status';
 import { OperationalTable } from '@/components/ui/table';
+import { rmToSen } from '@/lib/money';
 
 type ChargeRow = {
     publicId: string;
@@ -130,6 +131,7 @@ const publishForm = (charge: ChargeRow) => {
 
     return publishForms[charge.publicId];
 };
+const emptyAmountMessage = 'Enter an amount. Type 0.00 if this is free.';
 const publish = (charge: ChargeRow) => {
     const state = publishForm(charge);
 
@@ -139,7 +141,15 @@ const publish = (charge: ChargeRow) => {
         return;
     }
 
-    const amountSen = Math.round(Number(state.amount) * 100);
+    // CAT-1b: an empty box is never read as RM 0.00; a typed 0.00 is allowed.
+    // The server refuses an empty amount with the same message.
+    const amountSen = rmToSen(state.amount);
+
+    if (amountSen === null) {
+        state.error = emptyAmountMessage;
+
+        return;
+    }
 
     if (!state.priceBook || !Number.isFinite(amountSen) || amountSen < 0) {
         state.error = 'Select a price book and enter a valid amount.';
