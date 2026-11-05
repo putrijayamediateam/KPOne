@@ -88,7 +88,7 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php`.
 | PNL-3 | Panel payments: one Panel payment split across that Panel's accepted claims at this branch; the split must equal the payment; each split is an ordinary claim payment linked to the remittance; new append-only `panel_remittances` table and `panel.remittances.record.branch` (Panel Officer, Finance Officer) | #230 |
 | PNL-4 | Follow-up list (`/panel-claims/follow-up`): open claims (not paid, not rejected) with no new event, payment or photo for the Panel's follow-up days, oldest first, with the last action, its date and who did it; per-Panel `claim_follow_up_days` (default 30, 1 to 365) in Panel settings | #238 |
 | PNL-6 | Payment correction (`/panel-payment-corrections`): Finance Officer or Director reverses a wrongly recorded Panel payment with a reason; whole payments only, a split Panel payment with all its splits, never by its recorder; new append-only `panel_claim_payment_reversals` and `panel.claim_payments.reverse.branch`; every payment total leaves reversed payments out; migrations `2026_11_06_300100_create_panel_claim_payment_reversals` and `2026_11_06_300200_grant_panel_payment_reversal_permission_additively` | #248 (merged as `dd8f4fe`) |
-| PNL-6b | The Panel payments history and the Follow-up list show a colleague's name only under the staff-directory visibility rule (owner BIL-2 decision), otherwise "Staff member"; no visible change for today's roles | pending |
+| PNL-6b | The Panel payments history and the Follow-up list show a colleague's name only under the staff-directory visibility rule (owner BIL-2 decision), otherwise "Staff member"; no visible change for today's roles | #262 |
 
 ## 6. Owner decisions already made (never ask again)
 
