@@ -32,7 +32,9 @@ final class InventoryOperationsDirectoryService
         $stockRequests = DB::table('inventory_stock_requests as request')->join('inventory_locations as source', 'source.id', '=', 'request.source_location_id')->join('inventory_locations as destination', 'destination.id', '=', 'request.destination_location_id')
             ->where('request.organisation_id', $organisationId)->where(fn (Builder $query) => $query->where('request.requesting_branch_id', $branch->id)->orWhere('source.branch_id', $branch->id)->orWhere('destination.branch_id', $branch->id))->orderByDesc('request.created_at')->limit(50)
             ->get(['request.id', 'request.public_id as publicId', 'request.request_number as number', 'request.status', 'request.lock_version as lockVersion', 'source.name as source', 'destination.name as destination', 'request.created_at as createdAt']);
-        $stockRequestLines = $this->requestLines($organisationId, array_values($stockRequests->pluck('id')->map(fn (mixed $id): int => (int) $id)->all()));
+        $stockRequestIds = array_values($stockRequests->pluck('id')->map(fn (mixed $id): int => (int) $id)->all());
+        $stockRequestLines = $this->requestLines($organisationId, $stockRequestIds);
+        $transferDifferences = $this->transferDifferences($actor, $stockRequestIds);
         $stocktakes = DB::table('inventory_stocktakes as stocktake')->join('inventory_locations as location', 'location.id', '=', 'stocktake.inventory_location_id')->where('stocktake.organisation_id', $organisationId)->whereIn('stocktake.inventory_location_id', $visibleLocationIds)->orderByDesc('stocktake.created_at')->limit(50)
             ->get(['stocktake.id', 'stocktake.public_id as publicId', 'stocktake.stocktake_number as number', 'stocktake.status', 'stocktake.lock_version as lockVersion', 'location.name as location', 'stocktake.created_at as createdAt']);
         $stocktakeLines = $this->stocktakeLines($organisationId, array_values($stocktakes->pluck('id')->map(fn (mixed $id): int => (int) $id)->all()));
@@ -48,6 +50,7 @@ final class InventoryOperationsDirectoryService
                 'approveRequests' => $actor->can(StockRequestService::APPROVE_PERMISSION),
                 'dispatchTransfers' => $actor->can(StockRequestService::DISPATCH_PERMISSION),
                 'receiveTransfers' => $actor->can(StockRequestService::RECEIVE_PERMISSION),
+                'resolveTransferDifferences' => $actor->can(StockRequestService::RESOLVE_PERMISSION),
                 'stocktake' => false,
                 'adjust' => false,
                 'manageReorder' => $actor->can(InventoryControlService::REORDER_PERMISSION),
@@ -57,7 +60,7 @@ final class InventoryOperationsDirectoryService
             'skus' => app(InventoryPickerService::class)->choices($actor, $branch, 'skus', 'operations'),
             'batches' => app(InventoryPickerService::class)->choices($actor, $branch, 'batches', 'operations'),
             'purchaseOrders' => $purchaseOrders->map(fn ($row): array => $this->documentWithLines($row, $purchaseOrderLines))->all(),
-            'stockRequests' => $stockRequests->map(fn ($row): array => $this->documentWithLines($row, $stockRequestLines))->all(),
+            'stockRequests' => $stockRequests->map(fn ($row): array => [...$this->documentWithLines($row, $stockRequestLines), 'differences' => $transferDifferences[(int) $row->id] ?? []])->all(),
             'stocktakes' => $stocktakes->map(fn ($row): array => $this->documentWithLines($row, $stocktakeLines))->all(),
             'adjustments' => DB::table('inventory_adjustments as adjustment')->join('inventory_locations as location', 'location.id', '=', 'adjustment.inventory_location_id')->join('inventory_skus as sku', 'sku.id', '=', 'adjustment.inventory_sku_id')->join('inventory_batches as batch', 'batch.id', '=', 'adjustment.inventory_batch_id')
                 ->where('adjustment.organisation_id', $organisationId)->whereIn('adjustment.inventory_location_id', $visibleLocationIds)->orderByDesc('adjustment.posted_at')->limit(50)
@@ -87,6 +90,44 @@ final class InventoryOperationsDirectoryService
         return $this->groupLines(DB::table('inventory_stock_request_lines as line')->join('inventory_skus as sku', 'sku.id', '=', 'line.inventory_sku_id')->leftJoin('inventory_batches as batch', 'batch.id', '=', 'line.inventory_batch_id')
             ->where('line.organisation_id', $organisationId)->whereIn('line.stock_request_id', $stockRequestIds)->orderBy('line.stock_request_id')->orderBy('line.id')
             ->get(['line.stock_request_id as parentId', 'line.public_id as publicId', 'sku.public_id as skuPublicId', 'sku.sku_code as sku', 'line.requested_quantity as requestedQuantity', 'line.dispatched_quantity as dispatchedQuantity', 'line.received_quantity as receivedQuantity', 'batch.batch_number as batch']));
+    }
+
+    /**
+     * STK-6 transfer differences with their append-only resolution. Identifiers only; no staff names.
+     *
+     * @param  list<int>  $stockRequestIds
+     * @return array<int, list<array<string, mixed>>>
+     */
+    private function transferDifferences(User $actor, array $stockRequestIds): array
+    {
+        $mayResolve = $actor->can(StockRequestService::RESOLVE_PERMISSION);
+        $activeBranchId = $this->branches->activeBranch($actor)?->id;
+        $mayUseWarehouse = $actor->can(StockRequestService::WAREHOUSE_PERMISSION);
+        $rows = DB::table('inventory_transfer_differences as difference')
+            ->join('inventory_transfer_receipt_lines as receipt', 'receipt.id', '=', 'difference.receipt_line_id')
+            ->join('inventory_stock_requests as request', 'request.id', '=', 'difference.stock_request_id')
+            ->join('inventory_locations as destination', 'destination.id', '=', 'request.destination_location_id')
+            ->join('inventory_skus as sku', 'sku.id', '=', 'receipt.inventory_sku_id')
+            ->join('inventory_batches as batch', 'batch.id', '=', 'receipt.inventory_batch_id')
+            ->leftJoin('inventory_transfer_difference_resolutions as resolution', 'resolution.difference_id', '=', 'difference.id')
+            ->where('difference.organisation_id', $actor->organisation_id)->whereIn('difference.stock_request_id', $stockRequestIds)
+            ->orderBy('difference.stock_request_id')->orderBy('difference.id')
+            ->get(['difference.stock_request_id as parentId', 'difference.public_id as publicId', 'difference.kind', 'difference.quantity', 'receipt.base_unit as unit', 'sku.sku_code as sku', 'batch.batch_number as batch', 'difference.received_by_user_id as receivedBy', 'resolution.outcome', 'resolution.reference', 'resolution.resolved_by_user_id as resolvedBy', 'resolution.created_at as resolvedAt', 'destination.branch_id as destinationBranchId']);
+        $grouped = [];
+        foreach ($rows as $row) {
+            $open = $row->outcome === null;
+            // Mirrors StockRequestService::assertDestinationAuthority; the server still decides.
+            $atDestination = $row->destinationBranchId === null ? $mayUseWarehouse : (int) $row->destinationBranchId === $activeBranchId;
+            $grouped[(int) $row->parentId][] = [
+                'publicId' => $row->publicId, 'kind' => $row->kind, 'quantity' => $row->quantity, 'unit' => $row->unit, 'sku' => $row->sku, 'batch' => $row->batch,
+                'status' => $open ? 'open' : 'resolved', 'outcome' => $row->outcome, 'reference' => $row->reference, 'resolvedAt' => $row->resolvedAt,
+                'outcomes' => StockRequestService::OUTCOMES[(string) $row->kind] ?? [],
+                'canResolve' => $open && $mayResolve && $atDestination && (int) $row->receivedBy !== $actor->id,
+                'receivedByYou' => (int) $row->receivedBy === $actor->id,
+            ];
+        }
+
+        return $grouped;
     }
 
     /**
