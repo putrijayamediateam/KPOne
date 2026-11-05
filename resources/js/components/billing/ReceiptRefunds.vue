@@ -181,7 +181,8 @@ const decide = (
                     <Button
                         variant="outline"
                         size="sm"
-                        class="h-11 sm:h-8"
+                        class="max-sm:min-h-11"
+                        data-touch-target
                         :aria-label="`Reject refund of ${myr(refund.amountSen)}`"
                         :disabled="
                             busy[refund.publicId] ||
@@ -198,7 +199,8 @@ const decide = (
                     >
                     <Button
                         size="sm"
-                        class="h-11 sm:h-8"
+                        class="max-sm:min-h-11"
+                        data-touch-target
                         :aria-label="`Approve refund of ${myr(refund.amountSen)}`"
                         :disabled="busy[refund.publicId]"
                         @click="
@@ -267,7 +269,8 @@ const decide = (
                 <Button
                     type="submit"
                     size="sm"
-                    class="h-11 sm:h-8"
+                    class="max-sm:min-h-11"
+                    data-touch-target
                     :disabled="busy[receipt.publicId]"
                     >Record refund of {{ myr(receipt.amountSen) }}</Button
                 >
