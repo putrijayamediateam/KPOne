@@ -1334,7 +1334,7 @@ DD-30). The Clock button stays the only primary on My attendance.
 Written 2026-11-06 at the owner's request ("start the HR-4 design note") while HR-3a (PR #327) and HR-3b wait to
 merge. It works out the HR-4 sketch in section 2 in detail and replaces it where the two differ. It changes no HR-1,
 HR-2 or HR-3 rule. **Status: approved with its defaults by the owner on 2026-11-06 (TEAM.md decision 36); Daniel's
-early look pending.** The questions in 11.10 take the defaults written here until the clinic says otherwise.
+early look folded into 11.6 (decision 37).** The questions in 11.10 take the defaults written here until the clinic says otherwise.
 
 **This is the most sensitive slice so far.** It holds identity numbers, bank details, addresses and emergency
 contacts (TEAM.md decision 9). **Synthetic `.test` data only.** No real staff record or document is stored before the
@@ -1472,7 +1472,7 @@ None is in the people-and-access authority set. A new hub link, "KPOne HR staff 
 `/hr/records` to the Clinic management destination map, which is an existing-assertion change to approve when built.
 My HR details is a tab on the same page, linked from My roster.
 
-### 11.6 Screens (Hui Min, for Daniel's early look)
+### 11.6 Screens (Hui Min; Daniel's early look folded in)
 
 - One page, `/hr/records`, with tabs My HR details (everyone) and Staff files (managers). A staff file opens at
   `/hr/records/{worker}`, with its five tabs (Documents and Checklist arrive with HR-4b).
@@ -1487,8 +1487,19 @@ My HR details is a tab on the same page, linked from My roster.
   write medical details here." under the note.
 - **Staff files list:** a "Needs attention" chip in warning tone with its reason in words, never colour alone.
 - A muted line at the top of each page: "Synthetic data only until the PDPA review."
+- **Daniel's early look (2026-11-06): OK with changes, folded in here:**
+  - **Masked values:** one pattern everywhere: "IC •••• •••• 1234", "Passport •••• 5678", "Account •••• 4321". Screen readers hear words, for example "Identity number, ending 1234, hidden".
+  - **Show:** once pressed, the button becomes "Hide identity number". The value hides again when the person leaves the tab or the page, and is never kept across visits. The muted line reads "Shown at 2:14 PM. This view is recorded."
+  - **Bank:** both cards mask the account number to its last four, with the bank name. The waiting card puts the old and new values side by side ("Recorded: Maybank •••• 4321 · New: CIMB •••• 8765"). The person who entered it sees "Someone else confirms this" and an outline **Withdraw**, never Confirm or Reject.
+  - **Staff file header:** name, role, branch and a status chip (Active, On probation, Left), with a small back link "← Staff files". The five tabs use the shared OperationalTabs as they are.
+  - **Staff files list:** a table from 1024 px, cards below, and a search box. "Needs attention" carries its reason in words ("Probation ends in 7 days", "Bank change waiting"). With more than one reason it reads "2 things need attention", with each reason listed on the row or card, never in a tooltip. Probation uses a warning tone, never red.
+  - **The synthetic-data line** is one shared muted line under the page header on every HR-4 page, with the same component and words each time. It is never a coloured banner.
+  - **The correction sheet** reuses the HR-3a pattern exactly: "Recorded: … · New: …", the reason, the note warning, and the error under the field.
+  - **Adding a locum:** visible labels, and a neutral chip "No KPOne sign-in" on the locum's file.
+  - **Empty states:** for the Staff files list (no matches) and for each tab. A field on My HR details that is not filled in yet reads "Not given", never blank.
+  - **HR-4b, ahead of time:** a document has a type, an issue date and an expiry chip in warning tone with words ("Expires in 30 days", "Expired 3 days ago"). Opening a document follows the same "This view is recorded" rule as Show.
 - Phones: no sideways scroll at 320, 390 and 768 px; 44 px targets.
-- **Screenshots when built:**
+- **Screenshots when built** (Daniel added two: a value after Show with its "This view is recorded" line, and a staff file with two "needs attention" reasons):
   - the Staff files list;
   - a staff file on each tab, masked and after Show;
   - a bank change waiting, as seen by the person who entered it and by another manager;

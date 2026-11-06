@@ -199,6 +199,12 @@ check items, keep them"). The rest stand unless the owner changes them.
     employment types Permanent, Contract, Part-time, Locum, Intern and the listed end reasons; staff see their own
     documents (view only); a probation alert 14 days before the end, with no probation length shipped; document
     categories and retention days entered by the clinic (adviser's call). Synthetic data only until the PDPA review.
+37. Daniel's early look at the HR-4 screens (HR-PLAN 11.6, relayed by B.E.R.N.I.S.S 2026-11-06): OK with changes,
+    all ten notes folded into 11.6 (one last-four masking pattern read as words; Show turns into Hide and never
+    persists; masked bank cards side by side; a file header with a status chip; "Needs attention" with its reasons in
+    words; one shared synthetic-data line; the HR-3a correction sheet; "No KPOne sign-in" on a locum; empty states and
+    "Not given"; HR-4b expiry chips). The owner's own words relayed the same day: "approve the HR-4 plan with the
+    defaults". The `/hr/records` hub-map assertion still needs the owner's OK at build time.
 
 ## 7. Open items and known limits
 
