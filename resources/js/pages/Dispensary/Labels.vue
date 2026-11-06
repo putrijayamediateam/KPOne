@@ -67,14 +67,27 @@ const printLabels = async () => {
     error.value = '';
 
     try {
+        // DSP-6b: the check logs the print, so it is a POST to this page's own address plus /print.
         const url = new URL(window.location.href);
-        url.searchParams.set('verify', '1');
-        url.searchParams.set('token', props.labels.token);
-        url.searchParams.set('branch', String(props.labels.branchId));
+        url.pathname = `${url.pathname.replace(/\/$/, '')}/print`;
+        url.search = '';
+        const csrf =
+            window.document
+                ?.querySelector('meta[name="csrf-token"]')
+                ?.getAttribute('content') ?? '';
         const response = await fetch(url, {
+            method: 'POST',
             credentials: 'same-origin',
             cache: 'no-store',
-            headers: { Accept: 'application/json' },
+            headers: {
+                Accept: 'application/json',
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': csrf,
+            },
+            body: JSON.stringify({
+                token: props.labels.token,
+                branch: props.labels.branchId,
+            }),
         });
 
         if (!response.ok) {
