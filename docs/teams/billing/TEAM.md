@@ -196,6 +196,8 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php` and `BillingPermiss
 28. BIL-7 monthly cash closing view (2026-11-05, B.E.R.N.I.S.S for the owner: "yes, start BIL-7"; "BIL-7 stays
     approved" after the owner came back). Read only, same permission as the daily page (`payments.reconcile.branch`),
     no export or new tables. Layout follows Siti's sketch; sent to Daniel through B.E.R.N.I.S.S.
+    Daniel (2026-11-06): "Not counted" stays danger; phone cards below 1024 px; flags show only what the badge does
+    not already say (the warning border stays); a month with no counts never reads "Matches".
 
 ## 7. Open items and known limits
 

@@ -1,11 +1,6 @@
 <script setup lang="ts">
 import { Head, Link, router } from '@inertiajs/vue3';
-import {
-    ChevronLeft,
-    ChevronRight,
-    CircleSlash,
-    TriangleAlert,
-} from '@lucide/vue';
+import { ChevronLeft, ChevronRight, TriangleAlert } from '@lucide/vue';
 import { computed, ref } from 'vue';
 import { ActionLink } from '@/components/ui/action-link';
 import { PageHeader } from '@/components/ui/page-header';
@@ -130,12 +125,11 @@ const statusInfo: Record<
     open: { label: 'Open', tone: 'neutral' },
     before_start: { label: 'Not in use yet', tone: 'neutral' },
 };
-const flagText: Record<Flag, string> = {
-    no_count: 'No count',
-    not_approved: 'Not approved',
-    changed_after_approval:
-        'Expected cash changed after approval. The approved figures are shown.',
-};
+// Flags add only what the badge does not already say (design lead, 2026-11-06): "No count" and "Not approved"
+// repeat the Not counted, Waiting and Returned badges, so those rows keep the warning border without the text.
+const changedText =
+    'Expected cash changed after approval. The approved figures are shown.';
+const changed = (row: Row) => row.flags.includes('changed_after_approval');
 
 const dayHref = (row: Row) => `/cash-closings?date=${row.date}`;
 const decidedText = (row: Row) =>
@@ -337,7 +331,11 @@ const goTo = (month: string | null) => {
                         class="font-semibold tabular-nums"
                         data-testid="summary-counted"
                     >
-                        {{ money(view.summary.countedSen) }}
+                        {{
+                            view.summary.countsShown === 0
+                                ? '—'
+                                : money(view.summary.countedSen)
+                        }}
                     </dd>
                 </div>
                 <div class="text-right">
@@ -346,7 +344,11 @@ const goTo = (month: string | null) => {
                         class="font-semibold tabular-nums"
                         data-testid="summary-expected"
                     >
-                        {{ money(view.summary.expectedSen) }}
+                        {{
+                            view.summary.countsShown === 0
+                                ? '—'
+                                : money(view.summary.expectedSen)
+                        }}
                     </dd>
                 </div>
                 <div class="text-right">
@@ -355,11 +357,18 @@ const goTo = (month: string | null) => {
                         class="font-semibold tabular-nums"
                         data-testid="summary-difference"
                     >
-                        {{ signed(view.summary.differenceSen) }}
+                        {{
+                            view.summary.countsShown === 0
+                                ? '—'
+                                : signed(view.summary.differenceSen)
+                        }}
                     </dd>
                 </div>
             </dl>
             <p class="text-xs text-muted-foreground">
+                <template v-if="view.summary.countsShown === 0"
+                    >No counts this month.
+                </template>
                 Totals of the counts shown; days not counted add nothing.
                 <template v-if="view.isCurrentMonth">
                     Today is still open: its cash is in the money totals but not
@@ -452,25 +461,16 @@ const goTo = (month: string | null) => {
                         <td class="xl:min-w-36">{{ row.countedBy ?? '—' }}</td>
                         <td class="xl:min-w-36">{{ row.decidedBy ?? '—' }}</td>
                         <td class="w-40 xl:w-auto xl:max-w-56">
-                            <ul v-if="row.flags.length" class="space-y-1">
-                                <li
-                                    v-for="flag in row.flags"
-                                    :key="flag"
-                                    class="flex items-start gap-1 text-xs font-medium text-warning-strong"
-                                >
-                                    <CircleSlash
-                                        v-if="flag === 'no_count'"
-                                        class="mt-0.5 size-3.5 shrink-0"
-                                        aria-hidden="true"
-                                    />
-                                    <TriangleAlert
-                                        v-else
-                                        class="mt-0.5 size-3.5 shrink-0"
-                                        aria-hidden="true"
-                                    />
-                                    <span>{{ flagText[flag] }}</span>
-                                </li>
-                            </ul>
+                            <p
+                                v-if="changed(row)"
+                                class="flex items-start gap-1 text-xs font-medium text-warning-strong"
+                            >
+                                <TriangleAlert
+                                    class="mt-0.5 size-3.5 shrink-0"
+                                    aria-hidden="true"
+                                />
+                                <span>{{ changedText }}</span>
+                            </p>
                             <span v-else class="text-muted-foreground">—</span>
                         </td>
                         <td class="text-right whitespace-nowrap">
@@ -566,25 +566,16 @@ const goTo = (month: string | null) => {
                             · {{ decidedText(row) }}</template
                         >
                     </p>
-                    <ul v-if="row.flags.length" class="mt-2 space-y-1">
-                        <li
-                            v-for="flag in row.flags"
-                            :key="flag"
-                            class="flex items-start gap-1 text-xs font-medium text-warning-strong"
-                        >
-                            <CircleSlash
-                                v-if="flag === 'no_count'"
-                                class="mt-0.5 size-3.5 shrink-0"
-                                aria-hidden="true"
-                            />
-                            <TriangleAlert
-                                v-else
-                                class="mt-0.5 size-3.5 shrink-0"
-                                aria-hidden="true"
-                            />
-                            <span>{{ flagText[flag] }}</span>
-                        </li>
-                    </ul>
+                    <p
+                        v-if="changed(row)"
+                        class="mt-2 flex items-start gap-1 text-xs font-medium text-warning-strong"
+                    >
+                        <TriangleAlert
+                            class="mt-0.5 size-3.5 shrink-0"
+                            aria-hidden="true"
+                        />
+                        <span>{{ changedText }}</span>
+                    </p>
                     <p
                         class="mt-2 text-right text-sm font-medium text-brand-strong"
                     >

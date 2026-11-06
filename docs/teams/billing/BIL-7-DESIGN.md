@@ -22,6 +22,10 @@ the differences were. BIL-7 adds a read-only month view.
   - flags: "No count" for an ended day with no closing; "Not approved" for an ended day whose latest count is
     waiting or returned; "Changed after approval" when an approved day's live expected cash no longer matches its
     approved snapshot (the same rule as the daily page).
+  - **On screen (Daniel, 2026-11-06):** a flag shows only what the badge does not already say, so "No count" and
+    "Not approved" appear as the warning border only; "Changed after approval" is shown as text. Days before the
+    branch's first ever count show "Not in use yet" (Siti). A month with no counts shows "—" for the money totals
+    and "No counts this month", never "Matches".
 - **Month summary** above the rows: days approved, days waiting, days returned, days not counted, total counted,
   total expected (of the counts shown) and total difference.
 - **Money:** sen, shown as RM with two decimals, minus allowed (BIL-6 refunds can make a day negative).

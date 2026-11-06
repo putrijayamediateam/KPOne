@@ -54,8 +54,16 @@ test('statuses have explicit tones and flags are text with an icon, never colour
         assert.ok(month.includes(line), line);
     }
 
-    assert.ok(month.includes("no_count: 'No count'"));
-    assert.ok(month.includes("not_approved: 'Not approved'"));
+    // Flags show only what the badge does not already say; missed and unapproved days keep the border.
+    assert.doesNotMatch(month, /'No count'|'Not approved'/);
+    assert.ok(month.includes("row.flags.includes('changed_after_approval')"));
+    // A month with no counts never reads as "Matches".
+    assert.equal(
+        (month.match(/view\.summary\.countsShown === 0\s*\?\s*'—'/g) ?? [])
+            .length,
+        3,
+    );
+    assert.ok(month.includes('No counts this month.'));
     assert.ok(
         month.includes(
             'Expected cash changed after approval. The approved figures are shown.',
