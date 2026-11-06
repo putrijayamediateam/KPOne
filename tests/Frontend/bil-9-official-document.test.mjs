@@ -193,7 +193,7 @@ test('missing IC, phone and second phone leave their lines out, and a void invoi
         billing: {
             ...base.billing,
             patient: { ...base.billing.patient, identifier: null, phone: null },
-            invoice: { ...base.billing.invoice, status: 'void' },
+            invoice: { ...base.billing.invoice, status: 'voided' },
         },
         letterhead: {
             ...base.letterhead,

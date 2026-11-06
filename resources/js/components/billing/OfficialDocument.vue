@@ -74,7 +74,7 @@ const phones = computed(() =>
 );
 const invoice = computed(() => props.billing.invoice);
 const isVoid = computed(
-    () => !props.receipt && invoice.value.status === 'void',
+    () => !props.receipt && invoice.value.status === 'voided',
 );
 const adjustmentSen = computed(() => invoice.value.adjustment.adjustmentSen);
 // "2.000" prints as "2"; "1.500" as "1.5".
