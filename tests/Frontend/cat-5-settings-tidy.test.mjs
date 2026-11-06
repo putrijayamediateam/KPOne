@@ -57,7 +57,28 @@ test('Business details fields use the shared components, and every starred field
         businessTemplate,
         /:aria-required="\s*field\.required \? 'true' : undefined\s*"/,
     );
-    assert.match(business, /field\.required \? ' \*' : ''/);
+    // The "*" is visual only; screen readers get aria-required instead.
+    assert.match(
+        businessTemplate,
+        /<span v-if="field\.required" aria-hidden="true"\s*> \*<\/span\s*>/,
+    );
+    assert.equal(
+        (
+            businessTemplate.match(
+                /<span aria-hidden="true"> \*<\/span\s*>/g,
+            ) ?? []
+        ).length,
+        2,
+    );
+    // View-only: the select is disabled itself, and disabled values stay readable.
+    assert.match(
+        businessTemplate,
+        /id="registration_type" v-model="form\.registration_type" :disabled="\s*!canEdit \|\| form\.processing \|\| blocked\s*"/,
+    );
+    assert.match(
+        business,
+        /\[data-slot='select-trigger'\]:disabled\) \{\s*color: var\(--foreground\);\s*opacity: 1;/,
+    );
     assert.match(
         businessTemplate,
         /<OperationalSelect\s+id="registration_type"[\s\S]*labelledby="registration_type-label"/,

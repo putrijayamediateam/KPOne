@@ -441,7 +441,11 @@ const reload = () =>
                     >
                         <div class="min-w-0 space-y-3">
                             <div class="grid gap-2">
-                                <Label for="clinic_name">Clinic name *</Label>
+                                <Label for="clinic_name"
+                                    >Clinic name<span aria-hidden="true">
+                                        *</span
+                                    ></Label
+                                >
                                 <Input
                                     id="clinic_name"
                                     v-model="form.clinic_name"
@@ -463,7 +467,12 @@ const reload = () =>
                             >
                                 <Label :for="field.key"
                                     >{{ field.label
-                                    }}{{ field.required ? ' *' : '' }}</Label
+                                    }}<span
+                                        v-if="field.required"
+                                        aria-hidden="true"
+                                    >
+                                        *</span
+                                    ></Label
                                 >
                                 <Input
                                     :id="field.key"
@@ -616,7 +625,11 @@ const reload = () =>
                     </p>
                     <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
                         <div class="grid gap-2 md:col-span-2">
-                            <Label for="legal_name">Legal name *</Label>
+                            <Label for="legal_name"
+                                >Legal name<span aria-hidden="true">
+                                    *</span
+                                ></Label
+                            >
                             <Input
                                 id="legal_name"
                                 v-model="form.legal_name"
@@ -640,6 +653,9 @@ const reload = () =>
                             <OperationalSelect
                                 id="registration_type"
                                 v-model="form.registration_type"
+                                :disabled="
+                                    !canEdit || form.processing || blocked
+                                "
                                 label="Registration type"
                                 labelledby="registration_type-label"
                                 describedby="registration_type-error"
@@ -761,7 +777,8 @@ const reload = () =>
 <style scoped>
 /* View-only and saving states keep the values readable (the shared inputs fade disabled fields). */
 fieldset:disabled :deep(input:disabled),
-fieldset:disabled :deep(button:disabled) {
+fieldset:disabled :deep([data-slot='select-trigger']:disabled) {
+    color: var(--foreground);
     opacity: 1;
 }
 </style>
