@@ -11,6 +11,7 @@ use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use LogicException;
 
 /** Receipt rows are the owner's separate patient-level exception, never aggregate Insights. Runs on the shared branch report boundary (BIL-8). */
 class TransactionReportService extends BranchReportService
@@ -44,17 +45,11 @@ class TransactionReportService extends BranchReportService
     /** Kept as Transaction Detail always sent its filters: the method and visit-type lists before the page. */
     protected function filterRules(array $rules): array
     {
-        $ordered = [];
-        foreach ($rules as $key => $rule) {
-            if ($key === 'branch') {
-                $ordered['page'] = $rules['page'];
-            }
-            if ($key !== 'page') {
-                $ordered[$key] = $rule;
-            }
-        }
+        $page = ['page' => $rules['page']];
+        unset($rules['page']);
+        $first = array_intersect_key($rules, array_flip(['expected_branch_id', 'from', 'to', 'methods', 'methods.*', 'visit_types', 'visit_types.*']));
 
-        return $ordered;
+        return $first + $page + $rules;
     }
 
     protected function filterDefaults(string $yesterday): array
@@ -80,10 +75,10 @@ class TransactionReportService extends BranchReportService
         return ['count' => $count, ...$this->rows($actor, $branch, $query, $download ? null : $page, $download)];
     }
 
-    /** Every screen row of the period (the shared contract); the report itself always goes through window(). */
+    /** Never used: reading every receipt's patient without the count, cap and page checks is not allowed here. */
     protected function project(User $actor, Branch $branch, array $filters): array
     {
-        return $this->rows($actor, $branch, $this->query($actor, $branch, $filters), null, false);
+        throw new LogicException('Transaction Detail always goes through window().');
     }
 
     /**

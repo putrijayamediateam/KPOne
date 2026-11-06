@@ -15,6 +15,9 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use Spatie\Permission\Models\Role;
+use Spatie\Permission\PermissionRegistrar;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 use Tests\Feature\Billing\BillingTestCase;
 use Tests\Support\LegacyTransactionReportService;
 
@@ -65,6 +68,8 @@ class TransactionReportBoundaryTest extends BillingTestCase
             $result = $run();
         } catch (ValidationException $exception) {
             $result = ['refused' => $exception->errors()];
+        } catch (HttpException $exception) {
+            $result = ['http' => $exception->getStatusCode(), 'message' => $exception->getMessage()];
         }
         $audits = AuditLog::query()->where('id', '>', $before)->orderBy('id')->get(['event', 'metadata'])
             ->map(fn (AuditLog $log): array => ['event' => $log->event, 'metadata' => $log->metadata])->all();
@@ -87,12 +92,50 @@ class TransactionReportBoundaryTest extends BillingTestCase
             'download cash' => [$this->input(['methods' => [$cashId]]), false, true],
             'page unavailable' => [$this->input(['page' => 3]), true, false],
             'empty day' => [$this->input(['from' => '2026-11-01', 'to' => '2026-11-01']), true, false],
+            // Several validation errors at once: their order follows the rule order (filterRules).
+            'invalid filters' => [['from' => '2026-11-06', 'to' => '2026-11-05', 'page' => 0, 'methods' => ['999999'], 'visit_types' => ['x'], 'doctor' => '1'], true, false],
+            'over 31 days' => [$this->input(['from' => '2026-10-01', 'to' => '2026-11-06']), true, false],
         ];
         foreach ($scenarios as $name => [$input, $run, $download]) {
             $legacy = $this->capture(fn () => app(LegacyTransactionReportService::class)->execute($actor, $input, $run, $download));
             $live = $this->capture(fn () => app(TransactionReportService::class)->execute($actor, $input, $run, $download));
             $this->assertSame($legacy, $live, $name);
         }
+        // Without the export permission both refuse the download the same way (403).
+        Role::findByName('finance_officer', 'web')->revokePermissionTo(TransactionReportService::EXPORT);
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
+        $actor = $actor->fresh();
+        $legacy = $this->capture(fn () => app(LegacyTransactionReportService::class)->execute($actor, $this->input(), false, true));
+        $this->assertSame(403, $legacy[0]['http'] ?? null);
+        $this->assertSame($legacy, $this->capture(fn () => app(TransactionReportService::class)->execute($actor, $this->input(), false, true)));
+        Role::findByName('finance_officer', 'web')->givePermissionTo(TransactionReportService::EXPORT);
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
+        $actor = $actor->fresh();
+
+        // A receipt whose payment method is unknown is refused (409) by both, before any row is released.
+        $unknown = 'select 1 as id, 100 as amount_sen, \'posted\' as status, 0 as payment_method_id';
+        $legacyBad = new class($unknown) extends LegacyTransactionReportService
+        {
+            public function __construct(private string $sql) {}
+
+            protected function query(User $actor, Branch $branch, array $filters): Builder
+            {
+                return Payment::query()->fromRaw('('.$this->sql.') as payments');
+            }
+        };
+        $liveBad = new class($unknown) extends TransactionReportService
+        {
+            public function __construct(private string $sql) {}
+
+            protected function query(User $actor, Branch $branch, array $filters): Builder
+            {
+                return Payment::query()->fromRaw('('.$this->sql.') as payments');
+            }
+        };
+        $legacy = $this->capture(fn () => $legacyBad->execute($actor, $this->input(), true));
+        $this->assertSame(409, $legacy[0]['http'] ?? null);
+        $this->assertSame($legacy, $this->capture(fn () => $liveBad->execute($actor, $this->input(), true)));
+
         // The fixture really covers what it claims: two pages, a masked unallocated receipt, a reversal and both classes.
         $page = app(TransactionReportService::class)->execute($actor, $this->input(), true);
         $this->assertSame([23, 2], [$page['result']['count'], $page['result']['pages']]);
@@ -105,6 +148,9 @@ class TransactionReportBoundaryTest extends BillingTestCase
 
     public function test_the_export_cap_is_checked_before_any_patient_identity_and_a_page_reads_only_its_own_patients(): void
     {
+        if (DB::getDriverName() !== 'pgsql') {
+            $this->markTestSkipped('The 5,001-row stand-in uses PostgreSQL generate_series.');
+        }
         $actor = $this->fixture();
         $large = new class extends TransactionReportService
         {
@@ -128,9 +174,25 @@ class TransactionReportBoundaryTest extends BillingTestCase
         DB::flushQueryLog();
         app(TransactionReportService::class)->execute($actor, $this->input(['page' => 2]), true);
         $patients = $this->patientQueries();
+        // Page 2 holds receipts 21 to 23: two allocated, one unallocated (masked, never looked up).
         $this->assertCount(1, $patients);
-        $this->assertLessThanOrEqual(TransactionReportService::PAGE_SIZE, count($patients[0]['bindings']));
+        $this->assertCount(1 + 2, $patients[0]['bindings'], 'Organisation plus the page\'s two allocated receipts only.');
+        $allocations = array_values(array_filter(DB::getQueryLog(), fn (array $q): bool => preg_match('/from "payment_allocations"/', $q['query']) === 1));
+        $this->assertCount(1, $allocations);
+        $this->assertCount(2 + 3, $allocations[0]['bindings'], 'Organisation, branch and the page\'s three receipts only.');
         DB::disableQueryLog();
+    }
+
+    public function test_the_filter_rules_are_only_reordered_never_changed(): void
+    {
+        $rules = ['expected_branch_id' => ['a'], 'from' => ['b'], 'to' => ['c'], 'page' => ['d'], 'methods' => ['e'], 'methods.*' => ['f'],
+            'visit_types' => ['g'], 'visit_types.*' => ['h'], 'branch' => ['i'], 'doctor' => ['j'], 'treatment' => ['k'], 'diagnosis' => ['l']];
+        $ordered = (new \ReflectionMethod(TransactionReportService::class, 'filterRules'))->invoke(app(TransactionReportService::class), $rules);
+        $this->assertSame(['expected_branch_id', 'from', 'to', 'methods', 'methods.*', 'visit_types', 'visit_types.*', 'page', 'branch', 'doctor', 'treatment', 'diagnosis'], array_keys($ordered));
+        $sorted = $ordered;
+        ksort($sorted);
+        ksort($rules);
+        $this->assertSame($rules, $sorted);
     }
 
     /** @return list<array{query:string,bindings:array<int,mixed>}> */
