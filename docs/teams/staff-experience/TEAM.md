@@ -118,10 +118,10 @@ usability aid only and must follow the permission the backend already enforces.
   fires no toast of its own today; owned by Patients & Registration, so left unchanged.
 - UX-3 limits: the pass opens pages, not dialogs, menus or forms that appear after a click; a code scan found no
   unnamed icon button on staff screens, and the review checked the click-to-open forms. The demo data has no
-  Administrator account, so its pages were checked as the Director. Left for later (named only by their
-  placeholder, so they work but read weakly): the clinical note box (`Clinical/Show.vue`), the visit
-  cancellation reason (`Registration/Show.vue`), the Patient list "Issuer" box, and the inline add fields in
-  `catalogue/LocationPicker.vue`, `SupplierPicker.vue` and `PanelTariffEditor.vue`. Also for the owning teams,
+  Administrator account, so its pages were checked as the Director. The fields named only by their placeholder (the
+  clinical note box, the visit cancellation reason, the Patient list "Issuer" box, the inline add fields in
+  `catalogue/LocationPicker.vue`, `SupplierPicker.vue` and `PanelTariffEditor.vue`) are named by UX-6, which
+  also found and named the six Panel form address fields (a pass over 431 pages as 9 roles). Also for the owning teams,
   not fixed here: the Quick create list holds wrapper divs and WhatsApp links besides its options and its search
   box is not a combobox; the Panel due-rule radios share no `name`; Billing approval limit Save and Clear
   buttons repeat the same name on every row. The public QR form's back buttons (`pages/PublicCheckIn/Show.vue`)
@@ -129,6 +129,13 @@ usability aid only and must follow the permission the backend already enforces.
 - UX-4 note for Dispensary & OTC: the OTC allergy card still says the check is "compared with medicine names by
   text only", but since DSP-1b it also compares catalogue drug groups. Passed to B.E.R.N.I.S.S; not changed here.
   The guides still need a CA, a doctor and a CA Supervisor to follow them on the real screens before use.
+- UX-7 known limits: a failed submit on a long form (Quick create, Patient create) inserts several alerts at
+  once; NVDA and JAWS read them in turn, VoiceOver may read only the last. A later step could move focus to the
+  first invalid field or show one error summary. An identical error returned again on resubmit is not read
+  again (nothing in the page changes). Billing's `pages/Billing/Invoice.vue` wraps the documents list in
+  `aria-live="polite"`, so the IssuePrintButton error sits inside a second live region; most screen readers read
+  it once, some NVDA and Firefox versions twice (Billing team's file, left unchanged). The Panel claim create
+  summary (`pages/PanelClaims/Create.vue`, Panel team's file) now announces only the errors no field announces.
 - `/patients/create` is about 433 px wide at 390 px when errors show: Patients & Registration team's item, not ours.
 
 ## 8. Rules (every task)
@@ -181,3 +188,11 @@ authorisation to build them; the coordinator records it in `docs/BASELINE.md`.
    unconfirmed `[PERLU DISAHKAN]`. Ask B.E.R.N.I.S.S for the list of merged PRs since the last guide update (PR #203).
 5. **UX-5 Consultation page toasts.** Chosen by the owner on 2026-11-05 from the UX-1 known limit: on the
    consultation page from 1024 px, toasts move to the bottom left so they no longer cover the toolbar.
+6. **UX-6 Placeholder-only field names.** Chosen by the owner on 2026-11-05 from the UX-3 leftovers: give each
+   field that is named only by its placeholder a real accessible name. Nothing changes on screen.
+7. **UX-7 Announce form errors.** Chosen by the owner on 2026-11-06 from Aiman's UX-6 review note: the shared
+   `InputError` inserts its message as `role="alert"` so screen readers read each error when it appears, and
+   callers no longer add a second alert around it (seven places, in Patients & Registration and Billing files;
+   the Panel claim create summary now announces only errors no field announces).
+   Nothing changes on screen. Linking every field to its error with `aria-describedby` is left to the owning
+   teams; the existing links still work.

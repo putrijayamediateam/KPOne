@@ -636,7 +636,6 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
                         autocomplete="off"
                         class="h-10 rounded-md border bg-background px-3 text-sm" /><InputError
                         id="quick-name-error"
-                        role="alert"
                         :message="errorFor('quick_patient.full_name')"
                 /></label>
                 <label class="grid gap-1"
@@ -667,7 +666,6 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
                     </div>
                     <InputError
                         id="quick-identity-error"
-                        role="alert"
                         :message="
                             errorFor('quick_patient.identifiers') ||
                             errorFor('quick_patient.identifiers.0.value') ||

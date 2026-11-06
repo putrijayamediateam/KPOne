@@ -64,6 +64,7 @@ type Planner = {
         name: string;
         role: string;
         shifts: Shift[];
+        leaveDays: Record<string, 'full' | 'half'>;
     }[];
     totals: number[];
     shortDays: { date: string; label: string }[];
@@ -475,6 +476,15 @@ const minimumsEmpty = computed(() =>
         Object.values(roles).every((n) => n === 0),
     ),
 );
+// HR-2a: "On leave" only, never the leave type or reason.
+const onLeave = (date: string) =>
+    (planner.value?.rows ?? [])
+        .filter((row) => row.leaveDays[date])
+        .map((row) =>
+            row.leaveDays[date] === 'half'
+                ? `${row.name} (half day)`
+                : row.name,
+        );
 const minimumError = (session: string, role: string) =>
     errors.value[`minimums.${session}.${role}`];
 </script>
@@ -799,6 +809,18 @@ const minimumError = (session: string, role: string) =>
                                     class="align-top"
                                 >
                                     <div class="flex flex-col gap-1">
+                                        <Badge
+                                            v-if="row.leaveDays[day.date]"
+                                            variant="outline"
+                                            class="w-fit"
+                                            data-test="on-leave-chip"
+                                            >{{
+                                                row.leaveDays[day.date] ===
+                                                'half'
+                                                    ? 'On leave (half day)'
+                                                    : 'On leave'
+                                            }}</Badge
+                                        >
                                         <component
                                             :is="
                                                 planner.can.edit
@@ -901,6 +923,13 @@ const minimumError = (session: string, role: string) =>
                                 tone="warning"
                             />
                         </div>
+                        <p
+                            v-if="onLeave(day.date).length > 0"
+                            class="mt-2 text-xs text-muted-foreground"
+                            data-test="on-leave-day"
+                        >
+                            On leave: {{ onLeave(day.date).join(', ') }}
+                        </p>
                         <p
                             v-if="dayShifts(day.date).length === 0"
                             class="mt-2 text-xs text-muted-foreground"
