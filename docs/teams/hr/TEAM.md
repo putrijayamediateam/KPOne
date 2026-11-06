@@ -250,6 +250,10 @@ check items, keep them"). The rest stand unless the owner changes them.
 46. Order of the five (owner, 2026-11-06, relayed verbatim by B.E.R.N.I.S.S: "go with Liyana's order"): after HR-7,
     HR-12 outside HR product link, HR-13 job application intake, HR-14 staff messages (WhatsApp, SMS, email, OTP),
     HR-15 locum portal, HR-16 selfie or location at clock-in. Draft notes in HR-PLAN section 15.
+47. The five notes in HR-PLAN section 15 (15.1 to 15.5, with the order in 15.6) approved by the owner, 2026-11-06,
+    relayed verbatim by B.E.R.N.I.S.S: "approve all five HR notes for liyana". The 15.7 questions stay open for the
+    owner. Nothing of the five is built until B.E.R.N.I.S.S's AGENTS.md and BASELINE docs PR merges, and each still
+    needs Daniel's look and a ship-it before its PR.
 
 ## 7. Open items and known limits
 

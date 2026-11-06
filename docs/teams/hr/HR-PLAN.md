@@ -2186,7 +2186,8 @@ follow the RPT-01 safety rules.
 
 Written 2026-11-06 after the owner authorised the five items that were not authorised ("all i want."; "the one that
 needed before real use i will provide later", relayed verbatim by B.E.R.N.I.S.S; TEAM.md decision 45). **Status:
-drafts, each waiting for the owner's approval.** Nothing in this section is built until (a) B.E.R.N.I.S.S's docs PR
+approved by the owner on 2026-11-06 ("approve all five HR notes for liyana"; TEAM.md decision 47); the 15.7 questions
+stay open.** Nothing in this section is built until (a) B.E.R.N.I.S.S's docs PR
 records the authorisation in `AGENTS.md` and `docs/BASELINE.md`, (b) the owner approves that slice's note, and (c)
 Daniel has had his look. **Scope: staff and HR only.** No note here sends anything to a patient or reads patient
 data; patient messaging stays a separate owner decision. **Synthetic data only** in every slice until the owner
