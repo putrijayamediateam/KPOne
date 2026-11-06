@@ -26,6 +26,8 @@ test('both receiving forms ask for the total paid, optional, with one help line 
     assert.doesNotMatch(lots, /unit_cost_sen/);
     // Exact RM to sen without floating point.
     assert.match(lots, /Number\(match\[1\]\) \* 100 \+/);
+    // Vue's type="number" v-model hands back a number: the converter must read it as text.
+    assert.match(lots, /String\(value \?\? ''\)\.trim\(\)/);
     assert.doesNotMatch(lots, /parseFloat|Math\.round/);
 });
 
@@ -37,4 +39,11 @@ test('the order estimate says it is per stock unit, not per box', () => {
     assert.match(panel, /not one box\./);
     assert.match(panel, /aria-describedby="po-estimate-help"/);
     assert.doesNotMatch(panel, /Estimated purchase unit cost/);
+});
+
+test('a remembered draft with the old per-unit cost is not restored', () => {
+    assert.match(
+        read('resources/js/types/inventory-operations.ts'),
+        /!\('unit_cost_sen' in line\)/,
+    );
 });

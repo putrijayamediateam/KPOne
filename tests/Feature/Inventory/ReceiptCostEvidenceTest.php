@@ -5,6 +5,8 @@ namespace Tests\Feature\Inventory;
 use App\Domain\Access\BranchAccessService;
 use App\Domain\Organisation\Inventory\Models\StockMovement;
 use App\Domain\Organisation\Inventory\Services\ProcurementService;
+use App\Domain\Organisation\Inventory\Services\ReceivingPayload;
+use App\Domain\Organisation\Inventory\Services\ReceivingReviewService;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -61,6 +63,34 @@ final class ReceiptCostEvidenceTest extends VisitTestCase
         } catch (ValidationException $e) {
             $this->assertTrue(collect(array_keys($e->errors()))->contains(fn (string $key) => str_ends_with($key, 'cost_total_sen')), implode(', ', array_keys($e->errors())));
         }
+    }
+
+    public function test_hashes_of_requests_without_a_total_do_not_change_and_rejected_lots_carry_no_cost(): void
+    {
+        // A receipt or review saved before STK-10B must still match its hash after the deploy.
+        $payload = ['delivery_reference' => 'SYN-1', 'lines' => [['line_public_id' => (string) Str::uuid(), 'quantity' => '1.000', 'batch_number' => 'SYN-B', 'expiry_date' => '2028-12-31']]];
+        $lot = app(ReceivingPayload::class)->normalise($payload)['lines'][0]['lots'][0];
+        $this->assertArrayNotHasKey('cost_total_sen', $lot);
+        $this->assertArrayHasKey('unit_cost_sen', $lot);
+
+        // A rejected lot never enters stock, so it keeps no cost, not even the order's estimate.
+        $f = (new VerifiedReceivingFixture($this->branch))->build('100.000');
+        $line = $f['order']->lines()->sole();
+        $access = app(BranchAccessService::class);
+        $reviews = app(ReceivingReviewService::class);
+        $rich = [...$f['payload'], 'lines' => [['line_public_id' => $line->public_id, 'physical_quantity' => '3.000', 'lots' => [
+            ['quantity' => '2.000', 'batch_number' => 'SYN-OK', 'expiry_date' => '2028-12-31', 'outcome' => 'accepted', 'cost_total_sen' => 246],
+            ['quantity' => '1.000', 'batch_number' => 'SYN-REJ', 'expiry_date' => '2028-12-31', 'outcome' => 'rejected', 'reason' => 'damaged', 'cost_total_sen' => 123],
+        ]]]];
+        $access->select($f['receiver'], $this->branch);
+        $review = DB::table('inventory_receiving_reviews')->find($reviews->request($f['receiver'], $f['order'], $rich));
+        $access->select($f['director'], $this->branch);
+        $reviews->approve($f['director'], $review->public_id, ['expected_branch_id' => $this->branch->id, 'lock_version' => 1, 'retry_key' => (string) Str::uuid()]);
+        $access->select($f['receiver'], $this->branch);
+        $receipt = app(ProcurementService::class)->receive($f['receiver'], $f['order'], [...$rich, 'review_public_id' => $review->public_id, 'review_lock_version' => 2]);
+        $lots = DB::table('inventory_receipt_lots as lot')->join('inventory_receipt_line_evidence as line', 'line.id', '=', 'lot.line_evidence_id')
+            ->where('line.goods_receipt_id', $receipt->id)->orderBy('lot.batch_number')->get(['lot.batch_number', 'lot.cost_total_sen', 'lot.unit_cost_sen', 'lot.cost_source']);
+        $this->assertSame([['SYN-OK', 246, null, 'actual'], ['SYN-REJ', null, null, null]], $lots->map(fn ($r) => [$r->batch_number, $r->cost_total_sen === null ? null : (int) $r->cost_total_sen, $r->unit_cost_sen, $r->cost_source])->all());
     }
 
     public function test_postgresql_keeps_actual_and_estimate_apart_and_costs_only_on_receipts(): void

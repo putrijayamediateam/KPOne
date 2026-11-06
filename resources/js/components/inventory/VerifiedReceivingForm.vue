@@ -43,8 +43,11 @@ const reasons = [
     'other_approved',
 ];
 /** Exact RM to sen without floating point; null for blank, undefined for an invalid amount. */
-function lotTotalSen(value: string): number | null | undefined {
-    const text = value.trim();
+function lotTotalSen(
+    value: string | number | null | undefined,
+): number | null | undefined {
+    // A type="number" v-model hands back a number once typed, so read it as text first.
+    const text = String(value ?? '').trim();
 
     if (text === '') {
         return null;

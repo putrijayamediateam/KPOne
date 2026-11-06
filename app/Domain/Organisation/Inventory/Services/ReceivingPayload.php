@@ -57,7 +57,9 @@ final class ReceivingPayload
                 if ($sum > StockUnitQuantity::MAX) {
                     $this->refuse('The physical quantity exceeds the stock range.');
                 }
-                $lots[] = ['quantity' => StockUnitQuantity::format($quantity), 'batch_number' => trim($data['batch_number']), 'expiry_date' => $data['expiry_date'], 'outcome' => $outcome, 'reason' => $reason, 'unit_cost_sen' => isset($data['unit_cost_sen']) ? (int) $data['unit_cost_sen'] : null, 'cost_total_sen' => isset($data['cost_total_sen']) ? (int) $data['cost_total_sen'] : null, 'unit' => $data['unit'] ?? null];
+                $lots[] = ['quantity' => StockUnitQuantity::format($quantity), 'batch_number' => trim($data['batch_number']), 'expiry_date' => $data['expiry_date'], 'outcome' => $outcome, 'reason' => $reason, 'unit_cost_sen' => isset($data['unit_cost_sen']) ? (int) $data['unit_cost_sen'] : null, 'unit' => $data['unit'] ?? null,
+                    // Added only when given, so the hash of a receipt or review made before STK-10B is unchanged.
+                    ...(isset($data['cost_total_sen']) ? ['cost_total_sen' => (int) $data['cost_total_sen']] : [])];
             }
             $physical = StockUnitQuantity::scaled($rich ? $line['physical_quantity'] : $line['quantity']);
             if ($sum !== $physical) {

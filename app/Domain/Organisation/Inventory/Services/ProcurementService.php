@@ -192,6 +192,7 @@ final class ProcurementService
                     // STK-10B (owner decisions 2026-11-06): an invoice total or a typed unit cost is actual; a blank
                     // cost keeps the order's estimate, marked as an estimate, so the two are never confused.
                     [$cost, $costTotal, $costSource] = match (true) {
+                        $lot['outcome'] === 'rejected' => [null, null, null],
                         ($lot['cost_total_sen'] ?? null) !== null => [null, $lot['cost_total_sen'], StockMovement::COST_ACTUAL],
                         $lot['unit_cost_sen'] !== null => [$lot['unit_cost_sen'], null, StockMovement::COST_ACTUAL],
                         $line->estimated_unit_cost_sen !== null => [(int) $line->estimated_unit_cost_sen, null, StockMovement::COST_ESTIMATE],

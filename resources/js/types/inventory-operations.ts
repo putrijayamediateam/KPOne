@@ -405,6 +405,8 @@ export const restoreInventoryReceiptRememberedState = (
         const validPayloadShape = candidate.payload.every(
             (line) =>
                 isRecord(line) &&
+                // STK-10B: a draft saved with the old per-unit cost is dropped, never restored without its cost.
+                !('unit_cost_sen' in line) &&
                 typeof line.line_public_id === 'string' &&
                 typeof line.quantity === 'string' &&
                 (line.batch_number === null ||
