@@ -8,6 +8,7 @@ use App\Domain\HR\Records\Services\RecordSupport;
 use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Contracts\Encryption\DecryptException;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -357,7 +358,7 @@ final class PayrollRunService
                 return "Staff claim {$claim->number} was paid or changed after this run was sent. Send the run back and prepare it again.";
             }
             if ((int) $claim->claimant_user_id === $actor->id || (int) $claim->decided_by_user_id === $actor->id) {
-                return "You sent or approved staff claim {$claim->number}, so someone else approves and locks this run.";
+                return "You sent or approved staff claim {$claim->number}, so someone else approves and locks this run. If nobody else can, Finance records the claim as paid outside payroll and the run is prepared again.";
             }
         }
 
@@ -382,7 +383,7 @@ final class PayrollRunService
                 throw ValidationException::withMessages(['payroll' => 'Staff claim '.($claim->number ?? '').' was paid or changed after this run was sent. Send the run back and prepare it again.']);
             }
             if ((int) $claim->claimant_user_id === $actor->id || (int) $claim->decided_by_user_id === $actor->id) {
-                throw ValidationException::withMessages(['payroll' => "You sent or approved staff claim {$claim->number}, so someone else approves and locks this run."]);
+                throw ValidationException::withMessages(['payroll' => "You sent or approved staff claim {$claim->number}, so someone else approves and locks this run. If nobody else can, Finance records the claim as paid outside payroll and the run is prepared again."]);
             }
             DB::table('hr_staff_claim_payments')->insert(['public_id' => (string) Str::uuid(), 'organisation_id' => $actor->organisation_id, 'claim_id' => $claim->id,
                 'kind' => 'payment', 'method' => 'payroll', 'paid_on' => $today, 'recorded_by_user_id' => $actor->id, 'created_at' => now()->utc()]);
@@ -456,7 +457,11 @@ final class PayrollRunService
     {
         $out = [];
         foreach (DB::table('hr_payroll_run_people')->where('run_id', $run->id)->whereNotNull('mtd_encrypted')->get(['worker_id', 'mtd_encrypted']) as $p) {
-            $value = Crypt::decryptString((string) $p->mtd_encrypted);
+            try {
+                $value = Crypt::decryptString((string) $p->mtd_encrypted);
+            } catch (DecryptException) {
+                continue; // an unreadable MTD counts as not entered, so the run shows "MTD not entered" (Suresh, M7)
+            }
             if (preg_match('/\A[0-9]{1,9}\z/', $value) === 1) {
                 $out[(int) $p->worker_id] = (int) $value;
             }

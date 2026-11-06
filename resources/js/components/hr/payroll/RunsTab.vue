@@ -26,7 +26,7 @@ const errors = computed(
 );
 const form = reactive({
     group: props.groups.length === 1 ? props.groups[0].value : '',
-    month: props.months[1]?.value ?? '',
+    month: props.months[2]?.value ?? '',
     kind: 'regular',
     key: crypto.randomUUID(),
     processing: false,

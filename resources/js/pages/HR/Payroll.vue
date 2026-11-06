@@ -417,7 +417,7 @@ const saveRates = () => {
             <PageHeader
                 eyebrow="KPOne HR"
                 title="Payroll"
-                description="Pay profiles, statutory tables and pay settings. A second person checks each one before it counts. Payroll runs come next; KPOne makes no payment and files nothing."
+                description="Payroll runs, pay profiles, statutory tables and pay settings. A second person checks each one before it counts. KPOne makes no payment and files nothing."
             />
             <AccountantNote />
         </div>
