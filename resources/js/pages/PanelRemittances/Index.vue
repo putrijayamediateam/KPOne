@@ -423,7 +423,7 @@ const record = () => {
                                         ? 'split-amount-error'
                                         : undefined
                                 "
-                                class="h-9 w-32 rounded-md border bg-background px-2 text-right text-sm tabular-nums aria-invalid:border-destructive"
+                                class="h-9 w-32 rounded-md border bg-background px-2 text-right text-sm tabular-nums aria-invalid:border-destructive max-lg:h-11"
                             />
                         </label>
                     </li>
