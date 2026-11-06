@@ -61,6 +61,7 @@ HR, finance, marketing, Panel or management agents, the 3D office, and the desig
 | Approval inbox (AG-2) | `app/Domain/Agents/Proposals/`: `ProposalTypes` (proposer, deciding permission, payload fields per type), `AiProposal`, `ProposalService` (`propose`, `approve`, `reject`, `withdraw`, `canDecide`), `ProposalInbox` (page read model); `AgentInboxController`; page `resources/js/pages/Agents/Inbox.vue` at `/agents/inbox`; migration `2026_11_05_210000_create_ai_proposals.php` |
 | Agent office (AG-3) | Page `resources/js/pages/Agents/Office.vue` at `/agents/office`; components in `resources/js/components/agents/office/` (`office-layout.ts` holds the geometry, seats and the fictional looks in `AVATARS`, `OfficeScene.vue`, `AgentFigure.vue`); `AgentOfficeController`; `AgentOfficeDetail` (click panel: last 5 steps; pending proposal rows only for `ai_proposals.view.branch` holders, at their active branch, as the inbox does) |
 | Stocktake officer (AG-9) | `app/Domain/Agents/Stocktake/`: `StocktakeOfficer::check($run, $requester, $branch)` reads `inventory.stock_counts` through the gateway inside the caller's run, records one counts-only decision step and returns a `StocktakeCheck` (counts due, open cases, unresolved variances, worklists of at most 25). The caller starts and finishes the run (task `stock_count_check`). `StocktakeOfficer::evaluate()` is the pure rule. |
+| Director quick answers, Dato' Arif (AG-5) | `app/Domain/Agents/Assistant/`: `QuickQuestions` (the 12 preset questions in one place: group, label, data source, date input, extra report permission, and the fixed table and sentence builders; add a question here), `DirectorAssistant::answer()` (one `director_assistant` run of task `quick_answer` per answer, asked for by the Director, reads through the gateway with the Director's own authority, one decision step, completed or failed), `QuickAnswer`; `AgentAssistantController`; page `resources/js/pages/Agents/Assistant.vue` at `GET /agents/assistant` (`ai_assistant.use.organisation`, throttled 30 a minute; an answer is asked for with `?question=&branch=&date=` and is not stored). |
 | Tests | `tests/Feature/Agents/`, `tests/Frontend/ag-*.test.mjs`; no-AI guard `tests/Feature/Agents/NoAiServiceGuardTest.php` |
 | Reserved names per slice | Contract section 10 |
 
@@ -138,6 +139,10 @@ All in the contract; the main ones:
   (confirmed by the owner in the team session, 2026-11-05). Order after AG-2: AG-3, then CI-PAR-1 (2026-11-05).
 - Ask KPOne shows no patient age or date of birth in ai_read ("ship it for AG-7, no patient age", owner, relayed by
   B.E.R.N.I.S.S, 2026-11-05).
+- AG-5 (owner, 2026-11-06): Dato' Arif also reads `clinic.day_summary`, `money.day_summary` and `panel.claims_summary`
+  (contract section 8 updated); the 12 preset questions in four groups; three existing test lines changed with the owner's
+  approval (the seeded allowlist list and count 12 to 15 in `AgentRegistryTest`, and the "not on allowlist" case in
+  `AgentToolGatewayTest` now uses `inventory.stock_counts`).
 - Backup push (owner, relayed by B.E.R.N.I.S.S, formerly LUCY, 2026-11-05): when stopping to wait for the owner with work not yet on GitHub,
   commit it to the slice's own feature branch and push it as a backup. No PR, never main or another team's branch,
   never merge, never force-push. If the branch already has an open PR, push only when the change is ready. The PR
@@ -199,5 +204,5 @@ All in the contract; the main ones:
 | AG-9 Rizal (stocktake officer) | Built, waiting for "ship it" |
 | AG-10 Faris (system health) | |
 | AG-6 Hana (inventory analyst) | |
-| AG-5 Director quick answers | |
+| AG-5 Director quick answers | Built on `feature/ag-5-director-quick-answers`, waiting for "ship it" |
 | AG-8 Daily summary page and Lina | |

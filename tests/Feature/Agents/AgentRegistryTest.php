@@ -163,7 +163,7 @@ class AgentRegistryTest extends VisitTestCase
     public function test_seeder_is_idempotent_keeps_the_enabled_state_and_refuses_production(): void
     {
         $this->assertSame(array_keys(KPOneAgentSeeder::AGENTS), AiAgent::query()->orderBy('id')->pluck('code')->all());
-        $this->assertSame(['insights.sales_summary', 'insights.today', 'inventory.stock_review'], $this->agent('director_assistant')->tools()->orderBy('tool_code')->pluck('tool_code')->all());
+        $this->assertSame(['clinic.day_summary', 'insights.sales_summary', 'insights.today', 'inventory.stock_review', 'money.day_summary', 'panel.claims_summary'], $this->agent('director_assistant')->tools()->orderBy('tool_code')->pluck('tool_code')->all());
         $this->assertSame([], $this->agent('qa_reviewer')->tools()->pluck('tool_code')->all());
         $this->assertSame('build', $this->agent('qa_reviewer')->kind);
         $this->assertSame('Leadership', $this->agent('report_assistant')->department?->name);
@@ -171,7 +171,7 @@ class AgentRegistryTest extends VisitTestCase
         DB::table('ai_agents')->where('code', 'stocktake_officer')->update(['is_enabled' => false, 'lock_version' => 3]);
         $this->seed(KPOneAgentSeeder::class);
         $this->assertSame(6, AiAgent::query()->count());
-        $this->assertSame(12, DB::table('ai_agent_tools')->count());
+        $this->assertSame(15, DB::table('ai_agent_tools')->count());
         $this->assertFalse($this->agent('stocktake_officer')->is_enabled);
         $this->assertSame(3, $this->agent('stocktake_officer')->lock_version);
 

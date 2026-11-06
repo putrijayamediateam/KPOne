@@ -110,7 +110,7 @@ class AgentToolGatewayTest extends VisitTestCase
         $someoneElses = $this->agentRun('director_assistant', $this->branch, $this->actor('director'));
         $finished = app(AgentRunRecorder::class)->complete($this->agentRun('director_assistant', $this->branch, $director));
         $refusals = [
-            'not on allowlist' => fn () => $this->gateway->call($arif, 'money.day_summary', $director, $this->branch),
+            'not on allowlist' => fn () => $this->gateway->call($arif, 'inventory.stock_counts', $director, $this->branch),
             'run asked for by someone else' => fn () => $this->gateway->call($someoneElses, 'insights.today', $director, $this->branch),
             'run for another branch' => fn () => $this->gateway->call($arif, 'insights.today', $director, $this->puchong()),
             'finished run' => fn () => $this->gateway->call($finished, 'insights.today', $director, $this->branch),
