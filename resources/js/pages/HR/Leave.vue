@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Head, router, useForm, usePage } from '@inertiajs/vue3';
-import { CalendarCheck } from '@lucide/vue';
+import { CalendarCheck, Trash2 } from '@lucide/vue';
 import {
     computed,
     nextTick,
@@ -345,7 +345,20 @@ const lastDayOptions = [
 ];
 const preview = reactive({ text: '', error: '' });
 let previewTimer: ReturnType<typeof setTimeout> | undefined;
-const runPreview = async () => {
+// The day-count check shares the session with the form. If it ran while the form was being sent, its saved session
+// could overwrite the validation errors of the send, and the sheet would close with nothing shown. So a send first
+// cancels a waiting check and waits for one already running.
+let previewInFlight: Promise<void> | null = null;
+const runPreview = () => {
+    if (applyForm.processing) {
+        return Promise.resolve();
+    }
+
+    previewInFlight = fetchPreview().finally(() => (previewInFlight = null));
+
+    return previewInFlight;
+};
+const fetchPreview = async () => {
     preview.text = '';
     preview.error = '';
 
@@ -462,7 +475,9 @@ const applyFileError = computed(
             'evidence_files.0'
         ],
 );
-const sendApply = () => {
+const sendApply = async () => {
+    clearTimeout(previewTimer);
+    await previewInFlight?.catch(() => undefined);
     applyForm
         .transform((data) => ({
             ...data,
@@ -2599,6 +2614,9 @@ const calendarDays = computed(() =>
             destructive
             @confirm="confirmRemoval"
         >
+            <template #icon>
+                <Trash2 class="size-5" />
+            </template>
             <div v-if="removalNeedsReason" class="grid gap-2">
                 <Label for="removal-reason">Reason *</Label>
                 <OperationalSelect

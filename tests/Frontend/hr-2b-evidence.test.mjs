@@ -80,3 +80,14 @@ test('a PDF is offered as a download only, never shown inside the page', () => {
     assert.match(template, /Download PDF/);
     assert.doesNotMatch(template, /<(iframe|embed|object)\b/);
 });
+
+test('a send waits for the day-count check, so its session cannot overwrite the send errors', () => {
+    assert.match(
+        source,
+        /const sendApply = async \(\) => \{\s*clearTimeout\(previewTimer\);\s*await previewInFlight\?\.catch\(\(\) => undefined\);/,
+    );
+    assert.match(
+        source,
+        /if \(applyForm\.processing\) \{\s*return Promise\.resolve\(\);/,
+    );
+});
