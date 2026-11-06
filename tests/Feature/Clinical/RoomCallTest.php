@@ -16,6 +16,7 @@ use App\Domain\Queue\Models\QueueEntry;
 use App\Domain\Queue\QueueNumberFormat;
 use App\Domain\Visit\Models\Visit;
 use App\Models\User;
+use Carbon\CarbonImmutable;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
@@ -23,6 +24,8 @@ class RoomCallTest extends ClinicalTestCase
 {
     public function test_staff_call_a_dispensary_patient_to_the_dispensary_room_without_changing_the_case(): void
     {
+        // Midday at the branch, so the clock jumps below never cross the branch's midnight (a new day for "today").
+        $this->travelTo(CarbonImmutable::now($this->branch->timezone)->setTime(10, 0));
         [, $ca, $visit, $case] = $this->dispensaryFixture();
         $room = $this->room('dispensary', 'Farmasi');
         $before = $case->refresh()->only(['status', 'lock_version']);
@@ -87,6 +90,8 @@ class RoomCallTest extends ClinicalTestCase
 
     public function test_doctor_calls_the_serving_patient_to_a_treatment_room_and_keeps_the_consultation(): void
     {
+        // Midday at the branch, so the clock jumps below never cross the branch's midnight (a new day for "today").
+        $this->travelTo(CarbonImmutable::now($this->branch->timezone)->setTime(10, 0));
         [$doctor, , $visit, $queue] = $this->servingFixture();
         $this->startEncounter($doctor, $visit, $queue);
         $room = $this->room('treatment', 'Treatment Room 1');
@@ -118,6 +123,8 @@ class RoomCallTest extends ClinicalTestCase
 
     public function test_the_tv_keeps_the_earlier_call_when_the_same_patient_is_called_to_another_room(): void
     {
+        // Midday at the branch, so the clock jumps below never cross the branch's midnight (a new day for "today").
+        $this->travelTo(CarbonImmutable::now($this->branch->timezone)->setTime(10, 0));
         [$doctor, , $visit, $queue] = $this->servingFixture();
         $this->startEncounter($doctor, $visit, $queue);
         $room = $this->room('treatment', 'Treatment Room 1');
