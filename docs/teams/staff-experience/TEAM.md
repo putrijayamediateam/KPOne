@@ -223,6 +223,13 @@ authorisation to build them; the coordinator records it in `docs/BASELINE.md`.
    After Daniel's review the icon tile is never empty: seven dialogs on six pages passed no icon, so the tile
    showed as a blank square; the shared component now falls back to a warning icon (destructive) or a question
    icon, and a destructive question uses the destructive tone. No assertion changed.
+11. **UX-11 Pale panels in dark mode (design debt DD-08, Staff pages).** Chosen by the owner on 2026-11-06. The
+   Staff pages (directory, staff page, create and edit, and the role and branch dialogs) used pale palette
+   backgrounds and fixed emerald accents with no dark style, so the header icon tiles and the Primary, Active and
+   assignment-state badges stayed light in dark mode. They, the checkboxes, the search focus ring, the audit-list
+   rule and "No current assignment" now use the theme tokens (`success`, `warning-strong`, `brand`, `muted`,
+   `ring`), as `StatusBadge` does. The shared `PatientBoard` chips were left to Queue & TV (DD-38, PR #331, and
+   Cancel Visit in PR #336), as the Lead UI/UX Designer asked. No assertion changed.
 12. **UX-12 Staff page formats (design debt DD-43).** Chosen by the owner on 2026-11-06 from the Lead UI/UX
    Designer's UX-11 review. On the staff page a long work email ran into the Staff number column (by 43 px at
    1280 and 1440 px); it now wraps inside its own column, preferably after the "@", on the staff page and the
