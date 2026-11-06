@@ -96,6 +96,7 @@ coordinator at the owner's request (2026-11-05); the designer was added by owner
 | DSP-8 | Dispensary pages on phones and tablets: at 768 px the medicine and service line grids (2 columns there) had rows spanning 3 or 4 columns, so the browser added near-zero-width columns and Quantity, Dosage, Route and Precaution became 18 px slivers with overlapping labels; rows now span the full width (or 2, then 3 on wide screens). On phones (below 640 px) every button, text field and dropdown on the Dispensary, Completed and label preview pages is at least 44 px tall; wide screens unchanged. Also the "1 of these labels was printed before" wording, and the OTC allergy card now says the check also uses catalogue drug groups | #273 (merged `b078be4`) |
 | DD-24 to DD-27 | Design debt from DSP-8: 44 px controls below 1024 px too (tablets); the case page uses PageHeader "Dispensary" and only the patient card names the patient (h2, labelled KP number, Visit, Doctor); batch options lead with "N unit on hand · exp 30 Oct 2027" plus a "Selected:" line under the dropdown; the Added/Edited by CA chips are `StatusBadge` accent | #308 (`4c95234`) |
 | DSP-1c | Other names for allergy matching: catalogue editors add up to 10 brand names or misspellings per medicine ("Other names" in the Medicine Catalogue "…" menu); the Dispensary allergy warning compares allergies with them too, through one `MedicineCatalogueItem::allergyMatchTerms()` list; never printed; audited by count | pending (branch `feature/dsp-1c-allergy-aliases`) |
+| DD-37 | The Drug groups dialog keeps the typed groups on a validation error, with the message under the field and a red border; a list changed meanwhile still closes it with a toast (the DSP-1c pattern) | pending (branch `fix/dsp-dd-37-drug-groups-error`) |
 
 ## 6. Owner decisions already made (never ask again)
 
@@ -175,7 +176,9 @@ coordinator at the owner's request (2026-11-05); the designer was added by owner
     stale-list guard as drug groups (decision 14): `medicines.manage.organisation`, up to 10, 3 to 60 characters,
     audited by count only; used for matching only and never printed. Iman's sketch: its own "Other names" menu entry
     and dialog. The Dispensary warning wording now names "catalogue other names". Daniel: OK; keep the label
-    "Other names"; the Drug groups dialog losing typed groups on an error is design debt DD-37 (a later small piece). (Decisions 23 and 24 are DSP-6b and
+    "Other names"; the Drug groups dialog losing typed groups on an error is design debt DD-37 (a later small piece).
+26. DD-37 (2026-11-06): the owner chose it ("go with DD-37"); the Drug groups dialog gets the same error handling as
+    Other names. Built on top of DSP-1c (#324), because both change the same dialog code. (Decisions 23 and 24 are DSP-6b and
     the "Print label" fix, on their own branches.)
 
 ## 7. Open items and known limits
