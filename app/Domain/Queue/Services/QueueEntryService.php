@@ -129,8 +129,12 @@ class QueueEntryService
         }
     }
 
-    /** @param array<string, mixed> $attributes */
-    public function call(User $actor, Visit $visit, array $attributes): QueueEntry
+    /**
+     * @param  array<string, mixed>  $attributes
+     * @param  array{via: 'call_next', call_next_source: 'board'|'held_consultation'}|array{}  $auditContext  Q-4c: set only by
+     *                                                                                                        CallNextService, never from a request
+     */
+    public function call(User $actor, Visit $visit, array $attributes, array $auditContext = []): QueueEntry
     {
         $entry = QueueEntry::query()
             ->with('visit')
@@ -149,7 +153,7 @@ class QueueEntryService
             'override_reason' => ['sometimes', 'string'], 'idempotency_key' => ['required_with:override_reason', 'uuid'],
         ])->validate();
 
-        return DB::transaction(function () use ($actor, $visit, $branch, $validated): QueueEntry {
+        return DB::transaction(function () use ($actor, $visit, $branch, $validated, $auditContext): QueueEntry {
             ConsultationLocks::users($actor->organisation_id, [$actor->id, $visit->assigned_doctor_user_id]);
             $lockedActor = $this->lockActor($actor, $branch, [
                 'queue.call.branch',
@@ -246,6 +250,7 @@ class QueueEntryService
                 'to_state' => QueueEntry::STATUS_SERVING,
                 'record_version' => $lockedEntry->lock_version,
                 'branch_room_id' => $room?->id,
+                ...$auditContext,
             ], $lockedActor, $branch, $lockedActor->organisation_id);
 
             return $lockedEntry->refresh();
