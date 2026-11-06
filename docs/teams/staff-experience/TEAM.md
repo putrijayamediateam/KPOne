@@ -225,7 +225,7 @@ authorisation to build them; the coordinator records it in `docs/BASELINE.md`.
    icon, and a destructive question uses the destructive tone. No assertion changed.
 16. **UX-16 Confirm dialog tile token (the rest of design debt DD-20).** Approved by B.E.R.N.I.S.S for the owner
    on 2026-11-06, after UX-10. The shared confirm dialog's icon tile for a non-destructive question used fixed
-   pink palette colours (`bg-pink-50 text-pink-700`, with separate dark pinks); it now uses the brand tokens
+   pink palette colours (`bg-pink-50 text-pink-700 dark:bg-pink-950/50 dark:text-pink-300`); it now uses the brand tokens
    (`bg-brand/10 text-brand-strong dark:bg-brand/15`), which carry their own dark values. It looks almost the
    same: the icon's contrast on its tile is 5.2:1 in light and 6.9:1 in dark (3:1 needed for an icon). A
    destructive question keeps its red tile. No assertion changed.
