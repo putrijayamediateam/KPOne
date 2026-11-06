@@ -44,6 +44,9 @@ final class ClinicManagementNavigation
             [$actor->can('medicines.manage.organisation'), 'Medicine Catalogue', 'Manage medicines and their catalogue details.', 'medicines.index'],
             [$actor->can('clinical_services.manage.organisation'), 'Clinical Service Catalogue', 'Manage clinical services and consultation tariffs.', 'clinical-services.index'],
             [$actor->can('pricing.references.manage.organisation'), 'Pricing', 'Manage charge definitions and governed price books.', 'pricing.index'],
+            // CAT-12 (B.E.R.N.I.S.S for the owner; wording and group from Staff Experience): the price check needs an
+            // active branch, as the Inventory card does.
+            [$branch && $actor->can('pricing.references.manage.organisation'), 'Check price list', 'See the price billing uses for every active item, with gaps flagged.', 'pricing.price-check'],
             [$settings, 'Medicine details', 'Configure shared prescribing options.', 'medicine-details.index'],
             [$settings, 'Suppliers', 'Manage supplier names and contact details.', 'supplier-settings.index'],
             [$branch && $actor->can('inventory.view.branch'), 'Inventory', 'Review stock, batches and movements for this branch.', 'inventory.index'],
