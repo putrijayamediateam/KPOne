@@ -21,7 +21,16 @@ const page = read('resources/js/pages/Reports/BranchReport.vue');
 
 // UX-9 (design debt DD-23): the shared branch report page.
 test('UX-9: number columns are recognised from their cells, including negatives and quantities', () => {
-    for (const value of ['0.00', '30.30', '-4.00', '12', '1.250', '1,234.50']) {
+    for (const value of [
+        '0.00',
+        '30.30',
+        '-4.00',
+        '-0.50',
+        '12',
+        '1.250',
+        '-1.250',
+        '1,234.50',
+    ]) {
         assert.equal(isNumberCell(value), true, value);
     }
 
@@ -41,17 +50,55 @@ test('UX-9: number columns are recognised from their cells, including negatives 
         ['2026-11-02', '-4.00', 'Card', '3'],
     ];
 
-    assert.deepEqual(JSON.parse(JSON.stringify(numericColumns(rows, 4))), [
-        false,
-        true,
-        false,
-        true,
-    ]);
+    assert.deepEqual(
+        JSON.parse(
+            JSON.stringify(
+                numericColumns(rows, [
+                    'Local date',
+                    'Net (MYR)',
+                    'Method',
+                    'Count',
+                ]),
+            ),
+        ),
+        [false, true, false, true],
+    );
+    // A SKU or other identifier stays left-aligned even when every value is digits.
+    assert.deepEqual(
+        JSON.parse(
+            JSON.stringify(
+                numericColumns(
+                    [
+                        ['Paracetamol', '8888001', '2.000'],
+                        ['Amoxicillin', '8888002', '0.000'],
+                    ],
+                    ['Item', 'SKU', 'Closing quantity'],
+                ),
+            ),
+        ),
+        [false, false, true],
+    );
+    // A money heading that merely mentions Panel is still a number column.
+    assert.deepEqual(
+        JSON.parse(
+            JSON.stringify(
+                numericColumns(
+                    [['Synthetic Panel A', '12.00', 'KPI-0001']],
+                    [
+                        'Panel',
+                        'Panel approved (invoice finalisation date, MYR)',
+                        'Invoice number(s)',
+                    ],
+                ),
+            ),
+        ),
+        [false, true, false],
+    );
     // An empty table has no number columns.
-    assert.deepEqual(JSON.parse(JSON.stringify(numericColumns([], 2))), [
-        false,
-        false,
-    ]);
+    assert.deepEqual(
+        JSON.parse(JSON.stringify(numericColumns([], ['A', 'B']))),
+        [false, false],
+    );
 });
 
 test('UX-9: dates read like the rest of KPOne and keep the original value for machines', () => {
@@ -64,7 +111,13 @@ test('UX-9: dates read like the rest of KPOne and keep the original value for ma
         { text: '5 Nov 2026, 17:36', datetime: '2026-11-05T17:36' },
     );
 
-    for (const value of ['2026-02-30', '30.30', 'Paracetamol', 'KP-00000012']) {
+    for (const value of [
+        '2026-02-30',
+        '2026-11-05T17:36:02',
+        '30.30',
+        'Paracetamol',
+        'KP-00000012',
+    ]) {
         assert.deepEqual(
             JSON.parse(JSON.stringify(reportCell(value))),
             { text: value, datetime: null },
@@ -78,10 +131,11 @@ test('UX-9: the page uses the standard table, aligns number columns and folds th
     assert.doesNotMatch(page, /<table\b/);
     assert.match(
         page,
-        /numericColumns\(data\.value\.rows, data\.value\.columns\.length\)/,
+        /numericColumns\(data\.value\.rows, data\.value\.columns\)/,
     );
     assert.match(page, /:class="numeric\[j\] \? 'text-right' : ''"/);
-    assert.match(page, /<time\s+v-if="reportCell\(cell\)\.datetime"/);
+    assert.match(page, /row\.map\(reportCell\)/);
+    assert.match(page, /<time\s+v-if="cells\[i\]\?\.\[j\]\?\.datetime"/);
     assert.match(page, /empty-message="No matching rows\."/);
     // The basis text sits behind "How this report counts", closed by default.
     assert.match(

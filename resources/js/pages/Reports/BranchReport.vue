@@ -42,11 +42,13 @@ const clone = <T,>(value: T): T => JSON.parse(JSON.stringify(value));
 const draft = ref(clone(props.filters));
 const applied = ref(clone(props.filters));
 const data = ref<Result | null>(null);
-// DD-23: right-align columns that hold only numbers, so money and counts line up.
+// DD-23: right-align columns that hold only numbers, so money and counts line up, and show
+// dates in the usual KPOne form. Computed once per result, not per render.
 const numeric = computed(() =>
-    data.value
-        ? numericColumns(data.value.rows, data.value.columns.length)
-        : [],
+    data.value ? numericColumns(data.value.rows, data.value.columns) : [],
+);
+const cells = computed(
+    () => data.value?.rows.map((row) => row.map(reportCell)) ?? [],
 );
 const pending = ref<Record<string, boolean>>({});
 const error = ref('');
@@ -221,13 +223,13 @@ function applySelection(key: 'methods' | 'visit_types', value: string[]) {
             >
         </header>
         <details
-            class="group rounded-lg border bg-card px-4 py-3 text-sm"
+            class="rounded-lg border bg-card px-4 py-3 text-sm"
             data-testid="report-basis"
         >
             <summary
                 class="cursor-pointer font-medium marker:text-muted-foreground"
             >
-                How this report counts
+                How this report counts (read before comparing totals)
             </summary>
             <p class="mt-2 max-w-prose text-muted-foreground">{{ basis }}</p>
         </details>
@@ -325,11 +327,9 @@ function applySelection(key: 'methods' | 'visit_types', value: string[]) {
                             :class="numeric[j] ? 'text-right' : ''"
                         >
                             <time
-                                v-if="reportCell(cell).datetime"
-                                :datetime="
-                                    reportCell(cell).datetime ?? undefined
-                                "
-                                >{{ reportCell(cell).text }}</time
+                                v-if="cells[i]?.[j]?.datetime"
+                                :datetime="cells[i][j].datetime ?? undefined"
+                                >{{ cells[i][j].text }}</time
                             ><template v-else>{{ cell }}</template>
                         </td>
                     </tr>

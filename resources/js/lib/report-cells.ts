@@ -15,8 +15,21 @@ const datePattern = /^(\d{4}-\d{2}-\d{2})(?: (\d{2}):(\d{2})(?::\d{2})?)?$/;
 export const isNumberCell = (value: string): boolean =>
     numberPattern.test(value.trim());
 
-export const numericColumns = (rows: string[][], width: number): boolean[] =>
-    Array.from({ length: width }, (_, column) => {
+// Identifier columns (a SKU or barcode can be all digits) stay left-aligned whatever they hold,
+// so a column never changes alignment from one page of results to the next.
+// "Panel", "SKU" and "Item" only as the whole heading: "Panel approved (MYR)" is money.
+const identifierHeading =
+    /^(SKU|Item|Panel)$|\bnumbers?\b|\bnumber\(s\)|\bcode\b/i;
+
+export const numericColumns = (
+    rows: string[][],
+    headings: string[],
+): boolean[] =>
+    headings.map((heading, column) => {
+        if (identifierHeading.test(heading)) {
+            return false;
+        }
+
         const filled = rows
             .map((row) => (row[column] ?? '').trim())
             .filter((cell) => cell !== '');

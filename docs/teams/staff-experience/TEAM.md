@@ -200,7 +200,8 @@ authorisation to build them; the coordinator records it in `docs/BASELINE.md`.
    `pages/Reports/BranchReport.vue` (Daily summary, Panel summary, Stock movement, Transaction detail): the
    standard `OperationalTable`; columns whose filled cells are all numbers are right-aligned
    (`lib/report-cells.ts`); dates read "5 Nov 2026" and local date-times "5 Nov 2026, 17:36" on screen, with the
-   original in `datetime`; the long basis text sits behind a closed "How this report counts" disclosure. Downloads
+   original in `datetime`; identifier columns (SKU, numbers, codes) stay left-aligned even when all digits; the
+   long basis text sits behind a closed "How this report counts (read before comparing totals)" disclosure. Downloads
    and the server rows are unchanged. The owner approved two assertion changes in `branch-reports.test.mjs`
    (the scroll box is now checked through `OperationalTable`, and the stock note is found after
    `</OperationalTable>`). The basis wording itself is DD-14 (Billing).
