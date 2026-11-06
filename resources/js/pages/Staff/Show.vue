@@ -9,7 +9,7 @@ import {
     ShieldCheck,
     UserRound,
 } from '@lucide/vue';
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 import InputError from '@/components/InputError.vue';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -20,7 +20,9 @@ import {
     CardHeader,
     CardTitle,
 } from '@/components/ui/card';
+import { PageHeader } from '@/components/ui/page-header';
 import { formatAuditEventLabel, formatRoleLabel } from '@/lib/displayLabels';
+import { formatDate, formatDateTime } from '@/lib/presentation';
 import type { StaffDetail, StaffOptions } from '@/types';
 import AssignmentStateBadge from './Partials/AssignmentStateBadge.vue';
 import BranchAssignmentDialog from './Partials/BranchAssignmentDialog.vue';
@@ -44,12 +46,22 @@ const label = (value: string) =>
         .replaceAll('_', ' ')
         .replaceAll('.', ' · ')
         .replace(/\b\w/g, (character) => character.toUpperCase());
+const emailParts = computed(() => {
+    const at = props.staff.email.lastIndexOf('@');
+
+    return at < 0
+        ? { local: props.staff.email, domain: '' }
+        : {
+              local: props.staff.email.slice(0, at),
+              domain: props.staff.email.slice(at + 1),
+          };
+});
+// DD-43: the shared KPOne formats ("1 Jan 2026", "1 Jan 2026, 9:16 AM").
 const date = (value: string | null) =>
     value
-        ? new Intl.DateTimeFormat('en-MY', {
-              dateStyle: 'medium',
-              timeStyle: value.includes('T') ? 'short' : undefined,
-          }).format(new Date(value))
+        ? value.includes('T')
+            ? formatDateTime(value)
+            : formatDate(value)
         : '—';
 const signInLabel = (configuration: StaffDetail['signInConfiguration']) =>
     ({
@@ -81,36 +93,24 @@ const setPrimary = (assignmentId: number) => {
 <template>
     <Head :title="staff.name" />
     <main class="flex flex-1 flex-col gap-5 p-4 md:p-7">
-        <div
-            class="flex flex-col justify-between gap-4 lg:flex-row lg:items-start"
-        >
-            <div class="flex items-start gap-3">
-                <div class="rounded-xl bg-success/10 p-2.5 text-success">
-                    <UserRound class="size-5" />
-                </div>
-                <div>
-                    <div class="flex flex-wrap items-center gap-2">
-                        <h1 class="text-2xl font-semibold tracking-tight">
-                            {{ staff.name }}
-                        </h1>
-                        <Badge
-                            :variant="
-                                staff.isActive ? 'secondary' : 'destructive'
-                            "
-                            :class="
-                                staff.isActive &&
-                                'border-success/25 bg-success/10 text-success hover:bg-success/10'
-                            "
-                            >{{ staff.isActive ? 'Active' : 'Inactive' }}</Badge
-                        >
-                    </div>
-                    <p class="text-sm text-muted-foreground">
-                        {{ staff.staffNumber ?? 'No staff number' }} ·
-                        {{ staff.email }}
-                    </p>
-                </div>
-            </div>
-            <div class="flex flex-wrap gap-2">
+        <PageHeader :title="staff.name">
+            <template #title-extra>
+                <Badge
+                    :variant="staff.isActive ? 'secondary' : 'destructive'"
+                    :class="
+                        staff.isActive &&
+                        'border-success/25 bg-success/10 text-success hover:bg-success/10'
+                    "
+                    >{{ staff.isActive ? 'Active' : 'Inactive' }}</Badge
+                >
+            </template>
+            <template #description>
+                <span class="[overflow-wrap:anywhere]"
+                    >{{ staff.staffNumber ?? 'No staff number' }} ·
+                    {{ staff.email }}</span
+                >
+            </template>
+            <template #actions>
                 <Button variant="outline" as-child
                     ><Link href="/staff"
                         ><ArrowLeft class="size-4" /> Directory</Link
@@ -133,8 +133,8 @@ const setPrimary = (assignmentId: number) => {
                     :staff-name="staff.name"
                     :is-active="staff.isActive"
                 />
-            </div>
-        </div>
+            </template>
+        </PageHeader>
 
         <div
             class="grid gap-5 xl:grid-cols-[minmax(0,1.35fr)_minmax(320px,0.65fr)]"
@@ -155,7 +155,13 @@ const setPrimary = (assignmentId: number) => {
                             >
                                 Work email
                             </div>
-                            <div class="mt-1 text-sm">{{ staff.email }}</div>
+                            <!-- DD-43: wrap a long address after "@" rather than across the next column. -->
+                            <div class="mt-1 text-sm [overflow-wrap:anywhere]">
+                                {{ emailParts.local
+                                }}<template v-if="emailParts.domain"
+                                    >@<wbr />{{ emailParts.domain }}</template
+                                >
+                            </div>
                         </div>
                         <div>
                             <div
@@ -203,7 +209,7 @@ const setPrimary = (assignmentId: number) => {
                             >
                                 Created
                             </div>
-                            <div class="mt-1 text-sm">
+                            <div class="mt-1 text-sm whitespace-nowrap">
                                 {{ date(staff.createdAt) }}
                             </div>
                         </div>
@@ -253,10 +259,13 @@ const setPrimary = (assignmentId: number) => {
                                 </div>
                                 <div class="mt-1 text-xs text-muted-foreground">
                                     {{ label(assignment.assignmentType) }} ·
-                                    {{ assignment.validFrom }} through
-                                    {{ assignment.validUntil ?? 'No end date' }}
-                                    <span v-if="assignment.validUntil">
-                                        (inclusive)</span
+                                    <template v-if="assignment.validUntil"
+                                        >{{ date(assignment.validFrom) }} to
+                                        {{ date(assignment.validUntil) }}
+                                        (inclusive)</template
+                                    ><template v-else
+                                        >From {{ date(assignment.validFrom) }},
+                                        no end date</template
                                     >
                                 </div>
                             </div>
@@ -375,7 +384,9 @@ const setPrimary = (assignmentId: number) => {
                             </div>
                             <div class="text-xs text-muted-foreground">
                                 {{ entry.actor ?? 'System' }} ·
-                                {{ date(entry.occurredAt) }}
+                                <span class="whitespace-nowrap">{{
+                                    date(entry.occurredAt)
+                                }}</span>
                             </div>
                         </div>
                         <Button variant="outline" size="sm" as-child
