@@ -32,3 +32,18 @@ test('The payment box on a card is 44 px tall on phones and tablets', () => {
     );
     assert.match(cards, /<input[^>]*class="h-9 w-32[^"]*max-lg:h-11"/s);
 });
+
+test('Each card shows a visible "This payment (RM)" label around its box', () => {
+    const cards = page.slice(
+        page.indexOf('class="divide-y rounded-xl border lg:hidden"'),
+        page.indexOf('lg:block'),
+    );
+    assert.match(
+        cards,
+        /<label[^>]*data-testid="split-card-payment-label"\s*>\s*This payment \(RM\)\s*<input/,
+    );
+    assert.match(
+        cards,
+        /:aria-label="`Amount of this payment for claim \$\{claim\.claimNo\}`"/,
+    );
+});
