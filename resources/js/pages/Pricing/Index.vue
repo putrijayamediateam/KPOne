@@ -1,8 +1,15 @@
 <script setup lang="ts">
 import { Link, router, useForm, usePage } from '@inertiajs/vue3';
+import { Ellipsis } from '@lucide/vue';
 import { reactive } from 'vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { PageHeader } from '@/components/ui/page-header';
@@ -374,10 +381,39 @@ const toggleCharge = (charge: ChargeRow) => {
                             {{ charge.code }} · {{ typeLabel(charge.type) }}
                         </p>
                     </div>
-                    <StatusBadge
-                        :status="charge.isActive ? 'active' : 'inactive'"
-                        :tone="charge.isActive ? 'success' : 'neutral'"
-                    />
+                    <div class="flex shrink-0 items-center gap-1">
+                        <StatusBadge
+                            :status="charge.isActive ? 'active' : 'inactive'"
+                            :tone="charge.isActive ? 'success' : 'neutral'"
+                        />
+                        <DropdownMenu>
+                            <DropdownMenuTrigger as-child>
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    class="min-h-11 min-w-11"
+                                    :aria-label="`More actions for ${charge.displayName}`"
+                                    data-action="charge-card-menu"
+                                >
+                                    <Ellipsis
+                                        class="size-4"
+                                        aria-hidden="true"
+                                    />
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" class="w-48">
+                                <DropdownMenuItem
+                                    class="min-h-11"
+                                    @select="toggleCharge(charge)"
+                                    >{{
+                                        charge.isActive
+                                            ? 'Deactivate'
+                                            : 'Activate'
+                                    }}</DropdownMenuItem
+                                >
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                    </div>
                 </div>
                 <div class="flex items-center justify-between gap-3 text-sm">
                     <span class="text-muted-foreground">Current price</span>
@@ -440,12 +476,16 @@ const toggleCharge = (charge: ChargeRow) => {
                     </Button>
                 </div>
                 <Button
+                    variant="ghost"
                     class="min-h-11 w-full"
-                    :variant="charge.isActive ? 'ghost' : 'secondary'"
-                    :aria-label="`${charge.isActive ? 'Deactivate' : 'Activate'} ${charge.displayName}`"
-                    @click="toggleCharge(charge)"
+                    as-child
+                    data-action="price-history"
                 >
-                    {{ charge.isActive ? 'Deactivate' : 'Activate' }}
+                    <Link
+                        :href="`/pricing/charges/${charge.publicId}/history`"
+                        :aria-label="`Price history for ${charge.displayName}`"
+                        >Price history</Link
+                    >
                 </Button>
             </article>
         </section>
@@ -553,18 +593,45 @@ const toggleCharge = (charge: ChargeRow) => {
                                 />
                                 <Button
                                     size="sm"
-                                    :variant="
-                                        charge.isActive ? 'ghost' : 'secondary'
-                                    "
-                                    :aria-label="`${charge.isActive ? 'Deactivate' : 'Activate'} ${charge.displayName}`"
-                                    @click="toggleCharge(charge)"
+                                    variant="ghost"
+                                    as-child
+                                    data-action="price-history"
                                 >
-                                    {{
-                                        charge.isActive
-                                            ? 'Deactivate'
-                                            : 'Activate'
-                                    }}
+                                    <Link
+                                        :href="`/pricing/charges/${charge.publicId}/history`"
+                                        :aria-label="`Price history for ${charge.displayName}`"
+                                        >Price history</Link
+                                    >
                                 </Button>
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger as-child>
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            class="size-8"
+                                            :aria-label="`More actions for ${charge.displayName}`"
+                                            data-action="charge-row-menu"
+                                        >
+                                            <Ellipsis
+                                                class="size-4"
+                                                aria-hidden="true"
+                                            />
+                                        </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent
+                                        align="end"
+                                        class="w-48"
+                                    >
+                                        <DropdownMenuItem
+                                            @select="toggleCharge(charge)"
+                                            >{{
+                                                charge.isActive
+                                                    ? 'Deactivate'
+                                                    : 'Activate'
+                                            }}</DropdownMenuItem
+                                        >
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
                             </div>
                         </td>
                     </tr>
