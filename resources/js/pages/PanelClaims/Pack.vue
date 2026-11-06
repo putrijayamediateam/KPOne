@@ -328,6 +328,13 @@ const print = () => window.print();
                 <div class="pack-table-frame">
                     <table class="pack-table" aria-label="Invoice items">
                         <thead>
+                            <!-- PNL-12: printed only; repeats on every page of a long claim so a loose page can be matched. -->
+                            <tr class="pack-ref" data-testid="pack-ref">
+                                <th colspan="5" scope="colgroup">
+                                    Panel claim {{ claim.claimNo }} ·
+                                    {{ claim.invoiceNumber }}
+                                </th>
+                            </tr>
                             <tr>
                                 <th scope="col">Item</th>
                                 <th scope="col" class="pack-optional">Code</th>
@@ -488,6 +495,21 @@ const print = () => window.print();
 }
 .pack-table thead {
     display: table-header-group;
+}
+.pack-table .pack-ref {
+    display: none;
+}
+.pack-table .pack-ref th {
+    border: 0;
+    padding: 0 0 0.25rem;
+    font-size: 0.75rem;
+    font-weight: 400;
+    text-align: left;
+}
+@media print {
+    .pack-table .pack-ref {
+        display: table-row;
+    }
 }
 .pack-table tr {
     break-inside: avoid;
