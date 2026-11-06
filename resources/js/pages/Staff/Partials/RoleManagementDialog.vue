@@ -59,7 +59,7 @@ const submit = () =>
                     >
                         <input
                             type="checkbox"
-                            class="mt-0.5 size-4 accent-emerald-700"
+                            class="mt-0.5 size-4 accent-success"
                             :checked="form.roles.includes(role)"
                             @change="
                                 toggle(
