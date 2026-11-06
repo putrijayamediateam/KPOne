@@ -814,7 +814,7 @@ const changeHoldState = (action: 'hold' | 'resume') => {
                     </p>
                     <div
                         v-if="canCallNextWhileHeld"
-                        class="shrink-0 sm:max-w-sm"
+                        class="shrink-0 sm:max-w-sm [&_#call-next-reason]:text-warning-strong"
                     >
                         <HeldCallNext
                             :branch-id="clinical.branch.id"

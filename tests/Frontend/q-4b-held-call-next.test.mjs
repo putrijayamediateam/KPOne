@@ -16,7 +16,7 @@ test('the consultation page offers Call next only inside the held notice, for th
     );
     assert.match(
         show,
-        /<div\s*v-if="canCallNextWhileHeld"\s*class="shrink-0 sm:max-w-sm"\s*>\s*<HeldCallNext\s*:branch-id="clinical\.branch\.id"\s*:visit-number="clinical\.visit\.visitNumber"[\s\S]*?@available="callNextAvailable = \$event"/,
+        /<div\s*v-if="canCallNextWhileHeld"\s*class="shrink-0 sm:max-w-sm \[&_#call-next-reason\]:text-warning-strong"\s*>\s*<HeldCallNext\s*:branch-id="clinical\.branch\.id"\s*:visit-number="clinical\.visit\.visitNumber"[\s\S]*?@available="callNextAvailable = \$event"/,
     );
     assert.match(
         show,
