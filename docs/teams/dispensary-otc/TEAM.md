@@ -94,7 +94,8 @@ coordinator at the owner's request (2026-11-05); the designer was added by owner
 | DSP-6 | Label print log: each press of "Print current labels" that passes the fresh check logs who printed which line's label and when (append-only `dispensary_label_prints`, per-line print number, audit with counts only, no label content); a line printed before carries a small boxed REPRINT at the end of the last row (outside the line budget) and the preview says so; label pages throttled 30 a minute; migration `2026_11_06_200100` | #261 (merged `0df2ed8`) |
 | DSP-7 | Medicine returns after dispensing: record (CA, CA Supervisor; quantity, fixed reason, encrypted note for Other, condition; no stock change) and check (a CA Supervisor who did not record it: Dispose, Quarantine to a patient returns location through STK-11's `dispensary_return` movement, or Refuse with a fixed reason); controlled medicines never quarantined; append-only `dispensary_returns` and `dispensary_return_checks` (migrations `2026_11_06_200200`, `2026_11_07_000500`); Completed page gets PageHeader and a Medicine returns section | #288 (merged `88c2ae1`) |
 | DSP-8 | Dispensary pages on phones and tablets: at 768 px the medicine and service line grids (2 columns there) had rows spanning 3 or 4 columns, so the browser added near-zero-width columns and Quantity, Dosage, Route and Precaution became 18 px slivers with overlapping labels; rows now span the full width (or 2, then 3 on wide screens). On phones (below 640 px) every button, text field and dropdown on the Dispensary, Completed and label preview pages is at least 44 px tall; wide screens unchanged. Also the "1 of these labels was printed before" wording, and the OTC allergy card now says the check also uses catalogue drug groups | #273 (merged `b078be4`) |
-| DD-24 to DD-27 | Design debt from DSP-8: 44 px controls below 1024 px too (tablets); the case page uses PageHeader "Dispensary" and only the patient card names the patient (h2, labelled KP number, Visit, Doctor); batch options lead with "N unit on hand · exp 30 Oct 2027" plus a "Selected:" line under the dropdown; the Added/Edited by CA chips are `StatusBadge` accent | pending (branch `fix/dsp-dd-24-27-design-debt`) |
+| DD-24 to DD-27 | Design debt from DSP-8: 44 px controls below 1024 px too (tablets); the case page uses PageHeader "Dispensary" and only the patient card names the patient (h2, labelled KP number, Visit, Doctor); batch options lead with "N unit on hand · exp 30 Oct 2027" plus a "Selected:" line under the dropdown; the Added/Edited by CA chips are `StatusBadge` accent | #308 (`4c95234`) |
+| Print label | The single-label button reads "Print label" (sentence case, Daniel's nit from DD-24 to DD-27); the `TreatmentPlanTest` pin and the printer test updated | pending (branch `fix/dsp-print-label-casing`) |
 
 ## 6. Owner decisions already made (never ask again)
 
@@ -170,6 +171,11 @@ coordinator at the owner's request (2026-11-05); the designer was added by owner
     1023.98px (in this team's session). Daniel: title "Dispensary" with the patient as an h2 in the card; quantity
     without trailing zeros and the expiry as "30 Oct 2027"; the Selected line at every width; StatusBadge accent.
     The same pink chip on the Invoices page is DD-33 (Billing's).
+24. "Print label" (2026-11-06): the owner approved the one-word fix ("go with the Print label fix and the guide
+    handoff"), including the `TreatmentPlanTest` line 400 pin changing from 'Print Label' to 'Print label'. The
+    Malay CA guide update (the OTC allergy step starts with no choice made; the button now reads "Print label") is
+    handed to Staff Experience through the coordinator, because that team owns `docs/guides/ms/`. (Decision 23 is
+    DSP-6b, on its own branch.)
 
 ## 7. Open items and known limits
 

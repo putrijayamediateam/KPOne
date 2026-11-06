@@ -397,7 +397,8 @@ class TreatmentPlanTest extends ClinicalTestCase
         }
         $workspace = file_get_contents(resource_path('js/pages/Dispensary/Show.vue'));
         $this->assertStringContainsString('Print all labels', $workspace);
-        $this->assertStringContainsString('Print Label', $workspace);
+        // Owner-approved 2026-11-06 (Daniel's sentence-case nit): the single-label button reads "Print label".
+        $this->assertStringContainsString('Print label', $workspace);
         $board = file_get_contents(resource_path('js/components/patient-board/PatientBoard.vue'));
         $this->assertStringContainsString('returnedFromDispensary', $board);
         $this->assertStringContainsString('Returned', $board);
