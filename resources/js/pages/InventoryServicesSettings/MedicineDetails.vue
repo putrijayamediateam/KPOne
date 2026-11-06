@@ -231,11 +231,6 @@ const labelError = (index: number) =>
             class="flex flex-wrap gap-2 md:flex-col"
         >
             <span
-                aria-disabled="true"
-                class="rounded-md px-4 py-3 text-sm font-medium text-muted-foreground"
-                >Price tier</span
-            >
-            <span
                 aria-current="page"
                 class="rounded-md bg-muted px-4 py-3 text-sm font-semibold"
                 >Medicine details</span

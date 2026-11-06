@@ -3,6 +3,8 @@
 namespace App\Domain\HR\Records\Services;
 
 use App\Domain\HR\Records\Models\BankDetail;
+use App\Domain\HR\Records\Models\ChecklistItem;
+use App\Domain\HR\Records\Models\Document;
 use App\Domain\HR\Records\Models\EmploymentPeriod;
 use App\Domain\HR\Records\Models\PersonalDetails;
 use App\Domain\HR\Records\Models\RecordCorrection;
@@ -34,6 +36,7 @@ final class RecordsPageService
     {
         $canOwn = $actor->can(RecordPermissions::VIEW_OWN);
         $canFiles = $actor->can(RecordPermissions::VIEW_ORGANISATION);
+        $canManage = $actor->can(RecordPermissions::MANAGE);
         $tabs = array_keys(array_filter(['my' => $canOwn, 'files' => $canFiles]));
         $tab = in_array($query['tab'] ?? null, $tabs, true) ? (string) $query['tab'] : ($tabs[0] ?? 'my');
 
@@ -45,13 +48,15 @@ final class RecordsPageService
             // Your own unmasked values load only on your own tab (Suresh, M9).
             'my' => $canOwn && $tab === 'my' ? $this->my($actor) : null,
             'files' => $canFiles && $tab === 'files' ? $this->files($actor, $query) : null,
+            // HR-4b settings (retention and checklist items) sit under Staff files, for managers.
+            'settings' => $canManage && $tab === 'files' ? $this->settings($actor) : null,
         ];
     }
 
     /** @return array<string, mixed> */
     public function file(User $actor, Worker $worker, mixed $tab): array
     {
-        $tab = in_array($tab, ['employment', 'personal', 'bank'], true) ? $tab : 'employment';
+        $tab = in_array($tab, ['employment', 'personal', 'bank', 'documents', 'checklist'], true) ? $tab : 'employment';
         $today = $this->today($actor);
         $periods = EmploymentPeriod::query()->where('worker_id', $worker->id)->orderByDesc('starts_on')->get();
         $personal = PersonalDetails::query()->where('worker_id', $worker->id)->first();
@@ -97,6 +102,9 @@ final class RecordsPageService
                 'recorded' => $this->recordedMask($c->kind, $personal, $confirmed), 'new' => $this->newMask($c),
                 'askedBy' => $names[$c->asked_by_user_id] ?? 'Staff member', 'askedAt' => $c->created_at->toIso8601String(), 'lockVersion' => $c->lock_version,
             ])->values()->all(),
+            'canOpenDocuments' => $actor->can(RecordPermissions::DOCUMENTS_VIEW),
+            'documents' => $this->documents($worker, $today),
+            'checklist' => $tab === 'checklist' ? $this->checklist($worker, $periods) : null,
             'changes' => DB::table('hr_record_changes as c')->join('users as u', 'u.id', '=', 'c.changed_by_user_id')->where('c.worker_id', $worker->id)
                 ->orderByDesc('c.id')->limit(20)->get(['c.area', 'c.fields', 'c.reason_code', 'c.created_at', 'u.name'])
                 ->map(fn (object $r): array => ['area' => (string) $r->area, 'fields' => json_decode((string) $r->fields, true), 'reason' => $r->reason_code,
@@ -139,6 +147,8 @@ final class RecordsPageService
                 'lockVersion' => $personal !== null ? $personal->lock_version : 0,
             ],
             'bank' => $bank === null ? null : ['bankName' => $bank->bank_name_encrypted, 'holder' => $bank->holder_encrypted, 'account' => $bank->account_encrypted],
+            'workerId' => $worker->public_id,
+            'documents' => $this->documents($worker, $today),
             'corrections' => RecordCorrection::query()->where('worker_id', $worker->id)->orderByDesc('id')->limit(20)->get()->map(fn (RecordCorrection $c): array => [
                 'id' => $c->public_id, 'kind' => $c->kind, 'kindLabel' => RecordCorrectionService::KINDS[$c->kind] ?? $c->kind, 'status' => $c->status,
                 'reasonLabel' => RecordCorrectionService::REASONS[$c->reason_code] ?? $c->reason_code,
@@ -208,6 +218,8 @@ final class RecordsPageService
             'correctionReasons' => $pairs(RecordCorrectionService::REASONS),
             'correctionRejectReasons' => $pairs(RecordCorrectionService::REJECT_REASONS),
             'bankRejectReasons' => $pairs(BankDetailService::REJECT_REASONS),
+            'documentCategories' => $pairs(DocumentService::CATEGORIES),
+            'documentRemovalReasons' => $pairs(DocumentService::REMOVAL_REASONS),
             'departments' => DB::table('departments')->where('organisation_id', $actor->organisation_id)->where('is_active', true)->orderBy('name')->get(['id', 'name'])
                 ->map(fn (object $d): array => ['id' => (int) $d->id, 'name' => (string) $d->name])->all(),
         ];
@@ -263,6 +275,93 @@ final class RecordsPageService
         }
 
         return $out;
+    }
+
+    /** @return array<int, array<string, mixed>> Active documents, newest first; names and dates only, never content. */
+    private function documents(Worker $worker, CarbonImmutable $today): array
+    {
+        $docs = Document::query()->where('worker_id', $worker->id)->where('status', 'active')->orderByDesc('id')->get();
+        $names = $this->names(array_map(fn ($id): int => (int) $id, $docs->pluck('uploaded_by_user_id')->all()));
+
+        return $docs->map(fn (Document $d): array => [
+            'id' => $d->public_id, 'category' => $d->category, 'categoryLabel' => DocumentService::CATEGORIES[$d->category] ?? $d->category,
+            'issuedOn' => $d->issued_on?->toDateString(), 'expiresOn' => $d->expires_on?->toDateString(), 'expiry' => $this->expiry($d->expires_on, $today),
+            'kind' => $d->kind, 'size' => $this->size($d->bytes), 'uploadedBy' => $names[$d->uploaded_by_user_id] ?? 'Staff member',
+            'uploadedAt' => $d->created_at->toIso8601String(), 'lockVersion' => $d->lock_version,
+        ])->values()->all();
+    }
+
+    /** "Expires in 30 days", "Expires today", "Expired 3 days ago" (Daniel); only within 30 days or after. */
+    private function expiry(?CarbonImmutable $expires, CarbonImmutable $today): ?string
+    {
+        if ($expires === null) {
+            return null;
+        }
+        $days = (int) $today->diffInDays($expires->startOfDay(), false);
+        if ($days < 0) {
+            return abs($days) === 1 ? 'Expired yesterday' : 'Expired '.abs($days).' days ago';
+        }
+        if ($days === 0) {
+            return 'Expires today';
+        }
+
+        return $days <= 30 ? ($days === 1 ? 'Expires tomorrow' : "Expires in {$days} days") : null;
+    }
+
+    private function size(int $bytes): string
+    {
+        return $bytes >= 1024 * 1024 ? number_format($bytes / 1024 / 1024, 1).' MB' : max(1, (int) round($bytes / 1024)).' KB';
+    }
+
+    /**
+     * Each period offers the onboarding list, and the offboarding list once it has an end date. Archived items show only
+     * where they were already ticked.
+     *
+     * @param  Collection<int, EmploymentPeriod>  $periods
+     * @return array<int, array<string, mixed>>
+     */
+    private function checklist(Worker $worker, Collection $periods): array
+    {
+        $items = ChecklistItem::query()->where('organisation_id', $worker->organisation_id)->orderBy('position')->get();
+        $ticks = DB::table('hr_checklist_ticks as t')->join('users as u', 'u.id', '=', 't.ticked_by_user_id')
+            ->whereIn('t.period_id', $periods->pluck('id')->all())->get(['t.period_id', 't.item_id', 't.ticked_at', 'u.name'])
+            ->groupBy(fn (object $t): string => $t->period_id.':'.$t->item_id);
+        $list = function (EmploymentPeriod $p, string $which) use ($items, $ticks): array {
+            return $items->where('list', $which)->filter(fn (ChecklistItem $i): bool => $i->is_active || $ticks->has($p->id.':'.$i->id))
+                ->map(function (ChecklistItem $i) use ($p, $ticks): array {
+                    $tick = $ticks->get($p->id.':'.$i->id)?->first();
+
+                    return ['id' => $i->public_id, 'label' => $i->label, 'aboutAccount' => $i->about_account,
+                        'ticked' => $tick === null ? null : ['by' => (string) $tick->name, 'at' => CarbonImmutable::parse((string) $tick->ticked_at)->toIso8601String()]];
+                })->values()->all();
+        };
+
+        return $periods->map(fn (EmploymentPeriod $p): array => [
+            'periodId' => $p->public_id, 'typeLabel' => StaffFileService::TYPES[$p->type] ?? $p->type, 'startsOn' => $p->starts_on->toDateString(),
+            'endsOn' => $p->ends_on?->toDateString(), 'onboarding' => $list($p, 'onboarding'), 'offboarding' => $p->ends_on === null ? null : $list($p, 'offboarding'),
+        ])->values()->all();
+    }
+
+    /** @return array<string, mixed> Retention per category and the checklist items (HR-4b settings). */
+    private function settings(User $actor): array
+    {
+        $retentions = DB::table('hr_document_retentions')->where('organisation_id', $actor->organisation_id)->get()->keyBy('category');
+        $today = $this->today($actor)->toDateString();
+
+        return [
+            'graceDays' => DocumentService::GRACE_DAYS,
+            'retentions' => collect(DocumentService::CATEGORIES)->map(function (string $label, string $code) use ($retentions, $today): array {
+                $row = $retentions[$code] ?? null;
+                $pending = $row !== null && $row->pending_days !== null && substr((string) $row->pending_from, 0, 10) > $today ? $row : null;
+
+                return ['category' => $code, 'label' => $label, 'days' => $row === null ? null : DocumentService::effectiveDays($row, $today),
+                    'pendingDays' => $pending === null ? null : (int) $pending->pending_days, 'pendingFrom' => $pending === null ? null : substr((string) $pending->pending_from, 0, 10),
+                    'lockVersion' => $row === null ? 0 : (int) $row->lock_version];
+            })->values()->all(),
+            'items' => ChecklistItem::query()->where('organisation_id', $actor->organisation_id)->where('is_active', true)->orderBy('position')->get()
+                ->map(fn (ChecklistItem $i): array => ['id' => $i->public_id, 'list' => $i->list, 'label' => $i->label, 'aboutAccount' => $i->about_account,
+                    'lockVersion' => $i->lock_version])->values()->all(),
+        ];
     }
 
     /**
