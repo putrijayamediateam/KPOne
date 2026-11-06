@@ -2,9 +2,6 @@
 
 namespace App\Domain\Shared\Services;
 
-use App\Domain\Access\BranchAccessService;
-use App\Domain\Access\TransactionalActorAuthority;
-use App\Domain\Audit\AuditRecorder;
 use App\Domain\Organisation\Models\Branch;
 use App\Domain\Visit\Billing\Models\Payment;
 use App\Domain\Visit\Billing\Models\PaymentMethod;
@@ -14,112 +11,122 @@ use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Validator;
-use Illuminate\Validation\Rule;
-use Illuminate\Validation\ValidationException;
+use LogicException;
 
-/** Receipt rows are the owner's separate patient-level exception, never aggregate Insights. */
-class TransactionReportService
+/** Receipt rows are the owner's separate patient-level exception, never aggregate Insights. Runs on the shared branch report boundary (BIL-8). */
+class TransactionReportService extends BranchReportService
 {
     public const VIEW = 'reports.transactions.view.branch';
 
     public const EXPORT = 'reports.transactions.export.branch';
 
-    public const PAGE_SIZE = 20;
-
     public const BASIS = 'Original receipt date in the branch timezone, not invoice finalisation. Whole receipt amounts use the same posted/reversed cohort as receipt reconciliation: original, recording-reversed and net are explicit. A recording reversal is not evidence of a cash refund; later reversals restate the original receipt date. Current patient names and governed classification; payment-method names are receipt snapshots. Not classified counts as Non-cash. One row per receipt, even if several invoice references exist. Unallocated receipts remain included for money reconciliation but patient identity is masked and no invoice/visit is invented. Visit-type filters select any linked invoice and keep the whole receipt; separately filtered cohorts can overlap. Current records at generation, not an issued snapshot. MYR, two decimals. Empty periods have no patient rows.';
 
-    /** @param array<string,mixed> $input
-     * @return array<string,mixed>
-     */
-    public function execute(User $actor, array $input = [], bool $run = false, bool $download = false): array
+    public function key(): string
     {
-        return DB::transaction(function () use ($actor, $input, $run, $download): array {
-            if (DB::getDriverName() === 'pgsql' && DB::transactionLevel() === 1) {
-                DB::statement('SET TRANSACTION ISOLATION LEVEL REPEATABLE READ');
-            }
-            $branch = app(BranchAccessService::class)->activeBranch($actor);
-            abort_unless($branch && $branch->is_active && DB::table('organisations')->where('id', $branch->organisation_id)->where('is_active', true)->exists(), 403);
-            $actor = app(TransactionalActorAuthority::class)->lock($actor, $branch, self::VIEW);
-            $grants = $actor->getAllPermissions()->pluck('name');
-            abort_unless($grants->contains(self::VIEW) && (! $download || $grants->contains(self::EXPORT)), 403);
-            $methods = PaymentMethod::query()->where('organisation_id', $actor->organisation_id)->orderBy('name')->get(['id', 'code', 'name', 'classification'])->keyBy('id');
-            $options = $methods->map(fn ($m): array => ['value' => (string) $m->id, 'label' => $m->name])->values()->all();
-            $yesterday = CarbonImmutable::now($branch->timezone)->subDay()->toDateString();
-            $filters = Validator::make($input + ['from' => $yesterday, 'to' => $yesterday, 'methods' => [], 'visit_types' => [], 'page' => 1], [
-                'expected_branch_id' => [$run || $download ? 'required' : 'sometimes', 'integer', 'in:'.$branch->id], 'from' => ['required', 'date_format:Y-m-d'], 'to' => ['required', 'date_format:Y-m-d', 'after_or_equal:from'],
-                'methods' => ['array', 'max:100'], 'methods.*' => ['string', 'distinct', Rule::in(array_column($options, 'value'))], 'visit_types' => ['array', 'max:2'], 'visit_types.*' => ['string', 'distinct', Rule::in(['consultation', 'otc'])], 'page' => ['required', 'integer', 'min:1'],
-                'branch' => ['prohibited'], 'doctor' => ['prohibited'], 'treatment' => ['prohibited'], 'diagnosis' => ['prohibited'],
-            ])->validate();
-            if (CarbonImmutable::parse($filters['from'])->diffInDays(CarbonImmutable::parse($filters['to'])) >= 31) {
-                throw ValidationException::withMessages(['to' => 'Choose at most 31 local dates.']);
-            }
-            $filters['expected_branch_id'] = $branch->id;
-            $base = ['title' => 'Transaction Detail', 'basis' => self::BASIS, 'endpoint' => '/reports/transactions', 'branch' => ['id' => $branch->id, 'name' => $branch->name, 'timezone' => $branch->timezone], 'canExport' => $grants->contains(self::EXPORT), 'options' => ['methods' => $options, 'visit_types' => [['value' => 'consultation', 'label' => 'Consultation'], ['value' => 'otc', 'label' => 'Medicine-only (OTC)']]], 'filters' => $filters, 'result' => null];
-            if (! $run && ! $download) {
-                return $base;
-            }
-            $query = $this->query($actor, $branch, $filters);
-            $count = (clone $query)->count();
-            // Count after filters, before personal-data preparation or streaming.
-            if ($download && $count > ReportCsv::MAX_ROWS) {
-                throw ValidationException::withMessages(['export' => 'More than 5,000 receipts match. Narrow the filters.']);
-            }
-            $page = (int) $filters['page'];
-            $pages = max(1, (int) ceil($count / self::PAGE_SIZE));
-            if (! $download && $page > $pages) {
-                throw ValidationException::withMessages(['page' => 'This page is unavailable. Run the report again.']);
-            }
-            $sums = ['Original receipts (MYR)' => 0, 'Reversed receipts (MYR)' => 0, 'Net received (MYR)' => 0, 'Cash net received (MYR)' => 0, 'Non-cash net received (MYR)' => 0];
-            foreach ((clone $query)->orderBy('id')->select(['amount_sen', 'status', 'payment_method_id'])->cursor() as $receipt) {
-                $method = $methods->get($receipt->payment_method_id);
-                abort_unless($method !== null, 409, 'Receipt method evidence requires review.');
-                $amounts = PostedReceiptProjection::amounts($receipt->amount_sen, $receipt->status);
-                $sums['Original receipts (MYR)'] += $amounts['receiptsSen'];
-                $sums['Reversed receipts (MYR)'] += $amounts['reversedSen'];
-                $sums['Net received (MYR)'] += $amounts['netSen'];
-                $key = $method->reportClassification() === 'cash' ? 'Cash net received (MYR)' : 'Non-cash net received (MYR)';
-                $sums[$key] += $amounts['netSen'];
-            }
-            $totals = array_map(ReportCsv::money(...), $sums);
-            $selected = (clone $query)->orderBy('received_at')->orderBy('id');
-            if (! $download) {
-                $selected->offset(($page - 1) * self::PAGE_SIZE)->limit(self::PAGE_SIZE);
-            }
-            $columns = ['Row', 'Local receipt date/time', 'KPOne patient number', 'Patient name (current)', 'Visit number(s)', 'Invoice number(s)', 'Payment method (receipt snapshot)', 'Classification (current)', 'Original receipt (MYR)', 'Reversed (MYR)', 'Net received (MYR)', 'Status'];
-            if ($download) {
-                array_splice($columns, 6, 0, ['Payment method code']);
-            }
-            $rows = [];
-            $position = $download ? 0 : ($page - 1) * self::PAGE_SIZE;
-            $receipts = $selected->get(['id', 'organisation_id', 'branch_id', 'patient_id', 'payment_method_id', 'received_at', 'method_snapshot', 'amount_sen', 'status']);
-            $identities = $this->identities($receipts);
-            foreach ($receipts as $receipt) {
-                $receipt->setRelation('transactionReportIdentity', $identities[$receipt->id]);
-                $method = $methods->get($receipt->payment_method_id);
-                abort_unless($method !== null, 409, 'Receipt method evidence requires review.');
-                [$number, $name, $visits, $invoices] = $this->identity($receipt);
-                $amounts = PostedReceiptProjection::amounts($receipt->amount_sen, $receipt->status);
-                $classification = $method->classification === null ? 'Not classified (Non-cash)' : ($method->reportClassification() === 'cash' ? 'Cash' : 'Non-cash');
-                $row = [(string) ++$position, $receipt->received_at->setTimezone($branch->timezone)->format('Y-m-d H:i:s'), $number, $name, $visits, $invoices, $receipt->method_snapshot, $classification, ReportCsv::money($amounts['receiptsSen']), ReportCsv::money($amounts['reversedSen']), ReportCsv::money($amounts['netSen']), $receipt->status === 'posted' ? 'Posted' : 'Reversed (recording reversal)'];
-                if ($download) {
-                    array_splice($row, 6, 0, [$method->code]);
-                }
-                $rows[] = $row;
-            }
-            $generated = now()->utc()->toIso8601String();
-            $file = null;
-            if ($download) {
-                $metadata = [['Report', 'Transaction Detail'], ['Branch', $branch->name], ['Timezone', $branch->timezone], ['From', $filters['from']], ['To', $filters['to']], ['Generated at UTC', $generated], ['Currency', 'MYR'], ['Basis', self::BASIS], ['Payment method IDs', implode('; ', $filters['methods']) ?: 'all'], ['Visit types', implode('; ', $filters['visit_types']) ?: 'all'], ['Rows', (string) $count]];
-                foreach ($totals as $label => $value) {
-                    $metadata[] = ['Total '.$label, $value];
-                }
-                $file = ['name' => 'transactions_'.$filters['from'].'_'.$filters['to'].'.csv', 'csv' => ReportCsv::encode($columns, $rows, $metadata)];
-            }
-            abort_if(app(AuditRecorder::class)->record('reports.transactions'.($download ? '.exported' : '.viewed'), null, ['dataset' => 'transactions', 'branch_id' => $branch->id, 'from' => $filters['from'], 'to' => $filters['to'], 'methods' => $filters['methods'], 'visit_types' => $filters['visit_types'], 'page' => $download ? null : $page, 'row_count' => count($rows)], $actor) === null, 503, 'Unable to audit report access. Try again later.');
+        return 'transactions';
+    }
 
-            return $download ? $file : [...$base, 'result' => ['generatedAt' => $generated, 'count' => $count, 'page' => $page, 'pages' => $pages, 'columns' => $columns, 'rows' => $rows, 'totals' => $totals]];
-        }, 3);
+    public function title(): string
+    {
+        return 'Transaction Detail';
+    }
+
+    public function basis(): string
+    {
+        return self::BASIS;
+    }
+
+    protected function tooManyRowsMessage(): string
+    {
+        return 'More than 5,000 receipts match. Narrow the filters.';
+    }
+
+    /** Kept as Transaction Detail always sent its filters: the method and visit-type lists before the page. */
+    protected function filterRules(array $rules): array
+    {
+        $page = ['page' => $rules['page']];
+        unset($rules['page']);
+        $first = array_intersect_key($rules, array_flip(['expected_branch_id', 'from', 'to', 'methods', 'methods.*', 'visit_types', 'visit_types.*']));
+
+        return $first + $page + $rules;
+    }
+
+    protected function filterDefaults(string $yesterday): array
+    {
+        return ['from' => $yesterday, 'to' => $yesterday, 'methods' => [], 'visit_types' => [], 'page' => 1];
+    }
+
+    protected function extraMetadata(): array
+    {
+        return [['Currency', 'MYR']];
+    }
+
+    /**
+     * Count after filters and refuse (cap, unavailable page) before any personal data is prepared; then read patient
+     * identity only for the page shown, or for the capped download.
+     */
+    protected function window(User $actor, Branch $branch, array $filters, int $page, bool $download): array
+    {
+        $query = $this->query($actor, $branch, $filters);
+        $count = (clone $query)->count();
+        $this->guardWindow($count, $page, $download);
+
+        return ['count' => $count, ...$this->rows($actor, $branch, $query, $download ? null : $page, $download)];
+    }
+
+    /** Never used: reading every receipt's patient without the count, cap and page checks is not allowed here. */
+    protected function project(User $actor, Branch $branch, array $filters): array
+    {
+        throw new LogicException('Transaction Detail always goes through window().');
+    }
+
+    /**
+     * @param  Builder<Payment>  $query
+     * @return array{columns:list<string>,rows:list<list<string>>,totals:array<string,string>}
+     */
+    private function rows(User $actor, Branch $branch, Builder $query, ?int $page, bool $download): array
+    {
+        $methods = PaymentMethod::query()->where('organisation_id', $actor->organisation_id)->orderBy('name')->get(['id', 'code', 'name', 'classification'])->keyBy('id');
+        $sums = ['Original receipts (MYR)' => 0, 'Reversed receipts (MYR)' => 0, 'Net received (MYR)' => 0, 'Cash net received (MYR)' => 0, 'Non-cash net received (MYR)' => 0];
+        foreach ((clone $query)->orderBy('id')->select(['amount_sen', 'status', 'payment_method_id'])->cursor() as $receipt) {
+            $method = $methods->get($receipt->payment_method_id);
+            abort_unless($method !== null, 409, 'Receipt method evidence requires review.');
+            $amounts = PostedReceiptProjection::amounts($receipt->amount_sen, $receipt->status);
+            $sums['Original receipts (MYR)'] += $amounts['receiptsSen'];
+            $sums['Reversed receipts (MYR)'] += $amounts['reversedSen'];
+            $sums['Net received (MYR)'] += $amounts['netSen'];
+            $key = $method->reportClassification() === 'cash' ? 'Cash net received (MYR)' : 'Non-cash net received (MYR)';
+            $sums[$key] += $amounts['netSen'];
+        }
+        $totals = array_map(ReportCsv::money(...), $sums);
+        $selected = (clone $query)->orderBy('received_at')->orderBy('id');
+        if ($page !== null) {
+            $selected->offset(($page - 1) * self::PAGE_SIZE)->limit(self::PAGE_SIZE);
+        }
+        $columns = ['Row', 'Local receipt date/time', 'KPOne patient number', 'Patient name (current)', 'Visit number(s)', 'Invoice number(s)', 'Payment method (receipt snapshot)', 'Classification (current)', 'Original receipt (MYR)', 'Reversed (MYR)', 'Net received (MYR)', 'Status'];
+        if ($download) {
+            array_splice($columns, 6, 0, ['Payment method code']);
+        }
+        $rows = [];
+        $position = $page === null ? 0 : ($page - 1) * self::PAGE_SIZE;
+        $receipts = $selected->get(['id', 'organisation_id', 'branch_id', 'patient_id', 'payment_method_id', 'received_at', 'method_snapshot', 'amount_sen', 'status']);
+        $identities = $this->identities($receipts);
+        foreach ($receipts as $receipt) {
+            $receipt->setRelation('transactionReportIdentity', $identities[$receipt->id]);
+            $method = $methods->get($receipt->payment_method_id);
+            abort_unless($method !== null, 409, 'Receipt method evidence requires review.');
+            [$number, $name, $visits, $invoices] = $this->identity($receipt);
+            $amounts = PostedReceiptProjection::amounts($receipt->amount_sen, $receipt->status);
+            $classification = $method->classification === null ? 'Not classified (Non-cash)' : ($method->reportClassification() === 'cash' ? 'Cash' : 'Non-cash');
+            $row = [(string) ++$position, $receipt->received_at->setTimezone($branch->timezone)->format('Y-m-d H:i:s'), $number, $name, $visits, $invoices, $receipt->method_snapshot, $classification, ReportCsv::money($amounts['receiptsSen']), ReportCsv::money($amounts['reversedSen']), ReportCsv::money($amounts['netSen']), $receipt->status === 'posted' ? 'Posted' : 'Reversed (recording reversal)'];
+            if ($download) {
+                array_splice($row, 6, 0, [$method->code]);
+            }
+            $rows[] = $row;
+        }
+
+        return ['columns' => $columns, 'rows' => $rows, 'totals' => $totals];
     }
 
     /** @param array<string,mixed> $filters

@@ -35,6 +35,67 @@ abstract class BranchReportService
      */
     abstract protected function project(User $actor, Branch $branch, array $filters): array;
 
+    /**
+     * The rows to show: the requested page, or every row for a download. The default projects every row and then
+     * slices. A report that must count and apply the export cap before preparing rows (for example personal data)
+     * overrides this and calls guardWindow() first.
+     *
+     * @param  array<string,mixed>  $filters
+     * @return array{count:int,columns:list<string>,rows:list<list<string>>,totals:array<string,string>}
+     */
+    protected function window(User $actor, Branch $branch, array $filters, int $page, bool $download): array
+    {
+        $data = $this->project($actor, $branch, $filters);
+        $count = count($data['rows']);
+        $this->guardWindow($count, $page, $download);
+
+        return ['count' => $count, 'columns' => $data['columns'], 'rows' => $download ? $data['rows'] : array_slice($data['rows'], ($page - 1) * self::PAGE_SIZE, self::PAGE_SIZE), 'totals' => $data['totals']];
+    }
+
+    /** The export cap (downloads) and an unavailable page (screen), refused before any row is released. */
+    protected function guardWindow(int $count, int $page, bool $download): void
+    {
+        if ($download && $count > ReportCsv::MAX_ROWS) {
+            throw ValidationException::withMessages(['export' => $this->tooManyRowsMessage()]);
+        }
+        if (! $download && $page > max(1, (int) ceil($count / self::PAGE_SIZE))) {
+            throw ValidationException::withMessages(['page' => 'This page is unavailable. Run the report again.']);
+        }
+    }
+
+    protected function tooManyRowsMessage(): string
+    {
+        return 'More than 5,000 rows match. Narrow the filters.';
+    }
+
+    /**
+     * The filter validation rules; a report may reorder them (their order sets the order of the validated filters the
+     * page receives) but should not change them.
+     *
+     * @param  array<string,mixed>  $rules
+     * @return array<string,mixed>
+     */
+    protected function filterRules(array $rules): array
+    {
+        return $rules;
+    }
+
+    /**
+     * Defaults for filters the request leaves out.
+     *
+     * @return array<string,mixed>
+     */
+    protected function filterDefaults(string $yesterday): array
+    {
+        return ['from' => $yesterday, 'to' => $yesterday, 'page' => 1, 'methods' => [], 'visit_types' => []];
+    }
+
+    /** @return list<array{string,string}> CSV metadata lines placed after "Generated at UTC". */
+    protected function extraMetadata(): array
+    {
+        return [];
+    }
+
     /** @param array<string,mixed> $input
      * @return array<string,mixed>
      */
@@ -53,13 +114,13 @@ abstract class BranchReportService
             abort_unless($grants->contains($view) && (! $download || $grants->contains($export)), 403);
             $methods = ! $this->supportsFilters() ? [] : PaymentMethod::query()->where('organisation_id', $actor->organisation_id)->orderBy('name')->get(['id', 'name'])->map(fn ($m): array => ['value' => (string) $m->id, 'label' => $m->name])->all();
             $yesterday = CarbonImmutable::now($branch->timezone)->subDay()->toDateString();
-            $filters = Validator::make($input + ['from' => $yesterday, 'to' => $yesterday, 'page' => 1, 'methods' => [], 'visit_types' => []], [
+            $filters = Validator::make($input + $this->filterDefaults($yesterday), $this->filterRules([
                 'expected_branch_id' => [$run || $download ? 'required' : 'sometimes', 'integer', 'in:'.$branch->id],
                 'from' => ['required', 'date_format:Y-m-d'], 'to' => ['required', 'date_format:Y-m-d', 'after_or_equal:from'],
                 'page' => ['required', 'integer', 'min:1'], 'methods' => [$this->supportsFilters() ? 'array' : 'prohibited', 'max:100'], 'methods.*' => ['string', 'distinct', Rule::in(array_column($methods, 'value'))],
                 'visit_types' => [$this->supportsFilters() ? 'array' : 'prohibited', 'max:2'], 'visit_types.*' => ['string', 'distinct', Rule::in(['consultation', 'otc'])],
                 'branch' => ['prohibited'], 'doctor' => ['prohibited'], 'treatment' => ['prohibited'], 'diagnosis' => ['prohibited'],
-            ])->validate();
+            ]))->validate();
             if (CarbonImmutable::parse($filters['from'])->diffInDays(CarbonImmutable::parse($filters['to'])) >= 31) {
                 throw ValidationException::withMessages(['to' => 'Choose at most 31 local dates.']);
             }
@@ -68,28 +129,22 @@ abstract class BranchReportService
             if (! $run && ! $download) {
                 return $base;
             }
-            $data = $this->project($actor, $branch, $filters);
-            $count = count($data['rows']);
-            if ($download && $count > ReportCsv::MAX_ROWS) {
-                throw ValidationException::withMessages(['export' => 'More than 5,000 rows match. Narrow the filters.']);
-            }
             $page = (int) $filters['page'];
+            $data = $this->window($actor, $branch, $filters, $page, $download);
+            $count = $data['count'];
             $pages = max(1, (int) ceil($count / self::PAGE_SIZE));
-            if (! $download && $page > $pages) {
-                throw ValidationException::withMessages(['page' => 'This page is unavailable. Run the report again.']);
-            }
             $generated = now()->utc()->toIso8601String();
             $file = null;
             if ($download) {
-                $metadata = [['Report', $this->title()], ['Branch', $branch->name], ['Timezone', $branch->timezone], ['From', $filters['from']], ['To', $filters['to']], ['Generated at UTC', $generated], ['Basis', $this->basis()], ['Payment method IDs', implode('; ', $filters['methods']) ?: 'all'], ['Visit types', implode('; ', $filters['visit_types']) ?: 'all'], ['Rows', (string) $count]];
+                $metadata = [['Report', $this->title()], ['Branch', $branch->name], ['Timezone', $branch->timezone], ['From', $filters['from']], ['To', $filters['to']], ['Generated at UTC', $generated], ...$this->extraMetadata(), ['Basis', $this->basis()], ['Payment method IDs', implode('; ', $filters['methods']) ?: 'all'], ['Visit types', implode('; ', $filters['visit_types']) ?: 'all'], ['Rows', (string) $count]];
                 foreach ($data['totals'] as $label => $value) {
                     $metadata[] = ['Total '.$label, $value];
                 }
                 $file = ['name' => str_replace('_', '-', $this->key()).'_'.$filters['from'].'_'.$filters['to'].'.csv', 'csv' => ReportCsv::encode($data['columns'], $data['rows'], $metadata)];
             }
-            abort_if(app(AuditRecorder::class)->record('reports.'.$this->key().($download ? '.exported' : '.viewed'), null, ['dataset' => $this->key(), 'branch_id' => $branch->id, 'from' => $filters['from'], 'to' => $filters['to'], 'methods' => $filters['methods'], 'visit_types' => $filters['visit_types'], 'page' => $download ? null : $page, 'row_count' => $download ? $count : count(array_slice($data['rows'], ($page - 1) * self::PAGE_SIZE, self::PAGE_SIZE))], $actor) === null, 503, 'Unable to audit report access. Try again later.');
+            abort_if(app(AuditRecorder::class)->record('reports.'.$this->key().($download ? '.exported' : '.viewed'), null, ['dataset' => $this->key(), 'branch_id' => $branch->id, 'from' => $filters['from'], 'to' => $filters['to'], 'methods' => $filters['methods'], 'visit_types' => $filters['visit_types'], 'page' => $download ? null : $page, 'row_count' => count($data['rows'])], $actor) === null, 503, 'Unable to audit report access. Try again later.');
 
-            return $download ? $file : [...$base, 'result' => ['generatedAt' => $generated, 'count' => $count, 'page' => $page, 'pages' => $pages, 'columns' => $data['columns'], 'rows' => array_slice($data['rows'], ($page - 1) * self::PAGE_SIZE, self::PAGE_SIZE), 'totals' => $data['totals']]];
+            return $download ? $file : [...$base, 'result' => ['generatedAt' => $generated, 'count' => $count, 'page' => $page, 'pages' => $pages, 'columns' => $data['columns'], 'rows' => $data['rows'], 'totals' => $data['totals']]];
         }, 3);
     }
 }
