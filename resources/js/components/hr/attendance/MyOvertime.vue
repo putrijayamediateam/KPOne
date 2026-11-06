@@ -72,7 +72,7 @@ const withdraw = (publicId: string, lockVersion: number) => {
                     />
                     <Button
                         v-if="r.canWithdraw"
-                        variant="ghost"
+                        variant="outline"
                         class="min-h-11 sm:min-h-8"
                         :disabled="withdrawing !== ''"
                         @click="withdraw(r.publicId, r.lockVersion)"

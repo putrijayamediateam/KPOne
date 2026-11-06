@@ -238,7 +238,9 @@ final class OvertimePageService
         $today = $this->attendance->today($actor->organisation_id);
         $current = $this->settings->forDate($actor->organisation_id, $today);
         $creators = User::query()->whereIn('id', $versions->map(fn (OvertimeSettingsVersion $v): int => $v->createdByUserId)->unique()->values())->pluck('name', 'id');
-        $roleLabel = fn (string $role): string => ucfirst(str_replace('_', ' ', $role));
+        // The app's role labels (resources/js/lib/displayLabels.ts): "CA", "CA Supervisor", "HR Manager" (Daniel).
+        $roleLabel = fn (string $role): string => ['ca' => 'CA', 'ca_supervisor' => 'CA Supervisor', 'hr_manager' => 'HR Manager'][$role]
+            ?? ucwords(str_replace('_', ' ', $role));
 
         return [
             'current' => $current === null ? null : ['normalMultiplier' => $current->normalMultiplier, 'restDayMultiplier' => $current->restDayMultiplier,
@@ -292,9 +294,9 @@ final class OvertimePageService
             'leftEarly' => (string) $s['leftEarly'],
             'noClockIn' => (string) $s['noClockIn'],
             'noClockOut' => (string) $s['noClockOut'],
-            'overtime' => $overtime === 0 ? 'None' : collect(['normal' => 'normal', 'rest_day' => 'rest day', 'public_holiday' => 'public holiday'])
+            'overtime' => $overtime === 0 ? 'None' : collect(['normal' => 'normal day', 'rest_day' => 'rest day', 'public_holiday' => 'public holiday'])
                 ->filter(fn (string $label, string $type): bool => $s['overtime'][$type] > 0)
-                ->map(fn (string $label, string $type): string => AttendanceSupport::duration($s['overtime'][$type]).' '.$label)->implode(' · '),
+                ->map(fn (string $label, string $type): string => AttendanceSupport::duration($s['overtime'][$type])." ({$label})")->implode(' · '),
             'otherBranch' => $s['otherBranch'],
         ];
     }
@@ -354,7 +356,7 @@ final class OvertimePageService
                 'note' => $r->note_encrypted,
                 'status' => $r->status,
                 'statusLabel' => $r->minutes_approved !== null && $r->minutes_approved < $r->minutes_requested && $r->status === 'approved'
-                    ? "Approved {$r->minutes_approved} of {$r->minutes_requested} min" : (self::STATUS_LABELS[$r->status] ?? $r->status),
+                    ? 'Approved '.AttendanceSupport::duration($r->minutes_approved).' of '.AttendanceSupport::duration($r->minutes_requested) : (self::STATUS_LABELS[$r->status] ?? $r->status),
                 'decisionReason' => $reason,
                 'onBehalf' => $r->requested_by_user_id !== $r->user_id,
                 'requestedBy' => (string) ($names[$r->requested_by_user_id] ?? 'Staff member'),

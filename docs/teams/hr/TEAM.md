@@ -180,6 +180,15 @@ check items, keep them"). The rest stand unless the owner changes them.
     it is worked, within the correction window; multipliers 1.5x, 2x and 3x and weekly levels 40 h and 45 h as form
     suggestions; rest days are the branch's non-working weekdays; a manager may reverse an approved request with a
     reason, never their own; staff see their own month as well as their week.
+33. Daniel's early look at HR-3b (HR-PLAN 10.5, relayed by B.E.R.N.I.S.S 2026-11-06): OK with changes, all applied:
+    a weekly chip only when there is something to warn about; two outline buttons (Approve, Reject) with the minutes
+    filled in at the amount asked and a reason required when they are lowered ("Approve 120 min"); "Approved 2 h of
+    3 h"; "N waiting · 1 approved day changed since" with "Recorded … → now …"; a right-aligned Summary with a total
+    row and a sticky person column; the shared tabs as they are; empty states that say what to do next; the minutes
+    error in the same submit as the reason error; Withdraw as an outline button; the app's role labels.
+34. Existing-assertion change approved by B.E.R.N.I.S.S for the owner (2026-11-06, the owner's "BE ME"): the
+    `AttendanceTest` `viewers()` tab list for Director and HR Manager changes from `['my', 'review', 'settings']` to
+    `['my', 'review', 'overtime', 'summary', 'settings']` (HR-3b's two new tabs). No other existing assertion changed.
 
 ## 7. Open items and known limits
 

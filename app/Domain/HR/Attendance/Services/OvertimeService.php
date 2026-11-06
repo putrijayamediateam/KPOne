@@ -62,9 +62,8 @@ final class OvertimeService
     {
         $key = $this->support->key($input['idempotency_key'] ?? null);
         $reason = $input['reason_code'] ?? null;
-        if (! is_string($reason) || ! array_key_exists($reason, self::REASONS)) {
-            throw ValidationException::withMessages(['reason_code' => 'Choose a reason.']);
-        }
+        // A missing reason is reported together with a minutes error, in one submit (Daniel).
+        $reasonError = ! is_string($reason) || ! array_key_exists($reason, self::REASONS) ? ['reason_code' => 'Choose a reason.'] : [];
         $note = $this->note($input['note'] ?? null);
         $onBehalf = filter_var($input['on_behalf'] ?? false, FILTER_VALIDATE_BOOLEAN);
         // From Review overtime is always for someone else, never the reviewer's own (Suresh).
@@ -74,11 +73,11 @@ final class OvertimeService
         $subjectId = $this->subjectId($actor, $input['user_id'] ?? null);
         $own = $subjectId === $actor->id;
 
-        return $this->transaction(function () use ($actor, $input, $key, $reason, $note, $subjectId, $own): OvertimeRequest {
+        return $this->transaction(function () use ($actor, $input, $key, $reason, $reasonError, $note, $subjectId, $own): OvertimeRequest {
             $actor = $this->support->lock($actor, $own ? ClockPermissions::CLOCK_OWN : ClockPermissions::REVIEW, [$subjectId]);
             $subject = User::query()->whereKey($subjectId)->where('organisation_id', $actor->organisation_id)->firstOrFail();
             $minutesInput = is_scalar($input['minutes'] ?? null) ? (string) $input['minutes'] : '';
-            $hash = $this->support->hash([$actor->id, 'overtime_ask', $subjectId, is_scalar($input['session_id'] ?? null) ? (string) $input['session_id'] : '', $minutesInput, $reason, $note]);
+            $hash = $this->support->hash([$actor->id, 'overtime_ask', $subjectId, is_scalar($input['session_id'] ?? null) ? (string) $input['session_id'] : '', $minutesInput, is_string($reason) ? $reason : '', $note]);
             if (($replay = $this->support->replay($actor, $key, 'overtime_ask', $hash)) !== null) {
                 return $this->find($actor, $replay);
             }
@@ -112,7 +111,14 @@ final class OvertimeService
             if ($allowance['max'] < 1) {
                 throw ValidationException::withMessages(['session_id' => 'There is no time beyond the roster on this day.']);
             }
-            $minutes = $this->minutes($input['minutes'] ?? null, $allowance['max'], 'minutes');
+            try {
+                $minutes = $this->minutes($input['minutes'] ?? null, $allowance['max'], 'minutes');
+            } catch (ValidationException $e) {
+                throw ValidationException::withMessages([...$reasonError, ...array_map(fn (array $m): string => (string) $m[0], $e->errors())]);
+            }
+            if ($reasonError !== []) {
+                throw ValidationException::withMessages($reasonError);
+            }
 
             $request = new OvertimeRequest;
             $request->forceFill(['public_id' => (string) Str::uuid(), 'organisation_id' => $actor->organisation_id, 'user_id' => $subject->id,

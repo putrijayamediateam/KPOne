@@ -104,6 +104,7 @@ class OvertimeTest extends VisitTestCase
             ->where('attendance.my.overtime.choices.0.rostered', '5 h 30 min'));
         $this->ask($ca, $session, 123)->assertSessionHasErrors(['minutes' => 'Enter whole minutes from 1 to 122.']);
         $this->ask($ca, $session, 60, ['reason_code' => 'bogus'])->assertSessionHasErrors(['reason_code' => 'Choose a reason.']);
+        $this->ask($ca, $session, 9999, ['reason_code' => ''])->assertSessionHasErrors(['reason_code' => 'Choose a reason.', 'minutes' => 'Enter whole minutes from 1 to 122.']); // Both in one submit (Daniel).
         $key = (string) Str::uuid();
         $this->ask($ca, $session, 120, ['note' => 'Synthetic note: stayed for the last patient.'], $key)->assertSessionHasNoErrors()->assertSessionHas('inertia.flash_data.toast.message', 'Overtime request sent.');
         $this->ask($ca, $session, 120, ['note' => 'Synthetic note: stayed for the last patient.'], $key)->assertSessionHasNoErrors();
@@ -123,8 +124,8 @@ class OvertimeTest extends VisitTestCase
         $this->decide($director, $request, 'approve')->assertSessionHasErrors(['overtime' => 'This request was already decided. Reload the page.']);
         $this->selectBranch($ca);
         $this->get(route('hr.attendance.index'))->assertInertia(fn (Assert $page) => $page->where('attendance.my.overtime.choices', [])
-            ->where('attendance.my.overtime.requests.0.statusLabel', 'Approved 90 of 120 min')->where('attendance.my.overtime.requests.0.approvedLabel', '1 h 30 min')
-            ->where('attendance.my.overtime.month.figures.overtime', '1 h 30 min normal'));
+            ->where('attendance.my.overtime.requests.0.statusLabel', 'Approved 1 h 30 min of 2 h')->where('attendance.my.overtime.requests.0.approvedLabel', '1 h 30 min')
+            ->where('attendance.my.overtime.month.figures.overtime', '1 h 30 min (normal day)'));
 
         $this->reverse($hr, $request, ['reason' => 'nope'])->assertSessionHasErrors(['reason' => 'Choose a reason.']);
         $this->reverse($director, $request)->assertSessionHasNoErrors();
@@ -216,9 +217,9 @@ class OvertimeTest extends VisitTestCase
         $this->get(route('hr.attendance.index', ['tab' => 'summary', 'period' => 'week', 'date' => '2027-03-10']))->assertInertia(fn (Assert $page) => $page
             ->where('attendance.summary.periodLabel', '8 Mar 2027 to 14 Mar 2027')
             ->where('attendance.summary.rows', fn ($rows) => ($row = collect($rows)->firstWhere('userId', $ca->id)) !== null
-                && $row['rostered'] === '5 h 30 min' && $row['worked'] === '15 h' && $row['overtime'] === '2 h 30 min rest day · 4 h public holiday'
+                && $row['rostered'] === '5 h 30 min' && $row['worked'] === '15 h' && $row['overtime'] === '2 h 30 min (rest day) · 4 h (public holiday)'
                 && $row['late'] === '0' && $row['otherBranch'] === false)
-            ->where('attendance.summary.total.overtime', '2 h 30 min rest day · 4 h public holiday'));
+            ->where('attendance.summary.total.overtime', '2 h 30 min (rest day) · 4 h (public holiday)'));
     }
 
     public function test_only_time_outside_the_shift_window_counts_so_a_late_arrival_never_gains_the_break(): void

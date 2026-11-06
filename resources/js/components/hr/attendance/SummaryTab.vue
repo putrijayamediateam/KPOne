@@ -153,7 +153,7 @@ const periods = [
                             <tr>
                                 <th
                                     scope="col"
-                                    class="sticky left-0 z-10 bg-card"
+                                    class="sticky left-0 z-10 bg-card shadow-[inset_0_0_0_999px_color-mix(in_oklab,var(--muted)_60%,transparent)]"
                                 >
                                     Person
                                 </th>

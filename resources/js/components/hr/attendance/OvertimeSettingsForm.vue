@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { formatRoleLabel } from '@/lib/displayLabels';
 import type { OvertimeSettingsCard } from './types';
 
 const props = defineProps<{ card: OvertimeSettingsCard; today: string }>();
@@ -95,7 +96,7 @@ const save = () => {
                             "
                         />
                         <Label :for="`overtime-role-${r.value}`">{{
-                            r.label
+                            formatRoleLabel(r.value)
                         }}</Label>
                     </div>
                 </div>
