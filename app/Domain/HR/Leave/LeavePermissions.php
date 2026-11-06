@@ -17,9 +17,13 @@ final class LeavePermissions
 
     public const MANAGE = 'hr.leave.manage.organisation';
 
+    /** HR-2b: open other people's evidence files (each open is recorded). Applicants open their own with REQUEST_OWN. */
+    public const EVIDENCE_VIEW = 'hr.leave.evidence.view.organisation';
+
     /** @return array<string, list<string>> */
     public static function grants(): array
     {
-        return [self::REQUEST_OWN => RosterPermissions::HUMAN_ROLES, self::APPROVE => ['director', 'hr_manager'], self::MANAGE => ['director', 'hr_manager']];
+        return [self::REQUEST_OWN => RosterPermissions::HUMAN_ROLES, self::APPROVE => ['director', 'hr_manager'], self::MANAGE => ['director', 'hr_manager'],
+            self::EVIDENCE_VIEW => ['director', 'hr_manager']];
     }
 }
