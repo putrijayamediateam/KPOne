@@ -230,6 +230,8 @@ check items, keep them"). The rest stand unless the owner changes them.
     notes folded into 13.6 ("Approved" vs "Paid 6 Nov 2026"; "Someone else approves this" and "Waiting for the
     Director"; "Payment reversed" neutral; the RM prefix with decimal input; receipt alt text and PDF tiles). His
     suggestion of a partial approval ("Approved RM 30.00 of RM 45.60") conflicts with rule 6 and is open for the owner.
+42. HR-6 rule 6 kept (owner, 2026-11-06, in the HR session: "keep rule 6"): no partial approval of a staff claim; a
+    wrong amount is rejected (Wrong amount) and sent again. Daniel's "Approved RM x of RM y" is not built.
 
 ## 7. Open items and known limits
 

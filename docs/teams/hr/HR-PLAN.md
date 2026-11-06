@@ -1915,7 +1915,7 @@ to the Clinic management destination map, which is an existing-assertion change 
   - **A reversed payment** shows "Payment reversed" in neutral tone with its reason, and the claim is back to Approved.
   - **The amount field** has a visible "RM" prefix, `inputmode="decimal"` and the help text "For example 45.60".
   - **Receipt thumbnails** have alt text ("Receipt 1 of 3, JPG"), and a PDF shows a file tile, never a broken image.
-  - **Open:** Daniel also suggested "Approved RM 30.00 of RM 45.60" for a partly approved claim. Rule 6 of this approved note offers no partial approval (a wrong amount is rejected and sent again), so this waits for the owner. It is not built unless the owner changes rule 6.
+  - **Not built (owner, 2026-11-06: "keep rule 6"):** Daniel also suggested "Approved RM 30.00 of RM 45.60" for a partly approved claim. Rule 6 stands: there is no partial approval, so a wrong amount is rejected with the reason Wrong amount and sent again.
 - The shared synthetic-data line from HR-4. Empty states for each tab, each saying what to do next. 44 px targets, and no sideways scroll at 320, 390 and 768 px.
 - **Screenshots when built:** My claims with each status; the New claim sheet with an error; an approval card with each warning; the Director-level case seen by an HR Manager; a payment recorded and reversed; the monthly list; the settings; at 390 and 1440 px, light and dark.
 
