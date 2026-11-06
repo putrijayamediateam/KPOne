@@ -155,7 +155,9 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php`.
     near matches, suggested only, never picked. Syafiq narrowed "one character different" to differences that cannot
     change the number (format and look-alike letters), because KPOne invoice numbers run in sequence and a wrong digit
     is often another real invoice. Exact matches, an already used claim and the unpaid amount still win. Two existing
-    assertions that pinned `:disabled="row.result !== 'matched'"` change to `!canTick(row)` (approval listed in the PR).
+    assertions that pinned `:disabled="row.result !== 'matched'"` change to `!canTick(row)`, and the pnl-7 test's title
+    becomes "Only matched and near-match rows can be ticked…" (all three approved by B.E.R.N.I.S.S for the owner). Ship-it
+    by B.E.R.N.I.S.S for the owner: the PR opens after #340 merges, Farah's OK is a merge condition, and Daniel looks.
 
 ## 7. Open items and known limits
 
