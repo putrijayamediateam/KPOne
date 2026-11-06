@@ -95,6 +95,7 @@ coordinator at the owner's request (2026-11-05); the designer was added by owner
 | DSP-7 | Medicine returns after dispensing: record (CA, CA Supervisor; quantity, fixed reason, encrypted note for Other, condition; no stock change) and check (a CA Supervisor who did not record it: Dispose, Quarantine to a patient returns location through STK-11's `dispensary_return` movement, or Refuse with a fixed reason); controlled medicines never quarantined; append-only `dispensary_returns` and `dispensary_return_checks` (migrations `2026_11_06_200200`, `2026_11_07_000500`); Completed page gets PageHeader and a Medicine returns section | #288 (merged `88c2ae1`) |
 | DSP-8 | Dispensary pages on phones and tablets: at 768 px the medicine and service line grids (2 columns there) had rows spanning 3 or 4 columns, so the browser added near-zero-width columns and Quantity, Dosage, Route and Precaution became 18 px slivers with overlapping labels; rows now span the full width (or 2, then 3 on wide screens). On phones (below 640 px) every button, text field and dropdown on the Dispensary, Completed and label preview pages is at least 44 px tall; wide screens unchanged. Also the "1 of these labels was printed before" wording, and the OTC allergy card now says the check also uses catalogue drug groups | #273 (merged `b078be4`) |
 | DD-24 to DD-27 | Design debt from DSP-8: 44 px controls below 1024 px too (tablets); the case page uses PageHeader "Dispensary" and only the patient card names the patient (h2, labelled KP number, Visit, Doctor); batch options lead with "N unit on hand · exp 30 Oct 2027" plus a "Selected:" line under the dropdown; the Added/Edited by CA chips are `StatusBadge` accent | #308 (`4c95234`) |
+| DSP-6b | The label print check that logs a print is now a POST (`dispensary.labels.print`, `dispensary.items.label.print`, the page's address plus `/print`, token and branch in the body, CSRF header); the label page no longer accepts `?verify=1`. New tests: a consultation-case print and reprint, and a PostgreSQL race of two CAs printing one case at once (print numbers 1 and 2) | #317 |
 | DSP-1c | Other names for allergy matching: catalogue editors add up to 10 brand names or misspellings per medicine ("Other names" in the Medicine Catalogue "…" menu); the Dispensary allergy warning compares allergies with them too, through one `MedicineCatalogueItem::allergyMatchTerms()` list; never printed; audited by count | pending (branch `feature/dsp-1c-allergy-aliases`) |
 | DD-37 | The Drug groups dialog keeps the typed groups on a validation error, with the message under the field and a red border; a list changed meanwhile still closes it with a toast (the DSP-1c pattern) | pending (branch `fix/dsp-dd-37-drug-groups-error`) |
 
@@ -172,14 +173,19 @@ coordinator at the owner's request (2026-11-05); the designer was added by owner
     1023.98px (in this team's session). Daniel: title "Dispensary" with the patient as an h2 in the card; quantity
     without trailing zeros and the expiry as "30 Oct 2027"; the Selected line at every width; StatusBadge accent.
     The same pink chip on the Invoices page is DD-33 (Billing's).
+23. DSP-6b (2026-11-06): the owner chose items 1 and 2 of the follow-ups ("go with 1 and 2"): the print check becomes
+    a POST, and the two missing DSP-6 tests (consultation case, two prints at once). The owner approved changing the
+    existing tests that sent the check as a GET (`drug-labels.test.mjs` line 33, `TreatmentPlanTest` line 391, and the
+    `getJson(...?verify=1...)` calls in `DrugLabelTest` and `DrugLabelPrintLogTest`) to the POST; every expected
+    result is unchanged. No screen change, so no design review.
 25. DSP-1c allergy other names (2026-11-06): the owner chose it ("go with allergy aliases"). Same editors, limits and
     stale-list guard as drug groups (decision 14): `medicines.manage.organisation`, up to 10, 3 to 60 characters,
     audited by count only; used for matching only and never printed. Iman's sketch: its own "Other names" menu entry
     and dialog. The Dispensary warning wording now names "catalogue other names". Daniel: OK; keep the label
-    "Other names"; the Drug groups dialog losing typed groups on an error is design debt DD-37 (a later small piece).
+    "Other names"; the Drug groups dialog losing typed groups on an error is design debt DD-37 (a later small piece). (Decision 24 is
+    the "Print label" fix, on its own branch.)
 26. DD-37 (2026-11-06): the owner chose it ("go with DD-37"); the Drug groups dialog gets the same error handling as
-    Other names. Built on top of DSP-1c (#324), because both change the same dialog code. (Decisions 23 and 24 are DSP-6b and
-    the "Print label" fix, on their own branches.)
+    Other names. Built on top of DSP-1c (#324), because both change the same dialog code.
 
 ## 7. Open items and known limits
 
@@ -202,9 +208,7 @@ coordinator at the owner's request (2026-11-05); the designer was added by owner
 - **Label print log (DSP-6):** a print is logged when the fresh check passes, so a cancelled dialog, or a page that
   goes stale during the check, still counts. Printing from the browser's own menu or Ctrl+P is not logged and does
   not add the mark (the printer test says to use the button). The REPRINT mark relies on the label's closing sentence
-  leaving a short last row (a test pins it). The fresh check is a GET with side effects (a print row and an audit row),
-  as WA-01's redirect is; it is throttled and same-origin, and a POST would be stricter (a later follow-up). Not yet tested: a consultation case and two prints of the same case at
-  the same moment (the case row lock and the database's print-number rule guard it).
+  leaving a short last row (a test pins it). The fresh check writes a print row and an audit row, so it is a POST since DSP-6b (throttled, same-origin, CSRF-checked). A consultation-case print and two prints of the same case at the same moment are tested (DSP-6b).
 - **Medicine returns (DSP-7):** no refund in KPOne; only a CA Supervisor checks in v1, so a return a CA
   Supervisor records needs a second CA Supervisor on shift; checkers see waiting returns only on the case page
   (DSP-7b adds a branch list). A quarantine credits one batch, so a return larger than any single batch of the
