@@ -32,6 +32,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DiagnosisPresetSettingsController;
 use App\Http\Controllers\DispensaryController;
 use App\Http\Controllers\GovernedStockController;
+use App\Http\Controllers\HR\RosterController;
 use App\Http\Controllers\InventoryBatchHoldController;
 use App\Http\Controllers\InventoryController;
 use App\Http\Controllers\InventoryMovementController;
@@ -132,6 +133,24 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::get('clinic-management', ClinicManagementController::class)
         ->middleware('sensitive.no-store')->name('clinic-management.index');
+
+    // HR-1 roster planner (B.E.R.N.I.S.S for the owner, 2026-11-05). Rules live in app/Domain/HR/Roster.
+    Route::prefix('hr/roster')->controller(RosterController::class)->middleware('sensitive.no-store')->group(function (): void {
+        Route::get('/', 'index')->middleware('permission:hr.roster.view.own,hr.roster.manage.organisation,hr.roster.approve.organisation')->name('hr.roster.index');
+        Route::middleware(['permission:hr.roster.manage.organisation', 'throttle:60,1'])->group(function (): void {
+            Route::post('drafts', 'start')->name('hr.roster.drafts.store');
+            Route::post('versions/{version}/shifts', 'addShift')->whereUuid('version')->name('hr.roster.shifts.store');
+            Route::put('versions/{version}/shifts/{shift}', 'updateShift')->whereUuid(['version', 'shift'])->name('hr.roster.shifts.update');
+            Route::delete('versions/{version}/shifts/{shift}', 'removeShift')->whereUuid(['version', 'shift'])->name('hr.roster.shifts.destroy');
+            Route::post('versions/{version}/submit', 'submit')->whereUuid('version')->name('hr.roster.submit');
+            Route::post('versions/{version}/discard', 'discard')->whereUuid('version')->name('hr.roster.discard');
+            Route::put('minimum-staffing', 'minimums')->name('hr.roster.minimums');
+        });
+        Route::middleware(['permission:hr.roster.approve.organisation', 'throttle:30,1'])->group(function (): void {
+            Route::post('versions/{version}/approve', 'approve')->whereUuid('version')->name('hr.roster.approve');
+            Route::post('versions/{version}/return', 'returnToDraft')->whereUuid('version')->name('hr.roster.return');
+        });
+    });
 
     foreach (['doctor-profiles' => ['doctor_profile', 'doctors', 'website.doctor_profiles.manage.organisation'], 'careers' => ['career_posting', 'careers', 'website.careers.manage.organisation']] as $path => [$type, $name, $permission]) {
         Route::prefix('website/'.$path)->controller(WebsitePeopleController::class)->middleware('sensitive.no-store')->group(function () use ($type, $name, $permission): void {
@@ -292,6 +311,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::middleware(['permission:panel.claims.manage.branch', 'sensitive.no-store'])->group(function () {
         Route::get('panel-claims', [PanelClaimsController::class, 'index'])->name('panel-claims.index');
         Route::get('panel-claims/follow-up', [PanelClaimsController::class, 'followUp'])->name('panel-claims.follow-up');
+        Route::get('panel-claims/pack', [PanelClaimsController::class, 'pack'])->middleware('throttle:30,1')->name('panel-claims.pack');
+        Route::get('panel-claims/pack/logo/{asset}', [PanelClaimsController::class, 'packLogo'])->whereUuid('asset')->name('panel-claims.letterhead-logo');
         Route::get('panel-claims/allocations/{allocation}/create', [PanelClaimsController::class, 'create'])->name('panel-claims.create');
         Route::post('panel-claims/allocations/{allocation}', [PanelClaimsController::class, 'store'])->middleware('throttle:20,1')->name('panel-claims.store');
         Route::post('panel-claims/bulk', [PanelClaimsController::class, 'bulkStore'])->middleware('throttle:10,1')->name('panel-claims.bulk-store');
@@ -515,6 +536,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
             ->whereUuid('dispensaryCase')->middleware(['permission:dispensary.update.branch', 'throttle:30,1'])->name('dispensary.otc-allergy');
         Route::post('dispensary/{dispensaryCase}/otc-allergy-records', [DispensaryController::class, 'addOtcAllergy'])
             ->whereUuid('dispensaryCase')->middleware(['permission:allergies.record_otc.branch', 'throttle:30,1'])->name('dispensary.otc-allergy-records');
+        Route::post('dispensary/{dispensaryCase}/items/{itemPublicId}/returns', [DispensaryController::class, 'recordReturn'])
+            ->whereUuid(['dispensaryCase', 'itemPublicId'])->middleware(['permission:dispensary.update.branch', 'throttle:30,1'])->name('dispensary.returns.record');
+        Route::post('dispensary/{dispensaryCase}/returns/{returnPublicId}/check', [DispensaryController::class, 'checkReturn'])
+            ->whereUuid(['dispensaryCase', 'returnPublicId'])->middleware(['permission:inventory.variances.approve.branch', 'throttle:30,1'])->name('dispensary.returns.check');
         Route::get('dispensary/{dispensaryCase}', [DispensaryController::class, 'show'])
             ->whereUuid('dispensaryCase')->middleware('permission:dispensary.view.branch')->name('dispensary.show');
 
@@ -663,6 +688,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::middleware(['permission:pricing.references.manage.organisation'])->group(function () {
                 Route::get('/', [PricingController::class, 'index'])->name('pricing.index');
                 Route::get('price-check', [PricingController::class, 'priceCheck'])->middleware('throttle:60,1')->name('pricing.price-check');
+                Route::get('charges/{charge}/history', [PricingController::class, 'history'])->whereUuid('charge')->middleware('throttle:60,1')->name('pricing.charges.history');
                 Route::post('charges', [PricingController::class, 'storeCharge'])->middleware('throttle:30,1')->name('pricing.charges.store');
                 Route::post('charges/{charge}/activate', [PricingController::class, 'activateCharge'])->whereUuid('charge')->middleware('throttle:20,1')->name('pricing.charges.activate');
                 Route::post('charges/{charge}/deactivate', [PricingController::class, 'deactivateCharge'])->whereUuid('charge')->middleware('throttle:20,1')->name('pricing.charges.deactivate');
@@ -762,6 +788,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::patch('visits/{visit}/queue/call', [QueueController::class, 'call'])
             ->middleware(['permission:queue.call.own,queue.call.branch', 'throttle:30,1'])
             ->name('queue.call');
+        Route::post('queue/call-next', [QueueController::class, 'callNext'])
+            ->middleware(['permission:queue.call.own,queue.call.branch', 'throttle:30,1'])
+            ->name('queue.call-next');
         Route::post('visits/{visit}/otc-queue/call', [RoomCallController::class, 'otcDispensary'])
             ->middleware(['permission:dispensary.start.branch', 'throttle:30,1'])->name('otc-queue.call');
         Route::patch('visits/{visit}/queue/treatment-call', [RoomCallController::class, 'treatment'])

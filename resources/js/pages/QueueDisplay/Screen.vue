@@ -1,6 +1,14 @@
 <script setup lang="ts">
 import { Head, router } from '@inertiajs/vue3';
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import {
+    computed,
+    nextTick,
+    onBeforeUnmount,
+    onMounted,
+    ref,
+    useTemplateRef,
+    watch,
+} from 'vue';
 import { JsonRequestError, requestJson } from '@/lib/json-client';
 import type { DisplayCall, DisplayFeed } from '@/lib/queue-display';
 import {
@@ -36,6 +44,76 @@ const seen = new Set<number>(props.feed.calls.map((call) => call.id));
 
 const timeZone = computed(() => feed.value.branch.timezone);
 const current = computed<DisplayCall | null>(() => feed.value.calls[0] ?? null);
+// Q-3b (owner decision 2026-11-05): on a 720p-class TV (1024 px wide or more, at most 800 px tall) the current call
+// keeps the number and the short name on one line; larger TVs and phones keep the Q-3 look. The line is never larger than the normal heading size and shrinks only as much as the card needs, down to
+// 24 px. A name that still does not fit then wraps at 24 px rather than losing letters.
+// The reset, measure and resize all run before the next frame is drawn, so the line never flashes at full size.
+const FIT_MIN_PX = 24;
+const FIT_MEDIA = '(min-width: 1024px) and (max-height: 800px)';
+const currentLabelRef = useTemplateRef<HTMLElement>('currentLabel');
+const currentLabelFontPx = ref<number | null>(null);
+// One line only once the fit has measured it; until then (or where it cannot run) the line wraps, so no name is cut.
+const currentLabelOneLine = ref(false);
+// Daniel (2026-11-05): on those TVs the room line is never larger than the call line, so the call stays the largest
+// text and the room line does not wrap.
+const currentRoomRef = useTemplateRef<HTMLElement>('currentRoom');
+const currentRoomFontPx = ref<number | null>(null);
+const capCurrentRoom = (callPx: number) => {
+    const room = currentRoomRef.value;
+
+    if (room && parseFloat(getComputedStyle(room).fontSize) > callPx) {
+        currentRoomFontPx.value = callPx;
+    }
+};
+const fitCurrentLabel = async () => {
+    currentLabelFontPx.value = null;
+    currentLabelOneLine.value = false;
+    currentRoomFontPx.value = null;
+
+    if (
+        typeof window.matchMedia !== 'function' ||
+        typeof getComputedStyle !== 'function' ||
+        !window.matchMedia(FIT_MEDIA).matches
+    ) {
+        return;
+    }
+
+    currentLabelOneLine.value = true;
+    await nextTick();
+    const label = currentLabelRef.value;
+
+    if (!label) {
+        currentLabelOneLine.value = false;
+
+        return;
+    }
+
+    const largest = parseFloat(getComputedStyle(label).fontSize);
+
+    if (label.scrollWidth <= label.clientWidth) {
+        capCurrentRoom(largest);
+
+        return;
+    }
+
+    currentLabelFontPx.value = Math.max(
+        FIT_MIN_PX,
+        Math.floor((largest * label.clientWidth) / label.scrollWidth),
+    );
+    capCurrentRoom(currentLabelFontPx.value);
+    await nextTick();
+    currentLabelOneLine.value = label.scrollWidth <= label.clientWidth + 1;
+};
+watch(
+    () => [
+        current.value?.number,
+        current.value?.name,
+        feed.value.settings.callDisplayMode,
+    ],
+    () => void fitCurrentLabel(),
+    { flush: 'post' },
+);
+const onResize = () => void fitCurrentLabel();
 const previous = computed(() => feed.value.calls.slice(1, 6));
 const callAgeServerAnchor = ref(Date.parse(props.feed.serverTime));
 let callAgeMonotonicAnchor = performance.now();
@@ -287,6 +365,10 @@ onMounted(() => {
     }, 1_000);
     schedulePosters();
     document.addEventListener('visibilitychange', onVisibility);
+    window.addEventListener?.('resize', onResize);
+    void fitCurrentLabel();
+    // Measure again once the web font has loaded; the first measure may use the fallback font.
+    void document.fonts?.ready.then(onResize);
 });
 onBeforeUnmount(() => {
     window.clearInterval(pollTimer);
@@ -295,6 +377,7 @@ onBeforeUnmount(() => {
     window.clearInterval(posterTimer);
     window.clearTimeout(highlightTimer);
     document.removeEventListener('visibilitychange', onVisibility);
+    window.removeEventListener?.('resize', onResize);
     document.removeEventListener('fullscreenchange', syncFullscreen);
     window.speechSynthesis?.removeEventListener('voiceschanged', loadVoices);
     window.speechSynthesis?.cancel();
@@ -518,7 +601,14 @@ onBeforeUnmount(() => {
                     <template v-if="current">
                         <p
                             v-if="shortNameParts(current, displayMode)"
-                            class="text-5xl leading-tight font-black text-balance break-words lg:text-[clamp(3rem,10vh,6rem)]"
+                            ref="currentLabel"
+                            class="text-5xl leading-tight font-black text-balance break-words lg:w-full lg:text-[clamp(3rem,10vh,6rem)]"
+                            :class="currentLabelOneLine ? 'lg:truncate' : ''"
+                            :style="
+                                currentLabelFontPx
+                                    ? { fontSize: `${currentLabelFontPx}px` }
+                                    : undefined
+                            "
                             data-testid="current-label"
                         >
                             <span class="whitespace-nowrap"
@@ -541,6 +631,12 @@ onBeforeUnmount(() => {
                         <p
                             class="mt-3 text-3xl font-bold text-balance break-words lg:text-5xl"
                             data-testid="current-room"
+                            ref="currentRoom"
+                            :style="
+                                currentRoomFontPx
+                                    ? { fontSize: `${currentRoomFontPx}px` }
+                                    : undefined
+                            "
                         >
                             {{ roomLabel(current.room, current.service) }}
                         </p>

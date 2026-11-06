@@ -13,6 +13,7 @@ use Spatie\Permission\PermissionRegistrar;
 /**
  * PNL-6b: the Panel payments history and the Follow-up list show a colleague's name only under the
  * staff-directory visibility rule (owner BIL-2 decision); otherwise "Staff member". Your own name always shows.
+ * PNL-6c applies the same rule to the Panel Claims list ("Updated by") and a claim page's Logs.
  */
 class PanelStaffNameVisibilityTest extends BillingTestCase
 {
@@ -69,5 +70,38 @@ class PanelStaffNameVisibilityTest extends BillingTestCase
         $this->selectBranch($colleague, $this->branch);
         $this->get(route('panel-claims.follow-up'))->assertInertia(fn (Assert $page) => $page->where('claims.data.0.lastActionBy', $recorder->name));
         $this->get(route('panel-remittances.index'))->assertInertia(fn (Assert $page) => $page->where('remittances.data.0.recordedBy', $recorder->name));
+    }
+
+    public function test_names_follow_the_staff_visibility_rule_on_the_claims_list_and_claim_logs(): void
+    {
+        $panel = Panel::factory()->create(['organisation_id' => $this->organisation->id, 'code' => 'SYNTH-LOGS']);
+        [$allocation, $invoice] = $this->approvedAllocation($panel);
+        $recorder = $this->officer();
+        $this->selectBranch($recorder, $this->branch);
+        $this->post(route('panel-claims.store', $allocation), [
+            'expected_branch_id' => $this->branch->id, 'allocation_lock_version' => $allocation->lock_version,
+            'invoice_lock_version' => $invoice->lock_version, 'idempotency_key' => (string) Str::uuid(),
+            'submitted_date' => CarbonImmutable::now($this->branch->timezone)->toDateString(),
+        ])->assertSessionHasNoErrors();
+        $claim = PanelClaim::query()->sole();
+        $colleague = $this->actor('panel_officer');
+
+        $this->selectBranch($colleague, $this->branch);
+        $this->get(route('panel-claims.index'))->assertInertia(fn (Assert $page) => $page->where('work.claims.data.0.updatedBy', $recorder->name));
+        $this->get(route('panel-claims.show', $claim))->assertInertia(fn (Assert $page) => $page
+            ->where('claim.updatedBy', $recorder->name)->where('claim.events.0.actor', $recorder->name));
+
+        Role::findByName('panel_officer', 'web')->revokePermissionTo(['staff.view.organisation']);
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
+        $this->selectBranch($colleague, $this->branch);
+        $this->get(route('panel-claims.index'))->assertInertia(fn (Assert $page) => $page->where('work.claims.data.0.updatedBy', 'Staff member'));
+        $this->get(route('panel-claims.show', $claim))->assertInertia(fn (Assert $page) => $page
+            ->where('claim.updatedBy', 'Staff member')->where('claim.events.0.actor', 'Staff member')
+            ->where('claim.events.1.actor', 'Staff member'));
+
+        // Your own actions always show your name.
+        $this->selectBranch($recorder, $this->branch);
+        $this->get(route('panel-claims.index'))->assertInertia(fn (Assert $page) => $page->where('work.claims.data.0.updatedBy', $recorder->name));
+        $this->get(route('panel-claims.show', $claim))->assertInertia(fn (Assert $page) => $page->where('claim.events.0.actor', $recorder->name));
     }
 }
