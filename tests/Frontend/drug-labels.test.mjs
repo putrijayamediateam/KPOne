@@ -53,7 +53,8 @@ test('blocked and switched-branch labels cannot request a print', async()=>{
 test('line editors show server budgets without lowering clinical storage maxlengths',()=>{
     const show=read('resources/js/pages/Dispensary/Show.vue');
 
-    for(const field of ['dosage','frequency','duration','route','instruction','precaution']) {
+    // DSP-10 (approved test change): route is not printed, so it has no label limit.
+    for(const field of ['dosage','frequency','duration','instruction','precaution']) {
 assert.match(show,new RegExp('labelLimits\\?\\.'+field));
 }
 
@@ -65,7 +66,7 @@ assert.match(show,new RegExp('labelLimits\\?\\.'+field));
  test('identity is emphasised and mixed selections expose individual previews without silently printing a subset',()=>{
  assert.match(source,/item.emphasis.includes\(n\)/);
  assert.match(source,/font-weight: 700/);
- assert.match(source,/10pt\/4mm/);
+ assert.match(source,/9pt\/3.8mm/); // DSP-10 (approved test change): 9 pt rows on the landscape label (was 10pt/4mm).
  assert.match(source,/Individually printable labels/);
  assert.match(source,/:href="item.previewUrl"/);
  assert.match(source,/v-if="!labels.blocked.length" aria-label="Medicine labels"/);

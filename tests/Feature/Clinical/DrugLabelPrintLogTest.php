@@ -185,10 +185,15 @@ class DrugLabelPrintLogTest extends VisitTestCase
         $this->assertSame(1, DispensaryLabelPrint::query()->count());
     }
 
-    public function test_the_last_label_row_stays_short_enough_for_the_reprint_mark(): void
+    public function test_the_first_label_row_keeps_the_reprint_cells_free(): void
     {
-        // The REPRINT mark sits at the right end of the last row; the closing sentence must keep that row short.
-        $render = (new DrugLabelLayout)->render(['dosage' => '1', 'frequency' => '1'], '01/01/2027', true, false);
-        $this->assertLessThanOrEqual(16, mb_strwidth((string) end($render['lines'])));
+        // DSP-10 (approved test change): the REPRINT mark moved to the reserved cells at the top right of the first row,
+        // so the clinic name (the first row) must stay clear of them; before, the mark sat at the end of a short last row.
+        $layout = new DrugLabelLayout;
+        $fields = ['clinic' => str_repeat('C', DrugLabelLayout::COLUMNS - DrugLabelLayout::REPRINT_CELLS), 'patient' => 'Synthetic Patient', 'name' => 'Synthetic medicine', 'quantity' => '1', 'dosage' => '1', 'frequency' => '1'];
+        $render = $layout->render($fields, '01/01/2027', null, false);
+        $this->assertSame([], $render['errors']);
+        $this->assertLessThanOrEqual(DrugLabelLayout::COLUMNS - DrugLabelLayout::REPRINT_CELLS, mb_strwidth($render['lines'][0]));
+        $this->assertContains('Clinic name: 41 characters; label limit 40.', $layout->render([...$fields, 'clinic' => str_repeat('C', 41)], '01/01/2027', null, false)['errors']);
     }
 }
