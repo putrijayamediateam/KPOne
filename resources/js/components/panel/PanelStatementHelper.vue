@@ -397,8 +397,8 @@ const useTicked = () =>
                     >
                         <template #head>
                             <tr>
-                                <th scope="col" class="w-12">
-                                    <span class="sr-only">Use</span>
+                                <th scope="col" class="w-14">
+                                    <span class="sr-only">Use in split</span>
                                 </th>
                                 <th scope="col">Row</th>
                                 <th scope="col">Statement reference</th>

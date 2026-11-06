@@ -41,6 +41,10 @@ test('Each table tick box keeps its rules and gets a 44 px target', () => {
     const table = helper.slice(helper.indexOf('<OperationalTable'));
     assert.match(
         table,
+        /<th scope="col" class="w-14">\s*<span class="sr-only">Use in split<\/span>/,
+    );
+    assert.match(
+        table,
         /<label\s+class="-m-2 inline-flex min-h-11 min-w-11 items-center justify-center"\s*>\s*<input\s+type="checkbox"/,
     );
     assert.match(table, /:disabled="row\.result !== 'matched'"/);
