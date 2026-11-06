@@ -31,6 +31,8 @@ export type Person = {
     id: string;
     name: string;
     active: boolean;
+    /** A Director or HR Manager: their own pay stays outside KPOne in v1. */
+    outside: boolean;
     enterRefusal: string | null;
     current: Profile | null;
     upcoming: Profile | null;

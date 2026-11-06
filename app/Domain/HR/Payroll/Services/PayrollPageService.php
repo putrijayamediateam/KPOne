@@ -99,14 +99,14 @@ final class PayrollPageService
                 : ($w->user !== null && $w->user_id !== $actor->id ? $this->support->refusalFor($actor, $w->user) : ($w->user_id === $actor->id ? 'Nobody enters their own pay profile.' : null));
             $map = fn (?\stdClass $p): ?array => $p === null ? null : $this->profile($actor, $w, $p, $items->get($p->id, collect()), $typeNames, $groups, $names);
 
-            return ['id' => $w->public_id, 'name' => $w->name(), 'active' => $w->user === null || (bool) $w->user->is_active,
+            return ['id' => $w->public_id, 'name' => $w->name(), 'active' => $w->user === null || (bool) $w->user->is_active, 'outside' => PayrollSetupService::isManager($w),
                 'enterRefusal' => $refusal ?? ($waiting !== null ? 'A change is already waiting.' : null),
                 'current' => $map($current), 'upcoming' => $map($upcoming), 'waiting' => $map($waiting),
                 'earlier' => $earlier->map(fn (\stdClass $p): ?array => $map($p))->values()->all()];
         })->sortBy(fn (array $r): string => mb_strtolower($r['name']))->values();
 
         return ['people' => $rows->all(), 'waitingCount' => $rows->filter(fn (array $r): bool => $r['waiting'] !== null)->count(),
-            'missingCount' => $rows->filter(fn (array $r): bool => $r['active'] && $r['current'] === null && $r['enterRefusal'] !== PayrollSetupService::MANAGERS_OUTSIDE)->count(), 'actorIsDirector' => $actorIsDirector];
+            'missingCount' => $rows->filter(fn (array $r): bool => $r['active'] && $r['current'] === null && ! $r['outside'])->count(), 'actorIsDirector' => $actorIsDirector];
     }
 
     /**

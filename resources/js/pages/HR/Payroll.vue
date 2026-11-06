@@ -417,8 +417,8 @@ const saveRates = () => {
                     class="text-sm text-muted-foreground"
                     data-test="managers-outside"
                 >
-                    Managers' own pay (the Director and the HR Manager) stays
-                    outside KPOne in this version.
+                    In this first version, the Director's and the HR Manager's
+                    own pay is kept outside KPOne.
                 </p>
             </div>
             <EmptyState
@@ -454,7 +454,11 @@ const saveRates = () => {
                         </p>
                     </div>
                     <Button
-                        v-if="payroll.setUp.groups && !person.enterRefusal"
+                        v-if="
+                            payroll.setUp.groups &&
+                            !person.outside &&
+                            !person.enterRefusal
+                        "
                         variant="outline"
                         class="max-lg:min-h-11"
                         data-test="profile-enter"
@@ -466,14 +470,26 @@ const saveRates = () => {
                         }}</Button
                     >
                     <p
-                        v-else-if="person.enterRefusal && !person.waiting"
+                        v-else-if="
+                            person.enterRefusal &&
+                            !person.waiting &&
+                            !person.outside
+                        "
                         class="text-sm text-muted-foreground"
                     >
                         {{ person.enterRefusal }}
                     </p>
                 </div>
 
+                <p
+                    v-if="person.outside"
+                    class="text-sm text-muted-foreground"
+                    data-test="pay-outside"
+                >
+                    Pay kept outside KPOne in this version.
+                </p>
                 <div
+                    v-else
                     class="grid gap-3"
                     :class="
                         person.waiting && person.current ? 'md:grid-cols-2' : ''
@@ -615,7 +631,7 @@ const saveRates = () => {
                             </p>
                             <Button
                                 v-if="person.waiting.canWithdraw"
-                                variant="ghost"
+                                variant="outline"
                                 class="max-lg:min-h-11"
                                 data-test="profile-withdraw"
                                 @click="
@@ -807,7 +823,7 @@ const saveRates = () => {
                     </p>
                     <Button
                         v-if="t.canWithdraw"
-                        variant="ghost"
+                        variant="outline"
                         class="max-lg:min-h-11"
                         data-test="table-withdraw"
                         @click="askWithdraw(tableTarget(t))"
@@ -864,7 +880,7 @@ const saveRates = () => {
                             </p>
                         </div>
                         <Button
-                            variant="ghost"
+                            variant="outline"
                             class="max-lg:min-h-11"
                             :aria-label="`Change ${g.name}`"
                             @click="openGroup(g)"
@@ -933,7 +949,7 @@ const saveRates = () => {
                             </p>
                         </div>
                         <Button
-                            variant="ghost"
+                            variant="outline"
                             class="max-lg:min-h-11"
                             :aria-label="`Change ${t.name}`"
                             @click="openType(t)"

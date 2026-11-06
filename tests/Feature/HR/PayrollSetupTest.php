@@ -249,7 +249,8 @@ class PayrollSetupTest extends VisitTestCase
 
         $this->selectBranch($hr);
         $this->get(route('hr.payroll.index'))->assertInertia(fn (Assert $page) => $page->where('payroll.profiles.people', fn ($people) => collect($people)
-            ->contains(fn ($p) => $p['id'] === $directorWorker->public_id && $p['enterRefusal'] === $managers)));
+            ->contains(fn ($p) => $p['id'] === $directorWorker->public_id && $p['outside'] === true && $p['current'] === null))
+            ->where('payroll.profiles.people', fn ($people) => collect($people)->contains(fn ($p) => $p['id'] === $caWorker->public_id && $p['outside'] === false)));
 
         // A refused entry never flashes the salary or allowances into the session (Suresh, HR-7a S3).
         $this->profile($hr, $caWorker, [...$this->pay($group), 'rate' => '4,321.00', 'effective_from' => '', 'items' => [['item_type_id' => $allowance, 'amount' => '987.00']]])
