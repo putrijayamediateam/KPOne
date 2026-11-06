@@ -114,6 +114,10 @@ const tabs = computed<
     },
 ]);
 const live = ref(props.snapshot);
+// The Completed tab lists the latest 25 entries; its count is every completed entry at the branch.
+const completedHidden = computed(
+    () => (live.value.tabCounts?.removed ?? 0) - live.value.removed.length,
+);
 const readyAlerts = useCallReadinessAlerts(true);
 // Q-2: the attending doctor (own queue) is told when a treatment step is done.
 const treatmentAlerts = useTreatmentDoneAlerts(true);
@@ -838,6 +842,14 @@ onBeforeUnmount(() => {
                 @open-consultation="openConsultation"
                 @cancel="requestCancellation"
             />
+            <p
+                v-if="activeTab === 'removed' && completedHidden > 0"
+                class="border-t px-3 py-2 text-xs text-muted-foreground"
+                data-testid="completed-shown-count"
+            >
+                Showing the latest {{ live.removed.length }} of
+                {{ live.tabCounts?.removed }}
+            </p>
             <div
                 v-if="
                     (activeTab === 'all' || activeTab === 'waiting') &&
