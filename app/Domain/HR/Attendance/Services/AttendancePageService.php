@@ -17,7 +17,7 @@ use Illuminate\Support\Collection;
 /** HR-3a page props for /hr/attendance: My attendance, Review and Settings. Read only. */
 final class AttendancePageService
 {
-    public function __construct(private BranchAccessService $branches, private AttendanceDays $days, private AttendanceSettingsService $settings) {}
+    public function __construct(private BranchAccessService $branches, private AttendanceDays $days, private AttendanceSettingsService $settings, private OvertimePageService $overtime, private AttendanceTotals $totals) {}
 
     /**
      * @param  array<string, mixed>  $query
@@ -27,7 +27,8 @@ final class AttendancePageService
     {
         $canClock = $actor->can(ClockPermissions::CLOCK_OWN);
         $canReview = $actor->can(ClockPermissions::REVIEW);
-        $tabs = array_keys(array_filter(['my' => $canClock, 'review' => $canReview, 'settings' => $canReview]));
+        $canApprove = $actor->can(ClockPermissions::OVERTIME_APPROVE);
+        $tabs = array_keys(array_filter(['my' => $canClock, 'review' => $canReview, 'overtime' => $canApprove || $canReview, 'summary' => $canReview, 'settings' => $canReview]));
         $tab = in_array($query['tab'] ?? null, $tabs, true) ? (string) $query['tab'] : ($tabs[0] ?? 'my');
 
         return [
@@ -38,9 +39,13 @@ final class AttendancePageService
             'rejectReasons' => collect(CorrectionService::REJECT_REASONS)->map(fn (string $label, string $value): array => ['value' => $value, 'label' => $label])->values()->all(),
             'pendingCount' => $canReview ? AttendanceCorrection::query()->where('organisation_id', $actor->organisation_id)->where('status', 'pending')
                 ->where('user_id', '<>', $actor->id)->where('proposed_by_user_id', '<>', $actor->id)->count() : 0,
+            'overtimeOptions' => $this->overtime->options(),
+            'overtimePendingCount' => $canApprove ? $this->overtime->pendingCount($actor) : 0,
             'my' => $canClock ? $this->my($actor) : null,
             'review' => $canReview && $tab === 'review' ? $this->review($actor, $query) : null,
-            'settings' => $canReview && $tab === 'settings' ? $this->settingsPage($actor) : null,
+            'overtime' => ($canApprove || $canReview) && $tab === 'overtime' ? $this->overtime->overtimeTab($actor, $query) : null,
+            'summary' => $canReview && $tab === 'summary' ? $this->overtime->summaryTab($actor, $query) : null,
+            'settings' => $canReview && $tab === 'settings' ? [...$this->settingsPage($actor), 'overtime' => $this->overtime->settingsCard($actor)] : null,
         ];
     }
 
@@ -103,6 +108,7 @@ final class AttendancePageService
             'correctionDays' => $settings?->correctionDays,
             'corrections' => $this->corrections(AttendanceCorrection::query()->where('organisation_id', $actor->organisation_id)->where('user_id', $actor->id)
                 ->orderByDesc('id')->limit(20)->get(), $actor),
+            'overtime' => $this->overtime->my($actor, $rows->all(), $today),
         ];
     }
 
@@ -130,8 +136,22 @@ final class AttendancePageService
                 ->orWhere(fn ($q) => $q->whereIn('user_id', $shifts->pluck('staff_user_id')->unique()->values())->whereDate('local_date', $date->toDateString())))
             ->orderBy('clock_in_at')->get();
         $rows = $this->days->rows($actor->organisation_id, $sessions, $shifts, $this->waiting($sessions));
-        $names = User::query()->whereIn('id', collect($rows)->pluck('userId')->unique())->pluck('name', 'id');
-        $rows = array_map(fn (array $r): array => [...$r, 'person' => (string) ($names[$r['userId']] ?? 'Staff member')], $rows);
+        $people = User::query()->whereIn('id', collect($rows)->pluck('userId')->unique())->get()->keyBy('id');
+        // HR-3b: a manager may ask for overtime on someone's behalf from a closed day on Review (never their own from here).
+        $choices = [];
+        $taken = $this->overtime->taken($rows);
+        foreach (collect($rows)->groupBy('userId') as $userId => $own) {
+            $person = $people[$userId] ?? null;
+            if ($person !== null && $person->id !== $actor->id) {
+                foreach ($this->overtime->choices($person, $own->values()->all(), $today, $taken) as $choice) {
+                    $choices[$choice['sessionId']] = $choice;
+                }
+            }
+        }
+        // HR-PLAN 10.1: the weekly hours chip on Review too (one pass for everyone on the page).
+        $weeks = $this->totals->week($actor->organisation_id, array_values(array_map('intval', $people->keys()->all())), $date);
+        $rows = array_map(fn (array $r): array => [...$r, 'person' => (string) (isset($people[$r['userId']]) ? $people[$r['userId']]->name : 'Staff member'),
+            'overtimeChoice' => $r['session'] === null ? null : ($choices[$r['session']['publicId']] ?? null), 'week' => $weeks[$r['userId']] ?? null], $rows);
         $pending = AttendanceCorrection::query()->where('organisation_id', $actor->organisation_id)->where('status', 'pending')->orderBy('id')->limit(100)->get();
         $flagged = count(array_filter($rows, fn (array $r): bool => $r['flags'] !== []));
         $staffIds = StaffBranchAssignment::query()->where('branch_id', $branch->id)->whereDate('valid_from', '<=', $date->toDateString())

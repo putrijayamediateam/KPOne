@@ -93,6 +93,24 @@ class CallNextService
     }
 
     /**
+     * Q-4b (owner decisions 2026-11-06): the doctor's own Call next block outside the queue board, for the held
+     * consultation page. Only the doctor's own queue; null for anyone who calls from the branch board instead.
+     *
+     * @return array<string, mixed>|null
+     */
+    public function ownBlock(User $actor, int $expectedBranchId): ?array
+    {
+        $branch = $this->branches->activeBranch($actor);
+        if (! $branch || $branch->id !== $expectedBranchId) {
+            throw ValidationException::withMessages([
+                'expected_branch_id' => 'The active branch changed. Reload the page.',
+            ]);
+        }
+
+        return $this->mode($actor) === 'own' ? $this->block($actor, $branch, null) : null;
+    }
+
+    /**
      * Call the confirmed patient if they are still the doctor's next eligible patient.
      *
      * @param  array<string, mixed>  $attributes
