@@ -96,6 +96,23 @@ final class AttendanceDays
             && $now->greaterThanOrEqualTo($s->starts_at->subMinutes(self::EARLY_ARRIVAL_MINUTES)));
     }
 
+    /** HR-3b: the approved shift a session is matched to (the same matching Review uses), or null when it is not on the roster. */
+    public function matchedShift(ClockSession $session): ?RosterShift
+    {
+        $day = $session->local_date;
+        $sessions = ClockSession::query()->where('user_id', $session->user_id)->whereDate('local_date', $day->toDateString())->orderBy('clock_in_at')->get();
+        $shifts = $this->shifts($session->organisation_id, [$session->user_id], $day, $day);
+        $shiftId = array_search($session->id, $this->match($sessions, $shifts, CarbonImmutable::now('UTC')), true);
+
+        return $shiftId === false ? null : $shifts->firstWhere('id', $shiftId);
+    }
+
+    /** HR-3b: a shift's rostered minutes, its length less its break. */
+    public static function rostered(RosterShift $shift): int
+    {
+        return max(0, (int) $shift->starts_at->diffInMinutes($shift->ends_at) - $shift->break_minutes);
+    }
+
     /** Minutes worked in a closed session: the shift's break comes off only when the session covers the whole shift. */
     public static function worked(ClockSession $session, ?RosterShift $shift): ?int
     {
@@ -209,13 +226,14 @@ final class AttendanceDays
             'dateLabel' => CarbonImmutable::parse($date)->format('D j M'),
             'sortAt' => ($shift !== null ? $shift->starts_at : ($session !== null ? $session->clock_in_at : $now))->getTimestamp(),
             'shift' => $shift === null ? null : ['label' => (RosterRules::SESSIONS[$shift->session_type] ?? 'Other').', '.AttendanceSupport::time($shift->starts_at, $shift->timezone)
-                .' to '.AttendanceSupport::time($shift->ends_at, $shift->timezone), 'branch' => $shiftBranch],
+                .' to '.AttendanceSupport::time($shift->ends_at, $shift->timezone), 'branch' => $shiftBranch, 'branchId' => $shift->branch_id],
             'session' => $session === null ? null : ['publicId' => $session->public_id, 'status' => $session->status, 'branch' => (string) ($branches[$session->branch_id] ?? ''),
                 'branchId' => $session->branch_id, 'in' => AttendanceSupport::time($session->clock_in_at, $sessionZone), 'out' => AttendanceSupport::time($session->clock_out_at, $sessionZone),
                 'inValue' => $session->clock_in_at->setTimezone($sessionZone)->format('Y-m-d\TH:i'),
                 'outValue' => $session->clock_out_at?->setTimezone($sessionZone)->format('Y-m-d\TH:i')],
             'worked' => $worked === null ? null : AttendanceSupport::duration($worked),
             'workedMinutes' => $worked,
+            'rosteredMinutes' => $shift === null ? null : self::rostered($shift),
             'flags' => $flags,
             'correctionWaiting' => $session !== null && isset($waiting[$session->id]),
             'needsClockOut' => collect($flags)->contains('code', 'no_clock_out'),

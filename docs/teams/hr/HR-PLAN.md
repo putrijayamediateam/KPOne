@@ -1183,8 +1183,9 @@ line shows the total with no warning.
 - **Ask for overtime** (every human role the settings allow): on a day in My week where the person worked more
   than their roster, an outline "Ask for overtime" button opens a sheet with the session, the worked time beside the
   rostered time ("Worked 10 h 15 min · Rostered 8 h"), KPOne's day type ("Normal day", "Rest day" or "Public
-  holiday: Deepavali"), the minutes (pre-filled with the most allowed) and a reason code. A manager may ask on
-  someone's behalf from the Overtime tab.
+  holiday: Deepavali"), the minutes (pre-filled with the most allowed) and a reason code (Busy clinic, Covered for
+  someone absent, Stayed to finish work, Asked by a manager, Other). A manager may ask on someone's behalf from that
+  person's closed day on Review (built that way: Review already shows the day's sessions).
 - **Overtime tab** (Director, HR Manager): requests waiting for a decision, each with the person, date, branch, day
   type, minutes, reason and the person's hours that week; outline Approve, Approve fewer minutes and Reject (the
   primary action in the dialog). Below: decided requests for the chosen month.
