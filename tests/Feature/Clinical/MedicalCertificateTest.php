@@ -412,7 +412,9 @@ class MedicalCertificateTest extends BillingTestCase
         $this->assertStringNotContainsString("O'Neil & Sons", $html);
         $this->assertStringNotContainsString('Wet signature', $html);
         $this->assertStringNotContainsString('Synthetic diagnosis', $html);
-        $this->get("/visits/{$visit->visit_number}/medical-certificates/{$id}?print=1")->assertOk()->assertSee('(NOT VALID IN THE COURT OF LAW)');
+        $this->get("/visits/{$visit->visit_number}/medical-certificates/{$id}?print=1")->assertOk()->assertSee('(NOT VALID IN THE COURT OF LAW)')
+            // The on-screen print instruction never reaches the paper; only "COPY — <status>" prints.
+            ->assertSee('.copy-help{display:none}', false)->assertSee('COPY — CURRENT<span class="copy-help">', false);
     }
 
     public function test_the_bahasa_melayu_revision_2_has_its_own_labels_and_notice(): void

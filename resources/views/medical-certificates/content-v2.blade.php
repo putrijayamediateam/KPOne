@@ -24,7 +24,7 @@
 .mc-signature-line {border-top:1px solid #18181b;padding-top:6px;min-width:70mm}
 .mc-evidence {font-size:9pt;margin-top:35px;border-top:1px solid #aaa;padding-top:8px}
 @media(max-width:600px){.mc-sheet{padding:18px;min-height:0}.mc-header{flex-wrap:wrap}.mc-logo{width:60px;height:60px}.mc-signature-line{min-width:0}}
-@page {size:A4 portrait;margin:12mm}
+@page {size:A4 portrait;margin:15mm}
 @media print {html,body{background:#fff!important;color:#18181b!important;margin:0}.mc-sheet{padding:0;max-width:none;min-height:0;color:#18181b!important;background:#fff!important;print-color-adjust:exact}.mc-draft{color:#18181b!important}.mc-header{break-inside:avoid}}
 </style>
 <article class="mc-sheet" lang="{{ $bm ? 'ms' : 'en' }}">
