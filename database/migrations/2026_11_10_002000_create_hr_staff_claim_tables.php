@@ -248,8 +248,9 @@ CREATE OR REPLACE FUNCTION guard_hr_staff_claim() RETURNS trigger LANGUAGE plpgs
 BEGIN
  IF TG_OP = 'INSERT' THEN
   IF NEW.status <> 'waiting' THEN RAISE EXCEPTION 'A staff claim is sent as waiting for approval' USING ERRCODE = '23514'; END IF;
-  IF NOT EXISTS (SELECT 1 FROM hr_claim_category_versions WHERE category_id = NEW.category_id AND version = NEW.category_version AND is_active) THEN
-   RAISE EXCEPTION 'A staff claim uses an active category version' USING ERRCODE = '23514';
+  IF NOT EXISTS (SELECT 1 FROM hr_claim_category_versions v JOIN hr_claim_categories c ON c.id = v.category_id
+    WHERE v.category_id = NEW.category_id AND v.version = NEW.category_version AND v.version = c.current_version AND v.is_active) THEN
+   RAISE EXCEPTION 'A staff claim uses the current, active version of its category' USING ERRCODE = '23514';
   END IF;
   IF NEW.copied_from_claim_id IS NOT NULL AND NOT EXISTS (SELECT 1 FROM hr_staff_claims WHERE id = NEW.copied_from_claim_id
     AND claimant_user_id = NEW.claimant_user_id AND status = 'rejected' AND reject_reason = 'wrong_amount') THEN
@@ -263,6 +264,9 @@ BEGIN
    OR NEW.spent_on <> OLD.spent_on OR NEW.amount_sen <> OLD.amount_sen OR NEW.purpose_encrypted <> OLD.purpose_encrypted
    OR NEW.copied_from_claim_id IS DISTINCT FROM OLD.copied_from_claim_id OR NEW.created_at IS DISTINCT FROM OLD.created_at THEN
   RAISE EXCEPTION 'A staff claim is never edited after it is sent' USING ERRCODE = 'P0001';
+ END IF;
+ IF OLD.status = 'paid' AND NEW.status = 'paid' THEN
+  RAISE EXCEPTION 'A paid staff claim changes only when its payment is reversed' USING ERRCODE = 'P0001';
  END IF;
  IF NEW.status <> OLD.status AND NOT (
    (OLD.status = 'waiting' AND NEW.status IN ('approved', 'rejected', 'withdrawn'))
@@ -290,7 +294,9 @@ CREATE TRIGGER hr_staff_claims_guard BEFORE INSERT OR UPDATE ON hr_staff_claims 
 CREATE OR REPLACE FUNCTION guard_hr_staff_claim_payment() RETURNS trigger LANGUAGE plpgsql AS $$
 DECLARE c RECORD; p RECORD;
 BEGIN
- SELECT status, claimant_user_id, decided_by_user_id, organisation_id INTO c FROM hr_staff_claims WHERE id = NEW.claim_id;
+ -- The claim row lock serialises payments in the database itself, so the live-payment check below sees committed rows
+ -- even for writes that bypass the service (Suresh, HR-6 S1).
+ SELECT status, claimant_user_id, decided_by_user_id, organisation_id INTO c FROM hr_staff_claims WHERE id = NEW.claim_id FOR UPDATE;
  IF NEW.recorded_by_user_id = c.claimant_user_id OR NEW.recorded_by_user_id = c.decided_by_user_id THEN
   RAISE EXCEPTION 'The payer is never the claimant or the approver' USING ERRCODE = '23514';
  END IF;

@@ -247,6 +247,63 @@ class ClaimsTest extends VisitTestCase
         $this->assertNoSecretsInAudit();
     }
 
+    public function test_the_director_level_is_the_lower_of_then_and_now_and_receipts_and_purpose_stay_private(): void
+    {
+        $director = $this->actor('director');
+        $director2 = $this->actor('director');
+        $hr = $this->actor('hr_manager');
+        $finance = $this->actor('finance_officer');
+        $doctor = $this->actor('resident_doctor');
+        $meals = $this->makeCategory($hr, 'Meals', true, '', '');
+        $this->settings($hr, ['director_level' => '100.00', 'days_back' => '', 'expected_version' => 0])->assertSessionHasNoErrors();
+        $this->send($doctor, ['category_id' => $meals, 'spent_on' => '2026-11-05', 'amount' => '150.00', 'purpose' => self::PURPOSE], [$this->pdf()])->assertSessionHasNoErrors();
+        $claim = DB::table('hr_staff_claims')->first();
+        $this->assertNotNull($claim);
+
+        // Raising the level later does not let the claim past the level it was sent under; clearing it keeps the old one.
+        $this->settings($hr, ['director_level' => '200.00', 'days_back' => '', 'expected_version' => 1])->assertSessionHasNoErrors();
+        $this->decide($hr, $claim, 'approve')->assertSessionHasErrors(['claims' => 'Waiting for the Director.']);
+        $this->settings($hr, ['director_level' => '', 'days_back' => '', 'expected_version' => 2])->assertSessionHasNoErrors();
+        $this->decide($hr, $claim, 'approve')->assertSessionHasErrors(['claims' => 'Waiting for the Director.']);
+        $this->get(route('hr.claims.index', ['tab' => 'approvals']))->assertInertia(fn (Assert $page) => $page
+            ->where('claims.approvals.claims.0.warnings', ['Needs the Director: over RM 100.00'])->where('claims.approvals.claims.0.refusal', 'Waiting for the Director.'));
+        $this->selectBranch($doctor);
+        $this->get(route('hr.claims.index'))->assertInertia(fn (Assert $page) => $page->where('claims.my.0.waitingFor', 'Waiting for the Director'));
+
+        // A payer opens receipts only once the claim is approved.
+        $receipt = DB::table('hr_staff_claim_receipts')->where('claim_id', $claim->id)->value('public_id');
+        $this->selectBranch($finance);
+        $this->get('/hr/claims/receipts/'.$receipt)->assertForbidden();
+        $this->decide($director, $claim, 'approve')->assertSessionHasNoErrors();
+        $this->selectBranch($finance);
+        $this->get('/hr/claims/receipts/'.$receipt)->assertOk();
+
+        // A Director's own claim: the HR Manager below the level, only another Director above it.
+        $this->settings($hr, ['director_level' => '100.00', 'days_back' => '', 'expected_version' => 3])->assertSessionHasNoErrors();
+        $this->send($director, ['category_id' => $meals, 'spent_on' => '2026-11-05', 'amount' => '40.00', 'purpose' => self::PURPOSE], [$this->pdf(self::PDF_TWO)])->assertSessionHasNoErrors();
+        $this->send($director, ['category_id' => $meals, 'spent_on' => '2026-11-05', 'amount' => '300.00', 'purpose' => self::PURPOSE], [$this->pdf("%PDF-1.4\n% SYNTHETIC-THREE\n%%EOF\n")])->assertSessionHasNoErrors();
+        [, $small, $big] = DB::table('hr_staff_claims')->orderBy('id')->get()->all();
+        $this->decide($hr, $small, 'approve')->assertSessionHasNoErrors();
+        $this->decide($hr, $big, 'approve')->assertSessionHasErrors(['claims' => 'Waiting for the Director.']);
+        $this->decide($director, $big, 'approve')->assertSessionHasErrors(['claims' => 'Someone else approves this.']);
+        $this->decide($director2, $big, 'approve')->assertSessionHasNoErrors();
+        // An HR Manager's own claim reads "Waiting for the Director" to them.
+        $this->send($hr, ['category_id' => $meals, 'spent_on' => '2026-11-05', 'amount' => '10.00', 'purpose' => self::PURPOSE], [$this->pdf("%PDF-1.4\n% SYNTHETIC-FOUR\n%%EOF\n")])->assertSessionHasNoErrors();
+        $this->get(route('hr.claims.index'))->assertInertia(fn (Assert $page) => $page->where('claims.my.0.waitingFor', 'Waiting for the Director'));
+
+        // PostgreSQL: a paid claim changes only through a reversal, and a second live payment is refused.
+        $this->pay($finance, $small, ['method' => 'cash', 'paid_on' => '2026-11-06'])->assertSessionHasNoErrors();
+        $this->assertRefused('P0001', fn () => DB::table('hr_staff_claims')->where('id', $small->id)->update(['status' => 'paid', 'lock_version' => 9]));
+        $this->assertRefused('23514', fn () => DB::table('hr_staff_claim_payments')->insert(['public_id' => (string) Str::uuid(), 'organisation_id' => $hr->organisation_id,
+            'claim_id' => $small->id, 'kind' => 'payment', 'method' => 'cash', 'paid_on' => '2026-11-06', 'recorded_by_user_id' => $finance->id, 'created_at' => now()]));
+
+        // A refused send never flashes the purpose into the session.
+        $this->send($doctor, ['category_id' => $meals, 'spent_on' => '2026-11-05', 'amount' => '5.00', 'purpose' => 'Synthetic private purpose words'],
+            [UploadedFile::fake()->createWithContent('bad.pdf', 'not a pdf')])->assertSessionHasErrors('receipts.0');
+        $this->assertArrayNotHasKey('purpose', (array) session('_old_input', []));
+        $this->assertStringNotContainsString('private purpose', (string) json_encode(session()->all()));
+    }
+
     public function test_another_organisations_claims_and_categories_are_not_found(): void
     {
         $org = new Organisation;

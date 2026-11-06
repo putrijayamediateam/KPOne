@@ -107,13 +107,12 @@ final class ClaimsPageService
         $claims = DB::table('hr_staff_claims')->where('organisation_id', $actor->organisation_id)->where('status', 'waiting')
             ->orderBy('created_at')->orderBy('id')->get();
         $rows = $this->rows($actor, $claims, $zone, true, false);
-        $level = $this->claims->settings($actor->organisation_id)?->director_level_sen;
         $hashes = DB::table('hr_staff_claim_receipts')->whereIn('claim_id', $claims->pluck('id')->all())->get(['claim_id', 'sha256']);
         $others = $hashes->isEmpty() ? collect() : DB::table('hr_staff_claim_receipts as r')->join('hr_staff_claims as c', 'c.id', '=', 'r.claim_id')
             ->where('r.organisation_id', $actor->organisation_id)->whereIn('r.sha256', $hashes->pluck('sha256')->unique()->all())
             ->whereIn('c.status', ['waiting', 'approved', 'paid'])->get(['r.sha256', 'c.id', 'c.number']);
 
-        return ['claims' => $rows->map(function (array $row) use ($actor, $claims, $categories, $level, $hashes, $others): array {
+        return ['claims' => $rows->map(function (array $row) use ($actor, $claims, $categories, $hashes, $others): array {
             $claim = $claims->firstWhere('id', $row['dbId']);
             $category = $categories->firstWhere('dbId', (int) $claim->category_id);
             $warnings = [];
@@ -133,8 +132,9 @@ final class ClaimsPageService
                     $warnings[] = "This receipt was also attached to claim {$number}";
                 }
             }
-            if ($level !== null && $amount > (int) $level) {
-                $warnings[] = 'Needs the Director: over '.self::myr((int) $level);
+            $level = $this->claims->directorLevel($claim);
+            if ($level !== null && $amount > $level) {
+                $warnings[] = 'Needs the Director: over '.self::myr($level);
             }
 
             return [...$row, 'warnings' => array_values(array_unique($warnings)), 'monthTotalSen' => $monthTotal,
@@ -206,10 +206,11 @@ final class ClaimsPageService
         $receipts = DB::table('hr_staff_claim_receipts')->whereIn('claim_id', $ids)->orderBy('position')->get()->groupBy('claim_id');
         $payments = DB::table('hr_staff_claim_payments')->whereIn('claim_id', $ids)->orderBy('id')->get()->groupBy('claim_id');
         $notes = DB::table('hr_staff_claim_actions')->whereIn('claim_id', $ids)->where('action', 'rejected')->get(['claim_id', 'note_encrypted'])->keyBy('claim_id');
-        $level = $this->claims->settings($actor->organisation_id)?->director_level_sen;
+        $hrManagers = User::query()->whereIn('id', $claims->pluck('claimant_user_id')->unique()->all())
+            ->whereHas('roles', fn ($q) => $q->where('name', 'hr_manager'))->whereDoesntHave('roles', fn ($q) => $q->where('name', 'director'))->pluck('id')->all();
 
         /** @var Collection<array-key, array<string, mixed>> $out */
-        $out = $claims->map(function (\stdClass $c) use ($people, $branches, $categoryNames, $receipts, $payments, $notes, $withPurpose, $own, $level, $zone): array {
+        $out = $claims->map(function (\stdClass $c) use ($people, $branches, $categoryNames, $receipts, $payments, $notes, $withPurpose, $own, $hrManagers, $zone): array {
             $files = $receipts->get($c->id, collect())->values();
             $count = $files->count();
             $paid = null;
@@ -227,7 +228,9 @@ final class ClaimsPageService
             $note = $notes->get($c->id)?->note_encrypted;
             $waitingFor = null;
             if ($status === 'waiting') {
-                $waitingFor = $level !== null && (int) $c->amount_sen > (int) $level ? 'Waiting for the Director' : 'Someone else approves this';
+                $level = $this->claims->directorLevel($c);
+                $waitingFor = ($level !== null && (int) $c->amount_sen > $level) || in_array((int) $c->claimant_user_id, $hrManagers, true)
+                    ? 'Waiting for the Director' : 'Someone else approves this';
             }
 
             return [

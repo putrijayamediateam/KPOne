@@ -36,7 +36,7 @@ test('Approved and Paid are success, told apart by their words, and nothing is r
         /status === 'approved' \|\| status === 'paid' \? 'success' : 'neutral'/,
     );
     assert.match(types, /`Paid \$\{row\.paid\.paidOn\}`/);
-    assert.match(types, /`Ref •••• \$\{row\.paid\.last4\}`/);
+    assert.match(types, /`Ref\\u00a0••••\\u00a0\$\{row\.paid\.last4\}`/);
 
     for (const key of Object.keys(files)) {
         assert.doesNotMatch(

@@ -62,7 +62,8 @@ export const paidLine = (row: ClaimRow): string =>
         ? [
               `Paid ${row.paid.paidOn}`,
               row.paid.method,
-              row.paid.last4 ? `Ref •••• ${row.paid.last4}` : '',
+              // Non-breaking spaces keep the masked reference on one line.
+              row.paid.last4 ? `Ref\u00a0••••\u00a0${row.paid.last4}` : '',
           ]
               .filter((p) => p)
               .join(' · ')

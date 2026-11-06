@@ -453,8 +453,8 @@ const dialogOpen = computed(
                 :aria-labelledby="`claim-${row.id}`"
                 data-test="my-claim"
             >
-                <div class="flex flex-wrap items-start justify-between gap-2">
-                    <div class="min-w-0">
+                <div class="flex items-start justify-between gap-3">
+                    <div class="min-w-0 flex-1">
                         <h3
                             :id="`claim-${row.id}`"
                             class="text-base font-semibold"
@@ -465,10 +465,11 @@ const dialogOpen = computed(
                             Paid by you on {{ row.spentOn }} · {{ row.branch }}
                         </p>
                     </div>
-                    <div class="flex flex-col items-end gap-1">
-                        <span class="text-base font-semibold tabular-nums">{{
-                            row.amount
-                        }}</span>
+                    <div class="flex shrink-0 flex-col items-end gap-1">
+                        <span
+                            class="shrink-0 text-base font-semibold whitespace-nowrap tabular-nums"
+                            >{{ row.amount }}</span
+                        >
                         <StatusBadge
                             :status="row.status"
                             :label="row.statusWords"
@@ -550,8 +551,8 @@ const dialogOpen = computed(
                 :aria-labelledby="`approve-${row.id}`"
                 data-test="approval-card"
             >
-                <div class="flex flex-wrap items-start justify-between gap-2">
-                    <div class="min-w-0">
+                <div class="flex items-start justify-between gap-3">
+                    <div class="min-w-0 flex-1">
                         <h3
                             :id="`approve-${row.id}`"
                             class="text-base font-semibold"
@@ -563,9 +564,10 @@ const dialogOpen = computed(
                             {{ row.branch }}
                         </p>
                     </div>
-                    <span class="text-base font-semibold tabular-nums">{{
-                        row.amount
-                    }}</span>
+                    <span
+                        class="shrink-0 text-base font-semibold whitespace-nowrap tabular-nums"
+                        >{{ row.amount }}</span
+                    >
                 </div>
                 <p v-if="row.purpose" class="text-sm break-words">
                     {{ row.purpose }}
@@ -740,8 +742,8 @@ const dialogOpen = computed(
                 class="flex flex-col gap-2 rounded-xl border bg-card p-4 lg:hidden"
                 data-test="pay-card"
             >
-                <div class="flex flex-wrap items-start justify-between gap-2">
-                    <div class="min-w-0">
+                <div class="flex items-start justify-between gap-3">
+                    <div class="min-w-0 flex-1">
                         <p class="font-semibold">
                             {{ row.person }} · {{ row.number }}
                         </p>
@@ -749,9 +751,10 @@ const dialogOpen = computed(
                             {{ row.category }} · {{ row.branch }}
                         </p>
                     </div>
-                    <span class="font-semibold tabular-nums">{{
-                        row.amount
-                    }}</span>
+                    <span
+                        class="shrink-0 font-semibold whitespace-nowrap tabular-nums"
+                        >{{ row.amount }}</span
+                    >
                 </div>
                 <div>
                     <StatusBadge

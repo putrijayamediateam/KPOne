@@ -45,6 +45,9 @@ final class ClaimService
 
     public const METHODS = ['bank_transfer' => 'Bank transfer', 'cash' => 'Cash', 'cheque' => 'Cheque'];
 
+    /** @var array<string, \stdClass|null> */
+    private array $versions = [];
+
     public function __construct(private RecordSupport $support) {}
 
     /** @return array{content:string, kind:string, bytes:int, sha256:string} a checked receipt (HR-2b pipeline, 5 MB) */
@@ -475,15 +478,26 @@ final class ClaimService
         if ($claimant !== null && $claimant->hasRole('hr_manager') && ! $claimant->hasRole('director') && ! $isDirector) {
             return "Only a Director approves an HR Manager's claim.";
         }
-        $level = $this->settingsVersion($actor->organisation_id, $claim->settings_version)?->director_level_sen;
-        $current = $this->settings($actor->organisation_id)?->director_level_sen;
-        // The lower of the level when it was sent and the level now: lowering the level never lets a claim past it.
-        $levels = array_filter([$level, $current], fn ($v): bool => $v !== null);
-        if ($levels !== [] && (int) $claim->amount_sen > min(array_map('intval', $levels)) && ! $isDirector) {
+        $level = $this->directorLevel($claim);
+        if ($level !== null && (int) $claim->amount_sen > $level && ! $isDirector) {
             return 'Waiting for the Director.';
         }
 
         return null;
+    }
+
+    /**
+     * The Director level that applies to a claim: the lower of the level when it was sent and the level now, so lowering
+     * the level never lets a claim past it and clearing it keeps the old one. Null when neither is set. The decision, the
+     * approval card and the claimant's line all use this one rule (Suresh, HR-6 M1).
+     */
+    public function directorLevel(\stdClass $claim): ?int
+    {
+        $org = (int) $claim->organisation_id;
+        $levels = array_filter([$this->settingsVersion($org, $claim->settings_version)?->director_level_sen, $this->settings($org)?->director_level_sen],
+            fn ($v): bool => $v !== null);
+
+        return $levels === [] ? null : min(array_map('intval', $levels));
     }
 
     public function today(int $organisationId): string
@@ -505,9 +519,14 @@ final class ClaimService
         if ($version === null) {
             return null;
         }
-        $row = DB::table('hr_claim_settings')->where('organisation_id', $organisationId)->where('version', (int) $version)->first();
+        // Saved versions never change (append-only), so one read per version is enough for a page.
+        $key = $organisationId.':'.(int) $version;
+        if (! array_key_exists($key, $this->versions)) {
+            $row = DB::table('hr_claim_settings')->where('organisation_id', $organisationId)->where('version', (int) $version)->first();
+            $this->versions[$key] = $row instanceof \stdClass ? $row : null;
+        }
 
-        return $row instanceof \stdClass ? $row : null;
+        return $this->versions[$key];
     }
 
     private function assertPayer(User $actor, \stdClass $claim): void
