@@ -22,9 +22,10 @@ Team designers (each works inside their own builder team and follows Daniel's gu
 | Agent platform | Ezra |
 | Queue & TV | Yasmin |
 | Catalogue & settings | Nadia (team set up 2026-11-05: Adlina, Lead; Ravi, Reviewer) |
+| HR | Hui Min (team set up 2026-11-05: Liyana, Lead; Suresh, Reviewer; KPOne HR) |
 | Staff Experience | Kavitha's team is itself the UX team; it builds the shared shell to Daniel's guide |
 
-All are Claude builder sessions or roles working for the owner through the coordinator session (LUCY). Daniel is
+All are Claude builder sessions or roles working for the owner through the coordinator session, B.E.R.N.I.S.S (formerly LUCY). Daniel is
 the "Daniel, UI Designer" shown in the agent office. The Patients & Registration reviewer formerly called Daniel is
 now **Hafiz** (renamed 2026-11-05 to avoid two Daniels).
 
@@ -55,14 +56,17 @@ pharmacist decisions).
 3. The TV screen is English with the owner-approved theme; the public website uses the fixed soft pink, white and
    black profile (2026-10-26).
 4. Prints stay white in dark mode (PRINT-1).
-5. A "ship it" or decision relayed by LUCY counts as the owner's own (owner rule 2026-11-05).
-6. **Backup push** (owner rule for all teams, 2026-11-05, relayed by LUCY): whenever the team stops to wait for the
+5. A "ship it" or decision relayed by B.E.R.N.I.S.S (formerly LUCY) counts as the owner's own (owner rule 2026-11-05).
+6. **Backup push** (owner rule for all teams, 2026-11-05, relayed by B.E.R.N.I.S.S): whenever the team stops to wait for the
    owner (a "ship it", a question, or the end of a turn) with work not yet on GitHub, it commits that work to its own
    branch for the piece and pushes it (`git push -u origin <branch>`). It is only a backup: no PR, never to `main` or
    another team's branch, never a merge, never a force-push (add new commits). A branch with no PR runs no CI. If the
    branch already has an open PR, a push updates the PR and re-runs CI, so push there only when the change is ready.
    The PR still opens only after "ship it", from the same branch, with the latest `origin/main` merged first. After a
    session restart on a fresh machine, fetch the branch before continuing.
+7. **Owner away** (owner message to B.E.R.N.I.S.S, 2026-11-05 22:12 UTC): while the owner says they are not around,
+   B.E.R.N.I.S.S approves for the owner. Such answers are recorded as "B.E.R.N.I.S.S for the owner", not as the
+   owner's own words, and go on the owner's board for review. A "Not OK" from Daniel still holds a layout PR.
 
 ## 5. Rules
 
