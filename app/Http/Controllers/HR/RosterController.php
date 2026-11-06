@@ -2,10 +2,10 @@
 
 namespace App\Http\Controllers\HR;
 
+use App\Domain\HR\Credentials\Services\CredentialsPageService;
 use App\Domain\HR\Roster\Services\MinimumStaffingService;
 use App\Domain\HR\Roster\Services\RosterPageService;
 use App\Domain\HR\Roster\Services\RosterService;
-use App\Domain\HR\Credentials\Services\CredentialsPageService;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
