@@ -137,7 +137,19 @@ final class LeaveSettingsService
                 return (int) $replay;
             }
             DB::select('select pg_advisory_xact_lock(hashtextextended(?, 0))', ['hr_leave_entitlements:'.$actor->organisation_id.':'.$year]);
-            $plan = $this->grantPlan($actor->organisation_id, $year);
+            // Only the people locked above; someone activated meanwhile is granted on the next press.
+            $plan = $this->grantPlan($actor->organisation_id, $year, $people);
+            $short = 0;
+            $types = LeaveType::query()->whereIn('id', array_unique(array_column($plan, 'leave_type_id')))->get()->keyBy('id');
+            foreach ($plan as $line) {
+                $type = $types[$line['leave_type_id']];
+                if ($line['halves'] < 0 && ! $type->allow_negative && $this->balances->left($line['user_id'], $type->id, $year) + $line['halves'] < 0) {
+                    $short++;
+                }
+            }
+            if ($short > 0) {
+                throw ValidationException::withMessages(['year' => 'Lowering the entitlement would take '.($short === 1 ? '1 person' : "{$short} people").' below zero. Use an adjustment for them instead.']);
+            }
             foreach ($plan as $line) {
                 $this->ledger($actor, $line['user_id'], $line['leave_type_id'], $year, 'grant', $line['halves']);
             }
@@ -338,12 +350,15 @@ final class LeaveSettingsService
         return CarbonImmutable::now(is_string($zone) ? $zone : 'UTC')->startOfDay();
     }
 
-    /** @return list<array{user_id:int, leave_type_id:int, halves:int}> */
-    private function grantPlan(int $organisationId, int $year): array
+    /**
+     * @param  list<int>|null  $peopleIds
+     * @return list<array{user_id:int, leave_type_id:int, halves:int}>
+     */
+    private function grantPlan(int $organisationId, int $year, ?array $peopleIds = null): array
     {
         $rows = $this->entitlementRows($organisationId, $year);
         $types = LeaveType::query()->where('organisation_id', $organisationId)->where('uses_balance', true)->where('is_active', true)->orderBy('id')->get();
-        $people = User::query()->with('roles')->whereIn('id', $this->humanIds($organisationId))->orderBy('id')->get();
+        $people = User::query()->with('roles')->whereIn('id', $peopleIds ?? $this->humanIds($organisationId))->orderBy('id')->get();
         $granted = DB::table('hr_leave_ledger')->where('organisation_id', $organisationId)->where('year', $year)->where('kind', 'grant')
             ->selectRaw('user_id, leave_type_id, sum(halves) as total')->groupBy('user_id', 'leave_type_id')->get()
             ->mapWithKeys(fn ($r) => [$r->user_id.':'.$r->leave_type_id => (int) $r->total]);

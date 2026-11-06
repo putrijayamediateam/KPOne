@@ -223,7 +223,14 @@ final class RosterRules
         if ($overlap !== null) {
             throw ValidationException::withMessages([$field => $this->overlapMessage($subject, $overlap)]);
         }
-        // HR-2a: a shift on a day of approved leave is refused. Pending leave and shifts that already exist only warn.
+    }
+
+    /**
+     * HR-2a: a new shift, or a change of person or time, on a day of approved leave is refused. Shifts that already
+     * exist only warn on the planner, so approving a week or editing a room never fails because of leave.
+     */
+    public function assertNotOnApprovedLeave(Branch $branch, User $subject, CarbonImmutable $startsAt, CarbonImmutable $endsAt, string $field = 'staff_user_id'): void
+    {
         $leave = app(LeaveCalendar::class)->overlapping([$subject->id], $startsAt, $endsAt)->first();
         if ($leave !== null) {
             $day = $leave->start_date->toDateString() > $startsAt->setTimezone($branch->timezone)->toDateString()

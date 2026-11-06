@@ -220,10 +220,15 @@ final class RosterPageService
     private function leaveDays(Collection $requests, CarbonImmutable $weekStart): array
     {
         $out = [];
+        $calendars = [];
         foreach ($requests as $r) {
+            // Only the days the leave counts (the leave branch's working days, not its public holidays), as on the team calendar.
+            $calendars[$r->branch_id] ??= ($b = Branch::query()->find($r->branch_id)) === null ? [[], []]
+                : [$this->leave->workingDays($b) ?? [], $this->leave->holidays($b, $weekStart, $weekStart->addDays(6))];
+            [$working, $holidays] = $calendars[$r->branch_id];
             for ($d = CarbonImmutable::parse($r->start_date->toDateString()); $d->lessThanOrEqualTo(CarbonImmutable::parse($r->end_date->toDateString())); $d = $d->addDay()) {
                 $date = $d->toDateString();
-                if ($date < $weekStart->toDateString() || $date > $weekStart->addDays(6)->toDateString()) {
+                if ($date < $weekStart->toDateString() || $date > $weekStart->addDays(6)->toDateString() || isset($holidays[$date]) || ! in_array($d->dayOfWeekIso, $working, true)) {
                     continue;
                 }
                 $half = ($r->start_date->toDateString() === $date && $r->start_part !== 'full') || ($r->end_date->toDateString() === $date && $r->end_part === 'am');

@@ -251,9 +251,9 @@ class LeaveTest extends VisitTestCase
         $opening = DB::table('hr_leave_openings')->sole();
         $this->assertSame(0, DB::table('hr_leave_ledger')->count()); // Unconfirmed gives no balance.
         $this->selectBranch($hr);
-        $this->post(route('hr.leave.entries.decide', ['openings', $opening->public_id, 'confirm']), ['expected_lock_version' => 1])->assertForbidden();
+        $this->post(route('hr.leave.entries.decide', ['openings', $opening->public_id, 'confirm']), ['expected_lock_version' => 1, 'idempotency_key' => (string) Str::uuid()])->assertForbidden();
         $this->selectBranch($director);
-        $this->post(route('hr.leave.entries.decide', ['openings', $opening->public_id, 'confirm']), ['expected_lock_version' => 1])->assertSessionHasNoErrors();
+        $this->post(route('hr.leave.entries.decide', ['openings', $opening->public_id, 'confirm']), ['expected_lock_version' => 1, 'idempotency_key' => (string) Str::uuid()])->assertSessionHasNoErrors();
         $this->assertSame([['opening', 7]], DB::table('hr_leave_ledger')->get(['kind', 'halves'])->map(fn ($r) => [$r->kind, $r->halves])->all());
 
         // Removing more than is left is refused at confirmation; the note is encrypted and never audited.
@@ -261,8 +261,8 @@ class LeaveTest extends VisitTestCase
         $adjustment = DB::table('hr_leave_adjustments')->sole();
         $this->assertStringNotContainsString('Synthetic note', (string) $adjustment->note_encrypted);
         $this->selectBranch($director);
-        $this->post(route('hr.leave.entries.decide', ['adjustments', $adjustment->public_id, 'confirm']), ['expected_lock_version' => 1])->assertSessionHasErrors('leave');
-        $this->post(route('hr.leave.entries.decide', ['adjustments', $adjustment->public_id, 'reject']), ['expected_lock_version' => 1])->assertSessionHasNoErrors();
+        $this->post(route('hr.leave.entries.decide', ['adjustments', $adjustment->public_id, 'confirm']), ['expected_lock_version' => 1, 'idempotency_key' => (string) Str::uuid()])->assertSessionHasErrors('leave');
+        $this->post(route('hr.leave.entries.decide', ['adjustments', $adjustment->public_id, 'reject']), ['expected_lock_version' => 1, 'idempotency_key' => (string) Str::uuid()])->assertSessionHasNoErrors();
         $this->assertSame(7, (int) DB::table('hr_leave_ledger')->sum('halves'));
         $this->assertStringNotContainsString('Synthetic note', DB::table('audit_logs')->where('event', 'like', 'hr.leave.%')->pluck('metadata')->implode(' '));
 
@@ -362,6 +362,134 @@ class LeaveTest extends VisitTestCase
         $this->get(route('hr.leave.index', ['tab' => 'calendar', 'month' => '2027-03']))->assertInertia(fn (Assert $page) => $page
             ->where('leave.calendar.rows.0.cells', ['2027-03-08' => 'full', '2027-03-09' => 'full'])
             ->where('leave.calendar.rows', fn ($rows) => ! str_contains(json_encode($rows), $type->name)));
+    }
+
+    public function test_an_existing_shift_on_approved_leave_only_warns_so_the_week_can_still_be_approved(): void
+    {
+        $hr = $this->actor('hr_manager');
+        $director = $this->actor('director');
+        $ca = $this->actor('ca');
+        $type = $this->ready($hr, $ca, 10);
+        $this->selectBranch($hr);
+        $this->post(route('hr.roster.drafts.store'), ['branch_id' => $this->branch->id, 'week' => '2027-03-08', 'mode' => 'blank', 'idempotency_key' => (string) Str::uuid()])->assertSessionHasNoErrors();
+        $version = RosterVersion::query()->latest('id')->firstOrFail();
+        $this->shift($hr, $version, $ca, '2027-03-08')->assertSessionHasNoErrors();
+        $this->apply($ca, ['leave_type_id' => $type->id, 'start_date' => '2027-03-08', 'end_date' => '2027-03-08'])->assertSessionHasNoErrors();
+        $this->decide($director, LeaveRequest::query()->sole(), 'approve')->assertSessionHasNoErrors();
+
+        // Editing the existing shift's session keeps it; moving it to another leave day is refused.
+        $shift = DB::table('hr_roster_shifts')->sole();
+        $edit = ['staff_user_id' => $ca->id, 'date' => '2027-03-08', 'start_time' => '09:00', 'end_time' => '17:00', 'break_minutes' => 30, 'session_type' => 'full_day',
+            'branch_room_id' => null, 'branch_id' => $this->branch->id, 'week' => '2027-03-08'];
+        $this->selectBranch($hr);
+        $this->put(route('hr.roster.shifts.update', [$version->public_id, $shift->public_id]), [...$edit, 'expected_version_lock' => $version->refresh()->lock_version])->assertSessionHasNoErrors();
+        $this->put(route('hr.roster.shifts.update', [$version->public_id, $shift->public_id]), [...$edit, 'start_time' => '10:00', 'expected_version_lock' => $version->refresh()->lock_version])
+            ->assertSessionHasErrors(['staff_user_id' => "{$ca->name} is on approved leave on 8 Mar 2027."]);
+
+        $this->selectBranch($hr);
+        $this->post(route('hr.roster.submit', $version->public_id), ['expected_version_lock' => $version->refresh()->lock_version, 'idempotency_key' => (string) Str::uuid()])->assertSessionHasNoErrors();
+        $this->selectBranch($director);
+        $this->post(route('hr.roster.approve', $version->public_id), ['expected_version_lock' => $version->refresh()->lock_version, 'idempotency_key' => (string) Str::uuid()])->assertSessionHasNoErrors();
+        $this->assertSame('approved', $version->refresh()->status);
+    }
+
+    public function test_a_year_carried_forward_is_closed_for_new_spending(): void
+    {
+        $hr = $this->actor('hr_manager');
+        $ca = $this->actor('ca');
+        $type = $this->ready($hr, $ca, 10, ['carry_max_days' => '3']);
+        $this->travelTo(CarbonImmutable::parse('2028-01-05 09:00', $this->branch->timezone));
+        $this->post(route('hr.leave.carry-forward'), ['year' => 2027, 'idempotency_key' => (string) Str::uuid()])->assertSessionHasNoErrors();
+        $this->apply($ca, ['leave_type_id' => $type->id, 'start_date' => '2027-12-30', 'end_date' => '2027-12-31'])
+            ->assertSessionHasErrors(['start_date' => 'Annual leave for 2027 is closed because its unused days were carried forward. Ask HR.']);
+        $this->assertSame(0, LeaveRequest::query()->count());
+    }
+
+    public function test_late_and_has_started_follow_the_branch_date_around_midnight(): void
+    {
+        $hr = $this->actor('hr_manager');
+        $ca = $this->actor('ca');
+        $type = $this->ready($hr, $ca, 10);
+        $this->apply($ca, ['leave_type_id' => $type->id, 'start_date' => '2027-03-08', 'end_date' => '2027-03-08'])->assertSessionHasNoErrors();
+        $this->decide($hr, LeaveRequest::query()->sole(), 'approve')->assertSessionHasNoErrors();
+
+        // 23:30 on Sunday 7 March in Kuala Lumpur: not started yet, still cancellable.
+        $this->travelTo(CarbonImmutable::parse('2027-03-07 23:30', $this->branch->timezone));
+        $this->selectBranch($ca);
+        $this->get(route('hr.leave.index'))->assertInertia(fn (Assert $page) => $page->where('leave.my.requests.0.canCancel', true));
+        // 00:10 on Monday 8 March in Kuala Lumpur is still 7 March in UTC: the leave has started and a new request is late.
+        $this->travelTo(CarbonImmutable::parse('2027-03-08 00:10', $this->branch->timezone));
+        $this->selectBranch($ca);
+        $this->get(route('hr.leave.index'))->assertInertia(fn (Assert $page) => $page->where('leave.my.requests.0.canCancel', false));
+        $this->cancel($ca, LeaveRequest::query()->sole())->assertSessionHasErrors(['leave' => 'This leave has started. Ask HR to cancel it.']);
+        $this->apply($ca, ['leave_type_id' => $type->id, 'start_date' => '2027-03-09', 'end_date' => '2027-03-09'])->assertSessionHasNoErrors();
+        $this->assertFalse(LeaveRequest::query()->where('start_date', '2027-03-09')->sole()->late);
+        $this->travelTo(CarbonImmutable::parse('2027-03-12 00:05', $this->branch->timezone));
+        $this->apply($ca, ['leave_type_id' => $type->id, 'start_date' => '2027-03-12', 'end_date' => '2027-03-12'])->assertSessionHasNoErrors();
+        $this->assertTrue(LeaveRequest::query()->where('start_date', '2027-03-12')->sole()->late);
+    }
+
+    public function test_other_organisations_ids_are_never_reached(): void
+    {
+        $hr = $this->actor('hr_manager');
+        $ca = $this->actor('ca');
+        $this->ready($hr, $ca, 10);
+        $org = DB::table('organisations')->insertGetId(['code' => 'OTHER_'.Str::upper(Str::random(6)), 'name' => 'Synthetic Other Organisation', 'is_active' => true, 'created_at' => now(), 'updated_at' => now()]);
+        $branch = DB::table('branches')->insertGetId(['organisation_id' => $org, 'code' => 'OTH'.Str::upper(Str::random(4)), 'name' => 'Synthetic Other Branch', 'timezone' => 'Asia/Kuala_Lumpur',
+            'is_active' => true, 'created_at' => now(), 'updated_at' => now()]);
+        $stranger = User::factory()->create(['organisation_id' => $org, 'email' => 'leave.other.'.Str::lower(Str::random(8)).'@kpone.test']);
+        $type = DB::table('hr_leave_types')->insertGetId(['organisation_id' => $org, 'code' => 'AL', 'name' => 'Other annual', 'is_paid' => true, 'uses_balance' => true,
+            'allow_half_days' => true, 'evidence_needed' => false, 'updated_by_user_id' => $stranger->id, 'created_at' => now(), 'updated_at' => now()]);
+        $holiday = DB::table('hr_public_holidays')->insertGetId(['organisation_id' => $org, 'branch_id' => $branch, 'holiday_date' => '2027-05-01', 'name' => 'Other',
+            'created_by_user_id' => $stranger->id, 'created_at' => now(), 'updated_at' => now()]);
+        $uuid = (string) Str::uuid();
+        DB::table('hr_leave_requests')->insert(['public_id' => $uuid, 'organisation_id' => $org, 'user_id' => $stranger->id, 'leave_type_id' => $type, 'branch_id' => $branch,
+            'start_date' => '2027-03-08', 'end_date' => '2027-03-08', 'start_part' => 'full', 'end_part' => 'full', 'slot_start' => '2027-03-08 00:00:00', 'slot_end' => '2027-03-09 00:00:00',
+            'year' => 2027, 'halves' => 2, 'status' => 'pending', 'created_at' => now(), 'updated_at' => now()]);
+
+        $this->apply($ca, ['leave_type_id' => $type])->assertSessionHasErrors(['leave_type_id' => 'Choose a leave type.']);
+        $this->selectBranch($hr);
+        $this->post(route('hr.leave.requests.approve', $uuid), ['expected_lock_version' => 1, 'idempotency_key' => (string) Str::uuid()])->assertNotFound();
+        $this->post(route('hr.leave.requests.cancel', $uuid), ['expected_lock_version' => 1, 'reason' => 'other', 'idempotency_key' => (string) Str::uuid()])->assertNotFound();
+        $this->delete(route('hr.leave.holidays.destroy', $holiday))->assertNotFound();
+        $this->put(route('hr.leave.types.save'), ['leave_type_id' => $type, 'expected_lock_version' => 1, 'name' => 'Taken over'])->assertNotFound();
+        $this->put(route('hr.leave.entitlements.save'), ['year' => 2027, 'rows' => [['leave_type_id' => LeaveType::query()->where('organisation_id', $hr->organisation_id)->value('id'), 'user_id' => $stranger->id, 'days' => '5']]])
+            ->assertSessionHasErrors(['rows.0.user_id' => 'Choose a person.']);
+        $this->entry($hr, 'openings', ['user_id' => $stranger->id, 'leave_type_id' => $type, 'days' => '1'])->assertSessionHasErrors(['user_id' => 'Choose a person.']);
+        $this->assertSame('pending', DB::table('hr_leave_requests')->where('public_id', $uuid)->value('status'));
+        $this->assertSame('Other annual', DB::table('hr_leave_types')->where('id', $type)->value('name'));
+    }
+
+    public function test_a_retried_confirm_replays_lowering_an_entitlement_never_goes_below_zero_and_checked_rows_are_frozen(): void
+    {
+        $hr = $this->actor('hr_manager');
+        $director = $this->actor('director');
+        $ca = $this->actor('ca');
+        $type = $this->ready($hr, $ca, 2);
+        $this->entry($hr, 'openings', ['user_id' => $ca->id, 'leave_type_id' => $type->id, 'days' => '1'])->assertSessionHasNoErrors();
+        $opening = DB::table('hr_leave_openings')->sole();
+        $key = (string) Str::uuid();
+        $this->selectBranch($director);
+        $this->post(route('hr.leave.entries.decide', ['openings', $opening->public_id, 'confirm']), ['expected_lock_version' => 1, 'idempotency_key' => $key])->assertSessionHasNoErrors();
+        $this->post(route('hr.leave.entries.decide', ['openings', $opening->public_id, 'confirm']), ['expected_lock_version' => 1, 'idempotency_key' => $key])->assertSessionHasNoErrors();
+        $this->assertSame(1, DB::table('hr_leave_ledger')->where('kind', 'opening')->count());
+
+        $this->apply($ca, ['leave_type_id' => $type->id, 'start_date' => '2027-03-08', 'end_date' => '2027-03-10'])->assertSessionHasNoErrors();
+        $request = LeaveRequest::query()->sole();
+        $this->decide($director, $request, 'approve')->assertSessionHasNoErrors();
+        $this->selectBranch($hr);
+        $this->put(route('hr.leave.entitlements.save'), ['year' => 2027, 'rows' => [['leave_type_id' => $type->id, 'role' => 'ca', 'days' => '0.5']]])->assertSessionHasNoErrors();
+        $this->grant($hr)->assertSessionHasErrors(['year' => 'Lowering the entitlement would take 1 person below zero. Use an adjustment for them instead.']);
+
+        foreach ([['hr_leave_requests', ['late' => true]], ['hr_leave_requests', ['decided_by_user_id' => $hr->id]], ['hr_leave_requests', ['reason_encrypted' => 'changed']],
+            ['hr_leave_openings', ['halves' => 99]]] as [$table, $change]) {
+            try {
+                DB::transaction(fn () => DB::table($table)->update($change));
+                $this->fail("Allowed: {$table} ".json_encode($change));
+            } catch (QueryException $e) {
+                $this->assertMatchesRegularExpression('/immutable|never|checked as entered/', $e->getMessage());
+            }
+        }
     }
 
     // ---- helpers ----

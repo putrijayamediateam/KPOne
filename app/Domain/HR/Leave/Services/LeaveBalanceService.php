@@ -47,6 +47,17 @@ final class LeaveBalanceService
     }
 
     /**
+     * Once a year's unused days were carried forward for a person and type, that year is closed for new spending, so
+     * the same days can never be used in both years (Suresh, HR-2a review).
+     */
+    public function assertYearOpen(LeaveType $type, int $userId, int $year, string $field = 'start_date'): void
+    {
+        if ($type->uses_balance && DB::table('hr_leave_ledger')->where('user_id', $userId)->where('leave_type_id', $type->id)->where('year', $year + 1)->where('kind', 'carry_forward')->exists()) {
+            throw ValidationException::withMessages([$field => "{$type->name} for {$year} is closed because its unused days were carried forward. Ask HR."]);
+        }
+    }
+
+    /**
      * @param  iterable<LeaveType>  $types
      * @return list<array{typeId:int, code:string, name:string, counted:bool, entitled:string, taken:string, booked:string, left:string, leftHalves:int}>
      */

@@ -116,7 +116,7 @@ class LeaveController extends Controller
         $confirmed = $decision === 'confirm';
         $message = ($kind === 'opening' ? 'Opening balance ' : 'Adjustment ').($confirmed ? 'confirmed.' : 'rejected.');
 
-        return $this->run($request, 'settings', $message, fn () => $entries->decide($request->user(), $kind, $entry, $confirmed ? 'confirmed' : 'rejected', $request->only(['expected_lock_version'])));
+        return $this->run($request, 'settings', $message, fn () => $entries->decide($request->user(), $kind, $entry, $confirmed ? 'confirmed' : 'rejected', $request->only(['expected_lock_version', 'idempotency_key'])));
     }
 
     private function run(Request $request, string $tab, ?string $message, callable $action): RedirectResponse

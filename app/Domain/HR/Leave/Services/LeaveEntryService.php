@@ -85,11 +85,17 @@ final class LeaveEntryService
      */
     public function decide(User $actor, string $kind, string $entryId, string $decision, array $input): LeaveBalanceEntry
     {
-        return DB::transaction(function () use ($actor, $kind, $entryId, $decision, $input): LeaveBalanceEntry {
+        $key = $this->support->key($input['idempotency_key'] ?? null);
+
+        return DB::transaction(function () use ($actor, $kind, $entryId, $decision, $input, $key): LeaveBalanceEntry {
             $model = $kind === 'opening' ? LeaveOpening::class : LeaveAdjustment::class;
             abort_unless(Str::isUuid($entryId), 404);
             $personId = $model::query()->where('organisation_id', $actor->organisation_id)->where('public_id', $entryId)->value('user_id');
             $actor = $this->support->lock($actor, LeavePermissions::MANAGE, [$personId]);
+            $hash = $this->support->hash([$actor->id, 'decide', $kind, $entryId, $decision]);
+            if (($replay = $this->support->replay($actor, $key, 'leave_'.$kind.'_decide', $hash)) !== null) {
+                return $this->find($actor, $kind, $replay);
+            }
             /** @var LeaveBalanceEntry $entry */
             $entry = $model::query()->where('organisation_id', $actor->organisation_id)->where('public_id', $entryId)->lockForUpdate()->firstOrFail();
             if ($entry->entered_by_user_id === $actor->id) {
@@ -101,6 +107,7 @@ final class LeaveEntryService
             }
             $type = LeaveType::query()->whereKey($entry->leave_type_id)->firstOrFail();
             if ($decision === 'confirmed' && $entry->halves < 0) {
+                $this->balances->assertYearOpen($type, $entry->user_id, $entry->year, 'leave');
                 $this->balances->assertAffordable($type, $entry->user_id, $entry->year, -$entry->halves, null, 'leave');
             }
             $entry->forceFill(['status' => $decision, 'decided_by_user_id' => $actor->id, 'decided_at' => now()->utc(), 'lock_version' => $entry->lock_version + 1])->save();
@@ -109,6 +116,7 @@ final class LeaveEntryService
                     'year' => $entry->year, 'kind' => $kind, 'halves' => $entry->halves, $kind === 'opening' ? 'leave_opening_id' : 'leave_adjustment_id' => $entry->id,
                     'created_by_user_id' => $actor->id, 'created_at' => now()->utc()]);
             }
+            $this->support->remember($actor, $key, 'leave_'.$kind.'_decide', $hash, $entry->public_id);
             $this->support->audit->record("hr.leave.{$kind}_{$decision}", $entry, ['subject_user_id' => $entry->user_id, 'leave_type_code' => $type->code,
                 'year' => $entry->year, 'halves' => $entry->halves], $actor);
 

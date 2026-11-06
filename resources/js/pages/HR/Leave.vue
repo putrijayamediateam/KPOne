@@ -713,7 +713,11 @@ const saveEntry = () =>
 const decideEntry = (entry: Entry, decision: 'confirm' | 'reject') =>
     router.post(
         `/hr/leave/${entry.kind === 'opening' ? 'openings' : 'adjustments'}/${entry.publicId}/${decision}`,
-        { expected_lock_version: entry.lockVersion, year: props.leave.year },
+        {
+            expected_lock_version: entry.lockVersion,
+            year: props.leave.year,
+            idempotency_key: crypto.randomUUID(),
+        },
         { preserveScroll: true },
     );
 const entryTone = {

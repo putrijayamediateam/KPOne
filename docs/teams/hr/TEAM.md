@@ -144,6 +144,13 @@ Decisions marked **B.E.R.N.I.S.S for the owner** were made by the coordinator un
   shows one week at a time; the planner reads other drafts' overlaps with one query per shift (fine for a clinic
   week, not load-tested); shift swaps and a branch view for CA Supervisors are HR-1b; dark-mode icons of native
   date and time inputs are design debt DD-07.
+- HR-2a known limits: changing a branch's working days does not recount requests already sent (they keep their day
+  count; the Settings card says so); carry-forward subtracts pending requests, so days of a request rejected after
+  carry-forward stay in the closed year; a year carried forward is closed for new spending by that person and type
+  (Reviewer finding, fixed); a grant that lowers an entitlement below what was already used is refused and needs an
+  adjustment instead; the shared confirm dialog has no disabled state, so Approve and Reject say what is missing
+  instead of greying out; ledger and action foreign keys to requests, openings and adjustments are single-column
+  (organisation is checked in the service, not in PostgreSQL); no evidence files until HR-2b.
 
 ## 8. Rules (every task)
 

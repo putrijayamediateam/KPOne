@@ -63,6 +63,7 @@ final class LeaveRequestService
                 $evidence = null;
             }
             $this->assertNoOverlap($actor->id, $parsed['slot_start'], $parsed['slot_end']);
+            $this->balances->assertYearOpen($type, $actor->id, $parsed['year']);
             $this->balances->assertAffordable($type, $actor->id, $parsed['year'], $parsed['halves']);
             $today = CarbonImmutable::now($parsed['branch']->timezone)->startOfDay();
 
@@ -102,6 +103,7 @@ final class LeaveRequestService
             if ($type->evidence_needed && ! $evidenceSeen) {
                 throw ValidationException::withMessages(['evidence_seen' => 'Tick "Evidence seen" after checking the paper copy.']);
             }
+            $this->balances->assertYearOpen($type, $request->user_id, $request->year, 'leave');
             $this->balances->assertAffordable($type, $request->user_id, $request->year, $request->halves, $request->id, 'leave');
             $request->forceFill(['status' => 'approved', 'decided_by_user_id' => $actor->id, 'decided_at' => now()->utc(), 'evidence_seen' => $evidenceSeen,
                 'lock_version' => $request->lock_version + 1])->save();

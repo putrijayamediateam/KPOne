@@ -235,8 +235,13 @@ BEGIN
  END IF;
  IF TG_TABLE_NAME = 'hr_leave_requests' THEN
   IF OLD.status IN ('rejected', 'cancelled') THEN RAISE EXCEPTION 'A rejected or cancelled leave request never changes' USING ERRCODE = 'P0001'; END IF;
-  IF NEW.start_date <> OLD.start_date OR NEW.end_date <> OLD.end_date OR NEW.halves <> OLD.halves OR NEW.slot_start <> OLD.slot_start OR NEW.slot_end <> OLD.slot_end THEN
+  IF NEW.start_date <> OLD.start_date OR NEW.end_date <> OLD.end_date OR NEW.halves <> OLD.halves OR NEW.slot_start <> OLD.slot_start OR NEW.slot_end <> OLD.slot_end
+    OR NEW.year <> OLD.year OR NEW.branch_id <> OLD.branch_id OR NEW.start_part <> OLD.start_part OR NEW.end_part <> OLD.end_part OR NEW.late <> OLD.late
+    OR NEW.reason_encrypted IS DISTINCT FROM OLD.reason_encrypted OR NEW.evidence_reference_encrypted IS DISTINCT FROM OLD.evidence_reference_encrypted THEN
    RAISE EXCEPTION 'Leave request dates are immutable; cancel and apply again' USING ERRCODE = 'P0001';
+  END IF;
+  IF OLD.status = 'approved' AND (NEW.decided_by_user_id IS DISTINCT FROM OLD.decided_by_user_id OR NEW.decided_at IS DISTINCT FROM OLD.decided_at OR NEW.evidence_seen <> OLD.evidence_seen) THEN
+   RAISE EXCEPTION 'An approval is never rewritten' USING ERRCODE = 'P0001';
   END IF;
   IF NOT ((OLD.status = 'pending' AND NEW.status IN ('pending', 'approved', 'rejected', 'cancelled')) OR (OLD.status = 'approved' AND NEW.status IN ('approved', 'cancelled'))) THEN
    RAISE EXCEPTION 'Invalid leave request transition' USING ERRCODE = '23514';
@@ -248,6 +253,14 @@ BEGIN
   END IF;
  ELSE
   IF OLD.status <> 'pending' THEN RAISE EXCEPTION 'A decided HR leave entry never changes' USING ERRCODE = 'P0001'; END IF;
+  IF NEW.halves <> OLD.halves OR NEW.year <> OLD.year OR NEW.entered_by_user_id <> OLD.entered_by_user_id THEN
+   RAISE EXCEPTION 'An HR leave entry is checked as entered; reject it and enter a new one' USING ERRCODE = 'P0001';
+  END IF;
+  IF TG_TABLE_NAME = 'hr_leave_adjustments' THEN
+   IF NEW.reason_code <> OLD.reason_code OR NEW.note_encrypted IS DISTINCT FROM OLD.note_encrypted THEN
+    RAISE EXCEPTION 'An HR leave entry is checked as entered; reject it and enter a new one' USING ERRCODE = 'P0001';
+   END IF;
+  END IF;
  END IF;
  RETURN NEW;
 END $$;
