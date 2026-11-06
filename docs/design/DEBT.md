@@ -2,7 +2,7 @@
 
 Screens that break [GUIDE.md](GUIDE.md), found by the DES-1 survey (2026-11-05, `main` at `322228f`, 35 screens,
 390 and 1440 px, light and dark) and by SMOKE-1. Kept by Daniel (Lead UI/UX); the owning team fixes each item in its
-own PR and tells LUCY. See [REVIEW.md](REVIEW.md) for how items are added.
+own PR and tells B.E.R.N.I.S.S (formerly LUCY). See [REVIEW.md](REVIEW.md) for how items are added.
 
 **Severity:** **Blocker** = a REVIEW.md section 4 blocker (would stop a new PR); **Major** = clearly hurts daily work;
 **Minor** = inconsistent or untidy.
@@ -11,9 +11,9 @@ own PR and tells LUCY. See [REVIEW.md](REVIEW.md) for how items are added.
 | ID | Screen and file | Problem | Guide | Owner team | Severity | Source | Status |
 |---|---|---|---|---|---|---|---|
 | DD-01 | Insights Today, `pages/Insights/Today.vue` | Page is 490 px wide on a 390 px phone (ranking cards) | 16 | Staff Experience (Insights has no team; small layout fixes allowed) | Blocker | S1-004, DES-1 | Open |
-| DD-02 | Create patient, `pages/Patient/Create.vue` | Page is 433 px wide on a 390 px phone even with no errors (a field grid) | 16 | Patients & Registration | Blocker | REG-2 note, DES-1 | Open |
+| DD-02 | Create patient, `pages/Patient/Create.vue` | Page is 433 px wide on a 390 px phone even with no errors (a field grid) | 16 | Patients & Registration | Blocker | REG-2 note, DES-1 | Fixed (REG-6, PR #285) |
 | DD-03 | Registration board, Consultation queue, QR intake review: `pages/Registration/Index.vue`, `pages/Queue/Index.vue`, `pages/RegistrationReview/Index.vue` | No `h1` (may be `sr-only` on boards) | 4, 12 | Staff Experience (S1-009 to S1-014), page teams told: Patients & Registration, Queue & TV | Blocker | S1-009 to S1-014, DES-1 | Open |
-| DD-04 | Pricing, `pages/Pricing/Index.vue` | 10 of 13 fields have no label | 7 | Catalogue & settings (Adlina, Ravi; designer Nadia) | Blocker | DES-1 | Open: planned as CAT-1 (sketch to Daniel first) |
+| DD-04 | Pricing, `pages/Pricing/Index.vue` | 10 of 13 fields have no label | 7 | Catalogue & settings (Adlina, Ravi; designer Nadia) | Blocker | DES-1 | Fixed (CAT-1, PR #263) |
 | DD-05 | Add panel, `pages/PanelSettings/Form.vue` | 7 of 23 fields have no label | 7 | Panel | Blocker | DES-1 | Open |
 | DD-06 | Payment Methods, `pages/PaymentMethods/Index.vue` | One button with no accessible name | 12 | Billing | Blocker | DES-1 | Open |
 | DD-07 | All date and time pickers (`pages/Reports/*`, `pages/PanelInvoices/Index.vue` and others) | Calendar and clock icons vanish in dark mode: the app does not set `color-scheme: dark` | 13 | Staff Experience (one shell line in `resources/css/app.css`) | Blocker | DES-1 | Open |
@@ -22,7 +22,7 @@ own PR and tells LUCY. See [REVIEW.md](REVIEW.md) for how items are added.
 | DD-10 | Mobile drawer, `components/workspace/WorkspaceHeader.vue` | Drawer stays open after choosing a link | 12 | Staff Experience | Major | S1-017 | In progress (UX-1, PR #241) |
 | DD-11 | Medical Certificates link before an encounter exists, `pages/Registration/Show.vue`, `pages/Visits/History.vue` | Link opens a 404 page | 11 | Staff Experience | Major | S1-005 | In progress (UX-2, sketch OK with one change) |
 | DD-12 | Inventory, `pages/Inventory/Index.vue`, and the governed Inventory pages (`GovernedStock.vue`, `SupplierReturns.vue`) | Links above the page title in several styles; a second "Return to Workspace" beside the header's | 4, 15 | Inventory | Major | DES-1 | Open |
-| DD-13 | Medicine Catalogue, `pages/Medicine/Index.vue` | Three text buttons per row, the third cut off at 1440 px; on a phone only Code and Name are visible (prices, status and actions off screen) | 5, 6 | Catalogue & settings (Adlina, Ravi; designer Nadia) | Major | DES-1 | Open: planned as CAT-1 with DD-04 |
+| DD-13 | Medicine Catalogue, `pages/Medicine/Index.vue` | Three text buttons per row, the third cut off at 1440 px; on a phone only Code and Name are visible (prices, status and actions off screen) | 5, 6 | Catalogue & settings (Adlina, Ravi; designer Nadia) | Major | DES-1 | Fixed (CAT-1, PR #263) |
 | DD-14 | Daily summary and other branch reports, text from `app/Domain/Shared/Services/DailySummaryReportService.php`, shown by `pages/Reports/BranchReport.vue` | About 15 lines of rule text before the form on a phone, in internal language | 4, 15 | Billing | Major | DES-1 | Open |
 | DD-15 | Patient board empty message, `components/patient-board/PatientBoard.vue` | "No Patients match this operational view.": jargon, capitalised noun, no next step | 11, 15 | Patients & Registration (board shared with Queue & TV) | Minor | DES-1 | Open |
 | DD-16 | Hand-built status chips in `components/patient-board/PatientBoard.vue` and `components/registration/QrIntakeTable.vue` | Palette chips (`bg-rose-100/70`, `bg-pink-100/70`, `statusClass`) instead of `StatusBadge` tones | 10 | Patients & Registration, Queue & TV | Minor | DES-1 | Open |
@@ -39,7 +39,7 @@ own PR and tells LUCY. See [REVIEW.md](REVIEW.md) for how items are added.
 | DD-27 | "Added by CA" badge on Dispensary lines, `pages/Dispensary/Show.vue` | Low contrast in dark mode (hand-styled pink chip) | 1, 10, 13 | Dispensary & OTC | Major | Aisyah, DSP-8 | Open |
 | DD-28 | Panel statement results, `pages/PanelRemittances/Index.vue` (PNL-7 "Fill the split from a Panel statement") | Desktop results are a plain table, not `OperationalTable` (no shared label, empty or loading row, focus region) | 6 | Panel | Minor | Arjun, PNL-7 | Open |
 | DD-29 | Billing workspace buttons, `components/billing/BillingWorkspace.vue` | A scoped rule `.billing-workspace :deep(button) { height: 30px; min-height: 28px }` overrides utility classes, so compact Billing buttons are 30 px on a phone. BIL-5b fixes print, Reprint, the refund decision buttons and the visit-page prints (`data-touch-target`, 44 px at 390); the rest are still 30 px | 12 | Billing | Major | Farah, BIL-5b | Open |
-| DD-30 | Queue board tabs at 390 px, `pages/Queue/Index.vue` | The third tab is cut to "Se" under the "Live · every 3 seconds" label, so Serving Now and Consultation Completed are hidden on a phone | 16, 12 | Queue & TV | Minor | Q-4 design look | Open |
+| DD-30 | Queue board tabs at 390 px, `pages/Queue/Index.vue` | The third tab is cut to "Se" under the "Live · every 3 seconds" label, so Serving Now and Consultation Completed are hidden on a phone | 16, 12 | Queue & TV | Minor | Q-4 design look | Fixed (PR #296) |
 | DD-31 | Panel Claims list on phones, `pages/PanelClaims/Index.vue` | At 390 px the claims table scrolls inside its box and shows only Amount, Claim no and Panel, so the patient and status are off screen while picking claims for a PNL-8 claim pack | 6, 16 | Panel | Minor | Syafiq, PNL-8 | Open |
 | DD-32 | Create patient description, `pages/Patient/Create.vue` | "Organisation-level canonical identity. This is not a registration or encounter.": internal words on a staff screen | 15 | Patients & Registration | Minor | REG-6 design look | Open |
 
@@ -59,3 +59,6 @@ receipt and drug-label print layouts.
 - 2026-11-05: DD-28 added (PNL-7 statement table) and DD-29 added (Billing workspace button height, found by Farah during BIL-5b).
 - 2026-11-05: DD-30 added (Queue board tab strip at 390 px, seen during the Q-4 look).
 - 2026-11-05: DD-31 added (Panel Claims list on phones, flagged by Syafiq during PNL-8) and DD-32 added (Create patient wording, seen during the REG-6 look).
+- 2026-11-06: DD-02 marked Fixed (REG-6, PR #285: Patient create and edit fit 320 and 390 px).
+- 2026-11-06: DD-04 and DD-13 marked Fixed (CAT-1, PR #263: Pricing labels and phone cards; Medicine Catalogue Edit plus "…" menu and phone cards).
+- 2026-11-06: DD-30 marked Fixed (PR #296: Queue board tabs scroll with a right-edge fade on phones, 44 px tall).
