@@ -670,11 +670,15 @@ const toggleDescription = computed(() => {
                                     rate.
                                 </p>
                             </div>
-                            <label class="grid gap-1 text-xs">
-                                Branch used for price publication
+                            <div class="grid gap-1 text-xs">
+                                <span id="service-publication-branch-label"
+                                    >Branch used for price publication</span
+                                >
                                 <OperationalSelect
+                                    id="service-publication-branch"
                                     v-model="form.expected_branch_id"
-                                    label="Price publication branch"
+                                    label="Branch used for price publication"
+                                    labelledby="service-publication-branch-label"
                                     :options="
                                         setup.branches.map((branch) => ({
                                             value: String(branch.id),
@@ -685,7 +689,7 @@ const toggleDescription = computed(() => {
                                 <InputError
                                     :message="form.errors.expected_branch_id"
                                 />
-                            </label>
+                            </div>
                         </template>
                         <p v-else class="text-xs text-muted-foreground">
                             Your account can manage catalogue references but
