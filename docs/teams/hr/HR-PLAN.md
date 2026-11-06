@@ -969,3 +969,198 @@ Same page, `/hr/leave`; no new tab, hub link or top-bar change. Shared component
 - Showing a PDF inside KPOne (download only), editing or annotating a file, virus scanning (no scanner is available;
   noted as a known limit for the PDPA and security review).
 - Any message, reminder or export carrying a file.
+
+## 9. HR-3 attendance and overtime: design note
+
+Written 2026-11-06 while HR-2b (PR #311) waits for CI. It replaces the short HR-3 sketch in section 2 wherever the
+two differ, and changes no HR-1 or HR-2 rule. **Status: approved with its defaults by the owner on 2026-11-06
+(TEAM.md decision 29); building HR-3a.** Questions in 9.9 take the defaults written here until the clinic says
+otherwise.
+
+**KPOne ships no attendance rule.** Grace minutes, overtime multipliers, the weekly hour limit and who may claim
+overtime are clinic-entered, versioned settings. The settings form is pre-filled with the clinic HR proposal's
+values (normal day 1.5x, rest day 2x, public holiday 3x, 45-hour week; TEAM.md decision 10) but nothing counts
+until a manager presses Save. Until then the button still records times, and the flags read "Attendance is not set
+up yet."
+
+### 9.1 Split
+
+- **HR-3a (build first):** the Clock in and Clock out button, roster against attendance (on time, late, left early,
+  no clock-in, forgotten clock-out, not on the roster), corrections approved by someone else, the review page and
+  attendance settings.
+- **HR-3b (after HR-3a merges, under this same note):** overtime requests and approval, the weekly hours warning and
+  period summaries. HR-3b needs HR-3a's worked minutes, so it cannot come first.
+
+### 9.2 What the clinic gets
+
+- **My attendance** (every human role, not the TV account): one large button, "Clock in" or "Clock out", with
+  today's date, the server time and today's approved shift ("Today: Morning, 8:00 to 14:00, Cheras"). After a press:
+  a toast "Clocked in at 7:56 AM." and a line "Signed in as Aina CA. Sign out if this is a shared computer."
+  Below: my week (each day's shift, clock times and flags) and my corrections.
+- **Attendance review** (Director, HR Manager): one branch and one day (or a week), each rostered person and anyone
+  who clocked in without a shift, with the roster beside the clock times and the flags; corrections waiting for a
+  decision.
+- **Corrections:** a staff member who forgot to clock in or out, or pressed at the wrong time, proposes the right
+  time with a reason code; someone else approves or rejects it. The original press stays on record.
+- **Attendance settings** (Director, HR Manager): grace minutes, the forgotten clock-out window, how many days back
+  a correction may go, and (HR-3b) overtime multipliers, the weekly hour limit and the roles that may claim overtime.
+- **HR-3b, overtime:** a staff member asks for overtime minutes on a day they worked (or a manager records it on
+  their behalf); someone else approves, changes down or rejects it. The day type (normal, rest day, public holiday)
+  is worked out by KPOne and shown. Minutes and day type only: money is HR-7.
+- **HR-3b, weekly hours:** a warning when a person's worked hours in a week (Monday to Sunday, branch-local) reach
+  the "nearing" level (default 40) and when they pass the limit (default 45), on My attendance, the review page and
+  the overtime approval.
+- **HR-3b, period summaries:** per person for a week or a month: rostered hours, worked hours, late count and
+  minutes, left-early count, no clock-in count, forgotten clock-outs, approved overtime minutes by day type.
+  On screen only (no CSV: exports need their own authorisation).
+
+### 9.3 Rules
+
+1. **The button is the only source.** Login times, queue or consultation timestamps and device clocks are never used
+   as attendance. The time is the server's. No location, no IP address, no photo and no device fingerprint is stored
+   (TEAM.md decision 6). Method is recorded as "button" or "correction".
+2. **Branch:** the press is for the active branch in the top bar, which must be one of the person's effective branch
+   assignments on that date (refused otherwise). If today's approved shift is at another branch, the press is
+   allowed and flagged "Different branch from the roster".
+3. **Sessions:** a clock-in opens a session; the next clock-out closes it. A person has at most one open session
+   (PostgreSQL). A second press within 60 seconds of the first does nothing (a double tap), and a retried request
+   with the same key returns the same press. A session belongs to the branch-local date of its clock-in, so a night
+   shift that ends after midnight stays on its start day.
+4. **Matching the roster:** each clock session is matched to the approved shift (HR-1, current approved version) of
+   that person and branch that it overlaps most. Flags, worked out when a page is opened, never stored as the truth:
+   - **Late N min:** clock-in later than shift start plus grace minutes.
+   - **Left early N min:** clock-out earlier than shift end minus grace minutes.
+   - **No clock-in:** an approved shift that ended more than the grace minutes ago with no session.
+   - **Forgotten clock-out:** an open session more than the forgotten window (default 60 minutes) after its shift's
+     end, or 16 hours after clock-in when there is no shift. The session shows in the person's own list with "Add
+     your clock-out time"; it is never closed automatically. **Split shift (Suresh's review, decided by Liyana):**
+     when a clock-in's shift ended more than the forgotten window ago and the person's next approved shift that day
+     starts within two hours, the next Clock in marks the morning "missing its clock-out" instead of refusing. Without a
+     later shift, someone still on after their shift simply clocks out (it may be overtime, HR-3b).
+   - **Not on the roster:** a session with no approved shift that day. Shown, never refused.
+   - **On approved leave:** a session on a day of approved leave (HR-2a) is flagged for the reviewer.
+   Breaks come from the shift's break minutes (HR-1); worked minutes = session length minus those break minutes
+   when the session covers the shift, otherwise the raw length.
+5. **Corrections:** kinds "add a missing clock-in", "add a missing clock-out", "change a time"; reason codes Forgot,
+   Device or system problem, Pressed at the wrong time, Worked away from the branch, Other (with a short encrypted
+   note, at most 200 characters, never audited). The proposed time must be within the last N days (default 7),
+   not in the future, and keep the session's times in order. A staff member proposes for themselves; a manager may
+   propose on someone's behalf. **The decider is never the subject and never the proposer** (service and
+   PostgreSQL). An HR Manager's own correction goes to the Director, a Director's to the HR Manager or another
+   Director (TEAM.md decision 3). An approved correction adds a correction event that takes the place of the press
+   it corrects; the original press stays, marked "corrected". A rejected one changes nothing.
+6. **Settings are versioned:** a save makes a new version from a chosen date; flags for days before it use the old
+   version, so a change never rewrites past flags.
+7. **HR-3b overtime:** a request names a date the person has a closed session on, the minutes (whole minutes, at
+   most the session's worked minutes beyond the shift, or all of it on a rest day or public holiday), and a reason
+   code. Day type: a public holiday of that branch (HR-2a calendar), else a rest day (a weekday that is not a working
+   day of that branch, until per-person rest days exist [TO CONFIRM]), else normal. Approval stores the minutes, the
+   day type and the settings version (so HR-7 can price it later); the approver may lower the minutes, never raise
+   them. Same two-person rule as corrections. Only roles the settings allow may request; a request for another role
+   is refused. Within the correction window by default.
+8. **HR never blocks clinical work** (TEAM.md decision 4): no clock-in is needed to sign in, Call In, consult or
+   dispense, and no clinical screen reads attendance.
+9. **Every write:** fresh permission check under lock; `DB::transaction`; the acting account and the subject locked
+   once in id order (the HR-2a pattern), then the session or request row; `lock_version` on sessions, corrections
+   and overtime requests; an idempotency key on clock, propose, decide and cancel; audit with ids, kinds, codes and
+   minutes only (never notes); throttles on the clock route (10 a minute).
+
+### 9.4 Tables (sketch)
+
+| Table | Holds |
+|---|---|
+| `hr_attendance_settings` | append-only versions per organisation: effective from, grace minutes, forgotten window minutes, correction days, (HR-3b) normal, rest-day and public-holiday multipliers, nearing and limit hours, overtime roles |
+| `hr_clock_sessions` | person, branch, local date, clock-in event, clock-out event (nullable), status open/closed, `lock_version` |
+| `hr_clock_events` | append-only: session, kind in/out, time, method button/correction, recorded by, corrects event (nullable), idempotency key |
+| `hr_attendance_corrections` | subject, proposed by, kind, session (nullable for a missing clock-in), proposed time, reason code, encrypted note, status pending/approved/rejected/cancelled, decided by and at, `lock_version` |
+| `hr_overtime_requests` (HR-3b) | subject, requested by, session, date, minutes requested and approved, day type, settings version, reason code, encrypted note, status, decided by and at, `lock_version` |
+| `hr_attendance_retries` | idempotency records (the `hr_leave_retries` pattern) |
+
+PostgreSQL: one open session per person (partial unique index); a session's events alternate in then out and a
+closed session never reopens; events, settings versions and decisions are append-only (no update of a decided row,
+no delete, no truncate); the decider differs from the subject and the proposer (CHECK); every row's person, branch
+and recorder belong to the same organisation; a clock-in on a branch the person is not assigned to is refused
+(trigger, backing the service).
+
+Migrations from `2026_11_10_000700`; the permission grants in their own additive migration.
+
+### 9.5 Permissions
+
+| Permission | Holders |
+|---|---|
+| `hr.attendance.clock.own` (clock, own list, own corrections, own overtime requests) | every human role, not the TV account |
+| `hr.attendance.review.organisation` (review page, decide corrections, propose on someone's behalf, settings) | Director, HR Manager |
+| `hr.overtime.approve.organisation` (HR-3b: decide overtime) | Director, HR Manager |
+
+None is in the people-and-access authority set.
+
+### 9.6 Screens (Hui Min; Daniel's early look folded in)
+
+Daniel's early look (2026-11-06): **OK with changes**, all folded in below. One page, `/hr/attendance`, with tabs My
+attendance, Review, Settings (and Overtime in HR-3b), the HR-2a tab pattern (DD-30 strip on phones). One hub link
+"KPOne HR attendance" under Staff & branches; a "Clock in" **outline** link on My roster (never a second primary).
+**The top bar is unchanged** unless the owner asks (see 9.9).
+- **One button, three states** (the only primary on the page; full width on phones, at least 56 px tall):
+  - before clocking in: "Clock in", no dialog;
+  - after: a line "Clocked in at 8:02 AM" and a toast, and the button becomes "Clock out", which asks "Clock out
+    now?" in a confirm dialog so a stray tap does not end the day;
+  - after clocking out: "Done for today: 8:02 AM – 5:04 PM, 9 h 2 min", with no button (a second shift that day
+    shows the button again).
+  While sending it reads "Clocking in…" or "Clocking out…" and is disabled. Refused states say why under the button
+  ("Choose a branch you work at in the top bar.").
+- **Server time line:** "Server time 8:02:15 AM" under the button, updated every second from the server's offset,
+  never the device clock, and **never in a live region**. One polite live region announces state changes only
+  (clocked in, clocked out, refused). Today's shift under it ("Today: Morning, 8:00 AM to 2:00 PM, Cheras").
+- **Privacy line:** one muted line under the button: "KPOne records the time only. No location or photo." After a
+  press on a shared computer: "Signed in as Aina CA. Sign out if this is a shared computer."
+- **Formats:** KPOne's existing time and date formats everywhere ("8:02 AM", "6 Nov 2026"); worked time as
+  "9 h 2 min", never a decimal.
+- **My week:** one row per day (cards below 768 px): shift, clock times, worked time, flags as **warning** chips with
+  text ("Late 12 min", "Left early 20 min", "No clock-out"); never red for these, and colour is never the only
+  signal. Danger is used for nothing here except a refused correction. A forgotten clock-out row has an outline
+  "Add clock-out time" button that opens the correction sheet.
+- **Correction sheet:** kind, the recorded time beside the new one ("Recorded: none · New: 5:30 PM"), reason,
+  optional note ("Do not write medical details here."). Toast "Correction sent for approval." The row then shows a
+  neutral "Correction waiting" chip until it is decided.
+- **Review:** branch and day pickers, a short summary line above the table ("3 flags · 1 correction waiting"), a
+  table from 1024 px (person, shift, in, out, worked, flags) and cards below; waiting corrections in their own card
+  with outline Approve and Reject, and the primary action inside the confirm dialog (the HR-2a pattern).
+- **Settings:** number fields with units in the label ("Grace minutes"), help text for each, "Applies from" date.
+- **Phone:** no sideways scroll at 320, 390 or 768 px; 44 px targets.
+- **Screenshots when built:** My attendance before clocking in, clocked in, "Done for today", the Clock out confirm
+  and a forgotten clock-out; the correction sheet with an error; the review day with flags; and settings, at 390
+  and 1440 px, light and dark.
+
+### 9.7 Tests (planned)
+
+- Grants for every role, the TV account refused, none is authority; the hub map gains `/hr/attendance` (an approved
+  existing-assertion change will be needed in `ClinicManagementTest`, listed for approval when built).
+- Clock in and out, a double tap, a retry, a second open session refused (service and PostgreSQL), an unassigned
+  branch refused, a night shift across midnight on its start day, branch-local dates with a frozen clock (never the
+  UTC date: BASELINE section 6 item 21).
+- Every flag against an approved roster, the grace minutes, settings versions applied by date, approved leave days.
+- Corrections: the two-person rule for self, on-behalf, HR Manager and Director cases (service and PostgreSQL), the
+  window, order of times, the original press kept, notes never in audit.
+- PostgreSQL contention: two presses at once give one session; two deciders on one correction give one decision.
+- No write to roster, leave, accounts, visits, the queue or anything clinical.
+- HR-3b: day types from holidays and working days, minutes capped, approver lowers only, role eligibility, weekly
+  hours at 40 and 45, summaries that add up to the day rows.
+
+### 9.8 What stays out
+
+- Geofence, location, selfie or any photo at clock-in (TEAM.md decision 6; PDPA review first).
+- Using login, queue or consultation times as attendance; a fixed kiosk or QR clock-in.
+- Pay, deductions or allowances (HR-7); exports; messages or reminders of any kind.
+- Per-person rest days and split-shift rules beyond one session per shift [TO CONFIRM].
+- A CA Supervisor branch view (as HR-1 decision 14).
+
+### 9.9 Questions only the clinic can answer [TO CONFIRM]
+
+1. Grace minutes for late and early (the form suggests 5)?
+2. The forgotten clock-out window (default 60 minutes after the shift ends)?
+3. How far back a correction may go (default 7 days)?
+4. Do staff clock on a shared clinic PC, their own phones, or both? (Both work; a shared PC means signing out.)
+5. Who may claim overtime (by role), and must overtime be asked for before it is worked?
+6. Rest days: the branch's non-working weekdays for everyone, or a rest day per person?
+7. A split shift (morning and evening on one day): two sessions, one per shift (the default)?
+8. Should "Clock in" also be in the top bar for every role? (Default: no; a hub link and a link on My roster.)
