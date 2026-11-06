@@ -43,6 +43,7 @@ class ClinicManagementTest extends VisitTestCase
             '/medicines' => ['medicines.manage.organisation'],
             '/clinical-services' => ['clinical_services.manage.organisation'],
             '/pricing' => ['pricing.references.manage.organisation'],
+            '/pricing/price-check' => ['pricing.references.manage.organisation'],
             '/inventory-services-settings/medicine-details' => ['catalogue.settings.manage.organisation'],
             '/inventory-services-settings/suppliers' => ['catalogue.settings.manage.organisation'],
             '/inventory' => ['inventory.view.branch'],
