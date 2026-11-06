@@ -178,6 +178,50 @@ class MedicineAdministrationService
         }, 3);
     }
 
+    public const MAX_ALLERGY_ALIASES = 10;
+
+    public const MAX_ALLERGY_ALIAS_LENGTH = 60;
+
+    /**
+     * DSP-1c (owner decision 2026-11-06): catalogue editors add other names to a medicine (brand names and common
+     * misspellings, for example "Augmentin") so the Dispensary allergy warning can match an allergy to them. Used
+     * for matching only, never printed. Same rules as drug groups: the caller sends the list it saw, so a change made
+     * meanwhile is refused instead of overwritten; audited with the field name and the count only.
+     *
+     * @param  array<int, mixed>  $aliases
+     * @param  array<int, mixed>  $expectedCurrent
+     */
+    public function setAllergyAliases(User $actor, MedicineCatalogueItem $medicine, array $aliases, array $expectedCurrent): MedicineCatalogueItem
+    {
+        $this->authorize($actor);
+        $normalised = $this->normaliseAllergyTerms($aliases, 'allergy_aliases', 'other name', 'other names', self::MAX_ALLERGY_ALIASES, self::MAX_ALLERGY_ALIAS_LENGTH);
+
+        return DB::transaction(function () use ($actor, $medicine, $normalised, $expectedCurrent): MedicineCatalogueItem {
+            $this->lockOrganisation($actor);
+            $locked = $this->lockMedicine($actor, $medicine);
+            $current = $locked->allergyAliasList();
+            if ($current === $normalised) {
+                return $locked;
+            }
+            if ($current !== array_values(array_map('strval', $expectedCurrent))) {
+                throw ValidationException::withMessages(['allergy_aliases' => 'This medicine changed. Reload and review it again.']);
+            }
+
+            $locked->forceFill([
+                'allergy_aliases' => $normalised,
+                'updated_by_user_id' => $actor->id,
+            ])->save();
+
+            $this->audit->record('medicine_catalogue.allergy_aliases_changed', $locked, [
+                'medicine_public_id' => $locked->public_id,
+                'changed_fields' => ['allergy_aliases'],
+                'alias_count' => count($normalised),
+            ], $actor, organisationId: $actor->organisation_id);
+
+            return $locked;
+        }, 3);
+    }
+
     /**
      * Trim, collapse spaces, drop empties and case-insensitive duplicates; keep the editor's order and case.
      *
@@ -186,21 +230,32 @@ class MedicineAdministrationService
      */
     private function normaliseAllergyGroups(array $groups): array
     {
+        return $this->normaliseAllergyTerms($groups, 'allergy_groups', 'drug group', 'drug groups', self::MAX_ALLERGY_GROUPS, self::MAX_ALLERGY_GROUP_LENGTH);
+    }
+
+    /**
+     * Shared by drug groups (DSP-1b) and other names (DSP-1c).
+     *
+     * @param  array<int, mixed>  $terms
+     * @return list<string>
+     */
+    private function normaliseAllergyTerms(array $terms, string $field, string $noun, string $plural, int $max, int $maxLength): array
+    {
         $result = [];
         $seen = [];
-        foreach ($groups as $group) {
+        foreach ($terms as $group) {
             if ($group === null) {
                 continue;
             }
             if (! is_string($group)) {
-                throw ValidationException::withMessages(['allergy_groups' => 'Each drug group must be text.']);
+                throw ValidationException::withMessages([$field => 'Each '.$noun.' must be text.']);
             }
             $clean = trim((string) preg_replace('/\s+/u', ' ', $group));
             if ($clean === '') {
                 continue;
             }
-            if (preg_match('/[\x00-\x1F\x7F\x{200B}-\x{200F}\x{202A}-\x{202E}\x{2060}\x{2066}-\x{2069}\x{FEFF}]/u', $clean) || mb_strlen($clean) < 3 || mb_strlen($clean) > self::MAX_ALLERGY_GROUP_LENGTH) {
-                throw ValidationException::withMessages(['allergy_groups' => 'Each drug group must be 3 to '.self::MAX_ALLERGY_GROUP_LENGTH.' characters of plain text.']);
+            if (preg_match('/[\x00-\x1F\x7F\x{200B}-\x{200F}\x{202A}-\x{202E}\x{2060}\x{2066}-\x{2069}\x{FEFF}]/u', $clean) || mb_strlen($clean) < 3 || mb_strlen($clean) > $maxLength) {
+                throw ValidationException::withMessages([$field => 'Each '.$noun.' must be 3 to '.$maxLength.' characters of plain text.']);
             }
             $key = Str::lower($clean);
             if (! isset($seen[$key])) {
@@ -208,8 +263,8 @@ class MedicineAdministrationService
                 $result[] = $clean;
             }
         }
-        if (count($result) > self::MAX_ALLERGY_GROUPS) {
-            throw ValidationException::withMessages(['allergy_groups' => 'A medicine can have at most '.self::MAX_ALLERGY_GROUPS.' drug groups.']);
+        if (count($result) > $max) {
+            throw ValidationException::withMessages([$field => 'A medicine can have at most '.$max.' '.$plural.'.']);
         }
 
         return $result;

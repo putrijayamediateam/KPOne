@@ -24,6 +24,14 @@ class CashClosingController extends Controller
         return Inertia::render('Billing/CashClosings', ['cashClosing' => $closing]);
     }
 
+    /** BIL-7: read-only month view. A bad or future month shows the current month (handled in the service). */
+    public function month(Request $request, CashClosingService $service): Response
+    {
+        $month = $request->query('month');
+
+        return Inertia::render('Billing/CashClosingMonth', ['cashClosingMonth' => $service->month($request->user(), is_string($month) ? $month : null)]);
+    }
+
     public function store(Request $request, CashClosingService $service): RedirectResponse
     {
         $back = $this->back($request->input('business_date'));

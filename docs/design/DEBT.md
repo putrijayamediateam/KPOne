@@ -16,7 +16,7 @@ own PR and tells B.E.R.N.I.S.S (formerly LUCY). See [REVIEW.md](REVIEW.md) for h
 | DD-04 | Pricing, `pages/Pricing/Index.vue` | 10 of 13 fields have no label | 7 | Catalogue & settings (Adlina, Ravi; designer Nadia) | Blocker | DES-1 | Fixed (CAT-1, PR #263) |
 | DD-05 | Add panel, `pages/PanelSettings/Form.vue` | 7 of 23 fields have no label | 7 | Panel | Blocker | DES-1 | Open |
 | DD-06 | Payment Methods, `pages/PaymentMethods/Index.vue` | One button with no accessible name | 12 | Billing | Blocker | DES-1 | Open |
-| DD-07 | All date and time pickers (`pages/Reports/*`, `pages/PanelInvoices/Index.vue` and others) | Calendar and clock icons vanish in dark mode: the app does not set `color-scheme: dark` | 13 | Staff Experience (one shell line in `resources/css/app.css`) | Blocker | DES-1 | Open |
+| DD-07 | All date and time pickers (`pages/Reports/*`, `pages/PanelInvoices/Index.vue` and others) | Calendar and clock icons vanish in dark mode: the app does not set `color-scheme: dark` | 13 | Staff Experience (one shell line in `resources/css/app.css`) | Blocker | DES-1 | Fixed (UX-8, PR #310) |
 | DD-08 | Pale palette colours without a dark style (candidates, check each in dark mode): `pages/Dispensary/Show.vue` (5), `pages/RegistrationReview/Show.vue` (4), `pages/Staff/Index.vue` (3), `pages/Staff/Show.vue` (3), `pages/Registration/Create.vue` (3), `components/patient-board/PatientBoard.vue` (3), `components/registration/QrIntakeTable.vue` (3), `components/queue/QueueRows.vue` (2), and about 25 more files with one or two | `bg-*-50`, `bg-*-100` or `bg-white` with no `dark:` class in the same class list | 1, 13 | Each page's team: Dispensary & OTC, Patients & Registration, Queue & TV; Staff Experience for Staff pages and shared components | Major (Blocker for any line that shows as a pale panel in dark) | DES-1 code scan | Open |
 | DD-09 | Toast covering Complete Consultation at 390 px, `pages/Clinical/Show.vue` | Toast sits on the main action | 9 | Staff Experience | Blocker | S1-015 | In progress (UX-1, PR #241: toasts at the top, owner decision) |
 | DD-10 | Mobile drawer, `components/workspace/WorkspaceHeader.vue` | Drawer stays open after choosing a link | 12 | Staff Experience | Major | S1-017 | In progress (UX-1, PR #241) |
@@ -46,6 +46,8 @@ own PR and tells B.E.R.N.I.S.S (formerly LUCY). See [REVIEW.md](REVIEW.md) for h
 | DD-34 | "Record changed elsewhere" panel on the consultation page | The panel has no dark-mode colours | 13 | Queue & TV | Major | Q-4b design look (Yasmin) | Open |
 | DD-35 | Call next confirm dialog (Q-4 and Q-4b) | Uses a hard-coded `dark:bg-slate-900` instead of the theme tokens | 1, 13 | Queue & TV | Minor | Q-4b design look (Yasmin) | Open |
 | DD-36 | "My Queue" back link on the consultation page, `pages/Clinical/Show.vue` | Uses `text-emerald-800` with no dark style, so the way back to the queue is barely visible in dark mode | 13, 1 | Queue & TV | Major | DD-34/35 review (Mira) | Open |
+| DD-37 | Drug groups dialog on the Medicine Catalogue, `pages/Medicine/Index.vue` | Any error closes the dialog and the typed groups are lost; the DSP-1c "Other names" dialog keeps the text and shows the message under the field, and Drug groups should do the same | 11 | Dispensary & OTC | Minor | DSP-1c design look | Open |
+| DD-38 | "On Hold" and "Urgent" status chips on the Queue and Registration boards and the consultation page | In dark mode the chips keep pale light-mode fills (pale amber, pale pink), so they glare against the dark page; use the `StatusBadge` warning and danger tones | 13, 10 | Queue & TV | Minor | Q-2c design look | Open |
 
 ## Not debt (out of scope, owner-approved)
 
@@ -69,3 +71,5 @@ receipt and drug-label print layouts.
 - 2026-11-06: DD-33 added (Invoices page CA chips with no dark style, seen during the DD-24 to DD-27 look).
 - 2026-11-06: DD-34 and DD-35 added (consultation page dark-mode gaps noted by Yasmin during Q-4b).
 - 2026-11-06: DD-36 added (consultation page "My Queue" link in dark mode, noted by Mira during the DD-34/35 review).
+- 2026-11-06: DD-07 marked Fixed (UX-8, PR #310: the app sets `color-scheme: dark`, so picker icons show in dark mode).
+- 2026-11-06: DD-37 added (Drug groups dialog loses typed groups on an error, seen during the DSP-1c look) and DD-38 added (pale On Hold and Urgent chips in dark mode, seen during the Q-2c look).
