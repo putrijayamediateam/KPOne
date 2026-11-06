@@ -14,9 +14,10 @@ use Illuminate\Support\Facades\DB;
 /**
  * `inventory.stock_review`: low-stock, expiring (90 days) and expired counts per SKU at one branch.
  * Uses the same rules as the Stock review page (InventoryStockReviewService); the list totals are
- * proven equal to that page's totals by test.
+ * proven equal to that page's totals by test. `rows` (AG-6) lists each low-stock SKU and location with its
+ * reorder level, and each expiring or expired batch at its location, by public id, for the inventory analyst.
  */
-final class InventoryStockReviewTool implements AgentTool
+final class InventoryStockReviewTool implements SystemReadableTool
 {
     use ReadsBranches;
 
@@ -39,13 +40,22 @@ final class InventoryStockReviewTool implements AgentTool
 
     public function run(User $requester, ?Branch $branch, array $input): array
     {
+        return $this->runForOrganisation($requester->organisation_id, $branch, $input);
+    }
+
+    public function runForOrganisation(int $organisationId, ?Branch $branch, array $input): array
+    {
         assert($branch !== null);
         $skus = [];
         $totals = [];
+        $detail = ['lowStock' => [], 'expiring' => [], 'expired' => []];
         foreach (['low_stock', 'expiring', 'expired'] as $kind) {
-            $rows = $this->rows($requester->organisation_id, $branch, $kind)->get();
+            $rows = $this->rows($organisationId, $branch, $kind)->get();
             $totals[$kind] = $rows->count();
             foreach ($rows as $row) {
+                $detail[$kind === 'low_stock' ? 'lowStock' : $kind][] = $kind === 'low_stock'
+                    ? ['sku' => $row->sku_public_id, 'location' => $row->location_public_id, 'quantity' => $this->quantity($row->quantity), 'reorderLevel' => $this->quantity($row->reorder_level)]
+                    : ['sku' => $row->sku_public_id, 'batch' => $row->batch_public_id, 'location' => $row->location_public_id, 'quantity' => $this->quantity($row->quantity), 'expiryDate' => (string) $row->expiry_date];
                 $sku = $skus[$row->sku_id] ?? ['sku' => $row->sku_public_id, 'skuCode' => $row->sku_code, 'item' => $row->item, 'stockUnit' => $row->stock_unit,
                     'lowStockLocations' => 0, 'expiringBatches' => 0, 'expiringQuantity' => 0, 'expiredBatches' => 0, 'expiredQuantity' => 0];
                 if ($kind === 'low_stock') {
@@ -69,6 +79,11 @@ final class InventoryStockReviewTool implements AgentTool
             'expiryWindowDays' => InventoryStockReviewService::EXPIRY_WINDOW_DAYS,
             'totals' => ['lowStock' => $totals['low_stock'], 'expiring' => $totals['expiring'], 'expired' => $totals['expired']],
             'skus' => $rows,
+            'rows' => array_map(function (array $list): array {
+                usort($list, fn (array $a, array $b): int => [$a['sku'], $a['location'], $a['batch'] ?? ''] <=> [$b['sku'], $b['location'], $b['batch'] ?? '']);
+
+                return $list;
+            }, $detail),
         ];
     }
 
@@ -90,7 +105,7 @@ final class InventoryStockReviewTool implements AgentTool
                 ->where('r.organisation_id', $organisationId)->where('l.organisation_id', $organisationId)->where('s.organisation_id', $organisationId)->where('i.organisation_id', $organisationId)
                 ->where('l.branch_id', $branch->id)->where('l.is_active', true)->where('l.type', '<>', InventoryLocation::TYPE_DISPENSARY_RETURNS)->where('s.is_active', true)->where('i.is_active', true)
                 ->where('r.reorder_level', '>', 0)->whereRaw('COALESCE(t.eligible, 0) <= r.reorder_level')
-                ->selectRaw('s.id as sku_id, s.public_id as sku_public_id, s.sku_code, i.generic_name as item, s.stock_unit, COALESCE(t.eligible, 0) as quantity');
+                ->selectRaw('s.id as sku_id, s.public_id as sku_public_id, s.sku_code, i.generic_name as item, s.stock_unit, COALESCE(t.eligible, 0) as quantity, l.public_id as location_public_id, r.reorder_level');
         }
         $query = DB::table('inventory_stock_balances as r')
             ->join('inventory_locations as l', 'l.id', '=', 'r.inventory_location_id')
@@ -109,6 +124,6 @@ final class InventoryStockReviewTool implements AgentTool
             $query->whereDate('e.expiry_date', '<=', $this->eligibility->localDate($branch));
         }
 
-        return $query->selectRaw('s.id as sku_id, s.public_id as sku_public_id, s.sku_code, i.generic_name as item, s.stock_unit, r.quantity');
+        return $query->selectRaw('s.id as sku_id, s.public_id as sku_public_id, s.sku_code, i.generic_name as item, s.stock_unit, r.quantity, l.public_id as location_public_id, e.public_id as batch_public_id, e.expiry_date');
     }
 }

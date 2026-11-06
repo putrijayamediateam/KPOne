@@ -60,6 +60,7 @@ HR, finance, marketing, Panel or management agents, the 3D office, and the desig
 | Data sources (AG-4) | `app/Domain/Agents/Tools/`: `AgentTool`, `AgentToolRegistry`, `AgentToolGateway`, `AggregatePayloadGuard`, one class per tool. **AG-10 adds `system.health` without editing this folder:** put the class in `app/Domain/Agents/Health/` and tag it in a service provider, `$this->app->tag([SystemHealthTool::class], AgentToolRegistry::TAG);`. The registry test accepts any subset of the ten contract codes that includes AG-4's nine. |
 | Approval inbox (AG-2) | `app/Domain/Agents/Proposals/`: `ProposalTypes` (proposer, deciding permission, payload fields per type), `AiProposal`, `ProposalService` (`propose`, `approve`, `reject`, `withdraw`, `canDecide`), `ProposalInbox` (page read model); `AgentInboxController`; page `resources/js/pages/Agents/Inbox.vue` at `/agents/inbox`; migration `2026_11_05_210000_create_ai_proposals.php` |
 | Agent office (AG-3) | Page `resources/js/pages/Agents/Office.vue` at `/agents/office`; components in `resources/js/components/agents/office/` (`office-layout.ts` holds the geometry, seats and the fictional looks in `AVATARS`, `OfficeScene.vue`, `AgentFigure.vue`); `AgentOfficeController`; `AgentOfficeDetail` (click panel: last 5 steps; pending proposal rows only for `ai_proposals.view.branch` holders, at their active branch, as the inbox does) |
+| Inventory analyst, Hana (AG-6) | `app/Domain/Agents/Inventory/`: `InventoryRules` (the contract section 6 rules, pure PHP in whole thousandths), `InventoryAnalyst` (reads, proposes, one summary step), `InventoryReview`; command `agents:inventory-review {branch} --checks= --slot=` (`app/Console/Commands/AgentsInventoryReview.php`, not scheduled: AG-8 calls it). **System path:** `AgentToolGateway::callAsSystem()` reads for a run with no person, console only, only tools that implement `SystemReadableTool` (`runForOrganisation`), only on the agent's allowlist and at the run's branch; AG-8 reuses it. The three inventory tools gained additive output fields (`rows` on stock review, `locations` on dispensing activity). |
 | Tests | `tests/Feature/Agents/`, `tests/Frontend/ag-*.test.mjs`; no-AI guard `tests/Feature/Agents/NoAiServiceGuardTest.php` |
 | Reserved names per slice | Contract section 10 |
 
@@ -137,6 +138,8 @@ All in the contract; the main ones:
   (confirmed by the owner in the team session, 2026-11-05). Order after AG-2: AG-3, then CI-PAR-1 (2026-11-05).
 - Ask KPOne shows no patient age or date of birth in ai_read ("ship it for AG-7, no patient age", owner, relayed by
   B.E.R.N.I.S.S, 2026-11-05).
+- AG-6 (owner, 2026-11-06): build the system read path now, in AG-6; add the needed output fields to the inventory
+  data sources (additive, existing keys unchanged).
 - Backup push (owner, relayed by B.E.R.N.I.S.S, formerly LUCY, 2026-11-05): when stopping to wait for the owner with work not yet on GitHub,
   commit it to the slice's own feature branch and push it as a backup. No PR, never main or another team's branch,
   never merge, never force-push. If the branch already has an open PR, push only when the change is ready. The PR
@@ -152,7 +155,9 @@ All in the contract; the main ones:
 4. **Tool allowlist editing:** `ai_agents.manage.organisation` covers it (contract section 4), but AG-1 builds
    only enable and disable; allowlists are set by the seeder.
 5. **Knowledge pack files** (`docs/agents/<code>.md`, contract section 9) are not written yet; no slice owns them.
-6. **Scheduled runs and data sources:** decided 2026-11-05 (see Owner decisions); AG-8 builds the system path.
+6. **Scheduled runs and data sources:** decided 2026-11-05 (see Owner decisions); the system path was built in AG-6
+   (owner choice 2026-11-06), so AG-8 only calls it. A tool AG-8 needs without a person must implement
+   `SystemReadableTool`.
 7. **Data source notes (for AG-5 and AG-8):**
    - `uniqueVisitors` / `perVisitorSen` mean distinct patients (renamed because result keys may not say "patient").
    - `insights.today` leaves out the Insights rankings.
@@ -196,6 +201,6 @@ All in the contract; the main ones:
 | AG-7 Ask KPOne | PR #268 open |
 | AG-9 Rizal (stocktake officer) | |
 | AG-10 Faris (system health) | |
-| AG-6 Hana (inventory analyst) | |
+| AG-6 Hana (inventory analyst) | Built on `feature/ag-6-inventory-analyst`, waiting for "ship it" |
 | AG-5 Director quick answers | |
 | AG-8 Daily summary page and Lina | |
