@@ -8,6 +8,7 @@ use App\Domain\Visit\Billing\Models\InvoiceCredit;
 use App\Domain\Visit\Billing\Models\PatientReceivable;
 use App\Domain\Visit\Billing\Models\Payment;
 use App\Domain\Visit\Billing\Models\PaymentAllocation;
+use App\Domain\Visit\Billing\Models\PaymentRefund;
 use App\Domain\Visit\Billing\Models\PaymentRefundDecision;
 use App\Domain\Visit\Billing\Models\PaymentReversal;
 use Illuminate\Database\Eloquent\Builder;
@@ -80,6 +81,19 @@ class FinancialLedger
     {
         return InvoiceCredit::query()->whereIn('invoice_credits.invoice_id', $invoiceIds)
             ->whereIn('invoice_credits.payment_refund_id', PaymentRefundDecision::query()->where('decision', 'approved')->select('payment_refund_id'));
+    }
+
+    /**
+     * BIL-10: approved refunds after completion, summed per receipt, for the receipt lists.
+     *
+     * @param  iterable<int>  $paymentIds
+     * @return array<int, int>
+     */
+    public static function approvedRefundsByPayment(iterable $paymentIds): array
+    {
+        return PaymentRefund::query()->whereIn('payment_id', collect($paymentIds)->all())->where('kind', PaymentRefund::KIND_AFTER_COMPLETION)
+            ->whereIn('id', PaymentRefundDecision::query()->where('decision', 'approved')->select('payment_refund_id'))
+            ->selectRaw('payment_id, SUM(amount_sen) AS amount')->groupBy('payment_id')->pluck('amount', 'payment_id')->map(fn ($v): int => (int) $v)->all();
     }
 
     /**

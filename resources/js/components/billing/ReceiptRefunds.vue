@@ -137,7 +137,7 @@ const decide = (
                 · {{ receipt.method }} · {{ myr(receipt.amountSen) }} ·
                 {{
                     receipt.kind === 'after_completion'
-                        ? `Received · ${myr(receipt.refundableSen)} left to refund`
+                        ? `Received · ${receipt.amountSen > receipt.refundableSen ? `${myr(receipt.amountSen - receipt.refundableSen)} refunded · ` : ''}${myr(receipt.refundableSen)} left to refund`
                         : 'Reversed'
                 }}
             </p>

@@ -673,7 +673,7 @@ const reverse = (receipt: Receipt) =>
                                         : 'Surcharge'
                                 }}
                             </dt>
-                            <dd>
+                            <dd class="tabular-nums">
                                 {{
                                     billing.invoice.adjustment.adjustmentSen < 0
                                         ? '−'
@@ -694,7 +694,9 @@ const reverse = (receipt: Receipt) =>
                             data-testid="billing-refund-credit"
                         >
                             <dt>Refund credit</dt>
-                            <dd>−{{ myr(billing.invoice.refundCreditSen) }}</dd>
+                            <dd class="tabular-nums">
+                                −{{ myr(billing.invoice.refundCreditSen) }}
+                            </dd>
                         </div>
                     </dl>
                     <InvoiceAdjustmentDialog
@@ -883,6 +885,17 @@ const reverse = (receipt: Receipt) =>
                             </div>
                             <p class="text-[11px] text-muted-foreground">
                                 {{ receipt.number }} · {{ receipt.receivedAt }}
+                            </p>
+                            <p
+                                v-if="receipt.refundedSen"
+                                class="text-xs text-muted-foreground tabular-nums"
+                                data-testid="payment-refunded"
+                            >
+                                Refunded {{ myr(receipt.refundedSen) }} ·
+                                {{
+                                    myr(receipt.amountSen - receipt.refundedSen)
+                                }}
+                                kept
                             </p>
                             <p
                                 v-if="receipt.recordedBy"

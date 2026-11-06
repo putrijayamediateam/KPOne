@@ -71,6 +71,8 @@ class RefundAfterCompletionTest extends BillingTestCase
         $after = $ledger->state($f['invoice']->refresh());
         $this->assertSame(['total' => 2500, 'self_pay' => 2500, 'panel' => 0, 'deferred' => 0, 'due_now' => 0], $after);
         $this->assertSame([$f['invoice']->id => $after], $ledger->states(collect([$f['invoice']])));
+        $this->get(route('billing.show', $f['visit']))->assertInertia(fn (Assert $page) => $page
+            ->where('billing.invoice.refundCreditSen', 1500)->where('billing.payments.0.refundedSen', 1500)->where('billing.invoice.state.total', 2500));
         // The invoice, receipt, allocation and completion evidence are untouched; the visit stays completed.
         $this->assertSame($rows, $this->evidenceRows());
         $this->assertSame(Visit::STATUS_COMPLETED, $f['visit']->refresh()->status);

@@ -32,6 +32,8 @@ export type Receipt = {
     publicId: string;
     number: string;
     amountSen: number;
+    /** BIL-10: approved refunds after completion of this receipt. */
+    refundedSen?: number;
     method: string;
     status: string;
     lockVersion: number;

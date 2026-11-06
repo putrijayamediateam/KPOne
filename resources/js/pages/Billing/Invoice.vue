@@ -398,6 +398,20 @@ const totals = computed(() => {
                                         payment.status
                                     }}</span>
                                 </div>
+                                <p
+                                    v-if="payment.refundedSen"
+                                    class="mt-1 text-xs text-muted-foreground tabular-nums"
+                                    data-testid="payment-refunded"
+                                >
+                                    Refunded {{ myr(payment.refundedSen) }} ·
+                                    {{
+                                        myr(
+                                            payment.amountSen -
+                                                payment.refundedSen,
+                                        )
+                                    }}
+                                    kept
+                                </p>
                             </li>
                         </ul>
                     </section>

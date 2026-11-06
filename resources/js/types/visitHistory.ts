@@ -82,6 +82,7 @@ export type VisitHistoryFinancial = {
     payments: Array<{
         receiptNumber: string;
         amountSen: number;
+        refundedSen: number;
         method: string;
         status: string;
         printUrl: string | null;
