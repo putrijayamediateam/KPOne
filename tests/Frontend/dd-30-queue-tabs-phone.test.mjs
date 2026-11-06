@@ -14,7 +14,7 @@ test('on phones the live line sits under a full-width strip with 44 px tabs', ()
     );
     assert.match(
         page,
-        /class="min-w-0 flex-1 max-sm:flex-none max-sm:\[&>button\]:h-11"/,
+        /class="min-w-0 flex-1 max-sm:flex-none max-sm:\[&>button\]:h-11 max-sm:\[&>button\]:px-2\.5"/,
     );
     assert.match(
         page,
@@ -25,7 +25,7 @@ test('on phones the live line sits under a full-width strip with 44 px tabs', ()
 test('a chosen tab that is partly hidden scrolls fully into view, sideways only', () => {
     assert.match(
         page,
-        /const selectOperationalTab = \(value: string\) => \{\s*selectTab\(value as QueueTab\);\s*void revealSelectedTab\(\);/,
+        /const selectOperationalTab = \(value: string\) => \{\s*selectTab\(value as QueueTab\);\s*void revealSelectedTab\(\)\.then\(updateTabFade\);/,
     );
     assert.match(
         page,
@@ -34,6 +34,22 @@ test('a chosen tab that is partly hidden scrolls fully into view, sideways only'
     assert.match(page, /nav\.scrollLeft -= navBox\.left - tabBox\.left/);
     assert.match(page, /nav\.scrollLeft \+= tabBox\.right - navBox\.right/);
     assert.doesNotMatch(page, /scrollIntoView/);
+});
+
+test('the strip fades at its right edge only while more tabs are hidden to the right', () => {
+    assert.match(
+        page,
+        /nav\.scrollWidth > nav\.clientWidth \+ 1 &&\s*nav\.scrollLeft \+ nav\.clientWidth < nav\.scrollWidth - 1/,
+    );
+    assert.match(
+        page,
+        /moreTabsRight\s*\?\s*'\[mask-image:linear-gradient\(to_right,#000_calc\(100%-2\.5rem\),transparent\)\]'\s*:\s*''/,
+    );
+    assert.match(
+        page,
+        /addEventListener\('scroll', updateTabFade, \{ passive: true \}\)/,
+    );
+    assert.match(page, /removeEventListener\('scroll', updateTabFade\)/);
 });
 
 test('the shared tab component is not changed by DD-30', () => {

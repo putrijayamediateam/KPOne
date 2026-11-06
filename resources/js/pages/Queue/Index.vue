@@ -479,9 +479,23 @@ const revealSelectedTab = async () => {
         nav.scrollLeft += tabBox.right - navBox.right;
     }
 };
+/** DD-30 (Daniel): fade the strip's right edge while more tabs are hidden to the right. */
+const moreTabsRight = ref(false);
+const tabNav = () =>
+    tabStrip.value?.querySelector<HTMLElement>('[role="tablist"]') ?? null;
+const updateTabFade = () => {
+    const nav = tabNav();
+
+    moreTabsRight.value =
+        nav !== null &&
+        nav.scrollWidth > nav.clientWidth + 1 &&
+        nav.scrollLeft + nav.clientWidth < nav.scrollWidth - 1;
+};
+let tabResizeObserver: ResizeObserver | undefined;
+watch(tabs, () => void nextTick(updateTabFade), { deep: true });
 const selectOperationalTab = (value: string) => {
     selectTab(value as QueueTab);
-    void revealSelectedTab();
+    void revealSelectedTab().then(updateTabFade);
 };
 const clearFilters = () => {
     void replaceAppliedRefresh(() => {
@@ -641,8 +655,20 @@ onMounted(() => {
     document.addEventListener('visibilitychange', handleVisibility);
     clockTimer = setInterval(() => (clockNow.value = Date.now()), 60_000);
     schedule();
+    const nav = tabNav();
+
+    nav?.addEventListener('scroll', updateTabFade, { passive: true });
+
+    if (nav && typeof ResizeObserver !== 'undefined') {
+        tabResizeObserver = new ResizeObserver(updateTabFade);
+        tabResizeObserver.observe(nav);
+    }
+
+    updateTabFade();
 });
 onBeforeUnmount(() => {
+    tabNav()?.removeEventListener('scroll', updateTabFade);
+    tabResizeObserver?.disconnect();
     pollingLifecycle.dispose();
     document.removeEventListener('visibilitychange', handleVisibility);
 
@@ -709,7 +735,12 @@ onBeforeUnmount(() => {
         >
             <OperationalTabs
                 :model-value="activeTab"
-                class="min-w-0 flex-1 max-sm:flex-none max-sm:[&>button]:h-11"
+                class="min-w-0 flex-1 max-sm:flex-none max-sm:[&>button]:h-11 max-sm:[&>button]:px-2.5"
+                :class="
+                    moreTabsRight
+                        ? '[mask-image:linear-gradient(to_right,#000_calc(100%-2.5rem),transparent)]'
+                        : ''
+                "
                 label="Consultation Queue status"
                 :tabs="tabs"
                 @update:model-value="selectOperationalTab"
