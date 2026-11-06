@@ -1953,3 +1953,220 @@ to the Clinic management destination map, which is an existing-assertion change 
 5. Must the payer be someone other than the approver? (Default: yes.)
 6. Are claims ever paid in cash from the till? (Default: no. KPOne records a cash payment but never links it to daily
    cash closing, so till cash for staff claims must be handled outside KPOne. Tell us if that is wrong.)
+
+## 14. HR-7 payroll: design note
+
+Written 2026-11-06 at the owner's request ("start the HR-7 design note"). It works out the HR-7 sketch in section 2
+and TEAM.md decision 7 in detail and replaces the sketch where the two differ. It changes no HR-1 to HR-6 rule.
+**Status: draft, waiting for the owner's approval and Daniel's early look.** The questions in 14.10 take the
+defaults written here until the clinic says otherwise. **Most of them are for the clinic's accountant.**
+
+**This is the riskiest slice, and it is built to be safe before it is built to be clever.**
+- **Every rate, band, threshold, divisor and rounding rule is clinic-entered data.** That includes EPF, SOCSO, EIS, MTD (PCB) and the HRD levy, entered by one person and checked by a second (decision 7). **KPOne ships no statutory number** and computes nothing from a rate written in code.
+- **Every payroll page shows one plain line:** "To confirm with the clinic's accountant before real use. Synthetic data only." This stays until the owner records the accountant's sign-off and the PDPA review.
+- **KPOne makes no payment, files nothing with KWSP, PERKESO or LHDN, and posts nothing to an accounting ledger.** It prepares figures, has them approved, shows payslips and gives a reviewed export file (decision 7).
+- **All money is whole sen.** There is no floating point anywhere; percentages are stored as basis points, and every rounding step follows the rule written on its table.
+
+### 14.1 Split
+
+- **HR-7a: pay profiles and statutory tables.** Each person's pay profile (salary, fixed allowances, pay type, which statutory schemes apply), effective-dated and confirmed by a second person. The clinic-entered statutory tables and the pay item types. Nothing is calculated yet.
+- **HR-7b: the payroll run.** A monthly run per pay group, built from the HR-7a profiles and from approved HR records:
+  - approved overtime (HR-3b);
+  - approved unpaid leave (HR-2a);
+  - worked hours for hourly staff (HR-3a);
+  - approved staff claims (HR-6);
+  - manual lines.
+  - The run goes Draft, then Sent for approval (frozen), then Approved by someone else, then Locked. A correction is a new adjustment run, never an edit.
+- **HR-7c: payslips and exports.** An encrypted payslip snapshot per person per approved run, shown in KPOne and printable. A reviewed bank-upload file and an accountant summary, each audited and never stored. A statutory summary on screen, for the clinic to enter by hand on the KWSP, PERKESO and LHDN portals.
+
+### 14.2 What the clinic gets
+
+- **Pay profiles** (preparers), opened from the HR-4 staff file. Each profile has:
+  - **pay type:** Monthly salary, or Hourly (part-time, paid on HR-3a worked hours). Locums are paid outside KPOne in v1 (14.8).
+  - **basic monthly salary** or **hourly rate**, in RM;
+  - **fixed allowances**, each a clinic-entered pay item type and an amount;
+  - **the schemes that apply:** EPF (with its category, for example "Malaysian below 60"), SOCSO (its category), EIS, MTD and HRD levy, each Yes or No;
+  - **the pay group;**
+  - **the date it applies from.**
+  - A new or changed profile is **Waiting for confirmation** until someone other than the person who entered it, and other than the worker, confirms it (the HR-4 bank rule). The earlier profile stays in force until then.
+  - Bank details come from the confirmed HR-4 bank record and are never copied here.
+- **Pay item types** (clinic-entered): for example Basic salary, Fixed allowance, Overtime, Unpaid leave, Staff claim refund, Bonus, Other addition, Other deduction. Each has:
+  - whether it is earnings, a deduction or a refund;
+  - a Yes or No for each of EPF, SOCSO, EIS, MTD and HRD wages, because the clinic decides, for example, whether overtime counts for EPF.
+- **Statutory tables** (preparers enter, a second person checks). There is one kind of table, a **banded table**, which is enough for EPF, SOCSO, EIS and the HRD levy:
+  - each table has a name, a scheme, a category (for example SOCSO Category 1), the date it applies from and a source note (where the figures came from);
+  - its rows are wage bands (from and to, in sen) with an employee and an employer part, each either a fixed amount in sen or a rate in basis points;
+  - each table has a rounding rule: none, to the nearest sen, or up to the next ringgit.
+  - A table counts only once it is **Checked** by someone other than the person who entered it, and a checked version never changes; a correction is a new version.
+- **MTD (PCB) in v1:** the monthly MTD amount per person is **entered on the run, from the LHDN calculator or the accountant**, and checked with the run. KPOne does not compute MTD in v1: the formula needs reliefs, TP1 and TP3 forms and year-to-date figures that the clinic's accountant must design with us first (14.8).
+- **Rate settings** (clinic-entered, versioned): how a daily and an hourly rate are derived from a monthly salary (for example "basic ÷ 26 days" and "daily ÷ 8 hours"), used for overtime and unpaid leave. KPOne ships no divisor.
+- **Payroll runs** (HR-7b): pick a pay group and a month, and press **Prepare**. The draft lists each person's lines and totals, with every figure's source in words:
+  - "Overtime: 3 h 30 min × RM 12.50 × 1.5 (normal day, approved 4 Nov)";
+  - "Unpaid leave: 1 day × RM 96.15";
+  - "Staff claim SC-000012 refund";
+  - "EPF employee 11% of RM 2,500.00, rounded up".
+  - Warnings in words: "No confirmed pay profile", "No checked EPF table for this category", "MTD not entered", "Bank details waiting for confirmation".
+  - **Prepare again** recalculates the whole draft. **Send for approval** freezes it. The **approver**, who is never the preparer, reads the frozen run and presses **Approve**, or **Return** with a reason. **Lock** follows approval, and only a locked run gives payslips and exports.
+- **Payslips** (HR-7c): every person sees their own on My HR details. Each payslip shows:
+  - the clinic letterhead;
+  - the period;
+  - earnings, deductions and refunds;
+  - the employer contributions as information;
+  - the net pay, and the bank account masked to the last four.
+  - Printing uses the browser, white in every theme (PRINT-1). Opening a payslip is recorded.
+- **Exports** (HR-7c), from a locked run only, by an exporter. Each download writes its audit row first, and the file is never stored:
+  - the **bank file**, a clinic-chosen layout from a small list (generic CSV of name, bank, account, amount, reference; more layouts on request);
+  - the **accountant summary** CSV (totals by person and pay item type);
+  - both with the CSV safety rules: UTF-8 BOM, formula-neutralised cells, and the row cap and throttle of the reports.
+  - The **statutory summary** is on screen only, with totals per scheme to type into the portals by hand.
+
+### 14.3 Rules
+
+1. **Money:** integers in sen; rates in basis points (1100 = 11.00%); multipliers as hundredths (150 = 1.5x). Every
+   multiplication rounds once, at the step its table or setting names, and the rounding is shown on the line.
+2. **Statutory tables and pay profiles need two people.** The person who enters is never the one who checks or
+   confirms, and nobody confirms their own pay profile (service and PostgreSQL CHECK). Only checked tables and
+   confirmed profiles are used.
+3. **Effective dates:** a run uses the profile, table and setting versions in force on the last day of its month,
+   and the approval stores every version id it used, so a later version never changes an approved run.
+4. **Sources are only approved records:**
+   - overtime approved in HR-3b (minutes × hourly rate × the multiplier stored on the approval);
+   - unpaid leave approved in HR-2a, on leave types the clinic marks as unpaid;
+   - HR-3a worked minutes for hourly staff;
+   - staff claims approved in HR-6 and not yet paid.
+   - A staff claim paid through payroll is recorded as paid by the payroll run when the run is locked, through HR-6's own payment row (method Payroll), so it can never be paid twice.
+5. **Manual lines:** an addition or deduction with a pay item type, an amount and a reason code. They belong to the
+   draft and are frozen with it.
+6. **Approval:** the approver is never the preparer. A run prepared by the Director needs another Director, or the
+   HR Manager if the clinic allows it (14.10). A returned run goes back to Draft, and an approved run is locked and
+   never edited.
+7. **Corrections:** an adjustment run for the same month references the locked run. It holds only the differences
+   and goes through the same two-person approval. Payslips show the original and the adjustment separately.
+8. **Who sees what:**
+   - preparers and approvers see the salaries and lines of the runs they handle;
+   - exporters see the locked run's net pay per person, and the bank file;
+   - everyone sees only their own payslip.
+   - Salary never appears in Staff files lists, HR-4 tabs for other holders, audit or any other page.
+9. **Every write:** a fresh permission check under lock; `DB::transaction`; the run row locked (and the worker rows,
+   in id order); `lock_version`; an idempotency key; and audit with ids, codes, counts and version ids only, never
+   amounts. Payslip snapshots and amounts are encrypted at rest.
+10. **HR never blocks clinical work**, and no clinical, billing, Panel, cash-closing or Insights page reads payroll.
+
+### 14.4 Tables (sketch)
+
+| Table | Holds |
+|---|---|
+| `hr_pay_groups` | organisation, name, pay day, active |
+| `hr_pay_item_types` | organisation, name, kind earnings/deduction/refund, counts for EPF, SOCSO, EIS, MTD and HRD (Yes or No each), active |
+| `hr_pay_profiles` | worker, pay group, pay type, encrypted basic or hourly rate, schemes and categories, effective from, status waiting/confirmed/rejected/replaced, entered by, confirmed by and at |
+| `hr_pay_profile_items` | profile, pay item type, encrypted amount |
+| `hr_rate_settings` | append-only versions: daily and hourly divisors |
+| `hr_statutory_tables` | organisation, scheme, category, effective from, rounding rule, source note, status entered/checked/replaced, entered by, checked by |
+| `hr_statutory_table_rows` | table, wage from and to (sen), employee and employer part as fixed sen or basis points |
+| `hr_payroll_runs` | pay group, month, kind regular/adjustment, adjusts run, status draft/sent/approved/locked, prepared by, approved by, version ids used, `lock_version` |
+| `hr_payroll_lines` | run, worker, pay item type or scheme, encrypted amount, source kind and id, encrypted explanation |
+| `hr_payslips` | run, worker, encrypted snapshot, hash |
+| `hr_payroll_exports` | append-only audit of each download: run, layout, row count, by, time (no file) |
+| `hr_payroll_retries` | idempotency records |
+
+PostgreSQL:
+- the decider differs from the entrant for tables and profiles, and the approver from the preparer for runs (CHECK);
+- a checked table, a confirmed profile, a sent or approved run and its lines never change;
+- one regular run per pay group and month (unique);
+- one confirmed profile in force per worker and date;
+- payslips, exports, settings and table rows are append-only;
+- nothing is deleted or truncated;
+- every row belongs to one organisation.
+
+Migrations from `2026_11_10_002300`, with the grants in their own additive migration.
+
+### 14.5 Permissions
+
+| Permission | Holders |
+|---|---|
+| `hr.payroll.prepare.organisation` (profiles, tables, pay item types and settings, prepare runs; see salaries) | HR Manager, Director |
+| `hr.payroll.approve.organisation` (confirm profiles and check tables entered by someone else; approve, return and lock runs) | Director |
+| `hr.payroll.export.organisation` (bank file and accountant summary from locked runs; the statutory summary) | Director, Finance Officer |
+| `hr.payslips.view.own` (my payslips) | every human role, not the TV account |
+
+None is in the people-and-access authority set. Under rule 2, an HR Manager can enter a table that the Director
+checks, and the Director can enter one that the HR Manager checks only if the clinic allows it (14.10). A new hub
+link, "KPOne HR payroll", adds `/hr/payroll` to the Clinic management destination map, which is an
+existing-assertion change to approve when built. **Exports** are authorised by decision 7 ("a reviewed file") and
+follow the RPT-01 safety rules.
+
+### 14.6 Screens (Hui Min, for Daniel's early look)
+
+- One page, `/hr/payroll`, with tabs Runs, Pay profiles, Tables and Settings for preparers, and Exports for exporters. Payslips sit on My HR details for everyone.
+- **The accountant line** under the header on every payroll page: the shared muted component from HR-4, with these words.
+- **Runs:**
+  - one card per run, with its status chip: Draft neutral; Waiting for approval neutral; Approved success; Locked success with the date; Returned neutral with the reason.
+  - The run page is a table from 1024 px (person, earnings, deductions, refunds, employee contributions, net, warnings), with a total row, and cards below.
+  - Each person's row opens a side panel with every line and its source sentence.
+- **Warnings** are warning chips with words, listed at the top ("4 things to check before sending") and on each row.
+- **Tables:** a banded table is edited as rows (from, to, employee, employer) with right-aligned tabular-nums, a rounding select with help text, and the source note. A checked table is read-only, with "Checked by … on …".
+- **Pay profile:** amounts masked to "RM ••••" for anyone outside payroll, with no Show for them. For preparers the full amounts show, and a waiting change appears side by side ("Recorded: RM 2,500.00 · New: RM 2,700.00").
+- **Payslip:** one A4 layout, white in every theme, letterhead, period, earnings, deductions and refunds as three short tables, net pay in bold, the bank masked.
+- **Approve, Return and Lock** are outline buttons with the primary action in the dialog. "Lock" says what it means: "Locked runs make payslips and exports and can't be changed. Corrections need an adjustment run."
+- 44 px targets, no sideways scroll at 320, 390 and 768 px. Wide run tables scroll inside their own container.
+- **Screenshots when built:**
+  - a statutory table being checked;
+  - a pay profile change waiting;
+  - a draft run with warnings;
+  - a person's line panel;
+  - a run waiting for approval as seen by its preparer;
+  - an approved and locked run;
+  - a payslip on screen and in print;
+  - the export page;
+  - all at 390 and 1440 px, light and dark.
+
+### 14.7 Tests (planned)
+
+- Grants for every role, the TV account refused, none in the authority set, and the hub map line to approve.
+- **Calculation golden files:** synthetic tables and profiles for a monthly and an hourly worker, with overtime on
+  each day type, unpaid leave, a claim refund, manual lines, each scheme and each rounding rule. Each expected figure
+  is written by hand in the test, never computed by the code under test.
+- Integer-only arithmetic, with a source scan that fails on float casts or `round()` on money in the payroll code.
+- The two-person rules for tables, profiles and runs (service and PostgreSQL); a checked or confirmed version never
+  changes; version ids are stored on approval, and a later version leaves an approved run unchanged.
+- A claim paid through payroll exactly once (HR-6 payment row), including a two-process race between locking the
+  run and a Finance payment of the same claim.
+- An adjustment run holds only the differences; a locked run and its payslips never change.
+- Payslips: own only, encrypted, the view recorded, the print white.
+- Exports: from locked runs only, audit before release, formula-neutralised, no stored file, the row cap and
+  throttle.
+- Visibility: salary absent from every other page payload (a scan), amounts never in audit.
+- Clinic money untouched: billing, Panel, cash closing and Insights tables compared before and after.
+
+### 14.8 What stays out
+
+- Any payment, bank API or bank-specific integration beyond the reviewed file.
+- Any filing with KWSP, PERKESO, LHDN or HRD Corp, and any outside HR or payroll product.
+- **MTD computed by KPOne** (a later slice HR-7d, designed with the accountant: reliefs, TP1, TP3, year-to-date and
+  additional remuneration).
+- Locum pay in KPOne, which v1 leaves outside (a later decision once locums can be rostered); EA forms and
+  year-end statements (a later slice); bonuses by formula; salary advances and loans.
+- Accounting ledger entries; costs on the HR dashboard (HR-9 after HR-7).
+- Any real salary, statutory number or payslip before the accountant's sign-off and the PDPA review.
+
+### 14.9 Known risks
+
+- **Statutory correctness depends entirely on the tables the clinic enters.** The two-person check and the source
+  note reduce mistakes but cannot replace the accountant.
+- Hourly pay depends on HR-3a clock data, and a missing clock-out pays nothing until it is corrected.
+- Encrypted amounts cannot be summed in SQL, so totals are computed in PHP from decrypted lines. That is acceptable
+  for a clinic's headcount; the run page is not load-tested.
+
+### 14.10 Questions only the clinic can answer [TO CONFIRM] (most with the accountant)
+
+1. Pay groups and pay day? (Default: one monthly group, pay day entered by HR.)
+2. Who may approve runs? (Default: the Director only, never the preparer. A run the Director prepares needs another
+   Director; tell us if the HR Manager may approve one in that case.)
+3. Who checks statutory tables and confirms pay profiles? (Default: the Director, or the HR Manager when the
+   Director entered it.)
+4. Which pay items count for EPF, SOCSO, EIS, MTD and HRD? (Default: none until the clinic ticks them.)
+5. Daily and hourly rate divisors for overtime and unpaid leave? (Default: none shipped; the accountant enters them.)
+6. MTD: entered per person per run in v1 (default), with KPOne's own calculation later as HR-7d?
+7. Part-timers paid hourly from clock data (default yes); locums paid outside KPOne in v1 (default yes)?
+8. The bank file layout, and does Finance need the accountant summary? (Default: generic CSV, and yes.)
+9. Paper payslips: does HR print them for anyone? (Default: each person prints their own.)
