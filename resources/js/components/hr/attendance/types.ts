@@ -38,6 +38,7 @@ export type OvertimeRequestRow = {
     onBehalf: boolean;
     requestedBy: string;
     hoursChanged: boolean;
+    changedLabel: string | null;
     week: WeekHours | null;
     canDecide: boolean;
     canReverse: boolean;
@@ -93,6 +94,7 @@ export type SummaryTabData = {
     nextDate?: string;
     settingsReady?: boolean;
     rows: ({ userId: number; person: string } & SummaryFigures)[];
+    total?: SummaryFigures | null;
 };
 
 export type OvertimeSettingsCard = {

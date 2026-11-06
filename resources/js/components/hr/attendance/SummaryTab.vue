@@ -28,6 +28,15 @@ const visit = (params: Record<string, string | number | undefined>) =>
 const branchOptions = computed(() =>
     props.data.branches.map((b) => ({ value: b.id, label: b.name })),
 );
+const figureKeys = [
+    'rostered',
+    'worked',
+    'late',
+    'leftEarly',
+    'noClockIn',
+    'noClockOut',
+    'overtime',
+] as const;
 const periods = [
     { value: 'week', label: 'Week' },
     { value: 'month', label: 'Month' },
@@ -124,9 +133,16 @@ const periods = [
             <EmptyState
                 v-if="data.rows.length === 0"
                 title="Nobody to show for this period."
-                description="People assigned to this branch, or who clocked in here, appear here."
+                description="Nobody is assigned to this branch or clocked in here in this period. Choose another branch or period."
             />
             <template v-else>
+                <p
+                    v-if="data.rows.some((r) => r.otherBranch)"
+                    class="text-xs text-muted-foreground"
+                >
+                    Figures include time worked at other branches. The period
+                    runs up to today.
+                </p>
                 <div class="hidden lg:block">
                     <OperationalTable
                         label="Attendance summary"
@@ -141,13 +157,21 @@ const periods = [
                                 >
                                     Person
                                 </th>
-                                <th scope="col">Rostered</th>
-                                <th scope="col">Worked</th>
-                                <th scope="col">Late</th>
-                                <th scope="col">Left early</th>
-                                <th scope="col">No clock-in</th>
-                                <th scope="col">No clock-out</th>
-                                <th scope="col">Overtime approved</th>
+                                <th scope="col" class="text-right">Rostered</th>
+                                <th scope="col" class="text-right">Worked</th>
+                                <th scope="col" class="text-right">Late</th>
+                                <th scope="col" class="text-right">
+                                    Left early
+                                </th>
+                                <th scope="col" class="text-right">
+                                    No clock-in
+                                </th>
+                                <th scope="col" class="text-right">
+                                    No clock-out
+                                </th>
+                                <th scope="col" class="text-right">
+                                    Overtime approved
+                                </th>
                             </tr>
                         </template>
                         <template #body>
@@ -167,13 +191,32 @@ const periods = [
                                         >Includes time at another branch</span
                                     >
                                 </th>
-                                <td class="tabular-nums">{{ r.rostered }}</td>
-                                <td class="tabular-nums">{{ r.worked }}</td>
-                                <td class="tabular-nums">{{ r.late }}</td>
-                                <td class="tabular-nums">{{ r.leftEarly }}</td>
-                                <td class="tabular-nums">{{ r.noClockIn }}</td>
-                                <td class="tabular-nums">{{ r.noClockOut }}</td>
-                                <td class="tabular-nums">{{ r.overtime }}</td>
+                                <td
+                                    v-for="key in figureKeys"
+                                    :key="key"
+                                    class="text-right tabular-nums"
+                                >
+                                    {{ r[key] }}
+                                </td>
+                            </tr>
+                            <tr
+                                v-if="data.total"
+                                class="font-semibold"
+                                data-test="summary-total"
+                            >
+                                <th
+                                    scope="row"
+                                    class="sticky left-0 z-10 bg-card text-left"
+                                >
+                                    Total
+                                </th>
+                                <td
+                                    v-for="key in figureKeys"
+                                    :key="key"
+                                    class="text-right tabular-nums"
+                                >
+                                    {{ data.total[key] }}
+                                </td>
                             </tr>
                         </template>
                     </OperationalTable>

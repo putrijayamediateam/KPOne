@@ -57,6 +57,7 @@ return new class extends Migration
             $t->unsignedSmallInteger('minutes_approved')->nullable();
             $t->unsignedBigInteger('overtime_setting_id')->nullable();
             $t->decimal('multiplier', 4, 2)->nullable();
+            $t->unsignedSmallInteger('worked_minutes_at_decision')->nullable(); // so a later correction can be shown as "recorded → now"
             $t->unsignedBigInteger('decided_by_user_id')->nullable();
             $t->timestampTz('decided_at')->nullable();
             $t->string('decision_reason', 16)->nullable();
@@ -92,6 +93,9 @@ ALTER TABLE hr_overtime_requests ADD CONSTRAINT hr_overtime_requests_shape CHECK
  AND (status IN ('approved', 'reversed')) = (minutes_approved IS NOT NULL)
  AND (status IN ('approved', 'reversed')) = (overtime_setting_id IS NOT NULL)
  AND (status IN ('approved', 'reversed')) = (multiplier IS NOT NULL)
+ AND (status IN ('approved', 'reversed')) = (worked_minutes_at_decision IS NOT NULL)
+ AND (worked_minutes_at_decision IS NULL OR worked_minutes_at_decision BETWEEN 0 AND 1440)
+ AND (status IN ('approved', 'rejected', 'reversed') OR decision_reason IS NULL)
  AND (minutes_approved IS NULL OR (minutes_approved >= 1 AND minutes_approved <= minutes_requested))
  AND (decided_by_user_id IS NULL OR (decided_by_user_id <> user_id AND decided_by_user_id <> requested_by_user_id))
  AND (status <> 'rejected' OR decision_reason IN ('not_agreed', 'not_overtime', 'wrong_day', 'other'))
@@ -136,11 +140,14 @@ BEGIN
   RAISE EXCEPTION 'An overtime request is decided as asked; withdraw it and ask again' USING ERRCODE = 'P0001';
  END IF;
  IF OLD.status = 'pending' AND NEW.status IN ('approved', 'rejected', 'withdrawn') THEN
+  IF NEW.status <> 'approved' AND NEW.day_type <> OLD.day_type THEN
+   RAISE EXCEPTION 'Only an approval works the day type out again' USING ERRCODE = 'P0001';
+  END IF;
   RETURN NEW;
  END IF;
  IF OLD.status = 'approved' AND NEW.status = 'reversed' THEN
   IF NEW.day_type <> OLD.day_type OR NEW.minutes_approved <> OLD.minutes_approved OR NEW.overtime_setting_id <> OLD.overtime_setting_id
-    OR NEW.multiplier <> OLD.multiplier OR NEW.decided_by_user_id <> OLD.decided_by_user_id OR NEW.decided_at <> OLD.decided_at
+    OR NEW.multiplier <> OLD.multiplier OR NEW.worked_minutes_at_decision <> OLD.worked_minutes_at_decision OR NEW.decided_by_user_id <> OLD.decided_by_user_id OR NEW.decided_at <> OLD.decided_at
     OR NEW.decision_reason IS DISTINCT FROM OLD.decision_reason THEN
    RAISE EXCEPTION 'A reversal keeps the approval as it was' USING ERRCODE = 'P0001';
   END IF;

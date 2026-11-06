@@ -121,7 +121,10 @@ const send = () => {
                 >
             </SheetHeader>
             <form class="grid gap-4 px-4 pb-6" @submit.prevent="send">
-                <ErrorState v-if="errors.overtime" :message="errors.overtime" />
+                <ErrorState
+                    v-if="errors.overtime || errors.attendance"
+                    :message="errors.overtime ?? errors.attendance ?? ''"
+                />
                 <InputError v-if="fromReview" :message="errors.user_id" />
                 <div class="grid gap-1">
                     <Label for="overtime-day">Day *</Label>

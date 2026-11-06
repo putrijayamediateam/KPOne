@@ -3,6 +3,7 @@
 import { router } from '@inertiajs/vue3';
 import { ref } from 'vue';
 import { Button } from '@/components/ui/button';
+import { EmptyState } from '@/components/ui/state';
 import { StatusBadge } from '@/components/ui/status';
 import type { MyOvertime } from './types';
 import { requestTone } from './types';
@@ -29,13 +30,20 @@ const withdraw = (publicId: string, lockVersion: number) => {
 </script>
 
 <template>
-    <div
-        v-if="data.requests.length > 0"
-        class="flex flex-col gap-2"
-        data-test="my-overtime"
-    >
+    <div class="flex flex-col gap-2" data-test="my-overtime">
         <h3 class="text-base font-semibold">My overtime</h3>
-        <ul class="flex flex-col gap-2">
+        <EmptyState
+            v-if="data.requests.length === 0"
+            title="No overtime requests yet."
+            :description="
+                !data.ready
+                    ? 'Overtime is not set up yet. HR will tell you when it is.'
+                    : data.eligible
+                      ? 'On a day you worked past your roster, press Ask for overtime on that day.'
+                      : 'Your role cannot claim overtime. Ask HR if this is wrong.'
+            "
+        />
+        <ul v-else class="flex flex-col gap-2">
             <li
                 v-for="r in data.requests"
                 :key="r.publicId"

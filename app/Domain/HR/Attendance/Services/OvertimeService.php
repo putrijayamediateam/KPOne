@@ -41,8 +41,8 @@ final class OvertimeService
     ) {}
 
     /**
-     * What a closed session allows: on a normal day the worked minutes beyond the rostered minutes (all of them when the
-     * session is not on the roster); on a rest day or public holiday all of the worked minutes.
+     * What a closed session allows: on a normal day the minutes outside the matched shift's window (all of the worked
+     * minutes when the session is not on the roster); on a rest day or public holiday all of the worked minutes.
      *
      * @return array{max: int, worked: int, rostered: int|null, dayType: string, dayLabel: string}
      */
@@ -52,7 +52,7 @@ final class OvertimeService
         $worked = AttendanceDays::worked($session, $shift) ?? 0;
         $rostered = $shift === null ? null : AttendanceDays::rostered($shift);
         $day = $this->dayTypes->of($branch, $session->local_date);
-        $max = $day['type'] === 'normal' && $rostered !== null ? max(0, $worked - $rostered) : $worked;
+        $max = $day['type'] === 'normal' && $shift !== null ? AttendanceDays::beyondRoster($session, $shift) : $worked;
 
         return ['max' => min($max, 1440), 'worked' => $worked, 'rostered' => $rostered, 'dayType' => $day['type'], 'dayLabel' => $day['label']];
     }
@@ -66,7 +66,9 @@ final class OvertimeService
             throw ValidationException::withMessages(['reason_code' => 'Choose a reason.']);
         }
         $note = $this->note($input['note'] ?? null);
-        if (filter_var($input['on_behalf'] ?? false, FILTER_VALIDATE_BOOLEAN) && in_array($input['user_id'] ?? null, [null, ''], true)) {
+        $onBehalf = filter_var($input['on_behalf'] ?? false, FILTER_VALIDATE_BOOLEAN);
+        // From Review overtime is always for someone else, never the reviewer's own (Suresh).
+        if ($onBehalf && (in_array($input['user_id'] ?? null, [null, ''], true) || (int) $input['user_id'] === $actor->id)) {
             throw ValidationException::withMessages(['user_id' => 'Choose a staff member.']);
         }
         $subjectId = $this->subjectId($actor, $input['user_id'] ?? null);
@@ -173,7 +175,7 @@ final class OvertimeService
                     throw ValidationException::withMessages(['reason' => 'Choose why fewer minutes are approved.']);
                 }
                 $fill += ['minutes_approved' => $minutes, 'day_type' => $allowance['dayType'], 'overtime_setting_id' => $version->id,
-                    'multiplier' => $version->multiplier($allowance['dayType']), 'decision_reason' => $minutes < $request->minutes_requested ? $reason : null];
+                    'multiplier' => $version->multiplier($allowance['dayType']), 'worked_minutes_at_decision' => min($allowance['worked'], 1440), 'decision_reason' => $minutes < $request->minutes_requested ? $reason : null];
                 $audit += ['minutes_approved' => $minutes, 'day_type' => $allowance['dayType'], 'settings_id' => $version->id, 'reason_code' => $fill['decision_reason']];
             } else {
                 $fill['decision_reason'] = $reason;

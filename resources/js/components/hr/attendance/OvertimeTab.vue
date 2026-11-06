@@ -33,7 +33,9 @@ const visitMonth = (month: string) =>
         { preserveScroll: true },
     );
 
-type Mode = 'approve' | 'fewer' | 'reject' | 'reverse';
+// Daniel: two buttons per card. The Approve dialog starts at the minutes asked; lowering them makes it
+// "Approve fewer minutes" with a required reason, and the primary label follows the minutes.
+type Mode = 'approve' | 'reject' | 'reverse';
 const dialog = reactive({
     open: false,
     mode: 'approve' as Mode,
@@ -49,25 +51,42 @@ const open = (row: OvertimeRequestRow, mode: Mode) =>
         open: true,
         mode,
         target: row,
-        minutes: mode === 'fewer' ? '' : String(row.minutesRequested),
+        minutes: String(row.minutesRequested),
         reason: '',
         key: crypto.randomUUID(),
         error: '',
     });
-const titles: Record<Mode, string> = {
-    approve: 'Approve this overtime?',
-    fewer: 'Approve fewer minutes?',
-    reject: 'Reject this overtime?',
-    reverse: 'Reverse this approved overtime?',
-};
-const confirmLabels: Record<Mode, string> = {
-    approve: 'Approve overtime',
-    fewer: 'Approve these minutes',
-    reject: 'Reject overtime',
-    reverse: 'Reverse overtime',
-};
+const minutesValue = computed(() => {
+    const n = Number(dialog.minutes);
+
+    return /^\d+$/.test(dialog.minutes.trim()) ? n : null;
+});
+const fewer = computed(
+    () =>
+        dialog.mode === 'approve' &&
+        !!dialog.target &&
+        minutesValue.value !== null &&
+        minutesValue.value < dialog.target.minutesRequested,
+);
+const title = computed(() =>
+    dialog.mode === 'reverse'
+        ? 'Reverse this approved overtime?'
+        : dialog.mode === 'reject'
+          ? 'Reject this overtime?'
+          : fewer.value
+            ? 'Approve fewer minutes?'
+            : 'Approve this overtime?',
+);
+const confirmLabel = computed(() =>
+    dialog.mode === 'reverse'
+        ? 'Reverse overtime'
+        : dialog.mode === 'reject'
+          ? 'Reject overtime'
+          : `Approve ${minutesValue.value ?? dialog.target?.minutesRequested ?? ''} min`,
+);
+const needsReason = computed(() => dialog.mode !== 'approve' || fewer.value);
 const reasonOptions = computed(() =>
-    dialog.mode === 'fewer'
+    dialog.mode === 'approve'
         ? props.options.lowerReasons
         : dialog.mode === 'reject'
           ? props.options.rejectReasons
@@ -80,8 +99,16 @@ const confirm = () => {
         return;
     }
 
-    if (dialog.mode !== 'approve' && dialog.reason === '') {
-        dialog.error = 'Choose a reason.';
+    if (dialog.mode === 'approve' && minutesValue.value === null) {
+        dialog.error = `Enter whole minutes from 1 to ${target.minutesRequested}.`;
+
+        return;
+    }
+
+    if (needsReason.value && dialog.reason === '') {
+        dialog.error = fewer.value
+            ? 'Choose why fewer minutes are approved.'
+            : 'Choose a reason.';
 
         return;
     }
@@ -89,15 +116,15 @@ const confirm = () => {
     const url =
         dialog.mode === 'reverse'
             ? `/hr/attendance/overtime/${target.publicId}/reverse`
-            : `/hr/attendance/overtime/${target.publicId}/${dialog.mode === 'reject' ? 'reject' : 'approve'}`;
+            : `/hr/attendance/overtime/${target.publicId}/${dialog.mode}`;
     dialog.processing = true;
     router.post(
         url,
         {
             ...monthQuery.value,
             expected_lock_version: target.lockVersion,
-            minutes: dialog.mode === 'fewer' ? dialog.minutes : undefined,
-            reason: dialog.mode === 'approve' ? undefined : dialog.reason,
+            minutes: dialog.mode === 'approve' ? dialog.minutes : undefined,
+            reason: needsReason.value ? dialog.reason : undefined,
             idempotency_key: dialog.key,
         },
         {
@@ -106,6 +133,7 @@ const confirm = () => {
             onError: (e) =>
                 (dialog.error =
                     e.overtime ??
+                    e.attendance ??
                     e.minutes ??
                     e.reason ??
                     'This could not be saved.'),
@@ -168,12 +196,11 @@ const description = computed(() => {
             data-test="overtime-waiting"
         >
             <h3 class="text-base font-semibold">Waiting for a decision</h3>
-            <p
+            <EmptyState
                 v-if="data.pending.length === 0"
-                class="text-sm text-muted-foreground"
-            >
-                Nothing is waiting.
-            </p>
+                title="No overtime is waiting."
+                description="Requests appear here when staff ask for overtime. You can ask on someone's behalf from their day on Review."
+            />
             <ul v-else class="flex flex-col divide-y">
                 <li
                     v-for="r in data.pending"
@@ -219,15 +246,6 @@ const description = computed(() => {
                             >
                                 Approve<span class="sr-only">
                                     overtime for {{ r.person }}</span
-                                >
-                            </Button>
-                            <Button
-                                variant="outline"
-                                class="min-h-11 sm:min-h-8"
-                                @click="open(r, 'fewer')"
-                            >
-                                Approve fewer minutes<span class="sr-only">
-                                    for {{ r.person }}</span
                                 >
                             </Button>
                             <Button
@@ -342,6 +360,12 @@ const description = computed(() => {
                                     />
                                 </div>
                                 <p
+                                    v-if="r.changedLabel"
+                                    class="mt-1 text-xs tabular-nums"
+                                >
+                                    {{ r.changedLabel }}
+                                </p>
+                                <p
                                     v-if="r.decisionReason"
                                     class="mt-1 text-xs text-muted-foreground"
                                 >
@@ -391,6 +415,9 @@ const description = computed(() => {
                             tone="warning"
                         />
                     </div>
+                    <p v-if="r.changedLabel" class="mt-1 text-xs tabular-nums">
+                        {{ r.changedLabel }}
+                    </p>
                     <p
                         v-if="r.decisionReason"
                         class="mt-1 text-xs text-muted-foreground"
@@ -413,9 +440,9 @@ const description = computed(() => {
 
         <OperationalConfirmDialog
             v-model:open="dialog.open"
-            :title="titles[dialog.mode]"
+            :title="title"
             :description="description"
-            :confirm-label="confirmLabels[dialog.mode]"
+            :confirm-label="confirmLabel"
             processing-label="Saving…"
             :processing="dialog.processing"
             :error="dialog.error"
@@ -423,16 +450,16 @@ const description = computed(() => {
         >
             <template #icon>
                 <CalendarCheck
-                    v-if="dialog.mode === 'approve' || dialog.mode === 'fewer'"
+                    v-if="dialog.mode === 'approve'"
                     class="size-5"
                 />
                 <Undo2 v-else-if="dialog.mode === 'reverse'" class="size-5" />
                 <CalendarX v-else class="size-5" />
             </template>
             <div
-                v-if="dialog.mode === 'fewer'"
+                v-if="dialog.mode === 'approve'"
                 class="grid gap-1"
-                data-test="overtime-fewer"
+                data-test="overtime-approve-minutes"
             >
                 <Label for="overtime-approve-minutes"
                     >Minutes to approve *</Label
@@ -448,11 +475,15 @@ const description = computed(() => {
                     id="overtime-approve-help"
                     class="text-xs text-muted-foreground"
                 >
-                    Fewer than the {{ dialog.target?.minutesRequested }} minutes
-                    asked for. Minutes are never raised.
+                    Asked for {{ dialog.target?.minutesRequested }} min. Lower
+                    it to approve fewer minutes; it is never raised.
                 </p>
             </div>
-            <div v-if="dialog.mode !== 'approve'" class="grid gap-2">
+            <div
+                v-if="needsReason"
+                class="grid gap-2"
+                data-test="overtime-reason"
+            >
                 <Label for="overtime-decision-reason">Reason *</Label>
                 <OperationalSelect
                     id="overtime-decision-reason"

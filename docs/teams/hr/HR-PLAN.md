@@ -1192,8 +1192,8 @@ line shows the total with no warning.
 - **Weekly hours:** one line on My attendance ("This week: 38 h 20 min"), and a warning chip at the nearing level
   ("Nearing 45 h this week") and past the limit ("Over 45 h this week: 46 h 10 min"); the same chip on Review and on
   each overtime request. A warning only: it never refuses a clock-in, a correction or an overtime request.
-- **Summary tab** (Director, HR Manager): one branch and one week or month; one row per person who is assigned to
-  that branch or worked there in the period: rostered hours, worked hours, late (count and minutes), left early
+- **Summary tab** (Director, HR Manager): one branch and one week or month, up to today; one row per person who is
+  assigned to that branch or worked there in the period, and a total row: rostered hours, worked hours, late (count and minutes), left early
   (count), no clock-in (count), forgotten clock-outs (count), approved overtime minutes by day type. Totals across
   all of that person's branches, with a note when some time was at another branch. Each staff member sees their
   own month on My attendance ("My month"). On screen only: no CSV (exports need their own authorisation).
@@ -1210,9 +1210,10 @@ line shows the total with no warning.
    (HR-2a calendar), else a rest day (a weekday that is not a working day of that branch, until per-person rest days
    exist, 10.9), else normal. It is shown when asking and worked out again at the decision; the decision stores the
    day type it saw.
-3. **Most minutes allowed:** on a normal day, the session's worked minutes less the matched shift's rostered minutes
-   (shift length less its break), never below zero; on a rest day or public holiday, all of the session's worked
-   minutes. A session with no shift on a normal day ("Not on the roster") allows all its worked minutes, and the
+3. **Most minutes allowed:** on a normal day, the minutes outside the matched shift's window (arrived before it
+   starts plus stayed after it ends), never more than the worked minutes; on a rest day or public holiday, all of the
+   session's worked minutes. (Amended after Suresh's review: "worked less rostered" let a late arrival gain the
+   shift's break.) A session with no shift on a normal day ("Not on the roster") allows all its worked minutes, and the
    reviewer sees that flag. Whole minutes, at least 1. Checked when asking and again at the decision.
 4. **Eligibility:** only the roles ticked in the overtime settings in force on the session's date may ask, or be
    asked for. A person with several roles qualifies if any of them is ticked.
@@ -1230,8 +1231,9 @@ line shows the total with no warning.
 9. **A later correction** to a session with approved overtime does not change the approved minutes; Review and the
    Overtime tab show "Hours changed after approval" until a manager reverses or leaves it.
 10. **Weekly hours:** worked minutes of the person's sessions whose local date falls in the branch-local Monday to
-   Sunday week, at every branch; an open session counts up to now and the line says "so far"; a session missing its
-   clock-out counts nothing until it is corrected; corrections waiting are not counted. Worked out when the page is
+   Sunday week, at every branch; an open session counts up to now and the line says "so far"; a forgotten clock-out
+   (older than 16 hours, or before the next shift of a split day) or a session missing its clock-out counts nothing
+   until it is corrected; corrections waiting are not counted. Worked out when the page is
    opened, never stored.
 11. **Summaries** reuse the HR-3a day rows and flags, so a summary always adds up to the day rows on Review. Late and
    left-early minutes use the HR-3a settings version of each day.

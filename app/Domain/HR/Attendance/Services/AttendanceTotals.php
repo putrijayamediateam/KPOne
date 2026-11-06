@@ -10,7 +10,7 @@ use Illuminate\Support\Collection;
 /**
  * HR-3b weekly hours and period summaries, worked out when a page opens and never stored. Both reuse HR-3a's day rows,
  * so a summary always adds up to what Review shows for the same days. Weekly hours count closed sessions' worked time,
- * an open session up to now ("so far"), and nothing for a session missing its clock-out until it is corrected.
+ * an open session up to now ("so far"), and nothing for a forgotten or missing clock-out until it is corrected.
  */
 final class AttendanceTotals
 {
@@ -40,8 +40,11 @@ final class AttendanceTotals
             }
         }
         foreach ($sessions->where('status', 'open') as $open) {
-            $until = $now->min($open->clock_in_at->addHours(AttendanceSupport::MAX_SESSION_HOURS));
-            $out[$open->user_id]['minutes'] += max(0, (int) $open->clock_in_at->diffInMinutes($until));
+            // A forgotten clock-out counts nothing until it is corrected (Suresh): the same test My attendance uses.
+            if ($open->clock_in_at->lessThan($now->subHours(AttendanceSupport::MAX_SESSION_HOURS)) || $this->days->forgottenBeforeNextShift($open, $now)) {
+                continue;
+            }
+            $out[$open->user_id]['minutes'] += max(0, (int) $open->clock_in_at->diffInMinutes($now));
             $out[$open->user_id]['soFar'] = true;
         }
 
@@ -49,7 +52,8 @@ final class AttendanceTotals
     }
 
     /**
-     * The weekly hours line and chip for each person for the Monday-to-Sunday week holding $date.
+     * The weekly hours line and chip for each person for the Monday-to-Sunday week holding $date. A chip only when there
+     * is something to warn about (Daniel); a normal week is plain text.
      *
      * @param  list<int>  $userIds
      * @return array<int, array{minutes: int, label: string, level: string, chip: string|null}>
@@ -67,7 +71,7 @@ final class AttendanceTotals
             $chip = null;
             if ($version !== null && $total['minutes'] > $version->limitHours * 60) {
                 $level = 'over';
-                $chip = "Over {$version->limitHours} h this week: {$hours}";
+                $chip = "Over {$version->limitHours} h this week";
             } elseif ($version !== null && $total['minutes'] >= $version->nearingHours * 60) {
                 $level = 'nearing';
                 $chip = "Nearing {$version->limitHours} h this week";

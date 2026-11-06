@@ -4,6 +4,7 @@ namespace App\Domain\HR\Attendance\Services;
 
 use App\Domain\Access\BranchAccessService;
 use App\Domain\HR\Attendance\ClockPermissions;
+use App\Domain\HR\Attendance\Models\ClockSession;
 use App\Domain\HR\Attendance\Models\OvertimeRequest;
 use App\Domain\HR\Roster\RosterPermissions;
 use App\Domain\Identity\Models\StaffBranchAssignment;
@@ -27,6 +28,7 @@ final class OvertimePageService
         private AttendanceSettingsService $attendance,
         private OvertimeDayTypes $dayTypes,
         private AttendanceTotals $totals,
+        private AttendanceDays $days,
     ) {}
 
     /** @return array<string, array<int, array{value: string, label: string}>> */
@@ -61,7 +63,8 @@ final class OvertimePageService
             'ready' => $version !== null,
             'eligible' => $eligible,
             'weekHours' => $week,
-            'choices' => $eligible ? $this->choices($actor, $rows, $today) : [],
+            // Each day's own settings version decides, as the service does (Suresh), not today's.
+            'choices' => $this->choices($actor, $rows, $today),
             'requests' => $this->requests(OvertimeRequest::query()->where('organisation_id', $actor->organisation_id)->where('user_id', $actor->id)
                 ->orderByDesc('id')->limit(20)->get(), $actor),
             'month' => [
@@ -75,19 +78,17 @@ final class OvertimePageService
      * Each closed day in the rows that can still be asked for, keyed by session, with the most minutes allowed.
      *
      * @param  array<int, array<string, mixed>>  $rows
+     * @param  array<string, mixed>|null  $taken  session ids with an active request, from taken(); worked out here when null
      * @return list<array<string, mixed>>
      */
-    public function choices(User $subject, array $rows, CarbonImmutable $today): array
+    public function choices(User $subject, array $rows, CarbonImmutable $today, ?array $taken = null): array
     {
         $attendance = $this->attendance->forDate($subject->organisation_id, $today);
         if ($attendance === null) {
             return [];
         }
         $earliest = $today->subDays($attendance->correctionDays)->toDateString();
-        $sessionIds = collect($rows)->pluck('session.publicId')->filter()->values();
-        $taken = DB::table('hr_overtime_requests')->join('hr_clock_sessions', 'hr_clock_sessions.id', '=', 'hr_overtime_requests.clock_session_id')
-            ->whereIn('hr_overtime_requests.status', ['pending', 'approved'])->whereIn('hr_clock_sessions.public_id', $sessionIds)
-            ->pluck('hr_clock_sessions.public_id')->flip();
+        $taken ??= $this->taken($rows);
         $out = [];
         foreach ($rows as $row) {
             $session = $row['session'];
@@ -111,6 +112,21 @@ final class OvertimePageService
     }
 
     /**
+     * Session public ids in these rows that already have a pending or approved request (one query for a whole page).
+     *
+     * @param  array<int, array<string, mixed>>  $rows
+     * @return array<string, mixed>
+     */
+    public function taken(array $rows): array
+    {
+        $sessionIds = collect($rows)->pluck('session.publicId')->filter()->values();
+
+        return DB::table('hr_overtime_requests')->join('hr_clock_sessions', 'hr_clock_sessions.id', '=', 'hr_overtime_requests.clock_session_id')
+            ->whereIn('hr_overtime_requests.status', ['pending', 'approved'])->whereIn('hr_clock_sessions.public_id', $sessionIds)
+            ->pluck('hr_clock_sessions.public_id')->flip()->all();
+    }
+
+    /**
      * The same allowance as OvertimeService::allowance, from a day row already worked out.
      *
      * @param  array<string, mixed>  $row
@@ -122,7 +138,7 @@ final class OvertimePageService
         $day = $branch === null ? ['type' => 'normal', 'label' => OvertimeDayTypes::LABELS['normal']] : $this->dayTypes->of($branch, CarbonImmutable::parse($row['date']));
         $worked = (int) ($row['workedMinutes'] ?? 0);
         $rostered = $row['rosteredMinutes'];
-        $max = $day['type'] === 'normal' && $rostered !== null ? max(0, $worked - (int) $rostered) : $worked;
+        $max = $day['type'] === 'normal' && $row['beyondMinutes'] !== null ? (int) $row['beyondMinutes'] : $worked;
 
         return ['max' => min($max, 1440), 'worked' => AttendanceSupport::duration($worked), 'rostered' => $rostered === null ? null : AttendanceSupport::duration((int) $rostered),
             'dayType' => $day['type'], 'dayLabel' => $day['label']];
@@ -148,10 +164,11 @@ final class OvertimePageService
         $decidedRows = $this->requests($decided, $actor);
         $changed = count(array_filter($decidedRows, fn (array $r): bool => $r['hoursChanged']));
         $waiting = count($pendingRows);
+        $forYou = count(array_filter($pendingRows, fn (array $r): bool => $r['canDecide']));
 
         return [
             'ready' => $this->settings->forDate($actor->organisation_id, $today) !== null,
-            'summary' => ($waiting === 1 ? '1 waiting' : "{$waiting} waiting").($changed > 0 ? ' · '.($changed === 1 ? '1 hours changed after approval' : "{$changed} hours changed after approval") : ''),
+            'summary' => "{$waiting} waiting".($forYou !== $waiting ? " ({$forYou} for you)" : '').($changed > 0 ? ' · '.($changed === 1 ? '1 approved day changed since' : "{$changed} approved days changed since") : ''),
             'pending' => $pendingRows,
             'decided' => $decidedRows,
             'month' => $month->format('Y-m'),
@@ -184,6 +201,11 @@ final class OvertimePageService
             ? [$date->startOfWeek(CarbonImmutable::MONDAY), $date->startOfWeek(CarbonImmutable::MONDAY)->addDays(6)]
             : [$date->startOfMonth(), $date->endOfMonth()->startOfDay()];
 
+        // Up to today only, so rostered time never includes shifts still to come (Suresh); My month does the same.
+        $to = $to->min($today);
+        if ($to->lessThan($from)) {
+            $to = $from;
+        }
         $assigned = StaffBranchAssignment::query()->where('branch_id', $branch->id)->whereDate('valid_from', '<=', $to->toDateString())
             ->where(fn ($q) => $q->whereNull('valid_until')->orWhereDate('valid_until', '>=', $from->toDateString()))
             ->join('staff_profiles', 'staff_profiles.id', '=', 'staff_branch_assignments.staff_profile_id')->pluck('staff_profiles.user_id');
@@ -205,6 +227,7 @@ final class OvertimePageService
             'nextDate' => ($period === 'week' ? $from->addWeek() : $from->addMonth())->toDateString(),
             'settingsReady' => $this->attendance->forDate($actor->organisation_id, $to->min($today)) !== null,
             'rows' => $people->map(fn (User $u): array => ['userId' => $u->id, 'person' => $u->name, ...$this->figures($summary[$u->id])])->values()->all(),
+            'total' => $ids === [] ? null : $this->figures($this->sum($summary)),
         ];
     }
 
@@ -230,6 +253,28 @@ final class OvertimePageService
                     .($v->roles === [] ? 'no role may claim' : implode(', ', array_map($roleLabel, $v->roles))),
                 'by' => (string) ($creators[$v->createdByUserId] ?? 'Staff member')])->values()->all(),
         ];
+    }
+
+    /**
+     * The total row of a summary (Daniel): every person's figures added up.
+     *
+     * @param  array<int, array<string, mixed>>  $summary
+     * @return array<string, mixed>
+     */
+    private function sum(array $summary): array
+    {
+        $total = ['rostered' => 0, 'worked' => 0, 'late' => 0, 'lateMinutes' => 0, 'leftEarly' => 0, 'noClockIn' => 0, 'noClockOut' => 0,
+            'overtime' => ['normal' => 0, 'rest_day' => 0, 'public_holiday' => 0], 'otherBranch' => false];
+        foreach ($summary as $s) {
+            foreach (['rostered', 'worked', 'late', 'lateMinutes', 'leftEarly', 'noClockIn', 'noClockOut'] as $key) {
+                $total[$key] += (int) $s[$key];
+            }
+            foreach ($total['overtime'] as $type => $minutes) {
+                $total['overtime'][$type] = $minutes + (int) $s['overtime'][$type];
+            }
+        }
+
+        return $total;
     }
 
     /**
@@ -278,8 +323,17 @@ final class OvertimePageService
             $zone = $session !== null ? (string) $session->timezone : 'UTC';
             $times = $session === null ? '' : AttendanceSupport::time(CarbonImmutable::parse((string) $session->clock_in_at), $zone).' – '
                 .AttendanceSupport::time($session->clock_out_at === null ? null : CarbonImmutable::parse((string) $session->clock_out_at), $zone);
-            $hoursChanged = $r->status === 'approved' && $r->decided_at !== null
-                && ($corrected[$r->clock_session_id] ?? collect())->contains(fn (object $c): bool => CarbonImmutable::parse((string) $c->decided_at)->greaterThan($r->decided_at));
+            // Only an approved day with a correction decided after the approval is worked out again (Daniel: say what changed).
+            $changedLabel = null;
+            if ($r->status === 'approved' && $r->decided_at !== null && $r->worked_minutes_at_decision !== null
+                && ($corrected[$r->clock_session_id] ?? collect())->contains(fn (object $c): bool => CarbonImmutable::parse((string) $c->decided_at)->greaterThanOrEqualTo($r->decided_at))) {
+                $model = ClockSession::query()->find($r->clock_session_id);
+                $now = $model === null ? null : AttendanceDays::worked($model, $this->days->matchedShift($model));
+                if ($now !== null && $now !== $r->worked_minutes_at_decision) {
+                    $changedLabel = 'Recorded '.AttendanceSupport::duration($r->worked_minutes_at_decision).' → now '.AttendanceSupport::duration($now);
+                }
+            }
+            $hoursChanged = $changedLabel !== null;
             $week = $withWeek ? ($weeks[$r->local_date->startOfWeek(CarbonImmutable::MONDAY)->toDateString()][$r->user_id] ?? null) : null;
             $reason = $r->status === 'rejected' ? (OvertimeService::REJECT_REASONS[$r->decision_reason ?? ''] ?? null)
                 : ($r->status === 'reversed' ? (OvertimeService::REVERSE_REASONS[$r->reverse_reason ?? ''] ?? null)
@@ -300,11 +354,12 @@ final class OvertimePageService
                 'note' => $r->note_encrypted,
                 'status' => $r->status,
                 'statusLabel' => $r->minutes_approved !== null && $r->minutes_approved < $r->minutes_requested && $r->status === 'approved'
-                    ? 'Fewer minutes approved' : (self::STATUS_LABELS[$r->status] ?? $r->status),
+                    ? "Approved {$r->minutes_approved} of {$r->minutes_requested} min" : (self::STATUS_LABELS[$r->status] ?? $r->status),
                 'decisionReason' => $reason,
                 'onBehalf' => $r->requested_by_user_id !== $r->user_id,
                 'requestedBy' => (string) ($names[$r->requested_by_user_id] ?? 'Staff member'),
                 'hoursChanged' => $hoursChanged,
+                'changedLabel' => $changedLabel,
                 'week' => $week,
                 'canDecide' => $r->status === 'pending' && $actor->can(ClockPermissions::OVERTIME_APPROVE) && $r->user_id !== $actor->id && $r->requested_by_user_id !== $actor->id,
                 'canReverse' => $r->status === 'approved' && $actor->can(ClockPermissions::OVERTIME_APPROVE) && $r->user_id !== $actor->id,

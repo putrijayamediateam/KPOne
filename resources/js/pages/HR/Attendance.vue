@@ -23,6 +23,7 @@ import type {
     OvertimeSettingsCard,
     OvertimeTabData,
     SummaryTabData,
+    WeekHours,
 } from '@/components/hr/attendance/types';
 import { weekTone } from '@/components/hr/attendance/types';
 import InputError from '@/components/InputError.vue';
@@ -71,6 +72,7 @@ type Row = {
     correctionWaiting: boolean;
     needsClockOut: boolean;
     overtimeChoice?: OvertimeChoice | null;
+    week?: WeekHours | null;
 };
 type Correction = {
     publicId: string;
@@ -797,8 +799,8 @@ const correctionStatusTone = (
                         data-test="week-hours"
                     >
                         <span class="tabular-nums"
-                            >Worked this week:
-                            {{ attendance.my.overtime.weekHours.label }}</span
+                            >{{ attendance.my.overtime.weekHours.label }} this
+                            week</span
                         >
                         <StatusBadge
                             v-if="attendance.my.overtime.weekHours.chip"
@@ -1108,7 +1110,16 @@ const correctionStatusTone = (
                                     :key="r.key"
                                     data-test="review-row"
                                 >
-                                    <td class="font-medium">{{ r.person }}</td>
+                                    <td class="font-medium">
+                                        {{ r.person }}
+                                        <StatusBadge
+                                            v-if="r.week?.chip"
+                                            status="week"
+                                            :label="r.week.chip"
+                                            :tone="weekTone(r.week.level)"
+                                            class="mt-1"
+                                        />
+                                    </td>
                                     <td>{{ r.shift?.label ?? 'No shift' }}</td>
                                     <td class="tabular-nums">
                                         {{ r.session?.in ?? '–' }}
@@ -1182,6 +1193,12 @@ const correctionStatusTone = (
                             class="rounded-xl border bg-card p-4 text-sm"
                         >
                             <p class="font-semibold">{{ r.person }}</p>
+                            <StatusBadge
+                                v-if="r.week?.chip"
+                                status="week"
+                                :label="r.week.chip"
+                                :tone="weekTone(r.week.level)"
+                            />
                             <p>{{ r.shift?.label ?? 'No shift' }}</p>
                             <p class="tabular-nums">
                                 In {{ r.session?.in ?? '–' }} · Out

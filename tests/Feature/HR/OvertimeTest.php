@@ -123,7 +123,7 @@ class OvertimeTest extends VisitTestCase
         $this->decide($director, $request, 'approve')->assertSessionHasErrors(['overtime' => 'This request was already decided. Reload the page.']);
         $this->selectBranch($ca);
         $this->get(route('hr.attendance.index'))->assertInertia(fn (Assert $page) => $page->where('attendance.my.overtime.choices', [])
-            ->where('attendance.my.overtime.requests.0.statusLabel', 'Fewer minutes approved')->where('attendance.my.overtime.requests.0.approvedLabel', '1 h 30 min')
+            ->where('attendance.my.overtime.requests.0.statusLabel', 'Approved 90 of 120 min')->where('attendance.my.overtime.requests.0.approvedLabel', '1 h 30 min')
             ->where('attendance.my.overtime.month.figures.overtime', '1 h 30 min normal'));
 
         $this->reverse($hr, $request, ['reason' => 'nope'])->assertSessionHasErrors(['reason' => 'Choose a reason.']);
@@ -217,7 +217,29 @@ class OvertimeTest extends VisitTestCase
             ->where('attendance.summary.periodLabel', '8 Mar 2027 to 14 Mar 2027')
             ->where('attendance.summary.rows', fn ($rows) => ($row = collect($rows)->firstWhere('userId', $ca->id)) !== null
                 && $row['rostered'] === '5 h 30 min' && $row['worked'] === '15 h' && $row['overtime'] === '2 h 30 min rest day · 4 h public holiday'
-                && $row['late'] === '0' && $row['otherBranch'] === false));
+                && $row['late'] === '0' && $row['otherBranch'] === false)
+            ->where('attendance.summary.total.overtime', '2 h 30 min rest day · 4 h public holiday'));
+    }
+
+    public function test_only_time_outside_the_shift_window_counts_so_a_late_arrival_never_gains_the_break(): void
+    {
+        [$hr, $director] = $this->setUpClinic();
+        $late = $this->actor('ca');
+        $early = $this->actor('ca');
+        $this->roster($hr, $director, [[$late, '08:00', '14:00', 30], [$early, '08:00', '14:00', 30]]);
+        $lateDay = $this->closedSession($late, self::WEEK, '08:10', '14:00'); // Late, left on time: 5 h 50 min worked (break not taken off), nothing beyond.
+        $earlyDay = $this->closedSession($early, self::WEEK, '07:30', '13:45'); // 30 min early, 15 min early out: 30 min beyond.
+        $this->at('2027-03-08 18:00');
+
+        $this->ask($late, $lateDay, 1)->assertSessionHasErrors(['session_id' => 'There is no time beyond the roster on this day.']);
+        $this->selectBranch($late);
+        $this->get(route('hr.attendance.index'))->assertInertia(fn (Assert $page) => $page->where('attendance.my.overtime.choices', []));
+        $this->ask($early, $earlyDay, 31)->assertSessionHasErrors(['minutes' => 'Enter whole minutes from 1 to 30.']);
+        $this->ask($early, $earlyDay, 30)->assertSessionHasNoErrors();
+
+        // From Review a manager never asks for their own day.
+        $hrDay = $this->closedSession($hr, self::WEEK, '08:00', '17:00');
+        $this->ask($hr, $hrDay, 30, ['tab' => 'review', 'user_id' => $hr->id])->assertSessionHasErrors(['user_id' => 'Choose a staff member.']);
     }
 
     public function test_the_window_open_sessions_and_waiting_corrections_block_a_request(): void
@@ -263,8 +285,8 @@ class OvertimeTest extends VisitTestCase
         $this->post(route('hr.attendance.corrections.decide', [$correction->public_id, 'approve']), ['expected_lock_version' => 1, 'idempotency_key' => (string) Str::uuid()])->assertSessionHasNoErrors();
         $this->assertSame(540, $request->refresh()->minutes_approved);
         $this->get(route('hr.attendance.index', ['tab' => 'overtime', 'month' => '2027-03']))->assertInertia(fn (Assert $page) => $page
-            ->where('attendance.overtime.summary', '1 waiting · 1 hours changed after approval')
-            ->where('attendance.overtime.decided.0.hoursChanged', true)->where('attendance.overtime.pending.0.week.label', '8 h')); // 4 h on Monday after the correction, 4 h on Tuesday.
+            ->where('attendance.overtime.summary', '1 waiting · 1 approved day changed since')
+            ->where('attendance.overtime.decided.0.hoursChanged', true)->where('attendance.overtime.decided.0.changedLabel', 'Recorded 9 h → now 4 h')->where('attendance.overtime.pending.0.week.label', '8 h')); // 4 h on Monday after the correction, 4 h on Tuesday.
 
         // The other day is corrected while waiting: the decision checks the new hours.
         $this->selectBranch($director);
@@ -283,6 +305,7 @@ class OvertimeTest extends VisitTestCase
     {
         [$hr] = $this->setUpClinic();
         $ca = $this->actor('ca');
+        $forgetful = $this->actor('ca');
         foreach (['2027-03-08', '2027-03-09', '2027-03-10', '2027-03-11'] as $date) {
             $this->closedSession($ca, $date, '08:00', '18:00'); // 10 h a day, no roster.
         }
@@ -292,13 +315,21 @@ class OvertimeTest extends VisitTestCase
             ->where('attendance.my.overtime.weekHours.level', 'nearing')->where('attendance.my.overtime.weekHours.chip', 'Nearing 45 h this week'));
         $this->closedSession($ca, '2027-03-12', '08:00', '13:30');
         $this->get(route('hr.attendance.index'))->assertInertia(fn (Assert $page) => $page->where('attendance.my.overtime.weekHours.level', 'over')
-            ->where('attendance.my.overtime.weekHours.chip', 'Over 45 h this week: 45 h 30 min'));
+            ->where('attendance.my.overtime.weekHours.label', '45 h 30 min')->where('attendance.my.overtime.weekHours.chip', 'Over 45 h this week'));
 
         // An open session counts up to now ("so far"); a clock-in is never refused for the hours.
         $this->at('2027-03-13 08:00');
         $this->clock($ca, 'in')->assertSessionHasNoErrors();
         $this->at('2027-03-13 09:15');
         $this->get(route('hr.attendance.index'))->assertInertia(fn (Assert $page) => $page->where('attendance.my.overtime.weekHours.label', '46 h 45 min so far'));
+        // A forgotten clock-out counts nothing (Suresh): Monday's clock-in that was never closed adds no hours on Thursday.
+        $zone = $this->branch->timezone;
+        DB::table('hr_clock_sessions')->insert(['public_id' => (string) Str::uuid(), 'organisation_id' => $forgetful->organisation_id, 'user_id' => $forgetful->id,
+            'branch_id' => $this->branch->id, 'local_date' => self::WEEK, 'timezone' => $zone, 'clock_in_at' => CarbonImmutable::parse('2027-03-08 08:00', $zone)->utc(),
+            'status' => 'open', 'created_at' => now(), 'updated_at' => now()]);
+        $this->selectBranch($forgetful);
+        $this->get(route('hr.attendance.index'))->assertInertia(fn (Assert $page) => $page->where('attendance.my.overtime.weekHours.label', '0 min'));
+        $this->selectBranch($ca);
         // Next week starts again from zero.
         $this->at('2027-03-15 07:00');
         $this->get(route('hr.attendance.index'))->assertInertia(fn (Assert $page) => $page->where('attendance.my.overtime.weekHours.label', '0 min')

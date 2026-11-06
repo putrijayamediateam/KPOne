@@ -27,6 +27,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property int|null $minutes_approved
  * @property int|null $overtime_setting_id
  * @property string|null $multiplier
+ * @property int|null $worked_minutes_at_decision
  * @property int|null $decided_by_user_id
  * @property CarbonImmutable|null $decided_at
  * @property string|null $decision_reason
@@ -47,7 +48,7 @@ class OvertimeRequest extends Model
     {
         return ['local_date' => 'immutable_date', 'decided_at' => 'immutable_datetime', 'reversed_at' => 'immutable_datetime', 'created_at' => 'immutable_datetime',
             'note_encrypted' => 'encrypted', 'user_id' => 'integer', 'requested_by_user_id' => 'integer', 'clock_session_id' => 'integer', 'branch_id' => 'integer',
-            'minutes_requested' => 'integer', 'minutes_approved' => 'integer', 'overtime_setting_id' => 'integer', 'decided_by_user_id' => 'integer',
+            'minutes_requested' => 'integer', 'minutes_approved' => 'integer', 'worked_minutes_at_decision' => 'integer', 'overtime_setting_id' => 'integer', 'decided_by_user_id' => 'integer',
             'reversed_by_user_id' => 'integer', 'lock_version' => 'integer'];
     }
 

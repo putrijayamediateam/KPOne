@@ -54,7 +54,8 @@ test('the Clock button stays the only primary on My attendance; overtime actions
 test('the weekly hours line shows a warning chip, never red and never colour alone', () => {
     const page = template('page');
     assert.match(page, /data-test="week-hours"/);
-    assert.match(page, /Worked this week:/);
+    assert.match(page, /weekHours\.label \}\} this\s+week/);
+    assert.match(page, /v-if="attendance\.my\.overtime\.weekHours\.chip"/);
     assert.match(
         source.page,
         /weekTone\(attendance\.my\.overtime\.weekHours\.level\)/,
@@ -81,17 +82,20 @@ test('the ask sheet shows worked beside rostered, the day type, the most allowed
     );
 });
 
-test('decisions are outline buttons with the primary action in the dialog; fewer minutes and rejections need a reason', () => {
+test('each card has two outline buttons; the Approve dialog starts at the minutes asked and lowering them needs a reason', () => {
     const tab = template('tab');
-    assert.match(tab, /Approve fewer minutes/);
-    assert.match(tab, /OperationalConfirmDialog/);
-    assert.match(
-        source.tab,
-        /dialog\.mode !== 'approve' && dialog\.reason === ''/,
-    );
+    assert.doesNotMatch(tab, /open\(r, 'fewer'\)/);
+    assert.match(tab, /open\(r, 'approve'\)/);
+    assert.match(tab, /open\(r, 'reject'\)/);
+    assert.match(source.tab, /minutes: String\(row\.minutesRequested\)/);
+    assert.match(source.tab, /'Approve fewer minutes\?'/);
+    assert.match(source.tab, /`Approve \$\{minutesValue\.value/);
+    assert.match(source.tab, /dialog\.mode !== 'approve' \|\| fewer\.value/);
     assert.match(source.tab, /props\.options\.lowerReasons/);
-    assert.match(source.tab, /Hours changed after approval/);
+    assert.match(tab, /Hours changed after approval/);
+    assert.match(tab, /r\.changedLabel/);
     assert.match(tab, /data-test="overtime-summary"/);
+    assert.match(tab, /No overtime is waiting\./);
 
     for (const b of tab
         .match(/<Button[\s\S]*?<\/Button>/g)
@@ -100,6 +104,14 @@ test('decisions are outline buttons with the primary action in the dialog; fewer
     }
 
     assert.match(source.tab, /CalendarX/);
+});
+
+test('the summary table right-aligns its figures and ends with a total row; empty states say what to do next', () => {
+    const summary = template('summary');
+    assert.match(summary, /class="text-right tabular-nums"/);
+    assert.match(summary, /data-test="summary-total"/);
+    assert.match(summary, /Choose another branch or period\./);
+    assert.match(template('my'), /No overtime requests yet\./);
 });
 
 test('the summary is on screen only, with a table from 1024 px and cards below', () => {
