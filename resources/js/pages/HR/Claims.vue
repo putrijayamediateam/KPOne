@@ -675,7 +675,7 @@ const dialogOpen = computed(
                             :key="row.id"
                             class="border-b align-top last:border-0"
                         >
-                            <td class="px-4 py-3 font-medium">
+                            <td class="px-4 py-3 font-medium whitespace-nowrap">
                                 {{ row.number }}
                             </td>
                             <td class="px-4 py-3">
@@ -685,7 +685,9 @@ const dialogOpen = computed(
                                 }}</span>
                             </td>
                             <td class="px-4 py-3">{{ row.category }}</td>
-                            <td class="px-4 py-3 text-right tabular-nums">
+                            <td
+                                class="px-4 py-3 text-right whitespace-nowrap tabular-nums"
+                            >
                                 {{ row.amount }}
                             </td>
                             <td class="px-4 py-3">
@@ -708,7 +710,7 @@ const dialogOpen = computed(
                                 </span>
                             </td>
                             <td class="px-4 py-3">
-                                <ReceiptList :receipts="row.receipts" />
+                                <ReceiptList :receipts="row.receipts" compact />
                             </td>
                             <td class="px-4 py-3 text-right">
                                 <span
@@ -939,7 +941,7 @@ const dialogOpen = computed(
                             >Director approves claims above</Label
                         >
                         <div
-                            class="flex w-44 items-center rounded-md border focus-within:ring-2 focus-within:ring-ring"
+                            class="flex w-44 items-center rounded-md border border-input bg-transparent focus-within:ring-2 focus-within:ring-ring dark:bg-input/30"
                         >
                             <span
                                 class="pl-3 text-sm text-muted-foreground"
@@ -950,7 +952,7 @@ const dialogOpen = computed(
                                 id="claim-director-level"
                                 v-model="settingsForm.level"
                                 inputmode="decimal"
-                                class="border-0 text-right tabular-nums shadow-none focus-visible:ring-0 max-lg:h-11"
+                                class="border-0 bg-transparent text-right tabular-nums shadow-none focus-visible:ring-0 max-lg:h-11 dark:bg-transparent"
                                 aria-describedby="claim-director-level-help"
                             />
                         </div>
@@ -1337,7 +1339,7 @@ const dialogOpen = computed(
                             >Limit a claim (optional)</Label
                         >
                         <div
-                            class="flex w-44 items-center rounded-md border focus-within:ring-2 focus-within:ring-ring"
+                            class="flex w-44 items-center rounded-md border border-input bg-transparent focus-within:ring-2 focus-within:ring-ring dark:bg-input/30"
                         >
                             <span
                                 class="pl-3 text-sm text-muted-foreground"
@@ -1348,7 +1350,7 @@ const dialogOpen = computed(
                                 id="category-per-claim"
                                 v-model="categoryForm.perClaim"
                                 inputmode="decimal"
-                                class="border-0 text-right tabular-nums shadow-none focus-visible:ring-0 max-lg:h-11"
+                                class="border-0 bg-transparent text-right tabular-nums shadow-none focus-visible:ring-0 max-lg:h-11 dark:bg-transparent"
                             />
                         </div>
                         <InputError :message="errors.per_claim_limit" />
@@ -1358,7 +1360,7 @@ const dialogOpen = computed(
                             >Limit a month for each person (optional)</Label
                         >
                         <div
-                            class="flex w-44 items-center rounded-md border focus-within:ring-2 focus-within:ring-ring"
+                            class="flex w-44 items-center rounded-md border border-input bg-transparent focus-within:ring-2 focus-within:ring-ring dark:bg-input/30"
                         >
                             <span
                                 class="pl-3 text-sm text-muted-foreground"
@@ -1369,7 +1371,7 @@ const dialogOpen = computed(
                                 id="category-monthly"
                                 v-model="categoryForm.monthly"
                                 inputmode="decimal"
-                                class="border-0 text-right tabular-nums shadow-none focus-visible:ring-0 max-lg:h-11"
+                                class="border-0 bg-transparent text-right tabular-nums shadow-none focus-visible:ring-0 max-lg:h-11 dark:bg-transparent"
                             />
                         </div>
                         <InputError :message="errors.monthly_limit" />

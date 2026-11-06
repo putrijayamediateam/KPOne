@@ -180,7 +180,12 @@ const send = () => {
                 <div class="grid gap-1.5">
                     <Label for="claim-amount">Amount *</Label>
                     <div
-                        class="flex w-44 items-center rounded-md border focus-within:ring-2 focus-within:ring-ring"
+                        class="flex w-44 items-center rounded-md border bg-transparent focus-within:ring-2 focus-within:ring-ring dark:bg-input/30"
+                        :class="
+                            errors.amount
+                                ? 'border-destructive'
+                                : 'border-input'
+                        "
                     >
                         <span
                             class="pl-3 text-sm text-muted-foreground"
@@ -192,7 +197,7 @@ const send = () => {
                             v-model="form.amount"
                             inputmode="decimal"
                             autocomplete="off"
-                            class="border-0 text-right tabular-nums shadow-none focus-visible:ring-0 max-lg:h-11"
+                            class="border-0 bg-transparent text-right tabular-nums shadow-none focus-visible:ring-0 max-lg:h-11 dark:bg-transparent"
                             aria-describedby="claim-amount-help"
                             :aria-invalid="!!errors.amount"
                         />

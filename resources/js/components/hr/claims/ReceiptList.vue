@@ -23,7 +23,7 @@ defineProps<{
                 :href="r.url"
                 target="_blank"
                 rel="noopener"
-                class="inline-flex min-h-11 items-center gap-1.5 underline underline-offset-4 lg:min-h-0"
+                class="inline-flex min-h-11 items-center gap-1.5 whitespace-nowrap underline underline-offset-4 lg:min-h-0"
                 ><FileText
                     class="size-4 shrink-0 text-muted-foreground"
                     aria-hidden="true"
