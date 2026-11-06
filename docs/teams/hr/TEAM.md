@@ -225,6 +225,12 @@ check items, keep them"). The rest stand unless the owner changes them.
     (Decisions 40 to 47 are recorded on the HR-7 docs branch.)
 49. HR-5a shipped (the owner, 2026-11-06, in the HR session: "ship it for HR-5a"), after Suresh's "ready to merge"
     and Daniel's OK (one nit fixed: Archive as an outline button). The PR opens after #347 (HR-4a) and HR-4b merge.
+50. HR-5c SOPs hub-map assertion approved by B.E.R.N.I.S.S for the owner (2026-11-06, 11:22 UTC, under the owner's
+    delegation that day: "BE ME, JUST APPROVE ALL NO NEED TO PUT ASIDE FOR ME TO APPROVE LATER"): `ClinicManagementTest`
+    gains one line after `'/hr/credentials'`, `'/hr/sops' => ['hr.sops.acknowledge.own', 'hr.sops.manage.organisation'],`
+    and nothing else. HR-5c's ship-it was given by B.E.R.N.I.S.S for the owner, once Daniel's verdict is OK (or OK with
+    changes, made). The PR opens after HR-5a (#356) and HR-5b. (Decision 50 on the HR-5b branch records HR-5b's ship-it;
+    the numbers are renumbered when the branches meet.)
 
 ## 7. Open items and known limits
 
