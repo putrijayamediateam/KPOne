@@ -33,6 +33,7 @@ use App\Http\Controllers\DiagnosisPresetSettingsController;
 use App\Http\Controllers\DispensaryController;
 use App\Http\Controllers\GovernedStockController;
 use App\Http\Controllers\HR\AttendanceController as HrAttendanceController;
+use App\Http\Controllers\HR\ClaimsController as HrClaimsController;
 use App\Http\Controllers\HR\CredentialsController as HrCredentialsController;
 use App\Http\Controllers\HR\LeaveController;
 use App\Http\Controllers\HR\RecordsController as HrRecordsController;
@@ -234,6 +235,27 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::post('records/{record}/{decision}', 'decide')->whereUuid('record')->whereIn('decision', ['accept', 'reject'])->name('hr.credentials.decide');
             Route::post('types', 'saveType')->name('hr.credentials.types.save');
             Route::post('types/{type}/archive', 'archiveType')->whereUuid('type')->name('hr.credentials.types.archive');
+        });
+    });
+
+    // HR-6 staff claims (B.E.R.N.I.S.S for the owner, 2026-11-06). Not Panel Claims; KPOne pays nothing.
+    Route::prefix('hr/claims')->controller(HrClaimsController::class)->middleware('sensitive.no-store')->group(function (): void {
+        Route::get('/', 'index')->middleware('permission:hr.claims.submit.own,hr.claims.approve.organisation,hr.claims.pay.organisation,hr.claims.manage.organisation')->name('hr.claims.index');
+        Route::get('receipts/{receipt}', 'openReceipt')->whereUuid('receipt')
+            ->middleware(['permission:hr.claims.submit.own,hr.claims.approve.organisation,hr.claims.pay.organisation', 'throttle:120,1'])->name('hr.claims.receipts.show');
+        Route::middleware(['permission:hr.claims.submit.own', 'throttle:30,1'])->group(function (): void {
+            Route::post('/', 'send')->name('hr.claims.send');
+            Route::post('{claim}/withdraw', 'withdraw')->whereUuid('claim')->name('hr.claims.withdraw');
+        });
+        Route::post('{claim}/{decision}', 'decide')->whereUuid('claim')->whereIn('decision', ['approve', 'reject'])
+            ->middleware(['permission:hr.claims.approve.organisation', 'throttle:60,1'])->name('hr.claims.decide');
+        Route::middleware(['permission:hr.claims.pay.organisation', 'throttle:60,1'])->group(function (): void {
+            Route::post('{claim}/pay', 'pay')->whereUuid('claim')->name('hr.claims.pay');
+            Route::post('{claim}/reverse', 'reverse')->whereUuid('claim')->name('hr.claims.reverse');
+        });
+        Route::middleware(['permission:hr.claims.manage.organisation', 'throttle:30,1'])->group(function (): void {
+            Route::post('settings', 'saveSettings')->name('hr.claims.settings');
+            Route::post('categories', 'saveCategory')->name('hr.claims.categories.save');
         });
     });
 
@@ -673,6 +695,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
             ->whereUuid(['dispensaryCase', 'itemPublicId'])->middleware(['permission:dispensary.update.branch', 'throttle:30,1'])->name('dispensary.returns.record');
         Route::post('dispensary/{dispensaryCase}/returns/{returnPublicId}/check', [DispensaryController::class, 'checkReturn'])
             ->whereUuid(['dispensaryCase', 'returnPublicId'])->middleware(['permission:inventory.variances.approve.branch', 'throttle:30,1'])->name('dispensary.returns.check');
+        // DSP-7b: the branch list of returns waiting for a check (read only; the check stays on the case page).
+        Route::get('dispensary/returns-to-check', [DispensaryController::class, 'returnsToCheck'])
+            ->middleware(['permission:dispensary.view.branch', 'sensitive.no-store', 'throttle:60,1'])->name('dispensary.returns-to-check');
         Route::get('dispensary/{dispensaryCase}', [DispensaryController::class, 'show'])
             ->whereUuid('dispensaryCase')->middleware('permission:dispensary.view.branch')->name('dispensary.show');
 
