@@ -104,7 +104,8 @@ Server checks stay the authority; hiding a control is a usability aid only.
 12. CAT-5 (settings screens tidy-up) and CAT-6 (Pricing small fixes) approved, and CAT-7 (the "Price tier" tab) sent
    to the owner: B.E.R.N.I.S.S for the owner, 2026-11-06, while the owner was away; the owner can change it. The one
    existing assertion change CAT-5 needs, in `tests/Frontend/medicine-details.test.mjs` ('NAME', 'STATUS' and
-   'ACTIONS' become 'Name', 'Status' and 'Actions' for sentence-case headers), was approved the same way.
+   'ACTIONS' become 'Name', 'Status' and 'Actions' for sentence-case headers), was approved the same way; the owner
+   confirmed it in this team's session on 2026-11-06 ("keep sentence case, carry on with CAT-5").
 
 ## 7. Open items and known limits
 
