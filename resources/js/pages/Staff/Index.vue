@@ -121,7 +121,7 @@ const clearFilters = () => {
                         />
                         <input
                             v-model="form.search"
-                            class="h-9 w-full rounded-md border bg-background pr-3 pl-9 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/10"
+                            class="h-9 w-full rounded-md border bg-background pr-3 pl-9 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/20"
                             placeholder="Name, email, staff number"
                         />
                     </label>

@@ -363,7 +363,7 @@ const setPrimary = (assignmentId: number) => {
                         ><div
                             v-for="entry in staff.recentAudit"
                             :key="entry.id"
-                            class="border-l-2 border-emerald-200 pl-3"
+                            class="border-l-2 border-success/30 pl-3"
                         >
                             <div class="text-sm font-medium">
                                 {{

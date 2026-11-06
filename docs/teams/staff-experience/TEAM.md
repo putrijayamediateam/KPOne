@@ -221,6 +221,6 @@ authorisation to build them; the coordinator records it in `docs/BASELINE.md`.
    Active and assignment-state badges, "No current assignment") and the shared `PatientBoard` status, Urgent and
    Returned chips used pale palette backgrounds with no dark style, so they stayed light in dark mode. They now use
    the theme tokens (`success`, `warning`, `destructive`, `brand`, `muted`), as `StatusBadge` does. In light mode
-   the Waiting and Held chips read a little warmer. The Queue & TV and Patients & Registration teams were told,
+   the Waiting and Held chips read a little warmer. The Staff pages' remaining emerald accents (checkboxes, the search focus ring and the audit-list rule) also use tokens. The Queue & TV and Patients & Registration teams were told,
    because `PatientBoard` draws both boards; `QueueRows.vue` and `QrIntakeTable.vue` (their own files) still have
    pale chips. No assertion changed.
