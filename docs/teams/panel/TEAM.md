@@ -94,7 +94,6 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php`.
 | PNL-11 | Panel Claims list on phones and tablets (design debt DD-31): below 1024 px each claim or invoice is a card with every table field, its checkbox (same claim-pack and bulk-claim rules) and its actions menu, plus a "Select all" row above the cards; the Columns menu shows from 1024 px only; Clear puts focus on the visible Select all, or the first claim that can still be ticked; frontend only | #326 (merged as `ce0d3d8`) |
 | PNL-12 | Small leftovers: the claim pack prints claims in the order they were ticked (cover and pages, audit `claim_ids` too); each printed page of a claim's invoice table repeats "Panel claim N · invoice number" (print only, no patient name); the Submissions and Payouts cards read "1 claim" / "N claims", and Pending and Overdue count invoices ("1 invoice" / "N invoices"); a test for a bulk claim whose visits fall on different dates | #330 (merged as `5b93b6b`) |
 | PNL-13 | Design debt DD-28: the Panel statement results (PNL-7) use the shared `OperationalTable` from 1024 px, with a 44 px target around each tick box; phones and tablets keep the cards (the switch moved from md to lg, because the seven columns needed about 675 px in a 658 px frame at 768 px); frontend only | (this PR) |
-| PNL-17 | Panel summary: six new columns at the end of the page and CSV, "Awaiting decision" (submitted or queried claims with no Panel decision yet: count, current claim amount, and ageing from the first submitted date in 0-30, 31-60, 61-90 and over 90 days); Accepted outstanding and every earlier figure unchanged; the basis text says so | (this PR) |
 
 ## 6. Owner decisions already made (never ask again)
 
@@ -151,11 +150,6 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php`.
 23. PNL-12 (owner chose "start 3" and "Ticked order", 2026-11-06): a claim pack prints its claims in the order
     the officer ticked them, not by claim number; the owner approved changing the one existing `PanelClaimPackTest`
     assertion that pinned claim-number order.
-27. PNL-17 (B.E.R.N.I.S.S for the owner, 2026-11-06: "go with 1(a), then 3"): the Panel summary gains separate
-    "Awaiting decision" columns at the end (count, amount, ageing from the first submitted date), as BIL-6b did for
-    the Daily summary; Outstanding stays accepted less remitted, so an undecided claim is still not counted there.
-    The two `panel-page` and `panel-csv` entries of the pilot-scale golden file are regenerated (approval listed in
-    the PR); no other existing assertion changes.
 
 ## 7. Open items and known limits
 
