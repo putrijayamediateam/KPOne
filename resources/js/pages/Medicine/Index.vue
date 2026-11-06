@@ -48,6 +48,7 @@ type MedicineRow = {
     isActive: boolean;
     isControlled: boolean;
     allergyGroups: string[];
+    allergyAliases: string[];
     genericName?: string | null;
     category?: string | null;
     groupName?: string | null;
@@ -443,6 +444,46 @@ const saveGroups = () => {
         },
     );
 };
+// DSP-1c: other names (brand names, common misspellings) the Dispensary allergy warning matches against.
+const aliasesRow = ref<MedicineRow | null>(null);
+const aliasesText = ref('');
+const aliasesBusy = ref(false);
+const openAliases = (row: MedicineRow) => {
+    aliasesRow.value = row;
+    aliasesText.value = row.allergyAliases.join('\n');
+};
+const saveAliases = () => {
+    const row = aliasesRow.value;
+
+    if (!row) {
+        return;
+    }
+
+    aliasesBusy.value = true;
+    router.post(
+        `/medicines/${row.publicId}/allergy-aliases`,
+        {
+            allergy_aliases: aliasesText.value
+                .split('\n')
+                .map((alias) => alias.trim())
+                .filter((alias) => alias !== ''),
+            expected_allergy_aliases: row.allergyAliases,
+        },
+        {
+            preserveScroll: true,
+            onSuccess: () => (aliasesRow.value = null),
+            onError: (errors: Record<string, string>) => {
+                // Close the dialog so the next attempt starts from the reloaded list.
+                aliasesRow.value = null;
+                toast.error(
+                    errors.allergy_aliases ??
+                        'Could not save the other names. Reload and try again.',
+                );
+            },
+            onFinish: () => (aliasesBusy.value = false),
+        },
+    );
+};
 const toggleDescription = computed(() => {
     const row = pendingToggle.row;
 
@@ -553,6 +594,15 @@ const toggleDescription = computed(() => {
                         +{{ row.allergyGroups.length - 3 }} more</template
                     >
                 </p>
+                <p
+                    v-if="row.allergyAliases.length"
+                    class="text-xs break-words text-muted-foreground"
+                >
+                    Other names: {{ row.allergyAliases.slice(0, 3).join(', ')
+                    }}<template v-if="row.allergyAliases.length > 3">
+                        +{{ row.allergyAliases.length - 3 }} more</template
+                    >
+                </p>
                 <dl v-if="setup.canManagePrices" class="grid gap-1 text-sm">
                     <div class="flex items-center justify-between gap-3">
                         <dt class="text-muted-foreground">Self-pay</dt>
@@ -610,6 +660,11 @@ const toggleDescription = computed(() => {
                             >
                             <DropdownMenuItem
                                 class="min-h-11"
+                                @select="openAliases(row)"
+                                >Other names</DropdownMenuItem
+                            >
+                            <DropdownMenuItem
+                                class="min-h-11"
                                 @select="pendingControlled.row = row"
                                 >{{
                                     row.isControlled
@@ -657,6 +712,13 @@ const toggleDescription = computed(() => {
                                 data-testid="allergy-groups"
                                 >Drug groups:
                                 {{ row.allergyGroups.join(', ') }}</span
+                            >
+                            <span
+                                v-if="row.allergyAliases.length"
+                                class="mt-0.5 block text-xs text-muted-foreground"
+                                data-testid="allergy-aliases"
+                                >Other names:
+                                {{ row.allergyAliases.join(', ') }}</span
                             >
                         </td>
                         <td>{{ row.strengthText ?? '—' }}</td>
@@ -752,6 +814,12 @@ const toggleDescription = computed(() => {
                                             :aria-label="`Drug groups for ${row.displayName}`"
                                             @select="openGroups(row)"
                                             >Drug groups</DropdownMenuItem
+                                        >
+                                        <DropdownMenuItem
+                                            data-action="edit-allergy-aliases"
+                                            :aria-label="`Other names for ${row.displayName}`"
+                                            @select="openAliases(row)"
+                                            >Other names</DropdownMenuItem
                                         >
                                         <DropdownMenuItem
                                             data-action="toggle-controlled"
@@ -1406,6 +1474,49 @@ const toggleDescription = computed(() => {
                         :disabled="groupsBusy"
                         data-action="save-allergy-groups"
                         @click="saveGroups"
+                        >Save</Button
+                    >
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+
+        <Dialog
+            :open="aliasesRow !== null"
+            @update:open="(open) => !open && (aliasesRow = null)"
+        >
+            <DialogContent class="sm:max-w-lg">
+                <DialogHeader>
+                    <DialogTitle>Other names</DialogTitle>
+                    <DialogDescription>
+                        {{ aliasesRow?.displayName }}: brand names and common
+                        misspellings, one per line (for example Augmentin,
+                        amoxycillin). These are used only to match a patient's
+                        recorded allergies at Dispensary. They are never printed
+                        on drug labels and do not change the medicine name.
+                    </DialogDescription>
+                </DialogHeader>
+                <label class="grid gap-1 text-sm"
+                    >Other names (up to 10, 3 to 60 characters each)
+                    <textarea
+                        v-model="aliasesText"
+                        rows="5"
+                        maxlength="700"
+                        :placeholder="'Augmentin\namoxycillin'"
+                        class="w-full rounded-md border bg-background p-2 text-sm"
+                        data-field="allergy-aliases"
+                    ></textarea>
+                </label>
+                <DialogFooter>
+                    <Button
+                        variant="outline"
+                        :disabled="aliasesBusy"
+                        @click="aliasesRow = null"
+                        >Cancel</Button
+                    >
+                    <Button
+                        :disabled="aliasesBusy"
+                        data-action="save-allergy-aliases"
+                        @click="saveAliases"
                         >Save</Button
                     >
                 </DialogFooter>

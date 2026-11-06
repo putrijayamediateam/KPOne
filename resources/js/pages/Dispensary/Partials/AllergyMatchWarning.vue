@@ -46,12 +46,11 @@ const confirmed = defineModel<boolean>({ default: false });
         </label>
         <p class="mt-1 text-red-800 dark:text-red-200">
             This check compares the allergy text with the medicine name, generic
-            name and catalogue drug groups only.
+            name, catalogue other names and catalogue drug groups only.
         </p>
         <p class="mt-1 text-red-800 dark:text-red-200">
-            It can miss an allergy (for example an unrecorded drug group, a
-            brand name or a different spelling), so always read the full allergy
-            list.
+            It can miss an allergy (a drug group, brand name or spelling not
+            listed in the catalogue), so always read the full allergy list.
         </p>
     </div>
 </template>
