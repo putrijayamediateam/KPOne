@@ -127,3 +127,44 @@ test('settings offer the three modes in privacy order with help text tied to the
     assert.match(settings, /This is the least private choice\./);
     assert.match(settings, /\(only the first word if both are long\)/);
 });
+
+test('Q-3b: on a TV the current call keeps the number and short name on one line, shrinking only to fit', () => {
+    // Owner decision 2026-11-05: "keep number and name on one line for 720p".
+    const screen = read('resources/js/pages/QueueDisplay/Screen.vue');
+    // The normal heading size stays the largest size; the fit only ever makes it smaller.
+    assert.match(
+        screen,
+        /ref="currentLabel"[\s\S]*?lg:w-full lg:text-\[clamp\(3rem,10vh,6rem\)\]"\s*:class="currentLabelOneLine \? 'lg:truncate' : ''"/,
+    );
+    assert.match(screen, /fontSize: `\$\{currentLabelFontPx\}px`/);
+    assert.match(screen, /const FIT_MIN_PX = 24;/);
+    assert.match(
+        screen,
+        /Math\.floor\(\(largest \* label\.clientWidth\) \/ label\.scrollWidth\)/,
+    );
+    // Only on TV-size screens and only in short-name mode, and never cut: a name that cannot fit wraps instead.
+    // Only on 720p-class TVs; larger TVs and phones keep the Q-3 look (B.E.R.N.I.S.S for the owner, 2026-11-05).
+    assert.match(
+        screen,
+        /const FIT_MEDIA = '\(min-width: 1024px\) and \(max-height: 800px\)';/,
+    );
+    assert.match(screen, /window\.matchMedia\(FIT_MEDIA\)/);
+    assert.match(
+        screen,
+        /currentLabelOneLine\.value = label\.scrollWidth <= label\.clientWidth \+ 1;/,
+    );
+    assert.match(screen, /window\.addEventListener\?\.\('resize', onResize\)/);
+    // Daniel: on those TVs the room line is capped at the call line's size and keeps wrapping, never cut.
+    assert.match(screen, /currentRoomFontPx\.value = callPx;/);
+    assert.match(
+        screen,
+        /data-testid="current-room"\s*ref="currentRoom"\s*:style="\s*currentRoomFontPx/,
+    );
+    // Yasmin: wraps by default until measured, and measures again once the web font is ready.
+    assert.match(screen, /const currentLabelOneLine = ref\(false\);/);
+    assert.match(screen, /document\.fonts\?\.ready\.then\(onResize\)/);
+    assert.match(
+        screen,
+        /window\.removeEventListener\?\.\('resize', onResize\)/,
+    );
+});
