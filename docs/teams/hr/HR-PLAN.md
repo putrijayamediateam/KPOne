@@ -1164,3 +1164,164 @@ attendance, Review, Settings (and Overtime in HR-3b), the HR-2a tab pattern (DD-
 6. Rest days: the branch's non-working weekdays for everyone, or a rest day per person?
 7. A split shift (morning and evening on one day): two sessions, one per shift (the default)?
 8. Should "Clock in" also be in the top bar for every role? (Default: no; a hub link and a link on My roster.)
+
+## 10. HR-3b overtime, weekly hours and summaries: design note
+
+Written 2026-11-06 at the owner's request ("start the HR-3b design note") while HR-3a (PR #327) waits for HR-2b
+(PR #311) to merge. It works out section 9.1's HR-3b line in detail. It changes no HR-1, HR-2 or HR-3a rule, and
+where it differs from section 9 it replaces it. **Status: draft, waiting for the owner's approval and Daniel's early
+look.** Questions in 10.9 take the defaults written here until the clinic says otherwise.
+
+**KPOne ships no overtime rule.** Who may claim overtime, the multipliers and the weekly hour levels are
+clinic-entered, versioned settings. The form is pre-filled with the clinic HR proposal's values (normal day 1.5x,
+rest day 2x, public holiday 3x, nearing 40 h, limit 45 h; TEAM.md decision 10) and ticks no role, but nothing counts
+until a manager presses Save. Until then the Overtime tab reads "Overtime is not set up yet." and the weekly hours
+line shows the total with no warning.
+
+### 10.1 What the clinic gets
+
+- **Ask for overtime** (every human role the settings allow): on a day in My week where the person worked more
+  than their roster, an outline "Ask for overtime" button opens a sheet with the session, the worked time beside the
+  rostered time ("Worked 10 h 15 min · Rostered 8 h"), KPOne's day type ("Normal day", "Rest day" or "Public
+  holiday: Deepavali"), the minutes (pre-filled with the most allowed) and a reason code. A manager may ask on
+  someone's behalf from the Overtime tab.
+- **Overtime tab** (Director, HR Manager): requests waiting for a decision, each with the person, date, branch, day
+  type, minutes, reason and the person's hours that week; outline Approve, Approve fewer minutes and Reject (the
+  primary action in the dialog). Below: decided requests for the chosen month.
+- **Weekly hours:** one line on My attendance ("This week: 38 h 20 min"), and a warning chip at the nearing level
+  ("Nearing 45 h this week") and past the limit ("Over 45 h this week: 46 h 10 min"); the same chip on Review and on
+  each overtime request. A warning only: it never refuses a clock-in, a correction or an overtime request.
+- **Summary tab** (Director, HR Manager): one branch and one week or month; one row per person who is assigned to
+  that branch or worked there in the period: rostered hours, worked hours, late (count and minutes), left early
+  (count), no clock-in (count), forgotten clock-outs (count), approved overtime minutes by day type. Totals across
+  all of that person's branches, with a note when some time was at another branch. Each staff member sees their
+  own month on My attendance ("My month"). On screen only: no CSV (exports need their own authorisation).
+- **Settings:** a second card "Overtime" on the Settings tab: roles that may claim, the three multipliers, the
+  nearing and limit hours, "Applies from".
+
+### 10.2 Rules
+
+1. **A request is for one closed session** of the subject, within the correction window (HR-3a setting, default
+   7 days back), not in the future. A session with a correction waiting cannot be asked for until it is decided.
+   One pending or approved request per session (service and PostgreSQL); a split shift's two sessions can each have
+   one.
+2. **Day type** is worked out by KPOne from the session's branch and local date: a public holiday of that branch
+   (HR-2a calendar), else a rest day (a weekday that is not a working day of that branch, until per-person rest days
+   exist, 10.9), else normal. It is shown when asking and worked out again at the decision; the decision stores the
+   day type it saw.
+3. **Most minutes allowed:** on a normal day, the session's worked minutes less the matched shift's rostered minutes
+   (shift length less its break), never below zero; on a rest day or public holiday, all of the session's worked
+   minutes. A session with no shift on a normal day ("Not on the roster") allows all its worked minutes, and the
+   reviewer sees that flag. Whole minutes, at least 1. Checked when asking and again at the decision.
+4. **Eligibility:** only the roles ticked in the overtime settings in force on the session's date may ask, or be
+   asked for. A person with several roles qualifies if any of them is ticked.
+5. **The decider is never the subject and never the requester** (service and PostgreSQL CHECK), and holds
+   `hr.overtime.approve.organisation`. An HR Manager's request goes to the Director; a Director's to the HR Manager or
+   another Director (TEAM.md decision 3).
+6. **Approve fewer minutes** lowers, never raises, and needs a reason code (Not all of it was needed, More than was
+   agreed, Other). Reject needs a reason code (Not agreed in advance, Not overtime, Wrong day, Other). Notes are
+   encrypted, at most 200 characters and never audited.
+7. **Approval stores** the approved minutes, the day type, and the overtime settings version with its multiplier, so
+   HR-7 can price it later. **No money is worked out or shown in HR-3b.**
+8. **Withdraw and reverse:** the requester withdraws a pending request. A manager (not the subject) may reverse an
+   approved one with a reason code (Approved by mistake, Correction changed the hours, Other); the row becomes
+   "reversed" and the session may be asked for again. Nothing is deleted.
+9. **A later correction** to a session with approved overtime does not change the approved minutes; Review and the
+   Overtime tab show "Hours changed after approval" until a manager reverses or leaves it.
+10. **Weekly hours:** worked minutes of the person's sessions whose local date falls in the branch-local Monday to
+   Sunday week, at every branch; an open session counts up to now and the line says "so far"; a session missing its
+   clock-out counts nothing until it is corrected; corrections waiting are not counted. Worked out when the page is
+   opened, never stored.
+11. **Summaries** reuse the HR-3a day rows and flags, so a summary always adds up to the day rows on Review. Late and
+   left-early minutes use the HR-3a settings version of each day.
+12. **HR never blocks clinical work** (TEAM.md decision 4); nothing here is read by a clinical screen.
+13. **Every write:** fresh permission check under lock; `DB::transaction`; accounts locked once in id order, then the
+   session and request rows; `lock_version`; idempotency keys on ask, decide, withdraw and reverse; audit with ids,
+   codes, minutes and day type only.
+
+### 10.3 Tables (sketch)
+
+| Table | Holds |
+|---|---|
+| `hr_overtime_settings` | append-only versions per organisation: effective from, normal, rest-day and public-holiday multipliers (two decimals, 1.00 to 5.00), nearing and limit hours, created by |
+| `hr_overtime_setting_roles` | the roles ticked in each version (append-only) |
+| `hr_overtime_requests` | subject, requested by, on behalf, session, branch, local date, minutes asked, reason code, encrypted note, status pending/approved/rejected/withdrawn/reversed, day type, minutes approved, settings version, decided by and at, decision reason, reversed by and at, reverse reason, `lock_version` |
+| `hr_attendance_retries` | reused for the idempotency records |
+
+A separate settings table keeps HR-3a's append-only `hr_attendance_settings` untouched.
+
+PostgreSQL: one pending or approved request per session (partial unique index); the session belongs to the subject
+and is closed; approved minutes at most the minutes asked and at least 1; the decider and the reverser differ from
+the subject and the decider from the requester (CHECK); a decided row changes only from approved to reversed, once,
+and a request's identity never changes; settings versions are append-only; no delete or truncate; every row's
+people, branch and session belong to one organisation.
+
+Migrations `2026_11_10_000900_create_hr_overtime_tables` and `2026_11_10_001000_grant_hr_overtime_permission`
+(additive).
+
+### 10.4 Permissions
+
+| Permission | Holders |
+|---|---|
+| `hr.attendance.clock.own` (existing): ask for own overtime, withdraw, see own weekly hours and month | every human role, not the TV account |
+| `hr.attendance.review.organisation` (existing): Summary tab, ask on someone's behalf, overtime settings | Director, HR Manager |
+| `hr.overtime.approve.organisation` (new): decide and reverse overtime | Director, HR Manager |
+
+None is in the people-and-access authority set. No new page or hub link, so no change to the Clinic management
+destination map is expected.
+
+### 10.5 Screens (Hui Min, for Daniel's early look)
+
+Same page, `/hr/attendance`; two new tabs, **Overtime** and **Summary**, for managers (the strip scrolls on phones,
+DD-30). The Clock button stays the only primary on My attendance.
+- **My attendance:** the weekly hours line under the week heading with its chip (warning, never red, never colour
+  alone); an outline "Ask for overtime" on each eligible day row; "My overtime" (status chips: Waiting neutral,
+  Approved success, Fewer minutes approved success with the minutes, Rejected neutral with the reason, Reversed
+  neutral); "My month" with the summary figures as a short definition list.
+- **Ask sheet:** worked beside rostered, the day type as text, minutes as a number field with "Most allowed: 135 min
+  (2 h 15 min)", reason, optional note ("Do not write medical details here."). Toast "Overtime request sent."
+- **Overtime tab:** a summary line ("2 waiting · 1 hours changed after approval"), waiting cards with outline
+  buttons and the decision in a dialog (Approve fewer minutes shows the minutes field and reason in the dialog);
+  decided list by month as a table from 1024 px and cards below.
+- **Summary tab:** branch and period pickers (Week / Month), a table from 1024 px with sticky person column, cards
+  below; hours as "38 h 20 min"; a muted "Includes time at another branch" under a name where it applies.
+- **Formats and phones:** KPOne time and date formats; no sideways scroll at 320, 390 and 768 px; 44 px targets.
+- **Screenshots when built:** the ask sheet with an error, My attendance with a weekly warning, the Overtime tab with
+  a waiting request and the fewer-minutes dialog, the Summary tab, and overtime settings, at 390 and 1440 px, light
+  and dark.
+
+### 10.6 Tests (planned)
+
+- Grants: the new permission for Director and HR Manager only, TV account refused, not authority.
+- Day types from holidays and working days at the session's branch; most minutes on each day type, with and without
+  a shift and with a break; eligibility by role and settings version; the window; a waiting correction blocks.
+- Two-person rule for self, on-behalf, HR Manager and Director cases (service and PostgreSQL); lower only; reasons
+  required; withdraw by the requester only; reverse once by someone other than the subject; one active request per
+  session (service and PostgreSQL); "hours changed after approval".
+- Weekly hours at 40 and 45 across two branches, an open session "so far", a missing clock-out not counted, Monday
+  to Sunday in the branch time zone with a frozen clock.
+- Summaries add up to the day rows; another organisation's ids refused; notes never in audit; nothing written to
+  roster, leave, sessions, accounts or anything clinical.
+- PostgreSQL contention: two people deciding one request record one decision; two asks for one session record one
+  request.
+- Frontend: the tabs, the ask sheet, the chips and the live region.
+
+### 10.7 What stays out
+
+- Pay, rates, allowances or any money (HR-7); exports; messages or reminders.
+- Overtime asked for before it is worked (a pre-approval) [TO CONFIRM]; per-person rest days; time off in lieu.
+- A CA Supervisor branch view (as HR-1 decision 14).
+
+### 10.8 Known risks
+
+- Summaries for a month read every session and shift of the branch's people for that month; not load-tested.
+- A role ticked or unticked later affects only sessions from that settings version's date.
+
+### 10.9 Questions only the clinic can answer [TO CONFIRM]
+
+1. Which roles may claim overtime? (Default: none ticked until HR ticks them.)
+2. Must overtime be agreed before it is worked? (Default: no; asked for after, within 7 days.)
+3. Multipliers 1.5x, 2x and 3x, and weekly levels 40 h and 45 h, as the clinic HR proposal says?
+4. Rest days: the branch's non-working weekdays for everyone (default), or a rest day per person later?
+5. Should a manager be able to reverse an approved request? (Default: yes, with a reason, never their own.)
+6. Should staff see their own month (default yes) as well as their week?
