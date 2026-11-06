@@ -219,10 +219,44 @@ check items, keep them"). The rest stand unless the owner changes them.
     matrix with "—" for not required; "Someone else checks this"; a worded planner chip with "Warnings only"; SOP
     acknowledgement only after opening and per version; plain "who hasn't" list; read-only MMC with its source line;
     Health item help text; empty states; one extra register shot at 1440 px dark).
+40. HR-6 design note (HR-PLAN section 13) approved with its defaults (owner, 2026-11-06, in the HR session: "approve
+    the HR-6 note with the defaults"): one slice, after HR-5c; no categories shipped (the form suggests Meals, Travel
+    and parking, Training and courses, Supplies bought for the clinic, Other, each needing a receipt); limits warn
+    only; no Director level until entered; claims up to 30 days back (suggestion); the payer is never the claimant
+    or the approver; claims are not paid from the till, and a recorded cash payment is never linked to daily cash
+    closing. KPOne pays nothing and never touches Panel Claims or clinic money. The `/hr/claims` hub-map assertion
+    still needs the owner's OK at build time.
+41. Daniel's early look at the HR-6 screens (HR-PLAN 13.6, relayed by B.E.R.N.I.S.S 2026-11-06): OK, with five
+    notes folded into 13.6 ("Approved" vs "Paid 6 Nov 2026"; "Someone else approves this" and "Waiting for the
+    Director"; "Payment reversed" neutral; the RM prefix with decimal input; receipt alt text and PDF tiles). His
+    suggestion of a partial approval ("Approved RM 30.00 of RM 45.60") conflicts with rule 6 and is open for the owner.
+42. HR-6 rule 6 kept (owner, 2026-11-06, in the HR session: "keep rule 6"): no partial approval of a staff claim; a
+    wrong amount is rejected (Wrong amount) and sent again. Daniel's "Approved RM x of RM y" is not built.
+43. HR-7 design note (HR-PLAN section 14) approved with its defaults, including the split of what stops sending a
+    payroll versus what only warns, by B.E.R.N.I.S.S for the owner on 2026-11-06 at 06:41 UTC, during the owner's
+    20-minute "BE ME". Payslip dates (14.10 item 10) take the default: "30 Oct 2026" for dates and "October 2026" for
+    the period. Marked "Check this" on the owner's board; the owner's own words win if they differ. The banner "To
+    confirm with the clinic's accountant before real use" stays. Nothing is built until HR-6 is done.
+44. HR-4a hub-map line (`'/hr/records' => ['hr.records.view.own', 'hr.records.view.organisation']` in
+    `ClinicManagementTest`): approved by the owner, relayed verbatim by B.E.R.N.I.S.S on 2026-11-06: "approve the hub
+    line for liyana".
+45. The five items that were not authorised for KPOne HR are now authorised (owner, 2026-11-06, relayed verbatim by
+    B.E.R.N.I.S.S: "all i want." and "the one that needed before real use i will provide later"). They are WhatsApp,
+    SMS, email and OTP messages; a locum portal; selfie or location checks at clock-in; a link to the outside HR
+    product; and job application intake. Each is built like every other slice: a design note approved by the owner,
+    Daniel's look and a ship-it. Scope: staff and HR only. Patient messaging stays a separate decision. Synthetic
+    data only until the owner provides the PDPA review, the leave policy and the accountant's confirmation. Nothing
+    of these five is built until B.E.R.N.I.S.S's docs PR records the authorisation in AGENTS.md and BASELINE.
+46. Order of the five (owner, 2026-11-06, relayed verbatim by B.E.R.N.I.S.S: "go with Liyana's order"): after HR-7,
+    HR-12 outside HR product link, HR-13 job application intake, HR-14 staff messages (WhatsApp, SMS, email, OTP),
+    HR-15 locum portal, HR-16 selfie or location at clock-in. Draft notes in HR-PLAN section 15.
+47. The five notes in HR-PLAN section 15 (15.1 to 15.5, with the order in 15.6) approved by the owner, 2026-11-06,
+    relayed verbatim by B.E.R.N.I.S.S: "approve all five HR notes for liyana". The 15.7 questions stay open for the
+    owner. Nothing of the five is built until B.E.R.N.I.S.S's AGENTS.md and BASELINE docs PR merges, and each still
+    needs Daniel's look and a ship-it before its PR.
 48. HR-5a hub-map assertion approved (the owner's own words, relayed verbatim by B.E.R.N.I.S.S 2026-11-06: "approve
     the credentials hub line for liyana"): `ClinicManagementTest` gains one line after `'/hr/records'`,
     `'/hr/credentials' => ['hr.credentials.view.own', 'hr.credentials.manage.organisation'],` and nothing else.
-    (Decisions 40 to 47 are recorded on the HR-7 docs branch.)
 49. HR-5a shipped (the owner, 2026-11-06, in the HR session: "ship it for HR-5a"), after Suresh's "ready to merge"
     and Daniel's OK (one nit fixed: Archive as an outline button). The PR opens after #347 (HR-4a) and HR-4b merge.
 50. HR-5b shipped (the owner's own words, relayed verbatim by B.E.R.N.I.S.S 2026-11-06: "ship it for HR-5b for
@@ -236,6 +270,10 @@ check items, keep them"). The rest stand unless the owner changes them.
     changes, made). Daniel's verdict, relayed by B.E.R.N.I.S.S: OK, with one nit fixed (at 0 not yet acknowledged, the
     button reads "Show versions" and no empty list opens). The PR opens after HR-5a (#356) and HR-5b (#361)
     merge.
+52. HR-6 build started, approved by B.E.R.N.I.S.S for the owner (2026-11-06, 13:35 UTC, under the owner's delegation
+    of 11:22 UTC): "Yes, start HR-6 (staff claims) now, per its approved note"; its PR opens after Hui Min's sketch,
+    Suresh's review and Daniel's look, with no further ship-it. HR-5c took migration `2026_11_10_001900`, so HR-6's
+    migrations start at `2026_11_10_002000` (HR-PLAN 13.4 updated). Synthetic data only.
 
 ## 7. Open items and known limits
 
@@ -340,5 +378,15 @@ check items, keep them"). The rest stand unless the owner changes them.
 11. **HR-11 Clinic compliance.** Clinic document licences and expiry (clinic registration, X-ray, clinical waste,
     calibration), a monthly internal audit checklist with photos whose failed items become supervisor tasks, and a
     daily vaccine fridge temperature log with out-of-range alerts inside KPOne.
-12. **Not authorised (needs the owner):** WhatsApp, SMS, email, OTP or push messages; an outside locum portal;
-    selfie or continuous location at clock-in; integration with the outside HR product; applicant intake.
+12. **Authorised 2026-11-06 (decision 45), after HR-7, in this order (owner, decision 46):**
+    - **HR-12 Outside HR product link.** Smallest and lowest risk. First find out whether the product has an API;
+      if not, a reviewed file import and export.
+    - **HR-13 Job application intake.** KPOne's first public intake, needing rate limits, spam protection, file
+      checks and a privacy notice. It sits beside the static careers pages.
+    - **HR-14 Staff messages (WhatsApp, SMS, email, OTP).** An outside provider, keys in the environment's secrets,
+      opt-in and opt-out, no patient data. OTP and the locum portal depend on it.
+    - **HR-15 Locum portal.** Accounts made only by HR through StaffProvisioningService, a narrow locum role, and OTP
+      or password sign-in.
+    - **HR-16 Selfie or location at clock-in.** The riskiest under PDPA (biometric and location data), so last.
+      Optional per branch, consent text, encrypted selfies with short retention, a branch geofence checked only at
+      the moment of clock-in, and a fallback.
