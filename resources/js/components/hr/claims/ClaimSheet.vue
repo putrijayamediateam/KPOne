@@ -180,7 +180,7 @@ const send = () => {
                 <div class="grid gap-1.5">
                     <Label for="claim-amount">Amount *</Label>
                     <div
-                        class="flex w-44 items-center rounded-md border bg-transparent focus-within:ring-2 focus-within:ring-ring dark:bg-input/30"
+                        class="flex w-44 items-stretch overflow-hidden rounded-md border bg-transparent focus-within:ring-2 focus-within:ring-ring dark:bg-input/30"
                         :class="
                             errors.amount
                                 ? 'border-destructive'
@@ -188,7 +188,7 @@ const send = () => {
                         "
                     >
                         <span
-                            class="pl-3 text-sm text-muted-foreground"
+                            class="flex items-center self-stretch rounded-l-md border-r bg-muted px-3 text-sm font-medium text-foreground"
                             aria-hidden="true"
                             >RM</span
                         >
