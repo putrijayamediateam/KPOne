@@ -143,6 +143,7 @@ const clearPreview = () => {
     }
 
     preview.value = '';
+    previewFailed.value = false;
 
     fileInput.value?.clear();
 };
@@ -160,6 +161,9 @@ const chooseLogo = (event: Event) => {
         URL.revokeObjectURL(preview.value);
     }
 
+    previewFailed.value = false;
+    // A new choice replaces the refused one, so its old error no longer applies.
+    form.clearErrors('logo');
     preview.value = file ? URL.createObjectURL(file) : '';
     form.logo = file;
     form.remove_logo = false;
@@ -179,11 +183,19 @@ const logoStatus = computed(() =>
             ? 'Current logo saved.'
             : 'No file chosen',
 );
+// CAT-10 (Daniel): never preview a file that failed the check. If the chosen file does not load as an image, or
+// the server refused it, the box falls back to the saved logo (or "No logo").
+const previewFailed = ref(false);
 const logoUrl = computed(
     () =>
-        preview.value ||
+        (previewFailed.value || form.errors.logo ? '' : preview.value) ||
         (form.remove_logo ? '' : (props.letterhead.logo?.url ?? '')),
 );
+const previewError = () => {
+    if (preview.value) {
+        previewFailed.value = true;
+    }
+};
 const save = () => {
     if (!props.canEdit || blocked.value || form.processing) {
         return;
@@ -564,6 +576,7 @@ const reload = () =>
                                             :src="logoUrl"
                                             alt="Company logo preview"
                                             class="max-h-full max-w-full object-contain"
+                                            @error="previewError"
                                         />
                                         <span
                                             v-else

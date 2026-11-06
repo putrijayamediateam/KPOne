@@ -56,6 +56,16 @@ test('the logo is chosen with a real button and its state sits on its own line (
     assert.equal((business.match(/id="logo-error"/g) ?? []).length, 1);
     assert.match(b, /class="min-h-11 text-xs sm:min-h-9" @click="removeLogo"/);
     assert.match(b, /v-if="canEdit" class="min-w-0 flex-1 basis-40 space-y-2"/);
+    // Daniel: a file that failed the check is never previewed; the box falls back to the saved logo or "No logo".
+    assert.match(
+        b,
+        /\(previewFailed\.value \|\| form\.errors\.logo \? '' : preview\.value\) \|\|/,
+    );
+    assert.match(
+        b,
+        /alt="Company logo preview" class="max-h-full max-w-full object-contain" @error="previewError"/,
+    );
+    assert.match(b, /form\.clearErrors\('logo'\);/);
     // The readiness card's "Fix below" still lands on a focusable control.
     assert.ok(business.includes("'#logo'"));
 });
