@@ -144,10 +144,10 @@ final class PanelInvoiceReportService
         }
         $this->directory->applyClinicalFilters($query, 'v.id', $actor, $branch, ['treatment' => $filters['echo']['treatment']]);
 
+        // PNL-15: the invoice total is the payable total after any discount or surcharge, as on the invoice and the claim.
         $found = $query->orderBy('v.registered_at')->orderBy('c.id')->limit(self::MAX_ROWS + 1)->get([
             'i.invoice_number', 'v.visit_number', 'v.visit_type', 'v.registered_at', 'p.full_name as patient_name',
             'c.member_reference', 'c.panel_name_snapshot', 'c.amount_sen', 'd.name as doctor_name',
-            // PNL-15: the invoice total after any discount or surcharge, as on the invoice and the claim.
             DB::raw('kpone_invoice_payable(i.id) as payable_sen'),
             'pc.id as claim_id', 'pc.status as claim_status',
         ]);

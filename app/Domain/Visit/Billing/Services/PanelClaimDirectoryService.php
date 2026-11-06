@@ -511,11 +511,12 @@ final class PanelClaimDirectoryService
                 ->where('organisation_id', $actor->organisation_id)->where('branch_id', $branch->id)->firstOrFail();
             $visit = Visit::query()->whereKey($invoice->visit_id)
                 ->where('organisation_id', $actor->organisation_id)->where('branch_id', $branch->id)->firstOrFail();
-            // PNL-15: compare with the payable total after any invoice discount or surcharge, as creation does.
-            $payableSen = app(FinancialLedger::class)->state($invoice)['total'];
             abort_unless($allocation->status === 'approved' && (int) $allocation->current_invoice_guard === $invoice->id
                 && $invoice->status === 'finalized' && ! $invoice->correction_hold && ! $invoice->source_stale
-                && $allocation->amount_sen > 0 && $allocation->amount_sen <= $payableSen, 422);
+                && $allocation->amount_sen > 0, 422);
+            // PNL-15: compare with the payable total after any invoice discount or surcharge, as creation does.
+            $payableSen = app(FinancialLedger::class)->state($invoice)['total'];
+            abort_unless($allocation->amount_sen <= $payableSen, 422);
             $existing = PanelClaim::query()->where('coverage_allocation_id', $allocation->id)->first();
             $patient = DB::table('patients')->where('id', $invoice->patient_id)
                 ->where('organisation_id', $actor->organisation_id)->first(['full_name']);
