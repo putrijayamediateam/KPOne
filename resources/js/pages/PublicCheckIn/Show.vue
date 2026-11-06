@@ -833,10 +833,11 @@ onBeforeUnmount(() => {
                             type="button"
                             class="min-h-12 rounded-xl border px-4"
                             @click="back"
+                            aria-label="Kembali"
                         >
                             <ArrowLeft
                                 class="size-5"
-                                aria-label="Kembali"
+                                aria-hidden="true"
                             /></button
                         ><button
                             type="button"
@@ -958,10 +959,11 @@ onBeforeUnmount(() => {
                             type="button"
                             class="min-h-12 rounded-xl border px-4"
                             @click="back"
+                            aria-label="Kembali"
                         >
                             <ArrowLeft
                                 class="size-5"
-                                aria-label="Kembali"
+                                aria-hidden="true"
                             /></button
                         ><button
                             type="button"
@@ -1063,10 +1065,11 @@ onBeforeUnmount(() => {
                             type="button"
                             class="min-h-12 rounded-xl border px-4"
                             @click="back"
+                            aria-label="Kembali"
                         >
                             <ArrowLeft
                                 class="size-5"
-                                aria-label="Kembali"
+                                aria-hidden="true"
                             /></button
                         ><button
                             type="button"
@@ -1174,10 +1177,11 @@ onBeforeUnmount(() => {
                             type="button"
                             class="min-h-12 rounded-xl border px-4"
                             @click="back"
+                            aria-label="Kembali"
                         >
                             <ArrowLeft
                                 class="size-5"
-                                aria-label="Kembali"
+                                aria-hidden="true"
                             /></button
                         ><button
                             type="submit"
