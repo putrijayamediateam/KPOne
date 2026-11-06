@@ -875,7 +875,7 @@ for the rest of KPOne.
 ### 8.4 Serving a file safely
 
 - One route per file, `GET /hr/leave/evidence/{file}`, behind `hr.leave.request.own` or the view permission, with the
-  owner or permission check in the service, a fresh branch-free organisation check, and a throttle.
+  owner or permission check in the service, an organisation check on the file and its request, and a throttle.
 - The response is streamed after decryption with `Cache-Control: no-store`, `X-Content-Type-Options: nosniff` and
   `Content-Security-Policy: sandbox`. Photos are served `inline` as `image/jpeg` or `image/png` (re-encoded, so their
   bytes are known); a PDF is always `attachment`, so a crafted PDF cannot run inside KPOne's origin.
