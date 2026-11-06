@@ -16,6 +16,7 @@ use App\Domain\Visit\Billing\Services\PricingReferenceAdministrationService;
 use App\Http\Requests\PriceBookStoreRequest;
 use App\Http\Requests\PricePublishRequest;
 use App\Http\Requests\PricingChargeStoreRequest;
+use Carbon\CarbonImmutable;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -35,13 +36,28 @@ class PricingController extends Controller
             ->where('organisation_id', $organisationId)
             ->orderBy('display_name')
             ->get();
-        $latestEntries = PriceEntry::query()
+        $entries = PriceEntry::query()
             ->where('organisation_id', $organisationId)
             ->whereIn('charge_definition_id', $charges->pluck('id'))
             ->orderByDesc('version')
-            ->get()
+            ->get();
+        // CAT-6: "Current price" is the version in effect now (billing never uses a price whose effective time is
+        // still ahead, PriceResolutionService). The publish form keeps the newest version of that book as its
+        // expected version, so publishing is unchanged.
+        $now = CarbonImmutable::now('UTC');
+        $latestEntries = $entries
             ->groupBy('charge_definition_id')
-            ->map(fn ($entries) => $entries->first());
+            ->map(function ($forCharge) use ($now) {
+                $inEffect = $forCharge->first(fn (PriceEntry $entry): bool => CarbonImmutable::parse((string) $entry->getRawOriginal('effective_at'), 'UTC')->lessThanOrEqualTo($now))
+                    ?? $forCharge->first();
+                $newestInBook = (int) $forCharge->where('price_book_id', $inEffect->price_book_id)->max('version');
+
+                return (object) [
+                    'price_book_id' => $inEffect->price_book_id,
+                    'unit_price_sen' => $inEffect->unit_price_sen,
+                    'version' => $newestInBook,
+                ];
+            });
 
         return Inertia::render('Pricing/Index', [
             'canPublish' => Gate::forUser($actor)->allows('prices.publish.organisation'),

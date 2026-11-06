@@ -431,6 +431,8 @@ const toggleCharge = (charge: ChargeRow) => {
                             v-model="publishForm(charge).priceBook"
                             :label="`Price book for ${charge.displayName}`"
                             :options="bookOptions()"
+                            trigger-class="h-auto min-h-9 py-1.5 text-left whitespace-normal *:data-[slot=select-value]:line-clamp-2 *:data-[slot=select-value]:[overflow-wrap:anywhere]"
+                            :content-avoid-collisions="false"
                         />
                     </div>
                     <div class="grid gap-2">
@@ -533,6 +535,8 @@ const toggleCharge = (charge: ChargeRow) => {
                                         v-model="publishForm(charge).priceBook"
                                         :label="`Price book for ${charge.displayName}`"
                                         :options="bookOptions()"
+                                        trigger-class="h-auto min-h-9 py-1.5 text-left whitespace-normal *:data-[slot=select-value]:line-clamp-2 *:data-[slot=select-value]:[overflow-wrap:anywhere]"
+                                        :content-avoid-collisions="false"
                                     />
                                 </div>
                                 <div class="grid w-28 gap-1">
