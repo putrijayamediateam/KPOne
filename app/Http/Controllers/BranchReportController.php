@@ -15,7 +15,7 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 final class BranchReportController extends Controller
 {
-    private function service(Request $request): BranchReportService|TransactionReportService
+    private function service(Request $request): BranchReportService
     {
         return match ($request->route('dataset')) {
             'transactions' => app(TransactionReportService::class),
