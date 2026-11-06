@@ -188,7 +188,6 @@ const submit = () => {
                 >
             </fieldset>
             <InputError
-                role="alert"
                 :message="
                     form.errors.lock_version ||
                     errorFor('settings') ||
