@@ -90,8 +90,10 @@ class ControlledMedicineTest extends VisitTestCase
         $this->assertTrue($f['medicine']->refresh()->is_controlled);
     }
 
-    public function test_the_label_prints_the_marker_under_the_name_in_bold_only_for_a_controlled_medicine(): void
+    public function test_the_label_prints_the_marker_below_the_border_only_for_a_controlled_medicine(): void
     {
+        // DSP-10 (owner decisions 2026-11-06, approved test change): the marker moves from a bold row under the medicine
+        // name to its own line below the label border, in the owner's sample wording.
         $f = $this->fixture();
         $case = $this->open($f);
         app(DispensaryService::class)->addItem($f['ca'], $case, $this->addPayload($f, $case));
@@ -99,16 +101,15 @@ class ControlledMedicineTest extends VisitTestCase
         $service = app(DrugLabelService::class);
 
         $plain = $service->preview($f['ca'], $case->refresh());
-        $this->assertNotContains(DrugLabelLayout::CONTROLLED_MARKER, $plain['items'][0]['lines']);
+        $this->assertNull($plain['items'][0]['controlled']);
+        $this->assertSame([], array_values(array_filter($plain['items'][0]['lines'], fn (string $line): bool => str_contains($line, 'Terkawal'))));
 
         app(MedicineAdministrationService::class)->setControlled($this->actor('ca_supervisor'), $f['medicine'], true, false);
         $this->selectBranch($f['ca'], $f['visit']->branch);
         $marked = $service->preview($f['ca'], $case->refresh());
-        $lines = $marked['items'][0]['lines'];
-        $at = array_search(DrugLabelLayout::CONTROLLED_MARKER, $lines, true);
-        $this->assertIsInt($at);
-        $this->assertSame('Synthetic OTC medicine', $lines[$at - 1], 'the marker follows the medicine name');
-        $this->assertContains($at, $marked['items'][0]['emphasis'], 'the marker is bold');
+        $this->assertSame('Ubat Terkawal/Controlled Medicine', DrugLabelLayout::CONTROLLED_MARKER);
+        $this->assertSame(DrugLabelLayout::CONTROLLED_MARKER, $marked['items'][0]['controlled']);
+        $this->assertSame($plain['items'][0]['lines'], $marked['items'][0]['lines'], 'the marker takes no row inside the border');
         $this->assertNotSame($plain['token'], $marked['token'], 'an open preview is retired when the flag changes');
         $this->assertSame(array_keys($plain['items'][0]), array_keys($marked['items'][0]), 'the label payload shape is unchanged');
     }
