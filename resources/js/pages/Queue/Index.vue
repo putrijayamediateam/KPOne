@@ -3,10 +3,12 @@ import { Head, router } from '@inertiajs/vue3';
 import { LoaderCircle, Search } from '@lucide/vue';
 import {
     computed,
+    nextTick,
     onBeforeUnmount,
     onMounted,
     reactive,
     ref,
+    useTemplateRef,
     watch,
 } from 'vue';
 import InputError from '@/components/InputError.vue';
@@ -457,7 +459,44 @@ const selectTab = (tab: QueueTab) => {
         appliedFilters.status = status;
     });
 };
-const selectOperationalTab = (value: string) => selectTab(value as QueueTab);
+const tabStrip = useTemplateRef<HTMLElement>('tabStrip');
+/** DD-30: on a phone the strip scrolls, so bring a part-hidden chosen tab fully into view (sideways only). */
+const revealSelectedTab = async () => {
+    await nextTick();
+    const nav = tabStrip.value?.querySelector<HTMLElement>('[role="tablist"]');
+    const tab = nav?.querySelector<HTMLElement>('[aria-selected="true"]');
+
+    if (!nav || !tab) {
+        return;
+    }
+
+    const navBox = nav.getBoundingClientRect();
+    const tabBox = tab.getBoundingClientRect();
+
+    if (tabBox.left < navBox.left) {
+        nav.scrollLeft -= navBox.left - tabBox.left;
+    } else if (tabBox.right > navBox.right) {
+        nav.scrollLeft += tabBox.right - navBox.right;
+    }
+};
+/** DD-30 (Daniel): fade the strip's right edge while more tabs are hidden to the right. */
+const moreTabsRight = ref(false);
+const tabNav = () =>
+    tabStrip.value?.querySelector<HTMLElement>('[role="tablist"]') ?? null;
+const updateTabFade = () => {
+    const nav = tabNav();
+
+    moreTabsRight.value =
+        nav !== null &&
+        nav.scrollWidth > nav.clientWidth + 1 &&
+        nav.scrollLeft + nav.clientWidth < nav.scrollWidth - 1;
+};
+let tabResizeObserver: ResizeObserver | undefined;
+watch(tabs, () => void nextTick(updateTabFade), { deep: true });
+const selectOperationalTab = (value: string) => {
+    selectTab(value as QueueTab);
+    void revealSelectedTab().then(updateTabFade);
+};
 const clearFilters = () => {
     void replaceAppliedRefresh(() => {
         draftValidationError.value = '';
@@ -616,8 +655,20 @@ onMounted(() => {
     document.addEventListener('visibilitychange', handleVisibility);
     clockTimer = setInterval(() => (clockNow.value = Date.now()), 60_000);
     schedule();
+    const nav = tabNav();
+
+    nav?.addEventListener('scroll', updateTabFade, { passive: true });
+
+    if (nav && typeof ResizeObserver !== 'undefined') {
+        tabResizeObserver = new ResizeObserver(updateTabFade);
+        tabResizeObserver.observe(nav);
+    }
+
+    updateTabFade();
 });
 onBeforeUnmount(() => {
+    tabNav()?.removeEventListener('scroll', updateTabFade);
+    tabResizeObserver?.disconnect();
     pollingLifecycle.dispose();
     document.removeEventListener('visibilitychange', handleVisibility);
 
@@ -677,17 +728,29 @@ onBeforeUnmount(() => {
             >
             <InputError :message="roomError" />
         </div>
-        <div class="flex items-center gap-2 border-b">
+        <!-- DD-30: on phones the live line sits under the tab strip, which keeps scrolling at full width. -->
+        <div
+            ref="tabStrip"
+            class="flex items-center gap-2 border-b max-sm:flex-col max-sm:items-stretch max-sm:gap-0 max-sm:border-b-0"
+        >
             <OperationalTabs
                 :model-value="activeTab"
-                class="min-w-0 flex-1"
+                class="min-w-0 flex-1 max-sm:flex-none max-sm:[&>button]:h-11 max-sm:[&>button]:px-2.5"
+                :class="
+                    moreTabsRight
+                        ? '[mask-image:linear-gradient(to_right,#000_calc(100%-2.5rem),transparent)]'
+                        : ''
+                "
                 label="Consultation Queue status"
                 :tabs="tabs"
                 @update:model-value="selectOperationalTab"
             />
-            <span class="shrink-0 text-[11px] text-muted-foreground">{{
-                isRefreshing ? 'Refreshing…' : 'Live · every 3 seconds'
-            }}</span>
+            <span
+                class="shrink-0 text-[11px] text-muted-foreground max-sm:px-3 max-sm:py-1.5"
+                >{{
+                    isRefreshing ? 'Refreshing…' : 'Live · every 3 seconds'
+                }}</span
+            >
         </div>
 
         <form
