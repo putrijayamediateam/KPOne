@@ -8,6 +8,7 @@ use App\Domain\HR\Records\Services\RecordCorrectionService;
 use App\Domain\HR\Records\Services\RecordsPageService;
 use App\Domain\HR\Records\Services\StaffFileService;
 use App\Http\Controllers\Controller;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -150,6 +151,9 @@ class RecordsController extends Controller
             $action();
         } catch (ValidationException $e) {
             throw $e->redirectTo($back);
+        } catch (AuthorizationException $e) {
+            // A refused rule-3 write stays on its page with the reason (Suresh, S4); route permissions still give 403.
+            throw ValidationException::withMessages(['records' => $e->getMessage() !== '' ? $e->getMessage() : 'You may not do this.'])->redirectTo($back);
         }
         if ($message !== null) {
             Inertia::flash('toast', ['type' => 'success', 'message' => $message]);

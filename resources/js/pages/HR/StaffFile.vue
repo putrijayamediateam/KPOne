@@ -3,7 +3,7 @@
 // HR-4b). Sensitive values arrive masked; only Show (audited) releases one. HR-PLAN 11.2, 11.3 and 11.6.
 import type { FormDataConvertible } from '@inertiajs/core';
 import { Head, Link, router, usePage } from '@inertiajs/vue3';
-import { computed, reactive } from 'vue';
+import { computed, reactive, ref } from 'vue';
 import MaskedValue from '@/components/hr/records/MaskedValue.vue';
 import SyntheticNote from '@/components/hr/records/SyntheticNote.vue';
 import type {
@@ -70,6 +70,7 @@ const props = defineProps<{
         tab: Tab;
         options: RecordOptions;
         canManage: boolean;
+        manageRefusal: string | null;
         isSelf: boolean;
         workers: { id: string; name: string }[];
         worker: WorkerHeader & { lockVersion: number };
@@ -352,10 +353,16 @@ const correctionDecision = reactive({
     correction: null as Correction | null,
     decision: 'apply' as 'apply' | 'reject',
     reason: '',
+    key: '',
     processing: false,
 });
 const startCorrectionDecision = (c: Correction, decision: 'apply' | 'reject') =>
-    Object.assign(correctionDecision, { correction: c, decision, reason: '' });
+    Object.assign(correctionDecision, {
+        correction: c,
+        decision,
+        reason: '',
+        key: crypto.randomUUID(),
+    });
 const sendCorrectionDecision = () => {
     const c = correctionDecision.correction;
 
@@ -373,7 +380,7 @@ const sendCorrectionDecision = () => {
                     ? correctionDecision.reason
                     : undefined,
             expected_lock_version: c.lockVersion,
-            idempotency_key: crypto.randomUUID(),
+            idempotency_key: correctionDecision.key,
         },
         {
             preserveScroll: true,
@@ -421,10 +428,18 @@ const bankDecision = reactive({
     open: false,
     decision: 'confirm' as 'confirm' | 'reject' | 'withdraw',
     reason: '',
+    key: '',
     processing: false,
 });
+// The confirmer looks at the full new account before Confirm is offered (Suresh, S2); the view is audited.
+const waitingShown = ref(false);
 const startBankDecision = (decision: 'confirm' | 'reject' | 'withdraw') =>
-    Object.assign(bankDecision, { open: true, decision, reason: '' });
+    Object.assign(bankDecision, {
+        open: true,
+        decision,
+        reason: '',
+        key: crypto.randomUUID(),
+    });
 const sendBankDecision = () => {
     const bank = props.file.bank.waiting;
 
@@ -445,7 +460,7 @@ const sendBankDecision = () => {
                     ? bankDecision.reason
                     : undefined,
             expected_lock_version: bank.lockVersion,
-            idempotency_key: crypto.randomUUID(),
+            idempotency_key: bankDecision.key,
         },
         {
             preserveScroll: true,
@@ -509,6 +524,13 @@ const bankDialog = computed(() => {
             </div>
             <SyntheticNote />
             <p
+                v-if="file.manageRefusal"
+                class="text-sm text-muted-foreground"
+                data-test="manage-refusal"
+            >
+                {{ file.manageRefusal }}
+            </p>
+            <p
                 v-if="file.isSelf"
                 class="text-sm text-muted-foreground"
                 data-test="self-note"
@@ -541,7 +563,7 @@ const bankDialog = computed(() => {
             :model-value="file.tab"
             :tabs="tabs"
             label="Staff file sections"
-            class="min-w-0 max-sm:[&>button]:h-11"
+            class="min-w-0 max-lg:[&>button]:h-11"
             @update:model-value="selectTab"
         />
 
@@ -970,6 +992,19 @@ const bankDialog = computed(() => {
                     · New: {{ file.bank.waiting.bankName }}
                     {{ file.bank.waiting.mask.replace('Account ', '') }}
                 </p>
+                <MaskedValue
+                    v-if="!file.bank.waiting.enteredByMe && file.canManage"
+                    label="New account number"
+                    field="new account number"
+                    :mask="file.bank.waiting.mask"
+                    :last4="file.bank.waiting.mask.slice(-4)"
+                    :worker-id="w.id"
+                    show-field="bank_account"
+                    :extra="{ bank_id: file.bank.waiting.id }"
+                    :reset-key="file.tab"
+                    data-test="bank-waiting-show"
+                    @shown="waitingShown = true"
+                />
                 <p class="text-muted-foreground">
                     Entered by {{ file.bank.waiting.enteredBy }},
                     {{ timeLabel(file.bank.waiting.enteredAt) }}
@@ -995,9 +1030,18 @@ const bankDialog = computed(() => {
                         size="sm"
                         class="max-lg:min-h-11"
                         data-test="bank-confirm"
+                        :disabled="!waitingShown"
                         @click="startBankDecision('confirm')"
                         >Confirm</Button
                     >
+                    <p
+                        v-if="!waitingShown"
+                        class="w-full text-xs text-muted-foreground"
+                        data-test="show-before-confirm"
+                    >
+                        Show the new account number to check it before you
+                        confirm.
+                    </p>
                     <Button
                         variant="outline"
                         size="sm"
@@ -1023,6 +1067,16 @@ const bankDialog = computed(() => {
                     />
                 </div>
                 <p>Recorded: {{ c.recorded }} · New: {{ c.new }}</p>
+                <MaskedValue
+                    v-if="file.canManage"
+                    label="Requested account"
+                    field="requested account"
+                    :mask="c.new"
+                    :worker-id="w.id"
+                    show-field="correction"
+                    :extra="{ correction_id: c.id }"
+                    :reset-key="file.tab"
+                />
                 <p class="text-muted-foreground">
                     {{ c.reasonLabel }} · asked by {{ c.askedBy }}. Applying it
                     makes a bank change that a third person confirms.
@@ -1073,6 +1127,7 @@ const bankDialog = computed(() => {
                     />
                     <div class="grid gap-1.5">
                         <OperationalSelect
+                            trigger-class="max-lg:h-11"
                             id="period-type"
                             v-model="period.type"
                             label="Type"
@@ -1130,6 +1185,7 @@ const bankDialog = computed(() => {
                     </div>
                     <div v-if="period.endsOn" class="grid gap-1.5">
                         <OperationalSelect
+                            trigger-class="max-lg:h-11"
                             id="period-end-reason"
                             v-model="period.endReason"
                             label="Why it ended"
@@ -1160,6 +1216,7 @@ const bankDialog = computed(() => {
                     </div>
                     <div v-if="needsEditReason" class="grid gap-1.5">
                         <OperationalSelect
+                            trigger-class="max-lg:h-11"
                             id="period-edit-reason"
                             v-model="period.editReason"
                             label="Why this is being changed"
@@ -1207,6 +1264,7 @@ const bankDialog = computed(() => {
                     </div>
                     <div class="grid gap-1.5">
                         <OperationalSelect
+                            trigger-class="max-lg:h-11"
                             id="position-department"
                             v-model="position.departmentId"
                             label="Department (optional)"
@@ -1222,6 +1280,7 @@ const bankDialog = computed(() => {
                     </div>
                     <div class="grid gap-1.5">
                         <OperationalSelect
+                            trigger-class="max-lg:h-11"
                             id="position-reports-to"
                             v-model="position.reportsTo"
                             label="Reports to (optional)"
@@ -1299,6 +1358,7 @@ const bankDialog = computed(() => {
                     </div>
                     <div class="grid gap-1.5">
                         <OperationalSelect
+                            trigger-class="max-lg:h-11"
                             id="personal-identity-kind"
                             v-model="personal.identityKind"
                             label="Identity document"
@@ -1543,6 +1603,7 @@ const bankDialog = computed(() => {
         >
             <div v-if="bankDecision.decision === 'reject'" class="grid gap-1.5">
                 <OperationalSelect
+                    trigger-class="max-lg:h-11"
                     id="bank-reject-reason"
                     v-model="bankDecision.reason"
                     label="Why it is rejected"
@@ -1592,6 +1653,7 @@ const bankDialog = computed(() => {
                 class="grid gap-1.5"
             >
                 <OperationalSelect
+                    trigger-class="max-lg:h-11"
                     id="correction-reject-reason"
                     v-model="correctionDecision.reason"
                     label="Why it is rejected"

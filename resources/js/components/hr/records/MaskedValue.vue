@@ -20,7 +20,10 @@ const props = defineProps<{
     resetKey?: string;
 }>();
 
+const emit = defineEmits<{ shown: [] }>();
 const value = ref<string | null>(null);
+// A response that arrives after Hide (or after the page was hidden) is dropped (Suresh, M3).
+let generation = 0;
 const shownAt = ref('');
 const error = ref('');
 const busy = ref(false);
@@ -32,6 +35,7 @@ const spoken = computed(() =>
 );
 
 const hide = () => {
+    generation++;
     value.value = null;
     shownAt.value = '';
 };
@@ -43,6 +47,7 @@ const show = async () => {
 
     busy.value = true;
     error.value = '';
+    const mine = ++generation;
 
     try {
         const response = await fetch(
@@ -68,6 +73,10 @@ const show = async () => {
             errors?: Record<string, string>;
         };
 
+        if (mine !== generation) {
+            return;
+        }
+
         if (!response.ok || typeof data.value !== 'string') {
             error.value =
                 Object.values(data.errors ?? {})[0] ??
@@ -82,6 +91,7 @@ const show = async () => {
             minute: '2-digit',
             hour12: true,
         }).format(new Date(data.shownAt ?? Date.now()));
+        emit('shown');
     } catch {
         error.value = 'This could not be shown. Try again.';
     } finally {
@@ -105,15 +115,16 @@ onBeforeUnmount(() => {
 <template>
     <div class="flex min-w-0 flex-col gap-1" data-test="masked-value">
         <div class="flex min-w-0 flex-wrap items-center gap-2">
-            <span
-                v-if="value === null"
-                class="font-medium tabular-nums"
-                :aria-label="spoken"
-                >{{ mask }}</span
-            >
+            <template v-if="value === null">
+                <span class="font-medium tabular-nums" aria-hidden="true">{{
+                    mask
+                }}</span>
+                <span class="sr-only">{{ spoken }}</span>
+            </template>
             <span
                 v-else
                 class="min-w-0 font-medium break-words"
+                aria-live="polite"
                 data-test="shown-value"
                 >{{ value }}</span
             >

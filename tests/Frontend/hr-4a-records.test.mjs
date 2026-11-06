@@ -62,6 +62,7 @@ test('Show is audited by the server first, names the field, becomes Hide, and no
         masked,
         /ending \$\{props\.last4\.split\(''\)\.join\(' '\)\}, hidden/,
     );
+
     for (const b of buttons('masked')) {
         assert.match(b, /variant="outline"/);
     }
@@ -87,6 +88,7 @@ test('the bank tab: the person who entered a change sees only Withdraw; other ma
         /v-if="file\.bank\.waiting\.enteredByMe"[\s\S]*data-test="bank-withdraw"[\s\S]*v-else-if="file\.canManage"[\s\S]*data-test="bank-confirm"/,
     );
     assert.match(file, /Recorded:[\s\S]{0,200}· New:/);
+
     for (const b of buttons('file').filter((x) =>
         /bank-(confirm|reject|withdraw)/.test(x),
     )) {
@@ -100,6 +102,7 @@ test('My HR details: self-service fields have Edit, the rest Ask for a correctio
     assert.match(records, /Ask for a correction/);
     assert.match(source.records, /const notGiven = 'Not given';/);
     assert.match(records, /HR has not opened your staff file yet\./);
+
     for (const b of buttons('records').filter((x) =>
         /Ask for a correction|edit-contact/.test(x),
     )) {
@@ -144,4 +147,37 @@ test('the staff file header has a back link and the status chip; nothing writes 
         source.file + source.records,
         /\/staff\/|\/access-control/,
     );
+});
+
+test('review fixes: Confirm waits for Show, targets are 44 px below 1024 px, and late Show responses are dropped', () => {
+    const file = template('file');
+    assert.match(
+        file,
+        /data-test="bank-waiting-show"[\s\S]*@shown="waitingShown = true"/,
+    );
+    assert.match(file, /data-test="bank-confirm"\s+:disabled="!waitingShown"/);
+    assert.match(
+        file,
+        /Show the new account number to check it before you\s+confirm\./,
+    );
+    assert.match(
+        file,
+        /show-field="correction"[\s\S]{0,120}correction_id: c\.id/,
+    );
+
+    for (const key of ['records', 'file', 'correction']) {
+        const t = template(key);
+
+        for (const select of t.match(/<OperationalSelect[^>]*>/g) ?? []) {
+            assert.match(select, /trigger-class="max-lg:h-11"/, key);
+        }
+
+        assert.doesNotMatch(t, /max-sm:\[&>button\]:h-11/);
+    }
+
+    assert.match(source.masked, /if \(mine !== generation\)/);
+    assert.match(template('masked'), /aria-hidden="true"/);
+    assert.match(template('masked'), /class="sr-only">\{\{ spoken \}\}/);
+    assert.match(source.file, /idempotency_key: bankDecision\.key/);
+    assert.match(source.file, /idempotency_key: correctionDecision\.key/);
 });

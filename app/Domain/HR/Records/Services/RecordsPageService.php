@@ -24,6 +24,8 @@ final class RecordsPageService
 {
     public const PROBATION_ALERT_DAYS = 14;
 
+    public function __construct(private RecordSupport $support) {}
+
     /**
      * @param  array<string, mixed>  $query
      * @return array<string, mixed>
@@ -40,7 +42,8 @@ final class RecordsPageService
             'tabs' => $tabs,
             'options' => $this->options($actor),
             'canManage' => $actor->can(RecordPermissions::MANAGE),
-            'my' => $canOwn ? $this->my($actor) : null,
+            // Your own unmasked values load only on your own tab (Suresh, M9).
+            'my' => $canOwn && $tab === 'my' ? $this->my($actor) : null,
             'files' => $canFiles && $tab === 'files' ? $this->files($actor, $query) : null,
         ];
     }
@@ -62,7 +65,9 @@ final class RecordsPageService
         return [
             'tab' => $tab,
             'options' => $this->options($actor),
-            'canManage' => $actor->can(RecordPermissions::MANAGE) && ! $self,
+            // The same rule 3 predicate as the services, so no button invites a refusal (Suresh, S4).
+            'canManage' => $actor->can(RecordPermissions::MANAGE) && $this->support->refusal($actor, $worker->user_id) === null,
+            'manageRefusal' => $actor->can(RecordPermissions::MANAGE) && ! $self ? $this->support->refusal($actor, $worker->user_id) : null,
             'isSelf' => $self,
             // For "Reports to": everyone else with a staff file (names only).
             'workers' => Worker::query()->where('organisation_id', $worker->organisation_id)->whereKeyNot($worker->id)->with('user')->get()
@@ -185,7 +190,8 @@ final class RecordsPageService
             // Accounts with no staff file yet, for "Open a staff file". The TV account never has one.
             'withoutFile' => User::query()->where('organisation_id', $actor->organisation_id)->whereNotIn('id', $withFile)->where('is_active', true)
                 ->whereHas('roles', fn ($r) => $r->whereIn('name', RosterPermissions::HUMAN_ROLES))->orderBy('name')->get(['id', 'name'])
-                ->map(fn (User $u): array => ['id' => $u->id, 'name' => $u->name])->all(),
+                ->filter(fn (User $u): bool => $this->support->refusal($actor, $u->id) === null)
+                ->map(fn (User $u): array => ['id' => $u->id, 'name' => $u->name])->values()->all(),
         ];
     }
 
@@ -213,11 +219,11 @@ final class RecordsPageService
      */
     private function header(Worker $worker, Collection $periods, CarbonImmutable $today): array
     {
-        $latest = $periods->first();
+        $latest = $this->current($periods, $today);
         $status = 'none';
         if ($latest !== null) {
             $status = $latest->ends_on !== null && $latest->ends_on->lessThan($today) ? 'ended'
-                : ($latest->probation_ends_on !== null && $latest->confirmed_on === null && $latest->probation_ends_on->greaterThanOrEqualTo($today) ? 'probation' : 'active');
+                : ($this->onProbation($latest, $today) ? 'probation' : 'active');
         }
 
         return [
@@ -243,9 +249,9 @@ final class RecordsPageService
     private function attention(Collection $periods, bool $bankWaiting, bool $correctionWaiting, CarbonImmutable $today): array
     {
         $out = [];
-        $latest = $periods->first();
-        if ($latest !== null && $latest->probation_ends_on !== null && $latest->confirmed_on === null && $latest->ends_on === null
-            && $latest->probation_ends_on->greaterThanOrEqualTo($today) && $latest->probation_ends_on->lessThanOrEqualTo($today->addDays(self::PROBATION_ALERT_DAYS))) {
+        $latest = $this->current($periods, $today);
+        if ($latest !== null && $latest->probation_ends_on !== null && $this->onProbation($latest, $today)
+            && $latest->probation_ends_on->lessThanOrEqualTo($today->addDays(self::PROBATION_ALERT_DAYS))) {
             $days = (int) $today->diffInDays($latest->probation_ends_on);
             $out[] = $days === 0 ? 'Probation ends today' : ($days === 1 ? 'Probation ends tomorrow' : "Probation ends in {$days} days");
         }
@@ -257,6 +263,22 @@ final class RecordsPageService
         }
 
         return $out;
+    }
+
+    /**
+     * The period in force today, or the next one when none has started (Suresh, M4). Periods come newest first.
+     *
+     * @param  Collection<int, EmploymentPeriod>  $periods
+     */
+    private function current(Collection $periods, CarbonImmutable $today): ?EmploymentPeriod
+    {
+        return $periods->first(fn (EmploymentPeriod $p): bool => $p->starts_on->lessThanOrEqualTo($today)) ?? $periods->last();
+    }
+
+    private function onProbation(EmploymentPeriod $p, CarbonImmutable $today): bool
+    {
+        return $p->probation_ends_on !== null && $p->confirmed_on === null && $p->probation_ends_on->greaterThanOrEqualTo($today)
+            && ($p->ends_on === null || $p->ends_on->greaterThanOrEqualTo($today));
     }
 
     /** @return array<string, mixed> */

@@ -139,6 +139,7 @@ const send = () => {
                 <template v-else-if="kind === 'identity'">
                     <div class="grid gap-1.5">
                         <OperationalSelect
+                            trigger-class="max-lg:h-11"
                             id="correction-identity-kind"
                             v-model="form.identityKind"
                             label="Identity document"
@@ -218,6 +219,7 @@ const send = () => {
 
                 <div class="grid gap-1.5">
                     <OperationalSelect
+                        trigger-class="max-lg:h-11"
                         id="correction-reason"
                         v-model="form.reason"
                         label="Reason"

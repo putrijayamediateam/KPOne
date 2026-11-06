@@ -389,7 +389,7 @@ const sendLocum = () => {
             :model-value="records.tab"
             :tabs="tabs"
             label="Staff file sections"
-            class="min-w-0 max-sm:[&>button]:h-11 max-sm:[&>button]:px-2.5"
+            class="min-w-0 max-lg:[&>button]:h-11 max-sm:[&>button]:px-2.5"
             @update:model-value="selectTab"
         />
 
@@ -717,6 +717,7 @@ const sendLocum = () => {
                 </div>
                 <div class="grid gap-1.5 lg:w-48">
                     <OperationalSelect
+                        trigger-class="max-lg:h-11"
                         id="files-branch"
                         v-model="filters.branch"
                         label="Branch"
@@ -725,6 +726,7 @@ const sendLocum = () => {
                 </div>
                 <div class="grid gap-1.5 lg:w-44">
                     <OperationalSelect
+                        trigger-class="max-lg:h-11"
                         id="files-type"
                         v-model="filters.type"
                         label="Type"
@@ -733,6 +735,7 @@ const sendLocum = () => {
                 </div>
                 <div class="grid gap-1.5 lg:w-48">
                     <OperationalSelect
+                        trigger-class="max-lg:h-11"
                         id="files-status"
                         v-model="filters.status"
                         label="Status"
@@ -1062,6 +1065,7 @@ const sendLocum = () => {
                     </p>
                     <div v-else class="grid gap-1.5">
                         <OperationalSelect
+                            trigger-class="max-lg:h-11"
                             id="open-file-user"
                             v-model="openFile.userId"
                             label="Staff member"

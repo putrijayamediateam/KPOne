@@ -3,10 +3,13 @@
 namespace Tests\Feature\HR;
 
 use App\Domain\Access\PermissionCatalogue;
+use App\Domain\Audit\AuditRecorder;
 use App\Domain\HR\Records\Models\BankDetail;
 use App\Domain\HR\Records\Models\PersonalDetails;
 use App\Domain\HR\Records\Models\Worker;
 use App\Domain\HR\Records\RecordPermissions;
+use App\Domain\HR\Records\Services\RecordSupport;
+use App\Domain\Organisation\Models\Organisation;
 use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\QueryException;
@@ -14,6 +17,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Testing\TestResponse;
 use Inertia\Testing\AssertableInertia as Assert;
+use RuntimeException;
 use Spatie\Permission\Models\Role;
 use Tests\Feature\Visit\VisitTestCase;
 
@@ -45,7 +49,7 @@ class RecordsTest extends VisitTestCase
 
         $this->selectBranch($this->actor('hr_manager'));
         $this->get(route('hr.records.index', ['tab' => 'files']))->assertOk()->assertInertia(fn (Assert $page) => $page->component('HR/Records')
-            ->where('records.tabs', ['my', 'files'])->where('records.tab', 'files')->where('records.files.rows', [])->where('records.my.hasFile', false));
+            ->where('records.tabs', ['my', 'files'])->where('records.tab', 'files')->where('records.files.rows', [])->where('records.my', null));
         $ca = $this->actor('ca');
         $this->selectBranch($ca);
         $this->get(route('hr.records.index', ['tab' => 'files']))->assertInertia(fn (Assert $page) => $page->where('records.tabs', ['my'])->where('records.files', null));
@@ -99,12 +103,28 @@ class RecordsTest extends VisitTestCase
 
         $this->open($hr, $hr2)->assertRedirect();
         $hr3 = $this->actor('hr_manager');
-        $this->open($hr3, $hr3)->assertForbidden();
+        $this->open($hr3, $hr3)->assertSessionHasErrors(['records' => 'You may not manage your own staff file. Ask someone else, or use My HR details.']);
         $this->assertSame(0, Worker::query()->where('user_id', $hr3->id)->count());
-        $this->period($hr, $hrWorker, ['type' => 'permanent', 'starts_on' => '2026-01-01'])->assertForbidden();
-        $this->period($hr, $directorWorker, ['type' => 'permanent', 'starts_on' => '2026-01-01'])->assertForbidden();
+        $this->period($hr, $hrWorker, ['type' => 'permanent', 'starts_on' => '2026-01-01'])->assertSessionHasErrors(['records' => 'You may not manage your own staff file. Ask someone else, or use My HR details.']);
+        $this->period($hr, $directorWorker, ['type' => 'permanent', 'starts_on' => '2026-01-01'])->assertSessionHasErrors(['records' => "Only a Director may change a Director's staff file."]);
         $this->period($hr2, $hrWorker, ['type' => 'permanent', 'starts_on' => '2026-01-01'])->assertSessionHasNoErrors();
         $this->period($director2, $directorWorker, ['type' => 'permanent', 'starts_on' => '2026-01-01'])->assertSessionHasNoErrors();
+
+        // Rule 3 holds on every write, not only periods (Suresh, S7), and the page offers no control that would be refused.
+        $this->personal($hr, $directorWorker, ['nationality' => 'Malaysian'])->assertSessionHasErrors(['records' => "Only a Director may change a Director's staff file."]);
+        $this->bank($hr, $directorWorker, [])->assertSessionHasErrors(['records' => "Only a Director may change a Director's staff file."]);
+        $this->selectBranch($hr);
+        $this->post(route('hr.records.positions.store', $directorWorker->public_id), ['title' => 'Director', 'from_date' => '2026-01-01', 'idempotency_key' => (string) Str::uuid()])
+            ->assertSessionHasErrors(['records' => "Only a Director may change a Director's staff file."]);
+        $this->bank($director2, $directorWorker, [])->assertSessionHasNoErrors();
+        $directorBank = BankDetail::query()->where('worker_id', $directorWorker->id)->firstOrFail();
+        $this->decideBank($hr, $directorWorker, $directorBank, 'confirm')->assertSessionHasErrors(['records' => "Only a Director may change a Director's staff file."]);
+        $this->get(route('hr.records.show', $directorWorker->public_id))->assertInertia(fn (Assert $page) => $page->where('file.canManage', false)
+            ->where('file.manageRefusal', "Only a Director may change a Director's staff file."));
+        $newDirector = $this->actor('director');
+        $this->get(route('hr.records.index', ['tab' => 'files']))->assertInertia(fn (Assert $page) => $page
+            ->where('records.files.withoutFile', fn ($list) => collect($list)->pluck('id')->intersect([$newDirector->id, $hr->id])->isEmpty() && collect($list)->pluck('id')->contains($hr3->id)));
+        $this->assertSame(0, BankDetail::query()->where('worker_id', $directorWorker->id)->where('status', 'confirmed')->count());
 
         // The manager opening their own file sees it read only (no manage controls).
         $this->selectBranch($hr);
@@ -157,6 +177,15 @@ class RecordsTest extends VisitTestCase
         $this->personal($hr, $workerB, ['identity_kind' => 'ic', 'identity_number' => self::IC], 0)->assertSessionHasErrors(['identity_number' => 'Another staff file already has this identity number.']);
         $this->personal($hr, $workerA, ['legal_name' => 'Other'], 0)->assertSessionHasErrors(['records' => 'This was changed by someone else. Reload to see the latest version.']);
 
+        // A refused save never flashes the values back into the session (Suresh, S1).
+        $this->personal($hr, $workerB, ['identity_kind' => 'ic', 'identity_number' => self::IC, 'legal_name' => 'Synthetic Flash Name', 'personal_phone' => '0129998888'], 0)
+            ->assertSessionHasErrors('identity_number');
+        $this->assertSame(['expected_lock_version'], array_keys((array) session('_old_input')));
+        // The retry hash is keyed, so a plain digest of the request does not match it (Suresh, B1).
+        $parts = [$hr->id, 'records_personal', $workerA->public_id, json_encode(['identity' => ['kind' => 'ic', 'number' => self::IC, 'country' => null]])];
+        $this->assertNotSame(hash('sha256', (string) json_encode($parts)), app(RecordSupport::class)->hash($parts));
+        $this->assertSame(hash_hmac('sha256', (string) json_encode($parts), 'kpone-hr-retry|'.config('app.key')), app(RecordSupport::class)->hash($parts));
+        $this->assertStringNotContainsString(self::IC, (string) json_encode(DB::table('hr_record_retries')->get()->toArray()));
         $raw = (array) DB::table('hr_personal_details')->where('worker_id', $workerA->id)->first();
         foreach ([self::IC, 'Synthetic Legal Name', '1990-01-01', '1 Jalan Sintetik', '60121112222'] as $plain) {
             $this->assertStringNotContainsString($plain, (string) json_encode($raw));
@@ -192,7 +221,7 @@ class RecordsTest extends VisitTestCase
         $first = BankDetail::query()->where('worker_id', $worker->id)->firstOrFail();
         $this->assertSame('waiting', $first->status);
         $this->bank($director, $worker, ['account' => '5555 6666 7777'])->assertSessionHasErrors(['bank' => 'A bank change is already waiting. Confirm, reject or withdraw it first.']);
-        $this->decideBank($hr, $worker, $first, 'confirm')->assertForbidden();
+        $this->decideBank($hr, $worker, $first, 'confirm')->assertSessionHasErrors(['records' => 'Someone else confirms this. You entered it.']);
         $this->decideBank($director, $worker, $first, 'reject')->assertSessionHasErrors(['reason' => 'Choose why it is rejected.']);
         $this->decideBank($director, $worker, $first, 'confirm')->assertSessionHasNoErrors();
         $this->assertSame('confirmed', $first->fresh()?->status);
@@ -203,14 +232,14 @@ class RecordsTest extends VisitTestCase
         $this->get(route('hr.records.show', [$worker->public_id, 'tab' => 'bank']))->assertInertia(fn (Assert $page) => $page
             ->where('file.bank.confirmed.mask', 'Account •••• 3456')->where('file.bank.waiting.mask', 'Account •••• 7777')->where('file.bank.waiting.enteredByMe', true)
             ->where('file.attention', ['Bank change waiting']));
-        $this->decideBank($director, $worker, $second, 'confirm')->assertForbidden();
+        $this->decideBank($director, $worker, $second, 'confirm')->assertSessionHasErrors(['records' => 'Someone else confirms this. You entered it.']);
         $this->decideBank($hr, $worker, $second, 'reject', 'wrong_account')->assertSessionHasNoErrors();
         $this->assertSame(['confirmed', 'rejected'], BankDetail::query()->where('worker_id', $worker->id)->orderBy('id')->pluck('status')->all());
 
         $this->bank($director, $worker, ['account' => '5555666677770'])->assertSessionHasNoErrors();
         $third = BankDetail::query()->where('worker_id', $worker->id)->where('status', 'waiting')->firstOrFail();
         $this->selectBranch($hr);
-        $this->post(route('hr.records.bank.withdraw', [$worker->public_id, $third->public_id]), ['expected_lock_version' => 1, 'idempotency_key' => (string) Str::uuid()])->assertForbidden();
+        $this->post(route('hr.records.bank.withdraw', [$worker->public_id, $third->public_id]), ['expected_lock_version' => 1, 'idempotency_key' => (string) Str::uuid()])->assertSessionHasErrors(['records' => 'Only the person who entered this change may withdraw it.']);
         $this->decideBank($hr, $worker, $third, 'confirm')->assertSessionHasNoErrors();
         $this->assertSame(['replaced', 'rejected', 'confirmed'], BankDetail::query()->where('worker_id', $worker->id)->orderBy('id')->pluck('status')->all());
         $this->assertNoValuesInEvidence(['123456789012', '5555666677770', 'Synthetic Bank']);
@@ -271,7 +300,7 @@ class RecordsTest extends VisitTestCase
         $decide($hr, 1, 'apply')->assertSessionHasNoErrors();
         $bank = BankDetail::query()->where('worker_id', $worker->id)->firstOrFail();
         $this->assertSame(['waiting', $hr->id], [$bank->status, $bank->entered_by_user_id]);
-        $this->decideBank($hr, $worker, $bank, 'confirm')->assertForbidden();
+        $this->decideBank($hr, $worker, $bank, 'confirm')->assertSessionHasErrors(['records' => 'Someone else confirms this. You entered it.']);
         $this->decideBank($director, $worker, $bank, 'confirm')->assertSessionHasNoErrors();
         $this->assertSame(['applied', 'applied', 'withdrawn'], DB::table('hr_record_corrections')->where('worker_id', $worker->id)->orderBy('id')->pluck('status')->all());
         $this->assertRefused('P0001', fn () => DB::table('hr_record_corrections')->where('id', $corrections[0]->id)->update(['status' => 'rejected', 'decision_reason' => 'other']));
@@ -294,6 +323,46 @@ class RecordsTest extends VisitTestCase
         $this->post(route('hr.records.periods.store', (string) Str::uuid()), ['type' => 'permanent', 'starts_on' => '2026-01-01', 'idempotency_key' => (string) Str::uuid()])->assertNotFound();
         $this->get(route('hr.records.show', (string) Str::uuid()))->assertNotFound();
         $this->post(route('hr.records.bank.decide', [$worker->public_id, (string) Str::uuid(), 'confirm']), ['expected_lock_version' => 1, 'idempotency_key' => (string) Str::uuid()])->assertNotFound();
+    }
+
+    public function test_a_failed_audit_releases_nothing_and_other_organisations_and_lists_never_carry_values(): void
+    {
+        $hr = $this->actor('hr_manager');
+        $ca = $this->actor('ca');
+        $worker = $this->workerFor($hr, $ca);
+        $this->personal($hr, $worker, ['identity_kind' => 'ic', 'identity_number' => self::IC, 'legal_name' => 'Synthetic Legal Name'])->assertSessionHasNoErrors();
+
+        // The Staff files list and My HR details of someone else never carry the values.
+        $this->selectBranch($hr);
+        $list = (string) $this->get(route('hr.records.index', ['tab' => 'files']))->getContent();
+        $this->assertStringNotContainsString(self::IC, $list);
+        $this->assertStringNotContainsString('Synthetic Legal Name', $list);
+        $this->assertStringNotContainsString(self::IC, (string) $this->get(route('hr.records.index', ['tab' => 'my']))->getContent());
+
+        // A real worker in another organisation is not found by any route.
+        $other = $this->otherOrganisationWorker();
+        $this->get(route('hr.records.show', $other->public_id))->assertNotFound();
+        $this->postJson(route('hr.records.show-value', $other->public_id), ['field' => 'identity'])->assertNotFound();
+        $this->post(route('hr.records.periods.store', $other->public_id), ['type' => 'permanent', 'starts_on' => '2026-01-01', 'idempotency_key' => (string) Str::uuid()])->assertNotFound();
+        $this->post(route('hr.records.bank.store', $other->public_id), ['bank_name' => 'Synthetic Bank', 'holder' => 'Synthetic Holder', 'account' => '123456', 'idempotency_key' => (string) Str::uuid()])->assertNotFound();
+
+        // If the audit row cannot be written, Show releases nothing (HR-PLAN 11.3 rule 7).
+        $this->mock(AuditRecorder::class, fn ($mock) => $mock->shouldReceive('record')->andThrow(new RuntimeException('audit unavailable')));
+        $response = $this->postJson(route('hr.records.show-value', $worker->public_id), ['field' => 'identity']);
+        $this->assertSame(500, $response->getStatusCode());
+        $this->assertStringNotContainsString(self::IC, (string) $response->getContent());
+    }
+
+    private function otherOrganisationWorker(): Worker
+    {
+        $org = new Organisation;
+        $org->forceFill(['code' => 'HR_OTHER_'.Str::upper(Str::random(6)), 'name' => 'Synthetic Other Organisation', 'is_active' => true])->save();
+        $user = new User;
+        $user->forceFill(['organisation_id' => $org->id, 'name' => 'Synthetic Other User', 'email' => 'other.'.Str::lower(Str::random(8)).'@kpone.test', 'is_active' => true])->save();
+        $worker = new Worker;
+        $worker->forceFill(['public_id' => (string) Str::uuid(), 'organisation_id' => $org->id, 'user_id' => $user->id, 'kind' => 'staff', 'created_by_user_id' => $user->id])->save();
+
+        return $worker;
     }
 
     private function open(User $actor, User $subject, ?string $key = null): TestResponse

@@ -49,6 +49,9 @@ final class BankDetailService
         if ($key !== null && ($replay = $this->support->replay($actor, $key, $action, $hash)) !== null) {
             return BankDetail::query()->where('worker_id', $worker->id)->where('public_id', $replay)->firstOrFail();
         }
+        if ($worker->kind === 'locum') {
+            throw ValidationException::withMessages(['bank' => 'A locum file holds a name, a contact phone and employment periods only.']);
+        }
         if (BankDetail::query()->where('worker_id', $worker->id)->where('status', 'waiting')->lockForUpdate()->exists()) {
             throw ValidationException::withMessages(['bank' => 'A bank change is already waiting. Confirm, reject or withdraw it first.']);
         }
@@ -128,6 +131,7 @@ final class BankDetailService
                 return BankDetail::query()->where('public_id', $bankId)->firstOrFail();
             }
             $worker = $this->support->lockWorker($actor, $workerId);
+            $this->support->assertManages($actor, $worker);
             $bank = $this->waiting($worker, $bankId);
             $this->support->assertLock($bank, $input);
             if ($bank->entered_by_user_id !== $actor->id) {

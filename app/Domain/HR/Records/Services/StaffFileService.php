@@ -227,6 +227,9 @@ final class StaffFileService
             $actor = $this->support->lock($actor, RecordPermissions::MANAGE, [$this->support->workerUserId($actor, $workerId)]);
             $worker = $this->support->lockWorker($actor, $workerId);
             $this->support->assertManages($actor, $worker);
+            if ($worker->kind === 'locum') {
+                throw ValidationException::withMessages(['records' => 'A locum file holds a name, a contact phone and employment periods only.']);
+            }
 
             return $this->writePersonal($actor, $worker, $input, $key, $values, 'records_personal');
         });
@@ -275,7 +278,10 @@ final class StaffFileService
             if ($value === null) {
                 throw ValidationException::withMessages(['field' => 'There is nothing to show.']);
             }
-            $this->support->audit->record('hr.records.value_shown', $worker, ['field' => $field], $actor, null, $actor->organisation_id);
+            // Ids only: which bank row or correction was shown, never the value (Suresh, M2).
+            $row = $field === 'bank_account' ? ['bank_id' => BankDetail::query()->where('worker_id', $worker->id)->where('public_id', (string) ($input['bank_id'] ?? ''))->value('id')]
+                : ($field === 'correction' ? ['correction_id' => RecordCorrection::query()->where('worker_id', $worker->id)->where('public_id', (string) ($input['correction_id'] ?? ''))->value('id')] : []);
+            $this->support->audit->record('hr.records.value_shown', $worker, ['field' => $field, ...$row], $actor, null, $actor->organisation_id);
 
             return $value;
         }, 3);
@@ -355,7 +361,7 @@ final class StaffFileService
                 'emergency_contact' => $out['emergency_contact_encrypted'] = $value,
                 'identity' => $out += $value === null
                     ? ['identity_kind' => null, 'identity_encrypted' => null, 'identity_hash' => null, 'identity_last4' => null, 'passport_country' => null]
-                    : ['identity_kind' => $value['kind'], 'identity_encrypted' => $value['number'], 'identity_hash' => self::identityHash($value['kind'], $value['number']),
+                    : ['identity_kind' => $value['kind'], 'identity_encrypted' => $value['number'], 'identity_hash' => self::identityHash($value['kind'], $value['number'], $value['country']),
                         'identity_last4' => RecordSupport::last4($value['number']), 'passport_country' => $value['country']],
                 default => null,
             };
@@ -365,9 +371,10 @@ final class StaffFileService
     }
 
     /** A keyed hash, so a duplicate identity number is refused without decrypting anyone (HR-PLAN 11.3 rule 5). */
-    public static function identityHash(string $kind, string $number): string
+    public static function identityHash(string $kind, string $number, ?string $country = null): string
     {
-        return hash_hmac('sha256', $kind.'|'.$number, 'kpone-hr-identity|'.(string) config('app.key'));
+        // A passport number is unique only with its issuing country (Suresh, M6).
+        return hash_hmac('sha256', $kind.'|'.($kind === 'passport' ? (string) $country.'|' : '').$number, 'kpone-hr-identity|'.(string) config('app.key'));
     }
 
     /**

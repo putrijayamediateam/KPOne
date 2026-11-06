@@ -42,7 +42,9 @@ final class RecordSupport
     /** @param list<mixed> $parts */
     public function hash(array $parts): string
     {
-        return hash('sha256', json_encode($parts, JSON_THROW_ON_ERROR));
+        // Keyed (Suresh, B1): the parts can hold identity, date-of-birth and bank values, and retries are append-only, so a
+        // plain digest could be reversed by guessing. Only someone holding the application key can recompute it.
+        return hash_hmac('sha256', json_encode($parts, JSON_THROW_ON_ERROR), 'kpone-hr-retry|'.(string) config('app.key'));
     }
 
     public function replay(User $actor, string $key, string $action, string $hash): ?string
@@ -96,24 +98,39 @@ final class RecordSupport
      */
     public function assertManages(User $actor, Worker $worker): void
     {
-        if ($worker->user_id === null) {
-            return;
+        $refusal = $this->refusal($actor, $worker->user_id);
+        if ($refusal !== null) {
+            throw new AuthorizationException($refusal);
         }
-        if ($worker->user_id === $actor->id) {
-            throw new AuthorizationException('You may not manage your own staff file. Ask someone else, or use My HR details.');
+    }
+
+    /** Rule 3 as one predicate, shared by the services and the page (Suresh, S4). Null when the actor may manage. */
+    public function refusal(User $actor, ?int $subjectUserId): ?string
+    {
+        if ($subjectUserId === null) {
+            return null;
         }
-        $subject = User::query()->findOrFail($worker->user_id);
+        if ($subjectUserId === $actor->id) {
+            return 'You may not manage your own staff file. Ask someone else, or use My HR details.';
+        }
+        $subject = User::query()->find($subjectUserId);
+        if ($subject === null) {
+            return 'This staff file cannot be managed.';
+        }
         if ($subject->hasRole('director') && ! $actor->hasRole('director')) {
-            throw new AuthorizationException("Only a Director may change a Director's staff file.");
+            return "Only a Director may change a Director's staff file.";
         }
         if ($subject->hasRole('hr_manager') && ! $actor->hasRole('director') && ! $actor->hasRole('hr_manager')) {
-            throw new AuthorizationException("Only the Director or an HR Manager may change an HR Manager's staff file.");
+            return "Only the Director or an HR Manager may change an HR Manager's staff file.";
         }
+
+        return null;
     }
 
     /** @param list<string> $fields */
     public function change(User $actor, Worker $worker, string $area, array $fields, ?string $reason = null): void
     {
+        $fields = array_map(fn (string $f): string => str_replace('_encrypted', '', $f), $fields);
         DB::table('hr_record_changes')->insert(['organisation_id' => $worker->organisation_id, 'worker_id' => $worker->id, 'area' => $area,
             'fields' => json_encode($fields, JSON_THROW_ON_ERROR), 'reason_code' => $reason, 'changed_by_user_id' => $actor->id, 'created_at' => now()->utc()]);
     }
