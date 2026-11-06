@@ -14,9 +14,12 @@ const service = read(
 );
 
 test('the card sits at the top of Business details, under the one h1, with its own h2', () => {
-    assert.equal((template.match(/<h1/g) ?? []).length, 1);
+    // One page title: a literal h1 or the shared PageHeader (which renders the h1).
+    const titles = template.match(/<h1|<PageHeader/g) ?? [];
+    assert.equal(titles.length, 1);
+    const title = template.search(/<h1|<PageHeader/);
     const card = template.indexOf('data-testid="document-readiness"');
-    assert.ok(card > template.indexOf('<h1'));
+    assert.ok(card > title);
     assert.ok(card < template.indexOf('<form'));
     assert.match(
         template,
