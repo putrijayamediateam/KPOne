@@ -196,3 +196,8 @@ authorisation to build them; the coordinator records it in `docs/BASELINE.md`.
    the Panel claim create summary now announces only errors no field announces).
    Nothing changes on screen. Linking every field to its error with `aria-describedby` is left to the owning
    teams; the existing links still work.
+10. **UX-10 Confirm dialog colours.** Relayed by the coordinator for the owner on 2026-11-06 (
+   Yasmin's token string): the shared `OperationalConfirmDialog` uses `bg-popover` and `dark:border-border`
+   instead of the fixed `dark:bg-slate-900`, matching the Queue & TV Call next dialog. Light mode: the dialog
+   is white instead of the page grey; dark mode: neutral near-black with a full-strength border instead of navy.
+   No assertion changed.
