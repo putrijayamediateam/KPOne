@@ -495,7 +495,8 @@ const rowWaitingTone = (row: PatientBoardRow) =>
                                     </DropdownMenuItem>
                                     <DropdownMenuItem
                                         v-if="row.can.cancel"
-                                        class="min-h-8 rounded-lg px-2.5 text-[13px] text-destructive focus:text-destructive"
+                                        variant="destructive"
+                                        class="min-h-8 rounded-lg px-2.5 text-[13px]"
                                         @select="$emit('cancel', row)"
                                         >Cancel Visit</DropdownMenuItem
                                     >
