@@ -75,4 +75,47 @@ final class AgentToolGateway
 
         return $result;
     }
+
+    /**
+     * The "system" path for scheduled runs (contract section 5, owner decision 2026-11-05; built in AG-6 at the
+     * owner's choice on 2026-11-06). Reads with no person's authority, only for a started, unfinished run that no
+     * person asked for, only from the console (never from a web request), only data sources on the run's agent
+     * allowlist that are SystemReadableTool, and only at the run's own active branch. Every read is checked by
+     * the aggregate guard and logged as a `data_read` step. People's permissions apply when results are shown.
+     *
+     * @param  array<string, mixed>  $input
+     * @return array<string, mixed>
+     */
+    public function callAsSystem(AiAgentRun $run, string $toolCode, Branch $branch, array $input = []): array
+    {
+        if (! app()->runningInConsole()) {
+            throw new AuthorizationException('System reads run only from scheduled work, never from a request.');
+        }
+        $tool = $this->registry->get($toolCode);
+        if (! $tool instanceof SystemReadableTool) {
+            throw new AuthorizationException('This data source cannot be read without a person.');
+        }
+        $run = AiAgentRun::query()->whereKey($run->id)->first();
+        if (! $run || ! in_array($run->status, ['working', 'awaiting_approval'], true)) {
+            throw new AuthorizationException('Data is read only inside a started, unfinished agent run.');
+        }
+        if ($run->requested_by_user_id !== null) {
+            throw new AuthorizationException('A run asked for by a person reads with that person\'s authority.');
+        }
+        $agent = AiAgent::query()->whereKey($run->ai_agent_id)->where('organisation_id', $run->organisation_id)->first();
+        if (! $agent || ! $agent->is_enabled || ! $agent->allows($tool->code())) {
+            throw new AuthorizationException('This agent may not use that data source.');
+        }
+        $branch = Branch::query()->whereKey($branch->id)->where('organisation_id', $run->organisation_id)->where('is_active', true)->first();
+        if (! $branch || ($run->branch_id !== null && $run->branch_id !== $branch->id)) {
+            throw new AuthorizationException('This branch is not available to this run.');
+        }
+
+        $validated = Validator::make($input, $tool->inputSchema())->validate();
+        $result = $tool->runForOrganisation($run->organisation_id, $branch, $validated);
+        $this->guard->assertAggregate($result);
+        $this->recorder->step($run, 'data_read', 'Read '.$tool->code().' for '.$branch->code, $tool->code());
+
+        return $result;
+    }
 }
