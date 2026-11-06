@@ -7,7 +7,6 @@ use App\Domain\Agents\DailySummary\DailyRun;
 use App\Domain\Agents\DailySummary\ReportAssistant;
 use App\Domain\Agents\Health\SystemHealthOfficer;
 use App\Domain\Agents\Health\SystemHealthTool;
-use App\Domain\Agents\Inventory\InventoryAnalyst;
 use App\Domain\Agents\Models\AiAgent;
 use App\Domain\Agents\Models\AiAgentRun;
 use App\Domain\Agents\Proposals\AiProposal;
@@ -101,6 +100,30 @@ class DailySummaryTest extends QueueTestCase
         $this->assertSame(0, AiAgentRun::query()->count());
     }
 
+    public function test_each_branch_runs_its_slot_on_its_own_clock_and_stores_its_own_local_date(): void
+    {
+        $puchong = Branch::query()->where('organisation_id', $this->organisation->id)->where('code', 'PUCHONG')->firstOrFail();
+        $puchong->forceFill(['timezone' => 'Asia/Jakarta'])->save(); // UTC+7, one hour behind Kuala Lumpur
+
+        // 23:30 UTC: 07:30 on 6 Nov in Kuala Lumpur, 06:30 in Jakarta.
+        $this->travelTo(CarbonImmutable::parse('2026-11-05T23:30:00Z'));
+        $outcome = $this->dailyRun('0700');
+        $this->assertContains('PUCHONG: before 0700', $outcome['skipped']);
+        $this->assertNotNull($this->section('lina', '0700', null, '2026-11-06'));
+        $this->assertNotNull($this->section('faris', '0700', null, '2026-11-06'));
+        $this->assertNull($this->section('lina', '0700', $puchong, '2026-11-06'));
+
+        // An hour later Jakarta reaches 07:00 and stores its own sections; Cheras and Faris repeat nothing.
+        $this->travelTo(CarbonImmutable::parse('2026-11-06T00:30:00Z'));
+        $outcome = $this->dailyRun('0700');
+        $this->assertSame(['PUCHONG lina 0700 2026-11-06', 'PUCHONG hana 0700 2026-11-06', 'PUCHONG rizal 0700 2026-11-06'], $outcome['stored']);
+        $this->assertSame('2026-11-05', $this->section('lina', '0700', $puchong, '2026-11-06')->payload['date']);
+
+        // At 17:30 UTC it is already 7 Nov in Kuala Lumpur (01:30) but still 6 Nov in Jakarta (00:30): neither runs.
+        $this->travelTo(CarbonImmutable::parse('2026-11-06T17:30:00Z'));
+        $this->assertSame([], $this->dailyRun('0700')['stored']);
+    }
+
     public function test_the_morning_run_stores_every_section_once_and_a_second_call_repeats_nothing(): void
     {
         $outcome = $this->dailyRun('0700');
@@ -149,16 +172,20 @@ class DailySummaryTest extends QueueTestCase
         $this->assertSame(['total' => 1, 'pending' => 1], $this->section('hana', '1400')->payload['counts']['restock']);
     }
 
-    public function test_a_slot_already_run_by_the_inventory_review_command_is_reused_not_reviewed_again(): void
+    public function test_a_manual_inventory_review_never_stands_in_for_the_daily_section(): void
     {
-        $this->artisan('agents:inventory-review', ['branch' => 'CHERAS'])->assertSuccessful();
-        $hanaRun = AiAgentRun::query()->sole();
+        // A manual review of restock only, before the daily run: the daily run still runs every 07:00 check itself.
+        $this->artisan('agents:inventory-review', ['branch' => 'CHERAS', '--checks' => 'restock'])->assertSuccessful();
+        $manual = AiAgentRun::query()->sole();
+        $this->assertSame(1, AiProposal::query()->count());
 
-        $outcome = $this->dailyRun('0700', 'CHERAS');
+        $this->assertSame([], $this->dailyRun('0700', 'CHERAS')['failed']);
 
-        $this->assertSame([], $outcome['failed']);
-        $this->assertSame($hanaRun->id, $this->section('hana', '0700')->ai_agent_run_id);
-        $this->assertSame(1, AiAgentRun::query()->where('ai_agent_id', AiAgent::query()->where('code', InventoryAnalyst::AGENT)->value('id'))->count());
+        $section = $this->section('hana', '0700');
+        $this->assertNotSame($manual->id, $section->ai_agent_run_id);
+        $this->assertSame(['total' => 1, 'pending' => 1], $section->payload['counts']['expiry']);
+        // The restock suggestion the manual run made is not proposed again.
+        $this->assertSame(['total' => 1, 'pending' => 1], $section->payload['counts']['restock']);
         $this->assertSame(2, AiProposal::query()->count());
     }
 
@@ -166,18 +193,18 @@ class DailySummaryTest extends QueueTestCase
     {
         $recorder = app(AgentRunRecorder::class);
         $date = now('Asia/Kuala_Lumpur')->toDateString();
-        $fail = fn (string $suffix) => $recorder->fail($recorder->start(ReportAssistant::AGENT, ReportAssistant::TASK, $this->branch, idempotencyKey: ReportAssistant::AGENT.":{$this->branch->id}:{$date}:0700{$suffix}", organisationId: $this->organisation->id), 'daily_run.failed');
+        $fail = fn (string $suffix) => $recorder->fail($recorder->start(ReportAssistant::AGENT, ReportAssistant::TASK, $this->branch, idempotencyKey: 'daily:'.ReportAssistant::AGENT.":{$this->branch->id}:{$date}:0700{$suffix}", organisationId: $this->organisation->id), 'daily_run.failed');
         $fail('');
 
         $outcome = $this->dailyRun('0700', 'CHERAS');
         $this->assertSame([], $outcome['failed']);
-        $this->assertSame(ReportAssistant::AGENT.":{$this->branch->id}:{$date}:0700:r2", AiAgentRun::query()->whereKey($this->section('lina', '0700')->ai_agent_run_id)->value('idempotency_key'));
+        $this->assertSame('daily:'.ReportAssistant::AGENT.":{$this->branch->id}:{$date}:0700:r2", AiAgentRun::query()->whereKey($this->section('lina', '0700')->ai_agent_run_id)->value('idempotency_key'));
         $this->assertNull($this->section('faris', '0700'));
 
         // Three failed attempts at another branch: the section is not tried again today.
         $puchong = Branch::query()->where('organisation_id', $this->organisation->id)->where('code', 'PUCHONG')->firstOrFail();
         foreach (['', ':r2', ':r3'] as $suffix) {
-            $recorder->fail($recorder->start(StocktakeOfficer::AGENT, StocktakeOfficer::TASK, $puchong, idempotencyKey: StocktakeOfficer::AGENT.":{$puchong->id}:{$date}:0700{$suffix}", organisationId: $this->organisation->id), 'daily_run.failed');
+            $recorder->fail($recorder->start(StocktakeOfficer::AGENT, StocktakeOfficer::TASK, $puchong, idempotencyKey: 'daily:'.StocktakeOfficer::AGENT.":{$puchong->id}:{$date}:0700{$suffix}", organisationId: $this->organisation->id), 'daily_run.failed');
         }
         $outcome = $this->dailyRun('0700', 'PUCHONG');
         $this->assertSame(["PUCHONG rizal 0700 {$date}: no attempts left today"], $outcome['failed']);
@@ -216,6 +243,16 @@ class DailySummaryTest extends QueueTestCase
         // A run still in progress cannot either.
         $running = app(AgentRunRecorder::class)->start(ReportAssistant::AGENT, ReportAssistant::TASK, $this->branch, organisationId: $this->organisation->id);
         $this->assertThrows(fn () => $insert($running->id, 'lina'), QueryException::class);
+        // One section per run: Lina's 07:00 run cannot also stand behind another date's section.
+        $this->assertThrows(fn () => $insert($row->ai_agent_run_id, 'lina'), QueryException::class);
+        // A completed run of Lina's agent on another task cannot either.
+        $recorder = app(AgentRunRecorder::class);
+        $otherTask = $recorder->start(ReportAssistant::AGENT, 'other_report', $this->branch, organisationId: $this->organisation->id);
+        $recorder->complete($otherTask);
+        $this->assertThrows(fn () => $insert($otherTask->id, 'lina'), QueryException::class);
+        $sameTask = $recorder->start(ReportAssistant::AGENT, ReportAssistant::TASK, $this->branch, organisationId: $this->organisation->id);
+        $recorder->complete($sameTask);
+        $insert($sameTask->id, 'lina'); // the control: a completed run of the right agent and task is accepted
         // Faris has no branch; every other section has one.
         $this->assertThrows(fn () => DB::transaction(fn () => DB::table('ai_daily_summary_sections')->insert([
             'organisation_id' => $this->organisation->id, 'branch_id' => null, 'local_date' => '2026-11-01', 'slot' => '0700',

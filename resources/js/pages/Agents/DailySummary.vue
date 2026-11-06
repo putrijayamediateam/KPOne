@@ -440,8 +440,9 @@ const linaHeading = (lina: Lina) =>
                     </dl>
 
                     <p v-if="lina.panel" class="text-sm" data-test="lina-panel">
-                        Panel: {{ lina.panel.unclaimedInvoices }} invoices not
-                        claimed yet ({{ ringgit(lina.panel.unclaimedSen) }}),
+                        Panel, as of this run:
+                        {{ lina.panel.unclaimedInvoices }} invoices not claimed
+                        yet ({{ ringgit(lina.panel.unclaimedSen) }}),
                         {{ lina.panel.overdueUnclaimedInvoices }} of them
                         overdue; {{ lina.panel.acceptedUnpaidClaims }} accepted
                         claims waiting for payment ({{
@@ -449,7 +450,7 @@ const linaHeading = (lina: Lina) =>
                         }}).
                     </p>
                     <p v-if="lina.stock" class="text-sm" data-test="lina-stock">
-                        Stock: {{ lina.stock.lowStock }} low,
+                        Stock, as of this run: {{ lina.stock.lowStock }} low,
                         {{ lina.stock.expiring }} expiring within 90 days,
                         {{ lina.stock.expired }} expired on hand.
                     </p>
@@ -483,7 +484,7 @@ const linaHeading = (lina: Lina) =>
                     class="mt-2 inline-flex min-h-11 items-center text-sm font-medium text-primary underline-offset-4 hover:underline lg:min-h-0"
                     data-test="summary-inbox-link"
                 >
-                    Open the approval inbox
+                    Open the approval inbox (it lists your active branch)
                 </Link>
             </div>
 

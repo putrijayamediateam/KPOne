@@ -98,8 +98,9 @@ final class DailyRun
             'rizal' => [StocktakeOfficer::AGENT, StocktakeOfficer::TASK],
             default => [SystemHealthOfficer::AGENT, SystemHealthOfficer::TASK],
         };
-        // Hana's key matches agents:inventory-review, so a slot that command already ran is reused, not reviewed again.
-        $base = $agent.':'.($branch->id ?? 'org'.$organisationId).":{$date}:{$slot}";
+        // Its own key, apart from the manual agents:inventory-review: a manual run may cover only some checks, so it
+        // never stands in for a section. Hana's proposals keep their own keys, so nothing is proposed twice.
+        $base = 'daily:'.$agent.':'.($branch->id ?? 'org'.$organisationId).":{$date}:{$slot}";
         for ($attempt = 1; $attempt <= self::ATTEMPTS; $attempt++) {
             try {
                 $run = $this->recorder->start($agent, $task, $branch, idempotencyKey: $base.($attempt > 1 ? ":r{$attempt}" : ''), organisationId: $organisationId);
@@ -110,19 +111,13 @@ final class DailyRun
 
                 return;
             }
-            $reuse = $run->isFinished() && $run->status === 'completed' && $section === 'hana' && $branch !== null;
-            if ($run->isFinished() && ! $reuse) {
+            if ($run->isFinished()) {
                 // A failed attempt, or a run that finished without storing its section: try a fresh run.
                 continue;
             }
             try {
-                if ($reuse) {
-                    // agents:inventory-review already ran Hana for this slot: store its counts, never review twice.
-                    $payload = self::hanaCounts($organisationId, $branch, $date);
-                } else {
-                    $payload = $this->payload($run, $branch, $date, $slot, $section);
-                    $this->recorder->complete($run);
-                }
+                $payload = $this->payload($run, $branch, $date, $slot, $section);
+                $this->recorder->complete($run);
                 DB::transaction(fn () => AiDailySummarySection::query()->create([
                     'organisation_id' => $organisationId,
                     'branch_id' => $branch?->id,

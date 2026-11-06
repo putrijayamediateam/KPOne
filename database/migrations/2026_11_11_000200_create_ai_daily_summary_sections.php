@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\Schema;
 /**
  * AG-8: the stored results of the 07:00 and 14:00 agent runs (contract section 14), so the daily summary page
  * loads without recomputing. One row per organisation, branch, local date, slot and section; Faris's
- * organisation-wide line has no branch. A row comes only from a completed run of the section's own agent, holds
+ * organisation-wide line has no branch. A row comes only from a completed run of the section's own agent and task (one section per run), holds
  * aggregates only (encrypted, with a hash) and never changes or goes away.
  */
 return new class extends Migration
@@ -35,6 +35,7 @@ ALTER TABLE ai_daily_summary_sections ADD CONSTRAINT ai_daily_summary_sections_s
 ALTER TABLE ai_daily_summary_sections ADD CONSTRAINT ai_daily_summary_sections_branch_check CHECK ((section = 'faris') = (branch_id IS NULL));
 ALTER TABLE ai_daily_summary_sections ADD CONSTRAINT ai_daily_summary_sections_hash_check CHECK (payload_hash ~ '^[0-9a-f]{64}$');
 CREATE UNIQUE INDEX ai_daily_summary_sections_branch_unique ON ai_daily_summary_sections (organisation_id, branch_id, local_date, slot, section) WHERE branch_id IS NOT NULL;
+CREATE UNIQUE INDEX ai_daily_summary_sections_run_unique ON ai_daily_summary_sections (ai_agent_run_id);
 CREATE UNIQUE INDEX ai_daily_summary_sections_org_unique ON ai_daily_summary_sections (organisation_id, local_date, slot, section) WHERE branch_id IS NULL;
 
 CREATE OR REPLACE FUNCTION kp_ai_daily_summary_section_guard() RETURNS trigger LANGUAGE plpgsql AS $$
@@ -58,6 +59,11 @@ BEGIN
         WHEN 'rizal' THEN 'stocktake_officer' WHEN 'faris' THEN 'technical_admin_agent' END;
     IF agent_code IS DISTINCT FROM expected_code THEN
         RAISE EXCEPTION 'A daily summary section comes from its own agent' USING ERRCODE = '23514';
+    END IF;
+    expected_code := CASE NEW.section WHEN 'lina' THEN 'daily_report' WHEN 'hana' THEN 'inventory_review'
+        WHEN 'rizal' THEN 'stock_count_check' WHEN 'faris' THEN 'system_health' END;
+    IF run_row.task_type IS DISTINCT FROM expected_code THEN
+        RAISE EXCEPTION 'A daily summary section comes from its agent''s own task' USING ERRCODE = '23514';
     END IF;
     RETURN NEW;
 END;
