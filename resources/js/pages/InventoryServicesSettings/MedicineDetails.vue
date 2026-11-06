@@ -1,6 +1,14 @@
 <script setup lang="ts">
 import { Head, Link, router, useForm, usePage } from '@inertiajs/vue3';
-import { computed, ref, watch } from 'vue';
+import { Ellipsis } from '@lucide/vue';
+import {
+    computed,
+    nextTick,
+    onBeforeUnmount,
+    onMounted,
+    ref,
+    watch,
+} from 'vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import {
@@ -18,6 +26,8 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { CompactPagination } from '@/components/ui/pagination';
+import { EmptyState } from '@/components/ui/state';
+import { OperationalTable } from '@/components/ui/table';
 
 type Option = {
     id: number;
@@ -47,6 +57,67 @@ const renaming = ref(false);
 const selected = ref<Option | null>(null);
 const batch = computed(() => ['precaution', 'indication'].includes(props.type));
 const title = computed(() => props.tabs[props.type]);
+// "Drug group" -> "drug groups", "Frequency" -> "frequencies": used in the empty state and the search name.
+const plural = computed(() => {
+    const label = (title.value ?? 'option').toLowerCase();
+
+    return label.endsWith('y') ? `${label.slice(0, -1)}ies` : `${label}s`;
+});
+const emptyTitle = computed(() =>
+    props.q
+        ? `No ${plural.value} match "${props.q}"`
+        : `No ${plural.value} yet`,
+);
+const emptyDescription = computed(() =>
+    props.q ? 'Try another search.' : 'Add one with Add new.',
+);
+// DD-30 pattern (Daniel, CAT-5): on a phone the tab strip scrolls, so fade its right edge while more tabs are hidden
+// and bring the current or focused tab into view.
+const tabStrip = ref<HTMLElement | null>(null);
+const moreTabsRight = ref(false);
+const updateTabFade = () => {
+    const nav = tabStrip.value;
+
+    moreTabsRight.value =
+        nav !== null &&
+        nav.scrollWidth > nav.clientWidth + 1 &&
+        nav.scrollLeft + nav.clientWidth < nav.scrollWidth - 1;
+};
+const revealTab = (tab: HTMLElement | null | undefined) => {
+    const nav = tabStrip.value;
+
+    if (!nav || !tab) {
+        return;
+    }
+
+    const navBox = nav.getBoundingClientRect();
+    const tabBox = tab.getBoundingClientRect();
+
+    if (tabBox.left < navBox.left) {
+        nav.scrollLeft -= navBox.left - tabBox.left;
+    } else if (tabBox.right > navBox.right) {
+        nav.scrollLeft += tabBox.right - navBox.right;
+    }
+
+    updateTabFade();
+};
+const revealFocusedTab = (event: FocusEvent) =>
+    revealTab(event.target as HTMLElement | null);
+let tabResizeObserver: ResizeObserver | undefined;
+onMounted(() => {
+    void nextTick(() => {
+        revealTab(
+            tabStrip.value?.querySelector<HTMLElement>('[aria-current="page"]'),
+        );
+        updateTabFade();
+    });
+
+    if (typeof ResizeObserver !== 'undefined' && tabStrip.value) {
+        tabResizeObserver = new ResizeObserver(updateTabFade);
+        tabResizeObserver.observe(tabStrip.value);
+    }
+});
+onBeforeUnmount(() => tabResizeObserver?.disconnect());
 const dialogType = ref(props.type);
 const addForm = useForm({
     expected_branch_id: props.branchId,
@@ -186,7 +257,7 @@ const labelError = (index: number) =>
             <div class="mt-5">
                 <h2 class="text-lg font-medium">Medicine details</h2>
                 <p class="text-sm text-muted-foreground">
-                    Setup your drug group, medicine dosage and instructions.
+                    Set up your drug groups, dosage units and instructions.
                 </p>
             </div>
             <p
@@ -200,8 +271,17 @@ const labelError = (index: number) =>
                 class="mt-6 flex flex-wrap items-center justify-between gap-3 border-b"
             >
                 <nav
+                    ref="tabStrip"
                     aria-label="Medicine details tabs"
                     class="flex max-w-full overflow-x-auto"
+                    :class="
+                        moreTabsRight
+                            ? '[mask-image:linear-gradient(to_right,#000_calc(100%-2.5rem),transparent)]'
+                            : ''
+                    "
+                    data-testid="medicine-details-tabs"
+                    @scroll.passive="updateTabFade"
+                    @focusin="revealFocusedTab"
                 >
                     <Link
                         v-for="(label, type) in tabs"
@@ -209,7 +289,7 @@ const labelError = (index: number) =>
                         :href="`/inventory-services-settings/medicine-details?type=${type}`"
                         :aria-current="props.type === type ? 'page' : undefined"
                         :class="[
-                            'shrink-0 border-b-2 px-5 py-3 text-sm font-medium',
+                            'min-h-11 shrink-0 border-b-2 px-5 py-3 text-sm font-medium',
                             props.type === type
                                 ? 'border-foreground'
                                 : 'border-transparent text-muted-foreground',
@@ -223,20 +303,23 @@ const labelError = (index: number) =>
                         class="flex min-w-0 items-center gap-2"
                         @submit.prevent="go()"
                     >
-                        <label for="option-search" class="sr-only"
-                            >Search options</label
+                        <label
+                            for="option-search"
+                            class="text-xs font-medium md:sr-only"
+                            >Search {{ plural }}</label
                         ><input
                             id="option-search"
                             v-model="search"
                             type="search"
                             maxlength="200"
-                            placeholder="Search options"
+                            :placeholder="`Search ${plural}`"
                             class="h-9 min-w-0 rounded-md border bg-background px-3 text-sm"
                         /><Button
                             type="submit"
                             variant="ghost"
                             size="sm"
-                            aria-label="Search options"
+                            :aria-label="`Search ${plural}`"
+                            class="min-h-11 min-w-11 md:min-h-8 md:min-w-8"
                             ><svg
                                 viewBox="0 0 24 24"
                                 class="size-5"
@@ -253,7 +336,8 @@ const labelError = (index: number) =>
                         v-else
                         variant="ghost"
                         size="sm"
-                        aria-label="Search options"
+                        :aria-label="`Search ${plural}`"
+                        class="min-h-11 min-w-11 md:min-h-8 md:min-w-8"
                         @click="searching = true"
                         ><svg
                             viewBox="0 0 24 24"
@@ -269,80 +353,176 @@ const labelError = (index: number) =>
                     <Button size="sm" @click="openAdd">Add new</Button>
                 </div>
             </div>
-            <div class="overflow-x-auto">
-                <table class="w-full text-left text-sm">
-                    <thead class="border-b text-xs text-muted-foreground">
-                        <tr>
-                            <th class="px-4 py-4 font-medium">NAME</th>
-                            <th class="w-28 px-4 py-4 font-medium">STATUS</th>
-                            <th class="w-24 px-4 py-4 font-medium">ACTIONS</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr
-                            v-for="option in options"
-                            :key="option.id"
-                            class="border-b"
+            <section
+                class="mt-4 grid grid-cols-1 gap-3 md:hidden"
+                aria-label="Medicine details options"
+                data-testid="settings-cards"
+            >
+                <EmptyState
+                    v-if="options.length === 0"
+                    :title="emptyTitle"
+                    :description="emptyDescription"
+                />
+                <article
+                    v-for="option in options"
+                    :key="option.id"
+                    class="grid min-w-0 grid-cols-1 gap-3 rounded-xl border bg-card p-4"
+                    data-testid="settings-card"
+                >
+                    <div class="flex items-start justify-between gap-2">
+                        <p
+                            class="min-w-0 text-sm font-medium [overflow-wrap:anywhere]"
                         >
-                            <td class="px-4 py-4">{{ option.label }}</td>
-                            <td class="px-4 py-3">
-                                <button
-                                    type="button"
-                                    role="switch"
-                                    :aria-checked="option.active"
-                                    :aria-label="`${option.active ? 'Archive' : 'Restore'} ${option.label}`"
+                            {{ option.label }}
+                        </p>
+                        <DropdownMenu>
+                            <DropdownMenuTrigger as-child>
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    class="min-h-11 min-w-11 shrink-0"
+                                    :aria-label="`More actions for ${option.label}`"
                                     :disabled="busy !== null"
-                                    :class="[
-                                        'relative inline-flex h-7 w-12 items-center rounded-full transition-colors disabled:opacity-50',
-                                        option.active
-                                            ? 'bg-emerald-500'
-                                            : 'bg-muted-foreground/40',
-                                    ]"
-                                    @click="toggle(option)"
+                                    data-action="row-menu"
                                 >
-                                    <span
-                                        :class="[
-                                            'size-5 rounded-full bg-white transition-transform',
-                                            option.active
-                                                ? 'translate-x-6'
-                                                : 'translate-x-1',
-                                        ]"
+                                    <Ellipsis
+                                        class="size-4"
+                                        aria-hidden="true"
                                     />
-                                </button>
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                                <DropdownMenuItem @select="openRename(option)"
+                                    >Rename</DropdownMenuItem
+                                >
+                                <DropdownMenuItem
+                                    v-if="option.active"
+                                    @select="toggle(option)"
+                                    >Archive</DropdownMenuItem
+                                >
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <button
+                            type="button"
+                            role="switch"
+                            :aria-checked="option.active"
+                            :aria-label="`${option.active ? 'Archive' : 'Restore'} ${option.label}`"
+                            :disabled="busy !== null"
+                            :class="[
+                                'relative inline-flex h-7 w-12 shrink-0 items-center rounded-full ring-1 ring-border transition-colors disabled:opacity-50',
+                                option.active
+                                    ? 'bg-success'
+                                    : 'bg-muted-foreground/40',
+                            ]"
+                            @click="toggle(option)"
+                        >
+                            <span
+                                :class="[
+                                    'size-5 rounded-full bg-white shadow-sm transition-transform',
+                                    option.active
+                                        ? 'translate-x-6'
+                                        : 'translate-x-1',
+                                ]"
+                            />
+                        </button>
+                        <span class="text-sm" data-testid="status-word">{{
+                            option.active ? 'Active' : 'Archived'
+                        }}</span>
+                    </div>
+                </article>
+            </section>
+            <div class="mt-4 hidden min-w-0 md:block">
+                <OperationalTable
+                    label="Medicine details options"
+                    class="[&_table]:table-fixed"
+                    :columns="3"
+                    :empty="options.length === 0"
+                    :empty-message="`${emptyTitle}. ${emptyDescription}`"
+                    min-width="0"
+                >
+                    <template #head>
+                        <tr>
+                            <th>Name</th>
+                            <th class="w-44">Status</th>
+                            <th class="w-24 text-right">Actions</th>
+                        </tr>
+                    </template>
+                    <template #body>
+                        <tr v-for="option in options" :key="option.id">
+                            <td class="[overflow-wrap:anywhere]">
+                                {{ option.label }}
                             </td>
-                            <td class="px-4 py-3">
-                                <DropdownMenu
-                                    ><DropdownMenuTrigger as-child
-                                        ><Button
+                            <td>
+                                <div class="flex items-center gap-3">
+                                    <button
+                                        type="button"
+                                        role="switch"
+                                        :aria-checked="option.active"
+                                        :aria-label="`${option.active ? 'Archive' : 'Restore'} ${option.label}`"
+                                        :disabled="busy !== null"
+                                        :class="[
+                                            'relative inline-flex h-7 w-12 shrink-0 items-center rounded-full ring-1 ring-border transition-colors disabled:opacity-50',
+                                            option.active
+                                                ? 'bg-success'
+                                                : 'bg-muted-foreground/40',
+                                        ]"
+                                        @click="toggle(option)"
+                                    >
+                                        <span
+                                            :class="[
+                                                'size-5 rounded-full bg-white shadow-sm transition-transform',
+                                                option.active
+                                                    ? 'translate-x-6'
+                                                    : 'translate-x-1',
+                                            ]"
+                                        />
+                                    </button>
+                                    <span
+                                        class="text-sm"
+                                        data-testid="status-word"
+                                        >{{
+                                            option.active
+                                                ? 'Active'
+                                                : 'Archived'
+                                        }}</span
+                                    >
+                                </div>
+                            </td>
+                            <td class="text-right">
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger as-child>
+                                        <Button
                                             variant="ghost"
-                                            size="sm"
-                                            :aria-label="`Actions for ${option.label}`"
+                                            size="icon"
+                                            class="size-9"
+                                            :aria-label="`More actions for ${option.label}`"
                                             :disabled="busy !== null"
-                                            >•••</Button
-                                        ></DropdownMenuTrigger
-                                    ><DropdownMenuContent align="end"
-                                        ><DropdownMenuItem
+                                            data-action="row-menu"
+                                        >
+                                            <Ellipsis
+                                                class="size-4"
+                                                aria-hidden="true"
+                                            />
+                                        </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end">
+                                        <DropdownMenuItem
                                             @select="openRename(option)"
                                             >Rename</DropdownMenuItem
-                                        ><DropdownMenuItem
+                                        >
+                                        <DropdownMenuItem
                                             v-if="option.active"
                                             @select="toggle(option)"
                                             >Archive</DropdownMenuItem
-                                        ></DropdownMenuContent
-                                    ></DropdownMenu
-                                >
+                                        >
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
                             </td>
                         </tr>
-                        <tr v-if="options.length === 0">
-                            <td
-                                colspan="3"
-                                class="px-4 py-8 text-center text-muted-foreground"
-                            >
-                                No options found.
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
+                    </template>
+                </OperationalTable>
             </div>
             <CompactPagination
                 class="mt-4"

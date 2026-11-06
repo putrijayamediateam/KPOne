@@ -4,8 +4,13 @@ import { useForm } from '@inertiajs/vue3';
 import { computed, nextTick, onUnmounted, ref, watch } from 'vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { PageHeader } from '@/components/ui/page-header';
+import { OperationalSelect } from '@/components/ui/select';
 import { EmptyState } from '@/components/ui/state';
 import { StatusBadge } from '@/components/ui/status';
+import { Textarea } from '@/components/ui/textarea';
 
 type Details = {
     clinic_name: string;
@@ -217,13 +222,26 @@ onUnmounted(() => {
     stop();
     clearPreview();
 });
+const registrationTypes = [
+    { value: 'BRN', label: 'Company Registration Number (BRN)' },
+];
 const addressFields = [
-    { key: 'address_line_1', label: 'Address line 1', max: 255 },
-    { key: 'address_line_2', label: 'Address line 2', max: 255 },
-    { key: 'postcode', label: 'Postcode', max: 20 },
-    { key: 'city', label: 'City', max: 100 },
-    { key: 'state', label: 'State', max: 100 },
-    { key: 'country', label: 'Country', max: 100 },
+    {
+        key: 'address_line_1',
+        label: 'Address line 1',
+        max: 255,
+        required: true,
+    },
+    {
+        key: 'address_line_2',
+        label: 'Address line 2',
+        max: 255,
+        required: false,
+    },
+    { key: 'postcode', label: 'Postcode', max: 20, required: true },
+    { key: 'city', label: 'City', max: 100, required: true },
+    { key: 'state', label: 'State', max: 100, required: true },
+    { key: 'country', label: 'Country', max: 100, required: true },
 ] as const;
 const generalError = computed(
     () =>
@@ -237,23 +255,28 @@ const reload = () =>
 
 <template>
     <Head title="Business details" />
-    <main class="mx-auto w-full max-w-[1440px] flex-1 p-4 pb-0 md:p-6 md:pb-0">
-        <header class="mb-4 flex flex-wrap items-center gap-3">
-            <Link
-                href="/clinic-management"
-                class="rounded px-2 py-1 text-xs hover:bg-muted focus-visible:outline-2 focus-visible:outline-ring"
-                >← Clinic management</Link
-            >
-            <h1 class="text-lg font-semibold">Business details</h1>
-            <span class="text-xs text-muted-foreground">{{
-                letterhead.branchName
-            }}</span>
-            <span
-                v-if="!canEdit"
-                class="ml-auto rounded-full border bg-muted px-2 py-1 text-xs"
-                >View only</span
-            >
-        </header>
+    <main
+        class="mx-auto w-full max-w-4xl min-w-0 flex-1 p-4 pb-0 md:p-6 md:pb-0"
+    >
+        <PageHeader
+            title="Business details"
+            :description="`Clinic name, address, contact and logo used on invoices, receipts and letters · ${letterhead.branchName}`"
+        >
+            <template #actions>
+                <StatusBadge
+                    v-if="!canEdit"
+                    status="view_only"
+                    label="View only"
+                    tone="neutral"
+                />
+                <Button variant="ghost" size="sm" as-child>
+                    <Link href="/clinic-management">← Clinic management</Link>
+                </Button>
+            </template>
+        </PageHeader>
+        <p class="mt-2 mb-4 text-xs text-muted-foreground" aria-hidden="true">
+            * Required
+        </p>
         <p
             v-if="generalError || blocked"
             role="alert"
@@ -413,17 +436,21 @@ const reload = () =>
                     >
                         Clinic details
                     </h2>
-                    <div class="grid gap-x-6 gap-y-4 md:grid-cols-2">
+                    <div
+                        class="grid grid-cols-1 gap-x-6 gap-y-4 md:grid-cols-2"
+                    >
                         <div class="min-w-0 space-y-3">
-                            <div>
-                                <label for="clinic_name" class="biz-label"
-                                    >Clinic name</label
+                            <div class="grid gap-2">
+                                <Label for="clinic_name"
+                                    >Clinic name<span aria-hidden="true">
+                                        *</span
+                                    ></Label
                                 >
-                                <input
+                                <Input
                                     id="clinic_name"
                                     v-model="form.clinic_name"
+                                    aria-required="true"
                                     name="clinic_name"
-                                    class="biz-input"
                                     maxlength="200"
                                     :aria-invalid="!!form.errors.clinic_name"
                                     aria-describedby="clinic_name-error"
@@ -436,15 +463,24 @@ const reload = () =>
                             <div
                                 v-for="field in addressFields"
                                 :key="field.key"
+                                class="grid gap-2"
                             >
-                                <label :for="field.key" class="biz-label">{{
-                                    field.label
-                                }}</label>
-                                <input
+                                <Label :for="field.key"
+                                    >{{ field.label
+                                    }}<span
+                                        v-if="field.required"
+                                        aria-hidden="true"
+                                    >
+                                        *</span
+                                    ></Label
+                                >
+                                <Input
                                     :id="field.key"
                                     v-model="form[field.key]"
+                                    :aria-required="
+                                        field.required ? 'true' : undefined
+                                    "
                                     :name="field.key"
-                                    class="biz-input"
                                     :maxlength="field.max"
                                     :aria-invalid="!!form.errors[field.key]"
                                     :aria-describedby="`${field.key}-error`"
@@ -456,16 +492,15 @@ const reload = () =>
                             </div>
                         </div>
                         <div class="min-w-0 space-y-4">
-                            <div>
-                                <label for="phone" class="biz-label"
-                                    >Clinic phone number (optional)</label
+                            <div class="grid gap-2">
+                                <Label for="phone"
+                                    >Clinic phone number (optional)</Label
                                 >
-                                <input
+                                <Input
                                     id="phone"
                                     v-model="form.phone"
                                     name="phone"
                                     type="tel"
-                                    class="biz-input"
                                     maxlength="40"
                                     :aria-invalid="!!form.errors.phone"
                                     aria-describedby="phone-help phone-error"
@@ -482,16 +517,15 @@ const reload = () =>
                                     :message="form.errors.phone"
                                 />
                             </div>
-                            <div>
-                                <label for="email" class="biz-label"
-                                    >Clinic email (optional)</label
+                            <div class="grid gap-2">
+                                <Label for="email"
+                                    >Clinic email (optional)</Label
                                 >
-                                <input
+                                <Input
                                     id="email"
                                     v-model="form.email"
                                     name="email"
                                     type="email"
-                                    class="biz-input"
                                     maxlength="254"
                                     :aria-invalid="!!form.errors.email"
                                     aria-describedby="email-error"
@@ -502,7 +536,11 @@ const reload = () =>
                                 />
                             </div>
                             <div>
-                                <h3 class="biz-label">Company logo</h3>
+                                <h3
+                                    class="mb-2 text-sm leading-none font-medium"
+                                >
+                                    Company logo
+                                </h3>
                                 <p class="mb-3 text-xs text-muted-foreground">
                                     One logo for all branches. JPG or PNG, up to
                                     2 MB and 4096 × 4096 pixels. Preferred
@@ -528,9 +566,7 @@ const reload = () =>
                                         v-if="canEdit"
                                         class="min-w-0 flex-1 space-y-2"
                                     >
-                                        <label for="logo" class="biz-label"
-                                            >Choose logo</label
-                                        >
+                                        <Label for="logo">Choose logo</Label>
                                         <input
                                             id="logo"
                                             ref="fileInput"
@@ -587,16 +623,18 @@ const reload = () =>
                         Legal identity and registration are shared across
                         branches.
                     </p>
-                    <div class="grid gap-4 md:grid-cols-2">
-                        <div class="md:col-span-2">
-                            <label for="legal_name" class="biz-label"
-                                >Legal name</label
+                    <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+                        <div class="grid gap-2 md:col-span-2">
+                            <Label for="legal_name"
+                                >Legal name<span aria-hidden="true">
+                                    *</span
+                                ></Label
                             >
-                            <input
+                            <Input
                                 id="legal_name"
                                 v-model="form.legal_name"
+                                aria-required="true"
                                 name="legal_name"
-                                class="biz-input"
                                 maxlength="200"
                                 :aria-invalid="!!form.errors.legal_name"
                                 aria-describedby="legal_name-error"
@@ -606,35 +644,37 @@ const reload = () =>
                                 :message="form.errors.legal_name"
                             />
                         </div>
-                        <div>
-                            <label for="registration_type" class="biz-label"
-                                >Registration type</label
+                        <div class="grid gap-2">
+                            <Label
+                                id="registration_type-label"
+                                for="registration_type"
+                                >Registration type</Label
                             >
-                            <select
+                            <OperationalSelect
                                 id="registration_type"
                                 v-model="form.registration_type"
-                                class="biz-input"
-                                :aria-invalid="!!form.errors.registration_type"
-                                aria-describedby="registration_type-error"
-                            >
-                                <option value="BRN">
-                                    Company Registration Number (BRN)
-                                </option>
-                            </select>
+                                :disabled="
+                                    !canEdit || form.processing || blocked
+                                "
+                                label="Registration type"
+                                labelledby="registration_type-label"
+                                describedby="registration_type-error"
+                                :invalid="!!form.errors.registration_type"
+                                :options="registrationTypes"
+                            />
                             <InputError
                                 id="registration_type-error"
                                 :message="form.errors.registration_type"
                             />
                         </div>
-                        <div>
-                            <label for="registration_number" class="biz-label"
-                                >Registration number (optional)</label
+                        <div class="grid gap-2">
+                            <Label for="registration_number"
+                                >Registration number (optional)</Label
                             >
-                            <input
+                            <Input
                                 id="registration_number"
                                 v-model="form.registration_number"
                                 name="registration_number"
-                                class="biz-input"
                                 maxlength="80"
                                 :aria-invalid="
                                     !!form.errors.registration_number
@@ -686,15 +726,14 @@ const reload = () =>
                 views. Maximum 1,000 characters; no HTML. Settings editors can
                 save this footer without changing clinic details or the logo.
             </p>
-            <label for="footer_text" class="biz-label"
-                >Print footer (optional)</label
+            <Label for="footer_text" class="mb-2"
+                >Print footer (optional)</Label
             >
-            <textarea
+            <Textarea
                 id="footer_text"
                 v-model="footerForm.footer_text"
                 rows="3"
                 maxlength="1000"
-                class="w-full rounded-md border bg-background p-2 text-sm"
                 :disabled="blocked || footerForm.processing"
                 :aria-invalid="!!footerForm.errors.footer_text"
                 aria-describedby="print-footer-help print-footer-error"
@@ -736,33 +775,10 @@ const reload = () =>
 </template>
 
 <style scoped>
-.biz-label {
-    display: block;
-    margin-bottom: 0.375rem;
-    font-size: 0.75rem;
-    font-weight: 500;
-}
-.biz-input {
-    display: block;
-    width: 100%;
-    min-width: 0;
-    height: 2rem;
-    border: 1px solid var(--border);
-    border-radius: 0.375rem;
-    background: var(--background);
-    padding: 0.375rem 0.625rem;
-    font-size: 0.8125rem;
-}
-.biz-input:focus-visible {
-    outline: 2px solid var(--ring);
-    outline-offset: 2px;
-}
-.biz-input[aria-invalid='true'] {
-    border-color: var(--destructive);
-}
-.biz-input:disabled {
+/* View-only and saving states keep the values readable (the shared inputs fade disabled fields). */
+fieldset:disabled :deep(input:disabled),
+fieldset:disabled :deep([data-slot='select-trigger']:disabled) {
     color: var(--foreground);
     opacity: 1;
-    background: var(--muted);
 }
 </style>
