@@ -294,6 +294,9 @@ const turnPage = (key: 'allocations_page' | 'claims_page', value: number) =>
     go({ [key]: value });
 
 const error = ref('');
+// PNL-12: "1 claim" / "2 claims", shared by the Submissions and Payouts cards.
+const countLabel = (count: number, noun: 'claim' | 'invoice') =>
+    `${count} ${noun}${count === 1 ? '' : 's'}`;
 const createClaim = (allocationId: string) => {
     router.visit(
         `/panel-claims/allocations/${encodeURIComponent(allocationId)}/create`,
@@ -637,13 +640,23 @@ const visitTypeLabel = (value: string) =>
                     <div class="flex items-center justify-between py-2">
                         <dt>Pending</dt>
                         <dd class="font-medium tabular-nums">
-                            {{ work.summary.pending.count }} claims
+                            {{
+                                countLabel(
+                                    work.summary.pending.count,
+                                    'invoice',
+                                )
+                            }}
                         </dd>
                     </div>
                     <div class="flex items-center justify-between py-2">
                         <dt>Overdue</dt>
                         <dd class="font-medium text-destructive tabular-nums">
-                            {{ work.summary.overdue.count }} claims
+                            {{
+                                countLabel(
+                                    work.summary.overdue.count,
+                                    'invoice',
+                                )
+                            }}
                         </dd>
                     </div>
                 </dl>
@@ -663,9 +676,9 @@ const visitTypeLabel = (value: string) =>
                     >
                         <dt>{{ label }}</dt>
                         <dd class="text-right tabular-nums">
-                            <span class="text-muted-foreground"
-                                >{{ work.summary[key].count }} claims</span
-                            >
+                            <span class="text-muted-foreground">{{
+                                countLabel(work.summary[key].count, 'claim')
+                            }}</span>
                             <span class="ml-3 font-medium">{{
                                 myr(work.summary[key].amountSen)
                             }}</span>
