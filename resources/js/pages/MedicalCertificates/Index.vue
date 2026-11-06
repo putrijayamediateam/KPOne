@@ -165,7 +165,7 @@ const days = computed(() => {
         </header>
         <p class="rounded-lg border bg-card p-4 text-sm">
             <strong>Draft wording — awaiting doctor approval.</strong> Fixed
-            EN/BM revision 1. Issuance retains pre-signature content only.
+            EN/BM revision 2. Issuance retains pre-signature content only.
             Wet-sign the paper and retain a signed duplicate. No signed original
             or final PDF is archived.
         </p>
@@ -287,9 +287,9 @@ const days = computed(() => {
                                 v-model="form.language"
                                 class="mt-1 w-full rounded-md border bg-background p-2"
                             >
-                                <option value="en">English · revision 1</option>
+                                <option value="en">English · revision 2</option>
                                 <option value="bm">
-                                    Bahasa Melayu · revision 1
+                                    Bahasa Melayu · revision 2
                                 </option></select
                             ><InputError :message="form.errors.language"
                         /></label>
