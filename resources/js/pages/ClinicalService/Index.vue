@@ -45,6 +45,7 @@ type SetupOptions = {
     activeBranchId: number | null;
     branches: { id: number; name: string }[];
     panels: { id: number; name: string }[];
+    serviceCategories: string[];
 };
 
 type ConsultationTariff = {
@@ -77,6 +78,27 @@ const props = defineProps<{
 }>();
 
 const search = ref(props.filters.search);
+// CAT-11: a fixed list of categories. A category saved before the list stays as its own option, so editing other
+// fields of an older service never changes it.
+const categoryOptions = computed(() => {
+    const options = [
+        { value: '', label: 'No category' },
+        ...props.setup.serviceCategories.map((name) => ({
+            value: name,
+            label: name,
+        })),
+    ];
+    const current = form.category;
+
+    if (current !== '' && !props.setup.serviceCategories.includes(current)) {
+        options.push({
+            value: current,
+            label: `${current} (saved before the fixed list)`,
+        });
+    }
+
+    return options;
+});
 const status = ref(props.filters.status);
 const statusOptions = [
     { value: '', label: 'All statuses' },
@@ -541,12 +563,32 @@ const toggleDescription = computed(() => {
                                     :message="form.errors.display_name"
                                 />
                             </label>
-                            <CatalogueOptionPicker
-                                v-model="form.category"
-                                type="service_category"
-                                label="Category"
-                                :error="form.errors.category"
-                            />
+                            <div class="grid gap-1 text-xs">
+                                <span id="service-category-label"
+                                    >Category (optional)</span
+                                >
+                                <OperationalSelect
+                                    id="service-category"
+                                    v-model="form.category"
+                                    label="Category (optional)"
+                                    labelledby="service-category-label"
+                                    describedby="service-category-help service-category-error"
+                                    placeholder="No category"
+                                    :invalid="!!form.errors.category"
+                                    :options="categoryOptions"
+                                />
+                                <p
+                                    id="service-category-help"
+                                    class="text-xs text-muted-foreground"
+                                >
+                                    Billing groups procedures and investigations
+                                    on their own invoice rows.
+                                </p>
+                                <InputError
+                                    id="service-category-error"
+                                    :message="form.errors.category"
+                                />
+                            </div>
                             <CatalogueOptionPicker
                                 v-model="form.order_unit"
                                 type="service_unit"
