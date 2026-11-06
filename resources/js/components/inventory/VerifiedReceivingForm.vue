@@ -173,13 +173,6 @@ watch(
                     required
                     class="h-11 min-w-0 rounded border bg-background px-3"
             /></label>
-            <p
-                :id="`${row.publicId}-lot-cost-help`"
-                class="text-xs text-muted-foreground"
-            >
-                Optional. Type each lot total from the supplier invoice. Leave
-                blank to use the order's estimate.
-            </p>
             <fieldset
                 v-for="(line, index) in form.lines"
                 :id="`receiving-line-${line.line_public_id}`"
@@ -251,20 +244,30 @@ watch(
                                 required
                                 class="h-11 min-w-0 rounded border bg-background px-3"
                         /></label>
-                        <label
+                        <div
                             v-if="entry.outcome !== 'rejected'"
-                            class="grid gap-1 text-sm"
-                            >Total paid for this lot (RM)<input
-                                v-model="entry.cost_total_rm"
-                                type="number"
-                                inputmode="decimal"
-                                min="0"
-                                step="0.01"
-                                placeholder="0.00"
-                                :aria-label="`${row.lines[index].sku} lot ${number + 1} total paid RM`"
-                                :aria-describedby="`${row.publicId}-lot-cost-help`"
-                                class="h-11 min-w-0 rounded border bg-background px-3"
-                        /></label>
+                            class="grid min-w-0 gap-1"
+                        >
+                            <label class="grid gap-1 text-sm"
+                                >Total paid for this lot (RM, optional)<input
+                                    v-model="entry.cost_total_rm"
+                                    type="number"
+                                    inputmode="decimal"
+                                    min="0"
+                                    step="0.01"
+                                    placeholder="0.00"
+                                    :aria-label="`${row.lines[index].sku} lot ${number + 1} total paid RM`"
+                                    :aria-describedby="`${row.publicId}-${index}-${number}-lot-cost-help`"
+                                    class="h-11 min-w-0 rounded border bg-background px-3"
+                            /></label>
+                            <p
+                                :id="`${row.publicId}-${index}-${number}-lot-cost-help`"
+                                class="text-xs text-muted-foreground"
+                            >
+                                From the supplier invoice. Leave blank to use
+                                the order's estimate.
+                            </p>
+                        </div>
                         <label class="grid gap-1 text-sm"
                             >Outcome<select
                                 v-model="entry.outcome"

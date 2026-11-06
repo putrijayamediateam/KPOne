@@ -899,13 +899,6 @@ const saveReorder = () =>
                                 :aria-label="`${row.number} delivery reference`"
                             />
                         </label>
-                        <p
-                            :id="`${row.publicId}-cost-help`"
-                            class="text-xs text-muted-foreground"
-                        >
-                            Optional. Type the batch total from the supplier
-                            invoice. Leave blank to use the order's estimate.
-                        </p>
                         <fieldset
                             v-for="line in row.lines"
                             :key="line.publicId"
@@ -933,18 +926,29 @@ const saveReorder = () =>
                                 placeholder="Quantity this receipt"
                                 inputmode="decimal"
                             />
-                            <label class="grid min-w-0 gap-1 text-xs"
-                                >Total paid for this batch (RM)
-                                <Input
-                                    v-model="receipt[line.publicId].costTotalRm"
-                                    :aria-label="`${line.sku} total paid for this batch RM`"
-                                    :aria-describedby="`${row.publicId}-cost-help`"
-                                    placeholder="0.00"
-                                    type="number"
-                                    inputmode="decimal"
-                                    min="0"
-                                    step="0.01"
-                            /></label>
+                            <div class="grid min-w-0 gap-1">
+                                <label class="grid min-w-0 gap-1 text-xs"
+                                    >Total paid for this batch (RM, optional)
+                                    <Input
+                                        v-model="
+                                            receipt[line.publicId].costTotalRm
+                                        "
+                                        :aria-label="`${line.sku} total paid for this batch RM`"
+                                        :aria-describedby="`${line.publicId}-cost-help`"
+                                        placeholder="0.00"
+                                        type="number"
+                                        inputmode="decimal"
+                                        min="0"
+                                        step="0.01"
+                                /></label>
+                                <p
+                                    :id="`${line.publicId}-cost-help`"
+                                    class="text-xs text-muted-foreground"
+                                >
+                                    From the supplier invoice. Leave blank to
+                                    use the order's estimate.
+                                </p>
+                            </div>
                         </fieldset>
                         <Button type="submit" :disabled="busy"
                             >Post receipt</Button
