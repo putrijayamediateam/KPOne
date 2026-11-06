@@ -168,7 +168,11 @@ final class OvertimePageService
 
         return [
             'ready' => $this->settings->forDate($actor->organisation_id, $today) !== null,
-            'summary' => "{$waiting} waiting".($forYou !== $waiting ? " ({$forYou} for you)" : '').($changed > 0 ? ' · '.($changed === 1 ? '1 approved day changed since' : "{$changed} approved days changed since") : ''),
+            // Daniel: with nothing waiting but a changed day, the line drops "0 waiting".
+            'summary' => implode(' · ', array_filter([
+                $waiting > 0 || $changed === 0 ? "{$waiting} waiting".($forYou !== $waiting ? " ({$forYou} for you)" : '') : null,
+                $changed > 0 ? ($changed === 1 ? '1 approved day changed since' : "{$changed} approved days changed since") : null,
+            ])),
             'pending' => $pendingRows,
             'decided' => $decidedRows,
             'month' => $month->format('Y-m'),
