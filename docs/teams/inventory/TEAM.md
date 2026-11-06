@@ -46,7 +46,7 @@ coordinator at the owner's request (2026-11-05).
 | Models | `app/Domain/Organisation/Inventory/Models/` — items, SKUs, batches, locations, balances, movements, purchase orders, goods receipts, stock requests, stocktakes, adjustments, reorder levels, suppliers |
 | Pages | `resources/js/pages/Inventory/*.vue` |
 | Analysis | `docs/reports/ANALYSIS-STOCK.md` (proposals STK-1 to STK-10, owner and pharmacist questions) |
-| Delivery reports | `docs/reports/STK-1.md` to `STK-9.md`, `STK-11.md` |
+| Delivery reports | `docs/reports/STK-1.md` to `STK-9.md`, `STK-10B.md`, `STK-11.md` |
 | Tests | `tests/Feature/Inventory/*` (including the PostgreSQL contention tests), `PostgresDispensaryInventoryRegressionTest`, `InventoryOperationsTest`, `NAV01ExplicitRedirectsTest` |
 
 ## 4. Permissions (who can do what today)
@@ -89,6 +89,7 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php`. Key ones:
 | STK-8 | Treatment-room usage and waste: CA or CA Supervisor records stock used or wasted outside dispensing (new `treatment_usage` and `treatment_waste` ledger movements), optional treatment room, no patient link or bill; a different CA Supervisor, Finance Officer or Director may reverse an entry once (credit back as `adjustment_in`); append-only evidence guarded by PostgreSQL | #244 |
 | STK-9 | Barcode scanning on Inventory screens (receiving, governed count and write-off, treatment-room usage, supplier returns): handheld scanner, typing, or the browser's built-in camera reader; one barcode, one SKU per organisation (domain and PostgreSQL, existing duplicates listed on Pilot readiness); a scan only finds | merged in PR #253 (`4445021`) |
 | STK-11 | Patient returns location for DSP-7: a `dispensary_returns` location type that is never picked or dispensed from, the `dispensary_return` movement written only by `InventoryMovementService::recordDispensaryReturn` (for the Dispensary return check), returns stock kept out of every usable-stock figure, and out only by STK-5 or a move to another returns location | merged in PR #279 (`d3fcea1`) |
+| STK-10B | Receipt cost evidence (option B of the STK-10 analysis): each delivered batch records the total paid, as on the supplier invoice, marked actual; a blank cost keeps the order estimate, marked estimate; both receiving forms take the total; the order estimate says it is per stock unit; no cost shown anywhere | pending (branch `feature/stk-10b-cost-evidence`) |
 
 ## 6. Owner decisions already made (never ask again)
 
@@ -170,6 +171,16 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php`. Key ones:
     the owner's overnight hand-over of 22:12 UTC), because it is docs only and approves no valuation, like #172 to
     #174. On the owner's board for review. Waiting on the owner in person: the accountant's name and package,
     whether to do option B, and who may see cost.
+29. STK-10B, the owner's own choices in the team's session (2026-11-06): "yes, do option B"; staff type the **total
+    paid for each delivered batch**, exactly as on the supplier invoice, so no per-unit cost is rounded; cost stays
+    **optional**, and a blank cost keeps the order's estimate **marked as an estimate**; **both** receiving forms take
+    the lot total, and the owner approved changing the existing assertions in `i2-inventory-operations.test.mjs` and
+    `unified-catalogue-setup.test.mjs` for it. Still waiting on the owner: the accountant's name and package.
+    Migration `2026_11_07_000700`.
+30. Who may see cost (owner, relayed by B.E.R.N.I.S.S in the owner's words, 2026-11-06): "only Director sees cost".
+    If KPOne ever shows a stock cost, only the Director sees it. The same relay said "option A" for STK-10; that
+    conflicted with "yes, do option B" in this session, so the team asked the owner here, and the owner chose
+    "Option B, keep building".
 
 ## 7. Open items and known limits
 
@@ -254,6 +265,7 @@ matching proposal in `docs/reports/ANALYSIS-STOCK.md` section 8 unless an owner 
    dispensing; codes map locally; no external lookup; scanning never authorises an action by itself. Label
    batch and expiry printing belongs to the Dispensary team's DSP-2.
 5. **STK-11 Patient returns location (for DSP-7).** *Merged in PR #279.*
-6. **STK-10 Valuation.** *Analysis only (owner request 2026-11-05):* `docs/reports/ANALYSIS-STK-10.md` lists what
+6. **STK-10 Valuation.** *Analysis merged in PR #289; option B (STK-10B) built 2026-11-06 on the owner's "yes,
+   do option B" (section 6 item 29).* *Analysis only (owner request 2026-11-05):* `docs/reports/ANALYSIS-STK-10.md` lists what
    KPOne records about cost today, the gaps, and the questions an accountant must answer. Nothing is built until
    the owner chooses an option and, for a valuation or export, the accountant's written policy exists.
