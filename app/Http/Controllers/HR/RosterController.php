@@ -2,11 +2,14 @@
 
 namespace App\Http\Controllers\HR;
 
+use App\Domain\Audit\AuditRecorder;
+use App\Domain\HR\Compliance\Services\ComplianceRulesService;
 use App\Domain\HR\Credentials\Services\CredentialsPageService;
 use App\Domain\HR\Roster\Services\MinimumStaffingService;
 use App\Domain\HR\Roster\Services\RosterPageService;
 use App\Domain\HR\Roster\Services\RosterService;
 use App\Http\Controllers\Controller;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
@@ -86,6 +89,37 @@ class RosterController extends Controller
             throw $e->redirectTo($back);
         }
         Inertia::flash('toast', ['type' => 'success', 'message' => 'Minimum staffing saved.']);
+
+        return redirect($back);
+    }
+
+    /** HR-5b: one branch's opening hours and minimum of resident doctors on duty. */
+    public function coverage(Request $request, ComplianceRulesService $rules): RedirectResponse
+    {
+        return $this->saveRules($request, 'Doctor cover saved.', fn () => $rules->saveCoverage($request->user(),
+            $request->only(['branch_id', 'hours', 'min_resident_doctors', 'expected_version', 'idempotency_key'])));
+    }
+
+    /** HR-5b: the organisation's work-hour limits. */
+    public function workHours(Request $request, ComplianceRulesService $rules): RedirectResponse
+    {
+        return $this->saveRules($request, 'Work-hour limits saved.', fn () => $rules->saveWorkHours($request->user(),
+            $request->only(['max_days_in_row', 'min_rest_hours', 'max_week_hours', 'expected_version', 'idempotency_key'])));
+    }
+
+    private function saveRules(Request $request, string $message, callable $action): RedirectResponse
+    {
+        $back = $this->back($request, 'minimums');
+        try {
+            $action();
+        } catch (ValidationException $e) {
+            throw $e->redirectTo($back);
+        } catch (AuthorizationException) {
+            // Still audited as a denial, and shown on the tab rather than a 403 page (Suresh, HR-5b M7).
+            app(AuditRecorder::class)->record('authorization.denied', $request->user(), ['route' => $request->route()?->getName(), 'method' => $request->method()], $request->user());
+            throw ValidationException::withMessages(['compliance' => 'You may no longer change these rules.'])->redirectTo($back);
+        }
+        Inertia::flash('toast', ['type' => 'success', 'message' => $message]);
 
         return redirect($back);
     }

@@ -5,6 +5,7 @@ import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import { LoadingState } from '@/components/ui/state';
 import { StatusBadge } from '@/components/ui/status';
+import { OperationalTable } from '@/components/ui/table';
 import { myr } from '@/types/billing';
 
 export type StatementRow = {
@@ -333,9 +334,9 @@ const useTicked = () =>
                         No rows match an open claim of this Panel at this
                         branch. Check the columns, or enter the split by hand.
                     </p>
-                    <!-- Phones: one card per row. -->
+                    <!-- Phones and tablets: one card per row (PNL-13: the seven columns do not fit at 768 px). -->
                     <ul
-                        class="divide-y rounded-lg border md:hidden"
+                        class="divide-y rounded-lg border lg:hidden"
                         aria-label="Statement rows"
                     >
                         <li
@@ -386,40 +387,34 @@ const useTicked = () =>
                             </div>
                         </li>
                     </ul>
-                    <div
-                        class="hidden overflow-x-auto rounded-lg border md:block"
+                    <!-- PNL-13 (DD-28): wide screens use the shared table. -->
+                    <OperationalTable
+                        class="hidden lg:block"
+                        label="Statement rows"
+                        :columns="7"
+                        min-width="640px"
+                        data-testid="statement-table"
                     >
-                        <table
-                            class="w-full text-sm"
-                            aria-label="Statement rows"
-                        >
-                            <thead class="bg-muted/50 text-left text-xs">
-                                <tr>
-                                    <th scope="col" class="w-10 p-2">
-                                        <span class="sr-only">Use</span>
-                                    </th>
-                                    <th scope="col" class="p-2">Row</th>
-                                    <th scope="col" class="p-2">
-                                        Statement reference
-                                    </th>
-                                    <th scope="col" class="p-2 text-right">
-                                        Amount
-                                    </th>
-                                    <th scope="col" class="p-2">
-                                        Suggested claim
-                                    </th>
-                                    <th scope="col" class="p-2 text-right">
-                                        Unpaid
-                                    </th>
-                                    <th scope="col" class="p-2">Result</th>
-                                </tr>
-                            </thead>
-                            <tbody class="divide-y">
-                                <tr
-                                    v-for="row in statement.rows"
-                                    :key="row.line"
-                                >
-                                    <td class="p-2">
+                        <template #head>
+                            <tr>
+                                <th scope="col" class="w-14">
+                                    <span class="sr-only">Use in split</span>
+                                </th>
+                                <th scope="col">Row</th>
+                                <th scope="col">Statement reference</th>
+                                <th scope="col" class="text-right">Amount</th>
+                                <th scope="col">Suggested claim</th>
+                                <th scope="col" class="text-right">Unpaid</th>
+                                <th scope="col">Result</th>
+                            </tr>
+                        </template>
+                        <template #body>
+                            <tr v-for="row in statement.rows" :key="row.line">
+                                <td>
+                                    <!-- A 44 px tap target around the tick box. -->
+                                    <label
+                                        class="-m-2 inline-flex min-h-11 min-w-11 items-center justify-center"
+                                    >
                                         <input
                                             type="checkbox"
                                             class="size-4"
@@ -429,48 +424,50 @@ const useTicked = () =>
                                             :aria-describedby="`statement-result-${row.line}`"
                                             @change="toggle(row.line)"
                                         />
-                                    </td>
-                                    <td class="p-2 tabular-nums">
-                                        {{ row.line }}
-                                    </td>
-                                    <td class="max-w-48 p-2 wrap-anywhere">
-                                        {{ row.reference || '—' }}
-                                    </td>
-                                    <td class="p-2 text-right tabular-nums">
-                                        {{
-                                            row.amountSen === null
-                                                ? '—'
-                                                : myr(row.amountSen)
-                                        }}
-                                    </td>
-                                    <td class="p-2 text-xs">
-                                        <template v-if="row.claim">
-                                            Claim {{ row.claim.claimNo }} ·
-                                            <span class="font-mono">{{
-                                                row.claim.invoiceNumber
-                                            }}</span>
-                                        </template>
-                                        <template v-else>—</template>
-                                    </td>
-                                    <td class="p-2 text-right tabular-nums">
-                                        {{
-                                            row.claim
-                                                ? myr(row.claim.outstandingSen)
-                                                : '—'
-                                        }}
-                                    </td>
-                                    <td class="p-2">
-                                        <StatusBadge
-                                            :id="`statement-result-${row.line}`"
-                                            :status="row.result"
-                                            :label="RESULTS[row.result].label"
-                                            :tone="RESULTS[row.result].tone"
-                                        />
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
+                                    </label>
+                                </td>
+                                <td class="tabular-nums">{{ row.line }}</td>
+                                <td class="max-w-48 wrap-anywhere">
+                                    {{ row.reference || '—' }}
+                                </td>
+                                <td
+                                    class="text-right whitespace-nowrap tabular-nums"
+                                >
+                                    {{
+                                        row.amountSen === null
+                                            ? '—'
+                                            : myr(row.amountSen)
+                                    }}
+                                </td>
+                                <td class="text-xs">
+                                    <template v-if="row.claim">
+                                        Claim {{ row.claim.claimNo }} ·
+                                        <span class="font-mono">{{
+                                            row.claim.invoiceNumber
+                                        }}</span>
+                                    </template>
+                                    <template v-else>—</template>
+                                </td>
+                                <td
+                                    class="text-right whitespace-nowrap tabular-nums"
+                                >
+                                    {{
+                                        row.claim
+                                            ? myr(row.claim.outstandingSen)
+                                            : '—'
+                                    }}
+                                </td>
+                                <td>
+                                    <StatusBadge
+                                        :id="`statement-result-${row.line}`"
+                                        :status="row.result"
+                                        :label="RESULTS[row.result].label"
+                                        :tone="RESULTS[row.result].tone"
+                                    />
+                                </td>
+                            </tr>
+                        </template>
+                    </OperationalTable>
                     <p
                         class="text-sm tabular-nums"
                         data-testid="statement-summary"

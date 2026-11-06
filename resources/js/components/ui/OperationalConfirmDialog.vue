@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { LoaderCircle } from '@lucide/vue';
+import { AlertTriangle, CircleHelp, LoaderCircle } from '@lucide/vue';
 import { useTemplateRef } from 'vue';
 import { Button } from '@/components/ui/button';
 import {
@@ -84,17 +84,28 @@ const onOpenAutoFocus = (event: Event) => {
 <template>
     <Dialog :open="open" @update:open="updateOpen">
         <DialogContent
-            class="gap-5 border-border/80 p-5 shadow-2xl shadow-black/15 sm:max-w-md sm:p-6 dark:bg-slate-900"
+            class="gap-5 border-border/80 bg-popover p-5 shadow-2xl shadow-black/15 sm:max-w-md sm:p-6 dark:border-border"
             :show-close-button="!processing"
             @open-auto-focus="onOpenAutoFocus"
         >
             <DialogHeader class="gap-3 text-left">
                 <div class="flex items-start gap-3.5">
+                    <!-- UX-10: a caller without its own icon gets a default one, so the tile is never empty;
+                         a destructive question uses the destructive tone so the glyph shows in both themes. -->
                     <div
-                        class="grid size-10 shrink-0 place-items-center rounded-xl bg-pink-50 text-pink-700 dark:bg-pink-950/50 dark:text-pink-300"
+                        class="grid size-10 shrink-0 place-items-center rounded-xl"
+                        :class="
+                            destructive
+                                ? 'bg-destructive/10 text-destructive dark:bg-destructive/15'
+                                : 'bg-pink-50 text-pink-700 dark:bg-pink-950/50 dark:text-pink-300'
+                        "
+                        data-testid="confirm-dialog-icon"
                         aria-hidden="true"
                     >
-                        <slot name="icon" />
+                        <slot name="icon">
+                            <AlertTriangle v-if="destructive" class="size-5" />
+                            <CircleHelp v-else class="size-5" />
+                        </slot>
                     </div>
                     <div class="min-w-0 space-y-1.5">
                         <DialogTitle class="text-lg leading-6">{{ title }}</DialogTitle>
