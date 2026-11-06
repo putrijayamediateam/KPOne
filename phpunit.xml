@@ -15,6 +15,7 @@
             <exclude>tests/Feature/Clinical/PostgresDispensaryReturnTest.php</exclude>
             <exclude>tests/Feature/HR/PostgresRosterContentionTest.php</exclude>
             <exclude>tests/Feature/HR/PostgresLeaveContentionTest.php</exclude>
+            <exclude>tests/Feature/HR/PostgresAttendanceContentionTest.php</exclude>
             <exclude>tests/Feature/Inventory/PostgresBatchHoldTest.php</exclude>
             <exclude>tests/Feature/Inventory/PostgresGovernedStockTest.php</exclude>
             <exclude>tests/Feature/Inventory/PostgresStockReadinessTest.php</exclude>
@@ -51,6 +52,7 @@
             <file>tests/Feature/Clinical/PostgresDispensaryReturnTest.php</file>
             <file>tests/Feature/HR/PostgresRosterContentionTest.php</file>
             <file>tests/Feature/HR/PostgresLeaveContentionTest.php</file>
+            <file>tests/Feature/HR/PostgresAttendanceContentionTest.php</file>
             <file>tests/Feature/Inventory/PostgresBatchHoldTest.php</file>
             <file>tests/Feature/Inventory/PostgresGovernedStockTest.php</file>
             <file>tests/Feature/Inventory/PostgresStockReadinessTest.php</file>

@@ -18,6 +18,9 @@ use Illuminate\Support\Collection;
  */
 final class AttendanceDays
 {
+    /** An open clock-in this long before a shift starts belongs to that shift. */
+    private const EARLY_ARRIVAL_MINUTES = 120;
+
     public function __construct(private AttendanceSettingsService $settings) {}
 
     /**
@@ -103,6 +106,10 @@ final class AttendanceDays
                 $to = min($shift->ends_at->getTimestamp(), $end->getTimestamp());
                 if ($to > $from) {
                     $candidates[] = [$to - $from, $shift->id, $session->id];
+                } elseif ($session->clock_out_at === null && $session->clock_in_at->lessThanOrEqualTo($shift->starts_at)
+                    && $shift->starts_at->getTimestamp() - $session->clock_in_at->getTimestamp() <= self::EARLY_ARRIVAL_MINUTES * 60) {
+                    // Clocked in before the shift starts and still on: the shift it is waiting for (lowest score, so a real overlap wins).
+                    $candidates[] = [0, $shift->id, $session->id];
                 }
             }
         }
