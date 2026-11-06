@@ -126,3 +126,22 @@ test('the dialog offers the next step when the main step is done and keeps cance
     );
     assert.doesNotMatch(actions, /v-if="state !== 'done'"/);
 });
+
+test('Mira: errors show beside the control in use, and the badge clock runs only when needed', () => {
+    const actions = read(
+        'resources/js/components/queue/TreatmentProgressActions.vue',
+    );
+    assert.match(actions, /v-if="error && errorAction !== 'cancel'"/);
+    assert.match(
+        actions,
+        /errorAction === 'cancel' \|\|\s*state === 'started'/,
+    );
+    const badge = read(
+        'resources/js/components/queue/TreatmentProgressBadge.vue',
+    );
+    assert.match(
+        badge,
+        /!!props\.live \|\| !!props\.progress\?\.waiting\?\.length/,
+    );
+    assert.match(badge, /watch\(ticking, syncTimer\)/);
+});

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Activity, CheckCircle2 } from '@lucide/vue';
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { statusToneClasses, treatmentProgressTone } from '@/lib/presentation';
 import {
     treatmentAriaLabel,
@@ -20,11 +20,21 @@ const props = defineProps<{
 }>();
 const now = ref(Date.now());
 let timer: ReturnType<typeof setInterval> | undefined;
-onMounted(() => {
-    // Q-2c: waiting lines count their own minutes, so every badge ticks (the board's main line keeps its
-    // server-anchored minutes unless `live`).
-    timer = setInterval(() => (now.value = Date.now()), 30_000);
-});
+// Q-2c (Mira): tick only when needed: the consultation page (`live`) or a chip with waiting lines.
+const ticking = computed(
+    () => !!props.live || !!props.progress?.waiting?.length,
+);
+const syncTimer = (on: boolean) => {
+    clearInterval(timer);
+    timer = undefined;
+    now.value = Date.now();
+
+    if (on) {
+        timer = setInterval(() => (now.value = Date.now()), 30_000);
+    }
+};
+onMounted(() => syncTimer(ticking.value));
+watch(ticking, syncTimer);
 onBeforeUnmount(() => clearInterval(timer));
 const shownMinutes = computed(() =>
     props.live

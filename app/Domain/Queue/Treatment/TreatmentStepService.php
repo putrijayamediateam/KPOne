@@ -110,10 +110,15 @@ class TreatmentStepService
         if (! Schema::connection($entry->getConnectionName())->hasTable('queue_treatment_steps')) {
             return;
         }
-        $step = TreatmentStep::query()->where('queue_entry_id', $entry->id)->whereNull('closed_at')->lockForUpdate()->first();
-        if ($step) {
-            abort_unless(DB::transactionLevel() > 0, 409);
-            $this->transition($step, 'system_closed', User::query()->findOrFail($entry->updated_by_user_id), null);
+        // Q-2c: a step in progress and finished steps waiting for the doctor all close together.
+        $steps = TreatmentStep::query()->where('queue_entry_id', $entry->id)->whereNull('closed_at')->orderBy('id')->lockForUpdate()->get();
+        if ($steps->isEmpty()) {
+            return;
+        }
+        abort_unless(DB::transactionLevel() > 0, 409);
+        $actor = User::query()->findOrFail($entry->updated_by_user_id);
+        foreach ($steps as $step) {
+            $this->transition($step, 'system_closed', $actor, null);
             SystemEvent::query()->create(['event_id' => (string) Str::uuid(), 'organisation_id' => $step->organisation_id, 'branch_id' => $step->branch_id, 'name' => 'queue.treatment_step.system_closed', 'source' => 'queue', 'severity' => 'info', 'payload' => ['treatment_step_id' => $step->id, 'queue_entry_id' => $step->queue_entry_id], 'occurred_at' => now()->utc()]);
         }
     }

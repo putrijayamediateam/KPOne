@@ -59,6 +59,8 @@ const cancelReason = ref('');
 const error = ref('');
 const busy = ref(false);
 const busyAction = ref<'start' | 'done' | 'cancel' | null>(null);
+// Q-2c (Mira): which action the error belongs to, so it shows beside the control in use.
+const errorAction = ref<'start' | 'done' | 'cancel' | null>(null);
 let key = '';
 let keyAction = '';
 const state = computed(() => props.progress?.state ?? null);
@@ -80,6 +82,8 @@ const submit = (action: 'start' | 'done' | 'cancel') => {
     if (busy.value || !props.progress) {
         return;
     }
+
+    errorAction.value = action;
 
     if (action === 'start' && !stepCode.value) {
         error.value = 'Select a treatment step.';
@@ -218,7 +222,7 @@ const submit = (action: 'start' | 'done' | 'cancel') => {
                     </option>
                 </select>
                 <span
-                    v-if="error && !showCancel"
+                    v-if="error && errorAction !== 'cancel'"
                     id="treatment-progress-error"
                     role="alert"
                     class="text-sm text-destructive"
@@ -267,7 +271,11 @@ const submit = (action: 'start' | 'done' | 'cancel') => {
                             </option>
                         </select>
                         <span
-                            v-if="error"
+                            v-if="
+                                error &&
+                                (errorAction === 'cancel' ||
+                                    state === 'started')
+                            "
                             id="treatment-progress-cancel-error"
                             role="alert"
                             class="text-sm text-destructive"

@@ -164,6 +164,8 @@ class TreatmentProgressNextStepTest extends ClinicalTestCase
 
         $this->assertSame('system_closed', $nebuliser->refresh()->state);
         $this->assertSame('system_closed', $ecg->refresh()->state);
+        // Each step gets its own system event (the application hook closes them all, not only one).
+        $this->assertSame(2, DB::table('system_events')->where('name', 'queue.treatment_step.system_closed')->count());
     }
 
     public function test_postgresql_allows_one_step_in_progress_and_several_waiting(): void
