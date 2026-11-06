@@ -1173,7 +1173,7 @@ const inputClass = 'mt-1 h-9 w-full rounded-md border px-2';
                                     target="_blank"
                                     rel="noopener noreferrer"
                                 >
-                                    <Printer class="size-3.5" />Print Label
+                                    <Printer class="size-3.5" />Print label
                                     <span class="sr-only"
                                         >for {{ item.name }} (opens print
                                         preview in a new tab)</span
