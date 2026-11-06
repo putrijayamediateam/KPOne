@@ -10,6 +10,8 @@ export type RecordOptions = {
     correctionRejectReasons: Option[];
     bankRejectReasons: Option[];
     departments: { id: number; name: string }[];
+    documentCategories: Option[];
+    documentRemovalReasons: Option[];
 };
 
 export type WorkerHeader = {
@@ -87,3 +89,34 @@ export const csrf = (): string =>
             .find((row) => row.startsWith('XSRF-TOKEN='))
             ?.split('=')[1] ?? '',
     );
+
+// HR-4b
+export type StaffDocument = {
+    id: string;
+    category: string;
+    categoryLabel: string;
+    issuedOn: string | null;
+    expiresOn: string | null;
+    expiry: string | null;
+    kind: 'pdf' | 'jpeg' | 'png';
+    size: string;
+    uploadedBy: string;
+    uploadedAt: string;
+    lockVersion: number;
+};
+
+export type ChecklistEntry = {
+    id: string;
+    label: string;
+    aboutAccount: boolean;
+    ticked: { by: string; at: string } | null;
+};
+
+export type ChecklistPeriod = {
+    periodId: string;
+    typeLabel: string;
+    startsOn: string;
+    endsOn: string | null;
+    onboarding: ChecklistEntry[];
+    offboarding: ChecklistEntry[] | null;
+};
