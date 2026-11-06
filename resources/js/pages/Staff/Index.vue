@@ -204,7 +204,7 @@ const clearFilters = () => {
                                         >{{ member.name }}</Link
                                     >
                                     <div
-                                        class="mt-0.5 text-xs text-muted-foreground"
+                                        class="mt-0.5 text-xs [overflow-wrap:anywhere] text-muted-foreground"
                                     >
                                         {{ member.email }}
                                     </div>

@@ -216,3 +216,9 @@ authorisation to build them; the coordinator records it in `docs/BASELINE.md`.
    (Local date or Row) stays in view while a wide report scrolls sideways. His second nit, the page title
    "Transaction Detail" in sentence case, is left: the title comes from `TransactionReportService` and the
    pilot-scale golden file (`tests/Fixtures/PilotScale/original-small-reports.json`) pins it.
+12. **UX-12 Staff page formats (design debt DD-43).** Chosen by the owner on 2026-11-06 from the Lead UI/UX
+   Designer's UX-11 review. On the staff page a long work email ran into the Staff number column (by 43 px at
+   1280 and 1440 px); it now wraps inside its own column, preferably after the "@", on the staff page and the
+   directory. Dates and times use the shared `formatDate` and `formatDateTime` ("1 Jan 2026", "5 Nov 2026, 5:16 PM",
+   Kuala Lumpur time) instead of the browser's own format and time zone, and an assignment reads "From 1 Jan 2026,
+   no end date" or "1 Jan 2026 to 31 Dec 2026 (inclusive)". No assertion changed.
