@@ -311,7 +311,7 @@ const retentionConfirm = reactive({
 const askRetention = (r: Retention) =>
     Object.assign(retentionConfirm, {
         row: r,
-        value: (retentionDays[r.category] ?? '').trim(),
+        value: String(retentionDays[r.category] ?? '').trim(),
         key: crypto.randomUUID(),
     });
 const retentionMessage = computed(() => {
@@ -359,7 +359,7 @@ const sendRetention = () => {
     );
 };
 
-const retentionDays = reactive<Record<string, string>>({});
+const retentionDays = reactive<Record<string, string | number>>({});
 watch(
     () => props.records.settings?.retentions,
     (list) => {

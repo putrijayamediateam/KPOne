@@ -210,6 +210,8 @@ class DocumentsTest extends VisitTestCase
             ->assertSessionHasErrors(['records' => $refusal]);
         $this->selectBranch($director);
         $this->remove($director, $directorWorker, $document, 'wrong_file')->assertSessionHasErrors(['records' => 'You may not manage your own staff file. Ask someone else, or use My HR details.']);
+        $this->post(route('hr.records.checklist.tick', [$directorWorker->public_id, $period->public_id, $item->public_id]), ['idempotency_key' => (string) Str::uuid()])
+            ->assertSessionHasErrors(['records' => 'You may not manage your own staff file. Ask someone else, or use My HR details.']);
         $this->assertSame('active', $document->fresh()?->status);
         $this->assertSame(0, DB::table('hr_checklist_ticks')->count());
 
