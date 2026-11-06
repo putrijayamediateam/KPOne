@@ -37,6 +37,7 @@ use App\Http\Controllers\HR\CredentialsController as HrCredentialsController;
 use App\Http\Controllers\HR\LeaveController;
 use App\Http\Controllers\HR\RecordsController as HrRecordsController;
 use App\Http\Controllers\HR\RosterController;
+use App\Http\Controllers\HR\SopsController as HrSopsController;
 use App\Http\Controllers\InventoryBatchHoldController;
 use App\Http\Controllers\InventoryController;
 use App\Http\Controllers\InventoryMovementController;
@@ -233,6 +234,20 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::post('records/{record}/{decision}', 'decide')->whereUuid('record')->whereIn('decision', ['accept', 'reject'])->name('hr.credentials.decide');
             Route::post('types', 'saveType')->name('hr.credentials.types.save');
             Route::post('types/{type}/archive', 'archiveType')->whereUuid('type')->name('hr.credentials.types.archive');
+        });
+    });
+
+    // HR-5c SOPs (owner, 2026-11-06: "approve the HR-5 note with the defaults").
+    Route::prefix('hr/sops')->controller(HrSopsController::class)->middleware('sensitive.no-store')->group(function (): void {
+        Route::get('/', 'index')->middleware('permission:hr.sops.acknowledge.own,hr.sops.manage.organisation')->name('hr.sops.index');
+        Route::get('versions/{version}/open', 'open')->whereUuid('version')
+            ->middleware(['permission:hr.sops.acknowledge.own,hr.sops.manage.organisation', 'throttle:60,1'])->name('hr.sops.open');
+        Route::post('versions/{version}/acknowledge', 'acknowledge')->whereUuid('version')
+            ->middleware(['permission:hr.sops.acknowledge.own', 'throttle:30,1'])->name('hr.sops.acknowledge');
+        Route::middleware(['permission:hr.sops.manage.organisation', 'throttle:30,1'])->group(function (): void {
+            Route::post('/', 'publish')->name('hr.sops.publish');
+            Route::post('{sop}/versions', 'replace')->whereUuid('sop')->name('hr.sops.replace');
+            Route::post('{sop}/withdraw', 'withdraw')->whereUuid('sop')->name('hr.sops.withdraw');
         });
     });
 
@@ -658,6 +673,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
             ->whereUuid(['dispensaryCase', 'itemPublicId'])->middleware(['permission:dispensary.update.branch', 'throttle:30,1'])->name('dispensary.returns.record');
         Route::post('dispensary/{dispensaryCase}/returns/{returnPublicId}/check', [DispensaryController::class, 'checkReturn'])
             ->whereUuid(['dispensaryCase', 'returnPublicId'])->middleware(['permission:inventory.variances.approve.branch', 'throttle:30,1'])->name('dispensary.returns.check');
+        // DSP-7b: the branch list of returns waiting for a check (read only; the check stays on the case page).
+        Route::get('dispensary/returns-to-check', [DispensaryController::class, 'returnsToCheck'])
+            ->middleware(['permission:dispensary.view.branch', 'sensitive.no-store', 'throttle:60,1'])->name('dispensary.returns-to-check');
         Route::get('dispensary/{dispensaryCase}', [DispensaryController::class, 'show'])
             ->whereUuid('dispensaryCase')->middleware('permission:dispensary.view.branch')->name('dispensary.show');
 
