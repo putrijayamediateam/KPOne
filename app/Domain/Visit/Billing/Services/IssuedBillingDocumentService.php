@@ -216,13 +216,17 @@ final class IssuedBillingDocumentService
             ->leftJoin('clinical_service_catalogue_items as s', 's.id', '=', 'c.clinical_service_catalogue_item_id')
             ->where('l.invoice_id', $invoice->id)->orderBy('l.id')->get(['l.line_type', 's.category'])
             ->map(fn (object $l): string => self::category((string) $l->line_type, $l->category === null ? null : (string) $l->category))->all();
-        abort_unless(count($categories) === count($source['lines']), 409, 'Invoice lines changed while printing. Try again.');
+        /** @var list<array{name: string, quantity: string, unit: string|null, unitPriceSen: int, totalSen: int}> $sourceLines */
+        $sourceLines = array_values($source['lines']);
         $lines = [];
         $totals = array_fill_keys(self::CATEGORIES, 0);
-        foreach ($source['lines'] as $i => $l) {
-            $lines[] = ['name' => $l['name'], 'quantity' => $l['quantity'], 'unit' => $l['unit'], 'unitPriceSen' => $l['unitPriceSen'], 'totalSen' => $l['totalSen'], 'category' => $categories[$i]];
-            $totals[$categories[$i]] += $l['totalSen'];
+        foreach ($sourceLines as $i => $l) {
+            $category = $categories[$i] ?? null;
+            abort_if($category === null, 409, 'Invoice lines changed while printing. Try again.');
+            $lines[] = ['name' => $l['name'], 'quantity' => $l['quantity'], 'unit' => $l['unit'], 'unitPriceSen' => $l['unitPriceSen'], 'totalSen' => $l['totalSen'], 'category' => $category];
+            $totals[$category] += $l['totalSen'];
         }
+        abort_if(count($categories) !== count($sourceLines), 409, 'Invoice lines changed while printing. Try again.');
         $content = $legacy;
         $content['layout'] = 'bil9';
         $content['billing']['patient'] += [
