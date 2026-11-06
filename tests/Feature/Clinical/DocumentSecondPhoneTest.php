@@ -12,7 +12,8 @@ use Tests\Feature\Visit\VisitTestCase;
 
 /**
  * CAT-9 (B.E.R.N.I.S.S for the owner, 2026-11-06): referral and attendance copies print the second clinic phone
- * as "Tel: A / B"; a snapshot without the key (every one issued before CAT-9) renders exactly as before.
+ * as "Tel: A / B"; a snapshot without the key (every one issued before CAT-9) keeps the phone / email shape. CAT-13
+ * (B.E.R.N.I.S.S for the owner): phones print through PrintedPhone; issued letters keep the HTML stored at issue.
  */
 class DocumentSecondPhoneTest extends VisitTestCase
 {
@@ -43,7 +44,7 @@ class DocumentSecondPhoneTest extends VisitTestCase
     {
         foreach (['referrals.content', 'attendance.content'] as $view) {
             $html = view($view, ['snapshot' => $this->snapshot(['phone' => '+60320000001', 'email' => 'clinic@doc.test'])])->render();
-            $this->assertSame('+60320000001 / clinic@doc.test', $this->contactLine($html), $view);
+            $this->assertSame('03-2000 0001 / clinic@doc.test', $this->contactLine($html), $view);
             $this->assertStringNotContainsString('Tel:', $html, $view);
 
             // An explicit null renders the same as a missing key.
@@ -56,10 +57,18 @@ class DocumentSecondPhoneTest extends VisitTestCase
     {
         foreach (['referrals.content', 'attendance.content'] as $view) {
             $html = view($view, ['snapshot' => $this->snapshot(['phone' => '+60320000001', 'phone_secondary' => '+60123456789', 'email' => 'clinic@doc.test'])])->render();
-            $this->assertSame('Tel: +60320000001 / +60123456789 · clinic@doc.test', $this->contactLine($html), $view);
+            $this->assertSame('Tel: 03-2000 0001 / 012-345 6789 · clinic@doc.test', $this->contactLine($html), $view);
 
             $noEmail = view($view, ['snapshot' => $this->snapshot(['phone' => '+60320000001', 'phone_secondary' => '+60123456789', 'email' => null])])->render();
-            $this->assertSame('Tel: +60320000001 / +60123456789', $this->contactLine($noEmail), $view);
+            $this->assertSame('Tel: 03-2000 0001 / 012-345 6789', $this->contactLine($noEmail), $view);
+        }
+    }
+
+    public function test_a_second_phone_with_no_first_prints_tel_b_with_no_empty_part(): void
+    {
+        foreach (['referrals.content', 'attendance.content'] as $view) {
+            $html = view($view, ['snapshot' => $this->snapshot(['phone' => null, 'phone_secondary' => '+60123456789', 'email' => 'clinic@doc.test'])])->render();
+            $this->assertSame('Tel: 012-345 6789 · clinic@doc.test', $this->contactLine($html), $view);
         }
     }
 

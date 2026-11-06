@@ -12,20 +12,10 @@ import { OperationalSelect } from '@/components/ui/select';
 import { EmptyState } from '@/components/ui/state';
 import { StatusBadge } from '@/components/ui/status';
 import { Textarea } from '@/components/ui/textarea';
+import type { PrintLetterhead } from '@/types/letterhead';
 
-type Details = {
-    clinic_name: string;
-    address_line_1: string;
-    address_line_2: string | null;
-    postcode: string;
-    city: string;
-    state: string;
-    country: string;
-    phone: string | null;
-    // CAT-9: optional second clinic phone, printed as "Tel: A / B".
-    phone_secondary: string | null;
-    email: string | null;
-};
+// CAT-13: the same details shape the prints use, including the optional second phone.
+type Details = PrintLetterhead['details'];
 type OrganisationDetails = {
     legal_name: string;
     registration_type: string | null;
