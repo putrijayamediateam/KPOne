@@ -54,7 +54,7 @@ last line is not cut off.
 Print the three with **Print all labels**, then **Print current labels**.
 
 **Visit 2 (T4).** Register a second OTC visit, press Dispense, record the allergy statement and add the
-controlled medicine with instruction text C and precaution text D. Use **Print Label** on that medicine.
+controlled medicine with instruction text C and precaution text D. Use **Print label** on that medicine.
 
 | # | Medicine | Directions | Expected result |
 |---|---|---|---|
