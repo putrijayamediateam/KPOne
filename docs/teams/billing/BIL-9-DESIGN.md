@@ -84,8 +84,16 @@ BIL-9 (decision 4) and picks the layout from the snapshot's layout version.
 9. A **void invoice prints no "Total due"** row (owner, 2026-11-06, after the A4 images): it is replaced by a new
    invoice, so nothing is due on it. Subtotal, Discount, Tax, Invoice total and Total paid still show.
 
-Design approval: Daniel, "OK to build" (2026-11-06), title case on paper as the sample; page numbers ("Page 1 of
-2" on multi-page prints) were put to the owner by B.E.R.N.I.S.S and are not built until answered.
+10. **Page numbers: yes** (B.E.R.N.I.S.S for the owner, 2026-11-06, Daniel's recommendation). The page footer
+    reads "<document number> · Page n of N". Print CSS cannot tell a one-page document from a longer one, so the
+    first page carries no footer: a one-page document prints none, a longer one numbers pages 2 onward (page 1 has
+    the full header and number).
+11. **Phone format** (the owner: "go with Daniel's phone format"): every printed phone, the clinic's two and the
+    patient's, reads "03-2123 4567" / "012-345 6789" through the shared `App\Domain\Shared\PrintedPhone` (DSP-10);
+    the stored value never changes, and copies issued before keep what they printed.
+
+Design approval: Daniel, "OK to build", then "OK" on the A4 images (2026-11-06); title case on paper as the sample;
+after his look: the document number in the page footer, the patient's phone formatted, a larger VOID.
 
 ## 7. Known limits (built)
 
