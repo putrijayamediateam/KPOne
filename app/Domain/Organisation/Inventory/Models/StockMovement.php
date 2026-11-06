@@ -44,6 +44,11 @@ class StockMovement extends Model
     /** STK-11: returned medicine credited to a returns location by the Dispensary return check (DSP-7). */
     public const TYPE_DISPENSARY_RETURN = 'dispensary_return';
 
+    /** STK-10B: where a recorded receipt cost came from. */
+    public const COST_ACTUAL = 'actual';
+
+    public const COST_ESTIMATE = 'estimate';
+
     protected static function booted(): void
     {
         static::updating(fn (): never => throw new LogicException('Stock Movements are immutable.'));
