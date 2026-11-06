@@ -11,6 +11,7 @@
         <testsuite name="Feature">
             <directory>tests/Feature</directory>
             <exclude>tests/Feature/Billing/PostgresPanelPaymentRegressionTest.php</exclude>
+            <exclude>tests/Feature/Billing/PostgresPanelBulkClaimRegressionTest.php</exclude>
             <exclude>tests/Feature/Clinical/PostgresDispensaryReturnTest.php</exclude>
             <exclude>tests/Feature/HR/PostgresRosterContentionTest.php</exclude>
             <exclude>tests/Feature/Inventory/PostgresBatchHoldTest.php</exclude>
@@ -45,6 +46,7 @@
              schema when seeded role grants were left committed. -->
         <testsuite name="Contention">
             <file>tests/Feature/Billing/PostgresPanelPaymentRegressionTest.php</file>
+            <file>tests/Feature/Billing/PostgresPanelBulkClaimRegressionTest.php</file>
             <file>tests/Feature/Clinical/PostgresDispensaryReturnTest.php</file>
             <file>tests/Feature/HR/PostgresRosterContentionTest.php</file>
             <file>tests/Feature/Inventory/PostgresBatchHoldTest.php</file>
