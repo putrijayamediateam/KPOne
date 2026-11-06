@@ -172,6 +172,9 @@ check items, keep them"). The rest stand unless the owner changes them.
 30. HR-3a screens (Daniel, relayed by B.E.R.N.I.S.S 2026-11-06): **OK**. All seven early-look notes met. Not
     blocking: the confirm dialog's navy background is changed for every dialog by UX-10; native date inputs show
     mm/dd/yyyy on every page. The PR carries the Review shot at 390 px (cards with flags). Nothing for DEBT.md.
+31. Existing-assertion change approved: the `ClinicManagementTest` hub map gains `/hr/attendance` for
+    `hr.attendance.clock.own` and `hr.attendance.review.organisation`; HR-3a shipped (owner, 2026-11-06, in the HR
+    session: "yes, add the hub line and ship it").
 
 ## 7. Open items and known limits
 
