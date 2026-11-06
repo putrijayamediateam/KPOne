@@ -10,25 +10,45 @@ const business = read('resources/js/pages/BusinessDetails/Index.vue');
 const medicine = read('resources/js/pages/Medicine/Index.vue');
 const flat = (s) => s.replace(/\s+/g, ' ');
 
-test('the logo is chosen with a real button and the file name sits on its own line (Daniel)', () => {
-    const b = flat(business);
+const chooser = read('resources/js/components/catalogue/FileChooseButton.vue');
+
+test('the logo is chosen with a real button and its state sits on its own line (Daniel)', () => {
+    const c = flat(chooser);
     // The native input stays, hidden from sight and from the tab order; the button opens it.
     assert.match(
-        b,
-        /<input ref="fileInput" name="logo" type="file" accept="image\/jpeg,image\/png" class="sr-only" tabindex="-1" aria-hidden="true" @change="chooseLogo" \/>/,
+        c,
+        /type="file" :accept="accept" class="sr-only" tabindex="-1" aria-hidden="true"/,
     );
+    assert.match(c, /defineOptions\(\{ inheritAttrs: false \}\)/);
+    assert.match(
+        c,
+        /<Button v-bind="\$attrs" type="button" variant="outline" class="min-h-11 w-fit sm:min-h-9"/,
+    );
+    assert.match(c, /@click="input\?\.click\(\)"/);
+    assert.match(
+        c,
+        /<p :id="statusId" aria-live="polite" class="text-xs \[overflow-wrap:anywhere\] break-words text-muted-foreground"/,
+    );
+
+    const b = flat(business);
     assert.match(
         b,
-        /<Button id="logo" type="button" variant="outline" class="min-h-11 sm:min-h-9" aria-describedby="logo-error"/,
+        /<FileChooseButton id="logo" ref="fileInput" accept="image\/jpeg,image\/png"/,
     );
-    assert.match(b, /@click="fileInput\?\.click\(\)"/);
-    assert.match(b, /letterhead\.logo \? 'Replace logo' : 'Choose logo'/);
+    // Ravi: the wording follows what is on screen, including a pending removal or a new file.
+    assert.match(b, /logoUrl \? 'Replace logo' : 'Choose logo'/);
+    assert.match(b, /aria-describedby="logo-error"/);
+    assert.match(b, /\$\{form\.logo\.name\} · not saved yet/);
+    assert.match(b, /'Logo will be removed when you save\.'/);
+    assert.match(b, /'Current logo saved\.'/);
+    assert.match(b, /'No file chosen'/);
+    // The error sits under the state line, inside the chooser.
     assert.match(
         b,
-        /id="logo-file-name" aria-live="polite" class="text-xs \[overflow-wrap:anywhere\] break-words text-muted-foreground"/,
+        /<InputError id="logo-error" :message="form\.errors\.logo" \/> <\/FileChooseButton>/,
     );
-    assert.match(b, /form\.logo\?\.name \?\? 'No file chosen'/);
-    // The button wraps under the preview on a narrow phone instead of widening the page.
+    assert.equal((business.match(/id="logo-error"/g) ?? []).length, 1);
+    assert.match(b, /class="min-h-11 text-xs sm:min-h-9" @click="removeLogo"/);
     assert.match(b, /v-if="canEdit" class="min-w-0 flex-1 basis-40 space-y-2"/);
     // The readiness card's "Fix below" still lands on a focusable control.
     assert.ok(business.includes("'#logo'"));

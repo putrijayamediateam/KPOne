@@ -2,6 +2,7 @@
 import { Head, Link, router } from '@inertiajs/vue3';
 import { useForm } from '@inertiajs/vue3';
 import { computed, nextTick, onUnmounted, ref, watch } from 'vue';
+import FileChooseButton from '@/components/catalogue/FileChooseButton.vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -134,7 +135,7 @@ const saveFooter = () => {
     });
 };
 const blocked = ref(false);
-const fileInput = ref<HTMLInputElement | null>(null);
+const fileInput = ref<{ clear: () => void } | null>(null);
 const preview = ref('');
 const clearPreview = () => {
     if (preview.value) {
@@ -143,9 +144,7 @@ const clearPreview = () => {
 
     preview.value = '';
 
-    if (fileInput.value) {
-        fileInput.value.value = '';
-    }
+    fileInput.value?.clear();
 };
 const adopt = () => {
     clearPreview();
@@ -170,6 +169,16 @@ const removeLogo = () => {
     form.logo = null;
     form.remove_logo = true;
 };
+// CAT-10 (Daniel): the line under the logo button says what will happen on Save.
+const logoStatus = computed(() =>
+    form.logo
+        ? `${form.logo.name} · not saved yet`
+        : form.remove_logo
+          ? 'Logo will be removed when you save.'
+          : props.letterhead.logo
+            ? 'Current logo saved.'
+            : 'No file chosen',
+);
 const logoUrl = computed(
     () =>
         preview.value ||
@@ -566,70 +575,37 @@ const reload = () =>
                                         v-if="canEdit"
                                         class="min-w-0 flex-1 basis-40 space-y-2"
                                     >
-                                        <!-- CAT-10 (Daniel): a real button opens the hidden file input, and the chosen
-                                             file name sits on its own line, so 390 px no longer cuts "No file chosen". -->
-                                        <input
-                                            ref="fileInput"
-                                            name="logo"
-                                            type="file"
-                                            accept="image/jpeg,image/png"
-                                            class="sr-only"
-                                            tabindex="-1"
-                                            aria-hidden="true"
-                                            @change="chooseLogo"
-                                        />
-                                        <Button
+                                        <!-- CAT-10 (Daniel): a real button, with the file's state on its own line and the error under it. -->
+                                        <FileChooseButton
                                             id="logo"
-                                            type="button"
-                                            variant="outline"
-                                            class="min-h-11 sm:min-h-9"
-                                            aria-describedby="logo-error"
-                                            :aria-invalid="!!form.errors.logo"
-                                            data-testid="choose-logo"
-                                            @click="fileInput?.click()"
-                                            >{{
-                                                letterhead.logo
+                                            ref="fileInput"
+                                            accept="image/jpeg,image/png"
+                                            :label="
+                                                logoUrl
                                                     ? 'Replace logo'
                                                     : 'Choose logo'
-                                            }}</Button
+                                            "
+                                            :status="logoStatus"
+                                            status-id="logo-file-name"
+                                            aria-describedby="logo-error"
+                                            data-testid="choose-logo"
+                                            @change="chooseLogo"
                                         >
-                                        <p
-                                            id="logo-file-name"
-                                            aria-live="polite"
-                                            class="text-xs [overflow-wrap:anywhere] break-words text-muted-foreground"
-                                        >
-                                            {{
-                                                form.logo?.name ??
-                                                'No file chosen'
-                                            }}
-                                        </p>
+                                            <InputError
+                                                id="logo-error"
+                                                :message="form.errors.logo"
+                                            />
+                                        </FileChooseButton>
                                         <Button
                                             v-if="logoUrl"
                                             type="button"
                                             variant="outline"
-                                            class="h-8 text-xs"
+                                            class="min-h-11 text-xs sm:min-h-9"
                                             @click="removeLogo"
                                             >Remove logo</Button
                                         >
-                                        <p
-                                            v-if="form.remove_logo"
-                                            class="text-xs text-muted-foreground"
-                                        >
-                                            Logo removal will be applied when
-                                            you save.
-                                        </p>
-                                        <p
-                                            v-if="form.logo"
-                                            class="text-xs text-muted-foreground"
-                                        >
-                                            New logo selected. Save to apply.
-                                        </p>
                                     </div>
                                 </div>
-                                <InputError
-                                    id="logo-error"
-                                    :message="form.errors.logo"
-                                />
                             </div>
                         </div>
                     </div>
