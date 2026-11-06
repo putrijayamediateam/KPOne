@@ -12,6 +12,7 @@ final readonly class SystemHealthCheck
         public ?int $pendingMigrations,
         public ?int $failedQueueJobs,
         public string $logFiles,
+        public bool $logReadLimited,
         public bool $allClear,
     ) {}
 
@@ -27,6 +28,7 @@ final readonly class SystemHealthCheck
             pendingMigrations: $read['pendingMigrations'] === null ? null : (int) $read['pendingMigrations'],
             failedQueueJobs: $read['failedQueueJobs'] === null ? null : (int) $read['failedQueueJobs'],
             logFiles: (string) $read['logFiles'],
+            logReadLimited: (bool) $read['logReadLimited'],
             allClear: (bool) $read['allClear'],
         );
     }
@@ -38,9 +40,14 @@ final readonly class SystemHealthCheck
             return 'All clear.';
         }
         $plural = fn (int $n, string $one, string $many): string => $n.' '.($n === 1 ? $one : $many);
+        $log = match ($this->logFiles) {
+            'missing' => 'log file not found',
+            'unreadable' => 'log file unreadable',
+            default => ($this->logReadLimited ? 'at least ' : '').$plural($this->errorLogEntries, 'error log entry', 'error log entries'),
+        };
         $parts = [
-            $plural($this->errorLogEntries, 'error log entry', 'error log entries'),
-            $plural($this->failedScheduledRuns, 'failed agent run', 'failed agent runs'),
+            $log,
+            $plural($this->failedScheduledRuns, 'failed scheduled agent run', 'failed scheduled agent runs'),
             $this->pendingMigrations === null ? 'pending migrations unknown' : $plural($this->pendingMigrations, 'pending migration', 'pending migrations'),
         ];
         if ($this->failedQueueJobs !== null) {
@@ -60,6 +67,7 @@ final readonly class SystemHealthCheck
             'pendingMigrations' => $this->pendingMigrations,
             'failedQueueJobs' => $this->failedQueueJobs,
             'logFiles' => $this->logFiles,
+            'logReadLimited' => $this->logReadLimited,
             'allClear' => $this->allClear,
             'summary' => $this->summary(),
         ];

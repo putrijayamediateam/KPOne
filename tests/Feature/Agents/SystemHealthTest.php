@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Agents;
 
+use App\Domain\Agents\Health\SystemHealthCheck;
 use App\Domain\Agents\Health\SystemHealthOfficer;
 use App\Domain\Agents\Health\SystemHealthTool;
 use App\Domain\Agents\Models\AiAgentRun;
@@ -75,25 +76,54 @@ class SystemHealthTest extends VisitTestCase
             '[2026-11-06 03:00:00] testing.INFO: SENTINEL just information',
             '[2026-11-06 04:00:00] testing.WARNING: SENTINEL a warning',
         ]);
-        $this->log('laravel-2026-11-06.log', ['[2026-11-06T05:30:00.123456+00:00] production.EMERGENCY: SENTINEL daily file']);
+        $this->log('laravel-2026-11-06.log', [
+            '[2026-11-06T05:30:00.123456+00:00] production.EMERGENCY: SENTINEL daily file',
+            '[2026-11-06 07:30:00+08:00] production.ALERT: SENTINEL written in Kuala Lumpur time, 23:30 UTC the day before',
+            '[2026-11-05 13:00:00+08:00] production.ALERT: SENTINEL 05:00 UTC, before the window',
+        ]);
         $this->log('laravel-2026-10-01.log', ['[2026-10-01 05:30:00] production.ERROR: SENTINEL stale file']);
         touch($this->logs.'/laravel-2026-10-01.log', CarbonImmutable::parse('2026-10-01T06:00:00Z')->getTimestamp());
 
         $result = $this->read();
 
-        $this->assertSame(['error' => 1, 'critical' => 1, 'alert' => 0, 'emergency' => 1, 'total' => 3], $result['errorLogEntries']);
+        $this->assertSame(['error' => 1, 'critical' => 1, 'alert' => 1, 'emergency' => 1, 'total' => 4], $result['errorLogEntries']);
         $this->assertSame(['2026-11-05T06:00:00Z', 'found', false, false], [$result['since'], $result['logFiles'], $result['logReadLimited'], $result['allClear']]);
         $this->assertStringNotContainsString('SENTINEL', (string) json_encode($result));
         $this->assertStringNotContainsString('SENTINEL', (string) DB::table('ai_agent_run_steps')->pluck('summary')->implode(' '));
     }
 
-    public function test_a_missing_log_file_reads_as_missing_with_zero_counts(): void
+    public function test_a_large_log_is_read_from_its_end_and_the_count_is_marked_as_a_minimum(): void
+    {
+        $header = '[2026-11-06 01:00:00] testing.ERROR: SENTINEL counted line';
+        $filler = str_repeat('x', 1000);
+        $handle = fopen($this->logs.'/laravel.log', 'wb');
+        $this->assertNotFalse($handle);
+        fwrite($handle, $header."\n");                       // beyond the 8 MB read window
+        for ($i = 0; $i < 9 * 1024; $i++) {
+            fwrite($handle, $filler."\n");
+        }
+        fwrite($handle, $header."\n".$header."\n");
+        fwrite($handle, '#'.str_repeat('y', 70000).'[2026-11-06 01:00:00] testing.ERROR: SENTINEL inside a long line'."\n");
+        fclose($handle);
+        touch($this->logs.'/laravel.log', now()->getTimestamp());
+
+        $result = $this->read();
+
+        $this->assertSame([2, true], [$result['errorLogEntries']['total'], $result['logReadLimited']]);
+        $this->assertStringStartsWith('at least 2 error log entries', SystemHealthCheck::fromRead($result)->summary());
+    }
+
+    public function test_a_missing_log_file_reads_as_missing_and_is_never_all_clear(): void
     {
         $result = $this->read();
 
         $this->assertSame('missing', $result['logFiles']);
         $this->assertSame(0, $result['errorLogEntries']['total']);
-        $this->assertSame([0, 0, 0, true], [$result['failedScheduledRuns'], $result['pendingMigrations'], $result['failedQueueJobs'], $result['allClear']]);
+        $this->assertSame([0, 0, 0, false], [$result['failedScheduledRuns'], $result['pendingMigrations'], $result['failedQueueJobs'], $result['allClear']]);
+        $this->assertSame('log file not found, 0 failed scheduled agent runs, 0 pending migrations, 0 failed queue jobs.', SystemHealthCheck::fromRead($result)->summary());
+
+        $this->log('laravel.log', ['[2026-11-06 01:00:00] testing.INFO: quiet']);
+        $this->assertSame([true, 'found'], [$this->read()['allClear'], $this->read()['logFiles']]);
 
         File::deleteDirectory($this->logs);
         $this->assertSame('missing', $this->read()['logFiles'], 'a missing log directory is not an error');
@@ -131,17 +161,20 @@ class SystemHealthTest extends VisitTestCase
         $recorder = app(AgentRunRecorder::class);
 
         $this->travelTo(CarbonImmutable::parse('2026-11-06T03:00:00Z'));
+        $this->log('laravel.log', ['[2026-11-06 01:00:00] testing.INFO: quiet']);
         $first = $this->startRun();
         $this->assertSame('All clear.', $officer->check($first, $director)->summary());
+        // The first check finishes an hour after it read the log; an error in that hour still counts next time.
+        $this->travelTo(CarbonImmutable::parse('2026-11-06T04:00:00Z'));
         $recorder->complete($first);
 
         $this->travelTo(CarbonImmutable::parse('2026-11-06T07:00:00Z'));
-        $this->log('laravel.log', ['[2026-11-06 02:00:00] testing.ERROR: before the last check', '[2026-11-06 05:00:00] testing.ERROR: after the last check']);
+        $this->log('laravel.log', ['[2026-11-06 02:00:00] testing.ERROR: before the last check', '[2026-11-06 03:30:00] testing.ERROR: while the last check was finishing']);
         $run = $this->startRun();
         $check = $officer->check($run, $director);
 
         $this->assertSame(['2026-11-06T03:00:00Z', 1], [$check->since, $check->errorLogEntries]);
-        $this->assertSame('1 error log entry, 0 failed agent runs, 0 pending migrations, 0 failed queue jobs.', $check->summary());
+        $this->assertSame('1 error log entry, 0 failed scheduled agent runs, 0 pending migrations, 0 failed queue jobs.', $check->summary());
         $steps = DB::table('ai_agent_run_steps')->where('ai_agent_run_id', $run->id)->orderBy('sequence')->get(['kind', 'tool_code', 'summary']);
         $this->assertSame([['data_read', 'system.health'], ['decision', null]], $steps->map(fn ($s) => [$s->kind, $s->tool_code])->all());
         $this->assertSame('working', $run->refresh()->status, 'the caller finishes its own run');
@@ -153,6 +186,7 @@ class SystemHealthTest extends VisitTestCase
         foreach ([
             fn () => app(SystemHealthOfficer::class)->check($this->startRun('stocktake_officer'), $this->actor('director')),
             fn () => app(SystemHealthOfficer::class)->check($this->startRun(), $this->actor('ca')),
+            fn () => app(SystemHealthOfficer::class)->check(app(AgentRunRecorder::class)->start(SystemHealthOfficer::AGENT, 'other_task', null, organisationId: $this->organisation->id), $this->actor('director')),
         ] as $attempt) {
             try {
                 $attempt();
@@ -161,7 +195,7 @@ class SystemHealthTest extends VisitTestCase
             }
         }
 
-        $this->assertSame(2, $refusals);
+        $this->assertSame(3, $refusals);
         $this->assertSame(0, DB::table('ai_agent_run_steps')->count());
     }
 }
