@@ -82,7 +82,7 @@ export type InventoryReceiptLineIntent = {
     quantity: string;
     batch_number: string | null;
     expiry_date: string | null;
-    unit_cost_sen?: number;
+    cost_total_sen?: number;
 };
 
 export type InventoryReceiptMemoryContext = {
@@ -117,7 +117,7 @@ type InventoryReceiptDraft = {
     batchNumber: string;
     expiryDate: string;
     quantity: string;
-    unitCostSen?: number;
+    costTotalSen?: number;
 };
 
 export type InventoryReceiptPayloadValidation =
@@ -204,8 +204,8 @@ export const validateInventoryReceiptPayload = (
         quantity: string;
         batch_number: string | null;
         expiry_date: string | null;
-        unit_cost_rm?: string;
-        unit_cost_sen?: number | null;
+        cost_total_rm?: string;
+        cost_total_sen?: number | null;
     }>,
 ): InventoryReceiptPayloadValidation => {
     const payload: InventoryReceiptLineIntent[] = [];
@@ -231,32 +231,32 @@ export const validateInventoryReceiptPayload = (
             expiry_date: line.expiry_date?.trim() || null,
         };
 
-        if (line.unit_cost_sen !== undefined) {
+        if (line.cost_total_sen !== undefined) {
             if (
-                line.unit_cost_sen !== null &&
-                (!Number.isSafeInteger(line.unit_cost_sen) ||
-                    line.unit_cost_sen < 0 ||
-                    line.unit_cost_sen > 999999999999)
+                line.cost_total_sen !== null &&
+                (!Number.isSafeInteger(line.cost_total_sen) ||
+                    line.cost_total_sen < 0 ||
+                    line.cost_total_sen > 999999999999)
             ) {
                 return {
                     valid: false,
-                    error: 'Purchase unit cost must be a non-negative amount with up to 2 decimal places.',
+                    error: 'The batch total must be a non-negative amount with up to 2 decimal places.',
                 };
             }
 
-            if (line.unit_cost_sen !== null) {
-                normalizedLine.unit_cost_sen = line.unit_cost_sen;
+            if (line.cost_total_sen !== null) {
+                normalizedLine.cost_total_sen = line.cost_total_sen;
             }
         } else if (
-            line.unit_cost_rm !== undefined &&
-            line.unit_cost_rm !== ''
+            line.cost_total_rm !== undefined &&
+            line.cost_total_rm !== ''
         ) {
-            const match = receiptCostPattern.exec(line.unit_cost_rm);
+            const match = receiptCostPattern.exec(line.cost_total_rm);
 
             if (!match) {
                 return {
                     valid: false,
-                    error: 'Purchase unit cost must be a non-negative RM amount with up to 2 decimal places.',
+                    error: 'The batch total must be a non-negative RM amount with up to 2 decimal places.',
                 };
             }
 
@@ -267,11 +267,11 @@ export const validateInventoryReceiptPayload = (
             if (sen > 999999999999n) {
                 return {
                     valid: false,
-                    error: 'Purchase unit cost exceeds the supported maximum.',
+                    error: 'The batch total exceeds the supported maximum.',
                 };
             }
 
-            normalizedLine.unit_cost_sen = Number(sen);
+            normalizedLine.cost_total_sen = Number(sen);
         }
 
         payload.push(normalizedLine);
@@ -411,10 +411,10 @@ export const restoreInventoryReceiptRememberedState = (
                     typeof line.batch_number === 'string') &&
                 (line.expiry_date === null ||
                     typeof line.expiry_date === 'string') &&
-                (line.unit_cost_sen === undefined ||
-                    line.unit_cost_sen === null ||
-                    (typeof line.unit_cost_sen === 'number' &&
-                        Number.isSafeInteger(line.unit_cost_sen))),
+                (line.cost_total_sen === undefined ||
+                    line.cost_total_sen === null ||
+                    (typeof line.cost_total_sen === 'number' &&
+                        Number.isSafeInteger(line.cost_total_sen))),
         );
 
         if (!validPayloadShape) {
@@ -439,9 +439,9 @@ export const restoreInventoryReceiptRememberedState = (
                     typeof record.expiry_date === 'string'
                         ? record.expiry_date
                         : null,
-                ...(typeof record.unit_cost_sen === 'number' ||
-                record.unit_cost_sen === null
-                    ? { unit_cost_sen: record.unit_cost_sen }
+                ...(typeof record.cost_total_sen === 'number' ||
+                record.cost_total_sen === null
+                    ? { cost_total_sen: record.cost_total_sen }
                     : {}),
             };
         });
@@ -534,8 +534,8 @@ export const prepareInventoryReceiptSubmission = (
         quantity: string;
         batch_number: string | null;
         expiry_date: string | null;
-        unit_cost_rm?: string;
-        unit_cost_sen?: number | null;
+        cost_total_rm?: string;
+        cost_total_sen?: number | null;
     }>,
     createKey: () => string,
 ): InventoryReceiptSubmissionPreparation => {
@@ -596,8 +596,8 @@ export const inventoryReceiptDrafts = (
                         batchNumber: line.batch_number ?? '',
                         expiryDate: line.expiry_date ?? '',
                         quantity: line.quantity,
-                        ...(line.unit_cost_sen !== undefined
-                            ? { unitCostSen: line.unit_cost_sen }
+                        ...(line.cost_total_sen !== undefined
+                            ? { costTotalSen: line.cost_total_sen }
                             : {}),
                     },
                 ]),

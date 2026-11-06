@@ -100,7 +100,7 @@ const receipt = reactive<
             batchNumber: string;
             expiryDate: string;
             quantity: string;
-            unitCostRm: string;
+            costTotalRm: string;
         }
     >
 >({});
@@ -240,7 +240,7 @@ watchEffect(() => {
                 batchNumber: '',
                 expiryDate: '',
                 quantity: '',
-                unitCostRm: '',
+                costTotalRm: '',
             };
         }
 
@@ -252,10 +252,10 @@ watchEffect(() => {
             )) {
                 if (receipt[linePublicId]) {
                     Object.assign(receipt[linePublicId], values, {
-                        unitCostRm:
-                            values.unitCostSen === undefined
+                        costTotalRm:
+                            values.costTotalSen === undefined
                                 ? ''
-                                : `${Math.floor(values.unitCostSen / 100)}.${String(values.unitCostSen % 100).padStart(2, '0')}`,
+                                : `${Math.floor(values.costTotalSen / 100)}.${String(values.costTotalSen % 100).padStart(2, '0')}`,
                     });
                 }
             }
@@ -412,7 +412,7 @@ const receiptPayload = (row: DocumentRow) =>
         quantity: receipt[line.publicId]?.quantity ?? '',
         batch_number: receipt[line.publicId]?.batchNumber ?? null,
         expiry_date: receipt[line.publicId]?.expiryDate ?? null,
-        unit_cost_rm: receipt[line.publicId]?.unitCostRm ?? '',
+        cost_total_rm: receipt[line.publicId]?.costTotalRm ?? '',
     }));
 const receivePurchaseOrder = (row: DocumentRow) => {
     const context = receiptRememberContext();
@@ -485,7 +485,7 @@ const receivePurchaseOrder = (row: DocumentRow) => {
                     batchNumber: '',
                     expiryDate: '',
                     quantity: '',
-                    unitCostRm: '',
+                    costTotalRm: '',
                 });
             }
         },
@@ -718,6 +718,13 @@ const saveReorder = () =>
                         context="operations"
                         :expected-branch-id="operations.expectedBranchId"
                     />
+                    <p
+                        id="po-estimate-help"
+                        class="text-xs text-muted-foreground sm:col-span-2"
+                    >
+                        Estimated cost is for one stock unit (for example one
+                        tablet), not one box.
+                    </p>
                     <fieldset
                         v-for="(line, index) in purchaseOrder.lines"
                         :key="line.key"
@@ -743,9 +750,11 @@ const saveReorder = () =>
                         />
                         <Input
                             v-model="line.estimatedUnitCostRm"
-                            :aria-label="`Estimated purchase unit cost RM ${index + 1}`"
-                            placeholder="Estimated unit cost (RM)"
+                            :aria-label="`Estimated cost per stock unit RM ${index + 1}`"
+                            aria-describedby="po-estimate-help"
+                            placeholder="Estimated cost per stock unit (RM)"
                             type="number"
+                            inputmode="decimal"
                             min="0"
                             step="0.01"
                         />
@@ -890,6 +899,13 @@ const saveReorder = () =>
                                 :aria-label="`${row.number} delivery reference`"
                             />
                         </label>
+                        <p
+                            :id="`${row.publicId}-cost-help`"
+                            class="text-xs text-muted-foreground"
+                        >
+                            Optional. Type the batch total from the supplier
+                            invoice. Leave blank to use the order's estimate.
+                        </p>
                         <fieldset
                             v-for="line in row.lines"
                             :key="line.publicId"
@@ -917,14 +933,18 @@ const saveReorder = () =>
                                 placeholder="Quantity this receipt"
                                 inputmode="decimal"
                             />
-                            <Input
-                                v-model="receipt[line.publicId].unitCostRm"
-                                :aria-label="`${line.sku} actual purchase unit cost RM`"
-                                placeholder="Actual unit cost (RM)"
-                                type="number"
-                                min="0"
-                                step="0.01"
-                            />
+                            <label class="grid min-w-0 gap-1 text-xs"
+                                >Total paid for this batch (RM)
+                                <Input
+                                    v-model="receipt[line.publicId].costTotalRm"
+                                    :aria-label="`${line.sku} total paid for this batch RM`"
+                                    :aria-describedby="`${row.publicId}-cost-help`"
+                                    placeholder="0.00"
+                                    type="number"
+                                    inputmode="decimal"
+                                    min="0"
+                                    step="0.01"
+                            /></label>
                         </fieldset>
                         <Button type="submit" :disabled="busy"
                             >Post receipt</Button

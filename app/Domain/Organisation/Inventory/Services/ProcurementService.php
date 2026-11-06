@@ -11,6 +11,7 @@ use App\Domain\Organisation\Inventory\Models\InventorySku;
 use App\Domain\Organisation\Inventory\Models\InventorySupplier;
 use App\Domain\Organisation\Inventory\Models\PurchaseOrder;
 use App\Domain\Organisation\Inventory\Models\PurchaseOrderLine;
+use App\Domain\Organisation\Inventory\Models\StockMovement;
 use App\Domain\Organisation\Models\Branch;
 use App\Models\User;
 use Illuminate\Auth\Access\AuthorizationException;
@@ -188,12 +189,19 @@ final class ProcurementService
                 $lineId = DB::table('inventory_receipt_line_evidence')->insertGetId(['organisation_id' => $actor->organisation_id, 'goods_receipt_id' => $receipt->id, 'purchase_order_line_id' => $line->id, 'physical_quantity' => $plan['input']['physical_quantity'], 'accepted_quantity' => StockUnitQuantity::format($plan['accepted']), 'quarantined_quantity' => StockUnitQuantity::format($plan['quarantined']), 'rejected_quantity' => StockUnitQuantity::format($plan['rejected']), 'applied_order_quantity' => StockUnitQuantity::format($applied), 'overage_quantity' => StockUnitQuantity::format($stockIn - $applied)]);
                 foreach ($plan['input']['lots'] as $lot) {
                     $batch = $lot['outcome'] === 'rejected' ? null : $this->resolveBatch($actor, $branch, $sku, $lot);
-                    $cost = $lot['unit_cost_sen'] ?? $line->estimated_unit_cost_sen;
-                    DB::table('inventory_receipt_lots')->insert(['line_evidence_id' => $lineId, 'inventory_batch_id' => $batch?->id, 'batch_number' => $lot['batch_number'], 'expiry_date' => $lot['expiry_date'], 'quantity' => $lot['quantity'], 'outcome' => $lot['outcome'], 'reason' => $lot['reason'], 'unit_cost_sen' => $cost]);
+                    // STK-10B (owner decisions 2026-11-06): an invoice total or a typed unit cost is actual; a blank
+                    // cost keeps the order's estimate, marked as an estimate, so the two are never confused.
+                    [$cost, $costTotal, $costSource] = match (true) {
+                        ($lot['cost_total_sen'] ?? null) !== null => [null, $lot['cost_total_sen'], StockMovement::COST_ACTUAL],
+                        $lot['unit_cost_sen'] !== null => [$lot['unit_cost_sen'], null, StockMovement::COST_ACTUAL],
+                        $line->estimated_unit_cost_sen !== null => [(int) $line->estimated_unit_cost_sen, null, StockMovement::COST_ESTIMATE],
+                        default => [null, null, null],
+                    };
+                    DB::table('inventory_receipt_lots')->insert(['line_evidence_id' => $lineId, 'inventory_batch_id' => $batch?->id, 'batch_number' => $lot['batch_number'], 'expiry_date' => $lot['expiry_date'], 'quantity' => $lot['quantity'], 'outcome' => $lot['outcome'], 'reason' => $lot['reason'], 'unit_cost_sen' => $cost, 'cost_total_sen' => $costTotal, 'cost_source' => $costSource]);
                     if (! $batch) {
                         continue;
                     }
-                    $this->movements->recordPurchaseReceipt($actor, $destination, $sku, $batch, $lot['quantity'], $receipt->public_id, $cost, $locked->supplier_id);
+                    $this->movements->recordPurchaseReceipt($actor, $destination, $sku, $batch, $lot['quantity'], $receipt->public_id, $cost, $locked->supplier_id, $costTotal, $costSource);
                     // Retain the legacy single-lot relation without fabricating a batch aggregate for split lots.
                     if (count($plan['input']['lots']) === 1) {
                         (new GoodsReceiptLine)->forceFill(['organisation_id' => $actor->organisation_id, 'goods_receipt_id' => $receipt->id, 'purchase_order_line_id' => $line->id, 'inventory_sku_id' => $sku->id, 'inventory_batch_id' => $batch->id, 'quantity' => $lot['quantity'], 'unit_cost_sen' => $cost])->save();

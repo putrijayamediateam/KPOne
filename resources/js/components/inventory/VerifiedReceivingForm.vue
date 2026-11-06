@@ -16,7 +16,8 @@ const lot = () => ({
     quantity: '',
     outcome: 'accepted',
     reason: null as string | null,
-    unit_cost_sen: null as number | null,
+    // STK-10B: the total paid for this lot, exactly as on the supplier invoice (RM, two decimals).
+    cost_total_rm: '',
     unit: null as string | null,
 });
 const form = useForm({
@@ -41,7 +42,36 @@ const reasons = [
     'documentation_missing',
     'other_approved',
 ];
+/** Exact RM to sen without floating point; null for blank, undefined for an invalid amount. */
+function lotTotalSen(value: string): number | null | undefined {
+    const text = value.trim();
+
+    if (text === '') {
+        return null;
+    }
+
+    const match = /^(\d{1,10})(?:\.(\d{1,2}))?$/.exec(text);
+
+    return match
+        ? Number(match[1]) * 100 + Number((match[2] ?? '').padEnd(2, '0'))
+        : undefined;
+}
+const costError = ref<string | null>(null);
 const submit = (review: boolean) => {
+    costError.value = form.lines.some((line) =>
+        line.lots.some(
+            (entry) =>
+                entry.outcome !== 'rejected' &&
+                lotTotalSen(entry.cost_total_rm) === undefined,
+        ),
+    )
+        ? 'Enter each lot total as RM with up to 2 decimal places, for example 12.34.'
+        : null;
+
+    if (costError.value) {
+        return;
+    }
+
     form.expected_branch_id = props.branchId;
     form.lock_version = props.row.lockVersion;
     form.receipt_session_nonce = props.nonce;
@@ -54,8 +84,13 @@ const submit = (review: boolean) => {
 
                 return {
                     ...line,
-                    lots: line.lots.map((lot) => ({
+                    lots: line.lots.map(({ cost_total_rm, ...lot }) => ({
                         ...lot,
+                        // A rejected lot never enters stock, so it carries no cost.
+                        cost_total_sen:
+                            lot.outcome === 'rejected'
+                                ? null
+                                : (lotTotalSen(cost_total_rm) ?? null),
                         unit:
                             props.row.lines.find(
                                 (source) =>
@@ -135,6 +170,13 @@ watch(
                     required
                     class="h-11 min-w-0 rounded border bg-background px-3"
             /></label>
+            <p
+                :id="`${row.publicId}-lot-cost-help`"
+                class="text-xs text-muted-foreground"
+            >
+                Optional. Type each lot total from the supplier invoice. Leave
+                blank to use the order's estimate.
+            </p>
             <fieldset
                 v-for="(line, index) in form.lines"
                 :id="`receiving-line-${line.line_public_id}`"
@@ -206,6 +248,20 @@ watch(
                                 required
                                 class="h-11 min-w-0 rounded border bg-background px-3"
                         /></label>
+                        <label
+                            v-if="entry.outcome !== 'rejected'"
+                            class="grid gap-1 text-sm"
+                            >Total paid for this lot (RM)<input
+                                v-model="entry.cost_total_rm"
+                                type="number"
+                                inputmode="decimal"
+                                min="0"
+                                step="0.01"
+                                placeholder="0.00"
+                                :aria-label="`${row.lines[index].sku} lot ${number + 1} total paid RM`"
+                                :aria-describedby="`${row.publicId}-lot-cost-help`"
+                                class="h-11 min-w-0 rounded border bg-background px-3"
+                        /></label>
                         <label class="grid gap-1 text-sm"
                             >Outcome<select
                                 v-model="entry.outcome"
@@ -256,6 +312,9 @@ watch(
                     </button>
                 </template>
             </fieldset>
+            <p v-if="costError" class="text-sm text-destructive" role="alert">
+                {{ costError }}
+            </p>
             <p
                 v-for="(error, key) in form.errors"
                 :key="key"
