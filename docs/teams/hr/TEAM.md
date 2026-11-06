@@ -205,6 +205,30 @@ check items, keep them"). The rest stand unless the owner changes them.
     words; one shared synthetic-data line; the HR-3a correction sheet; "No KPOne sign-in" on a locum; empty states and
     "Not given"; HR-4b expiry chips). The owner's own words relayed the same day: "approve the HR-4 plan with the
     defaults". The `/hr/records` hub-map assertion still needs the owner's OK at build time.
+38. HR-5 design note (HR-PLAN section 12) approved with its defaults (owner, 2026-11-06, in the HR session: "approve
+    the HR-5 note with the defaults"): HR-5a credential register (after HR-4b), HR-5b planner warnings, HR-5c SOPs;
+    no credential ticked per role until HR ticks it (the form suggests APC and BLS for Resident Doctor, BLS for CA and
+    CA Supervisor, Hepatitis B for clinical roles); warnings from 60 days with the words changing at 30 and 7;
+    Hepatitis B as Done or Not done and a date only; renewals checked by Director or HR Manager, never the person;
+    opening hours and a minimum of resident doctors entered per branch (suggests 1); work-hour suggestions 6 days in a
+    row, 11 h rest and 48 h a week, to confirm with the HR adviser; SOP audiences chosen per SOP by role. DOC-02a stays
+    Director only and nothing blocks clinical work. The `/hr/credentials` and `/hr/sops` hub-map assertions still need
+    the owner's OK at build time.
+39. Daniel's early look at the HR-5 screens (HR-PLAN 12.6, relayed by B.E.R.N.I.S.S 2026-11-06): OK with changes,
+    all nine notes folded into 12.6 (time in the status words with Expired stronger and an icon; a sticky worded
+    matrix with "—" for not required; "Someone else checks this"; a worded planner chip with "Warnings only"; SOP
+    acknowledgement only after opening and per version; plain "who hasn't" list; read-only MMC with its source line;
+    Health item help text; empty states; one extra register shot at 1440 px dark).
+48. HR-5a hub-map assertion approved (the owner's own words, relayed verbatim by B.E.R.N.I.S.S 2026-11-06: "approve
+    the credentials hub line for liyana"): `ClinicManagementTest` gains one line after `'/hr/records'`,
+    `'/hr/credentials' => ['hr.credentials.view.own', 'hr.credentials.manage.organisation'],` and nothing else.
+    (Decisions 40 to 47 are recorded on the HR-7 docs branch.)
+49. HR-5a shipped (the owner, 2026-11-06, in the HR session: "ship it for HR-5a"), after Suresh's "ready to merge"
+    and Daniel's OK (one nit fixed: Archive as an outline button). The PR opens after #347 (HR-4a) and HR-4b merge.
+50. HR-5b shipped (the owner's own words, relayed verbatim by B.E.R.N.I.S.S 2026-11-06: "ship it for HR-5b for
+    liyana"), after Suresh's re-check ("ready") and Daniel's OK (his items fixed: consecutive-day rest breaches shown
+    as one line with a count, the chip counting breaches, planner times that never break). The PR opens after HR-5a
+    (#356) merges, since HR-5b builds on it.
 
 ## 7. Open items and known limits
 

@@ -18,6 +18,8 @@ const props = defineProps<{
     extra?: Record<string, string>;
     /** Changes when the tab changes, so a shown value hides again. */
     resetKey?: string;
+    /** HR-5a: another audited Show endpoint (a credential reference); defaults to the staff file's. */
+    url?: string;
 }>();
 
 const emit = defineEmits<{ shown: [] }>();
@@ -51,7 +53,7 @@ const show = async () => {
 
     try {
         const response = await fetch(
-            `/hr/records/${props.workerId}/show-value`,
+            props.url ?? `/hr/records/${props.workerId}/show-value`,
             {
                 method: 'POST',
                 credentials: 'same-origin',
