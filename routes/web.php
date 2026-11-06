@@ -33,6 +33,7 @@ use App\Http\Controllers\DiagnosisPresetSettingsController;
 use App\Http\Controllers\DispensaryController;
 use App\Http\Controllers\GovernedStockController;
 use App\Http\Controllers\HR\AttendanceController as HrAttendanceController;
+use App\Http\Controllers\HR\CredentialsController as HrCredentialsController;
 use App\Http\Controllers\HR\LeaveController;
 use App\Http\Controllers\HR\RecordsController as HrRecordsController;
 use App\Http\Controllers\HR\RosterController;
@@ -149,6 +150,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::post('versions/{version}/discard', 'discard')->whereUuid('version')->name('hr.roster.discard');
             Route::put('minimum-staffing', 'minimums')->name('hr.roster.minimums');
         });
+        // HR-5b compliance rules (Director, HR Manager): feed warnings on the planner, never a refusal.
+        Route::middleware(['permission:hr.credentials.manage.organisation', 'throttle:30,1'])->group(function (): void {
+            Route::put('compliance/coverage', 'coverage')->name('hr.roster.compliance.coverage');
+            Route::put('compliance/work-hours', 'workHours')->name('hr.roster.compliance.work-hours');
+        });
         Route::middleware(['permission:hr.roster.approve.organisation', 'throttle:30,1'])->group(function (): void {
             Route::post('versions/{version}/approve', 'approve')->whereUuid('version')->name('hr.roster.approve');
             Route::post('versions/{version}/return', 'returnToDraft')->whereUuid('version')->name('hr.roster.return');
@@ -216,6 +222,20 @@ Route::middleware(['auth', 'verified'])->group(function () {
     });
 
     // HR-2a leave (B.E.R.N.I.S.S for the owner, 2026-11-05). Rules live in app/Domain/HR/Leave.
+    // HR-5a credential register (owner, 2026-11-06: "approve the HR-5 note with the defaults").
+    Route::prefix('hr/credentials')->controller(HrCredentialsController::class)->middleware('sensitive.no-store')->group(function (): void {
+        Route::get('/', 'index')->middleware('permission:hr.credentials.view.own,hr.credentials.manage.organisation')->name('hr.credentials.index');
+        Route::post('my', 'sendOwn')->middleware(['permission:hr.credentials.view.own', 'throttle:30,1'])->name('hr.credentials.my.store');
+        Route::post('records/{record}/show-reference', 'showReference')->whereUuid('record')
+            ->middleware(['permission:hr.credentials.view.own,hr.credentials.manage.organisation', 'throttle:30,1'])->name('hr.credentials.show-reference');
+        Route::middleware(['permission:hr.credentials.manage.organisation', 'throttle:60,1'])->group(function (): void {
+            Route::post('workers/{worker}', 'enterFor')->whereUuid('worker')->name('hr.credentials.workers.store');
+            Route::post('records/{record}/{decision}', 'decide')->whereUuid('record')->whereIn('decision', ['accept', 'reject'])->name('hr.credentials.decide');
+            Route::post('types', 'saveType')->name('hr.credentials.types.save');
+            Route::post('types/{type}/archive', 'archiveType')->whereUuid('type')->name('hr.credentials.types.archive');
+        });
+    });
+
     Route::prefix('hr/leave')->controller(LeaveController::class)->middleware('sensitive.no-store')->group(function (): void {
         Route::get('/', 'index')->middleware('permission:hr.leave.request.own,hr.leave.approve.organisation,hr.leave.manage.organisation')->name('hr.leave.index');
         Route::middleware(['permission:hr.leave.request.own', 'throttle:60,1'])->group(function (): void {

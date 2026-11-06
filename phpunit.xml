@@ -19,6 +19,7 @@
             <exclude>tests/Feature/HR/PostgresAttendanceContentionTest.php</exclude>
             <exclude>tests/Feature/HR/PostgresOvertimeContentionTest.php</exclude>
             <exclude>tests/Feature/HR/PostgresRecordsContentionTest.php</exclude>
+            <exclude>tests/Feature/HR/PostgresCredentialsContentionTest.php</exclude>
             <exclude>tests/Feature/Inventory/PostgresBatchHoldTest.php</exclude>
             <exclude>tests/Feature/Inventory/PostgresGovernedStockTest.php</exclude>
             <exclude>tests/Feature/Inventory/PostgresStockReadinessTest.php</exclude>
@@ -60,6 +61,7 @@
             <file>tests/Feature/HR/PostgresAttendanceContentionTest.php</file>
             <file>tests/Feature/HR/PostgresOvertimeContentionTest.php</file>
             <file>tests/Feature/HR/PostgresRecordsContentionTest.php</file>
+            <file>tests/Feature/HR/PostgresCredentialsContentionTest.php</file>
             <file>tests/Feature/Inventory/PostgresBatchHoldTest.php</file>
             <file>tests/Feature/Inventory/PostgresGovernedStockTest.php</file>
             <file>tests/Feature/Inventory/PostgresStockReadinessTest.php</file>
