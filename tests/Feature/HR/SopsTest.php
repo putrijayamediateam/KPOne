@@ -66,6 +66,8 @@ class SopsTest extends VisitTestCase
         $this->publish($hr, ['roles' => []])->assertSessionHasErrors('roles');
         $this->selectBranch($hr);
         $this->post(route('hr.sops.publish'), ['title' => self::TITLE, 'roles' => ['ca'], 'idempotency_key' => (string) Str::uuid()])->assertSessionHasErrors(['file' => 'Use a PDF file.']);
+        // One submit names everything to fix.
+        $this->post(route('hr.sops.publish'), ['title' => '', 'idempotency_key' => (string) Str::uuid()])->assertSessionHasErrors(['file', 'title', 'roles']);
         $this->publish($hr, ['roles' => ['queue_display']])->assertSessionHasErrors('roles');
         $this->publish($hr, ['title' => 'ab', 'roles' => ['ca']])->assertSessionHasErrors('title');
         $this->assertSame(0, DB::table('hr_sops')->count());

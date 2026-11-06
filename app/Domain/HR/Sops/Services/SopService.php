@@ -56,7 +56,7 @@ final class SopService
     public function publish(User $actor, array $prepared, array $input): string
     {
         $key = $this->support->key($input['idempotency_key'] ?? null);
-        [$title, $roles] = $this->validated($input);
+        [$title, $roles] = self::validated($input);
         $written = [];
         try {
             return DB::transaction(function () use ($actor, $prepared, $key, $title, $roles, &$written): string {
@@ -92,7 +92,7 @@ final class SopService
     public function replace(User $actor, string $sopId, array $prepared, array $input): void
     {
         $key = $this->support->key($input['idempotency_key'] ?? null);
-        [$title, $roles] = $this->validated($input);
+        [$title, $roles] = self::validated($input);
         $written = [];
         try {
             DB::transaction(function () use ($actor, $sopId, $prepared, $input, $key, $title, $roles, &$written): void {
@@ -248,7 +248,7 @@ final class SopService
      * @param  array<string, mixed>  $input
      * @return array{0:string, 1:list<string>}
      */
-    private function validated(array $input): array
+    public static function validated(array $input): array
     {
         $title = is_string($input['title'] ?? null) ? trim((string) preg_replace('/\s+/u', ' ', $input['title'])) : '';
         if (mb_strlen($title) < 3 || mb_strlen($title) > 120) {

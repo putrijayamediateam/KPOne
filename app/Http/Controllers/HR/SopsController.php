@@ -79,7 +79,14 @@ class SopsController extends Controller
         try {
             return SopService::prepare($request->file('file'));
         } catch (ValidationException $e) {
-            throw $e->redirectTo($back);
+            // Show the title and roles messages with the file's, so one submit names everything to fix.
+            $messages = $e->errors();
+            try {
+                SopService::validated($request->only(['title', 'roles']));
+            } catch (ValidationException $other) {
+                $messages = [...$other->errors(), ...$messages];
+            }
+            throw ValidationException::withMessages($messages)->redirectTo($back);
         }
     }
 
