@@ -139,6 +139,43 @@ class RefundAfterCompletionTest extends BillingTestCase
         $this->assertSame(['count' => 1, 'sen' => 1500, 'waiting' => 1], $closing->cashRefunds($f['visit']->branch, $refundDay->startOfDay()));
     }
 
+    public function test_insights_and_the_sales_csv_take_an_approved_credit_off_net_sales_on_its_approval_day_and_the_log_shows_it(): void
+    {
+        $saleDay = CarbonImmutable::now('Asia/Kuala_Lumpur')->startOfDay()->subDays(3)->setTime(10, 0);
+        $approvalDay = $saleDay->addDays(2);
+        $this->travelTo($saleDay);
+        $f = $this->completedFixture();
+        $supervisor = $this->actor('ca_supervisor');
+        $this->selectBranch($supervisor);
+        $this->post(route('billing.refund', [$f['visit'], $f['receipt']->public_id]), $this->input($f, 'medicine_returned', 1500))->assertSessionHasNoErrors();
+        $this->travelTo($approvalDay);
+        $finance = $this->actor('finance_officer');
+        $this->selectBranch($finance);
+        $this->post(route('billing.refund.decide', [$f['visit'], PaymentRefund::query()->sole()->public_id, 'approved']), $this->decide($f))->assertSessionHasNoErrors();
+
+        $director = $this->actor('director');
+        $this->selectBranch($director);
+        $report = fn (CarbonImmutable $day) => app(\App\Domain\Shared\Services\ClinicInsightsReportService::class)
+            ->report($director, 'sales', 'all', $day->toDateString(), $day->toDateString(), null)['report']['summary'];
+        // The sale day keeps its figures; the credit is its own row on the approval day.
+        $sale = $report($saleDay);
+        $this->assertSame([4000, 0, 4000], [$sale['totalSen'], $sale['reconciliation']['refundCreditsSen'], $sale['reconciliation']['netSen']]);
+        $approval = $report($approvalDay);
+        $this->assertSame(['grossSen' => 0, 'discountsSen' => 0, 'surchargesSen' => 0, 'refundCreditsSen' => 1500, 'netSen' => -1500], $approval['reconciliation']);
+        $this->assertSame(-1500, $approval['totalSen']);
+        $both = app(\App\Domain\Shared\Services\ClinicInsightsReportService::class)->report($director, 'sales', 'all', $saleDay->toDateString(), $approvalDay->toDateString(), null)['report']['summary'];
+        $this->assertSame([2500, 4000, 1500], [$both['totalSen'], $both['newSen'] + $both['returningSen'], $both['reconciliation']['refundCreditsSen']]);
+
+        $director->givePermissionTo('reports.sales.export.organisation');
+        $csv = $this->get(route('insights.sales-summary.download', ['from' => $approvalDay->toDateString(), 'to' => $approvalDay->toDateString(), 'branch' => 'all']))->assertOk()->streamedContent();
+        $this->assertStringContainsString('current,"Refund credits",15.00,MYR', str_replace("\r", '', $csv));
+
+        $this->selectBranch($finance);
+        $messages = array_column($this->actingAs($finance)->getJson(route('billing.activity', [$f['visit'], $f['invoice']]).'?'.http_build_query(['expected_branch_id' => $f['visit']->branch_id]))->assertOk()->json('data'), 'message');
+        $this->assertContains('Refund after completion recorded', $messages);
+        $this->assertContains('Refund after completion approved; invoice credited', $messages);
+    }
+
     public function test_an_open_visit_still_refunds_only_reversed_receipts_and_postgres_refuses_what_the_service_refuses(): void
     {
         [, $ca, $visit, $invoice] = $this->finalizedFixture();

@@ -70,6 +70,7 @@ export type VisitHistoryFinancial = {
     currency: string;
     state: BillingState;
     adjustment: InvoiceAdjustmentSummary;
+    refundCreditSen: number;
     lines: Array<{
         type: string;
         name: string;

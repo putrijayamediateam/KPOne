@@ -78,6 +78,7 @@ export type RefundEntry = {
 export type RefundsContext = {
     can: { record: boolean; approve: boolean };
     reasons: Record<string, string>;
+    afterCompletionReasons: Record<string, string>;
     rejectReasons: Record<string, string>;
     methods: Array<{ id: number; name: string }>;
     visitCompleted: boolean;
@@ -86,6 +87,8 @@ export type RefundsContext = {
         number: string;
         method: string;
         amountSen: number;
+        kind: 'reversal' | 'after_completion';
+        refundableSen: number;
         canRecord: boolean;
         refunds: RefundEntry[];
     }>;
@@ -118,6 +121,7 @@ export type BillingPage = {
         correctionHold: boolean;
         state: BillingState;
         adjustment: InvoiceAdjustmentSummary;
+        refundCreditSen: number;
         adjustmentControls: null | {
             url: string;
             add: boolean;

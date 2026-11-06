@@ -646,7 +646,10 @@ const reverse = (receipt: Receipt) =>
                         </div>
                     </dl>
                     <dl
-                        v-if="billing.invoice.adjustment.adjustmentSen !== 0"
+                        v-if="
+                            billing.invoice.adjustment.adjustmentSen !== 0 ||
+                            billing.invoice.refundCreditSen
+                        "
                         class="mt-2 border-t pt-2 text-xs"
                     >
                         <div class="flex justify-between py-1">
@@ -657,7 +660,10 @@ const reverse = (receipt: Receipt) =>
                                 }}
                             </dd>
                         </div>
-                        <div class="flex justify-between py-1">
+                        <div
+                            v-if="billing.invoice.adjustment.adjustmentSen !== 0"
+                            class="flex justify-between py-1"
+                        >
                             <dt>
                                 {{
                                     billing.invoice.adjustment.adjustmentSen < 0
@@ -678,6 +684,16 @@ const reverse = (receipt: Receipt) =>
                                         ),
                                     )
                                 }}
+                            </dd>
+                        </div>
+                        <div
+                            v-if="billing.invoice.refundCreditSen"
+                            class="flex justify-between py-1"
+                            data-testid="billing-refund-credit"
+                        >
+                            <dt>Refund credit</dt>
+                            <dd>
+                                −{{ myr(billing.invoice.refundCreditSen) }}
                             </dd>
                         </div>
                     </dl>

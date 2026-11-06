@@ -353,6 +353,7 @@ class VisitHistoryService
             'currency' => $invoice->currency,
             'state' => $this->ledger->state($invoice),
             'adjustment' => InvoiceAdjustmentService::summary($invoice),
+            'refundCreditSen' => (int) FinancialLedger::approvedCredits([$invoice->id])->sum('amount_sen'),
             'lines' => $canLines ? InvoiceLine::query()->where('invoice_id', $invoice->id)->orderBy('id')->get()
                 ->map(fn (InvoiceLine $line): array => [
                     'type' => $line->line_type,
