@@ -3,10 +3,12 @@ import { Head, router } from '@inertiajs/vue3';
 import { LoaderCircle, Search } from '@lucide/vue';
 import {
     computed,
+    nextTick,
     onBeforeUnmount,
     onMounted,
     reactive,
     ref,
+    useTemplateRef,
     watch,
 } from 'vue';
 import InputError from '@/components/InputError.vue';
@@ -457,7 +459,30 @@ const selectTab = (tab: QueueTab) => {
         appliedFilters.status = status;
     });
 };
-const selectOperationalTab = (value: string) => selectTab(value as QueueTab);
+const tabStrip = useTemplateRef<HTMLElement>('tabStrip');
+/** DD-30: on a phone the strip scrolls, so bring a part-hidden chosen tab fully into view (sideways only). */
+const revealSelectedTab = async () => {
+    await nextTick();
+    const nav = tabStrip.value?.querySelector<HTMLElement>('[role="tablist"]');
+    const tab = nav?.querySelector<HTMLElement>('[aria-selected="true"]');
+
+    if (!nav || !tab) {
+        return;
+    }
+
+    const navBox = nav.getBoundingClientRect();
+    const tabBox = tab.getBoundingClientRect();
+
+    if (tabBox.left < navBox.left) {
+        nav.scrollLeft -= navBox.left - tabBox.left;
+    } else if (tabBox.right > navBox.right) {
+        nav.scrollLeft += tabBox.right - navBox.right;
+    }
+};
+const selectOperationalTab = (value: string) => {
+    selectTab(value as QueueTab);
+    void revealSelectedTab();
+};
 const clearFilters = () => {
     void replaceAppliedRefresh(() => {
         draftValidationError.value = '';
@@ -679,6 +704,7 @@ onBeforeUnmount(() => {
         </div>
         <!-- DD-30: on phones the live line sits under the tab strip, which keeps scrolling at full width. -->
         <div
+            ref="tabStrip"
             class="flex items-center gap-2 border-b max-sm:flex-col max-sm:items-stretch max-sm:gap-0 max-sm:border-b-0"
         >
             <OperationalTabs
