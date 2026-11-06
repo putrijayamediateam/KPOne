@@ -3,10 +3,14 @@
 namespace Tests\Feature\Agents\AskKpone;
 
 use App\Domain\Access\BranchAccessService;
+use App\Domain\Organisation\Inventory\Models\InventoryBatch;
 use App\Domain\Organisation\Inventory\Models\StockMovement;
+use App\Domain\Organisation\Inventory\Services\InventoryMovementService;
 use App\Domain\Organisation\Inventory\Services\ProcurementService;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Tests\Feature\Visit\VisitTestCase;
+use Tests\Support\GovernedStockFixture;
 use Tests\Support\VerifiedReceivingFixture;
 
 /** AG-7b (owner decision 2026-11-06, Option A): Ask KPOne labels every stock cost as actual or estimate. */
@@ -45,6 +49,17 @@ final class AiReadStockCostTest extends VisitTestCase
         $this->assertSame([125, null, 'estimate'], [(int) $estimate['unit_cost_sen'], $estimate['cost_total_sen'], $estimate['cost_source']]);
     }
 
+    public function test_an_opening_balance_keeps_its_entered_unit_cost_with_an_empty_source(): void
+    {
+        $f = (new GovernedStockFixture($this->branch))->build('5.000');
+        $batch = new InventoryBatch;
+        $batch->forceFill(['public_id' => (string) Str::uuid(), 'organisation_id' => $this->organisation->id, 'inventory_sku_id' => $f['sku']->id, 'batch_number' => 'SYN-OB-'.Str::upper(Str::random(6)), 'expiry_date' => now()->setTimezone($this->branch->timezone)->addDays(90)->toDateString(), 'received_at' => now()->subDay(), 'status' => 'available'])->save();
+        app(InventoryMovementService::class)->openingBalance($f['proposer'], ['expected_branch_id' => $this->branch->id, 'sku_public_id' => $f['sku']->public_id, 'location_public_id' => $f['location']->public_id, 'batch_public_id' => $batch->public_id, 'quantity' => '3.000', 'unit_cost_sen' => 150]);
+
+        $row = (array) DB::table('ai_read.stock_movements')->where('batch_number', $batch->batch_number)->sole();
+        $this->assertSame([150, null, null], [(int) $row['unit_cost_sen'], $row['cost_total_sen'], $row['cost_source']]);
+    }
+
     public function test_the_column_descriptions_say_only_actual_is_an_actual_cost(): void
     {
         $comments = collect(DB::select(<<<'SQL'
@@ -54,7 +69,8 @@ final class AiReadStockCostTest extends VisitTestCase
 
         $this->assertStringContainsString('Actual only when cost_source is actual', (string) $comments['unit_cost_sen']);
         $this->assertStringContainsString('estimate', (string) $comments['unit_cost_sen']);
-        $this->assertSame('actual, estimate, or empty for costs recorded before STK-10B.', $comments['cost_source']);
+        $this->assertStringContainsString('every other movement type', (string) $comments['cost_source']);
+        $this->assertStringContainsString('opening balance', (string) $comments['unit_cost_sen']);
         $this->assertNotNull($comments['cost_total_sen']);
         $this->assertStringContainsString('cost_source', (string) DB::scalar("SELECT obj_description('ai_read.stock_movements'::regclass, 'pg_class')"));
     }
@@ -72,15 +88,25 @@ final class AiReadStockCostTest extends VisitTestCase
 
     public function test_the_migration_rolls_back_to_the_original_view_and_replays(): void
     {
-        $migration = require database_path('migrations/2026_11_07_700100_label_cost_in_ai_read_stock_movements.php');
+        $migration = require database_path('migrations/2026_11_11_000100_label_cost_in_ai_read_stock_movements.php');
         $columns = fn (): array => DB::table('information_schema.columns')->where('table_schema', 'ai_read')->where('table_name', 'stock_movements')
             ->orderBy('ordinal_position')->pluck('column_name')->all();
 
+        // The reader login is cluster-wide; create it inside this test's transaction when it does not exist, so the grant is checked.
+        if (! DB::table('pg_roles')->where('rolname', 'kpone_ai_reader')->exists()) {
+            DB::unprepared('CREATE ROLE kpone_ai_reader NOLOGIN');
+            DB::unprepared('GRANT USAGE ON SCHEMA ai_read TO kpone_ai_reader');
+            DB::unprepared('GRANT SELECT ON ALL TABLES IN SCHEMA ai_read TO kpone_ai_reader');
+        }
+        $canRead = fn (): bool => (bool) DB::scalar("SELECT has_table_privilege('kpone_ai_reader', 'ai_read.stock_movements', 'SELECT')");
+
         $migration->down();
         $this->assertSame(['id', 'occurred_at', 'movement_type', 'sku_code', 'batch_number', 'source_location_id', 'destination_location_id', 'quantity', 'unit_cost_sen'], $columns());
+        $this->assertTrue($canRead(), 'Rolling back keeps the reader able to read the view.');
 
         $migration->up();
         $migration->up();
+        $this->assertTrue($canRead(), 'Replaying keeps the reader able to read the view.');
         $this->assertSame(['id', 'occurred_at', 'movement_type', 'sku_code', 'batch_number', 'source_location_id', 'destination_location_id', 'quantity', 'unit_cost_sen', 'cost_total_sen', 'cost_source'], $columns());
     }
 }

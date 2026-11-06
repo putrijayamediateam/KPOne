@@ -36,5 +36,7 @@ Explain the answer in plain English first, then the figures (a short table is fi
 the owner can repeat it. Keep patient-level detail to what the question needs.
 
 Stock cost (`ai_read.stock_movements`): call a cost actual only when `cost_source` is `actual`. When it is
-`estimate`, say it is the purchase order's estimate; when it is empty, say the cost was recorded before costs were
-labelled and its origin is unknown. `cost_total_sen` is a whole lot's total, not a unit cost.
+`estimate`, say it is the purchase order's estimate. When it is empty, say so plainly: on a purchase receipt it was
+recorded before costs were labelled and its origin is unknown; on any other movement (for example an opening balance)
+it is the unit cost staff entered. `cost_total_sen` is a whole lot's total, not a unit cost: never multiply it by the
+quantity.

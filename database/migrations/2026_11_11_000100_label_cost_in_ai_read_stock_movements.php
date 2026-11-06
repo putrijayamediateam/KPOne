@@ -20,21 +20,23 @@ return new class extends Migration
         }
 
         // CREATE OR REPLACE may only append columns, so the existing columns and grants stay as they are. The two
-        // STK-10B columns are read through the whole row (to_jsonb), so the view does not pin them: rolling back the
-        // STK-10B migration can still drop them, and the view then shows them empty instead of blocking the rollback.
+        // STK-10B columns are read through the whole row (to_jsonb, computed once per row), so the view does not pin
+        // them: STK-10B's own migration can still be rolled back on its own (its tests do this), and the view then
+        // shows the two columns empty instead of blocking the rollback.
         DB::unprepared(<<<'SQL'
             CREATE OR REPLACE VIEW ai_read.stock_movements AS
             SELECT m.id, m.occurred_at, m.movement_type, s.sku_code, b.batch_number,
                 m.source_location_id, m.destination_location_id, m.quantity, m.unit_cost_sen,
-                (to_jsonb(m)->>'cost_total_sen')::bigint AS cost_total_sen, (to_jsonb(m)->>'cost_source')::varchar(10) AS cost_source
+                (r.j->>'cost_total_sen')::bigint AS cost_total_sen, (r.j->>'cost_source')::varchar(10) AS cost_source
             FROM public.stock_movements m
+            CROSS JOIN LATERAL (SELECT to_jsonb(m) AS j) r
             JOIN public.inventory_skus s ON s.id = m.inventory_sku_id
             LEFT JOIN public.inventory_batches b ON b.id = m.inventory_batch_id
             SQL);
         DB::unprepared("COMMENT ON VIEW ai_read.stock_movements IS 'Stock ledger movements. Check cost_source before treating any cost as actual.'");
-        DB::unprepared("COMMENT ON COLUMN ai_read.stock_movements.unit_cost_sen IS 'Cost per stock unit in sen. Actual only when cost_source is actual; the purchase order estimate when cost_source is estimate; unknown origin when cost_source is empty (recorded before STK-10B).'");
-        DB::unprepared("COMMENT ON COLUMN ai_read.stock_movements.cost_total_sen IS 'Total paid for the received lot in sen, when entered at receiving (cost_source is then actual).'");
-        DB::unprepared("COMMENT ON COLUMN ai_read.stock_movements.cost_source IS 'actual, estimate, or empty for costs recorded before STK-10B.'");
+        DB::unprepared("COMMENT ON COLUMN ai_read.stock_movements.unit_cost_sen IS 'Cost per stock unit in sen. Actual only when cost_source is actual; the purchase order estimate when cost_source is estimate. When cost_source is empty: a purchase receipt recorded before STK-10B (origin unknown), or not a purchase receipt (for example an opening balance, whose unit cost staff entered).'");
+        DB::unprepared("COMMENT ON COLUMN ai_read.stock_movements.cost_total_sen IS 'Total paid for the whole received lot in sen, when entered at receiving (cost_source is then actual and unit_cost_sen is empty). Do not multiply it by quantity.'");
+        DB::unprepared("COMMENT ON COLUMN ai_read.stock_movements.cost_source IS 'actual or estimate on purchase receipts from STK-10B on; empty on older purchase receipts and on every other movement type.'");
     }
 
     public function down(): void
