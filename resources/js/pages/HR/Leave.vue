@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Head, router, useForm, usePage } from '@inertiajs/vue3';
-import { CalendarCheck } from '@lucide/vue';
+import { CalendarCheck, Trash2 } from '@lucide/vue';
 import {
     computed,
     nextTick,
@@ -47,7 +47,29 @@ type RequestRow = {
     statusLabel: string;
     lockVersion: number;
 };
-type MyRequest = RequestRow & { reason: string | null; canCancel: boolean };
+type EvidenceFile = {
+    publicId: string;
+    kind: 'jpeg' | 'png' | 'pdf';
+    label: string;
+    size: string;
+    addedBy: string;
+    onBehalf: boolean;
+    addedOn: string;
+    url: string;
+    lockVersion: number;
+    canRemove: boolean;
+};
+type Evidence = {
+    acceptsFiles: boolean;
+    retentionDays: number | null;
+    canAdd: boolean;
+    files: EvidenceFile[];
+} | null;
+type MyRequest = RequestRow & {
+    reason: string | null;
+    canCancel: boolean;
+    evidence: Evidence;
+};
 type PendingRow = RequestRow & {
     person: string;
     role: string;
@@ -56,14 +78,21 @@ type PendingRow = RequestRow & {
     reason: string | null;
     leftAfter: string | null;
     warnings: string[];
+    evidence: Evidence;
 };
-type ApprovedRow = RequestRow & { person: string; role: string };
+type ApprovedRow = RequestRow & {
+    person: string;
+    role: string;
+    evidence: Evidence;
+};
 type LeaveTypeOption = {
     id: number;
     name: string;
     allowHalfDays: boolean;
     evidenceNeeded: boolean;
     usesBalance: boolean;
+    acceptsFiles: boolean;
+    retentionDays: number | null;
 };
 type Balance = {
     typeId: number;
@@ -86,6 +115,8 @@ type TypeRow = {
     carryMaxDays: string;
     carryExpiresOn: string;
     isActive: boolean;
+    acceptsEvidenceFiles: boolean;
+    evidenceRetentionDays: string;
     lockVersion: number;
 };
 type Entry = {
@@ -284,6 +315,7 @@ const applyForm = useForm({
     end_part: 'full',
     reason: '',
     evidence_reference: '',
+    evidence_files: [] as File[],
 });
 const chosenType = computed(() =>
     props.leave.my?.types.find(
@@ -313,7 +345,20 @@ const lastDayOptions = [
 ];
 const preview = reactive({ text: '', error: '' });
 let previewTimer: ReturnType<typeof setTimeout> | undefined;
-const runPreview = async () => {
+// The day-count check shares the session with the form. If it ran while the form was being sent, its saved session
+// could overwrite the validation errors of the send, and the sheet would close with nothing shown. So a send first
+// cancels a waiting check and waits for one already running.
+let previewInFlight: Promise<void> | null = null;
+const runPreview = () => {
+    if (applyForm.processing) {
+        return Promise.resolve();
+    }
+
+    previewInFlight = fetchPreview().finally(() => (previewInFlight = null));
+
+    return previewInFlight;
+};
+const fetchPreview = async () => {
     preview.text = '';
     preview.error = '';
 
@@ -404,7 +449,35 @@ const openApply = () => {
     preview.error = '';
     applyOpen.value = true;
 };
-const sendApply = () => {
+// HR-2b (Daniel): a labelled button opens the file picker; chosen files are listed with a Remove link.
+const applyFileInput = ref<HTMLInputElement | null>(null);
+const sizeLabel = (bytes: number) =>
+    bytes >= 1048576
+        ? `${(bytes / 1048576).toFixed(1)} MB`
+        : `${Math.max(1, Math.round(bytes / 1024))} KB`;
+const chooseApplyFiles = (event: Event) => {
+    const input = event.target as HTMLInputElement;
+    applyForm.evidence_files = [
+        ...applyForm.evidence_files,
+        ...Array.from(input.files ?? []),
+    ].slice(0, 3);
+    input.value = '';
+};
+const dropApplyFile = (index: number) => {
+    applyForm.evidence_files = applyForm.evidence_files.filter(
+        (_, i) => i !== index,
+    );
+};
+const applyFileError = computed(
+    () =>
+        applyForm.errors.evidence_files ??
+        (applyForm.errors as Record<string, string | undefined>)[
+            'evidence_files.0'
+        ],
+);
+const sendApply = async () => {
+    clearTimeout(previewTimer);
+    await previewInFlight?.catch(() => undefined);
     applyForm
         .transform((data) => ({
             ...data,
@@ -413,9 +486,135 @@ const sendApply = () => {
         }))
         .post('/hr/leave/requests', {
             preserveScroll: true,
+            forceFormData: applyForm.evidence_files.length > 0,
             onSuccess: () => (applyOpen.value = false),
         });
 };
+
+// ---- Evidence panel (HR-2b) ----
+type EvidenceRow = RequestRow & { evidence: Evidence; person?: string };
+const evidence = reactive({
+    open: false,
+    row: null as EvidenceRow | null,
+    uploading: false,
+    error: '',
+    key: '',
+});
+const evidenceRow = computed(() => {
+    const id = evidence.row?.publicId;
+
+    if (!id) {
+        return null;
+    }
+
+    const all: EvidenceRow[] = [
+        ...(props.leave.my?.requests ?? []),
+        ...(props.leave.approvals?.pending ?? []),
+        ...(props.leave.approvals?.approved ?? []),
+    ];
+
+    return all.find((r) => r.publicId === id) ?? evidence.row;
+});
+const evidenceFileInput = ref<HTMLInputElement | null>(null);
+const openEvidence = (row: EvidenceRow) => {
+    evidence.row = row;
+    evidence.error = '';
+    evidence.open = true;
+};
+const fileCountText = (files: EvidenceFile[]) =>
+    files.length === 0
+        ? 'No file yet'
+        : `${files.length} ${files.length === 1 ? 'file' : 'files'}`;
+const photoAlt = (file: EvidenceFile, files: EvidenceFile[]) => {
+    const photos = files.filter((f) => f.kind !== 'pdf');
+
+    return `Photo ${photos.indexOf(file) + 1} of ${photos.length}, added by ${file.addedBy} on ${file.addedOn}`;
+};
+const uploadEvidence = (event: Event) => {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    const row = evidenceRow.value;
+    input.value = '';
+
+    if (!file || !row) {
+        return;
+    }
+
+    evidence.key = crypto.randomUUID();
+    router.post(
+        `/hr/leave/requests/${row.publicId}/evidence`,
+        { file, idempotency_key: evidence.key, tab: props.leave.tab },
+        {
+            forceFormData: true,
+            preserveScroll: true,
+            onStart: () => {
+                evidence.uploading = true;
+                evidence.error = '';
+            },
+            onFinish: () => (evidence.uploading = false),
+            onError: (e: Record<string, string>) =>
+                (evidence.error = e.file ?? e.leave ?? 'Try again.'),
+        },
+    );
+};
+const removal = reactive({
+    open: false,
+    file: null as EvidenceFile | null,
+    reason: '',
+    key: '',
+    processing: false,
+    error: '',
+});
+const removalNeedsReason = computed(
+    () =>
+        evidenceRow.value !== null &&
+        !props.leave.my?.requests.some(
+            (r) => r.publicId === evidenceRow.value?.publicId,
+        ),
+);
+const openRemoval = (file: EvidenceFile) => {
+    removal.file = file;
+    removal.reason = '';
+    removal.error = '';
+    removal.key = crypto.randomUUID();
+    removal.open = true;
+};
+const confirmRemoval = () => {
+    const file = removal.file;
+
+    if (!file) {
+        return;
+    }
+
+    if (removalNeedsReason.value && removal.reason === '') {
+        removal.error = 'Choose a reason.';
+
+        return;
+    }
+
+    router.post(
+        `/hr/leave/evidence/${file.publicId}/remove`,
+        {
+            expected_lock_version: file.lockVersion,
+            reason: removal.reason || undefined,
+            idempotency_key: removal.key,
+            tab: props.leave.tab,
+        },
+        {
+            preserveScroll: true,
+            onStart: () => (removal.processing = true),
+            onFinish: () => (removal.processing = false),
+            onSuccess: () => (removal.open = false),
+            onError: (e: Record<string, string>) =>
+                (removal.error = e.leave ?? e.reason ?? 'Try again.'),
+        },
+    );
+};
+const removalReasons = [
+    { value: 'wrong_file', label: 'Wrong file' },
+    { value: 'wrong_person', label: 'Wrong person' },
+    { value: 'not_readable', label: 'Not readable' },
+];
 
 // ---- Request actions (cancel, approve, reject) ----
 type ActionKind = 'cancel' | 'approve' | 'reject' | 'manager-cancel';
@@ -535,6 +734,8 @@ const typeForm = useForm({
     carry_max_days: '',
     carry_expires_on: '',
     is_active: true,
+    accepts_evidence_files: false,
+    evidence_retention_days: '',
 });
 const openType = (row?: TypeRow) => {
     typeForm.clearErrors();
@@ -550,6 +751,8 @@ const openType = (row?: TypeRow) => {
     typeForm.carry_max_days = row?.carryMaxDays ?? '';
     typeForm.carry_expires_on = row?.carryExpiresOn ?? '';
     typeForm.is_active = row?.isActive ?? true;
+    typeForm.accepts_evidence_files = row?.acceptsEvidenceFiles ?? false;
+    typeForm.evidence_retention_days = row?.evidenceRetentionDays ?? '';
     typeOpen.value = true;
 };
 const saveType = () =>
@@ -572,6 +775,8 @@ const archiveType = (row: TypeRow) =>
             carry_max_days: row.carryMaxDays,
             carry_expires_on: row.carryExpiresOn,
             is_active: !row.isActive,
+            accepts_evidence_files: row.acceptsEvidenceFiles,
+            evidence_retention_days: row.evidenceRetentionDays,
         },
         { preserveScroll: true },
     );
@@ -951,7 +1156,7 @@ const calendarDays = computed(() =>
                     <div class="hidden lg:block">
                         <OperationalTable
                             label="My leave requests"
-                            :columns="5"
+                            :columns="6"
                             min-width="760px"
                         >
                             <template #head>
@@ -960,6 +1165,7 @@ const calendarDays = computed(() =>
                                     <th scope="col">Type</th>
                                     <th scope="col">Days</th>
                                     <th scope="col">Status</th>
+                                    <th scope="col">Evidence</th>
                                     <th scope="col">
                                         <span class="sr-only">Action</span>
                                     </th>
@@ -979,6 +1185,46 @@ const calendarDays = computed(() =>
                                             :label="r.statusLabel"
                                             :tone="statusTone[r.status]"
                                         />
+                                    </td>
+                                    <td>
+                                        <p
+                                            v-if="r.evidence"
+                                            class="flex flex-wrap items-center gap-2 text-sm"
+                                            data-test="evidence-cell"
+                                        >
+                                            <span class="text-muted-foreground"
+                                                >Evidence:
+                                                {{
+                                                    fileCountText(
+                                                        r.evidence.files,
+                                                    )
+                                                }}</span
+                                            >
+                                            <Button
+                                                v-if="
+                                                    r.evidence.files.length > 0
+                                                "
+                                                size="sm"
+                                                variant="outline"
+                                                class="min-h-11 sm:min-h-8"
+                                                @click="openEvidence(r)"
+                                                >View<span class="sr-only">
+                                                    files for {{ r.type }},
+                                                    {{ r.dates }}</span
+                                                ></Button
+                                            >
+                                            <Button
+                                                v-if="r.evidence.canAdd"
+                                                size="sm"
+                                                variant="outline"
+                                                class="min-h-11 sm:min-h-8"
+                                                @click="openEvidence(r)"
+                                                >Add file<span class="sr-only">
+                                                    to {{ r.type }},
+                                                    {{ r.dates }}</span
+                                                ></Button
+                                            >
+                                        </p>
                                     </td>
                                     <td class="text-right">
                                         <Button
@@ -1012,6 +1258,37 @@ const calendarDays = computed(() =>
                             <p class="text-sm text-muted-foreground">
                                 {{ r.type }} · {{ r.days }}
                                 {{ r.days === '1' ? 'day' : 'days' }}
+                            </p>
+                            <p
+                                v-if="r.evidence"
+                                class="flex flex-wrap items-center gap-2 text-sm"
+                                data-test="evidence-line"
+                            >
+                                <span class="text-muted-foreground"
+                                    >Evidence:
+                                    {{ fileCountText(r.evidence.files) }}</span
+                                >
+                                <Button
+                                    v-if="r.evidence.files.length > 0"
+                                    size="sm"
+                                    variant="outline"
+                                    class="min-h-11 sm:min-h-8"
+                                    @click="openEvidence(r)"
+                                    >View<span class="sr-only">
+                                        files for {{ r.type }},
+                                        {{ r.dates }}</span
+                                    ></Button
+                                >
+                                <Button
+                                    v-if="r.evidence.canAdd"
+                                    size="sm"
+                                    variant="outline"
+                                    class="min-h-11 sm:min-h-8"
+                                    @click="openEvidence(r)"
+                                    >Add file<span class="sr-only">
+                                        to {{ r.type }}, {{ r.dates }}</span
+                                    ></Button
+                                >
                             </p>
                             <Button
                                 v-if="r.canCancel"
@@ -1079,6 +1356,36 @@ const calendarDays = computed(() =>
                         >
                             Evidence reference: {{ r.evidenceReference }}
                         </p>
+                        <p
+                            v-if="r.evidence"
+                            class="flex flex-wrap items-center gap-2 text-sm"
+                            data-test="evidence-line"
+                        >
+                            <span class="text-muted-foreground"
+                                >Evidence:
+                                {{ fileCountText(r.evidence.files) }}</span
+                            >
+                            <Button
+                                v-if="r.evidence.files.length > 0"
+                                size="sm"
+                                variant="outline"
+                                class="min-h-11 sm:min-h-8"
+                                @click="openEvidence(r)"
+                                >View<span class="sr-only">
+                                    files for {{ r.type }}, {{ r.dates }}</span
+                                ></Button
+                            >
+                            <Button
+                                v-if="r.evidence.canAdd"
+                                size="sm"
+                                variant="outline"
+                                class="min-h-11 sm:min-h-8"
+                                @click="openEvidence(r)"
+                                >Add file<span class="sr-only">
+                                    to {{ r.type }}, {{ r.dates }}</span
+                                ></Button
+                            >
+                        </p>
                         <ul
                             v-if="r.warnings.length > 0"
                             class="mt-1 flex flex-col gap-1"
@@ -1127,13 +1434,28 @@ const calendarDays = computed(() =>
                         {{ r.type }} · {{ r.dates }} · {{ r.days }}
                         {{ r.days === '1' ? 'day' : 'days' }}</span
                     >
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        class="min-h-11 sm:min-h-8"
-                        @click="openAction('manager-cancel', r)"
-                        >Cancel approved leave</Button
-                    >
+                    <span class="flex flex-wrap items-center gap-2">
+                        <Button
+                            v-if="r.evidence"
+                            variant="outline"
+                            size="sm"
+                            class="min-h-11 sm:min-h-8"
+                            @click="openEvidence(r)"
+                            >Evidence ({{ r.evidence.files.length }})<span
+                                class="sr-only"
+                            >
+                                for {{ r.person }}, {{ r.type }},
+                                {{ r.dates }}</span
+                            ></Button
+                        >
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            class="min-h-11 sm:min-h-8"
+                            @click="openAction('manager-cancel', r)"
+                            >Cancel approved leave</Button
+                        >
+                    </span>
                 </li>
             </ul>
         </section>
@@ -2069,6 +2391,71 @@ const calendarDays = computed(() =>
                         />
                     </div>
                     <div
+                        v-if="chosenType?.acceptsFiles"
+                        class="grid gap-2"
+                        data-test="apply-files"
+                    >
+                        <span class="text-sm font-medium" id="apply-files-label"
+                            >Photo or PDF (optional)</span
+                        >
+                        <input
+                            ref="applyFileInput"
+                            type="file"
+                            class="sr-only"
+                            accept="image/jpeg,image/png,application/pdf"
+                            multiple
+                            tabindex="-1"
+                            aria-hidden="true"
+                            @change="chooseApplyFiles"
+                        />
+                        <Button
+                            type="button"
+                            variant="outline"
+                            class="min-h-11 w-full sm:min-h-9 sm:w-fit"
+                            aria-describedby="apply-files-help"
+                            :disabled="applyForm.evidence_files.length >= 3"
+                            @click="applyFileInput?.click()"
+                            >Add a photo or PDF</Button
+                        >
+                        <ul
+                            v-if="applyForm.evidence_files.length > 0"
+                            class="flex flex-col gap-1 text-sm"
+                        >
+                            <li
+                                v-for="(f, i) in applyForm.evidence_files"
+                                :key="`${f.name}-${i}`"
+                                class="flex min-w-0 items-center justify-between gap-2"
+                            >
+                                <span class="min-w-0 truncate"
+                                    >{{ f.name }} ·
+                                    {{ sizeLabel(f.size) }}</span
+                                >
+                                <Button
+                                    type="button"
+                                    variant="link"
+                                    class="min-h-11 min-w-11 shrink-0 px-3 sm:min-h-8"
+                                    :aria-label="`Remove ${f.name}`"
+                                    @click="dropApplyFile(i)"
+                                    >Remove</Button
+                                >
+                            </li>
+                        </ul>
+                        <p
+                            id="apply-files-help"
+                            class="text-xs text-muted-foreground"
+                        >
+                            JPG, PNG or PDF, up to 5 MB. Take a clear photo of
+                            the whole MC.<template
+                                v-if="chosenType.retentionDays"
+                            >
+                                Files are kept for
+                                {{ chosenType.retentionDays }} days after your
+                                leave.</template
+                            >
+                        </p>
+                        <InputError :message="applyFileError" />
+                    </div>
+                    <div
                         class="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end"
                     >
                         <Button
@@ -2084,7 +2471,9 @@ const calendarDays = computed(() =>
                             :disabled="applyForm.processing"
                             >{{
                                 applyForm.processing
-                                    ? 'Sending…'
+                                    ? applyForm.evidence_files.length > 0
+                                        ? 'Uploading…'
+                                        : 'Sending…'
                                     : 'Send request'
                             }}</Button
                         >
@@ -2092,6 +2481,153 @@ const calendarDays = computed(() =>
                 </form>
             </SheetContent>
         </Sheet>
+
+        <!-- Evidence panel (HR-2b) -->
+        <Sheet v-model:open="evidence.open">
+            <SheetContent
+                side="right"
+                class="w-full overflow-y-auto sm:max-w-md"
+            >
+                <SheetHeader>
+                    <SheetTitle>Evidence</SheetTitle>
+                    <SheetDescription v-if="evidenceRow"
+                        >{{
+                            evidenceRow.person
+                                ? `${evidenceRow.person} · `
+                                : ''
+                        }}{{ evidenceRow.type }} ·
+                        {{ evidenceRow.dates }}</SheetDescription
+                    >
+                </SheetHeader>
+                <div
+                    v-if="evidenceRow?.evidence"
+                    class="grid gap-4 px-4 pb-4"
+                    data-test="evidence-panel"
+                >
+                    <EmptyState
+                        v-if="evidenceRow.evidence.files.length === 0"
+                        title="No files yet."
+                        description="Add a photo or PDF of the MC."
+                    />
+                    <ul v-else class="flex flex-col gap-3">
+                        <li
+                            v-for="f in evidenceRow.evidence.files"
+                            :key="f.publicId"
+                            class="grid gap-2 rounded-xl border bg-card p-3"
+                        >
+                            <div
+                                class="flex flex-wrap items-center justify-between gap-2"
+                            >
+                                <p class="text-sm font-medium">
+                                    {{ f.label }} · {{ f.size }}
+                                </p>
+                                <Button
+                                    v-if="f.canRemove"
+                                    variant="ghost"
+                                    size="sm"
+                                    class="min-h-11 min-w-11 px-3 sm:min-h-8"
+                                    :aria-label="`Remove ${f.label}`"
+                                    @click="openRemoval(f)"
+                                    >Remove</Button
+                                >
+                            </div>
+                            <p class="text-xs text-muted-foreground">
+                                Added by {{ f.addedBy }} on {{ f.addedOn
+                                }}<template v-if="f.onBehalf">
+                                    (paper copy scanned by HR)</template
+                                >
+                            </p>
+                            <div
+                                v-if="f.kind !== 'pdf'"
+                                class="overflow-hidden rounded-lg border bg-muted p-2"
+                            >
+                                <img
+                                    :src="f.url"
+                                    :alt="
+                                        photoAlt(f, evidenceRow.evidence.files)
+                                    "
+                                    class="mx-auto block h-auto max-w-full"
+                                    loading="lazy"
+                                />
+                            </div>
+                            <Button
+                                v-else
+                                as="a"
+                                :href="f.url"
+                                variant="outline"
+                                class="min-h-11 w-full sm:min-h-9 sm:w-fit"
+                                >Download PDF<span class="sr-only">
+                                    {{ f.label }}</span
+                                ></Button
+                            >
+                        </li>
+                    </ul>
+                    <div v-if="evidenceRow.evidence.canAdd" class="grid gap-2">
+                        <input
+                            ref="evidenceFileInput"
+                            type="file"
+                            class="sr-only"
+                            accept="image/jpeg,image/png,application/pdf"
+                            tabindex="-1"
+                            aria-hidden="true"
+                            @change="uploadEvidence"
+                        />
+                        <Button
+                            type="button"
+                            variant="outline"
+                            class="min-h-11 w-full sm:min-h-9 sm:w-fit"
+                            aria-describedby="evidence-help"
+                            :disabled="evidence.uploading"
+                            @click="evidenceFileInput?.click()"
+                            >{{
+                                evidence.uploading
+                                    ? 'Uploading…'
+                                    : 'Add a photo or PDF'
+                            }}</Button
+                        >
+                        <p
+                            id="evidence-help"
+                            class="text-xs text-muted-foreground"
+                        >
+                            JPG, PNG or PDF, up to 5 MB.<template
+                                v-if="evidenceRow.evidence.retentionDays"
+                            >
+                                Files are kept for
+                                {{ evidenceRow.evidence.retentionDays }} days
+                                after the leave.</template
+                            >
+                        </p>
+                        <InputError :message="evidence.error" />
+                    </div>
+                </div>
+            </SheetContent>
+        </Sheet>
+
+        <OperationalConfirmDialog
+            v-model:open="removal.open"
+            title="Remove this file?"
+            description="The file is deleted. A record that it was added and removed stays."
+            confirm-label="Remove file"
+            processing-label="Removing…"
+            :processing="removal.processing"
+            :error="removal.error"
+            destructive
+            @confirm="confirmRemoval"
+        >
+            <template #icon>
+                <Trash2 class="size-5" />
+            </template>
+            <div v-if="removalNeedsReason" class="grid gap-2">
+                <Label for="removal-reason">Reason *</Label>
+                <OperationalSelect
+                    id="removal-reason"
+                    v-model="removal.reason"
+                    :options="removalReasons"
+                    label="Reason"
+                    placeholder="Choose a reason"
+                />
+            </div>
+        </OperationalConfirmDialog>
 
         <!-- Leave type sheet -->
         <Sheet v-model:open="typeOpen">
@@ -2160,6 +2696,55 @@ const calendarDays = computed(() =>
                             <Label :for="`type-${f.key}`">{{ f.label }}</Label>
                         </div>
                         <InputError :message="typeForm.errors.uses_balance" />
+                    </fieldset>
+                    <fieldset class="grid gap-2" data-test="type-evidence">
+                        <legend class="mb-1 text-sm font-medium">
+                            Evidence files
+                        </legend>
+                        <div
+                            class="flex min-h-11 items-center gap-2 sm:min-h-9"
+                        >
+                            <Checkbox
+                                id="type-accepts-files"
+                                :model-value="typeForm.accepts_evidence_files"
+                                @update:model-value="
+                                    (v) =>
+                                        (typeForm.accepts_evidence_files =
+                                            v === true)
+                                "
+                            />
+                            <Label for="type-accepts-files"
+                                >Accept evidence files</Label
+                            >
+                        </div>
+                        <div
+                            v-if="typeForm.accepts_evidence_files"
+                            class="grid gap-2"
+                        >
+                            <Label for="type-retention"
+                                >Keep files for (days after the leave ends)
+                                *</Label
+                            >
+                            <Input
+                                id="type-retention"
+                                v-model="typeForm.evidence_retention_days"
+                                inputmode="numeric"
+                                class="h-11 sm:h-9"
+                                aria-describedby="type-retention-help"
+                            />
+                            <p
+                                id="type-retention-help"
+                                class="text-xs text-muted-foreground"
+                            >
+                                Files are deleted after this. Requests and their
+                                history stay.
+                            </p>
+                            <InputError
+                                :message="
+                                    typeForm.errors.evidence_retention_days
+                                "
+                            />
+                        </div>
                     </fieldset>
                     <template v-if="typeForm.uses_balance">
                         <div class="grid gap-2">
