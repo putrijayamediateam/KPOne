@@ -70,10 +70,11 @@ class DrugLabelTest extends BillingTestCase
         $this->assertSame([], $preview['blocked']);
         $this->assertSame($before, $this->evidence());
         $url = route('dispensary.labels', $case);
-        $query = ['verify' => 1, 'token' => $preview['token'], 'branch' => $case->branch_id];
-        $this->getJson($url.'?'.http_build_query($query))->assertOk()->assertJson(['current' => true]);
+        // DSP-6b (owner-approved 2026-11-06): the fresh check is a POST to the print address; every expected result is unchanged.
+        $query = ['token' => $preview['token'], 'branch' => $case->branch_id];
+        $this->postJson(route('dispensary.labels.print', $case), $query)->assertOk()->assertJson(['current' => true]);
         $item = app(DispensaryService::class)->editItem($f['ca'], $case->refresh(), $item, [...$this->addPayload($f, $case), 'item_lock_version' => $item->lock_version, 'dosage' => 'Two tablets']);
-        $this->getJson($url.'?'.http_build_query($query))->assertStatus(409);
+        $this->postJson(route('dispensary.labels.print', $case), $query)->assertStatus(409);
         $new = $service->preview($f['ca'], $case);
         $this->assertSame('Two tablets', $new['items'][0]['dosage']);
         $this->assertNotSame($preview['token'], $new['token']);
@@ -89,7 +90,7 @@ class DrugLabelTest extends BillingTestCase
         $this->assertSame([], $labels['items']);
         $this->assertContains('Instruction: 385 characters; label limit 384.', $labels['blocked'][0]['errors']);
         $this->assertSame(str_repeat('x', 385), $item->refresh()->effective('administration_instruction'));
-        $this->getJson(route('dispensary.labels', $case).'?'.http_build_query(['verify' => 1, 'token' => $labels['token'], 'branch' => $case->branch_id]))->assertStatus(409);
+        $this->postJson(route('dispensary.labels.print', $case), ['token' => $labels['token'], 'branch' => $case->branch_id])->assertStatus(409);
     }
 
     public function test_every_budget_boundary_and_newline_wide_character_total_line_policy_are_server_side(): void
@@ -146,7 +147,7 @@ class DrugLabelTest extends BillingTestCase
         $single = $service->preview($f['ca'], $case, $item->public_id);
         $this->assertSame([], $single['blocked']);
         $this->assertCount(1, $single['items']);
-        $this->getJson($single['items'][0]['previewUrl'].'?'.http_build_query(['verify' => 1, 'token' => $single['token'], 'branch' => $case->branch_id]))->assertOk();
+        $this->postJson($single['items'][0]['previewUrl'].'/print', ['token' => $single['token'], 'branch' => $case->branch_id])->assertOk();
         $this->assertSame(str_repeat('x', 385), $other->refresh()->effective('administration_instruction'));
     }
 
@@ -168,7 +169,7 @@ class DrugLabelTest extends BillingTestCase
         $this->assertCount(1, $labels['items']);
         $this->assertStringContainsString('no-store', $this->get($url)->assertOk()->headers->get('Cache-Control'));
         $this->get($url)->assertOk();
-        $this->getJson($url.'?'.http_build_query(['verify' => 1, 'token' => $labels['token'], 'branch' => $case->branch_id]))->assertOk();
+        $this->postJson($url.'/print', ['token' => $labels['token'], 'branch' => $case->branch_id])->assertOk();
         // DSP-6 (owner-approved change): a print now adds only its print-log row and one audit row; every other table is identical.
         $after = $this->evidence();
         $this->assertSame(array_diff_key($before, array_flip(['dispensary_label_prints', 'audit_logs'])), array_diff_key($after, array_flip(['dispensary_label_prints', 'audit_logs'])));
