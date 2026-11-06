@@ -237,7 +237,6 @@ const submit = () => {
                         </label>
                         <InputError
                             :id="'identity-error-' + index"
-                            role="alert"
                             class="md:col-span-3"
                             :message="
                                 errorFor('identifiers.' + index + '.value') ||
