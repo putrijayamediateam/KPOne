@@ -166,12 +166,14 @@ const savePanel = async () => {
             <Input
                 v-model="panelCode"
                 placeholder="Panel code"
+                aria-label="New Panel code"
                 maxlength="80"
                 required
             />
             <Input
                 v-model="panelName"
                 placeholder="Panel name"
+                aria-label="New Panel name"
                 maxlength="255"
                 required
             />
