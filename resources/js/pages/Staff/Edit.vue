@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Head, Link, useForm } from '@inertiajs/vue3';
-import { ArrowLeft, UserRoundPen } from '@lucide/vue';
+import { ArrowLeft } from '@lucide/vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import {
@@ -10,6 +10,7 @@ import {
     CardHeader,
     CardTitle,
 } from '@/components/ui/card';
+import { PageHeader } from '@/components/ui/page-header';
 import type { StaffDetail, StaffOptions } from '@/types';
 
 defineOptions({
@@ -31,20 +32,10 @@ const submit = () => form.patch(`/staff/${props.staff.id}`);
 <template>
     <Head :title="`Edit ${staff.name}`" />
     <main class="flex flex-1 flex-col gap-5 p-4 md:p-7">
-        <div class="flex items-start gap-3">
-            <div class="rounded-xl bg-success/10 p-2.5 text-success">
-                <UserRoundPen class="size-5" />
-            </div>
-            <div>
-                <h1 class="text-2xl font-semibold tracking-tight">
-                    Edit staff profile
-                </h1>
-                <p class="text-sm text-muted-foreground">
-                    Identity and employment fields only. Roles, status and
-                    branches are managed separately.
-                </p>
-            </div>
-        </div>
+        <PageHeader
+            title="Edit staff profile"
+            description="Identity and employment fields only. Roles, status and branches are managed separately."
+        />
         <Card class="max-w-3xl"
             ><CardHeader
                 ><CardTitle class="text-base">{{ staff.name }}</CardTitle
