@@ -172,6 +172,13 @@ check items, keep them"). The rest stand unless the owner changes them.
   adjustment instead; the shared confirm dialog has no disabled state, so Approve and Reject say what is missing
   instead of greying out; ledger and action foreign keys to requests, openings and adjustments are single-column
   (organisation is checked in the service, not in PostgreSQL); no evidence files until HR-2b.
+- HR-2b known limits: a PDF is checked only for its header and end marker, not sanitised (it is only ever downloaded,
+  with `nosniff` and a sandbox policy); no virus scanner is available; opening a file is a GET that records an event,
+  so a link from another site can add "opened" rows for a signed-in manager (throttled, as WA-01's redirect); photos are
+  refused above about 24 MP or when memory is short, with "Use a smaller photo or a PDF"; the photo tests need the GD
+  extension, which the cloud container lacks, so they run in CI only; files keep their retention days even when a
+  type stops taking files, and the days cannot be cleared while files remain; both purge rules delete on the day
+  after the period ends, in the branch time zone. Synthetic files only until the PDPA review.
 - The 44 px phone tab height on the Leave page reaches into the shared `OperationalTabs` buttons
   (`max-sm:[&>button]:h-11`, the DD-30 pattern from #296); if that component changes its buttons the height quietly
   stops applying. A phone-height option in `OperationalTabs` (Staff Experience) would remove both overrides.

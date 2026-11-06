@@ -12,6 +12,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -46,6 +47,7 @@ class LeaveController extends Controller
                 throw ValidationException::withMessages(['evidence_files' => 'This request already has 3 files.']);
             }
             $prepared = array_map(fn ($file) => LeaveEvidenceFiles::prepare($file, 'evidence_files'), $files);
+            $evidence->assertCanAttachOnApply($request->user(), $request->input('leave_type_id'), $prepared);
             $created = $leave->apply($request->user(), $request->only(self::APPLY_FIELDS));
         } catch (ValidationException $e) {
             throw $e->redirectTo($back);
@@ -56,9 +58,14 @@ class LeaveController extends Controller
                 $evidence->add($request->user(), $created->public_id, $file,
                     ['idempotency_key' => Uuid::uuid5(Uuid::NAMESPACE_URL, 'kpone-hr-leave-evidence:'.$request->input('idempotency_key').':'.$i)->toString()], 'evidence_files');
             }
-        } catch (ValidationException $e) {
+        } catch (\Throwable $e) {
+            // The request exists; any failure attaching a file leaves it as it is and says so (Suresh).
+            if (! $e instanceof ValidationException) {
+                Log::warning('HR leave evidence could not be attached on apply', ['leave_request_id' => $created->id, 'exception' => $e::class]);
+            }
             Inertia::flash('toast', ['type' => 'success', 'message' => 'Leave request sent. Add the file again from My leave.']);
-            throw $e->redirectTo($back);
+
+            return redirect($back)->withErrors(['evidence_files' => $e instanceof ValidationException ? (string) collect($e->errors())->flatten()->first() : 'The file could not be attached. Add it again from My leave.']);
         }
         Inertia::flash('toast', ['type' => 'success', 'message' => 'Leave request sent.']);
 

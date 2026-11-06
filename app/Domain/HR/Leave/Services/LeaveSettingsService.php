@@ -454,6 +454,11 @@ final class LeaveSettingsService
         if ($retention === false || ($acceptsFiles && $retention === null)) {
             throw ValidationException::withMessages(['evidence_retention_days' => 'Enter how many days to keep files after the leave ends (1 to 3650).']);
         }
+        // Files already kept must still be deleted on time, so the days cannot be cleared while any remain (Suresh).
+        if ($retention === null && $type->exists && DB::table('hr_leave_evidence_files')->where('status', 'active')
+            ->whereIn('leave_request_id', DB::table('hr_leave_requests')->where('leave_type_id', $type->id)->select('id'))->exists()) {
+            throw ValidationException::withMessages(['evidence_retention_days' => 'This type still has evidence files. Keep a number of days so they are deleted on time.']);
+        }
 
         return ['code' => $code, 'name' => $name, 'is_paid' => $flag('is_paid'), 'uses_balance' => $usesBalance, 'allow_half_days' => $flag('allow_half_days'),
             'evidence_needed' => $flag('evidence_needed'), 'allow_negative' => $usesBalance && $flag('allow_negative'), 'carry_max_halves' => $carryHalves,

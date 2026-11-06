@@ -104,6 +104,15 @@ BEGIN
 END $$;
 CREATE TRIGGER hr_leave_evidence_files_guard BEFORE UPDATE OR DELETE ON hr_leave_evidence_files FOR EACH ROW EXECUTE FUNCTION guard_hr_leave_evidence_update();
 CREATE TRIGGER hr_leave_evidence_files_truncate BEFORE TRUNCATE ON hr_leave_evidence_files FOR EACH STATEMENT EXECUTE FUNCTION guard_hr_leave_append_only();
+-- An event belongs to a file of its own organisation (Suresh).
+CREATE OR REPLACE FUNCTION guard_hr_leave_evidence_event_insert() RETURNS trigger LANGUAGE plpgsql AS $$
+BEGIN
+ IF (SELECT organisation_id FROM hr_leave_evidence_files WHERE id = NEW.evidence_file_id) IS DISTINCT FROM NEW.organisation_id THEN
+  RAISE EXCEPTION 'An evidence event must belong to a file of the same organisation' USING ERRCODE = '23514';
+ END IF;
+ RETURN NEW;
+END $$;
+CREATE TRIGGER hr_leave_evidence_events_insert BEFORE INSERT ON hr_leave_evidence_events FOR EACH ROW EXECUTE FUNCTION guard_hr_leave_evidence_event_insert();
 CREATE TRIGGER hr_leave_evidence_events_append BEFORE UPDATE OR DELETE ON hr_leave_evidence_events FOR EACH ROW EXECUTE FUNCTION guard_hr_leave_append_only();
 CREATE TRIGGER hr_leave_evidence_events_truncate BEFORE TRUNCATE ON hr_leave_evidence_events FOR EACH STATEMENT EXECUTE FUNCTION guard_hr_leave_append_only();
 SQL);

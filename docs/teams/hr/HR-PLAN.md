@@ -860,7 +860,8 @@ for the rest of KPOne.
      when and why.
 6. **Retention and deletion:** a daily command (`hr-leave-evidence:purge`, scheduled in `routes/console.php`, like
    `panel-statements:purge`) deletes each file once its type's retention after the leave's end date has passed.
-   Files on a rejected or cancelled request are deleted 30 days after that decision. The request, the "Evidence
+   Files on a rejected or cancelled request are deleted 30 days after that decision. Both rules delete on the day
+   after the period ends, in the branch time zone, and the days cannot be cleared while files remain. The request, the "Evidence
    seen" tick and the record that a file existed stay. The number of days is the clinic's decision [TO CONFIRM with
    the clinic's HR adviser: how long staff medical evidence must or may be kept]; KPOne ships no number.
 7. **What never happens:** no reading of the file's content (no OCR, no AI), no automatic approval, no sending of a

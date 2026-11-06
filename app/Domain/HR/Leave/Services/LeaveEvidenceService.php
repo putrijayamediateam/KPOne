@@ -9,8 +9,10 @@ use App\Domain\HR\Leave\Models\LeaveType;
 use App\Domain\Organisation\Models\Branch;
 use App\Models\User;
 use Carbon\CarbonImmutable;
+use Illuminate\Contracts\Encryption\DecryptException;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -49,6 +51,7 @@ final class LeaveEvidenceService
                 // A retried transaction must not leave the previous attempt's file behind.
                 $this->forget($written);
                 $applicant = $this->applicantId($actor, $requestId);
+                abort_if($applicant === null, 404);
                 $own = $applicant === $actor->id;
                 $actor = $this->support->lock($actor, $own ? LeavePermissions::REQUEST_OWN : LeavePermissions::MANAGE, [$applicant]);
                 $hash = $this->support->hash([$actor->id, 'evidence_add', $requestId, $prepared['sha256']]);
@@ -99,6 +102,29 @@ final class LeaveEvidenceService
         }
     }
 
+    /**
+     * Before a request is created with files: the chosen type must take files, and one submit may not carry the same
+     * file twice, so nothing is created that cannot then hold its files.
+     *
+     * @param  list<array{content:string, kind:string, bytes:int, sha256:string}>  $prepared
+     */
+    public function assertCanAttachOnApply(User $actor, mixed $leaveTypeId, array $prepared, string $field = 'evidence_files'): void
+    {
+        if ($prepared === []) {
+            return;
+        }
+        if (count($prepared) > self::MAX_FILES) {
+            throw ValidationException::withMessages([$field => 'This request already has 3 files.']);
+        }
+        $type = LeaveType::query()->whereKey((int) filter_var($leaveTypeId, FILTER_VALIDATE_INT))->where('organisation_id', $actor->organisation_id)->first();
+        if ($type !== null && ! $type->accepts_evidence_files) {
+            throw ValidationException::withMessages([$field => "{$type->name} does not take evidence files."]);
+        }
+        if (count(array_unique(array_column($prepared, 'sha256'))) !== count($prepared)) {
+            throw ValidationException::withMessages([$field => 'This file is already attached.']);
+        }
+    }
+
     /** @param array<string, mixed> $input */
     public function remove(User $actor, string $fileId, array $input): LeaveEvidenceFile
     {
@@ -107,7 +133,8 @@ final class LeaveEvidenceService
         $file = DB::transaction(function () use ($actor, $fileId, $input, $key, &$removedPath): LeaveEvidenceFile {
             $removedPath = null;
             $found = $this->findFile($actor, $fileId);
-            $applicant = $found === null ? null : (int) LeaveRequest::query()->whereKey($found->leave_request_id)->value('user_id');
+            abort_if($found === null, 404);
+            $applicant = (int) LeaveRequest::query()->whereKey($found->leave_request_id)->value('user_id');
             $own = $applicant === $actor->id;
             $actor = $this->support->lock($actor, $own ? LeavePermissions::REQUEST_OWN : LeavePermissions::MANAGE, [$applicant]);
             $reason = $own ? 'withdrawn' : ($input['reason'] ?? null);
@@ -118,7 +145,6 @@ final class LeaveEvidenceService
             if (($replay = $this->support->replay($actor, $key, 'leave_evidence_remove', $hash)) !== null) {
                 return LeaveEvidenceFile::query()->where('organisation_id', $actor->organisation_id)->where('public_id', $replay)->firstOrFail();
             }
-            abort_if($found === null, 404);
             $request = LeaveRequest::query()->whereKey($found->leave_request_id)->lockForUpdate()->firstOrFail();
             /** @var LeaveEvidenceFile $file */
             $file = LeaveEvidenceFile::query()->whereKey($found->id)->lockForUpdate()->firstOrFail();
@@ -169,52 +195,67 @@ final class LeaveEvidenceService
         $stored = Storage::disk(self::DISK)->exists($file->stored_path) ? Storage::disk(self::DISK)->get($file->stored_path) : null;
         abort_if(! is_string($stored), 404);
 
-        return ['content' => Crypt::decryptString($stored), 'mime' => $file->mime(), 'inline' => $file->kind !== 'pdf',
+        try {
+            $content = Crypt::decryptString($stored);
+        } catch (DecryptException) {
+            Log::error('HR leave evidence file could not be decrypted', ['evidence_file_id' => $file->id]);
+            abort(404);
+        }
+
+        return ['content' => $content, 'mime' => $file->mime(), 'inline' => $file->kind !== 'pdf',
             'filename' => 'leave-evidence-'.substr($file->public_id, 0, 8).'.'.($file->kind === 'jpeg' ? 'jpg' : $file->kind)];
     }
 
-    /**
-     * Daily: deletes each active file once its leave type's retention after the leave's end date has passed, and files
-     * of a rejected or cancelled request 30 days after that decision. Rows and the request's history stay.
-     */
+    /** Daily: deletes files whose retention has passed (see due()). Rows and the request's history stay. */
     public function purgeExpired(): int
     {
         $count = 0;
-        $candidates = LeaveEvidenceFile::query()->where('status', 'active')->with('request')->orderBy('id')->get();
-        foreach ($candidates as $candidate) {
-            $request = $candidate->request;
-            $type = LeaveType::query()->whereKey($request->leave_type_id)->first();
-            $zone = (string) (Branch::query()->whereKey($request->branch_id)->value('timezone') ?? 'UTC');
-            $today = CarbonImmutable::now($zone)->toDateString();
-            if (in_array($request->status, ['rejected', 'cancelled'], true)) {
-                $closedAt = $request->status === 'cancelled' ? $request->cancelled_at : $request->decided_at;
-                $due = $closedAt !== null && CarbonImmutable::parse($closedAt)->setTimezone($zone)->addDays(self::CLOSED_REQUEST_DAYS)->toDateString() <= $today;
-            } else {
-                $days = $type?->evidence_retention_days;
-                $due = $days !== null && CarbonImmutable::parse($request->end_date->toDateString())->addDays($days)->toDateString() < $today;
-            }
-            if (! $due) {
-                continue;
-            }
-            $path = DB::transaction(function () use ($candidate): ?string {
-                /** @var LeaveEvidenceFile|null $file */
-                $file = LeaveEvidenceFile::query()->whereKey($candidate->id)->lockForUpdate()->first();
-                if ($file === null || $file->status !== 'active') {
-                    return null;
-                }
-                $file->forceFill(['status' => 'purged', 'removed_at' => now()->utc(), 'lock_version' => $file->lock_version + 1])->save();
-                $this->event($file, 'purged', null);
-                $this->support->audit->record('hr.leave.evidence_purged', $file, ['evidence_file_id' => $file->id], null, organisationId: $file->organisation_id);
+        LeaveEvidenceFile::query()->where('status', 'active')->select('id')->chunkById(200, function ($chunk) use (&$count): void {
+            foreach ($chunk as $candidate) {
+                $path = DB::transaction(function () use ($candidate): ?string {
+                    $requestId = LeaveEvidenceFile::query()->whereKey($candidate->id)->value('leave_request_id');
+                    if ($requestId === null) {
+                        return null;
+                    }
+                    // Lock the request, then the file (the add and remove order), and decide under the locks.
+                    $request = LeaveRequest::query()->whereKey($requestId)->lockForUpdate()->firstOrFail();
+                    /** @var LeaveEvidenceFile $file */
+                    $file = LeaveEvidenceFile::query()->whereKey($candidate->id)->lockForUpdate()->firstOrFail();
+                    if ($file->status !== 'active' || ! $this->due($request)) {
+                        return null;
+                    }
+                    $file->forceFill(['status' => 'purged', 'removed_at' => now()->utc(), 'lock_version' => $file->lock_version + 1])->save();
+                    $this->event($file, 'purged', null);
+                    $this->support->audit->record('hr.leave.evidence_purged', $file, ['evidence_file_id' => $file->id], null, organisationId: $file->organisation_id);
 
-                return $file->stored_path;
-            }, 3);
-            if ($path !== null) {
-                Storage::disk(self::DISK)->delete($path);
-                $count++;
+                    return $file->stored_path;
+                }, 3);
+                if ($path !== null) {
+                    Storage::disk(self::DISK)->delete($path);
+                    $count++;
+                }
             }
-        }
+        });
 
         return $count;
+    }
+
+    /**
+     * Both rules delete on the day after the period ends, in the branch's time zone: a file is kept for N whole days
+     * after the leave's end date, and for 30 whole days after a rejection or cancellation.
+     */
+    private function due(LeaveRequest $request): bool
+    {
+        $zone = (string) (Branch::query()->whereKey($request->branch_id)->value('timezone') ?? 'UTC');
+        $today = CarbonImmutable::now($zone)->toDateString();
+        if (in_array($request->status, ['rejected', 'cancelled'], true)) {
+            $closedAt = $request->status === 'cancelled' ? $request->cancelled_at : $request->decided_at;
+
+            return $closedAt !== null && CarbonImmutable::parse($closedAt)->setTimezone($zone)->addDays(self::CLOSED_REQUEST_DAYS)->toDateString() < $today;
+        }
+        $days = LeaveType::query()->whereKey($request->leave_type_id)->value('evidence_retention_days');
+
+        return $days !== null && CarbonImmutable::parse($request->end_date->toDateString())->addDays((int) $days)->toDateString() < $today;
     }
 
     private function findFile(User $actor, string $fileId): ?LeaveEvidenceFile

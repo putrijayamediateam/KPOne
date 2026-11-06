@@ -17,7 +17,8 @@ final class LeaveEvidenceFiles
 
     public const MAX_EDGE = 2400;
 
-    private const MAX_SOURCE_PIXELS = 50_000_000;
+    /** About a 24 MP phone photo; a larger one is refused before decoding, so it can never exhaust memory (Suresh). */
+    public const MAX_SOURCE_PIXELS = 24_000_000;
 
     /** @return array{content:string, kind:'jpeg'|'png'|'pdf', bytes:int, sha256:string} */
     public static function prepare(mixed $file, string $field = 'file'): array
@@ -55,6 +56,20 @@ final class LeaveEvidenceFiles
         return ['content' => $raw, 'kind' => 'pdf'];
     }
 
+    /** Decoding, rotating and scaling hold up to about three truecolour copies of 4 bytes a pixel at once. */
+    private static function memoryAllows(int $pixels): bool
+    {
+        $limit = (string) ini_get('memory_limit');
+        if ($limit === '' || $limit === '-1') {
+            return true;
+        }
+        $bytes = (int) $limit * match (strtolower(substr($limit, -1))) {
+            'g' => 1024 ** 3, 'm' => 1024 ** 2, 'k' => 1024, default => 1,
+        };
+
+        return memory_get_usage() + $pixels * 4 * 3 < $bytes;
+    }
+
     /**
      * @param  'jpeg'|'png'  $kind
      * @return array{content:string, kind:'jpeg'|'png'}
@@ -65,8 +80,11 @@ final class LeaveEvidenceFiles
             throw ValidationException::withMessages([$field => 'Photos cannot be accepted on this server. Use a PDF.']);
         }
         $size = @getimagesizefromstring($raw);
-        if ($size === false || $size[0] < 1 || $size[1] < 1 || $size[0] * $size[1] > self::MAX_SOURCE_PIXELS) {
+        if ($size === false || $size[0] < 1 || $size[1] < 1) {
             throw ValidationException::withMessages([$field => 'Use a JPG, PNG or PDF file.']);
+        }
+        if ($size[0] * $size[1] > self::MAX_SOURCE_PIXELS || ! self::memoryAllows($size[0] * $size[1])) {
+            throw ValidationException::withMessages([$field => 'Use a smaller photo or a PDF.']);
         }
         $orientation = 1;
         if ($kind === 'jpeg' && function_exists('exif_read_data')) {

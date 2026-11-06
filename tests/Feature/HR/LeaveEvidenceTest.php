@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\HR;
 
+use App\Domain\Audit\AuditRecorder;
 use App\Domain\HR\Leave\LeavePermissions;
 use App\Domain\HR\Leave\Models\LeaveEvidenceFile;
 use App\Domain\HR\Leave\Models\LeaveRequest;
@@ -219,7 +220,10 @@ class LeaveEvidenceTest extends VisitTestCase
         $this->assertSame(['purged', 'active'], [$a->refresh()->status, $b->refresh()->status]);
         $this->assertFalse(Storage::disk(LeaveEvidenceService::DISK)->exists($a->stored_path));
 
-        $this->travelTo(CarbonImmutable::parse('2027-03-31 09:30', $this->branch->timezone)); // 30 days after the cancellation.
+        $this->travelTo(CarbonImmutable::parse('2027-03-31 23:00', $this->branch->timezone)); // 30 whole days after 1 Mar: still kept.
+        $this->artisan('hr-leave-evidence:purge')->assertSuccessful();
+        $this->assertSame('active', $b->refresh()->status);
+        $this->travelTo(CarbonImmutable::parse('2027-04-01 00:10', $this->branch->timezone)); // The day after, though still 31 Mar in UTC.
         $this->artisan('hr-leave-evidence:purge')->assertSuccessful();
         $this->assertSame('purged', $b->refresh()->status);
         $this->assertSame(2, LeaveEvidenceFile::query()->count());
@@ -296,6 +300,118 @@ class LeaveEvidenceTest extends VisitTestCase
         $this->assertStringStartsWith('inline;', (string) $response->headers->get('Content-Disposition'));
         $size = getimagesizefromstring($content);
         $this->assertSame([2400, 1600], [$size[0] ?? null, $size[1] ?? null]); // Scaled to 2400 px on the long edge.
+    }
+
+    public function test_no_file_is_added_to_a_rejected_or_cancelled_request_or_an_unknown_one(): void
+    {
+        $hr = $this->actor('hr_manager');
+        $ca = $this->actor('ca');
+        $type = $this->type($hr);
+        $rejected = $this->applyFor($ca, $type, '2027-03-08');
+        $this->selectBranch($hr);
+        $this->post(route('hr.leave.requests.reject', $rejected->public_id), ['expected_lock_version' => 1, 'reason' => 'other', 'idempotency_key' => (string) Str::uuid()])
+            ->assertSessionHasNoErrors();
+        $cancelled = $this->applyFor($ca, $type, '2027-03-09');
+        $this->selectBranch($ca);
+        $this->post(route('hr.leave.requests.cancel', $cancelled->public_id), ['expected_lock_version' => 1, 'idempotency_key' => (string) Str::uuid()])->assertSessionHasNoErrors();
+        foreach ([$rejected, $cancelled] as $closed) {
+            foreach ([$ca, $hr] as $actor) {
+                $this->addFile($actor, $closed, $this->pdf())->assertSessionHasErrors(['file' => 'Files can no longer be added to this request.']);
+            }
+        }
+        $this->selectBranch($ca);
+        $this->post(route('hr.leave.evidence.store', (string) Str::uuid()), ['file' => $this->pdf(), 'idempotency_key' => (string) Str::uuid()])->assertNotFound();
+        $this->post(route('hr.leave.evidence.remove', (string) Str::uuid()), ['expected_lock_version' => 1, 'idempotency_key' => (string) Str::uuid()])->assertNotFound();
+        $this->assertSame(0, LeaveEvidenceFile::query()->count());
+    }
+
+    public function test_a_failed_open_record_sends_no_bytes(): void
+    {
+        $hr = $this->actor('hr_manager');
+        $ca = $this->actor('ca');
+        $request = $this->applyFor($ca, $this->type($hr));
+        $this->addFile($ca, $request, $this->pdf())->assertSessionHasNoErrors();
+        $file = LeaveEvidenceFile::query()->sole();
+        $this->mock(AuditRecorder::class, fn ($mock) => $mock->shouldReceive('record')->andThrow(new \RuntimeException('Synthetic audit failure')));
+        $this->withoutExceptionHandling();
+        $this->selectBranch($hr);
+        try {
+            $this->get(route('hr.leave.evidence.show', $file->public_id));
+            $this->fail('The open was not refused.');
+        } catch (\RuntimeException $e) {
+            $this->assertSame('Synthetic audit failure', $e->getMessage());
+        }
+        $this->assertSame(0, DB::table('hr_leave_evidence_events')->where('action', 'opened')->count());
+    }
+
+    public function test_apply_refuses_files_for_a_type_without_them_or_twice_the_same_file_before_creating_anything(): void
+    {
+        $hr = $this->actor('hr_manager');
+        $ca = $this->actor('ca');
+        $off = $this->type($hr, ['accepts_evidence_files' => false, 'evidence_retention_days' => '']);
+        $this->selectBranch($ca);
+        $input = ['leave_type_id' => $off->id, 'start_date' => '2027-03-08', 'end_date' => '2027-03-08', 'idempotency_key' => (string) Str::uuid()];
+        $this->post(route('hr.leave.requests.store'), [...$input, 'evidence_files' => [$this->pdf()]])
+            ->assertSessionHasErrors(['evidence_files' => 'Sick leave does not take evidence files.']);
+        $this->selectBranch($hr);
+        $this->put(route('hr.leave.types.save'), ['leave_type_id' => $off->id, 'expected_lock_version' => $off->refresh()->lock_version, ...$this->typeInput()])->assertSessionHasNoErrors();
+        $this->selectBranch($ca);
+        $this->post(route('hr.leave.requests.store'), [...$input, 'evidence_files' => [$this->pdf(), $this->pdf('copy.pdf')]])
+            ->assertSessionHasErrors(['evidence_files' => 'This file is already attached.']);
+        $this->assertSame(0, LeaveRequest::query()->count());
+    }
+
+    public function test_a_type_switched_off_keeps_its_days_while_files_remain_and_they_are_still_purged(): void
+    {
+        $hr = $this->actor('hr_manager');
+        $ca = $this->actor('ca');
+        $type = $this->type($hr, ['evidence_retention_days' => 5]);
+        $request = $this->applyFor($ca, $type, '2027-03-08');
+        $this->addFile($ca, $request, $this->pdf())->assertSessionHasNoErrors();
+        $this->selectBranch($hr);
+        $this->put(route('hr.leave.types.save'), ['leave_type_id' => $type->id, 'expected_lock_version' => $type->refresh()->lock_version,
+            ...$this->typeInput(['accepts_evidence_files' => false, 'evidence_retention_days' => ''])])
+            ->assertSessionHasErrors(['evidence_retention_days' => 'This type still has evidence files. Keep a number of days so they are deleted on time.']);
+        $this->put(route('hr.leave.types.save'), ['leave_type_id' => $type->id, 'expected_lock_version' => $type->refresh()->lock_version,
+            ...$this->typeInput(['accepts_evidence_files' => false, 'evidence_retention_days' => 5])])->assertSessionHasNoErrors();
+        $this->assertFalse($type->refresh()->accepts_evidence_files);
+        $this->travelTo(CarbonImmutable::parse('2027-03-14 09:00', $this->branch->timezone));
+        $this->artisan('hr-leave-evidence:purge')->assertSuccessful();
+        $this->assertSame('purged', LeaveEvidenceFile::query()->sole()->status);
+    }
+
+    public function test_the_roster_never_carries_a_file(): void
+    {
+        $hr = $this->actor('hr_manager');
+        $director = $this->actor('director');
+        $ca = $this->actor('ca');
+        $request = $this->applyFor($ca, $this->type($hr));
+        $this->addFile($ca, $request, $this->pdf())->assertSessionHasNoErrors();
+        $this->selectBranch($director);
+        $this->post(route('hr.leave.requests.approve', $request->public_id), ['expected_lock_version' => 1, 'evidence_seen' => true, 'idempotency_key' => (string) Str::uuid()])
+            ->assertSessionHasNoErrors();
+        $file = LeaveEvidenceFile::query()->sole();
+        $this->selectBranch($hr);
+        $props = $this->get(route('hr.roster.index', ['tab' => 'planner', 'week' => '2027-03-08']))->viewData('page')['props'];
+        $this->assertStringNotContainsString($file->public_id, (string) json_encode($props));
+        $this->assertStringNotContainsString('evidence', (string) json_encode($props['roster']));
+    }
+
+    public function test_an_oversized_photo_is_refused_before_decoding(): void
+    {
+        if (! function_exists('imagecreatefromstring') || ! function_exists('imagepng')) {
+            $this->markTestSkipped('Needs the GD extension (runs in CI).');
+        }
+        $hr = $this->actor('hr_manager');
+        $ca = $this->actor('ca');
+        $request = $this->applyFor($ca, $this->type($hr));
+        // A small PNG whose header claims 6000 x 5000 pixels (30 MP): refused from its size alone.
+        $image = imagecreatetruecolor(1, 1);
+        ob_start();
+        imagepng($image);
+        $png = (string) ob_get_clean();
+        $png = substr($png, 0, 16).pack('NN', 6000, 5000).substr($png, 24);
+        $this->addFile($ca, $request, UploadedFile::fake()->createWithContent('big.png', $png))->assertSessionHasErrors(['file' => 'Use a smaller photo or a PDF.']);
     }
 
     // ---- helpers ----
