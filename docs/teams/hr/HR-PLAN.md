@@ -1169,8 +1169,8 @@ attendance, Review, Settings (and Overtime in HR-3b), the HR-2a tab pattern (DD-
 
 Written 2026-11-06 at the owner's request ("start the HR-3b design note") while HR-3a (PR #327) waits for HR-2b
 (PR #311) to merge. It works out section 9.1's HR-3b line in detail. It changes no HR-1, HR-2 or HR-3a rule, and
-where it differs from section 9 it replaces it. **Status: draft, waiting for the owner's approval and Daniel's early
-look.** Questions in 10.9 take the defaults written here until the clinic says otherwise.
+where it differs from section 9 it replaces it. **Status: approved with its defaults by the owner on 2026-11-06
+(TEAM.md decision 32); Daniel's early look pending.** Questions in 10.9 take the defaults written here until the clinic says otherwise.
 
 **KPOne ships no overtime rule.** Who may claim overtime, the multipliers and the weekly hour levels are
 clinic-entered, versioned settings. The form is pre-filled with the clinic HR proposal's values (normal day 1.5x,

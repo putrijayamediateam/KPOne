@@ -175,6 +175,11 @@ check items, keep them"). The rest stand unless the owner changes them.
 31. Existing-assertion change approved: the `ClinicManagementTest` hub map gains `/hr/attendance` for
     `hr.attendance.clock.own` and `hr.attendance.review.organisation`; HR-3a shipped (owner, 2026-11-06, in the HR
     session: "yes, add the hub line and ship it").
+32. HR-3b design note (HR-PLAN section 10) approved with its defaults (owner, 2026-11-06, in the HR session:
+    "approve the HR-3b note with the defaults"): no overtime role ticked until HR ticks one; overtime asked for after
+    it is worked, within the correction window; multipliers 1.5x, 2x and 3x and weekly levels 40 h and 45 h as form
+    suggestions; rest days are the branch's non-working weekdays; a manager may reverse an approved request with a
+    reason, never their own; staff see their own month as well as their week.
 
 ## 7. Open items and known limits
 
