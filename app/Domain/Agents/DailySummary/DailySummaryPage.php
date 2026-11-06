@@ -84,6 +84,8 @@ final class DailySummaryPage
             'today' => $today,
             'earliest' => $earliest,
             'canInbox' => $can['inbox'],
+            // The branch the viewer has open opens first on the page; the others start folded.
+            'activeBranchCode' => $this->access->activeBranch($viewer)?->code,
             'branches' => $branches->map(fn (Branch $branch): array => [
                 'code' => $branch->code,
                 'name' => $branch->name,

@@ -283,6 +283,7 @@ class DailySummaryTest extends QueueTestCase
         $director = $page('director');
         $this->assertSame(['2026-11-06', '2026-11-06', '2026-10-06'], [$director['date'], $director['today'], $director['earliest']]);
         $this->assertSame(['CHERAS'], array_column($director['branches'], 'code'), 'Only the branches the viewer works at today.');
+        $this->assertSame('CHERAS', $director['activeBranchCode'], 'The branch the viewer has open opens first.');
         $cheras = $director['branches'][0];
         $this->assertSame(['0700', '1400', '1400', '0700'], [$cheras['linaMorning']['slot'], $cheras['linaAfternoon']['slot'], $cheras['hana']['slot'], $cheras['rizal']['slot']]);
         $this->assertNotNull($cheras['linaMorning']['money']);

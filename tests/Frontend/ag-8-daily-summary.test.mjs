@@ -29,25 +29,27 @@ test('every section names its agent as an AI agent, never as staff', () => {
 });
 
 test('the morning report compares with last week and the afternoon update shows no arrows', () => {
-    assert.match(page, /the same\s+weekday last week/);
+    assert.match(page, /the\s+same\s+weekday\s+last\s+week/);
     assert.match(page, /Half a day, so no comparison is shown\./);
-    assert.match(page, /Today so far/);
+    assert.match(page, /14:00 update · today so far/);
+    assert.match(page, /07:00 report · covers/);
     // Arrows are hidden from screen readers; the words carry the meaning.
     assert.match(
         page,
         /<span aria-hidden="true">\{\{\s*row\.trend\.symbol\s*\}\}<\/span>/,
     );
-    assert.match(page, /if \(before === null \|\| before === undefined\)/);
+    assert.match(page, /before === null \|\|\s+before === undefined/);
 });
 
 test('the date picker stays inside the last 31 days and today', () => {
     assert.match(page, /:min="summary\.earliest"/);
     assert.match(page, /:max="summary\.today"/);
-    assert.match(page, /<Label for="summary-date">Date<\/Label>/);
+    assert.match(page, /<Label for="summary-date">Summary on<\/Label>/);
 });
 
 test('the inbox link shows only to inbox viewers and parts hide when not sent', () => {
     assert.match(page, /v-if="summary\.canInbox"/);
+    assert.match(page, /The inbox lists your active branch\./);
 
     for (const part of [
         'lina.clinic',
@@ -67,5 +69,27 @@ test('touch targets are 44 px below 1024 px', () => {
     assert.match(
         page,
         /<Button type="submit" class="max-lg:min-h-11">Show<\/Button>/,
+    );
+});
+
+test('branches fold with the shared collapsible; the active branch opens, today so far comes first', () => {
+    assert.match(
+        page,
+        /<Collapsible\s+v-for="\(branch, index\) in summary\.branches"/,
+    );
+    assert.match(page, /:default-open="openFirst\(branch\.code, index\)"/);
+    assert.match(page, /<CollapsibleTrigger/);
+    assert.match(page, /\{\{ headline\(branch\) \}\}/);
+    assert.match(page, /'No report yet'/);
+    assert.match(page, /\[branch\.linaAfternoon, branch\.linaMorning\]/);
+});
+
+test('nothing on either day shows no comparison; the inbox is a button; long count lists fold', () => {
+    assert.match(page, /\(now === 0 && before === 0\)/);
+    assert.match(page, /<Button\s+as-child\s+variant="outline"/);
+    assert.match(page, /const RIZAL_SHOWN = 5;/);
+    assert.match(
+        page,
+        /`and \$\{branch\.rizal\.due\.length - RIZAL_SHOWN\} more`/,
     );
 });

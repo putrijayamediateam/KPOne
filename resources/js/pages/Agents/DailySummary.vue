@@ -1,7 +1,13 @@
 <script setup lang="ts">
 import { Head, Link, router } from '@inertiajs/vue3';
+import { ChevronDown } from '@lucide/vue';
 import { ref } from 'vue';
 import { Button } from '@/components/ui/button';
+import {
+    Collapsible,
+    CollapsibleContent,
+    CollapsibleTrigger,
+} from '@/components/ui/collapsible';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { PageHeader } from '@/components/ui/page-header';
@@ -81,6 +87,7 @@ const props = defineProps<{
         today: string;
         earliest: string;
         canInbox: boolean;
+        activeBranchCode: string | null;
         branches: BranchBlock[];
         faris: Faris | null;
     };
@@ -107,13 +114,21 @@ const builtLine = (stamp: Stamp) =>
         ? `${slotLabel(stamp.slot)}, built ${formatDateTime(stamp.builtAt)}`
         : slotLabel(stamp.slot);
 
+// Lina's headings already name the slot, so her line gives only the build time.
+const builtAtLine = (stamp: Stamp) =>
+    stamp.builtAt ? `Built ${formatDateTime(stamp.builtAt)}` : 'Built';
 // No green or red: "up" is not always good (a longer wait is up), so the words carry the direction.
 type Trend = { symbol: string; words: string; tone: string };
 const trend = (
     now: number,
     before: number | null | undefined,
 ): Trend | null => {
-    if (before === null || before === undefined) {
+    // No comparison at all, or nothing on either day: "0, same as 0" says nothing.
+    if (
+        before === null ||
+        before === undefined ||
+        (now === 0 && before === 0)
+    ) {
         return null;
     }
 
@@ -230,8 +245,43 @@ const hanaLabels: Record<keyof Hana['counts'], string> = {
 };
 const linaHeading = (lina: Lina) =>
     lina.kind === 'whole_day'
-        ? `Report for ${formatDate(lina.date)}`
-        : `Today so far (${formatDate(lina.date)})`;
+        ? `07:00 report · covers ${formatDate(lina.date)}`
+        : `14:00 update · today so far (${formatDate(lina.date)})`;
+
+// Today so far first once the 14:00 update exists; the 07:00 report stays open right below it.
+const reports = (branch: BranchBlock): Lina[] =>
+    [branch.linaAfternoon, branch.linaMorning].filter(
+        (lina): lina is Lina => lina !== null,
+    );
+
+// One line for a folded branch: the newest report's headline figures.
+const headline = (branch: BranchBlock): string => {
+    const lina = branch.linaAfternoon ?? branch.linaMorning;
+
+    if (lina === null) {
+        return 'No report yet';
+    }
+
+    const parts = [branch.name];
+
+    if (lina.clinic) {
+        parts.push(`${lina.clinic.now.registered} registered`);
+    }
+
+    if (lina.money) {
+        parts.push(`Net sales ${ringgit(lina.money.now.netSalesSen)}`);
+    }
+
+    return parts.length > 1 ? parts.slice(1).join(' · ') : 'Report ready';
+};
+// The active branch opens; when it is not listed (or none is chosen), the first branch opens.
+const openFirst = (code: string, index: number) =>
+    props.summary.branches.some(
+        (branch) => branch.code === props.summary.activeBranchCode,
+    )
+        ? code === props.summary.activeBranchCode
+        : index === 0;
+const RIZAL_SHOWN = 5;
 </script>
 
 <template>
@@ -255,7 +305,7 @@ const linaHeading = (lina: Lina) =>
             @submit.prevent="show"
         >
             <div class="grid gap-1.5">
-                <Label for="summary-date">Date</Label>
+                <Label for="summary-date">Summary on</Label>
                 <Input
                     id="summary-date"
                     v-model="chosen"
@@ -298,227 +348,323 @@ const linaHeading = (lina: Lina) =>
             description="The daily summary lists the branches you work at today."
         />
 
-        <section
-            v-for="branch in summary.branches"
+        <Collapsible
+            v-for="(branch, index) in summary.branches"
             :key="branch.code"
+            v-slot="{ open }"
+            :default-open="openFirst(branch.code, index)"
+            as="section"
             :aria-labelledby="`branch-${branch.code}`"
-            class="flex flex-col gap-4 rounded-xl border bg-card p-4"
+            class="rounded-xl border bg-card"
             data-test="summary-branch"
         >
             <h2 :id="`branch-${branch.code}`" class="text-lg font-semibold">
-                {{ branch.name }}
+                <CollapsibleTrigger
+                    class="flex min-h-11 w-full items-center gap-3 rounded-xl p-4 text-left focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                    data-test="summary-branch-toggle"
+                >
+                    <span class="flex min-w-0 flex-1 flex-col">
+                        <span>{{ branch.name }}</span>
+                        <span
+                            v-if="!open"
+                            class="text-sm font-normal text-muted-foreground"
+                            data-test="summary-branch-headline"
+                            >{{ headline(branch) }}</span
+                        >
+                    </span>
+                    <ChevronDown
+                        class="size-5 shrink-0 text-muted-foreground transition-transform"
+                        :class="open ? 'rotate-180' : ''"
+                        aria-hidden="true"
+                    />
+                </CollapsibleTrigger>
             </h2>
 
-            <template
-                v-for="lina in [branch.linaMorning, branch.linaAfternoon]"
-                :key="lina?.slot ?? 'none'"
-            >
-                <div
-                    v-if="lina"
-                    class="flex flex-col gap-3"
-                    :data-test="`lina-${lina.slot}`"
-                >
-                    <div>
-                        <h3 class="text-base font-semibold">
-                            {{ linaHeading(lina) }} · Lina (AI agent)
-                        </h3>
-                        <p class="text-xs text-muted-foreground">
-                            {{ builtLine(lina) }}.
-                            <template v-if="lina.comparedWith">
-                                Arrows compare with
-                                {{ formatDate(lina.comparedWith) }}, the same
-                                weekday last week.
-                            </template>
-                            <template v-else>
-                                Half a day, so no comparison is shown.
-                            </template>
+            <CollapsibleContent class="flex flex-col gap-4 px-4 pb-4">
+                <template v-for="lina in reports(branch)" :key="lina.slot">
+                    <div
+                        class="flex flex-col gap-3"
+                        :data-test="`lina-${lina.slot}`"
+                    >
+                        <div>
+                            <h3 class="text-base font-semibold">
+                                {{ linaHeading(lina) }} · Lina (AI agent)
+                            </h3>
+                            <p class="text-xs text-muted-foreground">
+                                {{ builtAtLine(lina) }}.
+                                <template v-if="lina.comparedWith">
+                                    Arrows compare with
+                                    {{ formatDate(lina.comparedWith) }}, the
+                                    same weekday last week.
+                                </template>
+                                <template v-else>
+                                    Half a day, so no comparison is shown.
+                                </template>
+                            </p>
+                        </div>
+
+                        <dl
+                            v-if="lina.clinic"
+                            class="grid gap-2 sm:grid-cols-2"
+                            data-test="lina-clinic"
+                        >
+                            <div
+                                v-for="row in clinicRows(lina)"
+                                :key="row.label"
+                                class="rounded-lg border px-3 py-2"
+                            >
+                                <dt class="text-xs text-muted-foreground">
+                                    {{ row.label }}
+                                </dt>
+                                <dd
+                                    class="flex items-baseline gap-2 text-base font-semibold"
+                                >
+                                    {{ row.value }}
+                                    <span
+                                        v-if="row.trend"
+                                        class="text-xs font-medium"
+                                        :class="row.trend.tone"
+                                    >
+                                        <span aria-hidden="true">{{
+                                            row.trend.symbol
+                                        }}</span>
+                                        {{ row.trend.words }}
+                                    </span>
+                                </dd>
+                            </div>
+                        </dl>
+
+                        <div
+                            v-if="lina.doctors && lina.doctors.length > 0"
+                            data-test="lina-doctors"
+                        >
+                            <h4 class="text-sm font-semibold">
+                                Seen by each doctor
+                            </h4>
+                            <ul class="mt-1 grid gap-1 text-sm">
+                                <li
+                                    v-for="doctor in lina.doctors"
+                                    :key="doctor.doctorId"
+                                    class="flex flex-wrap gap-x-2"
+                                >
+                                    <span class="font-medium">{{
+                                        doctor.doctor
+                                    }}</span>
+                                    <span
+                                        >{{ doctor.seen }} seen, about
+                                        {{ doctor.averageConsultationMinutes }}
+                                        min each</span
+                                    >
+                                    <span
+                                        v-if="
+                                            trend(
+                                                doctor.seen,
+                                                doctor.seenBefore,
+                                            )
+                                        "
+                                        class="text-xs"
+                                        :class="
+                                            trend(
+                                                doctor.seen,
+                                                doctor.seenBefore,
+                                            )!.tone
+                                        "
+                                    >
+                                        <span aria-hidden="true">{{
+                                            trend(
+                                                doctor.seen,
+                                                doctor.seenBefore,
+                                            )!.symbol
+                                        }}</span>
+                                        {{
+                                            trend(
+                                                doctor.seen,
+                                                doctor.seenBefore,
+                                            )!.words
+                                        }}
+                                    </span>
+                                </li>
+                            </ul>
+                        </div>
+
+                        <dl
+                            v-if="lina.money"
+                            class="grid gap-2 sm:grid-cols-2"
+                            data-test="lina-money"
+                        >
+                            <div
+                                v-for="row in moneyRows(lina)"
+                                :key="row.label"
+                                class="rounded-lg border px-3 py-2"
+                            >
+                                <dt class="text-xs text-muted-foreground">
+                                    {{ row.label }}
+                                </dt>
+                                <dd
+                                    class="flex flex-wrap items-baseline gap-x-2 text-base font-semibold"
+                                >
+                                    {{ row.value }}
+                                    <span
+                                        v-if="row.trend"
+                                        class="text-xs font-medium"
+                                        :class="row.trend.tone"
+                                    >
+                                        <span aria-hidden="true">{{
+                                            row.trend.symbol
+                                        }}</span>
+                                        {{ row.trend.words }}
+                                    </span>
+                                </dd>
+                            </div>
+                        </dl>
+
+                        <p
+                            v-if="lina.panel"
+                            class="text-sm"
+                            data-test="lina-panel"
+                        >
+                            Panel, as of this run:
+                            {{ lina.panel.unclaimedInvoices }} invoices not
+                            claimed yet ({{
+                                ringgit(lina.panel.unclaimedSen)
+                            }}), {{ lina.panel.overdueUnclaimedInvoices }} of
+                            them overdue;
+                            {{ lina.panel.acceptedUnpaidClaims }} accepted
+                            claims waiting for payment ({{
+                                ringgit(lina.panel.acceptedOutstandingSen)
+                            }}).
+                        </p>
+                        <p
+                            v-if="lina.stock"
+                            class="text-sm"
+                            data-test="lina-stock"
+                        >
+                            Stock, as of this run:
+                            {{ lina.stock.lowStock }} low,
+                            {{ lina.stock.expiring }} expiring within 90 days,
+                            {{ lina.stock.expired }} expired on hand.
                         </p>
                     </div>
+                </template>
+                <p
+                    v-if="!branch.linaMorning && !branch.linaAfternoon"
+                    class="text-sm text-muted-foreground"
+                    data-test="lina-missing"
+                >
+                    No report from Lina for this date yet.
+                </p>
 
-                    <dl
-                        v-if="lina.clinic"
-                        class="grid gap-2 sm:grid-cols-2"
-                        data-test="lina-clinic"
-                    >
-                        <div
-                            v-for="row in clinicRows(lina)"
-                            :key="row.label"
-                            class="rounded-lg border px-3 py-2"
-                        >
-                            <dt class="text-xs text-muted-foreground">
-                                {{ row.label }}
-                            </dt>
-                            <dd
-                                class="flex items-baseline gap-2 text-base font-semibold"
-                            >
-                                {{ row.value }}
-                                <span
-                                    v-if="row.trend"
-                                    class="text-xs font-medium"
-                                    :class="row.trend.tone"
-                                >
-                                    <span aria-hidden="true">{{
-                                        row.trend.symbol
-                                    }}</span>
-                                    {{ row.trend.words }}
-                                </span>
-                            </dd>
-                        </div>
-                    </dl>
-
+                <div v-if="branch.hana" data-test="summary-hana">
+                    <h3 class="text-base font-semibold">
+                        Stock suggestions · Hana (AI agent)
+                    </h3>
+                    <p class="text-xs text-muted-foreground">
+                        {{ builtLine(branch.hana) }}.
+                    </p>
+                    <ul class="mt-2 grid gap-1 text-sm sm:grid-cols-2">
+                        <li v-for="(label, key) in hanaLabels" :key="key">
+                            {{ label }}:
+                            {{ branch.hana.counts[key].total }} made,
+                            {{ branch.hana.counts[key].pending }} waiting for a
+                            decision
+                        </li>
+                    </ul>
                     <div
-                        v-if="lina.doctors && lina.doctors.length > 0"
-                        data-test="lina-doctors"
+                        v-if="summary.canInbox"
+                        class="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1"
                     >
-                        <h4 class="text-sm font-semibold">
-                            Seen by each doctor
-                        </h4>
-                        <ul class="mt-1 grid gap-1 text-sm">
-                            <li
-                                v-for="doctor in lina.doctors"
-                                :key="doctor.doctorId"
-                                class="flex flex-wrap gap-x-2"
-                            >
-                                <span class="font-medium">{{
-                                    doctor.doctor
-                                }}</span>
-                                <span
-                                    >{{ doctor.seen }} seen, about
-                                    {{ doctor.averageConsultationMinutes }} min
-                                    each</span
-                                >
-                                <span
-                                    v-if="trend(doctor.seen, doctor.seenBefore)"
-                                    class="text-xs"
-                                    :class="
-                                        trend(doctor.seen, doctor.seenBefore)!
-                                            .tone
-                                    "
-                                >
-                                    <span aria-hidden="true">{{
-                                        trend(doctor.seen, doctor.seenBefore)!
-                                            .symbol
-                                    }}</span>
-                                    {{
-                                        trend(doctor.seen, doctor.seenBefore)!
-                                            .words
-                                    }}
-                                </span>
-                            </li>
-                        </ul>
-                    </div>
-
-                    <dl
-                        v-if="lina.money"
-                        class="grid gap-2 sm:grid-cols-2"
-                        data-test="lina-money"
-                    >
-                        <div
-                            v-for="row in moneyRows(lina)"
-                            :key="row.label"
-                            class="rounded-lg border px-3 py-2"
+                        <Button
+                            as-child
+                            variant="outline"
+                            size="sm"
+                            class="max-lg:min-h-11"
                         >
-                            <dt class="text-xs text-muted-foreground">
-                                {{ row.label }}
-                            </dt>
-                            <dd
-                                class="flex flex-wrap items-baseline gap-x-2 text-base font-semibold"
+                            <Link
+                                href="/agents/inbox"
+                                data-test="summary-inbox-link"
                             >
-                                {{ row.value }}
-                                <span
-                                    v-if="row.trend"
-                                    class="text-xs font-medium"
-                                    :class="row.trend.tone"
-                                >
-                                    <span aria-hidden="true">{{
-                                        row.trend.symbol
-                                    }}</span>
-                                    {{ row.trend.words }}
-                                </span>
-                            </dd>
-                        </div>
-                    </dl>
-
-                    <p v-if="lina.panel" class="text-sm" data-test="lina-panel">
-                        Panel, as of this run:
-                        {{ lina.panel.unclaimedInvoices }} invoices not claimed
-                        yet ({{ ringgit(lina.panel.unclaimedSen) }}),
-                        {{ lina.panel.overdueUnclaimedInvoices }} of them
-                        overdue; {{ lina.panel.acceptedUnpaidClaims }} accepted
-                        claims waiting for payment ({{
-                            ringgit(lina.panel.acceptedOutstandingSen)
-                        }}).
-                    </p>
-                    <p v-if="lina.stock" class="text-sm" data-test="lina-stock">
-                        Stock, as of this run: {{ lina.stock.lowStock }} low,
-                        {{ lina.stock.expiring }} expiring within 90 days,
-                        {{ lina.stock.expired }} expired on hand.
-                    </p>
+                                Open the approval inbox
+                            </Link>
+                        </Button>
+                        <span class="text-xs text-muted-foreground"
+                            >The inbox lists your active branch.</span
+                        >
+                    </div>
                 </div>
-            </template>
-            <p
-                v-if="!branch.linaMorning && !branch.linaAfternoon"
-                class="text-sm text-muted-foreground"
-                data-test="lina-missing"
-            >
-                No report from Lina for this date yet.
-            </p>
 
-            <div v-if="branch.hana" data-test="summary-hana">
-                <h3 class="text-base font-semibold">
-                    Stock suggestions · Hana (AI agent)
-                </h3>
-                <p class="text-xs text-muted-foreground">
-                    {{ builtLine(branch.hana) }}.
-                </p>
-                <ul class="mt-2 grid gap-1 text-sm sm:grid-cols-2">
-                    <li v-for="(label, key) in hanaLabels" :key="key">
-                        {{ label }}: {{ branch.hana.counts[key].total }} made,
-                        {{ branch.hana.counts[key].pending }} waiting for a
-                        decision
-                    </li>
-                </ul>
-                <Link
-                    v-if="summary.canInbox"
-                    href="/agents/inbox"
-                    class="mt-2 inline-flex min-h-11 items-center text-sm font-medium text-primary underline-offset-4 hover:underline lg:min-h-0"
-                    data-test="summary-inbox-link"
-                >
-                    Open the approval inbox (it lists your active branch)
-                </Link>
-            </div>
-
-            <div v-if="branch.rizal" data-test="summary-rizal">
-                <h3 class="text-base font-semibold">
-                    Stock counts · Rizal (AI agent)
-                </h3>
-                <p class="text-xs text-muted-foreground">
-                    {{ builtLine(branch.rizal) }}.
-                </p>
-                <p class="mt-1 text-sm">
-                    {{ branch.rizal.countsDue }} counts due,
-                    {{ branch.rizal.openCases }} open count cases,
-                    {{ branch.rizal.unresolvedVariances }} differences not yet
-                    resolved.
-                </p>
-                <ul
-                    v-if="branch.rizal.due.length > 0"
-                    class="mt-1 grid gap-1 text-sm"
-                >
-                    <li
-                        v-for="item in branch.rizal.due"
-                        :key="`${item.sku}-${item.locationLabel}`"
+                <div v-if="branch.rizal" data-test="summary-rizal">
+                    <h3 class="text-base font-semibold">
+                        Stock counts · Rizal (AI agent)
+                    </h3>
+                    <p class="text-xs text-muted-foreground">
+                        {{ builtLine(branch.rizal) }}.
+                    </p>
+                    <p class="mt-1 text-sm">
+                        {{ branch.rizal.countsDue }} counts due,
+                        {{ branch.rizal.openCases }} open count cases,
+                        {{ branch.rizal.unresolvedVariances }} differences not
+                        yet resolved.
+                    </p>
+                    <ul
+                        v-if="branch.rizal.due.length > 0"
+                        class="mt-1 grid gap-1 text-sm"
                     >
-                        {{ item.item }} ({{ item.skuCode }}) at
-                        {{ item.locationLabel }}:
-                        {{
-                            item.lastCompletedCountDate
-                                ? `last counted ${formatDate(item.lastCompletedCountDate)}`
-                                : 'never counted'
-                        }}
-                    </li>
-                </ul>
-            </div>
-        </section>
+                        <li
+                            v-for="item in branch.rizal.due.slice(
+                                0,
+                                RIZAL_SHOWN,
+                            )"
+                            :key="`${item.sku}-${item.locationLabel}`"
+                        >
+                            {{ item.item }} ({{ item.skuCode }}) at
+                            {{ item.locationLabel }}:
+                            {{
+                                item.lastCompletedCountDate
+                                    ? `last counted ${formatDate(item.lastCompletedCountDate)}`
+                                    : 'never counted'
+                            }}
+                        </li>
+                    </ul>
+                    <Collapsible
+                        v-if="branch.rizal.due.length > RIZAL_SHOWN"
+                        v-slot="{ open: more }"
+                        data-test="summary-rizal-more"
+                    >
+                        <CollapsibleContent>
+                            <ul class="mt-1 grid gap-1 text-sm">
+                                <li
+                                    v-for="item in branch.rizal.due.slice(
+                                        RIZAL_SHOWN,
+                                    )"
+                                    :key="`${item.sku}-${item.locationLabel}`"
+                                >
+                                    {{ item.item }} ({{ item.skuCode }}) at
+                                    {{ item.locationLabel }}:
+                                    {{
+                                        item.lastCompletedCountDate
+                                            ? `last counted ${formatDate(item.lastCompletedCountDate)}`
+                                            : 'never counted'
+                                    }}
+                                </li>
+                            </ul>
+                        </CollapsibleContent>
+                        <CollapsibleTrigger
+                            class="mt-1 inline-flex min-h-11 items-center gap-1 text-sm font-medium text-primary underline underline-offset-4 lg:min-h-0"
+                        >
+                            {{
+                                more
+                                    ? 'Show fewer'
+                                    : `and ${branch.rizal.due.length - RIZAL_SHOWN} more`
+                            }}
+                            <ChevronDown
+                                class="size-4"
+                                :class="more ? 'rotate-180' : ''"
+                                aria-hidden="true"
+                            />
+                        </CollapsibleTrigger>
+                    </Collapsible>
+                </div>
+            </CollapsibleContent>
+        </Collapsible>
     </main>
 </template>
