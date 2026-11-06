@@ -15,6 +15,8 @@ const props = withDefaults(
         label: string;
         error?: string;
         disabled?: boolean;
+        // CAT-8: an optional one-line note under the field (connected with aria-describedby).
+        hint?: string;
     }>(),
     { error: '', disabled: false },
 );
@@ -252,6 +254,7 @@ const onKeydown = (event: KeyboardEvent) => {
                 :aria-expanded="open"
                 :aria-controls="`${listboxId}-listbox`"
                 aria-autocomplete="list"
+                :aria-describedby="hint ? `${listboxId}-hint` : undefined"
                 :disabled="disabled"
                 autocomplete="off"
                 class="h-9 w-full rounded-md border border-input bg-background px-3 pr-10 text-sm shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
@@ -269,8 +272,15 @@ const onKeydown = (event: KeyboardEvent) => {
                 <ChevronDown class="size-4" aria-hidden="true" />
             </button>
         </div>
-        <p class="text-[11px] text-muted-foreground">
+        <p class="text-xs text-muted-foreground">
             Choose a saved value or type a new one to add it to the list.
+        </p>
+        <p
+            v-if="hint"
+            :id="`${listboxId}-hint`"
+            class="text-xs text-muted-foreground"
+        >
+            {{ hint }}
         </p>
         <ul
             v-if="open"
