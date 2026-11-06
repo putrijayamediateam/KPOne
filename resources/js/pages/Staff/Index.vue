@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import { Head, Link, router } from '@inertiajs/vue3';
-import { Plus, Search, Users, X } from '@lucide/vue';
+import { Plus, Search, X } from '@lucide/vue';
 import { computed, reactive } from 'vue';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { PageHeader } from '@/components/ui/page-header';
 import { OperationalSelect } from '@/components/ui/select';
 import { formatRoleLabel } from '@/lib/displayLabels';
 import type { PaginatedStaff, StaffOptions } from '@/types';
@@ -81,29 +82,18 @@ const clearFilters = () => {
 <template>
     <Head title="Staff directory" />
     <main class="flex flex-1 flex-col gap-5 p-4 md:p-7">
-        <div
-            class="flex flex-col justify-between gap-4 md:flex-row md:items-start"
+        <PageHeader
+            title="Staff directory"
+            description="Operational identities and access within your authorised scope."
         >
-            <div class="flex items-start gap-3">
-                <div class="rounded-xl bg-success/10 p-2.5 text-success">
-                    <Users class="size-5" />
-                </div>
-                <div>
-                    <h1 class="text-2xl font-semibold tracking-tight">
-                        Staff directory
-                    </h1>
-                    <p class="text-sm text-muted-foreground">
-                        Operational identities and access within your authorised
-                        scope.
-                    </p>
-                </div>
-            </div>
-            <Button v-if="canCreate" as-child
-                ><Link href="/staff/create"
-                    ><Plus class="size-4" /> Create staff</Link
-                ></Button
-            >
-        </div>
+            <template v-if="canCreate" #actions>
+                <Button as-child
+                    ><Link href="/staff/create"
+                        ><Plus class="size-4" /> Create staff</Link
+                    ></Button
+                >
+            </template>
+        </PageHeader>
 
         <Card>
             <CardHeader class="pb-4"
@@ -204,7 +194,7 @@ const clearFilters = () => {
                                         >{{ member.name }}</Link
                                     >
                                     <div
-                                        class="mt-0.5 text-xs text-muted-foreground"
+                                        class="mt-0.5 text-xs [overflow-wrap:anywhere] text-muted-foreground"
                                     >
                                         {{ member.email }}
                                     </div>
