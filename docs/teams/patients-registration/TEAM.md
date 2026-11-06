@@ -86,7 +86,8 @@ team's Reviewer is Hafiz, with the same role and rules.
 | REG-4 | Patient change history on the patient page for CA Supervisor and Director: who changed which parts of the record and when, from existing audit rows, field names only (never values); changes only; first 10 rows, older rows by cursor; includes the merged records' rows, labelled; replaces the raw "Authorized activity" list; one new permission by additive migration; fixes every edit logging "date_of_birth" as changed; staff names follow the BIL-2 staff-visibility rule | #252 (`7cf6df4`) |
 | REG-5 | REG-3 follow-ups, read paths only: search rows and the Registration picker say "Merged from KP-…"; the kept patient page shows a merged record's guardian contact, read only, when it has none; the doctor's problem list shows merged records' problems as a separate read-only group labelled with their KP number; pay-later rows of a merged-away record list under the kept record with "merged from KP-…". No permission, migration or route | #271 (`b6103d8`) |
 | REG-6 | Patient create, patient edit and Registration Quick create fit a 320 or 390 px phone: the phone number box can shrink, and below 640 px the phone country list and the Quick create identity type list stack above their box at full width; the Patient create identifier box and its fields stay inside their border. Layout only | #285 (`b77d244`) |
-| REG-7 | Screen-reader names: the public QR form's 4 back buttons carry "Kembali" on the button with the arrow icon hidden; the shared `OperationalSelect` names its open option list like its trigger (`aria-label`, or `aria-labelledby` when the caller passes `labelledby`), on every screen that uses it. Frontend only, no visual change | pending (branch `feature/reg-7-accessible-names`) |
+| REG-7 | Screen-reader names: the public QR form's 4 back buttons carry "Kembali" on the button with the arrow icon hidden; the shared `OperationalSelect` names its open option list like its trigger (`aria-label`, or `aria-labelledby` when the caller passes `labelledby`), on every screen that uses it. Frontend only, no visual change | #300 (`8bc868f`) |
+| REG-8 | PostgreSQL contention test for patient merges (test only): two approvers on one request, approve against reject, approve against the proposer withdrawing, two proposals for the same duplicate, and approving A←B and B←C at once; each race proves both sessions wait on the shared patient row, and exactly one wins with no chain | pending (branch `feature/reg-8-merge-approval-contention`) |
 | DD-08 (this team's part) | The QR intake list's status chips (`QrIntakeTable.vue`) move from pale palette colours with no dark style to theme tokens, with the same choices as DD-38 (#331) on the board: Pending warning, Reviewed accent, Rejected danger, Expired and Data Purged outline. Text contrast is at least 4.5:1 in light and dark. Frontend only; the owner said "yes, start DD-08" on 2026-11-06 | not merged yet (`fix/dd-08-qr-intake-chips-dark`) |
 
 ## 6. Owner decisions already made (never ask again)
@@ -192,9 +193,7 @@ team's Reviewer is Hafiz, with the same role and rules.
   events recorded with the patient as subject appear: visit, billing, clinical and QR changes are elsewhere. Times
   show in the viewer's active branch time zone.
 - REG-3 known limits (merged in PR #239). The follow-ups from the design note (search note, pay-later list,
-  problem list, guardian contact) are REG-5. No two-process PostgreSQL
-  contention test for two simultaneous approvals (row locks in id order and a one-open-request unique index
-  cover it). The duplicate keeps its IC or passport, so that IC cannot be added to the kept record until it is retired on
+  problem list, guardian contact) are REG-5. The two-process PostgreSQL contention test for simultaneous approvals is REG-8. The duplicate keeps its IC or passport, so that IC cannot be added to the kept record until it is retired on
   the merged-away record (allowed by owner decision, section 6 item 15; adding and replacing are refused). Old
   registration rows of the duplicate still offer WhatsApp to the duplicate's own phone. Past Insights counts may
   count a merged person twice (decision F). Allergy matching compares normalised text, so "Penicillin" and
@@ -257,9 +256,14 @@ authorisation to build them; the coordinator records it in `docs/BASELINE.md`.
 6. **REG-6 Patient create phone fit.** *Merged in PR #285 as `b77d244`.* Patient
    create (and, through the shared phone field, Patient edit and Registration Quick create) fit a 320 and 390 px
    phone with errors shown. Layout only.
-7. **REG-7 Accessible names.** *Chosen by the owner on 2026-11-05, after REG-6; "ship it" from the owner on 2026-11-06.*
+7. **REG-7 Accessible names.** *Merged in PR #300 as `8bc868f`.*
    Survey (Chromium accessibility tree): UX-3 had already fixed this team's staff pages; the QR back buttons were
    named only through the svg; every open shared select list was unnamed. Kavitha (Staff Experience) asked for the
    `labelledby` case; Daniel OK. The public QR form's icon-only back
    buttons and this team's SMOKE-1 S1-009 to S1-014 items in `docs/design/DEBT.md`, except the two labels UX-6
    adds. Frontend only; the QR page is patient-facing, so Daniel looks at it.
+8. **REG-8 Merge approval contention test.** *Chosen by the owner on 2026-11-06 ("do REG-8 first").* Five
+   two-process PostgreSQL races in the serial Contention suite (`PostgresPatientMergeRegressionTest` and
+   `PostgresPatientMergeWorker`). Test only. Not done in this session: removing the service's locks to watch the
+   races fail (the session's permission guard refused editing application code for it); each race instead proves
+   both workers wait behind the held patient row.
