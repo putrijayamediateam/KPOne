@@ -65,24 +65,8 @@ final class DocumentService
                 }
                 $worker = $this->support->lockWorker($actor, $workerId);
                 $this->support->assertManages($actor, $worker);
-                if (Document::query()->where('worker_id', $worker->id)->where('status', 'active')->where('sha256', $prepared['sha256'])->exists()) {
-                    throw ValidationException::withMessages(['file' => 'This file is already in the staff file.']);
-                }
-                $publicId = (string) Str::uuid();
-                $path = "hr-documents/{$actor->organisation_id}/{$publicId}.bin";
-                if (! Storage::disk(self::DISK)->put($path, Crypt::encryptString($prepared['content']))) {
-                    throw ValidationException::withMessages(['file' => 'The file could not be saved. Try again.']);
-                }
-                $written[] = $path;
-                $document = new Document;
-                $document->forceFill(['public_id' => $publicId, 'organisation_id' => $worker->organisation_id, 'worker_id' => $worker->id, 'category' => $category,
-                    'issued_on' => $issued, 'expires_on' => $expires, 'kind' => $prepared['kind'], 'bytes' => $prepared['bytes'], 'sha256' => $prepared['sha256'],
-                    'stored_path' => $path, 'status' => 'active', 'uploaded_by_user_id' => $actor->id, 'lock_version' => 1])->save();
-                $this->event($document, 'added', $actor);
-                $this->support->change($actor, $worker, 'document', ['added', $category]);
-                $this->support->remember($actor, $key, 'records_document_add', $hash, $publicId);
-                $this->support->audit->record('hr.records.document_added', $worker, ['document_id' => $document->id, 'category' => $category, 'kind' => $document->kind,
-                    'bytes' => $document->bytes], $actor, null, $actor->organisation_id);
+                $document = $this->storeFor($actor, $worker, $prepared, $category, $issued, $expires, $written);
+                $this->support->remember($actor, $key, 'records_document_add', $hash, $document->public_id);
 
                 return $document;
             }, 3);
@@ -90,6 +74,37 @@ final class DocumentService
             $this->forget($written);
             throw $e;
         }
+    }
+
+    /**
+     * Writes one checked file into a staff file and records it (event, change line, audit). The caller holds the
+     * worker row lock inside its transaction and has checked who may add it; HR-5a uses this for credential evidence.
+     * Paths written are appended to $written so the caller can delete them if the transaction rolls back.
+     *
+     * @param  array{content:string, kind:string, bytes:int, sha256:string}  $prepared
+     * @param  list<string>  $written
+     */
+    public function storeFor(User $actor, Worker $worker, array $prepared, string $category, ?string $issued, ?string $expires, array &$written): Document
+    {
+        if (Document::query()->where('worker_id', $worker->id)->where('status', 'active')->where('sha256', $prepared['sha256'])->exists()) {
+            throw ValidationException::withMessages(['file' => 'This file is already in the staff file.']);
+        }
+        $publicId = (string) Str::uuid();
+        $path = "hr-documents/{$actor->organisation_id}/{$publicId}.bin";
+        if (! Storage::disk(self::DISK)->put($path, Crypt::encryptString($prepared['content']))) {
+            throw ValidationException::withMessages(['file' => 'The file could not be saved. Try again.']);
+        }
+        $written[] = $path;
+        $document = new Document;
+        $document->forceFill(['public_id' => $publicId, 'organisation_id' => $worker->organisation_id, 'worker_id' => $worker->id, 'category' => $category,
+            'issued_on' => $issued, 'expires_on' => $expires, 'kind' => $prepared['kind'], 'bytes' => $prepared['bytes'], 'sha256' => $prepared['sha256'],
+            'stored_path' => $path, 'status' => 'active', 'uploaded_by_user_id' => $actor->id, 'lock_version' => 1])->save();
+        $this->event($document, 'added', $actor);
+        $this->support->change($actor, $worker, 'document', ['added', $category]);
+        $this->support->audit->record('hr.records.document_added', $worker, ['document_id' => $document->id, 'category' => $category, 'kind' => $document->kind,
+            'bytes' => $document->bytes], $actor, null, $actor->organisation_id);
+
+        return $document;
     }
 
     /** @return array{content:string, kind:string, bytes:int, sha256:string} */
@@ -333,7 +348,7 @@ final class DocumentService
     }
 
     /** @param list<string> $paths */
-    private function forget(array &$paths): void
+    public function forget(array &$paths): void
     {
         foreach ($paths as $path) {
             Storage::disk(self::DISK)->delete($path);

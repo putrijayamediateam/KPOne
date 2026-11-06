@@ -5,6 +5,7 @@ namespace App\Http\Controllers\HR;
 use App\Domain\HR\Roster\Services\MinimumStaffingService;
 use App\Domain\HR\Roster\Services\RosterPageService;
 use App\Domain\HR\Roster\Services\RosterService;
+use App\Domain\HR\Credentials\Services\CredentialsPageService;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -19,7 +20,9 @@ class RosterController extends Controller
 
     public function index(Request $request, RosterPageService $pages): Response
     {
-        return Inertia::render('HR/Roster', ['roster' => $pages->page($request->user(), $request->only(['tab', 'branch', 'week', 'view']))]);
+        return Inertia::render('HR/Roster', ['roster' => $pages->page($request->user(), $request->only(['tab', 'branch', 'week', 'view'])),
+            // HR-5a: your own expiring or expired credentials, in words; inside KPOne only.
+            'credentialReminders' => app(CredentialsPageService::class)->reminders($request->user())]);
     }
 
     public function start(Request $request, RosterService $roster): RedirectResponse
