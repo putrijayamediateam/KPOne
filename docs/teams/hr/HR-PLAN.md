@@ -2110,7 +2110,7 @@ follow the RPT-01 safety rules.
 - **Approve, Return and Lock** are outline buttons with the primary action in the dialog. "Lock" says what it means: "Locked runs make payslips and exports and can't be changed. Corrections need an adjustment run."
 - 44 px targets, no sideways scroll at 320, 390 and 768 px. Wide run tables scroll inside their own container.
 - **Daniel's early look (2026-11-06): OK with notes, folded in here:**
-  - **Money** uses one shared formatter everywhere ("RM 2,500.00", with a thousands separator). The shared `myr()` is being fixed in BIL-9, and payroll uses it once Billing settles the separator.
+  - **Money** uses Billing's shared `myr()` (`resources/js/types/billing.ts`) everywhere, so payroll and billing match exactly: "RM 2,500.00" with a thousands separator, and after BIL-9 a negative amount reads "−RM 1.50" with a true minus sign (Farah, 2026-11-06).
   - **The run table** from 1024 px keeps the person column sticky while it scrolls inside its container (the UX-9 pattern), with the total row at the bottom.
   - **Warnings and errors are told apart.** Warnings never stop sending, and the list says so ("Warnings don't stop you sending"). Anything that does stop sending, such as no confirmed pay profile, no checked table for a scheme in use, or MTD not entered for someone with MTD on, is an error in the destructive tone with its reason, and the disabled Send button says why.
   - **The Lock dialog's** primary button is "Lock run", never red: locking is not deleting.
