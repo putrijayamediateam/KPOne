@@ -1958,7 +1958,7 @@ to the Clinic management destination map, which is an existing-assertion change 
 
 Written 2026-11-06 at the owner's request ("start the HR-7 design note"). It works out the HR-7 sketch in section 2
 and TEAM.md decision 7 in detail and replaces the sketch where the two differ. It changes no HR-1 to HR-6 rule.
-**Status: draft, waiting for the owner's approval and Daniel's early look.** The questions in 14.10 take the
+**Status: draft, waiting for the owner's approval; Daniel's early look folded into 14.6.** The questions in 14.10 take the
 defaults written here until the clinic says otherwise. **Most of them are for the clinic's accountant.**
 
 **This is the riskiest slice, and it is built to be safe before it is built to be clever.**
@@ -2095,7 +2095,7 @@ link, "KPOne HR payroll", adds `/hr/payroll` to the Clinic management destinatio
 existing-assertion change to approve when built. **Exports** are authorised by decision 7 ("a reviewed file") and
 follow the RPT-01 safety rules.
 
-### 14.6 Screens (Hui Min, for Daniel's early look)
+### 14.6 Screens (Hui Min; Daniel's early look folded in)
 
 - One page, `/hr/payroll`, with tabs Runs, Pay profiles, Tables and Settings for preparers, and Exports for exporters. Payslips sit on My HR details for everyone.
 - **The accountant line** under the header on every payroll page: the shared muted component from HR-4, with these words.
@@ -2109,6 +2109,16 @@ follow the RPT-01 safety rules.
 - **Payslip:** one A4 layout, white in every theme, letterhead, period, earnings, deductions and refunds as three short tables, net pay in bold, the bank masked.
 - **Approve, Return and Lock** are outline buttons with the primary action in the dialog. "Lock" says what it means: "Locked runs make payslips and exports and can't be changed. Corrections need an adjustment run."
 - 44 px targets, no sideways scroll at 320, 390 and 768 px. Wide run tables scroll inside their own container.
+- **Daniel's early look (2026-11-06): OK with notes, folded in here:**
+  - **Money** uses one shared formatter everywhere ("RM 2,500.00", with a thousands separator). The shared `myr()` is being fixed in BIL-9, and payroll uses it once Billing settles the separator.
+  - **The run table** from 1024 px keeps the person column sticky while it scrolls inside its container (the UX-9 pattern), with the total row at the bottom.
+  - **Warnings and errors are told apart.** Warnings never stop sending, and the list says so ("Warnings don't stop you sending"). Anything that does stop sending, such as no confirmed pay profile, no checked table for a scheme in use, or MTD not entered for someone with MTD on, is an error in the destructive tone with its reason, and the disabled Send button says why.
+  - **The Lock dialog's** primary button is "Lock run", never red: locking is not deleting.
+  - **Masked amounts** "RM ••••" are read to screen readers as "Amount hidden".
+  - **Table editing:** each row's add and remove buttons are named ("Remove band 3"), and an overlap or gap error sits under the row it belongs to.
+  - **Exports:** before the download, a summary of what the file holds (run, period, number of people and total); afterwards a muted "Downloaded at 2:14 PM. Recorded." (the HR-4 Show pattern).
+  - **Payslip print:** an A4 `@page` margin of 15 to 20 mm, checked on images taken from a real A4 PDF; the period is written as "October 2026".
+  - **Empty states** for each tab: no runs yet; no tables checked (pointing to Tables); no payslips yet.
 - **Screenshots when built:**
   - a statutory table being checked;
   - a pay profile change waiting;
@@ -2170,3 +2180,4 @@ follow the RPT-01 safety rules.
 7. Part-timers paid hourly from clock data (default yes); locums paid outside KPOne in v1 (default yes)?
 8. The bank file layout, and does Finance need the accountant summary? (Default: generic CSV, and yes.)
 9. Paper payslips: does HR print them for anyone? (Default: each person prints their own.)
+10. Date format on payslips and other HR prints (Daniel's question): the MC and drug label print "30/10/2026", while invoices and receipts print "30 Oct 2026". (Default: "30 Oct 2026", as on invoices and receipts, with the period as "October 2026".)
