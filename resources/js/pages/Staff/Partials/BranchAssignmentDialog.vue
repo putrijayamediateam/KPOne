@@ -124,7 +124,7 @@ const endAssignment = () =>
                         ><input
                             v-model="form.is_primary"
                             type="checkbox"
-                            class="size-4 accent-emerald-700"
+                            class="size-4 accent-success"
                         />
                         Set as primary branch</label
                     >
