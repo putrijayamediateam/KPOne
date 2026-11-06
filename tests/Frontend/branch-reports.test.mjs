@@ -19,7 +19,12 @@ test('branch report shell reuses staged chips, guarded runs, safe scrolling and 
     assert.match(page, /MultiSelectFilterChip/);
     assert.match(page, /v-if="canExport"/);
     assert.match(page, /busy \|\| !data \|\| dirty/);
-    assert.match(page, /max-w-full overflow-x-auto/);
+    // UX-9 (owner-approved change): the page uses the standard table, which holds the scroll box.
+    assert.match(page, /<OperationalTable/);
+    assert.match(
+        read('resources/js/components/ui/table/OperationalTable.vue'),
+        /max-w-full overflow-x-auto/,
+    );
     assert.match(page, /formatDateTime\(data.generatedAt, branch.timezone\)/);
     assert.match(page, /ownGeneration !== generation/);
     assert.match(page, /request\?\.abort/);
@@ -145,7 +150,7 @@ test('stock summary has exact quantity-only movement reconciliation with no valu
 test('stock opening entries are explained visibly below the results table', () => {
     assert.match(
         page,
-        /<\/table>[\s\S]*v-if="endpoint === '\/reports\/stock-movement'"[\s\S]*Adjusted includes opening-balance entries recorded during the[\s\S]*selected period\.[\s\S]*aria-label="Report pages"/,
+        /<\/OperationalTable>[\s\S]*v-if="endpoint === '\/reports\/stock-movement'"[\s\S]*Adjusted includes opening-balance entries recorded during the[\s\S]*selected period\.[\s\S]*aria-label="Report pages"/,
     );
 });
 
