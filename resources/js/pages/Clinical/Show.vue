@@ -781,7 +781,7 @@ const changeHoldState = (action: 'hold' | 'resume') => {
                 <div
                     v-if="stateError"
                     role="alert"
-                    class="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-900"
+                    class="flex items-start gap-2 rounded-lg border border-destructive/20 bg-destructive/5 p-3 text-sm text-destructive"
                 >
                     <AlertTriangle class="mt-0.5 size-4 shrink-0" />
                     {{ stateError }}
@@ -789,7 +789,7 @@ const changeHoldState = (action: 'hold' | 'resume') => {
                 <div
                     v-if="holdError"
                     role="alert"
-                    class="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-900"
+                    class="rounded-lg border border-destructive/20 bg-destructive/5 p-3 text-sm text-destructive"
                 >
                     {{ holdError }}
                 </div>
@@ -828,7 +828,7 @@ const changeHoldState = (action: 'hold' | 'resume') => {
                 <div
                     v-if="recordDrifted"
                     role="alert"
-                    class="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-950"
+                    class="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-warning/25 bg-warning/10 p-3 text-sm text-warning-strong"
                 >
                     <span class="flex items-start gap-2">
                         <AlertTriangle class="mt-0.5 size-4 shrink-0" />
