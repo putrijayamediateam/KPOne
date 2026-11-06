@@ -52,7 +52,6 @@ const genderOptions = [
                     />
                     <InputError
                         id="patient-name-error"
-                        role="alert"
                         :message="errors.full_name"
                     />
                 </label>
