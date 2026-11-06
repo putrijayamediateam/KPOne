@@ -88,8 +88,11 @@ class PanelClaimPackTest extends BillingTestCase
                 ->where('backLabel', 'Back to Panel Claims')
                 ->where('pack.claimCount', 2)
                 ->where('pack.totalClaimSen', 6000)
-                ->where('pack.claims.0.publicId', $first->public_id)
-                ->where('pack.claims.1.publicId', $second->public_id));
+                // PNL-12 (owner decision 2026-11-06): claims print in the order they were ticked.
+                ->where('pack.claims.0.publicId', $second->public_id)
+                ->where('pack.claims.1.publicId', $first->public_id));
+        $metadata = json_decode((string) DB::table('audit_logs')->where('event', 'panel_claim.pack_printed')->sole()->metadata, true);
+        $this->assertSame([(int) $second->id, (int) $first->id], $metadata['claim_ids']);
 
         // A refused GET returns to the page it was asked from, never to a stale "previous" page.
         $this->withSession(['_previous' => ['url' => route('panel-remittances.index')]])
