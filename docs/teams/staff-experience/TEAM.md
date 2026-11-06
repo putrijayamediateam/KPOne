@@ -181,3 +181,8 @@ authorisation to build them; the coordinator records it in `docs/BASELINE.md`.
    unconfirmed `[PERLU DISAHKAN]`. Ask B.E.R.N.I.S.S for the list of merged PRs since the last guide update (PR #203).
 5. **UX-5 Consultation page toasts.** Chosen by the owner on 2026-11-05 from the UX-1 known limit: on the
    consultation page from 1024 px, toasts move to the bottom left so they no longer cover the toolbar.
+7. **UX-7 Announce form errors.** Chosen by the owner on 2026-11-06 from Aiman's UX-6 review note: the shared
+   `InputError` inserts its message as `role="alert"` so screen readers read each error when it appears, and
+   callers no longer add a second alert around it (seven places, in Patients & Registration and Billing files).
+   Nothing changes on screen. Linking every field to its error with `aria-describedby` is left to the owning
+   teams; the existing links still work.
