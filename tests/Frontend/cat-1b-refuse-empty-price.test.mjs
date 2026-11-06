@@ -92,7 +92,24 @@ test('on a Pricing card "Publish price" is the clear main action', () => {
         pricing.indexOf('<div class="hidden min-w-0 md:block">'),
     );
 
-    assert.match(cards, /:variant="charge\.isActive \? 'ghost' : 'secondary'"/);
+    // Owner-approved change (CAT-3, 2026-11-05): Deactivate/Activate moved into the card's "..." menu (Daniel), so
+    // the card's only buttons are "Publish price" (outline) and "Price history" (ghost).
+    assert.match(
+        cards,
+        /<DropdownMenuItem\s+class="min-h-11"\s+@select="toggleCharge\(charge\)"/,
+    );
+    assert.match(
+        cards,
+        /:aria-label="`More actions for \$\{charge\.displayName\}`"/,
+    );
+    assert.doesNotMatch(
+        cards,
+        /:variant="charge\.isActive \? 'ghost' : 'secondary'"/,
+    );
+    assert.match(
+        cards,
+        /variant="ghost"\s+class="min-h-11 w-full"\s+as-child\s+data-action="price-history"/,
+    );
     assert.match(
         cards,
         /variant="outline"\s+:disabled="publishForm\(charge\)\.busy"/,
