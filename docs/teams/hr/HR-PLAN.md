@@ -1958,7 +1958,7 @@ to the Clinic management destination map, which is an existing-assertion change 
 
 Written 2026-11-06 at the owner's request ("start the HR-7 design note"). It works out the HR-7 sketch in section 2
 and TEAM.md decision 7 in detail and replaces the sketch where the two differ. It changes no HR-1 to HR-6 rule.
-**Status: draft, waiting for the owner's approval; Daniel's early look folded into 14.6.** The questions in 14.10 take the
+**Status: approved with its defaults by B.E.R.N.I.S.S for the owner on 2026-11-06, during the owner's 20-minute "BE ME" (TEAM.md decision 43, marked "Check this" on the owner's board); Daniel's early look folded into 14.6.** The questions in 14.10 take the
 defaults written here until the clinic says otherwise. **Most of them are for the clinic's accountant.**
 
 **This is the riskiest slice, and it is built to be safe before it is built to be clever.**

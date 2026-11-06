@@ -232,6 +232,14 @@ check items, keep them"). The rest stand unless the owner changes them.
     suggestion of a partial approval ("Approved RM 30.00 of RM 45.60") conflicts with rule 6 and is open for the owner.
 42. HR-6 rule 6 kept (owner, 2026-11-06, in the HR session: "keep rule 6"): no partial approval of a staff claim; a
     wrong amount is rejected (Wrong amount) and sent again. Daniel's "Approved RM x of RM y" is not built.
+43. HR-7 design note (HR-PLAN section 14) approved with its defaults, including the split of what stops sending a
+    payroll versus what only warns, by B.E.R.N.I.S.S for the owner on 2026-11-06 at 06:41 UTC, during the owner's
+    20-minute "BE ME". Payslip dates (14.10 item 10) take the default: "30 Oct 2026" for dates and "October 2026" for
+    the period. Marked "Check this" on the owner's board; the owner's own words win if they differ. The banner "To
+    confirm with the clinic's accountant before real use" stays. Nothing is built until HR-6 is done.
+44. HR-4a hub-map line (`'/hr/records' => ['hr.records.view.own', 'hr.records.view.organisation']` in
+    `ClinicManagementTest`): approved by the owner, relayed verbatim by B.E.R.N.I.S.S on 2026-11-06: "approve the hub
+    line for liyana".
 
 ## 7. Open items and known limits
 
