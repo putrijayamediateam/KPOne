@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Head, router, usePage } from '@inertiajs/vue3';
-import { CalendarCheck, Clock } from '@lucide/vue';
+import { CalendarCheck, CalendarX, Clock } from '@lucide/vue';
 import {
     computed,
     nextTick,
@@ -1322,7 +1322,8 @@ const correctionStatusTone = (
             @confirm="confirmDecision"
         >
             <template #icon>
-                <CalendarCheck class="size-5" />
+                <CalendarCheck v-if="decision.approve" class="size-5" />
+                <CalendarX v-else class="size-5" />
             </template>
             <div v-if="!decision.approve" class="grid gap-2">
                 <Label for="decision-reason">Reason *</Label>
