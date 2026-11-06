@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Head, Link, router, useForm, usePage } from '@inertiajs/vue3';
+import { Ellipsis } from '@lucide/vue';
 import { computed, ref, watch } from 'vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
@@ -18,6 +19,8 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { CompactPagination } from '@/components/ui/pagination';
+import { EmptyState } from '@/components/ui/state';
+import { OperationalTable } from '@/components/ui/table';
 
 type Preset = {
     id: number;
@@ -163,6 +166,14 @@ const toggle = (preset: Preset) => {
 };
 const nameError = (index: number) =>
     (addForm.errors as Record<string, string>)[`names.${index}`];
+const presetEmptyTitle = computed(() =>
+    props.q
+        ? `No preset diagnoses match "${props.q}"`
+        : 'No preset diagnoses yet',
+);
+const presetEmptyDescription = computed(() =>
+    props.q ? 'Try another search.' : 'Add one with Add diagnosis.',
+);
 </script>
 
 <template>
@@ -266,7 +277,7 @@ const nameError = (index: number) =>
                         type="button"
                         :aria-current="status === tab ? 'page' : undefined"
                         :class="[
-                            'border-b-2 px-5 py-3 text-sm font-medium capitalize',
+                            'min-h-11 border-b-2 px-5 py-3 text-sm font-medium capitalize',
                             status === tab
                                 ? 'border-foreground'
                                 : 'border-transparent text-muted-foreground',
@@ -282,7 +293,9 @@ const nameError = (index: number) =>
                         class="flex min-w-0 items-center gap-2"
                         @submit.prevent="go()"
                     >
-                        <label for="preset-search" class="sr-only"
+                        <label
+                            for="preset-search"
+                            class="text-xs font-medium md:sr-only"
                             >Search diagnoses</label
                         ><input
                             id="preset-search"
@@ -296,6 +309,7 @@ const nameError = (index: number) =>
                             variant="ghost"
                             size="sm"
                             aria-label="Search diagnoses"
+                            class="min-h-11 min-w-11 md:min-h-8 md:min-w-8"
                             ><svg
                                 viewBox="0 0 24 24"
                                 class="size-5"
@@ -313,6 +327,7 @@ const nameError = (index: number) =>
                         variant="ghost"
                         size="sm"
                         aria-label="Search diagnoses"
+                        class="min-h-11 min-w-11 md:min-h-8 md:min-w-8"
                         @click="searching = true"
                         ><svg
                             viewBox="0 0 24 24"
@@ -328,84 +343,176 @@ const nameError = (index: number) =>
                     <Button size="sm" @click="openAdd">Add diagnosis</Button>
                 </div>
             </div>
-            <div class="overflow-x-auto">
-                <table class="w-full text-left text-sm">
-                    <thead class="border-b text-xs text-muted-foreground">
-                        <tr>
-                            <th class="px-4 py-4 font-medium">NAME</th>
-                            <th class="w-28 px-4 py-4 font-medium">STATUS</th>
-                            <th class="w-24 px-4 py-4 font-medium">ACTIONS</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr
-                            v-for="preset in presets"
-                            :key="preset.id"
-                            class="border-b"
+            <section
+                class="mt-4 grid grid-cols-1 gap-3 md:hidden"
+                aria-label="Preset diagnoses"
+                data-testid="settings-cards"
+            >
+                <EmptyState
+                    v-if="presets.length === 0"
+                    :title="presetEmptyTitle"
+                    :description="presetEmptyDescription"
+                />
+                <article
+                    v-for="preset in presets"
+                    :key="preset.id"
+                    class="grid min-w-0 grid-cols-1 gap-3 rounded-xl border bg-card p-4"
+                    data-testid="settings-card"
+                >
+                    <div class="flex items-start justify-between gap-2">
+                        <p
+                            class="min-w-0 text-sm font-medium [overflow-wrap:anywhere]"
                         >
-                            <td
-                                class="px-4 py-4 [overflow-wrap:anywhere] break-words"
-                            >
+                            {{ preset.name }}
+                        </p>
+                        <DropdownMenu>
+                            <DropdownMenuTrigger as-child>
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    class="min-h-11 min-w-11 shrink-0"
+                                    :aria-label="`More actions for ${preset.name}`"
+                                    :disabled="busy !== null"
+                                    data-action="row-menu"
+                                >
+                                    <Ellipsis
+                                        class="size-4"
+                                        aria-hidden="true"
+                                    />
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                                <DropdownMenuItem @select="openRename(preset)"
+                                    >Rename</DropdownMenuItem
+                                >
+                                <DropdownMenuItem
+                                    v-if="preset.active"
+                                    @select="toggle(preset)"
+                                    >Archive</DropdownMenuItem
+                                >
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <button
+                            type="button"
+                            role="switch"
+                            :aria-checked="preset.active"
+                            :aria-label="`${preset.active ? 'Archive' : 'Restore'} ${preset.name}`"
+                            :disabled="busy !== null"
+                            :class="[
+                                'relative inline-flex h-7 w-12 shrink-0 items-center rounded-full ring-1 ring-border transition-colors disabled:opacity-50',
+                                preset.active
+                                    ? 'bg-success'
+                                    : 'bg-muted-foreground/40',
+                            ]"
+                            @click="toggle(preset)"
+                        >
+                            <span
+                                :class="[
+                                    'size-5 rounded-full bg-white shadow-sm transition-transform',
+                                    preset.active
+                                        ? 'translate-x-6'
+                                        : 'translate-x-1',
+                                ]"
+                            />
+                        </button>
+                        <span class="text-sm" data-testid="status-word">{{
+                            preset.active ? 'Active' : 'Archived'
+                        }}</span>
+                    </div>
+                </article>
+            </section>
+            <div class="mt-4 hidden min-w-0 md:block">
+                <OperationalTable
+                    label="Preset diagnoses"
+                    class="[&_table]:table-fixed"
+                    :columns="3"
+                    :empty="presets.length === 0"
+                    :empty-message="`${presetEmptyTitle}. ${presetEmptyDescription}`"
+                    min-width="0"
+                >
+                    <template #head>
+                        <tr>
+                            <th>Name</th>
+                            <th class="w-44">Status</th>
+                            <th class="w-24 text-right">Actions</th>
+                        </tr>
+                    </template>
+                    <template #body>
+                        <tr v-for="preset in presets" :key="preset.id">
+                            <td class="[overflow-wrap:anywhere]">
                                 {{ preset.name }}
                             </td>
-                            <td class="px-4 py-3">
-                                <button
-                                    type="button"
-                                    role="switch"
-                                    :aria-checked="preset.active"
-                                    :aria-label="`${preset.active ? 'Archive' : 'Restore'} ${preset.name}`"
-                                    :disabled="busy !== null"
-                                    :class="[
-                                        'relative inline-flex h-7 w-12 items-center rounded-full transition-colors disabled:opacity-50',
-                                        preset.active
-                                            ? 'bg-emerald-500'
-                                            : 'bg-muted-foreground/40',
-                                    ]"
-                                    @click="toggle(preset)"
-                                >
-                                    <span
+                            <td>
+                                <div class="flex items-center gap-3">
+                                    <button
+                                        type="button"
+                                        role="switch"
+                                        :aria-checked="preset.active"
+                                        :aria-label="`${preset.active ? 'Archive' : 'Restore'} ${preset.name}`"
+                                        :disabled="busy !== null"
                                         :class="[
-                                            'size-5 rounded-full bg-white transition-transform',
+                                            'relative inline-flex h-7 w-12 shrink-0 items-center rounded-full ring-1 ring-border transition-colors disabled:opacity-50',
                                             preset.active
-                                                ? 'translate-x-6'
-                                                : 'translate-x-1',
+                                                ? 'bg-success'
+                                                : 'bg-muted-foreground/40',
                                         ]"
-                                    />
-                                </button>
+                                        @click="toggle(preset)"
+                                    >
+                                        <span
+                                            :class="[
+                                                'size-5 rounded-full bg-white shadow-sm transition-transform',
+                                                preset.active
+                                                    ? 'translate-x-6'
+                                                    : 'translate-x-1',
+                                            ]"
+                                        />
+                                    </button>
+                                    <span
+                                        class="text-sm"
+                                        data-testid="status-word"
+                                        >{{
+                                            preset.active
+                                                ? 'Active'
+                                                : 'Archived'
+                                        }}</span
+                                    >
+                                </div>
                             </td>
-                            <td class="px-4 py-3">
-                                <DropdownMenu
-                                    ><DropdownMenuTrigger as-child
-                                        ><Button
+                            <td class="text-right">
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger as-child>
+                                        <Button
                                             variant="ghost"
-                                            size="sm"
-                                            :aria-label="`Actions for ${preset.name}`"
+                                            size="icon"
+                                            class="size-9"
+                                            :aria-label="`More actions for ${preset.name}`"
                                             :disabled="busy !== null"
-                                            >•••</Button
-                                        ></DropdownMenuTrigger
-                                    ><DropdownMenuContent align="end"
-                                        ><DropdownMenuItem
+                                            data-action="row-menu"
+                                        >
+                                            <Ellipsis
+                                                class="size-4"
+                                                aria-hidden="true"
+                                            />
+                                        </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end">
+                                        <DropdownMenuItem
                                             @select="openRename(preset)"
                                             >Rename</DropdownMenuItem
-                                        ><DropdownMenuItem
+                                        >
+                                        <DropdownMenuItem
                                             v-if="preset.active"
                                             @select="toggle(preset)"
                                             >Archive</DropdownMenuItem
-                                        ></DropdownMenuContent
-                                    ></DropdownMenu
-                                >
+                                        >
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
                             </td>
                         </tr>
-                        <tr v-if="presets.length === 0">
-                            <td
-                                colspan="3"
-                                class="px-4 py-8 text-center text-muted-foreground"
-                            >
-                                No preset diagnoses found.
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
+                    </template>
+                </OperationalTable>
             </div>
             <CompactPagination
                 v-if="pagination.total > 0"
