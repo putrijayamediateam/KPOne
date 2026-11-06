@@ -169,6 +169,10 @@ check items, keep them"). The rest stand unless the owner changes them.
     window 60 minutes, corrections up to 7 days back, both shared PC and own phone, overtime roles chosen by HR in
     settings, rest days are the branch's non-working weekdays, a split shift is two sessions, no top-bar button.
 
+30. HR-3a screens (Daniel, relayed by B.E.R.N.I.S.S 2026-11-06): **OK**. All seven early-look notes met. Not
+    blocking: the confirm dialog's navy background is changed for every dialog by UX-10; native date inputs show
+    mm/dd/yyyy on every page. The PR carries the Review shot at 390 px (cards with flags). Nothing for DEBT.md.
+
 ## 7. Open items and known limits
 
 - Every statutory and policy question in `docs/reports/ANALYSIS-HR.md` section 8 is open and is for the clinic's
