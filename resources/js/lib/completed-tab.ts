@@ -14,3 +14,19 @@ export function completedShownLine(
 
     return count > shown ? `Showing the latest ${shown} of ${count}` : null;
 }
+
+/**
+ * Q-5b: the Serving Now tab also lists only the latest 25 entries while its count is every serving entry at the
+ * branch (a patient left in Serving from an earlier day still counts). Same rules as the Completed tab.
+ */
+export function servingShownLine(
+    activeTab: string,
+    shown: number,
+    count: number | undefined,
+): string | null {
+    if (activeTab !== 'serving' || shown <= 0 || count === undefined) {
+        return null;
+    }
+
+    return count > shown ? `Showing the latest ${shown} of ${count}` : null;
+}
