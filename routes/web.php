@@ -33,10 +33,12 @@ use App\Http\Controllers\DiagnosisPresetSettingsController;
 use App\Http\Controllers\DispensaryController;
 use App\Http\Controllers\GovernedStockController;
 use App\Http\Controllers\HR\AttendanceController as HrAttendanceController;
+use App\Http\Controllers\HR\ClaimsController as HrClaimsController;
 use App\Http\Controllers\HR\CredentialsController as HrCredentialsController;
 use App\Http\Controllers\HR\LeaveController;
 use App\Http\Controllers\HR\RecordsController as HrRecordsController;
 use App\Http\Controllers\HR\RosterController;
+use App\Http\Controllers\HR\SopsController as HrSopsController;
 use App\Http\Controllers\InventoryBatchHoldController;
 use App\Http\Controllers\InventoryController;
 use App\Http\Controllers\InventoryMovementController;
@@ -150,6 +152,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::post('versions/{version}/discard', 'discard')->whereUuid('version')->name('hr.roster.discard');
             Route::put('minimum-staffing', 'minimums')->name('hr.roster.minimums');
         });
+        // HR-5b compliance rules (Director, HR Manager): feed warnings on the planner, never a refusal.
+        Route::middleware(['permission:hr.credentials.manage.organisation', 'throttle:30,1'])->group(function (): void {
+            Route::put('compliance/coverage', 'coverage')->name('hr.roster.compliance.coverage');
+            Route::put('compliance/work-hours', 'workHours')->name('hr.roster.compliance.work-hours');
+        });
         Route::middleware(['permission:hr.roster.approve.organisation', 'throttle:30,1'])->group(function (): void {
             Route::post('versions/{version}/approve', 'approve')->whereUuid('version')->name('hr.roster.approve');
             Route::post('versions/{version}/return', 'returnToDraft')->whereUuid('version')->name('hr.roster.return');
@@ -228,6 +235,41 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::post('records/{record}/{decision}', 'decide')->whereUuid('record')->whereIn('decision', ['accept', 'reject'])->name('hr.credentials.decide');
             Route::post('types', 'saveType')->name('hr.credentials.types.save');
             Route::post('types/{type}/archive', 'archiveType')->whereUuid('type')->name('hr.credentials.types.archive');
+        });
+    });
+
+    // HR-6 staff claims (B.E.R.N.I.S.S for the owner, 2026-11-06). Not Panel Claims; KPOne pays nothing.
+    Route::prefix('hr/claims')->controller(HrClaimsController::class)->middleware('sensitive.no-store')->group(function (): void {
+        Route::get('/', 'index')->middleware('permission:hr.claims.submit.own,hr.claims.approve.organisation,hr.claims.pay.organisation,hr.claims.manage.organisation')->name('hr.claims.index');
+        Route::get('receipts/{receipt}', 'openReceipt')->whereUuid('receipt')
+            ->middleware(['permission:hr.claims.submit.own,hr.claims.approve.organisation,hr.claims.pay.organisation', 'throttle:120,1'])->name('hr.claims.receipts.show');
+        Route::middleware(['permission:hr.claims.submit.own', 'throttle:30,1'])->group(function (): void {
+            Route::post('/', 'send')->name('hr.claims.send');
+            Route::post('{claim}/withdraw', 'withdraw')->whereUuid('claim')->name('hr.claims.withdraw');
+        });
+        Route::post('{claim}/{decision}', 'decide')->whereUuid('claim')->whereIn('decision', ['approve', 'reject'])
+            ->middleware(['permission:hr.claims.approve.organisation', 'throttle:60,1'])->name('hr.claims.decide');
+        Route::middleware(['permission:hr.claims.pay.organisation', 'throttle:60,1'])->group(function (): void {
+            Route::post('{claim}/pay', 'pay')->whereUuid('claim')->name('hr.claims.pay');
+            Route::post('{claim}/reverse', 'reverse')->whereUuid('claim')->name('hr.claims.reverse');
+        });
+        Route::middleware(['permission:hr.claims.manage.organisation', 'throttle:30,1'])->group(function (): void {
+            Route::post('settings', 'saveSettings')->name('hr.claims.settings');
+            Route::post('categories', 'saveCategory')->name('hr.claims.categories.save');
+        });
+    });
+
+    // HR-5c SOPs (owner, 2026-11-06: "approve the HR-5 note with the defaults").
+    Route::prefix('hr/sops')->controller(HrSopsController::class)->middleware('sensitive.no-store')->group(function (): void {
+        Route::get('/', 'index')->middleware('permission:hr.sops.acknowledge.own,hr.sops.manage.organisation')->name('hr.sops.index');
+        Route::get('versions/{version}/open', 'open')->whereUuid('version')
+            ->middleware(['permission:hr.sops.acknowledge.own,hr.sops.manage.organisation', 'throttle:60,1'])->name('hr.sops.open');
+        Route::post('versions/{version}/acknowledge', 'acknowledge')->whereUuid('version')
+            ->middleware(['permission:hr.sops.acknowledge.own', 'throttle:30,1'])->name('hr.sops.acknowledge');
+        Route::middleware(['permission:hr.sops.manage.organisation', 'throttle:30,1'])->group(function (): void {
+            Route::post('/', 'publish')->name('hr.sops.publish');
+            Route::post('{sop}/versions', 'replace')->whereUuid('sop')->name('hr.sops.replace');
+            Route::post('{sop}/withdraw', 'withdraw')->whereUuid('sop')->name('hr.sops.withdraw');
         });
     });
 
@@ -653,6 +695,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
             ->whereUuid(['dispensaryCase', 'itemPublicId'])->middleware(['permission:dispensary.update.branch', 'throttle:30,1'])->name('dispensary.returns.record');
         Route::post('dispensary/{dispensaryCase}/returns/{returnPublicId}/check', [DispensaryController::class, 'checkReturn'])
             ->whereUuid(['dispensaryCase', 'returnPublicId'])->middleware(['permission:inventory.variances.approve.branch', 'throttle:30,1'])->name('dispensary.returns.check');
+        // DSP-7b: the branch list of returns waiting for a check (read only; the check stays on the case page).
+        Route::get('dispensary/returns-to-check', [DispensaryController::class, 'returnsToCheck'])
+            ->middleware(['permission:dispensary.view.branch', 'sensitive.no-store', 'throttle:60,1'])->name('dispensary.returns-to-check');
         Route::get('dispensary/{dispensaryCase}', [DispensaryController::class, 'show'])
             ->whereUuid('dispensaryCase')->middleware('permission:dispensary.view.branch')->name('dispensary.show');
 

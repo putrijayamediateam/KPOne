@@ -38,7 +38,10 @@ type PackClaim = {
 };
 
 const props = defineProps<{
-    letterhead: PrintLetterhead;
+    // CAT-9 sends details.phone_secondary; the shared PrintLetterhead type does not list it yet.
+    letterhead: PrintLetterhead & {
+        details: { phone_secondary?: string | null };
+    };
     pack: {
         panelName: string;
         branchName: string;
@@ -62,6 +65,14 @@ const addressLines = computed(() =>
             .filter(Boolean)
             .join(', '),
     ].filter((line): line is string => !!line),
+);
+// PNL-19: the branch's optional second phone (CAT-9) prints on the same line as "Tel: A / B", as on referral and
+// attendance letters; each number stays whole when the line wraps, and a lone second phone never leaves "Tel:  / B".
+const phones = computed(() =>
+    [
+        props.letterhead.details.phone,
+        props.letterhead.details.phone_secondary,
+    ].filter((number): number is string => !!number),
 );
 const letterheadIncomplete = computed(
     () =>
@@ -159,8 +170,19 @@ const print = () => window.print();
                         <p v-if="letterhead.details.email">
                             {{ letterhead.details.email }}
                         </p>
-                        <p v-if="letterhead.details.phone">
-                            Tel: {{ letterhead.details.phone }}
+                        <p
+                            v-if="phones.length > 0"
+                            data-testid="pack-letterhead-phones"
+                        >
+                            Tel:
+                            <template
+                                v-for="(number, index) in phones"
+                                :key="index"
+                                ><template v-if="index > 0">&nbsp;/ </template
+                                ><span class="whitespace-nowrap">{{
+                                    number
+                                }}</span></template
+                            >
                         </p>
                     </div>
                 </header>
@@ -280,8 +302,19 @@ const print = () => window.print();
                         <p v-if="letterhead.details.email">
                             {{ letterhead.details.email }}
                         </p>
-                        <p v-if="letterhead.details.phone">
-                            Tel: {{ letterhead.details.phone }}
+                        <p
+                            v-if="phones.length > 0"
+                            data-testid="pack-letterhead-phones"
+                        >
+                            Tel:
+                            <template
+                                v-for="(number, index) in phones"
+                                :key="index"
+                                ><template v-if="index > 0">&nbsp;/ </template
+                                ><span class="whitespace-nowrap">{{
+                                    number
+                                }}</span></template
+                            >
                         </p>
                     </div>
                 </header>

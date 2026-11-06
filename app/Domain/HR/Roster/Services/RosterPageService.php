@@ -4,6 +4,9 @@ namespace App\Domain\HR\Roster\Services;
 
 use App\Domain\Access\BranchAccessService;
 use App\Domain\HR\Attendance\ClockPermissions;
+use App\Domain\HR\Compliance\Services\ComplianceRulesService;
+use App\Domain\HR\Compliance\Services\ComplianceWarnings;
+use App\Domain\HR\Credentials\CredentialPermissions;
 use App\Domain\HR\Leave\Models\LeaveRequest;
 use App\Domain\HR\Leave\Services\LeaveCalendar;
 use App\Domain\HR\Roster\Models\RosterShift;
@@ -25,7 +28,8 @@ use Illuminate\Validation\ValidationException;
  */
 final class RosterPageService
 {
-    public function __construct(private BranchAccessService $branches, private RosterRules $rules, private MinimumStaffingService $minimums, private LeaveCalendar $leave) {}
+    public function __construct(private BranchAccessService $branches, private RosterRules $rules, private MinimumStaffingService $minimums, private LeaveCalendar $leave,
+        private ComplianceWarnings $compliance) {}
 
     /**
      * @param  array<string, mixed>  $query
@@ -58,7 +62,7 @@ final class RosterPageService
             'sessions' => collect(RosterRules::SESSIONS)->map(fn (string $label, string $value): array => ['value' => $value, 'label' => $label])->values()->all(),
             'my' => $canOwn ? $this->my($actor, $weekStart) : null,
             'planner' => $planner ? $this->planner($actor, $branches, $branch, $weekStart, $query['view'] ?? null, $canManage, $canApprove) : null,
-            'minimums' => $canManage ? $this->minimumsPage($branches, $branch) : null,
+            'minimums' => $canManage ? $this->minimumsPage($actor, $branches, $branch) : null,
         ];
     }
 
@@ -153,6 +157,8 @@ final class RosterPageService
                 ->pluck('staff_user_id')->unique()->count())->all(),
             'shortDays' => $shown === null ? [] : $this->shortDays($branch, $weekStart, $shifts, $people),
             'warnings' => $shown === null ? [] : [...$this->warnings($branch, $weekStart, $shown, $shifts, $people, $roomNames), ...$this->leaveWarnings($branch, $shifts, $leave, $people)],
+            // HR-5b: compliance warnings in words and the month's rotation counts; warnings only, never a refusal.
+            'compliance' => $shown === null ? null : $this->compliance->forWeek($branch, $weekStart, $shown, $shifts, $people),
             'staffOptions' => $isDraft ? $this->staffOptions($actor, $branch, $weekStart) : [],
             'rooms' => $rooms->where('is_active', true)->map(fn (BranchRoom $r): array => ['id' => $r->id, 'name' => $r->name])->values()->all(),
             'returnReasons' => collect(RosterService::RETURN_REASONS)->map(fn (string $label, string $value): array => ['value' => $value, 'label' => $label])->values()->all(),
@@ -392,9 +398,21 @@ final class RosterPageService
      * @param  Collection<int, Branch>  $branches
      * @return array<string, mixed>
      */
-    private function minimumsPage(Collection $branches, Branch $branch): array
+    private function minimumsPage(User $actor, Collection $branches, Branch $branch): array
     {
+        $canRules = $actor->can(CredentialPermissions::MANAGE);
+        $coverage = $canRules ? ComplianceRulesService::coverage($branch->id) : null;
+        $work = $canRules ? ComplianceRulesService::workHours($branch->organisation_id) : null;
+
         return [
+            // HR-5b rules (Director and HR Manager, hr.credentials.manage.organisation). KPOne ships no number.
+            'compliance' => ! $canRules ? null : [
+                'suggested' => ComplianceRulesService::SUGGESTED,
+                'coverage' => ['version' => $coverage['version'] ?? 0, 'hours' => $coverage['hours'] ?? [], 'minDoctors' => $coverage['minDoctors'] ?? null],
+                'workHours' => ['version' => $work['version'] ?? 0, 'maxDaysInRow' => $work['maxDaysInRow'] ?? null,
+                    'minRestHours' => isset($work['minRestMinutes']) ? intdiv($work['minRestMinutes'], 60) : null,
+                    'maxWeekHours' => isset($work['maxWeekMinutes']) ? intdiv($work['maxWeekMinutes'], 60) : null],
+            ],
             'branches' => $branches->map(fn (Branch $b): array => ['id' => $b->id, 'name' => $b->name])->values()->all(),
             'branch' => ['id' => $branch->id, 'name' => $branch->name],
             'values' => $this->minimums->minimums($branch),
