@@ -61,3 +61,26 @@ slip, and refunds spread across several receipts in one record.
 3. **Who:** the same as BIL-6. CA Supervisor or Finance Officer records; Finance Officer or Director approves or
    rejects, never the recorder. The two existing refund permissions are reused; no new permission.
 4. **No time limit:** always with a reason code and a second person's approval.
+
+## 7. Technical plan (from the reader mapping, 2026-11-06)
+
+- **Records (additive migration):** `payment_refunds` gains `kind` (`reversal`, the BIL-6 rule, default for every
+  existing row; or `after_completion`). A new append-only `invoice_credits` row (invoice, refund, amount) is written
+  with every `after_completion` refund, for the same amount. The approval or rejection stays in
+  `payment_refund_decisions` and covers both records.
+- **PostgreSQL rules for `after_completion`:** the receipt is posted (not reversed), of the same branch, its visit is
+  completed, and the amount is at least 1 sen and at most the receipt less its earlier refunds that are not
+  rejected; the credit's amount equals its refund's. Recorder never decides (unchanged). BIL-6 rows keep their rule.
+- **One balance rule, in SQL and PHP:** an approved credit lowers payable (`kpone_invoice_payable` = total +
+  adjustment − approved credits) and its approved refund lowers paid (`FinancialLedger`: allocations − reversals −
+  approved after-completion refunds). Both move by the same amount, so due is unchanged, `kpone_billing_check_invoice`
+  still holds (paid + Panel + pay later ≤ payable) and the ledger's due ≥ 0 check still holds. Pending or rejected
+  changes neither. `FinancialLedger::states()` keeps its query cap (one more batched query at most).
+- **Patient money only:** the amount is capped at the receipt less its earlier refunds, so payable never drops below
+  Panel plus pay later.
+- **Cash closing:** unchanged rule. The receipt stays counted on its day; a Cash refund is paid out on its payout day.
+  The existing expected-cash query already counts open refunds of posted receipts.
+- **Issued copies (BIL-5, BIL-9):** after approval the invoice's figures change, so its next print is REVISED, with a
+  "Refund credit" line in the totals; receipts are unchanged.
+- **Not changed:** Panel claims (Panel money untouched), completion evidence (the visit stays completed), stock.
+- **Reports:** waiting for the owner's answers (Insights bucket, date basis, receipt-report columns).
