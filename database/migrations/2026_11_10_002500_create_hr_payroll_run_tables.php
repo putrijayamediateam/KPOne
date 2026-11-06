@@ -207,8 +207,8 @@ BEGIN
   RAISE EXCEPTION 'A payroll run keeps what it is for' USING ERRCODE = 'P0001';
  END IF;
  IF NEW.status <> OLD.status AND NOT ((OLD.status = 'draft' AND NEW.status = 'sent') OR (OLD.status = 'sent' AND NEW.status IN ('approved', 'draft'))
-   OR (OLD.status = 'approved' AND NEW.status = 'locked')) THEN
-  RAISE EXCEPTION 'A payroll run moves draft to sent, sent to approved or back to draft, and approved to locked' USING ERRCODE = 'P0001';
+   OR (OLD.status = 'approved' AND NEW.status IN ('locked', 'draft'))) THEN
+  RAISE EXCEPTION 'A payroll run moves draft to sent, sent to approved, approved to locked, and sent or approved back to draft' USING ERRCODE = 'P0001';
  END IF;
  IF OLD.status IN ('sent', 'approved', 'locked') AND NEW.status <> 'draft' AND (NEW.versions IS DISTINCT FROM OLD.versions OR NEW.fingerprint IS DISTINCT FROM OLD.fingerprint
    OR NEW.group_name <> OLD.group_name OR NEW.group_pay_day IS DISTINCT FROM OLD.group_pay_day OR NEW.prepared_by_user_id <> OLD.prepared_by_user_id
@@ -249,13 +249,20 @@ BEGIN
 END $$;
 CREATE TRIGGER hr_payroll_run_people_manager BEFORE INSERT ON hr_payroll_run_people FOR EACH ROW EXECUTE FUNCTION guard_hr_payroll_run_person();
 
--- Approve, return and lock are never by the preparer, and lock only by the approver.
+-- Approve, return and lock are never by anyone who prepared or sent the run (every prepare step counts, so a person who
+-- typed a manual line or an MTD figure never approves it), and a run holding a staff claim is never locked by that
+-- claim's claimant or approver. The service inserts the action row before it changes the run.
 CREATE OR REPLACE FUNCTION guard_hr_payroll_run_action() RETURNS trigger LANGUAGE plpgsql AS $$
 DECLARE r RECORD;
 BEGIN
  SELECT prepared_by_user_id, sent_by_user_id, approved_by_user_id INTO r FROM hr_payroll_runs WHERE id = NEW.run_id;
- IF NEW.action IN ('approved', 'returned', 'locked') AND (NEW.actor_user_id = r.prepared_by_user_id OR NEW.actor_user_id = r.sent_by_user_id) THEN
+ IF NEW.action IN ('approved', 'returned', 'locked') AND (NEW.actor_user_id = r.prepared_by_user_id OR NEW.actor_user_id = r.sent_by_user_id
+   OR EXISTS (SELECT 1 FROM hr_payroll_run_actions a WHERE a.run_id = NEW.run_id AND a.action = 'prepared' AND a.actor_user_id = NEW.actor_user_id)) THEN
   RAISE EXCEPTION 'Someone other than the preparer approves, returns and locks a payroll run' USING ERRCODE = '23514';
+ END IF;
+ IF NEW.action = 'locked' AND EXISTS (SELECT 1 FROM hr_payroll_lines l JOIN hr_staff_claims c ON c.id = l.source_id
+   WHERE l.run_id = NEW.run_id AND l.kind = 'claim' AND (c.claimant_user_id = NEW.actor_user_id OR c.decided_by_user_id = NEW.actor_user_id)) THEN
+  RAISE EXCEPTION 'A staff claim''s claimant or approver never locks the run that pays it' USING ERRCODE = '23514';
  END IF;
  RETURN NEW;
 END $$;

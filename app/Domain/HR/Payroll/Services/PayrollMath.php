@@ -20,6 +20,10 @@ final class PayrollMath
     /**
      * (f1 × f2 × … ÷ denominator), rounded once.
      *
+     * The quotient and remainder are carried separately, so the running remainder stays below the denominator. Each step
+     * multiplies that remainder by one factor; both that product and the quotient's growth are checked, so a figure too
+     * large for 64 bits is refused, never wrapped (Suresh, M5).
+     *
      * @param  list<int>  $factors  each zero or more
      */
     public static function fraction(array $factors, int $denominator, string $rounding = self::HALF_UP): int
@@ -38,6 +42,9 @@ final class PayrollMath
                 $first = false;
 
                 continue;
+            }
+            if ($f !== 0 && $r > intdiv(PHP_INT_MAX, $f)) {
+                throw new RuntimeException('A payroll figure is too large.');
             }
             if ($f !== 0 && $q > intdiv(PHP_INT_MAX - intdiv($r * $f, $denominator), $f)) {
                 throw new RuntimeException('A payroll figure is too large.');

@@ -1015,7 +1015,9 @@ const saveRates = () => {
                     <p class="text-sm text-muted-foreground">
                         Which pay item type a run uses for overtime, unpaid
                         leave and staff claim refunds, so it knows which schemes
-                        each counts for. Each save is a new version.
+                        each counts for. Each save is a new version. Unpaid
+                        leave lowers the EPF, SOCSO or EIS wage only when its
+                        pay item type counts for that scheme.
                     </p>
                 </div>
                 <div class="flex flex-wrap gap-4">

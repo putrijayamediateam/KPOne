@@ -24,6 +24,7 @@ final class PayrollRunCalculator
         'no_type_unpaid_leave' => 'No pay item type chosen for unpaid leave',
         'no_type_claim' => 'No pay item type chosen for staff claim refunds',
         'net_negative' => 'Net pay below zero',
+        'unreadable_amount' => 'A saved amount could not be read. Check the pay profile',
     ];
 
     public const WARNINGS = [
@@ -34,9 +35,15 @@ final class PayrollRunCalculator
         'leave_crosses_month' => 'Unpaid leave crosses into another month; counted in its start month',
         'no_period' => 'No employment period recorded; counted for the whole month',
         'profile_waiting' => 'A pay profile change is waiting for confirmation',
+        'net_negative_adjustment' => 'This correction takes money back: net below zero',
     ];
 
     public const SCHEME_LABELS = ['epf' => 'EPF', 'socso' => 'SOCSO', 'eis' => 'EIS', 'hrd' => 'HRD levy'];
+
+    /** Set when a saved amount for the person being worked out could not be read, so it is never silently RM 0. */
+    private bool $unreadable = false;
+
+    private string $kind = 'regular';
 
     public function __construct(private AttendanceTotals $attendance) {}
 
@@ -46,6 +53,8 @@ final class PayrollRunCalculator
      */
     public function calculate(int $org, \stdClass $run, array $mtd): array
     {
+        $this->kind = (string) $run->kind;
+        $this->unreadable = false;
         $start = CarbonImmutable::parse((string) $run->month)->startOfMonth();
         $end = $start->endOfMonth()->startOfDay();
         $from = $start->toDateString();
@@ -255,7 +264,16 @@ final class PayrollRunCalculator
         }
         $totals['net'] = $totals['earnings'] - $totals['deduction'] - $totals['employee'] - $totals['mtd'] + $totals['refund'];
         if ($totals['net'] < 0) {
-            $errors[] = 'net_negative';
+            // An adjustment holds only differences, so a recovery is negative by nature (Suresh, S2).
+            if ($this->kind === 'adjustment') {
+                $warnings[] = 'net_negative_adjustment';
+            } else {
+                $errors[] = 'net_negative';
+            }
+        }
+        if ($this->unreadable) {
+            $errors[] = 'unreadable_amount';
+            $this->unreadable = false;
         }
 
         return ['workerId' => $workerId, 'profileId' => $profileId, 'lines' => $lines, 'errors' => array_values(array_unique($errors)),
@@ -384,10 +402,17 @@ final class PayrollRunCalculator
         try {
             $plain = Crypt::decryptString($value);
         } catch (DecryptException) {
+            $this->unreadable = true;
+
+            return '0';
+        }
+        if (preg_match('/\A[0-9]{1,9}\z/', $plain) !== 1) {
+            $this->unreadable = true;
+
             return '0';
         }
 
-        return preg_match('/\A[0-9]{1,9}\z/', $plain) === 1 ? $plain : '0';
+        return $plain;
     }
 
     public static function duration(int $minutes): string

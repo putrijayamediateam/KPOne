@@ -3,6 +3,7 @@
 namespace Tests\Feature\HR;
 
 use App\Domain\HR\Attendance\Models\ClockSession;
+use App\Domain\HR\Payroll\Services\PayrollMath;
 use App\Domain\HR\Payroll\Services\PayrollRunService;
 use App\Domain\HR\Payroll\Services\PayrollSetupService;
 use App\Domain\HR\Records\Models\Worker;
@@ -181,9 +182,62 @@ class PayrollRunsTest extends VisitTestCase
         $this->selectBranch($finance);
         $this->post(route('hr.claims.pay', $claim->public_id), ['method' => 'bank_transfer', 'paid_on' => '2026-12-02', 'reference' => 'SYN-TRF-0001',
             'expected_lock_version' => (int) $claim->lock_version, 'idempotency_key' => (string) Str::uuid()])->assertSessionHasNoErrors();
-        $this->step($this->director, $id, 'lock')->assertSessionHasErrors(['payroll' => 'Staff claim SC-000001 was paid or changed after this run was sent. Return the run and prepare it again.']);
+        $paid = 'Staff claim SC-000001 was paid or changed after this run was sent. Send the run back and prepare it again.';
+        $this->step($this->director, $id, 'lock')->assertSessionHasErrors(['payroll' => $paid]);
         $this->assertSame('approved', DB::table('hr_payroll_runs')->value('status'));
         $this->assertSame(1, DB::table('hr_staff_claim_payments')->count());
+        $this->selectBranch($this->director);
+        $this->get(route('hr.payroll.runs.show', $id))->assertInertia(fn (Assert $page) => $page->where('run.steps.lock.refusal', $paid)
+            ->where('run.steps.return.refusal', null));
+
+        // The approved run is not stuck: only its approver sends it back, it is prepared again without the paid claim, then locked.
+        $this->step($this->director2, $id, 'return', ['reason' => 'missing_record'])->assertForbidden();
+        $this->step($this->director, $id, 'return', ['reason' => 'missing_record'])->assertSessionHasNoErrors();
+        $run = DB::table('hr_payroll_runs')->first();
+        $this->assertNotNull($run);
+        $this->assertSame(['draft', null, null], [$run->status, $run->approved_by_user_id, $run->sent_by_user_id]);
+        $this->step($this->hr, $id, 'again')->assertSessionHasNoErrors();
+        $this->assertSame(0, DB::table('hr_payroll_lines')->where('kind', 'claim')->count());
+        $this->step($this->hr, $id, 'send')->assertSessionHasNoErrors();
+        $this->step($this->director, $id, 'approve')->assertSessionHasNoErrors();
+        $this->step($this->director, $id, 'lock')->assertSessionHasNoErrors();
+        $this->assertSame('locked', DB::table('hr_payroll_runs')->value('status'));
+        $this->assertSame(['bank_transfer'], DB::table('hr_staff_claim_payments')->pluck('method')->all());
+    }
+
+    public function test_anyone_who_prepared_never_approves_and_a_recovery_adjustment_can_be_sent(): void
+    {
+        [$aina] = $this->clinic();
+        $this->lineTypes($this->hr);
+        $this->prepare($this->hr)->assertRedirect();
+        $id = (string) DB::table('hr_payroll_runs')->value('public_id');
+        // The Director types a bonus; the HR Manager enters the MTD last and sends. The Director still never approves it.
+        $this->step($this->director, $id, 'manual', ['worker_id' => $aina->public_id, 'item_type_id' => $this->types['Other addition'], 'amount' => '500.00',
+            'reason_code' => 'bonus'])->assertSessionHasNoErrors();
+        $this->step($this->hr, $id, 'mtd', ['worker_id' => $aina->public_id, 'mtd' => '12.00'])->assertSessionHasNoErrors();
+        $this->assertSame((int) $this->hr->id, (int) DB::table('hr_payroll_runs')->value('prepared_by_user_id'));
+        $this->step($this->hr, $id, 'send')->assertSessionHasNoErrors();
+        $this->step($this->director, $id, 'approve')->assertSessionHasErrors(['payroll' => 'Someone else approves this. You prepared or sent it.']);
+        $run = DB::table('hr_payroll_runs')->first();
+        $this->assertNotNull($run);
+        $this->assertRefused('23514', fn () => DB::table('hr_payroll_run_actions')->insert(['organisation_id' => $run->organisation_id, 'run_id' => $run->id,
+            'action' => 'approved', 'actor_user_id' => $this->director->id, 'created_at' => now()]));
+        $this->step($this->director2, $id, 'approve')->assertSessionHasNoErrors();
+        $this->step($this->director2, $id, 'lock')->assertSessionHasNoErrors();
+
+        // A correction that takes money back is negative by nature: a warning, never a block.
+        $this->prepare($this->hr, 'adjustment')->assertRedirect();
+        $adjustment = (string) DB::table('hr_payroll_runs')->where('kind', 'adjustment')->value('public_id');
+        $this->step($this->hr, $adjustment, 'manual', ['worker_id' => $aina->public_id, 'item_type_id' => $this->types['Unpaid leave'], 'amount' => '45.60',
+            'reason_code' => 'recovery'])->assertSessionHasNoErrors();
+        $person = DB::table('hr_payroll_run_people')->where('run_id', DB::table('hr_payroll_runs')->where('public_id', $adjustment)->value('id'))->first();
+        $this->assertNotNull($person);
+        $this->assertSame([], json_decode((string) $person->errors, true));
+        $this->assertContains('net_negative_adjustment', json_decode((string) $person->warnings, true));
+        $this->step($this->hr, $adjustment, 'send')->assertSessionHasNoErrors();
+        // A manual line amount is never flashed back into the session.
+        $this->step($this->hr, $adjustment, 'manual', ['worker_id' => (string) Str::uuid(), 'item_type_id' => $this->types['Other addition'], 'amount' => '77.00',
+            'reason_code' => 'bonus'])->assertSessionMissing('_old_input.amount');
     }
 
     public function test_postgresql_refuses_what_the_service_refuses(): void
@@ -234,6 +288,11 @@ class PayrollRunsTest extends VisitTestCase
         $this->get(route('hr.payroll.index', ['tab' => 'runs']))->assertInertia(fn (Assert $page) => $page->where('payroll.runs.runs.0.status', 'draft')
             ->where('payroll.runs.runs.0.people', 3)->missing('payroll.runs.runs.0.dbId'));
         $this->step($this->hr, $id, 'mtd', ['worker_id' => (string) Str::uuid(), 'mtd' => '1.00'])->assertNotFound();
+
+        // One rounding per line, and a figure too large for 64 bits is refused rather than wrapped.
+        $this->assertSame(8, PayrollMath::fraction([10, 3], 4));
+        $this->assertSame(7, PayrollMath::fraction([10, 3], 4, PayrollMath::DOWN));
+        $this->assertThrows(fn () => PayrollMath::fraction([PHP_INT_MAX - 2, 4], PHP_INT_MAX - 1), \RuntimeException::class);
 
         foreach (glob(base_path('app/Domain/HR/Payroll/Services/*.php')) ?: [] as $file) {
             $source = (string) file_get_contents($file);

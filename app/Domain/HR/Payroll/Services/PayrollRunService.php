@@ -3,6 +3,7 @@
 namespace App\Domain\HR\Payroll\Services;
 
 use App\Domain\HR\Payroll\PayrollPermissions;
+use App\Domain\HR\Records\Models\Worker;
 use App\Domain\HR\Records\Services\RecordSupport;
 use App\Models\User;
 use Carbon\CarbonImmutable;
@@ -197,6 +198,10 @@ final class PayrollRunService
             if ($run->kind === 'adjustment' && ! DB::table('hr_payroll_run_people')->where('run_id', $run->adjusts_run_id)->where('worker_id', $w->id)->exists()) {
                 throw ValidationException::withMessages(['worker_id' => 'Choose a person in the locked run this corrects.']);
             }
+            $person = Worker::query()->find($w->id);
+            if ($person instanceof Worker && PayrollSetupService::isManager($person)) {
+                throw ValidationException::withMessages(['worker_id' => 'Pay kept outside KPOne in this version.']);
+            }
             $t = DB::table('hr_pay_item_types as t')->join('hr_pay_item_type_versions as v', function ($join): void {
                 $join->on('v.item_type_id', '=', 't.id')->on('v.version', '=', 't.current_version');
             })->where('t.organisation_id', $actor->organisation_id)->where('t.public_id', $type)->first(['t.id', 'v.version', 'v.is_active']);
@@ -280,9 +285,13 @@ final class PayrollRunService
             }
             $run = $this->run($actor, $runId);
             $this->support->assertLock($run, $input);
-            $refusal = $this->deciderRefusal($actor, $run, $decision);
+            $refusal = $this->personRefusal($actor, $run, $decision);
             if ($refusal !== null) {
                 throw new AuthorizationException($refusal);
+            }
+            $claimRefusal = $decision === 'return' ? null : $this->claimRefusal($actor, $run);
+            if ($claimRefusal !== null) {
+                throw ValidationException::withMessages(['payroll' => $claimRefusal]);
             }
             $now = now()->utc();
             $claims = 0;
@@ -290,14 +299,19 @@ final class PayrollRunService
                 DB::table('hr_payroll_runs')->where('id', $run->id)->update(['status' => 'approved', 'approved_by_user_id' => $actor->id, 'approved_at' => $now,
                     'lock_version' => (int) $run->lock_version + 1, 'updated_at' => $now]);
             } elseif ($decision === 'return') {
+                // The action row goes first, so PostgreSQL still sees who sent the run when it checks the returner.
+                $this->action($actor, $run, 'returned', $reason);
                 DB::table('hr_payroll_runs')->where('id', $run->id)->update(['status' => 'draft', 'sent_by_user_id' => null, 'sent_at' => null, 'versions' => null,
-                    'lock_version' => (int) $run->lock_version + 1, 'updated_at' => $now]);
+                    'approved_by_user_id' => null, 'approved_at' => null, 'lock_version' => (int) $run->lock_version + 1, 'updated_at' => $now]);
             } else {
+                $this->action($actor, $run, 'locked');
                 $claims = $this->payClaims($actor, $run);
                 DB::table('hr_payroll_runs')->where('id', $run->id)->update(['status' => 'locked', 'locked_by_user_id' => $actor->id, 'locked_at' => $now,
                     'lock_version' => (int) $run->lock_version + 1, 'updated_at' => $now]);
             }
-            $this->action($actor, $run, ['approve' => 'approved', 'return' => 'returned', 'lock' => 'locked'][$decision], $reason);
+            if ($decision === 'approve') {
+                $this->action($actor, $run, 'approved');
+            }
             $this->support->remember($actor, $key, 'payroll_run_decide', $hash, (string) $run->public_id);
             $this->support->audit->record('hr.payroll.run_'.['approve' => 'approved', 'return' => 'returned', 'lock' => 'locked'][$decision], null,
                 ['run_id' => (int) $run->id, 'reason_code' => $reason, 'claims_paid' => $claims], $actor, null, $actor->organisation_id);
@@ -307,18 +321,44 @@ final class PayrollRunService
     /** One rule for the service and the page. Null when the actor may take this step now. */
     public function deciderRefusal(User $actor, \stdClass $run, string $decision): ?string
     {
+        return $this->personRefusal($actor, $run, $decision) ?? ($decision === 'return' ? null : $this->claimRefusal($actor, $run));
+    }
+
+    private function personRefusal(User $actor, \stdClass $run, string $decision): ?string
+    {
         if (! $actor->can(PayrollPermissions::APPROVE)) {
             return 'The Director approves and locks payroll runs.';
         }
-        if ((int) $run->prepared_by_user_id === $actor->id || (int) ($run->sent_by_user_id ?? 0) === $actor->id) {
+        if ((int) $run->prepared_by_user_id === $actor->id || (int) ($run->sent_by_user_id ?? 0) === $actor->id
+            || DB::table('hr_payroll_run_actions')->where('run_id', $run->id)->where('action', 'prepared')->where('actor_user_id', $actor->id)->exists()) {
             return 'Someone else approves this. You prepared or sent it.';
         }
-        $needed = ['approve' => 'sent', 'return' => 'sent', 'lock' => 'approved'][$decision] ?? null;
-        if ($run->status !== $needed) {
+        $needed = ['approve' => ['sent'], 'return' => ['sent', 'approved'], 'lock' => ['approved']][$decision] ?? [];
+        if (! in_array($run->status, $needed, true)) {
             return 'This run has moved on. Reload to see it.';
         }
-        if ($decision === 'lock' && (int) $run->approved_by_user_id !== $actor->id) {
-            return 'The person who approved this run locks it.';
+        if (($decision === 'lock' || ($decision === 'return' && $run->status === 'approved')) && (int) $run->approved_by_user_id !== $actor->id) {
+            return $decision === 'lock' ? 'The person who approved this run locks it.' : 'The person who approved this run sends it back.';
+        }
+
+        return null;
+    }
+
+    /**
+     * The staff claims a run pays must still be approved and unpaid, and the person approving or locking it is never a
+     * claim's claimant or approver. Checked before approval, so a run never reaches a lock nobody may take.
+     */
+    private function claimRefusal(User $actor, \stdClass $run): ?string
+    {
+        $claims = DB::table('hr_payroll_lines as l')->join('hr_staff_claims as c', 'c.id', '=', 'l.source_id')->where('l.run_id', $run->id)->where('l.kind', 'claim')
+            ->orderBy('c.id')->get(['c.number', 'c.status', 'c.claimant_user_id', 'c.decided_by_user_id']);
+        foreach ($claims as $claim) {
+            if ($claim->status !== 'approved') {
+                return "Staff claim {$claim->number} was paid or changed after this run was sent. Send the run back and prepare it again.";
+            }
+            if ((int) $claim->claimant_user_id === $actor->id || (int) $claim->decided_by_user_id === $actor->id) {
+                return "You sent or approved staff claim {$claim->number}, so someone else approves and locks this run.";
+            }
         }
 
         return null;
@@ -339,10 +379,10 @@ final class PayrollRunService
         foreach ($ids as $id) {
             $claim = $claims->get($id);
             if (! $claim instanceof \stdClass || $claim->status !== 'approved') {
-                throw ValidationException::withMessages(['payroll' => 'Staff claim '.($claim->number ?? '').' was paid or changed after this run was sent. Return the run and prepare it again.']);
+                throw ValidationException::withMessages(['payroll' => 'Staff claim '.($claim->number ?? '').' was paid or changed after this run was sent. Send the run back and prepare it again.']);
             }
             if ((int) $claim->claimant_user_id === $actor->id || (int) $claim->decided_by_user_id === $actor->id) {
-                throw ValidationException::withMessages(['payroll' => "You approved or sent staff claim {$claim->number}, so someone else locks this run."]);
+                throw ValidationException::withMessages(['payroll' => "You sent or approved staff claim {$claim->number}, so someone else approves and locks this run."]);
             }
             DB::table('hr_staff_claim_payments')->insert(['public_id' => (string) Str::uuid(), 'organisation_id' => $actor->organisation_id, 'claim_id' => $claim->id,
                 'kind' => 'payment', 'method' => 'payroll', 'paid_on' => $today, 'recorded_by_user_id' => $actor->id, 'created_at' => now()->utc()]);
@@ -404,7 +444,7 @@ final class PayrollRunService
             }
         }
         $now = now()->utc();
-        DB::table('hr_payroll_runs')->where('id', $run->id)->update(['fingerprint' => $calc['fingerprint'], 'prepared_by_user_id' => $actor->id, 'prepared_at' => $now,
+        DB::table('hr_payroll_runs')->where('id', $run->id)->update(['fingerprint' => $calc['fingerprint'], 'prepared_at' => $now,
             'lock_version' => (int) $run->lock_version + 1, 'updated_at' => $now]);
         $this->action($actor, $run, 'prepared');
 
