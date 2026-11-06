@@ -14,7 +14,13 @@ import { StatusBadge } from '@/components/ui/status';
 import { OperationalTable } from '@/components/ui/table';
 import { myr } from '@/types/billing';
 
-type Status = 'approved' | 'waiting' | 'returned' | 'not_counted' | 'open';
+type Status =
+    | 'approved'
+    | 'waiting'
+    | 'returned'
+    | 'not_counted'
+    | 'open'
+    | 'before_start';
 type Flag = 'no_count' | 'not_approved' | 'changed_after_approval';
 type Row = {
     date: string;
@@ -47,6 +53,8 @@ const props = defineProps<{
             countsShown: number;
         };
         hasClosings: boolean;
+        startsOn: string | null;
+        beforeStart: boolean;
         rows: Row[];
     };
 }>();
@@ -55,6 +63,7 @@ const view = computed(() => props.cashClosingMonth);
 const loading = ref(false);
 const failed = ref(false);
 const lastTried = ref<string | null>(null);
+const failedBy = ref<'http' | 'network'>('network');
 const lastDay = computed(
     () => view.value.rows.at(-1)?.date ?? view.value.today,
 );
@@ -76,6 +85,21 @@ const monthTitle = computed(() =>
         timeZone: 'UTC',
     }),
 );
+const titleOf = (month: string | null) =>
+    month === null
+        ? 'this month'
+        : asDate(`${month}-01`).toLocaleDateString('en-GB', {
+              month: 'long',
+              year: 'numeric',
+              timeZone: 'UTC',
+          });
+const plainDate = (iso: string) =>
+    asDate(iso).toLocaleDateString('en-GB', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+        timeZone: 'UTC',
+    });
 const shortDate = (iso: string) =>
     asDate(iso).toLocaleDateString('en-GB', {
         weekday: 'short',
@@ -102,6 +126,7 @@ const statusInfo: Record<
     returned: { label: 'Returned', tone: 'danger' },
     not_counted: { label: 'Not counted', tone: 'danger' },
     open: { label: 'Open', tone: 'neutral' },
+    before_start: { label: 'Not in use yet', tone: 'neutral' },
 };
 const flagText: Record<Flag, string> = {
     no_count: 'No count',
@@ -136,11 +161,13 @@ const goTo = (month: string | null) => {
             },
             onHttpException: () => {
                 failed.value = true;
+                failedBy.value = 'http';
 
                 return false;
             },
             onNetworkError: () => {
                 failed.value = true;
+                failedBy.value = 'network';
 
                 return false;
             },
@@ -201,8 +228,8 @@ const goTo = (month: string | null) => {
 
         <ErrorState
             v-if="failed"
-            title="Could not load this month"
-            message="Check the connection, then try again."
+            :title="`Could not load ${titleOf(lastTried)}`"
+            :message="`Still showing ${monthTitle}. ${failedBy === 'network' ? 'Check the connection, then try again.' : 'Try again in a moment.'}`"
             data-testid="month-error"
         >
             <template #action>
@@ -217,7 +244,23 @@ const goTo = (month: string | null) => {
             </template>
         </ErrorState>
 
+        <EmptyState
+            v-if="view.beforeStart"
+            :title="
+                view.startsOn
+                    ? `Cash closing started on ${plainDate(view.startsOn)}.`
+                    : 'No cash counts at this branch yet.'
+            "
+            :description="
+                view.startsOn
+                    ? `There is nothing to count for ${monthTitle}.`
+                    : 'Open the daily view to record the first count.'
+            "
+            data-testid="month-empty"
+        />
+
         <section
+            v-if="!view.beforeStart"
             class="space-y-3"
             aria-labelledby="month-summary-title"
             data-testid="month-summary"
@@ -268,8 +311,14 @@ const goTo = (month: string | null) => {
                 </div>
             </div>
             <dl
-                class="grid grid-cols-3 gap-3 rounded-xl border bg-card p-3 text-sm"
+                class="grid grid-cols-3 gap-3 rounded-xl border bg-card p-3 text-sm md:grid-cols-4"
             >
+                <div class="hidden self-center md:block">
+                    <dt class="text-xs text-muted-foreground">Money</dt>
+                    <dd class="text-xs text-muted-foreground">
+                        From the counts shown
+                    </dd>
+                </div>
                 <div class="text-right">
                     <dt class="text-xs text-muted-foreground">Counted</dt>
                     <dd
@@ -301,20 +350,21 @@ const goTo = (month: string | null) => {
             <p class="text-xs text-muted-foreground">
                 Totals of the counts shown; days not counted add nothing.
                 <template v-if="view.isCurrentMonth">
-                    Today's count is in the totals but in no day count until the
-                    day ends.</template
+                    Today is still open: its cash is in the money totals but not
+                    in the day counts above until the day ends.</template
                 >
             </p>
         </section>
 
-        <EmptyState
-            v-if="!view.hasClosings"
-            title="No cash counts this month yet."
-            description="Open a day to record a count."
-            data-testid="month-empty"
-        />
+        <p
+            v-if="!view.beforeStart && !view.hasClosings"
+            class="text-sm text-muted-foreground"
+            data-testid="month-no-counts"
+        >
+            No cash counts in {{ monthTitle }}.
+        </p>
 
-        <div class="hidden md:block">
+        <div v-if="!view.beforeStart" class="hidden md:block">
             <OperationalTable
                 :label="`Cash closings, ${monthTitle}`"
                 :columns="9"
@@ -348,7 +398,7 @@ const goTo = (month: string | null) => {
                             :class="
                                 row.flags.length
                                     ? 'border-l-4 border-l-warning'
-                                    : ''
+                                    : 'border-l-4 border-l-transparent'
                             "
                         >
                             {{ shortDate(row.date) }}
@@ -387,8 +437,8 @@ const goTo = (month: string | null) => {
                                     : signed(row.differenceSen)
                             }}
                         </td>
-                        <td>{{ row.countedBy ?? '—' }}</td>
-                        <td>{{ row.decidedBy ?? '—' }}</td>
+                        <td class="min-w-36">{{ row.countedBy ?? '—' }}</td>
+                        <td class="min-w-36">{{ row.decidedBy ?? '—' }}</td>
                         <td class="max-w-56">
                             <ul v-if="row.flags.length" class="space-y-1">
                                 <li
@@ -425,6 +475,7 @@ const goTo = (month: string | null) => {
         </div>
 
         <ul
+            v-if="!view.beforeStart"
             class="space-y-2 md:hidden"
             :aria-busy="loading"
             :aria-label="`Cash closings, ${monthTitle}`"
@@ -434,7 +485,9 @@ const goTo = (month: string | null) => {
                     :href="dayHref(row)"
                     class="block min-h-11 rounded-xl border bg-card p-3 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
                     :class="
-                        row.flags.length ? 'border-l-4 border-l-warning' : ''
+                        row.flags.length
+                            ? 'border-l-4 border-l-warning pl-[9px]'
+                            : ''
                     "
                     :data-testid="`month-card-${row.date}`"
                 >
@@ -523,7 +576,7 @@ const goTo = (month: string | null) => {
                     <p
                         class="mt-2 text-right text-sm font-medium text-brand-strong"
                     >
-                        Open day ›
+                        Open day <span aria-hidden="true">›</span>
                     </p>
                 </Link>
             </li>

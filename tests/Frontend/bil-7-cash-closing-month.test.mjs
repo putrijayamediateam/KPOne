@@ -20,7 +20,7 @@ test('the month view is read only and links each day to the daily page', () => {
         ).length,
         1,
     );
-    assert.ok(month.includes('Open day ›'));
+    assert.ok(month.includes('Open day <span aria-hidden="true">›</span>'));
     assert.ok(month.includes(':href="`/cash-closings?date=${lastDay}`"'));
     assert.ok(
         daily.includes(
@@ -79,9 +79,25 @@ test('money allows minus and the difference reads short or over', () => {
 });
 
 test('empty, loading and error states are shown', () => {
-    assert.ok(month.includes('No cash counts this month yet.'));
+    // Days before the branch's first count are not alarms; a whole month before it shows only an empty state.
+    assert.ok(
+        month.includes(
+            "before_start: { label: 'Not in use yet', tone: 'neutral' }",
+        ),
+    );
+    assert.ok(
+        month.includes(
+            '`Cash closing started on ${plainDate(view.startsOn)}.`',
+        ),
+    );
+    assert.ok(month.includes('No cash counts in {{ monthTitle }}.'));
+    assert.equal((month.match(/v-if="!view\.beforeStart"/g) ?? []).length, 3);
+    assert.ok(month.includes("'border-l-4 border-l-transparent'"));
     assert.ok(month.includes(':loading="loading"'));
-    assert.ok(month.includes('title="Could not load this month"'));
+    assert.ok(
+        month.includes(':title="`Could not load ${titleOf(lastTried)}`"'),
+    );
+    assert.ok(month.includes('Still showing ${monthTitle}.'));
     assert.ok(month.includes('onHttpException'));
     assert.ok(month.includes('onNetworkError'));
     assert.ok(month.includes('@click="goTo(lastTried)"'));

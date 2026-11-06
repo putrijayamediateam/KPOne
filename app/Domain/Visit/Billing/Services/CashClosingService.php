@@ -252,6 +252,9 @@ final class CashClosingService
         $closings = CashClosing::query()->with('decision')->where('organisation_id', $branch->organisation_id)->where('branch_id', $branch->id)
             ->whereDate('business_date', '>=', $first->toDateString())->whereDate('business_date', '<=', $last->toDateString())
             ->orderByDesc('revision')->get();
+        // Days before the branch's first ever count were never due: shown as "before_start", not as missed.
+        $firstCount = CashClosing::query()->where('organisation_id', $branch->organisation_id)->where('branch_id', $branch->id)->min('business_date');
+        $startsOn = $firstCount === null ? null : CarbonImmutable::parse((string) $firstCount, $branch->timezone)->startOfDay();
         $byDay = $closings->groupBy(fn (CashClosing $c): string => $c->business_date->toDateString());
         $names = $this->staff->visibleUsers($actor)
             ->whereIn('id', $closings->pluck('counted_by_user_id')->merge($closings->pluck('decision.decided_by_user_id'))->filter()->unique())->pluck('name', 'id');
@@ -265,7 +268,9 @@ final class CashClosingService
             $approvedClosing = $dayClosings->first(fn (CashClosing $c): bool => $c->decision?->decision === 'approved');
             $shown = $approvedClosing ?? $latest;
             $ended = $day->lessThan($today); // dayEnded()'s rule, from the one clock reading above.
-            $status = $approvedClosing !== null ? 'approved' : (! $ended ? 'open' : ($latest === null ? 'not_counted' : ($latest->decision === null ? 'waiting' : 'returned')));
+            $status = $approvedClosing !== null ? 'approved' : (! $ended ? 'open' : ($latest === null
+                ? ($startsOn === null || $day->lessThan($startsOn) ? 'before_start' : 'not_counted')
+                : ($latest->decision === null ? 'waiting' : 'returned')));
             $changed = false;
             if ($approvedClosing !== null) {
                 $expected = $this->expected($branch, $day);
@@ -303,7 +308,8 @@ final class CashClosingService
         return [
             'branch' => $branch->name, 'month' => $first->format('Y-m'), 'today' => $today->toDateString(), 'isCurrentMonth' => $current,
             'previousMonth' => $first->year === 2000 && $first->month === 1 ? null : $first->subMonth()->format('Y-m'), 'nextMonth' => $current ? null : $first->addMonth()->format('Y-m'),
-            'summary' => $summary, 'hasClosings' => $closings->isNotEmpty(), 'rows' => $rows,
+            'summary' => $summary, 'hasClosings' => $closings->isNotEmpty(), 'startsOn' => $startsOn?->toDateString(),
+            'beforeStart' => $startsOn === null || $last->lessThan($startsOn), 'rows' => $rows,
         ];
     }
 

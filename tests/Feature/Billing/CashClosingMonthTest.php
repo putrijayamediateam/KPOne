@@ -99,8 +99,22 @@ class CashClosingMonthTest extends ClinicalTestCase
             ->where('cashClosingMonth.month', '2026-10')->where('cashClosingMonth.isCurrentMonth', false)
             ->where('cashClosingMonth.previousMonth', '2026-09')->where('cashClosingMonth.nextMonth', '2026-11')
             ->where('cashClosingMonth.hasClosings', false)->has('cashClosingMonth.rows', 31)
-            ->where('cashClosingMonth.rows.30.date', '2026-10-31')->where('cashClosingMonth.rows.30.status', 'not_counted')
-            ->where('cashClosingMonth.summary.notCounted', 31)->where('cashClosingMonth.summary.countsShown', 0));
+            // The branch has never counted: no day was due, so nothing is an alarm.
+            ->where('cashClosingMonth.startsOn', null)->where('cashClosingMonth.beforeStart', true)
+            ->where('cashClosingMonth.rows.30.date', '2026-10-31')->where('cashClosingMonth.rows.30.status', 'before_start')
+            ->where('cashClosingMonth.rows.30.flags', [])
+            ->where('cashClosingMonth.summary.notCounted', 0)->where('cashClosingMonth.summary.countsShown', 0));
+
+        // From the first count on, a day with no count is missed; days before it stay "before start".
+        $this->countDay('2026-10-20', '0.00', null);
+        $this->get(route('cash-closings.month', ['month' => '2026-10']))->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('cashClosingMonth.startsOn', '2026-10-20')->where('cashClosingMonth.beforeStart', false)
+            ->where('cashClosingMonth.rows.18.status', 'before_start')->where('cashClosingMonth.rows.18.flags', [])
+            ->where('cashClosingMonth.rows.19.status', 'waiting')
+            ->where('cashClosingMonth.rows.20.status', 'not_counted')->where('cashClosingMonth.rows.20.flags', ['no_count'])
+            ->where('cashClosingMonth.summary.notCounted', 11)->where('cashClosingMonth.summary.waiting', 1));
+        $this->get(route('cash-closings.month', ['month' => '2026-09']))->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('cashClosingMonth.beforeStart', true)->where('cashClosingMonth.summary.notCounted', 0));
 
         foreach (['2026-12', '2026-13', 'november', '1999-01', '2026-1'] as $month) {
             $this->get(route('cash-closings.month', ['month' => $month]))->assertOk()->assertInertia(fn (Assert $page) => $page
@@ -117,6 +131,7 @@ class CashClosingMonthTest extends ClinicalTestCase
     public function test_the_month_and_today_follow_the_branch_clock_not_utc(): void
     {
         $this->selectBranch($this->actor('ca'));
+        $this->countDay('2026-11-01', '0.00', null); // Cash closing in use from 1 Nov.
         // 07:59 in Kuala Lumpur on 1 Dec is still 30 Nov in UTC: the page must already show December.
         $this->travelTo(CarbonImmutable::parse('2026-12-01 07:59', $this->branch->timezone));
         $this->get(route('cash-closings.month'))->assertOk()->assertInertia(fn (Assert $page) => $page
@@ -159,7 +174,9 @@ class CashClosingMonthTest extends ClinicalTestCase
             ->where('cashClosingMonth.rows.2.decision', 'approved')->where('cashClosingMonth.rows.2.flags', [])
             ->where('cashClosingMonth.rows.4.status', 'open')->where('cashClosingMonth.rows.4.decision', 'returned')
             ->where('cashClosingMonth.rows.4.flags', [])
-            ->where('cashClosingMonth.summary', ['approved' => 1, 'waiting' => 1, 'returned' => 0, 'notCounted' => 2,
+            ->where('cashClosingMonth.rows.0.status', 'before_start')->where('cashClosingMonth.rows.0.flags', [])
+            ->where('cashClosingMonth.rows.3.status', 'not_counted')
+            ->where('cashClosingMonth.summary', ['approved' => 1, 'waiting' => 1, 'returned' => 0, 'notCounted' => 1,
                 'countedSen' => 300, 'expectedSen' => 0, 'differenceSen' => 300, 'countsShown' => 3]));
     }
 
