@@ -448,9 +448,11 @@ const saveGroups = () => {
 const aliasesRow = ref<MedicineRow | null>(null);
 const aliasesText = ref('');
 const aliasesBusy = ref(false);
+const aliasesError = ref('');
 const openAliases = (row: MedicineRow) => {
     aliasesRow.value = row;
     aliasesText.value = row.allergyAliases.join('\n');
+    aliasesError.value = '';
 };
 const saveAliases = () => {
     const row = aliasesRow.value;
@@ -473,12 +475,20 @@ const saveAliases = () => {
             preserveScroll: true,
             onSuccess: () => (aliasesRow.value = null),
             onError: (errors: Record<string, string>) => {
-                // Close the dialog so the next attempt starts from the reloaded list.
-                aliasesRow.value = null;
-                toast.error(
+                const message =
                     errors.allergy_aliases ??
-                        'Could not save the other names. Reload and try again.',
-                );
+                    'Could not save the other names. Reload and try again.';
+
+                // A list changed meanwhile: close, so the next attempt starts from the reloaded list.
+                if (message.startsWith('This medicine changed.')) {
+                    aliasesRow.value = null;
+                    toast.error(message);
+
+                    return;
+                }
+
+                // Anything else (too short, too many): keep the dialog and what was typed.
+                aliasesError.value = message;
             },
             onFinish: () => (aliasesBusy.value = false),
         },
@@ -655,11 +665,13 @@ const toggleDescription = computed(() => {
                             >
                             <DropdownMenuItem
                                 class="min-h-11"
+                                :aria-label="`Drug groups for ${row.displayName}`"
                                 @select="openGroups(row)"
                                 >Drug groups</DropdownMenuItem
                             >
                             <DropdownMenuItem
                                 class="min-h-11"
+                                :aria-label="`Other names for ${row.displayName}`"
                                 @select="openAliases(row)"
                                 >Other names</DropdownMenuItem
                             >
@@ -1453,9 +1465,10 @@ const toggleDescription = computed(() => {
                         as Tablets.
                     </DialogDescription>
                 </DialogHeader>
-                <label class="grid gap-1 text-sm"
+                <label for="medicine-allergy-groups" class="grid gap-1 text-sm"
                     >Drug groups (up to 10, 3 to 60 characters each)
                     <textarea
+                        id="medicine-allergy-groups"
                         v-model="groupsText"
                         rows="5"
                         maxlength="700"
@@ -1495,17 +1508,26 @@ const toggleDescription = computed(() => {
                         on drug labels and do not change the medicine name.
                     </DialogDescription>
                 </DialogHeader>
-                <label class="grid gap-1 text-sm"
-                    >Other names (up to 10, 3 to 60 characters each)
+                <div class="grid gap-1 text-sm">
+                    <label for="medicine-allergy-aliases"
+                        >Other names (up to 10, 3 to 60 characters each)</label
+                    >
                     <textarea
+                        id="medicine-allergy-aliases"
                         v-model="aliasesText"
                         rows="5"
                         maxlength="700"
                         :placeholder="'Augmentin\namoxycillin'"
                         class="w-full rounded-md border bg-background p-2 text-sm"
+                        :aria-invalid="aliasesError ? 'true' : undefined"
+                        aria-describedby="medicine-allergy-aliases-error"
                         data-field="allergy-aliases"
                     ></textarea>
-                </label>
+                    <InputError
+                        id="medicine-allergy-aliases-error"
+                        :message="aliasesError"
+                    />
+                </div>
                 <DialogFooter>
                     <Button
                         variant="outline"

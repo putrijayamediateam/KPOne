@@ -144,6 +144,29 @@ class AllergyAliasesTest extends VisitTestCase
         $this->assertSame($record->id, DispensaryAllergyConfirmation::query()->sole()->patient_allergy_record_id);
     }
 
+    public function test_an_other_name_added_after_the_line_was_saved_blocks_complete_until_confirmed(): void
+    {
+        $f = $this->fixture();
+        $record = $this->allergy($f['visit']->patient_id, $f['ca'], 'Synthobrand');
+        $case = $this->open($f);
+        app(DispensaryService::class)->addItem($f['ca'], $case, $this->addPayload($f, $case, '1.000'));
+        $this->confirmAllergy($f, $case->refresh());
+        $item = DispensaryItem::query()->sole();
+
+        // A catalogue editor adds the brand name only after the CA saved the line.
+        app(MedicineAdministrationService::class)->setAllergyAliases($this->actor('ca_supervisor'), $f['medicine'], ['Synthobrand'], []);
+        $this->selectBranch($f['ca'], $f['visit']->branch);
+        try {
+            $this->complete($f, $case);
+            $this->fail('Complete must be refused until the new match is confirmed.');
+        } catch (ValidationException $e) {
+            $this->assertArrayHasKey('allergy_confirmation', $e->errors());
+        }
+
+        app(DispensaryService::class)->editItem($f['ca'], $case->refresh(), $item->refresh(), [...$this->addPayload($f, $case->refresh(), '1.000', ['allergy_confirmed_record_ids' => [$record->public_id]]), 'item_lock_version' => $item->refresh()->lock_version]);
+        $this->assertSame('completed', $this->complete($f, $case)->refresh()->status);
+    }
+
     public function test_the_catalogue_route_saves_other_names_and_the_list_shows_them(): void
     {
         $f = $this->fixture();
