@@ -10,12 +10,20 @@ import {
     Trash2,
 } from '@lucide/vue';
 import { computed, reactive, ref, watch } from 'vue';
+import ScanInput from '@/components/inventory/ScanInput.vue';
 import { Button } from '@/components/ui/button';
 import { PageHeader } from '@/components/ui/page-header';
 import { OperationalSelect } from '@/components/ui/select';
 import { StatusBadge } from '@/components/ui/status';
+import {
+    matchingLines,
+    matchMessage,
+    notOnCaseMessage,
+} from '@/lib/dispensary-scan';
+import type { ScanCheckLine } from '@/lib/dispensary-scan';
 import { formatInventoryReason } from '@/lib/inventory-picker';
 import { formatDate, formatStatusLabel } from '@/lib/presentation';
+import type { ScannedSku } from '@/lib/scan';
 import AllergyMatchWarning from '@/pages/Dispensary/Partials/AllergyMatchWarning.vue';
 import OtcAllergyRecordForm from '@/pages/Dispensary/Partials/OtcAllergyRecordForm.vue';
 
@@ -435,6 +443,50 @@ const visibleItems = computed(() =>
 const removedItems = computed(() =>
     props.dispensary.items.filter((item) => item.changeState === 'removed'),
 );
+// DSP-11: scan to check (screen only; nothing is saved). A line stays checked only while its SKU is the one scanned.
+const scanChecked = ref<Record<string, string>>({});
+const scanLines = computed<ScanCheckLine[]>(() =>
+    visibleItems.value.map((item) => ({
+        publicId: item.publicId,
+        name: item.name,
+        strength: item.strength,
+        skuPublicId: item.sku?.publicId ?? null,
+    })),
+);
+const scannableCount = computed(
+    () => scanLines.value.filter((line) => line.skuPublicId !== null).length,
+);
+const isScanChecked = (item: Item): boolean =>
+    item.sku !== null && scanChecked.value[item.publicId] === item.sku.publicId;
+const checkedCount = computed(
+    () => visibleItems.value.filter((item) => isScanChecked(item)).length,
+);
+const acceptScan = (sku: ScannedSku): string | null =>
+    matchingLines(sku.public_id, scanLines.value).length
+        ? null
+        : notOnCaseMessage(sku.item_name, sku.sku_code);
+const describeScan = (sku: ScannedSku): string => {
+    const matched = matchingLines(sku.public_id, scanLines.value);
+    const fresh = matched.filter(
+        (line) => scanChecked.value[line.publicId] !== line.skuPublicId,
+    );
+
+    return matchMessage(
+        matched,
+        fresh.length === 0,
+        checkedCount.value + fresh.length,
+        scannableCount.value,
+    );
+};
+const markScanned = (sku: ScannedSku) => {
+    const next = { ...scanChecked.value };
+
+    for (const line of matchingLines(sku.public_id, scanLines.value)) {
+        next[line.publicId] = sku.public_id;
+    }
+
+    scanChecked.value = next;
+};
 const unsaved = computed(() =>
     visibleItems.value.filter(
         (item) => item.status === 'pending' || isDirty(item),
@@ -1101,6 +1153,15 @@ const inputClass = 'mt-1 h-9 w-full rounded-md border px-2';
                         >Save all lines</Button
                     >
                 </div>
+                <ScanInput
+                    v-if="dispensary.can.update && visibleItems.length"
+                    context="dispensary"
+                    refocus-key="dispensary-check"
+                    :accept="acceptScan"
+                    :describe="describeScan"
+                    data-testid="dispensary-scan"
+                    @found="markScanned"
+                />
                 <section class="divide-y rounded-lg border bg-background">
                     <article
                         v-for="item in visibleItems"
@@ -1123,6 +1184,14 @@ const inputClass = 'mt-1 h-9 w-full rounded-md border px-2';
                                 status="ca_change"
                                 tone="accent"
                                 :label="changeLabel(item)"
+                            />
+                            <StatusBadge
+                                v-if="isScanChecked(item)"
+                                class="mt-1 ml-1"
+                                status="scan_checked"
+                                tone="success"
+                                label="Checked by scan"
+                                data-testid="scan-checked"
                             />
                             <p
                                 v-if="item.source === 'doctor'"
@@ -1994,6 +2063,16 @@ const inputClass = 'mt-1 h-9 w-full rounded-md border px-2';
                         </template>
                         <dt class="text-muted-foreground">Not saved yet</dt>
                         <dd>{{ unsaved.length + unsavedServices.length }}</dd>
+                        <template
+                            v-if="dispensary.can.update && scannableCount"
+                        >
+                            <dt class="text-muted-foreground">
+                                Checked by scan
+                            </dt>
+                            <dd class="tabular-nums">
+                                {{ checkedCount }} of {{ scannableCount }}
+                            </dd>
+                        </template>
                     </dl>
                 </section>
                 <section

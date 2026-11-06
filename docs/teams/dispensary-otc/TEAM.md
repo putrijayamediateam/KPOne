@@ -98,6 +98,7 @@ coordinator at the owner's request (2026-11-05); the designer was added by owner
 | DSP-6b | The label print check that logs a print is now a POST (`dispensary.labels.print`, `dispensary.items.label.print`, the page's address plus `/print`, token and branch in the body, CSRF header); the label page no longer accepts `?verify=1`. New tests: a consultation-case print and reprint, and a PostgreSQL race of two CAs printing one case at once (print numbers 1 and 2) | #317 |
 | DSP-1c | Other names for allergy matching: catalogue editors add up to 10 brand names or misspellings per medicine ("Other names" in the Medicine Catalogue "…" menu); the Dispensary allergy warning compares allergies with them too, through one `MedicineCatalogueItem::allergyMatchTerms()` list; never printed; audited by count | #324 |
 | DD-37 | The Drug groups dialog keeps the typed groups on a validation error, with the message under the field and a red border; a list changed meanwhile still closes it with a toast (the DSP-1c pattern) | pending (branch `fix/dsp-dd-37-drug-groups-error`) |
+| DSP-11 | Scan to check at Dispensary: on an open case the CA scans the box they picked (handheld scanner, typing or camera, STK-9's `ScanInput` with a new `dispensary` context and GET `/inventory/scan`); a box whose SKU is a saved line's mapped SKU marks that line "Checked by scan" and the summary counts "N of M"; any other known SKU shows "Not on this case: <item> (<SKU code>)". Screen only: nothing is saved, recorded or blocked; Complete is unchanged | pending (branch `feature/dsp-11-scan-check`) |
 
 ## 6. Owner decisions already made (never ask again)
 
@@ -186,6 +187,11 @@ coordinator at the owner's request (2026-11-05); the designer was added by owner
     the "Print label" fix, on its own branch.)
 26. DD-37 (2026-11-06): the owner chose it ("go with DD-37"); the Drug groups dialog gets the same error handling as
     Other names. Built on top of DSP-1c (#324), because both change the same dialog code.
+29. DSP-11 scan to check (2026-11-06): the owner chose it ("go with scan to check at Dispensary"). It warns only:
+    a scan never saves, edits, dispenses, completes or blocks anything, and nothing is recorded; a "Checked by scan"
+    mark lives on the screen until reload and drops if the line's SKU changes. Iman's sketch; Daniel to look.
+    Reuses Inventory's `ScanInput` (new optional `dispensary` context and `describe` wording; the Inventory pages
+    are unchanged). No new permission: CA and CA Supervisor already hold `inventory.view.branch`.
 
 ## 7. Open items and known limits
 
@@ -305,6 +311,8 @@ order, each its own PR:
      Officer and Director as checkers, and the Director for controlled medicines.
 10. **DSP-8 Dispensary pages on phones and tablets — built 2026-11-05 (branch `feature/dsp-8-dispensary-mobile`).**
     Checked at 320, 390, 768 and 1440 px, light and dark.
+
+12. **DSP-11 Scan to check at Dispensary — built 2026-11-06 (branch `feature/dsp-11-scan-check`).** Decision 29.
 
 Team rules for this backlog: run the PHPStan stopgap before each push; migration timestamps from
 `2026_11_06_200000` up.

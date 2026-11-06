@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { TriangleAlertIcon } from '@lucide/vue';
 import { nextTick, onBeforeUnmount, onMounted, ref } from 'vue';
 import { Button } from '@/components/ui/button';
 import {
@@ -26,11 +27,13 @@ import type { CameraSupport, ScanLookup, ScannedSku } from '@/lib/scan';
  * decides what to show, and nothing is ever saved by a scan.
  */
 const props = defineProps<{
-    context: 'search' | 'receiving';
+    context: 'search' | 'receiving' | 'dispensary';
     /** Refocus key used after a scan-triggered page reload, so the next wedge scan lands here. */
     refocusKey: string;
     /** Optional page check; return a message to refuse the SKU (for example "not on this order"). */
     accept?: (sku: ScannedSku) => string | null;
+    /** Optional page wording for a found SKU (DSP-11 Dispensary check); the default is the STK-9 message. */
+    describe?: (sku: ScannedSku) => string;
 }>();
 const emit = defineEmits<{ found: [sku: ScannedSku] }>();
 
@@ -96,7 +99,8 @@ async function lookup(raw: string) {
             return;
         }
 
-        const message = scanMessage(result, props.context);
+        const message =
+            props.describe?.(result.sku) ?? scanMessage(result, props.context);
         show(message, false);
         code.value = '';
 
@@ -319,7 +323,15 @@ onBeforeUnmount(() => {
                 </Button>
             </div>
         </div>
-        <p :id="`${inputId}-help`" class="text-xs text-muted-foreground">
+        <p
+            v-if="context === 'dispensary'"
+            :id="`${inputId}-help`"
+            class="text-xs text-muted-foreground"
+        >
+            Scan the box you picked to check it against the lines below.
+            Scanning only checks. It does not save or dispense anything.
+        </p>
+        <p v-else :id="`${inputId}-help`" class="text-xs text-muted-foreground">
             Use a handheld scanner, type the code, or use the camera. Tap or
             click the box before scanning. Scanning only finds the SKU; it does
             not save anything.
@@ -335,8 +347,25 @@ onBeforeUnmount(() => {
             <p role="status" aria-live="polite" class="text-muted-foreground">
                 {{ failed ? '' : status }}
             </p>
-            <p role="alert" aria-live="assertive" class="text-destructive">
-                {{ failed ? status : '' }}
+            <p
+                role="alert"
+                aria-live="assertive"
+                class="text-destructive"
+                :class="
+                    context === 'dispensary' && failed
+                        ? 'flex items-start gap-2 rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 font-medium'
+                        : ''
+                "
+                :data-testid="
+                    context === 'dispensary' ? 'scan-warning' : undefined
+                "
+            >
+                <TriangleAlertIcon
+                    v-if="context === 'dispensary' && failed"
+                    class="mt-0.5 size-4 shrink-0"
+                    aria-hidden="true"
+                />
+                <span>{{ failed ? status : '' }}</span>
             </p>
         </div>
         <Dialog :open="open" @update:open="onOpenChange">

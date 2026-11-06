@@ -24,7 +24,7 @@ export function cleanScannedCode(raw: string): string {
 
 export function scanMessage(
     result: ScanLookup,
-    context: 'search' | 'receiving',
+    context: 'search' | 'receiving' | 'dispensary',
 ): string {
     if (result.status === 'not_found') {
         return `No SKU has the code ${result.code}. Check the code or search by name.`;
@@ -38,6 +38,10 @@ export function scanMessage(
 
     if (!result.sku.active) {
         return `SKU ${label} is inactive, so it has no stock to show here.`;
+    }
+
+    if (context === 'dispensary') {
+        return `Found SKU ${label}.`;
     }
 
     return context === 'receiving'
