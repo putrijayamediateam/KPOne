@@ -42,3 +42,24 @@ test('the Dispensary warning says other names are checked and can still miss', (
     );
     assert.ok(flat(warning).includes('spelling not listed in the catalogue'));
 });
+
+test('both catalogue dialogs keep typed text on a validation error and close only on a stale list (DD-37)', () => {
+    for (const [error, field] of [
+        ['groupsError', 'medicine-allergy-groups'],
+        ['aliasesError', 'medicine-allergy-aliases'],
+    ]) {
+        assert.ok(catalogue.includes(`const ${error} = ref('');`));
+        assert.ok(catalogue.includes(`${error}.value = message;`));
+        assert.ok(catalogue.includes(`id="${field}-error"`));
+        assert.ok(catalogue.includes(`aria-describedby="${field}-error"`));
+    }
+
+    assert.equal(
+        (
+            catalogue.match(
+                /message\.startsWith\('This medicine changed\.'\)/g,
+            ) ?? []
+        ).length,
+        2,
+    );
+});
