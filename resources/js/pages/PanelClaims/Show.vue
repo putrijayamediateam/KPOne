@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Head, router, usePage } from '@inertiajs/vue3';
+import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import { computed, ref, watch } from 'vue';
 import WhatsAppLink from '@/components/patient/WhatsAppLink.vue';
 import { ActionLink } from '@/components/ui/action-link';
@@ -233,6 +233,14 @@ const recordPayment = () => {
     );
 };
 const printPack = () => window.print();
+// PNL-8: the printable pack for this one claim (letterhead, IC or passport, photo names; no clinical content).
+const packError = computed(
+    () => (page.props.errors as Record<string, string> | undefined)?.claims,
+);
+const packUrl = computed(
+    () =>
+        `/panel-claims/pack?claims[]=${encodeURIComponent(props.claim.publicId)}&from=${encodeURIComponent(props.claim.publicId)}`,
+);
 const editing = ref(false);
 const copied = ref(false);
 const noteOpen = ref(false);
@@ -375,6 +383,13 @@ const eventTitle = (type: string) =>
                     Download PDF
                 </Button>
                 <Button
+                    as-child
+                    variant="outline"
+                    data-testid="print-claim-pack"
+                >
+                    <Link :href="packUrl">Print claim pack</Link>
+                </Button>
+                <Button
                     type="button"
                     variant="secondary"
                     @click="editing = !editing"
@@ -383,6 +398,14 @@ const eventTitle = (type: string) =>
                 </Button>
             </div>
         </header>
+        <p
+            v-if="packError"
+            role="alert"
+            class="rounded-lg border border-destructive/40 bg-destructive/5 px-4 py-3 text-sm text-destructive print:hidden"
+            data-testid="claim-pack-error"
+        >
+            {{ packError }}
+        </p>
 
         <p
             v-if="error || uploadRecoveryError"

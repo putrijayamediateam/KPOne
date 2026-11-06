@@ -9,6 +9,7 @@ const workspace = read('resources/js/components/billing/BillingWorkspace.vue');
 const invoicePage = read('resources/js/pages/Billing/Invoice.vue');
 const button = read('resources/js/components/billing/IssuePrintButton.vue');
 const copies = read('resources/js/components/billing/IssuedCopies.vue');
+const history = read('resources/js/pages/Visits/History.vue');
 
 test('the print page shows the issued label or a PREVIEW line', () => {
     assert.ok(print.includes('data-testid="issued-label"'));
@@ -46,4 +47,24 @@ test('a resent request is safe, the button shows it is busy, and old versions re
     );
     assert.ok(copies.includes('OperationalConfirmDialog'));
     assert.ok(copies.includes('No copies issued yet.'));
+});
+
+test('BIL-5b: the visit page prints through the recorded print too', () => {
+    assert.equal((history.match(/<IssuePrintButton/g) ?? []).length, 2);
+    assert.doesNotMatch(
+        history,
+        /:href="(?:history\.financial|payment)\.printUrl"/,
+    );
+    assert.ok(history.includes('return-to="history"'));
+    assert.match(history, /'\/issue'/);
+});
+
+test('phone touch targets escape the compact Billing button height', () => {
+    assert.match(
+        workspace,
+        /@media \(max-width: 639\.98px\)[\s\S]*\[data-touch-target\][\s\S]*min-height: 44px/,
+    );
+    assert.ok(button.includes('data-touch-target'));
+    assert.ok(copies.includes('data-touch-target'));
+    assert.ok(copies.includes("copy.prints === 1 ? 'print' : 'prints'"));
 });
