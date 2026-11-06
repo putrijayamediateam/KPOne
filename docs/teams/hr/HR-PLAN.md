@@ -1328,3 +1328,215 @@ DD-30). The Clock button stays the only primary on My attendance.
 4. Rest days: the branch's non-working weekdays for everyone (default), or a rest day per person later?
 5. Should a manager be able to reverse an approved request? (Default: yes, with a reason, never their own.)
 6. Should staff see their own month (default yes) as well as their week?
+
+## 11. HR-4 employee records and documents: design note
+
+Written 2026-11-06 at the owner's request ("start the HR-4 design note") while HR-3a (PR #327) and HR-3b wait to
+merge. It works out the HR-4 sketch in section 2 in detail and replaces it where the two differ. It changes no HR-1,
+HR-2 or HR-3 rule. **Status: draft, waiting for the owner's approval and Daniel's early look.** The questions in
+11.10 take the defaults written here until the clinic says otherwise.
+
+**This is the most sensitive slice so far.** It holds identity numbers, bank details, addresses and emergency
+contacts (TEAM.md decision 9). **Synthetic `.test` data only.** No real staff record or document is stored before the
+PDPA review (decision 11, BASELINE section 6 item 1). Every page shows that in a muted line until the owner records
+the review.
+
+**What KPOne already has stays where it is.** Accounts, roles, branch assignments, the staff number, the department
+and the directory job title belong to the Identity and Access code (`StaffProvisioningService`,
+`BranchAssignmentService`, Phase 0B). HR-4 reads them and never writes them. A staff file shows them read-only, with
+"Changed in Staff and access".
+
+### 11.1 Split
+
+- **HR-4a (build first): the staff file.** It holds:
+  - the worker record;
+  - employment periods;
+  - position history;
+  - personal details (identity number, address, emergency contact);
+  - bank details, with a second-person confirmation;
+  - correction requests from staff;
+  - the Staff files list;
+  - My HR details.
+- **HR-4b (after HR-4a merges, under this same note): documents and checklists.** It holds:
+  - the document vault, reusing HR-2b's checked, re-encoded and encrypted file pipeline;
+  - onboarding and offboarding checklists;
+  - the probation alert.
+
+### 11.2 What the clinic gets
+
+- **Staff files** (Director, HR Manager): one list of everyone with a staff file. It shows:
+  - name and primary branch (from Identity);
+  - employment type and status (Active, On probation, Ended);
+  - probation due date;
+  - a "Needs attention" chip for:
+    - probation ending within 14 days;
+    - bank details waiting for confirmation;
+    - a correction waiting.
+  - Search by name, with filters for branch, type and status.
+  - It is a table from 1024 px and cards below.
+- **Open a staff file** for an existing account, from the list. A file is made only on request and never in bulk.
+  - **Add a locum** makes a worker record with **no KPOne login** (decision 8). The locum has a display name, contact phone and employment periods only, and cannot be rostered until a later decision extends HR-1.
+- **A staff file** (Director, HR Manager) has five tabs:
+  - **Employment:** periods and position history.
+  - **Personal:** legal name, preferred name, identity number, date of birth, nationality, address, personal phone and emergency contact.
+  - **Bank:** bank name, account holder and account number.
+  - **Documents** and **Checklist** (HR-4b).
+  - Sensitive values are masked by default, for example "IC •••• •••• 1234" and "Account ••••5678". A **Show** button reveals one field for this page view and writes an audit row first (field name only), as the Panel identity view does.
+- **My HR details** (every human role, not the TV account): your own file, read-only, with your own values unmasked.
+  - You edit your address, personal phone and emergency contact yourself.
+  - For your legal name, identity number, date of birth, nationality or bank details, you **ask for a correction**, and someone else applies it.
+- **Employment periods:**
+  - Fields: start date, type, probation end (optional), confirmed on, and end date with an end reason.
+  - Types: Permanent, Contract, Part-time, Locum, Intern.
+  - End reasons: Resigned, Contract ended, Dismissed, Retired, Other with a note.
+  - Ending a period changes **nothing** on the account. HR-4b's offboarding checklist reminds HR to ask the account administrator to deactivate it.
+- **Position history:** title, department (from the existing list), reports to (another worker) and the date it applies from. The directory job title in Identity is not changed.
+
+### 11.3 Rules
+
+1. **One worker record per account** (service and PostgreSQL). A locum record has no account. A record is never
+   deleted; a worker whose last period has ended shows as Ended.
+2. **Employment periods never overlap** for one worker (service and PostgreSQL). An ended period's dates and reason
+   change only by a recorded edit with a reason code (Wrong date, Wrong type, Other). Every edit is an append-only
+   change row with field names only.
+3. **Nobody manages their own file.** The Director's file is changed only by another Director, and an HR Manager's
+   file only by the Director or another HR Manager (TEAM.md decision 3, and AGENTS.md "the protected director
+   authority may not be governed by a non-director account"). The self-service fields on My HR details are the
+   only exception.
+4. **Bank details need two people.** A new or changed account is saved as **Waiting for confirmation**, and someone
+   other than the person who entered it and other than the staff member confirms it (service and PostgreSQL CHECK).
+   Until then the earlier confirmed account stays in force. A rejected change is kept, marked rejected.
+5. **Identity number:** an IC (12 digits, with or without dashes) or a passport (letters and digits, with the issuing
+   country). It is encrypted and stored with a keyed hash, so a second worker with the same number is refused
+   without decrypting anyone. It is never shown in lists, search, audit or any other page.
+6. **Corrections from staff:** kinds Legal name, Identity number, Date of birth, Nationality and Bank details. The new
+   value is encrypted, and the request has a reason (Wrong in KPOne, Changed, Other). A manager who is not the
+   person applies or rejects it; an applied bank correction then goes through rule 4.
+7. **Masking:** lists, search and the Staff files list show only name, branch, type and status. Masked fields show
+   the last four characters. **Show** releases one field after its audit row commits; if the audit fails, nothing is
+   shown.
+8. **Every write:** a fresh permission check under lock; `DB::transaction`; the worker row locked; `lock_version`; an
+   idempotency key; and audit with ids and field names only, never values. Encrypted columns use Laravel's encrypted
+   casts; free-text notes are encrypted and never audited.
+9. **HR never blocks clinical work** (decision 4), and no clinical, queue, billing or website page reads these tables.
+   The website's doctor profiles (W1b) stay separate and are never filled from a staff file.
+10. **HR-4b documents:**
+    - Categories: Contract, Offer letter, Identity copy, Certificate, Resignation letter and Other. Each category has a clinic-entered retention in days, and KPOne ships no number.
+    - Files are PDF, JPG or PNG up to 10 MB, checked by content and re-encoded as in HR-2b, encrypted on the private disk, with no original file name kept.
+    - Each document view is audited before any byte is sent.
+    - Staff see and open their own documents on My HR details; managers see everyone's.
+    - A file is removed with a reason (Wrong file, Wrong person, Not readable); the row stays and only the bytes go. The purge follows retention.
+11. **HR-4b checklists:**
+    - Onboarding and offboarding templates are clinic-entered lists of items. KPOne ships no template.
+    - Starting a period offers the onboarding list, and ending one offers the offboarding list.
+    - Ticking an item records who ticked it and when.
+    - Items about the account ("Create the KPOne account", "Deactivate the KPOne account") show "Ask the account administrator", and ticking them records only that HR asked. HR never changes an account.
+    - The probation alert appears 14 days before the probation end, on Staff files and the staff file, in KPOne only.
+
+### 11.4 Tables (sketch)
+
+| Table | Holds |
+|---|---|
+| `hr_workers` | organisation, nullable user (unique), display name, locum contact phone (encrypted), status, `lock_version` |
+| `hr_employment_periods` | worker, type, starts on, probation ends on, confirmed on, ends on, end reason, encrypted note, `lock_version` |
+| `hr_positions` | worker, title, department, reports to (worker), from date |
+| `hr_personal_details` | worker (unique), encrypted legal name, preferred name, identity kind, encrypted identity number, identity hash, passport country, encrypted date of birth, nationality, encrypted address, encrypted personal phone, encrypted emergency contact (name, relationship, phone), `lock_version` |
+| `hr_bank_details` | worker, encrypted bank name, holder and account number, last four, status waiting/confirmed/rejected/replaced, entered by, decided by and at |
+| `hr_record_corrections` | worker, kind, encrypted new value, reason, status, asked by, decided by and at, `lock_version` |
+| `hr_record_changes` | append-only: worker, table, field names, changed by, reason code, time |
+| `hr_record_retries` | idempotency records |
+| HR-4b: `hr_documents`, `hr_document_events`, `hr_document_categories`, `hr_checklist_templates`, `hr_checklist_items`, `hr_checklist_ticks` | the HR-2b file pattern and clinic-entered templates |
+
+PostgreSQL:
+- one worker per user (partial unique index);
+- no overlapping employment periods per worker (trigger);
+- one waiting and one confirmed bank account per worker (partial unique indexes);
+- the bank decider differs from the person who entered it and from the worker's user (CHECK);
+- one identity hash per organisation (unique);
+- change rows, retries and decided corrections are append-only;
+- nothing is deleted or truncated;
+- every row's people belong to one organisation.
+
+Migrations from `2026_11_10_001100`, with the permission grants in their own additive migration.
+
+### 11.5 Permissions
+
+| Permission | Holders |
+|---|---|
+| `hr.records.view.organisation` (Staff files, staff files masked, Show with audit) | Director, HR Manager |
+| `hr.records.manage.organisation` (open files, add locums, periods, positions, personal and bank entries, confirm bank, decide corrections) | Director, HR Manager |
+| `hr.records.view.own` (My HR details, own self-service fields, ask for corrections; HR-4b own documents) | every human role, not the TV account |
+| `hr.documents.view.organisation` (HR-4b: open anyone's documents, each view audited) | Director, HR Manager |
+
+None is in the people-and-access authority set. A new hub link, "KPOne HR staff files" under Staff & branches, adds
+`/hr/records` to the Clinic management destination map, which is an existing-assertion change to approve when built.
+My HR details is a tab on the same page, linked from My roster.
+
+### 11.6 Screens (Hui Min, for Daniel's early look)
+
+- One page, `/hr/records`, with tabs My HR details (everyone) and Staff files (managers). A staff file opens at
+  `/hr/records/{worker}`, with its five tabs (Documents and Checklist arrive with HR-4b).
+- **Masked values** use a consistent pattern, "IC •••• •••• 1234", with an outline **Show** button that names the
+  field ("Show identity number"). Pressing it shows the value for this view only, with a muted line "Shown just now,
+  recorded". Nothing is copied to the clipboard automatically.
+- **Bank tab:** the confirmed account as the main card. A change waiting shows as a second card with a warning chip
+  "Waiting for confirmation", and **Confirm** and **Reject** as outline buttons, with the primary action in the
+  dialog. The person who entered the change sees "Someone else confirms this".
+- **My HR details:** a read-only definition list. The self-service fields have an outline **Edit**, and the other
+  fields have an outline **Ask for a correction**. The sheet shows the current value beside the new one, with "Do not
+  write medical details here." under the note.
+- **Staff files list:** a "Needs attention" chip in warning tone with its reason in words, never colour alone.
+- A muted line at the top of each page: "Synthetic data only until the PDPA review."
+- Phones: no sideways scroll at 320, 390 and 768 px; 44 px targets.
+- **Screenshots when built:**
+  - the Staff files list;
+  - a staff file on each tab, masked and after Show;
+  - a bank change waiting, as seen by the person who entered it and by another manager;
+  - My HR details with the correction sheet and an error;
+  - adding a locum;
+  - all at 390 and 1440 px, light and dark.
+
+### 11.7 Tests (planned)
+
+- Grants for every role, the TV account refused, and none in the authority set. The hub map line goes to the owner
+  for approval.
+- One worker per account; locums with no account; periods that overlap are refused (service and PostgreSQL); an end
+  changes nothing on the account (the accounts, roles and assignments tables are compared before and after).
+- Nobody manages their own file; the Director's file is changed only by another Director; an HR Manager's file only
+  by the Director or another HR Manager.
+- Bank: two people (service and PostgreSQL); the earlier account stays in force until a change is confirmed; a
+  rejection is kept.
+- Identity numbers: format, the duplicate hash refused without decrypting, and never present in lists, search,
+  audit or other pages (a payload scan).
+- Show writes its audit row before the value is released; a failed audit releases nothing.
+- Corrections: the two-person rule, encrypted values, and notes never in audit.
+- Another organisation's ids refused; nothing written to accounts, branches or anything clinical.
+- HR-4b: the HR-2b file checks, view audit, retention purge, checklist ticks and the account items that change nothing.
+
+### 11.8 What stays out
+
+- Any account, role or branch change (Identity and Access only).
+- Salary, allowances and statutory numbers (EPF, SOCSO, income tax), which are for HR-7 with its own note.
+- Credentials such as APC and MMC (HR-5); appraisal, letters and discipline (HR-10).
+- Import from the outside product; exports; messages or reminders of any kind.
+- Rostering locums (a later decision for HR-1).
+- Any real staff data before the PDPA review.
+
+### 11.9 Known risks
+
+- Masking narrows the view but is not anonymisation: a name with a branch still identifies a person.
+- Encrypted columns cannot be searched; searching is by name only.
+- The keyed identity hash protects duplicates only within one organisation, and the key must stay secret like the
+  app key.
+
+### 11.10 Questions only the clinic can answer [TO CONFIRM]
+
+1. Who may see a full identity number or bank account with **Show**? (Default: Director and HR Manager, each view
+   recorded.)
+2. Must a bank change be confirmed by a second person? (Default: yes.)
+3. Which fields may staff change themselves? (Default: address, personal phone and emergency contact; the rest by a
+   correction.)
+4. Employment types and end reasons as listed in 11.2? (Default: yes.)
+5. HR-4b document categories and the retention days for each (the adviser's call); and who keeps the paper originals?
+6. Should staff see their own documents? (Default: yes, view only.)
+7. Is a probation alert 14 days before the end right? (Default: yes; KPOne ships no probation length.)
