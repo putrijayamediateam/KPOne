@@ -152,6 +152,11 @@ return Application::configure(basePath: dirname(__DIR__))
             'issued_on',
             'expires_on',
             'issuing_body',
+            // HR-6: a staff claim's purpose is encrypted at rest and never flashed (Suresh, S2).
+            'purpose',
+            // HR-7a: a pay profile's salary and allowances are never flashed into the session (Suresh, S3).
+            'rate',
+            'items',
             'member_reference',
             'reason',
             'coverage',
