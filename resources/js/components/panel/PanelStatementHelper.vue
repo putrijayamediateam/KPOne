@@ -84,15 +84,21 @@ const ticked = ref<Set<number>>(new Set());
 // PNL-18: a near match can be ticked, but only by the officer; it never starts ticked.
 const canTick = (row: StatementRow) =>
     row.result === 'matched' || row.result === 'near_match';
-const NEAR_REASONS: Record<'format' | 'lookalike', string> = {
-    format: 'Same apart from spaces, dashes, capitals or leading zeros.',
-    lookalike: 'Letters read as numbers (O→0, I or L→1, S→5, B→8, Z→2).',
+const FORMAT_REASON =
+    'Same apart from spaces, dashes, capitals or leading zeros.';
+const LOOKALIKE_DIGITS: Record<string, string> = {
+    O: '0',
+    I: '1',
+    L: '1',
+    S: '5',
+    B: '8',
+    Z: '2',
 };
 // PNL-18: in a look-alike near match, the letters read as digits (inside a run that holds a digit, so the "I" of a
 // "KPI" prefix stays plain) are marked, because many fonts draw O and 0 alike.
 const lookalikeParts = (text: string) =>
     text
-        .split(/([0-9OoIiLlSsBbZz]*[0-9][0-9OoIiLlSsBbZz]*)/)
+        .split(/([0-9OoIiLlSsBbZz]*[0-9])/)
         .flatMap((part, index) =>
             index % 2 === 1
                 ? part
@@ -105,6 +111,26 @@ const nearParts = (row: StatementRow) =>
     row.nearReason === 'lookalike'
         ? lookalikeParts(row.statementInvoice ?? '')
         : [{ text: row.statementInvoice ?? '', mark: false }];
+// Daniel's note: say only the letters this row has, e.g. "The statement has the letter O where KPOne has 0."
+const nearReasonText = (row: StatementRow) => {
+    if (row.nearReason !== 'lookalike') {
+        return FORMAT_REASON;
+    }
+
+    const letters = [
+        ...new Set(
+            nearParts(row)
+                .filter((part) => part.mark)
+                .map((part) => part.text.toUpperCase()),
+        ),
+    ];
+    const list = (items: string[]) =>
+        items.length < 2
+            ? items.join('')
+            : `${items.slice(0, -1).join(', ')} and ${items[items.length - 1]}`;
+
+    return `The statement has the letter${letters.length === 1 ? '' : 's'} ${list(letters)} where KPOne has ${list(letters.map((letter) => LOOKALIKE_DIGITS[letter]))}.`;
+};
 const tickLabel = (row: StatementRow) =>
     `Use row ${row.line}${row.claim ? `, claim ${row.claim.claimNo}` : ''}${
         row.result === 'near_match' && row.claim
@@ -144,6 +170,9 @@ const tickedRows = computed(() =>
     (props.statement?.rows ?? []).filter(
         (row) => canTick(row) && ticked.value.has(row.line),
     ),
+);
+const tickedNear = computed(
+    () => tickedRows.value.filter((row) => row.result === 'near_match').length,
 );
 const tickedSen = computed(() =>
     tickedRows.value.reduce((sum, row) => sum + (row.amountSen ?? 0), 0),
@@ -451,7 +480,7 @@ const useTicked = () =>
                                         → Claim {{ row.claim.claimNo }}
                                     </p>
                                     <p v-if="row.nearReason">
-                                        {{ NEAR_REASONS[row.nearReason] }}
+                                        {{ nearReasonText(row) }}
                                     </p>
                                 </div>
                                 <p
@@ -550,9 +579,7 @@ const useTicked = () =>
                                         <span
                                             v-if="row.nearReason"
                                             class="block text-xs text-muted-foreground"
-                                            >{{
-                                                NEAR_REASONS[row.nearReason]
-                                            }}</span
+                                            >{{ nearReasonText(row) }}</span
                                         >
                                     </template>
                                 </td>
@@ -599,7 +626,16 @@ const useTicked = () =>
                         data-testid="statement-summary"
                     >
                         {{ tickedRows.length }} of
-                        {{ statement.rows.length }} rows ticked ·
+                        {{ statement.rows.length }} rows ticked<template
+                            v-if="tickedNear > 0"
+                            >, {{ tickedNear }} of them
+                            {{
+                                tickedNear === 1
+                                    ? 'a near match'
+                                    : 'near matches'
+                            }}</template
+                        >
+                        ·
                         {{ myr(tickedSen) }}
                     </p>
                 </template>

@@ -41,7 +41,7 @@ test('A near match reads "Near match: check" and shows both invoice numbers', ()
     assert.match(card, /font-mono/);
     assert.match(helper, /data-testid="statement-near-table"/);
     assert.match(helper, /KPOne:\s*\{\{ row\.claim\.invoiceNumber \}\}/);
-    assert.match(helper, /NEAR_REASONS\[row\.nearReason\]/);
+    assert.equal(helper.match(/nearReasonText\(row\)/g)?.length, 2);
     assert.ok(
         helper.includes(
             'Same apart from spaces, dashes, capitals or leading zeros.',
@@ -63,7 +63,7 @@ test('The tick box names the near match and the summary counts near matches apar
 
 test('Look-alike letters are marked, so O and 0 can be told apart in any font', () => {
     assert.match(helper, /const lookalikeParts = \(text: string\) =>/);
-    assert.match(helper, /\[0-9OoIiLlSsBbZz\]\*\[0-9\]\[0-9OoIiLlSsBbZz\]\*/);
+    assert.ok(helper.includes('.split(/([0-9OoIiLlSsBbZz]*[0-9])/)'));
     assert.equal(
         helper.match(/v-for="\(part, i\) in nearParts\(\s*row,?\s*\)"/g)
             ?.length,
@@ -76,4 +76,18 @@ test('Look-alike letters are marked, so O and 0 can be told apart in any font', 
         2,
     );
     assert.equal(helper.match(/slashed-zero/g)?.length >= 3, true);
+});
+
+test("The reason names only this row's letters, and the summary counts ticked near matches", () => {
+    assert.ok(
+        helper.includes(
+            "The statement has the letter${letters.length === 1 ? '' : 's'} ${list(letters)} where KPOne has ${list(letters.map((letter) => LOOKALIKE_DIGITS[letter]))}.",
+        ),
+    );
+    assert.match(
+        helper,
+        /tickedRows\.value\.filter\(\(row\) => row\.result === 'near_match'\)/,
+    );
+    assert.match(helper, /of them[\s\S]{0,120}'a near match'/);
+    assert.match(helper, /'near matches'/);
 });
