@@ -13,8 +13,11 @@
             <exclude>tests/Feature/Billing/PostgresPanelPaymentRegressionTest.php</exclude>
             <exclude>tests/Feature/Billing/PostgresPanelBulkClaimRegressionTest.php</exclude>
             <exclude>tests/Feature/Clinical/PostgresDispensaryReturnTest.php</exclude>
+            <exclude>tests/Feature/Clinical/PostgresDrugLabelPrintTest.php</exclude>
             <exclude>tests/Feature/HR/PostgresRosterContentionTest.php</exclude>
             <exclude>tests/Feature/HR/PostgresLeaveContentionTest.php</exclude>
+            <exclude>tests/Feature/HR/PostgresAttendanceContentionTest.php</exclude>
+            <exclude>tests/Feature/HR/PostgresOvertimeContentionTest.php</exclude>
             <exclude>tests/Feature/Inventory/PostgresBatchHoldTest.php</exclude>
             <exclude>tests/Feature/Inventory/PostgresGovernedStockTest.php</exclude>
             <exclude>tests/Feature/Inventory/PostgresStockReadinessTest.php</exclude>
@@ -22,6 +25,7 @@
             <exclude>tests/Feature/Inventory/PostgresTransferShortageTest.php</exclude>
             <exclude>tests/Feature/Inventory/PostgresTreatmentUsageTest.php</exclude>
             <exclude>tests/Feature/Inventory/PostgresVerifiedReceivingTest.php</exclude>
+            <exclude>tests/Feature/Patient/PostgresPatientMergeRegressionTest.php</exclude>
             <exclude>tests/Feature/PilotStorageIsolationTest.php</exclude>
             <exclude>tests/Feature/PostgresAttendanceNumberTest.php</exclude>
             <exclude>tests/Feature/PostgresBillingRegressionTest.php</exclude>
@@ -49,8 +53,11 @@
             <file>tests/Feature/Billing/PostgresPanelPaymentRegressionTest.php</file>
             <file>tests/Feature/Billing/PostgresPanelBulkClaimRegressionTest.php</file>
             <file>tests/Feature/Clinical/PostgresDispensaryReturnTest.php</file>
+            <file>tests/Feature/Clinical/PostgresDrugLabelPrintTest.php</file>
             <file>tests/Feature/HR/PostgresRosterContentionTest.php</file>
             <file>tests/Feature/HR/PostgresLeaveContentionTest.php</file>
+            <file>tests/Feature/HR/PostgresAttendanceContentionTest.php</file>
+            <file>tests/Feature/HR/PostgresOvertimeContentionTest.php</file>
             <file>tests/Feature/Inventory/PostgresBatchHoldTest.php</file>
             <file>tests/Feature/Inventory/PostgresGovernedStockTest.php</file>
             <file>tests/Feature/Inventory/PostgresStockReadinessTest.php</file>
@@ -58,6 +65,7 @@
             <file>tests/Feature/Inventory/PostgresTransferShortageTest.php</file>
             <file>tests/Feature/Inventory/PostgresTreatmentUsageTest.php</file>
             <file>tests/Feature/Inventory/PostgresVerifiedReceivingTest.php</file>
+            <file>tests/Feature/Patient/PostgresPatientMergeRegressionTest.php</file>
             <file>tests/Feature/PilotStorageIsolationTest.php</file>
             <file>tests/Feature/PostgresAttendanceNumberTest.php</file>
             <file>tests/Feature/PostgresBillingRegressionTest.php</file>

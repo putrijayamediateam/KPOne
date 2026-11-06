@@ -91,6 +91,8 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php`.
 | PNL-6 | Payment correction (`/panel-payment-corrections`): Finance Officer or Director reverses a wrongly recorded Panel payment with a reason; whole payments only, a split Panel payment with all its splits, never by its recorder; new append-only `panel_claim_payment_reversals` and `panel.claim_payments.reverse.branch`; every payment total leaves reversed payments out; migrations `2026_11_06_300100_create_panel_claim_payment_reversals` and `2026_11_06_300200_grant_panel_payment_reversal_permission_additively` | #248 (merged as `dd8f4fe`) |
 | PNL-6b | The Panel payments history and the Follow-up list show a colleague's name only under the staff-directory visibility rule (owner BIL-2 decision), otherwise "Staff member"; no visible change for today's roles | #262 (merged as `e0d41d9`) |
 | PNL-5 | PostgreSQL contention tests on one Panel claim: split against single payment, two part payments, a reversal against a new payment in both orders, two reversals, a double-submitted split payment (`PostgresPanelPaymentRegressionTest`, serial Contention suite); tests only | #267 |
+| PNL-11 | Panel Claims list on phones and tablets (design debt DD-31): below 1024 px each claim or invoice is a card with every table field, its checkbox (same claim-pack and bulk-claim rules) and its actions menu, plus a "Select all" row above the cards; the Columns menu shows from 1024 px only; Clear puts focus on the visible Select all, or the first claim that can still be ticked; frontend only | #326 (merged as `ce0d3d8`) |
+| PNL-12 | Small leftovers: the claim pack prints claims in the order they were ticked (cover and pages, audit `claim_ids` too); each printed page of a claim's invoice table repeats "Panel claim N · invoice number" (print only, no patient name); the Submissions and Payouts cards read "1 claim" / "N claims", and Pending and Overdue count invoices ("1 invoice" / "N invoices"); a test for a bulk claim whose visits fall on different dates | (this PR) |
 
 ## 6. Owner decisions already made (never ask again)
 
@@ -142,6 +144,11 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php`.
     passport number (holders of the identity permission only); a batch is claims of one Panel, at most 50, with a
     cover page and one A4 page per claim; uploaded photos are listed by name, never printed; the heading is the
     branch letterhead with the branch footer.
+22. PNL-11 phone cards (owner chose "start 1" from the four next options, 2026-11-06): the Panel Claims list
+    shows cards below 1024 px, following Arjun's sketch; wide screens keep the table unchanged.
+23. PNL-12 (owner chose "start 3" and "Ticked order", 2026-11-06): a claim pack prints its claims in the order
+    the officer ticked them, not by claim number; the owner approved changing the one existing `PanelClaimPackTest`
+    assertion that pinned claim-number order.
 
 ## 7. Open items and known limits
 
@@ -152,8 +159,8 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php`.
   `relative` on the shared wrapper would fix every page (needs agreement with the other teams).
 - PNL-2: bulk against single creation, and two overlapping batches, are covered by the PNL-9 contention test
   (`PostgresPanelBulkClaimRegressionTest`, serial Contention suite; B.E.R.N.I.S.S for the owner, 2026-11-05): one
-  claim per allocation, and a refused batch keeps nothing. Still not tested: one batch whose visits fall on
-  different dates.
+  claim per allocation, and a refused batch keeps nothing. A batch whose visits fall on different dates is
+  tested in `PanelBulkClaimTest` (PNL-12): the shared date must be on or after the latest visit.
 - **PNL-3 limits:** a payment is recorded per branch (a Panel paying several branches in one transfer is
   recorded once per branch); at most 50 claims per payment; the date received is today or earlier; a recorded
   payment cannot be reversed or corrected in KPOne (as with the existing single-claim remittance), so a wrong
@@ -170,7 +177,7 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php`.
   is not load-tested; a photo as the resetting action is not covered by a cloud test (GD missing; CI runs the
   photo tests).
 - **PNL-6 limits:** a reversal cannot itself be undone (record the payment again instead); the page is reached
-  from Panel invoices and Panel payments, not from Clinic management; the reversal note is stored as plain text
+  from Panel invoices, Panel payments and (since PNL-10) Clinic management; the reversal note is stored as plain text
   (like claim notes) and the screen asks for no patient details; no `lock_version` is asked for, because a
   payment never changes, a second reversal is refused and the idempotency key covers a double submit; reports
   change in the period of the original payment (decision 18), so past Insights and Panel summary figures can
@@ -180,8 +187,10 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php`.
 - **PNL-8 limits:** the pack is a live rendering of the saved claim evidence, so a reprint shows the current
   status and letterhead, not the paper printed earlier; opening the pack is what is audited
   (`panel_claim.pack_printed`, claim ids only, with the first claim as the audit subject), not the browser's
-  print itself, and a refresh adds a row; claims are ordered by claim number, not by the order ticked; a claim
-  longer than one A4 page repeats the table headings but not the letterhead or claim number; photo file names
+  print itself, and a refresh adds a row; claims print in the order ticked (PNL-12); a claim
+  longer than one A4 page repeats the table headings and "Panel claim N · invoice number" but not the letterhead
+  (PNL-12); the totals, remarks and photos stay together and, if they move to the next page, carry the same
+  reference line (PNL-12); photo file names
   print as uploaded, so a name could carry clinical text; when the claim is below the invoice total the page
   shows "Amount claimed (Panel share)" but no "patient pays the rest" line.
 - **Staff names (PNL-6c, built 2026-11-05, B.E.R.N.I.S.S for the owner):** the Panel Claims list "Updated by"
@@ -203,6 +212,9 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php`.
   real data. A first row that looks like an IC or phone number is refused (best effort). The retry clean-up
   (a file from a rolled-back attempt is deleted after commit) has no automated test; the failure path does.
   Design debt: the desktop results are a plain table, not the shared table component.
+- PNL-11: in dark mode a disabled checkbox (a claim or invoice of another Panel while one is selected) is hard
+  to see; the look comes from the shared checkbox component, so it is for the Design team's debt list, not a
+  Panel-only change. The pack bar's "Only claims of … can be added" line still explains it.
 - A submitted-but-undecided claim counts as zero outstanding in the Panel summary.
 - Panel summary runs about three queries per approved allocation; not load-tested.
 
@@ -265,3 +277,8 @@ Second backlog, chosen by the owner on 2026-11-05 ("panel order ok", relayed by 
    privately and deleted after 30 days (owner-confirmed). No outbound call.
 8. **PNL-8 Printable claim pack. (Built 2026-11-05.)** A clean A4 print for one claim and for a selected batch,
    no clinical content, white in dark mode (PRINT-1 rule).
+9. **PNL-11 Phone cards for the Panel Claims list. (Built 2026-11-06.)** Design debt DD-31 (at 390 px the list
+   showed only Amount, Claim no and Panel). Cards below 1024 px on both the claims tabs and the Pending and
+   Overdue tabs; frontend only.
+10. **PNL-12 Small leftovers. (Built 2026-11-06.)** Ticked order in the claim pack, the claim reference repeated
+    on each printed page and above the totals, "1 claim" and "N invoices" on the summary cards, and a bulk-claim test across visit dates.

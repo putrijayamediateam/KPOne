@@ -804,3 +804,527 @@ saved.", "Opening balance confirmed."
   - one two-process contention test: two approvals spending the same last balance.
 - **Expected existing-assertion change (needs approval):** the `ClinicManagementTest` hub destination map gains
   `'/hr/leave' => ['hr.leave.request.own', 'hr.leave.approve.organisation', 'hr.leave.manage.organisation']`.
+
+## 8. HR-2b leave evidence files: design note
+
+Written 2026-11-06 while HR-2a (PR #302) waits in the merge queue. It builds on HR-2a and changes none of its rules.
+**Status: approved with its defaults by the owner on 2026-11-06 (TEAM.md decisions 24 and 26); building.** The
+clinic wants MC files in KPOne. Questions 2 to 6 in 8.9 take the defaults written in this note until the clinic says
+otherwise.
+
+### 8.1 Why and what
+
+A staff member on sick leave usually holds a medical certificate (MC) from another clinic. Today HR-2a lets them type
+a short reference ("MC from Klinik X, serial 123") and HR ticks "Evidence seen" after looking at the paper. HR-2b
+lets the staff member, or HR on their behalf, attach a photo or PDF of that paper to the leave request, so HR can
+check it without the paper being carried to the HR office.
+
+**This is health data about staff.** An MC names the clinic, the doctor and the dates, and may carry a diagnosis.
+It needs the PDPA review (TEAM.md section 7) before any real file is uploaded. Until then: synthetic files only, as
+for the rest of KPOne.
+
+### 8.2 What the clinic gets
+
+- **Apply sheet:** for a leave type marked "evidence needed", an optional "Add a photo or PDF" field under the
+  evidence reference. The request can be sent without a file; the file can be added later.
+- **My leave:** each request row shows "Evidence: 1 file" and an "Add file" action while the request may still take
+  files. The staff member can open their own files and remove one while the request is waiting for approval.
+- **Approvals:** the row shows "1 file · View". "View" opens a panel: a photo is shown on the page; a PDF is offered
+  as "Download PDF" only (never shown inside KPOne, see 8.4). The "Evidence seen" tick in the approve dialog is
+  unchanged and can be ticked with or without a file.
+- **HR on behalf:** HR can attach a scan of the paper copy to someone's request ("Paper copy scanned by HR"). The
+  row shows who added each file.
+- **Settings, per leave type:** "Accept evidence files" (off by default) and "Keep files for N days after the leave
+  ends". Files cannot be added to a type until both are set, so nothing is stored by default.
+
+### 8.3 Rules
+
+1. **Who may add a file:** the applicant, on their own request, while it is waiting for approval, or after approval
+   until 14 days after the leave ends [TO CONFIRM: the clinic's deadline for handing in an MC]; a holder of
+   `hr.leave.manage.organisation`, on anyone's request, until the file retention ends. Never on a rejected or
+   cancelled request.
+2. **Who may open a file:** the applicant (their own files only) and holders of the new
+   `hr.leave.evidence.view.organisation` (Director and HR Manager, as planned in section 2). Nobody else: not the
+   roster, the team calendar, a CA Supervisor or any report. **Every open or download is recorded** (who, which file,
+   when; never the content), the same pattern as the PC-01 identity view.
+3. **Files accepted:** JPG, PNG and PDF, checked by their content, not their name (the Panel claim photo pattern).
+   At most 5 MB each and 3 files per request. A photo is re-encoded on upload, which also strips its EXIF data
+   (camera, GPS location, time). A PDF is stored as uploaded and only ever downloaded.
+4. **Storage:** encrypted with the app key on the private disk (the PNL-7 statement pattern), under a generated name.
+   The original file name is not kept (it often holds a name or a diagnosis); the screen shows "MC 1 · PDF · 240 KB ·
+   added 6 Nov 2026 by Aina CA". A SHA-256 of the content refuses the same file twice on one request.
+5. **Removing a file:**
+   - the applicant removes their own file while the request is waiting;
+   - a manager removes a file with a reason code (Wrong file, Wrong person, Not readable);
+   - removal deletes the stored file at once and keeps an append-only record that a file existed, who removed it,
+     when and why.
+6. **Retention and deletion:** a daily command (`hr-leave-evidence:purge`, scheduled in `routes/console.php`, like
+   `panel-statements:purge`) deletes each file once its type's retention after the leave's end date has passed.
+   Files on a rejected or cancelled request are deleted 30 days after that decision. Both rules delete on the day
+   after the period ends, in the branch time zone, and the days cannot be cleared while files remain. The request, the "Evidence
+   seen" tick and the record that a file existed stay. The number of days is the clinic's decision [TO CONFIRM with
+   the clinic's HR adviser: how long staff medical evidence must or may be kept]; KPOne ships no number.
+7. **What never happens:** no reading of the file's content (no OCR, no AI), no automatic approval, no sending of a
+   file anywhere, no file in an export, a print or an audit row.
+8. **Every write:** fresh permission check under lock; `DB::transaction`; the applicant's account, then the request,
+   then the file row locked, in that order (the HR-2a lock order); `lock_version` on the request; an idempotency key
+   on add and remove; the file is written to disk only after the row checks pass, and deleted again if the
+   transaction rolls back (the Panel claim photo compensation pattern); audit with ids, type code, file count and
+   size only.
+9. HR never blocks clinical work (TEAM.md decision 4); a missing file never blocks a shift or anything clinical.
+
+### 8.4 Serving a file safely
+
+- One route per file, `GET /hr/leave/evidence/{file}`, behind `hr.leave.request.own` or the view permission, with the
+  owner or permission check in the service, an organisation check on the file and its request, and a throttle.
+- The response is streamed after decryption with `Cache-Control: no-store`, `X-Content-Type-Options: nosniff` and
+  `Content-Security-Policy: sandbox`. Photos are served `inline` as `image/jpeg` or `image/png` (re-encoded, so their
+  bytes are known); a PDF is always `attachment`, so a crafted PDF cannot run inside KPOne's origin.
+- The open is recorded before the bytes are sent; if recording fails, nothing is sent.
+
+### 8.5 Tables (sketch)
+
+| Table | Holds |
+|---|---|
+| `hr_leave_evidence_files` | public id, organisation, leave request, uploaded by, uploaded on behalf (yes/no), kind (jpeg, png, pdf), size, SHA-256, stored path, status (active, removed, purged), removed by and at, removal reason code, delete after (date), `lock_version` |
+| `hr_leave_evidence_events` | append-only: added, opened, removed, purged, with actor (null for the scheduled purge) and time |
+| `hr_leave_types` (change) | two new columns: accept evidence files (boolean, default off), keep files for N days (nullable) |
+
+PostgreSQL checks: one active file per request and SHA-256; at most 3 active files per request (trigger); a file
+belongs to a request of the same organisation; status moves only active → removed or active → purged; events are
+append-only; a removed or purged file row never changes again.
+
+Migration from `2026_11_10_000500`; the permission grant in `2026_11_10_000600` (additive, literal names, like
+000200 and 000400).
+
+### 8.6 Permissions
+
+| Permission | Holders |
+|---|---|
+| `hr.leave.evidence.view.organisation` (open anyone's evidence files) | Director, HR Manager |
+
+Adding your own file uses the existing `hr.leave.request.own`; adding or removing on someone's behalf uses the
+existing `hr.leave.manage.organisation`. None is in the people-and-access authority set.
+
+### 8.7 Screens (Hui Min; Daniel's early look folded in)
+
+Same page, `/hr/leave`; no new tab, hub link or top-bar change. Shared components only. Daniel's early look
+(2026-11-06): **OK with changes**, all folded in below.
+- **Apply sheet:** an outline button "Add a photo or PDF" (never the bare browser file control), with the chosen
+  file's name and size shown under it and a "Remove" link before sending. `accept="image/jpeg,image/png,application/pdf"`
+  and no `capture`, so staff can pick an existing photo. Help text "JPG, PNG or PDF, up to 5 MB. Take a clear photo of
+  the whole MC." Shown only for evidence types that accept files. 44 px on phones.
+- **Sending:** while a file uploads the button reads "Uploading…" and is disabled; on a failure the request stays as
+  it was and the error sits under the field.
+- **My leave / Approvals:** a small "Evidence" line in the row or card: "No file yet" (muted, never red; a needed
+  file already has the "Evidence needed" warning), "1 file" or "2 files", with "Add file" (outline) and "View"
+  (outline). Their screen-reader names say which request ("View files for Annual leave, 16 Nov"). No new badge.
+- **Evidence panel** (`Sheet`): one card per file with its label, size, who added it and when; the photo on a
+  neutral surface with a thin border (no edge-to-edge glare in dark mode), alt text "Photo 1 of 2, added by Demo CA
+  on 16 Nov" and never any medical text; or a "Download PDF" button. Empty state: "No files yet."
+- **Remove:** a ghost "Remove" for everyone who may remove, always through a confirm dialog with a destructive
+  confirm button; the reason field shows only for managers.
+- **Settings → Leave types form:** a checkbox "Accept evidence files" and a number field "Keep files for (days after
+  the leave ends)", required when the checkbox is on, with help text "Files are deleted after this. Requests and
+  their history stay." The applicant's side shows a muted line "Files are kept for N days after your leave."
+- **Errors under the field:** "Use a JPG, PNG or PDF file.", "This file is over 5 MB.", "This request already has 3
+  files.", "This file is already attached.", "Files can no longer be added to this request."
+- **Toasts:** "File added.", "File removed."
+- **Phone:** the panel is full width; photos fit the width; 44 px targets; no sideways page scroll at 320, 390 or
+  768 px.
+- **Screenshots when built** (Daniel): the apply sheet with a file chosen and with an error, the evidence panel with
+  a photo and with a PDF, and the remove dialog, at 390 and 1440 px, light and dark.
+
+### 8.8 Tests (planned)
+
+- Grants: the new permission is held by exactly Director and HR Manager, not the TV account, and is not authority.
+- Who may add, open and remove, for every role, including another organisation's request and file ids (404).
+- Content checks: a PNG renamed `.pdf`, a script renamed `.jpg`, a 5 MB + 1 byte file, a fourth file and a duplicate
+  are refused; a JPEG with GPS EXIF comes back without it.
+- The stored file is encrypted (its bytes do not contain a known marker from the upload); the original name is not
+  stored anywhere.
+- Every open writes an event; a failed event sends nothing; a PDF is always an attachment with `nosniff` and the
+  sandbox header.
+- Purge: a file past its type's retention and a file on a request cancelled 31 days ago are deleted, the rows stay;
+  nothing else is touched. Branch-local dates, never the UTC clock.
+- A rolled-back add leaves no file on disk; a retried add with the same key stores one file.
+- PostgreSQL: the 3-file limit, the status moves and append-only events hold whatever the code does.
+- The roster, team calendar and audit rows never carry a file, a file name or the type of the evidence.
+- No existing assertion is expected to change.
+
+### 8.9 Questions only the clinic can answer [TO CONFIRM]
+
+1. ~~Does the clinic want evidence files in KPOne at all?~~ **Yes** (owner, 2026-11-06).
+2. Which leave types take files (sick leave, hospitalisation, compassionate, others)?
+3. How long may or must the files be kept after the leave ends? (For the clinic's HR adviser; KPOne ships no number.)
+4. The deadline for handing in an MC after the leave (default in this note: 14 days after the leave ends).
+5. Should anyone besides the Director and the HR Manager open the files (for example a CA Supervisor for their
+   branch)? The default is no.
+6. Is HR scanning the paper copy on the staff member's behalf wanted, or only the staff member's own upload?
+
+### 8.10 What stays out of HR-2b
+
+- Reading or checking the MC's content automatically, or checking it against the issuing clinic.
+- Files for anything other than leave requests (credentials and staff documents are HR-3 and HR-4).
+- Showing a PDF inside KPOne (download only), editing or annotating a file, virus scanning (no scanner is available;
+  noted as a known limit for the PDPA and security review).
+- Any message, reminder or export carrying a file.
+
+## 9. HR-3 attendance and overtime: design note
+
+Written 2026-11-06 while HR-2b (PR #311) waits for CI. It replaces the short HR-3 sketch in section 2 wherever the
+two differ, and changes no HR-1 or HR-2 rule. **Status: approved with its defaults by the owner on 2026-11-06
+(TEAM.md decision 29); building HR-3a.** Questions in 9.9 take the defaults written here until the clinic says
+otherwise.
+
+**KPOne ships no attendance rule.** Grace minutes, overtime multipliers, the weekly hour limit and who may claim
+overtime are clinic-entered, versioned settings. The settings form is pre-filled with the clinic HR proposal's
+values (normal day 1.5x, rest day 2x, public holiday 3x, 45-hour week; TEAM.md decision 10) but nothing counts
+until a manager presses Save. Until then the button still records times, and the flags read "Attendance is not set
+up yet."
+
+### 9.1 Split
+
+- **HR-3a (build first):** the Clock in and Clock out button, roster against attendance (on time, late, left early,
+  no clock-in, forgotten clock-out, not on the roster), corrections approved by someone else, the review page and
+  attendance settings.
+- **HR-3b (after HR-3a merges, under this same note):** overtime requests and approval, the weekly hours warning and
+  period summaries. HR-3b needs HR-3a's worked minutes, so it cannot come first.
+
+### 9.2 What the clinic gets
+
+- **My attendance** (every human role, not the TV account): one large button, "Clock in" or "Clock out", with
+  today's date, the server time and today's approved shift ("Today: Morning, 8:00 to 14:00, Cheras"). After a press:
+  a toast "Clocked in at 7:56 AM." and a line "Signed in as Aina CA. Sign out if this is a shared computer."
+  Below: my week (each day's shift, clock times and flags) and my corrections.
+- **Attendance review** (Director, HR Manager): one branch and one day (or a week), each rostered person and anyone
+  who clocked in without a shift, with the roster beside the clock times and the flags; corrections waiting for a
+  decision.
+- **Corrections:** a staff member who forgot to clock in or out, or pressed at the wrong time, proposes the right
+  time with a reason code; someone else approves or rejects it. The original press stays on record.
+- **Attendance settings** (Director, HR Manager): grace minutes, the forgotten clock-out window, how many days back
+  a correction may go, and (HR-3b) overtime multipliers, the weekly hour limit and the roles that may claim overtime.
+- **HR-3b, overtime:** a staff member asks for overtime minutes on a day they worked (or a manager records it on
+  their behalf); someone else approves, changes down or rejects it. The day type (normal, rest day, public holiday)
+  is worked out by KPOne and shown. Minutes and day type only: money is HR-7.
+- **HR-3b, weekly hours:** a warning when a person's worked hours in a week (Monday to Sunday, branch-local) reach
+  the "nearing" level (default 40) and when they pass the limit (default 45), on My attendance, the review page and
+  the overtime approval.
+- **HR-3b, period summaries:** per person for a week or a month: rostered hours, worked hours, late count and
+  minutes, left-early count, no clock-in count, forgotten clock-outs, approved overtime minutes by day type.
+  On screen only (no CSV: exports need their own authorisation).
+
+### 9.3 Rules
+
+1. **The button is the only source.** Login times, queue or consultation timestamps and device clocks are never used
+   as attendance. The time is the server's. No location, no IP address, no photo and no device fingerprint is stored
+   (TEAM.md decision 6). Method is recorded as "button" or "correction".
+2. **Branch:** the press is for the active branch in the top bar, which must be one of the person's effective branch
+   assignments on that date (refused otherwise). If today's approved shift is at another branch, the press is
+   allowed and flagged "Different branch from the roster".
+3. **Sessions:** a clock-in opens a session; the next clock-out closes it. A person has at most one open session
+   (PostgreSQL). A second press within 60 seconds of the first does nothing (a double tap), and a retried request
+   with the same key returns the same press. A session belongs to the branch-local date of its clock-in, so a night
+   shift that ends after midnight stays on its start day.
+4. **Matching the roster:** each clock session is matched to the approved shift (HR-1, current approved version) of
+   that person and branch that it overlaps most. Flags, worked out when a page is opened, never stored as the truth:
+   - **Late N min:** clock-in later than shift start plus grace minutes.
+   - **Left early N min:** clock-out earlier than shift end minus grace minutes.
+   - **No clock-in:** an approved shift that ended more than the grace minutes ago with no session.
+   - **Forgotten clock-out:** an open session more than the forgotten window (default 60 minutes) after its shift's
+     end, or 16 hours after clock-in when there is no shift. The session shows in the person's own list with "Add
+     your clock-out time"; it is never closed automatically. **Split shift (Suresh's review, decided by Liyana):**
+     when a clock-in's shift ended more than the forgotten window ago and the person's next approved shift that day
+     starts within two hours, the next Clock in marks the morning "missing its clock-out" instead of refusing. Without a
+     later shift, someone still on after their shift simply clocks out (it may be overtime, HR-3b).
+   - **Not on the roster:** a session with no approved shift that day. Shown, never refused.
+   - **On approved leave:** a session on a day of approved leave (HR-2a) is flagged for the reviewer.
+   Breaks come from the shift's break minutes (HR-1); worked minutes = session length minus those break minutes
+   when the session covers the shift, otherwise the raw length.
+5. **Corrections:** kinds "add a missing clock-in", "add a missing clock-out", "change a time"; reason codes Forgot,
+   Device or system problem, Pressed at the wrong time, Worked away from the branch, Other (with a short encrypted
+   note, at most 200 characters, never audited). The proposed time must be within the last N days (default 7),
+   not in the future, and keep the session's times in order. A staff member proposes for themselves; a manager may
+   propose on someone's behalf. **The decider is never the subject and never the proposer** (service and
+   PostgreSQL). An HR Manager's own correction goes to the Director, a Director's to the HR Manager or another
+   Director (TEAM.md decision 3). An approved correction adds a correction event that takes the place of the press
+   it corrects; the original press stays, marked "corrected". A rejected one changes nothing.
+6. **Settings are versioned:** a save makes a new version from a chosen date; flags for days before it use the old
+   version, so a change never rewrites past flags.
+7. **HR-3b overtime:** a request names a date the person has a closed session on, the minutes (whole minutes, at
+   most the session's worked minutes beyond the shift, or all of it on a rest day or public holiday), and a reason
+   code. Day type: a public holiday of that branch (HR-2a calendar), else a rest day (a weekday that is not a working
+   day of that branch, until per-person rest days exist [TO CONFIRM]), else normal. Approval stores the minutes, the
+   day type and the settings version (so HR-7 can price it later); the approver may lower the minutes, never raise
+   them. Same two-person rule as corrections. Only roles the settings allow may request; a request for another role
+   is refused. Within the correction window by default.
+8. **HR never blocks clinical work** (TEAM.md decision 4): no clock-in is needed to sign in, Call In, consult or
+   dispense, and no clinical screen reads attendance.
+9. **Every write:** fresh permission check under lock; `DB::transaction`; the acting account and the subject locked
+   once in id order (the HR-2a pattern), then the session or request row; `lock_version` on sessions, corrections
+   and overtime requests; an idempotency key on clock, propose, decide and cancel; audit with ids, kinds, codes and
+   minutes only (never notes); throttles on the clock route (10 a minute).
+
+### 9.4 Tables (sketch)
+
+| Table | Holds |
+|---|---|
+| `hr_attendance_settings` | append-only versions per organisation: effective from, grace minutes, forgotten window minutes, correction days, (HR-3b) normal, rest-day and public-holiday multipliers, nearing and limit hours, overtime roles |
+| `hr_clock_sessions` | person, branch, local date, clock-in event, clock-out event (nullable), status open/closed, `lock_version` |
+| `hr_clock_events` | append-only: session, kind in/out, time, method button/correction, recorded by, corrects event (nullable), idempotency key |
+| `hr_attendance_corrections` | subject, proposed by, kind, session (nullable for a missing clock-in), proposed time, reason code, encrypted note, status pending/approved/rejected/cancelled, decided by and at, `lock_version` |
+| `hr_overtime_requests` (HR-3b) | subject, requested by, session, date, minutes requested and approved, day type, settings version, reason code, encrypted note, status, decided by and at, `lock_version` |
+| `hr_attendance_retries` | idempotency records (the `hr_leave_retries` pattern) |
+
+PostgreSQL: one open session per person (partial unique index); a session's events alternate in then out and a
+closed session never reopens; events, settings versions and decisions are append-only (no update of a decided row,
+no delete, no truncate); the decider differs from the subject and the proposer (CHECK); every row's person, branch
+and recorder belong to the same organisation; a clock-in on a branch the person is not assigned to is refused
+(trigger, backing the service).
+
+Migrations from `2026_11_10_000700`; the permission grants in their own additive migration.
+
+### 9.5 Permissions
+
+| Permission | Holders |
+|---|---|
+| `hr.attendance.clock.own` (clock, own list, own corrections, own overtime requests) | every human role, not the TV account |
+| `hr.attendance.review.organisation` (review page, decide corrections, propose on someone's behalf, settings) | Director, HR Manager |
+| `hr.overtime.approve.organisation` (HR-3b: decide overtime) | Director, HR Manager |
+
+None is in the people-and-access authority set.
+
+### 9.6 Screens (Hui Min; Daniel's early look folded in)
+
+Daniel's early look (2026-11-06): **OK with changes**, all folded in below. One page, `/hr/attendance`, with tabs My
+attendance, Review, Settings (and Overtime in HR-3b), the HR-2a tab pattern (DD-30 strip on phones). One hub link
+"KPOne HR attendance" under Staff & branches; a "Clock in" **outline** link on My roster (never a second primary).
+**The top bar is unchanged** unless the owner asks (see 9.9).
+- **One button, three states** (the only primary on the page; full width on phones, at least 56 px tall):
+  - before clocking in: "Clock in", no dialog;
+  - after: a line "Clocked in at 8:02 AM" and a toast, and the button becomes "Clock out", which asks "Clock out
+    now?" in a confirm dialog so a stray tap does not end the day;
+  - after clocking out: "Done for today: 8:02 AM – 5:04 PM, 9 h 2 min", with no button (a second shift that day
+    shows the button again).
+  While sending it reads "Clocking in…" or "Clocking out…" and is disabled. Refused states say why under the button
+  ("Choose a branch you work at in the top bar.").
+- **Server time line:** "Server time 8:02:15 AM" under the button, updated every second from the server's offset,
+  never the device clock, and **never in a live region**. One polite live region announces state changes only
+  (clocked in, clocked out, refused). Today's shift under it ("Today: Morning, 8:00 AM to 2:00 PM, Cheras").
+- **Privacy line:** one muted line under the button: "KPOne records the time only. No location or photo." After a
+  press on a shared computer: "Signed in as Aina CA. Sign out if this is a shared computer."
+- **Formats:** KPOne's existing time and date formats everywhere ("8:02 AM", "6 Nov 2026"); worked time as
+  "9 h 2 min", never a decimal.
+- **My week:** one row per day (cards below 768 px): shift, clock times, worked time, flags as **warning** chips with
+  text ("Late 12 min", "Left early 20 min", "No clock-out"); never red for these, and colour is never the only
+  signal. Danger is used for nothing here except a refused correction. A forgotten clock-out row has an outline
+  "Add clock-out time" button that opens the correction sheet.
+- **Correction sheet:** kind, the recorded time beside the new one ("Recorded: none · New: 5:30 PM"), reason,
+  optional note ("Do not write medical details here."). Toast "Correction sent for approval." The row then shows a
+  neutral "Correction waiting" chip until it is decided.
+- **Review:** branch and day pickers, a short summary line above the table ("3 flags · 1 correction waiting"), a
+  table from 1024 px (person, shift, in, out, worked, flags) and cards below; waiting corrections in their own card
+  with outline Approve and Reject, and the primary action inside the confirm dialog (the HR-2a pattern).
+- **Settings:** number fields with units in the label ("Grace minutes"), help text for each, "Applies from" date.
+- **Phone:** no sideways scroll at 320, 390 or 768 px; 44 px targets.
+- **Screenshots when built:** My attendance before clocking in, clocked in, "Done for today", the Clock out confirm
+  and a forgotten clock-out; the correction sheet with an error; the review day with flags; and settings, at 390
+  and 1440 px, light and dark.
+
+### 9.7 Tests (planned)
+
+- Grants for every role, the TV account refused, none is authority; the hub map gains `/hr/attendance` (an approved
+  existing-assertion change will be needed in `ClinicManagementTest`, listed for approval when built).
+- Clock in and out, a double tap, a retry, a second open session refused (service and PostgreSQL), an unassigned
+  branch refused, a night shift across midnight on its start day, branch-local dates with a frozen clock (never the
+  UTC date: BASELINE section 6 item 21).
+- Every flag against an approved roster, the grace minutes, settings versions applied by date, approved leave days.
+- Corrections: the two-person rule for self, on-behalf, HR Manager and Director cases (service and PostgreSQL), the
+  window, order of times, the original press kept, notes never in audit.
+- PostgreSQL contention: two presses at once give one session; two deciders on one correction give one decision.
+- No write to roster, leave, accounts, visits, the queue or anything clinical.
+- HR-3b: day types from holidays and working days, minutes capped, approver lowers only, role eligibility, weekly
+  hours at 40 and 45, summaries that add up to the day rows.
+
+### 9.8 What stays out
+
+- Geofence, location, selfie or any photo at clock-in (TEAM.md decision 6; PDPA review first).
+- Using login, queue or consultation times as attendance; a fixed kiosk or QR clock-in.
+- Pay, deductions or allowances (HR-7); exports; messages or reminders of any kind.
+- Per-person rest days and split-shift rules beyond one session per shift [TO CONFIRM].
+- A CA Supervisor branch view (as HR-1 decision 14).
+
+### 9.9 Questions only the clinic can answer [TO CONFIRM]
+
+1. Grace minutes for late and early (the form suggests 5)?
+2. The forgotten clock-out window (default 60 minutes after the shift ends)?
+3. How far back a correction may go (default 7 days)?
+4. Do staff clock on a shared clinic PC, their own phones, or both? (Both work; a shared PC means signing out.)
+5. Who may claim overtime (by role), and must overtime be asked for before it is worked?
+6. Rest days: the branch's non-working weekdays for everyone, or a rest day per person?
+7. A split shift (morning and evening on one day): two sessions, one per shift (the default)?
+8. Should "Clock in" also be in the top bar for every role? (Default: no; a hub link and a link on My roster.)
+
+## 10. HR-3b overtime, weekly hours and summaries: design note
+
+Written 2026-11-06 at the owner's request ("start the HR-3b design note") while HR-3a (PR #327) waits for HR-2b
+(PR #311) to merge. It works out section 9.1's HR-3b line in detail. It changes no HR-1, HR-2 or HR-3a rule, and
+where it differs from section 9 it replaces it. **Status: approved with its defaults by the owner on 2026-11-06
+(TEAM.md decision 32); Daniel's early look pending.** Questions in 10.9 take the defaults written here until the clinic says otherwise.
+
+**KPOne ships no overtime rule.** Who may claim overtime, the multipliers and the weekly hour levels are
+clinic-entered, versioned settings. The form is pre-filled with the clinic HR proposal's values (normal day 1.5x,
+rest day 2x, public holiday 3x, nearing 40 h, limit 45 h; TEAM.md decision 10) and ticks no role, but nothing counts
+until a manager presses Save. Until then the Overtime tab reads "Overtime is not set up yet." and the weekly hours
+line shows the total with no warning.
+
+### 10.1 What the clinic gets
+
+- **Ask for overtime** (every human role the settings allow): on a day in My week where the person worked more
+  than their roster, an outline "Ask for overtime" button opens a sheet with the session, the worked time beside the
+  rostered time ("Worked 10 h 15 min · Rostered 8 h"), KPOne's day type ("Normal day", "Rest day" or "Public
+  holiday: Deepavali"), the minutes (pre-filled with the most allowed) and a reason code (Busy clinic, Covered for
+  someone absent, Stayed to finish work, Asked by a manager, Other). A manager may ask on someone's behalf from that
+  person's closed day on Review (built that way: Review already shows the day's sessions).
+- **Overtime tab** (Director, HR Manager): requests waiting for a decision, each with the person, date, branch, day
+  type, minutes, reason and the person's hours that week; outline Approve, Approve fewer minutes and Reject (the
+  primary action in the dialog). Below: decided requests for the chosen month.
+- **Weekly hours:** one line on My attendance ("This week: 38 h 20 min"), and a warning chip at the nearing level
+  ("Nearing 45 h this week") and past the limit ("Over 45 h this week: 46 h 10 min"); the same chip on Review and on
+  each overtime request. A warning only: it never refuses a clock-in, a correction or an overtime request.
+- **Summary tab** (Director, HR Manager): one branch and one week or month, up to today; one row per person who is
+  assigned to that branch or worked there in the period, and a total row: rostered hours, worked hours, late (count and minutes), left early
+  (count), no clock-in (count), forgotten clock-outs (count), approved overtime minutes by day type. Totals across
+  all of that person's branches, with a note when some time was at another branch. Each staff member sees their
+  own month on My attendance ("My month"). On screen only: no CSV (exports need their own authorisation).
+- **Settings:** a second card "Overtime" on the Settings tab: roles that may claim, the three multipliers, the
+  nearing and limit hours, "Applies from".
+
+### 10.2 Rules
+
+1. **A request is for one closed session** of the subject, within the correction window (HR-3a setting, default
+   7 days back), not in the future. A session with a correction waiting cannot be asked for until it is decided.
+   One pending or approved request per session (service and PostgreSQL); a split shift's two sessions can each have
+   one.
+2. **Day type** is worked out by KPOne from the session's branch and local date: a public holiday of that branch
+   (HR-2a calendar), else a rest day (a weekday that is not a working day of that branch, until per-person rest days
+   exist, 10.9), else normal. It is shown when asking and worked out again at the decision; the decision stores the
+   day type it saw.
+3. **Most minutes allowed:** on a normal day, the minutes outside the matched shift's window (arrived before it
+   starts plus stayed after it ends), never more than the worked minutes; on a rest day or public holiday, all of the
+   session's worked minutes. (Amended after Suresh's review: "worked less rostered" let a late arrival gain the
+   shift's break.) A session with no shift on a normal day ("Not on the roster") allows all its worked minutes, and the
+   reviewer sees that flag. Whole minutes, at least 1. Checked when asking and again at the decision.
+4. **Eligibility:** only the roles ticked in the overtime settings in force on the session's date may ask, or be
+   asked for. A person with several roles qualifies if any of them is ticked.
+5. **The decider is never the subject and never the requester** (service and PostgreSQL CHECK), and holds
+   `hr.overtime.approve.organisation`. An HR Manager's request goes to the Director; a Director's to the HR Manager or
+   another Director (TEAM.md decision 3).
+6. **Approve fewer minutes** lowers, never raises, and needs a reason code (Not all of it was needed, More than was
+   agreed, Other). Reject needs a reason code (Not agreed in advance, Not overtime, Wrong day, Other). Notes are
+   encrypted, at most 200 characters and never audited.
+7. **Approval stores** the approved minutes, the day type, and the overtime settings version with its multiplier, so
+   HR-7 can price it later. **No money is worked out or shown in HR-3b.**
+8. **Withdraw and reverse:** the requester withdraws a pending request. A manager (not the subject) may reverse an
+   approved one with a reason code (Approved by mistake, Correction changed the hours, Other); the row becomes
+   "reversed" and the session may be asked for again. Nothing is deleted.
+9. **A later correction** to a session with approved overtime does not change the approved minutes; Review and the
+   Overtime tab show "Hours changed after approval" until a manager reverses or leaves it.
+10. **Weekly hours:** worked minutes of the person's sessions whose local date falls in the branch-local Monday to
+   Sunday week, at every branch; an open session counts up to now and the line says "so far"; a forgotten clock-out
+   (older than 16 hours, or before the next shift of a split day) or a session missing its clock-out counts nothing
+   until it is corrected; corrections waiting are not counted. Worked out when the page is
+   opened, never stored.
+11. **Summaries** reuse the HR-3a day rows and flags, so a summary always adds up to the day rows on Review. Late and
+   left-early minutes use the HR-3a settings version of each day.
+12. **HR never blocks clinical work** (TEAM.md decision 4); nothing here is read by a clinical screen.
+13. **Every write:** fresh permission check under lock; `DB::transaction`; accounts locked once in id order, then the
+   session and request rows; `lock_version`; idempotency keys on ask, decide, withdraw and reverse; audit with ids,
+   codes, minutes and day type only.
+
+### 10.3 Tables (sketch)
+
+| Table | Holds |
+|---|---|
+| `hr_overtime_settings` | append-only versions per organisation: effective from, normal, rest-day and public-holiday multipliers (two decimals, 1.00 to 5.00), nearing and limit hours, created by |
+| `hr_overtime_setting_roles` | the roles ticked in each version (append-only) |
+| `hr_overtime_requests` | subject, requested by, on behalf, session, branch, local date, minutes asked, reason code, encrypted note, status pending/approved/rejected/withdrawn/reversed, day type, minutes approved, settings version, decided by and at, decision reason, reversed by and at, reverse reason, `lock_version` |
+| `hr_attendance_retries` | reused for the idempotency records |
+
+A separate settings table keeps HR-3a's append-only `hr_attendance_settings` untouched.
+
+PostgreSQL: one pending or approved request per session (partial unique index); the session belongs to the subject
+and is closed; approved minutes at most the minutes asked and at least 1; the decider and the reverser differ from
+the subject and the decider from the requester (CHECK); a decided row changes only from approved to reversed, once,
+and a request's identity never changes; settings versions are append-only; no delete or truncate; every row's
+people, branch and session belong to one organisation.
+
+Migrations `2026_11_10_000900_create_hr_overtime_tables` and `2026_11_10_001000_grant_hr_overtime_permission`
+(additive).
+
+### 10.4 Permissions
+
+| Permission | Holders |
+|---|---|
+| `hr.attendance.clock.own` (existing): ask for own overtime, withdraw, see own weekly hours and month | every human role, not the TV account |
+| `hr.attendance.review.organisation` (existing): Summary tab, ask on someone's behalf, overtime settings | Director, HR Manager |
+| `hr.overtime.approve.organisation` (new): decide and reverse overtime | Director, HR Manager |
+
+None is in the people-and-access authority set. No new page or hub link, so no change to the Clinic management
+destination map is expected.
+
+### 10.5 Screens (Hui Min, for Daniel's early look)
+
+Same page, `/hr/attendance`; two new tabs, **Overtime** and **Summary**, for managers (the strip scrolls on phones,
+DD-30). The Clock button stays the only primary on My attendance.
+- **My attendance:** the weekly hours line under the week heading with its chip (warning, never red, never colour
+  alone); an outline "Ask for overtime" on each eligible day row; "My overtime" (status chips: Waiting neutral,
+  Approved success, Fewer minutes approved success with the minutes, Rejected neutral with the reason, Reversed
+  neutral); "My month" with the summary figures as a short definition list.
+- **Ask sheet:** worked beside rostered, the day type as text, minutes as a number field with "Most allowed: 135 min
+  (2 h 15 min)", reason, optional note ("Do not write medical details here."). Toast "Overtime request sent."
+- **Overtime tab:** a summary line ("2 waiting · 1 hours changed after approval"), waiting cards with outline
+  buttons and the decision in a dialog (Approve fewer minutes shows the minutes field and reason in the dialog);
+  decided list by month as a table from 1024 px and cards below.
+- **Summary tab:** branch and period pickers (Week / Month), a table from 1024 px with sticky person column, cards
+  below; hours as "38 h 20 min"; a muted "Includes time at another branch" under a name where it applies.
+- **Formats and phones:** KPOne time and date formats; no sideways scroll at 320, 390 and 768 px; 44 px targets.
+- **Screenshots when built:** the ask sheet with an error, My attendance with a weekly warning, the Overtime tab with
+  a waiting request and the fewer-minutes dialog, the Summary tab, and overtime settings, at 390 and 1440 px, light
+  and dark.
+
+### 10.6 Tests (planned)
+
+- Grants: the new permission for Director and HR Manager only, TV account refused, not authority.
+- Day types from holidays and working days at the session's branch; most minutes on each day type, with and without
+  a shift and with a break; eligibility by role and settings version; the window; a waiting correction blocks.
+- Two-person rule for self, on-behalf, HR Manager and Director cases (service and PostgreSQL); lower only; reasons
+  required; withdraw by the requester only; reverse once by someone other than the subject; one active request per
+  session (service and PostgreSQL); "hours changed after approval".
+- Weekly hours at 40 and 45 across two branches, an open session "so far", a missing clock-out not counted, Monday
+  to Sunday in the branch time zone with a frozen clock.
+- Summaries add up to the day rows; another organisation's ids refused; notes never in audit; nothing written to
+  roster, leave, sessions, accounts or anything clinical.
+- PostgreSQL contention: two people deciding one request record one decision; two asks for one session record one
+  request.
+- Frontend: the tabs, the ask sheet, the chips and the live region.
+
+### 10.7 What stays out
+
+- Pay, rates, allowances or any money (HR-7); exports; messages or reminders.
+- Overtime asked for before it is worked (a pre-approval) [TO CONFIRM]; per-person rest days; time off in lieu.
+- A CA Supervisor branch view (as HR-1 decision 14).
+
+### 10.8 Known risks
+
+- Summaries for a month read every session and shift of the branch's people for that month; not load-tested.
+- A role ticked or unticked later affects only sessions from that settings version's date.
+
+### 10.9 Questions only the clinic can answer [TO CONFIRM]
+
+1. Which roles may claim overtime? (Default: none ticked until HR ticks them.)
+2. Must overtime be agreed before it is worked? (Default: no; asked for after, within 7 days.)
+3. Multipliers 1.5x, 2x and 3x, and weekly levels 40 h and 45 h, as the clinic HR proposal says?
+4. Rest days: the branch's non-working weekdays for everyone (default), or a rest day per person later?
+5. Should a manager be able to reverse an approved request? (Default: yes, with a reason, never their own.)
+6. Should staff see their own month (default yes) as well as their week?

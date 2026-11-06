@@ -11,7 +11,8 @@ use Illuminate\Support\Facades\DB;
  * `inventory.stock_counts`: governed stock counts (STK-5) per SKU and location at one branch: the
  * last completed count (posted, or closed with no variance), open count cases, and cases with an
  * unresolved variance (awaiting recount or approval). SKU and location pairs holding stock with no
- * count are included, so a checker can see what is due.
+ * count are included, so a checker can see what is due; `stocked` says whether a pair holds stock now
+ * (a pair with only case history may be empty).
  */
 final class InventoryStockCountsTool implements AgentTool
 {
@@ -41,7 +42,9 @@ final class InventoryStockCountsTool implements AgentTool
     public function run(User $requester, ?Branch $branch, array $input): array
     {
         assert($branch !== null);
-        $organisationId = $requester->organisation_id;
+        // The gateway has checked the branch is in the requester's organisation; reading it from the branch
+        // keeps this tool usable by AG-8's system path, which has no requester.
+        $organisationId = $branch->organisation_id;
         $latest = DB::table('inventory_governed_actions')->selectRaw('case_id, MAX(lock_version) as version')->groupBy('case_id');
         $cases = DB::table('inventory_governed_cases as c')
             ->joinSub($latest, 'v', 'v.case_id', '=', 'c.id')
@@ -55,11 +58,11 @@ final class InventoryStockCountsTool implements AgentTool
 
         $pairs = [];
         foreach ($stocked as $row) {
-            $pairs[$row->sku_id.':'.$row->location_id] = ['sku_id' => $row->sku_id, 'location_id' => $row->location_id, 'last' => null, 'open' => 0, 'variance' => 0];
+            $pairs[$row->sku_id.':'.$row->location_id] = ['sku_id' => $row->sku_id, 'location_id' => $row->location_id, 'last' => null, 'open' => 0, 'variance' => 0, 'stocked' => true];
         }
         foreach ($cases as $case) {
             $key = $case->sku_id.':'.$case->location_id;
-            $pair = $pairs[$key] ?? ['sku_id' => $case->sku_id, 'location_id' => $case->location_id, 'last' => null, 'open' => 0, 'variance' => 0];
+            $pair = $pairs[$key] ?? ['sku_id' => $case->sku_id, 'location_id' => $case->location_id, 'last' => null, 'open' => 0, 'variance' => 0, 'stocked' => false];
             if (in_array($case->state, self::OPEN, true)) {
                 $pair['open']++;
             }
@@ -84,6 +87,7 @@ final class InventoryStockCountsTool implements AgentTool
             'lastCompletedCountDate' => $pair['last'],
             'openCases' => $pair['open'],
             'unresolvedVariances' => $pair['variance'],
+            'stocked' => $pair['stocked'],
         ], $pairs));
         usort($rows, fn (array $a, array $b): int => [$a['skuCode'], $a['locationLabel']] <=> [$b['skuCode'], $b['locationLabel']]);
 

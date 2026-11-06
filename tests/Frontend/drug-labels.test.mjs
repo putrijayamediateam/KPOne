@@ -30,7 +30,7 @@ const printHarness = (current = true) => {
     const fn = new Function('props','busy','changed','retired','error','fetch','window','URL','reprinted','nextTick',body+';return printLabels;')(
         props,busy,changed,retired,error,
         async (url, options) => {
- calls.reads++; assert.equal(url.searchParams.get('verify'),'1'); assert.equal(options.cache,'no-store'); assert.equal(options.method,undefined);
+ calls.reads++; assert.equal(url.pathname,'/dispensary/synthetic/labels/print'); assert.equal(url.search,''); assert.equal(options.cache,'no-store'); assert.equal(options.method,'POST'); assert.deepEqual(JSON.parse(options.body),{token:'a'.repeat(64),branch:1}); assert.ok('X-CSRF-TOKEN' in options.headers); assert.equal(options.headers['Content-Type'],'application/json'); // DSP-6b (owner-approved 2026-11-06): the logging check is a POST.
 
  return {ok:current,json:async()=>({current})};
 },

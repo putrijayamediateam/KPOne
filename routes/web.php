@@ -32,6 +32,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DiagnosisPresetSettingsController;
 use App\Http\Controllers\DispensaryController;
 use App\Http\Controllers\GovernedStockController;
+use App\Http\Controllers\HR\AttendanceController as HrAttendanceController;
 use App\Http\Controllers\HR\LeaveController;
 use App\Http\Controllers\HR\RosterController;
 use App\Http\Controllers\InventoryBatchHoldController;
@@ -153,6 +154,33 @@ Route::middleware(['auth', 'verified'])->group(function () {
         });
     });
 
+    // HR-3a attendance (owner, 2026-11-06). Rules live in app/Domain/HR/Attendance. Server time only; no location or photo.
+    Route::prefix('hr/attendance')->controller(HrAttendanceController::class)->middleware('sensitive.no-store')->group(function (): void {
+        Route::get('/', 'index')->middleware('permission:hr.attendance.clock.own,hr.attendance.review.organisation')->name('hr.attendance.index');
+        Route::middleware(['permission:hr.attendance.clock.own', 'throttle:10,1'])->group(function (): void {
+            Route::post('clock-in', 'clockIn')->name('hr.attendance.clock-in');
+            Route::post('clock-out', 'clockOut')->name('hr.attendance.clock-out');
+        });
+        Route::middleware(['permission:hr.attendance.clock.own,hr.attendance.review.organisation', 'throttle:30,1'])->group(function (): void {
+            Route::post('corrections', 'propose')->name('hr.attendance.corrections.store');
+            Route::post('corrections/{correction}/cancel', 'cancel')->whereUuid('correction')->name('hr.attendance.corrections.cancel');
+        });
+        Route::middleware(['permission:hr.attendance.review.organisation', 'throttle:60,1'])->group(function (): void {
+            Route::post('corrections/{correction}/{decision}', 'decide')->whereUuid('correction')->whereIn('decision', ['approve', 'reject'])->name('hr.attendance.corrections.decide');
+            Route::put('settings', 'saveSettings')->name('hr.attendance.settings');
+            Route::put('overtime-settings', 'saveOvertimeSettings')->name('hr.attendance.overtime-settings');
+        });
+        // HR-3b overtime (owner, 2026-11-06). Minutes and day type only; no money.
+        Route::middleware(['permission:hr.attendance.clock.own,hr.attendance.review.organisation', 'throttle:30,1'])->group(function (): void {
+            Route::post('overtime', 'askOvertime')->name('hr.attendance.overtime.store');
+            Route::post('overtime/{overtimeRequest}/withdraw', 'withdrawOvertime')->whereUuid('overtimeRequest')->name('hr.attendance.overtime.withdraw');
+        });
+        Route::middleware(['permission:hr.overtime.approve.organisation', 'throttle:60,1'])->group(function (): void {
+            Route::post('overtime/{overtimeRequest}/reverse', 'reverseOvertime')->whereUuid('overtimeRequest')->name('hr.attendance.overtime.reverse');
+            Route::post('overtime/{overtimeRequest}/{decision}', 'decideOvertime')->whereUuid('overtimeRequest')->whereIn('decision', ['approve', 'reject'])->name('hr.attendance.overtime.decide');
+        });
+    });
+
     // HR-2a leave (B.E.R.N.I.S.S for the owner, 2026-11-05). Rules live in app/Domain/HR/Leave.
     Route::prefix('hr/leave')->controller(LeaveController::class)->middleware('sensitive.no-store')->group(function (): void {
         Route::get('/', 'index')->middleware('permission:hr.leave.request.own,hr.leave.approve.organisation,hr.leave.manage.organisation')->name('hr.leave.index');
@@ -160,6 +188,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::post('preview', 'preview')->name('hr.leave.preview');
             Route::post('requests', 'apply')->name('hr.leave.requests.store');
         });
+        // HR-2b evidence files: own files with request.own, anyone's with manage (add, remove) or evidence.view (open).
+        Route::post('requests/{leaveRequest}/evidence', 'addEvidence')->whereUuid('leaveRequest')
+            ->middleware(['permission:hr.leave.request.own,hr.leave.manage.organisation', 'throttle:30,1'])->name('hr.leave.evidence.store');
+        Route::post('evidence/{file}/remove', 'removeEvidence')->whereUuid('file')
+            ->middleware(['permission:hr.leave.request.own,hr.leave.manage.organisation', 'throttle:30,1'])->name('hr.leave.evidence.remove');
+        Route::get('evidence/{file}', 'openEvidence')->whereUuid('file')
+            ->middleware(['permission:hr.leave.request.own,hr.leave.evidence.view.organisation', 'throttle:120,1'])->name('hr.leave.evidence.show');
         Route::post('requests/{leaveRequest}/cancel', 'cancel')->whereUuid('leaveRequest')
             ->middleware(['permission:hr.leave.request.own,hr.leave.approve.organisation', 'throttle:30,1'])->name('hr.leave.requests.cancel');
         Route::middleware(['permission:hr.leave.approve.organisation', 'throttle:60,1'])->group(function (): void {
@@ -618,6 +653,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
             ->whereUuid('dispensaryCase')->middleware(['permission:dispensary.labels.print.branch', 'throttle:30,1'])->name('dispensary.labels');
         Route::get('dispensary/{dispensaryCase}/items/{itemPublicId}/label', [DispensaryController::class, 'labels'])
             ->whereUuid('dispensaryCase')->middleware(['permission:dispensary.labels.print.branch', 'throttle:30,1'])->whereUuid('itemPublicId')->name('dispensary.items.label');
+        Route::post('dispensary/{dispensaryCase}/labels/print', [DispensaryController::class, 'printLabels'])
+            ->whereUuid('dispensaryCase')->middleware(['permission:dispensary.labels.print.branch', 'throttle:30,1'])->name('dispensary.labels.print');
+        Route::post('dispensary/{dispensaryCase}/items/{itemPublicId}/label/print', [DispensaryController::class, 'printLabels'])
+            ->whereUuid('dispensaryCase')->middleware(['permission:dispensary.labels.print.branch', 'throttle:30,1'])->whereUuid('itemPublicId')->name('dispensary.items.label.print');
         Route::post('dispensary/{dispensaryCase}/call', [RoomCallController::class, 'dispensary'])
             ->whereUuid('dispensaryCase')->middleware(['permission:dispensary.start.branch', 'throttle:30,1'])->name('dispensary.call');
         Route::post('dispensary/{dispensaryCase}/start', [DispensaryController::class, 'start'])
@@ -689,6 +728,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::post('{medicine}/deactivate', [MedicineCatalogueController::class, 'deactivate'])->whereUuid('medicine')->middleware('throttle:20,1')->name('medicines.deactivate');
             Route::post('{medicine}/controlled', [MedicineCatalogueController::class, 'controlled'])->whereUuid('medicine')->middleware('throttle:20,1')->name('medicines.controlled');
             Route::post('{medicine}/allergy-groups', [MedicineCatalogueController::class, 'allergyGroups'])->whereUuid('medicine')->middleware('throttle:20,1')->name('medicines.allergy-groups');
+            Route::post('{medicine}/allergy-aliases', [MedicineCatalogueController::class, 'allergyAliases'])->whereUuid('medicine')->middleware('throttle:20,1')->name('medicines.allergy-aliases');
         });
 
         Route::middleware(['permission:clinical_services.manage.organisation'])->prefix('clinical-services')->group(function () {
@@ -775,6 +815,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         });
         Route::middleware(['permission:payments.reconcile.branch', 'sensitive.no-store'])->prefix('cash-closings')->group(function () {
             Route::get('/', [CashClosingController::class, 'index'])->name('cash-closings.index');
+            Route::get('month', [CashClosingController::class, 'month'])->name('cash-closings.month');
             Route::post('/', [CashClosingController::class, 'store'])->middleware('throttle:20,1')->name('cash-closings.store');
             Route::post('{closing}/{decision}', [CashClosingController::class, 'decide'])->whereUuid('closing')->whereIn('decision', ['approved', 'returned'])
                 ->middleware(['permission:payments.cash_closing.approve.branch', 'throttle:20,1'])->name('cash-closings.decide');
