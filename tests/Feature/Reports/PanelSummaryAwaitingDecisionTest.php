@@ -88,5 +88,15 @@ class PanelSummaryAwaitingDecisionTest extends BillingTestCase
         $this->postJson(route('reports.panel-summary.run'), $filters)->assertOk()
             ->assertJsonPath('result.rows.0.19', '1')
             ->assertJsonPath('result.rows.0.20', '20.00');
+        // Resubmitted after rejection: awaiting again, still aged from the first submission (day 91).
+        $this->selectBranch($officer);
+        $rejected = $submitted->refresh();
+        $claims->submit($officer, $rejected, ['expected_branch_id' => $this->branch->id, 'lock_version' => $rejected->lock_version]);
+        $this->selectBranch($finance);
+        $this->postJson(route('reports.panel-summary.run'), $filters)->assertOk()
+            ->assertJsonPath('result.rows.0.19', '2')
+            ->assertJsonPath('result.rows.0.20', '50.00')
+            ->assertJsonPath('result.rows.0.21', '0.00')
+            ->assertJsonPath('result.rows.0.24', '50.00');
     }
 }
