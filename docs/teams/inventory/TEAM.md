@@ -175,8 +175,12 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php`. Key ones:
     paid for each delivered batch**, exactly as on the supplier invoice, so no per-unit cost is rounded; cost stays
     **optional**, and a blank cost keeps the order's estimate **marked as an estimate**; **both** receiving forms take
     the lot total, and the owner approved changing the existing assertions in `i2-inventory-operations.test.mjs` and
-    `unified-catalogue-setup.test.mjs` for it. Still waiting on the owner: the accountant's name and package, and
-    who may see cost. Migration `2026_11_07_000700`.
+    `unified-catalogue-setup.test.mjs` for it. Still waiting on the owner: the accountant's name and package.
+    Migration `2026_11_07_000700`.
+30. Who may see cost (owner, relayed by B.E.R.N.I.S.S in the owner's words, 2026-11-06): "only Director sees cost".
+    If KPOne ever shows a stock cost, only the Director sees it. The same relay said "option A" for STK-10; that
+    conflicted with "yes, do option B" in this session, so the team asked the owner here, and the owner chose
+    "Option B, keep building".
 
 ## 7. Open items and known limits
 

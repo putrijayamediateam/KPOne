@@ -23,7 +23,7 @@ Option B cleans up that evidence without building any valuation, report or cost 
 - A rejected lot has no cost box, because no stock enters from it.
 - The purchase order's estimate box now reads "Estimated cost per stock unit (RM)", with a line saying it is for
   one stock unit (for example one tablet), not one box.
-- **No cost is shown anywhere**, as before. Who may see cost is still the owner's open question.
+- **No cost is shown anywhere**, as before. If cost is ever shown, only the Director sees it (owner decision).
 
 ## Design
 
@@ -39,6 +39,11 @@ Option B cleans up that evidence without building any valuation, report or cost 
   | Nothing, and no estimate | empty | empty | empty |
 
 - Sending both a unit cost and a total for one lot is refused.
+- A rejected lot carries no cost, not even the order's estimate.
+- The lot total is added to the canonical receipt payload only when given. So the hash of a receipt or an STK-3
+  exception review saved before STK-10B is unchanged, and it still posts after the deploy.
+- A remembered Post receipt draft saved with the old per-unit cost is not restored, rather than restored without its
+  cost.
 - The movement writer adds the new columns only for a receipt with a cost source, so older schemas still work.
 - **PostgreSQL** checks on both tables (`receipt_lots_cost_shape`, `stock_movements_cost_shape`):
   - a total only with `actual` and no unit cost;
@@ -50,8 +55,7 @@ Option B cleans up that evidence without building any valuation, report or cost 
   test caught it.
 - **Existing rows are not changed.** Their cost source stays empty, meaning "recorded before STK-10B".
 - **Exact money.** The forms turn RM into sen with whole-number arithmetic, never floating point.
-- **Remembered drafts.** The remembered Post receipt draft now keeps the total. A draft saved before this change
-  loses only its typed cost.
+- **Remembered drafts.** The remembered Post receipt draft now keeps the total.
 - **No new permission, route, report or screen.** The Ask KPOne view (AG-7) is unchanged and still shows only
   `unit_cost_sen`.
 - **Migration** `2026_11_07_000400` is STK-11; this one is `2026_11_07_000700`. `down()` drops the checks and the
@@ -77,9 +81,23 @@ Option B cleans up that evidence without building any valuation, report or cost 
 
   No other existing assertion changed.
 
+## Review (Mei Ling)
+
+- **Blocker, fixed:** the split-lots form could not submit once a total was typed. Vue turns a `type="number"`
+  model into a number, and the converter called `.trim()` on it. A real submission on the preview database now
+  saves RM 12.34 as `cost_total_sen` 1234, `actual`.
+- **Major, fixed:** always adding `cost_total_sen` to the canonical lot changed the hashes, so a pending exception
+  review or a retried receipt from before the deploy would be refused.
+- **Minor, fixed:** rejected lots got the estimate; old-shaped drafts lost their cost silently.
+- **Minor, noted:** the legacy goods receipt line keeps only `unit_cost_sen`; the Ask KPOne view (Agent platform)
+  does not yet show `cost_total_sen` or `cost_source`, so it can read an estimate as a cost. That is a follow-up for
+  the Agent platform team.
+
 ## Known limits
 
 - Opening balances (Stock setup and the Medicine Catalogue setup) still take a cost per stock unit in whole sen,
   with no cost source. The accountant's opening-value answer decides what they should take.
 - A goods receipt line (the legacy single-lot record) keeps only `unit_cost_sen`.
-- Who may see cost, and any valuation, report or export, wait for the owner and the accountant.
+- Any valuation, report or export waits for the accountant's policy; if cost is ever shown, only the Director sees
+  it.
+- The Ask KPOne view does not show the new columns yet (Agent platform follow-up).
