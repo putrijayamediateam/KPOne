@@ -21,3 +21,21 @@ test('the Medicine details settings menu has no Price tier item and keeps its tw
     assert.match(nav, /aria-current="page"[\s\S]*Medicine details/);
     assert.match(nav, /href="\/inventory-services-settings\/suppliers"/);
 });
+
+const suppliers = read(
+    'resources/js/pages/InventoryServicesSettings/Suppliers.vue',
+);
+const supplierNav = suppliers.slice(
+    suppliers.indexOf('<nav'),
+    suppliers.indexOf('</nav>', suppliers.indexOf('<nav')),
+);
+
+test('the Suppliers settings menu matches: no Price tier item', () => {
+    assert.doesNotMatch(supplierNav, /Price tier/);
+    assert.doesNotMatch(supplierNav, /aria-disabled/);
+    assert.match(
+        supplierNav,
+        /href="\/inventory-services-settings\/medicine-details"/,
+    );
+    assert.match(supplierNav, /aria-current="page"[\s\S]*Suppliers/);
+});
