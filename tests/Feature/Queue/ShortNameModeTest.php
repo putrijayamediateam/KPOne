@@ -8,6 +8,7 @@ use App\Domain\Queue\Display\ShortDisplayName;
 use App\Domain\Queue\Services\QueueEntryService;
 use App\Domain\Visit\Models\Visit;
 use App\Models\User;
+use Carbon\CarbonImmutable;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -55,6 +56,8 @@ class ShortNameModeTest extends QueueTestCase
 
     public function test_short_mode_sends_only_the_short_name_and_number_mode_stays_unchanged(): void
     {
+        // Midday at the branch, so the clock jumps below never cross the branch's midnight (a new day for "today").
+        $this->travelTo(CarbonImmutable::now($this->branch->timezone)->setTime(10, 0));
         $supervisor = $this->actor('ca_supervisor');
         $ca = $this->actor('ca');
         $doctor = $this->doctor();
