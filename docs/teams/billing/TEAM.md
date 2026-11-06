@@ -103,6 +103,8 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php` and `BillingPermiss
 | BIL-6 | Refunds: money handed back for a reversed receipt (full amount, any active method, reason code), recorded on the Billing page and approved or rejected by a different person; append-only with PostgreSQL rules. Cash closing counts a refunded reversed receipt as received and the cash refund as paid out, and waits for pending cash refunds. Two new permissions. Design note: `BIL-6-DESIGN.md` | PR #246 |
 | BIL-6b | Daily summary gains three refund columns at the end: Cash refunds paid (payout date), Cash reversed, refund recorded (receipt date) and Non-cash refunds paid (payout date); waiting and approved refunds count, rejected do not. Total received unchanged. Cash net + Cash reversed, refund recorded − Cash refunds paid equals daily cash closing expected cash (tested on every day). Wider table for reports with more than 12 columns | PR #251 |
 | BIL-5 | Issued invoice and receipt copies: printing is recorded; the first print freezes an encrypted, immutable copy (letterhead and logo included) labelled ORIGINAL, an unchanged reprint is COPY, a changed document prints as REVISED (version n); earlier versions reprint as COPY with a "later version exists" note, a reversed receipt's copy says so. "Issued copies" list on the Billing page; the old live print pages are marked PREVIEW. Two append-only tables with PostgreSQL guards; no new permission | PR #270 |
+| BIL-5b | The patient Invoices page records its invoice and receipt prints too (BIL-5 recorded print, "Back to visit"); Issued copies list and print buttons tidied for phones (44 px targets, date and time with "by …") | PR #286 |
+| BIL-7 | Monthly cash closing view (`/cash-closings/month`): one row per day of the active branch up to today with the latest count (an approved day's approved count), status (Approved, Waiting for approval, Returned, Not counted, Open for today) and flags (No count, Not approved, Changed after approval), a month summary, previous and next month, "Open day" to the daily page and "Month view" from it. Read only; no new permission, table or migration. Design note: `BIL-7-DESIGN.md` | PR pending |
 
 ## 6. Owner decisions already made (never ask again)
 
@@ -191,6 +193,9 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php` and `BillingPermiss
     (still reachable by URL and from the patient Invoices page) stay viewable but carry a clear "PREVIEW — not an
     issued copy" line on the paper; every Billing print button records the print. The recorded print view opens in
     the same tab with a "Back to billing" button (browsers block a new tab opened after the server records it).
+28. BIL-7 monthly cash closing view (2026-11-05, B.E.R.N.I.S.S for the owner: "yes, start BIL-7"; "BIL-7 stays
+    approved" after the owner came back). Read only, same permission as the daily page (`payments.reconcile.branch`),
+    no export or new tables. Layout follows Siti's sketch; sent to Daniel through B.E.R.N.I.S.S.
 
 ## 7. Open items and known limits
 
@@ -264,6 +269,13 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php` and `BillingPermiss
   (`tests/Fixtures/PilotScale/original-small-reports.json`) was regenerated for the Daily summary entries only;
   the Panel, Stock movement and Transaction Detail entries are byte-identical.
 
+- Monthly cash closing (BIL-7): every ended day with no count is flagged "No count", including months before cash
+  closing was in use (for example October 2026 shows 31 such days); a floor date is a possible later change. A
+  missing, malformed, future or pre-2000 `?month=` shows the current month without a message. "Changed after
+  approval" recomputes each approved day's expected cash (about three queries per approved day, about 93 for a
+  fully approved month); not load-tested. Today's count is in the money totals but in no day counter until the day
+  ends. Staff names follow the staff-directory rule ("Staff member" otherwise), as on the daily page.
+
 ## 8. Rules (every task)
 
 - Read `CLAUDE.md`, `AGENTS.md`, `docs/BASELINE.md` and this file first.
@@ -327,8 +339,8 @@ authorisation to build them; the coordinator records it in `docs/BASELINE.md`.
 7b. **BIL-5b Recorded print on the patient Invoices page.** Convert the invoice and receipt print links in the
    Documents list of `resources/js/pages/Visits/History.vue` to the BIL-5 recorded print (they open the PREVIEW
    page today). Billing's to do, from the latest `main`, now that UX-2 (#254) has merged (B.E.R.N.I.S.S,
-   2026-11-05).
-8. **BIL-7 Monthly cash closing view.** A read-only page per branch, one row per day: counted, expected,
+   2026-11-05). *(Built 2026-11-05; PR #286.)*
+8. **BIL-7 Monthly cash closing view.** *(Built 2026-11-05/06; PR pending.)* A read-only page per branch, one row per day: counted, expected,
    difference, counter, approver and status; flags days with no closing or no approval. Same permissions as cash
    closing, no export.
 9. **BIL-8 Report boundary clean-up.** Make `TransactionReportService` use `BranchReportService`, with output
