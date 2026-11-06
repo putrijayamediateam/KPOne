@@ -225,6 +225,10 @@ check items, keep them"). The rest stand unless the owner changes them.
     (Decisions 40 to 47 are recorded on the HR-7 docs branch.)
 49. HR-5a shipped (the owner, 2026-11-06, in the HR session: "ship it for HR-5a"), after Suresh's "ready to merge"
     and Daniel's OK (one nit fixed: Archive as an outline button). The PR opens after #347 (HR-4a) and HR-4b merge.
+50. HR-5b shipped (the owner's own words, relayed verbatim by B.E.R.N.I.S.S 2026-11-06: "ship it for HR-5b for
+    liyana"), after Suresh's re-check ("ready") and Daniel's OK (his items fixed: consecutive-day rest breaches shown
+    as one line with a count, the chip counting breaches, planner times that never break). The PR opens after HR-5a
+    (#356) merges, since HR-5b builds on it.
 
 ## 7. Open items and known limits
 
