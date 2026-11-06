@@ -381,7 +381,7 @@ const goTo = (month: string | null) => {
                 :label="`Cash closings, ${monthTitle}`"
                 :columns="9"
                 :loading="loading"
-                min-width="960px"
+                min-width="0"
             >
                 <template #head>
                     <tr>
@@ -449,9 +449,9 @@ const goTo = (month: string | null) => {
                                     : signed(row.differenceSen)
                             }}
                         </td>
-                        <td class="min-w-36">{{ row.countedBy ?? '—' }}</td>
-                        <td class="min-w-36">{{ row.decidedBy ?? '—' }}</td>
-                        <td class="max-w-56">
+                        <td class="xl:min-w-36">{{ row.countedBy ?? '—' }}</td>
+                        <td class="xl:min-w-36">{{ row.decidedBy ?? '—' }}</td>
+                        <td class="w-40 xl:w-auto xl:max-w-56">
                             <ul v-if="row.flags.length" class="space-y-1">
                                 <li
                                     v-for="flag in row.flags"
