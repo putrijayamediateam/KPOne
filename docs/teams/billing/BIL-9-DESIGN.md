@@ -66,6 +66,21 @@ same footer.
 4. **Already-issued copies stay as issued:** a version issued before the change reprints in the layout it was
    issued in; the new layout applies to new versions; the layout change alone never creates a REVISED version.
 
+Further owner decisions (2026-11-06, Billing session, after Siti's sketch):
+
+5. The receipt's right column adds **"Invoice No:"** after Receipt No and Date; the sentence stays as the sample.
+6. A void invoice prints a bold **"VOID"** line under the title; other invoices are unchanged.
+7. The invoice totals add an **"Invoice total"** row after Tax: Subtotal, Discount, Tax, Invoice total, Total paid,
+   Panel covers and Pay later (when not zero), Total due.
+8. The receipt's **"Total paid" is this receipt's amount**, matching its sentence.
+
+Sketch notes (Siti): title case on paper as the sample (the design guide leaves print layouts to the owner);
+thin 0.5 pt and thick 1.5 pt rules in `border-current`; table cells without "RM " (the headings carry it), totals
+with "RM "; the item header repeats on a second page and the category table, totals and closing rule never split;
+missing logo, second phone, IC or phone leave their line out; the shared `myr()` mis-formats negative amounts
+(-150 sen prints "RM -1.-50") and is fixed first; Print.vue keeps the D03 template for versions issued before
+BIL-9 (decision 4) and picks the layout from the snapshot's layout version.
+
 ## 5. Open before building
 
 - Checked: the people who print (CA, CA Supervisor, `billing.print.branch`) already hold `patients.view.organisation`,
