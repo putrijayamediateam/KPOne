@@ -160,6 +160,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::post('preview', 'preview')->name('hr.leave.preview');
             Route::post('requests', 'apply')->name('hr.leave.requests.store');
         });
+        // HR-2b evidence files: own files with request.own, anyone's with manage (add, remove) or evidence.view (open).
+        Route::post('requests/{leaveRequest}/evidence', 'addEvidence')->whereUuid('leaveRequest')
+            ->middleware(['permission:hr.leave.request.own,hr.leave.manage.organisation', 'throttle:30,1'])->name('hr.leave.evidence.store');
+        Route::post('evidence/{file}/remove', 'removeEvidence')->whereUuid('file')
+            ->middleware(['permission:hr.leave.request.own,hr.leave.manage.organisation', 'throttle:30,1'])->name('hr.leave.evidence.remove');
+        Route::get('evidence/{file}', 'openEvidence')->whereUuid('file')
+            ->middleware(['permission:hr.leave.request.own,hr.leave.evidence.view.organisation', 'throttle:120,1'])->name('hr.leave.evidence.show');
         Route::post('requests/{leaveRequest}/cancel', 'cancel')->whereUuid('leaveRequest')
             ->middleware(['permission:hr.leave.request.own,hr.leave.approve.organisation', 'throttle:30,1'])->name('hr.leave.requests.cancel');
         Route::middleware(['permission:hr.leave.approve.organisation', 'throttle:60,1'])->group(function (): void {

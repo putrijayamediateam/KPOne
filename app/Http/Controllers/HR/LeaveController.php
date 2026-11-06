@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\HR;
 
 use App\Domain\HR\Leave\Services\LeaveEntryService;
+use App\Domain\HR\Leave\Services\LeaveEvidenceFiles;
+use App\Domain\HR\Leave\Services\LeaveEvidenceService;
 use App\Domain\HR\Leave\Services\LeavePageService;
 use App\Domain\HR\Leave\Services\LeaveRequestService;
 use App\Domain\HR\Leave\Services\LeaveSettingsService;
@@ -13,6 +15,7 @@ use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
+use Ramsey\Uuid\Uuid;
 
 /** HR-2a leave. Thin: every rule lives in app/Domain/HR/Leave. */
 class LeaveController extends Controller
@@ -33,9 +36,62 @@ class LeaveController extends Controller
         }
     }
 
-    public function apply(Request $request, LeaveRequestService $leave): RedirectResponse
+    public function apply(Request $request, LeaveRequestService $leave, LeaveEvidenceService $evidence): RedirectResponse
     {
-        return $this->run($request, 'my', 'Leave request sent.', fn () => $leave->apply($request->user(), $request->only(self::APPLY_FIELDS)));
+        $back = $this->back($request, 'my');
+        // HR-2b: every attached file is checked before the request is created, so a bad file changes nothing.
+        $files = array_values(array_filter((array) $request->file('evidence_files', [])));
+        try {
+            if (count($files) > LeaveEvidenceService::MAX_FILES) {
+                throw ValidationException::withMessages(['evidence_files' => 'This request already has 3 files.']);
+            }
+            $prepared = array_map(fn ($file) => LeaveEvidenceFiles::prepare($file, 'evidence_files'), $files);
+            $created = $leave->apply($request->user(), $request->only(self::APPLY_FIELDS));
+        } catch (ValidationException $e) {
+            throw $e->redirectTo($back);
+        }
+        try {
+            foreach ($prepared as $i => $file) {
+                // A key derived from the request's own key keeps a retried submit from attaching a file twice.
+                $evidence->add($request->user(), $created->public_id, $file,
+                    ['idempotency_key' => Uuid::uuid5(Uuid::NAMESPACE_URL, 'kpone-hr-leave-evidence:'.$request->input('idempotency_key').':'.$i)->toString()], 'evidence_files');
+            }
+        } catch (ValidationException $e) {
+            Inertia::flash('toast', ['type' => 'success', 'message' => 'Leave request sent. Add the file again from My leave.']);
+            throw $e->redirectTo($back);
+        }
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'Leave request sent.']);
+
+        return redirect($back);
+    }
+
+    public function addEvidence(Request $request, LeaveEvidenceService $evidence, string $leaveRequest): RedirectResponse
+    {
+        $tab = $request->input('tab') === 'approvals' ? 'approvals' : 'my';
+
+        return $this->run($request, $tab, 'File added.', fn () => $evidence->add($request->user(), $leaveRequest,
+            LeaveEvidenceFiles::prepare($request->file('file')), $request->only(['idempotency_key'])));
+    }
+
+    public function removeEvidence(Request $request, LeaveEvidenceService $evidence, string $file): RedirectResponse
+    {
+        $tab = $request->input('tab') === 'approvals' ? 'approvals' : 'my';
+
+        return $this->run($request, $tab, 'File removed.', fn () => $evidence->remove($request->user(), $file, $request->only(['expected_lock_version', 'reason', 'idempotency_key'])));
+    }
+
+    /** Streams one evidence file after recording the open. A PDF is always a download, never shown inside KPOne. */
+    public function openEvidence(Request $request, LeaveEvidenceService $evidence, string $file): \Illuminate\Http\Response
+    {
+        $opened = $evidence->open($request->user(), $file);
+
+        return response($opened['content'], 200, [
+            'Content-Type' => $opened['mime'],
+            'Content-Disposition' => ($opened['inline'] ? 'inline' : 'attachment').'; filename="'.$opened['filename'].'"',
+            'X-Content-Type-Options' => 'nosniff',
+            'Content-Security-Policy' => "sandbox; default-src 'none'",
+            'Cache-Control' => 'no-store, private',
+        ]);
     }
 
     public function approve(Request $request, LeaveRequestService $leave, string $leaveRequest): RedirectResponse
@@ -58,7 +114,7 @@ class LeaveController extends Controller
     public function saveType(Request $request, LeaveSettingsService $settings): RedirectResponse
     {
         return $this->run($request, 'settings', 'Leave types saved.', fn () => $settings->saveType($request->user(), $request->only(['leave_type_id', 'expected_lock_version', 'code', 'name',
-            'is_paid', 'uses_balance', 'allow_half_days', 'evidence_needed', 'allow_negative', 'carry_max_days', 'carry_expires_on', 'is_active'])));
+            'is_paid', 'uses_balance', 'allow_half_days', 'evidence_needed', 'allow_negative', 'carry_max_days', 'carry_expires_on', 'is_active', 'accepts_evidence_files', 'evidence_retention_days'])));
     }
 
     public function saveEntitlements(Request $request, LeaveSettingsService $settings): RedirectResponse
