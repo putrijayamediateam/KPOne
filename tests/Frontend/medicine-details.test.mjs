@@ -36,9 +36,10 @@ test('Medicine details retains the seven screenshot tabs and approved archive-on
         'Confirm',
         'Cancel',
         'Save',
-        'NAME',
-        'STATUS',
-        'ACTIONS',
+        // CAT-5: sentence-case headers (design guide section 15); B.E.R.N.I.S.S for the owner, 2026-11-06.
+        'Name',
+        'Status',
+        'Actions',
     ]) {
         assert.ok(page.includes(label));
     }

@@ -70,6 +70,10 @@ final class ClinicManagementNavigation
         $add('Panel', 'panel', [
             [$branch && $this->billing->panel($actor), 'Panel Responsibility', 'Review Panel responsibility and approvals for this branch.', 'clinic.panel-responsibility'],
             [$branch && $actor->can('panel.claims.manage.branch'), 'Panel Claims', 'Manage manual claims and their progress.', 'panel-claims.index'],
+            // PNL-10 (B.E.R.N.I.S.S for the owner; Staff Experience agreed): each Panel page under its own permission.
+            [$branch && $actor->can('panel.claims.manage.branch'), 'Claims follow-up', "Open claims with no action for their Panel's follow-up days.", 'panel-claims.follow-up'],
+            [$branch && $actor->can('panel.remittances.record.branch'), 'Panel payments', "Record a Panel's payment and split it across its accepted claims.", 'panel-remittances.index'],
+            [$branch && $actor->can('panel.claim_payments.reverse.branch'), 'Correct a Panel payment', 'Reverse a wrongly recorded Panel payment.', 'panel-payment-corrections.index'],
             [$branch && $actor->can('panel.invoices.export.branch'), 'Panel invoices', 'Review the existing branch Panel invoice report.', 'panel-invoices.index'],
             [$panels, 'Claims message template', 'Manage the claim message in Checkout settings.', 'panel-settings.index'],
         ]);
@@ -94,6 +98,7 @@ final class ClinicManagementNavigation
             [$branch && $actor->can('staff.view.own') && $actor->can('encounters.view.own'), 'My clinician credentials', 'Review your own professional details.', 'clinician-credentials.own'],
             [$actor->can('hr.roster.view.own') || $actor->can('hr.roster.manage.organisation') || $actor->can('hr.roster.approve.organisation'), 'KPOne HR roster', 'Plan branch shifts and see your own roster.', 'hr.roster.index'],
             [$actor->can('hr.leave.request.own') || $actor->can('hr.leave.approve.organisation') || $actor->can('hr.leave.manage.organisation'), 'KPOne HR leave', 'Apply for leave, approve requests and see who is away.', 'hr.leave.index'],
+            [$actor->can('hr.attendance.clock.own') || $actor->can('hr.attendance.review.organisation'), 'KPOne HR attendance', 'Clock in and out, correct your times and review attendance.', 'hr.attendance.index'],
             [$actor->can('staff.view.own') || $actor->can('staff.view.branch') || $actor->can('staff.view.organisation'), 'Staff', 'Review staff within your existing access.', 'staff.index'],
             [$actor->can('branches.view.branch') || $actor->can('branches.view.organisation'), 'Branches', 'Review the clinic locations you may access.', 'branches.index'],
             [$actor->can('access.view.organisation'), 'Access Control', 'Review existing roles and permissions.', 'access-control.index'],

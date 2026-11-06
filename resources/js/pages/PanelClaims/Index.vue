@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Head, Link, router, usePage } from '@inertiajs/vue3';
-import { computed, reactive, ref, watch } from 'vue';
+import { computed, nextTick, reactive, ref, watch } from 'vue';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
@@ -294,6 +294,9 @@ const turnPage = (key: 'allocations_page' | 'claims_page', value: number) =>
     go({ [key]: value });
 
 const error = ref('');
+// PNL-12: "1 claim" / "2 claims", shared by the Submissions and Payouts cards.
+const countLabel = (count: number, noun: 'claim' | 'invoice') =>
+    `${count} ${noun}${count === 1 ? '' : 's'}`;
 const createClaim = (allocationId: string) => {
     router.visit(
         `/panel-claims/allocations/${encodeURIComponent(allocationId)}/create`,
@@ -488,9 +491,26 @@ const togglePackAll = (value: boolean) => {
 
     packSelected.value = next;
 };
-const clearPack = () => {
+const clearPack = async () => {
     packSelected.value = {};
-    document.getElementById('pack-select-all')?.focus();
+    await nextTick();
+    // Focus whichever "Select all" is on screen: the table header on wide
+    // screens, the row above the cards on phones and tablets. A disabled one
+    // (claims of several Panels on the page) cannot take focus, so fall back to
+    // the first claim checkbox on screen that can still be ticked.
+    const onScreen = (element: HTMLElement | null): element is HTMLElement =>
+        element !== null &&
+        element.offsetParent !== null &&
+        !element.hasAttribute('disabled');
+    const selectAll = ['pack-select-all', 'pack-select-all-phone']
+        .map((id) => document.getElementById(id))
+        .find(onScreen);
+    const firstRow = Array.from(
+        document.querySelectorAll<HTMLElement>(
+            '[aria-label$="for a claim pack"]',
+        ),
+    ).find(onScreen);
+    (selectAll ?? firstRow)?.focus();
 };
 const printPack = () => {
     if (packRows.value.length === 0) {
@@ -620,13 +640,23 @@ const visitTypeLabel = (value: string) =>
                     <div class="flex items-center justify-between py-2">
                         <dt>Pending</dt>
                         <dd class="font-medium tabular-nums">
-                            {{ work.summary.pending.count }} claims
+                            {{
+                                countLabel(
+                                    work.summary.pending.count,
+                                    'invoice',
+                                )
+                            }}
                         </dd>
                     </div>
                     <div class="flex items-center justify-between py-2">
                         <dt>Overdue</dt>
                         <dd class="font-medium text-destructive tabular-nums">
-                            {{ work.summary.overdue.count }} claims
+                            {{
+                                countLabel(
+                                    work.summary.overdue.count,
+                                    'invoice',
+                                )
+                            }}
                         </dd>
                     </div>
                 </dl>
@@ -646,9 +676,9 @@ const visitTypeLabel = (value: string) =>
                     >
                         <dt>{{ label }}</dt>
                         <dd class="text-right tabular-nums">
-                            <span class="text-muted-foreground"
-                                >{{ work.summary[key].count }} claims</span
-                            >
+                            <span class="text-muted-foreground">{{
+                                countLabel(work.summary[key].count, 'claim')
+                            }}</span>
                             <span class="ml-3 font-medium">{{
                                 myr(work.summary[key].amountSen)
                             }}</span>
@@ -679,6 +709,7 @@ const visitTypeLabel = (value: string) =>
                             type="button"
                             variant="secondary"
                             size="sm"
+                            class="hidden lg:inline-flex"
                             aria-label="Customize columns"
                         >
                             Columns
@@ -976,8 +1007,149 @@ const visitTypeLabel = (value: string) =>
                     "
                     description="Approved Panel invoices without a claim appear here. Change the date range or filters to see more."
                 />
+                <div
+                    v-if="work.eligible.data.length > 0"
+                    class="rounded-xl border bg-card lg:hidden"
+                    data-testid="invoice-cards"
+                >
+                    <label
+                        class="flex min-h-11 items-center gap-3 border-b px-3 py-1 text-sm"
+                        :class="
+                            selectAllRows.length === 0
+                                ? 'text-muted-foreground'
+                                : ''
+                        "
+                    >
+                        <Checkbox
+                            :model-value="headerState"
+                            :disabled="selectAllRows.length === 0"
+                            :aria-label="
+                                selectAllPanel
+                                    ? `Select all ${selectAllPanel} invoices on this page`
+                                    : 'Filter by one Panel to select all invoices on this page'
+                            "
+                            @update:model-value="() => toggleAll(!allSelected)"
+                        />
+                        <span class="min-w-0 wrap-anywhere">
+                            {{
+                                selectAllPanel
+                                    ? `Select all ${selectAllPanel} invoices on this page`
+                                    : 'Filter by one Panel to select all invoices on this page'
+                            }}
+                        </span>
+                    </label>
+                    <ul
+                        class="divide-y"
+                        aria-label="Approved Panel invoices without a claim"
+                    >
+                        <li
+                            v-for="row in work.eligible.data"
+                            :key="row.allocationId"
+                            class="grid min-w-0 gap-1.5 p-3 text-sm"
+                        >
+                            <div class="flex min-w-0 items-center gap-2">
+                                <label
+                                    class="-ml-3 inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center"
+                                >
+                                    <Checkbox
+                                        :model-value="
+                                            Boolean(selected[row.allocationId])
+                                        "
+                                        :disabled="
+                                            !canSelect(row) ||
+                                            (atBulkMax &&
+                                                !selected[row.allocationId])
+                                        "
+                                        :title="lockedReason(row)"
+                                        :aria-label="`Select invoice ${row.invoiceNumber} for a bulk claim`"
+                                        @update:model-value="
+                                            (value) =>
+                                                toggleRow(row, value === true)
+                                        "
+                                    />
+                                </label>
+                                <span
+                                    class="min-w-0 truncate font-mono text-xs"
+                                >
+                                    {{ row.invoiceNumber }}
+                                </span>
+                                <span
+                                    class="ml-auto font-medium whitespace-nowrap tabular-nums"
+                                >
+                                    {{ myr(row.amountSen) }}
+                                </span>
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger as-child>
+                                        <Button
+                                            type="button"
+                                            variant="ghost"
+                                            class="min-h-11 min-w-11 shrink-0"
+                                            :aria-label="`More actions for invoice ${row.invoiceNumber}`"
+                                        >
+                                            …
+                                        </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end">
+                                        <DropdownMenuItem as-child>
+                                            <a :href="row.invoiceUrl"
+                                                >View invoice</a
+                                            >
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem
+                                            @select="
+                                                createClaim(row.allocationId)
+                                            "
+                                        >
+                                            Create claim
+                                        </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
+                            </div>
+                            <p class="wrap-anywhere text-muted-foreground">
+                                {{ row.panelName }}
+                            </p>
+                            <p
+                                class="font-medium wrap-anywhere text-foreground"
+                            >
+                                {{ row.patientName }}
+                            </p>
+                            <p
+                                class="font-mono text-xs wrap-anywhere text-muted-foreground"
+                            >
+                                {{ row.visitNumber }} ·
+                                {{ visitTypeLabel(row.visitType) }}
+                            </p>
+                            <div
+                                class="flex flex-wrap items-center gap-2 text-xs text-muted-foreground"
+                            >
+                                <StatusBadge
+                                    v-if="row.overdue"
+                                    status="overdue"
+                                    label="Overdue"
+                                    tone="danger"
+                                />
+                                <span>Visit {{ row.visitDate }}</span>
+                            </div>
+                            <p
+                                class="text-xs wrap-anywhere text-muted-foreground"
+                            >
+                                Due {{ row.dueDate
+                                }}<template v-if="row.doctorName">
+                                    · {{ row.doctorName }}</template
+                                >
+                            </p>
+                            <p
+                                v-if="row.remarkNote"
+                                class="line-clamp-2 text-xs wrap-anywhere text-muted-foreground"
+                            >
+                                Remark note: {{ row.remarkNote }}
+                            </p>
+                        </li>
+                    </ul>
+                </div>
                 <OperationalTable
-                    v-else
+                    v-if="work.eligible.data.length > 0"
+                    class="hidden lg:block"
                     label="Approved Panel invoices without a claim"
                     :columns="shownColumnCount"
                     min-width="1000px"
@@ -1224,8 +1396,149 @@ const visitTypeLabel = (value: string) =>
                     title="No claims match"
                     description="Create a claim from the Pending or Overdue tab, or change the tab, date range or filters."
                 />
+                <div
+                    v-if="work.claims.data.length > 0"
+                    class="rounded-xl border bg-card lg:hidden"
+                    data-testid="claim-cards"
+                >
+                    <label
+                        class="flex min-h-11 items-center gap-3 border-b px-3 py-1 text-sm"
+                        :class="
+                            packAllRows.length === 0
+                                ? 'text-muted-foreground'
+                                : ''
+                        "
+                    >
+                        <Checkbox
+                            id="pack-select-all-phone"
+                            :model-value="packHeaderState"
+                            :disabled="packAllRows.length === 0"
+                            :aria-label="
+                                packAllPanel
+                                    ? `Select all ${packAllPanel} claims on this page`
+                                    : 'Filter by one Panel to select all claims on this page'
+                            "
+                            @update:model-value="
+                                () => togglePackAll(!packAllSelected)
+                            "
+                        />
+                        <span class="min-w-0 wrap-anywhere">
+                            {{
+                                packAllPanel
+                                    ? `Select all ${packAllPanel} claims on this page`
+                                    : 'Filter by one Panel to select all claims on this page'
+                            }}
+                        </span>
+                    </label>
+                    <ul class="divide-y" aria-label="Panel claims">
+                        <li
+                            v-for="row in work.claims.data"
+                            :key="row.publicId"
+                            class="grid min-w-0 gap-1.5 p-3 text-sm"
+                        >
+                            <div class="flex min-w-0 items-center gap-2">
+                                <label
+                                    class="-ml-3 inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center"
+                                >
+                                    <Checkbox
+                                        :model-value="
+                                            Boolean(packSelected[row.publicId])
+                                        "
+                                        :disabled="
+                                            !canPack(row) ||
+                                            (atPackMax &&
+                                                !packSelected[row.publicId])
+                                        "
+                                        :title="packLockedReason(row)"
+                                        :aria-describedby="
+                                            canPack(row)
+                                                ? undefined
+                                                : 'pack-panel-rule'
+                                        "
+                                        :aria-label="`Select claim ${row.claimNo} for a claim pack`"
+                                        @update:model-value="
+                                            (value) =>
+                                                togglePackRow(
+                                                    row,
+                                                    value === true,
+                                                )
+                                        "
+                                    />
+                                </label>
+                                <span class="min-w-0 truncate font-medium">
+                                    Claim {{ row.claimNo }}
+                                </span>
+                                <span
+                                    class="ml-auto font-medium whitespace-nowrap tabular-nums"
+                                >
+                                    {{ myr(row.claimAmountSen) }}
+                                </span>
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger as-child>
+                                        <Button
+                                            type="button"
+                                            variant="ghost"
+                                            class="min-h-11 min-w-11 shrink-0"
+                                            :aria-label="`More actions for claim ${row.claimNo}`"
+                                        >
+                                            …
+                                        </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end">
+                                        <DropdownMenuItem as-child>
+                                            <a :href="row.showUrl"
+                                                >View claim</a
+                                            >
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem
+                                            v-if="canMarkSubmitted(row.status)"
+                                            as-child
+                                        >
+                                            <a :href="row.showUrl"
+                                                >Submit claim (manual)</a
+                                            >
+                                        </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
+                            </div>
+                            <p class="wrap-anywhere text-muted-foreground">
+                                {{ row.panelName }}
+                            </p>
+                            <p
+                                class="font-medium wrap-anywhere text-foreground"
+                            >
+                                {{ row.patientName }}
+                            </p>
+                            <p
+                                class="font-mono text-xs wrap-anywhere text-muted-foreground"
+                            >
+                                {{ row.visitNumber }} ·
+                                {{ row.invoiceNumber }}
+                            </p>
+                            <div
+                                class="flex flex-wrap items-center gap-2 text-xs text-muted-foreground"
+                            >
+                                <StatusBadge :status="row.status" />
+                                <span>{{ row.createdAt }}</span>
+                            </div>
+                            <p
+                                v-if="row.updatedBy"
+                                class="text-xs wrap-anywhere text-muted-foreground"
+                            >
+                                Updated by {{ row.updatedBy }}
+                            </p>
+                            <p
+                                v-if="row.remarks"
+                                class="line-clamp-2 text-xs wrap-anywhere text-muted-foreground"
+                            >
+                                Remarks: {{ row.remarks }}
+                            </p>
+                        </li>
+                    </ul>
+                </div>
                 <OperationalTable
-                    v-else
+                    v-if="work.claims.data.length > 0"
+                    class="hidden lg:block"
                     label="Panel claims"
                     :columns="shownColumnCount"
                     min-width="1000px"
