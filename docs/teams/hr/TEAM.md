@@ -219,6 +219,10 @@ check items, keep them"). The rest stand unless the owner changes them.
     matrix with "—" for not required; "Someone else checks this"; a worded planner chip with "Warnings only"; SOP
     acknowledgement only after opening and per version; plain "who hasn't" list; read-only MMC with its source line;
     Health item help text; empty states; one extra register shot at 1440 px dark).
+48. HR-5a hub-map assertion approved (the owner's own words, relayed verbatim by B.E.R.N.I.S.S 2026-11-06: "approve
+    the credentials hub line for liyana"): `ClinicManagementTest` gains one line after `'/hr/records'`,
+    `'/hr/credentials' => ['hr.credentials.view.own', 'hr.credentials.manage.organisation'],` and nothing else.
+    (Decisions 40 to 47 are recorded on the HR-7 docs branch.)
 
 ## 7. Open items and known limits
 
