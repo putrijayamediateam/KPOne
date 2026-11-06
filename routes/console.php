@@ -1,5 +1,6 @@
 <?php
 
+use App\Console\Commands\AgentsDailyRun;
 use App\Console\Commands\CleanupPublicPatientIntakes;
 use App\Console\Commands\PurgeLeaveEvidence;
 use App\Console\Commands\PurgePanelStatements;
@@ -25,5 +26,17 @@ Schedule::command(PurgePanelStatements::class)
 // HR-2b: leave evidence files are deleted after their leave type's retention (owner, 2026-11-06).
 Schedule::command(PurgeLeaveEvidence::class)
     ->daily()
+    ->withoutOverlapping()
+    ->onOneServer();
+
+// AG-8: the AI agents' daily summary runs. Each branch runs a slot once its local clock reaches 07:00 or 14:00
+// (once per local date), so calling every hour is safe and catches up after a missed hour.
+Schedule::command(AgentsDailyRun::class, ['0700'])
+    ->hourlyAt(5)
+    ->withoutOverlapping()
+    ->onOneServer();
+
+Schedule::command(AgentsDailyRun::class, ['1400'])
+    ->hourlyAt(10)
     ->withoutOverlapping()
     ->onOneServer();
