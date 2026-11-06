@@ -52,10 +52,21 @@ class PricingController extends Controller
                     ?? $forCharge->first();
                 $newestInBook = (int) $forCharge->where('price_book_id', $inEffect->price_book_id)->max('version');
 
+                // The next version in that book that takes effect later, if any (shown as a muted line).
+                $scheduled = $forCharge
+                    ->where('price_book_id', $inEffect->price_book_id)
+                    ->filter(fn (PriceEntry $entry): bool => CarbonImmutable::parse((string) $entry->getRawOriginal('effective_at'), 'UTC')->greaterThan($now))
+                    ->sortBy('version')
+                    ->first();
+
                 return (object) [
                     'price_book_id' => $inEffect->price_book_id,
                     'unit_price_sen' => $inEffect->unit_price_sen,
                     'version' => $newestInBook,
+                    'scheduled' => $scheduled === null ? null : [
+                        'amountSen' => (int) $scheduled->unit_price_sen,
+                        'effectiveAt' => CarbonImmutable::parse((string) $scheduled->getRawOriginal('effective_at'), 'UTC')->toIso8601String(),
+                    ],
                 ];
             });
 
@@ -109,6 +120,7 @@ class PricingController extends Controller
                         'amountSen' => $latest->unit_price_sen,
                         'version' => $latest->version,
                     ] : null,
+                    'scheduledPrice' => $latest?->scheduled,
                 ];
             })->values(),
         ]);

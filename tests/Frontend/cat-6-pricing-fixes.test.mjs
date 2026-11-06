@@ -15,7 +15,7 @@ test('both price book selects wrap long names to two lines and keep the list ins
     assert.equal(
         (
             flat.match(
-                /:options="bookOptions\(\)" trigger-class="h-auto min-h-9 py-1\.5 text-left whitespace-normal \*:data-\[slot=select-value\]:line-clamp-2 \*:data-\[slot=select-value\]:\[overflow-wrap:anywhere\]" :content-avoid-collisions="false"/g,
+                /:options="bookOptions\(\)" trigger-class="h-auto min-h-11 py-1\.5 data-\[size=default\]:h-auto text-left whitespace-normal md:min-h-9 \*:data-\[slot=select-value\]:line-clamp-2 \*:data-\[slot=select-value\]:\[overflow-wrap:anywhere\]" :content-avoid-collisions="false"/g,
             ) ?? []
         ).length,
         2,
@@ -35,4 +35,20 @@ test('"Current price" uses the version in effect; the publish form keeps the new
         pricing,
         /expected_version: charge\.currentPrice\?\.version \?\? 0/,
     );
+});
+
+test('a price scheduled for later is a muted second line, and the row cells stay top-aligned', () => {
+    assert.match(
+        pricing,
+        /`From \$\{date\}: RM \$\{\(next\.amountSen \/ 100\)\.toFixed\(2\)\}`/,
+    );
+    assert.equal(
+        (pricing.match(/data-testid="scheduled-price"/g) ?? []).length,
+        2,
+    );
+    assert.match(
+        pricing.replace(/\s+/g, ' '),
+        /label="Charge definitions" class="\[&_td\]:align-top"/,
+    );
+    assert.match(controller, /'scheduledPrice' => \$latest\?->scheduled,/);
 });

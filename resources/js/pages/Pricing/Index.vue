@@ -31,6 +31,7 @@ type ChargeRow = {
         amountSen: number;
         version: number;
     } | null;
+    scheduledPrice?: { amountSen: number; effectiveAt: string } | null;
 };
 type PriceBookRow = {
     publicId: string;
@@ -194,6 +195,23 @@ const priceText = (charge: ChargeRow) =>
     charge.currentPrice
         ? `RM ${(charge.currentPrice.amountSen / 100).toFixed(2)}`
         : '—';
+
+// CAT-6 (Daniel): a price scheduled for later shows as a muted second line under "Current price".
+const scheduledText = (charge: ChargeRow) => {
+    const next = charge.scheduledPrice;
+
+    if (!next) {
+        return null;
+    }
+
+    const date = new Date(next.effectiveAt).toLocaleDateString('en-GB', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+    });
+
+    return `From ${date}: RM ${(next.amountSen / 100).toFixed(2)}`;
+};
 
 const toggleCharge = (charge: ChargeRow) => {
     router.post(
@@ -415,11 +433,17 @@ const toggleCharge = (charge: ChargeRow) => {
                         </DropdownMenu>
                     </div>
                 </div>
-                <div class="flex items-center justify-between gap-3 text-sm">
+                <div class="flex items-start justify-between gap-3 text-sm">
                     <span class="text-muted-foreground">Current price</span>
-                    <span class="font-medium tabular-nums">{{
-                        priceText(charge)
-                    }}</span>
+                    <span class="text-right font-medium tabular-nums"
+                        >{{ priceText(charge) }}
+                        <span
+                            v-if="scheduledText(charge)"
+                            class="block text-xs font-normal text-muted-foreground"
+                            data-testid="scheduled-price"
+                            >{{ scheduledText(charge) }}</span
+                        ></span
+                    >
                 </div>
                 <div v-if="canPublish" class="grid gap-3">
                     <div class="grid gap-2">
@@ -431,7 +455,7 @@ const toggleCharge = (charge: ChargeRow) => {
                             v-model="publishForm(charge).priceBook"
                             :label="`Price book for ${charge.displayName}`"
                             :options="bookOptions()"
-                            trigger-class="h-auto min-h-9 py-1.5 text-left whitespace-normal *:data-[slot=select-value]:line-clamp-2 *:data-[slot=select-value]:[overflow-wrap:anywhere]"
+                            trigger-class="h-auto min-h-11 py-1.5 data-[size=default]:h-auto text-left whitespace-normal md:min-h-9 *:data-[slot=select-value]:line-clamp-2 *:data-[slot=select-value]:[overflow-wrap:anywhere]"
                             :content-avoid-collisions="false"
                         />
                     </div>
@@ -495,6 +519,7 @@ const toggleCharge = (charge: ChargeRow) => {
         <div class="hidden min-w-0 md:block">
             <OperationalTable
                 label="Charge definitions"
+                class="[&_td]:align-top"
                 :columns="canPublish ? 5 : 4"
                 :empty="charges.length === 0"
                 empty-message="No charge definitions yet. Create one above to start pricing."
@@ -521,6 +546,12 @@ const toggleCharge = (charge: ChargeRow) => {
                         <td>{{ typeLabel(charge.type) }}</td>
                         <td class="text-right whitespace-nowrap tabular-nums">
                             {{ priceText(charge) }}
+                            <span
+                                v-if="scheduledText(charge)"
+                                class="block text-xs text-muted-foreground"
+                                data-testid="scheduled-price"
+                                >{{ scheduledText(charge) }}</span
+                            >
                         </td>
                         <td v-if="canPublish">
                             <div class="flex flex-wrap items-end gap-2">
@@ -535,7 +566,7 @@ const toggleCharge = (charge: ChargeRow) => {
                                         v-model="publishForm(charge).priceBook"
                                         :label="`Price book for ${charge.displayName}`"
                                         :options="bookOptions()"
-                                        trigger-class="h-auto min-h-9 py-1.5 text-left whitespace-normal *:data-[slot=select-value]:line-clamp-2 *:data-[slot=select-value]:[overflow-wrap:anywhere]"
+                                        trigger-class="h-auto min-h-11 py-1.5 data-[size=default]:h-auto text-left whitespace-normal md:min-h-9 *:data-[slot=select-value]:line-clamp-2 *:data-[slot=select-value]:[overflow-wrap:anywhere]"
                                         :content-avoid-collisions="false"
                                     />
                                 </div>

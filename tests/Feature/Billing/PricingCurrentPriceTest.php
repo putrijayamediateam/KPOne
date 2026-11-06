@@ -78,6 +78,9 @@ class PricingCurrentPriceTest extends ClinicalTestCase
         $this->assertSame(600, $row['currentPrice']['amountSen']);
         $this->assertSame(3, $row['currentPrice']['version']);
         $this->assertSame($book->public_id, $row['currentPrice']['priceBookPublicId']);
+        // Daniel: the scheduled version shows as a second line.
+        $this->assertSame(900, $row['scheduledPrice']['amountSen']);
+        $this->assertSame(now()->utc()->addDay()->toDateString(), substr($row['scheduledPrice']['effectiveAt'], 0, 10));
     }
 
     public function test_with_every_version_in_effect_nothing_changes_and_publishing_with_that_version_still_works(): void
@@ -89,6 +92,7 @@ class PricingCurrentPriceTest extends ClinicalTestCase
 
         $row = $this->row('CUR-2');
         $this->assertSame([750, 2], [$row['currentPrice']['amountSen'], $row['currentPrice']['version']]);
+        $this->assertNull($row['scheduledPrice']);
 
         app(PricePublicationService::class)->publish($this->supervisor, $book, $charge, 800, $row['currentPrice']['version'], $this->branch->id);
         $this->assertSame(800, $this->row('CUR-2')['currentPrice']['amountSen']);
