@@ -1770,8 +1770,8 @@ Clinic management destination map, which are existing-assertion changes to appro
 ## 13. HR-6 staff claims: design note
 
 Written 2026-11-06 at the owner's request ("start the HR-6 design note"). It works out the HR-6 sketch in section 2
-in detail and replaces it where the two differ. It changes no HR-1 to HR-5 rule. **Status: draft, waiting for the
-owner's approval and Daniel's early look.** The questions in 13.9 take the defaults written here until the clinic
+in detail and replaces it where the two differ. It changes no HR-1 to HR-5 rule. **Status: approved with its defaults by
+the owner on 2026-11-06 (TEAM.md decision 40); Daniel's early look pending.** The questions in 13.9 take the defaults written here until the clinic
 says otherwise.
 
 **Staff claims are not Panel Claims.** They use different tables, pages, permissions and words ("Staff claims",

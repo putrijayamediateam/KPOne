@@ -219,6 +219,13 @@ check items, keep them"). The rest stand unless the owner changes them.
     matrix with "—" for not required; "Someone else checks this"; a worded planner chip with "Warnings only"; SOP
     acknowledgement only after opening and per version; plain "who hasn't" list; read-only MMC with its source line;
     Health item help text; empty states; one extra register shot at 1440 px dark).
+40. HR-6 design note (HR-PLAN section 13) approved with its defaults (owner, 2026-11-06, in the HR session: "approve
+    the HR-6 note with the defaults"): one slice, after HR-5c; no categories shipped (the form suggests Meals, Travel
+    and parking, Training and courses, Supplies bought for the clinic, Other, each needing a receipt); limits warn
+    only; no Director level until entered; claims up to 30 days back (suggestion); the payer is never the claimant
+    or the approver; claims are not paid from the till, and a recorded cash payment is never linked to daily cash
+    closing. KPOne pays nothing and never touches Panel Claims or clinic money. The `/hr/claims` hub-map assertion
+    still needs the owner's OK at build time.
 
 ## 7. Open items and known limits
 
