@@ -221,7 +221,7 @@ class PayrollSetupTest extends VisitTestCase
         $this->assertSame('15000', Crypt::decryptString((string) DB::table('hr_pay_profile_items')->value('amount_encrypted')));
 
         // The entrant and an HR Manager may not confirm an HR Manager's entry; the Director does.
-        $this->decide($hr, 'profiles', $profile->public_id, 'confirm')->assertSessionHasErrors(['payroll' => 'Someone else checks this. You entered it.']);
+        $this->decide($hr, 'profiles', $profile->public_id, 'confirm')->assertSessionHasErrors(['payroll' => 'Someone else confirms this. You entered it.']);
         $this->selectBranch($director);
         $this->get(route('hr.payroll.index'))->assertInertia(fn (Assert $page) => $page->where('payroll.profiles.waitingCount', 1)
             ->where('payroll.profiles.people', fn ($people) => collect($people)->contains(fn ($p) => $p['id'] === $caWorker->public_id
@@ -240,17 +240,28 @@ class PayrollSetupTest extends VisitTestCase
         $this->decide($director, 'profiles', $changed->public_id, 'confirm')->assertSessionHasNoErrors();
         $this->assertSame(['replaced', 'confirmed'], DB::table('hr_pay_profiles')->orderBy('id')->pluck('status')->all());
 
-        // A Director's profile is entered by another Director and never confirmed by its own Director; the HR Manager may.
+        // A Director's profile is entered by another Director and decided by a third: never by its own Director, and never by
+        // the HR Manager (HR-4 rule 3; Suresh, HR-7a S2).
+        $director3 = $this->actor('director');
         $this->profile($director2, $directorWorker, $this->pay($group))->assertSessionHasNoErrors();
         $own = DB::table('hr_pay_profiles')->where('worker_id', $directorWorker->id)->first();
         $this->assertNotNull($own);
         $this->decide($director, 'profiles', $own->public_id, 'confirm')->assertSessionHasErrors(['payroll' => 'Nobody confirms their own pay profile.']);
-        $this->decide($hr, 'profiles', $own->public_id, 'reject', ['reason' => 'wrong_amount'])->assertSessionHasNoErrors();
+        $this->decide($hr, 'profiles', $own->public_id, 'reject', ['reason' => 'wrong_amount'])->assertSessionHasErrors(['payroll' => "Only a Director may change a Director's staff file."]);
+        $this->decide($director3, 'profiles', $own->public_id, 'reject', ['reason' => 'wrong_amount'])->assertSessionHasNoErrors();
         $this->profile($director2, $directorWorker, $this->pay($group))->assertSessionHasNoErrors();
         $again = DB::table('hr_pay_profiles')->where('worker_id', $directorWorker->id)->where('status', 'waiting')->first();
         $this->assertNotNull($again);
-        $this->withdraw($hr, 'profiles', $again->public_id)->assertSessionHasErrors(['payroll' => 'Only the person who entered this pay profile may withdraw it.']);
+        $this->withdraw($director3, 'profiles', $again->public_id)->assertSessionHasErrors(['payroll' => 'Only the person who entered this pay profile may withdraw it.']);
+        $this->withdraw($hr, 'profiles', $again->public_id)->assertSessionHasErrors('payroll');
         $this->withdraw($director2, 'profiles', $again->public_id)->assertSessionHasNoErrors();
+
+        // A refused entry never flashes the salary or allowances into the session (Suresh, HR-7a S3).
+        $this->profile($hr, $caWorker, [...$this->pay($group), 'rate' => '4,321.00', 'effective_from' => '', 'items' => [['item_type_id' => $allowance, 'amount' => '987.00']]])
+            ->assertSessionHasErrors('effective_from');
+        $this->assertArrayNotHasKey('rate', (array) session('_old_input', []));
+        $this->assertStringNotContainsString('4,321.00', (string) json_encode(session()->all()));
+        $this->assertStringNotContainsString('987.00', (string) json_encode(session()->all()));
 
         // PostgreSQL: nobody enters or confirms their own, a confirmed profile never changes, allowances only while it waits.
         $confirmed = DB::table('hr_pay_profiles')->where('status', 'confirmed')->first();

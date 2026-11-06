@@ -118,7 +118,8 @@ final class PayrollPageService
     private function profile(User $actor, Worker $w, \stdClass $p, Collection $items, Collection $typeNames, Collection $groups, array &$names): array
     {
         $waiting = $p->status === 'waiting';
-        $refusal = $waiting ? $this->setup->deciderRefusal($actor, (int) $p->entered_by_user_id, $w->user_id) : null;
+        $refusal = $waiting ? ($this->setup->deciderRefusal($actor, (int) $p->entered_by_user_id, $w->user_id, 'confirms')
+            ?? ($w->user !== null ? $this->support->refusalFor($actor, $w->user) : null)) : null;
         $schemes = [];
         foreach (['epf' => 'EPF', 'socso' => 'SOCSO', 'eis' => 'EIS', 'mtd' => 'MTD', 'hrd' => 'HRD levy'] as $key => $label) {
             if ($p->{$key}) {

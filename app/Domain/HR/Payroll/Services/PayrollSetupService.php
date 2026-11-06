@@ -24,7 +24,7 @@ final class PayrollSetupService
 {
     public const SCHEMES = ['epf' => 'EPF', 'socso' => 'SOCSO', 'eis' => 'EIS', 'hrd' => 'HRD levy'];
 
-    public const ROUNDING = ['none' => 'No rounding (sen are dropped)', 'nearest_sen' => 'To the nearest sen', 'up_ringgit' => 'Up to the next ringgit'];
+    public const ROUNDING = ['none' => 'Drop part sen (round down to the sen)', 'nearest_sen' => 'To the nearest sen', 'up_ringgit' => 'Up to the next ringgit'];
 
     public const KINDS = ['earnings' => 'Earnings', 'deduction' => 'Deduction', 'refund' => 'Refund'];
 
@@ -383,13 +383,17 @@ final class PayrollSetupService
             if ($this->support->replay($actor, $key, 'payroll_profile_decide', $hash) !== null) {
                 return;
             }
+            // The staff file row first, then the profile, the same order as entering one (Suresh, HR-7a M1).
+            $worker = $this->profileWorker($actor, $profileId);
             $profile = $this->row('hr_pay_profiles', $actor, $profileId);
-            $worker = Worker::query()->whereKey($profile->worker_id)->lockForUpdate()->firstOrFail();
+            if ($worker->user_id !== $actor->id) { // your own profile gets its own refusal below
+                $this->support->assertManages($actor, $worker);
+            }
             $this->support->assertLock($profile, $input);
             if ($profile->status !== 'waiting') {
                 throw ValidationException::withMessages(['payroll' => 'This pay profile was already decided. Reload to see it.']);
             }
-            $refusal = $this->deciderRefusal($actor, (int) $profile->entered_by_user_id, $worker->user_id);
+            $refusal = $this->deciderRefusal($actor, (int) $profile->entered_by_user_id, $worker->user_id, 'confirms');
             if ($refusal !== null) {
                 throw new AuthorizationException($refusal);
             }
@@ -418,8 +422,12 @@ final class PayrollSetupService
             if ($this->support->replay($actor, $key, 'payroll_profile_withdraw', $hash) !== null) {
                 return;
             }
+            // The staff file row first, then the profile, the same order as entering one (Suresh, HR-7a M1).
+            $worker = $this->profileWorker($actor, $profileId);
             $profile = $this->row('hr_pay_profiles', $actor, $profileId);
-            $worker = Worker::query()->whereKey($profile->worker_id)->lockForUpdate()->firstOrFail();
+            if ($worker->user_id !== $actor->id) { // your own profile gets its own refusal below
+                $this->support->assertManages($actor, $worker);
+            }
             $this->support->assertLock($profile, $input);
             if ($profile->status !== 'waiting') {
                 throw ValidationException::withMessages(['payroll' => 'This pay profile was already decided. Reload to see it.']);
@@ -437,10 +445,10 @@ final class PayrollSetupService
      * Who may check a table or confirm a profile (HR-PLAN 14.3 rule 2 and 14.10 item 3), as one predicate shared by the
      * service and the page. Null when the actor may decide.
      */
-    public function deciderRefusal(User $actor, int $enteredBy, ?int $workerUserId): ?string
+    public function deciderRefusal(User $actor, int $enteredBy, ?int $workerUserId, string $verb = 'checks'): ?string
     {
         if ($enteredBy === $actor->id) {
-            return 'Someone else checks this. You entered it.';
+            return "Someone else {$verb} this. You entered it.";
         }
         if ($workerUserId !== null && $workerUserId === $actor->id) {
             return 'Nobody confirms their own pay profile.';
@@ -453,7 +461,15 @@ final class PayrollSetupService
             return null;
         }
 
-        return 'The Director checks this, or the HR Manager when a Director entered it.';
+        return "The Director {$verb} this, or the HR Manager when a Director entered it.";
+    }
+
+    private function profileWorker(User $actor, string $profileId): Worker
+    {
+        $workerId = DB::table('hr_pay_profiles')->where('organisation_id', $actor->organisation_id)->where('public_id', $profileId)->value('worker_id');
+        abort_if($workerId === null, 404);
+
+        return Worker::query()->whereKey($workerId)->where('organisation_id', $actor->organisation_id)->lockForUpdate()->firstOrFail();
     }
 
     private function profileWorkerUserId(User $actor, string $profileId): ?int

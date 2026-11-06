@@ -567,7 +567,7 @@ const saveRates = () => {
                             Entered by {{ person.waiting.enteredBy }} on
                             {{ on(person.waiting.enteredAt) }}
                         </p>
-                        <div class="mt-1 flex flex-wrap gap-2">
+                        <div class="mt-1 flex flex-wrap items-center gap-2">
                             <template v-if="person.waiting.canDecide">
                                 <Button
                                     variant="outline"
@@ -768,9 +768,7 @@ const saveRates = () => {
                     Entered by {{ t.enteredBy }} on {{ on(t.enteredAt)
                     }}<template v-if="t.decidedBy && t.decidedAt">
                         ·
-                        {{
-                            t.status === 'rejected' ? 'Rejected' : 'Checked'
-                        }}
+                        {{ t.status === 'rejected' ? 'Rejected' : 'Checked' }}
                         by {{ t.decidedBy }} on {{ on(t.decidedAt) }}</template
                     >
                 </p>
