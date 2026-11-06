@@ -1551,3 +1551,208 @@ My HR details is a tab on the same page, linked from My roster.
 5. HR-4b document categories and the retention days for each (the adviser's call); and who keeps the paper originals?
 6. Should staff see their own documents? (Default: yes, view only.)
 7. Is a probation alert 14 days before the end right? (Default: yes; KPOne ships no probation length.)
+
+## 12. HR-5 credentials and compliance: design note
+
+Written 2026-11-06 at the owner's request ("start the HR-5 design note"). It works out the HR-5 sketch in section 2
+in detail and replaces it where the two differ. It changes no HR-1 to HR-4 rule. **Status: draft, waiting for the
+owner's approval and Daniel's early look.** The questions in 12.9 take the defaults written here until the clinic
+says otherwise.
+
+**KPOne ships no credential list and no limit.** Which credentials each role needs, when a warning starts, opening
+hours, the doctor coverage rule and the work-hour limits are all clinic-entered, versioned settings. Until HR saves
+them, the register reads "Credentials are not set up yet." and the planner shows no HR-5 warnings.
+
+**What stays where it is.** The doctor's MMC registration and its verification stay in DOC-02a ("Clinician
+credentials", Director only). HR-5 shows that status read-only ("MMC: verified by the Director") and never changes
+it. **Nothing in HR-5 blocks clinical work** (TEAM.md decision 4): an expired APC or a missing BLS shows a warning
+to HR and to the person, and never stops sign-in, Call In, a consultation, an MC or dispensing.
+
+**Synthetic data only** until the PDPA review (decision 11). Health items such as Hepatitis B vaccination are
+sensitive (decision 9).
+
+### 12.1 Split
+
+- **HR-5a (build first, after HR-4b): the credential register.** It holds:
+  - clinic-entered credential types;
+  - each person's records, with versions;
+  - staff send a renewal, and someone else checks it;
+  - statuses and in-KPOne reminders;
+  - My credentials and the Credentials register.
+  - Evidence is a document in the HR-4b vault (category Certificate), linked to the record.
+- **HR-5b: roster compliance warnings on the HR-1 planner.** It holds:
+  - the doctor coverage rule (opening hours and the minimum number of resident doctors);
+  - work-hour rules;
+  - fair-rotation counts.
+  - These are warnings only, never a refusal.
+- **HR-5c: SOPs.** It holds:
+  - SOP documents with versions;
+  - publishing to chosen roles;
+  - "I have read and understood" acknowledgements;
+  - a list of who has not acknowledged yet.
+
+### 12.2 What the clinic gets
+
+- **Credential types** (Director, HR Manager, in Settings). Each type has:
+  - a name, for example "Annual Practising Certificate (APC)", "BLS", "ACLS", "Hepatitis B vaccination" or "Radiation safety";
+  - whether it expires;
+  - the roles that need it;
+  - a "warn from" number of days (the form suggests 60);
+  - whether it is a health item (shown only to the person and managers).
+  - The form suggests the clinic HR proposal's list and ticks nothing; nothing counts until a manager saves.
+- **My credentials** (every human role, not the TV account): one card per type my roles need, plus any I hold anyway. Each card shows:
+  - the status chip: Valid, Expiring in N days, Expired N days ago, Waiting for check, Not recorded or No expiry;
+  - the issue and expiry dates and the issuing body;
+  - the reference number (masked to the last four), and the linked document.
+  - **Add or renew** opens a sheet with the dates, the reference and an evidence file. The file goes to the HR-4b vault as a Certificate.
+- **Credentials register** (Director, HR Manager): everyone against every type their roles need.
+  - A summary line: "3 expiring · 1 expired · 2 not recorded · 1 waiting for check".
+  - Filters by branch, role, type and status.
+  - It is a table from 1024 px, cards below.
+  - Waiting records have outline **Accept** and **Reject**, with the primary action in the dialog.
+- **Reminders, inside KPOne only** (decision 5):
+  - the chips on My credentials and the register;
+  - one line on My roster and My attendance: "Your BLS expires in 21 days";
+  - the 60, 30 and 7 day steps change the words ("Expires in 30 days"), never a message.
+- **HR-5b on the planner:** warning chips beside the week, each with its reason in words:
+  - "No resident doctor Tue 2:00 PM – 5:00 PM (Cheras)";
+  - "Dr Aina: 7 days in a row";
+  - "Dr Aina: 9 h rest before Wed (11 h set)";
+  - "Planned 52 h this week (limit 48 h)".
+  - A **Fair rotation** panel counts weekend, public holiday and night shifts per doctor for the month.
+- **HR-5c SOPs** (Director, HR Manager publish; everyone acknowledges):
+  - an SOP list with title, version, roles and "N of M acknowledged";
+  - each person sees "SOPs to read" on My HR details, opens the PDF (the view is recorded) and presses **I have read and understood**;
+  - a new version needs a new acknowledgement.
+
+### 12.3 Rules
+
+1. **A credential record is versioned.** A renewal adds a version; earlier versions stay, and only the newest
+   accepted version is in force.
+2. **Someone else checks.** A record a staff member sends is "Waiting for check" until a manager who is not that
+   person accepts it (service and PostgreSQL CHECK). Until then the earlier accepted version stays in force. A record
+   a manager enters for someone else is accepted by another manager, never by the person who entered it. A rejection
+   needs a reason (Wrong dates, Not readable, Wrong person, Other) and is kept.
+3. **Status** is worked out when a page opens, never stored:
+   - **Not recorded:** a type the person's roles need with no accepted version.
+   - **Expired:** an expiry date before today (branch-local).
+   - **Expiring:** within the type's warn-from days.
+   - **Valid** or **No expiry** otherwise.
+   - "Waiting for check" is shown beside the status of the version in force.
+4. **Dates:** the issue date is not in the future, and the expiry date is after the issue date. A type with "no
+   expiry" refuses an expiry date.
+5. **Health items** (Hepatitis B and any type marked as health) record only Done or Not done and the date: no test
+   results, no titres, no notes about health. They are shown only to the person and to Director and HR Manager, and
+   never in lists other people see.
+6. **Reference numbers** are encrypted and masked to the last four everywhere except on Show (the HR-4 rule:
+   audited before release).
+7. **HR-5b warnings come only from approved and draft weeks, and never refuse.**
+   - **Coverage:** the branch's opening hours by weekday, and the minimum number of resident doctors (the form suggests 1). A gap of 15 minutes or more is shown.
+   - **Work hours:** the most days in a row (the form suggests 6), the least rest between two shifts (11 h), and the most planned hours a week (48 h).
+   - **Fair rotation:** counts only.
+   - Approved leave (HR-2a) counts as a day off.
+8. **HR-5c:** an SOP version is a PDF (the HR-2b checks, encrypted, view recorded). An acknowledgement is
+   append-only: who, which version, when. A version is never edited, only replaced by a new one. Withdrawing an SOP
+   keeps every acknowledgement.
+9. **Every write:** a fresh permission check under lock; `DB::transaction`; the worker and record rows locked;
+   `lock_version`; an idempotency key; and audit with ids, type codes and dates only. Reference numbers and notes
+   never reach audit.
+
+### 12.4 Tables (sketch)
+
+| Table | Holds |
+|---|---|
+| `hr_credential_types` | organisation, name, code, expires, warn-from days, health item, active, `lock_version` |
+| `hr_credential_type_roles` | type, role (versioned with the type's settings) |
+| `hr_credential_records` | worker, type, version, issued on, expires on (nullable), issuing body, encrypted reference, last four, linked document (HR-4b), status waiting/accepted/rejected/replaced, entered by, decided by and at, decision reason |
+| HR-5b: `hr_branch_opening_hours`, `hr_coverage_rules`, `hr_work_hour_rules` | clinic-entered versions per branch or organisation |
+| HR-5c: `hr_sops`, `hr_sop_versions`, `hr_sop_audiences`, `hr_sop_acknowledgements` | an SOP, its PDF versions, roles and append-only acknowledgements |
+| `hr_compliance_retries` | idempotency records |
+
+PostgreSQL:
+- one accepted version in force per worker and type (partial unique index);
+- the decider is never the worker's user and never the person who entered it (CHECK);
+- the expiry date is after the issue date, and empty when the type does not expire;
+- decided records, settings versions and acknowledgements are append-only;
+- nothing is deleted or truncated;
+- every row's people belong to one organisation.
+
+Migrations from `2026_11_10_001500`, with the grants in their own additive migration.
+
+### 12.5 Permissions
+
+| Permission | Holders |
+|---|---|
+| `hr.credentials.view.own` (My credentials, send own renewals) | every human role, not the TV account |
+| `hr.credentials.manage.organisation` (register, types, enter for others, accept or reject; HR-5b settings) | Director, HR Manager |
+| `hr.sops.manage.organisation` (HR-5c: publish, replace, withdraw, see who has not acknowledged) | Director, HR Manager |
+| `hr.sops.acknowledge.own` (HR-5c: read and acknowledge SOPs for your roles) | every human role, not the TV account |
+
+None is in the people-and-access authority set, and none touches DOC-02a's `clinician_credentials.manage.organisation`.
+New hub links ("KPOne HR credentials", and "KPOne HR SOPs" with HR-5c) add `/hr/credentials` and `/hr/sops` to the
+Clinic management destination map, which are existing-assertion changes to approve when built.
+
+### 12.6 Screens (Hui Min, for Daniel's early look)
+
+- **My credentials:**
+  - one card per type, with the status chip (warning tone for Expiring and Expired, neutral for Waiting for check, Not recorded and No expiry; never red);
+  - dates in KPOne formats ("30 Nov 2026");
+  - an outline **Add** or **Renew** on each card, with the primary action in the sheet;
+  - the masked reference, read to screen readers as "Reference, ending 4321, hidden".
+- **Credentials register:**
+  - the summary line, then a matrix of person × required type, with a chip in each cell, as a table from 1024 px;
+  - below 1024 px, one card per person listing only what needs attention, then "All others valid";
+  - a waiting record shows the recorded and new values side by side, with outline Accept and Reject.
+- **Settings card for credential types:** name, expires (Yes or No), warn from (days, suggests 60), the roles that need it (ticks, using the app's role labels) and Health item (Yes or No), with saved versions listed below.
+- **Planner warnings (HR-5b):**
+  - a "Compliance" chip on the week header with the count;
+  - its list opens in the existing planner side panel;
+  - each line names the person, the day and the rule in words.
+- **SOPs (HR-5c):**
+  - a list with version and "N of M acknowledged";
+  - on each person's side, an "SOPs to read" card with an outline **Open** and, once opened, the primary **I have read and understood** (one primary on the card);
+  - "Acknowledged on 6 Nov 2026" afterwards.
+- The shared synthetic-data line from HR-4, and the HR-4 Show pattern for references.
+- Phones: no sideways scroll at 320, 390 and 768 px; 44 px targets.
+- **Screenshots when built:** My credentials with each status; the renew sheet with an error; the register at 1440 and 390 px; a waiting record decided by someone else; the type settings; a planner week with each HR-5b warning (HR-5b); an SOP being acknowledged and the "who has not" list (HR-5c); light and dark.
+
+### 12.7 Tests (planned)
+
+- Grants for every role, the TV account refused, none in the authority set, and the hub map lines to approve.
+- Versions and the version in force; someone else checks (service and PostgreSQL); a rejection is kept; the earlier
+  version stays in force while one is waiting.
+- Statuses at the warn-from boundary, on the expiry day and the day after, with a frozen branch-local clock; types
+  with no expiry; Not recorded only for the roles that need it.
+- Health items: only Done or Not done and the date accepted; shown only to the person and managers (payload scan).
+- References encrypted, masked and never in audit; Show audited first.
+- Nothing blocks clinical work: a person with an expired APC still signs in, calls in and issues an MC (the
+  DOC-02a and queue tests stay green, plus one direct check).
+- DOC-02a's clinician credentials are untouched (the table is compared before and after).
+- HR-5b: a coverage gap, days in a row, short rest and planned hours, with approved leave counted; warnings never
+  refuse a save or an approval.
+- HR-5c: a new version needs a new acknowledgement; acknowledgements are append-only; withdrawal keeps them; each
+  PDF view is recorded.
+- PostgreSQL refusals; another organisation's ids; nothing written to accounts, rosters or anything clinical.
+
+### 12.8 What stays out
+
+- Any change to DOC-02a (MMC number and verification stay Director only), and any regulator lookup or API.
+- Any clinical gate (decision 4).
+- Health details beyond Done or Not done and a date.
+- The KKM audit file export, which needs its own export decision.
+- Shift swaps (HR-1b); opening locum slots (needs locum rostering first).
+- Clinic document licences, the internal audit checklist and the vaccine fridge log (HR-11).
+- Messages or reminders outside KPOne of any kind.
+
+### 12.9 Questions only the clinic can answer [TO CONFIRM]
+
+1. Which credentials does each role need? (Default: none ticked; the form suggests APC and BLS for Resident Doctor,
+   BLS for CA and CA Supervisor, and Hepatitis B vaccination for clinical roles.)
+2. When should a warning start? (Default: 60 days before expiry, with the words changing at 30 and 7.)
+3. Hepatitis B: only Done or Not done and a date? (Default: yes; anything more is health data for the PDPA review.)
+4. Who checks a renewal? (Default: Director or HR Manager, never the person themselves.)
+5. HR-5b: each branch's opening hours, and the minimum number of resident doctors? (Default: none until entered; the
+   form suggests 1.)
+6. HR-5b work-hour limits? (Default: suggested 6 days in a row, 11 h rest and 48 h a week, to confirm with the HR
+   adviser.)
+7. HR-5c: who must acknowledge which SOPs? (Default: chosen per SOP by role.)
