@@ -199,11 +199,11 @@ const printLabels = async () => {
             </section>
             <section
                 v-if="labels.blocked.length"
-                class="print-toolbar"
+                class="print-toolbar grid gap-2 rounded-md border border-destructive/40 bg-destructive/5 p-3"
                 aria-label="Blocked labels"
                 role="alert"
             >
-                <h2>
+                <h2 class="font-semibold text-destructive">
                     Printing blocked — no labels in this selection will print
                 </h2>
                 <article v-for="(item, i) in labels.blocked" :key="i">

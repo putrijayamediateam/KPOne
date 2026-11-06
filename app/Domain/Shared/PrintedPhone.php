@@ -23,6 +23,9 @@ final class PrintedPhone
         }
 
         $digits = (string) preg_replace('/\D/', '', $stored);
+        if ($digits === '') {
+            return $stored;
+        }
         $international = str_starts_with($stored, '+');
         if (str_starts_with($digits, '60') && ! str_starts_with($stored, '0')) {
             $national = '0'.substr($digits, 2);

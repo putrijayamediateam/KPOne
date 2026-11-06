@@ -3,6 +3,7 @@
 namespace App\Domain\HR\Roster\Services;
 
 use App\Domain\Access\BranchAccessService;
+use App\Domain\HR\Attendance\ClockPermissions;
 use App\Domain\HR\Leave\Models\LeaveRequest;
 use App\Domain\HR\Leave\Services\LeaveCalendar;
 use App\Domain\HR\Roster\Models\RosterShift;
@@ -93,7 +94,8 @@ final class RosterPageService
             }
         }
 
-        return ['days' => $days];
+        // HR-3a: an outline "Clock in" link on My roster for staff who clock (Daniel: never a second primary).
+        return ['days' => $days, 'canClock' => $actor->can(ClockPermissions::CLOCK_OWN)];
     }
 
     /**
