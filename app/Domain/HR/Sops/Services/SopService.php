@@ -256,11 +256,12 @@ final class SopService
             $errors['title'] = 'Enter a title of 3 to 120 characters.';
         }
         $roles = $input['roles'] ?? [];
-        if (! is_array($roles) || $roles === [] || array_diff($roles, array_keys(RosterRules::ROLE_LABELS)) !== []
+        if (! is_array($roles) || $roles === [] || ! collect($roles)->every(fn ($r): bool => is_string($r))
+            || array_diff($roles, array_keys(RosterRules::ROLE_LABELS)) !== []
             || array_diff($roles, RosterPermissions::HUMAN_ROLES) !== []) {
             $errors['roles'] = 'Choose at least one role that must read it.';
         }
-        if ($errors !== [] || ! is_array($roles)) {
+        if ($errors !== [] || ! is_array($roles)) { // the array check only narrows the type
             throw ValidationException::withMessages($errors);
         }
         $roles = array_values(array_unique(array_map('strval', $roles)));
