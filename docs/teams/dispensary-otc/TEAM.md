@@ -95,7 +95,8 @@ coordinator at the owner's request (2026-11-05); the designer was added by owner
 | DSP-7 | Medicine returns after dispensing: record (CA, CA Supervisor; quantity, fixed reason, encrypted note for Other, condition; no stock change) and check (a CA Supervisor who did not record it: Dispose, Quarantine to a patient returns location through STK-11's `dispensary_return` movement, or Refuse with a fixed reason); controlled medicines never quarantined; append-only `dispensary_returns` and `dispensary_return_checks` (migrations `2026_11_06_200200`, `2026_11_07_000500`); Completed page gets PageHeader and a Medicine returns section | #288 (merged `88c2ae1`) |
 | DSP-8 | Dispensary pages on phones and tablets: at 768 px the medicine and service line grids (2 columns there) had rows spanning 3 or 4 columns, so the browser added near-zero-width columns and Quantity, Dosage, Route and Precaution became 18 px slivers with overlapping labels; rows now span the full width (or 2, then 3 on wide screens). On phones (below 640 px) every button, text field and dropdown on the Dispensary, Completed and label preview pages is at least 44 px tall; wide screens unchanged. Also the "1 of these labels was printed before" wording, and the OTC allergy card now says the check also uses catalogue drug groups | #273 (merged `b078be4`) |
 | DD-24 to DD-27 | Design debt from DSP-8: 44 px controls below 1024 px too (tablets); the case page uses PageHeader "Dispensary" and only the patient card names the patient (h2, labelled KP number, Visit, Doctor); batch options lead with "N unit on hand · exp 30 Oct 2027" plus a "Selected:" line under the dropdown; the Added/Edited by CA chips are `StatusBadge` accent | #308 (`4c95234`) |
-| DSP-6b | The label print check that logs a print is now a POST (`dispensary.labels.print`, `dispensary.items.label.print`, the page's address plus `/print`, token and branch in the body, CSRF header); the label page no longer accepts `?verify=1`. New tests: a consultation-case print and reprint, and a PostgreSQL race of two CAs printing one case at once (print numbers 1 and 2) | pending (branch `fix/dsp-6b-label-print-post`) |
+| DSP-6b | The label print check that logs a print is now a POST (`dispensary.labels.print`, `dispensary.items.label.print`, the page's address plus `/print`, token and branch in the body, CSRF header); the label page no longer accepts `?verify=1`. New tests: a consultation-case print and reprint, and a PostgreSQL race of two CAs printing one case at once (print numbers 1 and 2) | #317 |
+| DSP-1c | Other names for allergy matching: catalogue editors add up to 10 brand names or misspellings per medicine ("Other names" in the Medicine Catalogue "…" menu); the Dispensary allergy warning compares allergies with them too, through one `MedicineCatalogueItem::allergyMatchTerms()` list; never printed; audited by count | pending (branch `feature/dsp-1c-allergy-aliases`) |
 
 ## 6. Owner decisions already made (never ask again)
 
@@ -176,6 +177,12 @@ coordinator at the owner's request (2026-11-05); the designer was added by owner
     existing tests that sent the check as a GET (`drug-labels.test.mjs` line 33, `TreatmentPlanTest` line 391, and the
     `getJson(...?verify=1...)` calls in `DrugLabelTest` and `DrugLabelPrintLogTest`) to the POST; every expected
     result is unchanged. No screen change, so no design review.
+25. DSP-1c allergy other names (2026-11-06): the owner chose it ("go with allergy aliases"). Same editors, limits and
+    stale-list guard as drug groups (decision 14): `medicines.manage.organisation`, up to 10, 3 to 60 characters,
+    audited by count only; used for matching only and never printed. Iman's sketch: its own "Other names" menu entry
+    and dialog. The Dispensary warning wording now names "catalogue other names". Daniel: OK; keep the label
+    "Other names"; the Drug groups dialog losing typed groups on an error is design debt DD-37 (a later small piece). (Decision 24 is
+    the "Print label" fix, on its own branch.)
 
 ## 7. Open items and known limits
 
@@ -205,10 +212,10 @@ coordinator at the owner's request (2026-11-05); the designer was added by owner
   line cannot be quarantined (dispose it, or refuse it and record one return per batch). Returned stock leaves a
   returns location only by an STK-5 count or write-off, or a transfer to another returns location (STK-11).
 - **CA guide:** `docs/guides/ms/` should say the OTC allergy step now starts with no choice made (DSP-5).
-- **Allergy matching is text only (DSP-1, DSP-1b):** a CA add or edit that matches an active allergy record
-  needs a recorded confirmation. Drug groups are matched only when a catalogue editor has tagged the medicine
-  (DSP-1b), so an untagged medicine still misses penicillin vs amoxicillin; brand names and misspellings are
-  still missed, and allergy text with extra words not split by a comma may miss a name with a strength. It is a
+- **Allergy matching is text only (DSP-1, DSP-1b, DSP-1c):** a CA add or edit that matches an active allergy record
+  needs a recorded confirmation. Drug groups and other names (brand names, misspellings) are matched only when a
+  catalogue editor has added them (DSP-1b, DSP-1c), so an untagged medicine still misses penicillin vs amoxicillin,
+  and a brand name or misspelling nobody listed is still missed, and allergy text with extra words not split by a comma may miss a name with a strength. It is a
   warning, not a block (owner decision 11); the visible allergy list stays the main safeguard. Simple wrapper
   words ("allergic to", "allergy", "alahan") are ignored, so "Allergic to aspirin" matches "Aspirin 100mg".
   For OTC the CA now records the allergy itself (DSP-5), so it is matched like any other record; the OTC step

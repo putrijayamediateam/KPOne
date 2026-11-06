@@ -700,6 +700,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::post('{medicine}/deactivate', [MedicineCatalogueController::class, 'deactivate'])->whereUuid('medicine')->middleware('throttle:20,1')->name('medicines.deactivate');
             Route::post('{medicine}/controlled', [MedicineCatalogueController::class, 'controlled'])->whereUuid('medicine')->middleware('throttle:20,1')->name('medicines.controlled');
             Route::post('{medicine}/allergy-groups', [MedicineCatalogueController::class, 'allergyGroups'])->whereUuid('medicine')->middleware('throttle:20,1')->name('medicines.allergy-groups');
+            Route::post('{medicine}/allergy-aliases', [MedicineCatalogueController::class, 'allergyAliases'])->whereUuid('medicine')->middleware('throttle:20,1')->name('medicines.allergy-aliases');
         });
 
         Route::middleware(['permission:clinical_services.manage.organisation'])->prefix('clinical-services')->group(function () {

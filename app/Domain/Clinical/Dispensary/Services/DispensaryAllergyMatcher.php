@@ -8,9 +8,10 @@ use Illuminate\Support\Str;
 /**
  * DSP-1: compares a patient's active allergy records (free text) with a medicine's names.
  *
- * This is a plain text comparison, not a clinical drug-allergy check. Drug groups that catalogue editors
- * tagged on a medicine (DSP-1b) are passed in as extra names; an untagged class (penicillin and
- * amoxicillin), brand names and misspellings are still missed, so it can miss a real allergy. The
+ * This is a plain text comparison, not a clinical drug-allergy check. Drug groups (DSP-1b) and other names
+ * such as brand names and misspellings (DSP-1c) that catalogue editors added to a medicine are passed in as
+ * extra names; anything an editor has not added (an untagged class such as penicillin and amoxicillin, a brand
+ * name or a spelling not listed) is still missed, so it can miss a real allergy. The
  * screen says so and the full allergy list stays visible. A match only asks the CA to confirm.
  *
  * Rule: both sides are lower-cased and every run of non-letters/non-digits becomes one space.
@@ -18,7 +19,7 @@ use Illuminate\Support\Str;
  * ampersands, " - ", and the words "and", "or", "dan", "atau"; wrapper words such as "allergic to",
  * "allergy" and "alahan" are dropped from each part. A record matches when the whole
  * allergy text or any part of it (at least 3 characters) appears inside the medicine's display
- * name, snapshot name, generic name or a tagged drug group, or when a medicine name (at least 3 characters) appears
+ * name, snapshot name, generic name, a tagged drug group or another name, or when a medicine name (at least 3 characters) appears
  * inside the allergy text.
  */
 class DispensaryAllergyMatcher

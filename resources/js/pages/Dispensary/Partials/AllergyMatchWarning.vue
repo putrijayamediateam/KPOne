@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { TriangleAlert } from '@lucide/vue';
 
-// DSP-1: shown when a medicine's name or generic name matches the patient's recorded allergy text.
+// DSP-1: shown when a medicine's name, generic name, catalogue drug groups (DSP-1b) or other names (DSP-1c)
+// match the patient's recorded allergy text.
 // The server repeats the check and refuses the save until the CA ticks the box.
 defineProps<{
     matches: Array<{ publicId: string; allergen: string }>;
@@ -46,12 +47,11 @@ const confirmed = defineModel<boolean>({ default: false });
         </label>
         <p class="mt-1 text-red-800 dark:text-red-200">
             This check compares the allergy text with the medicine name, generic
-            name and catalogue drug groups only.
+            name, catalogue other names and catalogue drug groups only.
         </p>
         <p class="mt-1 text-red-800 dark:text-red-200">
-            It can miss an allergy (for example an unrecorded drug group, a
-            brand name or a different spelling), so always read the full allergy
-            list.
+            It can miss an allergy (a drug group, brand name or spelling not
+            listed in the catalogue), so always read the full allergy list.
         </p>
     </div>
 </template>
