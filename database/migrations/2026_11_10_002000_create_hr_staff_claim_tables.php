@@ -60,7 +60,9 @@ return new class extends Migration
         });
 
         Schema::create('hr_claim_counters', function (Blueprint $t): void {
-            $t->unsignedBigInteger('organisation_id')->primary();
+            // An id as on every other table, so whole-table snapshots in other tests can order by it.
+            $t->id();
+            $t->unsignedBigInteger('organisation_id')->unique('hr_claim_counters_org_unique');
             $t->unsignedInteger('last_number');
             $t->foreign('organisation_id', 'hr_claim_counters_org_fk')->references('id')->on('organisations')->restrictOnDelete();
         });
@@ -234,7 +236,7 @@ CREATE TRIGGER hr_claim_categories_guard BEFORE UPDATE ON hr_claim_categories FO
 -- A claim number only goes up, by one.
 CREATE OR REPLACE FUNCTION guard_hr_claim_counter() RETURNS trigger LANGUAGE plpgsql AS $$
 BEGIN
- IF NEW.organisation_id <> OLD.organisation_id OR NEW.last_number <> OLD.last_number + 1 THEN
+ IF NEW.id <> OLD.id OR NEW.organisation_id <> OLD.organisation_id OR NEW.last_number <> OLD.last_number + 1 THEN
   RAISE EXCEPTION 'Staff claim numbers only go up by one' USING ERRCODE = 'P0001';
  END IF;
  RETURN NEW;
