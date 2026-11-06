@@ -230,9 +230,3 @@ authorisation to build them; the coordinator records it in `docs/BASELINE.md`.
    rule and "No current assignment" now use the theme tokens (`success`, `warning-strong`, `brand`, `muted`,
    `ring`), as `StatusBadge` does. The shared `PatientBoard` chips were left to Queue & TV (DD-38, PR #331, and
    Cancel Visit in PR #336), as the Lead UI/UX Designer asked. No assertion changed.
-14. **UX-14 Malay guides for the landscape drug label.** Chosen by the owner on 2026-11-06, handed over by Dispensary &
-   OTC after DSP-10 (PR #344) and the "Print label" casing fix (PR #321). `docs/guides/ms/ca.md` and
-   `docs/guides/ms/penyelia-ca.md` now describe the 100 × 62 mm landscape label: "Print label", the expiry printed as
-   "EXP: dd/mm/yyyy" only for exactly one batch (otherwise "EXP: -"), no batch number, "Ubat Terkawal/Controlled
-   Medicine" below the border, and dosage, frequency and instruction sharing 3 rows with Route not printed. Every
-   quoted string was checked against the merged code. Docs only.
