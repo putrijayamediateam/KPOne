@@ -157,7 +157,7 @@ check items, keep them"). The rest stand unless the owner changes them.
     saving it again or take a photo instead."; both Remove buttons are at least 44 px on phones; the Approvals flag
     reads "Evidence attached: check it" when a file exists, "Evidence reference given: check it" with a reference
     only, and "Evidence needed" only when there is neither. Panel files are named "Photo 1" or "PDF 1" because file
-    names are never stored.
+    names are never stored. Final verdict at `4ea34b2`: OK (Daniel, relayed by B.E.R.N.I.S.S 2026-11-06).
 
 ## 7. Open items and known limits
 
