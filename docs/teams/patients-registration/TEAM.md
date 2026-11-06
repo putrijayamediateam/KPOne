@@ -87,6 +87,7 @@ team's Reviewer is Hafiz, with the same role and rules.
 | REG-5 | REG-3 follow-ups, read paths only: search rows and the Registration picker say "Merged from KP-…"; the kept patient page shows a merged record's guardian contact, read only, when it has none; the doctor's problem list shows merged records' problems as a separate read-only group labelled with their KP number; pay-later rows of a merged-away record list under the kept record with "merged from KP-…". No permission, migration or route | #271 (`b6103d8`) |
 | REG-6 | Patient create, patient edit and Registration Quick create fit a 320 or 390 px phone: the phone number box can shrink, and below 640 px the phone country list and the Quick create identity type list stack above their box at full width; the Patient create identifier box and its fields stay inside their border. Layout only | #285 (`b77d244`) |
 | REG-7 | Screen-reader names: the public QR form's 4 back buttons carry "Kembali" on the button with the arrow icon hidden; the shared `OperationalSelect` names its open option list like its trigger (`aria-label`, or `aria-labelledby` when the caller passes `labelledby`), on every screen that uses it. Frontend only, no visual change | pending (branch `feature/reg-7-accessible-names`) |
+| MC-1 | Medical certificate DRAFT layout matching the clinic's printed paper (renderer `mc-a4-v2`, template revision 2 in EN and BM; still DRAFT, `production_approved` false): uppercase letterhead with Email and Tel, title, right-aligned MC No and date, bold name and identifier, bold-underlined days and dates, blank re-examine, resume and "Diagnosis" lines, "(NOT VALID IN THE COURT OF LAW)", signature line "<Doctor> (MMC No: n)". New MCs use revision 2; issued MCs keep their frozen snapshot; revision 1 unchanged. Five owner-approved assertion changes (`MedicalCertificateTest` :88, :92; `ClinicianCredentialsTest` :170, :172, :251) | not merged yet (`feature/doc-mc-1-layout`) |
 
 ## 6. Owner decisions already made (never ask again)
 
@@ -147,6 +148,11 @@ team's Reviewer is Hafiz, with the same role and rules.
     of Patient create, then REG-7 accessible names (the public QR form's icon-only back buttons and this team's
     SMOKE-1 S1-009 to S1-014 items). REG-7 leaves to Staff Experience's UX-6 the two labels it already adds in this
     team's files (the cancellation reason on `Registration/Show.vue` and the issuer box on `Patient/Index.vue`).
+21. **MC slice 1 (owner, 2026-11-06, in this session and relayed by B.E.R.N.I.S.S):** "yes, build MC slice 1" on the
+    recommended scope: DRAFT still, KPOne's MC number format kept, one phone line, a blank "Diagnosis: ________" line (no
+    diagnosis is ever filled in by KPOne), blank re-examine and resume lines, the court notice, the new signature line,
+    EN and BM both DRAFT, DRAFT banner kept. "approve the 3 MC assertions", then "approve the MC test changes for
+    nurul" (all five). Approved wording and `production_approved` (slice 2) wait for a named doctor's sign-off.
 
 ## 7. Open items and known limits
 
