@@ -23,13 +23,14 @@ final class LeaveEvidenceFiles
     public const MAX_SOURCE_PIXELS = 24_000_000;
 
     /** @return array{content:string, kind:'jpeg'|'png'|'pdf', bytes:int, sha256:string} */
-    public static function prepare(mixed $file, string $field = 'file'): array
+    public static function prepare(mixed $file, string $field = 'file', int $maxBytes = self::MAX_BYTES): array
     {
         if (! $file instanceof UploadedFile || ! $file->isValid()) {
             throw ValidationException::withMessages([$field => 'Use a JPG, PNG or PDF file.']);
         }
-        if ($file->getSize() > self::MAX_BYTES) {
-            throw ValidationException::withMessages([$field => 'This file is over 5 MB.']);
+        // HR-4b staff documents allow 10 MB; HR-2b leave evidence keeps 5 MB.
+        if ($file->getSize() > $maxBytes) {
+            throw ValidationException::withMessages([$field => 'This file is over '.intdiv($maxBytes, 1024 * 1024).' MB.']);
         }
         $raw = (string) $file->getContent();
         if ($raw === '') {
@@ -41,8 +42,8 @@ final class LeaveEvidenceFiles
 
         $prepared = match ($mime) {
             'application/pdf' => self::pdf($raw, $field),
-            'image/jpeg' => self::photo($raw, 'jpeg', $file, $field),
-            'image/png' => self::photo($raw, 'png', $file, $field),
+            'image/jpeg' => self::photo($raw, 'jpeg', $file, $field, $maxBytes),
+            'image/png' => self::photo($raw, 'png', $file, $field, $maxBytes),
             default => throw ValidationException::withMessages([$field => $named ? self::UNREADABLE : 'Use a JPG, PNG or PDF file.']),
         };
 
@@ -78,7 +79,7 @@ final class LeaveEvidenceFiles
      * @param  'jpeg'|'png'  $kind
      * @return array{content:string, kind:'jpeg'|'png'}
      */
-    private static function photo(string $raw, string $kind, UploadedFile $file, string $field): array
+    private static function photo(string $raw, string $kind, UploadedFile $file, string $field, int $maxBytes = self::MAX_BYTES): array
     {
         if (! function_exists('imagecreatefromstring')) {
             throw ValidationException::withMessages([$field => 'Photos cannot be accepted on this server. Use a PDF.']);
@@ -125,8 +126,9 @@ final class LeaveEvidenceFiles
         } finally {
             imagedestroy($image);
         }
-        if (! $ok || ! is_string($content) || $content === '' || strlen($content) > self::MAX_BYTES) {
-            throw ValidationException::withMessages([$field => 'This file is over 5 MB.']);
+        // The re-encoded photo is held to the caller's limit too (Suresh, HR-4b S2).
+        if (! $ok || ! is_string($content) || $content === '' || strlen($content) > $maxBytes) {
+            throw ValidationException::withMessages([$field => 'This file is over '.intdiv($maxBytes, 1024 * 1024).' MB.']);
         }
 
         return ['content' => $content, 'kind' => $kind];
