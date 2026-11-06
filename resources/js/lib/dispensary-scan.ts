@@ -129,3 +129,65 @@ export function checkScan(
         marks: next,
     };
 }
+
+/** DSP-12: what a scan to add means, given the medicines mapped to the scanned SKU (shaped like search results). */
+export type ScanAddMedicine = {
+    name: string;
+    strength: string | null;
+    availability: unknown[];
+    allergyMatches?: unknown[];
+};
+
+export type ScanAddOutcome<T extends ScanAddMedicine> =
+    | { kind: 'choose'; medicine: T; message: string }
+    | { kind: 'list'; medicines: T[]; message: string; allergy: boolean }
+    | { kind: 'none'; message: string };
+
+export function scanAddOutcome<T extends ScanAddMedicine>(
+    medicines: T[],
+    sku: ScannedProduct,
+): ScanAddOutcome<T> {
+    if (medicines.length === 0) {
+        return {
+            kind: 'none',
+            message: `${sku.sku_code} · ${sku.item_name} is not linked to a catalogue medicine, so it cannot be added by scan. Search by name, or ask a CA Supervisor to link it.`,
+        };
+    }
+
+    const name = (m: T) => [m.name, m.strength].filter(Boolean).join(' ');
+
+    if (medicines.length > 1) {
+        return {
+            kind: 'list',
+            medicines,
+            message: `Found ${medicines.length} medicines for this product. Choose one.`,
+            allergy: medicines.some((m) => (m.allergyMatches ?? []).length > 0),
+        };
+    }
+
+    const [medicine] = medicines;
+
+    if ((medicine.allergyMatches ?? []).length > 0) {
+        return {
+            kind: 'list',
+            medicines,
+            message: `Found ${name(medicine)}. Possible allergy match: check the allergy list before you choose it.`,
+            allergy: true,
+        };
+    }
+
+    if (medicine.availability.length === 0) {
+        return {
+            kind: 'list',
+            medicines,
+            message: `Found ${name(medicine)}, but there is no stock to dispense at this branch.`,
+            allergy: false,
+        };
+    }
+
+    return {
+        kind: 'choose',
+        medicine,
+        message: `Found ${name(medicine)}. Set the quantity and batch, then press Add.`,
+    };
+}

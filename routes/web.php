@@ -743,6 +743,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
             ->whereUuid('dispensaryCase')->whereUuid('item')->middleware(['permission:dispensary.update.branch', 'throttle:60,1'])->name('dispensary.items.remove');
         Route::post('dispensary/{dispensaryCase}/medicines/search', [DispensaryController::class, 'searchMedicines'])
             ->whereUuid('dispensaryCase')->middleware(['permission:dispensary.update.branch', 'throttle:60,1'])->name('dispensary.medicines.search');
+        // DSP-12: find the medicine mapped to a scanned SKU for the Add a medicine picker (read only).
+        Route::post('dispensary/{dispensaryCase}/medicines/by-sku', [DispensaryController::class, 'medicinesForSku'])
+            ->whereUuid('dispensaryCase')->middleware(['permission:dispensary.update.branch', 'throttle:60,1'])->name('dispensary.medicines.by-sku');
         Route::post('dispensary/{dispensaryCase}/services', [DispensaryController::class, 'addService'])
             ->whereUuid('dispensaryCase')->middleware(['permission:dispensary.update.branch', 'throttle:60,1'])->name('dispensary.services.add');
         Route::put('dispensary/{dispensaryCase}/services/{line}/final', [DispensaryController::class, 'editService'])
