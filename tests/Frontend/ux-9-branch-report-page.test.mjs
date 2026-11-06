@@ -135,6 +135,11 @@ test('UX-9: the page uses the standard table, aligns number columns and folds th
     );
     assert.match(page, /:class="numeric\[j\] \? 'text-right' : ''"/);
     assert.match(page, /row\.map\(reportCell\)/);
+    assert.match(page, /columns\.map\(isIdentifierHeading\)/);
+    assert.match(
+        page,
+        /'whitespace-nowrap':\s*unbroken\[j\] \|\| cells\[i\]\?\.\[j\]\?\.datetime/,
+    );
     assert.match(page, /<time\s+v-if="cells\[i\]\?\.\[j\]\?\.datetime"/);
     assert.match(page, /empty-message="No matching rows\."/);
     // The basis text sits behind "How this report counts", closed by default.

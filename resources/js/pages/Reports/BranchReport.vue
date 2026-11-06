@@ -6,7 +6,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { OperationalTable } from '@/components/ui/table';
 import { formatDateTime } from '@/lib/presentation';
-import { numericColumns, reportCell } from '@/lib/report-cells';
+import {
+    isIdentifierHeading,
+    numericColumns,
+    reportCell,
+} from '@/lib/report-cells';
 type Filters = {
     expected_branch_id: number;
     from: string;
@@ -46,6 +50,10 @@ const data = ref<Result | null>(null);
 // dates in the usual KPOne form. Computed once per result, not per render.
 const numeric = computed(() =>
     data.value ? numericColumns(data.value.rows, data.value.columns) : [],
+);
+// Dates and reference numbers (KP-…, KPV-…, KPI-…, SKU) stay on one line.
+const unbroken = computed(
+    () => data.value?.columns.map(isIdentifierHeading) ?? [],
 );
 const cells = computed(
     () => data.value?.rows.map((row) => row.map(reportCell)) ?? [],
@@ -324,7 +332,11 @@ function applySelection(key: 'methods' | 'visit_types', value: string[]) {
                             v-for="(cell, j) in row"
                             :key="j"
                             class="tabular-nums"
-                            :class="numeric[j] ? 'text-right' : ''"
+                            :class="{
+                                'text-right': numeric[j],
+                                'whitespace-nowrap':
+                                    unbroken[j] || cells[i]?.[j]?.datetime,
+                            }"
                         >
                             <time
                                 v-if="cells[i]?.[j]?.datetime"

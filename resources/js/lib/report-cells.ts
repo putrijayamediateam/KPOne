@@ -21,12 +21,15 @@ export const isNumberCell = (value: string): boolean =>
 const identifierHeading =
     /^(SKU|Item|Panel)$|\bnumbers?\b|\bnumber\(s\)|\bcode\b/i;
 
+export const isIdentifierHeading = (heading: string): boolean =>
+    identifierHeading.test(heading);
+
 export const numericColumns = (
     rows: string[][],
     headings: string[],
 ): boolean[] =>
     headings.map((heading, column) => {
-        if (identifierHeading.test(heading)) {
+        if (isIdentifierHeading(heading)) {
             return false;
         }
 
