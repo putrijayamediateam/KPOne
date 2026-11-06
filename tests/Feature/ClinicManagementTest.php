@@ -69,6 +69,7 @@ class ClinicManagementTest extends VisitTestCase
             '/hr/attendance' => ['hr.attendance.clock.own', 'hr.attendance.review.organisation'],
             '/hr/records' => ['hr.records.view.own', 'hr.records.view.organisation'],
             '/hr/credentials' => ['hr.credentials.view.own', 'hr.credentials.manage.organisation'],
+            '/hr/sops' => ['hr.sops.acknowledge.own', 'hr.sops.manage.organisation'],
             '/staff' => ['staff.view.own', 'staff.view.branch', 'staff.view.organisation'],
             '/branches' => ['branches.view.branch', 'branches.view.organisation'],
             '/access-control' => ['access.view.organisation'],
