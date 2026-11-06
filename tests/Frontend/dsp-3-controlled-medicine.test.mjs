@@ -11,7 +11,8 @@ test('catalogue editors see a Controlled badge and a confirmed mark or unmark ac
     assert.ok(catalogue.includes('data-testid="controlled-badge"'));
     assert.ok(catalogue.includes('data-action="toggle-controlled"'));
     assert.ok(catalogue.includes("'Mark as controlled medicine'"));
-    assert.ok(catalogue.includes('Ubat Terkawal / Controlled Medicine'));
+    // DSP-10 (approved test change): the owner's sample wording, with no spaces around the slash.
+    assert.ok(catalogue.includes('Ubat Terkawal/Controlled Medicine'));
     // Owner-approved change (CAT-1, 2026-11-05): the Controlled badge is a
     // neutral word badge built from theme tokens (Daniel's design review), so
     // it stays readable in dark mode without a palette colour.
