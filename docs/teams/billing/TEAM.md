@@ -201,6 +201,10 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php` and `BillingPermiss
     not already say (the warning border stays); a month with no counts never reads "Matches".
 29. BIL-8 report boundary clean-up (2026-11-06, the owner in the Billing session: "start BIL-8"). No behaviour
     change: Transaction Detail must stay byte-identical, proven by a test oracle.
+    The owner approved (2026-11-06) pointing three lines of the existing source check in
+    `tests/Frontend/branch-reports.test.mjs` ("Transaction Detail reuses receipt evidence…") at
+    `BranchReportService.php`, where they now live: REPEATABLE READ, the audit call, and the cap check before any
+    patient lookup (now `guardWindow()` before `identities()`). No other line of that test changed.
 
 ## 7. Open items and known limits
 
