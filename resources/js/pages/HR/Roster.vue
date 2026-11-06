@@ -92,6 +92,8 @@ type Minimums = {
 };
 
 const props = defineProps<{
+    /** HR-5a: your own expiring or expired credentials, in words. */
+    credentialReminders?: string[];
     roster: {
         tab: 'my' | 'planner' | 'minimums';
         tabs: ('my' | 'planner' | 'minimums')[];
@@ -545,6 +547,20 @@ const minimumError = (session: string, role: string) =>
             aria-labelledby="my-shifts"
             class="flex flex-col gap-3"
         >
+            <!-- HR-5a: your expiring or expired credentials, in words; inside KPOne only. -->
+            <ul
+                v-if="credentialReminders?.length"
+                class="flex flex-col gap-1 text-sm"
+                data-test="credential-reminders"
+            >
+                <li v-for="r in credentialReminders" :key="r">
+                    <Link
+                        href="/hr/credentials"
+                        class="underline underline-offset-4"
+                        >{{ r }}</Link
+                    >
+                </li>
+            </ul>
             <div class="flex flex-wrap items-start justify-between gap-2">
                 <div>
                     <h2 id="my-shifts" class="text-base font-semibold">

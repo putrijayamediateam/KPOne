@@ -40,6 +40,11 @@ class CallNextService
 
     public const STATE_ALL_NOT_READY = 'all_not_ready';
 
+    /** Q-4c: where Call next was pressed, recorded on the queue.called audit row. */
+    public const SOURCE_BOARD = 'board';
+
+    public const SOURCE_HELD_CONSULTATION = 'held_consultation';
+
     public function __construct(
         private BranchAccessService $branches,
         private VisitDoctorEligibilityService $doctors,
@@ -111,7 +116,9 @@ class CallNextService
     }
 
     /**
-     * Call the confirmed patient if they are still the doctor's next eligible patient.
+     * Call the confirmed patient if they are still the doctor's next eligible patient. The queue.called audit row
+     * says it came from Call next and where (Q-4c); "held consultation" only when it really is the actor's own
+     * consultation on hold, otherwise "board".
      *
      * @param  array<string, mixed>  $attributes
      */
@@ -136,7 +143,7 @@ class CallNextService
             throw new AuthorizationException('You may not call this doctor\'s next patient.');
         }
 
-        return DB::transaction(function () use ($actor, $branch, $doctorId, $validated): QueueEntry {
+        return DB::transaction(function () use ($actor, $branch, $doctorId, $validated, $attributes): QueueEntry {
             // The doctor's row lock is the one every Call In for this doctor takes first, so nobody else can call
             // one of their patients between this check and the call below.
             ConsultationLocks::users($actor->organisation_id, [$actor->id, $doctorId]);
@@ -159,8 +166,32 @@ class CallNextService
                 'expected_branch_id' => $branch->id,
                 'visit_lock_version' => $entry->visit->lock_version,
                 'queue_lock_version' => $entry->lock_version,
-            ]);
+            ], ['via' => 'call_next', 'call_next_source' => $this->source($actor, $branch, $attributes)]);
         }, 3);
+    }
+
+    /**
+     * Checked inside the call's transaction, after the doctor's lock, so a hold resumed a moment earlier is not
+     * labelled as a held consultation.
+     *
+     * @param  array<string, mixed>  $attributes
+     * @return self::SOURCE_*
+     */
+    private function source(User $actor, Branch $branch, array $attributes): string
+    {
+        $fromVisit = $attributes['from_visit'] ?? null;
+        if (($attributes['from'] ?? null) !== 'consultation' || ! is_string($fromVisit) || $fromVisit === '' || strlen($fromVisit) > 40) {
+            return self::SOURCE_BOARD;
+        }
+        $held = Visit::query()
+            ->where('organisation_id', $actor->organisation_id)
+            ->where('branch_id', $branch->id)
+            ->where('assigned_doctor_user_id', $actor->id)
+            ->where('visit_number', $fromVisit)
+            ->whereHas('clinicalEncounter.activeHold')
+            ->exists();
+
+        return $held ? self::SOURCE_HELD_CONSULTATION : self::SOURCE_BOARD;
     }
 
     /** 'own' for a doctor's own queue, 'branch' for a branch caller, null when this board cannot call. */
