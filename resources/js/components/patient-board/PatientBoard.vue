@@ -303,7 +303,7 @@ const rowWaitingTone = (row: PatientBoardRow) =>
                                     row.callHold?.active ||
                                     row.callHold?.overridden
                                 "
-                                class="block w-full rounded-md border border-amber-600/40 bg-amber-50 p-2 text-xs break-words text-amber-950 dark:bg-amber-950 dark:text-amber-100"
+                                class="block w-full rounded-md border border-warning/25 bg-warning/10 p-2 text-xs break-words text-warning-strong"
                                 data-testid="call-readiness-badge"
                             >
                                 {{

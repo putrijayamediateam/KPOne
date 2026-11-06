@@ -54,3 +54,20 @@ test('no pale palette fills are left on these chips', () => {
     );
     assert.doesNotMatch(show, /bg-red-50 px-2 py-1 text-xs font-medium/);
 });
+
+test('the not-ready-to-call panel uses the warning tokens, not a hard-coded orange palette', () => {
+    const board = readFileSync(
+        new URL(
+            '../../resources/js/components/patient-board/PatientBoard.vue',
+            import.meta.url,
+        ),
+        'utf8',
+    );
+    const badge = board.match(
+        /class="([^"]*)"\s*data-testid="call-readiness-badge"/,
+    );
+    assert.ok(badge, 'call-readiness badge found');
+    assert.match(badge[1], /border-warning\/25 bg-warning\/10/);
+    assert.match(badge[1], /text-warning-strong/);
+    assert.doesNotMatch(badge[1], /amber-|orange-|dark:/);
+});
