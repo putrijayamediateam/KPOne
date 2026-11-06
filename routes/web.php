@@ -779,6 +779,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         });
         Route::middleware(['permission:payments.reconcile.branch', 'sensitive.no-store'])->prefix('cash-closings')->group(function () {
             Route::get('/', [CashClosingController::class, 'index'])->name('cash-closings.index');
+            Route::get('month', [CashClosingController::class, 'month'])->name('cash-closings.month');
             Route::post('/', [CashClosingController::class, 'store'])->middleware('throttle:20,1')->name('cash-closings.store');
             Route::post('{closing}/{decision}', [CashClosingController::class, 'decide'])->whereUuid('closing')->whereIn('decision', ['approved', 'returned'])
                 ->middleware(['permission:payments.cash_closing.approve.branch', 'throttle:20,1'])->name('cash-closings.decide');
