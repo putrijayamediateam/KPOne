@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Head, router, useForm, usePage } from '@inertiajs/vue3';
-import { CalendarCheck, Trash2 } from '@lucide/vue';
+import { CalendarCheck, CalendarX, Trash2 } from '@lucide/vue';
 import {
     computed,
     nextTick,
@@ -2817,7 +2817,11 @@ const calendarDays = computed(() =>
             @confirm="confirmAction"
         >
             <template #icon>
-                <CalendarCheck class="size-5" />
+                <CalendarCheck
+                    v-if="action.kind === 'approve'"
+                    class="size-5"
+                />
+                <CalendarX v-else class="size-5" />
             </template>
             <div
                 v-if="action.kind === 'approve' && action.evidenceNeeded"
