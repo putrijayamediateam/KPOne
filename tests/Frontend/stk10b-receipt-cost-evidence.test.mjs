@@ -12,16 +12,26 @@ test('both receiving forms ask for the total paid, optional, with one help line 
     const lots = read(
         'resources/js/components/inventory/VerifiedReceivingForm.vue',
     );
-    assert.match(panel, /Total paid for this batch \(RM\)/);
+    assert.match(panel, /Total paid for this batch \(RM, optional\)/);
     assert.match(panel, /total paid for this batch RM/);
-    assert.match(panel, /Leave blank to use the order's estimate\./);
-    assert.match(panel, /:aria-describedby="`\$\{row\.publicId\}-cost-help`"/);
+    assert.match(panel, /Leave blank to\s+use the order's estimate\./);
+    // Design review (Daniel): the help sits under the cost field it describes, never under the delivery reference.
+    assert.match(
+        panel,
+        /:aria-describedby="`\$\{line\.publicId\}-cost-help`"[\s\S]{0,400}step="0\.01"\s*\/><\/label>\s*<p\s+:id="`\$\{line\.publicId\}-cost-help`"/,
+    );
+    assert.doesNotMatch(panel, /Optional\. Type the batch total/);
     assert.doesNotMatch(panel, /Actual unit cost \(RM\)/);
-    assert.match(lots, /Total paid for this lot \(RM\)/);
+    assert.match(lots, /Total paid for this lot \(RM, optional\)/);
     assert.match(
         lots,
-        /v-if="entry\.outcome !== 'rejected'"\s+class="grid gap-1 text-sm"\s+>Total paid/,
+        /v-if="entry\.outcome !== 'rejected'"\s+class="grid min-w-0 gap-1"\s*>\s*<label class="grid gap-1 text-sm"\s+>Total paid/,
     );
+    assert.match(
+        lots,
+        /\/><\/label>\s*<p\s+:id="`\$\{row\.publicId\}-\$\{index\}-\$\{number\}-lot-cost-help`"/,
+    );
+    assert.doesNotMatch(lots, /Optional\. Type each lot total/);
     assert.match(lots, /cost_total_sen:/);
     assert.doesNotMatch(lots, /unit_cost_sen/);
     // Exact RM to sen without floating point.
