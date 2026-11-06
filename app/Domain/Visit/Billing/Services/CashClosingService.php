@@ -231,6 +231,88 @@ final class CashClosingService
         }, 3);
     }
 
+    /**
+     * BIL-7: read-only month view of the active branch, one row per day up to today. A missing, malformed or future
+     * month shows the current branch month. Figures are each day's latest count (an approved day's approved count);
+     * "changed after approval" uses the same rule as the daily page.
+     *
+     * @return array<string, mixed>
+     */
+    public function month(User $actor, ?string $month): array
+    {
+        $branch = $this->branches->activeBranch($actor);
+        abort_unless($branch && $branch->organisation_id === $actor->organisation_id, 404);
+        $today = CarbonImmutable::now($branch->timezone)->startOfDay();
+        $first = is_string($month) && preg_match('/\A\d{4}-\d{2}\z/', $month) === 1 ? CarbonImmutable::createFromFormat('!Y-m', $month, $branch->timezone) : false;
+        if (! $first || $first->format('Y-m') !== $month || $first->greaterThan($today) || $first->year < 2000) {
+            $first = $today->startOfMonth();
+        }
+        $monthEnd = $first->endOfMonth()->startOfDay();
+        $last = $monthEnd->lessThan($today) ? $monthEnd : $today;
+        $closings = CashClosing::query()->with('decision')->where('organisation_id', $branch->organisation_id)->where('branch_id', $branch->id)
+            ->whereDate('business_date', '>=', $first->toDateString())->whereDate('business_date', '<=', $last->toDateString())
+            ->orderByDesc('revision')->get();
+        // Days before the branch's first ever count were never due: shown as "before_start", not as missed.
+        $firstCount = CashClosing::query()->where('organisation_id', $branch->organisation_id)->where('branch_id', $branch->id)->min('business_date');
+        $startsOn = $firstCount === null ? null : CarbonImmutable::parse((string) $firstCount, $branch->timezone)->startOfDay();
+        $byDay = $closings->groupBy(fn (CashClosing $c): string => $c->business_date->toDateString());
+        $names = $this->staff->visibleUsers($actor)
+            ->whereIn('id', $closings->pluck('counted_by_user_id')->merge($closings->pluck('decision.decided_by_user_id'))->filter()->unique())->pluck('name', 'id');
+
+        $rows = [];
+        $summary = ['approved' => 0, 'waiting' => 0, 'returned' => 0, 'notCounted' => 0, 'countedSen' => 0, 'expectedSen' => 0, 'differenceSen' => 0, 'countsShown' => 0];
+        for ($day = $first; $day->lessThanOrEqualTo($last); $day = $day->addDay()) {
+            /** @var Collection<int, CashClosing> $dayClosings */
+            $dayClosings = $byDay->get($day->toDateString(), new Collection);
+            $latest = $dayClosings->first();
+            $approvedClosing = $dayClosings->first(fn (CashClosing $c): bool => $c->decision?->decision === 'approved');
+            $shown = $approvedClosing ?? $latest;
+            $ended = $day->lessThan($today); // dayEnded()'s rule, from the one clock reading above.
+            $status = $approvedClosing !== null ? 'approved' : (! $ended ? 'open' : ($latest === null
+                ? ($startsOn === null || $day->lessThan($startsOn) ? 'before_start' : 'not_counted')
+                : ($latest->decision === null ? 'waiting' : 'returned')));
+            $changed = false;
+            if ($approvedClosing !== null) {
+                $expected = $this->expected($branch, $day);
+                $changed = $approvedClosing->expected_receipt_count !== $expected['count'] || $approvedClosing->expected_cash_sen !== $expected['sen'];
+            }
+            $flags = array_values(array_filter([
+                $status === 'not_counted' ? 'no_count' : null,
+                in_array($status, ['waiting', 'returned'], true) ? 'not_approved' : null,
+                $changed ? 'changed_after_approval' : null,
+            ]));
+            $key = ['approved' => 'approved', 'waiting' => 'waiting', 'returned' => 'returned', 'not_counted' => 'notCounted'][$status] ?? null;
+            if ($key !== null) {
+                $summary[$key]++;
+            }
+            if ($shown !== null) {
+                $summary['countedSen'] += $shown->counted_cash_sen;
+                $summary['expectedSen'] += $shown->expected_cash_sen;
+                $summary['differenceSen'] += $shown->variance_sen;
+                $summary['countsShown']++;
+            }
+            $rows[] = [
+                'date' => $day->toDateString(),
+                'status' => $status,
+                'countedCashSen' => $shown?->counted_cash_sen,
+                'expectedCashSen' => $shown?->expected_cash_sen,
+                'differenceSen' => $shown?->variance_sen,
+                'countedBy' => $shown ? ($names[$shown->counted_by_user_id] ?? 'Staff member') : null,
+                'decision' => $shown?->decision?->decision,
+                'decidedBy' => $shown?->decision ? ($names[$shown->decision->decided_by_user_id] ?? 'Staff member') : null,
+                'flags' => $flags,
+            ];
+        }
+        $current = $first->format('Y-m') === $today->format('Y-m');
+
+        return [
+            'branch' => $branch->name, 'month' => $first->format('Y-m'), 'today' => $today->toDateString(), 'isCurrentMonth' => $current,
+            'previousMonth' => $first->year === 2000 && $first->month === 1 ? null : $first->subMonth()->format('Y-m'), 'nextMonth' => $current ? null : $first->addMonth()->format('Y-m'),
+            'summary' => $summary, 'hasClosings' => $closings->isNotEmpty(), 'startsOn' => $startsOn?->toDateString(),
+            'beforeStart' => $startsOn === null || $last->lessThan($startsOn), 'rows' => $rows,
+        ];
+    }
+
     /** One writer at a time per branch and business date, then per request key (so a reused key never races). */
     private function serialize(Branch $branch, CarbonImmutable $date, string $key): void
     {

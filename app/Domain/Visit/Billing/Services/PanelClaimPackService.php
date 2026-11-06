@@ -65,6 +65,9 @@ final class PanelClaimPackService
             $claims = PanelClaim::query()->where('organisation_id', $actor->organisation_id)->where('branch_id', $branch->id)
                 ->whereIn('public_id', $publicIds)->with(['lines', 'documents'])->orderBy('id')->get();
             abort_unless($claims->count() === count($publicIds), 404);
+            // PNL-12 (owner decision 2026-11-06): print in the order the officer ticked the claims.
+            $position = array_flip($publicIds);
+            $claims = $claims->sortBy(static fn (PanelClaim $claim): int => $position[strtolower((string) $claim->public_id)])->values();
             if ($claims->pluck('panel_id')->unique()->count() > 1) {
                 throw ValidationException::withMessages(['claims' => 'Choose claims of one Panel.']);
             }

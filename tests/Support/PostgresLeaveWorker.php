@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Domain\HR\Leave\Services\LeaveEntryService;
+use App\Domain\HR\Leave\Services\LeaveEvidenceService;
 use App\Domain\HR\Leave\Services\LeaveRequestService;
 use App\Models\User;
 use Illuminate\Auth\Access\AuthorizationException;
@@ -13,7 +14,7 @@ use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 
 /*
- * HR-2a contention worker: one leave write (apply, approve or confirm an adjustment) in its own PostgreSQL session.
+ * HR-2a/2b contention worker: one leave write (apply, approve, confirm an adjustment or add an evidence file) in its own PostgreSQL session.
  * Prints READY <pid>, waits for GO, runs and prints SUCCESS, STALE <field>: <message> or DENIED.
  */
 require dirname(__DIR__, 2).'/vendor/autoload.php';
@@ -37,6 +38,8 @@ try {
         'apply' => app(LeaveRequestService::class)->apply($actor, $a),
         'approve' => app(LeaveRequestService::class)->approve($actor, $a['request'], $a),
         'confirm' => app(LeaveEntryService::class)->decide($actor, 'adjustment', $a['entry'], 'confirmed', $a),
+        'evidence' => app(LeaveEvidenceService::class)->add($actor, $a['request'], ['content' => (string) base64_decode($a['content'], true), 'kind' => 'pdf',
+            'bytes' => strlen((string) base64_decode($a['content'], true)), 'sha256' => hash('sha256', (string) base64_decode($a['content'], true))], $a),
     };
     fwrite(STDOUT, 'SUCCESS '.$a['op'].PHP_EOL);
 } catch (ValidationException $e) {
