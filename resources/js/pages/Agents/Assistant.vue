@@ -1,12 +1,13 @@
 <script setup lang="ts">
 import { Head, router } from '@inertiajs/vue3';
-import { computed, ref } from 'vue';
+import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { PageHeader } from '@/components/ui/page-header';
 import OperationalSelect from '@/components/ui/select/OperationalSelect.vue';
 import { StatusBadge } from '@/components/ui/status';
 import { OperationalTable } from '@/components/ui/table';
+import { formatDate } from '@/lib/presentation';
 
 type DateMode = 'date' | 'today' | 'week' | 'none';
 type Question = { key: string; label: string; date: DateMode };
@@ -114,6 +115,46 @@ const format = (cell: Cell): string => {
     return String(cell.value);
 };
 const isNumber = (column: Column) => column.align === 'right';
+
+// On a phone the answer sits below the twelve questions: bring it into view and move focus to its heading.
+const answerHeading = ref<HTMLElement | null>(null);
+const showAnswer = async () => {
+    await nextTick();
+    const heading = answerHeading.value;
+
+    if (!heading) {
+        return;
+    }
+
+    heading.focus({ preventScroll: true });
+    // Scroll only when the heading is hidden (below the screen, or under the sticky top bar).
+    const { top } = heading.getBoundingClientRect();
+
+    if (top >= 80 && top <= window.innerHeight - 160) {
+        return;
+    }
+
+    const reduce = window.matchMedia?.(
+        '(prefers-reduced-motion: reduce)',
+    ).matches;
+    heading.scrollIntoView({
+        behavior: reduce ? 'auto' : 'smooth',
+        block: 'start',
+    });
+};
+watch(
+    () => props.answer?.runId,
+    (runId) => {
+        if (runId) {
+            void showAnswer();
+        }
+    },
+);
+onMounted(() => {
+    if (props.answer) {
+        void showAnswer();
+    }
+});
 const scopeText = computed(() => {
     const scope = props.answer?.scope;
 
@@ -122,8 +163,10 @@ const scopeText = computed(() => {
     }
 
     const when = scope.from
-        ? `${scope.from} to ${scope.to}`
-        : (scope.date ?? 'as of now');
+        ? `${formatDate(scope.from)} to ${formatDate(scope.to)}`
+        : scope.date
+          ? formatDate(scope.date)
+          : 'as of now';
 
     return `${scope.branch} · ${when}`;
 });
@@ -265,7 +308,14 @@ const scopeText = computed(() => {
                         data-test="assistant-answer"
                     >
                         <header class="grid gap-1">
-                            <h3 class="font-semibold">{{ answer.label }}</h3>
+                            <h3
+                                ref="answerHeading"
+                                tabindex="-1"
+                                class="scroll-mt-20 font-semibold focus:outline-none"
+                                data-test="assistant-answer-heading"
+                            >
+                                {{ answer.label }}
+                            </h3>
                             <p
                                 class="text-xs text-muted-foreground"
                                 data-test="assistant-scope"

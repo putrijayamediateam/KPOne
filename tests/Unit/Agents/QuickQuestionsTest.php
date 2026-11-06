@@ -34,6 +34,18 @@ class QuickQuestionsTest extends TestCase
         $this->assertSame(['RM 0.00', 'RM 1,234.05', '-RM 0.99', 'RM 10,000,000.00'], [QuickQuestions::ringgit(0), QuickQuestions::ringgit(123405), QuickQuestions::ringgit(-99), QuickQuestions::ringgit(1000000000)]);
     }
 
+    public function test_answers_use_branch_names_and_readable_dates(): void
+    {
+        $names = ['CHERAS' => 'Cheras', 'SUNGAI_BESI' => 'Sungai Besi'];
+        $built = QuickQuestions::present($this->build('clinic.patients_seen', [['branches' => [['branch' => 'CHERAS', 'registered' => 1, 'served' => 1], ['branch' => 'SUNGAI_BESI', 'registered' => 0, 'served' => 0]]]], ['branchLabel' => 'CHERAS, SUNGAI_BESI', 'date' => '2026-11-06']), $names);
+
+        $this->assertSame(['Cheras', 'Sungai Besi'], array_map(fn (array $row): string => (string) $row[0]['value'], $built['rows']));
+        $this->assertSame('1 patient seen on 6 Nov 2026 at Cheras, Sungai Besi (1 registered).', $built['sentence']);
+        $this->assertSame('All branches', $built['totals'][0]['value']);
+        $this->assertSame('Cheras, Sungai Besi', QuickQuestions::words('CHERAS, SUNGAI_BESI', $names));
+        $this->assertSame('RM 1.00 at CHERASX on 31 Dec 2026', QuickQuestions::words('RM 1.00 at CHERASX on 2026-12-31', $names), 'only whole codes change');
+    }
+
     public function test_the_week_runs_monday_to_today_against_the_same_days_last_week(): void
     {
         // 2026-11-05 is a Thursday.

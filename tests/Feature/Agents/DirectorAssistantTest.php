@@ -77,8 +77,8 @@ class DirectorAssistantTest extends QueueTestCase
 
         $answer = $this->page($director, ['question' => 'clinic.patients_seen', 'branch' => 'CHERAS', 'date' => '2026-11-05'])['answer'];
 
-        $this->assertSame('1 patient seen on 2026-11-05 at CHERAS (2 registered).', $answer['sentence']);
-        $this->assertSame([[['value' => 'CHERAS', 'kind' => 'text'], ['value' => 2, 'kind' => 'count'], ['value' => 1, 'kind' => 'count']]], $answer['rows']);
+        $this->assertSame('1 patient seen on 5 Nov 2026 at Cheras (2 registered).', $answer['sentence']);
+        $this->assertSame([[['value' => 'Cheras', 'kind' => 'text'], ['value' => 2, 'kind' => 'count'], ['value' => 1, 'kind' => 'count']]], $answer['rows']);
         $run = AiAgentRun::query()->sole();
         $this->assertSame([$answer['runId'], 'completed', 'quick_answer', $director->id, $this->branch->id], [$run->id, $run->status, $run->task_type, $run->requested_by_user_id, $run->branch_id]);
         $this->assertSame(
@@ -94,12 +94,12 @@ class DirectorAssistantTest extends QueueTestCase
         $director = $this->actor('director');
 
         $answer = $this->page($director, ['question' => 'clinic.patients_seen', 'branch' => 'all'])['answer'];
-        $this->assertSame(['CHERAS', 'PUCHONG', 'SUNGAI_BESI'], array_map(fn (array $row): string => $row[0]['value'], $answer['rows']));
+        $this->assertSame(['Cheras', 'Puchong', 'Sungai Besi'], array_map(fn (array $row): string => $row[0]['value'], $answer['rows']));
         $this->assertSame(['All branches', 2, 1], array_column($answer['totals'], 'value'));
         $this->assertSame('all branches', $answer['scope']['branch']);
 
         $doctors = $this->page($director, ['question' => 'clinic.seen_per_doctor', 'branch' => 'all'])['answer'];
-        $this->assertSame([['CHERAS', $doctor->name, 1]], array_map(fn (array $row): array => [$row[0]['value'], $row[1]['value'], $row[2]['value']], $doctors['rows']));
+        $this->assertSame([['Cheras', $doctor->name, 1]], array_map(fn (array $row): array => [$row[0]['value'], $row[1]['value'], $row[2]['value']], $doctors['rows']));
     }
 
     public function test_stock_reads_each_branch_the_director_works_at(): void
@@ -109,8 +109,8 @@ class DirectorAssistantTest extends QueueTestCase
         $director = $this->actor('director');
 
         $low = $this->page($director, ['question' => 'stock.low', 'branch' => 'all'])['answer'];
-        $this->assertSame([['CHERAS', 'Synthetic governed item', $f['sku']->sku_code, 1]], array_map(fn (array $row): array => array_column($row, 'value'), $low['rows']));
-        $this->assertSame('1 item is at or below its reorder level at CHERAS.', $low['sentence']);
+        $this->assertSame([['Cheras', 'Synthetic governed item', $f['sku']->sku_code, 1]], array_map(fn (array $row): array => array_column($row, 'value'), $low['rows']));
+        $this->assertSame('1 item is at or below its reorder level at Cheras.', $low['sentence']);
 
         $expiring = $this->page($director, ['question' => 'stock.expiring', 'branch' => 'CHERAS'])['answer'];
         $this->assertSame('10.000 unit', $expiring['rows'][0][4]['value']);
@@ -123,8 +123,8 @@ class DirectorAssistantTest extends QueueTestCase
 
         $answer = $this->page($director, ['question' => 'money.week', 'branch' => 'CHERAS', 'date' => '2026-11-05'])['answer'];
 
-        $this->assertSame(['branch' => 'CHERAS', 'date' => null, 'from' => '2026-11-02', 'to' => '2026-11-05'], $answer['scope']);
-        $this->assertSame('Net sales at CHERAS from 2026-11-02 to 2026-11-05: RM 0.00, the same as the same days last week (2026-10-26 to 2026-10-29, RM 0.00).', $answer['sentence']);
+        $this->assertSame(['branch' => 'Cheras', 'date' => null, 'from' => '2026-11-02', 'to' => '2026-11-05'], $answer['scope']);
+        $this->assertSame('Net sales at Cheras from 2 Nov 2026 to 5 Nov 2026: RM 0.00, the same as the same days last week (26 Oct 2026 to 29 Oct 2026, RM 0.00).', $answer['sentence']);
         $this->assertSame(2, DB::table('ai_agent_run_steps')->where('kind', 'data_read')->where('tool_code', 'insights.sales_summary')->count());
     }
 
@@ -132,8 +132,8 @@ class DirectorAssistantTest extends QueueTestCase
     {
         $director = $this->actor('director');
 
-        $this->assertSame('Net sales on 2026-11-05 at CHERAS: RM 0.00. Received RM 0.00 (cash RM 0.00, non-cash RM 0.00); Panel RM 0.00 and pay later RM 0.00 are not received yet.', $this->page($director, ['question' => 'money.day'])['answer']['sentence']);
-        $this->assertSame('RM 0.00 received on 2026-11-05 at CHERAS through 0 payment methods; RM 0.00 of it in cash.', $this->page($director, ['question' => 'money.receipts_by_method'])['answer']['sentence']);
+        $this->assertSame('Net sales on 5 Nov 2026 at Cheras: RM 0.00. Received RM 0.00 (cash RM 0.00, non-cash RM 0.00); Panel RM 0.00 and pay later RM 0.00 are not received yet.', $this->page($director, ['question' => 'money.day'])['answer']['sentence']);
+        $this->assertSame('RM 0.00 received on 5 Nov 2026 at Cheras through 0 payment methods; RM 0.00 of it in cash.', $this->page($director, ['question' => 'money.receipts_by_method'])['answer']['sentence']);
         foreach (['panel.unclaimed', 'panel.overdue', 'panel.accepted_unpaid'] as $question) {
             $this->assertSame('Nothing to show: every Panel is up to date.', $this->page($director, ['question' => $question])['answer']['sentence'], $question);
         }
@@ -157,18 +157,18 @@ class DirectorAssistantTest extends QueueTestCase
         $this->assertSame(['CHERAS'], array_column($this->page($director)['branches'], 'code'));
 
         $money = $this->page($director, ['question' => 'money.day', 'branch' => 'all'])['answer'];
-        $this->assertSame(['CHERAS'], array_map(fn (array $row): string => $row[0]['value'], $money['rows']));
-        $this->assertSame('CHERAS', $money['scope']['branch']);
+        $this->assertSame(['Cheras'], array_map(fn (array $row): string => $row[0]['value'], $money['rows']));
+        $this->assertSame('Cheras', $money['scope']['branch']);
         $panel = $this->page($director, ['question' => 'panel.unclaimed', 'branch' => 'all'])['answer'];
-        $this->assertSame('CHERAS', $panel['scope']['branch']);
+        $this->assertSame('Cheras', $panel['scope']['branch']);
         $this->assertSame(['CHERAS'], DB::table('ai_agent_run_steps')->where('tool_code', 'panel.claims_summary')->pluck('summary')->map(fn (string $s): string => str_replace('Read panel.claims_summary for ', '', $s))->all());
 
         $this->alsoAssign($director, 'PUCHONG');
         $this->assertSame(['CHERAS', 'PUCHONG'], array_column($this->page($director)['branches'], 'code'));
         $money = $this->page($director, ['question' => 'money.day', 'branch' => 'all'])['answer'];
-        $this->assertSame(['CHERAS', 'PUCHONG'], array_map(fn (array $row): string => $row[0]['value'], $money['rows']));
+        $this->assertSame(['Cheras', 'Puchong'], array_map(fn (array $row): string => $row[0]['value'], $money['rows']));
         $this->assertSame(['All branches'], [$money['totals'][0]['value']]);
-        $this->assertSame('CHERAS, PUCHONG', $money['scope']['branch']);
+        $this->assertSame('Cheras, Puchong', $money['scope']['branch']);
 
         // The organisation-wide clinic figures still cover every branch.
         $this->assertCount(3, $this->page($director, ['question' => 'clinic.patients_seen', 'branch' => 'all'])['answer']['rows']);

@@ -42,3 +42,17 @@ test('the route is Director-only, no-store and throttled', () => {
         /permission:ai_assistant\.use\.organisation', 'sensitive\.no-store'\]\)\s*->get\('agents\/assistant'.*throttle:30,1.*name\('agents\.assistant'\)/s,
     );
 });
+
+test('a new answer is brought into view with focus on its heading', () => {
+    assert.match(page, /ref="answerHeading"/);
+    assert.match(page, /tabindex="-1"/);
+    assert.match(page, /heading\.focus\(\{ preventScroll: true \}\)/);
+    assert.match(page, /scrollIntoView/);
+    assert.match(page, /prefers-reduced-motion: reduce/);
+    assert.match(page, /\(\) => props\.answer\?\.runId/);
+});
+
+test('answer dates use the shared date formatter', () => {
+    assert.match(page, /import \{ formatDate \} from '@\/lib\/presentation'/);
+    assert.match(page, /formatDate\(scope\.from\)/);
+});

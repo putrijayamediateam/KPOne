@@ -84,6 +84,39 @@ final class QuickQuestions
     }
 
     /**
+     * Words for people: branch codes become branch names (in the branch column and the sentence) and dates in the
+     * sentence read "6 Nov 2026". Codes stay the building blocks inside the templates.
+     *
+     * @param  Built  $built
+     * @param  array<string, string>  $names  branch name by code
+     * @return Built
+     */
+    public static function present(array $built, array $names): array
+    {
+        $branchColumn = array_search('branch', array_column($built['columns'], 'key'), true);
+        if ($branchColumn !== false) {
+            $built['rows'] = array_map(function (array $row) use ($branchColumn, $names): array {
+                $code = (string) $row[$branchColumn]['value'];
+                $row[$branchColumn] = self::cell($names[$code] ?? $code);
+
+                return $row;
+            }, $built['rows']);
+        }
+        $built['sentence'] = self::words($built['sentence'], $names);
+
+        return $built;
+    }
+
+    /** @param array<string, string> $names */
+    public static function words(string $text, array $names): string
+    {
+        $text = (string) preg_replace_callback('/\b(\d{4})-(\d{2})-(\d{2})\b/', fn (array $m): string => CarbonImmutable::createFromFormat('!Y-m-d', $m[0])?->format('j M Y') ?? $m[0], $text);
+
+        // Whole upper-case words only, so a code is never replaced inside another word.
+        return (string) preg_replace_callback('/\b[A-Z][A-Z0-9_]*\b/', fn (array $m): string => $names[$m[0]] ?? $m[0], $text);
+    }
+
+    /**
      * The Monday to Sunday week holding $date, ending today at the latest.
      *
      * @return array{from: string, to: string, previousFrom: string, previousTo: string}

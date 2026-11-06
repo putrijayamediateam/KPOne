@@ -78,7 +78,9 @@ final class DirectorAssistant
         $run = $this->recorder->start(self::AGENT, self::TASK, $branch, $director, AgentPermissions::ASSISTANT);
         try {
             [$results, $scope] = $this->read($run, $director, $question, $branch, $targets, $date, $today);
-            $built = QuickQuestions::build($key, $results, $scope);
+            $names = Branch::query()->where('organisation_id', $director->organisation_id)->pluck('name', 'code')->all();
+            $built = QuickQuestions::present(QuickQuestions::build($key, $results, $scope), $names);
+            $scope['branchLabel'] = QuickQuestions::words($scope['branchLabel'], $names);
             $this->recorder->step($run, 'decision', 'Answered: '.$question['label'].'.');
             $this->recorder->complete($run);
         } catch (Throwable $exception) {
