@@ -189,8 +189,8 @@ final class RecordsPageService
                 ->map(fn (Branch $b): array => ['id' => $b->id, 'name' => $b->name])->all(),
             // Accounts with no staff file yet, for "Open a staff file". The TV account never has one.
             'withoutFile' => User::query()->where('organisation_id', $actor->organisation_id)->whereNotIn('id', $withFile)->where('is_active', true)
-                ->whereHas('roles', fn ($r) => $r->whereIn('name', RosterPermissions::HUMAN_ROLES))->orderBy('name')->get(['id', 'name'])
-                ->filter(fn (User $u): bool => $this->support->refusal($actor, $u->id) === null)
+                ->whereHas('roles', fn ($r) => $r->whereIn('name', RosterPermissions::HUMAN_ROLES))->with('roles')->orderBy('name')->get(['id', 'name'])
+                ->filter(fn (User $u): bool => $this->support->refusalFor($actor, $u) === null)
                 ->map(fn (User $u): array => ['id' => $u->id, 'name' => $u->name])->values()->all(),
         ];
     }

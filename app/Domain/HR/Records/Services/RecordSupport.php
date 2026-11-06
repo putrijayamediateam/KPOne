@@ -114,8 +114,15 @@ final class RecordSupport
             return 'You may not manage your own staff file. Ask someone else, or use My HR details.';
         }
         $subject = User::query()->find($subjectUserId);
-        if ($subject === null) {
-            return 'This staff file cannot be managed.';
+
+        return $subject === null ? 'This staff file cannot be managed.' : $this->refusalFor($actor, $subject);
+    }
+
+    /** The same rule for an already loaded account (roles eager-loaded), so a list makes no query per person. */
+    public function refusalFor(User $actor, User $subject): ?string
+    {
+        if ($subject->id === $actor->id) {
+            return 'You may not manage your own staff file. Ask someone else, or use My HR details.';
         }
         if ($subject->hasRole('director') && ! $actor->hasRole('director')) {
             return "Only a Director may change a Director's staff file.";

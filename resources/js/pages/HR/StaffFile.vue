@@ -1072,6 +1072,7 @@ const bankDialog = computed(() => {
                     label="Requested account"
                     field="requested account"
                     :mask="c.new"
+                    :last4="c.new.slice(-4)"
                     :worker-id="w.id"
                     show-field="correction"
                     :extra="{ correction_id: c.id }"

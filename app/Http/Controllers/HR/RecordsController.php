@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\HR;
 
+use App\Domain\Audit\AuditRecorder;
 use App\Domain\HR\Records\Models\Worker;
 use App\Domain\HR\Records\Services\BankDetailService;
 use App\Domain\HR\Records\Services\RecordCorrectionService;
@@ -152,6 +153,8 @@ class RecordsController extends Controller
         } catch (ValidationException $e) {
             throw $e->redirectTo($back);
         } catch (AuthorizationException $e) {
+            // Still audited as a denial, as the exception handler would (Suresh, N2); ids only.
+            app(AuditRecorder::class)->record('authorization.denied', $request->user(), ['route' => $request->route()?->getName(), 'method' => $request->method()], $request->user());
             // A refused rule-3 write stays on its page with the reason (Suresh, S4); route permissions still give 403.
             throw ValidationException::withMessages(['records' => $e->getMessage() !== '' ? $e->getMessage() : 'You may not do this.'])->redirectTo($back);
         }

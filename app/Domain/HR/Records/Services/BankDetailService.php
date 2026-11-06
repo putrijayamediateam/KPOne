@@ -99,6 +99,11 @@ final class BankDetailService
             if ($bank->entered_by_user_id === $actor->id) {
                 throw new AuthorizationException('Someone else confirms this. You entered it.');
             }
+            // The confirmer must have looked at the full new account (an audited Show), not only its last four (Suresh, N1).
+            if ($decision === 'confirm' && ! DB::table('audit_logs')->where('event', 'hr.records.value_shown')->where('actor_user_id', $actor->id)
+                ->where('organisation_id', $actor->organisation_id)->whereRaw("(metadata::jsonb ->> 'bank_id') = ?", [(string) $bank->id])->exists()) {
+                throw ValidationException::withMessages(['bank' => 'Show the new account number to check it before you confirm.']);
+            }
             $now = now()->utc();
             if ($decision === 'confirm') {
                 BankDetail::query()->where('worker_id', $worker->id)->where('status', 'confirmed')->lockForUpdate()->get()

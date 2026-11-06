@@ -104,6 +104,7 @@ class RecordsTest extends VisitTestCase
         $this->open($hr, $hr2)->assertRedirect();
         $hr3 = $this->actor('hr_manager');
         $this->open($hr3, $hr3)->assertSessionHasErrors(['records' => 'You may not manage your own staff file. Ask someone else, or use My HR details.']);
+        $this->assertSame(1, DB::table('audit_logs')->where('event', 'authorization.denied')->where('actor_user_id', $hr3->id)->count());
         $this->assertSame(0, Worker::query()->where('user_id', $hr3->id)->count());
         $this->period($hr, $hrWorker, ['type' => 'permanent', 'starts_on' => '2026-01-01'])->assertSessionHasErrors(['records' => 'You may not manage your own staff file. Ask someone else, or use My HR details.']);
         $this->period($hr, $directorWorker, ['type' => 'permanent', 'starts_on' => '2026-01-01'])->assertSessionHasErrors(['records' => "Only a Director may change a Director's staff file."]);
@@ -223,6 +224,7 @@ class RecordsTest extends VisitTestCase
         $this->bank($director, $worker, ['account' => '5555 6666 7777'])->assertSessionHasErrors(['bank' => 'A bank change is already waiting. Confirm, reject or withdraw it first.']);
         $this->decideBank($hr, $worker, $first, 'confirm')->assertSessionHasErrors(['records' => 'Someone else confirms this. You entered it.']);
         $this->decideBank($director, $worker, $first, 'reject')->assertSessionHasErrors(['reason' => 'Choose why it is rejected.']);
+        $this->decideBank($director, $worker, $first, 'confirm', null, false)->assertSessionHasErrors(['bank' => 'Show the new account number to check it before you confirm.']);
         $this->decideBank($director, $worker, $first, 'confirm')->assertSessionHasNoErrors();
         $this->assertSame('confirmed', $first->fresh()?->status);
 
@@ -405,9 +407,12 @@ class RecordsTest extends VisitTestCase
             ...$input, 'idempotency_key' => $key ?? (string) Str::uuid()]);
     }
 
-    private function decideBank(User $actor, Worker $worker, BankDetail $bank, string $decision, ?string $reason = null): TestResponse
+    private function decideBank(User $actor, Worker $worker, BankDetail $bank, string $decision, ?string $reason = null, bool $show = true): TestResponse
     {
         $this->selectBranch($actor);
+        if ($decision === 'confirm' && $show) {
+            $this->postJson(route('hr.records.show-value', $worker->public_id), ['field' => 'bank_account', 'bank_id' => $bank->public_id]);
+        }
 
         return $this->post(route('hr.records.bank.decide', [$worker->public_id, $bank->public_id, $decision]), ['reason' => $reason,
             'expected_lock_version' => (int) DB::table('hr_bank_details')->where('id', $bank->id)->value('lock_version'), 'idempotency_key' => (string) Str::uuid()]);

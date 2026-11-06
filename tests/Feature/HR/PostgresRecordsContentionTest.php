@@ -86,6 +86,9 @@ class PostgresRecordsContentionTest extends TestCase
         $worker = $files->openFile($f['manager1'], ['user_id' => $f['staff']->id, 'idempotency_key' => (string) Str::uuid()]);
         $bank = app(BankDetailService::class)->enter($f['manager1'], $worker->public_id, ['bank_name' => 'Synthetic Bank', 'holder' => 'Synthetic Holder',
             'account' => '123456789012', 'idempotency_key' => (string) Str::uuid()]);
+        foreach (['manager2', 'manager3'] as $who) { // each confirmer looks at the account first (an audited Show)
+            $files->show($f[$who], $worker->public_id, ['field' => 'bank_account', 'bank_id' => $bank->public_id]);
+        }
         $args = ['op' => 'confirm_bank', 'worker' => $worker->public_id, 'bank' => $bank->public_id, 'expected_lock_version' => 1];
         $out = $this->race($f['staff'], [$this->worker($f['manager2'], $args), $this->worker($f['manager3'], $args)]);
 
