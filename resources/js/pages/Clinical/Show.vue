@@ -17,6 +17,7 @@ import DiagnosisPresetPicker from '@/components/clinical/DiagnosisPresetPicker.v
 import UnsavedClinicalWorkDialog from '@/components/clinical/UnsavedClinicalWorkDialog.vue';
 import WaitingPatientsButton from '@/components/clinical/WaitingPatientsButton.vue';
 import InputError from '@/components/InputError.vue';
+import HeldCallNext from '@/components/queue/HeldCallNext.vue';
 import TreatmentProgressActions from '@/components/queue/TreatmentProgressActions.vue';
 import TreatmentProgressBadge from '@/components/queue/TreatmentProgressBadge.vue';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -232,6 +233,16 @@ const unsavedWorkAction = ref<'confirm' | 'secondary'>('confirm');
 const unsavedWorkError = ref('');
 
 const recallProcessing = ref(false);
+/** Q-4b: Call next can be pressed now (the held notice only offers it then). */
+const callNextAvailable = ref(false);
+/** Q-4b: a Call next request is being sent, so Hold, Resume and the room calls wait. */
+const callNextProcessing = ref(false);
+// Q-4b: the doctor's own queue only; a branch caller uses the queue board.
+const canCallNextWhileHeld = computed(
+    () =>
+        page.props.auth.permissions.includes('queue.call.own') &&
+        !page.props.auth.permissions.includes('queue.view.branch'),
+);
 const recallError = ref('');
 const recallPatient = () => {
     recallProcessing.value = true;
@@ -569,7 +580,7 @@ const changeHoldState = (action: 'hold' | 'resume') => {
                     type="button"
                     size="sm"
                     variant="outline"
-                    :disabled="recallProcessing"
+                    :disabled="recallProcessing || callNextProcessing"
                     data-testid="recall-patient"
                     @click="recallPatient"
                 >
@@ -599,7 +610,7 @@ const changeHoldState = (action: 'hold' | 'resume') => {
                         type="button"
                         size="sm"
                         variant="outline"
-                        :disabled="recallProcessing"
+                        :disabled="recallProcessing || callNextProcessing"
                         data-testid="call-treatment"
                         @click="callToTreatment"
                     >
@@ -628,7 +639,7 @@ const changeHoldState = (action: 'hold' | 'resume') => {
                     type="button"
                     size="sm"
                     variant="outline"
-                    :disabled="holdProcessing"
+                    :disabled="holdProcessing || callNextProcessing"
                     @click="requestHold"
                 >
                     <PauseCircle class="size-4" /> On Hold
@@ -638,7 +649,7 @@ const changeHoldState = (action: 'hold' | 'resume') => {
                     type="button"
                     size="sm"
                     variant="outline"
-                    :disabled="holdProcessing"
+                    :disabled="holdProcessing || callNextProcessing"
                     @click="changeHoldState('resume')"
                 >
                     <PlayCircle class="size-4" /> Resume Consultation
@@ -782,12 +793,37 @@ const changeHoldState = (action: 'hold' | 'resume') => {
                 >
                     {{ holdError }}
                 </div>
+                <!-- Q-4b: while held, the doctor can call their next patient from here (Yasmin's sketch). -->
                 <div
                     v-if="clinical.hold.isHeld"
-                    class="rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-950"
+                    role="status"
+                    class="flex flex-col gap-3 rounded-lg border border-warning/25 bg-warning/10 p-3 text-sm text-warning-strong sm:flex-row sm:items-center sm:justify-between"
+                    data-testid="held-notice"
                 >
-                    This patient remains in Serving Now. Resume the consultation
-                    before saving or completing clinical work.
+                    <p class="min-w-0">
+                        This patient stays in Serving Now. Resume the
+                        consultation before saving or completing clinical work.
+                        <template
+                            v-if="
+                                callNextAvailable &&
+                                !holdProcessing &&
+                                !recallProcessing
+                            "
+                            >You can call your next patient meanwhile.</template
+                        >
+                    </p>
+                    <div
+                        v-if="canCallNextWhileHeld"
+                        class="shrink-0 sm:max-w-sm [&_#call-next-reason]:text-warning-strong"
+                    >
+                        <HeldCallNext
+                            :branch-id="clinical.branch.id"
+                            :visit-number="clinical.visit.visitNumber"
+                            :busy="holdProcessing || recallProcessing"
+                            @available="callNextAvailable = $event"
+                            @processing="callNextProcessing = $event"
+                        />
+                    </div>
                 </div>
                 <div
                     v-if="recordDrifted"
