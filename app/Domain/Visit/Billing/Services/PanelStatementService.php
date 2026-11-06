@@ -427,17 +427,17 @@ final class PanelStatementService
         // Second pass, after every exact match is known: a "Not found" row whose invoice number is close to exactly
         // one open claim (see nearInvoice) is offered as a near match. It is only a suggestion; the officer must tick it.
         if ($pending !== []) {
-            $open = $this->openClaims($actor, $branch, $panel)->reject(fn (PanelClaim $c): bool => isset($used[$c->id]));
+            $open = $this->openClaims($actor, $branch, $panel);
             foreach ($pending as $i => $pendingSen) {
                 $statementInvoice = $cell($rows[$i], $columns['invoice']);
-                $near = $open->filter(fn (PanelClaim $c): bool => self::nearInvoice($statementInvoice, (string) $c->invoice_number) !== null
-                    && $pendingSen <= $outstanding($c));
-                if ($near->count() !== 1) {
+                // Exactly one candidate first; only then the already-used and unpaid checks, so a second claim on a
+                // near number never lets the first one through.
+                $near = $open->filter(fn (PanelClaim $c): bool => self::nearInvoice($statementInvoice, (string) $c->invoice_number) !== null);
+                $claim = $near->count() === 1 ? $near->first() : null;
+                if ($claim === null || isset($used[$claim->id]) || $pendingSen > $outstanding($claim)) {
                     continue;
                 }
-                $claim = $near->first();
                 $used[$claim->id] = true;
-                $open = $open->reject(fn (PanelClaim $c): bool => $c->id === $claim->id);
                 $out[$i]['result'] = 'near_match';
                 $out[$i]['statementInvoice'] = Str::limit($statementInvoice, 40);
                 $out[$i]['nearReason'] = self::nearInvoice($statementInvoice, (string) $claim->invoice_number);
@@ -456,18 +456,34 @@ final class PanelStatementService
      */
     public static function nearInvoice(string $statement, string $claim): ?string
     {
-        $format = static fn (string $v): string => preg_replace_callback('/\d+/', static fn (array $m): string => ltrim($m[0], '0') === '' ? '0' : ltrim($m[0], '0'),
-            strtoupper(preg_replace('/[^A-Za-z0-9]+/', '', $v) ?? '')) ?? '';
-        $lookalike = static fn (string $v): string => $format(strtr(strtoupper($v), ['O' => '0', 'I' => '1', 'L' => '1', 'S' => '5', 'B' => '8', 'Z' => '2']));
-        if ($format($statement) === '' || $format($claim) === '') {
+        $format = self::invoiceTokens($statement, false);
+        if ($format === null || ($claimFormat = self::invoiceTokens($claim, false)) === null) {
             return null;
         }
 
         return match (true) {
-            $format($statement) === $format($claim) => 'format',
-            $lookalike($statement) === $lookalike($claim) => 'lookalike',
+            $format === $claimFormat => 'format',
+            self::invoiceTokens($statement, true) === self::invoiceTokens($claim, true) => 'lookalike',
             default => null,
         };
+    }
+
+    /**
+     * An invoice number as its letter and number groups, in capitals, each number without leading zeros. Groups are
+     * compared one by one and never glued together, so "KPI-00000012-1" is not "KPI-00000121".
+     */
+    private static function invoiceTokens(string $value, bool $lookalike): ?string
+    {
+        $value = strtoupper($value);
+        if ($lookalike) {
+            $value = strtr($value, ['O' => '0', 'I' => '1', 'L' => '1', 'S' => '5', 'B' => '8', 'Z' => '2']);
+        }
+        preg_match_all('/[A-Z]+|[0-9]+/', $value, $groups);
+        if ($groups[0] === []) {
+            return null;
+        }
+
+        return implode('|', array_map(static fn (string $g): string => ctype_digit($g) ? (ltrim($g, '0') === '' ? '0' : ltrim($g, '0')) : $g, $groups[0]));
     }
 
     /**

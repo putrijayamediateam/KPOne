@@ -104,6 +104,8 @@ class PanelStatementTest extends BillingTestCase
         $panel = Panel::factory()->create(['organisation_id' => $this->organisation->id, 'code' => 'SYNTH-NEAR']);
         [$a, $b, $c, $d, $e, $paid] = $this->acceptedClaims($panel, 6);
         $this->pay($paid, 3000);
+        $other = Panel::factory()->create(['organisation_id' => $this->organisation->id, 'code' => 'SYNTH-OTHER']);
+        [$otherPanels] = $this->acceptedClaims($other, 1);
         $this->assertStringContainsString('0', $b->invoice_number);
         $format = static fn (PanelClaim $claim): string => strtolower(str_replace('-', ' ', $claim->invoice_number));
         $lastDigit = (int) substr($e->invoice_number, -1);
@@ -117,6 +119,8 @@ class PanelStatementTest extends BillingTestCase
             substr($e->invoice_number, 0, -1).(($lastDigit + 5) % 10).',10.00',
             "{$format($paid)},10.00",
             "{$format($a)},5.00",
+            "{$format($otherPanels)},10.00",
+            "{$e->invoice_number}-1,10.00",
         ]);
         $this->selectBranch($this->officer(), $this->branch);
         $this->post(route('panel-remittances.statements.store'), $this->upload($panel, $csv))->assertSessionHasNoErrors();
@@ -139,7 +143,11 @@ class PanelStatementTest extends BillingTestCase
                 // A paid claim no longer waits for payment.
                 ->where('statement.rows.6.result', 'not_found')
                 // One suggestion per claim.
-                ->where('statement.rows.7.result', 'not_found'));
+                ->where('statement.rows.7.result', 'not_found')
+                // Another Panel's claim is never suggested.
+                ->where('statement.rows.8.result', 'not_found')->where('statement.rows.8.claim', null)
+                // A suffix is never glued onto the number.
+                ->where('statement.rows.9.result', 'not_found'));
         $this->assertSame(0, DB::table('panel_claim_payments')->where('panel_claim_id', '!=', $paid->id)->count(), 'Nothing is recorded.');
     }
 

@@ -34,12 +34,9 @@ test('A near match reads "Near match: check" and shows both invoice numbers', ()
     );
     const card = helper.slice(
         helper.indexOf('data-testid="statement-near-card"'),
-        helper.indexOf(
-            'v-else',
-            helper.indexOf('data-testid="statement-near-card"'),
-        ),
+        helper.indexOf("{{ row.reference || 'No reference' }}"),
     );
-    assert.match(card, /Statement:[\s\S]*row\.statementInvoice/);
+    assert.match(card, /Statement:[\s\S]*nearParts\(\s*row,?\s*\)/);
     assert.match(card, /KPOne:[\s\S]*row\.claim\.invoiceNumber/);
     assert.match(card, /font-mono/);
     assert.match(helper, /data-testid="statement-near-table"/);
@@ -62,4 +59,21 @@ test('The tick box names the near match and the summary counts near matches apar
     assert.match(helper, /'near matches to check'/);
     assert.match(helper, /statement\.rows\.length - matchedCount - nearCount/);
     assert.match(helper, /v-if="matchedCount === 0 && nearCount === 0"/);
+});
+
+test('Look-alike letters are marked, so O and 0 can be told apart in any font', () => {
+    assert.match(helper, /const lookalikeParts = \(text: string\) =>/);
+    assert.match(helper, /\[0-9OoIiLlSsBbZz\]\*\[0-9\]\[0-9OoIiLlSsBbZz\]\*/);
+    assert.equal(
+        helper.match(/v-for="\(part, i\) in nearParts\(\s*row,?\s*\)"/g)
+            ?.length,
+        2,
+    );
+    assert.equal(
+        helper.match(
+            /<mark\s+v-if="part\.mark"\s+class="bg-transparent font-semibold text-inherit underline"/g,
+        )?.length,
+        2,
+    );
+    assert.equal(helper.match(/slashed-zero/g)?.length >= 3, true);
 });

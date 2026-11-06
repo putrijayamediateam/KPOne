@@ -86,9 +86,25 @@ const canTick = (row: StatementRow) =>
     row.result === 'matched' || row.result === 'near_match';
 const NEAR_REASONS: Record<'format' | 'lookalike', string> = {
     format: 'Same apart from spaces, dashes, capitals or leading zeros.',
-    lookalike:
-        'Letters read as numbers (O as 0, I or L as 1, S as 5, B as 8, Z as 2).',
+    lookalike: 'Letters read as numbers (O→0, I or L→1, S→5, B→8, Z→2).',
 };
+// PNL-18: in a look-alike near match, the letters read as digits (inside a run that holds a digit, so the "I" of a
+// "KPI" prefix stays plain) are marked, because many fonts draw O and 0 alike.
+const lookalikeParts = (text: string) =>
+    text
+        .split(/([0-9OoIiLlSsBbZz]*[0-9][0-9OoIiLlSsBbZz]*)/)
+        .flatMap((part, index) =>
+            index % 2 === 1
+                ? part
+                      .split(/([OoIiLlSsBbZz])/)
+                      .map((piece, i) => ({ text: piece, mark: i % 2 === 1 }))
+                : [{ text: part, mark: false }],
+        )
+        .filter((part) => part.text !== '');
+const nearParts = (row: StatementRow) =>
+    row.nearReason === 'lookalike'
+        ? lookalikeParts(row.statementInvoice ?? '')
+        : [{ text: row.statementInvoice ?? '', mark: false }];
 const tickLabel = (row: StatementRow) =>
     `Use row ${row.line}${row.claim ? `, claim ${row.claim.claimNo}` : ''}${
         row.result === 'near_match' && row.claim
@@ -410,14 +426,26 @@ const useTicked = () =>
                                     <p>
                                         Statement:
                                         <span
-                                            class="font-mono text-foreground"
-                                            >{{ row.statementInvoice }}</span
+                                            class="font-mono text-foreground slashed-zero"
+                                            ><template
+                                                v-for="(part, i) in nearParts(
+                                                    row,
+                                                )"
+                                                :key="i"
+                                                ><mark
+                                                    v-if="part.mark"
+                                                    class="bg-transparent font-semibold text-inherit underline"
+                                                    >{{ part.text }}</mark
+                                                ><template v-else>{{
+                                                    part.text
+                                                }}</template></template
+                                            ></span
                                         >
                                     </p>
                                     <p>
                                         KPOne:
                                         <span
-                                            class="font-mono text-foreground"
+                                            class="font-mono text-foreground slashed-zero"
                                             >{{ row.claim.invoiceNumber }}</span
                                         >
                                         → Claim {{ row.claim.claimNo }}
@@ -489,12 +517,24 @@ const useTicked = () =>
                                 <td class="tabular-nums">{{ row.line }}</td>
                                 <td class="max-w-48 wrap-anywhere">
                                     <span
-                                        :class="{
-                                            'font-mono':
-                                                row.result === 'near_match',
-                                        }"
-                                        >{{ row.reference || '—' }}</span
+                                        v-if="row.result === 'near_match'"
+                                        class="font-mono slashed-zero"
+                                        data-testid="statement-near-value"
+                                        ><template
+                                            v-for="(part, i) in nearParts(row)"
+                                            :key="i"
+                                            ><mark
+                                                v-if="part.mark"
+                                                class="bg-transparent font-semibold text-inherit underline"
+                                                >{{ part.text }}</mark
+                                            ><template v-else>{{
+                                                part.text
+                                            }}</template></template
+                                        ></span
                                     >
+                                    <template v-else>{{
+                                        row.reference || '—'
+                                    }}</template>
                                     <template
                                         v-if="
                                             row.result === 'near_match' &&
@@ -502,7 +542,7 @@ const useTicked = () =>
                                         "
                                     >
                                         <span
-                                            class="block font-mono text-xs text-muted-foreground"
+                                            class="block font-mono text-xs text-muted-foreground slashed-zero"
                                             data-testid="statement-near-table"
                                             >KPOne:
                                             {{ row.claim.invoiceNumber }}</span
