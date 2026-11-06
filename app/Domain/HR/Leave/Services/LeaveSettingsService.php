@@ -290,7 +290,7 @@ final class LeaveSettingsService
             if (DB::table('hr_public_holidays')->where('branch_id', $branch->id)->whereDate('holiday_date', $date->toDateString())->exists()) {
                 throw ValidationException::withMessages(['holiday_date' => 'This date is already a public holiday.']);
             }
-            $this->assertDayUnused($branch, $date, 'holiday_date', ':Requests already count this day. Cancel them first, or add holidays before staff apply.');
+            $this->assertDayUnused($branch, $date, 'holiday_date', 'Already counted by :requests. Cancel them first, or add holidays before staff apply.');
             $id = DB::table('hr_public_holidays')->insertGetId(['organisation_id' => $actor->organisation_id, 'branch_id' => $branch->id, 'holiday_date' => $date->toDateString(),
                 'name' => $name, 'created_by_user_id' => $actor->id, 'created_at' => now()->utc(), 'updated_at' => now()->utc()]);
             $this->support->audit->record('hr.leave.holiday_added', $branch, ['holiday_id' => $id, 'holiday_date' => $date->toDateString()], $actor, $branch);
@@ -380,14 +380,14 @@ final class LeaveSettingsService
         return $values === [] ? null : max($values);
     }
 
-    /** The template's ":requests" or ":Requests" becomes "1 request" or "3 requests". */
+    /** The template's ":requests" becomes "1 request" or "3 requests". */
     private function assertDayUnused(Branch $branch, CarbonImmutable $date, string $field, string $template): void
     {
         $count = DB::table('hr_leave_requests')->where('branch_id', $branch->id)->whereIn('status', ['pending', 'approved'])
             ->whereDate('start_date', '<=', $date->toDateString())->whereDate('end_date', '>=', $date->toDateString())->count();
         if ($count > 0) {
             $noun = $count === 1 ? '1 request' : "{$count} requests";
-            throw ValidationException::withMessages([$field => str_replace([':Requests', ':requests'], [ucfirst($noun), $noun], $template)]);
+            throw ValidationException::withMessages([$field => str_replace(':requests', $noun, $template)]);
         }
     }
 

@@ -73,7 +73,7 @@ final class LeaveRequestService
                 'start_part' => $parsed['start_part'], 'end_part' => $parsed['end_part'],
                 'slot_start' => $parsed['slot_start']->format('Y-m-d H:i:s'), 'slot_end' => $parsed['slot_end']->format('Y-m-d H:i:s'),
                 'year' => $parsed['year'], 'halves' => $parsed['halves'], 'status' => 'pending', 'reason_encrypted' => $reason,
-                'evidence_reference_encrypted' => $evidence, 'late' => $parsed['start']->lessThanOrEqualTo($today),
+                'evidence_reference_encrypted' => $evidence, 'late' => $parsed['start']->toDateString() <= $today->toDateString(),
             ])->save();
             $this->action($request, 'applied', $actor);
             $this->support->remember($actor, $key, 'leave_apply', $hash, $request->public_id);
