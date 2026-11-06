@@ -4,10 +4,14 @@
 import type { FormDataConvertible } from '@inertiajs/core';
 import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import { computed, reactive, ref } from 'vue';
+import ChecklistTab from '@/components/hr/records/ChecklistTab.vue';
+import DocumentList from '@/components/hr/records/DocumentList.vue';
 import MaskedValue from '@/components/hr/records/MaskedValue.vue';
 import SyntheticNote from '@/components/hr/records/SyntheticNote.vue';
 import type {
+    ChecklistPeriod,
     RecordOptions,
+    StaffDocument,
     WorkerHeader,
 } from '@/components/hr/records/types';
 import { dateLabel, statusTone } from '@/components/hr/records/types';
@@ -29,7 +33,7 @@ import { StatusBadge } from '@/components/ui/status';
 import { OperationalTabs } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 
-type Tab = 'employment' | 'personal' | 'bank';
+type Tab = 'employment' | 'personal' | 'bank' | 'documents' | 'checklist';
 type Period = {
     id: string;
     type: string;
@@ -100,6 +104,9 @@ const props = defineProps<{
         };
         bank: { confirmed: Bank | null; waiting: Bank | null };
         corrections: Correction[];
+        canOpenDocuments: boolean;
+        documents: StaffDocument[];
+        checklist: ChecklistPeriod[] | null;
         changes: {
             area: string;
             fields: string[];
@@ -119,6 +126,8 @@ const tabs = [
     { value: 'employment', label: 'Employment' },
     { value: 'personal', label: 'Personal' },
     { value: 'bank', label: 'Bank' },
+    { value: 'documents', label: 'Documents' },
+    { value: 'checklist', label: 'Checklist' },
 ];
 const selectTab = (value: string | number) =>
     router.get(
@@ -393,6 +402,83 @@ const sendCorrectionDecision = () => {
             preserveScroll: true,
             onSuccess: () => (correctionDecision.correction = null),
             onFinish: () => (correctionDecision.processing = false),
+        },
+    );
+};
+
+// ---- Documents (HR-4b) ----
+const upload = reactive({
+    open: false,
+    category: '',
+    issuedOn: '',
+    expiresOn: '',
+    file: null as File | null,
+    key: '',
+    processing: false,
+});
+const openUpload = () =>
+    Object.assign(upload, {
+        open: true,
+        category: '',
+        issuedOn: '',
+        expiresOn: '',
+        file: null,
+        key: crypto.randomUUID(),
+    });
+const onFile = (event: Event) => {
+    const input = event.target as HTMLInputElement;
+    upload.file = input.files?.[0] ?? null;
+};
+const sendUpload = () => {
+    upload.processing = true;
+    router.post(
+        `/hr/records/${w.value.id}/documents`,
+        {
+            category: upload.category,
+            issued_on: upload.issuedOn,
+            expires_on: upload.expiresOn,
+            file: upload.file,
+            idempotency_key: upload.key,
+        },
+        {
+            forceFormData: true,
+            preserveScroll: true,
+            onSuccess: () => (upload.open = false),
+            onFinish: () => (upload.processing = false),
+        },
+    );
+};
+const removal = reactive({
+    document: null as StaffDocument | null,
+    reason: '',
+    key: '',
+    processing: false,
+});
+const startRemoval = (d: StaffDocument) =>
+    Object.assign(removal, {
+        document: d,
+        reason: '',
+        key: crypto.randomUUID(),
+    });
+const sendRemoval = () => {
+    const d = removal.document;
+
+    if (!d) {
+        return;
+    }
+
+    removal.processing = true;
+    router.post(
+        `/hr/records/${w.value.id}/documents/${d.id}/remove`,
+        {
+            reason: removal.reason,
+            expected_lock_version: d.lockVersion,
+            idempotency_key: removal.key,
+        },
+        {
+            preserveScroll: true,
+            onSuccess: () => (removal.document = null),
+            onFinish: () => (removal.processing = false),
         },
     );
 };
@@ -1107,6 +1193,176 @@ const bankDialog = computed(() => {
                 </div>
             </div>
         </section>
+
+        <!-- Documents (HR-4b) -->
+        <section
+            v-if="file.tab === 'documents'"
+            aria-labelledby="documents-title"
+            class="flex flex-col gap-4"
+        >
+            <div class="flex flex-wrap items-center justify-between gap-2">
+                <h2 id="documents-title" class="text-base font-semibold">
+                    Documents
+                </h2>
+                <Button
+                    v-if="file.canManage"
+                    variant="outline"
+                    class="max-lg:min-h-11"
+                    data-test="add-document"
+                    @click="openUpload"
+                    >Add a document</Button
+                >
+            </div>
+            <ErrorState
+                v-if="errors.document && !removal.document"
+                :message="errors.document"
+            />
+            <DocumentList
+                :documents="file.documents"
+                :worker-id="w.id"
+                :can-open="file.canOpenDocuments"
+                :can-remove="file.canManage"
+                empty-title="No documents yet."
+                empty-description="Add a contract, offer letter, identity copy, certificate or resignation letter. PDF, JPG or PNG, up to 10 MB."
+                @remove="startRemoval"
+            />
+        </section>
+
+        <!-- Checklist (HR-4b) -->
+        <section
+            v-if="file.tab === 'checklist' && file.checklist"
+            aria-labelledby="checklist-title"
+            class="flex flex-col gap-4"
+        >
+            <h2 id="checklist-title" class="text-base font-semibold">
+                Onboarding and offboarding
+            </h2>
+            <ChecklistTab
+                :periods="file.checklist"
+                :worker-id="w.id"
+                :can-manage="file.canManage"
+            />
+        </section>
+
+        <!-- Upload sheet -->
+        <Sheet v-model:open="upload.open">
+            <SheetContent
+                class="w-full overflow-y-auto sm:max-w-md"
+                data-test="document-sheet"
+            >
+                <SheetHeader>
+                    <SheetTitle>Add a document</SheetTitle>
+                    <SheetDescription
+                        >PDF, JPG or PNG, up to 10 MB. The file is checked and
+                        stored encrypted; its name is not
+                        kept.</SheetDescription
+                    >
+                </SheetHeader>
+                <form
+                    class="flex flex-col gap-4 px-4 pb-6"
+                    @submit.prevent="sendUpload"
+                >
+                    <div class="grid gap-1.5">
+                        <Label for="document-category"
+                            ><span id="document-category-label"
+                                >Type *</span
+                            ></Label
+                        >
+                        <OperationalSelect
+                            id="document-category"
+                            labelledby="document-category-label"
+                            v-model="upload.category"
+                            trigger-class="max-lg:h-11"
+                            label="Type"
+                            placeholder="Choose the type"
+                            :options="file.options.documentCategories"
+                            :invalid="!!errors.category"
+                        />
+                        <InputError :message="errors.category" />
+                    </div>
+                    <div class="grid gap-1.5">
+                        <Label for="document-issued"
+                            >Issue date (optional)</Label
+                        >
+                        <Input
+                            id="document-issued"
+                            v-model="upload.issuedOn"
+                            type="date"
+                            class="max-lg:h-11"
+                        />
+                        <InputError :message="errors.issued_on" />
+                    </div>
+                    <div class="grid gap-1.5">
+                        <Label for="document-expires"
+                            >Expiry date (optional)</Label
+                        >
+                        <Input
+                            id="document-expires"
+                            v-model="upload.expiresOn"
+                            type="date"
+                            class="max-lg:h-11"
+                        />
+                        <InputError :message="errors.expires_on" />
+                    </div>
+                    <div class="grid gap-1.5">
+                        <Label for="document-file">File *</Label>
+                        <input
+                            id="document-file"
+                            type="file"
+                            accept="application/pdf,image/jpeg,image/png"
+                            class="min-h-11 text-sm file:mr-3 file:rounded-md file:border file:bg-card file:px-3 file:py-2"
+                            :aria-invalid="!!errors.file"
+                            @change="onFile"
+                        />
+                        <InputError :message="errors.file" />
+                    </div>
+                    <Button
+                        type="submit"
+                        class="max-lg:min-h-11"
+                        :disabled="upload.processing || !upload.file"
+                        data-test="document-save"
+                    >
+                        {{ upload.processing ? 'Adding…' : 'Add document' }}
+                    </Button>
+                </form>
+            </SheetContent>
+        </Sheet>
+
+        <!-- Remove document dialog -->
+        <OperationalConfirmDialog
+            :open="removal.document !== null"
+            title="Remove this document?"
+            :description="
+                removal.document
+                    ? `${removal.document.categoryLabel}. The file is deleted; the record that it existed stays.`
+                    : ''
+            "
+            confirm-label="Remove"
+            processing-label="Removing…"
+            destructive
+            :processing="removal.processing"
+            :error="errors.reason ?? errors.document ?? errors.records"
+            @update:open="(v: boolean) => !v && (removal.document = null)"
+            @confirm="sendRemoval"
+        >
+            <div class="grid gap-1.5">
+                <Label for="document-remove-reason"
+                    ><span id="document-remove-reason-label"
+                        >Why it is removed *</span
+                    ></Label
+                >
+                <OperationalSelect
+                    id="document-remove-reason"
+                    labelledby="document-remove-reason-label"
+                    v-model="removal.reason"
+                    trigger-class="max-lg:h-11"
+                    label="Why it is removed"
+                    placeholder="Choose a reason"
+                    :options="file.options.documentRemovalReasons"
+                    :invalid="!!errors.reason"
+                />
+            </div>
+        </OperationalConfirmDialog>
 
         <!-- Period sheet -->
         <Sheet v-model:open="period.open">

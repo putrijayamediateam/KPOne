@@ -13,7 +13,7 @@ use Illuminate\Support\Facades\DB;
  * the reorder level at every active branch of the organisation, at active locations. Needs
  * `inventory.view.branch` at the requesting branch (contract section 5).
  */
-final class InventoryBranchBalancesTool implements AgentTool
+final class InventoryBranchBalancesTool implements SystemReadableTool
 {
     use ReadsBranches;
 
@@ -36,9 +36,13 @@ final class InventoryBranchBalancesTool implements AgentTool
 
     public function run(User $requester, ?Branch $branch, array $input): array
     {
+        return $this->runForOrganisation($requester->organisation_id, $branch, $input);
+    }
+
+    public function runForOrganisation(int $organisationId, ?Branch $branch, array $input): array
+    {
         assert($branch !== null);
-        $organisationId = $requester->organisation_id;
-        $branches = $this->branchesFor($requester, null);
+        $branches = $this->branchesForOrganisation($organisationId, null);
         $skus = [];
         foreach ($branches as $each) {
             $stock = DB::table('inventory_stock_balances as b')
