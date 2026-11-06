@@ -157,7 +157,7 @@ return new class extends Migration
             $t->unsignedBigInteger('organisation_id');
             $t->uuid('idempotency_key');
             $t->unsignedBigInteger('actor_user_id');
-            $t->string('action', 24);
+            $t->string('action', 32);
             $t->string('payload_hash', 64);
             $t->string('result', 64);
             $t->timestampTz('created_at');
