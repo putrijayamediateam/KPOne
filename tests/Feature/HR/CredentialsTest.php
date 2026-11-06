@@ -9,6 +9,7 @@ use App\Domain\HR\Credentials\Models\CredentialType;
 use App\Domain\HR\Records\Models\Document;
 use App\Domain\HR\Records\Models\Worker;
 use App\Domain\HR\Records\Services\DocumentService;
+use App\Domain\Organisation\Models\Organisation;
 use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\QueryException;
@@ -221,6 +222,10 @@ class CredentialsTest extends VisitTestCase
 
         $this->sendOwn($ca, ['type_id' => $hepb->public_id, 'health' => 'done', 'issued_on' => '2026-01-10', 'reference' => 'TITRE-9999'])
             ->assertSessionHasErrors(['health' => 'A health item records only Done or Not done and the date.']);
+        // Nothing of a health item or its date is flashed back into the session (Suresh, S2).
+        foreach (['health', 'issued_on', 'expires_on', 'issuing_body', 'reference'] as $field) {
+            $this->assertNull(session()->get('_old_input.'.$field), $field);
+        }
         $this->sendOwn($ca, ['type_id' => $hepb->public_id, 'health' => 'done', 'issued_on' => '2026-01-10'], $this->pdf())
             ->assertSessionHasErrors(['health' => 'A health item records only Done or Not done and the date.']);
         $this->sendOwn($ca, ['type_id' => $hepb->public_id, 'health' => 'not_done', 'issued_on' => '2026-01-10'])->assertSessionHasErrors('issued_on');
@@ -252,7 +257,11 @@ class CredentialsTest extends VisitTestCase
         $this->postJson(route('hr.credentials.show-reference', $bl->public_id))->assertOk();
         $this->assertSame(3, DB::table('audit_logs')->where('event', 'hr.credentials.value_shown')->count());
         $sent = DB::table('audit_logs')->where('event', 'hr.credentials.record_sent')->get()->map(fn (object $r): array => json_decode((string) $r->metadata, true));
-        $this->assertNull($sent->firstWhere('code', 'HEPB')['issued_on']);
+        // A health item's code, date and Done or Not done stay out of audit; only its type id is there (Suresh, M6).
+        $health = $sent->firstWhere('type_id', $hepb->id);
+        $this->assertIsArray($health);
+        $this->assertSame([null, null], [$health['code'], $health['issued_on']]);
+        $this->assertStringNotContainsString('HEPB', (string) json_encode(DB::table('audit_logs')->where('event', 'like', 'hr.credentials.record%')->pluck('metadata')->all()));
         $this->assertNoValuesInAudit();
     }
 
@@ -297,6 +306,97 @@ class CredentialsTest extends VisitTestCase
             ->map(fn ($f): string => str_replace(app_path().'/', '', $f->getPathname()))->filter(fn (string $p): bool => ! str_starts_with($p, 'Domain/HR/Credentials/'))->values()->all();
         $this->assertSame([], $readers);
         $this->assertSame(1, CredentialType::query()->count());
+    }
+
+    public function test_rejected_evidence_this_record_added_leaves_the_file_and_linked_evidence_stays(): void
+    {
+        $hr = $this->actor('hr_manager');
+        $director = $this->actor('director');
+        $ca = $this->actor('ca');
+        $file = $this->workerFor($hr, $ca);
+        $bls = $this->type($hr, 'BLS', 'Basic Life Support (BLS)', true, false, ['ca']);
+
+        // Sent with a file, rejected as the wrong person: the document this record added is removed, bytes and all.
+        $this->sendOwn($ca, ['type_id' => $bls->public_id, 'issued_on' => '2026-01-10', 'expires_on' => '2028-01-10'], $this->pdf())->assertSessionHasNoErrors();
+        $v1 = CredentialRecord::query()->where('worker_id', $file->id)->firstOrFail();
+        $this->assertTrue($v1->document_created);
+        $document = Document::query()->whereKey($v1->document_id)->firstOrFail();
+        $this->decide($hr, $v1, 'reject', 'wrong_person')->assertSessionHasNoErrors();
+        $document->refresh();
+        $this->assertSame(['removed', 'wrong_person', $hr->id], [$document->status, $document->removal_reason, $document->removed_by_user_id]);
+        $this->assertFalse(Storage::disk(DocumentService::DISK)->exists($document->stored_path));
+        $this->selectBranch($ca);
+        $this->get(route('hr.records.index'))->assertInertia(fn (Assert $page) => $page->has('records.my.documents', 0));
+
+        // A certificate already in the file is linked, not copied, and a rejection leaves it there.
+        $this->selectBranch($hr);
+        $this->post(route('hr.records.documents.store', $file->public_id), ['category' => 'certificate', 'file' => UploadedFile::fake()->createWithContent('bls.pdf', self::PDF.'2'),
+            'idempotency_key' => (string) Str::uuid()])->assertSessionHasNoErrors();
+        $kept = Document::query()->where('worker_id', $file->id)->where('status', 'active')->firstOrFail();
+        $this->sendOwn($ca, ['type_id' => $bls->public_id, 'issued_on' => '2026-01-10', 'expires_on' => '2028-01-10'],
+            UploadedFile::fake()->createWithContent('bls-again.pdf', self::PDF.'2'))->assertSessionHasNoErrors();
+        $v2 = CredentialRecord::query()->where('worker_id', $file->id)->where('version', 2)->firstOrFail();
+        $this->assertSame([$kept->id, false], [$v2->document_id, $v2->document_created]);
+        $this->decide($director, $v2, 'reject', 'not_readable')->assertSessionHasNoErrors();
+        $this->assertSame('active', $kept->refresh()->status);
+
+        // A wrong-dates rejection keeps the evidence it brought in; the person may still need that certificate.
+        $this->sendOwn($ca, ['type_id' => $bls->public_id, 'issued_on' => '2026-01-11', 'expires_on' => '2028-01-10'],
+            UploadedFile::fake()->createWithContent('bls-3.pdf', self::PDF.'3'))->assertSessionHasNoErrors();
+        $v3 = CredentialRecord::query()->where('worker_id', $file->id)->where('version', 3)->firstOrFail();
+        $this->decide($hr, $v3, 'reject', 'wrong_dates')->assertSessionHasNoErrors();
+        $this->assertSame('active', Document::query()->whereKey($v3->document_id)->value('status'));
+
+        // PostgreSQL: evidence must be an active certificate, and a role must be a staff role.
+        $this->assertRefused('23514', fn () => DB::table('hr_credential_records')->insert(['public_id' => (string) Str::uuid(), 'organisation_id' => $hr->organisation_id,
+            'worker_id' => $file->id, 'type_id' => $bls->id, 'version' => 4, 'issued_on' => '2026-01-10', 'expires_on' => '2028-01-10', 'document_id' => $document->id,
+            'status' => 'waiting', 'entered_by_user_id' => $hr->id, 'created_at' => now(), 'updated_at' => now()]));
+        $version = (int) DB::table('hr_credential_type_versions')->where('type_id', $bls->id)->value('id');
+        $this->assertRefused('23514', fn () => DB::table('hr_credential_type_roles')->insert(['type_version_id' => $version, 'role' => 'queue_display']));
+        $this->assertNoValuesInAudit();
+    }
+
+    public function test_another_organisations_workers_records_and_types_are_not_found(): void
+    {
+        $hr = $this->actor('hr_manager');
+        $this->type($hr, 'BLS', 'Basic Life Support (BLS)', true, false, ['ca']);
+        [$worker, $type, $record] = $this->otherOrganisation();
+
+        $this->selectBranch($hr);
+        $this->post(route('hr.credentials.workers.store', $worker->public_id), ['type_id' => $type->public_id, 'issued_on' => '2027-01-01', 'expires_on' => '2029-01-01',
+            'idempotency_key' => (string) Str::uuid()])->assertNotFound();
+        $this->post(route('hr.credentials.decide', [$record->public_id, 'accept']), ['expected_lock_version' => 1, 'idempotency_key' => (string) Str::uuid()])->assertNotFound();
+        $this->post(route('hr.credentials.types.archive', $type->public_id), ['expected_lock_version' => 1, 'idempotency_key' => (string) Str::uuid()])->assertNotFound();
+        $this->postJson(route('hr.credentials.show-reference', $record->public_id))->assertNotFound();
+        $this->get(route('hr.credentials.index', ['tab' => 'register']))->assertInertia(fn (Assert $page) => $page->where('credentials.register.total', 0)
+            ->has('credentials.register.types', 1));
+        $ca = $this->actor('ca');
+        $this->workerFor($hr, $ca);
+        $this->sendOwn($ca, ['type_id' => $type->public_id, 'issued_on' => '2027-01-01', 'expires_on' => '2029-01-01'])
+            ->assertSessionHasErrors(['type_id' => 'This credential type is not in use. Reload the page.']);
+        $this->assertSame('waiting', $record->refresh()->status);
+    }
+
+    /** @return array{0: Worker, 1: CredentialType, 2: CredentialRecord} */
+    private function otherOrganisation(): array
+    {
+        $org = new Organisation;
+        $org->forceFill(['code' => 'HR_OTHER_'.Str::upper(Str::random(6)), 'name' => 'Synthetic Other Organisation', 'is_active' => true])->save();
+        $user = new User;
+        $user->forceFill(['organisation_id' => $org->id, 'name' => 'Synthetic Other User', 'email' => 'other.'.Str::lower(Str::random(8)).'@kpone.test', 'is_active' => true])->save();
+        $worker = new Worker;
+        $worker->forceFill(['public_id' => (string) Str::uuid(), 'organisation_id' => $org->id, 'user_id' => $user->id, 'kind' => 'staff', 'created_by_user_id' => $user->id])->save();
+        $type = new CredentialType;
+        $type->forceFill(['public_id' => (string) Str::uuid(), 'organisation_id' => $org->id, 'code' => 'BLS', 'expires' => true, 'health_item' => false,
+            'current_version' => 1, 'created_by_user_id' => $user->id])->save();
+        DB::table('hr_credential_type_versions')->insert(['organisation_id' => $org->id, 'type_id' => $type->id, 'version' => 1, 'name' => 'Other BLS',
+            'warn_from_days' => 60, 'set_by_user_id' => $user->id, 'created_at' => now()]);
+        $record = new CredentialRecord;
+        $record->forceFill(['public_id' => (string) Str::uuid(), 'organisation_id' => $org->id, 'worker_id' => $worker->id, 'type_id' => $type->id, 'version' => 1,
+            'issued_on' => '2026-01-01', 'expires_on' => '2028-01-01', 'reference_encrypted' => 'OTHER-ORG-1234', 'reference_last4' => '1234', 'status' => 'waiting',
+            'entered_by_user_id' => $user->id])->save();
+
+        return [$worker, $type, $record];
     }
 
     private function workerFor(User $manager, User $subject): Worker

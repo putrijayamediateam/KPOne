@@ -22,6 +22,7 @@ use Illuminate\Database\Eloquent\Model;
  * @property string|null $reference_encrypted
  * @property string|null $reference_last4
  * @property int|null $document_id
+ * @property bool $document_created
  * @property bool|null $health_done
  * @property string $status
  * @property int $entered_by_user_id
@@ -39,7 +40,7 @@ class CredentialRecord extends Model
     protected function casts(): array
     {
         return ['issued_on' => 'immutable_date', 'expires_on' => 'immutable_date', 'decided_at' => 'immutable_datetime', 'created_at' => 'immutable_datetime',
-            'reference_encrypted' => 'encrypted', 'health_done' => 'boolean', 'worker_id' => 'integer', 'type_id' => 'integer', 'version' => 'integer',
+            'reference_encrypted' => 'encrypted', 'health_done' => 'boolean', 'document_created' => 'boolean', 'worker_id' => 'integer', 'type_id' => 'integer', 'version' => 'integer',
             'document_id' => 'integer', 'entered_by_user_id' => 'integer', 'decided_by_user_id' => 'integer', 'lock_version' => 'integer'];
     }
 }

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Head, router, usePage } from '@inertiajs/vue3';
+import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import { CalendarCheck, CalendarX, Clock } from '@lucide/vue';
 import {
     computed,
@@ -653,10 +653,10 @@ const correctionStatusTone = (
                 data-test="credential-reminders"
             >
                 <li v-for="r in credentialReminders" :key="r">
-                    <a
+                    <Link
                         href="/hr/credentials"
                         class="underline underline-offset-4"
-                        >{{ r }}</a
+                        >{{ r }}</Link
                     >
                 </li>
             </ul>

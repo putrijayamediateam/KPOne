@@ -136,13 +136,8 @@ final class DocumentService
             if ($document->status !== 'active') {
                 throw ValidationException::withMessages(['document' => 'This document was already removed. Reload the page.']);
             }
-            $document->forceFill(['status' => 'removed', 'removed_by_user_id' => $actor->id, 'removed_at' => now()->utc(), 'removal_reason' => $reason,
-                'lock_version' => $document->lock_version + 1])->save();
-            $this->event($document, 'removed', $actor);
-            $this->support->change($actor, $worker, 'document', ['removed', $document->category], $reason);
+            $removedPath = $this->removeLocked($actor, $worker, $document, $reason);
             $this->support->remember($actor, $key, 'records_document_remove', $hash, $document->public_id);
-            $this->support->audit->record('hr.records.document_removed', $worker, ['document_id' => $document->id, 'reason_code' => $reason], $actor, null, $actor->organisation_id);
-            $removedPath = $document->stored_path;
 
             return $document;
         }, 3);
@@ -152,6 +147,22 @@ final class DocumentService
         }
 
         return $document;
+    }
+
+    /**
+     * Marks an active document removed and records it (event, change line, audit). The caller holds the worker and
+     * document row locks inside its transaction and deletes the returned path only after commit. HR-5a uses this when
+     * a credential is rejected as the wrong person or not readable.
+     */
+    public function removeLocked(User $actor, Worker $worker, Document $document, string $reason): string
+    {
+        $document->forceFill(['status' => 'removed', 'removed_by_user_id' => $actor->id, 'removed_at' => now()->utc(), 'removal_reason' => $reason,
+            'lock_version' => $document->lock_version + 1])->save();
+        $this->event($document, 'removed', $actor);
+        $this->support->change($actor, $worker, 'document', ['removed', $document->category], $reason);
+        $this->support->audit->record('hr.records.document_removed', $worker, ['document_id' => $document->id, 'reason_code' => $reason], $actor, null, $actor->organisation_id);
+
+        return $document->stored_path;
     }
 
     /**

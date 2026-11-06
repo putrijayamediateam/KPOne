@@ -554,10 +554,10 @@ const minimumError = (session: string, role: string) =>
                 data-test="credential-reminders"
             >
                 <li v-for="r in credentialReminders" :key="r">
-                    <a
+                    <Link
                         href="/hr/credentials"
                         class="underline underline-offset-4"
-                        >{{ r }}</a
+                        >{{ r }}</Link
                     >
                 </li>
             </ul>

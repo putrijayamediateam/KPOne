@@ -107,7 +107,9 @@ final class CredentialsPageService
      */
     private function cards(Worker $worker, array $roles, Collection $types, string $today): array
     {
-        $records = CredentialRecord::query()->where('worker_id', $worker->id)->orderByDesc('version')->get()->groupBy('type_id');
+        $all = CredentialRecord::query()->where('worker_id', $worker->id)->orderByDesc('version')->get();
+        $this->preloadDocuments($all);
+        $records = $all->groupBy('type_id');
         $names = $this->names($records->flatten()->pluck('entered_by_user_id')->all());
         $out = [];
         foreach ($types->where('isActive', true) as $type) {
@@ -150,7 +152,9 @@ final class CredentialsPageService
             return $latest === null || $latest->ends_on === null || $latest->ends_on->toDateString() >= $today;
         })->values();
         $ids = $workers->pluck('id')->all();
-        $records = CredentialRecord::query()->whereIn('worker_id', $ids)->whereIn('status', ['accepted', 'waiting'])->get()->groupBy('worker_id');
+        $all = CredentialRecord::query()->whereIn('worker_id', $ids)->whereIn('status', ['accepted', 'waiting'])->get();
+        $this->preloadDocuments($all);
+        $records = $all->groupBy('worker_id');
         $branches = $this->primaryBranches(array_values(array_filter($workers->pluck('user_id')->all(), fn ($id): bool => is_int($id))), $today);
         $mmc = DB::table('clinician_professional_profiles')->where('organisation_id', $actor->organisation_id)->pluck('verified', 'user_id');
         $names = $this->names($records->flatten()->pluck('entered_by_user_id')->all());
@@ -284,8 +288,36 @@ final class CredentialsPageService
     {
         return ['id' => $r->public_id, 'version' => $r->version, 'issuedOn' => $r->issued_on?->toDateString(), 'expiresOn' => $r->expires_on?->toDateString(),
             'issuingBody' => $r->issuing_body, 'referenceLast4' => $r->reference_last4, 'healthDone' => $r->health_done,
-            'documentId' => $r->document_id === null ? null : DB::table('hr_documents')->where('id', $r->document_id)->where('status', 'active')->value('public_id'),
+            'documentId' => $r->document_id === null ? null : ($this->documentIds([$r->document_id])[$r->document_id] ?? null),
             'lockVersion' => $r->lock_version];
+    }
+
+    /** @var array<int, string|null> active document public ids, cached per request (Suresh, M5) */
+    private array $documentCache = [];
+
+    /**
+     * Loads the public ids of active documents in one query per batch of new ids.
+     *
+     * @param  list<int>  $ids
+     * @return array<int, string|null>
+     */
+    private function documentIds(array $ids): array
+    {
+        $missing = array_values(array_diff($ids, array_keys($this->documentCache)));
+        if ($missing !== []) {
+            $found = DB::table('hr_documents')->whereIn('id', $missing)->where('status', 'active')->pluck('public_id', 'id');
+            foreach ($missing as $id) {
+                $this->documentCache[$id] = isset($found[$id]) ? (string) $found[$id] : null;
+            }
+        }
+
+        return $this->documentCache;
+    }
+
+    /** @param  Collection<int, CredentialRecord>  $records */
+    private function preloadDocuments(Collection $records): void
+    {
+        $this->documentIds(array_values(array_filter($records->pluck('document_id')->all(), fn ($id): bool => is_int($id))));
     }
 
     /**

@@ -13,6 +13,8 @@ use App\Domain\HR\Roster\RosterPermissions;
 use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
@@ -233,7 +235,9 @@ final class CredentialService
             ->where('r.organisation_id', $actor->organisation_id)->where('r.public_id', $recordId)->first(['w.public_id', 'w.user_id']);
         abort_if($subject === null, 404);
 
-        return DB::transaction(function () use ($actor, $recordId, $input, $key, $decision, $reason, $subject): CredentialRecord {
+        $deletePath = null;
+        $result = DB::transaction(function () use ($actor, $recordId, $input, $key, $decision, $reason, $subject, &$deletePath): CredentialRecord {
+            $deletePath = null;
             $actor = $this->support->lock($actor, CredentialPermissions::MANAGE, [$subject->user_id === null ? null : (int) $subject->user_id]);
             $hash = $this->support->hash([$actor->id, 'credential_decide', $recordId, $decision, $reason]);
             if ($this->support->replay($actor, $key, 'credentials_decide', $hash) !== null) {
@@ -251,6 +255,7 @@ final class CredentialService
             }
             $type = CredentialType::query()->whereKey($record->type_id)->firstOrFail();
             $now = now()->utc();
+            $removedPath = null;
             if ($decision === 'accept') {
                 $current = CredentialRecord::query()->where('worker_id', $worker->id)->where('type_id', $record->type_id)->where('status', 'accepted')->lockForUpdate()->first();
                 $current?->forceFill(['status' => 'replaced', 'lock_version' => $current->lock_version + 1])->save();
@@ -259,14 +264,32 @@ final class CredentialService
                 $record->forceFill(['status' => 'rejected', 'decided_by_user_id' => $actor->id, 'decided_at' => $now, 'decision_reason' => $reason,
                     'lock_version' => $record->lock_version + 1])->save();
             }
-            $this->support->change($actor, $worker, 'credential', [$decision === 'accept' ? 'accepted' : 'rejected', $type->code], $decision === 'reject' ? $reason : null);
+            // Evidence this record brought in goes when it is rejected as the wrong person or not readable, so nobody keeps
+            // someone else's certificate in their file (Suresh, S1). A document linked from the file is left alone.
+            if ($decision === 'reject' && in_array($reason, ['wrong_person', 'not_readable'], true) && $record->document_created && $record->document_id !== null) {
+                $document = Document::query()->where('worker_id', $worker->id)->whereKey($record->document_id)->lockForUpdate()->first();
+                if ($document !== null && $document->status === 'active') {
+                    $removedPath = $this->documents->removeLocked($actor, $worker, $document, (string) $reason);
+                }
+            }
+            $this->support->change($actor, $worker, 'credential', [$decision === 'accept' ? 'accepted' : 'rejected', $type->health_item ? 'health_item' : $type->code], $decision === 'reject' ? $reason : null);
             $this->support->remember($actor, $key, 'credentials_decide', $hash, $record->public_id);
             $this->support->audit->record($decision === 'accept' ? 'hr.credentials.record_accepted' : 'hr.credentials.record_rejected', $worker,
-                ['record_id' => $record->id, 'code' => $type->code, 'version' => $record->version, 'reason_code' => $decision === 'reject' ? $reason : null],
+                // A health item's code stays out of audit too (Suresh, M6): only the type id says what it was.
+                ['record_id' => $record->id, 'type_id' => $type->id, 'code' => $type->health_item ? null : $type->code, 'version' => $record->version,
+                    'reason_code' => $decision === 'reject' ? $reason : null, 'document_removed' => $removedPath !== null],
                 $actor, null, $actor->organisation_id);
+
+            $deletePath = $removedPath;
 
             return $record;
         }, 3);
+        // The bytes go only once the rejection is committed, as in DocumentService::remove().
+        if ($deletePath !== null && ! Storage::disk(DocumentService::DISK)->delete($deletePath)) {
+            Log::warning('HR credential evidence file could not be deleted after rejection', ['record_id' => $result->id]);
+        }
+
+        return $result;
     }
 
     /** The full reference number, audited before it is returned (HR-4 Show). The person sees their own; managers anyone's. */
@@ -323,6 +346,7 @@ final class CredentialService
             throw ValidationException::withMessages(['credentials' => 'A record for this credential is already waiting for check.']);
         }
         $documentId = null;
+        $created = false;
         if ($prepared !== null) {
             // The same certificate already in the staff file is linked, not stored twice.
             $existing = Document::query()->where('worker_id', $worker->id)->where('status', 'active')->where('sha256', $prepared['sha256'])->first();
@@ -331,16 +355,18 @@ final class CredentialService
             }
             $documentId = $existing !== null ? $existing->id
                 : $this->documents->storeFor($actor, $worker, $prepared, 'certificate', $row['issued_on'], $row['expires_on'], $written)->id;
+            $created = $existing === null;
         }
         $version = (int) CredentialRecord::query()->where('worker_id', $worker->id)->where('type_id', $type->id)->max('version') + 1;
         $record = new CredentialRecord;
         $record->forceFill([...$row, 'public_id' => (string) Str::uuid(), 'organisation_id' => $worker->organisation_id, 'worker_id' => $worker->id,
-            'type_id' => $type->id, 'version' => $version, 'document_id' => $documentId, 'status' => 'waiting', 'entered_by_user_id' => $actor->id, 'lock_version' => 1])->save();
+            'type_id' => $type->id, 'version' => $version, 'document_id' => $documentId, 'document_created' => $created, 'status' => 'waiting', 'entered_by_user_id' => $actor->id, 'lock_version' => 1])->save();
         $own = $worker->user_id === $actor->id;
-        $this->support->change($actor, $worker, 'credential', [$own ? 'sent' : 'entered', $type->code]);
+        $this->support->change($actor, $worker, 'credential', [$own ? 'sent' : 'entered', $type->health_item ? 'health_item' : $type->code]);
         $this->support->remember($actor, $key, 'credentials_send', $hash, $record->public_id);
         // Dates only for ordinary credentials; a health item's Done or Not done and its date stay out of audit.
-        $this->support->audit->record('hr.credentials.record_sent', $worker, ['record_id' => $record->id, 'code' => $type->code, 'version' => $version, 'own' => $own,
+        $this->support->audit->record('hr.credentials.record_sent', $worker, ['record_id' => $record->id, 'type_id' => $type->id, 'code' => $type->health_item ? null : $type->code,
+            'version' => $version, 'own' => $own,
             'document_id' => $documentId, 'issued_on' => $type->health_item ? null : $row['issued_on'], 'expires_on' => $type->health_item ? null : $row['expires_on']],
             $actor, null, $actor->organisation_id);
 

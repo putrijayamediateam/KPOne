@@ -69,6 +69,9 @@ return new class extends Migration
             $t->text('reference_encrypted')->nullable();
             $t->string('reference_last4', 4)->nullable();
             $t->unsignedBigInteger('document_id')->nullable(); // HR-4b vault, category Certificate
+            // True when this record added the document (not when it linked one already in the file), so a rejection as
+            // the wrong person or not readable removes only what this record brought in (Suresh, HR-5a S1).
+            $t->boolean('document_created')->default(false);
             $t->boolean('health_done')->nullable(); // health items only: Done or Not done
             $t->string('status', 10)->default('waiting'); // waiting | accepted | rejected | replaced
             $t->unsignedBigInteger('entered_by_user_id');
@@ -88,6 +91,8 @@ return new class extends Migration
         });
 
         DB::statement("ALTER TABLE hr_credential_types ADD CONSTRAINT hr_credential_types_shape CHECK (code ~ '^[A-Z0-9][A-Z0-9-]{1,15}$' AND current_version >= 1 AND NOT (health_item AND expires))");
+        // Literal role names (Suresh, M4): this historical migration must not follow later code changes.
+        DB::statement("ALTER TABLE hr_credential_type_roles ADD CONSTRAINT hr_credential_type_roles_role CHECK (role IN ('director', 'resident_doctor', 'ca', 'ca_supervisor', 'panel_officer', 'finance_officer', 'administrator', 'business_development', 'marketing', 'hr_manager', 'technical_admin'))");
         DB::statement('ALTER TABLE hr_credential_type_versions ADD CONSTRAINT hr_credential_type_versions_shape CHECK (version >= 1 AND char_length(btrim(name)) BETWEEN 2 AND 120 AND warn_from_days BETWEEN 1 AND 365)');
         DB::statement(<<<'SQL'
 ALTER TABLE hr_credential_records ADD CONSTRAINT hr_credential_records_shape CHECK (
@@ -100,6 +105,7 @@ ALTER TABLE hr_credential_records ADD CONSTRAINT hr_credential_records_shape CHE
  AND (decided_by_user_id IS NULL OR decided_by_user_id <> entered_by_user_id)
  AND (expires_on IS NULL OR issued_on IS NULL OR expires_on > issued_on)
  AND (reference_encrypted IS NULL) = (reference_last4 IS NULL)
+ AND (document_id IS NOT NULL OR NOT document_created)
 )
 SQL);
         // One version in force, and at most one waiting, per person and type.
@@ -162,23 +168,20 @@ BEGIN
    END IF;
   END IF;
   IF NEW.document_id IS NOT NULL THEN
-   SELECT worker_id, category INTO d FROM hr_documents WHERE id = NEW.document_id;
-   IF d.worker_id IS DISTINCT FROM NEW.worker_id OR d.category <> 'certificate' THEN
-    RAISE EXCEPTION 'Evidence is a certificate in the same staff file' USING ERRCODE = '23514';
+   SELECT worker_id, category, status INTO d FROM hr_documents WHERE id = NEW.document_id;
+   IF d.worker_id IS DISTINCT FROM NEW.worker_id OR d.category <> 'certificate' OR d.status <> 'active' THEN
+    RAISE EXCEPTION 'Evidence is an active certificate in the same staff file' USING ERRCODE = '23514';
    END IF;
   END IF;
   SELECT COALESCE(MAX(version), 0) INTO top FROM hr_credential_records WHERE worker_id = NEW.worker_id AND type_id = NEW.type_id;
   IF NEW.version <> top + 1 THEN RAISE EXCEPTION 'Credential versions are numbered without gaps' USING ERRCODE = '23514'; END IF;
-  IF w.user_id IS NOT NULL AND NEW.decided_by_user_id IS NOT DISTINCT FROM w.user_id THEN
-   RAISE EXCEPTION 'Nobody checks their own credential' USING ERRCODE = '23514';
-  END IF;
-  RETURN NEW;
+  RETURN NEW; -- a new record is waiting, so it has no decider yet; the decider is checked on update.
  END IF;
  IF NEW.id <> OLD.id OR NEW.public_id <> OLD.public_id OR NEW.organisation_id <> OLD.organisation_id OR NEW.worker_id <> OLD.worker_id
    OR NEW.type_id <> OLD.type_id OR NEW.version <> OLD.version OR NEW.issued_on IS DISTINCT FROM OLD.issued_on
    OR NEW.expires_on IS DISTINCT FROM OLD.expires_on OR NEW.issuing_body IS DISTINCT FROM OLD.issuing_body
    OR NEW.reference_encrypted IS DISTINCT FROM OLD.reference_encrypted OR NEW.reference_last4 IS DISTINCT FROM OLD.reference_last4
-   OR NEW.document_id IS DISTINCT FROM OLD.document_id OR NEW.health_done IS DISTINCT FROM OLD.health_done
+   OR NEW.document_id IS DISTINCT FROM OLD.document_id OR NEW.document_created <> OLD.document_created OR NEW.health_done IS DISTINCT FROM OLD.health_done
    OR NEW.entered_by_user_id <> OLD.entered_by_user_id OR NEW.created_at IS DISTINCT FROM OLD.created_at THEN
   RAISE EXCEPTION 'A credential record keeps what was entered' USING ERRCODE = 'P0001';
  END IF;
