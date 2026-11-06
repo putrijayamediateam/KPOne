@@ -241,6 +241,41 @@ test('an earlier version without the bil9 layout still renders the D03 paper', a
     assert.ok(out.includes('KP-SYN'));
 });
 
+test('the page footer numbers pages 2 onward with the document number, and never a one-page document', async () => {
+    // Server rendering escapes the quotes in the <style> text; the browser keeps them as they are.
+    const html = (
+        await renderToString(createSSRApp({ render: () => h(page, props()) }))
+    ).replaceAll('&quot;', '"');
+    assert.ok(
+        html.includes(
+            '@page { @bottom-center { content: "KPI-00000009 \\00B7  Page " counter(page) " of " counter(pages); font-size: 8pt; } } @page :first { @bottom-center { content: none; } }',
+        ),
+        html,
+    );
+    const receipt = await renderToString(
+        createSSRApp({
+            render: () =>
+                h(
+                    page,
+                    props({
+                        receipt: {
+                            number: 'KPR-00000004',
+                            receivedAt: '30 Oct 2026, 11:02 AM',
+                            status: 'posted',
+                            amountSen: 2000,
+                            method: 'Synthetic cash',
+                        },
+                    }),
+                ),
+        }),
+    );
+    assert.ok(
+        receipt
+            .replaceAll('&quot;', '"')
+            .includes('content: "KPR-00000004 \\00B7  Page "'),
+    );
+});
+
 test('money: thousands separators and a true minus sign', () => {
     assert.equal(money.exports.myr(123456789), 'RM 1,234,567.89');
     assert.equal(money.exports.myr(-150), '−RM 1.50');

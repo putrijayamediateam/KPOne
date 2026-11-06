@@ -77,12 +77,26 @@ const isVoid = computed(
     () => !props.receipt && invoice.value.status === 'voided',
 );
 const adjustmentSen = computed(() => invoice.value.adjustment.adjustmentSen);
+// BIL-9 (owner, Daniel): "KPI-… · Page n of N" in the page footer, so a loose sheet is traceable. CSS cannot tell a
+// one-page document from a longer one, so the first page carries no footer: a one-page document prints none, and a
+// longer one numbers pages 2 onward (page 1 has the full header and number).
+const pageFooter = computed(() => {
+    const number = (props.receipt?.number ?? invoice.value.number).replace(
+        /["\\\n]/g,
+        '',
+    );
+
+    return `@page { @bottom-center { content: "${number} \\00B7  Page " counter(page) " of " counter(pages); font-size: 8pt; } } @page :first { @bottom-center { content: none; } }`;
+});
 // "2.000" prints as "2"; "1.500" as "1.5".
 const quantity = (value: string) =>
     value.includes('.') ? value.replace(/\.?0+$/, '') : value;
 </script>
 
 <template>
+    <component :is="'style'" data-testid="page-footer">{{
+        pageFooter
+    }}</component>
     <header
         class="mb-1 flex items-start gap-4 border-b-[0.5pt] border-current pb-3"
         aria-label="Clinic letterhead"
@@ -113,7 +127,7 @@ const quantity = (value: string) =>
     <div class="mt-2 mb-4 text-center" data-testid="issued-label">
         <p
             v-if="isVoid"
-            class="mb-1 text-base font-bold tracking-widest"
+            class="mb-1 text-xl font-bold tracking-widest"
             data-testid="void-label"
         >
             VOID

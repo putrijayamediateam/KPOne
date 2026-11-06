@@ -34,7 +34,7 @@ class InvoiceReceiptLayoutTest extends BillingTestCase
 
         $this->get(route('billing.issued.show', [$visit, $print->public_id]))->assertOk()->assertInertia(fn (Assert $page) => $page
             ->component('Billing/Print')->where('layout', 'bil9')->where('issued.label', 'original')
-            ->where('billing.patient.identifier', '900101-14-5678')->where('billing.patient.phone', '+60123456789')
+            ->where('billing.patient.identifier', '900101-14-5678')->where('billing.patient.phone', '012-345 6789')
             ->where('billing.invoice.lines.0.category', 'Consultation')
             ->where('billing.invoice.categories', [['name' => 'Service', 'totalSen' => 0], ['name' => 'Procedure', 'totalSen' => 0],
                 ['name' => 'Investigation', 'totalSen' => 0], ['name' => 'Consultation', 'totalSen' => 4000], ['name' => 'Medicine', 'totalSen' => 0],
@@ -120,6 +120,22 @@ class InvoiceReceiptLayoutTest extends BillingTestCase
         $this->selectBranch($ca->fresh());
         $this->post(route('billing.issue', [$visit, $invoice]), $this->input($visit))->assertSessionHasErrors('document');
         $this->assertSame(0, IssuedBillingDocument::query()->count());
+    }
+
+    public function test_printed_phones_read_in_the_clinic_format_while_the_earlier_layout_keeps_the_stored_value(): void
+    {
+        // Owner decision 2026-11-06 ("go with Daniel's phone format"): display only, the stored value never changes.
+        [, $ca, $visit, $invoice] = $this->finalizedFixture(4000);
+        DB::table('branch_business_profiles')->insert(['organisation_id' => $visit->organisation_id, 'branch_id' => $visit->branch_id, 'clinic_name' => 'Synthetic Clinic', 'address_line_1' => '1 Jalan Sintetik', 'postcode' => '43000', 'city' => 'Kajang', 'state' => 'Selangor', 'country' => 'Malaysia',
+            'phone' => '+60321234567', 'email' => 'clinic@bil9.test', 'lock_version' => 1, 'created_at' => now(), 'updated_at' => now()]);
+        $this->identity($visit, 'nric', '900101145678', '60123456789');
+        $this->selectBranch($ca);
+        $this->post(route('billing.issue', [$visit, $invoice]), $this->input($visit))->assertRedirect();
+        $this->get(route('billing.issued.show', [$visit, IssuedBillingDocumentPrint::query()->sole()->public_id]))->assertInertia(fn (Assert $page) => $page
+            ->where('letterhead.details.phone', '03-2123 4567')->where('billing.patient.phone', '012-345 6789'));
+        [$legacy] = (new \ReflectionMethod(IssuedBillingDocumentService::class, 'legacyContent'))->invoke(app(IssuedBillingDocumentService::class), $ca, $visit, $invoice->refresh(), null, $visit->branch);
+        $this->assertSame('+60321234567', $legacy['letterhead']['details']['phone']);
+        $this->assertSame('+60321234567', DB::table('branch_business_profiles')->where('branch_id', $visit->branch_id)->value('phone'));
     }
 
     public function test_the_earlier_layout_content_keeps_exactly_the_shape_issued_before_bil9(): void

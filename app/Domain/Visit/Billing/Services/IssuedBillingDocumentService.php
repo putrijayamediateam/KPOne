@@ -11,6 +11,7 @@ use App\Domain\Organisation\Models\Branch;
 use App\Domain\Patient\Models\Patient;
 use App\Domain\Patient\Models\PatientIdentifier;
 use App\Domain\Patient\Services\PatientIdentityService;
+use App\Domain\Shared\PrintedPhone;
 use App\Domain\Visit\Billing\Models\Invoice;
 use App\Domain\Visit\Billing\Models\IssuedBillingDocument;
 use App\Domain\Visit\Billing\Models\IssuedBillingDocumentPrint;
@@ -231,7 +232,7 @@ final class IssuedBillingDocumentService
         $content['layout'] = 'bil9';
         $content['billing']['patient'] += [
             'identifier' => $identifier ? app(PatientIdentityService::class)->displayIdentifier($identifier->identifier_type, $identifier->normalized_value) : null,
-            'phone' => $patient->mobile_phone === null || trim($patient->mobile_phone) === '' ? null : $patient->mobile_phone,
+            'phone' => PrintedPhone::format($patient->mobile_phone),
         ];
         // A receipt prints no categories, so it never carries them: renaming a service's category must not revise it.
         $content['billing']['invoice'] = [...$content['billing']['invoice'],
@@ -239,8 +240,11 @@ final class IssuedBillingDocumentService
             ...($payment ? [] : ['categories' => array_map(fn (string $name): array => ['name' => $name, 'totalSen' => $totals[$name]], self::CATEGORIES)]),
             'adjustment' => ['subtotalSen' => $source['adjustment']['subtotalSen'], 'adjustmentSen' => $source['adjustment']['adjustmentSen']],
         ];
+        // Owner decision 2026-11-06 ("go with Daniel's phone format"): every printed phone reads 03-2123 4567.
         $secondary = $head['details']['phone_secondary'] ?? null;
-        $content['letterhead']['details']['phone_secondary'] = is_string($secondary) && trim($secondary) !== '' ? $secondary : null;
+        $phone = $content['letterhead']['details']['phone'] ?? null;
+        $content['letterhead']['details']['phone'] = PrintedPhone::format(is_string($phone) ? $phone : null);
+        $content['letterhead']['details']['phone_secondary'] = PrintedPhone::format(is_string($secondary) ? $secondary : null);
 
         return [$legacy, $content];
     }
