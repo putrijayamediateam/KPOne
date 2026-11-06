@@ -168,6 +168,16 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::middleware(['permission:hr.attendance.review.organisation', 'throttle:60,1'])->group(function (): void {
             Route::post('corrections/{correction}/{decision}', 'decide')->whereUuid('correction')->whereIn('decision', ['approve', 'reject'])->name('hr.attendance.corrections.decide');
             Route::put('settings', 'saveSettings')->name('hr.attendance.settings');
+            Route::put('overtime-settings', 'saveOvertimeSettings')->name('hr.attendance.overtime-settings');
+        });
+        // HR-3b overtime (owner, 2026-11-06). Minutes and day type only; no money.
+        Route::middleware(['permission:hr.attendance.clock.own,hr.attendance.review.organisation', 'throttle:30,1'])->group(function (): void {
+            Route::post('overtime', 'askOvertime')->name('hr.attendance.overtime.store');
+            Route::post('overtime/{overtimeRequest}/withdraw', 'withdrawOvertime')->whereUuid('overtimeRequest')->name('hr.attendance.overtime.withdraw');
+        });
+        Route::middleware(['permission:hr.overtime.approve.organisation', 'throttle:60,1'])->group(function (): void {
+            Route::post('overtime/{overtimeRequest}/reverse', 'reverseOvertime')->whereUuid('overtimeRequest')->name('hr.attendance.overtime.reverse');
+            Route::post('overtime/{overtimeRequest}/{decision}', 'decideOvertime')->whereUuid('overtimeRequest')->whereIn('decision', ['approve', 'reject'])->name('hr.attendance.overtime.decide');
         });
     });
 
