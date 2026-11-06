@@ -1555,8 +1555,8 @@ My HR details is a tab on the same page, linked from My roster.
 ## 12. HR-5 credentials and compliance: design note
 
 Written 2026-11-06 at the owner's request ("start the HR-5 design note"). It works out the HR-5 sketch in section 2
-in detail and replaces it where the two differ. It changes no HR-1 to HR-4 rule. **Status: draft, waiting for the
-owner's approval and Daniel's early look.** The questions in 12.9 take the defaults written here until the clinic
+in detail and replaces it where the two differ. It changes no HR-1 to HR-4 rule. **Status: approved with its defaults by
+the owner on 2026-11-06 (TEAM.md decision 38); Daniel's early look pending.** The questions in 12.9 take the defaults written here until the clinic
 says otherwise.
 
 **KPOne ships no credential list and no limit.** Which credentials each role needs, when a warning starts, opening
