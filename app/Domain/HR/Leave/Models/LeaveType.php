@@ -18,6 +18,8 @@ use Illuminate\Database\Eloquent\Model;
  * @property int|null $carry_max_halves
  * @property string|null $carry_expires_on
  * @property bool $is_active
+ * @property bool $accepts_evidence_files
+ * @property int|null $evidence_retention_days
  * @property int $lock_version
  */
 #[Guarded(['*'])]
@@ -28,6 +30,6 @@ class LeaveType extends Model
     protected function casts(): array
     {
         return ['is_paid' => 'boolean', 'uses_balance' => 'boolean', 'allow_half_days' => 'boolean', 'evidence_needed' => 'boolean',
-            'allow_negative' => 'boolean', 'is_active' => 'boolean', 'carry_max_halves' => 'integer', 'lock_version' => 'integer'];
+            'allow_negative' => 'boolean', 'is_active' => 'boolean', 'accepts_evidence_files' => 'boolean', 'evidence_retention_days' => 'integer', 'carry_max_halves' => 'integer', 'lock_version' => 'integer'];
     }
 }
