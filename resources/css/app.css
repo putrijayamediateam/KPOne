@@ -243,6 +243,26 @@
     }
 }
 
+/*
+ * DD-07: tell the browser which theme is showing, so its own parts of form controls (the
+ * date and time picker icons, scrollbars, plain inputs and selects) are drawn for that theme.
+ * Without this the calendar and clock icons were dark on dark and could not be seen.
+ * Printed documents and labels stay light (see the print rule below).
+ */
+:root {
+    color-scheme: light;
+}
+
+.dark {
+    color-scheme: dark;
+}
+
+@media print {
+    :root:has(.document-print, .label-preview) {
+        color-scheme: light;
+    }
+}
+
 @media print {
     html:has(.document-print, .label-preview),
     body:has(.document-print, .label-preview),
