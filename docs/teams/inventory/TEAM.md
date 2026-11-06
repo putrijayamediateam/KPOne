@@ -89,7 +89,7 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php`. Key ones:
 | STK-8 | Treatment-room usage and waste: CA or CA Supervisor records stock used or wasted outside dispensing (new `treatment_usage` and `treatment_waste` ledger movements), optional treatment room, no patient link or bill; a different CA Supervisor, Finance Officer or Director may reverse an entry once (credit back as `adjustment_in`); append-only evidence guarded by PostgreSQL | #244 |
 | STK-9 | Barcode scanning on Inventory screens (receiving, governed count and write-off, treatment-room usage, supplier returns): handheld scanner, typing, or the browser's built-in camera reader; one barcode, one SKU per organisation (domain and PostgreSQL, existing duplicates listed on Pilot readiness); a scan only finds | merged in PR #253 (`4445021`) |
 | STK-11 | Patient returns location for DSP-7: a `dispensary_returns` location type that is never picked or dispensed from, the `dispensary_return` movement written only by `InventoryMovementService::recordDispensaryReturn` (for the Dispensary return check), returns stock kept out of every usable-stock figure, and out only by STK-5 or a move to another returns location | merged in PR #279 (`d3fcea1`) |
-| STK-10B | Receipt cost evidence (option B of the STK-10 analysis): each delivered batch records the total paid, as on the supplier invoice, marked actual; a blank cost keeps the order estimate, marked estimate; both receiving forms take the total; the order estimate says it is per stock unit; no cost shown anywhere | pending (branch `feature/stk-10b-cost-evidence`) |
+| STK-10B | Receipt cost evidence (option B of the STK-10 analysis): each delivered batch records the total paid, as on the supplier invoice, marked actual; a blank cost keeps the order estimate, marked estimate; both receiving forms take the total; the order estimate says it is per stock unit; no cost shown anywhere | merged in PR #309 (`a1a44d8`) |
 
 ## 6. Owner decisions already made (never ask again)
 
@@ -181,10 +181,18 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php`. Key ones:
     If KPOne ever shows a stock cost, only the Director sees it. The same relay said "option A" for STK-10; that
     conflicted with "yes, do option B" in this session, so the team asked the owner here, and the owner chose
     "Option B, keep building".
+31. STK-10B "ship it" from the owner in the team's session (2026-11-06); PR #309. Design review by Daniel (Lead UI/UX
+    Designer): OK with changes. His must-fix (the cost help sat under the required delivery reference) was fixed
+    before merge: each cost field has its own help line and the label says "(RM, optional)". Labels for the
+    placeholder-only Batch, Expiry and Quantity boxes on the Post receipt row stay with design debt DD-12, agreed
+    with Daniel. Merged as `a1a44d8` (head `703f534`, CI green).
 
 ## 7. Open items and known limits
 
-- **Planned, not built:** STK-10 valuation (accountant policy first). Label batch and expiry is the Dispensary
+- **Planned, not built:** STK-10 valuation (accountant policy first). STK-10B (cost evidence) is merged; its
+  limits: opening balances still take a whole-sen cost per stock unit with no cost source; the legacy goods
+  receipt line keeps only `unit_cost_sen`; Ask KPOne does not show `cost_total_sen` or `cost_source` until the
+  Agent platform's AG-7b. Label batch and expiry is the Dispensary
   team's DSP-2 (merged).
 - **Parked review (2026-10-21):** no match against a supplier's invoice, no printable purchase order, reorder levels raise no alert by themselves (STK-4 worklists now show
   low stock). `InventoryController::referenceData()` still projects all items, SKUs and locations unbounded.
@@ -265,7 +273,8 @@ matching proposal in `docs/reports/ANALYSIS-STOCK.md` section 8 unless an owner 
    dispensing; codes map locally; no external lookup; scanning never authorises an action by itself. Label
    batch and expiry printing belongs to the Dispensary team's DSP-2.
 5. **STK-11 Patient returns location (for DSP-7).** *Merged in PR #279.*
-6. **STK-10 Valuation.** *Analysis merged in PR #289; option B (STK-10B) built 2026-11-06 on the owner's "yes,
-   do option B" (section 6 item 29).* *Analysis only (owner request 2026-11-05):* `docs/reports/ANALYSIS-STK-10.md` lists what
+6. **STK-10 Valuation.** *Analysis merged in PR #289; option B (STK-10B) merged in PR #309 (`a1a44d8`), on
+   the owner's "yes, do option B" (section 6 items 29 to 31).* Next step waits on the owner: the accountant's name
+   and package, then the accountant's written policy before any valuation or export. *Analysis only (owner request 2026-11-05):* `docs/reports/ANALYSIS-STK-10.md` lists what
    KPOne records about cost today, the gaps, and the questions an accountant must answer. Nothing is built until
    the owner chooses an option and, for a valuation or export, the accountant's written policy exists.
