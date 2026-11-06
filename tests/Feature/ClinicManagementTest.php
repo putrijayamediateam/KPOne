@@ -64,6 +64,7 @@ class ClinicManagementTest extends VisitTestCase
             '/panel-responsibility' => ['panel.work.view.branch'],
             '/panel-invoices' => ['panel.invoices.export.branch'],
             '/hr/roster' => ['hr.roster.manage.organisation', 'hr.roster.approve.organisation', 'hr.roster.view.own'],
+            '/hr/leave' => ['hr.leave.request.own', 'hr.leave.approve.organisation', 'hr.leave.manage.organisation'],
             '/staff' => ['staff.view.own', 'staff.view.branch', 'staff.view.organisation'],
             '/branches' => ['branches.view.branch', 'branches.view.organisation'],
             '/access-control' => ['access.view.organisation'],
