@@ -64,6 +64,9 @@ final class RecordsPageService
             'options' => $this->options($actor),
             'canManage' => $actor->can(RecordPermissions::MANAGE) && ! $self,
             'isSelf' => $self,
+            // For "Reports to": everyone else with a staff file (names only).
+            'workers' => Worker::query()->where('organisation_id', $worker->organisation_id)->whereKeyNot($worker->id)->with('user')->get()
+                ->map(fn (Worker $w): array => ['id' => $w->public_id, 'name' => $w->name()])->sortBy('name')->values()->all(),
             'worker' => [...$this->header($worker, $periods, $today), 'lockVersion' => $worker->lock_version],
             'attention' => $this->attention($periods, $waiting !== null, $corrections->isNotEmpty(), $today),
             'periods' => $periods->map(fn (EmploymentPeriod $p): array => [
