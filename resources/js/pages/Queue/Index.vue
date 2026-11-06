@@ -677,17 +677,23 @@ onBeforeUnmount(() => {
             >
             <InputError :message="roomError" />
         </div>
-        <div class="flex items-center gap-2 border-b">
+        <!-- DD-30: on phones the live line sits under the tab strip, which keeps scrolling at full width. -->
+        <div
+            class="flex items-center gap-2 border-b max-sm:flex-col max-sm:items-stretch max-sm:gap-0 max-sm:border-b-0"
+        >
             <OperationalTabs
                 :model-value="activeTab"
-                class="min-w-0 flex-1"
+                class="min-w-0 flex-1 max-sm:flex-none max-sm:[&>button]:h-11"
                 label="Consultation Queue status"
                 :tabs="tabs"
                 @update:model-value="selectOperationalTab"
             />
-            <span class="shrink-0 text-[11px] text-muted-foreground">{{
-                isRefreshing ? 'Refreshing…' : 'Live · every 3 seconds'
-            }}</span>
+            <span
+                class="shrink-0 text-[11px] text-muted-foreground max-sm:px-3 max-sm:py-1.5"
+                >{{
+                    isRefreshing ? 'Refreshing…' : 'Live · every 3 seconds'
+                }}</span
+            >
         </div>
 
         <form
