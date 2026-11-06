@@ -229,3 +229,11 @@ authorisation to build them; the coordinator records it in `docs/BASELINE.md`.
    directory. Dates and times use the shared `formatDate` and `formatDateTime` ("1 Jan 2026", "5 Nov 2026, 5:16 PM",
    Kuala Lumpur time) instead of the browser's own format and time zone, and an assignment reads "From 1 Jan 2026,
    no end date" or "1 Jan 2026 to 31 Dec 2026 (inclusive)". No assertion changed.
+15. **UX-15 Shared page header on the Staff Experience pages (design debt DD-17, part).** Approved by
+   B.E.R.N.I.S.S for the owner on 2026-11-06. The staff directory, the staff page, Create staff, Edit staff and
+   Clinic management drew their own titles (Clinic management at `text-lg`, the Staff pages with an optional
+   icon tile). They now start with the shared `PageHeader`: one `h1` at `text-2xl`, one description line and the
+   actions on the right; the icon tiles are dropped, as the guide allows. `PageHeader` gains two optional
+   slots, `title-extra` (the staff page's Active or Inactive badge) and `description` (the staff number and
+   email line, which keeps its wrapping); pages that use neither render as before. Layout only: no data,
+   permission or route change. Other teams' pages keep their own titles for now. No assertion changed.
