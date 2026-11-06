@@ -12,7 +12,7 @@ test('PrintLetterhead lists phone_secondary beside phone', () => {
     const type = read('resources/js/types/letterhead.ts');
     assert.match(
         type,
-        /phone: string \| null;[\s\S]*phone_secondary: string \| null;[\s\S]*email: string \| null;/,
+        /phone: string \| null;[\s\S]*phone_secondary\?: string \| null;[\s\S]*email: string \| null;/,
     );
 });
 

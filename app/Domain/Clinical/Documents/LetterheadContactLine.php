@@ -6,7 +6,8 @@ use App\Domain\Shared\PrintedPhone;
 
 /**
  * The phone and email line under the clinic address on referral and attendance copies (CAT-13, B.E.R.N.I.S.S for
- * the owner, 2026-11-06: one phone style on every print, Daniel). Phones print through PrintedPhone; with a second
+ * the owner, 2026-11-06: one phone style on every print, Daniel). Phones print through PrintedPhone, as the drug
+ * label does and as the Panel claim pack (PNL-19) and Billing's invoice and receipt (BIL-9) will; with a second
  * phone the line reads "Tel: A / B · email", and an empty part is left out ("Tel: B"). Without a second phone it
  * keeps the older "phone / email" shape. Display only, used when a new copy is rendered: issued copies keep the HTML
  * stored at issue.
@@ -19,7 +20,7 @@ final class LetterheadContactLine
         $phone = PrintedPhone::format(self::text($details['phone'] ?? null));
         $secondary = PrintedPhone::format(self::text($details['phone_secondary'] ?? null));
         $email = self::text($details['email'] ?? null);
-        $email = $email === null || trim($email) === '' ? null : $email;
+        $email = $email === null || trim($email) === '' ? null : trim($email);
 
         if ($secondary === null) {
             return implode(' / ', array_filter([$phone, $email], fn (?string $part): bool => $part !== null));

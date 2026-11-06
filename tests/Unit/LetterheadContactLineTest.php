@@ -7,7 +7,7 @@ use PHPUnit\Framework\TestCase;
 
 /**
  * CAT-13 (B.E.R.N.I.S.S for the owner, 2026-11-06): the referral and attendance contact line prints phones through
- * PrintedPhone, as the drug label, invoice, receipt and Panel claim pack do, and leaves out an empty part.
+ * PrintedPhone, as the drug label does (and the Panel claim pack and invoice will), and leaves out an empty part.
  */
 class LetterheadContactLineTest extends TestCase
 {
