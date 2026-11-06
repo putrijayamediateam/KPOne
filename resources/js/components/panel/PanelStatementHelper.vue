@@ -14,6 +14,7 @@ export type StatementRow = {
     amountSen: number | null;
     result:
         | 'matched'
+        | 'near_match'
         | 'not_found'
         | 'ambiguous'
         | 'not_accepted'
@@ -28,6 +29,9 @@ export type StatementRow = {
         invoiceNumber: string;
         outstandingSen: number;
     } | null;
+    /** PNL-18: only on a near match, the statement's own invoice number and why it counts as near. */
+    statementInvoice?: string;
+    nearReason?: 'format' | 'lookalike';
 };
 export type Statement = {
     publicId: string;
@@ -56,6 +60,7 @@ const RESULTS: Record<
     { label: string; tone: 'success' | 'warning' | 'neutral' }
 > = {
     matched: { label: 'Matched', tone: 'success' },
+    near_match: { label: 'Near match: check', tone: 'warning' },
     not_found: { label: 'Not found', tone: 'neutral' },
     ambiguous: { label: 'More than one claim', tone: 'warning' },
     not_accepted: { label: 'Not accepted yet', tone: 'neutral' },
@@ -76,6 +81,20 @@ const open = ref(props.statement !== null);
 const upload = useForm<{ statement: File | null }>({ statement: null });
 const fileInput = ref<HTMLInputElement | null>(null);
 const ticked = ref<Set<number>>(new Set());
+// PNL-18: a near match can be ticked, but only by the officer; it never starts ticked.
+const canTick = (row: StatementRow) =>
+    row.result === 'matched' || row.result === 'near_match';
+const NEAR_REASONS: Record<'format' | 'lookalike', string> = {
+    format: 'Same apart from spaces, dashes, capitals or leading zeros.',
+    lookalike:
+        'Letters read as numbers (O as 0, I or L as 1, S as 5, B as 8, Z as 2).',
+};
+const tickLabel = (row: StatementRow) =>
+    `Use row ${row.line}${row.claim ? `, claim ${row.claim.claimNo}` : ''}${
+        row.result === 'near_match' && row.claim
+            ? `, near match: statement ${row.statementInvoice ?? row.reference}, KPOne ${row.claim.invoiceNumber}`
+            : ''
+    }`;
 
 // A new statement or a new column choice starts with every matched row ticked.
 watch(
@@ -99,9 +118,15 @@ const matchedCount = computed(
         (props.statement?.rows ?? []).filter((row) => row.result === 'matched')
             .length,
 );
+const nearCount = computed(
+    () =>
+        (props.statement?.rows ?? []).filter(
+            (row) => row.result === 'near_match',
+        ).length,
+);
 const tickedRows = computed(() =>
     (props.statement?.rows ?? []).filter(
-        (row) => row.result === 'matched' && ticked.value.has(row.line),
+        (row) => canTick(row) && ticked.value.has(row.line),
     ),
 );
 const tickedSen = computed(() =>
@@ -323,11 +348,19 @@ const useTicked = () =>
                 <template v-if="!needsColumns && statement.rows.length > 0">
                     <p class="text-xs" role="status">
                         {{ matchedCount }} matched,
-                        {{ statement.rows.length - matchedCount }} cannot be
-                        used
+                        <template v-if="nearCount > 0">
+                            {{ nearCount }}
+                            {{
+                                nearCount === 1
+                                    ? 'near match to check'
+                                    : 'near matches to check'
+                            }},
+                        </template>
+                        {{ statement.rows.length - matchedCount - nearCount }}
+                        cannot be used
                     </p>
                     <p
-                        v-if="matchedCount === 0"
+                        v-if="matchedCount === 0 && nearCount === 0"
                         class="rounded-md bg-muted p-2 text-sm"
                         data-testid="statement-no-match"
                     >
@@ -352,8 +385,8 @@ const useTicked = () =>
                                     type="checkbox"
                                     class="size-5"
                                     :checked="ticked.has(row.line)"
-                                    :disabled="row.result !== 'matched'"
-                                    :aria-label="`Use row ${row.line}${row.claim ? `, claim ${row.claim.claimNo}` : ''}`"
+                                    :disabled="!canTick(row)"
+                                    :aria-label="tickLabel(row)"
                                     :aria-describedby="`statement-result-m-${row.line}`"
                                     @change="toggle(row.line)"
                                 />
@@ -367,7 +400,34 @@ const useTicked = () =>
                                             : myr(row.amountSen)
                                     }}
                                 </p>
+                                <div
+                                    v-if="
+                                        row.result === 'near_match' && row.claim
+                                    "
+                                    class="space-y-0.5 text-xs wrap-anywhere text-muted-foreground"
+                                    data-testid="statement-near-card"
+                                >
+                                    <p>
+                                        Statement:
+                                        <span
+                                            class="font-mono text-foreground"
+                                            >{{ row.statementInvoice }}</span
+                                        >
+                                    </p>
+                                    <p>
+                                        KPOne:
+                                        <span
+                                            class="font-mono text-foreground"
+                                            >{{ row.claim.invoiceNumber }}</span
+                                        >
+                                        → Claim {{ row.claim.claimNo }}
+                                    </p>
+                                    <p v-if="row.nearReason">
+                                        {{ NEAR_REASONS[row.nearReason] }}
+                                    </p>
+                                </div>
                                 <p
+                                    v-else
                                     class="text-xs wrap-anywhere text-muted-foreground"
                                 >
                                     {{ row.reference || 'No reference' }}
@@ -419,8 +479,8 @@ const useTicked = () =>
                                             type="checkbox"
                                             class="size-4"
                                             :checked="ticked.has(row.line)"
-                                            :disabled="row.result !== 'matched'"
-                                            :aria-label="`Use row ${row.line}${row.claim ? `, claim ${row.claim.claimNo}` : ''}`"
+                                            :disabled="!canTick(row)"
+                                            :aria-label="tickLabel(row)"
                                             :aria-describedby="`statement-result-${row.line}`"
                                             @change="toggle(row.line)"
                                         />
@@ -428,7 +488,33 @@ const useTicked = () =>
                                 </td>
                                 <td class="tabular-nums">{{ row.line }}</td>
                                 <td class="max-w-48 wrap-anywhere">
-                                    {{ row.reference || '—' }}
+                                    <span
+                                        :class="{
+                                            'font-mono':
+                                                row.result === 'near_match',
+                                        }"
+                                        >{{ row.reference || '—' }}</span
+                                    >
+                                    <template
+                                        v-if="
+                                            row.result === 'near_match' &&
+                                            row.claim
+                                        "
+                                    >
+                                        <span
+                                            class="block font-mono text-xs text-muted-foreground"
+                                            data-testid="statement-near-table"
+                                            >KPOne:
+                                            {{ row.claim.invoiceNumber }}</span
+                                        >
+                                        <span
+                                            v-if="row.nearReason"
+                                            class="block text-xs text-muted-foreground"
+                                            >{{
+                                                NEAR_REASONS[row.nearReason]
+                                            }}</span
+                                        >
+                                    </template>
                                 </td>
                                 <td
                                     class="text-right whitespace-nowrap tabular-nums"

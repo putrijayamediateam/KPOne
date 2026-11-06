@@ -29,7 +29,7 @@ test('The helper uploads a CSV and says the file is deleted after 30 days', () =
 });
 
 test('Only matched rows can be ticked and nothing is recorded from the statement', () => {
-    assert.match(helper, /:disabled="row\.result !== 'matched'"/);
+    assert.match(helper, /:disabled="!canTick\(row\)"/);
     assert.match(helper, /emit\(\s*'use'/);
     assert.doesNotMatch(helper, /panel-remittances',\s*\{[^}]*splits/);
     assert.match(page, /@use="useStatement"/);
