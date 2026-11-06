@@ -32,6 +32,7 @@ class PrintedPhoneTest extends TestCase
             'toll free stays as stored' => ['1-800-88-1234', '1-800-88-1234'],
             'letters stay as stored' => ['03-2123 4567 ext 2', '03-2123 4567 ext 2'],
             'surrounding spaces trimmed' => ['  +60321234567 ', '03-2123 4567'],
+            'punctuation only stays as stored' => ['( ) -', '( ) -'],
             'empty is null' => ['  ', null],
             'null is null' => [null, null],
         ];
