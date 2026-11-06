@@ -32,6 +32,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DiagnosisPresetSettingsController;
 use App\Http\Controllers\DispensaryController;
 use App\Http\Controllers\GovernedStockController;
+use App\Http\Controllers\HR\AttendanceController as HrAttendanceController;
 use App\Http\Controllers\HR\LeaveController;
 use App\Http\Controllers\HR\RosterController;
 use App\Http\Controllers\InventoryBatchHoldController;
@@ -150,6 +151,23 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::middleware(['permission:hr.roster.approve.organisation', 'throttle:30,1'])->group(function (): void {
             Route::post('versions/{version}/approve', 'approve')->whereUuid('version')->name('hr.roster.approve');
             Route::post('versions/{version}/return', 'returnToDraft')->whereUuid('version')->name('hr.roster.return');
+        });
+    });
+
+    // HR-3a attendance (owner, 2026-11-06). Rules live in app/Domain/HR/Attendance. Server time only; no location or photo.
+    Route::prefix('hr/attendance')->controller(HrAttendanceController::class)->middleware('sensitive.no-store')->group(function (): void {
+        Route::get('/', 'index')->middleware('permission:hr.attendance.clock.own,hr.attendance.review.organisation')->name('hr.attendance.index');
+        Route::middleware(['permission:hr.attendance.clock.own', 'throttle:10,1'])->group(function (): void {
+            Route::post('clock-in', 'clockIn')->name('hr.attendance.clock-in');
+            Route::post('clock-out', 'clockOut')->name('hr.attendance.clock-out');
+        });
+        Route::middleware(['permission:hr.attendance.clock.own,hr.attendance.review.organisation', 'throttle:30,1'])->group(function (): void {
+            Route::post('corrections', 'propose')->name('hr.attendance.corrections.store');
+            Route::post('corrections/{correction}/cancel', 'cancel')->whereUuid('correction')->name('hr.attendance.corrections.cancel');
+        });
+        Route::middleware(['permission:hr.attendance.review.organisation', 'throttle:60,1'])->group(function (): void {
+            Route::post('corrections/{correction}/{decision}', 'decide')->whereUuid('correction')->whereIn('decision', ['approve', 'reject'])->name('hr.attendance.corrections.decide');
+            Route::put('settings', 'saveSettings')->name('hr.attendance.settings');
         });
     });
 

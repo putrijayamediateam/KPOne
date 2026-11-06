@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Head, router, useForm, usePage } from '@inertiajs/vue3';
+import { Head, Link, router, useForm, usePage } from '@inertiajs/vue3';
 import { computed, reactive, ref } from 'vue';
 import InputError from '@/components/InputError.vue';
 import { Badge } from '@/components/ui/badge';
@@ -104,7 +104,10 @@ const props = defineProps<{
             label: string;
         };
         sessions: Option[];
-        my: { days: { date: string; label: string; shifts: Shift[] }[] } | null;
+        my: {
+            days: { date: string; label: string; shifts: Shift[] }[];
+            canClock: boolean;
+        } | null;
         planner: Planner | null;
         minimums: Minimums | null;
     };
@@ -542,14 +545,26 @@ const minimumError = (session: string, role: string) =>
             aria-labelledby="my-shifts"
             class="flex flex-col gap-3"
         >
-            <div>
-                <h2 id="my-shifts" class="text-base font-semibold">
-                    My shifts
-                </h2>
-                <p class="text-xs text-muted-foreground">
-                    Your approved shifts for this week. Times are in each
-                    branch's time.
-                </p>
+            <div class="flex flex-wrap items-start justify-between gap-2">
+                <div>
+                    <h2 id="my-shifts" class="text-base font-semibold">
+                        My shifts
+                    </h2>
+                    <p class="text-xs text-muted-foreground">
+                        Your approved shifts for this week. Times are in each
+                        branch's time.
+                    </p>
+                </div>
+                <Button
+                    v-if="roster.my.canClock"
+                    as-child
+                    variant="outline"
+                    class="min-h-11 sm:min-h-9"
+                >
+                    <Link href="/hr/attendance" data-test="roster-clock-link"
+                        >Clock in</Link
+                    >
+                </Button>
             </div>
             <EmptyState
                 v-if="roster.my.days.length === 0"
