@@ -6,6 +6,7 @@ use App\Domain\Agents\AgentPermissions;
 use App\Domain\Clinical\Documents\AttendancePermissions;
 use App\Domain\Clinical\Documents\MedicalCertificatePermissions;
 use App\Domain\Clinical\Documents\ReferralPermissions;
+use App\Domain\HR\Attendance\ClockPermissions;
 use App\Domain\HR\Leave\LeavePermissions;
 use App\Domain\HR\Roster\RosterPermissions;
 use App\Domain\Organisation\Website\WebsitePermissions;
@@ -52,6 +53,7 @@ final class PermissionCatalogue
             ...array_keys(AgentPermissions::grants()),
             ...array_keys(RosterPermissions::grants()),
             ...array_keys(LeavePermissions::grants()),
+            ...array_keys(ClockPermissions::grants()),
             'dashboard.view.own',
             'profile.view.own',
             'staff.view.own',
@@ -452,7 +454,7 @@ final class PermissionCatalogue
         }
 
         // HR-1 (B.E.R.N.I.S.S for the owner, 2026-11-05): roster planning; never people or access authority.
-        foreach ([...RosterPermissions::grants(), ...LeavePermissions::grants()] as $permission => $holders) {
+        foreach ([...RosterPermissions::grants(), ...LeavePermissions::grants(), ...ClockPermissions::grants()] as $permission => $holders) {
             foreach ($holders as $role) {
                 $roles[$role][] = $permission;
             }
