@@ -46,12 +46,12 @@ const countries = getCountries()
         <label :for="id" class="text-sm font-medium"
             >Phone <span v-if="required">*</span></label
         >
-        <div class="flex gap-2">
+        <div class="flex flex-col gap-2 sm:flex-row">
             <select
                 :id="id + '-country'"
                 :value="country"
                 aria-label="Phone country"
-                class="h-10 w-36 min-w-0 rounded-md border bg-background px-2 text-sm"
+                class="h-10 w-full min-w-0 rounded-md border bg-background px-2 text-sm sm:w-36"
                 @change="
                     emit(
                         'update:country',
@@ -76,7 +76,7 @@ const countries = getCountries()
                 :required="required"
                 :aria-invalid="!!message"
                 :aria-describedby="message ? id + '-error' : undefined"
-                class="h-10 min-w-0 flex-1 rounded-md border bg-background px-3 text-sm"
+                class="h-10 w-full min-w-0 rounded-md border bg-background px-3 text-sm sm:flex-1"
                 @input="
                     emit(
                         'update:modelValue',

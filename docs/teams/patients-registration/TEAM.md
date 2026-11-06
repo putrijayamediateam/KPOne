@@ -84,7 +84,8 @@ team's Reviewer is Hafiz, with the same role and rules.
 | REG-2 | Phone and IC/Passport messages in English everywhere (staff screens, server and public QR form); QR Intake tab and QR review list visit purposes in English; rest of the public QR form unchanged | #228 (`bf5b1b2`) |
 | REG-3 | Two-person patient merge by link: the duplicate gets a pointer to the kept record, nothing is moved; propose, approve by a different person, reject, withdraw, unmerge; refusals for unfinished visits, open QR check-ins and allergies missing from the kept record; search, duplicate check, QR match, consultation history and outstanding bills follow the kept record; two new permissions by additive migration | #239 (`5775833`) |
 | REG-4 | Patient change history on the patient page for CA Supervisor and Director: who changed which parts of the record and when, from existing audit rows, field names only (never values); changes only; first 10 rows, older rows by cursor; includes the merged records' rows, labelled; replaces the raw "Authorized activity" list; one new permission by additive migration; fixes every edit logging "date_of_birth" as changed; staff names follow the BIL-2 staff-visibility rule | #252 (`7cf6df4`) |
-| REG-5 | REG-3 follow-ups, read paths only: search rows and the Registration picker say "Merged from KP-…"; the kept patient page shows a merged record's guardian contact, read only, when it has none; the doctor's problem list shows merged records' problems as a separate read-only group labelled with their KP number; pay-later rows of a merged-away record list under the kept record with "merged from KP-…". No permission, migration or route | pending (branch `feature/reg-5-merge-follow-ups`) |
+| REG-5 | REG-3 follow-ups, read paths only: search rows and the Registration picker say "Merged from KP-…"; the kept patient page shows a merged record's guardian contact, read only, when it has none; the doctor's problem list shows merged records' problems as a separate read-only group labelled with their KP number; pay-later rows of a merged-away record list under the kept record with "merged from KP-…". No permission, migration or route | #271 (`b6103d8`) |
+| REG-6 | Patient create, patient edit and Registration Quick create fit a 320 or 390 px phone: the phone number box can shrink, and below 640 px the phone country list and the Quick create identity type list stack above their box at full width; the Patient create identifier box and its fields stay inside their border. Layout only | pending (branch `fix/reg-6-patient-create-phone-fit`) |
 
 ## 6. Owner decisions already made (never ask again)
 
@@ -141,6 +142,10 @@ team's Reviewer is Hafiz, with the same role and rules.
 19. **REG-5 merge follow-ups (owner answers 2026-11-05):** build the REG-3 follow-ups next; the pay-later row gains
     a `mergedFrom` field, and the one Billing test line listing a pay-later row's exact fields
     (`PayLaterCollectionTest`) gains it, with approval.
+20. **Next pieces after REG-5 (owner, directly in this session, 2026-11-05):** "do 1 first, then 2": REG-6 phone fit
+    of Patient create, then REG-7 accessible names (the public QR form's icon-only back buttons and this team's
+    SMOKE-1 S1-009 to S1-014 items). REG-7 leaves to Staff Experience's UX-6 the two labels it already adds in this
+    team's files (the cancellation reason on `Registration/Show.vue` and the issuer box on `Patient/Index.vue`).
 
 ## 7. Open items and known limits
 
@@ -157,10 +162,15 @@ team's Reviewer is Hafiz, with the same role and rules.
   empty phone shows "Phone number is required." but a too-long phone shows "Nombor telefon terlalu panjang.", the ID
   field shows "Nombor pengenalan diperlukan.", and the guardian phone's invalid message is now English. A whole-form
   language decision would be a separate piece (QR check-in team).
-- Patient create page (`/patients/create`) is 433 px wide on a 390 px phone with the form errors shown: the phone
-  number and email inputs stick out of the Contact card. Already so before REG-2 (found while taking REG-2
-  screenshots, 2026-11-05); not fixed. A candidate for a small layout piece like REG-1.
-- REG-5 known limits (built 2026-11-05, pending merge). The Invoices page and the patient page have no
+- ~~Patient create page (`/patients/create`) is 433 px wide on a 390 px phone.~~ Fixed by REG-6 (pending merge). It
+  was 433 px at 320 and 390 px with or without errors, and so was Patient edit; the cause was the shared
+  `PhoneInput` number box, whose built-in width set the minimum of the one-column form. Registration Quick create
+  had the same fault in its identity row: its fields ran past the card and were clipped. Now measured at 320, 390
+  and 768 px in light and dark: page width equals the viewport, no field passes its bordered box, and every input
+  and select is at least 40 px tall. Lesson (Balqis): a bare `flex-1` on a box in a column row sets its height to
+  0; use `sm:flex-1` when a row stacks below `sm`. Design debt found, not fixed: the Registration Visit Reason
+  search box is 36 px tall.
+- REG-5 known limits (merged in PR #271). The Invoices page and the patient page have no
   patient-level visit list, so "both records' visits" needs nothing there: each invoice opens by its own visit,
   and the doctor's previous consultations and outstanding bills already include both records. A merged guardian is
   shown only while the kept record has none (the newest merged record's contact wins); saving it on the kept record
@@ -236,6 +246,12 @@ authorisation to build them; the coordinator records it in `docs/BASELINE.md`.
 4. **REG-4 Patient change history.** *Merged in PR #252 as `7cf6df4`.* A read-only list on the patient page of who changed which fields and
    when, from existing audit rows; field names only, never old or new values; CA Supervisor and Director only
    (owner decision 2026-11-05), likely a new narrow view permission by owner-approved migration.
-5. **REG-5 Merge follow-ups.** *Chosen by the owner on 2026-11-05 after REG-4; built, awaiting "ship it".* The
+5. **REG-5 Merge follow-ups.** *Merged in PR #271 as `b6103d8`.* The
    REG-3 design note's unbuilt read paths: "Merged from KP-…" on search rows, a merged record's guardian and
    problems on the kept record (read only), and the pay-later list under the kept record.
+6. **REG-6 Patient create phone fit.** *Chosen by the owner on 2026-11-05; built, awaiting "ship it".* Patient
+   create (and, through the shared phone field, Patient edit and Registration Quick create) fit a 320 and 390 px
+   phone with errors shown. Layout only.
+7. **REG-7 Accessible names.** *Chosen by the owner on 2026-11-05, after REG-6.* The public QR form's icon-only back
+   buttons and this team's SMOKE-1 S1-009 to S1-014 items in `docs/design/DEBT.md`, except the two labels UX-6
+   adds. Frontend only; the QR page is patient-facing, so Daniel looks at it.
