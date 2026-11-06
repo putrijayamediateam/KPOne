@@ -91,6 +91,7 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php`.
 | PNL-6 | Payment correction (`/panel-payment-corrections`): Finance Officer or Director reverses a wrongly recorded Panel payment with a reason; whole payments only, a split Panel payment with all its splits, never by its recorder; new append-only `panel_claim_payment_reversals` and `panel.claim_payments.reverse.branch`; every payment total leaves reversed payments out; migrations `2026_11_06_300100_create_panel_claim_payment_reversals` and `2026_11_06_300200_grant_panel_payment_reversal_permission_additively` | #248 (merged as `dd8f4fe`) |
 | PNL-6b | The Panel payments history and the Follow-up list show a colleague's name only under the staff-directory visibility rule (owner BIL-2 decision), otherwise "Staff member"; no visible change for today's roles | #262 (merged as `e0d41d9`) |
 | PNL-5 | PostgreSQL contention tests on one Panel claim: split against single payment, two part payments, a reversal against a new payment in both orders, two reversals, a double-submitted split payment (`PostgresPanelPaymentRegressionTest`, serial Contention suite); tests only | #267 |
+| PNL-11 | Panel Claims list on phones and tablets (design debt DD-31): below 1024 px each claim or invoice is a card with every table field, its checkbox (same claim-pack and bulk-claim rules) and its actions menu, plus a "Select all" row above the cards; the Columns menu shows from 1024 px only; Clear puts focus on the visible Select all, or the first claim that can still be ticked; frontend only | (this PR) |
 
 ## 6. Owner decisions already made (never ask again)
 
@@ -142,6 +143,8 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php`.
     passport number (holders of the identity permission only); a batch is claims of one Panel, at most 50, with a
     cover page and one A4 page per claim; uploaded photos are listed by name, never printed; the heading is the
     branch letterhead with the branch footer.
+22. PNL-11 phone cards (owner chose "start 1" from the four next options, 2026-11-06): the Panel Claims list
+    shows cards below 1024 px, following Arjun's sketch; wide screens keep the table unchanged.
 
 ## 7. Open items and known limits
 
@@ -203,6 +206,9 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php`.
   real data. A first row that looks like an IC or phone number is refused (best effort). The retry clean-up
   (a file from a rolled-back attempt is deleted after commit) has no automated test; the failure path does.
   Design debt: the desktop results are a plain table, not the shared table component.
+- PNL-11: in dark mode a disabled checkbox (a claim or invoice of another Panel while one is selected) is hard
+  to see; the look comes from the shared checkbox component, so it is for the Design team's debt list, not a
+  Panel-only change. The pack bar's "Only claims of … can be added" line still explains it.
 - A submitted-but-undecided claim counts as zero outstanding in the Panel summary.
 - Panel summary runs about three queries per approved allocation; not load-tested.
 
@@ -265,3 +271,6 @@ Second backlog, chosen by the owner on 2026-11-05 ("panel order ok", relayed by 
    privately and deleted after 30 days (owner-confirmed). No outbound call.
 8. **PNL-8 Printable claim pack. (Built 2026-11-05.)** A clean A4 print for one claim and for a selected batch,
    no clinical content, white in dark mode (PRINT-1 rule).
+9. **PNL-11 Phone cards for the Panel Claims list. (Built 2026-11-06.)** Design debt DD-31 (at 390 px the list
+   showed only Amount, Claim no and Panel). Cards below 1024 px on both the claims tabs and the Pending and
+   Overdue tabs; frontend only.
