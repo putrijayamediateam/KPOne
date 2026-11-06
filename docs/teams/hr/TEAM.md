@@ -130,6 +130,12 @@ Decisions marked **B.E.R.N.I.S.S for the owner** were made by the coordinator un
 22. Existing-assertion change approved: the `ClinicManagementTest` hub map gains `/hr/leave` for
     `hr.leave.request.own`, `hr.leave.approve.organisation` and `hr.leave.manage.organisation` (B.E.R.N.I.S.S for
     the owner, 2026-11-05).
+23. HR-2a design (Daniel, OK with changes, relayed by B.E.R.N.I.S.S 2026-11-06): no primary button in a list
+    (Approve, Reject and Confirm are outline; the primary "Approve leave" is in the dialog); a one-day request shows
+    one "Half day" control; the balance error reads "Not enough leave left: this request needs N days and you have
+    M." with no negative figure; the team calendar grid scrolls inside its box with a sticky name column, a caption
+    and screen-reader names per cell; the phone tab strip follows the Queue board's DD-30 pattern (#296); below
+    768 px entitlements are one card per role; "Rejected" and "Cancelled" are neutral.
 
 ## 7. Open items and known limits
 
@@ -151,6 +157,9 @@ Decisions marked **B.E.R.N.I.S.S for the owner** were made by the coordinator un
   adjustment instead; the shared confirm dialog has no disabled state, so Approve and Reject say what is missing
   instead of greying out; ledger and action foreign keys to requests, openings and adjustments are single-column
   (organisation is checked in the service, not in PostgreSQL); no evidence files until HR-2b.
+- The 44 px phone tab height on the Leave page reaches into the shared `OperationalTabs` buttons
+  (`max-sm:[&>button]:h-11`, the DD-30 pattern from #296); if that component changes its buttons the height quietly
+  stops applying. A phone-height option in `OperationalTabs` (Staff Experience) would remove both overrides.
 
 ## 8. Rules (every task)
 
