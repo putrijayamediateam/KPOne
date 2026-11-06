@@ -158,6 +158,7 @@ const identifierLabel = (result: Result) =>
                 <input
                     v-if="form.search_type === 'passport'"
                     v-model="form.issuing_country_code"
+                    aria-label="Passport issuing country (2-letter code)"
                     maxlength="2"
                     class="h-10 rounded-md border bg-background px-3 text-sm uppercase"
                     placeholder="Issuer"

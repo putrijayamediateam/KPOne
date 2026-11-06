@@ -242,31 +242,37 @@ const submit = () => {
                         v-model="form.address_line_1"
                         maxlength="255"
                         placeholder="Address line 1"
+                        aria-label="Address line 1"
                     />
                     <Input
                         v-model="form.address_line_2"
                         maxlength="255"
                         placeholder="Address line 2"
+                        aria-label="Address line 2"
                     />
                     <Input
                         v-model="form.postcode"
                         maxlength="16"
                         placeholder="Postcode"
+                        aria-label="Postcode"
                     />
                     <Input
                         v-model="form.city"
                         maxlength="100"
                         placeholder="City"
+                        aria-label="City"
                     />
                     <Input
                         v-model="form.state"
                         maxlength="100"
                         placeholder="State"
+                        aria-label="State"
                     />
                     <Input
                         v-model="form.country"
                         maxlength="100"
                         placeholder="Country"
+                        aria-label="Country"
                     />
                 </fieldset>
             </section>
