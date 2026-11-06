@@ -19,6 +19,11 @@ test('UX-12: staff page dates and times use the shared KPOne formats', () => {
     assert.match(show, /date\(assignment\.validFrom\)/);
     assert.match(show, /date\(assignment\.validUntil\)/);
     assert.match(show, /no end date/);
+    // Daniel: a date and time never breaks between the time and "AM".
+    assert.match(
+        show,
+        /<span class="whitespace-nowrap">\{\{\s*date\(entry\.occurredAt\)/,
+    );
 });
 
 test('UX-12: long work emails wrap inside their own column', () => {

@@ -222,7 +222,7 @@ const setPrimary = (assignmentId: number) => {
                             >
                                 Created
                             </div>
-                            <div class="mt-1 text-sm">
+                            <div class="mt-1 text-sm whitespace-nowrap">
                                 {{ date(staff.createdAt) }}
                             </div>
                         </div>
@@ -397,7 +397,9 @@ const setPrimary = (assignmentId: number) => {
                             </div>
                             <div class="text-xs text-muted-foreground">
                                 {{ entry.actor ?? 'System' }} ·
-                                {{ date(entry.occurredAt) }}
+                                <span class="whitespace-nowrap">{{
+                                    date(entry.occurredAt)
+                                }}</span>
                             </div>
                         </div>
                         <Button variant="outline" size="sm" as-child
