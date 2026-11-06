@@ -31,7 +31,7 @@ final class ComplianceWarnings
     /**
      * @param  Collection<int, RosterShift>  $shifts  the shown version's shifts
      * @param  Collection<int, User>  $people  roles eager-loaded
-     * @return array{setUp: bool, warnings: list<array{kind: string, message: string}>, rotation: array{month: string, rows: list<array{name: string, weekends: int, holidays: int, nights: int}>}}
+     * @return array{setUp: bool, warnings: list<array{kind: string, count: int, message: string}>, rotation: array{month: string, rows: list<array{name: string, weekends: int, holidays: int, nights: int}>}}
      */
     public function forWeek(Branch $branch, CarbonImmutable $weekStart, RosterVersion $shown, Collection $shifts, Collection $people): array
     {
@@ -57,7 +57,7 @@ final class ComplianceWarnings
      * @param  Collection<int, RosterShift>  $shifts
      * @param  Collection<int, User>  $people
      * @param  Collection<int, array{user: int, from: CarbonImmutable, to: CarbonImmutable}>  $leave
-     * @return list<array{kind: string, message: string}>
+     * @return list<array{kind: string, count: int, message: string}>
      */
     private function coverageGaps(Branch $branch, CarbonImmutable $weekStart, array $coverage, Collection $shifts, Collection $people, Collection $leave): array
     {
@@ -128,7 +128,7 @@ final class ComplianceWarnings
                 $from = CarbonImmutable::createFromTimestamp($a)->setTimezone($branch->timezone);
                 $to = CarbonImmutable::createFromTimestamp($b)->setTimezone($branch->timezone);
                 $when = $from->format('D').' '.$this->rules->timeLabel($from).' – '.$this->rules->timeLabel($to);
-                $out[] = ['kind' => 'coverage', 'message' => $min === 1
+                $out[] = ['kind' => 'coverage', 'count' => 1, 'message' => $min === 1
                     ? "No resident doctor {$when} ({$branch->name})"
                     : "Fewer than {$min} resident doctors {$when} ({$branch->name})"];
             }
@@ -143,7 +143,7 @@ final class ComplianceWarnings
      * @param  Collection<int, RosterShift>  $shifts
      * @param  Collection<int, User>  $people
      * @param  array{version: int, maxDaysInRow: int|null, minRestMinutes: int|null, maxWeekMinutes: int|null}  $work
-     * @return list<array{kind: string, message: string}>
+     * @return list<array{kind: string, count: int, message: string}>
      */
     private function workHourWarnings(Branch $branch, CarbonImmutable $weekStart, RosterVersion $shown, Collection $shifts, Collection $people, array $work): array
     {
@@ -179,7 +179,7 @@ final class ComplianceWarnings
                     if (count($r) > $work['maxDaysInRow'] && $r[0] <= $weekTo && end($r) >= $weekFrom) {
                         $first = CarbonImmutable::parse($r[0]);
                         $last = CarbonImmutable::parse(end($r));
-                        $out[] = ['kind' => 'days_in_row', 'message' => "{$name}: ".count($r)." days in a row, {$this->rules->shortDayLabel($first)} to {$this->rules->shortDayLabel($last)} (limit {$work['maxDaysInRow']})"];
+                        $out[] = ['kind' => 'days_in_row', 'count' => 1, 'message' => "{$name}: ".count($r)." days in a row, {$this->rules->shortDayLabel($first)} to {$this->rules->shortDayLabel($last)} (limit {$work['maxDaysInRow']})"];
                     }
                 }
             }
@@ -189,22 +189,35 @@ final class ComplianceWarnings
                 // first shift on the next date worked. Gaps between sessions on the same date are breaks, not rest.
                 $byDate = $mine->groupBy('date')->sortKeys();
                 $dates = $byDate->keys()->all();
+                $breaches = [];
                 for ($i = 1; $i < count($dates); $i++) {
                     $prevEnd = $byDate[$dates[$i - 1]]->max(fn (array $s): int => $s['end']->getTimestamp());
                     $nextStart = $byDate[$dates[$i]]->min(fn (array $s): int => $s['start']->getTimestamp());
                     $rest = (int) (($nextStart - $prevEnd) / 60);
                     $date = (string) $dates[$i];
                     if ($rest >= 0 && $rest < $work['minRestMinutes'] && $date >= $weekFrom && $date <= $weekTo) {
-                        $out[] = ['kind' => 'rest', 'message' => "{$name}: ".$this->hours($rest).' rest before '.$this->rules->shortDayLabel(CarbonImmutable::parse($date))
-                            .' ('.$this->hours($work['minRestMinutes']).' set)'];
+                        $breaches[] = ['date' => $date, 'rest' => $rest];
                     }
+                }
+                // Breaches on consecutive days become one line; the chip still counts each one (Daniel, HR-5b).
+                foreach ($this->runs($breaches) as $run) {
+                    $first = CarbonImmutable::parse($run[0]['date']);
+                    $last = CarbonImmutable::parse(end($run)['date']);
+                    $low = min(array_column($run, 'rest'));
+                    $high = max(array_column($run, 'rest'));
+                    $hours = $low === $high ? $this->hours($low) : str_replace(' h', '', $this->hours($low)).' to '.$this->hours($high);
+                    $set = ' ('.$this->hours($work['minRestMinutes']).' set)';
+                    $out[] = count($run) === 1
+                        ? ['kind' => 'rest', 'count' => 1, 'message' => "{$name}: {$hours} rest before {$this->rules->shortDayLabel($first)}{$set}"]
+                        : ['kind' => 'rest', 'count' => count($run), 'message' => "{$name}: {$hours} rest before "
+                            .$first->format($first->month === $last->month ? 'D j' : 'D j M').' to '.$this->rules->shortDayLabel($last).', '.count($run).' times'.$set];
                 }
             }
 
             if ($work['maxWeekMinutes'] !== null) {
                 $minutes = $mine->filter(fn (array $s): bool => $s['date'] >= $weekFrom && $s['date'] <= $weekTo)->sum('minutes');
                 if ($minutes > $work['maxWeekMinutes']) {
-                    $out[] = ['kind' => 'hours', 'message' => "{$name}: planned ".$this->hours((int) $minutes).' this week (limit '.$this->hours($work['maxWeekMinutes']).')'];
+                    $out[] = ['kind' => 'hours', 'count' => 1, 'message' => "{$name}: planned ".$this->hours((int) $minutes).' this week (limit '.$this->hours($work['maxWeekMinutes']).')'];
                 }
             }
         }
@@ -311,6 +324,27 @@ final class ComplianceWarnings
             });
 
         return $out;
+    }
+
+    /**
+     * Splits dated breaches into runs of consecutive dates.
+     *
+     * @param  list<array{date: string, rest: int}>  $breaches  in date order
+     * @return list<non-empty-list<array{date: string, rest: int}>>
+     */
+    private function runs(array $breaches): array
+    {
+        $runs = [];
+        foreach ($breaches as $b) {
+            $last = array_key_last($runs);
+            if ($last !== null && CarbonImmutable::parse(end($runs[$last])['date'])->addDay()->toDateString() === $b['date']) {
+                $runs[$last][] = $b;
+            } else {
+                $runs[] = [$b];
+            }
+        }
+
+        return $runs;
     }
 
     private function isDoctor(?User $user): bool

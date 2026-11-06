@@ -14,7 +14,7 @@ import { StatusBadge } from '@/components/ui/status';
 
 export type Compliance = {
     setUp: boolean;
-    warnings: { kind: string; message: string }[];
+    warnings: { kind: string; count: number; message: string }[];
     rotation: {
         month: string;
         rows: {
@@ -28,7 +28,10 @@ export type Compliance = {
 
 const props = defineProps<{ compliance: Compliance; branch: string }>();
 const open = ref(false);
-const count = computed(() => props.compliance.warnings.length);
+// The chip counts breaches; merged lines carry their count (Daniel, HR-5b).
+const count = computed(() =>
+    props.compliance.warnings.reduce((n, w) => n + (w.count ?? 1), 0),
+);
 const chip = computed(() =>
     count.value === 1
         ? '1 compliance warning'

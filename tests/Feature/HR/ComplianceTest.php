@@ -94,8 +94,10 @@ class ComplianceTest extends VisitTestCase
         $this->assertSame(["No resident doctor Mon 2:00 PM – 5:00 PM ({$branch})"], $messages['coverage']);
         $this->assertSame(["{$doctor->name}: 7 days in a row, Mon 8 Mar to Sun 14 Mar (limit 6)"], $messages['days_in_row']);
         // Daily rest only: Monday's 2 PM to 5 PM gap between sessions is a break, not rest (Suresh, S1).
-        $this->assertSame(["{$doctor->name}: 10 h rest before Tue 9 Mar (11 h set)", "{$doctor->name}: 10 h rest before Wed 10 Mar (11 h set)"], array_slice($messages['rest'], 0, 2));
-        $this->assertCount(6, $messages['rest']);
+        // Consecutive days of the same breach are one line, and the line carries its count (Daniel, HR-5b).
+        $this->assertSame(["{$doctor->name}: 10 h rest before Tue 9 to Sun 14 Mar, 6 times (11 h set)"], $messages['rest']);
+        $this->assertSame(6, collect($compliance['warnings'])->firstWhere('kind', 'rest')['count']);
+        $this->assertSame(9, collect($compliance['warnings'])->sum('count'));
         $this->assertSame(["{$doctor->name}: planned 95 h this week (limit 48 h)"], $messages['hours']);
         $this->assertSame([['name' => $doctor->name, 'weekends' => 2, 'holidays' => 0, 'nights' => 1]], $compliance['rotation']['rows']);
         $this->assertSame('March 2027', $compliance['rotation']['month']);

@@ -898,10 +898,20 @@ const minimumError = (session: string, role: string) =>
                                                 openEdit(shift)
                                             "
                                         >
+                                            <!-- Each time stays whole, never "2:00 / PM" (Daniel, HR-5b nit). -->
                                             <span
                                                 class="block font-medium tabular-nums"
-                                                >{{ shift.startLabel }} –
-                                                {{ shift.endLabel }}</span
+                                                ><span
+                                                    class="whitespace-nowrap"
+                                                    >{{
+                                                        shift.startLabel
+                                                    }}</span
+                                                >
+                                                –
+                                                <span
+                                                    class="whitespace-nowrap"
+                                                    >{{ shift.endLabel }}</span
+                                                ></span
                                             >
                                             <span
                                                 class="block text-muted-foreground"
