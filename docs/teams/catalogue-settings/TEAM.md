@@ -101,6 +101,10 @@ Server checks stay the authority; hiding a control is a usability aid only.
    menu, as Daniel asked in CAT-3. The one existing assertion in `tests/Frontend/cat-1b-refuse-empty-price.test.mjs`
    (the card's ghost/secondary Deactivate button) now asserts the menu item instead (owner, 2026-11-05, in this team's
    session: "yes, change the test and move the button").
+12. CAT-5 (settings screens tidy-up) and CAT-6 (Pricing small fixes) approved, and CAT-7 (the "Price tier" tab) sent
+   to the owner: B.E.R.N.I.S.S for the owner, 2026-11-06, while the owner was away; the owner can change it. The one
+   existing assertion change CAT-5 needs, in `tests/Frontend/medicine-details.test.mjs` ('NAME', 'STATUS' and
+   'ACTIONS' become 'Name', 'Status' and 'Actions' for sentence-case headers), was approved the same way.
 
 ## 7. Open items and known limits
 
