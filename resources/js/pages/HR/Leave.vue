@@ -2023,7 +2023,7 @@ const calendarDays = computed(() =>
                     <p
                         v-else-if="
                             preview.error &&
-                            preview.error !== applyForm.errors.start_date
+                            preview.error !== applyForm.errors.end_date
                         "
                         class="text-sm text-destructive"
                         role="status"

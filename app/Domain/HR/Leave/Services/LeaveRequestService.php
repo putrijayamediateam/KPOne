@@ -74,7 +74,8 @@ final class LeaveRequestService
             }
             $this->assertNoOverlap($actor->id, $parsed['slot_start'], $parsed['slot_end']);
             $this->balances->assertYearOpen($type, $actor->id, $parsed['year']);
-            $this->balances->assertAffordable($type, $actor->id, $parsed['year'], $parsed['halves']);
+            // The shortfall is about the whole range, so it sits under End date (Daniel).
+            $this->balances->assertAffordable($type, $actor->id, $parsed['year'], $parsed['halves'], null, 'end_date');
             $today = CarbonImmutable::now($parsed['branch']->timezone)->startOfDay();
 
             $request = new LeaveRequest;

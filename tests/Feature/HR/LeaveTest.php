@@ -132,7 +132,7 @@ class LeaveTest extends VisitTestCase
         $this->assertSame(['pending', 6, false], [$request->status, $request->halves, $request->late]);
         // Pending days are booked: 5 − 3 = 2 left, so 2.5 more is refused and 2 is not overlapping only if dates differ.
         $this->apply($ca, ['leave_type_id' => $type->id, 'start_date' => '2027-03-15', 'end_date' => '2027-03-17'])
-            ->assertSessionHasErrors(['start_date' => 'Not enough leave left: this request needs 3 days and you have 2.']);
+            ->assertSessionHasErrors(['end_date' => 'Not enough leave left: this request needs 3 days and you have 2.']);
         $this->apply($ca, ['leave_type_id' => $type->id, 'start_date' => '2027-03-10', 'end_date' => '2027-03-10'])
             ->assertSessionHasErrors(['start_date' => 'You already have leave on 10 Mar 2027.']);
 
