@@ -166,3 +166,59 @@ test('Clinical Service: the publication branch select is connected to its visibl
         /id="service-publication-branch"[\s\S]*?labelledby="service-publication-branch-label"/,
     );
 });
+
+test('Daniel (CAT-5 review): Medicine details tabs fade at the right edge and bring the current or focused tab into view', () => {
+    const source = read(
+        'resources/js/pages/InventoryServicesSettings/MedicineDetails.vue',
+    );
+    assert.match(medicine, /ref="tabStrip"/);
+    assert.match(
+        medicine,
+        /moreTabsRight \? '\[mask-image:linear-gradient\(to_right,#000_calc\(100%-2\.5rem\),transparent\)\]'/,
+    );
+    assert.match(medicine, /@scroll\.passive="updateTabFade"/);
+    assert.match(medicine, /@focusin="revealFocusedTab"/);
+    assert.match(
+        source,
+        /querySelector<HTMLElement>\('\[aria-current="page"\]'\)/,
+    );
+    assert.match(source, /new ResizeObserver\(updateTabFade\)/);
+});
+
+test('Daniel (CAT-5 review): empty states name the tab and the next step; wording and search names', () => {
+    const source = read(
+        'resources/js/pages/InventoryServicesSettings/MedicineDetails.vue',
+    );
+    assert.match(source, /`No \$\{plural\.value\} yet`/);
+    assert.match(source, /'Add one with Add new\.'/);
+    assert.match(
+        read('resources/js/pages/ConsultationSettings/Index.vue'),
+        /'No preset diagnoses yet'[\s\S]*'Add one with Add diagnosis\.'/,
+    );
+
+    for (const page of [medicine, presets]) {
+        assert.doesNotMatch(page, /No options found|No preset diagnoses found/);
+    }
+
+    assert.match(
+        medicine,
+        /Set up your drug groups, dosage units and instructions\./,
+    );
+    assert.doesNotMatch(medicine, /Setup your|Search options/);
+    assert.equal(
+        (
+            medicine.match(
+                /:aria-label="`Search \$\{plural\}`" class="min-h-11 min-w-11 md:min-h-8 md:min-w-8"/g,
+            ) ?? []
+        ).length,
+        2,
+    );
+    assert.equal(
+        (
+            presets.match(
+                /aria-label="Search diagnoses" class="min-h-11 min-w-11 md:min-h-8 md:min-w-8"/g,
+            ) ?? []
+        ).length,
+        2,
+    );
+});

@@ -1,7 +1,14 @@
 <script setup lang="ts">
 import { Head, Link, router, useForm, usePage } from '@inertiajs/vue3';
 import { Ellipsis } from '@lucide/vue';
-import { computed, ref, watch } from 'vue';
+import {
+    computed,
+    nextTick,
+    onBeforeUnmount,
+    onMounted,
+    ref,
+    watch,
+} from 'vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import {
@@ -50,6 +57,67 @@ const renaming = ref(false);
 const selected = ref<Option | null>(null);
 const batch = computed(() => ['precaution', 'indication'].includes(props.type));
 const title = computed(() => props.tabs[props.type]);
+// "Drug group" -> "drug groups", "Frequency" -> "frequencies": used in the empty state and the search name.
+const plural = computed(() => {
+    const label = (title.value ?? 'option').toLowerCase();
+
+    return label.endsWith('y') ? `${label.slice(0, -1)}ies` : `${label}s`;
+});
+const emptyTitle = computed(() =>
+    props.q
+        ? `No ${plural.value} match "${props.q}"`
+        : `No ${plural.value} yet`,
+);
+const emptyDescription = computed(() =>
+    props.q ? 'Try another search.' : 'Add one with Add new.',
+);
+// DD-30 pattern (Daniel, CAT-5): on a phone the tab strip scrolls, so fade its right edge while more tabs are hidden
+// and bring the current or focused tab into view.
+const tabStrip = ref<HTMLElement | null>(null);
+const moreTabsRight = ref(false);
+const updateTabFade = () => {
+    const nav = tabStrip.value;
+
+    moreTabsRight.value =
+        nav !== null &&
+        nav.scrollWidth > nav.clientWidth + 1 &&
+        nav.scrollLeft + nav.clientWidth < nav.scrollWidth - 1;
+};
+const revealTab = (tab: HTMLElement | null | undefined) => {
+    const nav = tabStrip.value;
+
+    if (!nav || !tab) {
+        return;
+    }
+
+    const navBox = nav.getBoundingClientRect();
+    const tabBox = tab.getBoundingClientRect();
+
+    if (tabBox.left < navBox.left) {
+        nav.scrollLeft -= navBox.left - tabBox.left;
+    } else if (tabBox.right > navBox.right) {
+        nav.scrollLeft += tabBox.right - navBox.right;
+    }
+
+    updateTabFade();
+};
+const revealFocusedTab = (event: FocusEvent) =>
+    revealTab(event.target as HTMLElement | null);
+let tabResizeObserver: ResizeObserver | undefined;
+onMounted(() => {
+    void nextTick(() => {
+        revealTab(
+            tabStrip.value?.querySelector<HTMLElement>('[aria-current="page"]'),
+        );
+        updateTabFade();
+    });
+
+    if (typeof ResizeObserver !== 'undefined' && tabStrip.value) {
+        tabResizeObserver = new ResizeObserver(updateTabFade);
+        tabResizeObserver.observe(tabStrip.value);
+    }
+});
+onBeforeUnmount(() => tabResizeObserver?.disconnect());
 const dialogType = ref(props.type);
 const addForm = useForm({
     expected_branch_id: props.branchId,
@@ -189,7 +257,7 @@ const labelError = (index: number) =>
             <div class="mt-5">
                 <h2 class="text-lg font-medium">Medicine details</h2>
                 <p class="text-sm text-muted-foreground">
-                    Setup your drug group, medicine dosage and instructions.
+                    Set up your drug groups, dosage units and instructions.
                 </p>
             </div>
             <p
@@ -203,8 +271,17 @@ const labelError = (index: number) =>
                 class="mt-6 flex flex-wrap items-center justify-between gap-3 border-b"
             >
                 <nav
+                    ref="tabStrip"
                     aria-label="Medicine details tabs"
                     class="flex max-w-full overflow-x-auto"
+                    :class="
+                        moreTabsRight
+                            ? '[mask-image:linear-gradient(to_right,#000_calc(100%-2.5rem),transparent)]'
+                            : ''
+                    "
+                    data-testid="medicine-details-tabs"
+                    @scroll.passive="updateTabFade"
+                    @focusin="revealFocusedTab"
                 >
                     <Link
                         v-for="(label, type) in tabs"
@@ -229,19 +306,20 @@ const labelError = (index: number) =>
                         <label
                             for="option-search"
                             class="text-xs font-medium md:sr-only"
-                            >Search options</label
+                            >Search {{ plural }}</label
                         ><input
                             id="option-search"
                             v-model="search"
                             type="search"
                             maxlength="200"
-                            placeholder="Search options"
+                            :placeholder="`Search ${plural}`"
                             class="h-9 min-w-0 rounded-md border bg-background px-3 text-sm"
                         /><Button
                             type="submit"
                             variant="ghost"
                             size="sm"
-                            aria-label="Search options"
+                            :aria-label="`Search ${plural}`"
+                            class="min-h-11 min-w-11 md:min-h-8 md:min-w-8"
                             ><svg
                                 viewBox="0 0 24 24"
                                 class="size-5"
@@ -258,7 +336,8 @@ const labelError = (index: number) =>
                         v-else
                         variant="ghost"
                         size="sm"
-                        aria-label="Search options"
+                        :aria-label="`Search ${plural}`"
+                        class="min-h-11 min-w-11 md:min-h-8 md:min-w-8"
                         @click="searching = true"
                         ><svg
                             viewBox="0 0 24 24"
@@ -281,7 +360,8 @@ const labelError = (index: number) =>
             >
                 <EmptyState
                     v-if="options.length === 0"
-                    title="No options found."
+                    :title="emptyTitle"
+                    :description="emptyDescription"
                 />
                 <article
                     v-for="option in options"
@@ -359,7 +439,7 @@ const labelError = (index: number) =>
                     class="[&_table]:table-fixed"
                     :columns="3"
                     :empty="options.length === 0"
-                    empty-message="No options found."
+                    :empty-message="`${emptyTitle}. ${emptyDescription}`"
                     min-width="0"
                 >
                     <template #head>

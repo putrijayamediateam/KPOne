@@ -166,6 +166,14 @@ const toggle = (preset: Preset) => {
 };
 const nameError = (index: number) =>
     (addForm.errors as Record<string, string>)[`names.${index}`];
+const presetEmptyTitle = computed(() =>
+    props.q
+        ? `No preset diagnoses match "${props.q}"`
+        : 'No preset diagnoses yet',
+);
+const presetEmptyDescription = computed(() =>
+    props.q ? 'Try another search.' : 'Add one with Add diagnosis.',
+);
 </script>
 
 <template>
@@ -301,6 +309,7 @@ const nameError = (index: number) =>
                             variant="ghost"
                             size="sm"
                             aria-label="Search diagnoses"
+                            class="min-h-11 min-w-11 md:min-h-8 md:min-w-8"
                             ><svg
                                 viewBox="0 0 24 24"
                                 class="size-5"
@@ -318,6 +327,7 @@ const nameError = (index: number) =>
                         variant="ghost"
                         size="sm"
                         aria-label="Search diagnoses"
+                        class="min-h-11 min-w-11 md:min-h-8 md:min-w-8"
                         @click="searching = true"
                         ><svg
                             viewBox="0 0 24 24"
@@ -340,7 +350,8 @@ const nameError = (index: number) =>
             >
                 <EmptyState
                     v-if="presets.length === 0"
-                    title="No preset diagnoses found."
+                    :title="presetEmptyTitle"
+                    :description="presetEmptyDescription"
                 />
                 <article
                     v-for="preset in presets"
@@ -418,7 +429,7 @@ const nameError = (index: number) =>
                     class="[&_table]:table-fixed"
                     :columns="3"
                     :empty="presets.length === 0"
-                    empty-message="No preset diagnoses found."
+                    :empty-message="`${presetEmptyTitle}. ${presetEmptyDescription}`"
                     min-width="0"
                 >
                     <template #head>
