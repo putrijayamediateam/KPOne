@@ -146,6 +146,11 @@ check items, keep them"). The rest stand unless the owner changes them.
     button instead of the bare file control (no `capture`), "Uploading…" while sending, request-specific
     screen-reader names, photo alt text without medical text, a confirm dialog for every Remove (reason for managers
     only), retention help text, "No file yet" never red, photos on a neutral bordered surface (relayed 2026-11-06).
+26. HR-2b design note (HR-PLAN section 8) approved with its defaults (owner, 2026-11-06, in the HR session: "approve
+    the note with the defaults"): files only on leave types HR switches on; retention days set by HR per type, no
+    number shipped; staff may add files up to 14 days after the leave ends; only the Director and the HR Manager open
+    other people's files; HR may scan paper copies on a staff member's behalf. Synthetic files only until the PDPA
+    review.
 
 ## 7. Open items and known limits
 

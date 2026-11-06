@@ -808,9 +808,9 @@ saved.", "Opening balance confirmed."
 ## 8. HR-2b leave evidence files: design note
 
 Written 2026-11-06 while HR-2a (PR #302) waits in the merge queue. It builds on HR-2a and changes none of its rules.
-**Status: draft; nothing here is built.** The owner decided on 2026-11-06 that the clinic wants MC files in KPOne
-(TEAM.md decision 24), which answers HR-PLAN 6.7 question 9 and 8.9 question 1. The rest of this note still needs
-approval before building.
+**Status: approved with its defaults by the owner on 2026-11-06 (TEAM.md decisions 24 and 26); building.** The
+clinic wants MC files in KPOne. Questions 2 to 6 in 8.9 take the defaults written in this note until the clinic says
+otherwise.
 
 ### 8.1 Why and what
 
