@@ -160,6 +160,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::post('preview', 'preview')->name('hr.leave.preview');
             Route::post('requests', 'apply')->name('hr.leave.requests.store');
         });
+        // HR-2b evidence files: own files with request.own, anyone's with manage (add, remove) or evidence.view (open).
+        Route::post('requests/{leaveRequest}/evidence', 'addEvidence')->whereUuid('leaveRequest')
+            ->middleware(['permission:hr.leave.request.own,hr.leave.manage.organisation', 'throttle:30,1'])->name('hr.leave.evidence.store');
+        Route::post('evidence/{file}/remove', 'removeEvidence')->whereUuid('file')
+            ->middleware(['permission:hr.leave.request.own,hr.leave.manage.organisation', 'throttle:30,1'])->name('hr.leave.evidence.remove');
+        Route::get('evidence/{file}', 'openEvidence')->whereUuid('file')
+            ->middleware(['permission:hr.leave.request.own,hr.leave.evidence.view.organisation', 'throttle:120,1'])->name('hr.leave.evidence.show');
         Route::post('requests/{leaveRequest}/cancel', 'cancel')->whereUuid('leaveRequest')
             ->middleware(['permission:hr.leave.request.own,hr.leave.approve.organisation', 'throttle:30,1'])->name('hr.leave.requests.cancel');
         Route::middleware(['permission:hr.leave.approve.organisation', 'throttle:60,1'])->group(function (): void {
@@ -618,6 +625,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
             ->whereUuid('dispensaryCase')->middleware(['permission:dispensary.labels.print.branch', 'throttle:30,1'])->name('dispensary.labels');
         Route::get('dispensary/{dispensaryCase}/items/{itemPublicId}/label', [DispensaryController::class, 'labels'])
             ->whereUuid('dispensaryCase')->middleware(['permission:dispensary.labels.print.branch', 'throttle:30,1'])->whereUuid('itemPublicId')->name('dispensary.items.label');
+        Route::post('dispensary/{dispensaryCase}/labels/print', [DispensaryController::class, 'printLabels'])
+            ->whereUuid('dispensaryCase')->middleware(['permission:dispensary.labels.print.branch', 'throttle:30,1'])->name('dispensary.labels.print');
+        Route::post('dispensary/{dispensaryCase}/items/{itemPublicId}/label/print', [DispensaryController::class, 'printLabels'])
+            ->whereUuid('dispensaryCase')->middleware(['permission:dispensary.labels.print.branch', 'throttle:30,1'])->whereUuid('itemPublicId')->name('dispensary.items.label.print');
         Route::post('dispensary/{dispensaryCase}/call', [RoomCallController::class, 'dispensary'])
             ->whereUuid('dispensaryCase')->middleware(['permission:dispensary.start.branch', 'throttle:30,1'])->name('dispensary.call');
         Route::post('dispensary/{dispensaryCase}/start', [DispensaryController::class, 'start'])
@@ -689,6 +700,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::post('{medicine}/deactivate', [MedicineCatalogueController::class, 'deactivate'])->whereUuid('medicine')->middleware('throttle:20,1')->name('medicines.deactivate');
             Route::post('{medicine}/controlled', [MedicineCatalogueController::class, 'controlled'])->whereUuid('medicine')->middleware('throttle:20,1')->name('medicines.controlled');
             Route::post('{medicine}/allergy-groups', [MedicineCatalogueController::class, 'allergyGroups'])->whereUuid('medicine')->middleware('throttle:20,1')->name('medicines.allergy-groups');
+            Route::post('{medicine}/allergy-aliases', [MedicineCatalogueController::class, 'allergyAliases'])->whereUuid('medicine')->middleware('throttle:20,1')->name('medicines.allergy-aliases');
         });
 
         Route::middleware(['permission:clinical_services.manage.organisation'])->prefix('clinical-services')->group(function () {
@@ -775,6 +787,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         });
         Route::middleware(['permission:payments.reconcile.branch', 'sensitive.no-store'])->prefix('cash-closings')->group(function () {
             Route::get('/', [CashClosingController::class, 'index'])->name('cash-closings.index');
+            Route::get('month', [CashClosingController::class, 'month'])->name('cash-closings.month');
             Route::post('/', [CashClosingController::class, 'store'])->middleware('throttle:20,1')->name('cash-closings.store');
             Route::post('{closing}/{decision}', [CashClosingController::class, 'decide'])->whereUuid('closing')->whereIn('decision', ['approved', 'returned'])
                 ->middleware(['permission:payments.cash_closing.approve.branch', 'throttle:20,1'])->name('cash-closings.decide');
