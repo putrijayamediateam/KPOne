@@ -11,9 +11,11 @@ import {
 } from '@lucide/vue';
 import { computed, reactive, ref, watch } from 'vue';
 import { Button } from '@/components/ui/button';
+import { PageHeader } from '@/components/ui/page-header';
 import { OperationalSelect } from '@/components/ui/select';
+import { StatusBadge } from '@/components/ui/status';
 import { formatInventoryReason } from '@/lib/inventory-picker';
-import { formatStatusLabel } from '@/lib/presentation';
+import { formatDate, formatStatusLabel } from '@/lib/presentation';
 import AllergyMatchWarning from '@/pages/Dispensary/Partials/AllergyMatchWarning.vue';
 import OtcAllergyRecordForm from '@/pages/Dispensary/Partials/OtcAllergyRecordForm.vue';
 
@@ -618,6 +620,24 @@ const results = ref<Medicine[]>([]);
 const searching = ref(false);
 const chosen = ref<Medicine | null>(null);
 const addAllergyCheck = ref(false);
+// DD-26: the quantity and expiry come first, so a narrow dropdown never cuts them off. Quantities drop trailing
+// zeros only (12.5 stays 12.5); the unit is the SKU's stock unit as stored. Dates use the screen format (30 Oct 2027).
+const stockAmount = (quantity: string, unit: string): string => {
+    const text = quantity.includes('.')
+        ? quantity.replace(/0+$/, '').replace(/\.$/, '')
+        : quantity;
+
+    return `${text} ${unit}`.trim();
+};
+const batchOptionText = (stock: Availability, unit: string): string =>
+    `${stock.held ? `Held: ${formatInventoryReason(stock.holdReason)} · ` : ''}${stockAmount(stock.quantity, unit)} on hand · exp ${formatDate(stock.expiryDate)} · ${stock.batchNumber} · ${stock.locationName}`;
+const selectedBatchText = (
+    stock: Availability | undefined,
+    unit: string,
+): string =>
+    stock === undefined
+        ? 'No batch selected.'
+        : `Selected: ${batchOptionText(stock, unit)}`;
 const addForm = reactive<LineForm>({
     quantity: '1.000',
     dosage: '',
@@ -801,31 +821,15 @@ const inputClass = 'mt-1 h-9 w-full rounded-md border px-2';
 <template>
     <Head title="Dispensary" />
     <main
-        class="mx-auto w-full max-w-[1500px] px-4 py-4 lg:px-6 max-sm:[&_[data-slot=button]]:min-h-11 max-sm:[&_[data-slot=select-trigger]]:min-h-11 max-sm:[&_input:not([type=radio]):not([type=checkbox])]:min-h-11 max-sm:[&_select]:min-h-11 max-sm:[&_textarea]:min-h-11"
+        class="mx-auto w-full max-w-[1500px] px-4 py-4 lg:px-6 max-lg:[&_[data-slot=button]]:min-h-11 max-lg:[&_[data-slot=select-trigger]]:min-h-11 max-lg:[&_input:not([type=radio]):not([type=checkbox])]:min-h-11 max-lg:[&_select]:min-h-11 max-lg:[&_textarea]:min-h-11"
     >
-        <header
-            class="mb-4 flex flex-wrap items-center justify-between gap-3 border-b pb-3"
+        <!-- DD-25: the page title names the task; the patient card below is the one place that names the patient. -->
+        <PageHeader
+            class="mb-4 border-b pb-3"
+            title="Dispensary"
+            description="Check each line, save it, then complete."
         >
-            <div>
-                <p
-                    class="text-xs tracking-wide text-muted-foreground uppercase"
-                >
-                    Dispensary
-                </p>
-                <h1 class="text-lg font-semibold">
-                    {{ dispensary.patient.name }}
-                </h1>
-                <p class="text-sm text-muted-foreground">
-                    {{ dispensary.patient.patientNumber }} ·
-                    {{ dispensary.visit.visitNumber }} ·
-                    {{
-                        isOtc
-                            ? 'OTC · no doctor'
-                            : (dispensary.doctor ?? 'No doctor')
-                    }}
-                </p>
-            </div>
-            <div class="flex flex-wrap gap-2">
+            <template #actions>
                 <Button
                     v-if="
                         visibleItems.length &&
@@ -848,8 +852,8 @@ const inputClass = 'mt-1 h-9 w-full rounded-md border px-2';
                         >
                     </a>
                 </Button>
-            </div>
-        </header>
+            </template>
+        </PageHeader>
 
         <div
             class="grid gap-4 lg:grid-cols-[minmax(0,280px)_minmax(0,1fr)_minmax(0,300px)]"
@@ -859,20 +863,30 @@ const inputClass = 'mt-1 h-9 w-full rounded-md border px-2';
                     class="rounded-xl border bg-card p-4 text-sm"
                     data-testid="dispensary-patient"
                 >
-                    <div class="font-semibold break-words">
-                        {{ dispensary.patient.name }}
-                    </div>
-                    <div class="text-xs text-muted-foreground">
-                        {{ dispensary.patient.patientNumber }} ·
-                        {{ dispensary.visit.visitNumber }}
-                    </div>
-                    <p class="mt-2 text-xs text-muted-foreground">
-                        {{
-                            isOtc
-                                ? 'OTC · no doctor'
-                                : (dispensary.doctor ?? 'No doctor')
-                        }}
+                    <p
+                        class="text-xs font-medium tracking-wide text-muted-foreground uppercase"
+                    >
+                        Patient
                     </p>
+                    <h2 class="text-base font-semibold break-words">
+                        {{ dispensary.patient.name }}
+                    </h2>
+                    <dl
+                        class="mt-2 grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5 text-xs"
+                    >
+                        <dt class="text-muted-foreground">KP number</dt>
+                        <dd>{{ dispensary.patient.patientNumber }}</dd>
+                        <dt class="text-muted-foreground">Visit</dt>
+                        <dd>{{ dispensary.visit.visitNumber }}</dd>
+                        <dt class="text-muted-foreground">Doctor</dt>
+                        <dd>
+                            {{
+                                isOtc
+                                    ? 'OTC · no doctor'
+                                    : (dispensary.doctor ?? 'No doctor')
+                            }}
+                        </dd>
+                    </dl>
                 </section>
                 <div
                     v-if="isOtc"
@@ -1103,12 +1117,13 @@ const inputClass = 'mt-1 h-9 w-full rounded-md border px-2';
                                         .join(' · ')
                                 }}
                             </p>
-                            <p
+                            <StatusBadge
                                 v-if="changeLabel(item)"
-                                class="mt-1 inline-block rounded-md bg-pink-100/70 px-2 py-0.5 text-[11px] text-pink-800"
-                            >
-                                {{ changeLabel(item) }}
-                            </p>
+                                class="mt-1"
+                                status="ca_change"
+                                tone="accent"
+                                :label="changeLabel(item)"
+                            />
                             <p
                                 v-if="item.source === 'doctor'"
                                 class="mt-2 text-xs text-muted-foreground"
@@ -1250,6 +1265,7 @@ const inputClass = 'mt-1 h-9 w-full rounded-md border px-2';
                                         forms[item.publicId].availabilityIndex
                                     "
                                     :class="inputClass"
+                                    :aria-describedby="`batch-selected-${item.publicId}`"
                                 >
                                     <option
                                         v-for="(
@@ -1259,18 +1275,30 @@ const inputClass = 'mt-1 h-9 w-full rounded-md border px-2';
                                         :value="index"
                                         :disabled="stock.held"
                                     >
-                                        {{ stock.locationName }} ·
-                                        {{ stock.batchNumber }} · exp
-                                        {{ stock.expiryDate }} ·
-                                        {{ stock.quantity
-                                        }}{{
-                                            stock.held
-                                                ? ` · Held: ${formatInventoryReason(stock.holdReason)}`
-                                                : ''
+                                        {{
+                                            batchOptionText(
+                                                stock,
+                                                item.sku?.unit ?? item.unit,
+                                            )
                                         }}
                                     </option>
                                 </select></label
                             >
+                            <p
+                                :id="`batch-selected-${item.publicId}`"
+                                class="text-xs text-muted-foreground sm:col-span-full"
+                                data-testid="batch-selected"
+                            >
+                                {{
+                                    selectedBatchText(
+                                        item.availability[
+                                            forms[item.publicId]
+                                                .availabilityIndex
+                                        ],
+                                        item.sku?.unit ?? item.unit,
+                                    )
+                                }}
+                            </p>
                             <label class="grid gap-2 sm:col-span-2"
                                 >FEFO exception reason (later batch only)<select
                                     v-model="forms[item.publicId].fefoReason"
@@ -1590,6 +1618,7 @@ const inputClass = 'mt-1 h-9 w-full rounded-md border px-2';
                             >Batch<select
                                 v-model.number="addForm.availabilityIndex"
                                 :class="inputClass"
+                                aria-describedby="batch-selected-add"
                             >
                                 <option
                                     v-for="(
@@ -1599,17 +1628,29 @@ const inputClass = 'mt-1 h-9 w-full rounded-md border px-2';
                                     :value="index"
                                     :disabled="stock.held"
                                 >
-                                    {{ stock.locationName }} ·
-                                    {{ stock.batchNumber }} · exp
-                                    {{ stock.expiryDate }} · {{ stock.quantity
-                                    }}{{
-                                        stock.held
-                                            ? ` · Held: ${formatInventoryReason(stock.holdReason)}`
-                                            : ''
+                                    {{
+                                        batchOptionText(
+                                            stock,
+                                            chosen.sku?.unit ?? chosen.unit,
+                                        )
                                     }}
                                 </option>
                             </select></label
                         >
+                        <p
+                            id="batch-selected-add"
+                            class="text-xs text-muted-foreground sm:col-span-full"
+                            data-testid="batch-selected"
+                        >
+                            {{
+                                selectedBatchText(
+                                    chosen.availability[
+                                        addForm.availabilityIndex
+                                    ],
+                                    chosen.sku?.unit ?? chosen.unit,
+                                )
+                            }}
+                        </p>
                         <label class="grid gap-2 sm:col-span-full"
                             >FEFO exception reason (later batch only)<select
                                 v-model="addForm.fefoReason"
@@ -1711,12 +1752,13 @@ const inputClass = 'mt-1 h-9 w-full rounded-md border px-2';
                                 <p class="text-xs text-muted-foreground">
                                     {{ line.code }}
                                 </p>
-                                <p
+                                <StatusBadge
                                     v-if="serviceChangeLabel(line)"
-                                    class="mt-1 inline-block rounded-md bg-pink-100/70 px-2 py-0.5 text-[11px] text-pink-800"
-                                >
-                                    {{ serviceChangeLabel(line) }}
-                                </p>
+                                    class="mt-1"
+                                    status="ca_change"
+                                    tone="accent"
+                                    :label="serviceChangeLabel(line)"
+                                />
                                 <p
                                     v-if="line.source === 'doctor'"
                                     class="mt-2 text-xs text-muted-foreground"
