@@ -94,6 +94,8 @@ type Correction = {
 };
 
 const props = defineProps<{
+    /** HR-5a: your own expiring or expired credentials, in words. */
+    credentialReminders?: string[];
     attendance: {
         tab: Tab;
         tabs: Tab[];
@@ -644,6 +646,20 @@ const correctionStatusTone = (
             class="flex flex-col gap-4"
         >
             <h2 id="my-attendance-title" class="sr-only">My attendance</h2>
+            <!-- HR-5a: your expiring or expired credentials, in words; inside KPOne only. -->
+            <ul
+                v-if="credentialReminders?.length"
+                class="flex flex-col gap-1 text-sm"
+                data-test="credential-reminders"
+            >
+                <li v-for="r in credentialReminders" :key="r">
+                    <a
+                        href="/hr/credentials"
+                        class="underline underline-offset-4"
+                        >{{ r }}</a
+                    >
+                </li>
+            </ul>
 
             <div
                 class="grid gap-4 rounded-xl border bg-card p-4 sm:p-5"
