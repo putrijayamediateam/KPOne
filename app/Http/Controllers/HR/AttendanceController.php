@@ -8,6 +8,7 @@ use App\Domain\HR\Attendance\Services\ClockService;
 use App\Domain\HR\Attendance\Services\CorrectionService;
 use App\Domain\HR\Attendance\Services\OvertimeService;
 use App\Domain\HR\Attendance\Services\OvertimeSettingsService;
+use App\Domain\HR\Credentials\Services\CredentialsPageService;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -20,7 +21,9 @@ class AttendanceController extends Controller
 {
     public function index(Request $request, AttendancePageService $pages): Response
     {
-        return Inertia::render('HR/Attendance', ['attendance' => $pages->page($request->user(), $request->only(['tab', 'branch', 'date', 'month', 'period']))]);
+        return Inertia::render('HR/Attendance', ['attendance' => $pages->page($request->user(), $request->only(['tab', 'branch', 'date', 'month', 'period'])),
+            // HR-5a: your own expiring or expired credentials, in words; inside KPOne only.
+            'credentialReminders' => app(CredentialsPageService::class)->reminders($request->user())]);
     }
 
     public function clockIn(Request $request, ClockService $clock): RedirectResponse

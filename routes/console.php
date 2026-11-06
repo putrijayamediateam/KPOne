@@ -1,6 +1,7 @@
 <?php
 
 use App\Console\Commands\CleanupPublicPatientIntakes;
+use App\Console\Commands\PurgeHrDocuments;
 use App\Console\Commands\PurgeLeaveEvidence;
 use App\Console\Commands\PurgePanelStatements;
 use Illuminate\Foundation\Inspiring;
@@ -24,6 +25,12 @@ Schedule::command(PurgePanelStatements::class)
 
 // HR-2b: leave evidence files are deleted after their leave type's retention (owner, 2026-11-06).
 Schedule::command(PurgeLeaveEvidence::class)
+    ->daily()
+    ->withoutOverlapping()
+    ->onOneServer();
+
+// HR-4b: staff document files are deleted after their category's clinic-entered retention.
+Schedule::command(PurgeHrDocuments::class)
     ->daily()
     ->withoutOverlapping()
     ->onOneServer();
