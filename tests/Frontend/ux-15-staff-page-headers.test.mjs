@@ -55,6 +55,15 @@ test('UX-15: the staff page keeps its status badge, wrapping email line and acti
     ]) {
         assert.ok(header.includes(action), action);
     }
+
+    // Aiman: the move must keep each action's permission check, not only its label.
+    for (const condition of [
+        'v-if="staff.can.update"',
+        'v-if="staff.can.manageRoles && options"',
+        'v-if="staff.can.manageStatus"',
+    ]) {
+        assert.ok(header.includes(condition), condition);
+    }
 });
 
 test('UX-15: Create staff stays an action of the directory header, shown only when allowed', () => {
