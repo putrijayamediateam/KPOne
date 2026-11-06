@@ -101,6 +101,10 @@ final class PayrollRunService
             if (($replay = $this->support->replay($actor, $key, 'payroll_run_prepare', $hash)) !== null) {
                 return $replay;
             }
+            $refusal = $this->lastApproverRefusal($actor, null);
+            if ($refusal !== null) {
+                throw ValidationException::withMessages(['payroll' => $refusal]);
+            }
             $payGroup = DB::table('hr_pay_groups')->where('organisation_id', $actor->organisation_id)->where('public_id', $group)->lockForUpdate()->first();
             if (! $payGroup instanceof \stdClass || ! $payGroup->is_active) {
                 throw ValidationException::withMessages(['pay_group_id' => 'Choose a pay group that is in use.']);
@@ -345,6 +349,29 @@ final class PayrollRunService
         return null;
     }
 
+    public const LAST_APPROVER = 'You are the only person left who can approve this run, so the HR Manager makes this change.';
+
+    /**
+     * Anyone who prepares any part of a run never approves it, so an approver may help prepare only while another active
+     * approver who has not prepared this run is left (S6; B.E.R.N.I.S.S for the owner, option (a)). One rule for the
+     * service and the page. Null when the actor may take a draft step, or prepare a new run when $run is null.
+     */
+    public function lastApproverRefusal(User $actor, ?\stdClass $run): ?string
+    {
+        if (! $actor->can(PayrollPermissions::APPROVE)) {
+            return null;
+        }
+        $barred = [$actor->id];
+        if ($run !== null) {
+            $barred = [...$barred, (int) $run->prepared_by_user_id, (int) ($run->sent_by_user_id ?? 0),
+                ...DB::table('hr_payroll_run_actions')->where('run_id', $run->id)->where('action', 'prepared')->pluck('actor_user_id')->map(fn ($id): int => (int) $id)->all()];
+        }
+        $others = User::permission(PayrollPermissions::APPROVE)->where('organisation_id', $actor->organisation_id)->where('is_active', true)
+            ->whereNotIn('id', array_values(array_unique($barred)))->exists();
+
+        return $others ? null : self::LAST_APPROVER;
+    }
+
     /**
      * The staff claims a run pays must still be approved and unpaid, and the person approving or locking it is never a
      * claim's claimant or approver. Checked before approval, so a run never reaches a lock nobody may take.
@@ -416,6 +443,10 @@ final class PayrollRunService
             $this->support->assertLock($run, $input);
             if ($run->status !== 'draft') {
                 throw ValidationException::withMessages(['payroll' => 'Only a draft run changes. This one has been sent.']);
+            }
+            $refusal = $this->lastApproverRefusal($actor, $run);
+            if ($refusal !== null) {
+                throw ValidationException::withMessages(['payroll' => $refusal]);
             }
             $step($actor, $run);
             $this->support->remember($actor, $key, $action, $hash, (string) $run->public_id);

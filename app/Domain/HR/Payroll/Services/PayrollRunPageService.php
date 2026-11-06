@@ -48,6 +48,7 @@ final class PayrollRunPageService
                     'lockedAt' => $r->locked_at === null ? null : CarbonImmutable::parse((string) $r->locked_at)->toIso8601String()];
             })->values()->all(),
             'months' => $months,
+            'prepareRefusal' => $this->runs->lastApproverRefusal($actor, null),
             'lineTypes' => ['version' => $lineTypes === null ? 0 : (int) $lineTypes->version,
                 'overtime' => $lineTypes?->overtime_type_id === null ? null : (string) $publicIds->get($lineTypes->overtime_type_id),
                 'unpaidLeave' => $lineTypes?->unpaid_leave_type_id === null ? null : (string) $publicIds->get($lineTypes->unpaid_leave_type_id),
@@ -106,6 +107,7 @@ final class PayrollRunPageService
             'lockedAt' => $run->locked_at === null ? null : CarbonImmutable::parse((string) $run->locked_at)->toIso8601String(),
             'people' => $rows->all(), 'total' => $total, 'errorCount' => $errorCount,
             'canEdit' => $draft, 'sendRefusal' => $sendRefusal, 'steps' => $steps,
+            'draftRefusal' => $draft ? $this->runs->lastApproverRefusal($actor, $run) : null,
             'options' => ['itemTypes' => $types->map(fn (\stdClass $t): array => ['value' => (string) $t->public_id, 'label' => $t->name.' ('.(PayrollSetupService::KINDS[$t->kind] ?? $t->kind).')'])->all(),
                 'manualReasons' => array_map(fn ($v, $l) => ['value' => $v, 'label' => $l], array_keys(PayrollRunService::MANUAL_REASONS), PayrollRunService::MANUAL_REASONS),
                 'returnReasons' => array_map(fn ($v, $l) => ['value' => $v, 'label' => $l], array_keys(PayrollRunService::RETURN_REASONS), PayrollRunService::RETURN_REASONS)],

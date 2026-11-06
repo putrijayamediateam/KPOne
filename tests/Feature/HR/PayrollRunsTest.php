@@ -205,6 +205,38 @@ class PayrollRunsTest extends VisitTestCase
         $this->assertSame(['bank_transfer'], DB::table('hr_staff_claim_payments')->pluck('method')->all());
     }
 
+    public function test_the_only_approver_left_never_prepares_so_a_run_can_always_be_approved(): void
+    {
+        [$aina] = $this->clinic();
+        $this->lineTypes($this->hr);
+        // With the second Director inactive, the one Director left neither prepares a run nor takes a draft step.
+        DB::table('users')->where('id', $this->director2->id)->update(['is_active' => false]);
+        $last = 'You are the only person left who can approve this run, so the HR Manager makes this change.';
+        $this->prepare($this->director)->assertSessionHasErrors(['payroll' => $last]);
+        $this->assertSame(0, DB::table('hr_payroll_runs')->count());
+        $this->selectBranch($this->director);
+        $this->get(route('hr.payroll.index', ['tab' => 'runs']))->assertInertia(fn (Assert $page) => $page->where('payroll.runs.prepareRefusal', $last));
+
+        $this->prepare($this->hr)->assertRedirect();
+        $id = (string) DB::table('hr_payroll_runs')->value('public_id');
+        foreach ([['again', []], ['mtd', ['worker_id' => $aina->public_id, 'mtd' => '12.00']], ['send', []],
+            ['manual', ['worker_id' => $aina->public_id, 'item_type_id' => $this->types['Other addition'], 'amount' => '5.00', 'reason_code' => 'bonus']]] as [$step, $input]) {
+            $this->step($this->director, $id, $step, $input)->assertSessionHasErrors(['payroll' => $last]);
+        }
+        $this->assertFalse(DB::table('hr_payroll_run_actions')->where('actor_user_id', $this->director->id)->exists());
+        $this->selectBranch($this->director);
+        $this->get(route('hr.payroll.runs.show', $id))->assertInertia(fn (Assert $page) => $page->where('run.draftRefusal', $last));
+        $this->selectBranch($this->hr);
+        $this->get(route('hr.payroll.runs.show', $id))->assertInertia(fn (Assert $page) => $page->where('run.draftRefusal', null));
+
+        // So the HR Manager finishes the draft and the one Director can still approve and lock it.
+        $this->step($this->hr, $id, 'mtd', ['worker_id' => $aina->public_id, 'mtd' => '12.00'])->assertSessionHasNoErrors();
+        $this->step($this->hr, $id, 'send')->assertSessionHasNoErrors();
+        $this->step($this->director, $id, 'approve')->assertSessionHasNoErrors();
+        $this->step($this->director, $id, 'lock')->assertSessionHasNoErrors();
+        $this->assertSame('locked', DB::table('hr_payroll_runs')->value('status'));
+    }
+
     public function test_anyone_who_prepared_never_approves_and_a_recovery_adjustment_can_be_sent(): void
     {
         [$aina] = $this->clinic();

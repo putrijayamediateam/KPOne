@@ -86,7 +86,11 @@ const props = defineProps<{
             maxItems: number;
         };
         setUp: { groups: boolean; rates: boolean; checkedTables: boolean };
-        runs: { runs: RunRow[]; months: Option[] } | null;
+        runs: {
+            runs: RunRow[];
+            months: Option[];
+            prepareRefusal: string | null;
+        } | null;
         profiles: {
             people: Person[];
             waitingCount: number;
@@ -438,6 +442,7 @@ const saveRates = () => {
             :months="payroll.runs.months"
             :groups="payroll.options.groups"
             :ready="payroll.setUp.groups && payroll.setUp.checkedTables"
+            :prepare-refusal="payroll.runs.prepareRefusal"
         />
 
         <!-- Pay profiles -->

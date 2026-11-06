@@ -18,6 +18,7 @@ const props = defineProps<{
     months: Option[];
     groups: Option[];
     ready: boolean;
+    prepareRefusal: string | null;
 }>();
 
 const page = usePage();
@@ -84,6 +85,13 @@ const prepare = () => {
             <p v-if="!ready" class="text-sm text-muted-foreground">
                 Add a pay group, pay profiles and checked tables first.
             </p>
+            <p
+                v-if="prepareRefusal"
+                id="prepare-refusal"
+                class="text-sm text-muted-foreground"
+            >
+                {{ prepareRefusal }}
+            </p>
             <div class="flex flex-wrap items-start gap-3">
                 <div class="grid min-w-48 gap-1.5">
                     <Label for="run-group"
@@ -134,7 +142,12 @@ const prepare = () => {
                 type="submit"
                 variant="outline"
                 class="self-start max-lg:min-h-11"
-                :disabled="form.processing || !groups.length"
+                :disabled="
+                    form.processing || !groups.length || !!prepareRefusal
+                "
+                :aria-describedby="
+                    prepareRefusal ? 'prepare-refusal' : undefined
+                "
                 data-test="run-prepare-send"
                 >{{ form.processing ? 'Preparing…' : 'Prepare run' }}</Button
             >

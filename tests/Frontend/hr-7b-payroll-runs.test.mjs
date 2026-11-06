@@ -70,3 +70,13 @@ test('no page in this slice sends messages or exports anything', () => {
         );
     }
 });
+
+test('the only approver left sees why the draft steps are off, and Prepare run too', () => {
+    assert.match(template('run'), /v-if="run\.draftRefusal"/);
+    assert.match(source.run, /\|\| !!run\.draftRefusal/);
+    assert.match(template('tab'), /\{\{ prepareRefusal \}\}/);
+    assert.match(
+        template('tab'),
+        /:aria-describedby="\s*prepareRefusal \? 'prepare-refusal' : undefined\s*"/,
+    );
+});

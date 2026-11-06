@@ -72,6 +72,7 @@ const props = defineProps<{
         errorCount: number;
         canEdit: boolean;
         sendRefusal: string | null;
+        draftRefusal: string | null;
         steps: Record<Step, { refusal: string | null }>;
         options: {
             itemTypes: Option[];
@@ -255,19 +256,28 @@ const statusTone = computed(() =>
 
         <ErrorState v-if="failure && !asking" :message="failure" />
 
+        <p
+            v-if="run.draftRefusal"
+            id="draft-refusal"
+            class="text-sm text-muted-foreground"
+            data-test="run-draft-refusal"
+        >
+            {{ run.draftRefusal }}
+        </p>
+
         <div class="flex flex-wrap items-center gap-2" data-test="run-steps">
             <template v-if="run.status === 'draft'">
                 <Button
                     variant="outline"
                     class="max-lg:min-h-11"
-                    :disabled="busy"
+                    :disabled="busy || !!run.draftRefusal"
                     data-test="run-again"
                     @click="post('again', {})"
                     >Prepare again</Button
                 >
                 <Button
                     class="max-lg:min-h-11"
-                    :disabled="busy || !!run.sendRefusal"
+                    :disabled="busy || !!run.sendRefusal || !!run.draftRefusal"
                     :aria-describedby="
                         run.sendRefusal ? 'send-refusal' : undefined
                     "
@@ -621,7 +631,7 @@ const statusTone = computed(() =>
                             type="submit"
                             variant="outline"
                             class="self-start max-lg:min-h-11"
-                            :disabled="busy"
+                            :disabled="busy || !!run.draftRefusal"
                             data-test="run-mtd-save"
                             >Save MTD</Button
                         >
@@ -649,7 +659,7 @@ const statusTone = computed(() =>
                                     variant="outline"
                                     class="min-h-11 lg:min-h-8"
                                     :aria-label="`Remove manual line ${i + 1}`"
-                                    :disabled="busy"
+                                    :disabled="busy || !!run.draftRefusal"
                                     @click="removeManual(i)"
                                     >Remove</Button
                                 >
@@ -709,7 +719,7 @@ const statusTone = computed(() =>
                                 type="submit"
                                 variant="outline"
                                 class="self-start max-lg:min-h-11"
-                                :disabled="busy"
+                                :disabled="busy || !!run.draftRefusal"
                                 data-test="run-manual-add"
                                 >Add line</Button
                             >
