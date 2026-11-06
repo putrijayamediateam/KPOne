@@ -14,6 +14,7 @@ use App\Domain\Organisation\Inventory\Models\StockMovement;
 use App\Domain\Organisation\Models\PublicCheckInLink;
 use App\Domain\Patient\Models\Patient;
 use App\Domain\Queue\Models\QueueEntry;
+use App\Domain\Queue\Services\CallNextService;
 use App\Domain\Visit\Models\Visit;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -97,6 +98,7 @@ class AuditLogController extends Controller
                     'subjectId' => $isProtectedOperationalRecord ? null : $log->subject_id,
                     'occurredAt' => $log->occurred_at->toIso8601String(),
                     'roleNames' => $isClinicalSafetyEvent ? [] : $log->roleNames(),
+                    'detail' => $this->detail($log),
                 ];
             })->values(),
             'total' => $paginator->total(),
@@ -105,5 +107,20 @@ class AuditLogController extends Controller
         ];
 
         return Inertia::render('AuditLogs/Index', ['logs' => $logs]);
+    }
+
+    /** Q-4c: a short structural note for events that need one; never patient, clinical or financial content. */
+    private function detail(AuditLog $log): ?string
+    {
+        $metadata = is_array($log->metadata) ? $log->metadata : [];
+        if ($log->event !== 'queue.called' || ($metadata['via'] ?? null) !== 'call_next') {
+            return null;
+        }
+
+        return match ($metadata['call_next_source'] ?? null) {
+            CallNextService::SOURCE_HELD_CONSULTATION => 'Via Call next, from a held consultation',
+            CallNextService::SOURCE_BOARD => 'Via Call next, from the Queue board',
+            default => 'Via Call next',
+        };
     }
 }
