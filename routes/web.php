@@ -34,6 +34,7 @@ use App\Http\Controllers\DispensaryController;
 use App\Http\Controllers\GovernedStockController;
 use App\Http\Controllers\HR\AttendanceController as HrAttendanceController;
 use App\Http\Controllers\HR\LeaveController;
+use App\Http\Controllers\HR\RecordsController as HrRecordsController;
 use App\Http\Controllers\HR\RosterController;
 use App\Http\Controllers\InventoryBatchHoldController;
 use App\Http\Controllers\InventoryController;
@@ -168,6 +169,40 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::middleware(['permission:hr.attendance.review.organisation', 'throttle:60,1'])->group(function (): void {
             Route::post('corrections/{correction}/{decision}', 'decide')->whereUuid('correction')->whereIn('decision', ['approve', 'reject'])->name('hr.attendance.corrections.decide');
             Route::put('settings', 'saveSettings')->name('hr.attendance.settings');
+            Route::put('overtime-settings', 'saveOvertimeSettings')->name('hr.attendance.overtime-settings');
+        });
+        // HR-3b overtime (owner, 2026-11-06). Minutes and day type only; no money.
+        Route::middleware(['permission:hr.attendance.clock.own,hr.attendance.review.organisation', 'throttle:30,1'])->group(function (): void {
+            Route::post('overtime', 'askOvertime')->name('hr.attendance.overtime.store');
+            Route::post('overtime/{overtimeRequest}/withdraw', 'withdrawOvertime')->whereUuid('overtimeRequest')->name('hr.attendance.overtime.withdraw');
+        });
+        Route::middleware(['permission:hr.overtime.approve.organisation', 'throttle:60,1'])->group(function (): void {
+            Route::post('overtime/{overtimeRequest}/reverse', 'reverseOvertime')->whereUuid('overtimeRequest')->name('hr.attendance.overtime.reverse');
+            Route::post('overtime/{overtimeRequest}/{decision}', 'decideOvertime')->whereUuid('overtimeRequest')->whereIn('decision', ['approve', 'reject'])->name('hr.attendance.overtime.decide');
+        });
+    });
+
+    // HR-4a staff files (owner, 2026-11-06). Rules live in app/Domain/HR/Records. Synthetic data only until the PDPA review.
+    Route::prefix('hr/records')->controller(HrRecordsController::class)->middleware('sensitive.no-store')->group(function (): void {
+        Route::get('/', 'index')->middleware('permission:hr.records.view.own,hr.records.view.organisation')->name('hr.records.index');
+        Route::middleware(['permission:hr.records.view.own', 'throttle:30,1'])->group(function (): void {
+            Route::put('my/contact', 'saveOwnContact')->name('hr.records.my.contact');
+            Route::post('my/corrections', 'askCorrection')->name('hr.records.my.corrections.store');
+            Route::post('my/corrections/{correction}/withdraw', 'withdrawCorrection')->whereUuid('correction')->name('hr.records.my.corrections.withdraw');
+        });
+        Route::get('{worker}', 'show')->whereUuid('worker')->middleware('permission:hr.records.view.organisation')->name('hr.records.show');
+        Route::post('{worker}/show-value', 'showValue')->whereUuid('worker')->middleware(['permission:hr.records.view.organisation', 'throttle:30,1'])->name('hr.records.show-value');
+        Route::middleware(['permission:hr.records.manage.organisation', 'throttle:60,1'])->group(function (): void {
+            Route::post('files', 'openFile')->name('hr.records.files.store');
+            Route::post('locums', 'addLocum')->name('hr.records.locums.store');
+            Route::post('{worker}/periods', 'addPeriod')->whereUuid('worker')->name('hr.records.periods.store');
+            Route::put('{worker}/periods/{period}', 'updatePeriod')->whereUuid(['worker', 'period'])->name('hr.records.periods.update');
+            Route::post('{worker}/positions', 'addPosition')->whereUuid('worker')->name('hr.records.positions.store');
+            Route::put('{worker}/personal', 'savePersonal')->whereUuid('worker')->name('hr.records.personal');
+            Route::post('{worker}/bank', 'enterBank')->whereUuid('worker')->name('hr.records.bank.store');
+            Route::post('{worker}/bank/{bank}/withdraw', 'withdrawBank')->whereUuid(['worker', 'bank'])->name('hr.records.bank.withdraw');
+            Route::post('{worker}/bank/{bank}/{decision}', 'decideBank')->whereUuid(['worker', 'bank'])->whereIn('decision', ['confirm', 'reject'])->name('hr.records.bank.decide');
+            Route::post('{worker}/corrections/{correction}/{decision}', 'decideCorrection')->whereUuid(['worker', 'correction'])->whereIn('decision', ['apply', 'reject'])->name('hr.records.corrections.decide');
         });
     });
 
@@ -848,6 +883,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::patch('visits/{visit}/queue/call', [QueueController::class, 'call'])
             ->middleware(['permission:queue.call.own,queue.call.branch', 'throttle:30,1'])
             ->name('queue.call');
+        Route::get('queue/call-next', [QueueController::class, 'callNextBlock'])
+            ->middleware(['permission:queue.call.own', 'sensitive.no-store', 'throttle:60,1'])
+            ->name('queue.call-next.block');
         Route::post('queue/call-next', [QueueController::class, 'callNext'])
             ->middleware(['permission:queue.call.own,queue.call.branch', 'throttle:30,1'])
             ->name('queue.call-next');

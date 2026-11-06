@@ -175,6 +175,36 @@ check items, keep them"). The rest stand unless the owner changes them.
 31. Existing-assertion change approved: the `ClinicManagementTest` hub map gains `/hr/attendance` for
     `hr.attendance.clock.own` and `hr.attendance.review.organisation`; HR-3a shipped (owner, 2026-11-06, in the HR
     session: "yes, add the hub line and ship it").
+32. HR-3b design note (HR-PLAN section 10) approved with its defaults (owner, 2026-11-06, in the HR session:
+    "approve the HR-3b note with the defaults"): no overtime role ticked until HR ticks one; overtime asked for after
+    it is worked, within the correction window; multipliers 1.5x, 2x and 3x and weekly levels 40 h and 45 h as form
+    suggestions; rest days are the branch's non-working weekdays; a manager may reverse an approved request with a
+    reason, never their own; staff see their own month as well as their week.
+33. Daniel's early look at HR-3b (HR-PLAN 10.5, relayed by B.E.R.N.I.S.S 2026-11-06): OK with changes, all applied:
+    a weekly chip only when there is something to warn about; two outline buttons (Approve, Reject) with the minutes
+    filled in at the amount asked and a reason required when they are lowered ("Approve 120 min"); "Approved 2 h of
+    3 h"; "N waiting · 1 approved day changed since" with "Recorded … → now …"; a right-aligned Summary with a total
+    row and a sticky person column; the shared tabs as they are; empty states that say what to do next; the minutes
+    error in the same submit as the reason error; Withdraw as an outline button; the app's role labels.
+34. Existing-assertion change approved by B.E.R.N.I.S.S for the owner (2026-11-06, the owner's "BE ME"): the
+    `AttendanceTest` `viewers()` tab list for Director and HR Manager changes from `['my', 'review', 'settings']` to
+    `['my', 'review', 'overtime', 'summary', 'settings']` (HR-3b's two new tabs). No other existing assertion changed.
+35. HR-3b screens (Daniel, relayed by B.E.R.N.I.S.S 2026-11-06): **OK** at 819f136, every note in; optional nit applied
+    (the summary line drops "0 waiting" when only a changed day is listed). HR-3b ship-it given by B.E.R.N.I.S.S for
+    the owner ("BE ME"); the PR opens after #327 merges, with main merged in.
+36. HR-4 design note (HR-PLAN section 11) approved with its defaults (owner, 2026-11-06, in the HR session: "approve
+    the HR-4 note with the defaults"): HR-4a first (staff file), then HR-4b (documents and checklists); Show for full
+    identity and bank values for Director and HR Manager, each view recorded; a bank change confirmed by a second
+    person; staff change their own address, personal phone and emergency contact, the rest by a correction;
+    employment types Permanent, Contract, Part-time, Locum, Intern and the listed end reasons; staff see their own
+    documents (view only); a probation alert 14 days before the end, with no probation length shipped; document
+    categories and retention days entered by the clinic (adviser's call). Synthetic data only until the PDPA review.
+37. Daniel's early look at the HR-4 screens (HR-PLAN 11.6, relayed by B.E.R.N.I.S.S 2026-11-06): OK with changes,
+    all ten notes folded into 11.6 (one last-four masking pattern read as words; Show turns into Hide and never
+    persists; masked bank cards side by side; a file header with a status chip; "Needs attention" with its reasons in
+    words; one shared synthetic-data line; the HR-3a correction sheet; "No KPOne sign-in" on a locum; empty states and
+    "Not given"; HR-4b expiry chips). The owner's own words relayed the same day: "approve the HR-4 plan with the
+    defaults". The `/hr/records` hub-map assertion still needs the owner's OK at build time.
 
 ## 7. Open items and known limits
 
