@@ -330,6 +330,8 @@ const printLabels = async () => {
 .label-line {
     font:
         9pt/3.8mm 'Courier New',
+        Courier,
+        'Liberation Mono',
         monospace;
     white-space: pre;
     margin: 0;
@@ -348,13 +350,15 @@ const printLabels = async () => {
 /* DSP-6, DSP-10: reserved cells at the top right of the first row (the clinic name stays clear of them). */
 .reprint-mark {
     position: absolute;
-    top: 1.5mm;
-    right: 2mm;
+    top: 1.7mm;
+    right: 2.5mm;
     box-sizing: border-box;
-    height: 3.8mm;
+    height: 3.4mm;
     padding: 0 1mm;
     font:
-        700 7pt/3.4mm 'Courier New',
+        700 7pt/3mm 'Courier New',
+        Courier,
+        'Liberation Mono',
         monospace;
     border: 0.25mm solid #000;
     color: #000;
@@ -367,6 +371,8 @@ const printLabels = async () => {
     margin: 0;
     font:
         700 9pt/4.5mm 'Courier New',
+        Courier,
+        'Liberation Mono',
         monospace;
     text-align: center;
     white-space: nowrap;
@@ -375,6 +381,12 @@ const printLabels = async () => {
 @media screen and (max-width: 420px) {
     .medicine-label {
         zoom: 0.9;
+    }
+}
+/* On a wide screen the preview shows the label at 150% so staff can read it; printing is always 100%. */
+@media screen and (min-width: 1280px) {
+    .medicine-label {
+        zoom: 1.5;
     }
 }
 @media print {
