@@ -133,6 +133,7 @@ coordinator (2026-11-05); Yasmin added by owner decision 2026-11-05 (every build
 
 ## 7. Open items and known limits
 
+- DD-38 (Daniel, docs PR #325, Minor): the On Hold and Urgent chips on the boards use pale filled backgrounds in dark mode. Not built yet.
 - Q-2c (Mira): Cancel (entered in error) acts on the main step only, so an older finished step that is still waiting can be cancelled only after the newer one clears. The start refusal still reads "already has an open treatment step" (an existing assertion pins it); "a step in progress" would now be more accurate, an owner-approved wording change if wanted. No two-process PostgreSQL race test for two simultaneous starts; the `treatment_step_one_started` index enforces it.
 - DD-30 sets the 44 px phone tab height from the Queue page (`max-sm:[&>button]:h-11`), reaching into the shared `OperationalTabs` buttons; if that component changes its buttons the height quietly stops applying. Yasmin suggests a phone-height option in `OperationalTabs` (Staff Experience) so other boards can use it, then removing the override. A tapped tab can keep a faint hover background on touch screens (existed before DD-30).
 - Sound, real fullscreen and staying signed in overnight are verified on a real TV only by the owner's report (2026-10-13).

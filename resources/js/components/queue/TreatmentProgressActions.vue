@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { router } from '@inertiajs/vue3';
-import { Activity, CheckCircle2, LoaderCircle } from '@lucide/vue';
+import { Activity, CheckCircle2, ChevronDown, LoaderCircle } from '@lucide/vue';
 import { computed, nextTick, ref, watch } from 'vue';
 import { Button } from '@/components/ui/button';
 import {
@@ -238,8 +238,11 @@ const submit = (action: 'start' | 'done' | 'cancel') => {
                     aria-controls="treatment-progress-cancel-panel"
                     data-testid="treatment-progress-cancel-toggle"
                     @click="showCancel = !showCancel"
-                    >Entered in error?</Button
-                >
+                    >Entered in error?<ChevronDown
+                        class="size-4 transition-transform"
+                        :class="showCancel ? 'rotate-180' : ''"
+                        aria-hidden="true"
+                /></Button>
                 <div
                     v-if="showCancel"
                     id="treatment-progress-cancel-panel"

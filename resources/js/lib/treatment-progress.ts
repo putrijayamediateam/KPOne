@@ -140,7 +140,8 @@ export const treatmentChipLines = (
         lines.push(`+${waiting.length - TREATMENT_WAITING_SHOWN} more done`);
     }
 
-    lines[lines.length - 1] += ' · Ready to resume';
+    // Daniel: a no-break space keeps the dot with the words before it when the chip wraps.
+    lines[lines.length - 1] += '\u00a0· Ready to resume';
 
     return [main, ...lines];
 };

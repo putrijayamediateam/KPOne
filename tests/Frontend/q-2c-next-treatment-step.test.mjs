@@ -45,7 +45,7 @@ test('a waiting finished step is a second line and "Ready to resume" appears onc
         helper.treatmentChipLines(ecgStarted, 3, waitingNebuliser, now),
         [
             'ECG: started 3 min ago',
-            'Nebuliser: done 6 min ago · Ready to resume',
+            'Nebuliser: done 6 min ago\u00a0· Ready to resume',
         ],
     );
     const ecgDone = {
@@ -55,7 +55,10 @@ test('a waiting finished step is a second line and "Ready to resume" appears onc
     };
     assert.deepEqual(
         helper.treatmentChipLines(ecgDone, 1, waitingNebuliser, now),
-        ['ECG: done 1 min ago', 'Nebuliser: done 6 min ago · Ready to resume'],
+        [
+            'ECG: done 1 min ago',
+            'Nebuliser: done 6 min ago\u00a0· Ready to resume',
+        ],
     );
     assert.equal(
         helper.treatmentWaitingAriaLabel(ecgStarted, 3, waitingNebuliser, now),
@@ -79,7 +82,7 @@ test('more than two waiting steps show "+N more done"', () => {
             'Observation after medicine: started just now',
             'Nebuliser: done 10 min ago',
             'Wound dressing: done 10 min ago',
-            '+2 more done · Ready to resume',
+            '+2 more done\u00a0· Ready to resume',
         ],
     );
 });
@@ -144,4 +147,16 @@ test('Mira: errors show beside the control in use, and the badge clock runs only
         /!!props\.live \|\| !!props\.progress\?\.waiting\?\.length/,
     );
     assert.match(badge, /watch\(ticking, syncTimer\)/);
+});
+
+test('Daniel: the disclosure shows it opens, and the cancel title names the step', () => {
+    const actions = read(
+        'resources/js/components/queue/TreatmentProgressActions.vue',
+    );
+    assert.match(actions, />Entered in error\?<ChevronDown/);
+    assert.match(actions, /:class="showCancel \? 'rotate-180' : ''"/);
+    assert.match(
+        actions,
+        /`Cancel “\$\{progress\?\.label\}” \(entered in error\)`/,
+    );
 });
