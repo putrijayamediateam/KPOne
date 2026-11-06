@@ -84,8 +84,9 @@ class PanelClaimPackTest extends BillingTestCase
 
         $this->get(route('panel-claims.pack', ['claims' => [$claim->public_id], 'from' => $claim->public_id]))->assertOk()
             ->assertInertia(fn (Assert $page) => $page->component('PanelClaims/Pack')
-                ->where('letterhead.details.phone', '+60312345678')
-                ->where('letterhead.details.phone_secondary', '+60123456789'));
+                // Both print in the shared PrintedPhone reading format, as on the other printed documents.
+                ->where('letterhead.details.phone', '03-1234 5678')
+                ->where('letterhead.details.phone_secondary', '012-345 6789'));
     }
 
     public function test_a_batch_pack_covers_claims_of_one_panel_and_refuses_mixed_or_too_many_claims(): void
