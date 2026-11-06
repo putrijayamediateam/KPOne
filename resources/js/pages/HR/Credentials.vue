@@ -1212,7 +1212,7 @@ const archiveType = () => {
                             >Change</Button
                         >
                         <Button
-                            variant="ghost"
+                            variant="outline"
                             size="sm"
                             class="max-lg:min-h-11"
                             @click="archiving = t"
