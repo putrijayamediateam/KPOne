@@ -32,6 +32,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DiagnosisPresetSettingsController;
 use App\Http\Controllers\DispensaryController;
 use App\Http\Controllers\GovernedStockController;
+use App\Http\Controllers\HR\LeaveController;
 use App\Http\Controllers\HR\RosterController;
 use App\Http\Controllers\InventoryBatchHoldController;
 use App\Http\Controllers\InventoryController;
@@ -149,6 +150,34 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::middleware(['permission:hr.roster.approve.organisation', 'throttle:30,1'])->group(function (): void {
             Route::post('versions/{version}/approve', 'approve')->whereUuid('version')->name('hr.roster.approve');
             Route::post('versions/{version}/return', 'returnToDraft')->whereUuid('version')->name('hr.roster.return');
+        });
+    });
+
+    // HR-2a leave (B.E.R.N.I.S.S for the owner, 2026-11-05). Rules live in app/Domain/HR/Leave.
+    Route::prefix('hr/leave')->controller(LeaveController::class)->middleware('sensitive.no-store')->group(function (): void {
+        Route::get('/', 'index')->middleware('permission:hr.leave.request.own,hr.leave.approve.organisation,hr.leave.manage.organisation')->name('hr.leave.index');
+        Route::middleware(['permission:hr.leave.request.own', 'throttle:60,1'])->group(function (): void {
+            Route::post('preview', 'preview')->name('hr.leave.preview');
+            Route::post('requests', 'apply')->name('hr.leave.requests.store');
+        });
+        Route::post('requests/{leaveRequest}/cancel', 'cancel')->whereUuid('leaveRequest')
+            ->middleware(['permission:hr.leave.request.own,hr.leave.approve.organisation', 'throttle:30,1'])->name('hr.leave.requests.cancel');
+        Route::middleware(['permission:hr.leave.approve.organisation', 'throttle:60,1'])->group(function (): void {
+            Route::post('requests/{leaveRequest}/approve', 'approve')->whereUuid('leaveRequest')->name('hr.leave.requests.approve');
+            Route::post('requests/{leaveRequest}/reject', 'reject')->whereUuid('leaveRequest')->name('hr.leave.requests.reject');
+        });
+        Route::middleware(['permission:hr.leave.manage.organisation', 'throttle:30,1'])->group(function (): void {
+            Route::put('types', 'saveType')->name('hr.leave.types.save');
+            Route::put('entitlements', 'saveEntitlements')->name('hr.leave.entitlements.save');
+            Route::post('grant', 'grant')->name('hr.leave.grant');
+            Route::post('carry-forward', 'carryForward')->name('hr.leave.carry-forward');
+            Route::post('expire', 'expire')->name('hr.leave.expire');
+            Route::put('working-days', 'workingDays')->name('hr.leave.working-days');
+            Route::post('holidays', 'addHoliday')->name('hr.leave.holidays.store');
+            Route::delete('holidays/{holiday}', 'removeHoliday')->whereNumber('holiday')->name('hr.leave.holidays.destroy');
+            Route::post('{kind}', 'enter')->whereIn('kind', ['openings', 'adjustments'])->name('hr.leave.entries.store');
+            Route::post('{kind}/{entry}/{decision}', 'decide')->whereIn('kind', ['openings', 'adjustments'])->whereUuid('entry')
+                ->whereIn('decision', ['confirm', 'reject'])->name('hr.leave.entries.decide');
         });
     });
 

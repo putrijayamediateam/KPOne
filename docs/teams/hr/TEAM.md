@@ -114,6 +114,22 @@ Decisions marked **B.E.R.N.I.S.S for the owner** were made by the coordinator un
 17. A clinic compliance slice (clinic document licences, internal audit checklist, vaccine fridge temperature log)
     joins the backlog as HR-11, after HR-10 (B.E.R.N.I.S.S for the owner, 2026-11-05; "Check this" on the owner's
     board because it is clinic data, not staff data).
+18. HR-2 leave design note approved, split into HR-2a (settings, balances, requests, calendar, roster link) and HR-2b
+    (evidence files, its own note later); HR-2a keeps only an encrypted short evidence reference and an
+    "Evidence seen" tick (B.E.R.N.I.S.S for the owner, 2026-11-05).
+19. HR-2 defaults: no leave types, entitlements, carry-forward or holidays ship with KPOne (clinic-entered,
+    versioned); the yearly entitlement is granted by a manager action; no negative balance unless the type allows
+    it; replacement leave is a manual adjustment; a late application is flagged, not refused (B.E.R.N.I.S.S for
+    the owner, 2026-11-05).
+20. HR-2 two-person rules: the decider is never the applicant; an HR Manager's own leave goes to the Director, a
+    Director's to the HR Manager or another Director; opening balances and adjustments need a second manager's
+    confirmation; all backed by PostgreSQL (B.E.R.N.I.S.S for the owner, 2026-11-05).
+21. HR-2 roster link: a new shift on an approved-leave day is refused; existing shifts and pending leave only warn;
+    approving leave never changes a shift; the roster and team calendar show "On leave" only, never the type or
+    reason (B.E.R.N.I.S.S for the owner, 2026-11-05).
+22. Existing-assertion change approved: the `ClinicManagementTest` hub map gains `/hr/leave` for
+    `hr.leave.request.own`, `hr.leave.approve.organisation` and `hr.leave.manage.organisation` (B.E.R.N.I.S.S for
+    the owner, 2026-11-05).
 
 ## 7. Open items and known limits
 

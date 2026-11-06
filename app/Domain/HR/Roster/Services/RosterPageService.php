@@ -3,6 +3,8 @@
 namespace App\Domain\HR\Roster\Services;
 
 use App\Domain\Access\BranchAccessService;
+use App\Domain\HR\Leave\Models\LeaveRequest;
+use App\Domain\HR\Leave\Services\LeaveCalendar;
 use App\Domain\HR\Roster\Models\RosterShift;
 use App\Domain\HR\Roster\Models\RosterVersion;
 use App\Domain\HR\Roster\Models\RosterWeek;
@@ -22,7 +24,7 @@ use Illuminate\Validation\ValidationException;
  */
 final class RosterPageService
 {
-    public function __construct(private BranchAccessService $branches, private RosterRules $rules, private MinimumStaffingService $minimums) {}
+    public function __construct(private BranchAccessService $branches, private RosterRules $rules, private MinimumStaffingService $minimums, private LeaveCalendar $leave) {}
 
     /**
      * @param  array<string, mixed>  $query
@@ -115,12 +117,20 @@ final class RosterPageService
         $rooms = BranchRoom::query()->where('organisation_id', $branch->organisation_id)->where('branch_id', $branch->id)->orderBy('sort_order')->orderBy('id')->get();
         $roomNames = $rooms->pluck('name', 'id');
 
-        $rows = $shifts->groupBy('staff_user_id')->map(function (Collection $items, int|string $userId) use ($people, $branch, $roomNames): array {
-            $user = $people->get((int) $userId);
+        $leave = $this->leaveInWeek($branch, $weekStart, array_values($shifts->pluck('staff_user_id')->map(fn ($id): int => (int) $id)->unique()->all()));
+        $leavePeople = $leave->where('status', 'approved')->pluck('user_id')->diff($people->keys());
+        if ($leavePeople->isNotEmpty()) {
+            $people = $people->union(User::query()->with('roles')->whereIn('id', $leavePeople)->get()->keyBy('id'));
+        }
+        $rows = $shifts->groupBy('staff_user_id')->map(fn (Collection $items): Collection => $items)
+            ->union($leave->where('status', 'approved')->pluck('user_id')->unique()->mapWithKeys(fn (int $id): array => [$id => collect()])->diffKeys($shifts->groupBy('staff_user_id')))
+            ->map(function (Collection $items, int|string $userId) use ($people, $branch, $roomNames, $leave, $weekStart): array {
+                $user = $people->get((int) $userId);
 
-            return ['staffUserId' => (int) $userId, 'name' => $user->name ?? 'Staff member', 'role' => $this->roleLabel($user),
-                'shifts' => $items->map(fn (RosterShift $s): array => $this->shift($s, $branch, $roomNames))->values()->all()];
-        })->sortBy('name', SORT_NATURAL | SORT_FLAG_CASE)->values()->all();
+                return ['staffUserId' => (int) $userId, 'name' => $user->name ?? 'Staff member', 'role' => $this->roleLabel($user),
+                    'shifts' => $items->map(fn (RosterShift $s): array => $this->shift($s, $branch, $roomNames))->values()->all(),
+                    'leaveDays' => $this->leaveDays($leave->where('user_id', (int) $userId)->where('status', 'approved'), $weekStart)];
+            })->sortBy('name', SORT_NATURAL | SORT_FLAG_CASE)->values()->all();
 
         $isDraft = $shown !== null && $shown->status === 'draft';
 
@@ -140,7 +150,7 @@ final class RosterPageService
             'totals' => collect(range(0, 6))->map(fn (int $i): int => $shifts->filter(fn (RosterShift $s): bool => $s->starts_at->setTimezone($branch->timezone)->toDateString() === $weekStart->addDays($i)->toDateString())
                 ->pluck('staff_user_id')->unique()->count())->all(),
             'shortDays' => $shown === null ? [] : $this->shortDays($branch, $weekStart, $shifts, $people),
-            'warnings' => $shown === null ? [] : $this->warnings($branch, $weekStart, $shown, $shifts, $people, $roomNames),
+            'warnings' => $shown === null ? [] : [...$this->warnings($branch, $weekStart, $shown, $shifts, $people, $roomNames), ...$this->leaveWarnings($branch, $shifts, $leave, $people)],
             'staffOptions' => $isDraft ? $this->staffOptions($actor, $branch, $weekStart) : [],
             'rooms' => $rooms->where('is_active', true)->map(fn (BranchRoom $r): array => ['id' => $r->id, 'name' => $r->name])->values()->all(),
             'returnReasons' => collect(RosterService::RETURN_REASONS)->map(fn (string $label, string $value): array => ['value' => $value, 'label' => $label])->values()->all(),
@@ -184,6 +194,72 @@ final class RosterPageService
             'startTime' => $start->format('H:i'), 'endTime' => $end->format('H:i'), 'startLabel' => $this->rules->timeLabel($start), 'endLabel' => $this->rules->timeLabel($end),
             'nextDay' => $end->toDateString() !== $start->toDateString(), 'breakMinutes' => $s->break_minutes, 'sessionType' => $s->session_type,
             'sessionLabel' => RosterRules::SESSIONS[$s->session_type] ?? 'Other', 'roomId' => $s->branch_room_id, 'roomName' => $s->branch_room_id === null ? null : ($rooms[$s->branch_room_id] ?? null)];
+    }
+
+    /**
+     * HR-2a: approved and pending leave touching this branch week, for the people rostered in it and anyone whose
+     * leave is counted at this branch. Only "On leave" is shown; never the type or reason.
+     *
+     * @param  list<int>  $rostered
+     * @return Collection<int, LeaveRequest>
+     */
+    private function leaveInWeek(Branch $branch, CarbonImmutable $weekStart, array $rostered): Collection
+    {
+        $from = CarbonImmutable::parse($weekStart->toDateString(), $branch->timezone)->utc();
+        $to = $from->addDays(7);
+        $atBranch = LeaveRequest::query()->where('branch_id', $branch->id)->where('status', 'approved')
+            ->whereDate('start_date', '<=', $weekStart->addDays(6)->toDateString())->whereDate('end_date', '>=', $weekStart->toDateString())->pluck('user_id')->map(fn ($id): int => (int) $id)->all();
+
+        return $this->leave->overlapping(array_values(array_unique([...$rostered, ...$atBranch])), $from, $to, ['approved', 'pending']);
+    }
+
+    /**
+     * @param  Collection<int, LeaveRequest>  $requests
+     * @return array<string, string> date => full|half
+     */
+    private function leaveDays(Collection $requests, CarbonImmutable $weekStart): array
+    {
+        $out = [];
+        foreach ($requests as $r) {
+            for ($d = CarbonImmutable::parse($r->start_date->toDateString()); $d->lessThanOrEqualTo(CarbonImmutable::parse($r->end_date->toDateString())); $d = $d->addDay()) {
+                $date = $d->toDateString();
+                if ($date < $weekStart->toDateString() || $date > $weekStart->addDays(6)->toDateString()) {
+                    continue;
+                }
+                $half = ($r->start_date->toDateString() === $date && $r->start_part !== 'full') || ($r->end_date->toDateString() === $date && $r->end_part === 'am');
+                $out[$date] = isset($out[$date]) || ! $half ? 'full' : 'half';
+            }
+        }
+        ksort($out);
+
+        return $out;
+    }
+
+    /**
+     * @param  Collection<int, RosterShift>  $shifts
+     * @param  Collection<int, LeaveRequest>  $leave
+     * @param  Collection<int, User>  $people
+     * @return list<string>
+     */
+    private function leaveWarnings(Branch $branch, Collection $shifts, Collection $leave, Collection $people): array
+    {
+        $out = [];
+        $zones = Branch::query()->whereIn('id', $leave->pluck('branch_id')->unique())->pluck('timezone', 'id');
+        foreach ($shifts as $s) {
+            foreach ($leave->where('user_id', $s->staff_user_id) as $r) {
+                [$from, $to] = $this->leave->utcSlots($r, (string) ($zones[$r->branch_id] ?? 'UTC'));
+                if (! ($from->lessThan($s->ends_at) && $to->greaterThan($s->starts_at))) {
+                    continue;
+                }
+                $day = $this->rules->dayLabel(CarbonImmutable::parse($s->starts_at)->setTimezone($branch->timezone));
+                $name = $people->get($s->staff_user_id)->name ?? 'A staff member';
+                $out[] = $r->status === 'approved'
+                    ? "{$name} is on approved leave on {$day}. Change or remove this shift."
+                    : "{$name} has asked for leave on {$day}.";
+            }
+        }
+
+        return array_values(array_unique($out));
     }
 
     private function roleLabel(?User $user): string
