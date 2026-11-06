@@ -147,6 +147,11 @@ All in the contract; the main ones:
   commit it to the slice's own feature branch and push it as a backup. No PR, never main or another team's branch,
   never merge, never force-push. If the branch already has an open PR, push only when the change is ready. The PR
   still opens only after "ship it", with the latest origin/main merged first.
+- Ask KPOne stock cost (AG-7b): keep cost in `ai_read.stock_movements` and label it with `cost_source`, so an
+  order estimate never reads as an actual cost ("ok option A", owner in the team session, 2026-11-06). Only the
+  Director sees stock cost; Ask KPOne is the Director's own tool.
+- Migration range: the Agent platform team uses `2026_11_11_000100` onward (B.E.R.N.I.S.S, 2026-11-06); AG-7's
+  `2026_11_05_700000` stays as it is.
 
 ## Open items
 
