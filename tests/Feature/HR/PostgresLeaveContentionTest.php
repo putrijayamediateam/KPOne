@@ -93,7 +93,7 @@ class PostgresLeaveContentionTest extends TestCase
         ]);
 
         $this->assertSame(1, substr_count($out, 'SUCCESS'), $out);
-        $this->assertSame(1, substr_count($out, 'STALE leave: This leave would leave'), $out);
+        $this->assertSame(1, substr_count($out, 'STALE leave: Not enough leave left'), $out);
         $this->assertSame(0, (int) DB::table('hr_leave_ledger')->where('user_id', $f['applicant']->id)->sum('halves'));
     }
 

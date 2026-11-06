@@ -31,16 +31,26 @@ final class LeaveRequestService
      * The server's day count for the apply form; nothing is written.
      *
      * @param  array<string, mixed>  $input
-     * @return array{halves:int, days:string, skipped:list<string>, leftAfter:string|null}
+     * @return array{halves:int, days:string, skipped:list<string>, leftAfter:string|null, shortfall:string|null}
      */
     public function preview(User $actor, array $input): array
     {
         abort_unless($actor->can(LeavePermissions::REQUEST_OWN), 403);
         $parsed = $this->parse($actor, $input);
-        $left = $parsed['type']->uses_balance ? $this->balances->left($actor->id, $parsed['type']->id, $parsed['year']) - $parsed['halves'] : null;
+        $type = $parsed['type'];
+        $left = $type->uses_balance ? $this->balances->left($actor->id, $type->id, $parsed['year']) - $parsed['halves'] : null;
+        $short = null;
+        if ($left !== null && $left < 0 && ! $type->allow_negative) {
+            try {
+                $this->balances->assertAffordable($type, $actor->id, $parsed['year'], $parsed['halves']);
+            } catch (ValidationException $e) {
+                $short = (string) collect($e->errors())->flatten()->first();
+            }
+        }
 
+        // A shortfall is said in words (Daniel); a negative figure is only shown where the type allows one.
         return ['halves' => $parsed['halves'], 'days' => LeaveSupport::days($parsed['halves']), 'skipped' => $parsed['skipped'],
-            'leftAfter' => $left === null ? null : LeaveSupport::days($left)];
+            'leftAfter' => $left === null || $short !== null ? null : LeaveSupport::days($left), 'shortfall' => $short];
     }
 
     /** @param array<string, mixed> $input */

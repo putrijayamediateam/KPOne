@@ -42,7 +42,8 @@ final class LeaveBalanceService
         }
         $left = $this->left($userId, $type->id, $year, $exceptRequestId);
         if ($left - $halves < 0) {
-            throw ValidationException::withMessages([$field => 'This leave would leave '.LeaveSupport::days($left - $halves).' days. You have '.LeaveSupport::days(max($left, 0)).' left.']);
+            $needs = LeaveSupport::days($halves);
+            throw ValidationException::withMessages([$field => "Not enough leave left: this request needs {$needs} ".($needs === '1' ? 'day' : 'days').' and you have '.LeaveSupport::days(max($left, 0)).'.']);
         }
     }
 

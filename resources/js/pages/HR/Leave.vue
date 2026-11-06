@@ -1,6 +1,16 @@
 <script setup lang="ts">
 import { Head, router, useForm, usePage } from '@inertiajs/vue3';
-import { computed, reactive, ref, watch } from 'vue';
+import { CalendarCheck } from '@lucide/vue';
+import {
+    computed,
+    nextTick,
+    onBeforeUnmount,
+    onMounted,
+    reactive,
+    ref,
+    useTemplateRef,
+    watch,
+} from 'vue';
 import InputError from '@/components/InputError.vue';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -178,7 +188,7 @@ const statusTone: Record<Status, 'warning' | 'success' | 'danger' | 'neutral'> =
     {
         pending: 'warning',
         approved: 'success',
-        rejected: 'danger',
+        rejected: 'neutral',
         cancelled: 'neutral',
     };
 
@@ -211,6 +221,57 @@ const csrf = () =>
             .find((row) => row.startsWith('XSRF-TOKEN='))
             ?.split('=')[1] ?? '',
     );
+
+// ---- Tabs (DD-30 pattern from the Queue board, #296) ----
+const tabStrip = useTemplateRef<HTMLElement>('tabStrip');
+const tabNav = () =>
+    tabStrip.value?.querySelector<HTMLElement>('[role="tablist"]') ?? null;
+const moreTabsRight = ref(false);
+const updateTabFade = () => {
+    const nav = tabNav();
+
+    moreTabsRight.value =
+        nav !== null &&
+        nav.scrollWidth > nav.clientWidth + 1 &&
+        nav.scrollLeft + nav.clientWidth < nav.scrollWidth - 1;
+};
+/** Bring a part-hidden chosen tab fully into view, sideways only. */
+const revealSelectedTab = async () => {
+    await nextTick();
+    const nav = tabNav();
+    const tab = nav?.querySelector<HTMLElement>('[aria-selected="true"]');
+
+    if (!nav || !tab) {
+        return;
+    }
+
+    const navBox = nav.getBoundingClientRect();
+    const tabBox = tab.getBoundingClientRect();
+
+    if (tabBox.left < navBox.left) {
+        nav.scrollLeft -= navBox.left - tabBox.left;
+    } else if (tabBox.right > navBox.right) {
+        nav.scrollLeft += tabBox.right - navBox.right;
+    }
+};
+const selectLeaveTab = (tab: string) => visit({ tab });
+let tabResizeObserver: ResizeObserver | undefined;
+onMounted(() => {
+    const nav = tabNav();
+
+    nav?.addEventListener('scroll', updateTabFade, { passive: true });
+
+    if (nav && typeof ResizeObserver !== 'undefined') {
+        tabResizeObserver = new ResizeObserver(updateTabFade);
+        tabResizeObserver.observe(nav);
+    }
+
+    void revealSelectedTab().then(updateTabFade);
+});
+onBeforeUnmount(() => {
+    tabNav()?.removeEventListener('scroll', updateTabFade);
+    tabResizeObserver?.disconnect();
+});
 
 // ---- Apply ----
 const applyOpen = ref(false);
@@ -284,11 +345,18 @@ const runPreview = async () => {
         days?: string;
         skipped?: string[];
         leftAfter?: string | null;
+        shortfall?: string | null;
         errors?: Record<string, string>;
     };
 
     if (!response.ok) {
         preview.error = Object.values(data.errors ?? {})[0] ?? '';
+
+        return;
+    }
+
+    if (data.shortfall) {
+        preview.error = data.shortfall;
 
         return;
     }
@@ -312,6 +380,13 @@ watch(
         applyForm.end_part,
     ],
     () => {
+        // A changed field makes the last server message stale; the live line speaks for the new dates.
+        applyForm.clearErrors(
+            'start_date',
+            'end_date',
+            'start_part',
+            'end_part',
+        );
         clearTimeout(previewTimer);
         previewTimer = setTimeout(runPreview, 300);
     },
@@ -368,7 +443,7 @@ const actionText = computed(() => {
             title: 'Approve this leave?',
             description:
                 'The days are taken from the balance. Shifts already on the roster are not changed.',
-            confirm: 'Approve',
+            confirm: 'Approve leave',
             busy: 'Approving…',
         },
         reject: {
@@ -744,6 +819,13 @@ const typeName = (id: number) =>
 
 // ---- Calendar ----
 const calendar = computed(() => props.leave.calendar);
+const branchName = computed(
+    () =>
+        props.leave.branches.find((b) => b.id === props.leave.branchId)?.name ??
+        '',
+);
+const cellName = (name: string, label: string, cell: 'full' | 'half') =>
+    `${name}, ${label}, ${cell === 'half' ? 'half day' : 'on leave'}`;
 const calendarDays = computed(() =>
     (calendar.value?.days ?? [])
         .map((day) => ({
@@ -769,13 +851,21 @@ const calendarDays = computed(() =>
             description="Apply for leave and see your balance. Someone else approves each request."
         />
 
-        <OperationalTabs
-            v-if="tabs.length > 1"
-            :model-value="leave.tab"
-            :tabs="tabs"
-            label="Leave sections"
-            @update:model-value="(tab: string) => visit({ tab })"
-        />
+        <!-- DD-30 pattern (#296): on phones the strip scrolls, fades while more tabs are hidden, and has 44 px tabs. -->
+        <div v-if="tabs.length > 1" ref="tabStrip" class="min-w-0">
+            <OperationalTabs
+                :model-value="leave.tab"
+                :tabs="tabs"
+                label="Leave sections"
+                class="min-w-0 max-sm:[&>button]:h-11 max-sm:[&>button]:px-2.5"
+                :class="
+                    moreTabsRight
+                        ? '[mask-image:linear-gradient(to_right,#000_calc(100%-2.5rem),transparent)]'
+                        : ''
+                "
+                @update:model-value="selectLeaveTab"
+            />
+        </div>
 
         <ErrorState v-if="errors.leave" :message="errors.leave" />
 
@@ -1004,6 +1094,7 @@ const calendarDays = computed(() =>
                     </div>
                     <div class="flex flex-col gap-2 sm:flex-row">
                         <Button
+                            variant="outline"
                             class="min-h-11 sm:min-h-9"
                             @click="openAction('approve', r)"
                             >Approve</Button
@@ -1096,7 +1187,7 @@ const calendarDays = computed(() =>
             </p>
             <div class="hidden lg:block">
                 <OperationalTable
-                    :label="`Who is on leave, ${calendar.monthLabel}`"
+                    :label="`Leave for ${branchName}, ${calendar.monthLabel}`"
                     :columns="calendar.days.length + 1"
                     :empty="calendar.rows.length === 0"
                     empty-message="Nobody is on approved leave this month."
@@ -1104,7 +1195,12 @@ const calendarDays = computed(() =>
                 >
                     <template #head>
                         <tr>
-                            <th scope="col" class="w-40">Staff</th>
+                            <th
+                                scope="col"
+                                class="sticky left-0 z-10 w-40 bg-card"
+                            >
+                                Staff
+                            </th>
                             <th
                                 v-for="day in calendar.days"
                                 :key="day.date"
@@ -1128,7 +1224,10 @@ const calendarDays = computed(() =>
                     </template>
                     <template #body>
                         <tr v-for="row in calendar.rows" :key="row.name">
-                            <th scope="row" class="font-medium">
+                            <th
+                                scope="row"
+                                class="sticky left-0 z-10 bg-card font-medium"
+                            >
                                 {{ row.name }}
                             </th>
                             <td
@@ -1140,15 +1239,24 @@ const calendarDays = computed(() =>
                                 <span
                                     v-if="row.cells[day.date]"
                                     class="inline-block rounded border px-1"
-                                    :title="`${row.name}, ${day.label}`"
-                                    >{{
+                                    :title="
+                                        cellName(
+                                            row.name,
+                                            day.label,
+                                            row.cells[day.date],
+                                        )
+                                    "
+                                    ><span aria-hidden="true">{{
                                         row.cells[day.date] === 'half'
                                             ? '½'
                                             : '•'
-                                    }}<span class="sr-only">{{
-                                        row.cells[day.date] === 'half'
-                                            ? ' Half day'
-                                            : ' On leave'
+                                    }}</span
+                                    ><span class="sr-only">{{
+                                        cellName(
+                                            row.name,
+                                            day.label,
+                                            row.cells[day.date],
+                                        )
                                     }}</span></span
                                 >
                             </td>
@@ -1172,14 +1280,18 @@ const calendarDays = computed(() =>
                     :key="day.date"
                     class="rounded-xl border bg-card p-3 text-sm"
                 >
-                    <span class="font-medium">{{ day.label }}:</span>
-                    <template v-if="day.holiday">
-                        {{ day.holiday }} (public holiday)</template
-                    >
-                    <template v-if="day.people.length > 0">
-                        {{ day.holiday ? ' · ' : ''
-                        }}{{ day.people.join(', ') }}
-                    </template>
+                    <p class="flex flex-wrap items-center gap-2">
+                        <span class="font-medium">{{ day.label }}</span>
+                        <Badge v-if="day.holiday" variant="outline"
+                            >Public holiday</Badge
+                        >
+                    </p>
+                    <p v-if="day.holiday" class="text-xs text-muted-foreground">
+                        {{ day.holiday }}
+                    </p>
+                    <p v-if="day.people.length > 0" class="mt-1">
+                        {{ day.people.join(', ') }}
+                    </p>
                 </li>
             </ul>
         </section>
@@ -1316,7 +1428,7 @@ const calendarDays = computed(() =>
                     Add a leave type that counts against a balance first.
                 </p>
                 <template v-else>
-                    <div class="mt-3 overflow-x-auto">
+                    <div class="mt-3 hidden overflow-x-auto md:block">
                         <table class="w-full min-w-[560px] text-sm">
                             <caption class="sr-only">
                                 Days per year by role and leave type
@@ -1367,6 +1479,46 @@ const calendarDays = computed(() =>
                             </tbody>
                         </table>
                     </div>
+                    <!-- Below 768 px: one card per role, one labelled field per leave type (Daniel). -->
+                    <ul
+                        class="mt-3 flex flex-col gap-3 md:hidden"
+                        data-test="entitlement-cards"
+                    >
+                        <li
+                            v-for="role in leave.settings.roles"
+                            :key="role.value"
+                            class="rounded-lg border p-3"
+                        >
+                            <h4 class="text-sm font-medium">
+                                {{ role.label }}
+                            </h4>
+                            <div class="mt-2 grid grid-cols-2 gap-3">
+                                <div
+                                    v-for="t in balanceTypes"
+                                    :key="t.id"
+                                    class="grid gap-1"
+                                >
+                                    <Label
+                                        :for="`ent-${t.id}-${role.value}`"
+                                        class="text-xs"
+                                        ><span class="sr-only"
+                                            >{{ role.label }}, </span
+                                        >{{ t.name }} days</Label
+                                    >
+                                    <Input
+                                        :id="`ent-${t.id}-${role.value}`"
+                                        v-model="
+                                            entitlementValues[
+                                                `${t.id}:${role.value}`
+                                            ]
+                                        "
+                                        inputmode="decimal"
+                                        class="h-11 tabular-nums"
+                                    />
+                                </div>
+                            </div>
+                        </li>
+                    </ul>
                     <InputError
                         v-for="(message, key) in errors"
                         v-show="String(key).startsWith('rows.')"
@@ -1736,6 +1888,7 @@ const calendarDays = computed(() =>
                             <template v-if="e.canDecide">
                                 <Button
                                     size="sm"
+                                    variant="outline"
                                     class="min-h-11 sm:min-h-8"
                                     @click="decideEntry(e, 'confirm')"
                                     >Confirm</Button
@@ -1789,7 +1942,7 @@ const calendarDays = computed(() =>
                         />
                         <InputError :message="applyForm.errors.leave_type_id" />
                     </div>
-                    <div class="grid gap-4 sm:grid-cols-2">
+                    <div class="grid gap-4 sm:grid-cols-2 sm:items-start">
                         <div class="grid gap-2">
                             <Label for="apply-start">Start date *</Label>
                             <Input
@@ -1862,14 +2015,19 @@ const calendarDays = computed(() =>
                         v-if="preview.text"
                         class="text-sm font-medium"
                         role="status"
+                        aria-live="polite"
                         data-test="apply-summary"
                     >
                         {{ preview.text }}
                     </p>
                     <p
-                        v-else-if="preview.error"
+                        v-else-if="
+                            preview.error &&
+                            preview.error !== applyForm.errors.start_date
+                        "
                         class="text-sm text-destructive"
                         role="status"
+                        aria-live="polite"
                     >
                         {{ preview.error }}
                     </p>
@@ -2073,6 +2231,9 @@ const calendarDays = computed(() =>
             :error="action.error"
             @confirm="confirmAction"
         >
+            <template #icon>
+                <CalendarCheck class="size-5" />
+            </template>
             <div
                 v-if="action.kind === 'approve' && action.evidenceNeeded"
                 class="flex min-h-11 items-center gap-2"
@@ -2116,6 +2277,10 @@ const calendarDays = computed(() =>
             :processing="yearAction.processing"
             :error="yearAction.error"
             @confirm="confirmYear"
-        />
+        >
+            <template #icon>
+                <CalendarCheck class="size-5" />
+            </template>
+        </OperationalConfirmDialog>
     </div>
 </template>

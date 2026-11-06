@@ -98,7 +98,10 @@ class LeaveTest extends VisitTestCase
         // Mon 8 to Fri 12 March with a holiday on Wednesday: 4 days.
         $this->selectBranch($ca);
         $this->postJson(route('hr.leave.preview'), ['leave_type_id' => $type->id, 'start_date' => '2027-03-08', 'end_date' => '2027-03-12'])
-            ->assertOk()->assertJson(['halves' => 8, 'days' => '4', 'skipped' => ['public holiday on 10 Mar'], 'leftAfter' => '16']);
+            ->assertOk()->assertJson(['halves' => 8, 'days' => '4', 'skipped' => ['public holiday on 10 Mar'], 'leftAfter' => '16', 'shortfall' => null]);
+        // Too long: the shortfall is said in words and no negative figure is shown.
+        $this->postJson(route('hr.leave.preview'), ['leave_type_id' => $type->id, 'start_date' => '2027-03-08', 'end_date' => '2027-04-30'])
+            ->assertOk()->assertJson(['leftAfter' => null, 'shortfall' => 'Not enough leave left: this request needs 39 days and you have 20.']);
         // Friday afternoon to Monday midday across a weekend: 1 day.
         $this->postJson(route('hr.leave.preview'), ['leave_type_id' => $type->id, 'start_date' => '2027-03-12', 'end_date' => '2027-03-15', 'start_part' => 'pm', 'end_part' => 'am'])
             ->assertOk()->assertJson(['halves' => 2, 'days' => '1']);
@@ -129,7 +132,7 @@ class LeaveTest extends VisitTestCase
         $this->assertSame(['pending', 6, false], [$request->status, $request->halves, $request->late]);
         // Pending days are booked: 5 − 3 = 2 left, so 2.5 more is refused and 2 is not overlapping only if dates differ.
         $this->apply($ca, ['leave_type_id' => $type->id, 'start_date' => '2027-03-15', 'end_date' => '2027-03-17'])
-            ->assertSessionHasErrors(['start_date' => 'This leave would leave −1 days. You have 2 left.']);
+            ->assertSessionHasErrors(['start_date' => 'Not enough leave left: this request needs 3 days and you have 2.']);
         $this->apply($ca, ['leave_type_id' => $type->id, 'start_date' => '2027-03-10', 'end_date' => '2027-03-10'])
             ->assertSessionHasErrors(['start_date' => 'You already have leave on 10 Mar 2027.']);
 

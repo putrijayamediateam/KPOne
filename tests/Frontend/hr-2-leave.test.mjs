@@ -112,3 +112,37 @@ test('the team calendar and the roster show "On leave" only, never the leave typ
         /On leave: \{\{ onLeave\(day\.date\)\.join\(', '\) \}\}/,
     );
 });
+
+test('Daniel: no primary button in a list; the primary lives in the dialog', () => {
+    const approvals = template.slice(
+        template.indexOf('<!-- Approvals -->'),
+        template.indexOf('<!-- Team calendar -->'),
+    );
+
+    assert.match(
+        approvals,
+        /variant="outline"\s+class="min-h-11 sm:min-h-9"\s+@click="openAction\('approve', r\)"/,
+    );
+    assert.match(
+        template,
+        /variant="outline"\s+class="min-h-11 sm:min-h-8"\s+@click="decideEntry\(e, 'confirm'\)"/,
+    );
+    assert.match(source, /confirm: 'Approve leave'/);
+    assert.equal((template.match(/<CalendarCheck/g) ?? []).length, 2);
+});
+
+test('Daniel: tabs scroll with a fade on phones, the calendar keeps names sticky, cells have names', () => {
+    assert.match(template, /ref="tabStrip"/);
+    assert.match(template, /max-sm:\[&>button\]:h-11/);
+    assert.match(source, /nav\.scrollLeft \+= tabBox\.right - navBox\.right/);
+    assert.match(
+        template,
+        /Leave for \$\{branchName\}, \$\{calendar\.monthLabel\}/,
+    );
+    assert.match(template, /class="sticky left-0 z-10 bg-card font-medium"/);
+    assert.match(source, /half day' : 'on leave'/);
+    assert.match(template, /aria-live="polite"/);
+    assert.match(template, /data-test="entitlement-cards"/);
+    assert.match(template, /:for="`ent-\$\{t\.id\}-\$\{role\.value\}`"/);
+    assert.match(source, /rejected: 'neutral'/);
+});

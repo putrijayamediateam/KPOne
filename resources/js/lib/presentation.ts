@@ -67,7 +67,6 @@ const toneByStatus: Record<string, StatusTone> = {
     leave_check_confirmed: 'success',
     leave_pending: 'warning',
     leave_check_pending: 'warning',
-    leave_rejected: 'danger',
     leave_check_rejected: 'danger',
     dispensing: 'accent',
     serving: 'accent',
