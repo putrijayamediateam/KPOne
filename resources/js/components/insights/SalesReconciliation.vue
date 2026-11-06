@@ -50,9 +50,8 @@ defineProps<{ totals: InvoiceSalesReconciliation }>();
             sales. Reversed adjustments have no effect. Items, surcharges and
             discounts use the invoice finalisation-date cohort, including
             adjustments recorded later. Refund credits count on the day the
-            refund after completion was approved.
-            Rankings remain gross item values; no proportional item discounts
-            are applied.
+            refund after completion was approved. Rankings remain gross item
+            values; no proportional item discounts are applied.
         </p>
     </section>
 </template>

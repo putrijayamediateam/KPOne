@@ -661,7 +661,9 @@ const reverse = (receipt: Receipt) =>
                             </dd>
                         </div>
                         <div
-                            v-if="billing.invoice.adjustment.adjustmentSen !== 0"
+                            v-if="
+                                billing.invoice.adjustment.adjustmentSen !== 0
+                            "
                             class="flex justify-between py-1"
                         >
                             <dt>
@@ -692,9 +694,7 @@ const reverse = (receipt: Receipt) =>
                             data-testid="billing-refund-credit"
                         >
                             <dt>Refund credit</dt>
-                            <dd>
-                                −{{ myr(billing.invoice.refundCreditSen) }}
-                            </dd>
+                            <dd>−{{ myr(billing.invoice.refundCreditSen) }}</dd>
                         </div>
                     </dl>
                     <InvoiceAdjustmentDialog

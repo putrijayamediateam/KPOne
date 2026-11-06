@@ -23,7 +23,10 @@ const errors = computed(
     () => (page.props.errors ?? {}) as Record<string, string | undefined>,
 );
 const forms = reactive<
-    Record<string, { method: string; reason: string; amount: string; key: string }>
+    Record<
+        string,
+        { method: string; reason: string; amount: string; key: string }
+    >
 >({});
 const rejectReason = reactive<Record<string, string>>({});
 const busy = reactive<Record<string, boolean>>({});
