@@ -135,7 +135,7 @@ final class DispensaryReturnService
         $branch = $branches->activeBranch($actor);
         abort_unless($branch && $branch->organisation_id === $actor->organisation_id && $branches->hasEffectiveAssignment($actor, $branch), 403);
 
-        $paginator = DB::table('dispensary_returns as r')
+        $query = fn () => DB::table('dispensary_returns as r')
             ->join('dispensary_items as i', 'i.id', '=', 'r.dispensary_item_id')
             ->join('dispensary_cases as c', 'c.id', '=', 'r.dispensary_case_id')
             ->join('visits as v', 'v.id', '=', 'c.visit_id')
@@ -146,8 +146,12 @@ final class DispensaryReturnService
             ->orderBy('r.recorded_at')->orderBy('r.id')
             ->select(['r.id', 'r.public_id', 'r.quantity', 'r.reason', 'r.condition', 'r.recorded_by_user_id', 'r.recorded_at',
                 'c.public_id as case_public_id', 'v.visit_number', 'p.full_name as patient_name',
-                'i.medicine_name_snapshot', 'i.strength_snapshot', 'i.unit_snapshot', 'm.is_controlled'])
-            ->paginate(25, ['*'], 'page', max(1, $page));
+                'i.medicine_name_snapshot', 'i.strength_snapshot', 'i.unit_snapshot', 'm.is_controlled']);
+        $paginator = $query()->paginate(25, ['*'], 'page', max(1, $page));
+        // A page past the end (for example after the last return on it was checked) shows the last page instead.
+        if ($paginator->total() > 0 && $paginator->currentPage() > $paginator->lastPage()) {
+            $paginator = $query()->paginate(25, ['*'], 'page', $paginator->lastPage());
+        }
         $rows = collect($paginator->items());
         $names = $this->staff->visibleUsers($actor)->whereIn('id', $rows->pluck('recorded_by_user_id')->unique())->pluck('name', 'id');
 

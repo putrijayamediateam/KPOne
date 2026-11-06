@@ -100,4 +100,29 @@ class DispensaryReturnsToCheckTest extends VisitTestCase
         $this->get(route('dispensary.returns-to-check'))->assertOk()
             ->assertInertia(fn (Assert $page) => $page->where('returns.total', 0)->where('returns.branchName', $other->name));
     }
+
+    public function test_oldest_first_25_a_page_and_a_page_past_the_end_shows_the_last_page(): void
+    {
+        $w = $this->waiting();
+        $service = app(DispensaryReturnService::class);
+        for ($n = 1; $n <= 25; $n++) {
+            $service->record($w['f']['ca'], $w['case'], $w['item'], ['expected_branch_id' => $w['f']['visit']->branch_id, 'retry_key' => (string) Str::uuid(), 'expected_return_count' => $n, 'quantity' => '0.010', 'reason' => 'not_used', 'note' => null, 'condition' => 'cannot_tell']);
+        }
+        $this->actingAs($w['supervisor'])->get(route('dispensary.returns-to-check'))->assertInertia(fn (Assert $page) => $page
+            ->where('returns.total', 26)->where('returns.lastPage', 2)->has('returns.rows', 25)
+            ->where('returns.rows.0.publicId', $w['return']->public_id));
+        $this->get(route('dispensary.returns-to-check', ['page' => 2]))->assertInertia(fn (Assert $page) => $page->where('returns.page', 2)->has('returns.rows', 1));
+        // After returns are checked, an old link to a page that no longer exists shows the last page, not "No returns".
+        $this->get(route('dispensary.returns-to-check', ['page' => 9]))->assertInertia(fn (Assert $page) => $page->where('returns.page', 2)->has('returns.rows', 1));
+        $this->get(route('dispensary.returns-to-check', ['page' => 'abc']))->assertInertia(fn (Assert $page) => $page->where('returns.page', 1));
+    }
+
+    public function test_an_inactive_ca_supervisor_is_refused(): void
+    {
+        $w = $this->waiting();
+        $w['supervisor']->forceFill(['is_active' => false])->save();
+        $response = $this->actingAs($w['supervisor'])->get(route('dispensary.returns-to-check'));
+        // Inactive sessions are refused before the page (sign-out redirect) or by the service (403); never a list.
+        $this->assertContains($response->status(), [302, 403]);
+    }
 }
