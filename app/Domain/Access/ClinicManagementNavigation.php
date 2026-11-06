@@ -100,6 +100,7 @@ final class ClinicManagementNavigation
             [$actor->can('hr.leave.request.own') || $actor->can('hr.leave.approve.organisation') || $actor->can('hr.leave.manage.organisation'), 'KPOne HR leave', 'Apply for leave, approve requests and see who is away.', 'hr.leave.index'],
             [$actor->can('hr.attendance.clock.own') || $actor->can('hr.attendance.review.organisation'), 'KPOne HR attendance', 'Clock in and out, correct your times and review attendance.', 'hr.attendance.index'],
             [$actor->can('hr.records.view.own') || $actor->can('hr.records.view.organisation'), 'KPOne HR staff files', 'Your HR details, and staff files for HR.', 'hr.records.index'],
+            [$actor->can('hr.credentials.view.own') || $actor->can('hr.credentials.manage.organisation'), 'KPOne HR credentials', 'Your certificates and renewals, and the credentials register for HR.', 'hr.credentials.index'],
             [$actor->can('staff.view.own') || $actor->can('staff.view.branch') || $actor->can('staff.view.organisation'), 'Staff', 'Review staff within your existing access.', 'staff.index'],
             [$actor->can('branches.view.branch') || $actor->can('branches.view.organisation'), 'Branches', 'Review the clinic locations you may access.', 'branches.index'],
             [$actor->can('access.view.organisation'), 'Access Control', 'Review existing roles and permissions.', 'access-control.index'],
