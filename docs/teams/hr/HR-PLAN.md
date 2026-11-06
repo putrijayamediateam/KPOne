@@ -1766,3 +1766,182 @@ Clinic management destination map, which are existing-assertion changes to appro
 6. HR-5b work-hour limits? (Default: suggested 6 days in a row, 11 h rest and 48 h a week, to confirm with the HR
    adviser.)
 7. HR-5c: who must acknowledge which SOPs? (Default: chosen per SOP by role.)
+
+## 13. HR-6 staff claims: design note
+
+Written 2026-11-06 at the owner's request ("start the HR-6 design note"). It works out the HR-6 sketch in section 2
+in detail and replaces it where the two differ. It changes no HR-1 to HR-5 rule. **Status: draft, waiting for the
+owner's approval and Daniel's early look.** The questions in 13.9 take the defaults written here until the clinic
+says otherwise.
+
+**Staff claims are not Panel Claims.** They use different tables, pages, permissions and words ("Staff claims",
+"Claim a refund of what I paid"), and share nothing with Panel Claims, invoices, receipts, payments, refunds, daily
+cash closing or any report of clinic income. **KPOne pays nothing:** it records that someone paid a claim outside
+KPOne, with a reference.
+
+**KPOne ships no category, limit or rule.** Categories, their limits, the amount above which the Director must
+approve and how far back a claim may go are clinic-entered, versioned settings. Until HR saves at least one category,
+My claims reads "Staff claims are not set up yet."
+
+**Synthetic data only** until the PDPA review (decision 11). Receipts can carry names, addresses and card digits.
+
+### 13.1 One slice
+
+HR-6 is one slice, built after HR-5c in the current order. HR-6 does not need HR-4, so the owner may move it earlier.
+It covers:
+- settings (categories and the Director level);
+- submitting a claim with receipts;
+- approval by someone else;
+- recording payment;
+- a monthly list for Finance.
+
+Mileage, per diem, advances and paying through payroll are out (13.8).
+
+### 13.2 What the clinic gets
+
+- **My claims** (every human role, not the TV account):
+  - **New claim** opens a sheet with category, date spent, amount in RM, what it was for (up to 200 characters, encrypted) and receipts (JPG, PNG or PDF, up to 5 MB each, up to 5 per claim, through the HR-2b checks), for the active branch.
+  - My list shows each claim's status: Waiting for approval, Approved, Rejected, Paid, Withdrawn.
+  - The person who sent a claim withdraws it while it waits.
+- **Approvals** (Director, HR Manager): claims waiting, each card showing:
+  - the person, branch, category, date and amount;
+  - the receipts (opening one is recorded);
+  - the category's limit and the person's total in that category this month;
+  - any warning in words: "Over the RM 200.00 limit for Meals", "This receipt was also attached to claim SC-0012", "Needs the Director: over RM 500.00".
+  - Outline **Approve** and **Reject** buttons, with the primary action in the dialog.
+- **Pay** (Finance Officer, Director): approved claims not yet paid. **Record payment** asks for:
+  - the method (Bank transfer, Cash, Cheque);
+  - the paid date;
+  - a reference (encrypted, masked to the last four).
+  - A mistake is corrected with **Reverse payment** and a reason; the claim goes back to Approved, and both rows stay.
+- **Monthly list** (Finance Officer, Director, HR Manager): approved and paid claims for a month, by branch and category, with totals. On screen only: no CSV (exports need their own authorisation).
+- **Settings** (Director, HR Manager). Each category has:
+  - a name;
+  - whether a receipt is needed;
+  - an optional limit per claim and per person per month;
+  - whether it is active.
+  - The settings also hold the Director level (claims above it need the Director) and how many days back a claim may go (the form suggests 30).
+  - KPOne ships none of these.
+
+### 13.3 Rules
+
+1. **A claim** belongs to one person, one branch (the active branch when it is sent) and one category. It has:
+   - an amount in whole sen, from 1 to 99,999,999;
+   - a date spent that is not in the future and not further back than the settings allow.
+   - Claim numbers are `SC-` plus 6 digits, per organisation, never reused.
+2. **Receipts:**
+   - A category that needs a receipt refuses a claim without one.
+   - A receipt is checked by content, re-encoded and encrypted, with no file name kept (the HR-2b pipeline).
+   - The same file (by hash) on another active claim of the organisation is a warning to the approver, never a refusal (two people can share one bill).
+3. **Two people at each step** (service and PostgreSQL CHECK):
+   - the approver is never the claimant;
+   - the payer is never the claimant and never the approver of that claim.
+   - An HR Manager's own claim goes to the Director, and a Director's to the HR Manager or another Director (TEAM.md decision 3).
+4. **The Director level:** a claim above the saved amount can be approved only by a Director. Below it, a Director or
+   HR Manager approves.
+5. **Limits warn, never refuse.** Over a category's per-claim or monthly limit, the approver sees it in words and may
+   still approve. The approval stores the settings version it saw.
+6. **Approve fewer** is not offered. A wrong amount is rejected with the reason Wrong amount, and the person sends a
+   new claim. A claim is decided as sent, and never edited after it is sent.
+7. **States:**
+   - waiting → approved, rejected or withdrawn;
+   - approved → paid;
+   - paid → approved again only through a payment reversal row.
+   - Every step is an append-only action row.
+   - Reject reasons: No receipt, Not a work expense, Over the limit, Wrong amount, Duplicate, Other with a note.
+   - A payment reversal reason: Wrong claim, Wrong amount, Payment failed, Other.
+8. **Nothing here touches clinic money:** no invoice, receipt, payment method, refund, cash closing, Insights or
+   report of clinic income reads or writes staff claims. A test compares those tables before and after.
+9. **Every write:** a fresh permission check under lock; `DB::transaction`; the claim row locked; `lock_version`; an
+   idempotency key on send, decide, withdraw, pay and reverse; and audit with ids, category, amount and codes only.
+   The purpose text, notes and payment references are encrypted and never audited.
+
+### 13.4 Tables (sketch)
+
+| Table | Holds |
+|---|---|
+| `hr_claim_settings` | append-only versions: Director level (sen, nullable), days back |
+| `hr_claim_categories` | organisation, name, needs receipt, per-claim limit, monthly limit, active, `lock_version` (changes recorded as versions) |
+| `hr_claim_counters` | per organisation, for `SC-` numbers |
+| `hr_staff_claims` | number, person, branch, category, date spent, amount sen, encrypted purpose, status, settings version, `lock_version` |
+| `hr_staff_claim_receipts` | claim, encrypted file path, hash, size, kind, status active/removed |
+| `hr_staff_claim_actions` | append-only: claim, action, actor, reason code, encrypted note, time |
+| `hr_staff_claim_payments` | append-only: claim, method, paid on, encrypted reference, last four, paid by; reversal rows point to the payment they reverse |
+| `hr_claim_retries` | idempotency records |
+
+PostgreSQL:
+- a claim's amount, person, branch, category and date never change after it is sent;
+- the approver differs from the claimant, and the payer from the claimant and the approver (CHECK);
+- one live payment per claim (partial unique index), and a reversal row points to exactly one payment;
+- actions, payments, settings versions and counters are append-only, or increment-only for counters;
+- nothing is deleted or truncated;
+- every row's people and branch belong to one organisation.
+
+Migrations from `2026_11_10_001900`, with the grants in their own additive migration.
+
+### 13.5 Permissions
+
+| Permission | Holders |
+|---|---|
+| `hr.claims.submit.own` (My claims: send, withdraw, see own receipts) | every human role, not the TV account |
+| `hr.claims.approve.organisation` (Approvals: open receipts, approve, reject) | Director, HR Manager |
+| `hr.claims.pay.organisation` (Pay: approved claims with name, branch, category, amount and receipts only; record and reverse payments) | Finance Officer, Director |
+| `hr.claims.manage.organisation` (Settings; the monthly list with HR's view) | Director, HR Manager |
+
+Finance Officer also sees the monthly list through `hr.claims.pay.organisation`. None is in the people-and-access
+authority set, and none is a Panel or billing permission. A new hub link, "KPOne HR staff claims", adds `/hr/claims`
+to the Clinic management destination map, which is an existing-assertion change to approve when built.
+
+### 13.6 Screens (Hui Min, for Daniel's early look)
+
+- One page, `/hr/claims`, with tabs My claims, Approvals, Pay, Monthly and Settings, each shown only to its holders, using the shared OperationalTabs.
+- **Amounts:**
+  - in KPOne's money format ("RM 45.60"), right-aligned with tabular-nums;
+  - typed in RM in the sheet, converted to sen with whole-number arithmetic (the STK-10B rule), never floating point.
+- **The New claim sheet:**
+  - visible labels and help text: "Up to 5 receipts. JPG, PNG or PDF, 5 MB each.";
+  - the HR-2b upload button and "Uploading…";
+  - "Do not write medical details here." under the purpose;
+  - errors under each field, all in one submit.
+- **Status chips:** Waiting for approval neutral, Approved success, Paid success with the date, Rejected neutral with the reason, Withdrawn neutral. None is red.
+- **Approvals cards:**
+  - warnings as warning chips with words;
+  - the receipts as thumbnails on a neutral bordered surface (the HR-2b pattern), with each opening recorded.
+- **Pay:** a table from 1024 px, cards below. A paid row shows "Paid 6 Nov 2026 · Bank transfer · Ref •••• 4321".
+- **Monthly:** totals per category and branch, with a total row (the HR-3b Summary pattern).
+- The shared synthetic-data line from HR-4. Empty states for each tab, each saying what to do next. 44 px targets, and no sideways scroll at 320, 390 and 768 px.
+- **Screenshots when built:** My claims with each status; the New claim sheet with an error; an approval card with each warning; the Director-level case seen by an HR Manager; a payment recorded and reversed; the monthly list; the settings; at 390 and 1440 px, light and dark.
+
+### 13.7 Tests (planned)
+
+- Grants for every role, the TV account refused, none in the authority set, and the hub map line to approve.
+- Amounts in sen with whole-number conversion; date limits with a frozen branch-local clock; claim numbers unique
+  and gapless per organisation under a race (a two-process PostgreSQL test).
+- Receipts: content checks and limits; a needed receipt refused when missing; the duplicate warning.
+- The two-person rule at approval and payment, for the self, HR Manager and Director cases (service and PostgreSQL);
+  the Director level; limits that warn and never refuse.
+- States, withdrawal by the sender only, the payment reversal back to Approved with both rows kept, and one live
+  payment per claim (a two-process race between two payers).
+- Purpose, notes and references encrypted and never in audit; references masked.
+- Clinic money untouched: invoices, receipts, payments, refunds, cash closings and Panel claims compared before and
+  after.
+- Another organisation's ids refused; nothing written to accounts or anything clinical.
+
+### 13.8 What stays out
+
+- Paying money from KPOne, bank files and any payment integration.
+- Mileage, per diem, cash advances and paying claims through payroll (HR-7 may add "paid through payroll" later).
+- Exports; messages or reminders of any kind.
+- Any link to patient billing, Panel Claims, daily cash closing or clinic income reports.
+- Tax treatment, which is for the clinic's accountant.
+
+### 13.9 Questions only the clinic can answer [TO CONFIRM]
+
+1. Which claim categories, and does each need a receipt? (Default: none shipped; the form suggests Meals, Travel and
+   parking, Training and courses, Supplies bought for the clinic, and Other, each needing a receipt.)
+2. Limits per claim and per month for each category? (Default: none; limits warn only.)
+3. Above what amount must the Director approve? (Default: none until entered.)
+4. How far back may a claim go? (Default: the form suggests 30 days.)
+5. Must the payer be someone other than the approver? (Default: yes.)
+6. Are claims ever paid in cash from the till? (Default: no. KPOne records a cash payment but never links it to daily
+   cash closing, so till cash for staff claims must be handled outside KPOne. Tell us if that is wrong.)
