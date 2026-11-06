@@ -169,8 +169,8 @@ class DrugLabelTest extends BillingTestCase
         $render = (new DrugLabelLayout)->render($fields, '20/10/2026', '30/10/2027', false);
         $this->assertSame([], $render['errors']);
         $this->assertSame('SYNTHETIC LABEL CLINIC', $render['lines'][0]);
-        $this->assertContains('Tel: (03-0000 1234)', $render['lines']);
-        $this->assertSame(array_search('Tel: (03-0000 1234)', $render['lines'], true) + 1, $render['ruleAfter']);
+        $this->assertContains('Tel: 03-0000 1234', $render['lines']);
+        $this->assertSame(array_search('Tel: 03-0000 1234', $render['lines'], true) + 1, $render['ruleAfter']);
         $bold = array_intersect_key($render['lines'], array_flip($render['emphasis']));
         $this->assertContains('Synthetic Label Patient', $bold);
         $this->assertContains(str_pad('PAIN -Synthorelax tab 35mg/450mg', 37).'    QTY: 10', $bold);

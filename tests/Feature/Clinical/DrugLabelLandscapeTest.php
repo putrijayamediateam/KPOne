@@ -13,7 +13,7 @@ use Tests\Feature\Visit\VisitTestCase;
 use Tests\Support\OtcDispensaryFixtures;
 
 /**
- * DSP-10 (owner decisions 2026-11-06): the clinic's landscape drug label. The service fills it with the phone only,
+ * DSP-10 (owner decisions 2026-11-06): the clinic's landscape drug label. The service fills it with the phone only (PrintedPhone format),
  * the patient name only, the medicine's catalogue indication and no route, batch number, logo or patient number.
  * Synthetic data only.
  */
@@ -43,8 +43,8 @@ class DrugLabelLandscapeTest extends VisitTestCase
         $this->assertSame(['width' => 100, 'height' => 62], $labels['pageSize']);
         $this->assertSame('SYNTHETIC LABEL CLINIC', $item['lines'][0]);
         $phone = BranchBusinessProfile::query()->where('branch_id', $f['visit']->branch_id)->value('phone');
-        $this->assertNotEmpty($phone);
-        $this->assertContains('Tel: ('.$phone.')', $item['lines']);
+        $this->assertSame('+60321234567', $phone, 'Business details stores the phone unchanged');
+        $this->assertContains('Tel: 03-2123 4567', $item['lines'], 'the print shows the reading format (owner decision 2026-11-06)');
         $this->assertStringNotContainsString('clinic@label.test', $text, 'the email is not printed');
         $this->assertStringContainsString($f['visit']->patient->full_name, $text);
         $this->assertStringNotContainsString($f['visit']->patient->patient_number, $text, 'no patient number');
@@ -57,7 +57,7 @@ class DrugLabelLandscapeTest extends VisitTestCase
         $this->assertStringContainsString('EXP: ', (string) end($item['lines']));
         $this->assertLessThanOrEqual(DrugLabelLayout::MAX_ROWS, count($item['lines']));
         $this->assertNull($item['controlled']);
-        $this->assertSame(array_search('Tel: ('.$phone.')', $item['lines'], true) + 1, $item['ruleAfter']);
+        $this->assertSame(array_search('Tel: 03-2123 4567', $item['lines'], true) + 1, $item['ruleAfter']);
         $this->assertArrayNotHasKey('logo', $labels);
 
         // The saved directions keep their own case; capitals are print only.

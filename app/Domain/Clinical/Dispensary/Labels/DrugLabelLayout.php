@@ -100,7 +100,7 @@ final class DrugLabelLayout
         }
         $phone = $this->clean($fields['phone'] ?? '');
         if ($phone !== '') {
-            $tel = 'Tel: ('.$phone.')';
+            $tel = 'Tel: '.$phone;
             $add($block('phone', $this->wrap($tel, self::COLUMNS), $tel), true);
         }
         $ruleAfter = count($lines);

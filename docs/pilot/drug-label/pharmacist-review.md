@@ -14,7 +14,7 @@ The layout follows the clinic's current printed label (DSP-10, owner decisions 2
 One landscape label per medicine line that was dispensed (quantity above zero; a partly dispensed line needs
 the doctor's acknowledgement first). Inside a rounded border, in this order:
 
-1. **Clinic name** (bold capitals), the address (up to two rows) and **Tel: (phone)** (bold), as entered in the
+1. **Clinic name** (bold capitals), the address (up to two rows) and **Tel: phone** (bold, printed as 03-2123 4567), as entered in the
    clinic's Business details, then a thick rule. No logo and no email.
 2. **Patient name** (bold). No patient or visit number.
 3. **Medicine name** (bold, the catalogue display name, up to two rows), with **QTY: n** on the right (the number
@@ -49,7 +49,7 @@ KPOne prints them for this made-up header; a longer clinic name or address can t
 B  KLINIK CONTOH (DEMO)
    No. 1, Jalan Contoh 1, 43000, Bandar Contoh,
    Selangor, Malaysia
-B  Tel: (03-0000 0000)
+B  Tel: 03-0000 0000
    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 B  Pesakit Contoh Satu
 B  Paracetamol 500mg tablet                 QTY: 20
@@ -67,7 +67,7 @@ B  Paracetamol 500mg tablet                 QTY: 20
 B  KLINIK CONTOH (DEMO)
    No. 1, Jalan Contoh 1, 43000, Bandar Contoh,
    Selangor, Malaysia
-B  Tel: (03-0000 0000)
+B  Tel: 03-0000 0000
    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 B  Pesakit Contoh Satu
 B  Tramadol 50mg capsule                    QTY: 10
@@ -87,7 +87,7 @@ B          Ubat Terkawal/Controlled Medicine        (below the border)
 B  KLINIK CONTOH (DEMO)
    No. 1, Jalan Contoh 1, 43000, Bandar Contoh,
    Selangor, Malaysia
-B  Tel: (03-0000 0000)
+B  Tel: 03-0000 0000
    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 B  Pesakit Contoh Satu
 B  Tramadol 50mg capsule                    QTY: 10

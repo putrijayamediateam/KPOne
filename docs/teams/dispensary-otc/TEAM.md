@@ -201,6 +201,11 @@ coordinator at the owner's request (2026-11-05); the designer was added by owner
     saved line breaks in directions print joined into one line with spaces; the changed existing label assertions
     (DrugLabelTest, DrugLabelBatchExpiryTest, ControlledMedicineTest, DrugLabelPrintLogTest, TreatmentPlanTest,
     and the drug-labels, dsp-6 and dsp-3 frontend tests) as listed in the PR.
+28. Clinic phone on prints (2026-11-06): the owner's own words, relayed by B.E.R.N.I.S.S, "go with Daniel's phone
+    format". Every print shows the clinic phone as "Tel: 03-2123 4567" (no brackets) through one shared formatter,
+    `App\Domain\Shared\PrintedPhone::format()`; the stored value is unchanged. Malaysian +60, 60 and 0 forms print
+    as 03-XXXX XXXX, 0X-XXX XXXX, 08X-XXX XXX, 01X-XXX XXXX or 011-XXXX XXXX; anything else prints as stored. This
+    team owns the class; Billing (BIL-9) and the MC reuse it.
 
 ## 7. Open items and known limits
 
@@ -218,8 +223,8 @@ coordinator at the owner's request (2026-11-05); the designer was added by owner
 - **Labels (DSP-10):** 100 × 62 mm is provisional until the real sticker test; a different size changes every
   limit. The expiry prints only for a line with exactly one allocated batch with a real expiry; otherwise "EXP: -".
   No batch number, barcode or label snapshot; prints are logged per line (DSP-6). The 13-row limit is tighter than
-  the old 35, so a long clinic header plus long directions is blocked sooner. The phone prints as Business details
-  stores it (international form, for example "+60321234567"). The CA and CA Supervisor guides in
+  the old 35, so a long clinic header plus long directions is blocked sooner. The phone prints in reading form ("Tel: 03-2123 4567",
+  decision 28); a number the formatter does not recognise prints as stored. The CA and CA Supervisor guides in
   `docs/guides/ms/` still describe the controlled line under the medicine name (Staff Experience told).
 - **Label print log (DSP-6):** a print is logged when the fresh check passes, so a cancelled dialog, or a page that
   goes stale during the check, still counts. Printing from the browser's own menu or Ctrl+P is not logged and does

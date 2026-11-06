@@ -13,7 +13,7 @@
 | Page (sticker) size | 100 mm wide × 62 mm tall, landscape, no margin (provisional) |
 | Border | rounded box 97 × 55 mm, 1.5 mm in from the edges; a 4.5 mm strip below it is kept for the controlled line |
 | Text | Courier New 9 pt, 3.8 mm per row, 48 characters per row |
-| Bold rows | Clinic name, "Tel: (…)", patient name, medicine name with QTY, and "Ubat Terkawal/Controlled Medicine" below the border |
+| Bold rows | Clinic name, "Tel: …", patient name, medicine name with QTY, and "Ubat Terkawal/Controlled Medicine" below the border |
 | Most rows | 13 inside the border (no logo is printed) |
 | One label per | Medicine line with a positive dispensed quantity; each label on its own page |
 

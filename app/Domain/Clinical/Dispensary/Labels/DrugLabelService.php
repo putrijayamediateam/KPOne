@@ -18,6 +18,7 @@ use App\Domain\Organisation\BusinessDetails\BranchLetterheadAssembler;
 use App\Domain\Organisation\Inventory\Models\InventoryBatch;
 use App\Domain\Organisation\Models\Branch;
 use App\Domain\Patient\Models\Patient;
+use App\Domain\Shared\PrintedPhone;
 use App\Domain\Visit\Models\Visit;
 use App\Models\User;
 use Carbon\CarbonImmutable;
@@ -137,7 +138,7 @@ final class DrugLabelService
                 // name with QTY; directions "dosage, frequency, instruction" (route is not printed); the medicine's
                 // catalogue indication; EXP only for exactly one batch with a real expiry; no batch number.
                 $medicine = MedicineCatalogueItem::query()->whereKey($item->medicine_catalogue_item_id)->where('organisation_id', $item->organisation_id)->first(['id', 'is_controlled', 'default_indication']);
-                $fields = ['clinic' => $details['clinic_name'], 'address' => $address, 'phone' => $details['phone'] ?? '', 'patient' => $patient->full_name,
+                $fields = ['clinic' => $details['clinic_name'], 'address' => $address, 'phone' => PrintedPhone::format($details['phone'] ?? null) ?? '', 'patient' => $patient->full_name,
                     'name' => $item->medicine_name_snapshot, 'quantity' => DrugLabelLayout::displayQuantity($item->quantity_dispensed),
                     'dosage' => $item->effective('dosage'), 'frequency' => $item->effective('frequency'), 'instruction' => $item->effective('administration_instruction'),
                     'precaution' => $item->effective('precaution'), 'duration' => $item->effective('duration'), 'indication' => $medicine?->default_indication];
