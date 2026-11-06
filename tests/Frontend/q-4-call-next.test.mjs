@@ -148,8 +148,9 @@ test('the queue page shows the control only when the server sends a block and ma
     assert.match(page, /<CallNextControl\s+v-if="live\.callNext"/);
     assert.match(page, /:variant="live\.callNext \? 'outline' : 'default'"/);
     assert.match(page, /:refresh="refreshBoard"/);
-    assert.doesNotMatch(
+    // Q-4b (owner approval 2026-11-06): the consultation page offers Call next only while held, through HeldCallNext.
+    assert.match(
         read('resources/js/pages/Clinical/Show.vue'),
-        /CallNextControl/,
+        /v-if="clinical\.hold\.isHeld"[\s\S]*?<HeldCallNext/,
     );
 });
