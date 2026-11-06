@@ -82,7 +82,8 @@ class RecordsTest extends VisitTestCase
         $this->assertStringNotContainsString('0123456789', (string) DB::table('hr_workers')->where('id', $locum->id)->value('locum_phone_encrypted'));
 
         $this->get(route('hr.records.index', ['tab' => 'files']))->assertInertia(fn (Assert $page) => $page->has('records.files.rows', 2)
-            ->where('records.files.rows.0.name', 'Dr Locum Synthetic')->where('records.files.rows.0.role', 'Locum')->where('records.files.rows.0.status', 'none'));
+            // Rows are sorted by name and the other name is random, so the locum row is found by name, not position.
+            ->where('records.files.rows', fn ($rows): bool => collect($rows)->contains(fn ($r): bool => $r['name'] === 'Dr Locum Synthetic' && $r['role'] === 'Locum' && $r['status'] === 'none')));
         $this->assertRefused('23505', fn () => DB::table('hr_workers')->insert(['public_id' => (string) Str::uuid(), 'organisation_id' => $ca->organisation_id, 'user_id' => $ca->id,
             'kind' => 'staff', 'created_by_user_id' => $hr->id, 'created_at' => now(), 'updated_at' => now()]));
         $this->assertRefused('23514', fn () => DB::table('hr_workers')->insert(['public_id' => (string) Str::uuid(), 'organisation_id' => $ca->organisation_id, 'user_id' => null,
