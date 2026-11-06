@@ -9,6 +9,7 @@ use App\Domain\Organisation\Models\Branch;
 use App\Domain\Visit\Billing\Models\ChargeDefinition;
 use App\Domain\Visit\Billing\Models\PriceBook;
 use App\Domain\Visit\Billing\Models\PriceEntry;
+use App\Domain\Visit\Billing\Services\PriceHistoryService;
 use App\Domain\Visit\Billing\Services\PriceListCheckService;
 use App\Domain\Visit\Billing\Services\PricePublicationService;
 use App\Domain\Visit\Billing\Services\PricingReferenceAdministrationService;
@@ -123,6 +124,34 @@ class PricingController extends Controller
             'branch' => $branch ? ['id' => $branch->id, 'name' => $branch->name] : null,
             'filters' => $filters,
             'result' => $branch ? $checks->check($actor, $branch, $filters, (int) ($data['page'] ?? 1)) : null,
+        ]);
+    }
+
+    public function history(Request $request, ChargeDefinition $charge, BranchAccessService $branches, PriceHistoryService $history): Response
+    {
+        try {
+            $data = $request->validate([
+                'book' => ['nullable', 'uuid'],
+                'from' => ['nullable', Rule::in(['price-check'])],
+                'page' => ['sometimes', 'integer', 'min:1', 'max:10000'],
+            ], [
+                'book.uuid' => 'Choose a price book from the list.',
+                'from.in' => 'That page link is not recognised. Open the history from Pricing.',
+                'page.*' => 'That page number is not valid. Go back to the first page.',
+            ]);
+        } catch (ValidationException $exception) {
+            // Stay on this page with the message, never back() to wherever the session last was.
+            // Keep the way back when it was valid.
+            $from = $request->query('from') === 'price-check' ? ['from' => 'price-check'] : [];
+            throw $exception->redirectTo(route('pricing.charges.history', ['charge' => $charge, ...$from]));
+        }
+        $actor = $request->user();
+        $result = $history->history($actor, $charge, $branches->activeBranch($actor), $data['book'] ?? null, (int) ($data['page'] ?? 1));
+
+        return Inertia::render('Pricing/PriceHistory', [
+            'filters' => ['book' => $result['book']],
+            'from' => $data['from'] ?? null,
+            'result' => $result,
         ]);
     }
 
