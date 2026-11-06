@@ -62,7 +62,7 @@ const cells = computed(
 // Opaque backgrounds mix the header and hover tints over the card so scrolled cells never show through.
 const stickyBase = 'sticky left-0 z-10 shadow-[1px_0_0_var(--border)]';
 const stickyHead = `${stickyBase} bg-[color-mix(in_oklab,var(--muted)_60%,var(--card))]`;
-const stickyCell = `${stickyBase} bg-card [tr:hover_&]:bg-[color-mix(in_oklab,var(--muted)_40%,var(--card))]`;
+const stickyCell = `${stickyBase} bg-card transition-colors [tr:hover_&]:bg-[color-mix(in_oklab,var(--muted)_40%,var(--card))]`;
 const pending = ref<Record<string, boolean>>({});
 const error = ref('');
 const busy = ref(false);
