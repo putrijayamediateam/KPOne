@@ -101,6 +101,7 @@
 }
 
 :root {
+    color-scheme: light;
     --background: #f8f9fa;
     --foreground: #18181b;
     --card: #ffffff;
@@ -146,6 +147,7 @@
 }
 
 .dark {
+    color-scheme: dark;
     --background: hsl(0 0% 3.9%);
     --foreground: hsl(0 0% 98%);
     --card: hsl(0 0% 3.9%);
@@ -240,6 +242,17 @@
 
     .kp-tabular {
         @apply text-right tabular-nums;
+    }
+}
+
+/*
+ * DD-07: the :root and .dark blocks above also set color-scheme, so the browser draws its own
+ * parts of form controls (date and time picker icons, checkboxes, scrollbars) for the theme
+ * showing. Printed documents and labels stay light.
+ */
+@media print {
+    :root:has(.document-print, .label-preview) {
+        color-scheme: light;
     }
 }
 
