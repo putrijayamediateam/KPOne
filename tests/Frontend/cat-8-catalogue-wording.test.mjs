@@ -35,4 +35,6 @@ test('the Indication field says it prints on drug labels, connected to the input
         /:aria-describedby="hint \? `\$\{listboxId\}-hint` : undefined"/,
     );
     assert.match(picker, /v-if="hint"\s+:id="`\$\{listboxId\}-hint`"/);
+    // Daniel: both help lines at the help-text minimum (text-xs, 12 px), never 11 px.
+    assert.doesNotMatch(picker, /text-\[11px\]/);
 });

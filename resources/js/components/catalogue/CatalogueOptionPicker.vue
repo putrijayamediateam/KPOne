@@ -272,13 +272,13 @@ const onKeydown = (event: KeyboardEvent) => {
                 <ChevronDown class="size-4" aria-hidden="true" />
             </button>
         </div>
-        <p class="text-[11px] text-muted-foreground">
+        <p class="text-xs text-muted-foreground">
             Choose a saved value or type a new one to add it to the list.
         </p>
         <p
             v-if="hint"
             :id="`${listboxId}-hint`"
-            class="text-[11px] text-muted-foreground"
+            class="text-xs text-muted-foreground"
         >
             {{ hint }}
         </p>
