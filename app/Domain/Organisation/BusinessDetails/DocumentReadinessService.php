@@ -66,9 +66,7 @@ final class DocumentReadinessService
                 $missing[] = 'logo (configured but unavailable)';
             }
             $hasFooter = trim((string) $footers->get($branch->id)?->text) !== '';
-            if (! $hasFooter) {
-                $missing[] = 'print footer';
-            }
+            // The footer blocks no letter, so it is reported on its own ("Needs footer"), never in the blocking list.
 
             $blockedLetters = match (true) {
                 $logoState === 'unavailable' => ['MC', 'referral', 'attendance'],

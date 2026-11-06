@@ -48,6 +48,14 @@ test('"Letters blocked" names the letters, and a missing footer is a warning', (
     );
 });
 
+test('the footer is its own "Needs footer" warning, never in the blocking list', () => {
+    assert.doesNotMatch(service, /\$missing\[\] = 'print footer'/);
+    assert.match(
+        template,
+        /v-if="\s*!row\.hasFooter &&\s*row\.status === 'letters_blocked'\s*"[\s\S]*?label="Needs footer"\s+tone="warning"/,
+    );
+});
+
 test('at most two missing items, then "+N more" with the full list', () => {
     assert.match(
         page,
@@ -61,7 +69,14 @@ test('at most two missing items, then "+N more" with the full list', () => {
         template,
         /\+\{\{\s*hiddenMissing\(row\)\.length\s*\}\}\s*more/,
     );
-    assert.match(template, /`All missing: \$\{row\.missing\.join\(', '\)\}`/);
+    // Daniel: the full list from 768 px only; on a phone the short line plus "Show all N missing".
+    assert.match(
+        template,
+        /class="hidden text-xs break-words text-muted-foreground md:block"\s+data-testid="missing-full"/,
+    );
+    assert.match(template, /data-testid="missing-short"/);
+    assert.match(template, /Show all \{\{ row\.missing\.length \}\} missing/);
+    assert.doesNotMatch(template, /All missing:/);
 });
 
 test('the active branch can jump to the fix; other branches say how to switch', () => {

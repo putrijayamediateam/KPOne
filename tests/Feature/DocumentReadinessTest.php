@@ -74,7 +74,9 @@ class DocumentReadinessTest extends VisitTestCase
 
         $row = $this->row();
         $this->assertSame('needs_footer', $row['status']);
-        $this->assertSame(['print footer'], $row['missing']);
+        // The footer blocks no letter, so it is never in the blocking list; it is reported as hasFooter.
+        $this->assertSame([], $row['missing']);
+        $this->assertFalse($row['hasFooter']);
         $this->assertSame([], $row['blockedLetters']);
         $this->assertTrue($row['isActive']);
         $this->assertSame('none', $row['logoState']);
@@ -106,9 +108,10 @@ class DocumentReadinessTest extends VisitTestCase
 
         $this->assertSame('letters_blocked', $row['status']);
         $this->assertSame(
-            ['clinic name', 'address line 1', 'postcode', 'city', 'state', 'country', 'phone or email', 'print footer'],
+            ['clinic name', 'address line 1', 'postcode', 'city', 'state', 'country', 'phone or email'],
             $row['missing'],
         );
+        $this->assertFalse($row['hasFooter']);
     }
 
     public function test_a_configured_logo_that_is_missing_or_changed_blocks_every_letter_and_a_good_one_is_fine(): void

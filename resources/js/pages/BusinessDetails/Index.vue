@@ -4,7 +4,6 @@ import { useForm } from '@inertiajs/vue3';
 import { computed, nextTick, onUnmounted, ref, watch } from 'vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
-import { DisclosureText } from '@/components/ui/disclosure';
 import { EmptyState } from '@/components/ui/state';
 import { StatusBadge } from '@/components/ui/status';
 
@@ -315,27 +314,49 @@ const reload = () =>
                                 :label="readinessLabel(row)"
                                 :tone="readinessTone(row)"
                             />
-                        </div>
-                        <p
-                            v-if="row.missing.length"
-                            class="text-xs break-words text-muted-foreground"
-                        >
-                            Missing: {{ shownMissing(row).join(', ')
-                            }}<template v-if="hiddenMissing(row).length">
-                                · +{{
-                                    hiddenMissing(row).length
-                                }}
-                                more</template
-                            >
-                        </p>
-                        <div
-                            v-if="hiddenMissing(row).length"
-                            class="min-w-0 text-xs"
-                        >
-                            <DisclosureText
-                                :text="`All missing: ${row.missing.join(', ')}`"
+                            <StatusBadge
+                                v-if="
+                                    !row.hasFooter &&
+                                    row.status === 'letters_blocked'
+                                "
+                                status="document_readiness_footer"
+                                label="Needs footer"
+                                tone="warning"
                             />
                         </div>
+                        <template v-if="row.missing.length">
+                            <p
+                                class="hidden text-xs break-words text-muted-foreground md:block"
+                                data-testid="missing-full"
+                            >
+                                Missing: {{ row.missing.join(', ') }}
+                            </p>
+                            <p
+                                class="text-xs break-words text-muted-foreground md:hidden"
+                                data-testid="missing-short"
+                            >
+                                Missing: {{ shownMissing(row).join(', ')
+                                }}<template v-if="hiddenMissing(row).length">
+                                    · +{{
+                                        hiddenMissing(row).length
+                                    }}
+                                    more</template
+                                >
+                            </p>
+                            <details
+                                v-if="hiddenMissing(row).length"
+                                class="text-xs text-muted-foreground md:hidden"
+                            >
+                                <summary
+                                    class="flex min-h-11 cursor-pointer items-center font-medium text-foreground"
+                                >
+                                    Show all {{ row.missing.length }} missing
+                                </summary>
+                                <p class="break-words">
+                                    {{ row.missing.join(', ') }}
+                                </p>
+                            </details>
+                        </template>
                         <p
                             v-if="row.logoState === 'none'"
                             class="text-xs text-muted-foreground"
@@ -343,7 +364,10 @@ const reload = () =>
                             No logo (optional)
                         </p>
                     </div>
-                    <div v-if="row.missing.length" class="min-w-0 text-xs">
+                    <div
+                        v-if="row.missing.length || !row.hasFooter"
+                        class="min-w-0 text-xs"
+                    >
                         <Button
                             v-if="row.isActive && canFix(row)"
                             variant="ghost"
