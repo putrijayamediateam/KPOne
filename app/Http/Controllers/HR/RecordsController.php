@@ -10,6 +10,7 @@ use App\Domain\HR\Records\Services\DocumentService;
 use App\Domain\HR\Records\Services\RecordCorrectionService;
 use App\Domain\HR\Records\Services\RecordsPageService;
 use App\Domain\HR\Records\Services\StaffFileService;
+use App\Domain\HR\Sops\Services\SopsPageService;
 use App\Http\Controllers\Controller;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\JsonResponse;
@@ -29,7 +30,9 @@ class RecordsController extends Controller
 
     public function index(Request $request, RecordsPageService $pages): Response
     {
-        return Inertia::render('HR/Records', ['records' => $pages->page($request->user(), $request->only(['tab', 'q', 'branch', 'type', 'status']))]);
+        return Inertia::render('HR/Records', ['records' => $pages->page($request->user(), $request->only(['tab', 'q', 'branch', 'type', 'status'])),
+            // HR-5c: how many SOPs you still have to read, linking to /hr/sops.
+            'sopsToRead' => app(SopsPageService::class)->toRead($request->user())]);
     }
 
     public function show(Request $request, RecordsPageService $pages, string $worker): Response

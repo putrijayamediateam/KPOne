@@ -2,6 +2,7 @@
 import { Head, Link, router } from '@inertiajs/vue3';
 import { useForm } from '@inertiajs/vue3';
 import { computed, nextTick, onUnmounted, ref, watch } from 'vue';
+import FileChooseButton from '@/components/catalogue/FileChooseButton.vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -21,6 +22,8 @@ type Details = {
     state: string;
     country: string;
     phone: string | null;
+    // CAT-9: optional second clinic phone, printed as "Tel: A / B".
+    phone_secondary: string | null;
     email: string | null;
 };
 type OrganisationDetails = {
@@ -96,6 +99,7 @@ const values = () => ({
     ...props.letterhead.organisation,
     address_line_2: props.letterhead.details.address_line_2 ?? '',
     phone: props.letterhead.details.phone ?? '',
+    phone_secondary: props.letterhead.details.phone_secondary ?? '',
     email: props.letterhead.details.email ?? '',
     registration_type: props.letterhead.organisation.registration_type ?? 'BRN',
     registration_number:
@@ -134,7 +138,7 @@ const saveFooter = () => {
     });
 };
 const blocked = ref(false);
-const fileInput = ref<HTMLInputElement | null>(null);
+const fileInput = ref<{ clear: () => void } | null>(null);
 const preview = ref('');
 const clearPreview = () => {
     if (preview.value) {
@@ -142,10 +146,9 @@ const clearPreview = () => {
     }
 
     preview.value = '';
+    previewFailed.value = false;
 
-    if (fileInput.value) {
-        fileInput.value.value = '';
-    }
+    fileInput.value?.clear();
 };
 const adopt = () => {
     clearPreview();
@@ -161,6 +164,9 @@ const chooseLogo = (event: Event) => {
         URL.revokeObjectURL(preview.value);
     }
 
+    previewFailed.value = false;
+    // A new choice replaces the refused one, so its old error no longer applies.
+    form.clearErrors('logo');
     preview.value = file ? URL.createObjectURL(file) : '';
     form.logo = file;
     form.remove_logo = false;
@@ -170,11 +176,29 @@ const removeLogo = () => {
     form.logo = null;
     form.remove_logo = true;
 };
+// CAT-10 (Daniel): the line under the logo button says what will happen on Save.
+const logoStatus = computed(() =>
+    form.logo
+        ? `${form.logo.name} · not saved yet`
+        : form.remove_logo
+          ? 'Logo will be removed when you save.'
+          : props.letterhead.logo
+            ? 'Current logo saved.'
+            : 'No file chosen',
+);
+// CAT-10 (Daniel): never preview a file that failed the check. If the chosen file does not load as an image, or
+// the server refused it, the box falls back to the saved logo (or "No logo").
+const previewFailed = ref(false);
 const logoUrl = computed(
     () =>
-        preview.value ||
+        (previewFailed.value || form.errors.logo ? '' : preview.value) ||
         (form.remove_logo ? '' : (props.letterhead.logo?.url ?? '')),
 );
+const previewError = () => {
+    if (preview.value) {
+        previewFailed.value = true;
+    }
+};
 const save = () => {
     if (!props.canEdit || blocked.value || form.processing) {
         return;
@@ -205,6 +229,7 @@ const stop = router.on('start', (event) => {
             'state',
             'country',
             'phone',
+            'phone_secondary',
             'email',
             'legal_name',
             'registration_number',
@@ -493,9 +518,7 @@ const reload = () =>
                         </div>
                         <div class="min-w-0 space-y-4">
                             <div class="grid gap-2">
-                                <Label for="phone"
-                                    >Clinic phone number (optional)</Label
-                                >
+                                <Label for="phone">Phone (optional)</Label>
                                 <Input
                                     id="phone"
                                     v-model="form.phone"
@@ -515,6 +538,33 @@ const reload = () =>
                                 <InputError
                                     id="phone-error"
                                     :message="form.errors.phone"
+                                />
+                            </div>
+                            <div class="grid gap-2">
+                                <Label for="phone_secondary"
+                                    >Second phone (optional)</Label
+                                >
+                                <Input
+                                    id="phone_secondary"
+                                    v-model="form.phone_secondary"
+                                    name="phone_secondary"
+                                    type="tel"
+                                    maxlength="40"
+                                    :aria-invalid="
+                                        !!form.errors.phone_secondary
+                                    "
+                                    aria-describedby="phone_secondary-help phone_secondary-error"
+                                />
+                                <p
+                                    id="phone_secondary-help"
+                                    class="mt-1 text-xs text-muted-foreground"
+                                >
+                                    For documents that show two numbers, as
+                                    "Tel: A / B".
+                                </p>
+                                <InputError
+                                    id="phone_secondary-error"
+                                    :message="form.errors.phone_secondary"
                                 />
                             </div>
                             <div class="grid gap-2">
@@ -555,6 +605,7 @@ const reload = () =>
                                             :src="logoUrl"
                                             alt="Company logo preview"
                                             class="max-h-full max-w-full object-contain"
+                                            @error="previewError"
                                         />
                                         <span
                                             v-else
@@ -564,47 +615,39 @@ const reload = () =>
                                     </div>
                                     <div
                                         v-if="canEdit"
-                                        class="min-w-0 flex-1 space-y-2"
+                                        class="min-w-0 flex-1 basis-40 space-y-2"
                                     >
-                                        <Label for="logo">Choose logo</Label>
-                                        <input
+                                        <!-- CAT-10 (Daniel): a real button, with the file's state on its own line and the error under it. -->
+                                        <FileChooseButton
                                             id="logo"
                                             ref="fileInput"
-                                            name="logo"
-                                            type="file"
                                             accept="image/jpeg,image/png"
-                                            class="block w-full min-w-0 text-xs file:mr-2 file:cursor-pointer file:rounded-md file:border file:border-border file:bg-background file:px-3 file:py-2 file:text-xs"
+                                            :label="
+                                                logoUrl
+                                                    ? 'Replace logo'
+                                                    : 'Choose logo'
+                                            "
+                                            :status="logoStatus"
+                                            status-id="logo-file-name"
                                             aria-describedby="logo-error"
-                                            :aria-invalid="!!form.errors.logo"
+                                            data-testid="choose-logo"
                                             @change="chooseLogo"
-                                        />
+                                        >
+                                            <InputError
+                                                id="logo-error"
+                                                :message="form.errors.logo"
+                                            />
+                                        </FileChooseButton>
                                         <Button
                                             v-if="logoUrl"
                                             type="button"
                                             variant="outline"
-                                            class="h-8 text-xs"
+                                            class="min-h-11 text-xs sm:min-h-9"
                                             @click="removeLogo"
                                             >Remove logo</Button
                                         >
-                                        <p
-                                            v-if="form.remove_logo"
-                                            class="text-xs text-muted-foreground"
-                                        >
-                                            Logo removal will be applied when
-                                            you save.
-                                        </p>
-                                        <p
-                                            v-if="form.logo"
-                                            class="text-xs text-muted-foreground"
-                                        >
-                                            New logo selected. Save to apply.
-                                        </p>
                                     </div>
                                 </div>
-                                <InputError
-                                    id="logo-error"
-                                    :message="form.errors.logo"
-                                />
                             </div>
                         </div>
                     </div>

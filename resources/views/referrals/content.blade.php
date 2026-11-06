@@ -20,7 +20,7 @@ html,body{margin:0;background:#eee;color:#18181b;font:11pt/1.35 Arial,sans-serif
         @if($snapshot['letterhead']['logo'])<img src="{{ $snapshot['letterhead']['logo']['url'] }}" alt="Clinic logo">@endif
         <div><strong>{{ $snapshot['letterhead']['details']['clinic_name'] }}</strong><br>
         {{ implode(', ', array_filter(array_intersect_key($snapshot['letterhead']['details'], array_flip(['address_line_1','address_line_2','postcode','city','state','country'])))) }}<br>
-        {{ implode(' / ', array_filter(array_intersect_key($snapshot['letterhead']['details'], array_flip(['phone','email'])))) }}</div>
+        {{ ($snapshot['letterhead']['details']['phone_secondary'] ?? null) !== null ? 'Tel: '.$snapshot['letterhead']['details']['phone'].' / '.$snapshot['letterhead']['details']['phone_secondary'].(($snapshot['letterhead']['details']['email'] ?? null) ? ' · '.$snapshot['letterhead']['details']['email'] : '') : implode(' / ', array_filter(array_intersect_key($snapshot['letterhead']['details'], array_flip(['phone','email'])))) }}</div>
     </header>
     <h1>{{ $snapshot['title'] }}</h1>
     <div class="ref-draft">DRAFT WORDING — awaiting doctor approval / DRAF — menunggu kelulusan doktor</div>
