@@ -147,6 +147,11 @@ return Application::configure(basePath: dirname(__DIR__))
             'payments',
             'amount_sen',
             'reference',
+            // HR-5a: a health item's Done or Not done and its date, and credential dates, are never flashed back.
+            'health',
+            'issued_on',
+            'expires_on',
+            'issuing_body',
             'member_reference',
             'reason',
             'coverage',
