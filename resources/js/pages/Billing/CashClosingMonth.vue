@@ -71,7 +71,9 @@ const lastDay = computed(
 // BIL-6: refunds can make a day's cash below zero, which the shared myr() does not format (same as the daily page).
 const money = (sen: number) => (sen < 0 ? `−${myr(-sen)}` : myr(sen));
 const signed = (sen: number) =>
-    sen === 0 ? myr(0) : `${myr(Math.abs(sen))} ${sen < 0 ? 'short' : 'over'}`;
+    sen === 0
+        ? 'Matches'
+        : `${myr(Math.abs(sen))} ${sen < 0 ? 'short' : 'over'}`;
 
 const asDate = (iso: string) => {
     const [y, m, d] = iso.split('-').map(Number);
@@ -218,10 +220,20 @@ const goTo = (month: string | null) => {
                 :aria-disabled="
                     view.nextMonth === null || loading ? 'true' : undefined
                 "
+                :title="
+                    view.nextMonth === null
+                        ? 'This is the current month'
+                        : undefined
+                "
                 data-testid="month-next"
                 @click="goTo(view.nextMonth)"
             >
-                <span>Next<span class="max-sm:sr-only"> month</span></span>
+                <span
+                    >Next<span class="max-sm:sr-only"> month</span
+                    ><span v-if="view.nextMonth === null" class="sr-only"
+                        >, this is the current month</span
+                    ></span
+                >
                 <ChevronRight class="size-4" aria-hidden="true" />
             </button>
         </nav>
@@ -364,7 +376,7 @@ const goTo = (month: string | null) => {
             No cash counts in {{ monthTitle }}.
         </p>
 
-        <div v-if="!view.beforeStart" class="hidden md:block">
+        <div v-if="!view.beforeStart" class="hidden lg:block">
             <OperationalTable
                 :label="`Cash closings, ${monthTitle}`"
                 :columns="9"
@@ -476,7 +488,7 @@ const goTo = (month: string | null) => {
 
         <ul
             v-if="!view.beforeStart"
-            class="space-y-2 md:hidden"
+            class="space-y-2 lg:hidden"
             :aria-busy="loading"
             :aria-label="`Cash closings, ${monthTitle}`"
         >

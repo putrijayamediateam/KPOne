@@ -70,6 +70,11 @@ test('statuses have explicit tones and flags are text with an icon, never colour
 test('money allows minus and the difference reads short or over', () => {
     assert.ok(month.includes('(sen < 0 ? `−${myr(-sen)}` : myr(sen))'));
     assert.ok(month.includes("${sen < 0 ? 'short' : 'over'}"));
+    assert.ok(month.includes("? 'Matches'"));
+    // Nine columns do not fit below 1024 px: cards until lg.
+    assert.ok(month.includes('class="hidden lg:block"'));
+    assert.ok(month.includes('class="space-y-2 lg:hidden"'));
+    assert.ok(month.includes(', this is the current month'));
     assert.ok(
         month.includes(
             'Totals of the counts shown; days not counted add nothing.',
