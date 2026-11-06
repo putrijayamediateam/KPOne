@@ -20,6 +20,7 @@ import {
     CardHeader,
     CardTitle,
 } from '@/components/ui/card';
+import { PageHeader } from '@/components/ui/page-header';
 import { formatAuditEventLabel, formatRoleLabel } from '@/lib/displayLabels';
 import { formatDate, formatDateTime } from '@/lib/presentation';
 import type { StaffDetail, StaffOptions } from '@/types';
@@ -92,38 +93,24 @@ const setPrimary = (assignmentId: number) => {
 <template>
     <Head :title="staff.name" />
     <main class="flex flex-1 flex-col gap-5 p-4 md:p-7">
-        <div
-            class="flex flex-col justify-between gap-4 lg:flex-row lg:items-start"
-        >
-            <div class="flex items-start gap-3">
-                <div class="rounded-xl bg-success/10 p-2.5 text-success">
-                    <UserRound class="size-5" />
-                </div>
-                <div>
-                    <div class="flex flex-wrap items-center gap-2">
-                        <h1 class="text-2xl font-semibold tracking-tight">
-                            {{ staff.name }}
-                        </h1>
-                        <Badge
-                            :variant="
-                                staff.isActive ? 'secondary' : 'destructive'
-                            "
-                            :class="
-                                staff.isActive &&
-                                'border-success/25 bg-success/10 text-success hover:bg-success/10'
-                            "
-                            >{{ staff.isActive ? 'Active' : 'Inactive' }}</Badge
-                        >
-                    </div>
-                    <p
-                        class="text-sm [overflow-wrap:anywhere] text-muted-foreground"
-                    >
-                        {{ staff.staffNumber ?? 'No staff number' }} ·
-                        {{ staff.email }}
-                    </p>
-                </div>
-            </div>
-            <div class="flex flex-wrap gap-2">
+        <PageHeader :title="staff.name">
+            <template #title-extra>
+                <Badge
+                    :variant="staff.isActive ? 'secondary' : 'destructive'"
+                    :class="
+                        staff.isActive &&
+                        'border-success/25 bg-success/10 text-success hover:bg-success/10'
+                    "
+                    >{{ staff.isActive ? 'Active' : 'Inactive' }}</Badge
+                >
+            </template>
+            <template #description>
+                <span class="[overflow-wrap:anywhere]"
+                    >{{ staff.staffNumber ?? 'No staff number' }} ·
+                    {{ staff.email }}</span
+                >
+            </template>
+            <template #actions>
                 <Button variant="outline" as-child
                     ><Link href="/staff"
                         ><ArrowLeft class="size-4" /> Directory</Link
@@ -146,8 +133,8 @@ const setPrimary = (assignmentId: number) => {
                     :staff-name="staff.name"
                     :is-active="staff.isActive"
                 />
-            </div>
-        </div>
+            </template>
+        </PageHeader>
 
         <div
             class="grid gap-5 xl:grid-cols-[minmax(0,1.35fr)_minmax(320px,0.65fr)]"
