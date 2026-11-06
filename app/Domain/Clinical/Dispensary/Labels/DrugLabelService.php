@@ -162,7 +162,7 @@ final class DrugLabelService
                 }
             }
 
-            return ['batchNotes' => $batchNotes, 'printable' => $printable, 'reprints' => $reprints, 'labels' => ['clinic' => $details['clinic_name'], 'branch' => $branch->name, 'patient' => ['name' => $patient->full_name, 'patientNumber' => $patient->patient_number], 'date' => now()->setTimezone($branch->timezone)->format('d/m/Y H:i').' ('.$branch->timezone.')',
+            return ['batchNotes' => $batchNotes, 'printable' => $printable, 'reprints' => $reprints, 'labels' => ['clinic' => $details['clinic_name'], 'branch' => $branch->name, 'patient' => ['name' => $patient->full_name], 'date' => now()->setTimezone($branch->timezone)->format('d/m/Y H:i').' ('.$branch->timezone.')',
                 'items' => $output, 'blocked' => $blocked, 'pageSize' => DrugLabelLayout::DRUG_LABEL_PAGE_SIZE, 'token' => hash_hmac('sha256', json_encode($manifest, JSON_THROW_ON_ERROR), (string) config('app.key')), 'branchId' => $branch->id, 'excludedCount' => $itemPublicId === null ? $all->count() - $items->count() : 0]];
         }, 3);
     }

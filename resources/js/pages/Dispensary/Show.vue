@@ -1194,9 +1194,11 @@ const inputClass = 'mt-1 h-9 w-full rounded-md border px-2';
                                 instruction
                                 {{ dispensary.labelLimits?.instruction }},
                                 precaution
-                                {{ dispensary.labelLimits?.precaution }}. Route
-                                is not printed. Over-budget labels are blocked,
-                                never truncated.
+                                {{ dispensary.labelLimits?.precaution }},
+                                quantity {{ dispensary.labelLimits?.quantity }}.
+                                Dosage, frequency and instruction share 3
+                                printed rows. Route is not printed. Over-budget
+                                labels are blocked, never truncated.
                             </p>
                             <label
                                 >Quantity ({{ item.unit }})<input
@@ -1682,10 +1684,12 @@ const inputClass = 'mt-1 h-9 w-full rounded-md border px-2';
                             {{ dispensary.labelLimits?.frequency }}, duration
                             {{ dispensary.labelLimits?.duration }}, instruction
                             {{ dispensary.labelLimits?.instruction }},
-                            precaution
-                            {{ dispensary.labelLimits?.precaution }} characters.
-                            Route is not printed. Printing does not truncate
-                            saved text.
+                            precaution {{ dispensary.labelLimits?.precaution }},
+                            quantity
+                            {{ dispensary.labelLimits?.quantity }} characters.
+                            Dosage, frequency and instruction share 3 printed
+                            rows. Route is not printed. Printing does not
+                            truncate saved text.
                         </p>
                         <AllergyMatchWarning
                             v-if="matchesFor(chosen).length"

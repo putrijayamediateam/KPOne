@@ -67,7 +67,7 @@ final class DrugLabelLayout
                 $errors[] = $this->title($name).': unsupported control characters; label limit 0.';
             }
         }
-        foreach (['dosage', 'frequency'] as $name) {
+        foreach (['clinic', 'patient', 'name', 'quantity', 'dosage', 'frequency'] as $name) {
             if (trim($fields[$name] ?? '') === '') {
                 $errors[] = $this->title($name).': 0 characters; minimum 1.';
             }
@@ -195,14 +195,19 @@ final class DrugLabelLayout
         foreach ($matches[0] as $character) {
             $cells = max(1, mb_strwidth($character, 'UTF-8'));
             if ($width + $cells > $columns) {
+                if (trim($character) === '') {
+                    // The row is exactly full: end it here and drop the space at the break.
+                    $result[] = rtrim($line);
+                    $line = '';
+                    $width = 0;
+
+                    continue;
+                }
                 $space = mb_strrpos($line, ' ', 0, 'UTF-8');
                 $cut = $space !== false && $space > 0 ? $space : mb_strlen($line, 'UTF-8');
                 $result[] = rtrim(mb_substr($line, 0, $cut, 'UTF-8'));
                 $line = ltrim(mb_substr($line, $cut, null, 'UTF-8'));
                 $width = mb_strwidth($line, 'UTF-8');
-                if ($character === ' ' && $line === '') {
-                    continue;
-                }
             }
             $line .= $character;
             $width += $cells;

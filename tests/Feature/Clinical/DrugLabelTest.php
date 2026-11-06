@@ -123,10 +123,40 @@ class DrugLabelTest extends BillingTestCase
         $full = $layout->render([...$base, 'address' => str_repeat('a ', 40), 'phone' => '03-0000 0000', 'patient' => str_repeat('p ', 30), 'name' => str_repeat('n ', 25), 'instruction' => str_repeat('i ', 50), 'precaution' => str_repeat('c ', 25), 'duration' => '3 days', 'indication' => str_repeat('d ', 25)], '01/01/2027', null, false);
         $this->assertSame(['Label rows: 17 rows; label limit 13.'], $full['errors'], 'every block is within its own limit; only the total is over');
         $wide = $layout->render([...$base, 'dosage' => str_repeat('界', 48)], '01/01/2027', null, false);
+        $this->assertSame([], $wide['errors']);
+        $this->assertNotSame([], $wide['lines']);
         foreach ($wide['lines'] as $line) {
             $this->assertLessThanOrEqual(DrugLabelLayout::COLUMNS, mb_strwidth($line));
         }
         $this->assertSame(['width' => 100, 'height' => 62], DrugLabelLayout::DRUG_LABEL_PAGE_SIZE);
+    }
+
+    public function test_a_word_ending_at_the_row_edge_stays_on_its_row_and_no_character_is_lost(): void
+    {
+        // DSP-10 review: directions of exactly 3 full rows (144 cells) fit; one more word blocks.
+        $layout = new DrugLabelLayout;
+        $base = ['clinic' => 'Synthetic Clinic', 'patient' => 'Synthetic Patient', 'name' => 'Synthetic medicine', 'quantity' => '1'];
+        $row = str_repeat('abc ', 11).'abcd'; // exactly 48 cells
+        $first = str_repeat('abc ', 10).'ab'; // with "1, 1, " in front, exactly 48 cells
+        $fit = $layout->render([...$base, 'dosage' => '1', 'frequency' => '1', 'instruction' => "{$first} {$row} {$row}"], '01/01/2027', null, false);
+        $this->assertSame([], $fit['errors']);
+        $this->assertSame(['1, 1, '.mb_strtoupper($first), mb_strtoupper($row), mb_strtoupper($row)], array_slice($fit['lines'], 3, 3), 'each full row keeps its last word');
+        $over = $layout->render([...$base, 'dosage' => '1', 'frequency' => '1', 'instruction' => "{$first} {$row} {$row} x"], '01/01/2027', null, false);
+        $this->assertSame(['Directions: 4 rows (148 characters); label limit 3 rows.'], $over['errors']);
+
+        // Joining the printed directions rows with single spaces gives back the cleaned text exactly.
+        $text = 'Take one tablet after food with a full glass of water, then rest; avoid alcohol and driving while drowsy.';
+        $render = $layout->render([...$base, 'dosage' => '1', 'frequency' => '3 times a day', 'instruction' => "  {$text}\n"], '01/01/2027', null, false);
+        $this->assertSame([], $render['errors']);
+        $directions = array_slice($render['lines'], 3, 3);
+        $this->assertSame(mb_strtoupper('1, 3 times a day, '.$text), implode(' ', array_map('rtrim', $directions)));
+
+        // An empty clinic name, patient name, medicine name or quantity blocks the label instead of printing a blank row.
+        foreach (['clinic' => 'Clinic name', 'patient' => 'Patient', 'name' => 'Medicine name', 'quantity' => 'Quantity'] as $field => $title) {
+            $empty = $layout->render([...$base, 'dosage' => '1', 'frequency' => '1', $field => '  '], '01/01/2027', null, false);
+            $this->assertSame([], $empty['lines']);
+            $this->assertContains("{$title}: 0 characters; minimum 1.", $empty['errors']);
+        }
     }
 
     public function test_realistic_long_directions_fit_with_emphasised_identity_and_exact_decimal_display(): void

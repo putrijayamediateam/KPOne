@@ -7,7 +7,7 @@ const props = defineProps<{
     labels: {
         clinic: string;
         branch: string;
-        patient: { name: string; patientNumber: string };
+        patient: { name: string };
         date: string;
         items: Array<{
             name: string;
