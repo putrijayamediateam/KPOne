@@ -66,6 +66,7 @@ test('All SOPs: "N of M acknowledged", who hasn\'t as plain text with no red or 
         /\{\{ p\.name \}\}<\/span>[\s\S]{0,120}\{\{ p\.role[\s\S]{0,400}published \{\{ p\.publishedOn \}\}/,
     );
     assert.doesNotMatch(source.page, /danger|text-red|bg-red|destructive/);
+
     for (const label of ['Publish an SOP', 'New version', 'Withdraw']) {
         assert.match(
             page,
@@ -73,6 +74,7 @@ test('All SOPs: "N of M acknowledged", who hasn\'t as plain text with no red or 
             label,
         );
     }
+
     assert.match(page, /Its versions and acknowledgements are kept\./);
     assert.match(page, /title="No SOPs published yet\."/);
     assert.match(page, /accept="application\/pdf"/);
