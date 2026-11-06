@@ -1,6 +1,10 @@
 <script setup lang="ts">
 import { Head, Link, router, useForm, usePage } from '@inertiajs/vue3';
 import { computed, reactive, ref } from 'vue';
+import CompliancePanel from '@/components/hr/compliance/CompliancePanel.vue';
+import type { Compliance } from '@/components/hr/compliance/CompliancePanel.vue';
+import ComplianceRules from '@/components/hr/compliance/ComplianceRules.vue';
+import type { ComplianceSettings } from '@/components/hr/compliance/ComplianceRules.vue';
 import InputError from '@/components/InputError.vue';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -69,6 +73,8 @@ type Planner = {
     totals: number[];
     shortDays: { date: string; label: string }[];
     warnings: string[];
+    /** HR-5b: compliance warnings and fair rotation; null when no week is shown. */
+    compliance: Compliance | null;
     staffOptions: { id: number; label: string }[];
     rooms: { id: number; name: string }[];
     returnReasons: Option[];
@@ -89,6 +95,8 @@ type Minimums = {
     values: Record<string, Record<string, number>>;
     lockVersion: number;
     roles: { value: string; label: string; plural: string }[];
+    /** HR-5b rules, for Director and HR Manager only. */
+    compliance: ComplianceSettings | null;
 };
 
 const props = defineProps<{
@@ -761,6 +769,12 @@ const minimumError = (session: string, role: string) =>
                 </ul>
             </div>
 
+            <CompliancePanel
+                v-if="planner.compliance"
+                :compliance="planner.compliance"
+                :branch="planner.branch.name"
+            />
+
             <div
                 v-if="planner.warnings.length > 0"
                 role="status"
@@ -1151,6 +1165,13 @@ const minimumError = (session: string, role: string) =>
                     {{ minimumForm.processing ? 'Saving…' : 'Save minimums' }}
                 </Button>
             </div>
+
+            <ComplianceRules
+                v-if="roster.minimums.compliance"
+                :settings="roster.minimums.compliance"
+                :branch="roster.minimums.branch"
+                :week="roster.week.start"
+            />
         </section>
 
         <OperationalConfirmDialog
