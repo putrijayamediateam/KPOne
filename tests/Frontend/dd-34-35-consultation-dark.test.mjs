@@ -36,3 +36,11 @@ test('DD-35: the Call next dialog uses the popover token, not a hard-coded dark 
     );
     assert.doesNotMatch(callNext, /dark:bg-slate-900/);
 });
+
+test('DD-36: the My Queue link uses the success token, so it reads in dark mode', () => {
+    assert.match(
+        show,
+        /class="inline-flex items-center gap-1 text-xs font-medium text-success hover:underline"\s*>\s*<ArrowLeft class="size-3\.5" \/> My Queue/,
+    );
+    assert.doesNotMatch(show, /text-emerald-800/);
+});

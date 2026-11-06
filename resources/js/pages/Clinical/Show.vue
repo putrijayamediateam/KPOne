@@ -482,7 +482,7 @@ const changeHoldState = (action: 'hold' | 'resume') => {
             <div class="flex flex-wrap items-center gap-2">
                 <Link
                     href="/queue"
-                    class="inline-flex items-center gap-1 text-xs font-medium text-emerald-800 hover:underline"
+                    class="inline-flex items-center gap-1 text-xs font-medium text-success hover:underline"
                 >
                     <ArrowLeft class="size-3.5" /> My Queue
                 </Link>
