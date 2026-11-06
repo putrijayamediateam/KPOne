@@ -229,7 +229,8 @@ check items, keep them"). The rest stand unless the owner changes them.
     delegation that day: "BE ME, JUST APPROVE ALL NO NEED TO PUT ASIDE FOR ME TO APPROVE LATER"): `ClinicManagementTest`
     gains one line after `'/hr/credentials'`, `'/hr/sops' => ['hr.sops.acknowledge.own', 'hr.sops.manage.organisation'],`
     and nothing else. HR-5c's ship-it was given by B.E.R.N.I.S.S for the owner, once Daniel's verdict is OK (or OK with
-    changes, made). The PR opens after HR-5a (#356) and HR-5b (decision 50, on
+    changes, made). Daniel's verdict, relayed by B.E.R.N.I.S.S: OK, with one nit fixed (at 0 not yet acknowledged, the
+    button reads "Show versions" and no empty list opens). The PR opens after HR-5a (#356) and HR-5b (decision 50, on
     the HR-5b branch).
 
 ## 7. Open items and known limits

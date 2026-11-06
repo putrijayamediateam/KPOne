@@ -436,7 +436,9 @@ const withdrawn = computed(() =>
                         >{{
                             expanded === sop.id
                                 ? 'Hide details'
-                                : `Who hasn't acknowledged (${sop.notYet.length})`
+                                : sop.notYet.length
+                                  ? `Who hasn't acknowledged (${sop.notYet.length})`
+                                  : 'Show versions'
                         }}</Button
                     >
                     <Button
@@ -458,21 +460,17 @@ const withdrawn = computed(() =>
                     :id="`details-${sop.id}`"
                     class="grid gap-4 lg:grid-cols-2"
                 >
-                    <section :aria-labelledby="`notyet-${sop.id}`">
+                    <section
+                        v-if="sop.notYet.length"
+                        :aria-labelledby="`notyet-${sop.id}`"
+                    >
                         <h4
                             :id="`notyet-${sop.id}`"
                             class="mb-2 text-sm font-semibold"
                         >
                             Who hasn't acknowledged version {{ sop.version }}
                         </h4>
-                        <p
-                            v-if="!sop.notYet.length"
-                            class="text-sm text-muted-foreground"
-                        >
-                            Everyone it is for has acknowledged it.
-                        </p>
                         <ul
-                            v-else
                             class="flex flex-col divide-y text-sm"
                             data-test="sop-not-yet"
                         >

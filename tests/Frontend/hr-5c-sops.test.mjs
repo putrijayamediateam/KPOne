@@ -76,6 +76,12 @@ test('All SOPs: "N of M acknowledged", who hasn\'t as plain text with no red or 
     }
 
     assert.match(page, /Its versions and acknowledgements are kept\./);
+    // At 0 there is no empty who-hasn't list, only the versions (Daniel, HR-5c nit).
+    assert.match(
+        page,
+        /sop\.notYet\.length\s*\?\s*`Who hasn't acknowledged \(\$\{sop\.notYet\.length\}\)`\s*:\s*'Show versions'/,
+    );
+    assert.match(page, /<section\s+v-if="sop\.notYet\.length"/);
     assert.match(page, /title="No SOPs published yet\."/);
     assert.match(page, /accept="application\/pdf"/);
     assert.match(page, /PDF only, up to \{\{ sops\.options\.maxMb \}\} MB\./);
