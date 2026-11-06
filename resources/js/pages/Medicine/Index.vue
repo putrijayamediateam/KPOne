@@ -1045,6 +1045,7 @@ const toggleDescription = computed(() => {
                                 v-model="form.default_indication"
                                 type="indication"
                                 label="Indication"
+                                hint="Prints on drug labels: up to 72 characters."
                                 :error="form.errors.default_indication"
                             />
                         </div>
@@ -1433,8 +1434,8 @@ const toggleDescription = computed(() => {
             :open="pendingToggle.row !== null"
             :title="
                 pendingToggle.row?.isActive
-                    ? 'Deactivate Medicine'
-                    : 'Activate Medicine'
+                    ? 'Deactivate medicine'
+                    : 'Activate medicine'
             "
             :description="toggleDescription"
             :confirm-label="
