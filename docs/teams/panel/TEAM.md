@@ -93,6 +93,7 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php`.
 | PNL-5 | PostgreSQL contention tests on one Panel claim: split against single payment, two part payments, a reversal against a new payment in both orders, two reversals, a double-submitted split payment (`PostgresPanelPaymentRegressionTest`, serial Contention suite); tests only | #267 |
 | PNL-11 | Panel Claims list on phones and tablets (design debt DD-31): below 1024 px each claim or invoice is a card with every table field, its checkbox (same claim-pack and bulk-claim rules) and its actions menu, plus a "Select all" row above the cards; the Columns menu shows from 1024 px only; Clear puts focus on the visible Select all, or the first claim that can still be ticked; frontend only | #326 (merged as `ce0d3d8`) |
 | PNL-12 | Small leftovers: the claim pack prints claims in the order they were ticked (cover and pages, audit `claim_ids` too); each printed page of a claim's invoice table repeats "Panel claim N · invoice number" (print only, no patient name); the Submissions and Payouts cards read "1 claim" / "N claims", and Pending and Overdue count invoices ("1 invoice" / "N invoices"); a test for a bulk claim whose visits fall on different dates | (this PR) |
+| PNL-16 | The claim pack prints "Balance not claimed from the Panel" (invoice total minus the Panel share) under the bold Panel share line when the claim is below the invoice total; no row for a full claim or a claim above the total; it never says who pays the balance (patient, pay later or already paid); print and screen, frontend only | (this PR) |
 
 ## 6. Owner decisions already made (never ask again)
 
@@ -149,6 +150,8 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php`.
 23. PNL-12 (owner chose "start 3" and "Ticked order", 2026-11-06): a claim pack prints its claims in the order
     the officer ticked them, not by claim number; the owner approved changing the one existing `PanelClaimPackTest`
     assertion that pinned claim-number order.
+26. PNL-16 (owner said "start 2", 2026-11-06): the pack's balance line reads "Balance not claimed from the Panel" (Arjun's
+    wording choice), because the rest is not always paid by the patient.
 
 ## 7. Open items and known limits
 
@@ -192,7 +195,7 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php`.
   (PNL-12); the totals, remarks and photos stay together and, if they move to the next page, carry the same
   reference line (PNL-12); photo file names
   print as uploaded, so a name could carry clinical text; when the claim is below the invoice total the page
-  shows "Amount claimed (Panel share)" but no "patient pays the rest" line.
+  shows "Amount claimed (Panel share)" and, below it, "Balance not claimed from the Panel" (PNL-16).
 - **Staff names (PNL-6c, built 2026-11-05, B.E.R.N.I.S.S for the owner):** the Panel Claims list "Updated by"
   and a claim page's Logs now follow the BIL-2 staff-visibility rule like every other Panel page; a name the
   viewer may not see reads "Staff member". Every claim event has an actor (the column is required), so no event
@@ -282,3 +285,4 @@ Second backlog, chosen by the owner on 2026-11-05 ("panel order ok", relayed by 
    Overdue tabs; frontend only.
 10. **PNL-12 Small leftovers. (Built 2026-11-06.)** Ticked order in the claim pack, the claim reference repeated
     on each printed page and above the totals, "1 claim" and "N invoices" on the summary cards, and a bulk-claim test across visit dates.
+14. **PNL-16 Balance line on the claim pack. (Built 2026-11-06.)**

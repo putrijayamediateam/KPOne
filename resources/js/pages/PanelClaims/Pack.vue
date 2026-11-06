@@ -75,6 +75,11 @@ const countLabel = computed(
         `${props.pack.claimCount} claim${props.pack.claimCount === 1 ? '' : 's'}`,
 );
 const signed = (sen: number) => (sen < 0 ? '−' : '+') + myr(Math.abs(sen));
+// PNL-16: never negative; a claim above the invoice total (claim-only adjustment) shows no balance row.
+const unclaimedSen = (claim: {
+    invoiceTotalSen: number;
+    claimAmountSen: number;
+}) => Math.max(0, claim.invoiceTotalSen - claim.claimAmountSen);
 const quantity = (value: string) => value.replace(/\.?0+$/, '') || '0';
 const print = () => window.print();
 </script>
@@ -397,6 +402,14 @@ const print = () => window.print();
                         <div class="pack-totals-final">
                             <dt>Amount claimed (Panel share)</dt>
                             <dd>{{ myr(claim.claimAmountSen) }}</dd>
+                        </div>
+                        <!-- PNL-16: what the Panel is not asked for; who pays it is not stated (patient, pay later or already paid). -->
+                        <div
+                            v-if="unclaimedSen(claim) > 0"
+                            data-testid="pack-unclaimed-balance"
+                        >
+                            <dt>Balance not claimed from the Panel</dt>
+                            <dd>{{ myr(unclaimedSen(claim)) }}</dd>
                         </div>
                     </dl>
                     <p
