@@ -27,6 +27,8 @@ defineProps<{
             subjectId: number | null;
             occurredAt: string;
             roleNames: string[];
+            /** Q-4c: a short structural note, for example "Via Call next, from the Queue board". */
+            detail?: string | null;
         }>;
         prev_page_url: string | null;
         next_page_url: string | null;
@@ -92,6 +94,13 @@ const formatTime = (value: string) =>
                                                 log.roleNames,
                                             )
                                         }}
+                                    </div>
+                                    <div
+                                        v-if="log.detail"
+                                        class="text-xs text-muted-foreground"
+                                        data-testid="audit-detail"
+                                    >
+                                        {{ log.detail }}
                                     </div>
                                     <div
                                         v-if="log.subjectType"

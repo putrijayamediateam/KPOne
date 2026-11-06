@@ -733,8 +733,8 @@ const toggleDescription = computed(() => {
             :open="pendingToggle.row !== null"
             :title="
                 pendingToggle.row?.isActive
-                    ? 'Deactivate Clinical Service'
-                    : 'Activate Clinical Service'
+                    ? 'Deactivate clinical service'
+                    : 'Activate clinical service'
             "
             :description="toggleDescription"
             :confirm-label="

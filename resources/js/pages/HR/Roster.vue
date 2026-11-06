@@ -1,6 +1,10 @@
 <script setup lang="ts">
 import { Head, Link, router, useForm, usePage } from '@inertiajs/vue3';
 import { computed, reactive, ref } from 'vue';
+import CompliancePanel from '@/components/hr/compliance/CompliancePanel.vue';
+import type { Compliance } from '@/components/hr/compliance/CompliancePanel.vue';
+import ComplianceRules from '@/components/hr/compliance/ComplianceRules.vue';
+import type { ComplianceSettings } from '@/components/hr/compliance/ComplianceRules.vue';
 import InputError from '@/components/InputError.vue';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -69,6 +73,8 @@ type Planner = {
     totals: number[];
     shortDays: { date: string; label: string }[];
     warnings: string[];
+    /** HR-5b: compliance warnings and fair rotation; null when no week is shown. */
+    compliance: Compliance | null;
     staffOptions: { id: number; label: string }[];
     rooms: { id: number; name: string }[];
     returnReasons: Option[];
@@ -89,9 +95,13 @@ type Minimums = {
     values: Record<string, Record<string, number>>;
     lockVersion: number;
     roles: { value: string; label: string; plural: string }[];
+    /** HR-5b rules, for Director and HR Manager only. */
+    compliance: ComplianceSettings | null;
 };
 
 const props = defineProps<{
+    /** HR-5a: your own expiring or expired credentials, in words. */
+    credentialReminders?: string[];
     roster: {
         tab: 'my' | 'planner' | 'minimums';
         tabs: ('my' | 'planner' | 'minimums')[];
@@ -545,6 +555,20 @@ const minimumError = (session: string, role: string) =>
             aria-labelledby="my-shifts"
             class="flex flex-col gap-3"
         >
+            <!-- HR-5a: your expiring or expired credentials, in words; inside KPOne only. -->
+            <ul
+                v-if="credentialReminders?.length"
+                class="flex flex-col gap-1 text-sm"
+                data-test="credential-reminders"
+            >
+                <li v-for="r in credentialReminders" :key="r">
+                    <Link
+                        href="/hr/credentials"
+                        class="underline underline-offset-4"
+                        >{{ r }}</Link
+                    >
+                </li>
+            </ul>
             <div class="flex flex-wrap items-start justify-between gap-2">
                 <div>
                     <h2 id="my-shifts" class="text-base font-semibold">
@@ -745,6 +769,12 @@ const minimumError = (session: string, role: string) =>
                 </ul>
             </div>
 
+            <CompliancePanel
+                v-if="planner.compliance"
+                :compliance="planner.compliance"
+                :branch="planner.branch.name"
+            />
+
             <div
                 v-if="planner.warnings.length > 0"
                 role="status"
@@ -868,10 +898,20 @@ const minimumError = (session: string, role: string) =>
                                                 openEdit(shift)
                                             "
                                         >
+                                            <!-- Each time stays whole, never "2:00 / PM" (Daniel, HR-5b nit). -->
                                             <span
                                                 class="block font-medium tabular-nums"
-                                                >{{ shift.startLabel }} –
-                                                {{ shift.endLabel }}</span
+                                                ><span
+                                                    class="whitespace-nowrap"
+                                                    >{{
+                                                        shift.startLabel
+                                                    }}</span
+                                                >
+                                                –
+                                                <span
+                                                    class="whitespace-nowrap"
+                                                    >{{ shift.endLabel }}</span
+                                                ></span
                                             >
                                             <span
                                                 class="block text-muted-foreground"
@@ -1135,6 +1175,13 @@ const minimumError = (session: string, role: string) =>
                     {{ minimumForm.processing ? 'Saving…' : 'Save minimums' }}
                 </Button>
             </div>
+
+            <ComplianceRules
+                v-if="roster.minimums.compliance"
+                :settings="roster.minimums.compliance"
+                :branch="roster.minimums.branch"
+                :week="roster.week.start"
+            />
         </section>
 
         <OperationalConfirmDialog

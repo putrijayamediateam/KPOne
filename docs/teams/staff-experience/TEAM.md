@@ -216,6 +216,13 @@ authorisation to build them; the coordinator records it in `docs/BASELINE.md`.
    (Local date or Row) stays in view while a wide report scrolls sideways. His second nit, the page title
    "Transaction Detail" in sentence case, is left: the title comes from `TransactionReportService` and the
    pilot-scale golden file (`tests/Fixtures/PilotScale/original-small-reports.json`) pins it.
+10. **UX-10 Confirm dialog colours.** Relayed by the coordinator for the owner on 2026-11-06 (
+   Yasmin's token string): the shared `OperationalConfirmDialog` uses `bg-popover` and `dark:border-border`
+   instead of the fixed `dark:bg-slate-900`, matching the Queue & TV Call next dialog. Light mode: the dialog
+   is white instead of the page grey; dark mode: neutral near-black with a full-strength border instead of navy.
+   After Daniel's review the icon tile is never empty: seven dialogs on six pages passed no icon, so the tile
+   showed as a blank square; the shared component now falls back to a warning icon (destructive) or a question
+   icon, and a destructive question uses the destructive tone. No assertion changed.
 11. **UX-11 Pale panels in dark mode (design debt DD-08, Staff pages).** Chosen by the owner on 2026-11-06. The
    Staff pages (directory, staff page, create and edit, and the role and branch dialogs) used pale palette
    backgrounds and fixed emerald accents with no dark style, so the header icon tiles and the Primary, Active and
@@ -223,17 +230,3 @@ authorisation to build them; the coordinator records it in `docs/BASELINE.md`.
    rule and "No current assignment" now use the theme tokens (`success`, `warning-strong`, `brand`, `muted`,
    `ring`), as `StatusBadge` does. The shared `PatientBoard` chips were left to Queue & TV (DD-38, PR #331, and
    Cancel Visit in PR #336), as the Lead UI/UX Designer asked. No assertion changed.
-12. **UX-12 Staff page formats (design debt DD-43).** Chosen by the owner on 2026-11-06 from the Lead UI/UX
-   Designer's UX-11 review. On the staff page a long work email ran into the Staff number column (by 43 px at
-   1280 and 1440 px); it now wraps inside its own column, preferably after the "@", on the staff page and the
-   directory. Dates and times use the shared `formatDate` and `formatDateTime` ("1 Jan 2026", "5 Nov 2026, 5:16 PM",
-   Kuala Lumpur time) instead of the browser's own format and time zone, and an assignment reads "From 1 Jan 2026,
-   no end date" or "1 Jan 2026 to 31 Dec 2026 (inclusive)". No assertion changed.
-15. **UX-15 Shared page header on the Staff Experience pages (design debt DD-17, part).** Approved by
-   B.E.R.N.I.S.S for the owner on 2026-11-06. The staff directory, the staff page, Create staff, Edit staff and
-   Clinic management drew their own titles (Clinic management at `text-lg`, the Staff pages with an optional
-   icon tile). They now start with the shared `PageHeader`: one `h1` at `text-2xl`, one description line and the
-   actions on the right; the icon tiles are dropped, as the guide allows. `PageHeader` gains two optional
-   slots, `title-extra` (the staff page's Active or Inactive badge) and `description` (the staff number and
-   email line, which keeps its wrapping); pages that use neither render as before. Layout only: no data,
-   permission or route change. Other teams' pages keep their own titles for now. No assertion changed.
