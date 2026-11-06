@@ -347,9 +347,22 @@ class CredentialsTest extends VisitTestCase
         $this->decide($hr, $v3, 'reject', 'wrong_dates')->assertSessionHasNoErrors();
         $this->assertSame('active', Document::query()->whereKey($v3->document_id)->value('status'));
 
+        // One file sent for two credentials: rejecting the first as the wrong person keeps it for the second (Suresh, N1).
+        $acls = $this->type($hr, 'ACLS', 'Advanced Cardiac Life Support (ACLS)', true, false, ['ca']);
+        $shared = UploadedFile::fake()->createWithContent('shared.pdf', self::PDF.'4');
+        $this->sendOwn($ca, ['type_id' => $acls->public_id, 'issued_on' => '2026-01-12', 'expires_on' => '2028-01-10'], $shared)->assertSessionHasNoErrors();
+        $a1 = CredentialRecord::query()->where('type_id', $acls->id)->firstOrFail();
+        $this->decide($hr, $v3, 'accept')->assertSessionHasErrors('credentials'); // v3 was already rejected
+        $this->sendOwn($ca, ['type_id' => $bls->public_id, 'issued_on' => '2026-01-12', 'expires_on' => '2028-01-10'],
+            UploadedFile::fake()->createWithContent('shared.pdf', self::PDF.'4'))->assertSessionHasNoErrors();
+        $v4 = CredentialRecord::query()->where('type_id', $bls->id)->where('version', 4)->firstOrFail();
+        $this->assertSame([$a1->document_id, false], [$v4->document_id, $v4->document_created]);
+        $this->decide($hr, $a1, 'reject', 'wrong_person')->assertSessionHasNoErrors();
+        $this->assertSame('active', Document::query()->whereKey($a1->document_id)->value('status'));
+
         // PostgreSQL: evidence must be an active certificate, and a role must be a staff role.
         $this->assertRefused('23514', fn () => DB::table('hr_credential_records')->insert(['public_id' => (string) Str::uuid(), 'organisation_id' => $hr->organisation_id,
-            'worker_id' => $file->id, 'type_id' => $bls->id, 'version' => 4, 'issued_on' => '2026-01-10', 'expires_on' => '2028-01-10', 'document_id' => $document->id,
+            'worker_id' => $file->id, 'type_id' => $bls->id, 'version' => 5, 'issued_on' => '2026-01-10', 'expires_on' => '2028-01-10', 'document_id' => $document->id,
             'status' => 'waiting', 'entered_by_user_id' => $hr->id, 'created_at' => now(), 'updated_at' => now()]));
         $version = (int) DB::table('hr_credential_type_versions')->where('type_id', $bls->id)->value('id');
         $this->assertRefused('23514', fn () => DB::table('hr_credential_type_roles')->insert(['type_version_id' => $version, 'role' => 'queue_display']));

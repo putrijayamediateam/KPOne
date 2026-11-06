@@ -268,7 +268,9 @@ final class CredentialService
             // someone else's certificate in their file (Suresh, S1). A document linked from the file is left alone.
             if ($decision === 'reject' && in_array($reason, ['wrong_person', 'not_readable'], true) && $record->document_created && $record->document_id !== null) {
                 $document = Document::query()->where('worker_id', $worker->id)->whereKey($record->document_id)->lockForUpdate()->first();
-                if ($document !== null && $document->status === 'active') {
+                // Kept when another credential still links it, so that one does not lose its evidence silently (Suresh, N1).
+                $linkedElsewhere = $document !== null && CredentialRecord::query()->where('document_id', $document->id)->whereKeyNot($record->id)->exists();
+                if ($document !== null && $document->status === 'active' && ! $linkedElsewhere) {
                     $removedPath = $this->documents->removeLocked($actor, $worker, $document, (string) $reason);
                 }
             }
