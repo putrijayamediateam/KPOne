@@ -29,6 +29,10 @@ const compile = (path) => {
                 return { default: compile('resources/js/components/billing/BillToRecipient.vue') };
             }
 
+            if (name === '@/components/billing/OfficialDocument.vue') {
+                return { default: compile('resources/js/components/billing/OfficialDocument.vue') };
+            }
+
             if (name === '@/types/billing') {
                 return money.exports;
             }
