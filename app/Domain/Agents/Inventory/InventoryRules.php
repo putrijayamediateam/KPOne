@@ -22,12 +22,14 @@ final class InventoryRules
     /**
      * Transfer: only when this branch is below its reorder level and a sending branch stays at or above its own
      * level after sending; the quantity is the smaller of the shortage and that surplus. The sender with the
-     * largest surplus is chosen (ties: branch code).
+     * largest surplus is chosen (ties: branch code). A sender's surplus is reduced by what it was already asked
+     * to send today to other branches, so two branches are never offered the same stock.
      *
      * @param  array<string, mixed>  $balances  the `inventory.branch_balances` result
+     * @param  array<string, int>  $alreadySending  thousandths keyed "SKU public id|sender branch code"
      * @return list<array<string, string>>
      */
-    public static function transfers(array $balances, string $branchCode): array
+    public static function transfers(array $balances, string $branchCode, array $alreadySending = []): array
     {
         $proposals = [];
         foreach ((array) $balances['skus'] as $sku) {
@@ -42,7 +44,7 @@ final class InventoryRules
             }
             $best = null;
             foreach ($perBranch as $code => $there) {
-                $surplus = self::milli($there['eligible']) - self::milli($there['reorderLevel']);
+                $surplus = self::milli($there['eligible']) - self::milli($there['reorderLevel']) - ($alreadySending[$sku['sku'].'|'.$code] ?? 0);
                 if ($code === $branchCode || $surplus <= 0) {
                     continue;
                 }

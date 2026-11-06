@@ -84,6 +84,14 @@ class InventoryRulesTest extends TestCase
         $this->assertSame('6.000', InventoryRules::transfers($this->balances([['CHERAS', '4.000', '10.000'], ['PUCHONG', '50.000', '5.000']]), 'CHERAS')[0]['quantity']);
     }
 
+    public function test_transfer_surplus_already_promised_today_is_not_offered_again(): void
+    {
+        $balances = $this->balances([['CHERAS', '0.000', '10.000'], ['PUCHONG', '20.000', '10.000'], ['SUNGAI_BESI', '13.000', '10.000']]);
+        $this->assertSame(['PUCHONG', '10.000'], array_values(array_intersect_key(InventoryRules::transfers($balances, 'CHERAS')[0], ['from_branch_code' => 1, 'quantity' => 1])));
+        $this->assertSame(['SUNGAI_BESI', '3.000'], array_values(array_intersect_key(InventoryRules::transfers($balances, 'CHERAS', [self::SKU.'|PUCHONG' => 10000])[0], ['from_branch_code' => 1, 'quantity' => 1])));
+        $this->assertSame([], InventoryRules::transfers($balances, 'CHERAS', [self::SKU.'|PUCHONG' => 10000, self::SKU.'|SUNGAI_BESI' => 3000]));
+    }
+
     public function test_transfer_sender_is_the_largest_surplus_with_ties_by_code(): void
     {
         $this->assertSame('SUNGAI_BESI', InventoryRules::transfers($this->balances([['CHERAS', '0.000', '10.000'], ['PUCHONG', '7.000', '5.000'], ['SUNGAI_BESI', '9.000', '5.000']]), 'CHERAS')[0]['from_branch_code']);

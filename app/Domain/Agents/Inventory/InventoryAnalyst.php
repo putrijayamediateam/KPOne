@@ -58,15 +58,31 @@ final class InventoryAnalyst
         $review = $read('inventory.stock_review');
         $date = (string) $review['date'];
         $planned = [];
-        $transferred = [];
+        // Transfers already suggested today (pending or approved): this branch's own cover its restock, and every
+        // other branch's take their share of a sender's surplus, so two branches are never sent the same surplus.
+        $today = $this->todaysTransfers($run->organisation_id, $date);
+        $incoming = [];
+        $outgoing = [];
+        foreach ($today as $transfer) {
+            if ($transfer['to_branch_code'] === $branch->code) {
+                $incoming[$transfer['sku_public_id']] = ($incoming[$transfer['sku_public_id']] ?? 0) + InventoryRules::milli($transfer['quantity']);
+            } else {
+                $key = $transfer['sku_public_id'].'|'.$transfer['from_branch_code'];
+                $outgoing[$key] = ($outgoing[$key] ?? 0) + InventoryRules::milli($transfer['quantity']);
+            }
+        }
         if (in_array('transfer', $checks, true)) {
-            foreach (InventoryRules::transfers($read('inventory.branch_balances'), $branch->code) as $payload) {
-                $planned[] = ['transfer', self::TRANSFER, $payload, [$payload['sku_public_id'], $payload['from_branch_code']]];
-                $transferred[$payload['sku_public_id']] = $payload['quantity'];
+            foreach (InventoryRules::transfers($read('inventory.branch_balances'), $branch->code, $outgoing) as $payload) {
+                $identity = [$payload['sku_public_id'], $payload['from_branch_code']];
+                $planned[] = ['transfer', self::TRANSFER, $payload, $identity];
+                if (! $this->exists($run->organisation_id, $this->key('transfer', $branch, $date, $identity))) {
+                    $incoming[$payload['sku_public_id']] = ($incoming[$payload['sku_public_id']] ?? 0) + InventoryRules::milli($payload['quantity']);
+                }
             }
         }
         if (in_array('restock', $checks, true)) {
-            foreach (InventoryRules::restocks(self::rows($review['rows']['lowStock']), $transferred) as $payload) {
+            $covered = array_map(fn (int $milli): string => InventoryRules::fromMilli($milli), $incoming);
+            foreach (InventoryRules::restocks(self::rows($review['rows']['lowStock']), $covered) as $payload) {
                 $planned[] = ['restock', self::RESTOCK, $payload, [$payload['sku_public_id'], $payload['location_public_id']]];
             }
         }
@@ -85,8 +101,8 @@ final class InventoryAnalyst
         $already = [];
         foreach ($planned as [$check, $type, $payload, $identity]) {
             // One suggestion per branch, item, type and local date: the 14:00 update never repeats a 07:00 one.
-            $key = 'hana:'.self::KEY_PREFIX[$check].':'.$branch->id.':'.$date.':'.sha1(implode('|', $identity));
-            if (AiProposal::query()->where('organisation_id', $run->organisation_id)->where('idempotency_key', $key)->exists()) {
+            $key = $this->key($check, $branch, $date, $identity);
+            if ($this->exists($run->organisation_id, $key)) {
                 $already[$type] = ($already[$type] ?? 0) + 1;
 
                 continue;
@@ -99,6 +115,30 @@ final class InventoryAnalyst
         $this->recorder->step($run, 'decision', $result->summary());
 
         return $result;
+    }
+
+    /** @param list<string> $identity */
+    private function key(string $check, Branch $branch, string $date, array $identity): string
+    {
+        return 'hana:'.self::KEY_PREFIX[$check].':'.$branch->id.':'.$date.':'.sha1(implode('|', $identity));
+    }
+
+    private function exists(int $organisationId, string $key): bool
+    {
+        return AiProposal::query()->where('organisation_id', $organisationId)->where('idempotency_key', $key)->exists();
+    }
+
+    /**
+     * Transfer suggestions Hana made today at any branch that are still pending or were approved (a rejected one
+     * frees its quantity again).
+     *
+     * @return list<array<string, string>>
+     */
+    private function todaysTransfers(int $organisationId, string $date): array
+    {
+        return array_values(AiProposal::query()->where('organisation_id', $organisationId)->where('type', self::TRANSFER)
+            ->whereIn('status', ['pending', 'approved'])->where('idempotency_key', 'like', 'hana:tr:%:'.$date.':%')
+            ->get()->map(fn (AiProposal $proposal): array => array_map('strval', $proposal->payload))->all());
     }
 
     /**

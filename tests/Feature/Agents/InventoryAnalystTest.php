@@ -7,6 +7,7 @@ use App\Domain\Agents\Models\AiAgent;
 use App\Domain\Agents\Models\AiAgentRun;
 use App\Domain\Agents\Models\AiAgentTool;
 use App\Domain\Agents\Proposals\AiProposal;
+use App\Domain\Agents\Proposals\ProposalService;
 use App\Domain\Agents\Services\AgentRunRecorder;
 use App\Domain\Agents\Tools\AgentToolGateway;
 use App\Domain\Organisation\Inventory\Models\InventoryLocation;
@@ -142,6 +143,63 @@ class InventoryAnalystTest extends QueueTestCase
         $this->assertSame('10.000', $proposals[InventoryAnalyst::RESTOCK][0]['suggested_quantity']);
     }
 
+    public function test_the_afternoon_restock_allows_for_a_morning_transfer(): void
+    {
+        $this->stockAt($this->puchong(), '30.000', '8.000');
+        $this->artisan('agents:inventory-review', ['branch' => 'CHERAS'])->assertSuccessful();
+        $this->assertSame('10.000', $this->proposals()[InventoryAnalyst::TRANSFER][0]['quantity']);
+        $this->assertArrayNotHasKey(InventoryAnalyst::RESTOCK, $this->proposals());
+
+        $this->travelTo(CarbonImmutable::parse('2026-11-06T06:00:00Z'));
+        $this->artisan('agents:inventory-review', ['branch' => 'CHERAS', '--slot' => '1400', '--checks' => 'restock,expiry'])->assertSuccessful();
+        $this->assertArrayNotHasKey(InventoryAnalyst::RESTOCK, $this->proposals());
+
+        // Once the transfer is rejected, its quantity is free again and a later run suggests a restock.
+        $transfer = AiProposal::query()->where('type', InventoryAnalyst::TRANSFER)->sole();
+        $this->selectBranch($this->f['proposer'], $this->branch);
+        app(ProposalService::class)->reject($this->f['proposer'], $transfer, ['lock_version' => $transfer->lock_version, 'reason' => 'Synthetic test rejection.']);
+        $run = $this->systemRun();
+        app(InventoryAnalyst::class)->review($run, $this->branch, ['restock']);
+        $this->assertSame('10.000', $this->proposals()[InventoryAnalyst::RESTOCK][0]['suggested_quantity']);
+    }
+
+    public function test_two_branches_are_never_offered_the_same_surplus(): void
+    {
+        $sungaiBesi = Branch::query()->where('organisation_id', $this->organisation->id)->where('code', 'SUNGAI_BESI')->firstOrFail();
+        $this->stockAt($sungaiBesi, '20.000', '10.000');
+        $empty = new InventoryLocation;
+        $empty->forceFill(['public_id' => (string) Str::uuid(), 'organisation_id' => $this->organisation->id, 'branch_id' => $this->puchong()->id, 'code' => 'SYN-'.Str::upper(Str::random(8)), 'name' => 'Synthetic empty dispensary', 'type' => 'dispensary', 'is_active' => true])->save();
+        $this->level($empty, '6.000');
+
+        $this->artisan('agents:inventory-review', ['branch' => 'CHERAS', '--checks' => 'transfer,restock'])->assertSuccessful();
+        $this->artisan('agents:inventory-review', ['branch' => 'PUCHONG', '--checks' => 'transfer,restock'])->assertSuccessful();
+
+        $proposals = $this->proposals();
+        $this->assertCount(1, $proposals[InventoryAnalyst::TRANSFER]);
+        $this->assertSame(['SUNGAI_BESI', 'CHERAS', '10.000'], [$proposals[InventoryAnalyst::TRANSFER][0]['from_branch_code'], $proposals[InventoryAnalyst::TRANSFER][0]['to_branch_code'], $proposals[InventoryAnalyst::TRANSFER][0]['quantity']]);
+        $this->assertSame([[$empty->public_id, '6.000']], array_map(fn (array $p): array => [$p['location_public_id'], $p['suggested_quantity']], $proposals[InventoryAnalyst::RESTOCK]));
+    }
+
+    public function test_a_failed_attempt_can_be_retried_without_repeating_suggestions(): void
+    {
+        $agent = AiAgent::query()->where('organisation_id', $this->organisation->id)->where('code', InventoryAnalyst::AGENT)->sole();
+        AiAgentTool::query()->where('ai_agent_id', $agent->id)->where('tool_code', 'inventory.branch_balances')->delete();
+        try {
+            $this->artisan('agents:inventory-review', ['branch' => 'CHERAS'])->run();
+            $this->fail('The review should fail without its data source.');
+        } catch (AuthorizationException) {
+            $this->addToAssertionCount(1);
+        }
+        $this->assertSame(['failed'], AiAgentRun::query()->pluck('status')->all());
+        $this->assertSame(0, AiProposal::query()->count());
+
+        AiAgentTool::query()->create(['ai_agent_id' => $agent->id, 'tool_code' => 'inventory.branch_balances']);
+        $this->artisan('agents:inventory-review', ['branch' => 'CHERAS'])->assertSuccessful();
+        $this->artisan('agents:inventory-review', ['branch' => 'CHERAS'])->expectsOutputToContain('already ran')->assertSuccessful();
+        $this->assertSame(['failed', 'completed'], AiAgentRun::query()->orderBy('id')->pluck('status')->all());
+        $this->assertSame(2, AiProposal::query()->count());
+    }
+
     public function test_slow_moving_starts_at_60_days_without_dispensing(): void
     {
         $this->travelTo(CarbonImmutable::parse('2026-11-06T02:00:00Z')->addDays(59));
@@ -163,6 +221,7 @@ class InventoryAnalystTest extends QueueTestCase
         $this->artisan('agents:inventory-review', ['branch' => 'NOWHERE'])->assertFailed();
         $this->artisan('agents:inventory-review', ['branch' => 'CHERAS', '--checks' => 'restock,guess'])->assertFailed();
         $this->artisan('agents:inventory-review', ['branch' => 'CHERAS', '--slot' => '7am'])->assertFailed();
+        $this->artisan('agents:inventory-review', ['branch' => 'CHERAS', '--slot' => '9999'])->assertFailed();
         $this->assertSame(0, AiAgentRun::query()->count());
     }
 
