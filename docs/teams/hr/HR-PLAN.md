@@ -2181,3 +2181,138 @@ follow the RPT-01 safety rules.
 8. The bank file layout, and does Finance need the accountant summary? (Default: generic CSV, and yes.)
 9. Paper payslips: does HR print them for anyone? (Default: each person prints their own.)
 10. Date format on payslips and other HR prints (Daniel's question): the MC and drug label print "30/10/2026", while invoices and receipts print "30 Oct 2026". (Default: "30 Oct 2026", as on invoices and receipts, with the period as "October 2026".)
+
+## 15. HR-12 to HR-16: the five newly authorised items (design notes, drafts)
+
+Written 2026-11-06 after the owner authorised the five items that were not authorised ("all i want."; "the one that
+needed before real use i will provide later", relayed verbatim by B.E.R.N.I.S.S; TEAM.md decision 45). **Status:
+drafts, each waiting for the owner's approval.** Nothing in this section is built until (a) B.E.R.N.I.S.S's docs PR
+records the authorisation in `AGENTS.md` and `docs/BASELINE.md`, (b) the owner approves that slice's note, and (c)
+Daniel has had his look. **Scope: staff and HR only.** No note here sends anything to a patient or reads patient
+data; patient messaging stays a separate owner decision. **Synthetic data only** in every slice until the owner
+provides the PDPA review (and, where named, the leave policy and the accountant's confirmation).
+
+Shared rules for all five:
+- **Secrets** (API keys, tokens, webhook signing secrets) live in the environment's secret store and reach KPOne as
+  environment variables named in `.env.example` with empty placeholders. Never in code, in the database, in a commit
+  or in a real `.env` that the team opens. A missing key turns the feature off with a plain message; it never fails a
+  clinical or HR write.
+- **Every outside call** is made from a queued job or a short synchronous call with a timeout, never inside a
+  database transaction that holds row locks, and every attempt is logged with ids and status codes only.
+- **Every write** keeps the HR pattern: a fresh permission check under lock, `DB::transaction`, row locks,
+  `lock_version`, idempotency keys and audit with ids and codes only.
+- **HR never blocks clinical work**, and nothing here is read by a clinical, billing or Panel screen.
+
+### 15.1 HR-12 Outside HR product link (smallest; first)
+
+- **Question first (for the owner):** which product, and does it have a documented API? The proposal names
+  MySyarikat-style features, not a specific integration. **If there is no API, there is no live link**: KPOne offers
+  a reviewed **file export and import** instead.
+- **Direction (default):** KPOne → the outside product only, one way, for the data the clinic names (default: staff
+  list with employment type and dates, approved leave days, approved overtime minutes; never identity numbers, bank
+  details or documents unless the owner and the PDPA review say so). Nothing flows back into KPOne in v1, so KPOne
+  stays the source for what it holds.
+- **With an API:** the credentials (client id and secret, or token) are held by a named person the owner chooses,
+  entered in the environment's secret store; a Director turns the link on; each send is a queued job with a retry
+  limit, logged with counts only; a failed send never changes HR data.
+- **Without an API (file):** a CSV export in the product's import format, made on request by the Director or HR
+  Manager, audited (filters and row count), formula-safe, at most 5,000 rows, never stored, plus an optional
+  import preview that **shows** differences and changes nothing.
+- **Tests:** the export's exact columns, formula neutralising, row cap, audit, and that no identity or bank value is
+  in the file by default; with an API, a fake HTTP client proves timeouts and failures change nothing.
+
+### 15.2 HR-13 Job application intake (KPOne's first public intake)
+
+- **What:** a public "Apply" form for open positions; applications land in a private HR list; HR moves an
+  application through New, Shortlisted, Interview, Offered, Not taken forward, Withdrawn. Turning an applicant into
+  staff is still done by the account administrator through `StaffProvisioningService`; HR-13 creates no account.
+- **Where:** the careers pages are static today (W1b drafts; the website is not published from KPOne). v1 serves the
+  form from KPOne at a public route, like the QR check-in, linked from the careers page later. **Turned off by
+  default** (`HR_APPLICATIONS_ENABLED=false` in `.env.example`) until the privacy notice is approved.
+- **Protection:** per-IP and per-form rate limits, a honeypot field and a minimum fill time, a short-lived signed
+  form token, server-side validation as the only authority, file upload checked by content (PDF only, at most 5 MB,
+  one CV), re-encoded or stored encrypted on the private disk, no original file name kept, and no file ever served
+  publicly. No CAPTCHA service in v1 (it would be an outside call); the owner may choose one later.
+- **Privacy:** a privacy notice version shown and recorded with each application (draft until the owner's legal
+  check), the minimum fields (name, phone, email, position, short message, CV), encrypted at rest, deleted after a
+  clinic-entered retention (no number shipped), never used for marketing. A thank-you page shows no data back.
+- **Permissions:** `hr.applications.manage.organisation` (Director, HR Manager). Every CV view is audited before any
+  byte is sent.
+- **Tests:** rate limits, honeypot and timing, file checks, the switch off by default, audit before release, no
+  account created, and retention purge.
+
+### 15.3 HR-14 Staff messages: WhatsApp, SMS, email and OTP (foundation for HR-15)
+
+- **Provider (owner to choose):** one provider per channel, for example an email service, an SMS gateway and the
+  WhatsApp Business Platform through a provider. **The owner (or a person they name) holds each account**; KPOne
+  holds only the API key, in the environment's secret store. WhatsApp needs approved message templates and a
+  business number; this takes days with Meta and is outside KPOne.
+- **Cost:** shown per message type in the settings page from a clinic-entered price per message; a monthly count
+  per channel on the dashboard; a monthly cap per channel after which KPOne stops sending and says so.
+- **Opt-in and opt-out:** each staff member chooses channels on My HR details (default: nothing on, in-KPOne
+  notices only); every SMS and WhatsApp carries a stop instruction; a "stop" reply or an opt-out in KPOne turns that
+  channel off at once. OTP for sign-in (HR-15) is the one message sent without a marketing opt-in, and only to the
+  number on the person's own account.
+- **What is sent:** fixed templates only, with no free text from KPOne users in v1: "Your leave request was
+  approved", "A shift was added on 8 Mar", "Your payslip for October 2026 is ready in KPOne", "Your KPOne code is
+  123456". **No patient data, no clinical text, no amounts of money and no identity or bank values in any message**;
+  a template lint test refuses them.
+- **What is stored:** a delivery row per message (template code, channel, recipient user id, provider message id,
+  status, timestamps); never the rendered text for SMS or WhatsApp beyond the template code and its placeholder ids;
+  provider webhooks verified by signature and recorded by status only.
+- **OTP:** six digits, hashed at rest, valid 5 minutes, at most 5 tries and 3 sends per 15 minutes per account,
+  never logged, never shown to staff.
+- **Tests:** template lint (no patient or money fields), opt-out stops sending, caps stop sending, a fake provider
+  proves failures never change HR data, webhook signatures checked, OTP limits.
+
+### 15.4 HR-15 Locum portal (needs HR-14 for OTP)
+
+- **Accounts:** a locum gets a KPOne sign-in only when HR asks and the account administrator creates it through
+  `StaffProvisioningService` (public registration stays disabled; an unknown identity never creates a user; Google
+  sign-in only for an existing active account). A new narrow role, `locum`, links the account to the HR-4a locum
+  file.
+- **What a locum sees:** their own roster shifts (HR-1 extended to roster locums with an account), open locum shifts
+  the clinic offers, and their own claims and payslips if HR-6 and HR-7 apply to them. Nothing clinical by
+  implication: any clinical permission for a locum doctor is a separate explicit role decision (AGENTS.md).
+- **Sign-in:** password (the existing rules) or a one-time code by SMS or WhatsApp to the account's own number
+  (HR-14). Sessions follow the existing timeout and inactive-account rules.
+- **Open shifts:** HR posts an open shift; a locum asks to take it; a manager who is not the locum confirms; the
+  confirmed shift joins the next roster draft. No automatic assignment.
+- **Tests:** no self-registration path, role permissions exact, a locum sees only their own data, OTP limits, and a
+  confirmed open shift never lands in an approved roster without approval.
+
+### 15.5 HR-16 Selfie or location at clock-in (riskiest under PDPA; last)
+
+- **This is the riskiest item in KPOne HR.** A selfie is biometric-adjacent personal data and a location is
+  sensitive; both need the PDPA review the owner will provide **before any real staff use**, a written purpose, a
+  consent text and a retention the clinic sets. The team will not turn either on for real staff before that.
+- **Off by default, per branch:** a Director turns on "photo at clock-in" and/or "location check at clock-in" for one
+  branch at a time, with the consent text shown to staff first.
+- **Selfie:** taken in the browser at the moment of the press, re-encoded, stored encrypted on the private disk,
+  never used for face matching (no biometric template, no outside face service), seen only by the HR Manager and
+  Director on a disputed day, each view audited, deleted after a short clinic-set retention (default suggestion 30
+  days, shipped as a suggestion only).
+- **Location:** read once in the browser at the moment of the press and compared with the branch geofence (centre
+  and radius entered by the Director); KPOne stores only "inside", "outside" or "not available" and the accuracy
+  band, **never the coordinates**, and never tracks anyone before or after.
+- **Fallback:** refusing the camera or location, or a GPS failure, never blocks the clock-in; the session is marked
+  "no photo" or "location not checked" and appears on Review, where a manager may ask the person.
+- **Tests:** off by default, coordinates never stored, selfie encrypted and purged on retention, every view audited,
+  a refusal still clocks in, and nothing in HR-3a's rules changes when both are off.
+
+### 15.6 Proposed order (owner to confirm)
+
+After HR-4b, HR-5a to HR-5c, HR-6 and HR-7: HR-12 (smallest; may become a file export), HR-13 (public intake, its own
+privacy notice), HR-14 (messages; HR-15 depends on it), HR-15 (locum portal), HR-16 (selfie and location; last,
+riskiest). HR-14 could come earlier if the owner wants staff reminders for leave and claims sooner; the cost is
+setting up provider accounts first.
+
+### 15.7 Questions only the owner can answer [TO CONFIRM]
+
+1. Which outside HR product, and who has its admin login? Does it have an API?
+2. Which providers for email, SMS and WhatsApp, and who holds each account?
+3. The monthly message cap and the price per message to show.
+4. Applications: which positions, how long applications are kept, and who approves the privacy notice.
+5. Locums: which locums get a sign-in, and may a locum doctor's account ever get clinical permissions?
+6. Selfie and location: which branch first, the geofence radius, the retention, and the consent text (after the PDPA
+   review).
