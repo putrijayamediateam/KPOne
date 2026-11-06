@@ -84,7 +84,7 @@ useResizeObserver([desktopNav, desktopLinks], () => {
                             "
                             :class="
                                 isActive(item.href)
-                                    ? 'border-pink-600 bg-muted text-foreground'
+                                    ? 'border-brand bg-muted text-foreground'
                                     : 'text-muted-foreground'
                             "
                             @click="mobileNavOpen = false"
@@ -106,7 +106,7 @@ useResizeObserver([desktopNav, desktopLinks], () => {
                     class="size-8 object-contain"
                 />
                 <span
-                    class="hidden text-sm font-semibold tracking-tight text-pink-700 sm:block"
+                    class="hidden text-sm font-semibold tracking-tight text-brand-strong sm:block"
                     >KPOne</span
                 >
             </Link>
@@ -126,7 +126,7 @@ useResizeObserver([desktopNav, desktopLinks], () => {
                         :aria-current="isActive(item.href) ? 'page' : undefined"
                         :class="
                             isActive(item.href)
-                                ? 'font-medium text-foreground after:absolute after:inset-x-3 after:bottom-0 after:h-0.5 after:bg-pink-600'
+                                ? 'font-medium text-foreground after:absolute after:inset-x-3 after:bottom-0 after:h-0.5 after:bg-brand'
                                 : ''
                         "
                     >

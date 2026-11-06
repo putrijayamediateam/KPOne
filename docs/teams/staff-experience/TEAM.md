@@ -216,3 +216,10 @@ authorisation to build them; the coordinator records it in `docs/BASELINE.md`.
    (Local date or Row) stays in view while a wide report scrolls sideways. His second nit, the page title
    "Transaction Detail" in sentence case, is left: the title comes from `TransactionReportService` and the
    pilot-scale golden file (`tests/Fixtures/PilotScale/original-small-reports.json`) pins it.
+13. **UX-13 Shared shell colour tokens (design debt DD-20).** Chosen by the owner on 2026-11-06. The top bar (active
+   link marker in the menu and the drawer, the "KPOne" wordmark), the branch switcher's selected row and the shared
+   `InputError` used fixed palette colours (`pink-600`, `pink-700`, `pink-50/800/950/200`, `text-red-600
+   dark:text-red-500`). They now use `brand`, `brand-strong` and `destructive`. Light mode is the same for the top
+   bar (the tokens equal those pinks) and a slightly deeper red for errors; in dark mode the wordmark and the
+   selected branch are a lighter, readable pink. The confirm dialog's non-destructive pink tile is left until UX-10
+   (#333) merges, to avoid a conflict. No assertion changed.
