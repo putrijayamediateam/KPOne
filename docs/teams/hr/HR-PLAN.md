@@ -1090,27 +1090,42 @@ Migrations from `2026_11_10_000700`; the permission grants in their own additive
 
 None is in the people-and-access authority set.
 
-### 9.6 Screens (Hui Min, for Daniel's early look)
+### 9.6 Screens (Hui Min; Daniel's early look folded in)
 
-One page, `/hr/attendance`, with tabs My attendance, Review, Settings (and Overtime in HR-3b), the HR-2a tab
-pattern (DD-30 strip on phones). One hub link "KPOne HR attendance" under Staff & branches; a "Clock in" link on My
-roster. **The top bar is unchanged** unless the owner asks (see 9.9).
-- **The button:** full width on phones, at least 56 px tall, primary; the only primary button on the page. Under it
-  the server time (updated every second from the server's offset, never the device clock) and today's shift. While
-  sending it reads "Clocking in…" and is disabled. Refused states say why under the button ("Choose a branch you
-  work at in the top bar.").
-- **My week:** one row per day (cards below 768 px): shift, clock times, worked time, flags as small neutral or
-  warning chips with text ("Late 12 min"); colour is never the only signal. A forgotten clock-out row has an outline
+Daniel's early look (2026-11-06): **OK with changes**, all folded in below. One page, `/hr/attendance`, with tabs My
+attendance, Review, Settings (and Overtime in HR-3b), the HR-2a tab pattern (DD-30 strip on phones). One hub link
+"KPOne HR attendance" under Staff & branches; a "Clock in" **outline** link on My roster (never a second primary).
+**The top bar is unchanged** unless the owner asks (see 9.9).
+- **One button, three states** (the only primary on the page; full width on phones, at least 56 px tall):
+  - before clocking in: "Clock in", no dialog;
+  - after: a line "Clocked in at 8:02 AM" and a toast, and the button becomes "Clock out", which asks "Clock out
+    now?" in a confirm dialog so a stray tap does not end the day;
+  - after clocking out: "Done for today: 8:02 AM – 5:04 PM, 9 h 2 min", with no button (a second shift that day
+    shows the button again).
+  While sending it reads "Clocking in…" or "Clocking out…" and is disabled. Refused states say why under the button
+  ("Choose a branch you work at in the top bar.").
+- **Server time line:** "Server time 8:02:15 AM" under the button, updated every second from the server's offset,
+  never the device clock, and **never in a live region**. One polite live region announces state changes only
+  (clocked in, clocked out, refused). Today's shift under it ("Today: Morning, 8:00 AM to 2:00 PM, Cheras").
+- **Privacy line:** one muted line under the button: "KPOne records the time only. No location or photo." After a
+  press on a shared computer: "Signed in as Aina CA. Sign out if this is a shared computer."
+- **Formats:** KPOne's existing time and date formats everywhere ("8:02 AM", "6 Nov 2026"); worked time as
+  "9 h 2 min", never a decimal.
+- **My week:** one row per day (cards below 768 px): shift, clock times, worked time, flags as **warning** chips with
+  text ("Late 12 min", "Left early 20 min", "No clock-out"); never red for these, and colour is never the only
+  signal. Danger is used for nothing here except a refused correction. A forgotten clock-out row has an outline
   "Add clock-out time" button that opens the correction sheet.
-- **Correction sheet:** kind, time, reason, optional note ("Do not write medical details here."). Toast "Correction
-  sent for approval."
-- **Review:** branch and day pickers, a table from 1024 px (person, shift, in, out, worked, flags) and cards below;
-  waiting corrections in their own card with outline Approve and Reject, and the primary action inside the confirm
-  dialog (the HR-2a pattern).
+- **Correction sheet:** kind, the recorded time beside the new one ("Recorded: none · New: 5:30 PM"), reason,
+  optional note ("Do not write medical details here."). Toast "Correction sent for approval." The row then shows a
+  neutral "Correction waiting" chip until it is decided.
+- **Review:** branch and day pickers, a short summary line above the table ("3 flags · 1 correction waiting"), a
+  table from 1024 px (person, shift, in, out, worked, flags) and cards below; waiting corrections in their own card
+  with outline Approve and Reject, and the primary action inside the confirm dialog (the HR-2a pattern).
 - **Settings:** number fields with units in the label ("Grace minutes"), help text for each, "Applies from" date.
 - **Phone:** no sideways scroll at 320, 390 or 768 px; 44 px targets.
-- **Screenshots when built:** My attendance before and after clocking in and with a forgotten clock-out, the
-  correction sheet with an error, the review day with flags, and settings, at 390 and 1440 px, light and dark.
+- **Screenshots when built:** My attendance before clocking in, clocked in, "Done for today", the Clock out confirm
+  and a forgotten clock-out; the correction sheet with an error; the review day with flags; and settings, at 390
+  and 1440 px, light and dark.
 
 ### 9.7 Tests (planned)
 
