@@ -209,7 +209,7 @@ All in the contract; the main ones:
 | CI-PAR-1 Parallel backend tests and PHPStan in cloud sessions | Merged in PR #255 as `cb94c72` |
 | AG-7 Ask KPOne | Merged in PR #268 as `cc1d826` |
 | AG-9 Rizal (stocktake officer) | Merged in PR #299 as `6538892` |
-| AG-10 Faris (system health) | PR #322 open |
-| AG-6 Hana (inventory analyst) | PR open (owner "ship it AG-6", 2026-11-06) |
+| AG-10 Faris (system health) | Merged in PR #322 as `fcb883a` |
+| AG-6 Hana (inventory analyst) | PR #335 open (owner "ship it AG-6", 2026-11-06) |
 | AG-5 Director quick answers | |
 | AG-8 Daily summary page and Lina | |
