@@ -2433,7 +2433,7 @@ const calendarDays = computed(() =>
                                 <Button
                                     type="button"
                                     variant="link"
-                                    class="min-h-11 shrink-0 px-0 sm:min-h-8"
+                                    class="min-h-11 min-w-11 shrink-0 px-3 sm:min-h-8"
                                     :aria-label="`Remove ${f.name}`"
                                     @click="dropApplyFile(i)"
                                     >Remove</Button
@@ -2525,7 +2525,7 @@ const calendarDays = computed(() =>
                                     v-if="f.canRemove"
                                     variant="ghost"
                                     size="sm"
-                                    class="min-h-11 sm:min-h-8"
+                                    class="min-h-11 min-w-11 px-3 sm:min-h-8"
                                     :aria-label="`Remove ${f.label}`"
                                     @click="openRemoval(f)"
                                     >Remove</Button

@@ -7,6 +7,7 @@ use App\Domain\HR\Leave\LeavePermissions;
 use App\Domain\HR\Leave\Models\LeaveEvidenceFile;
 use App\Domain\HR\Leave\Models\LeaveRequest;
 use App\Domain\HR\Leave\Models\LeaveType;
+use App\Domain\HR\Leave\Services\LeaveEvidenceFiles;
 use App\Domain\HR\Leave\Services\LeaveEvidenceService;
 use App\Models\User;
 use Carbon\CarbonImmutable;
@@ -115,9 +116,11 @@ class LeaveEvidenceTest extends VisitTestCase
         $ca = $this->actor('ca');
         $request = $this->applyFor($ca, $this->type($hr));
         $this->addFile($ca, $request, UploadedFile::fake()->createWithContent('mc.pdf', "<script>alert(1)</script>\n"))
+            ->assertSessionHasErrors(['file' => LeaveEvidenceFiles::UNREADABLE]);
+        $this->addFile($ca, $request, UploadedFile::fake()->createWithContent('notes.txt', "plain text\n"))
             ->assertSessionHasErrors(['file' => 'Use a JPG, PNG or PDF file.']);
-        $this->addFile($ca, $request, UploadedFile::fake()->createWithContent('mc.jpg', str_replace('%%EOF', '', self::PDF)))
-            ->assertSessionHasErrors(['file' => 'Use a JPG, PNG or PDF file.']); // A PDF header without its end marker.
+        $this->addFile($ca, $request, UploadedFile::fake()->createWithContent('mc.jpg', str_replace('%EOF', '', self::PDF)))
+            ->assertSessionHasErrors(['file' => LeaveEvidenceFiles::UNREADABLE]); // A PDF header without its end marker.
         $this->addFile($ca, $request, UploadedFile::fake()->create('big.pdf', 5121, 'application/pdf'))
             ->assertSessionHasErrors(['file' => 'This file is over 5 MB.']);
 
@@ -187,7 +190,7 @@ class LeaveEvidenceTest extends VisitTestCase
         $input = ['leave_type_id' => $type->id, 'start_date' => '2027-03-08', 'end_date' => '2027-03-08'];
         $this->post(route('hr.leave.requests.store'), [...$input, 'idempotency_key' => (string) Str::uuid(),
             'evidence_files' => [$this->pdf(), UploadedFile::fake()->createWithContent('bad.pdf', 'not a pdf')]])
-            ->assertSessionHasErrors(['evidence_files' => 'Use a JPG, PNG or PDF file.']);
+            ->assertSessionHasErrors(['evidence_files' => LeaveEvidenceFiles::UNREADABLE]);
         $this->assertSame(0, LeaveRequest::query()->count());
 
         $key = (string) Str::uuid();
@@ -417,6 +420,27 @@ class LeaveEvidenceTest extends VisitTestCase
     // ---- helpers ----
 
     /** @param array<string, mixed> $overrides */
+    public function test_the_approvals_flag_says_whether_evidence_is_attached_given_as_a_reference_or_missing(): void
+    {
+        $hr = $this->actor('hr_manager');
+        $type = $this->type($hr);
+        $withFile = $this->applyFor($ca = $this->actor('ca'), $type);
+        $this->addFile($ca, $withFile, $this->pdf())->assertSessionHasNoErrors();
+        $nothing = $this->applyFor($this->actor('ca_supervisor'), $type);
+        $doctor = $this->actor('resident_doctor');
+        $this->selectBranch($doctor);
+        $this->post(route('hr.leave.requests.store'), ['leave_type_id' => $type->id, 'start_date' => '2027-03-08', 'end_date' => '2027-03-08',
+            'evidence_reference' => 'MC 4471', 'idempotency_key' => (string) Str::uuid()])->assertSessionHasNoErrors();
+        $reference = LeaveRequest::query()->where('user_id', $doctor->id)->sole();
+
+        $this->selectBranch($hr);
+        $pending = collect($this->get(route('hr.leave.index', ['tab' => 'approvals']))->viewData('page')['props']['leave']['approvals']['pending'])->keyBy('publicId');
+        $this->assertContains('Evidence attached: check it', $pending[$withFile->public_id]['warnings']);
+        $this->assertNotContains('Evidence needed', $pending[$withFile->public_id]['warnings']);
+        $this->assertContains('Evidence reference given: check it', $pending[$reference->public_id]['warnings']);
+        $this->assertContains('Evidence needed', $pending[$nothing->public_id]['warnings']);
+    }
+
     private function typeInput(array $overrides = []): array
     {
         return ['code' => 'MC', 'name' => 'Sick leave', 'is_paid' => true, 'uses_balance' => false, 'allow_half_days' => false, 'evidence_needed' => true,

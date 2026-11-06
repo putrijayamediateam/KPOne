@@ -112,15 +112,21 @@ final class LeavePageService
         // HR-2b: other people's files only for holders of the evidence view permission.
         $canSee = $actor->can(LeavePermissions::EVIDENCE_VIEW);
         $files = $canSee ? $this->filesFor($pending->concat($approvedRequests)) : collect();
-        $rows = $pending->map(function (LeaveRequest $r) use ($zones, $actor, $files, $canSee): array {
+        // The warning only counts files, so it is the same for approvers who cannot open them.
+        $attached = $pending->isEmpty() ? collect() : LeaveEvidenceFile::query()->whereIn('leave_request_id', $pending->pluck('id'))
+            ->where('status', 'active')->selectRaw('leave_request_id, count(*) as n')->groupBy('leave_request_id')->pluck('n', 'leave_request_id');
+        $rows = $pending->map(function (LeaveRequest $r) use ($zones, $actor, $files, $canSee, $attached): array {
             $zone = (string) ($zones[$r->branch_id] ?? 'UTC');
             $warnings = [];
             $shifts = $this->approvedShifts($r, $zone);
             if ($shifts > 0) {
                 $warnings[] = 'Has '.($shifts === 1 ? '1 approved shift' : "{$shifts} approved shifts").' in this period. Change the roster after approving.';
             }
-            if ($r->type->evidence_needed) {
-                $warnings[] = 'Evidence needed';
+            if ((int) ($attached[$r->id] ?? 0) > 0) {
+                $warnings[] = 'Evidence attached: check it';
+            } elseif ($r->type->evidence_needed) {
+                // Daniel, HR-2b: a reference alone still needs checking; nothing at all is the real gap.
+                $warnings[] = $r->evidence_reference_encrypted !== null && $r->evidence_reference_encrypted !== '' ? 'Evidence reference given: check it' : 'Evidence needed';
             }
             $sentOn = CarbonImmutable::parse($r->created_at)->setTimezone($zone)->startOfDay();
             $notice = (int) $sentOn->diffInDays(CarbonImmutable::parse($r->start_date->toDateString(), $zone), false);

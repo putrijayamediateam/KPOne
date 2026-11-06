@@ -58,6 +58,7 @@ Development, Finance and the TV account get no HR data by implication. Server ch
 | Slice | What it did | PR |
 |---|---|---|
 | HR-1 | Roster planner at `/hr/roster` (My roster, Planner, Minimum staffing); weekly branch versions draft, waiting for approval, approved, replaced; two-person send and approve or return backed by PostgreSQL; refusals for missing branch assignment, overlaps across branches, shifts over 16 hours; warnings for other drafts, shared rooms and minimum staffing; one hub link. Permissions `hr.roster.manage.organisation` (Director, HR Manager), `hr.roster.approve.organisation` (Director), `hr.roster.view.own` (every human role, not the TV account). Migrations `2026_11_10_000100` and `000200`. | PR #295, merged as `dca171e` (head `a84e395`) |
+| HR-2a | Leave at `/hr/leave` (My leave, Approvals, Team calendar, Settings): leave types and per-role entitlements per year, branch working days and public holidays, half days, requests with an encrypted short evidence reference, approval by someone other than the applicant, cancel and withdraw, balances from approved and pending requests, and roster warnings for leave on approved shifts. Migrations from `2026_11_10_000300`. | PR #302, merged as `836fe96` (head `0b4c189`) |
 
 ## 6. Decisions (never ask again)
 
@@ -151,6 +152,12 @@ check items, keep them"). The rest stand unless the owner changes them.
     number shipped; staff may add files up to 14 days after the leave ends; only the Director and the HR Manager open
     other people's files; HR may scan paper copies on a staff member's behalf. Synthetic files only until the PDPA
     review.
+27. HR-2b screens (Daniel, OK with changes, relayed by B.E.R.N.I.S.S 2026-11-06), all applied: a file whose name
+    says JPG, PNG or PDF but whose content is not one reads "This file can't be opened as a JPG, PNG or PDF. Try
+    saving it again or take a photo instead."; both Remove buttons are at least 44 px on phones; the Approvals flag
+    reads "Evidence attached: check it" when a file exists, "Evidence reference given: check it" with a reference
+    only, and "Evidence needed" only when there is neither. Panel files are named "Photo 1" or "PDF 1" because file
+    names are never stored.
 
 ## 7. Open items and known limits
 

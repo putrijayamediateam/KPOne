@@ -17,6 +17,8 @@ final class LeaveEvidenceFiles
 
     public const MAX_EDGE = 2400;
 
+    public const UNREADABLE = "This file can't be opened as a JPG, PNG or PDF. Try saving it again or take a photo instead.";
+
     /** About a 24 MP phone photo; a larger one is refused before decoding, so it can never exhaust memory (Suresh). */
     public const MAX_SOURCE_PIXELS = 24_000_000;
 
@@ -34,12 +36,14 @@ final class LeaveEvidenceFiles
             throw ValidationException::withMessages([$field => 'Use a JPG, PNG or PDF file.']);
         }
         $mime = (string) (new \finfo(FILEINFO_MIME_TYPE))->buffer($raw);
+        // A name that promises a photo or PDF whose content is not one gets a fuller hint (Daniel, HR-2b).
+        $named = in_array(strtolower($file->getClientOriginalExtension()), ['jpg', 'jpeg', 'png', 'pdf'], true);
 
         $prepared = match ($mime) {
             'application/pdf' => self::pdf($raw, $field),
             'image/jpeg' => self::photo($raw, 'jpeg', $file, $field),
             'image/png' => self::photo($raw, 'png', $file, $field),
-            default => throw ValidationException::withMessages([$field => 'Use a JPG, PNG or PDF file.']),
+            default => throw ValidationException::withMessages([$field => $named ? self::UNREADABLE : 'Use a JPG, PNG or PDF file.']),
         };
 
         return [...$prepared, 'bytes' => strlen($prepared['content']), 'sha256' => hash('sha256', $prepared['content'])];
@@ -50,7 +54,7 @@ final class LeaveEvidenceFiles
     {
         // A real PDF starts with its header and ends with an end-of-file marker; anything else is refused.
         if (! str_starts_with($raw, '%PDF-') || ! str_contains(substr($raw, -1024), '%%EOF')) {
-            throw ValidationException::withMessages([$field => 'Use a JPG, PNG or PDF file.']);
+            throw ValidationException::withMessages([$field => self::UNREADABLE]);
         }
 
         return ['content' => $raw, 'kind' => 'pdf'];
@@ -81,7 +85,7 @@ final class LeaveEvidenceFiles
         }
         $size = @getimagesizefromstring($raw);
         if ($size === false || $size[0] < 1 || $size[1] < 1) {
-            throw ValidationException::withMessages([$field => 'Use a JPG, PNG or PDF file.']);
+            throw ValidationException::withMessages([$field => self::UNREADABLE]);
         }
         if ($size[0] * $size[1] > self::MAX_SOURCE_PIXELS || ! self::memoryAllows($size[0] * $size[1])) {
             throw ValidationException::withMessages([$field => 'Use a smaller photo or a PDF.']);
@@ -94,7 +98,7 @@ final class LeaveEvidenceFiles
         }
         $image = @imagecreatefromstring($raw);
         if ($image === false) {
-            throw ValidationException::withMessages([$field => 'Use a JPG, PNG or PDF file.']);
+            throw ValidationException::withMessages([$field => self::UNREADABLE]);
         }
         try {
             imagepalettetotruecolor($image);
@@ -103,7 +107,7 @@ final class LeaveEvidenceFiles
             if ($long > self::MAX_EDGE) {
                 $scaled = imagescale($image, (int) round(imagesx($image) * self::MAX_EDGE / $long), (int) round(imagesy($image) * self::MAX_EDGE / $long), IMG_BICUBIC);
                 if ($scaled === false) {
-                    throw ValidationException::withMessages([$field => 'Use a JPG, PNG or PDF file.']);
+                    throw ValidationException::withMessages([$field => self::UNREADABLE]);
                 }
                 imagedestroy($image);
                 $image = $scaled;
