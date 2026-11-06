@@ -85,6 +85,7 @@ class MedicineCatalogueController extends Controller
                     'isActive' => $medicine->is_active,
                     'isControlled' => (bool) $medicine->is_controlled,
                     'allergyGroups' => $medicine->allergyGroupList(),
+                    'allergyAliases' => $medicine->allergyAliasList(),
                 ])->values(),
                 'total' => $paginator->total(),
                 'currentPage' => $paginator->currentPage(),
@@ -342,6 +343,23 @@ class MedicineCatalogueController extends Controller
             throw $e->redirectTo(route('medicines.index'));
         }
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Drug groups saved.')]);
+
+        return to_route('medicines.index');
+    }
+
+    /** DSP-1c: save the other names (brand names, misspellings) the allergy warning matches against. */
+    public function allergyAliases(Request $request, MedicineCatalogueItem $medicine, MedicineAdministrationService $service): RedirectResponse
+    {
+        $data = $request->validate([
+            'allergy_aliases' => ['present', 'array', 'max:20'], 'allergy_aliases.*' => ['nullable', 'string', 'max:200'],
+            'expected_allergy_aliases' => ['present', 'array', 'max:20'], 'expected_allergy_aliases.*' => ['string', 'max:200'],
+        ]);
+        try {
+            $service->setAllergyAliases($request->user(), $medicine, $data['allergy_aliases'], $data['expected_allergy_aliases']);
+        } catch (ValidationException $e) {
+            throw $e->redirectTo(route('medicines.index'));
+        }
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('Other names saved.')]);
 
         return to_route('medicines.index');
     }
