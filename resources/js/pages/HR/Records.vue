@@ -308,6 +308,15 @@ const retentionConfirm = reactive({
     key: '',
     processing: false,
 });
+// "Now: not set. Changes to 2,555 days on 13 Nov 2026." (Daniel)
+const dayCount = (n: number) => `${n.toLocaleString('en-US')} days`;
+const retentionLine = (r: Retention) => {
+    const now = `Now: ${r.days === null ? 'not set' : dayCount(r.days)}.`;
+
+    return r.pendingDays && r.pendingFrom
+        ? `${now} Changes to ${dayCount(r.pendingDays)} on ${dateLabel(r.pendingFrom)}.`
+        : now;
+};
 const askRetention = (r: Retention) =>
     Object.assign(retentionConfirm, {
         row: r,
@@ -330,10 +339,10 @@ const retentionMessage = computed(() => {
     const days = Number(retentionConfirm.value);
 
     if (r.days !== null && days >= r.days) {
-        return `${r.label}: ${days} days after the person's last day. This keeps files longer and applies at once.`;
+        return `${r.label}: ${dayCount(days)} after the person's last day. This keeps files longer and applies at once.`;
     }
 
-    return `${r.label}: ${days} days after the person's last day. This starts in ${grace} days; from then the daily purge deletes these files of people who left more than ${days} days earlier. Until then you can change it back.`;
+    return `${r.label}: ${dayCount(days)} after the person's last day. This starts in ${grace} days; from then the daily purge deletes these files of people who left more than ${dayCount(days)} earlier. Until then you can change it back.`;
 });
 const sendRetention = () => {
     const r = retentionConfirm.row;
@@ -1175,9 +1184,9 @@ const sendLocum = () => {
                     >
                         <div class="flex flex-wrap items-end gap-2">
                             <div class="grid min-w-0 gap-1.5">
-                                <Label :for="`retention-${r.category}`">{{
-                                    r.label
-                                }}</Label>
+                                <Label :for="`retention-${r.category}`"
+                                    >{{ r.label }} (days)</Label
+                                >
                                 <Input
                                     :id="`retention-${r.category}`"
                                     v-model="retentionDays[r.category]"
@@ -1197,12 +1206,7 @@ const sendLocum = () => {
                             >
                         </div>
                         <p class="text-xs text-muted-foreground">
-                            Now:
-                            {{ r.days === null ? 'Not set' : `${r.days} days` }}
-                            <template v-if="r.pendingDays"
-                                >· {{ r.pendingDays }} days from
-                                {{ dateLabel(r.pendingFrom) }}</template
-                            >
+                            {{ retentionLine(r) }}
                         </p>
                     </form>
                     <InputError :message="errors.retention_days" />

@@ -98,5 +98,10 @@ test('My HR details lists your own documents; settings sit under Staff files wit
     // Saving a retention is confirmed, and a first or shorter one waits (Suresh, S1).
     assert.match(records, /title="Save this retention\?"/);
     assert.match(source.records, /This starts in \$\{grace\} days/);
-    assert.match(records, /days from\s+\{\{ dateLabel\(r\.pendingFrom\) \}\}/);
+    assert.match(
+        source.records,
+        /Changes to \$\{dayCount\(r\.pendingDays\)\} on/,
+    );
+    assert.match(source.records, /toLocaleString\('en-US'\)/);
+    assert.match(records, /\{\{ r\.label \}\} \(days\)/);
 });
