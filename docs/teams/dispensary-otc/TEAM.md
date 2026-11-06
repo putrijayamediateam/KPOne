@@ -195,6 +195,8 @@ coordinator at the owner's request (2026-11-05); the designer was added by owner
     9 pt; always keep the controlled strip; Print button at least 44 px at 390 px; keep the "(provisional)" size line
     until the real sticker test; flag "QTY: n" for the pharmacist. Adlina (Catalogue) adds a 72-character hint under
     the catalogue Indication field.
+    CAT-9's optional second clinic phone stays off the label (approved by B.E.R.N.I.S.S for the owner, 2026-11-06):
+    one "Tel: (phone)" row only; adding it later is a small change after CAT-9.
 
 ## 7. Open items and known limits
 
