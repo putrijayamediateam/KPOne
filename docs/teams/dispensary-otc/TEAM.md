@@ -197,6 +197,10 @@ coordinator at the owner's request (2026-11-05); the designer was added by owner
     the catalogue Indication field.
     CAT-9's optional second clinic phone stays off the label (approved by B.E.R.N.I.S.S for the owner, 2026-11-06):
     one "Tel: (phone)" row only; adding it later is a small change after CAT-9.
+    Also approved by B.E.R.N.I.S.S for the owner (the owner's 20-minute "BE ME", 2026-11-06, marked "Check this"):
+    saved line breaks in directions print joined into one line with spaces; the changed existing label assertions
+    (DrugLabelTest, DrugLabelBatchExpiryTest, ControlledMedicineTest, DrugLabelPrintLogTest, TreatmentPlanTest,
+    and the drug-labels, dsp-6 and dsp-3 frontend tests) as listed in the PR.
 
 ## 7. Open items and known limits
 
