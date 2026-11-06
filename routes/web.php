@@ -190,6 +190,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::post('my/corrections', 'askCorrection')->name('hr.records.my.corrections.store');
             Route::post('my/corrections/{correction}/withdraw', 'withdrawCorrection')->whereUuid('correction')->name('hr.records.my.corrections.withdraw');
         });
+        // HR-4b: your own documents with view.own, anyone's with documents.view; each open is recorded first.
+        Route::get('{worker}/documents/{document}', 'openDocument')->whereUuid(['worker', 'document'])
+            ->middleware(['permission:hr.records.view.own,hr.documents.view.organisation', 'throttle:60,1'])->name('hr.records.documents.show');
         Route::get('{worker}', 'show')->whereUuid('worker')->middleware('permission:hr.records.view.organisation')->name('hr.records.show');
         Route::post('{worker}/show-value', 'showValue')->whereUuid('worker')->middleware(['permission:hr.records.view.organisation', 'throttle:30,1'])->name('hr.records.show-value');
         Route::middleware(['permission:hr.records.manage.organisation', 'throttle:60,1'])->group(function (): void {
@@ -202,6 +205,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::post('{worker}/bank', 'enterBank')->whereUuid('worker')->name('hr.records.bank.store');
             Route::post('{worker}/bank/{bank}/withdraw', 'withdrawBank')->whereUuid(['worker', 'bank'])->name('hr.records.bank.withdraw');
             Route::post('{worker}/bank/{bank}/{decision}', 'decideBank')->whereUuid(['worker', 'bank'])->whereIn('decision', ['confirm', 'reject'])->name('hr.records.bank.decide');
+            Route::post('{worker}/documents', 'uploadDocument')->whereUuid('worker')->name('hr.records.documents.store');
+            Route::post('{worker}/documents/{document}/remove', 'removeDocument')->whereUuid(['worker', 'document'])->name('hr.records.documents.remove');
+            Route::post('{worker}/periods/{period}/checklist/{item}', 'tick')->whereUuid(['worker', 'period', 'item'])->name('hr.records.checklist.tick');
+            Route::put('settings/retention', 'saveRetention')->name('hr.records.retention');
+            Route::post('settings/checklist-items', 'addChecklistItem')->name('hr.records.checklist-items.store');
+            Route::post('settings/checklist-items/{item}/archive', 'archiveChecklistItem')->whereUuid('item')->name('hr.records.checklist-items.archive');
             Route::post('{worker}/corrections/{correction}/{decision}', 'decideCorrection')->whereUuid(['worker', 'correction'])->whereIn('decision', ['apply', 'reject'])->name('hr.records.corrections.decide');
         });
     });

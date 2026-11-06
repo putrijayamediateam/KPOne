@@ -23,13 +23,14 @@ final class LeaveEvidenceFiles
     public const MAX_SOURCE_PIXELS = 24_000_000;
 
     /** @return array{content:string, kind:'jpeg'|'png'|'pdf', bytes:int, sha256:string} */
-    public static function prepare(mixed $file, string $field = 'file'): array
+    public static function prepare(mixed $file, string $field = 'file', int $maxBytes = self::MAX_BYTES): array
     {
         if (! $file instanceof UploadedFile || ! $file->isValid()) {
             throw ValidationException::withMessages([$field => 'Use a JPG, PNG or PDF file.']);
         }
-        if ($file->getSize() > self::MAX_BYTES) {
-            throw ValidationException::withMessages([$field => 'This file is over 5 MB.']);
+        // HR-4b staff documents allow 10 MB; HR-2b leave evidence keeps 5 MB.
+        if ($file->getSize() > $maxBytes) {
+            throw ValidationException::withMessages([$field => 'This file is over '.intdiv($maxBytes, 1024 * 1024).' MB.']);
         }
         $raw = (string) $file->getContent();
         if ($raw === '') {
