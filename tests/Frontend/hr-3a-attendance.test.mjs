@@ -92,3 +92,17 @@ test('My roster links to attendance with an outline button, never a second prima
     );
     assert.match(roster, /href="\/hr\/attendance"/);
 });
+
+test('a clock refusal is read once and the branch hint is muted text only before clocking in', () => {
+    assert.match(template, /<InputError :message="errors\.clock" \/>/);
+    assert.match(
+        template,
+        /attendance\.my\.state === 'out' &&\s+attendance\.my\.refusal/,
+    );
+    assert.match(template, /data-test="clock-refusal"/);
+    const watcher = source.slice(
+        source.indexOf('const announcement'),
+        source.indexOf('// ---- Clock in and out'),
+    );
+    assert.doesNotMatch(watcher, /errors\.value\.clock/);
+});

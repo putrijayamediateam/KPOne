@@ -36,6 +36,8 @@ final class AttendancePageService
             'kinds' => collect(CorrectionService::KINDS)->map(fn (string $label, string $value): array => ['value' => $value, 'label' => $label])->values()->all(),
             'reasons' => collect(CorrectionService::REASONS)->map(fn (string $label, string $value): array => ['value' => $value, 'label' => $label])->values()->all(),
             'rejectReasons' => collect(CorrectionService::REJECT_REASONS)->map(fn (string $label, string $value): array => ['value' => $value, 'label' => $label])->values()->all(),
+            'pendingCount' => $canReview ? AttendanceCorrection::query()->where('organisation_id', $actor->organisation_id)->where('status', 'pending')
+                ->where('user_id', '<>', $actor->id)->where('proposed_by_user_id', '<>', $actor->id)->count() : 0,
             'my' => $canClock ? $this->my($actor) : null,
             'review' => $canReview && $tab === 'review' ? $this->review($actor, $query) : null,
             'settings' => $canReview && $tab === 'settings' ? $this->settingsPage($actor) : null,
@@ -51,7 +53,7 @@ final class AttendancePageService
         $today = $now->setTimezone($zone)->startOfDay();
         $assigned = $branch !== null && app(AttendanceSupport::class)->assigned($actor, $branch, $today);
         $open = ClockSession::query()->where('user_id', $actor->id)->where('status', 'open')->first();
-        $stale = $open !== null && $open->clock_in_at->lessThan($now->subHours(AttendanceSupport::MAX_SESSION_HOURS));
+        $stale = $open !== null && ($open->clock_in_at->lessThan($now->subHours(AttendanceSupport::MAX_SESSION_HOURS)) || $this->days->forgottenBeforeNextShift($open, $now));
 
         $weekStart = $today->startOfWeek(CarbonImmutable::MONDAY);
         $from = $today->subDays(31)->min($weekStart);
@@ -61,7 +63,10 @@ final class AttendancePageService
         $waiting = $this->waiting($sessions);
         $rows = collect($this->days->rows($actor->organisation_id, $sessions, $shifts, $waiting));
         $week = $rows->filter(fn (array $r): bool => $r['date'] >= $weekStart->toDateString())->values();
-        $attention = $rows->filter(fn (array $r): bool => $r['date'] < $weekStart->toDateString() && $r['needsClockOut'] && ! $r['correctionWaiting'])->values();
+        $settings = $this->settings->forDate($actor->organisation_id, $today);
+        $earliest = $settings === null ? $today->toDateString() : $today->subDays($settings->correctionDays)->toDateString();
+        // Only days a correction can still reach (Suresh); older ones are for HR.
+        $attention = $rows->filter(fn (array $r): bool => $r['date'] < $weekStart->toDateString() && $r['date'] >= $earliest && $r['needsClockOut'] && ! $r['correctionWaiting'])->values();
 
         $todayShifts = $shifts->filter(fn (RosterShift $s): bool => $s->starts_at->setTimezone($s->timezone)->toDateString() === $today->toDateString())->values();
         $lastToday = $sessions->filter(fn (ClockSession $s): bool => $s->local_date->toDateString() === $today->toDateString() && $s->status === 'closed')->sortBy('clock_out_at')->last();
@@ -78,7 +83,6 @@ final class AttendancePageService
                     .AttendanceSupport::time($lastToday->clock_out_at, $lastToday->timezone).', '.AttendanceSupport::duration($worked ?? 0);
             }
         }
-        $settings = $this->settings->forDate($actor->organisation_id, $today);
 
         return [
             'branch' => $branch === null ? null : ['id' => $branch->id, 'name' => $branch->name],
@@ -117,6 +121,9 @@ final class AttendancePageService
         $today = CarbonImmutable::now($branch->timezone)->startOfDay();
         $date = is_string($query['date'] ?? null) && preg_match('/\A\d{4}-\d{2}-\d{2}\z/', $query['date']) === 1
             ? (CarbonImmutable::createFromFormat('!Y-m-d', $query['date'], $branch->timezone) ?: $today) : $today;
+        if ($date->toDateString() !== ($query['date'] ?? $today->toDateString())) {
+            $date = $today; // 2027-02-31 never rolls over into March.
+        }
         $shifts = $this->days->shifts($actor->organisation_id, [], $date, $date, $branch->id);
         $sessions = ClockSession::query()->where('organisation_id', $actor->organisation_id)
             ->where(fn ($q) => $q->where(fn ($q) => $q->where('branch_id', $branch->id)->whereDate('local_date', $date->toDateString()))

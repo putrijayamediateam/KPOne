@@ -1033,7 +1033,10 @@ up yet."
    - **No clock-in:** an approved shift that ended more than the grace minutes ago with no session.
    - **Forgotten clock-out:** an open session more than the forgotten window (default 60 minutes) after its shift's
      end, or 16 hours after clock-in when there is no shift. The session shows in the person's own list with "Add
-     your clock-out time"; it is never closed automatically.
+     your clock-out time"; it is never closed automatically. **Split shift (Suresh's review, decided by Liyana):**
+     when a clock-in's shift ended more than the forgotten window ago and the person's next approved shift that day
+     starts within two hours, the next Clock in marks the morning "missing its clock-out" instead of refusing. Without a
+     later shift, someone still on after their shift simply clocks out (it may be overtime, HR-3b).
    - **Not on the roster:** a session with no approved shift that day. Shown, never refused.
    - **On approved leave:** a session on a day of approved leave (HR-2a) is flagged for the reviewer.
    Breaks come from the shift's break minutes (HR-1); worked minutes = session length minus those break minutes

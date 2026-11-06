@@ -150,6 +150,7 @@ CREATE TRIGGER hr_clock_sessions_truncate BEFORE TRUNCATE ON hr_clock_sessions F
 CREATE TRIGGER hr_attendance_corrections_truncate BEFORE TRUNCATE ON hr_attendance_corrections FOR EACH STATEMENT EXECUTE FUNCTION guard_hr_attendance_append_only();
 
 -- A session is clocked in at a branch the person is assigned to on its local date, and never overlaps another of theirs.
+-- An open session runs until now; one missing its clock-out has no known end (corrections check it in the service).
 CREATE OR REPLACE FUNCTION guard_hr_clock_session_write() RETURNS trigger LANGUAGE plpgsql AS $$
 BEGIN
  IF TG_OP = 'DELETE' THEN RAISE EXCEPTION 'HR clock sessions are never deleted' USING ERRCODE = 'P0001'; END IF;
@@ -173,8 +174,8 @@ BEGIN
   END IF;
  END IF;
  IF EXISTS (SELECT 1 FROM hr_clock_sessions s WHERE s.user_id = NEW.user_id AND s.id <> NEW.id
-   AND s.clock_in_at < COALESCE(NEW.clock_out_at, NEW.clock_in_at + interval '1 second')
-   AND COALESCE(s.clock_out_at, s.clock_in_at + interval '1 second') > NEW.clock_in_at) THEN
+   AND s.clock_in_at < COALESCE(NEW.clock_out_at, CASE WHEN NEW.status = 'open' THEN GREATEST(now(), NEW.clock_in_at + interval '1 second') ELSE NEW.clock_in_at + interval '1 second' END)
+   AND COALESCE(s.clock_out_at, CASE WHEN s.status = 'open' THEN GREATEST(now(), s.clock_in_at + interval '1 second') ELSE s.clock_in_at + interval '1 second' END) > NEW.clock_in_at) THEN
   RAISE EXCEPTION 'Overlapping clock sessions' USING ERRCODE = '23P01';
  END IF;
  RETURN NEW;

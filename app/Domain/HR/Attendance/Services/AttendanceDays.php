@@ -74,6 +74,28 @@ final class AttendanceDays
         return $rows;
     }
 
+    /**
+     * A split shift (Suresh): the open clock-in's shift ended more than the forgotten window ago and the person's next
+     * approved shift that day starts within the early-arrival window, so the morning was never clocked out. Staying late
+     * on one shift is not this: without a later shift the open clock-in stays open (it may be overtime, HR-3b).
+     */
+    public function forgottenBeforeNextShift(ClockSession $open, CarbonImmutable $now): bool
+    {
+        $settings = $this->settings->forDate($open->organisation_id, $open->local_date);
+        if ($settings === null || $open->clock_out_at !== null) {
+            return false;
+        }
+        $shifts = $this->shifts($open->organisation_id, [$open->user_id], $open->local_date, $open->local_date);
+        $own = $shifts->first(fn (RosterShift $s): bool => $s->ends_at->greaterThan($open->clock_in_at)
+            && $s->starts_at->lessThanOrEqualTo($open->clock_in_at->addMinutes(self::EARLY_ARRIVAL_MINUTES)));
+        if ($own === null || ! $now->greaterThan($own->ends_at->addMinutes($settings->forgottenWindowMinutes))) {
+            return false;
+        }
+
+        return $shifts->contains(fn (RosterShift $s): bool => $s->starts_at->greaterThanOrEqualTo($own->ends_at)
+            && $now->greaterThanOrEqualTo($s->starts_at->subMinutes(self::EARLY_ARRIVAL_MINUTES)));
+    }
+
     /** Minutes worked in a closed session: the shift's break comes off only when the session covers the whole shift. */
     public static function worked(ClockSession $session, ?RosterShift $shift): ?int
     {
@@ -157,7 +179,10 @@ final class AttendanceDays
                     $flags[] = ['code' => 'other_branch', 'label' => 'Different branch from the roster'];
                 }
             }
-            if ($shift !== null && $session === null && $now->greaterThan($shift->ends_at->addMinutes($grace))) {
+            if ($shift !== null && $session === null && isset($leave[$userId.'|'.$date])) {
+                // A shift kept on an approved leave day (HR-2a never changes shifts) is not a missed clock-in (Suresh).
+                $flags[] = ['code' => 'on_leave', 'label' => 'On approved leave'];
+            } elseif ($shift !== null && $session === null && $now->greaterThan($shift->ends_at->addMinutes($grace))) {
                 $flags[] = ['code' => 'no_clock_in', 'label' => 'No clock-in'];
             }
             if ($session !== null && $session->clock_out_at === null) {
@@ -200,11 +225,12 @@ final class AttendanceDays
     /**
      * @param  Collection<int, ClockSession>  $sessions
      * @param  Collection<int, RosterShift>  $shifts
-     * @return array<string, true> "userId|Y-m-d" for each approved leave day of these people
+     * @return array<string, true> "userId|Y-m-d" for each approved leave day of these people (session and shift days)
      */
     private function leaveDays(int $organisationId, Collection $sessions, Collection $shifts): array
     {
-        $dates = $sessions->map(fn (ClockSession $s): string => $s->local_date->toDateString());
+        $dates = $sessions->map(fn (ClockSession $s): string => $s->local_date->toDateString())
+            ->merge($shifts->map(fn (RosterShift $s): string => $s->starts_at->setTimezone($s->timezone)->toDateString()));
         if ($dates->isEmpty()) {
             return [];
         }

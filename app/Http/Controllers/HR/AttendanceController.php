@@ -49,8 +49,9 @@ class AttendanceController extends Controller
     {
         $tab = $request->input('tab') === 'review' ? 'review' : 'my';
 
+        // From Review a correction is always for someone named; it never falls back to the reviewer's own times (Suresh).
         return $this->run($request, $tab, 'Correction sent for approval.', fn () => $corrections->propose($request->user(),
-            $request->only(['user_id', 'kind', 'session_id', 'branch_id', 'in_time', 'out_time', 'reason_code', 'note', 'idempotency_key'])));
+            [...$request->only(['user_id', 'kind', 'session_id', 'branch_id', 'in_time', 'out_time', 'reason_code', 'note', 'idempotency_key']), 'on_behalf' => $tab === 'review']));
     }
 
     public function decide(Request $request, CorrectionService $corrections, string $correction, string $decision): RedirectResponse

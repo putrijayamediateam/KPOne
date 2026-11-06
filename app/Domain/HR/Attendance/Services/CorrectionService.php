@@ -45,6 +45,9 @@ final class CorrectionService
             throw ValidationException::withMessages(['reason_code' => 'Choose a reason.']);
         }
         $note = $this->note($input['note'] ?? null);
+        if (filter_var($input['on_behalf'] ?? false, FILTER_VALIDATE_BOOLEAN) && in_array($input['user_id'] ?? null, [null, ''], true)) {
+            throw ValidationException::withMessages(['user_id' => 'Choose a staff member.']);
+        }
         $subjectId = $this->subjectId($actor, $input['user_id'] ?? null);
         $own = $subjectId === $actor->id;
 
@@ -212,10 +215,18 @@ final class CorrectionService
         if ($kind === 'add_day' && ! $this->support->assigned($subject, $branch, $start->setTimezone($branch->timezone)->startOfDay(), true)) {
             throw ValidationException::withMessages(['branch_id' => "{$subject->name} is not assigned to {$branch->name} on that date."]);
         }
+        $now = CarbonImmutable::now('UTC');
         $until = $end ?? $start->addSecond();
-        $overlap = ClockSession::query()->where('user_id', $subject->id)->when($session !== null, fn ($q) => $q->whereKeyNot($session?->id))
-            ->where('clock_in_at', '<', $until)->get()
-            ->contains(fn (ClockSession $s): bool => ($s->clock_out_at ?? $s->clock_in_at->addSecond())->greaterThan($start));
+        $others = ClockSession::query()->where('user_id', $subject->id)->when($session !== null, fn ($q) => $q->whereKeyNot($session?->id))
+            ->where('clock_in_at', '<', $until)->get();
+        // An open session runs until now (Suresh); one missing its clock-out has no known end, so it is matched by its start.
+        $overlap = $others->contains(fn (ClockSession $s): bool => ($s->clock_out_at ?? ($s->status === 'open' ? $now->max($s->clock_in_at->addSecond()) : $s->clock_in_at->addSecond()))->greaterThan($start));
+        if (! $overlap && $kind === 'add_day') {
+            $forgotten = $others->first(fn (ClockSession $s): bool => $s->status === 'missing_out' && $s->clock_in_at->greaterThan($start->subHours(AttendanceSupport::MAX_SESSION_HOURS)));
+            if ($forgotten !== null) {
+                throw ValidationException::withMessages(['in_time' => 'There is a clock-in on '.AttendanceSupport::day($forgotten->local_date).' with no clock-out. Add its clock-out time instead.']);
+            }
+        }
         if ($overlap) {
             throw ValidationException::withMessages([$kind === 'set_out' ? 'out_time' : 'in_time' => 'Those times overlap another clock-in.']);
         }

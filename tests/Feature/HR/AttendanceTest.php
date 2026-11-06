@@ -9,6 +9,7 @@ use App\Domain\HR\Attendance\Models\AttendanceCorrection;
 use App\Domain\HR\Attendance\Models\ClockSession;
 use App\Domain\HR\Roster\Models\RosterVersion;
 use App\Domain\HR\Roster\RosterPermissions;
+use App\Domain\Identity\Models\StaffProfile;
 use App\Domain\Organisation\Models\Branch;
 use App\Models\User;
 use Carbon\CarbonImmutable;
@@ -20,6 +21,7 @@ use Inertia\Testing\AssertableInertia as Assert;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Spatie\Permission\Models\Role;
 use Tests\Feature\Visit\VisitTestCase;
+use Tests\Support\StaffBranchAssignmentBootstrapper;
 
 /**
  * HR-3a attendance (owner, 2026-11-06). The clock is frozen in Kuala Lumpur on Monday 8 Mar 2027, so every date is
@@ -372,6 +374,149 @@ class AttendanceTest extends VisitTestCase
         $this->get(route('hr.attendance.index', ['tab' => 'review', 'branch' => $this->branch->id, 'date' => self::WEEK]))->assertInertia(fn (Assert $page) => $page
             ->where('attendance.review.rows.0.person', $ca->name)->where('attendance.review.rows.0.shift.label', 'Full day, 8:00 AM to 2:00 PM')
             ->where('attendance.review.dateLabel', 'Monday, 8 Mar 2027')->where('attendance.review.summary', '0 flags · 0 corrections waiting'));
+    }
+
+    public function test_a_split_shift_morning_never_clocked_out_does_not_block_the_evening_but_staying_late_does_not_count(): void
+    {
+        $hr = $this->actor('hr_manager');
+        $director = $this->actor('director');
+        $ca = $this->actor('ca');
+        $late = $this->actor('ca');
+        $this->settings($hr)->assertSessionHasNoErrors();
+        $this->roster($hr, $director, [[$ca, '08:00', '12:00', 0], [$ca, '17:00', '21:00', 0], [$late, '08:00', '14:00', 0]]);
+        $this->at('2027-03-08 08:00');
+        $this->clock($ca, 'in')->assertSessionHasNoErrors();
+        $this->clock($late, 'in')->assertSessionHasNoErrors();
+
+        // Past the morning shift's end plus the window, with the evening shift about to start: the morning is forgotten.
+        $this->at('2027-03-08 16:30');
+        $this->selectBranch($ca);
+        $this->get(route('hr.attendance.index'))->assertInertia(fn (Assert $page) => $page->where('attendance.my.state', 'out')
+            ->where('attendance.my.staleLabel', 'Your clock-in on 8 Mar 2027 has no clock-out. Add your clock-out time below.'));
+        $this->clock($ca, 'in')->assertSessionHasNoErrors();
+        $this->assertSame(['missing_out', 'open'], ClockSession::query()->where('user_id', $ca->id)->orderBy('id')->pluck('status')->all());
+
+        // The morning clock-out is then added as a correction someone else approves.
+        $morning = ClockSession::query()->where('user_id', $ca->id)->where('status', 'missing_out')->sole();
+        $this->propose($ca, ['kind' => 'set_out', 'session_id' => $morning->public_id, 'out_time' => '2027-03-08T12:05', 'reason_code' => 'forgot'])->assertSessionHasNoErrors();
+        $this->decide($hr, AttendanceCorrection::query()->sole(), 'approve')->assertSessionHasNoErrors();
+        $this->assertSame('closed', $morning->refresh()->status);
+
+        // With no later shift, a person still on after their shift simply clocks out (it may be overtime, HR-3b).
+        $this->selectBranch($late);
+        $this->get(route('hr.attendance.index'))->assertInertia(fn (Assert $page) => $page->where('attendance.my.state', 'in'));
+        $this->clock($late, 'out')->assertSessionHasNoErrors();
+        $this->assertSame('closed', ClockSession::query()->where('user_id', $late->id)->value('status'));
+    }
+
+    public function test_leave_other_branches_breaks_and_open_or_forgotten_sessions_are_read_correctly(): void
+    {
+        $hr = $this->actor('hr_manager');
+        $director = $this->actor('director');
+        $ca = $this->actor('ca');
+        $away = $this->actor('ca');
+        $this->settings($hr, ['effective_from' => self::WEEK])->assertSessionHasNoErrors();
+        $this->roster($hr, $director, [[$ca, '08:00', '14:00', 30], [$away, '08:00', '14:00', 0]]);
+        $this->approvedLeave($away, $hr, $director);
+        $puchong = Branch::query()->where('organisation_id', $this->organisation->id)->where('code', 'PUCHONG')->firstOrFail();
+        StaffBranchAssignmentBootstrapper::create(StaffProfile::query()->where('user_id', $ca->id)->firstOrFail(), $puchong,
+            ['is_primary' => false, 'assignment_type' => 'temporary', 'valid_from' => '2027-03-07', 'valid_until' => null]);
+
+        $this->at('2027-03-08 07:55');
+        $this->selectBranch($ca, $puchong);
+        $this->post(route('hr.attendance.clock-in'), ['idempotency_key' => (string) Str::uuid()])->assertSessionHasNoErrors();
+        $this->at('2027-03-08 14:10');
+        $this->clock($ca, 'out')->assertSessionHasNoErrors();
+        $this->at('2027-03-08 16:00');
+        $this->selectBranch($hr);
+        $rows = collect($this->get(route('hr.attendance.index', ['tab' => 'review', 'date' => self::WEEK]))->viewData('page')['props']['attendance']['review']['rows'])->keyBy('userId');
+        $this->assertSame(['Different branch from the roster'], collect($rows[$ca->id]['flags'])->pluck('label')->all());
+        $this->assertSame('5 h 45 min', $rows[$ca->id]['worked']); // The session covers the shift, so its 30-minute break comes off.
+        $this->assertSame(['On approved leave'], collect($rows[$away->id]['flags'])->pluck('label')->all()); // Never "No clock-in".
+
+        // An open session runs until now: a forgotten day inside it is refused, and so is one after a clock-in missing its clock-out.
+        $this->at('2027-03-09 08:00');
+        $this->clock($away, 'in')->assertSessionHasNoErrors();
+        $this->at('2027-03-09 11:00');
+        $this->propose($hr, ['user_id' => $away->id, 'kind' => 'add_day', 'branch_id' => $this->branch->id, 'in_time' => '2027-03-09T09:00', 'out_time' => '2027-03-09T10:00',
+            'reason_code' => 'other', 'tab' => 'review'])->assertSessionHasErrors(['in_time' => 'Those times overlap another clock-in.']);
+        DB::table('hr_clock_sessions')->where('user_id', $away->id)->update(['status' => 'missing_out']);
+        $this->propose($away, ['kind' => 'add_day', 'branch_id' => $this->branch->id, 'in_time' => '2027-03-09T08:05', 'out_time' => '2027-03-09T10:30', 'reason_code' => 'forgot'])
+            ->assertSessionHasErrors(['in_time' => 'There is a clock-in on 9 Mar 2027 with no clock-out. Add its clock-out time instead.']);
+    }
+
+    public function test_review_corrections_name_a_person_and_only_the_proposer_withdraws_with_the_current_version(): void
+    {
+        $hr = $this->actor('hr_manager');
+        $director = $this->actor('director');
+        $ca = $this->actor('ca');
+        $this->settings($hr)->assertSessionHasNoErrors();
+        $this->at('2027-03-08 08:00');
+        $this->clock($ca, 'in')->assertSessionHasNoErrors();
+        $session = ClockSession::query()->sole();
+        $this->at('2027-03-08 18:00');
+
+        // From Review, a forgotten day with no staff member chosen is refused, never filed for the reviewer.
+        $this->selectBranch($hr);
+        $this->post(route('hr.attendance.corrections.store'), ['tab' => 'review', 'kind' => 'add_day', 'branch_id' => $this->branch->id, 'in_time' => '2027-03-08T08:00',
+            'out_time' => '2027-03-08T09:00', 'reason_code' => 'other', 'idempotency_key' => (string) Str::uuid()])->assertSessionHasErrors(['user_id' => 'Choose a staff member.']);
+        $this->assertSame(0, AttendanceCorrection::query()->count());
+
+        $this->propose($hr, ['user_id' => $ca->id, 'kind' => 'set_out', 'session_id' => $session->public_id, 'out_time' => '2027-03-08T17:00', 'reason_code' => 'forgot', 'tab' => 'review'])
+            ->assertSessionHasNoErrors();
+        $correction = AttendanceCorrection::query()->sole();
+        $this->selectBranch($ca);
+        $this->post(route('hr.attendance.corrections.cancel', $correction->public_id), ['expected_lock_version' => 1, 'idempotency_key' => (string) Str::uuid()])->assertForbidden();
+        $this->selectBranch($hr);
+        $this->post(route('hr.attendance.corrections.cancel', $correction->public_id), ['expected_lock_version' => 9, 'idempotency_key' => (string) Str::uuid()])
+            ->assertSessionHasErrors(['attendance' => 'This was changed by someone else. Reload to see the latest version.']);
+        $this->selectBranch($director);
+        $this->post(route('hr.attendance.corrections.decide', [$correction->public_id, 'approve']), ['expected_lock_version' => 9, 'idempotency_key' => (string) Str::uuid()])
+            ->assertSessionHasErrors(['attendance' => 'This was changed by someone else. Reload to see the latest version.']);
+        $key = (string) Str::uuid();
+        foreach ([1, 2] as $attempt) {
+            $this->post(route('hr.attendance.corrections.decide', [$correction->public_id, 'approve']), ['expected_lock_version' => 1, 'idempotency_key' => $key])->assertSessionHasNoErrors();
+        }
+        $this->assertSame(1, DB::table('hr_clock_events')->where('correction_id', $correction->id)->count());
+        $this->get(route('hr.attendance.index', ['tab' => 'my']))->assertInertia(fn (Assert $page) => $page->where('attendance.pendingCount', 0));
+    }
+
+    public function test_another_organisations_sessions_and_corrections_are_never_reached(): void
+    {
+        $hr = $this->actor('hr_manager');
+        $this->settings($hr)->assertSessionHasNoErrors();
+        $org = DB::table('organisations')->insertGetId(['code' => 'OTHER_'.Str::upper(Str::random(6)), 'name' => 'Synthetic Other Organisation', 'is_active' => true, 'created_at' => now(), 'updated_at' => now()]);
+        $branch = new Branch;
+        $branch->forceFill(['organisation_id' => $org, 'code' => 'OTH'.Str::upper(Str::random(4)), 'name' => 'Synthetic Other Branch', 'timezone' => 'Asia/Kuala_Lumpur', 'is_active' => true])->save();
+        $stranger = User::factory()->create(['organisation_id' => $org, 'email' => 'attendance.other.'.Str::lower(Str::random(8)).'@kpone.test']);
+        $profile = new StaffProfile;
+        $profile->forceFill(['user_id' => $stranger->id, 'department_id' => null])->save();
+        StaffBranchAssignmentBootstrapper::create($profile, $branch, ['is_primary' => true, 'assignment_type' => 'permanent', 'valid_from' => '2027-03-01', 'valid_until' => null]);
+        $sessionId = (string) Str::uuid();
+        $sid = DB::table('hr_clock_sessions')->insertGetId(['public_id' => $sessionId, 'organisation_id' => $org, 'user_id' => $stranger->id, 'branch_id' => $branch->id,
+            'local_date' => self::WEEK, 'timezone' => 'Asia/Kuala_Lumpur', 'clock_in_at' => '2027-03-07 23:30:00+00', 'status' => 'open', 'created_at' => now(), 'updated_at' => now()]);
+        $correctionId = (string) Str::uuid();
+        DB::table('hr_attendance_corrections')->insert(['public_id' => $correctionId, 'organisation_id' => $org, 'user_id' => $stranger->id, 'branch_id' => $branch->id,
+            'clock_session_id' => $sid, 'kind' => 'set_out', 'proposed_out_at' => '2027-03-08 00:30:00+00', 'reason_code' => 'forgot', 'status' => 'pending',
+            'proposed_by_user_id' => $stranger->id, 'created_at' => now(), 'updated_at' => now()]);
+
+        $this->selectBranch($hr);
+        $this->post(route('hr.attendance.corrections.decide', [$correctionId, 'approve']), ['expected_lock_version' => 1, 'idempotency_key' => (string) Str::uuid()])->assertNotFound();
+        $this->post(route('hr.attendance.corrections.cancel', $correctionId), ['expected_lock_version' => 1, 'idempotency_key' => (string) Str::uuid()])->assertNotFound();
+        $this->propose($hr, ['user_id' => $stranger->id, 'kind' => 'set_out', 'session_id' => $sessionId, 'out_time' => '2027-03-08T06:00', 'reason_code' => 'forgot', 'tab' => 'review'])
+            ->assertSessionHasErrors(['user_id' => 'Choose a staff member.']);
+        $this->get(route('hr.attendance.index', ['tab' => 'review']))->assertInertia(fn (Assert $page) => $page->where('attendance.review.pending', []));
+        $this->assertSame('pending', DB::table('hr_attendance_corrections')->where('public_id', $correctionId)->value('status'));
+    }
+
+    private function approvedLeave(User $person, User $hr, User $director): void
+    {
+        $type = DB::table('hr_leave_types')->insertGetId(['organisation_id' => $person->organisation_id, 'code' => 'AL', 'name' => 'Synthetic annual', 'is_paid' => true,
+            'uses_balance' => false, 'allow_half_days' => false, 'evidence_needed' => false, 'updated_by_user_id' => $hr->id, 'created_at' => now(), 'updated_at' => now()]);
+        $id = DB::table('hr_leave_requests')->insertGetId(['public_id' => (string) Str::uuid(), 'organisation_id' => $person->organisation_id, 'user_id' => $person->id,
+            'leave_type_id' => $type, 'branch_id' => $this->branch->id, 'start_date' => self::WEEK, 'end_date' => self::WEEK, 'start_part' => 'full', 'end_part' => 'full',
+            'slot_start' => '2027-03-08 00:00:00', 'slot_end' => '2027-03-09 00:00:00', 'year' => 2027, 'halves' => 2, 'status' => 'pending', 'created_at' => now(), 'updated_at' => now()]);
+        DB::table('hr_leave_requests')->where('id', $id)->update(['status' => 'approved', 'decided_by_user_id' => $director->id, 'decided_at' => now()]);
     }
 
     private function at(string $time): void

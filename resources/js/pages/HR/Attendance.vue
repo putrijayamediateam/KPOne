@@ -80,6 +80,7 @@ const props = defineProps<{
     attendance: {
         tab: Tab;
         tabs: Tab[];
+        pendingCount: number;
         kinds: Option[];
         reasons: Option[];
         rejectReasons: Option[];
@@ -154,9 +155,8 @@ const tabs = computed(() =>
     props.attendance.tabs.map((value) => ({
         value,
         label:
-            value === 'review' &&
-            (props.attendance.review?.pending.length ?? 0) > 0
-                ? `Review (${props.attendance.review?.pending.length})`
+            value === 'review' && props.attendance.pendingCount > 0
+                ? `Review (${props.attendance.pendingCount})`
                 : tabLabels[value],
     })),
 );
@@ -242,20 +242,14 @@ onBeforeUnmount(() => {
     tabNav()?.removeEventListener('scroll', updateTabFade);
 });
 
-// ---- One polite live region for state changes only ----
+// ---- One polite live region for state changes only (a refusal is read once, by its alert under the button) ----
 const announcement = ref('');
 watch(
-    () => [
-        props.attendance.my?.state,
-        props.attendance.my?.clockedInLabel,
-        errors.value.clock,
-    ],
-    ([, label, refused], [oldState]) => {
+    () => [props.attendance.my?.state, props.attendance.my?.clockedInLabel],
+    ([, label], [oldState]) => {
         const my = props.attendance.my;
 
-        if (refused) {
-            announcement.value = String(refused);
-        } else if (my && my.state !== oldState) {
+        if (my && my.state !== oldState) {
             announcement.value =
                 my.state === 'in'
                     ? String(label ?? 'Clocked in.')
@@ -404,7 +398,13 @@ const sendCorrection = () => {
         },
     );
 };
+const withdrawing = ref('');
 const cancelCorrection = (c: Correction, fromReview = false) => {
+    if (withdrawing.value !== '') {
+        return;
+    }
+
+    withdrawing.value = c.publicId;
     router.post(
         `/hr/attendance/corrections/${c.publicId}/cancel`,
         {
@@ -413,7 +413,7 @@ const cancelCorrection = (c: Correction, fromReview = false) => {
             expected_lock_version: c.lockVersion,
             idempotency_key: crypto.randomUUID(),
         },
-        { preserveScroll: true },
+        { preserveScroll: true, onFinish: () => (withdrawing.value = '') },
     );
 };
 
@@ -620,11 +620,18 @@ const correctionStatusTone = (
                         <Clock class="size-5" />
                         {{ clock.processing ? 'Clocking out…' : 'Clock out' }}
                     </Button>
-                    <InputError
-                        :message="
-                            errors.clock ?? attendance.my.refusal ?? undefined
+                    <InputError :message="errors.clock" />
+                    <p
+                        v-if="
+                            attendance.my.state === 'out' &&
+                            attendance.my.refusal &&
+                            !errors.clock
                         "
-                    />
+                        class="text-sm text-muted-foreground"
+                        data-test="clock-refusal"
+                    >
+                        {{ attendance.my.refusal }}
+                    </p>
                     <p class="text-sm tabular-nums" data-test="server-time">
                         Server time {{ serverTime }}
                     </p>
@@ -815,6 +822,7 @@ const correctionStatusTone = (
                                 v-if="c.canCancel"
                                 variant="ghost"
                                 class="min-h-11 sm:min-h-8"
+                                :disabled="withdrawing !== ''"
                                 @click="cancelCorrection(c)"
                             >
                                 Withdraw<span class="sr-only">
@@ -958,56 +966,58 @@ const correctionStatusTone = (
                                     </th>
                                 </tr>
                             </template>
-                            <tr
-                                v-for="r in attendance.review.rows"
-                                :key="r.key"
-                                data-test="review-row"
-                            >
-                                <td class="font-medium">{{ r.person }}</td>
-                                <td>{{ r.shift?.label ?? 'No shift' }}</td>
-                                <td class="tabular-nums">
-                                    {{ r.session?.in ?? '–' }}
-                                </td>
-                                <td class="tabular-nums">
-                                    {{ r.session?.out ?? '–' }}
-                                </td>
-                                <td class="tabular-nums">
-                                    {{ r.worked ?? '–' }}
-                                </td>
-                                <td>
-                                    <div class="flex flex-wrap gap-1">
-                                        <StatusBadge
-                                            v-for="f in r.flags"
-                                            :key="f.code"
-                                            status="flag"
-                                            :label="f.label"
-                                            tone="warning"
-                                        />
-                                        <StatusBadge
-                                            v-if="r.correctionWaiting"
-                                            status="waiting"
-                                            label="Correction waiting"
-                                            tone="neutral"
-                                        />
-                                    </div>
-                                </td>
-                                <td class="text-right">
-                                    <Button
-                                        v-if="
-                                            r.session &&
-                                            !r.correctionWaiting &&
-                                            attendance.review.settingsReady
-                                        "
-                                        variant="outline"
-                                        size="sm"
-                                        @click="openCorrection(r, true)"
-                                    >
-                                        Correct<span class="sr-only">
-                                            times for {{ r.person }}</span
+                            <template #body>
+                                <tr
+                                    v-for="r in attendance.review.rows"
+                                    :key="r.key"
+                                    data-test="review-row"
+                                >
+                                    <td class="font-medium">{{ r.person }}</td>
+                                    <td>{{ r.shift?.label ?? 'No shift' }}</td>
+                                    <td class="tabular-nums">
+                                        {{ r.session?.in ?? '–' }}
+                                    </td>
+                                    <td class="tabular-nums">
+                                        {{ r.session?.out ?? '–' }}
+                                    </td>
+                                    <td class="tabular-nums">
+                                        {{ r.worked ?? '–' }}
+                                    </td>
+                                    <td>
+                                        <div class="flex flex-wrap gap-1">
+                                            <StatusBadge
+                                                v-for="f in r.flags"
+                                                :key="f.code"
+                                                status="flag"
+                                                :label="f.label"
+                                                tone="warning"
+                                            />
+                                            <StatusBadge
+                                                v-if="r.correctionWaiting"
+                                                status="waiting"
+                                                label="Correction waiting"
+                                                tone="neutral"
+                                            />
+                                        </div>
+                                    </td>
+                                    <td class="text-right">
+                                        <Button
+                                            v-if="
+                                                r.session &&
+                                                !r.correctionWaiting &&
+                                                attendance.review.settingsReady
+                                            "
+                                            variant="outline"
+                                            size="sm"
+                                            @click="openCorrection(r, true)"
                                         >
-                                    </Button>
-                                </td>
-                            </tr>
+                                            Correct<span class="sr-only">
+                                                times for {{ r.person }}</span
+                                            >
+                                        </Button>
+                                    </td>
+                                </tr>
+                            </template>
                         </OperationalTable>
                     </div>
                     <ul class="flex flex-col gap-2 lg:hidden">
@@ -1121,6 +1131,7 @@ const correctionStatusTone = (
                                     v-else-if="c.canCancel"
                                     variant="ghost"
                                     class="min-h-11 sm:min-h-8"
+                                    :disabled="withdrawing !== ''"
                                     @click="cancelCorrection(c, true)"
                                 >
                                     Withdraw<span class="sr-only">

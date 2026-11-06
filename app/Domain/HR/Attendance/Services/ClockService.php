@@ -16,12 +16,13 @@ use Illuminate\Validation\ValidationException;
 /**
  * HR-3a Clock in and Clock out on the staff member's own account. The time is the server's; no location, IP address,
  * photo or device data is stored (TEAM.md decision 6). One open session per person (service and PostgreSQL). A press
- * within a minute of the last one is a double tap and is refused. A clock-in older than 16 hours is never closed by
- * the button: it becomes "missing its clock-out" and is fixed by a correction someone else approves.
+ * within a minute of the last one is a double tap and is refused. A clock-in older than 16 hours, or one whose shift
+ * ended more than the forgotten window ago when the person's next shift that day is about to start (a split shift), is
+ * not closed by the button: the next clock-in marks it "missing its clock-out", fixed by a correction someone else approves.
  */
 final class ClockService
 {
-    public function __construct(private AttendanceSupport $support, private BranchAccessService $branches) {}
+    public function __construct(private AttendanceSupport $support, private BranchAccessService $branches, private AttendanceDays $days) {}
 
     /** @param array<string, mixed> $input */
     public function clockIn(User $actor, array $input): ClockSession
@@ -42,7 +43,7 @@ final class ClockService
             }
             $open = ClockSession::query()->where('user_id', $actor->id)->where('status', 'open')->lockForUpdate()->first();
             if ($open !== null) {
-                if ($open->clock_in_at->lessThan($now->subHours(AttendanceSupport::MAX_SESSION_HOURS))) {
+                if ($open->clock_in_at->lessThan($now->subHours(AttendanceSupport::MAX_SESSION_HOURS)) || $this->days->forgottenBeforeNextShift($open, $now)) {
                     $this->markMissingOut($actor, $open);
                 } else {
                     throw ValidationException::withMessages(['clock' => 'You are already clocked in since '.AttendanceSupport::time($open->clock_in_at, $open->timezone).'.']);
@@ -127,8 +128,11 @@ final class ClockService
             return DB::transaction(fn () => $callback(), 3);
         } catch (QueryException $e) {
             // PostgreSQL is the last line for one open session per person and no overlapping sessions.
-            if (in_array($e->errorInfo[0] ?? null, ['23505', '23P01'], true)) {
+            if (($e->errorInfo[0] ?? null) === '23505') {
                 throw ValidationException::withMessages(['clock' => 'You are already clocked in. Reload the page.']);
+            }
+            if (($e->errorInfo[0] ?? null) === '23P01') {
+                throw ValidationException::withMessages(['clock' => 'This time overlaps another clock-in. Ask HR to check your times.']);
             }
             throw $e;
         }
