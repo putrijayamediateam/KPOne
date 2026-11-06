@@ -16,22 +16,22 @@ test('no Dispensary row spans more columns than the two-column tablet grid has',
     assert.ok(show.includes('sm:col-span-2 lg:col-span-3'));
 });
 
-test('Dispensary controls are at least 44 px tall on phones only', () => {
+test('Dispensary controls are at least 44 px tall on phones and tablets (DD-24, owner-approved 2026-11-06)', () => {
     for (const page of [show, completed]) {
-        assert.ok(page.includes('max-sm:[&_[data-slot=button]]:min-h-11'));
+        assert.ok(page.includes('max-lg:[&_[data-slot=button]]:min-h-11'));
         assert.ok(
             page.includes(
-                'max-sm:[&_input:not([type=radio]):not([type=checkbox])]:min-h-11',
+                'max-lg:[&_input:not([type=radio]):not([type=checkbox])]:min-h-11',
             ),
         );
-        assert.ok(page.includes('max-sm:[&_select]:min-h-11'));
+        assert.ok(page.includes('max-lg:[&_select]:min-h-11'));
         assert.ok(
-            page.includes('max-sm:[&_[data-slot=select-trigger]]:min-h-11'),
+            page.includes('max-lg:[&_[data-slot=select-trigger]]:min-h-11'),
         );
-        assert.ok(page.includes('max-sm:[&_textarea]:min-h-11'));
+        assert.ok(page.includes('max-lg:[&_textarea]:min-h-11'));
     }
 
-    assert.ok(labels.includes('@media screen and (max-width: 639.98px)'));
+    assert.ok(labels.includes('@media screen and (max-width: 1023.98px)'));
     assert.ok(labels.includes('min-height: 44px;'));
 });
 
