@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import BillToRecipient from '@/components/billing/BillToRecipient.vue';
 import { amount, myr } from '@/types/billing';
 import type { BillToRecipientData } from '@/types/billTo';
@@ -77,16 +77,42 @@ const isVoid = computed(
     () => !props.receipt && invoice.value.status === 'voided',
 );
 const adjustmentSen = computed(() => invoice.value.adjustment.adjustmentSen);
-// BIL-9 (owner, Daniel): "KPI-… · Page n of N" in the page footer, so a loose sheet is traceable. CSS cannot tell a
-// one-page document from a longer one, so the first page carries no footer: a one-page document prints none, and a
-// longer one numbers pages 2 onward (page 1 has the full header and number).
+// BIL-9 (owner: "yes, page numbers"; Daniel): "KPI-… · Page n of N" on every page of a document longer than one
+// page, and nothing on a one-page document. Print CSS cannot tell the two apart, so the paper measures itself at the
+// A4 text width (210 mm less 2 x 15 mm margins) before printing: taller than one page (297 mm less 2 x 15 mm, kept a
+// little short so the footer errs towards showing) numbers every page. Until measured (or if it cannot be), only
+// pages 2 onward carry the footer, so a one-page document never shows "Page 1 of 1".
+const sheet = ref<HTMLElement | null>(null);
+const multiPage = ref(false);
+const measure = () => {
+    const element = sheet.value;
+
+    if (!element) {
+        return;
+    }
+
+    const saved = element.style.cssText;
+    element.style.width = '180mm';
+    const heightMm = element.getBoundingClientRect().height / (96 / 25.4);
+    element.style.cssText = saved;
+    multiPage.value = heightMm > 262;
+};
+onMounted(() => {
+    measure();
+    window.addEventListener('beforeprint', measure);
+});
+onBeforeUnmount(() => window.removeEventListener('beforeprint', measure));
 const pageFooter = computed(() => {
     const number = (props.receipt?.number ?? invoice.value.number).replace(
         /["\\\n]/g,
         '',
     );
 
-    return `@page { @bottom-center { content: "${number} \\00B7  Page " counter(page) " of " counter(pages); font-size: 8pt; } } @page :first { @bottom-center { content: none; } }`;
+    const footer = `@page { @bottom-center { content: "${number} \\00B7  Page " counter(page) " of " counter(pages); font-size: 8pt; } }`;
+
+    return multiPage.value
+        ? footer
+        : `${footer} @page :first { @bottom-center { content: none; } }`;
 });
 // "2.000" prints as "2"; "1.500" as "1.5".
 const quantity = (value: string) =>
@@ -97,235 +123,242 @@ const quantity = (value: string) =>
     <component :is="'style'" data-testid="page-footer">{{
         pageFooter
     }}</component>
-    <header
-        class="mb-1 flex items-start gap-4 border-b-[0.5pt] border-current pb-3"
-        aria-label="Clinic letterhead"
-    >
-        <img
-            v-if="letterhead.logo"
-            :src="letterhead.logo.url"
-            alt="Clinic logo"
-            class="size-[24mm] shrink-0 object-contain"
-        />
-        <div class="min-w-0 break-words" data-testid="letterhead-text">
-            <h1 class="text-base font-bold uppercase">
-                {{ details.clinic_name }}
-            </h1>
-            <p v-for="line in addressLines" :key="line" class="uppercase">
-                {{ line }}
-            </p>
-            <p v-if="details.email">Email: {{ details.email }}</p>
-            <p v-if="phones" data-testid="letterhead-phones">
-                Tel: {{ phones }}
-            </p>
-        </div>
-    </header>
-
-    <h2 class="mt-5 text-center text-base font-bold underline">
-        {{ receipt ? 'OFFICIAL RECEIPT' : 'OFFICIAL INVOICE' }}
-    </h2>
-    <div class="mt-2 mb-4 text-center" data-testid="issued-label">
-        <p
-            v-if="isVoid"
-            class="mb-1 text-xl font-bold tracking-widest"
-            data-testid="void-label"
+    <div ref="sheet" data-testid="sheet">
+        <header
+            class="mb-1 flex items-start gap-4 border-b-[0.5pt] border-current pb-3"
+            aria-label="Clinic letterhead"
         >
-            VOID
-        </p>
-        <p
-            v-if="labelText"
-            class="inline-block border-[1.5px] border-current px-3 py-0.5 text-[9pt] font-bold tracking-wider uppercase"
-        >
-            {{ labelText }}
-        </p>
-        <p v-if="issued" class="mt-1 text-[9pt]">
-            Version {{ issued.version }} · issued {{ issued.issuedAt }} (branch
-            time)
-        </p>
-        <p
-            v-for="note in issued?.notes ?? []"
-            :key="note"
-            class="mx-auto mt-2 max-w-xl border border-current px-3 py-1 text-[9pt]"
-        >
-            {{ note }}
-        </p>
-    </div>
+            <img
+                v-if="letterhead.logo"
+                :src="letterhead.logo.url"
+                alt="Clinic logo"
+                class="size-[24mm] shrink-0 object-contain"
+            />
+            <div class="min-w-0 break-words" data-testid="letterhead-text">
+                <h1 class="text-base font-bold uppercase">
+                    {{ details.clinic_name }}
+                </h1>
+                <p v-for="line in addressLines" :key="line" class="uppercase">
+                    {{ line }}
+                </p>
+                <p v-if="details.email">Email: {{ details.email }}</p>
+                <p v-if="phones" data-testid="letterhead-phones">
+                    Tel: {{ phones }}
+                </p>
+            </div>
+        </header>
 
-    <section class="my-3 grid grid-cols-2 gap-4" aria-label="Document details">
-        <div class="min-w-0 break-words" aria-label="Patient recipient">
-            <p class="font-bold">To</p>
-            <p>
-                <span v-if="!receipt && billTo">Patient: </span
-                >{{ billing.patient.name }}
-            </p>
-            <p v-if="billing.patient.identifier">
-                {{ billing.patient.identifier }}
-            </p>
-            <p v-if="billing.patient.phone">{{ billing.patient.phone }}</p>
-        </div>
-        <div class="min-w-0 text-right break-words">
-            <p>
-                <span class="font-bold">{{
-                    receipt ? 'Receipt No:' : 'Invoice No:'
-                }}</span>
-                {{ receipt?.number ?? invoice.number }}
-            </p>
-            <p>
-                <span class="font-bold">Date:</span>
-                {{ receipt?.receivedAt ?? invoice.finalizedAt }}
-            </p>
-            <p v-if="receipt">
-                <span class="font-bold">Invoice No:</span>
-                {{ invoice.number }}
-            </p>
-        </div>
-    </section>
-
-    <section
-        v-if="!receipt && billTo"
-        class="my-3 border-[0.5pt] border-current p-3"
-        aria-label="Bill to"
-    >
-        <p class="mb-1 font-bold">Bill to</p>
-        <BillToRecipient :recipient="billTo" />
-    </section>
-
-    <template v-if="receipt">
-        <p class="my-3" data-testid="receipt-sentence">
-            Received from {{ billing.patient.name }} the sum of
-            {{ myr(receipt.amountSen) }} by {{ receipt.method }} being payment
-            for the treatment charges.
-        </p>
-        <p v-if="receipt.status === 'reversed'" class="my-2 font-bold">
-            Recording reversed — this is not a refund receipt.
-        </p>
-    </template>
-
-    <table
-        class="mt-3 w-full table-fixed border-t-[1.5pt] border-current text-left text-[10pt]"
-        aria-label="Items"
-    >
-        <colgroup>
-            <col class="w-[52%]" />
-            <col class="w-[10%]" />
-            <col class="w-[19%]" />
-            <col class="w-[19%]" />
-        </colgroup>
-        <thead>
-            <tr class="border-b-[0.5pt] border-current">
-                <th class="py-1.5 font-bold">Item</th>
-                <th class="py-1.5 text-center font-bold">Qty</th>
-                <th class="py-1.5 text-right font-bold">Unit Price (RM)</th>
-                <th class="py-1.5 text-right font-bold">Total Price (RM)</th>
-            </tr>
-        </thead>
-        <tbody>
-            <tr
-                v-for="(line, index) in invoice.lines"
-                :key="index"
-                class="border-b-[0.5pt] border-current/40 align-top"
+        <h2 class="mt-5 text-center text-base font-bold underline">
+            {{ receipt ? 'OFFICIAL RECEIPT' : 'OFFICIAL INVOICE' }}
+        </h2>
+        <div class="mt-2 mb-4 text-center" data-testid="issued-label">
+            <p
+                v-if="isVoid"
+                class="mb-1 text-xl font-bold tracking-widest"
+                data-testid="void-label"
             >
-                <td class="py-1.5 pr-2 break-words">{{ line.name }}</td>
-                <td class="py-1.5 text-center tabular-nums">
-                    {{ quantity(line.quantity) }}
-                </td>
-                <td class="py-1.5 text-right tabular-nums">
-                    {{ amount(line.unitPriceSen) }}
-                </td>
-                <td class="py-1.5 text-right tabular-nums">
-                    {{ amount(line.totalSen) }}
-                </td>
-            </tr>
-        </tbody>
-    </table>
+                VOID
+            </p>
+            <p
+                v-if="labelText"
+                class="inline-block border-[1.5px] border-current px-3 py-0.5 text-[9pt] font-bold tracking-wider uppercase"
+            >
+                {{ labelText }}
+            </p>
+            <p v-if="issued" class="mt-1 text-[9pt]">
+                Version {{ issued.version }} · issued
+                {{ issued.issuedAt }} (branch time)
+            </p>
+            <p
+                v-for="note in issued?.notes ?? []"
+                :key="note"
+                class="mx-auto mt-2 max-w-xl border border-current px-3 py-1 text-[9pt]"
+            >
+                {{ note }}
+            </p>
+        </div>
 
-    <div class="document-closing">
+        <section
+            class="my-3 grid grid-cols-2 gap-4"
+            aria-label="Document details"
+        >
+            <div class="min-w-0 break-words" aria-label="Patient recipient">
+                <p class="font-bold">To</p>
+                <p>
+                    <span v-if="!receipt && billTo">Patient: </span
+                    >{{ billing.patient.name }}
+                </p>
+                <p v-if="billing.patient.identifier">
+                    {{ billing.patient.identifier }}
+                </p>
+                <p v-if="billing.patient.phone">{{ billing.patient.phone }}</p>
+            </div>
+            <div class="min-w-0 text-right break-words">
+                <p>
+                    <span class="font-bold">{{
+                        receipt ? 'Receipt No:' : 'Invoice No:'
+                    }}</span>
+                    {{ receipt?.number ?? invoice.number }}
+                </p>
+                <p>
+                    <span class="font-bold">Date:</span>
+                    {{ receipt?.receivedAt ?? invoice.finalizedAt }}
+                </p>
+                <p v-if="receipt">
+                    <span class="font-bold">Invoice No:</span>
+                    {{ invoice.number }}
+                </p>
+            </div>
+        </section>
+
+        <section
+            v-if="!receipt && billTo"
+            class="my-3 border-[0.5pt] border-current p-3"
+            aria-label="Bill to"
+        >
+            <p class="mb-1 font-bold">Bill to</p>
+            <BillToRecipient :recipient="billTo" />
+        </section>
+
+        <template v-if="receipt">
+            <p class="my-3" data-testid="receipt-sentence">
+                Received from {{ billing.patient.name }} the sum of
+                {{ myr(receipt.amountSen) }} by {{ receipt.method }} being
+                payment for the treatment charges.
+            </p>
+            <p v-if="receipt.status === 'reversed'" class="my-2 font-bold">
+                Recording reversed — this is not a refund receipt.
+            </p>
+        </template>
+
         <table
-            v-if="!receipt && invoice.categories"
-            class="mt-4 w-full table-fixed border-t-[1.5pt] border-current text-left text-[10pt]"
-            aria-label="Categories"
+            class="mt-3 w-full table-fixed border-t-[1.5pt] border-current text-left text-[10pt]"
+            aria-label="Items"
         >
             <colgroup>
-                <col class="w-[81%]" />
+                <col class="w-[52%]" />
+                <col class="w-[10%]" />
+                <col class="w-[19%]" />
                 <col class="w-[19%]" />
             </colgroup>
             <thead>
                 <tr class="border-b-[0.5pt] border-current">
-                    <th class="py-1.5 font-bold">Category</th>
+                    <th class="py-1.5 font-bold">Item</th>
+                    <th class="py-1.5 text-center font-bold">Qty</th>
+                    <th class="py-1.5 text-right font-bold">Unit Price (RM)</th>
                     <th class="py-1.5 text-right font-bold">
-                        Total Amount (RM)
+                        Total Price (RM)
                     </th>
                 </tr>
             </thead>
             <tbody>
-                <tr v-for="row in invoice.categories" :key="row.name">
-                    <td class="py-1">{{ row.name }}</td>
-                    <td class="py-1 text-right tabular-nums">
-                        {{ amount(row.totalSen) }}
+                <tr
+                    v-for="(line, index) in invoice.lines"
+                    :key="index"
+                    class="border-b-[0.5pt] border-current/40 align-top"
+                >
+                    <td class="py-1.5 pr-2 break-words">{{ line.name }}</td>
+                    <td class="py-1.5 text-center tabular-nums">
+                        {{ quantity(line.quantity) }}
+                    </td>
+                    <td class="py-1.5 text-right tabular-nums">
+                        {{ amount(line.unitPriceSen) }}
+                    </td>
+                    <td class="py-1.5 text-right tabular-nums">
+                        {{ amount(line.totalSen) }}
                     </td>
                 </tr>
             </tbody>
         </table>
 
-        <dl
-            class="mt-4 ml-auto grid w-1/2 grid-cols-[1fr_auto] gap-x-4 gap-y-1 border-b-[1.5pt] border-current pb-2 text-[10pt]"
-            aria-label="Totals"
-            data-testid="totals"
-        >
-            <dt class="font-bold">Subtotal</dt>
-            <dd class="text-right tabular-nums">
-                {{ myr(invoice.adjustment.subtotalSen) }}
-            </dd>
-            <dt class="font-bold">
-                {{ adjustmentSen > 0 ? 'Surcharge' : 'Discount' }}
-            </dt>
-            <dd class="text-right tabular-nums">
-                {{ myr(adjustmentSen) }}
-            </dd>
-            <dt class="font-bold">Tax</dt>
-            <dd class="text-right tabular-nums">{{ myr(0) }}</dd>
-            <template v-if="receipt">
-                <dt class="font-bold">Total paid</dt>
-                <dd class="text-right tabular-nums">
-                    {{ myr(receipt.amountSen) }}
-                </dd>
-            </template>
-            <template v-else-if="invoice.state">
-                <dt class="font-bold">Invoice total</dt>
-                <dd class="text-right tabular-nums">
-                    {{ myr(invoice.state.total) }}
-                </dd>
-                <dt class="font-bold">Total paid</dt>
-                <dd class="text-right tabular-nums">
-                    {{ myr(invoice.state.self_pay) }}
-                </dd>
-                <template v-if="invoice.state.panel !== 0">
-                    <dt class="font-bold">Panel covers</dt>
-                    <dd class="text-right tabular-nums">
-                        {{ myr(invoice.state.panel) }}
-                    </dd>
-                </template>
-                <template v-if="invoice.state.deferred !== 0">
-                    <dt class="font-bold">Pay later</dt>
-                    <dd class="text-right tabular-nums">
-                        {{ myr(invoice.state.deferred) }}
-                    </dd>
-                </template>
-                <!-- A void invoice is replaced by a new one: nothing is due on it (owner decision 9). -->
-                <template v-if="!isVoid">
-                    <dt class="font-bold">Total due</dt>
-                    <dd class="text-right tabular-nums">
-                        {{ myr(invoice.state.due_now) }}
-                    </dd>
-                </template>
-            </template>
-        </dl>
-    </div>
+        <div class="document-closing">
+            <table
+                v-if="!receipt && invoice.categories"
+                class="mt-4 w-full table-fixed border-t-[1.5pt] border-current text-left text-[10pt]"
+                aria-label="Categories"
+            >
+                <colgroup>
+                    <col class="w-[81%]" />
+                    <col class="w-[19%]" />
+                </colgroup>
+                <thead>
+                    <tr class="border-b-[0.5pt] border-current">
+                        <th class="py-1.5 font-bold">Category</th>
+                        <th class="py-1.5 text-right font-bold">
+                            Total Amount (RM)
+                        </th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr v-for="row in invoice.categories" :key="row.name">
+                        <td class="py-1">{{ row.name }}</td>
+                        <td class="py-1 text-right tabular-nums">
+                            {{ amount(row.totalSen) }}
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
 
-    <p
-        v-if="letterhead.footerText"
-        class="document-footer mt-6 text-center text-[9pt] break-words whitespace-pre-wrap italic"
-    >
-        {{ letterhead.footerText }}
-    </p>
+            <dl
+                class="mt-4 ml-auto grid w-1/2 grid-cols-[1fr_auto] gap-x-4 gap-y-1 border-b-[1.5pt] border-current pb-2 text-[10pt]"
+                aria-label="Totals"
+                data-testid="totals"
+            >
+                <dt class="font-bold">Subtotal</dt>
+                <dd class="text-right tabular-nums">
+                    {{ myr(invoice.adjustment.subtotalSen) }}
+                </dd>
+                <dt class="font-bold">
+                    {{ adjustmentSen > 0 ? 'Surcharge' : 'Discount' }}
+                </dt>
+                <dd class="text-right tabular-nums">
+                    {{ myr(adjustmentSen) }}
+                </dd>
+                <dt class="font-bold">Tax</dt>
+                <dd class="text-right tabular-nums">{{ myr(0) }}</dd>
+                <template v-if="receipt">
+                    <dt class="font-bold">Total paid</dt>
+                    <dd class="text-right tabular-nums">
+                        {{ myr(receipt.amountSen) }}
+                    </dd>
+                </template>
+                <template v-else-if="invoice.state">
+                    <dt class="font-bold">Invoice total</dt>
+                    <dd class="text-right tabular-nums">
+                        {{ myr(invoice.state.total) }}
+                    </dd>
+                    <dt class="font-bold">Total paid</dt>
+                    <dd class="text-right tabular-nums">
+                        {{ myr(invoice.state.self_pay) }}
+                    </dd>
+                    <template v-if="invoice.state.panel !== 0">
+                        <dt class="font-bold">Panel covers</dt>
+                        <dd class="text-right tabular-nums">
+                            {{ myr(invoice.state.panel) }}
+                        </dd>
+                    </template>
+                    <template v-if="invoice.state.deferred !== 0">
+                        <dt class="font-bold">Pay later</dt>
+                        <dd class="text-right tabular-nums">
+                            {{ myr(invoice.state.deferred) }}
+                        </dd>
+                    </template>
+                    <!-- A void invoice is replaced by a new one: nothing is due on it (owner decision 9). -->
+                    <template v-if="!isVoid">
+                        <dt class="font-bold">Total due</dt>
+                        <dd class="text-right tabular-nums">
+                            {{ myr(invoice.state.due_now) }}
+                        </dd>
+                    </template>
+                </template>
+            </dl>
+        </div>
+
+        <p
+            v-if="letterhead.footerText"
+            class="document-footer mt-6 text-center text-[9pt] break-words whitespace-pre-wrap italic"
+        >
+            {{ letterhead.footerText }}
+        </p>
+    </div>
 </template>
