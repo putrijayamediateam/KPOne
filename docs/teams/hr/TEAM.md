@@ -164,6 +164,10 @@ check items, keep them"). The rest stand unless the owner changes them.
     "Correction waiting" chip; the privacy line "KPOne records the time only. No location or photo."; a summary line
     on Review and an outline "Clock in" link on My roster (relayed 2026-11-06). The note itself still waits for
     the owner's approval.
+29. HR-3 design note (HR-PLAN section 9) approved with its defaults (owner, 2026-11-06, in the HR session: "approve
+    the HR-3 note with the defaults"): HR-3a first, then HR-3b; grace minutes suggested 5, forgotten clock-out
+    window 60 minutes, corrections up to 7 days back, both shared PC and own phone, overtime roles chosen by HR in
+    settings, rest days are the branch's non-working weekdays, a split shift is two sessions, no top-bar button.
 
 ## 7. Open items and known limits
 

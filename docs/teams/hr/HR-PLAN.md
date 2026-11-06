@@ -973,8 +973,9 @@ Same page, `/hr/leave`; no new tab, hub link or top-bar change. Shared component
 ## 9. HR-3 attendance and overtime: design note
 
 Written 2026-11-06 while HR-2b (PR #311) waits for CI. It replaces the short HR-3 sketch in section 2 wherever the
-two differ, and changes no HR-1 or HR-2 rule. **Status: draft, waiting for the owner's approval.** Questions in 9.9
-take the defaults written here until the clinic says otherwise.
+two differ, and changes no HR-1 or HR-2 rule. **Status: approved with its defaults by the owner on 2026-11-06
+(TEAM.md decision 29); building HR-3a.** Questions in 9.9 take the defaults written here until the clinic says
+otherwise.
 
 **KPOne ships no attendance rule.** Grace minutes, overtime multipliers, the weekly hour limit and who may claim
 overtime are clinic-entered, versioned settings. The settings form is pre-filled with the clinic HR proposal's
