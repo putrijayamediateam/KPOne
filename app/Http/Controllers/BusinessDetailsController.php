@@ -8,6 +8,7 @@ use App\Domain\Organisation\BusinessDetails\BranchLetterheadService;
 use App\Domain\Organisation\BusinessDetails\BusinessDetailAsset;
 use App\Domain\Organisation\BusinessDetails\BusinessDetailsAccess;
 use App\Domain\Organisation\BusinessDetails\BusinessDetailsService;
+use App\Domain\Organisation\BusinessDetails\DocumentReadinessService;
 use App\Domain\Organisation\BusinessDetails\OrganisationBusinessProfile;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -20,10 +21,12 @@ use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 final class BusinessDetailsController extends Controller
 {
-    public function index(Request $request, BranchLetterheadService $letterheads): Response
+    public function index(Request $request, BranchLetterheadService $letterheads, DocumentReadinessService $readiness): Response
     {
         return Inertia::render('BusinessDetails/Index', ['letterhead' => $letterheads->forActiveBranch($request->user())->toArray(),
-            'canEdit' => $request->user()->can(BusinessDetailsAccess::MANAGE)]);
+            'canEdit' => $request->user()->can(BusinessDetailsAccess::MANAGE),
+            // CAT-4: read-only check of every active branch.
+            'readiness' => $readiness->branches($request->user())]);
     }
 
     public function store(Request $request, BusinessDetailsService $service): RedirectResponse

@@ -96,6 +96,7 @@ final class ClinicManagementNavigation
         $add('Staff & branches', 'staff', [
             [$branch && $actor->can('clinician_credentials.manage.organisation'), 'Clinician credentials', 'Verify professional names and MMC registration numbers.', 'clinician-credentials.index'],
             [$branch && $actor->can('staff.view.own') && $actor->can('encounters.view.own'), 'My clinician credentials', 'Review your own professional details.', 'clinician-credentials.own'],
+            [$actor->can('hr.roster.view.own') || $actor->can('hr.roster.manage.organisation') || $actor->can('hr.roster.approve.organisation'), 'KPOne HR roster', 'Plan branch shifts and see your own roster.', 'hr.roster.index'],
             [$actor->can('staff.view.own') || $actor->can('staff.view.branch') || $actor->can('staff.view.organisation'), 'Staff', 'Review staff within your existing access.', 'staff.index'],
             [$actor->can('branches.view.branch') || $actor->can('branches.view.organisation'), 'Branches', 'Review the clinic locations you may access.', 'branches.index'],
             [$actor->can('access.view.organisation'), 'Access Control', 'Review existing roles and permissions.', 'access-control.index'],
