@@ -149,13 +149,22 @@ class QueueController extends Controller
         return to_route('queue.index');
     }
 
+    /** Q-4b: the doctor's own Call next block, for the held consultation page. Read only. */
+    public function callNextBlock(Request $request, CallNextService $callNext): JsonResponse
+    {
+        $validated = $request->validate(['expected_branch_id' => ['required', 'integer', 'min:1']]);
+
+        return response()->json(['callNext' => $callNext->ownBlock($request->user(), (int) $validated['expected_branch_id'])]);
+    }
+
     /** Q-4: call the confirmed patient if they are still the doctor's next eligible patient. */
     public function callNext(Request $request, CallNextService $callNext): RedirectResponse
     {
         try {
             $entry = $callNext->call($request->user(), $request->all());
         } catch (ValidationException $exception) {
-            throw $exception->redirectTo(route('queue.index'));
+            // Q-4b: a refusal from a held consultation returns to it, so the dialog can show the latest patient.
+            throw $exception->redirectTo($this->callNextRefusalTarget($request));
         }
         $room = QueueCall::query()->where('queue_entry_id', $entry->id)->latest('id')->value('room_name');
         Inertia::flash('toast', ['type' => 'success', 'message' => $room
@@ -163,5 +172,23 @@ class QueueController extends Controller
             : __('Called :number to the counter.', ['number' => QueueNumberFormat::format($entry->queue_number)])]);
 
         return to_route('queue.index');
+    }
+
+    /** Q-4b: only the actor's own consultation may be the return page; anything else goes to the queue board. */
+    private function callNextRefusalTarget(Request $request): string
+    {
+        $from = $request->input('from');
+        $fromVisit = $request->input('from_visit');
+        if ($from !== 'consultation' || ! is_string($fromVisit) || $fromVisit === '' || strlen($fromVisit) > 40) {
+            return route('queue.index');
+        }
+        $actor = $request->user();
+        $visitNumber = Visit::query()
+            ->where('organisation_id', $actor->organisation_id)
+            ->where('assigned_doctor_user_id', $actor->id)
+            ->where('visit_number', $fromVisit)
+            ->value('visit_number');
+
+        return is_string($visitNumber) ? route('encounters.show', $visitNumber) : route('queue.index');
     }
 }
