@@ -45,6 +45,7 @@ own PR and tells B.E.R.N.I.S.S (formerly LUCY). See [REVIEW.md](REVIEW.md) for h
 | DD-33 | "Added by CA" and "Edited by CA" chips on the Invoices page, `pages/Visits/History.vue` | Hand-styled `bg-pink-100 text-pink-900` chips with no dark style (the same chip DD-27 fixed on the Dispensary page); use the accent `StatusBadge` | 13, 10 | Billing | Major | DD-24 to DD-27 design look | Open |
 | DD-34 | "Record changed elsewhere" panel on the consultation page | The panel has no dark-mode colours | 13 | Queue & TV | Major | Q-4b design look (Yasmin) | Open |
 | DD-35 | Call next confirm dialog (Q-4 and Q-4b) | Uses a hard-coded `dark:bg-slate-900` instead of the theme tokens | 1, 13 | Queue & TV | Minor | Q-4b design look (Yasmin) | Open |
+| DD-36 | "My Queue" back link on the consultation page, `pages/Clinical/Show.vue` | Uses `text-emerald-800` with no dark style, so the way back to the queue is barely visible in dark mode | 13, 1 | Queue & TV | Major | DD-34/35 review (Mira) | Open |
 
 ## Not debt (out of scope, owner-approved)
 
@@ -67,3 +68,4 @@ receipt and drug-label print layouts.
 - 2026-11-06: DD-30 marked Fixed (PR #296: Queue board tabs scroll with a right-edge fade on phones, 44 px tall).
 - 2026-11-06: DD-33 added (Invoices page CA chips with no dark style, seen during the DD-24 to DD-27 look).
 - 2026-11-06: DD-34 and DD-35 added (consultation page dark-mode gaps noted by Yasmin during Q-4b).
+- 2026-11-06: DD-36 added (consultation page "My Queue" link in dark mode, noted by Mira during the DD-34/35 review).
