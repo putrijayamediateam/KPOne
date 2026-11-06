@@ -78,14 +78,14 @@ useResizeObserver([desktopNav, desktopLinks], () => {
                             v-for="item in items"
                             :key="item.href"
                             :href="item.href"
-                            class="cursor-pointer rounded-md border-l-2 border-transparent px-3 py-2 text-sm font-medium hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                            class="cursor-pointer rounded-md border-l-2 px-3 py-2 text-sm font-medium hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
                             :aria-current="
                                 isActive(item.href) ? 'page' : undefined
                             "
                             :class="
                                 isActive(item.href)
                                     ? 'border-brand bg-muted text-foreground'
-                                    : 'text-muted-foreground'
+                                    : 'border-transparent text-muted-foreground'
                             "
                             @click="mobileNavOpen = false"
                         >
