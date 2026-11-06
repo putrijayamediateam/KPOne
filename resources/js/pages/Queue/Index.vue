@@ -713,7 +713,7 @@ onBeforeUnmount(() => {
             class="flex flex-wrap items-center gap-2 rounded-lg border px-3 py-2 text-[13px]"
             :class="
                 roomChoice.currentRoomId === null
-                    ? 'border-amber-300 bg-amber-50 text-amber-950 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-100'
+                    ? 'border-warning/25 bg-warning/10 text-warning-strong'
                     : 'bg-muted/30'
             "
             data-testid="doctor-room-choice"
