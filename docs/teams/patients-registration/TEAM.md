@@ -152,7 +152,8 @@ team's Reviewer is Hafiz, with the same role and rules.
     recommended scope: DRAFT still, KPOne's MC number format kept, one phone line, a blank "Diagnosis: ________" line (no
     diagnosis is ever filled in by KPOne), blank re-examine and resume lines, the court notice, the new signature line,
     EN and BM both DRAFT, DRAFT banner kept. "approve the 3 MC assertions", then "approve the MC test changes for
-    nurul" (all five). Approved wording and `production_approved` (slice 2) wait for a named doctor's sign-off.
+    nurul" (all five). Approved wording and `production_approved` (slice 2) wait for a named doctor's sign-off. The MC
+    "Date:" uses dd/mm/yyyy, the same as the body dates (owner, relayed word for word: "go with 1 for the MC date").
 
 ## 7. Open items and known limits
 
