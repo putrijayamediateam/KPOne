@@ -401,8 +401,8 @@ const controlledDescription = computed(() => {
     }
 
     return row.isControlled
-        ? `${row.displayName} will no longer show "Ubat Terkawal / Controlled Medicine" on drug labels, including reprints. The change is recorded.`
-        : `New drug labels for ${row.displayName} will show "Ubat Terkawal / Controlled Medicine". The change is recorded.`;
+        ? `${row.displayName} will no longer show "Ubat Terkawal/Controlled Medicine" on drug labels, including reprints. The change is recorded.`
+        : `New drug labels for ${row.displayName} will show "Ubat Terkawal/Controlled Medicine" below the label. The change is recorded.`;
 });
 // DSP-1b: drug groups the Dispensary allergy warning matches against (one per line).
 const groupsRow = ref<MedicineRow | null>(null);

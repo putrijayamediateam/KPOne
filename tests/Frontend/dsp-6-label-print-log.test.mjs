@@ -7,9 +7,10 @@ const labels = readFileSync(
     'utf8',
 );
 
-test('labels printed before carry a REPRINT mark on the last row, outside the line budget', () => {
+// DSP-10 (approved test change): the mark moved from the end of the last row to reserved cells at the top right.
+test('labels printed before carry a REPRINT mark in the reserved top-right cells, outside the row budget', () => {
     assert.ok(labels.includes('labelReprints?: string[];'));
-    assert.ok(labels.includes('n === item.lines.length - 1 &&'));
+    assert.ok(labels.includes('v-if="reprinted.includes(item.previewUrl)"'));
     assert.ok(labels.includes('reprinted.includes(item.previewUrl)'));
     assert.ok(labels.includes('data-testid="label-reprint-mark"'));
     assert.ok(labels.includes('>REPRINT</span'));

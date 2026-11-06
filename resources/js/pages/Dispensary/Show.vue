@@ -1191,12 +1191,14 @@ const inputClass = 'mt-1 h-9 w-full rounded-md border px-2';
                                 {{ dispensary.labelLimits?.dosage }}, frequency
                                 {{ dispensary.labelLimits?.frequency }},
                                 duration {{ dispensary.labelLimits?.duration }},
-                                route {{ dispensary.labelLimits?.route }},
                                 instruction
                                 {{ dispensary.labelLimits?.instruction }},
                                 precaution
-                                {{ dispensary.labelLimits?.precaution }}.
-                                Over-budget labels are blocked, never truncated.
+                                {{ dispensary.labelLimits?.precaution }},
+                                quantity {{ dispensary.labelLimits?.quantity }}.
+                                Dosage, frequency and instruction share 3
+                                printed rows. Route is not printed. Over-budget
+                                labels are blocked, never truncated.
                             </p>
                             <label
                                 >Quantity ({{ item.unit }})<input
@@ -1233,9 +1235,7 @@ const inputClass = 'mt-1 h-9 w-full rounded-md border px-2';
                                     data-field="duration"
                             /></label>
                             <label
-                                >Route (label max
-                                {{ dispensary.labelLimits?.route }}
-                                characters)<input
+                                >Route (not printed on the label)<input
                                     v-model="forms[item.publicId].route"
                                     :class="inputClass"
                                     maxlength="500"
@@ -1591,9 +1591,7 @@ const inputClass = 'mt-1 h-9 w-full rounded-md border px-2';
                                 maxlength="500"
                         /></label>
                         <label
-                            >Route (label max
-                            {{ dispensary.labelLimits?.route }}
-                            characters)<input
+                            >Route (not printed on the label)<input
                                 v-model="addForm.route"
                                 :class="inputClass"
                                 maxlength="500"
@@ -1684,12 +1682,14 @@ const inputClass = 'mt-1 h-9 w-full rounded-md border px-2';
                             Label limits: dosage
                             {{ dispensary.labelLimits?.dosage }}, frequency
                             {{ dispensary.labelLimits?.frequency }}, duration
-                            {{ dispensary.labelLimits?.duration }}, route
-                            {{ dispensary.labelLimits?.route }}, instruction
+                            {{ dispensary.labelLimits?.duration }}, instruction
                             {{ dispensary.labelLimits?.instruction }},
-                            precaution
-                            {{ dispensary.labelLimits?.precaution }} characters.
-                            Printing does not truncate saved text.
+                            precaution {{ dispensary.labelLimits?.precaution }},
+                            quantity
+                            {{ dispensary.labelLimits?.quantity }} characters.
+                            Dosage, frequency and instruction share 3 printed
+                            rows. Route is not printed. Printing does not
+                            truncate saved text.
                         </p>
                         <AllergyMatchWarning
                             v-if="matchesFor(chosen).length"
