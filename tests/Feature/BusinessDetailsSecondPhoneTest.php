@@ -101,4 +101,39 @@ class BusinessDetailsSecondPhoneTest extends VisitTestCase
         $this->save(['phone_secondary' => ''])->assertSessionHasNoErrors();
         $this->assertNull($this->profile()->phone_secondary);
     }
+
+    public function test_an_older_client_cannot_leave_a_second_phone_alone_or_equal_to_the_first(): void
+    {
+        $this->save(['phone_secondary' => '012-345 6789'])->assertSessionHasNoErrors();
+
+        // The field is left out, but the saved second phone still counts.
+        $this->save(['phone' => ''])->assertSessionHasErrors(['phone_secondary' => 'Enter the first phone before a second one.']);
+        $this->save(['phone' => '012-345 6789'])->assertSessionHasErrors(['phone_secondary' => 'The second phone is the same as the first.']);
+        $this->assertSame(['+60320000001', '+60123456789'], [$this->profile()->phone, $this->profile()->phone_secondary]);
+    }
+
+    public function test_an_invalid_first_phone_reports_only_on_the_first_field(): void
+    {
+        $this->save(['phone' => 'not a phone', 'phone_secondary' => '012-345 6789'])
+            ->assertSessionHasErrors('phone')->assertSessionDoesntHaveErrors('phone_secondary');
+    }
+
+    public function test_saving_the_same_second_phone_again_changes_nothing_and_a_retry_replays(): void
+    {
+        $this->save(['phone_secondary' => '012-345 6789'])->assertSessionHasNoErrors();
+        $version = $this->profile()->lock_version;
+
+        $this->save(['phone_secondary' => '+60 12-345 6789'])->assertSessionHasNoErrors();
+        $this->assertSame($version, $this->profile()->lock_version);
+        $audit = DB::table('audit_logs')->where('event', 'business_details.saved')->latest('id')->first();
+        $this->assertNotContains('branch.phone_secondary', json_decode((string) $audit->metadata, true)['changed_fields']);
+
+        // The same request sent twice with the field left out is one save.
+        $payload = $this->payload(['email' => 'retry@second-phone.test']);
+        $before = DB::table('audit_logs')->where('event', 'business_details.saved')->count();
+        $this->actingAs($this->director)->post('/business-details', $payload)->assertSessionHasNoErrors();
+        $this->actingAs($this->director)->post('/business-details', $payload)->assertSessionHasNoErrors();
+        $this->assertSame($before + 1, DB::table('audit_logs')->where('event', 'business_details.saved')->count());
+        $this->assertSame('+60123456789', $this->profile()->phone_secondary);
+    }
 }

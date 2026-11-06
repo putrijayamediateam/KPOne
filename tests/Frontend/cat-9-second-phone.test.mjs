@@ -16,13 +16,18 @@ test('the second phone box sits right after the first, optional and connected to
     assert.ok(second < page.indexOf('id="email"'));
     assert.match(
         flat,
-        /<Label for="phone_secondary" >Second phone number \(optional\)<\/Label >/,
+        /<Label for="phone_secondary" >Second phone \(optional\)<\/Label >/,
     );
     assert.match(
         flat,
         /aria-describedby="phone_secondary-help phone_secondary-error"/,
     );
-    assert.match(flat, /Printed after the first number, as "Tel: A \/ B"\./);
+    // Daniel: "Phone" and "Second phone", the same width (one column, same shared Input).
+    assert.match(flat, /<Label for="phone">Phone \(optional\)<\/Label>/);
+    assert.match(
+        flat,
+        /For documents that show two numbers, as "Tel: A \/ B"\./,
+    );
     assert.match(
         flat,
         /<InputError id="phone_secondary-error" :message="form\.errors\.phone_secondary"/,

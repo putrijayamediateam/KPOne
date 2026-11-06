@@ -22,7 +22,7 @@ type Details = {
     country: string;
     phone: string | null;
     // CAT-9: optional second clinic phone, printed as "Tel: A / B".
-    phone_secondary?: string | null;
+    phone_secondary: string | null;
     email: string | null;
 };
 type OrganisationDetails = {
@@ -497,9 +497,7 @@ const reload = () =>
                         </div>
                         <div class="min-w-0 space-y-4">
                             <div class="grid gap-2">
-                                <Label for="phone"
-                                    >Clinic phone number (optional)</Label
-                                >
+                                <Label for="phone">Phone (optional)</Label>
                                 <Input
                                     id="phone"
                                     v-model="form.phone"
@@ -523,7 +521,7 @@ const reload = () =>
                             </div>
                             <div class="grid gap-2">
                                 <Label for="phone_secondary"
-                                    >Second phone number (optional)</Label
+                                    >Second phone (optional)</Label
                                 >
                                 <Input
                                     id="phone_secondary"
@@ -540,8 +538,8 @@ const reload = () =>
                                     id="phone_secondary-help"
                                     class="mt-1 text-xs text-muted-foreground"
                                 >
-                                    Printed after the first number, as "Tel: A /
-                                    B".
+                                    For documents that show two numbers, as
+                                    "Tel: A / B".
                                 </p>
                                 <InputError
                                     id="phone_secondary-error"

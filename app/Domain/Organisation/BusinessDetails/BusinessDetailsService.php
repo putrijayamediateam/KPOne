@@ -47,12 +47,6 @@ final class BusinessDetailsService
         $secondaryGiven = array_key_exists('phone_secondary', $data);
         if ($secondaryGiven) {
             $data['phone_secondary'] = $this->phone($data['phone_secondary'], 'phone_secondary', 'Enter a valid second phone number, including the country code.');
-            if ($data['phone_secondary'] !== null && $data['phone'] === null) {
-                throw ValidationException::withMessages(['phone_secondary' => 'Enter the first phone before a second one.']);
-            }
-            if ($data['phone_secondary'] !== null && $data['phone_secondary'] === $data['phone']) {
-                throw ValidationException::withMessages(['phone_secondary' => 'The second phone is the same as the first.']);
-            }
         }
         $remove = filter_var($data['remove_logo'] ?? false, FILTER_VALIDATE_BOOLEAN);
         if ($file && $remove) {
@@ -94,6 +88,14 @@ final class BusinessDetailsService
                 }
                 $org ??= new OrganisationBusinessProfile;
                 $details ??= new BranchBusinessProfile;
+                // CAT-9: check the second phone that will be saved, including one kept because the request left it out.
+                $secondary = array_key_exists('phone_secondary', $branchFields) ? $branchFields['phone_secondary'] : $details->phone_secondary;
+                if ($secondary !== null && $branchFields['phone'] === null) {
+                    throw ValidationException::withMessages(['phone_secondary' => 'Enter the first phone before a second one.']);
+                }
+                if ($secondary !== null && $secondary === $branchFields['phone']) {
+                    throw ValidationException::withMessages(['phone_secondary' => 'The second phone is the same as the first.']);
+                }
                 $changed = [];
                 foreach ($organisationFields as $field => $value) {
                     if ($org->getAttribute($field) !== $value) {
