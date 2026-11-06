@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { computed, ref, useAttrs } from 'vue';
 import { Button } from '@/components/ui/button';
 
 /**
@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
  */
 defineOptions({ inheritAttrs: false });
 
-defineProps<{
+const props = defineProps<{
     accept: string;
     label: string;
     status: string;
@@ -20,6 +20,11 @@ defineProps<{
 
 const emit = defineEmits<{ change: [event: Event] }>();
 const input = ref<HTMLInputElement | null>(null);
+const attrs = useAttrs();
+// The state line describes the button first, then whatever the parent links (such as its error).
+const describedBy = computed(() =>
+    [props.statusId, attrs['aria-describedby']].filter(Boolean).join(' '),
+);
 
 defineExpose({
     clear: () => {
@@ -44,6 +49,7 @@ defineExpose({
         />
         <Button
             v-bind="$attrs"
+            :aria-describedby="describedBy"
             type="button"
             variant="outline"
             class="min-h-11 w-fit sm:min-h-9"

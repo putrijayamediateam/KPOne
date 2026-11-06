@@ -22,9 +22,15 @@ test('the logo is chosen with a real button and its state sits on its own line (
     assert.match(c, /defineOptions\(\{ inheritAttrs: false \}\)/);
     assert.match(
         c,
-        /<Button v-bind="\$attrs" type="button" variant="outline" class="min-h-11 w-fit sm:min-h-9"/,
+        /<Button v-bind="\$attrs" :aria-describedby="describedBy" type="button" variant="outline" class="min-h-11 w-fit sm:min-h-9"/,
     );
     assert.match(c, /@click="input\?\.click\(\)"/);
+    // Ravi: the state line is read with the button, before the parent's own description (the error).
+    assert.match(c, /:aria-describedby="describedBy"/);
+    assert.match(
+        c,
+        /\[props\.statusId, attrs\['aria-describedby'\]\]\.filter\(Boolean\)\.join\(' '\)/,
+    );
     assert.match(
         c,
         /<p :id="statusId" aria-live="polite" class="text-xs \[overflow-wrap:anywhere\] break-words text-muted-foreground"/,
