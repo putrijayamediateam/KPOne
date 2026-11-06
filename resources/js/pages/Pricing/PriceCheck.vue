@@ -30,6 +30,7 @@ type Row = {
     code: string;
     displayName: string;
     orderUnit: string | null;
+    chargePublicId: string | null;
     chargeUnit: string | null;
     selfPaySen: number | null;
     selfPayFromBranch: boolean;
@@ -101,6 +102,9 @@ const toggleAttention = () => {
     visit({ page: 1 });
 };
 const reload = () => router.reload();
+// CAT-3: an item with a charge opens its price history; the history page offers a way back here.
+const historyHref = (row: Row) =>
+    `/pricing/charges/${row.chargePublicId}/history?from=price-check`;
 
 const statusKey = (check: Check) =>
     check === 'zero_price' ? 'price_zero' : `price_${check}`;
@@ -296,7 +300,14 @@ const emptyDescription = computed(() =>
                 >
                     <div class="min-w-0">
                         <h2 class="text-sm font-medium break-words">
-                            {{ row.displayName }}
+                            <Link
+                                v-if="row.chargePublicId"
+                                :href="historyHref(row)"
+                                class="inline-flex min-h-11 items-center break-words text-brand-strong underline underline-offset-2"
+                                data-testid="history-link"
+                                >{{ row.displayName }}</Link
+                            >
+                            <template v-else>{{ row.displayName }}</template>
                         </h2>
                         <p class="text-xs break-words text-muted-foreground">
                             {{ row.code }} · {{ typeLabels[row.type] }}
@@ -366,6 +377,7 @@ const emptyDescription = computed(() =>
             <div class="hidden min-w-0 lg:block">
                 <OperationalTable
                     label="Price list"
+                    class="[&_table]:table-fixed"
                     :columns="5"
                     :empty="result.rows.length === 0"
                     :empty-message="`${emptyTitle} ${emptyDescription}`"
@@ -373,11 +385,11 @@ const emptyDescription = computed(() =>
                 >
                     <template #head>
                         <tr>
-                            <th>Item</th>
-                            <th class="text-right">Self-pay</th>
-                            <th class="text-right">Default Panel</th>
-                            <th>Panel prices</th>
-                            <th>Checks</th>
+                            <th class="w-[28%]">Item</th>
+                            <th class="w-[14%] text-right">Self-pay</th>
+                            <th class="w-[14%] text-right">Default Panel</th>
+                            <th class="w-[18%]">Panel prices</th>
+                            <th class="w-[26%]">Checks</th>
                         </tr>
                     </template>
                     <template #body>
@@ -385,9 +397,18 @@ const emptyDescription = computed(() =>
                             v-for="row in result.rows"
                             :key="`${row.type}:${row.code}`"
                         >
-                            <td class="min-w-56">
+                            <td>
                                 <div class="font-medium">
-                                    {{ row.displayName }}
+                                    <Link
+                                        v-if="row.chargePublicId"
+                                        :href="historyHref(row)"
+                                        class="text-brand-strong underline underline-offset-2"
+                                        data-testid="history-link"
+                                        >{{ row.displayName }}</Link
+                                    >
+                                    <template v-else>{{
+                                        row.displayName
+                                    }}</template>
                                 </div>
                                 <div class="text-xs text-muted-foreground">
                                     {{ row.code }} · {{ typeLabels[row.type] }}
@@ -408,7 +429,7 @@ const emptyDescription = computed(() =>
                             >
                                 {{ rm(row.panelDefaultSen) }}
                             </td>
-                            <td class="max-w-56">
+                            <td>
                                 <template v-if="row.panelPrices.length">
                                     <span class="text-sm">{{
                                         panelSummary(row)
@@ -423,7 +444,7 @@ const emptyDescription = computed(() =>
                                     >—</span
                                 >
                             </td>
-                            <td class="min-w-64">
+                            <td>
                                 <div
                                     class="flex flex-wrap items-center gap-1.5"
                                 >
