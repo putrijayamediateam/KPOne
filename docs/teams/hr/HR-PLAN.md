@@ -905,22 +905,34 @@ Migration from `2026_11_10_000500`; the permission grant in `2026_11_10_000600` 
 Adding your own file uses the existing `hr.leave.request.own`; adding or removing on someone's behalf uses the
 existing `hr.leave.manage.organisation`. None is in the people-and-access authority set.
 
-### 8.7 Screens (Hui Min, for Daniel)
+### 8.7 Screens (Hui Min; Daniel's early look folded in)
 
-Same page, `/hr/leave`; no new tab, hub link or top-bar change. Shared components only.
-- **Apply sheet:** a file field labelled "Add a photo or PDF (optional)", help text "JPG, PNG or PDF, up to 5 MB.
-  Take a clear photo of the whole MC." Shown only for evidence types that accept files.
-- **My leave / Approvals:** a small "Evidence" line in the row or card: "No file yet" (muted), "1 file" or "2 files",
-  with "Add file" (outline) and "View" (outline). No new status badge.
-- **Evidence panel** (`Sheet`): one card per file with its label, size, who added it and when; the photo itself, or a
-  "Download PDF" button; "Remove" (ghost, confirm dialog with a reason for managers). Empty state: "No files yet."
+Same page, `/hr/leave`; no new tab, hub link or top-bar change. Shared components only. Daniel's early look
+(2026-11-06): **OK with changes**, all folded in below.
+- **Apply sheet:** an outline button "Add a photo or PDF" (never the bare browser file control), with the chosen
+  file's name and size shown under it and a "Remove" link before sending. `accept="image/jpeg,image/png,application/pdf"`
+  and no `capture`, so staff can pick an existing photo. Help text "JPG, PNG or PDF, up to 5 MB. Take a clear photo of
+  the whole MC." Shown only for evidence types that accept files. 44 px on phones.
+- **Sending:** while a file uploads the button reads "Uploading…" and is disabled; on a failure the request stays as
+  it was and the error sits under the field.
+- **My leave / Approvals:** a small "Evidence" line in the row or card: "No file yet" (muted, never red; a needed
+  file already has the "Evidence needed" warning), "1 file" or "2 files", with "Add file" (outline) and "View"
+  (outline). Their screen-reader names say which request ("View files for Annual leave, 16 Nov"). No new badge.
+- **Evidence panel** (`Sheet`): one card per file with its label, size, who added it and when; the photo on a
+  neutral surface with a thin border (no edge-to-edge glare in dark mode), alt text "Photo 1 of 2, added by Demo CA
+  on 16 Nov" and never any medical text; or a "Download PDF" button. Empty state: "No files yet."
+- **Remove:** a ghost "Remove" for everyone who may remove, always through a confirm dialog with a destructive
+  confirm button; the reason field shows only for managers.
 - **Settings → Leave types form:** a checkbox "Accept evidence files" and a number field "Keep files for (days after
-  the leave ends)", required when the checkbox is on.
+  the leave ends)", required when the checkbox is on, with help text "Files are deleted after this. Requests and
+  their history stay." The applicant's side shows a muted line "Files are kept for N days after your leave."
 - **Errors under the field:** "Use a JPG, PNG or PDF file.", "This file is over 5 MB.", "This request already has 3
   files.", "This file is already attached.", "Files can no longer be added to this request."
 - **Toasts:** "File added.", "File removed."
 - **Phone:** the panel is full width; photos fit the width; 44 px targets; no sideways page scroll at 320, 390 or
   768 px.
+- **Screenshots when built** (Daniel): the apply sheet with a file chosen and with an error, the evidence panel with
+  a photo and with a PDF, and the remove dialog, at 390 and 1440 px, light and dark.
 
 ### 8.8 Tests (planned)
 

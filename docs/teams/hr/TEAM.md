@@ -142,6 +142,10 @@ check items, keep them"). The rest stand unless the owner changes them.
 24. HR-2b: the clinic wants MC files in KPOne (owner, 2026-11-06, in the HR session: "yes, the clinic wants MC files
     in KPOne"). The rest of the HR-2b note (HR-PLAN section 8) still needs approval before building, and no real file
     is stored before the PDPA review.
+25. Daniel's early look at the HR-2b screens (HR-PLAN 8.7): OK with changes, folded into the note: a labelled outline
+    button instead of the bare file control (no `capture`), "Uploading…" while sending, request-specific
+    screen-reader names, photo alt text without medical text, a confirm dialog for every Remove (reason for managers
+    only), retention help text, "No file yet" never red, photos on a neutral bordered surface (relayed 2026-11-06).
 
 ## 7. Open items and known limits
 
