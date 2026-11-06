@@ -4,6 +4,7 @@
 // number, makes no payment and files nothing.
 import { Head, router, usePage } from '@inertiajs/vue3';
 import { computed, reactive, ref } from 'vue';
+import AccountantNote from '@/components/hr/payroll/AccountantNote.vue';
 import ProfileSheet from '@/components/hr/payroll/ProfileSheet.vue';
 import TableSheet from '@/components/hr/payroll/TableSheet.vue';
 import type {
@@ -19,7 +20,6 @@ import {
     tableWords,
     tone,
 } from '@/components/hr/payroll/types';
-import SyntheticNote from '@/components/hr/records/SyntheticNote.vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -107,8 +107,6 @@ const props = defineProps<{
     };
 }>();
 
-const ACCOUNTANT =
-    "To confirm with the clinic's accountant before real use. Synthetic data only.";
 const page = usePage();
 const errors = computed(
     () => (page.props.errors ?? {}) as Record<string, string | undefined>,
@@ -384,7 +382,7 @@ const saveRates = () => {
                 title="Payroll"
                 description="Pay profiles, statutory tables and pay settings. A second person checks each one before it counts. Payroll runs come next; KPOne makes no payment and files nothing."
             />
-            <SyntheticNote :text="ACCOUNTANT" />
+            <AccountantNote />
         </div>
 
         <OperationalTabs

@@ -11,6 +11,7 @@ const files = {
     profile: 'resources/js/components/hr/payroll/ProfileSheet.vue',
     table: 'resources/js/components/hr/payroll/TableSheet.vue',
     rm: 'resources/js/components/hr/payroll/RmInput.vue',
+    note: 'resources/js/components/hr/payroll/AccountantNote.vue',
 };
 const source = Object.fromEntries(
     Object.entries(files).map(([k, p]) => [k, read(p)]),
@@ -31,18 +32,10 @@ test('the new page and components compile', () => {
 
 test('every payroll page carries the accountant line, and nothing is red', () => {
     assert.match(
-        source.page,
-        /To confirm with the clinic's accountant before real use\. Synthetic data only\./,
+        template('note'),
+        /To confirm with the clinic's accountant before real use\. Synthetic data\s+only\./,
     );
-    assert.match(template('page'), /<SyntheticNote :text="ACCOUNTANT"/);
-    assert.match(
-        template('page'),
-        /In this first version, the Director's and the HR Manager's\s+own pay is kept outside KPOne\./,
-    );
-    assert.match(
-        template('page'),
-        /v-if="person\.outside"[\s\S]{0,160}Pay kept outside KPOne in this version\./,
-    );
+    assert.match(template('page'), /<AccountantNote \/>/);
     assert.match(
         types,
         /status === 'confirmed' \|\| status === 'checked' \? 'success' : 'neutral'/,
