@@ -440,7 +440,7 @@ const reload = () =>
                         class="grid grid-cols-1 gap-x-6 gap-y-4 md:grid-cols-2"
                     >
                         <div class="min-w-0 space-y-3">
-                            <div>
+                            <div class="grid gap-2">
                                 <Label for="clinic_name">Clinic name *</Label>
                                 <Input
                                     id="clinic_name"
@@ -459,6 +459,7 @@ const reload = () =>
                             <div
                                 v-for="field in addressFields"
                                 :key="field.key"
+                                class="grid gap-2"
                             >
                                 <Label :for="field.key"
                                     >{{ field.label
@@ -482,7 +483,7 @@ const reload = () =>
                             </div>
                         </div>
                         <div class="min-w-0 space-y-4">
-                            <div>
+                            <div class="grid gap-2">
                                 <Label for="phone"
                                     >Clinic phone number (optional)</Label
                                 >
@@ -507,7 +508,7 @@ const reload = () =>
                                     :message="form.errors.phone"
                                 />
                             </div>
-                            <div>
+                            <div class="grid gap-2">
                                 <Label for="email"
                                     >Clinic email (optional)</Label
                                 >
@@ -614,7 +615,7 @@ const reload = () =>
                         branches.
                     </p>
                     <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
-                        <div class="md:col-span-2">
+                        <div class="grid gap-2 md:col-span-2">
                             <Label for="legal_name">Legal name *</Label>
                             <Input
                                 id="legal_name"
@@ -630,7 +631,7 @@ const reload = () =>
                                 :message="form.errors.legal_name"
                             />
                         </div>
-                        <div>
+                        <div class="grid gap-2">
                             <Label
                                 id="registration_type-label"
                                 for="registration_type"
@@ -650,7 +651,7 @@ const reload = () =>
                                 :message="form.errors.registration_type"
                             />
                         </div>
-                        <div>
+                        <div class="grid gap-2">
                             <Label for="registration_number"
                                 >Registration number (optional)</Label
                             >
@@ -709,7 +710,9 @@ const reload = () =>
                 views. Maximum 1,000 characters; no HTML. Settings editors can
                 save this footer without changing clinic details or the logo.
             </p>
-            <Label for="footer_text">Print footer (optional)</Label>
+            <Label for="footer_text" class="mb-2"
+                >Print footer (optional)</Label
+            >
             <Textarea
                 id="footer_text"
                 v-model="footerForm.footer_text"
