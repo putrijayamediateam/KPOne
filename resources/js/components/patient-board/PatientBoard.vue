@@ -75,14 +75,17 @@ const patientHref = (number: string) =>
     `/patients/${encodeURIComponent(number)}`;
 const visitHref = (number: string) => `/visits/${encodeURIComponent(number)}`;
 const editHref = (number: string) => `${visitHref(number)}/edit`;
+// DD-38 (Yasmin): theme tokens, so the chips read in dark mode. Waiting is neutral because the Q-1 time chip
+// carries the long-wait amber and red; On Hold is the warning exception; Serving uses the accent tone. The
+// quiet states are outline only: muted text on a muted fill measured 4.44:1, outline 4.58:1 light, 7.85:1 dark.
 const statusClass = (tone: PatientBoardRow['statusTone']) =>
     ({
-        neutral: 'bg-muted/55 text-muted-foreground',
-        waiting: 'bg-amber-100/70 text-amber-800',
-        serving: 'bg-emerald-100/65 text-emerald-800',
-        held: 'bg-amber-100/80 text-amber-900',
-        cancelled: 'bg-muted/70 text-muted-foreground',
-        removed: 'bg-muted/40 text-muted-foreground',
+        neutral: 'border-border text-muted-foreground',
+        waiting: 'border-border bg-muted text-foreground',
+        serving: 'border-brand/25 bg-brand/10 text-brand-strong',
+        held: 'border-warning/25 bg-warning/10 text-warning-strong',
+        cancelled: 'border-border text-muted-foreground',
+        removed: 'border-border text-muted-foreground',
     })[tone];
 // Q-1: the waiting-time chip turns amber, then red, past the fixed limits.
 const durationClass = (tone: WaitingTone) =>
@@ -276,18 +279,18 @@ const rowWaitingTone = (row: PatientBoardRow) =>
                     >
                         <div class="flex flex-wrap items-center gap-1.5">
                             <span
-                                class="inline-flex rounded-md px-2 py-0.5 text-[11px] font-normal"
+                                class="inline-flex rounded-md border px-2 py-0.5 text-[11px] font-normal"
                                 :class="statusClass(row.statusTone)"
                                 >{{ row.statusLabel }}</span
                             >
                             <span
                                 v-if="row.priority === 'urgent'"
-                                class="inline-flex rounded-md bg-rose-100/70 px-2 py-0.5 text-[11px] font-normal text-rose-700"
+                                class="inline-flex rounded-md border border-destructive/25 bg-destructive/10 px-2 py-0.5 text-[11px] font-normal text-destructive"
                                 >Urgent</span
                             >
                             <span
                                 v-if="row.returnedFromDispensary"
-                                class="inline-flex rounded-md bg-pink-100/70 px-2 py-0.5 text-[11px] font-normal text-pink-800"
+                                class="inline-flex rounded-md border border-border bg-muted px-2 py-0.5 text-[11px] font-normal text-foreground"
                                 >Returned</span
                             >
                             <span
