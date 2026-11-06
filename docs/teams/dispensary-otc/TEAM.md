@@ -97,6 +97,7 @@ coordinator at the owner's request (2026-11-05); the designer was added by owner
 | DD-24 to DD-27 | Design debt from DSP-8: 44 px controls below 1024 px too (tablets); the case page uses PageHeader "Dispensary" and only the patient card names the patient (h2, labelled KP number, Visit, Doctor); batch options lead with "N unit on hand · exp 30 Oct 2027" plus a "Selected:" line under the dropdown; the Added/Edited by CA chips are `StatusBadge` accent | #308 (`4c95234`) |
 | DSP-6b | The label print check that logs a print is now a POST (`dispensary.labels.print`, `dispensary.items.label.print`, the page's address plus `/print`, token and branch in the body, CSRF header); the label page no longer accepts `?verify=1`. New tests: a consultation-case print and reprint, and a PostgreSQL race of two CAs printing one case at once (print numbers 1 and 2) | #317 |
 | DSP-1c | Other names for allergy matching: catalogue editors add up to 10 brand names or misspellings per medicine ("Other names" in the Medicine Catalogue "…" menu); the Dispensary allergy warning compares allergies with them too, through one `MedicineCatalogueItem::allergyMatchTerms()` list; never printed; audited by count | #324 |
+| Print label | The single-label button reads "Print label" (sentence case, Daniel's nit from DD-24 to DD-27); the `TreatmentPlanTest` pin and the printer test updated | pending (branch `fix/dsp-print-label-casing`) |
 | DD-37 | The Drug groups dialog keeps the typed groups on a validation error, with the message under the field and a red border; a list changed meanwhile still closes it with a toast (the DSP-1c pattern) | pending (branch `fix/dsp-dd-37-drug-groups-error`) |
 | DSP-11 | Scan to check at Dispensary: on an open case the CA scans the box they picked (handheld scanner, typing or camera, STK-9's `ScanInput` with a new `dispensary` context and GET `/inventory/scan`); a box whose SKU is a saved line's mapped SKU marks that line "Checked by scan" and the summary counts "N of M"; any other known SKU shows "Not on this case: <item> (<SKU code>)". Screen only: nothing is saved, recorded or blocked; Complete is unchanged | pending (branch `feature/dsp-11-scan-check`) |
 
@@ -179,12 +180,15 @@ coordinator at the owner's request (2026-11-05); the designer was added by owner
     existing tests that sent the check as a GET (`drug-labels.test.mjs` line 33, `TreatmentPlanTest` line 391, and the
     `getJson(...?verify=1...)` calls in `DrugLabelTest` and `DrugLabelPrintLogTest`) to the POST; every expected
     result is unchanged. No screen change, so no design review.
+24. "Print label" (2026-11-06): the owner approved the one-word fix ("go with the Print label fix and the guide
+    handoff"), including the `TreatmentPlanTest` line 400 pin changing from 'Print Label' to 'Print label'. The
+    Malay CA guide update (the OTC allergy step starts with no choice made; the button now reads "Print label") is
+    handed to Staff Experience through the coordinator, because that team owns `docs/guides/ms/`.
 25. DSP-1c allergy other names (2026-11-06): the owner chose it ("go with allergy aliases"). Same editors, limits and
     stale-list guard as drug groups (decision 14): `medicines.manage.organisation`, up to 10, 3 to 60 characters,
     audited by count only; used for matching only and never printed. Iman's sketch: its own "Other names" menu entry
     and dialog. The Dispensary warning wording now names "catalogue other names". Daniel: OK; keep the label
-    "Other names"; the Drug groups dialog losing typed groups on an error is design debt DD-37 (a later small piece). (Decision 24 is
-    the "Print label" fix, on its own branch.)
+    "Other names"; the Drug groups dialog losing typed groups on an error is design debt DD-37 (a later small piece).
 26. DD-37 (2026-11-06): the owner chose it ("go with DD-37"); the Drug groups dialog gets the same error handling as
     Other names. Built on top of DSP-1c (#324), because both change the same dialog code.
 29. DSP-11 scan to check (2026-11-06): the owner chose it ("go with scan to check at Dispensary"). It warns only:
