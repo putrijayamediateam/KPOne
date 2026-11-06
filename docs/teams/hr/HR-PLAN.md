@@ -539,3 +539,268 @@ palette colours; sentence case; no internal words.
 - Expected existing-assertion change (needs approval): `ClinicManagementTest::test_hub_returns_only_authorized_implemented_destinations_for_every_catalogue_role`
   gains `'/hr/roster' => ['hr.roster.manage.organisation', 'hr.roster.approve.organisation', 'hr.roster.view.own']`.
   Any other existing assertion that breaks will be stopped and listed, not changed.
+
+## 6. HR-2 leave (e-Leave): design note
+
+Written 2026-11-05 after HR-1 merged (PR #295, `dca171e`). It replaces the short HR-2 sketch in section 2 wherever
+the two differ. **Every leave rule is a clinic-entered, versioned setting. KPOne ships no leave types, no
+entitlement figures, no carry-forward rule and no public holiday list.** Until a manager enters them, staff see
+"Leave is not set up yet. Ask HR." and nothing can be applied for.
+
+### 6.1 Split
+
+- **HR-2a (this note):** leave settings (types, entitlements, working days, public holidays), opening balances
+  with a second-person check, the balance ledger, apply, approve or reject, cancel, a team leave calendar, and the
+  roster link.
+- **HR-2b (later, its own note):** evidence upload (for example a medical certificate from another clinic). Until
+  then a request can carry an optional **evidence reference** (short text such as "MC from Klinik X, serial 123",
+  at most 100 characters, encrypted), and a leave type can be marked "evidence needed". HR checks the paper and
+  ticks "Evidence seen" on approval. That is enough to start, and keeps health documents out of KPOne until the
+  clinic decides how they are kept [TO CONFIRM].
+
+### 6.2 What the clinic gets (HR-2a)
+
+- **My leave:** each staff member sees their balance for each leave type this year (entitled, taken, booked,
+  left), applies for leave, follows the request, and cancels it.
+- **Approvals:** the Director and the HR Manager see requests waiting for them and approve or reject with a reason
+  code. Nobody decides their own request: an HR Manager's own request goes to the Director, and a Director's own
+  request goes to the HR Manager or another Director (TEAM.md decision 3; the same rule as HR-1 decision 13).
+- **Team calendar:** managers see who is on leave per branch and day. It shows **"On leave"** only, never the type
+  or the reason, so a sick leave is not visible as such.
+- **Leave settings (managers):**
+  - leave types;
+  - entitlements per year (versioned);
+  - working days per branch (which weekdays count as working days for leave);
+  - public holidays per branch and year;
+  - opening balances.
+- **Roster link (changes HR-1):**
+  - approved leave shows on the planner as an "On leave" chip on those days;
+  - a new shift on an approved-leave day is refused ("Aina CA is on approved leave on 9 Nov 2026.");
+  - a shift that already existed shows a warning;
+  - pending leave shows as a warning only ("Aina CA has asked for leave on 9 Nov 2026.").
+  Approving leave never deletes or changes a shift. The approver sees a warning listing the person's approved
+  shifts in that period, so the roster can be changed through the normal HR-1 flow.
+
+### 6.3 Rules
+
+1. **Leave types** (clinic-entered): code, name, paid or unpaid, counts against a balance or not, unit (whole days
+   or half days allowed), evidence needed or not, active. Archived, never deleted. A type in use cannot change its
+   unit or balance setting; a new version of the type is made instead.
+2. **Entitlements** (clinic-entered, versioned by year): days per type, given by role and optionally by years of
+   service bands [TO CONFIRM], or set per person. A new version applies from its effective date and never rewrites
+   earlier ledger lines. Each year's entitlement is added to the ledger as one **grant** line per person and type
+   when a manager presses "Give this year's entitlement" (shown with the number of people it will affect). It is
+   not added automatically.
+3. **Carry-forward** (clinic-entered per type): none, up to N days, and an optional expiry date for carried days.
+   Applied by a manager action at year end ("Carry forward from 2026"), which writes **carry-forward** and, later,
+   **expiry** lines. Nothing happens by schedule.
+4. **Opening balances:** a manager enters, per person and type, the days already left when the clinic starts using
+   KPOne leave. A **different** manager confirms each one before it counts (the same pattern as the STK-1 opening
+   sign-off). Unconfirmed openings show as "Waiting for a check" and give no balance.
+5. **Counting days:** a request covers whole dates from a start date to an end date (branch-local), with half-day
+   AM or PM allowed on the first and last day where the type allows half days. Charged days are the working days
+   of the person's **primary branch** in that range, minus that branch's public holidays. Working days and holidays
+   must be set for the branch, or the request is refused with "Working days are not set up for Cheras yet." The
+   figure is computed on the server and shown before sending.
+6. **Balance:** left = grants + carry-forward + confirmed opening + adjustments − taken − expired. "Booked" is
+   pending and approved leave not yet taken. A request that would take the balance below zero is refused unless the
+   type allows a negative balance [TO CONFIRM; default not allowed]. Unpaid or non-balance types have no balance
+   check.
+7. **Overlap:** one person cannot have two pending or approved requests on the same day (half days AM and PM may
+   share a day).
+8. **Approve:** the approver must hold `hr.leave.approve.organisation`, must not be the applicant, and the balance
+   is re-checked under lock. Approval writes one **taken** ledger line (negative days) for balance types.
+9. **Reject:** needs a reason code (Not enough cover, Dates not allowed, Wrong type, Other). No ledger line.
+10. **Cancel:**
+    - the applicant cancels a pending request at any time;
+    - the applicant cancels an approved request before its start date;
+    - after the start date, only a manager may cancel it ("Cancel approved leave"), with a reason code.
+    Cancelling approved leave writes a **reversal** line that returns the days. Nothing is deleted.
+11. **Adjustments:** a manager may add or remove days for one person and type with a reason code (Correction, Leave
+    given in lieu, Other) and a short note (at most 200 characters, encrypted). A different manager confirms it
+    before it counts, as with openings.
+12. **Ledger:** append-only (PostgreSQL refuses update, delete and truncate). Each line points at its request,
+    opening, adjustment or grant. Days are stored in halves (an integer count of half days) so that 1.5 days is
+    exact.
+13. **Every write:**
+    - a fresh permission check under lock;
+    - `DB::transaction`;
+    - locks on the people involved in id order (the HR-1 `lockPeople` pattern), then the request row;
+    - `lock_version`;
+    - an idempotency key on apply, approve, reject, cancel and grant;
+    - an audit row with ids, type codes and day counts only, never reasons, notes or evidence references.
+14. HR never blocks clinical work (TEAM.md decision 4). Leave does not change registration, doctor eligibility,
+    Call In or room choice.
+
+### 6.4 Tables (sketch)
+
+| Table | Holds |
+|---|---|
+| `hr_leave_types` | organisation, code, name, paid, uses balance, unit, evidence needed, allow negative, active, `lock_version` |
+| `hr_leave_entitlement_versions` | organisation, leave type, effective year, rules (role or person, service band, days in halves), created and confirmed by |
+| `hr_branch_working_days` | branch, seven weekday flags, `lock_version` |
+| `hr_public_holidays` | branch, date, name; unique per branch and date |
+| `hr_leave_openings` | person, type, year, days in halves, entered by, confirmed by (must differ), status |
+| `hr_leave_adjustments` | person, type, days in halves, reason code, encrypted note, entered by, confirmed by (must differ), status |
+| `hr_leave_requests` | public id, person, type, start and end date, half-day flags, charged days in halves, status (pending, approved, rejected, cancelled), encrypted reason and evidence reference, decided by and at, reason code, evidence seen, `lock_version` |
+| `hr_leave_request_actions` | append-only: applied, approved, rejected, cancelled, with actor and time |
+| `hr_leave_ledger` | append-only: person, type, year, kind (grant, carry_forward, opening, adjustment, taken, reversal, expiry), days in halves (signed), source row id |
+| `hr_leave_requests_retry` | idempotency key, payload hash, result |
+
+PostgreSQL checks the rules that must hold whatever the code does:
+- the decider is never the applicant;
+- the confirmer is never the enterer;
+- the ledger is append-only;
+- days are a multiple of a half;
+- at most one pending or approved request per person per day and half (an exclusion constraint on a date range
+  with the half flags).
+
+### 6.5 Permissions
+
+| Permission | Holders |
+|---|---|
+| `hr.leave.request.own` (my balance, apply, cancel my own) | every human role (as `hr.roster.view.own`); not the TV account |
+| `hr.leave.approve.organisation` (approve, reject, cancel approved leave) | Director, HR Manager |
+| `hr.leave.manage.organisation` (settings, holidays, working days, openings, adjustments, grants, team calendar) | Director, HR Manager |
+
+None is in the people-and-access authority set. They come in by an additive grant migration from
+`2026_11_10_000300` onward. HR-2b adds `hr.leave.evidence.view.organisation` later.
+
+### 6.6 What stays out of HR-2a
+
+- Evidence files (HR-2b).
+- Automatic replacement leave (cuti ganti); it can be given by hand as an adjustment until the clinic writes the
+  rule [TO CONFIRM].
+- Accrual month by month [TO CONFIRM; default yearly grant].
+- Leave by the hour.
+- Any message or reminder outside KPOne.
+- Payroll effects (HR-7 reads approved unpaid leave later).
+- Import from the outside HR product.
+- Any change to clinical work.
+- A CA Supervisor branch view (the HR-1b decision applies).
+
+### 6.7 Questions only the clinic can answer [TO CONFIRM]
+
+1. The leave types the clinic uses, and for each one: paid or unpaid, counted against a balance or not, half days
+   allowed, evidence needed. Examples to ask about: annual, sick (MC), hospitalisation, emergency, unpaid,
+   maternity, paternity, compassionate, replacement.
+2. Days per year for each type, by role, by years of service, or per person. All law questions go to the clinic's
+   HR adviser or lawyer.
+3. Carry-forward per type (none or up to how many days) and when carried days expire.
+4. Whether any type may go below zero.
+5. Each branch's working days (for example Monday to Saturday) and whether a half day on Saturday counts as half.
+6. Public holidays per branch and year (Selangor for Cheras and Puchong? Kuala Lumpur for Sungai Besi?), and who
+   enters them each year.
+7. Replacement leave for working on a public holiday: what earns it and how long it lasts.
+8. Opening balances on the first day: who enters them, and who checks them.
+9. Medical certificates and other evidence: whether the clinic wants files in KPOne at all (HR-2b), who may see
+   them, and how long they are kept.
+10. How early staff must apply for each type, and whether a late application is refused or only flagged.
+
+### 6.8 Screens (Hui Min, for Daniel)
+
+Follows `docs/design/GUIDE.md`; English staff screen; tokens and shared components only; no new colours.
+
+- **Where:**
+  - route `/hr/leave`, page `resources/js/pages/HR/Leave.vue`, list width `max-w-7xl`;
+  - one new hub link in "Staff & branches": **"KPOne HR leave"**, description "Apply for leave, approve requests
+    and see who is away.";
+  - no top-bar change.
+- **Header:** `PageHeader` with eyebrow "KPOne HR", title (`h1`) **"Leave"**, description "Apply for leave and see
+  your balance. Someone else approves each request."
+- **Tabs** (`OperationalTabs`, `?tab=`): **My leave** (all), **Approvals** (approvers; the tab shows a count),
+  **Team calendar** (managers), **Settings** (managers). Staff with only the own permission see no tab bar.
+
+**My leave**
+- **Balances:** one card per leave type in a grid (`grid gap-4 sm:grid-cols-2 lg:grid-cols-3`). Each card shows
+  the type name (`h3`) and four labelled figures in `tabular-nums`: "Entitled 14", "Taken 3", "Booked 1.5",
+  "Left 9.5". A type with no balance shows "Not counted".
+- **Apply:** primary **"Apply for leave"** opens a `Sheet`. The fields, stacked, with connected labels:
+  - Leave type *;
+  - Start date * and End date *;
+  - "Half day on the first day" (none, morning, afternoon);
+  - "Half day on the last day" (none, morning, afternoon);
+  - Reason (optional, at most 300 characters, help text "Do not write medical details here.");
+  - Evidence reference (shown only for types that need it, help text "For example, the MC serial number. HR checks
+    the paper copy.").
+  A live summary line under the dates reads "3 working days (public holiday on 10 Nov not counted). 9.5 left
+  after this." Buttons: outline "Cancel", primary "Send request".
+- **Requests list:** `OperationalTable` at 1024 px and up; cards below that. Columns: dates, type, days, status
+  (`StatusBadge`: Waiting for approval = warning, Approved = success, Rejected = danger, Cancelled = neutral), and
+  one action ("Cancel request" in outline, or nothing).
+- **Empty states:**
+  - no requests: "No leave requests yet." / "Apply for leave to see it here.";
+  - leave not set up: an `EmptyState` reading "Leave is not set up yet." / "Ask HR to add the leave types for the
+    clinic."
+
+**Approvals**
+- A table, or cards below 1024 px. Columns:
+  - person and role;
+  - type;
+  - dates and days;
+  - "Left after this";
+  - warnings, one line each: "Has 2 approved shifts in this period. Change the roster after approving.", "Evidence
+    needed", "Sent 1 day before the start";
+  - actions: "Approve" (primary) and "Reject" (outline).
+- Approve opens `OperationalConfirmDialog` "Approve this leave?". It has an "Evidence seen" tick when the type
+  needs evidence, and the confirm button stays disabled until it is ticked.
+- Reject uses a confirm dialog with a required reason select.
+- An approver's own requests are never listed for them. The empty state reads "Nothing waiting for you."
+
+**Team calendar**
+- **1024 px and up:** branch select and month switcher; a month grid with one row per person and a column per day.
+  Each cell is "On leave" (a neutral chip), "Half day" or empty; public holidays are shaded with their name in the
+  column header; non-working days are muted.
+- **Below 1024 px:** a day list ("Mon 9 Nov: Aina CA, Dr Demo (half day)").
+- Never shows the leave type or reason.
+
+**Settings** (sections, each a titled card with its own Save):
+1. **Leave types:** a table with Add, Edit and Archive; the form fields are as in rule 1.
+2. **Entitlements:** a year select, a table of type × role in days with half-day steps, plus "Set for one person";
+   Save makes a new version; "Give this year's entitlement" opens a confirm dialog that states the count of people.
+3. **Working days:** branch select and seven labelled checkboxes.
+4. **Public holidays:** branch and year select; a list of date and name; Add and Remove (removal is allowed only
+   before any request counts on that day, otherwise "Used by 3 requests. It cannot be removed.").
+5. **Opening balances and adjustments:** a person and type table; an entry form; a "Waiting for a check" list
+   with "Confirm" (another manager) and "Reject".
+
+**Planner change (HR-1 screen):** an "On leave" neutral chip in the day cell, and a warning line in the existing
+"Check before approval" panel.
+
+**Errors under fields:**
+- "End date must be on or after the start date."
+- "This leave would leave −1 day. You have 0.5 left."
+- "You already have leave on 9 Nov 2026."
+- "Working days are not set up for Cheras yet."
+- "Choose a leave type."
+
+**Toasts:** "Leave request sent.", "Leave approved.", "Leave rejected.", "Leave request cancelled.", "Leave types
+saved.", "Opening balance confirmed."
+
+**Phone:** everything stacks; cards replace tables below 1024 px; 44 px targets; no sideways page scroll at 320,
+390 or 768 px.
+
+## 7. HR-2a technical summary (Liyana)
+
+- **Code:** domain `app/Domain/HR/Leave/` with `LeavePermissions`, `LeaveSettingsService`,
+  `LeaveRequestService` (apply, approve, reject, cancel), `LeaveBalanceService` (ledger, balance, day count),
+  `LeaveOpeningService` and `LeavePageService`; a thin controller `app/Http/Controllers/HR/LeaveController.php`;
+  routes under `/hr/leave`, throttled.
+- **Roster change:** `RosterRules::assertShiftAllowed` gains the approved-leave refusal, and `RosterPageService`
+  gains the "On leave" chips and warnings. The existing HR-1 tests stay unchanged; new tests are added.
+- **Tests:**
+  - grants and denials for every role;
+  - day counting across holidays, weekends, half days, New Year and the branch time zone (never the UTC clock);
+  - balance limits and negative-balance refusal;
+  - overlap refusal;
+  - two-person openings and adjustments;
+  - the approver is never the applicant (service and PostgreSQL);
+  - cancel before and after the start date with reversal lines;
+  - the ledger is append-only;
+  - stale `lock_version`, retries and reused keys;
+  - audit without reasons or notes;
+  - roster refusal and warnings;
+  - no writes to accounts, roles, assignments or clinical tables;
+  - one two-process contention test: two approvals spending the same last balance.
+- **Expected existing-assertion change (needs approval):** the `ClinicManagementTest` hub destination map gains
+  `'/hr/leave' => ['hr.leave.request.own', 'hr.leave.approve.organisation', 'hr.leave.manage.organisation']`.
