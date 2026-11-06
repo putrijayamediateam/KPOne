@@ -78,27 +78,6 @@ const props = defineProps<{
 }>();
 
 const search = ref(props.filters.search);
-// CAT-11: a fixed list of categories. A category saved before the list stays as its own option, so editing other
-// fields of an older service never changes it.
-const categoryOptions = computed(() => {
-    const options = [
-        { value: '', label: 'No category' },
-        ...props.setup.serviceCategories.map((name) => ({
-            value: name,
-            label: name,
-        })),
-    ];
-    const current = form.category;
-
-    if (current !== '' && !props.setup.serviceCategories.includes(current)) {
-        options.push({
-            value: current,
-            label: `${current} (saved before the fixed list)`,
-        });
-    }
-
-    return options;
-});
 const status = ref(props.filters.status);
 const statusOptions = [
     { value: '', label: 'All statuses' },
@@ -135,6 +114,27 @@ const form = useForm({
         panel_default_rm: '',
         panel_overrides: [] as { panel_id: string; amount_rm: string }[],
     },
+});
+// CAT-11: a fixed list of categories. A category saved before the list stays as its own option, so editing other
+// fields of an older service never changes it.
+const categoryOptions = computed(() => {
+    const options = [
+        { value: '', label: 'No category' },
+        ...props.setup.serviceCategories.map((name) => ({
+            value: name,
+            label: name,
+        })),
+    ];
+    const current = form.category;
+
+    if (current !== '' && !props.setup.serviceCategories.includes(current)) {
+        options.push({
+            value: current,
+            label: `${current} (saved before the fixed list)`,
+        });
+    }
+
+    return options;
 });
 
 const openCreate = () => {
@@ -581,8 +581,8 @@ const toggleDescription = computed(() => {
                                     id="service-category-help"
                                     class="text-xs text-muted-foreground"
                                 >
-                                    Billing groups procedures and investigations
-                                    on their own invoice rows.
+                                    Use the clinic's invoice category for this
+                                    service.
                                 </p>
                                 <InputError
                                     id="service-category-error"

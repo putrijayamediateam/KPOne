@@ -75,6 +75,24 @@ class ClinicalServiceCategoriesTest extends ClinicalTestCase
         $this->assertFalse(ClinicalServiceCatalogueItem::query()->where('code', 'CAT11-HTTP')->exists());
     }
 
+    public function test_renaming_an_older_service_through_the_page_keeps_its_category(): void
+    {
+        $director = $this->actor('director');
+        $legacy = $this->legacyService($director->organisation_id, 'Synthetic old category');
+        $this->actingAs($director);
+
+        $this->patch(route('clinical-services.update', $legacy), [
+            'code' => $legacy->code, 'display_name' => 'Synthetic renamed through the page',
+            'order_unit' => $legacy->order_unit, 'category' => 'Synthetic old category',
+        ])->assertSessionHasNoErrors();
+        $this->assertSame('Synthetic old category', $legacy->fresh()->category);
+        $this->assertSame('Synthetic renamed through the page', $legacy->fresh()->display_name);
+
+        $this->patch(route('clinical-services.update', $legacy), ['category' => 'Another free text'])
+            ->assertSessionHasErrors(['category' => 'Choose a category from the list.']);
+        $this->assertSame('Synthetic old category', $legacy->fresh()->category);
+    }
+
     public function test_the_page_offers_the_fixed_list(): void
     {
         $this->actingAs($this->actor('director'));
@@ -97,9 +115,12 @@ class ClinicalServiceCategoriesTest extends ClinicalTestCase
         $this->assertRefused(fn () => DB::table('clinical_service_catalogue_items')->where('id', $legacy->id)->update(['category' => 'Another free text']));
         $this->assertRefused(fn () => $this->insertRow($director->organisation_id, 'CAT11-PG-BAD', 'Test'));
 
-        $this->insertRow($director->organisation_id, 'CAT11-PG-OK', 'Investigation(s)');
+        // Every name in ClinicalServiceCategories::NAMES must also pass the trigger (the two lists must stay equal).
+        foreach (ClinicalServiceCategories::NAMES as $index => $name) {
+            $this->insertRow($director->organisation_id, "CAT11-PG-OK-{$index}", $name);
+        }
         $this->insertRow($director->organisation_id, 'CAT11-PG-NULL', null);
-        $this->assertSame(2, DB::table('clinical_service_catalogue_items')->whereIn('code', ['CAT11-PG-OK', 'CAT11-PG-NULL'])->count());
+        $this->assertSame(count(ClinicalServiceCategories::NAMES) + 1, DB::table('clinical_service_catalogue_items')->where('code', 'like', 'CAT11-PG-%')->count());
     }
 
     /** @return array<string, mixed> */
