@@ -9,6 +9,9 @@ export type PrintLetterhead = {
         state: string;
         country: string;
         phone: string | null;
+        // CAT-9: optional second clinic phone (BranchLetterhead details.phone_secondary); copies frozen before CAT-9
+        // do not carry the key.
+        phone_secondary?: string | null;
         email: string | null;
     };
     logo: { url: string; mime: string; width: number; height: number } | null;
