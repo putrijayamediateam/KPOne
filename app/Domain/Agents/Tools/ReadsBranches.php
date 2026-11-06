@@ -17,7 +17,17 @@ trait ReadsBranches
             return collect([$branch]);
         }
 
-        return Branch::query()->where('organisation_id', $requester->organisation_id)->where('is_active', true)->orderBy('code')->get();
+        return $this->branchesForOrganisation($requester->organisation_id, null);
+    }
+
+    /** @return Collection<int, Branch> the given branch, or every active branch of the organisation */
+    protected function branchesForOrganisation(int $organisationId, ?Branch $branch): Collection
+    {
+        if ($branch !== null) {
+            return collect([$branch]);
+        }
+
+        return Branch::query()->where('organisation_id', $organisationId)->where('is_active', true)->orderBy('code')->get();
     }
 
     protected function localDate(Branch $branch, ?string $date, int $offsetDays = 0): string
