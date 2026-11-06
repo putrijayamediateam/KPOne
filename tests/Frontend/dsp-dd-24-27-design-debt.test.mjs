@@ -18,11 +18,7 @@ test('DD-25: the page title is "Dispensary" and only the patient card names the 
         (show.match(/\{\{ dispensary\.patient\.name \}\}/g) ?? []).length,
         1,
     );
-    assert.ok(
-        flat.includes(
-            '<h2 class="text-base font-semibold break-words"> {{ dispensary.patient.name }} </h2>',
-        ),
-    );
+    assert.match(flat, /<h2[^>]*> \{\{ dispensary\.patient\.name \}\} <\/h2>/);
 });
 
 test('DD-26: batch options lead with the quantity and expiry, and a Selected line repeats the choice', () => {
@@ -38,6 +34,8 @@ test('DD-26: batch options lead with the quantity and expiry, and a Selected lin
         show.includes('Held: ${formatInventoryReason(stock.holdReason)} · '),
     );
     assert.ok(show.includes(':disabled="stock.held"'));
+    // A held batch is never shown as the selected choice (Hakim).
+    assert.ok(show.includes("'No usable batch: every batch here is on hold.'"));
 });
 
 test('DD-27: the CA change chips use StatusBadge tokens, never a hand-styled pink chip', () => {

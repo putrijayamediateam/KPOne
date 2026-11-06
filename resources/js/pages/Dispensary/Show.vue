@@ -637,7 +637,9 @@ const selectedBatchText = (
 ): string =>
     stock === undefined
         ? 'No batch selected.'
-        : `Selected: ${batchOptionText(stock, unit)}`;
+        : stock.held
+          ? 'No usable batch: every batch here is on hold.'
+          : `Selected: ${batchOptionText(stock, unit)}`;
 const addForm = reactive<LineForm>({
     quantity: '1.000',
     dosage: '',
@@ -829,18 +831,16 @@ const inputClass = 'mt-1 h-9 w-full rounded-md border px-2';
             title="Dispensary"
             description="Check each line, save it, then complete."
         >
-            <template #actions>
-                <Button
-                    v-if="
-                        visibleItems.length &&
-                        dispensary.canPrintLabels &&
-                        !unsaved.length &&
-                        !unsavedServices.length
-                    "
-                    as-child
-                    variant="outline"
-                    size="sm"
-                >
+            <template
+                v-if="
+                    visibleItems.length &&
+                    dispensary.canPrintLabels &&
+                    !unsaved.length &&
+                    !unsavedServices.length
+                "
+                #actions
+            >
+                <Button as-child variant="outline" size="sm">
                     <a
                         :href="`/dispensary/${dispensary.publicId}/labels`"
                         target="_blank"
