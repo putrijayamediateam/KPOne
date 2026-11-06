@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { router } from '@inertiajs/vue3';
-import { LoaderCircle, PhoneCall } from '@lucide/vue';
+import { LoaderCircle, PhoneCall, TriangleAlert } from '@lucide/vue';
 import { computed, nextTick, onBeforeUnmount, ref, useTemplateRef } from 'vue';
 import { Button } from '@/components/ui/button';
 import {
@@ -33,6 +33,8 @@ const props = defineProps<{
     busy: boolean;
     /** Re-polls the board with the applied filters and resolves when the new block is in. */
     refresh: () => Promise<void>;
+    /** Q-4b: the held consultation this control sits on; a refusal returns there instead of the queue board. */
+    fromVisit?: string;
 }>();
 const emit = defineEmits<{ processing: [busy: boolean] }>();
 
@@ -175,6 +177,9 @@ const submit = () => {
             visit_number: candidate.visitNumber,
             visit_lock_version: candidate.visitLockVersion,
             queue_lock_version: candidate.queueLockVersion,
+            ...(props.fromVisit
+                ? { from: 'consultation', from_visit: props.fromVisit }
+                : {}),
         },
         {
             preserveScroll: true,
@@ -308,12 +313,17 @@ onBeforeUnmount(() => clearTimeout(pauseTimer));
                 </p>
             </div>
 
+            <!-- Daniel (Q-4b): the swap must be hard to miss. The live region below already reads it once. -->
             <p
                 v-if="notice && !gone"
-                class="-mt-2 text-xs text-muted-foreground"
+                class="-mt-2 flex items-start gap-2 rounded-lg border border-warning/25 bg-warning/10 px-3 py-2 text-xs text-warning-strong"
                 data-testid="call-next-notice"
             >
-                {{ notice }}
+                <TriangleAlert
+                    class="mt-px size-3.5 shrink-0"
+                    aria-hidden="true"
+                />
+                <span>{{ notice }}</span>
             </p>
             <p class="sr-only" aria-live="polite" data-testid="call-next-live">
                 {{ liveMessage }}
