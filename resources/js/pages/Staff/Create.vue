@@ -78,7 +78,7 @@ const submit = () => form.post('/staff');
     <Head title="Create staff" />
     <main class="flex flex-1 flex-col gap-5 p-4 md:p-7">
         <div class="flex items-start gap-3">
-            <div class="rounded-xl bg-emerald-100 p-2.5 text-emerald-800">
+            <div class="rounded-xl bg-success/10 p-2.5 text-success">
                 <UserPlus class="size-5" />
             </div>
             <div>
@@ -147,7 +147,7 @@ const submit = () => form.post('/staff');
                                         v-model="form.credential_strategy"
                                         type="radio"
                                         value="google_only"
-                                        class="mr-2 accent-emerald-700"
+                                        class="mr-2 accent-success"
                                     />Google-only pre-provisioning<span
                                         class="mt-1 block text-xs text-muted-foreground"
                                         >No OAuth token is stored. First link
@@ -165,7 +165,7 @@ const submit = () => form.post('/staff');
                                         v-model="form.credential_strategy"
                                         type="radio"
                                         value="password"
-                                        class="mr-2 accent-emerald-700"
+                                        class="mr-2 accent-success"
                                     />Bootstrap password<span
                                         class="mt-1 block text-xs text-muted-foreground"
                                         >Enter it once. KPOne hashes it
@@ -292,7 +292,7 @@ const submit = () => form.post('/staff');
                                     Assignment {{ index + 1
                                     }}<span
                                         v-if="assignment.is_primary"
-                                        class="ml-2 text-xs text-emerald-700"
+                                        class="ml-2 text-xs text-success"
                                         >Primary</span
                                     >
                                 </div>
@@ -359,7 +359,7 @@ const submit = () => form.post('/staff');
                                     ><input
                                         type="radio"
                                         name="primary-assignment"
-                                        class="size-4 accent-emerald-700"
+                                        class="size-4 accent-success"
                                         :checked="assignment.is_primary"
                                         @change="makePrimary(index)"
                                     />
@@ -424,7 +424,7 @@ const submit = () => form.post('/staff');
                             class="flex cursor-pointer items-center gap-3 rounded-md border p-3 text-sm hover:bg-muted/30"
                             ><input
                                 type="checkbox"
-                                class="size-4 accent-emerald-700"
+                                class="size-4 accent-success"
                                 :checked="form.roles.includes(role)"
                                 @change="
                                     toggleRole(
@@ -449,7 +449,7 @@ const submit = () => form.post('/staff');
                             ><input
                                 v-model="form.is_active"
                                 type="checkbox"
-                                class="mt-0.5 size-4 accent-emerald-700"
+                                class="mt-0.5 size-4 accent-success"
                             /><span
                                 ><span class="font-medium"
                                     >Create as active</span
