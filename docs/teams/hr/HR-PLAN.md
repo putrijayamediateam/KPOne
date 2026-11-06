@@ -1771,7 +1771,7 @@ Clinic management destination map, which are existing-assertion changes to appro
 
 Written 2026-11-06 at the owner's request ("start the HR-6 design note"). It works out the HR-6 sketch in section 2
 in detail and replaces it where the two differ. It changes no HR-1 to HR-5 rule. **Status: approved with its defaults by
-the owner on 2026-11-06 (TEAM.md decision 40); Daniel's early look pending.** The questions in 13.9 take the defaults written here until the clinic
+the owner on 2026-11-06 (TEAM.md decision 40); Daniel's early look folded into 13.6 (decision 41).** The questions in 13.9 take the defaults written here until the clinic
 says otherwise.
 
 **Staff claims are not Panel Claims.** They use different tables, pages, permissions and words ("Staff claims",
@@ -1892,7 +1892,7 @@ Finance Officer also sees the monthly list through `hr.claims.pay.organisation`.
 authority set, and none is a Panel or billing permission. A new hub link, "KPOne HR staff claims", adds `/hr/claims`
 to the Clinic management destination map, which is an existing-assertion change to approve when built.
 
-### 13.6 Screens (Hui Min, for Daniel's early look)
+### 13.6 Screens (Hui Min; Daniel's early look folded in)
 
 - One page, `/hr/claims`, with tabs My claims, Approvals, Pay, Monthly and Settings, each shown only to its holders, using the shared OperationalTabs.
 - **Amounts:**
@@ -1909,6 +1909,13 @@ to the Clinic management destination map, which is an existing-assertion change 
   - the receipts as thumbnails on a neutral bordered surface (the HR-2b pattern), with each opening recorded.
 - **Pay:** a table from 1024 px, cards below. A paid row shows "Paid 6 Nov 2026 · Bank transfer · Ref •••• 4321".
 - **Monthly:** totals per category and branch, with a total row (the HR-3b Summary pattern).
+- **Daniel's early look (2026-11-06): OK, with these to build in:**
+  - **Approved and Paid** are both in success tone, so the words tell them apart: "Approved" and "Paid 6 Nov 2026".
+  - **The claimant** never sees Approve or Reject on their own claim, only "Someone else approves this" (the HR-4 bank rule). On the HR Manager's view, a claim above the Director level reads "Waiting for the Director".
+  - **A reversed payment** shows "Payment reversed" in neutral tone with its reason, and the claim is back to Approved.
+  - **The amount field** has a visible "RM" prefix, `inputmode="decimal"` and the help text "For example 45.60".
+  - **Receipt thumbnails** have alt text ("Receipt 1 of 3, JPG"), and a PDF shows a file tile, never a broken image.
+  - **Open:** Daniel also suggested "Approved RM 30.00 of RM 45.60" for a partly approved claim. Rule 6 of this approved note offers no partial approval (a wrong amount is rejected and sent again), so this waits for the owner. It is not built unless the owner changes rule 6.
 - The shared synthetic-data line from HR-4. Empty states for each tab, each saying what to do next. 44 px targets, and no sideways scroll at 320, 390 and 768 px.
 - **Screenshots when built:** My claims with each status; the New claim sheet with an error; an approval card with each warning; the Director-level case seen by an HR Manager; a payment recorded and reversed; the monthly list; the settings; at 390 and 1440 px, light and dark.
 

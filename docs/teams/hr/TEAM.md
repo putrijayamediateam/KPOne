@@ -226,6 +226,10 @@ check items, keep them"). The rest stand unless the owner changes them.
     or the approver; claims are not paid from the till, and a recorded cash payment is never linked to daily cash
     closing. KPOne pays nothing and never touches Panel Claims or clinic money. The `/hr/claims` hub-map assertion
     still needs the owner's OK at build time.
+41. Daniel's early look at the HR-6 screens (HR-PLAN 13.6, relayed by B.E.R.N.I.S.S 2026-11-06): OK, with five
+    notes folded into 13.6 ("Approved" vs "Paid 6 Nov 2026"; "Someone else approves this" and "Waiting for the
+    Director"; "Payment reversed" neutral; the RM prefix with decimal input; receipt alt text and PDF tiles). His
+    suggestion of a partial approval ("Approved RM 30.00 of RM 45.60") conflicts with rule 6 and is open for the owner.
 
 ## 7. Open items and known limits
 
