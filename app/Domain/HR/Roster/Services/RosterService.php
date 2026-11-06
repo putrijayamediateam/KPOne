@@ -117,6 +117,7 @@ final class RosterService
             $this->assertVersionLock($version, $input);
             $subject = $this->lockSubject($branch, $shift['staff_user_id']);
             $this->rules->assertShiftAllowed($version, $branch, $subject, $shift['starts_at'], $shift['ends_at']);
+            $this->rules->assertNotOnApprovedLeave($branch, $subject, $shift['starts_at'], $shift['ends_at']);
 
             $row = new RosterShift;
             $row->forceFill([...$shift, 'public_id' => (string) Str::uuid(), 'organisation_id' => $branch->organisation_id, 'branch_id' => $branch->id,
@@ -142,6 +143,9 @@ final class RosterService
             $shift = $this->rules->parse($branch, $this->weekStartOf($week, $branch), $input);
             $subject = $this->lockSubject($branch, $shift['staff_user_id']);
             $this->rules->assertShiftAllowed($version, $branch, $subject, $shift['starts_at'], $shift['ends_at'], $row->id);
+            if ($subject->id !== $row->staff_user_id || ! $shift['starts_at']->equalTo($row->starts_at) || ! $shift['ends_at']->equalTo($row->ends_at)) {
+                $this->rules->assertNotOnApprovedLeave($branch, $subject, $shift['starts_at'], $shift['ends_at']);
+            }
             $before = ['staff_user_id' => $row->staff_user_id, 'starts_at' => $row->starts_at->toIso8601String(), 'ends_at' => $row->ends_at->toIso8601String(),
                 'break_minutes' => $row->break_minutes, 'session_type' => $row->session_type, 'branch_room_id' => $row->branch_room_id];
             $after = ['staff_user_id' => $shift['staff_user_id'], 'starts_at' => $shift['starts_at']->toIso8601String(), 'ends_at' => $shift['ends_at']->toIso8601String(),
@@ -331,6 +335,9 @@ final class RosterService
                     throw ValidationException::withMessages(['roster' => 'not available']);
                 }
                 $this->rules->assertShiftAllowed($target, $branch, $subject, $startsAt, $endsAt);
+                if ($offsetDays > 0) { // A copied week makes new shifts; "change this week" keeps existing ones, which only warn.
+                    $this->rules->assertNotOnApprovedLeave($branch, $subject, $startsAt, $endsAt);
+                }
                 $room = $shift->branch_room_id !== null && DB::table('branch_rooms')->where('id', $shift->branch_room_id)->where('is_active', true)->exists() ? $shift->branch_room_id : null;
             } catch (ValidationException $e) {
                 $reason = collect($e->errors())->flatten()->first();
