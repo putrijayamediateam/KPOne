@@ -196,3 +196,11 @@ authorisation to build them; the coordinator records it in `docs/BASELINE.md`.
    the Panel claim create summary now announces only errors no field announces).
    Nothing changes on screen. Linking every field to its error with `aria-describedby` is left to the owning
    teams; the existing links still work.
+8. **UX-8 Dark-mode browser controls (design debt DD-07).** Chosen by the owner on 2026-11-06: `app.css` sets
+   `color-scheme` (light on `:root`, dark on `.dark`, light again for printed documents and labels), so the
+   browser draws its own control parts for the theme showing. The date and time picker icons were dark on dark
+   and could not be seen; plain checkboxes and radios were glaring white in dark mode. Light mode is unchanged
+   (screenshots identical). `docs/design/DEBT.md` belongs to the Design team, so DD-07 is closed there by Daniel.
+   The shell's inline first-paint style sets the same, so scrollbars are right before `app.css` loads. The TV
+   screen keeps following the TV account's setting rather than its own light/dark button (no form controls
+   there; noted to Queue & TV).

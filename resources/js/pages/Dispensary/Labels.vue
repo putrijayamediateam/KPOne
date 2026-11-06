@@ -270,8 +270,8 @@ const printLabels = async () => {
     margin: 0 auto 20px;
     font-size: 14px;
 }
-/* DSP-8: phone tap target of at least 44 px (design guide, section 12); screen only. */
-@media screen and (max-width: 639.98px) {
+/* DSP-8, DD-24: phone and tablet tap target of at least 44 px (design guide, section 12); screen only. */
+@media screen and (max-width: 1023.98px) {
     .print-toolbar :deep(button),
     .print-toolbar :deep(a) {
         display: inline-flex;
