@@ -401,16 +401,18 @@ const controlledDescription = computed(() => {
     }
 
     return row.isControlled
-        ? `${row.displayName} will no longer show "Ubat Terkawal / Controlled Medicine" on drug labels, including reprints. The change is recorded.`
-        : `New drug labels for ${row.displayName} will show "Ubat Terkawal / Controlled Medicine". The change is recorded.`;
+        ? `${row.displayName} will no longer show "Ubat Terkawal/Controlled Medicine" on drug labels, including reprints. The change is recorded.`
+        : `New drug labels for ${row.displayName} will show "Ubat Terkawal/Controlled Medicine" below the label. The change is recorded.`;
 });
 // DSP-1b: drug groups the Dispensary allergy warning matches against (one per line).
 const groupsRow = ref<MedicineRow | null>(null);
 const groupsText = ref('');
 const groupsBusy = ref(false);
+const groupsError = ref('');
 const openGroups = (row: MedicineRow) => {
     groupsRow.value = row;
     groupsText.value = row.allergyGroups.join('\n');
+    groupsError.value = '';
 };
 const saveGroups = () => {
     const row = groupsRow.value;
@@ -433,12 +435,20 @@ const saveGroups = () => {
             preserveScroll: true,
             onSuccess: () => (groupsRow.value = null),
             onError: (errors: Record<string, string>) => {
-                // Close the dialog so the next attempt starts from the reloaded list.
-                groupsRow.value = null;
-                toast.error(
+                const message =
                     errors.allergy_groups ??
-                        'Could not save the drug groups. Reload and try again.',
-                );
+                    'Could not save the drug groups. Reload and try again.';
+
+                // DD-37: a list changed meanwhile closes, so the next attempt starts from the reloaded list.
+                if (message.startsWith('This medicine changed.')) {
+                    groupsRow.value = null;
+                    toast.error(message);
+
+                    return;
+                }
+
+                // Anything else (too short, too many): keep the dialog and what was typed.
+                groupsError.value = message;
             },
             onFinish: () => (groupsBusy.value = false),
         },
@@ -1468,17 +1478,25 @@ const toggleDescription = computed(() => {
                         as Tablets.
                     </DialogDescription>
                 </DialogHeader>
-                <label for="medicine-allergy-groups" class="grid gap-1 text-sm"
-                    >Drug groups (up to 10, 3 to 60 characters each)
+                <div class="grid gap-1 text-sm">
+                    <label for="medicine-allergy-groups"
+                        >Drug groups (up to 10, 3 to 60 characters each)</label
+                    >
                     <textarea
                         id="medicine-allergy-groups"
                         v-model="groupsText"
                         rows="5"
                         maxlength="700"
-                        class="w-full rounded-md border bg-background p-2 text-sm"
+                        class="w-full rounded-md border bg-background p-2 text-sm aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40"
+                        :aria-invalid="groupsError ? 'true' : undefined"
+                        aria-describedby="medicine-allergy-groups-error"
                         data-field="allergy-groups"
                     ></textarea>
-                </label>
+                    <InputError
+                        id="medicine-allergy-groups-error"
+                        :message="groupsError"
+                    />
+                </div>
                 <DialogFooter>
                     <Button
                         variant="outline"

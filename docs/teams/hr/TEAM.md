@@ -158,6 +158,53 @@ check items, keep them"). The rest stand unless the owner changes them.
     reads "Evidence attached: check it" when a file exists, "Evidence reference given: check it" with a reference
     only, and "Evidence needed" only when there is neither. Panel files are named "Photo 1" or "PDF 1" because file
     names are never stored. Final verdict at `4ea34b2`: OK (Daniel, relayed by B.E.R.N.I.S.S 2026-11-06).
+28. Daniel's early look at the HR-3 screens (HR-PLAN 9.6): OK with changes, folded into the note: one primary button
+    with three states and a confirm on Clock out only; the ticking server time never in a live region; KPOne time
+    formats and "9 h 2 min"; warning (never danger) chips for flags; recorded beside new time in corrections and a
+    "Correction waiting" chip; the privacy line "KPOne records the time only. No location or photo."; a summary line
+    on Review and an outline "Clock in" link on My roster (relayed 2026-11-06). The note itself still waits for
+    the owner's approval.
+29. HR-3 design note (HR-PLAN section 9) approved with its defaults (owner, 2026-11-06, in the HR session: "approve
+    the HR-3 note with the defaults"): HR-3a first, then HR-3b; grace minutes suggested 5, forgotten clock-out
+    window 60 minutes, corrections up to 7 days back, both shared PC and own phone, overtime roles chosen by HR in
+    settings, rest days are the branch's non-working weekdays, a split shift is two sessions, no top-bar button.
+
+30. HR-3a screens (Daniel, relayed by B.E.R.N.I.S.S 2026-11-06): **OK**. All seven early-look notes met. Not
+    blocking: the confirm dialog's navy background is changed for every dialog by UX-10; native date inputs show
+    mm/dd/yyyy on every page. The PR carries the Review shot at 390 px (cards with flags). Nothing for DEBT.md.
+31. Existing-assertion change approved: the `ClinicManagementTest` hub map gains `/hr/attendance` for
+    `hr.attendance.clock.own` and `hr.attendance.review.organisation`; HR-3a shipped (owner, 2026-11-06, in the HR
+    session: "yes, add the hub line and ship it").
+32. HR-3b design note (HR-PLAN section 10) approved with its defaults (owner, 2026-11-06, in the HR session:
+    "approve the HR-3b note with the defaults"): no overtime role ticked until HR ticks one; overtime asked for after
+    it is worked, within the correction window; multipliers 1.5x, 2x and 3x and weekly levels 40 h and 45 h as form
+    suggestions; rest days are the branch's non-working weekdays; a manager may reverse an approved request with a
+    reason, never their own; staff see their own month as well as their week.
+33. Daniel's early look at HR-3b (HR-PLAN 10.5, relayed by B.E.R.N.I.S.S 2026-11-06): OK with changes, all applied:
+    a weekly chip only when there is something to warn about; two outline buttons (Approve, Reject) with the minutes
+    filled in at the amount asked and a reason required when they are lowered ("Approve 120 min"); "Approved 2 h of
+    3 h"; "N waiting · 1 approved day changed since" with "Recorded … → now …"; a right-aligned Summary with a total
+    row and a sticky person column; the shared tabs as they are; empty states that say what to do next; the minutes
+    error in the same submit as the reason error; Withdraw as an outline button; the app's role labels.
+34. Existing-assertion change approved by B.E.R.N.I.S.S for the owner (2026-11-06, the owner's "BE ME"): the
+    `AttendanceTest` `viewers()` tab list for Director and HR Manager changes from `['my', 'review', 'settings']` to
+    `['my', 'review', 'overtime', 'summary', 'settings']` (HR-3b's two new tabs). No other existing assertion changed.
+35. HR-3b screens (Daniel, relayed by B.E.R.N.I.S.S 2026-11-06): **OK** at 819f136, every note in; optional nit applied
+    (the summary line drops "0 waiting" when only a changed day is listed). HR-3b ship-it given by B.E.R.N.I.S.S for
+    the owner ("BE ME"); the PR opens after #327 merges, with main merged in.
+36. HR-4 design note (HR-PLAN section 11) approved with its defaults (owner, 2026-11-06, in the HR session: "approve
+    the HR-4 note with the defaults"): HR-4a first (staff file), then HR-4b (documents and checklists); Show for full
+    identity and bank values for Director and HR Manager, each view recorded; a bank change confirmed by a second
+    person; staff change their own address, personal phone and emergency contact, the rest by a correction;
+    employment types Permanent, Contract, Part-time, Locum, Intern and the listed end reasons; staff see their own
+    documents (view only); a probation alert 14 days before the end, with no probation length shipped; document
+    categories and retention days entered by the clinic (adviser's call). Synthetic data only until the PDPA review.
+37. Daniel's early look at the HR-4 screens (HR-PLAN 11.6, relayed by B.E.R.N.I.S.S 2026-11-06): OK with changes,
+    all ten notes folded into 11.6 (one last-four masking pattern read as words; Show turns into Hide and never
+    persists; masked bank cards side by side; a file header with a status chip; "Needs attention" with its reasons in
+    words; one shared synthetic-data line; the HR-3a correction sheet; "No KPOne sign-in" on a locum; empty states and
+    "Not given"; HR-4b expiry chips). The owner's own words relayed the same day: "approve the HR-4 plan with the
+    defaults". The `/hr/records` hub-map assertion still needs the owner's OK at build time.
 
 ## 7. Open items and known limits
 
@@ -189,6 +236,13 @@ check items, keep them"). The rest stand unless the owner changes them.
 - The 44 px phone tab height on the Leave page reaches into the shared `OperationalTabs` buttons
   (`max-sm:[&>button]:h-11`, the DD-30 pattern from #296); if that component changes its buttons the height quietly
   stops applying. A phone-height option in `OperationalTabs` (Staff Experience) would remove both overrides.
+
+- HR-3a known limits (Suresh's review, kept for later): a correction withdrawal records no actor in the row (only the
+  audit says who withdrew); the session overlap trigger relies on the subject's account lock, not an `EXCLUDE`
+  constraint; a settings version saved for today also changes today's earlier flags; a clock-in racing an approved
+  correction for the same person has no two-process test yet; Review loads shifts for one branch, so a split shift
+  across two branches shows the other branch's session as "Not on the roster"; the toast and the live region can
+  both read a successful Clock in.
 
 ## 8. Rules (every task)
 
