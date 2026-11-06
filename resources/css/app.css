@@ -101,6 +101,7 @@
 }
 
 :root {
+    color-scheme: light;
     --background: #f8f9fa;
     --foreground: #18181b;
     --card: #ffffff;
@@ -146,6 +147,7 @@
 }
 
 .dark {
+    color-scheme: dark;
     --background: hsl(0 0% 3.9%);
     --foreground: hsl(0 0% 98%);
     --card: hsl(0 0% 3.9%);
@@ -244,19 +246,10 @@
 }
 
 /*
- * DD-07: tell the browser which theme is showing, so its own parts of form controls (the
- * date and time picker icons, scrollbars, plain inputs and selects) are drawn for that theme.
- * Without this the calendar and clock icons were dark on dark and could not be seen.
- * Printed documents and labels stay light (see the print rule below).
+ * DD-07: the :root and .dark blocks above also set color-scheme, so the browser draws its own
+ * parts of form controls (date and time picker icons, checkboxes, scrollbars) for the theme
+ * showing. Printed documents and labels stay light.
  */
-:root {
-    color-scheme: light;
-}
-
-.dark {
-    color-scheme: dark;
-}
-
 @media print {
     :root:has(.document-print, .label-preview) {
         color-scheme: light;
