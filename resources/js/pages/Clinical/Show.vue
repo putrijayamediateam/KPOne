@@ -710,7 +710,7 @@ const changeHoldState = (action: 'hold' | 'resume') => {
                                 </p>
                                 <span
                                     v-if="clinical.visit.priority === 'urgent'"
-                                    class="inline-flex rounded-md bg-red-50 px-2 py-1 text-xs font-medium text-red-700 dark:bg-red-950/40 dark:text-red-300"
+                                    class="inline-flex rounded-md border border-destructive/25 bg-destructive/10 px-2 py-1 text-xs font-medium text-destructive"
                                     >Urgent</span
                                 >
                             </div>
