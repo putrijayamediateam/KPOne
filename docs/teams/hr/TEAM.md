@@ -139,6 +139,9 @@ check items, keep them"). The rest stand unless the owner changes them.
     M." with no negative figure; the team calendar grid scrolls inside its box with a sticky name column, a caption
     and screen-reader names per cell; the phone tab strip follows the Queue board's DD-30 pattern (#296); below
     768 px entitlements are one card per role; "Rejected" and "Cancelled" are neutral.
+24. HR-2b: the clinic wants MC files in KPOne (owner, 2026-11-06, in the HR session: "yes, the clinic wants MC files
+    in KPOne"). The rest of the HR-2b note (HR-PLAN section 8) still needs approval before building, and no real file
+    is stored before the PDPA review.
 
 ## 7. Open items and known limits
 

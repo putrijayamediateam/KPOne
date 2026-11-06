@@ -808,9 +808,9 @@ saved.", "Opening balance confirmed."
 ## 8. HR-2b leave evidence files: design note
 
 Written 2026-11-06 while HR-2a (PR #302) waits in the merge queue. It builds on HR-2a and changes none of its rules.
-**Status: draft for the owner's decision. Nothing here is built.** The owner decides first whether the clinic wants
-evidence files in KPOne at all (HR-PLAN 6.7 question 9); if not, HR-2a's short evidence reference and the "Evidence
-seen" tick stay as the whole answer and this slice is dropped.
+**Status: draft; nothing here is built.** The owner decided on 2026-11-06 that the clinic wants MC files in KPOne
+(TEAM.md decision 24), which answers HR-PLAN 6.7 question 9 and 8.9 question 1. The rest of this note still needs
+approval before building.
 
 ### 8.1 Why and what
 
@@ -941,7 +941,7 @@ Same page, `/hr/leave`; no new tab, hub link or top-bar change. Shared component
 
 ### 8.9 Questions only the clinic can answer [TO CONFIRM]
 
-1. Does the clinic want evidence files in KPOne at all, or is the paper plus the "Evidence seen" tick enough?
+1. ~~Does the clinic want evidence files in KPOne at all?~~ **Yes** (owner, 2026-11-06).
 2. Which leave types take files (sick leave, hospitalisation, compassionate, others)?
 3. How long may or must the files be kept after the leave ends? (For the clinic's HR adviser; KPOne ships no number.)
 4. The deadline for handing in an MC after the leave (default in this note: 14 days after the leave ends).
