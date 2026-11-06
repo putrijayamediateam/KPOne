@@ -36,6 +36,7 @@ use App\Http\Controllers\HR\AttendanceController as HrAttendanceController;
 use App\Http\Controllers\HR\ClaimsController as HrClaimsController;
 use App\Http\Controllers\HR\CredentialsController as HrCredentialsController;
 use App\Http\Controllers\HR\LeaveController;
+use App\Http\Controllers\HR\PayrollController as HrPayrollController;
 use App\Http\Controllers\HR\RecordsController as HrRecordsController;
 use App\Http\Controllers\HR\RosterController;
 use App\Http\Controllers\HR\SopsController as HrSopsController;
@@ -256,6 +257,22 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::middleware(['permission:hr.claims.manage.organisation', 'throttle:30,1'])->group(function (): void {
             Route::post('settings', 'saveSettings')->name('hr.claims.settings');
             Route::post('categories', 'saveCategory')->name('hr.claims.categories.save');
+        });
+    });
+
+    // HR-7a payroll setup (HR-PLAN 14; TEAM.md decision 43). No calculation, payment or filing; synthetic data only.
+    Route::prefix('hr/payroll')->controller(HrPayrollController::class)->middleware(['sensitive.no-store', 'permission:hr.payroll.prepare.organisation'])->group(function (): void {
+        Route::get('/', 'index')->name('hr.payroll.index');
+        Route::middleware('throttle:60,1')->group(function (): void {
+            Route::post('profiles', 'enterProfile')->name('hr.payroll.profiles.enter');
+            Route::post('profiles/{profile}/withdraw', 'withdrawProfile')->whereUuid('profile')->name('hr.payroll.profiles.withdraw');
+            Route::post('profiles/{profile}/{decision}', 'decideProfile')->whereUuid('profile')->whereIn('decision', ['confirm', 'reject'])->name('hr.payroll.profiles.decide');
+            Route::post('tables', 'enterTable')->name('hr.payroll.tables.enter');
+            Route::post('tables/{table}/withdraw', 'withdrawTable')->whereUuid('table')->name('hr.payroll.tables.withdraw');
+            Route::post('tables/{table}/{decision}', 'decideTable')->whereUuid('table')->whereIn('decision', ['check', 'reject'])->name('hr.payroll.tables.decide');
+            Route::post('groups', 'saveGroup')->name('hr.payroll.groups.save');
+            Route::post('item-types', 'saveItemType')->name('hr.payroll.item-types.save');
+            Route::post('rates', 'saveRates')->name('hr.payroll.rates.save');
         });
     });
 
