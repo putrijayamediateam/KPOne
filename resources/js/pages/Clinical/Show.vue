@@ -1057,6 +1057,7 @@ const changeHoldState = (action: 'hold' | 'resume') => {
                     <section class="space-y-2">
                         <div>
                             <h2
+                                id="clinical-note-heading"
                                 class="font-semibold"
                                 title="Consultation findings only. This is separate from the Visit Reason."
                             >
@@ -1068,6 +1069,7 @@ const changeHoldState = (action: 'hold' | 'resume') => {
                         >
                             <textarea
                                 v-model="form.clinical_note"
+                                aria-labelledby="clinical-note-heading"
                                 maxlength="20000"
                                 rows="3"
                                 class="block min-h-20 w-full resize-y rounded-t-md border-0 bg-card p-3 text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/40"

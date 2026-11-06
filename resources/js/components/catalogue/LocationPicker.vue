@@ -109,12 +109,14 @@ const save = async () => {
             <Input
                 v-model="code"
                 placeholder="Location code"
+                aria-label="New location code"
                 maxlength="64"
                 required
             />
             <Input
                 v-model="name"
                 placeholder="Location name"
+                aria-label="New location name"
                 maxlength="200"
                 required
             />
