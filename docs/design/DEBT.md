@@ -39,7 +39,7 @@ own PR and tells B.E.R.N.I.S.S (formerly LUCY). See [REVIEW.md](REVIEW.md) for h
 | DD-27 | "Added by CA" badge on Dispensary lines, `pages/Dispensary/Show.vue` | Low contrast in dark mode (hand-styled pink chip) | 1, 10, 13 | Dispensary & OTC | Major | Aisyah, DSP-8 | Open |
 | DD-28 | Panel statement results, `pages/PanelRemittances/Index.vue` (PNL-7 "Fill the split from a Panel statement") | Desktop results are a plain table, not `OperationalTable` (no shared label, empty or loading row, focus region) | 6 | Panel | Minor | Arjun, PNL-7 | Open |
 | DD-29 | Billing workspace buttons, `components/billing/BillingWorkspace.vue` | A scoped rule `.billing-workspace :deep(button) { height: 30px; min-height: 28px }` overrides utility classes, so compact Billing buttons are 30 px on a phone. BIL-5b fixes print, Reprint, the refund decision buttons and the visit-page prints (`data-touch-target`, 44 px at 390); the rest are still 30 px | 12 | Billing | Major | Farah, BIL-5b | Open |
-| DD-30 | Queue board tabs at 390 px, `pages/Queue/Index.vue` | The third tab is cut to "Se" under the "Live · every 3 seconds" label, so Serving Now and Consultation Completed are hidden on a phone | 16, 12 | Queue & TV | Minor | Q-4 design look | Open |
+| DD-30 | Queue board tabs at 390 px, `pages/Queue/Index.vue` | The third tab is cut to "Se" under the "Live · every 3 seconds" label, so Serving Now and Consultation Completed are hidden on a phone | 16, 12 | Queue & TV | Minor | Q-4 design look | Fixed (PR #296) |
 | DD-31 | Panel Claims list on phones, `pages/PanelClaims/Index.vue` | At 390 px the claims table scrolls inside its box and shows only Amount, Claim no and Panel, so the patient and status are off screen while picking claims for a PNL-8 claim pack | 6, 16 | Panel | Minor | Syafiq, PNL-8 | Open |
 | DD-32 | Create patient description, `pages/Patient/Create.vue` | "Organisation-level canonical identity. This is not a registration or encounter.": internal words on a staff screen | 15 | Patients & Registration | Minor | REG-6 design look | Open |
 
@@ -61,3 +61,4 @@ receipt and drug-label print layouts.
 - 2026-11-05: DD-31 added (Panel Claims list on phones, flagged by Syafiq during PNL-8) and DD-32 added (Create patient wording, seen during the REG-6 look).
 - 2026-11-06: DD-02 marked Fixed (REG-6, PR #285: Patient create and edit fit 320 and 390 px).
 - 2026-11-06: DD-04 and DD-13 marked Fixed (CAT-1, PR #263: Pricing labels and phone cards; Medicine Catalogue Edit plus "…" menu and phone cards).
+- 2026-11-06: DD-30 marked Fixed (PR #296: Queue board tabs scroll with a right-edge fade on phones, 44 px tall).
