@@ -159,7 +159,7 @@ test('Purchase orders and receipt submissions carry estimated and actual unit co
 
     assert.match(source, /estimatedUnitCostRm/);
     assert.match(source, /unit_cost_sen: rmToSen\(line\.estimatedUnitCostRm\)/);
-    assert.match(source, /actual purchase unit cost RM/);
-    assert.match(receiptTypes, /unit_cost_sen\?: number/);
-    assert.match(receiptTypes, /unitCostSen: line\.unit_cost_sen/);
+    assert.match(source, /total paid for this batch RM/);
+    assert.match(receiptTypes, /cost_total_sen\?: number/);
+    assert.match(receiptTypes, /costTotalSen: line\.cost_total_sen/);
 });

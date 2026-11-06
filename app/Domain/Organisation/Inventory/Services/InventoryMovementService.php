@@ -128,8 +128,11 @@ class InventoryMovementService
         string $receiptPublicId,
         mixed $unitCostSen = null,
         ?int $supplierId = null,
+        ?int $costTotalSen = null,
+        ?string $costSource = null,
     ): StockMovement {
         $this->assertOperationReferences($actor, $location, $sku, $batch);
+        abort_unless($costSource === null || in_array($costSource, [StockMovement::COST_ACTUAL, StockMovement::COST_ESTIMATE], true), 422);
         $value = $this->quantity($quantity);
         $cost = $this->unitCostSen($unitCostSen);
         $this->increase($actor->organisation_id, $location->id, $sku->id, $batch->id, $value);
@@ -146,6 +149,8 @@ class InventoryMovementService
             $receiptPublicId,
             unitCostSen: $cost,
             supplierId: $supplierId,
+            costTotalSen: $costTotalSen,
+            costSource: $costSource,
         );
     }
 
@@ -331,6 +336,8 @@ class InventoryMovementService
         ?int $allocationId = null,
         ?int $unitCostSen = null,
         ?int $supplierId = null,
+        ?int $costTotalSen = null,
+        ?string $costSource = null,
     ): StockMovement {
         $this->assertReturnsRules($type, $source, $destination);
         $movement = new StockMovement;
@@ -351,6 +358,8 @@ class InventoryMovementService
             'occurred_at' => now()->utc(),
             'unit_cost_sen' => $unitCostSen,
             'supplier_id' => $supplierId,
+            // STK-10B columns are written only when a receipt has a cost source, so historical schemas still work.
+            ...($costSource === null ? [] : ['cost_total_sen' => $costTotalSen, 'cost_source' => $costSource]),
         ])->save();
 
         return $movement;
