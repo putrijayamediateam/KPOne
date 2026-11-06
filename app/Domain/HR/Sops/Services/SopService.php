@@ -251,13 +251,17 @@ final class SopService
     public static function validated(array $input): array
     {
         $title = is_string($input['title'] ?? null) ? trim((string) preg_replace('/\s+/u', ' ', $input['title'])) : '';
+        $errors = [];
         if (mb_strlen($title) < 3 || mb_strlen($title) > 120) {
-            throw ValidationException::withMessages(['title' => 'Enter a title of 3 to 120 characters.']);
+            $errors['title'] = 'Enter a title of 3 to 120 characters.';
         }
         $roles = $input['roles'] ?? [];
         if (! is_array($roles) || $roles === [] || array_diff($roles, array_keys(RosterRules::ROLE_LABELS)) !== []
             || array_diff($roles, RosterPermissions::HUMAN_ROLES) !== []) {
-            throw ValidationException::withMessages(['roles' => 'Choose at least one role that must read it.']);
+            $errors['roles'] = 'Choose at least one role that must read it.';
+        }
+        if ($errors !== [] || ! is_array($roles)) {
+            throw ValidationException::withMessages($errors);
         }
         $roles = array_values(array_unique(array_map('strval', $roles)));
         sort($roles);
