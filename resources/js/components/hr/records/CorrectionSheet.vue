@@ -114,7 +114,7 @@ const send = () => {
                     class="grid gap-1.5"
                 >
                     <Label for="correction-value"
-                        >New {{ kindLabel.toLowerCase() }}</Label
+                        >New {{ kindLabel.toLowerCase() }} *</Label
                     >
                     <Input
                         id="correction-value"
@@ -126,7 +126,7 @@ const send = () => {
                     <InputError :message="errors.value" />
                 </div>
                 <div v-else-if="kind === 'date_of_birth'" class="grid gap-1.5">
-                    <Label for="correction-dob">New date of birth</Label>
+                    <Label for="correction-dob">New date of birth *</Label>
                     <Input
                         id="correction-dob"
                         v-model="form.value"
@@ -156,8 +156,8 @@ const send = () => {
                     <div class="grid gap-1.5">
                         <Label for="correction-identity-number">{{
                             form.identityKind === 'ic'
-                                ? 'New IC number'
-                                : 'New passport number'
+                                ? 'New IC number *'
+                                : 'New passport number *'
                         }}</Label>
                         <Input
                             id="correction-identity-number"
@@ -187,7 +187,7 @@ const send = () => {
                 </template>
                 <template v-else-if="kind === 'bank'">
                     <div class="grid gap-1.5">
-                        <Label for="correction-bank-name">Bank name</Label>
+                        <Label for="correction-bank-name">Bank name *</Label>
                         <Input
                             id="correction-bank-name"
                             v-model="form.bankName"
@@ -197,7 +197,7 @@ const send = () => {
                         <InputError :message="errors.bank_name" />
                     </div>
                     <div class="grid gap-1.5">
-                        <Label for="correction-holder">Account holder</Label>
+                        <Label for="correction-holder">Account holder *</Label>
                         <Input
                             id="correction-holder"
                             v-model="form.holder"
@@ -207,7 +207,7 @@ const send = () => {
                         <InputError :message="errors.holder" />
                     </div>
                     <div class="grid gap-1.5">
-                        <Label for="correction-account">Account number</Label>
+                        <Label for="correction-account">Account number *</Label>
                         <Input
                             id="correction-account"
                             v-model="form.account"
