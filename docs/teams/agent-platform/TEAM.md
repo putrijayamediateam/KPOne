@@ -201,8 +201,9 @@ All in the contract; the main ones:
 | AG-3 Agent office page | Merged in PR #242 as `89ea9a3` |
 | CI-PAR-1 Parallel backend tests and PHPStan in cloud sessions | Merged in PR #255 as `cb94c72` |
 | AG-7 Ask KPOne | Merged in PR #268 as `cc1d826` |
+| AG-5 Director quick answers (Dato' Arif) | PR opened after owner "ship it AG-5" (2026-11-06) | Built. `/agents/assistant` (Director only, `ai_assistant.use.organisation`): 12 preset questions in Clinic today, Money, Panel and Stock, with a branch (all or one assigned branch) and a date or week; each answer is one `director_assistant` run (task `quick_answer`) with a table and a fixed-template sentence, nothing stored. Dato' Arif also reads `clinic.day_summary`, `money.day_summary` and `panel.claims_summary` (owner decision; contract section 8). Three existing test lines changed with the owner's approval. Independent review: one blocker fixed (money and Panel answers for all branches now read only the branches the Director works at, as the report pages do); also fixed: the branch list offers assigned branches only, refusals happen before a run starts, singular sentences, doctors counted by id, a privacy-check refusal shows a message, the answer live region is always present. Known limits: an answer is a GET that records a run (throttled 30 a minute; refreshing asks again); Panels with the same name in two branches show as one row; a throttled request shows the 429 page. |
 | AG-9 Rizal (stocktake officer) | Built, waiting for "ship it" |
 | AG-10 Faris (system health) | |
 | AG-6 Hana (inventory analyst) | |
-| AG-5 Director quick answers | Built on `feature/ag-5-director-quick-answers`, waiting for "ship it" |
+| AG-5 Director quick answers | PR open (owner "ship it AG-5", 2026-11-06) |
 | AG-8 Daily summary page and Lina | |
