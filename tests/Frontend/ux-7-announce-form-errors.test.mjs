@@ -17,6 +17,17 @@ const directive = (node, name) =>
     node.props.find((prop) => prop.type === 7 && prop.name === name)?.exp
         ?.content;
 
+const bound = (node, name) =>
+    node.props.find((prop) => prop.type === 7 && prop.arg?.content === name)
+        ?.exp?.content;
+// A live region, static or bound: role alert, status or log, or any aria-live.
+const isLive = (node) =>
+    /\b(alert|status|log)\b/.test(
+        `${attr(node, 'role') ?? ''} ${bound(node, 'role') ?? ''}`,
+    ) ||
+    attr(node, 'aria-live') !== undefined ||
+    bound(node, 'aria-live') !== undefined;
+
 test('UX-7: InputError inserts its message as role="alert" so screen readers announce it', () => {
     const root = baseParse(
         parse(read('resources/js/components/InputError.vue')).descriptor
@@ -51,9 +62,7 @@ test('UX-7: no caller adds a second alert around InputError, so nothing is read 
         const ast = parse(source).descriptor.template?.ast;
 
         for (const node of ast ? elements(ast) : []) {
-            const live =
-                attr(node, 'role') === 'alert' ||
-                attr(node, 'aria-live') !== undefined;
+            const live = isLive(node);
 
             if (
                 live &&
@@ -66,4 +75,29 @@ test('UX-7: no caller adds a second alert around InputError, so nothing is read 
     }
 
     assert.deepEqual(offenders, []);
+});
+
+test('UX-7: the Panel claim error summary announces only errors no field announces', () => {
+    const source = read('resources/js/pages/PanelClaims/Create.vue');
+    const fields = [
+        ...source.matchAll(/<InputError[^>]*:message="([^"]+)"/g),
+    ].flatMap(([, message]) =>
+        [...message.matchAll(/form\.errors\.(\w+)/g)].map(([, key]) => key),
+    );
+
+    assert.deepEqual([...new Set(fields)].sort(), [
+        'photos',
+        'remarks',
+        'submitted_date',
+    ]);
+    assert.match(
+        source,
+        /const fieldAnnouncedErrors = new Set\(\['submitted_date', 'remarks', 'photos'\]\);/,
+    );
+    assert.match(
+        source,
+        /:role="\s*fieldAnnouncedErrors\.has\(field\) \? undefined : 'alert'\s*"/,
+    );
+    // The summary box itself is no longer an alert.
+    assert.doesNotMatch(source, /v-if="errors\.length"\s+role="alert"/);
 });
