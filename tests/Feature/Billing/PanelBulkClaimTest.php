@@ -207,6 +207,38 @@ class PanelBulkClaimTest extends BillingTestCase
         $this->assertNothingCreated();
     }
 
+    public function test_a_batch_whose_visits_fall_on_different_dates_takes_one_date_on_or_after_the_latest_visit(): void
+    {
+        // PNL-12: the shared submitted date must suit every visit in the batch; each claim keeps its own visit date.
+        $panel = Panel::factory()->create(['organisation_id' => $this->organisation->id]);
+        $sources = [$this->approvedAllocation($panel), $this->approvedAllocation($panel)];
+        $today = CarbonImmutable::now($this->branch->timezone)->startOfDay();
+        foreach ([3, 1] as $index => $daysAgo) {
+            $visitId = DB::table('invoices')->where('id', $sources[$index][1]->id)->value('visit_id');
+            DB::table('visits')->where('id', $visitId)->update(['registered_at' => $today->subDays($daysAgo)->addHours(10)->utc()]);
+        }
+        $this->selectBranch($this->officer(), $this->branch);
+
+        // Two days ago is after the first visit but before the second, so the whole batch is refused.
+        $this->post(route('panel-claims.bulk-store'), $this->payload($sources, ['submitted_date' => $today->subDays(2)->toDateString()]))
+            ->assertSessionHasErrors('submitted_date');
+        $this->assertNothingCreated();
+
+        $yesterday = $today->subDay();
+        $this->post(route('panel-claims.bulk-store'), $this->payload($sources, ['submitted_date' => $yesterday->toDateString()]))
+            ->assertSessionHasNoErrors();
+        $claims = PanelClaim::query()->orderBy('id')->get();
+        $this->assertCount(2, $claims);
+        $this->assertEqualsCanonicalizing(
+            [$today->subDays(3)->toDateString(), $yesterday->toDateString()],
+            $claims->map(fn (PanelClaim $claim): string => $claim->visit_date->toDateString())->all(),
+        );
+        // An earlier date is recorded at branch-local midnight, the same instant for every claim in the batch.
+        $instants = DB::table('panel_claim_events')->whereIn('event_type', ['prepared', 'submitted'])->distinct()->pluck('occurred_at');
+        $this->assertCount(1, $instants);
+        $this->assertSame($yesterday->utc()->toDateTimeString(), CarbonImmutable::parse((string) $instants->first(), 'UTC')->toDateTimeString());
+    }
+
     public function test_only_panel_officers_at_the_invoices_branch_may_create_a_batch(): void
     {
         $panel = Panel::factory()->create(['organisation_id' => $this->organisation->id]);
