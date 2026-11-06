@@ -323,6 +323,7 @@ const submitCancel = () => {
             >
                 <textarea
                     v-model="cancelForm.cancellation_reason"
+                    aria-label="Cancellation reason"
                     maxlength="500"
                     rows="3"
                     autocomplete="off"

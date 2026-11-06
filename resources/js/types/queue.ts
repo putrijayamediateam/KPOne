@@ -64,6 +64,37 @@ export type QueuePollSnapshot = {
     };
     serving: QueueRow[];
     removed: QueueRow[];
+    /** Q-4: who "Call next" would call; null when this board cannot call. */
+    callNext?: CallNextBlock | null;
+};
+
+export type CallNextCandidate = {
+    visitNumber: string;
+    queueNumber: string;
+    patientName: string;
+    patientNumber: string;
+    priority: string;
+    carryOver: boolean;
+    operationalDate: string;
+    roomName: string | null;
+    visitLockVersion: number;
+    queueLockVersion: number;
+};
+
+export type CallNextBlock = {
+    mode: 'own' | 'branch';
+    state:
+        | 'ready'
+        | 'no_doctor'
+        | 'doctor_unavailable'
+        | 'busy'
+        | 'no_room'
+        | 'none_waiting'
+        | 'all_not_ready';
+    reason: string | null;
+    doctorUserId: number | null;
+    doctorName: string | null;
+    candidate: CallNextCandidate | null;
 };
 
 export type QueueSnapshot = QueuePollSnapshot & {

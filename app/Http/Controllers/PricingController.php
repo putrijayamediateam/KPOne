@@ -2,12 +2,15 @@
 
 namespace App\Http\Controllers;
 
+use App\Domain\Access\BranchAccessService;
 use App\Domain\Clinical\Models\ClinicalServiceCatalogueItem;
 use App\Domain\Clinical\Models\MedicineCatalogueItem;
 use App\Domain\Organisation\Models\Branch;
 use App\Domain\Visit\Billing\Models\ChargeDefinition;
 use App\Domain\Visit\Billing\Models\PriceBook;
 use App\Domain\Visit\Billing\Models\PriceEntry;
+use App\Domain\Visit\Billing\Services\PriceHistoryService;
+use App\Domain\Visit\Billing\Services\PriceListCheckService;
 use App\Domain\Visit\Billing\Services\PricePublicationService;
 use App\Domain\Visit\Billing\Services\PricingReferenceAdministrationService;
 use App\Http\Requests\PriceBookStoreRequest;
@@ -16,6 +19,8 @@ use App\Http\Requests\PricingChargeStoreRequest;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -90,6 +95,63 @@ class PricingController extends Controller
                     ] : null,
                 ];
             })->values(),
+        ]);
+    }
+
+    /** CAT-2: read-only price list check. Writes nothing. */
+    public function priceCheck(Request $request, BranchAccessService $branches, PriceListCheckService $checks): Response
+    {
+        try {
+            $data = $request->validate([
+                'search' => ['nullable', 'string', 'max:100'],
+                'type' => ['nullable', Rule::in(['consultation', 'medicine', 'service'])],
+                'attention' => ['nullable', 'boolean'],
+                'page' => ['sometimes', 'integer', 'min:1', 'max:10000'],
+            ]);
+        } catch (ValidationException $exception) {
+            // Stay on this page with the message, never back() to wherever the session last was.
+            throw $exception->redirectTo(route('pricing.price-check'));
+        }
+        $actor = $request->user();
+        $branch = $branches->activeBranch($actor);
+        $filters = [
+            'search' => $data['search'] ?? null,
+            'type' => $data['type'] ?? null,
+            'attention' => (bool) ($data['attention'] ?? false),
+        ];
+
+        return Inertia::render('Pricing/PriceCheck', [
+            'branch' => $branch ? ['id' => $branch->id, 'name' => $branch->name] : null,
+            'filters' => $filters,
+            'result' => $branch ? $checks->check($actor, $branch, $filters, (int) ($data['page'] ?? 1)) : null,
+        ]);
+    }
+
+    public function history(Request $request, ChargeDefinition $charge, BranchAccessService $branches, PriceHistoryService $history): Response
+    {
+        try {
+            $data = $request->validate([
+                'book' => ['nullable', 'uuid'],
+                'from' => ['nullable', Rule::in(['price-check'])],
+                'page' => ['sometimes', 'integer', 'min:1', 'max:10000'],
+            ], [
+                'book.uuid' => 'Choose a price book from the list.',
+                'from.in' => 'That page link is not recognised. Open the history from Pricing.',
+                'page.*' => 'That page number is not valid. Go back to the first page.',
+            ]);
+        } catch (ValidationException $exception) {
+            // Stay on this page with the message, never back() to wherever the session last was.
+            // Keep the way back when it was valid.
+            $from = $request->query('from') === 'price-check' ? ['from' => 'price-check'] : [];
+            throw $exception->redirectTo(route('pricing.charges.history', ['charge' => $charge, ...$from]));
+        }
+        $actor = $request->user();
+        $result = $history->history($actor, $charge, $branches->activeBranch($actor), $data['book'] ?? null, (int) ($data['page'] ?? 1));
+
+        return Inertia::render('Pricing/PriceHistory', [
+            'filters' => ['book' => $result['book']],
+            'from' => $data['from'] ?? null,
+            'result' => $result,
         ]);
     }
 

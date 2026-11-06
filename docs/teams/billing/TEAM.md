@@ -103,7 +103,7 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php` and `BillingPermiss
 | BIL-6 | Refunds: money handed back for a reversed receipt (full amount, any active method, reason code), recorded on the Billing page and approved or rejected by a different person; append-only with PostgreSQL rules. Cash closing counts a refunded reversed receipt as received and the cash refund as paid out, and waits for pending cash refunds. Two new permissions. Design note: `BIL-6-DESIGN.md` | PR #246 |
 | BIL-6b | Daily summary gains three refund columns at the end: Cash refunds paid (payout date), Cash reversed, refund recorded (receipt date) and Non-cash refunds paid (payout date); waiting and approved refunds count, rejected do not. Total received unchanged. Cash net + Cash reversed, refund recorded − Cash refunds paid equals daily cash closing expected cash (tested on every day). Wider table for reports with more than 12 columns | PR #251 |
 | BIL-5 | Issued invoice and receipt copies: printing is recorded; the first print freezes an encrypted, immutable copy (letterhead and logo included) labelled ORIGINAL, an unchanged reprint is COPY, a changed document prints as REVISED (version n); earlier versions reprint as COPY with a "later version exists" note, a reversed receipt's copy says so. "Issued copies" list on the Billing page; the old live print pages are marked PREVIEW. Two append-only tables with PostgreSQL guards; no new permission | PR #270 |
-| BIL-5b | The patient Invoices page records its invoice and receipt prints too (BIL-5 recorded print, "Back to visit"); Issued copies list and print buttons tidied for phones (44 px targets, date and time with "by …") | PR #286 |
+| BIL-5b | The visit page (`Visits/History.vue`) Documents list prints invoices and receipts through the BIL-5 recorded print ("Back to visit" returns there); the issued-copies fallback name is "Staff member", as elsewhere. Daniel's BIL-5 changes: "Issued" shows date and time on one line and "by …" below, "1 print / 3 prints", and the version number sits beside its ORIGINAL/REVISED badge so the table fits; when the column is narrower than the table (1024 and 1280 px screens, phones) the list shows cards instead (a container query). Phone touch targets: the Billing workspace's compact button style (30 px) had silently overridden the 44 px targets of the print, Reprint and BIL-6 refund buttons; buttons marked `data-touch-target` now get 44 px below 640 px | PR #286 |
 | BIL-7 | Monthly cash closing view (`/cash-closings/month`): one row per day of the active branch up to today with the latest count (an approved day's approved count), status (Approved, Waiting for approval, Returned, Not counted, Open for today) and flags (No count, Not approved, Changed after approval), a month summary, previous and next month, "Open day" to the daily page and "Month view" from it. Read only; no new permission, table or migration. Design note: `BIL-7-DESIGN.md` | PR pending |
 
 ## 6. Owner decisions already made (never ask again)
@@ -215,8 +215,8 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php` and `BillingPermiss
 - A fully settled pay-later card still reads "Pay later · Approved · Due <date>" with no settled label; the
   financial summary correctly shows RM 0.00 approved pay later.
 - Issued copies (BIL-5): a print from the Billing or Invoice page is recorded and shows the frozen copy. The old
-  live print pages still open and print, marked "PREVIEW — not an issued copy"; the patient Invoices page
-  (`Visits/History.vue`, another team's page) still links to them. Each version stores its own logo copy (up to
+  live print pages still open and print, marked "PREVIEW — not an issued copy"; nothing in KPOne links to them
+  any more (BIL-5b). Each version stores its own logo copy (up to
   about 3.6 MB). A change is compared with the latest version only, so content that changes back gets a new
   version. "Prints" counts presses of Print, not sheets. Issuing is refused for anyone who cannot see every printed
   part (lines and Bill to); today only CA and CA Supervisor print and they see both.
@@ -336,10 +336,10 @@ authorisation to build them; the coordinator records it in `docs/BASELINE.md`.
 7. **BIL-5 Issued receipt and invoice snapshots.** *(Built 2026-11-05; PR #270.)* At issue, keep an encrypted, immutable snapshot of what was
    printed (as the Medical Certificate does); reprints are marked COPY and show the snapshot, not live data. No
    change to amounts.
-7b. **BIL-5b Recorded print on the patient Invoices page.** Convert the invoice and receipt print links in the
+7b. **BIL-5b Recorded print on the patient Invoices page.** *(Built 2026-11-05; PR #286.)* Convert the invoice and receipt print links in the
    Documents list of `resources/js/pages/Visits/History.vue` to the BIL-5 recorded print (they open the PREVIEW
    page today). Billing's to do, from the latest `main`, now that UX-2 (#254) has merged (B.E.R.N.I.S.S,
-   2026-11-05). *(Built 2026-11-05; PR #286.)*
+   2026-11-05).
 8. **BIL-7 Monthly cash closing view.** *(Built 2026-11-05/06; PR pending.)* A read-only page per branch, one row per day: counted, expected,
    difference, counter, approver and status; flags days with no closing or no approval. Same permissions as cash
    closing, no export.
