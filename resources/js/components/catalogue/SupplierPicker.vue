@@ -100,12 +100,14 @@ const save = async () => {
             <Input
                 v-model="code"
                 placeholder="Supplier code"
+                aria-label="New supplier code"
                 maxlength="64"
                 required
             />
             <Input
                 v-model="name"
                 placeholder="Supplier name"
+                aria-label="New supplier name"
                 maxlength="200"
                 required
             />
