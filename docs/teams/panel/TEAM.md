@@ -206,6 +206,9 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php`.
   real data. A first row that looks like an IC or phone number is refused (best effort). The retry clean-up
   (a file from a rolled-back attempt is deleted after commit) has no automated test; the failure path does.
   Design debt: the desktop results are a plain table, not the shared table component.
+- PNL-11: in dark mode a disabled checkbox (a claim or invoice of another Panel while one is selected) is hard
+  to see; the look comes from the shared checkbox component, so it is for the Design team's debt list, not a
+  Panel-only change. The pack bar's "Only claims of … can be added" line still explains it.
 - A submitted-but-undecided claim counts as zero outstanding in the Panel summary.
 - Panel summary runs about three queries per approved allocation; not load-tested.
 
