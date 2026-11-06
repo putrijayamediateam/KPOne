@@ -804,3 +804,155 @@ saved.", "Opening balance confirmed."
   - one two-process contention test: two approvals spending the same last balance.
 - **Expected existing-assertion change (needs approval):** the `ClinicManagementTest` hub destination map gains
   `'/hr/leave' => ['hr.leave.request.own', 'hr.leave.approve.organisation', 'hr.leave.manage.organisation']`.
+
+## 8. HR-2b leave evidence files: design note
+
+Written 2026-11-06 while HR-2a (PR #302) waits in the merge queue. It builds on HR-2a and changes none of its rules.
+**Status: draft for the owner's decision. Nothing here is built.** The owner decides first whether the clinic wants
+evidence files in KPOne at all (HR-PLAN 6.7 question 9); if not, HR-2a's short evidence reference and the "Evidence
+seen" tick stay as the whole answer and this slice is dropped.
+
+### 8.1 Why and what
+
+A staff member on sick leave usually holds a medical certificate (MC) from another clinic. Today HR-2a lets them type
+a short reference ("MC from Klinik X, serial 123") and HR ticks "Evidence seen" after looking at the paper. HR-2b
+lets the staff member, or HR on their behalf, attach a photo or PDF of that paper to the leave request, so HR can
+check it without the paper being carried to the HR office.
+
+**This is health data about staff.** An MC names the clinic, the doctor and the dates, and may carry a diagnosis.
+It needs the PDPA review (TEAM.md section 7) before any real file is uploaded. Until then: synthetic files only, as
+for the rest of KPOne.
+
+### 8.2 What the clinic gets
+
+- **Apply sheet:** for a leave type marked "evidence needed", an optional "Add a photo or PDF" field under the
+  evidence reference. The request can be sent without a file; the file can be added later.
+- **My leave:** each request row shows "Evidence: 1 file" and an "Add file" action while the request may still take
+  files. The staff member can open their own files and remove one while the request is waiting for approval.
+- **Approvals:** the row shows "1 file · View". "View" opens a panel: a photo is shown on the page; a PDF is offered
+  as "Download PDF" only (never shown inside KPOne, see 8.4). The "Evidence seen" tick in the approve dialog is
+  unchanged and can be ticked with or without a file.
+- **HR on behalf:** HR can attach a scan of the paper copy to someone's request ("Paper copy scanned by HR"). The
+  row shows who added each file.
+- **Settings, per leave type:** "Accept evidence files" (off by default) and "Keep files for N days after the leave
+  ends". Files cannot be added to a type until both are set, so nothing is stored by default.
+
+### 8.3 Rules
+
+1. **Who may add a file:** the applicant, on their own request, while it is waiting for approval, or after approval
+   until 14 days after the leave ends [TO CONFIRM: the clinic's deadline for handing in an MC]; a holder of
+   `hr.leave.manage.organisation`, on anyone's request, until the file retention ends. Never on a rejected or
+   cancelled request.
+2. **Who may open a file:** the applicant (their own files only) and holders of the new
+   `hr.leave.evidence.view.organisation` (Director and HR Manager, as planned in section 2). Nobody else: not the
+   roster, the team calendar, a CA Supervisor or any report. **Every open or download is recorded** (who, which file,
+   when; never the content), the same pattern as the PC-01 identity view.
+3. **Files accepted:** JPG, PNG and PDF, checked by their content, not their name (the Panel claim photo pattern).
+   At most 5 MB each and 3 files per request. A photo is re-encoded on upload, which also strips its EXIF data
+   (camera, GPS location, time). A PDF is stored as uploaded and only ever downloaded.
+4. **Storage:** encrypted with the app key on the private disk (the PNL-7 statement pattern), under a generated name.
+   The original file name is not kept (it often holds a name or a diagnosis); the screen shows "MC 1 · PDF · 240 KB ·
+   added 6 Nov 2026 by Aina CA". A SHA-256 of the content refuses the same file twice on one request.
+5. **Removing a file:**
+   - the applicant removes their own file while the request is waiting;
+   - a manager removes a file with a reason code (Wrong file, Wrong person, Not readable);
+   - removal deletes the stored file at once and keeps an append-only record that a file existed, who removed it,
+     when and why.
+6. **Retention and deletion:** a daily command (`hr-leave-evidence:purge`, scheduled in `routes/console.php`, like
+   `panel-statements:purge`) deletes each file once its type's retention after the leave's end date has passed.
+   Files on a rejected or cancelled request are deleted 30 days after that decision. The request, the "Evidence
+   seen" tick and the record that a file existed stay. The number of days is the clinic's decision [TO CONFIRM with
+   the clinic's HR adviser: how long staff medical evidence must or may be kept]; KPOne ships no number.
+7. **What never happens:** no reading of the file's content (no OCR, no AI), no automatic approval, no sending of a
+   file anywhere, no file in an export, a print or an audit row.
+8. **Every write:** fresh permission check under lock; `DB::transaction`; the applicant's account, then the request,
+   then the file row locked, in that order (the HR-2a lock order); `lock_version` on the request; an idempotency key
+   on add and remove; the file is written to disk only after the row checks pass, and deleted again if the
+   transaction rolls back (the Panel claim photo compensation pattern); audit with ids, type code, file count and
+   size only.
+9. HR never blocks clinical work (TEAM.md decision 4); a missing file never blocks a shift or anything clinical.
+
+### 8.4 Serving a file safely
+
+- One route per file, `GET /hr/leave/evidence/{file}`, behind `hr.leave.request.own` or the view permission, with the
+  owner or permission check in the service, a fresh branch-free organisation check, and a throttle.
+- The response is streamed after decryption with `Cache-Control: no-store`, `X-Content-Type-Options: nosniff` and
+  `Content-Security-Policy: sandbox`. Photos are served `inline` as `image/jpeg` or `image/png` (re-encoded, so their
+  bytes are known); a PDF is always `attachment`, so a crafted PDF cannot run inside KPOne's origin.
+- The open is recorded before the bytes are sent; if recording fails, nothing is sent.
+
+### 8.5 Tables (sketch)
+
+| Table | Holds |
+|---|---|
+| `hr_leave_evidence_files` | public id, organisation, leave request, uploaded by, uploaded on behalf (yes/no), kind (jpeg, png, pdf), size, SHA-256, stored path, status (active, removed, purged), removed by and at, removal reason code, delete after (date), `lock_version` |
+| `hr_leave_evidence_events` | append-only: added, opened, removed, purged, with actor (null for the scheduled purge) and time |
+| `hr_leave_types` (change) | two new columns: accept evidence files (boolean, default off), keep files for N days (nullable) |
+
+PostgreSQL checks: one active file per request and SHA-256; at most 3 active files per request (trigger); a file
+belongs to a request of the same organisation; status moves only active → removed or active → purged; events are
+append-only; a removed or purged file row never changes again.
+
+Migration from `2026_11_10_000500`; the permission grant in `2026_11_10_000600` (additive, literal names, like
+000200 and 000400).
+
+### 8.6 Permissions
+
+| Permission | Holders |
+|---|---|
+| `hr.leave.evidence.view.organisation` (open anyone's evidence files) | Director, HR Manager |
+
+Adding your own file uses the existing `hr.leave.request.own`; adding or removing on someone's behalf uses the
+existing `hr.leave.manage.organisation`. None is in the people-and-access authority set.
+
+### 8.7 Screens (Hui Min, for Daniel)
+
+Same page, `/hr/leave`; no new tab, hub link or top-bar change. Shared components only.
+- **Apply sheet:** a file field labelled "Add a photo or PDF (optional)", help text "JPG, PNG or PDF, up to 5 MB.
+  Take a clear photo of the whole MC." Shown only for evidence types that accept files.
+- **My leave / Approvals:** a small "Evidence" line in the row or card: "No file yet" (muted), "1 file" or "2 files",
+  with "Add file" (outline) and "View" (outline). No new status badge.
+- **Evidence panel** (`Sheet`): one card per file with its label, size, who added it and when; the photo itself, or a
+  "Download PDF" button; "Remove" (ghost, confirm dialog with a reason for managers). Empty state: "No files yet."
+- **Settings → Leave types form:** a checkbox "Accept evidence files" and a number field "Keep files for (days after
+  the leave ends)", required when the checkbox is on.
+- **Errors under the field:** "Use a JPG, PNG or PDF file.", "This file is over 5 MB.", "This request already has 3
+  files.", "This file is already attached.", "Files can no longer be added to this request."
+- **Toasts:** "File added.", "File removed."
+- **Phone:** the panel is full width; photos fit the width; 44 px targets; no sideways page scroll at 320, 390 or
+  768 px.
+
+### 8.8 Tests (planned)
+
+- Grants: the new permission is held by exactly Director and HR Manager, not the TV account, and is not authority.
+- Who may add, open and remove, for every role, including another organisation's request and file ids (404).
+- Content checks: a PNG renamed `.pdf`, a script renamed `.jpg`, a 5 MB + 1 byte file, a fourth file and a duplicate
+  are refused; a JPEG with GPS EXIF comes back without it.
+- The stored file is encrypted (its bytes do not contain a known marker from the upload); the original name is not
+  stored anywhere.
+- Every open writes an event; a failed event sends nothing; a PDF is always an attachment with `nosniff` and the
+  sandbox header.
+- Purge: a file past its type's retention and a file on a request cancelled 31 days ago are deleted, the rows stay;
+  nothing else is touched. Branch-local dates, never the UTC clock.
+- A rolled-back add leaves no file on disk; a retried add with the same key stores one file.
+- PostgreSQL: the 3-file limit, the status moves and append-only events hold whatever the code does.
+- The roster, team calendar and audit rows never carry a file, a file name or the type of the evidence.
+- No existing assertion is expected to change.
+
+### 8.9 Questions only the clinic can answer [TO CONFIRM]
+
+1. Does the clinic want evidence files in KPOne at all, or is the paper plus the "Evidence seen" tick enough?
+2. Which leave types take files (sick leave, hospitalisation, compassionate, others)?
+3. How long may or must the files be kept after the leave ends? (For the clinic's HR adviser; KPOne ships no number.)
+4. The deadline for handing in an MC after the leave (default in this note: 14 days after the leave ends).
+5. Should anyone besides the Director and the HR Manager open the files (for example a CA Supervisor for their
+   branch)? The default is no.
+6. Is HR scanning the paper copy on the staff member's behalf wanted, or only the staff member's own upload?
+
+### 8.10 What stays out of HR-2b
+
+- Reading or checking the MC's content automatically, or checking it against the issuing clinic.
+- Files for anything other than leave requests (credentials and staff documents are HR-3 and HR-4).
+- Showing a PDF inside KPOne (download only), editing or annotating a file, virus scanning (no scanner is available;
+  noted as a known limit for the PDPA and security review).
+- Any message, reminder or export carrying a file.
