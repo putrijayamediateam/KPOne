@@ -1916,6 +1916,7 @@ to the Clinic management destination map, which is an existing-assertion change 
   - **The amount field** has a visible "RM" prefix, `inputmode="decimal"` and the help text "For example 45.60".
   - **Receipt thumbnails** have alt text ("Receipt 1 of 3, JPG"), and a PDF shows a file tile, never a broken image.
   - **Not built (owner, 2026-11-06: "keep rule 6"):** Daniel also suggested "Approved RM 30.00 of RM 45.60" for a partly approved claim. Rule 6 stands: there is no partial approval, so a wrong amount is rejected with the reason Wrong amount and sent again.
+  - **Daniel's option, kept:** a claim rejected for Wrong amount shows the reason in words on the claimant's card, with an outline **Send a new claim** that opens the New claim sheet with the purpose and receipts copied in. Receipts copied from the claimant's own rejected claim do not count as a duplicate on the approval card. The new claim is a separate claim with its own number, and the rejected one is kept.
 - The shared synthetic-data line from HR-4. Empty states for each tab, each saying what to do next. 44 px targets, and no sideways scroll at 320, 390 and 768 px.
 - **Screenshots when built:** My claims with each status; the New claim sheet with an error; an approval card with each warning; the Director-level case seen by an HR Manager; a payment recorded and reversed; the monthly list; the settings; at 390 and 1440 px, light and dark.
 
