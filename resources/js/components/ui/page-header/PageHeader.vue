@@ -15,11 +15,30 @@ defineProps<{
             >
                 {{ eyebrow }}
             </p>
-            <h1 class="text-2xl font-semibold tracking-tight text-foreground">
+            <!-- UX-15: an optional badge (for example a status) sits beside the title. -->
+            <div
+                v-if="$slots['title-extra']"
+                class="flex flex-wrap items-center gap-2"
+            >
+                <h1
+                    class="text-2xl font-semibold tracking-tight text-foreground"
+                >
+                    {{ title }}
+                </h1>
+                <slot name="title-extra" />
+            </div>
+            <h1
+                v-else
+                class="text-2xl font-semibold tracking-tight text-foreground"
+            >
                 {{ title }}
             </h1>
-            <p v-if="description" class="text-sm text-muted-foreground">
-                {{ description }}
+            <!-- UX-15: the description slot is for a line that needs markup; plain text uses the prop. -->
+            <p
+                v-if="description || $slots.description"
+                class="text-sm text-muted-foreground"
+            >
+                <slot name="description">{{ description }}</slot>
             </p>
         </div>
         <div v-if="$slots.actions" class="kp-control-group">

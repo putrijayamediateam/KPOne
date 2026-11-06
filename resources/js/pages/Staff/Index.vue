@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import { Head, Link, router } from '@inertiajs/vue3';
-import { Plus, Search, Users, X } from '@lucide/vue';
+import { Plus, Search, X } from '@lucide/vue';
 import { computed, reactive } from 'vue';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { PageHeader } from '@/components/ui/page-header';
 import { OperationalSelect } from '@/components/ui/select';
 import { formatRoleLabel } from '@/lib/displayLabels';
 import type { PaginatedStaff, StaffOptions } from '@/types';
@@ -81,29 +82,18 @@ const clearFilters = () => {
 <template>
     <Head title="Staff directory" />
     <main class="flex flex-1 flex-col gap-5 p-4 md:p-7">
-        <div
-            class="flex flex-col justify-between gap-4 md:flex-row md:items-start"
+        <PageHeader
+            title="Staff directory"
+            description="Operational identities and access within your authorised scope."
         >
-            <div class="flex items-start gap-3">
-                <div class="rounded-xl bg-emerald-100 p-2.5 text-emerald-800">
-                    <Users class="size-5" />
-                </div>
-                <div>
-                    <h1 class="text-2xl font-semibold tracking-tight">
-                        Staff directory
-                    </h1>
-                    <p class="text-sm text-muted-foreground">
-                        Operational identities and access within your authorised
-                        scope.
-                    </p>
-                </div>
-            </div>
-            <Button v-if="canCreate" as-child
-                ><Link href="/staff/create"
-                    ><Plus class="size-4" /> Create staff</Link
-                ></Button
-            >
-        </div>
+            <template v-if="canCreate" #actions>
+                <Button as-child
+                    ><Link href="/staff/create"
+                        ><Plus class="size-4" /> Create staff</Link
+                    ></Button
+                >
+            </template>
+        </PageHeader>
 
         <Card>
             <CardHeader class="pb-4"
@@ -121,7 +111,7 @@ const clearFilters = () => {
                         />
                         <input
                             v-model="form.search"
-                            class="h-9 w-full rounded-md border bg-background pr-3 pl-9 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/10"
+                            class="h-9 w-full rounded-md border bg-background pr-3 pl-9 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/20"
                             placeholder="Name, email, staff number"
                         />
                     </label>
@@ -200,11 +190,11 @@ const clearFilters = () => {
                                 <td class="px-5 py-4 align-top">
                                     <Link
                                         :href="`/staff/${member.id}`"
-                                        class="font-medium text-foreground hover:text-emerald-700 hover:underline"
+                                        class="font-medium text-foreground hover:text-success hover:underline"
                                         >{{ member.name }}</Link
                                     >
                                     <div
-                                        class="mt-0.5 text-xs text-muted-foreground"
+                                        class="mt-0.5 text-xs [overflow-wrap:anywhere] text-muted-foreground"
                                     >
                                         {{ member.email }}
                                     </div>
@@ -248,7 +238,7 @@ const clearFilters = () => {
                                             variant="outline"
                                             :class="
                                                 assignment.isPrimary &&
-                                                'border-emerald-300 bg-emerald-50 text-emerald-800'
+                                                'border-success/25 bg-success/10 text-success'
                                             "
                                             >{{ assignment.branch.code
                                             }}<span v-if="assignment.isPrimary">
@@ -256,7 +246,9 @@ const clearFilters = () => {
                                             ></Badge
                                         >
                                     </div>
-                                    <span v-else class="text-xs text-amber-700"
+                                    <span
+                                        v-else
+                                        class="text-xs text-warning-strong"
                                         >No current assignment</span
                                     >
                                 </td>
@@ -269,7 +261,7 @@ const clearFilters = () => {
                                         "
                                         :class="
                                             member.isActive &&
-                                            'bg-emerald-100 text-emerald-800 hover:bg-emerald-100'
+                                            'border-success/25 bg-success/10 text-success hover:bg-success/10'
                                         "
                                         >{{
                                             member.isActive

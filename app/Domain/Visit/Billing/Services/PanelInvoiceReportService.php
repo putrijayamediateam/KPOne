@@ -144,9 +144,11 @@ final class PanelInvoiceReportService
         }
         $this->directory->applyClinicalFilters($query, 'v.id', $actor, $branch, ['treatment' => $filters['echo']['treatment']]);
 
+        // PNL-15: the invoice total is the payable total after any discount or surcharge, as on the invoice and the claim.
         $found = $query->orderBy('v.registered_at')->orderBy('c.id')->limit(self::MAX_ROWS + 1)->get([
             'i.invoice_number', 'v.visit_number', 'v.visit_type', 'v.registered_at', 'p.full_name as patient_name',
-            'c.member_reference', 'c.panel_name_snapshot', 'c.amount_sen', 'i.total_sen', 'd.name as doctor_name',
+            'c.member_reference', 'c.panel_name_snapshot', 'c.amount_sen', 'd.name as doctor_name',
+            DB::raw('kpone_invoice_payable(i.id) as payable_sen'),
             'pc.id as claim_id', 'pc.status as claim_status',
         ]);
         $truncated = $found->count() > self::MAX_ROWS;
@@ -163,7 +165,7 @@ final class PanelInvoiceReportService
                 'patientName' => (string) $row->patient_name, 'memberReference' => (string) ($row->member_reference ?? ''),
                 'panelName' => (string) $row->panel_name_snapshot, 'doctorName' => (string) ($row->doctor_name ?? ''),
                 'visitType' => $row->visit_type === 'otc' ? 'OTC' : 'Consultation',
-                'invoiceTotalSen' => (int) $row->total_sen, 'panelAmountSen' => (int) $row->amount_sen,
+                'invoiceTotalSen' => (int) $row->payable_sen, 'panelAmountSen' => (int) $row->amount_sen,
                 'claimNo' => $row->claim_id === null ? '' : (string) $row->claim_id,
                 'claimStatus' => $row->claim_status === null ? 'No claim' : ucfirst(str_replace('_', ' ', (string) $row->claim_status)),
             ];
