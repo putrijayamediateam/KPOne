@@ -8,10 +8,9 @@ defineProps<{ state: 'current' | 'future' | 'ended' }>();
     <Badge
         variant="outline"
         :class="{
-            'border-emerald-200 bg-emerald-50 text-emerald-800':
-                state === 'current',
-            'border-blue-200 bg-blue-50 text-blue-800': state === 'future',
-            'border-slate-200 bg-slate-50 text-slate-600': state === 'ended',
+            'border-success/25 bg-success/10 text-success': state === 'current',
+            'border-brand/25 bg-brand/10 text-brand-strong': state === 'future',
+            'border-border bg-muted text-muted-foreground': state === 'ended',
         }"
     >
         {{
