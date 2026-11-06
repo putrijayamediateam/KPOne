@@ -230,9 +230,3 @@ authorisation to build them; the coordinator records it in `docs/BASELINE.md`.
    rule and "No current assignment" now use the theme tokens (`success`, `warning-strong`, `brand`, `muted`,
    `ring`), as `StatusBadge` does. The shared `PatientBoard` chips were left to Queue & TV (DD-38, PR #331, and
    Cancel Visit in PR #336), as the Lead UI/UX Designer asked. No assertion changed.
-12. **UX-12 Staff page formats (design debt DD-43).** Chosen by the owner on 2026-11-06 from the Lead UI/UX
-   Designer's UX-11 review. On the staff page a long work email ran into the Staff number column (by 43 px at
-   1280 and 1440 px); it now wraps inside its own column, preferably after the "@", on the staff page and the
-   directory. Dates and times use the shared `formatDate` and `formatDateTime` ("1 Jan 2026", "5 Nov 2026, 5:16 PM",
-   Kuala Lumpur time) instead of the browser's own format and time zone, and an assignment reads "From 1 Jan 2026,
-   no end date" or "1 Jan 2026 to 31 Dec 2026 (inclusive)". No assertion changed.
