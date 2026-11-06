@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Billing;
 
+use App\Domain\Organisation\BusinessDetails\BranchBusinessProfile;
 use App\Domain\Organisation\Models\Branch;
 use App\Domain\Visit\Billing\Models\PanelClaim;
 use App\Domain\Visit\Models\Panel;
@@ -70,6 +71,22 @@ class PanelClaimPackTest extends BillingTestCase
         if ($identifier !== null) {
             $this->assertStringNotContainsString((string) $identifier->normalized_value, (string) $audit->metadata);
         }
+    }
+
+    public function test_the_pack_letterhead_carries_the_branch_second_phone(): void
+    {
+        // PNL-19: CAT-9's optional second clinic phone reaches the pack letterhead, which prints "Tel: A / B".
+        $panel = Panel::factory()->create(['organisation_id' => $this->organisation->id, 'code' => 'SYNTH-PHONE']);
+        [$claim] = $this->submittedClaims($panel, 1);
+        BranchBusinessProfile::query()->updateOrCreate(['branch_id' => $this->branch->id], ['organisation_id' => $this->organisation->id,
+            'clinic_name' => 'Synthetic Clinic', 'address_line_1' => '1 Synthetic Road', 'postcode' => '50000', 'city' => 'Synthetic City',
+            'state' => 'Synthetic State', 'country' => 'MY', 'phone' => '+60312345678', 'phone_secondary' => '+60123456789', 'lock_version' => 1]);
+
+        $this->get(route('panel-claims.pack', ['claims' => [$claim->public_id], 'from' => $claim->public_id]))->assertOk()
+            ->assertInertia(fn (Assert $page) => $page->component('PanelClaims/Pack')
+                // Both print in the shared PrintedPhone reading format, as on the other printed documents.
+                ->where('letterhead.details.phone', '03-1234 5678')
+                ->where('letterhead.details.phone_secondary', '012-345 6789'));
     }
 
     public function test_a_batch_pack_covers_claims_of_one_panel_and_refuses_mixed_or_too_many_claims(): void

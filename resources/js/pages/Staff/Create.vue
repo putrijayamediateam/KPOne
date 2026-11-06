@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Head, Link, useForm } from '@inertiajs/vue3';
-import { ArrowLeft, Plus, Trash2, UserPlus } from '@lucide/vue';
+import { ArrowLeft, Plus, Trash2 } from '@lucide/vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import {
@@ -10,6 +10,7 @@ import {
     CardHeader,
     CardTitle,
 } from '@/components/ui/card';
+import { PageHeader } from '@/components/ui/page-header';
 import { formatRoleLabel } from '@/lib/displayLabels';
 import type { StaffOptions } from '@/types';
 
@@ -77,20 +78,10 @@ const submit = () => form.post('/staff');
 <template>
     <Head title="Create staff" />
     <main class="flex flex-1 flex-col gap-5 p-4 md:p-7">
-        <div class="flex items-start gap-3">
-            <div class="rounded-xl bg-emerald-100 p-2.5 text-emerald-800">
-                <UserPlus class="size-5" />
-            </div>
-            <div>
-                <h1 class="text-2xl font-semibold tracking-tight">
-                    Create staff account
-                </h1>
-                <p class="text-sm text-muted-foreground">
-                    Provision identity, employment and initial access in one
-                    controlled transaction.
-                </p>
-            </div>
-        </div>
+        <PageHeader
+            title="Create staff account"
+            description="Provision identity, employment and initial access in one controlled transaction."
+        />
         <form
             class="grid gap-5 xl:grid-cols-[minmax(0,1fr)_360px]"
             @submit.prevent="submit"
@@ -147,7 +138,7 @@ const submit = () => form.post('/staff');
                                         v-model="form.credential_strategy"
                                         type="radio"
                                         value="google_only"
-                                        class="mr-2 accent-emerald-700"
+                                        class="mr-2 accent-success"
                                     />Google-only pre-provisioning<span
                                         class="mt-1 block text-xs text-muted-foreground"
                                         >No OAuth token is stored. First link
@@ -165,7 +156,7 @@ const submit = () => form.post('/staff');
                                         v-model="form.credential_strategy"
                                         type="radio"
                                         value="password"
-                                        class="mr-2 accent-emerald-700"
+                                        class="mr-2 accent-success"
                                     />Bootstrap password<span
                                         class="mt-1 block text-xs text-muted-foreground"
                                         >Enter it once. KPOne hashes it
@@ -292,7 +283,7 @@ const submit = () => form.post('/staff');
                                     Assignment {{ index + 1
                                     }}<span
                                         v-if="assignment.is_primary"
-                                        class="ml-2 text-xs text-emerald-700"
+                                        class="ml-2 text-xs text-success"
                                         >Primary</span
                                     >
                                 </div>
@@ -359,7 +350,7 @@ const submit = () => form.post('/staff');
                                     ><input
                                         type="radio"
                                         name="primary-assignment"
-                                        class="size-4 accent-emerald-700"
+                                        class="size-4 accent-success"
                                         :checked="assignment.is_primary"
                                         @change="makePrimary(index)"
                                     />
@@ -424,7 +415,7 @@ const submit = () => form.post('/staff');
                             class="flex cursor-pointer items-center gap-3 rounded-md border p-3 text-sm hover:bg-muted/30"
                             ><input
                                 type="checkbox"
-                                class="size-4 accent-emerald-700"
+                                class="size-4 accent-success"
                                 :checked="form.roles.includes(role)"
                                 @change="
                                     toggleRole(
@@ -449,7 +440,7 @@ const submit = () => form.post('/staff');
                             ><input
                                 v-model="form.is_active"
                                 type="checkbox"
-                                class="mt-0.5 size-4 accent-emerald-700"
+                                class="mt-0.5 size-4 accent-success"
                             /><span
                                 ><span class="font-medium"
                                     >Create as active</span
