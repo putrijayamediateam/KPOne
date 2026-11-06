@@ -84,3 +84,15 @@ test('a call from a held consultation names that consultation so a refusal retur
     // Still exactly one POST, only from submit().
     assert.equal(control.match(/router\.post\(/g)?.length, 1);
 });
+
+test('Daniel: a swapped patient is shown in the warning tone and read once', () => {
+    assert.match(
+        control,
+        /class="-mt-2 flex items-start gap-2 rounded-lg border border-warning\/25 bg-warning\/10 px-3 py-2 text-xs text-warning-strong"\s*data-testid="call-next-notice"/,
+    );
+    assert.match(
+        control,
+        /<TriangleAlert\s+class="mt-px size-3\.5 shrink-0"\s+aria-hidden="true"\s*\/>/,
+    );
+    assert.equal(control.match(/aria-live="polite"/g)?.length, 1);
+});
