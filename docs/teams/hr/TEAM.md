@@ -58,6 +58,7 @@ Development, Finance and the TV account get no HR data by implication. Server ch
 | Slice | What it did | PR |
 |---|---|---|
 | HR-1 | Roster planner at `/hr/roster` (My roster, Planner, Minimum staffing); weekly branch versions draft, waiting for approval, approved, replaced; two-person send and approve or return backed by PostgreSQL; refusals for missing branch assignment, overlaps across branches, shifts over 16 hours; warnings for other drafts, shared rooms and minimum staffing; one hub link. Permissions `hr.roster.manage.organisation` (Director, HR Manager), `hr.roster.approve.organisation` (Director), `hr.roster.view.own` (every human role, not the TV account). Migrations `2026_11_10_000100` and `000200`. | PR #295, merged as `dca171e` (head `a84e395`) |
+| HR-2a | Leave at `/hr/leave` (My leave, Approvals, Team calendar, Settings): leave types and per-role entitlements per year, branch working days and public holidays, half days, requests with an encrypted short evidence reference, approval by someone other than the applicant, cancel and withdraw, balances from approved and pending requests, and roster warnings for leave on approved shifts. Migrations from `2026_11_10_000300`. | PR #302, merged as `836fe96` (head `0b4c189`) |
 
 ## 6. Decisions (never ask again)
 
@@ -139,6 +140,24 @@ check items, keep them"). The rest stand unless the owner changes them.
     M." with no negative figure; the team calendar grid scrolls inside its box with a sticky name column, a caption
     and screen-reader names per cell; the phone tab strip follows the Queue board's DD-30 pattern (#296); below
     768 px entitlements are one card per role; "Rejected" and "Cancelled" are neutral.
+24. HR-2b: the clinic wants MC files in KPOne (owner, 2026-11-06, in the HR session: "yes, the clinic wants MC files
+    in KPOne"). The rest of the HR-2b note (HR-PLAN section 8) still needs approval before building, and no real file
+    is stored before the PDPA review.
+25. Daniel's early look at the HR-2b screens (HR-PLAN 8.7): OK with changes, folded into the note: a labelled outline
+    button instead of the bare file control (no `capture`), "Uploading…" while sending, request-specific
+    screen-reader names, photo alt text without medical text, a confirm dialog for every Remove (reason for managers
+    only), retention help text, "No file yet" never red, photos on a neutral bordered surface (relayed 2026-11-06).
+26. HR-2b design note (HR-PLAN section 8) approved with its defaults (owner, 2026-11-06, in the HR session: "approve
+    the note with the defaults"): files only on leave types HR switches on; retention days set by HR per type, no
+    number shipped; staff may add files up to 14 days after the leave ends; only the Director and the HR Manager open
+    other people's files; HR may scan paper copies on a staff member's behalf. Synthetic files only until the PDPA
+    review.
+27. HR-2b screens (Daniel, OK with changes, relayed by B.E.R.N.I.S.S 2026-11-06), all applied: a file whose name
+    says JPG, PNG or PDF but whose content is not one reads "This file can't be opened as a JPG, PNG or PDF. Try
+    saving it again or take a photo instead."; both Remove buttons are at least 44 px on phones; the Approvals flag
+    reads "Evidence attached: check it" when a file exists, "Evidence reference given: check it" with a reference
+    only, and "Evidence needed" only when there is neither. Panel files are named "Photo 1" or "PDF 1" because file
+    names are never stored. Final verdict at `4ea34b2`: OK (Daniel, relayed by B.E.R.N.I.S.S 2026-11-06).
 
 ## 7. Open items and known limits
 
@@ -160,6 +179,13 @@ check items, keep them"). The rest stand unless the owner changes them.
   adjustment instead; the shared confirm dialog has no disabled state, so Approve and Reject say what is missing
   instead of greying out; ledger and action foreign keys to requests, openings and adjustments are single-column
   (organisation is checked in the service, not in PostgreSQL); no evidence files until HR-2b.
+- HR-2b known limits: a PDF is checked only for its header and end marker, not sanitised (it is only ever downloaded,
+  with `nosniff` and a sandbox policy); no virus scanner is available; opening a file is a GET that records an event,
+  so a link from another site can add "opened" rows for a signed-in manager (throttled, as WA-01's redirect); photos are
+  refused above about 24 MP or when memory is short, with "Use a smaller photo or a PDF"; the photo tests need the GD
+  extension, which the cloud container lacks, so they run in CI only; files keep their retention days even when a
+  type stops taking files, and the days cannot be cleared while files remain; both purge rules delete on the day
+  after the period ends, in the branch time zone. Synthetic files only until the PDPA review.
 - The 44 px phone tab height on the Leave page reaches into the shared `OperationalTabs` buttons
   (`max-sm:[&>button]:h-11`, the DD-30 pattern from #296); if that component changes its buttons the height quietly
   stops applying. A phone-height option in `OperationalTabs` (Staff Experience) would remove both overrides.
