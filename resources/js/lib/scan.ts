@@ -26,6 +26,10 @@ export function scanMessage(
     result: ScanLookup,
     context: 'search' | 'receiving' | 'dispensary',
 ): string {
+    if (context === 'dispensary') {
+        return dispensaryScanMessage(result);
+    }
+
     if (result.status === 'not_found') {
         return `No SKU has the code ${result.code}. Check the code or search by name.`;
     }
@@ -38,10 +42,6 @@ export function scanMessage(
 
     if (!result.sku.active) {
         return `SKU ${label} is inactive, so it has no stock to show here.`;
-    }
-
-    if (context === 'dispensary') {
-        return `Found SKU ${label}.`;
     }
 
     return context === 'receiving'
@@ -99,4 +99,21 @@ export function isRepeat(
         previous.code === code &&
         now - previous.at < REPEAT_WINDOW_MS
     );
+}
+
+/** DSP-11 wording on the Dispensary page, where a scan only checks the box against the case. */
+function dispensaryScanMessage(result: ScanLookup): string {
+    if (result.status === 'not_found') {
+        return `No medicine has the code ${result.code}. Check the code, or check the box by eye.`;
+    }
+
+    if (result.status === 'shared') {
+        return 'This code is on more than one SKU, so it cannot be checked by scan. Check the box by eye.';
+    }
+
+    const label = `${result.sku.sku_code} · ${result.sku.item_name}`;
+
+    return result.sku.active
+        ? `Found SKU ${label}.`
+        : `SKU ${label} is inactive. Check the box by eye.`;
 }

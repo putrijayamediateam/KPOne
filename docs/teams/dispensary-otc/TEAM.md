@@ -189,7 +189,12 @@ coordinator at the owner's request (2026-11-05); the designer was added by owner
     Other names. Built on top of DSP-1c (#324), because both change the same dialog code.
 29. DSP-11 scan to check (2026-11-06): the owner chose it ("go with scan to check at Dispensary"). It warns only:
     a scan never saves, edits, dispenses, completes or blocks anything, and nothing is recorded; a "Checked by scan"
-    mark lives on the screen until reload and drops if the line's SKU changes. Iman's sketch; Daniel to look.
+    mark lives on the screen until reload and drops if the line is removed or its SKU changes. Iman's sketch; Daniel
+    "OK with changes": the match line says "Shown on this screen only", the help text says it doesn't check the
+    quantity or the batch, the summary reads "N of M (not saved)", a box only on a removed line says "On this case
+    but removed", and only a wrong box interrupts a screen reader. Zulkifli (Inventory) agreed to the ScanInput reuse
+    on condition that the Inventory behaviour, the endpoint and the stk9 tests stay unchanged; Mei Ling reviews the
+    ScanInput diff before the PR.
     Reuses Inventory's `ScanInput` (new optional `dispensary` context and `describe` wording; the Inventory pages
     are unchanged). No new permission: CA and CA Supervisor already hold `inventory.view.branch`.
 

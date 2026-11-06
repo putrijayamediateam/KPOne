@@ -16,11 +16,13 @@ import { PageHeader } from '@/components/ui/page-header';
 import { OperationalSelect } from '@/components/ui/select';
 import { StatusBadge } from '@/components/ui/status';
 import {
-    matchingLines,
-    matchMessage,
-    notOnCaseMessage,
+    checkScan,
+    checkedCount,
+    isChecked,
+    keepCurrentMarks,
+    scannableCount,
 } from '@/lib/dispensary-scan';
-import type { ScanCheckLine } from '@/lib/dispensary-scan';
+import type { ScanCheckLine, ScanMarks } from '@/lib/dispensary-scan';
 import { formatInventoryReason } from '@/lib/inventory-picker';
 import { formatDate, formatStatusLabel } from '@/lib/presentation';
 import type { ScannedSku } from '@/lib/scan';
@@ -444,49 +446,42 @@ const removedItems = computed(() =>
     props.dispensary.items.filter((item) => item.changeState === 'removed'),
 );
 // DSP-11: scan to check (screen only; nothing is saved). A line stays checked only while its SKU is the one scanned.
-const scanChecked = ref<Record<string, string>>({});
-const scanLines = computed<ScanCheckLine[]>(() =>
-    visibleItems.value.map((item) => ({
-        publicId: item.publicId,
-        name: item.name,
-        strength: item.strength,
-        skuPublicId: item.sku?.publicId ?? null,
-    })),
-);
-const scannableCount = computed(
-    () => scanLines.value.filter((line) => line.skuPublicId !== null).length,
+const scanMarks = ref<ScanMarks>({});
+const toScanLine = (item: Item): ScanCheckLine => ({
+    publicId: item.publicId,
+    name: item.name,
+    strength: item.strength,
+    skuPublicId: item.sku?.publicId ?? null,
+});
+const scanLines = computed(() => visibleItems.value.map(toScanLine));
+const removedScanLines = computed(() => removedItems.value.map(toScanLine));
+const scanTotal = computed(() => scannableCount(scanLines.value));
+const scanChecked = computed(() =>
+    checkedCount(scanLines.value, scanMarks.value),
 );
 const isScanChecked = (item: Item): boolean =>
-    item.sku !== null && scanChecked.value[item.publicId] === item.sku.publicId;
-const checkedCount = computed(
-    () => visibleItems.value.filter((item) => isScanChecked(item)).length,
-);
-const acceptScan = (sku: ScannedSku): string | null =>
-    matchingLines(sku.public_id, scanLines.value).length
-        ? null
-        : notOnCaseMessage(sku.item_name, sku.sku_code);
-const describeScan = (sku: ScannedSku): string => {
-    const matched = matchingLines(sku.public_id, scanLines.value);
-    const fresh = matched.filter(
-        (line) => scanChecked.value[line.publicId] !== line.skuPublicId,
-    );
+    isChecked(toScanLine(item), scanMarks.value);
+const scanOutcome = (sku: ScannedSku) =>
+    checkScan(sku, scanLines.value, removedScanLines.value, scanMarks.value);
+const acceptScan = (sku: ScannedSku): string | null => {
+    const outcome = scanOutcome(sku);
 
-    return matchMessage(
-        matched,
-        fresh.length === 0,
-        checkedCount.value + fresh.length,
-        scannableCount.value,
-    );
+    return outcome.kind === 'removed' || outcome.kind === 'not_on_case'
+        ? outcome.message
+        : null;
 };
+const describeScan = (sku: ScannedSku): string => scanOutcome(sku).message;
 const markScanned = (sku: ScannedSku) => {
-    const next = { ...scanChecked.value };
+    const outcome = scanOutcome(sku);
 
-    for (const line of matchingLines(sku.public_id, scanLines.value)) {
-        next[line.publicId] = sku.public_id;
+    if (outcome.kind === 'match' || outcome.kind === 'already') {
+        scanMarks.value = outcome.marks;
     }
-
-    scanChecked.value = next;
 };
+// A removed, restored or changed line loses its mark, so it must be scanned again.
+watch(scanLines, (lines) => {
+    scanMarks.value = keepCurrentMarks(lines, scanMarks.value);
+});
 const unsaved = computed(() =>
     visibleItems.value.filter(
         (item) => item.status === 'pending' || isDirty(item),
@@ -1193,6 +1188,9 @@ const inputClass = 'mt-1 h-9 w-full rounded-md border px-2';
                                 label="Checked by scan"
                                 data-testid="scan-checked"
                             />
+                            <span v-if="isScanChecked(item)" class="sr-only"
+                                >, not saved</span
+                            >
                             <p
                                 v-if="item.source === 'doctor'"
                                 class="mt-2 text-xs text-muted-foreground"
@@ -2063,14 +2061,12 @@ const inputClass = 'mt-1 h-9 w-full rounded-md border px-2';
                         </template>
                         <dt class="text-muted-foreground">Not saved yet</dt>
                         <dd>{{ unsaved.length + unsavedServices.length }}</dd>
-                        <template
-                            v-if="dispensary.can.update && scannableCount"
-                        >
+                        <template v-if="dispensary.can.update && scanTotal">
                             <dt class="text-muted-foreground">
                                 Checked by scan
                             </dt>
                             <dd class="tabular-nums">
-                                {{ checkedCount }} of {{ scannableCount }}
+                                {{ scanChecked }} of {{ scanTotal }} (not saved)
                             </dd>
                         </template>
                     </dl>

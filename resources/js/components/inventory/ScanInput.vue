@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { TriangleAlertIcon } from '@lucide/vue';
-import { nextTick, onBeforeUnmount, onMounted, ref } from 'vue';
+import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -41,6 +41,8 @@ const inputId = `scan-${props.refocusKey}`;
 const code = ref('');
 const status = ref('Ready to scan.');
 const failed = ref(false);
+// DSP-11: a page refusal (wrong medicine) is a warning; in the dispensary context only warnings interrupt.
+const warning = ref(false);
 const busy = ref(false);
 const starting = ref(false);
 // Checked once on mount, so an unsupported device shows the reason instead of a button that only fails.
@@ -53,10 +55,19 @@ let unmounted = false;
 let last: { code: string; at: number } | null = null;
 const STORAGE_KEY = 'kpone-scan-return';
 
-function show(text: string, isError: boolean) {
+function show(text: string, isError: boolean, isWarning = false) {
     status.value = text;
     failed.value = isError;
+    warning.value = isWarning;
 }
+
+/** Inventory pages announce every error assertively; the Dispensary check does so only for a wrong medicine. */
+const statusTone = computed(() =>
+    failed.value ? 'text-destructive' : 'text-muted-foreground',
+);
+const alerting = computed(
+    () => failed.value && (props.context !== 'dispensary' || warning.value),
+);
 
 function box(): HTMLInputElement | null {
     return document.getElementById(inputId) as HTMLInputElement | null;
@@ -94,7 +105,7 @@ async function lookup(raw: string) {
         const refused = props.accept?.(result.sku) ?? null;
 
         if (refused) {
-            show(refused, true);
+            show(refused, true, true);
 
             return;
         }
@@ -329,7 +340,8 @@ onBeforeUnmount(() => {
             class="text-xs text-muted-foreground"
         >
             Scan the box you picked to check it against the lines below.
-            Scanning only checks. It does not save or dispense anything.
+            Scanning only checks. It does not save or dispense anything. It
+            doesn't check the quantity or the batch.
         </p>
         <p v-else :id="`${inputId}-help`" class="text-xs text-muted-foreground">
             Use a handheld scanner, type the code, or use the camera. Tap or
@@ -344,15 +356,15 @@ onBeforeUnmount(() => {
             {{ cameraMessages[cameraState] }}
         </p>
         <div :id="`${inputId}-status`" class="min-w-0 text-sm break-words">
-            <p role="status" aria-live="polite" class="text-muted-foreground">
-                {{ failed ? '' : status }}
+            <p role="status" aria-live="polite" :class="statusTone">
+                {{ alerting ? '' : status }}
             </p>
             <p
                 role="alert"
                 aria-live="assertive"
                 class="text-destructive"
                 :class="
-                    context === 'dispensary' && failed
+                    context === 'dispensary' && alerting
                         ? 'flex items-start gap-2 rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 font-medium'
                         : ''
                 "
@@ -361,11 +373,11 @@ onBeforeUnmount(() => {
                 "
             >
                 <TriangleAlertIcon
-                    v-if="context === 'dispensary' && failed"
+                    v-if="context === 'dispensary' && alerting"
                     class="mt-0.5 size-4 shrink-0"
                     aria-hidden="true"
                 />
-                <span>{{ failed ? status : '' }}</span>
+                <span>{{ alerting ? status : '' }}</span>
             </p>
         </div>
         <Dialog :open="open" @update:open="onOpenChange">
