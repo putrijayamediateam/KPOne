@@ -114,7 +114,8 @@ test('badge, screen-reader and button wording', () => {
         'Start treatment step',
     );
     assert.equal(helper.treatmentButtonLabel(started), 'Mark done');
-    assert.equal(helper.treatmentButtonLabel(done), 'Cancel step…');
+    // Q-2c (owner approval 2026-11-06): a finished step now offers the next step; cancel stays in the dialog.
+    assert.equal(helper.treatmentButtonLabel(done), 'Start next step');
 });
 
 const presentation = {};
