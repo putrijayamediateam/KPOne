@@ -59,6 +59,8 @@ class SopsController extends Controller
         } catch (ValidationException $e) {
             throw $e->redirectTo(route('hr.sops.index'));
         } catch (AuthorizationException) {
+            // Recorded as the other HR controllers do (Suresh, HR-5c M2).
+            app(AuditRecorder::class)->record('authorization.denied', $request->user(), ['route' => $request->route()?->getName(), 'method' => $request->method()], $request->user());
             abort(403);
         }
 

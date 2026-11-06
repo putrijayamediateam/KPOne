@@ -77,6 +77,8 @@ const page = usePage();
 const errors = computed(
     () => (page.props.errors ?? {}) as Record<string, string | undefined>,
 );
+// A refusal from the SOP rules, or a stale page ("This was changed by someone else"; Suresh, HR-5c S1).
+const failure = computed(() => errors.value.sop ?? errors.value.records);
 const tabLabels: Record<Tab, string> = {
     my: 'SOPs to read',
     manage: 'All SOPs',
@@ -251,8 +253,8 @@ const withdrawn = computed(() =>
         />
 
         <ErrorState
-            v-if="errors.sop && !form.open && !withdrawing"
-            :message="errors.sop"
+            v-if="failure && !form.open && !withdrawing"
+            :message="failure"
         />
 
         <!-- SOPs to read -->
@@ -573,7 +575,7 @@ const withdrawn = computed(() =>
                     class="flex flex-col gap-4 px-4 pb-6"
                     @submit.prevent="sendForm"
                 >
-                    <ErrorState v-if="errors.sop" :message="errors.sop" />
+                    <ErrorState v-if="failure" :message="failure" />
                     <div class="grid gap-1.5">
                         <Label for="sop-title">Title *</Label>
                         <Input
@@ -652,7 +654,7 @@ const withdrawn = computed(() =>
             confirm-label="Withdraw"
             processing-label="Withdrawing…"
             :processing="withdrawBusy"
-            :error="errors.sop"
+            :error="failure"
             @update:open="(v: boolean) => !v && (withdrawing = null)"
             @confirm="withdraw"
         />

@@ -64,6 +64,8 @@ class SopsTest extends VisitTestCase
         // Only a PDF, with a title and at least one role.
         $this->publish($hr, ['roles' => ['ca']], UploadedFile::fake()->createWithContent('photo.jpg', "\xFF\xD8\xFF\xE0\x00\x10JFIF\x00\x01\x01\x00\x00\x01\x00\x01\x00\x00"))->assertSessionHasErrors(['file' => 'Use a PDF file.']);
         $this->publish($hr, ['roles' => []])->assertSessionHasErrors('roles');
+        $this->selectBranch($hr);
+        $this->post(route('hr.sops.publish'), ['title' => self::TITLE, 'roles' => ['ca'], 'idempotency_key' => (string) Str::uuid()])->assertSessionHasErrors(['file' => 'Use a PDF file.']);
         $this->publish($hr, ['roles' => ['queue_display']])->assertSessionHasErrors('roles');
         $this->publish($hr, ['title' => 'ab', 'roles' => ['ca']])->assertSessionHasErrors('title');
         $this->assertSame(0, DB::table('hr_sops')->count());
@@ -105,7 +107,12 @@ class SopsTest extends VisitTestCase
         $this->selectBranch($panel);
         $this->get(route('hr.sops.index'))->assertInertia(fn (Assert $page) => $page->where('sops.my', []));
         $this->get(route('hr.sops.open', $v1->public_id))->assertForbidden();
+        $this->assertSame(1, DB::table('audit_logs')->where('event', 'authorization.denied')->where('actor_user_id', $panel->id)->count());
         $this->acknowledge($panel, $v1->public_id)->assertSessionHasErrors(['sop' => 'This SOP is not published to your role.']);
+        // PostgreSQL refuses a reader outside the audience too, even with an open on record.
+        DB::table('hr_sop_opens')->insert(['organisation_id' => $panel->organisation_id, 'sop_version_id' => $v1->id, 'user_id' => $panel->id, 'created_at' => now()]);
+        $this->assertRefused('23514', fn () => DB::table('hr_sop_acknowledgements')->insert(['organisation_id' => $panel->organisation_id, 'sop_version_id' => $v1->id,
+            'user_id' => $panel->id, 'created_at' => now()]));
 
         // The manager sees 1 of 2 and who has not, as plain text.
         $this->selectBranch($hr);

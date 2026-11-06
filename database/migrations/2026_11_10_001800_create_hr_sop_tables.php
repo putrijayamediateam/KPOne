@@ -140,6 +140,12 @@ BEGIN
  IF NOT v.is_active OR v.version <> v.current_version THEN
   RAISE EXCEPTION 'Only the current version of a published SOP is acknowledged' USING ERRCODE = '23514';
  END IF;
+ -- The reader holds one of the roles the version is published to (Suresh, HR-5c M1).
+ IF NOT EXISTS (SELECT 1 FROM hr_sop_audiences au JOIN roles r ON r.name = au.role
+   JOIN model_has_roles mr ON mr.role_id = r.id AND mr.model_id = NEW.user_id AND mr.model_type = 'App\Models\User'
+   WHERE au.sop_version_id = NEW.sop_version_id) THEN
+  RAISE EXCEPTION 'An SOP is acknowledged only by someone it is published to' USING ERRCODE = '23514';
+ END IF;
  IF NOT EXISTS (SELECT 1 FROM hr_sop_opens WHERE sop_version_id = NEW.sop_version_id AND user_id = NEW.user_id) THEN
   RAISE EXCEPTION 'An SOP is acknowledged only after it was opened' USING ERRCODE = '23514';
  END IF;

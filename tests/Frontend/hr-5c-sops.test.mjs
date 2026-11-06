@@ -90,5 +90,11 @@ test('My HR details links to the SOPs still to read, and every write sends an id
     assert.equal((script.match(/idempotency_key:/g) ?? []).length, 3);
     assert.match(script, /expected_lock_version: sop\.lockVersion/);
     assert.match(script, /forceFormData: true/);
+    // A stale page ("records") shows as well as an SOP refusal (Suresh, S1).
+    assert.match(
+        script,
+        /const failure = computed\(\(\) => errors\.value\.sop \?\? errors\.value\.records\)/,
+    );
+    assert.equal((source.page.match(/errors\.sop/g) ?? []).length, 0);
     assert.match(source.page, /class="[^"]*max-lg:min-h-11/);
 });

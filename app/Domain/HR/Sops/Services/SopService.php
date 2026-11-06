@@ -35,7 +35,8 @@ final class SopService
     /** @return array{content:string, kind:string, bytes:int, sha256:string} a checked PDF; anything else is refused */
     public static function prepare(mixed $file): array
     {
-        if ($file instanceof UploadedFile && $file->isValid() && (string) (new \finfo(FILEINFO_MIME_TYPE))->file((string) $file->getRealPath()) !== 'application/pdf') {
+        // Only PDFs, so every refusal names only PDFs (Suresh, HR-5c M3).
+        if (! $file instanceof UploadedFile || ! $file->isValid() || (string) (new \finfo(FILEINFO_MIME_TYPE))->file((string) $file->getRealPath()) !== 'application/pdf') {
             throw ValidationException::withMessages(['file' => 'Use a PDF file.']);
         }
         $prepared = LeaveEvidenceFiles::prepare($file, 'file', self::MAX_BYTES);
