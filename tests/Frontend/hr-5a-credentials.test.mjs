@@ -59,7 +59,10 @@ test('My credentials: one outline Add or Renew per card, the reference masked wi
         page,
         /variant="outline"[\s\S]{0,300}@click="openOwn\(card\)"/,
     );
-    assert.match(page, /\{\{ card\.inForce \? 'Renew' : 'Add' \}\}/);
+    assert.match(
+        page,
+        /card\.inForce\s*\? card\.healthItem\s*\? 'Update'\s*: 'Renew'\s*: 'Add'/,
+    );
     assert.match(
         page,
         /:url="`\/hr\/credentials\/records\/\$\{card\.inForce\.id\}\/show-reference`"/,

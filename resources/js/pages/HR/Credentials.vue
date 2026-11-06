@@ -517,7 +517,9 @@ const archiveType = () => {
                     {{
                         credentials.my.mmc.verified
                             ? 'verified by the Director'
-                            : 'not verified yet'
+                            : credentials.my.mmc.number
+                              ? 'not verified yet'
+                              : 'not entered yet'
                     }}<template v-if="credentials.my.mmc.number">
                         · {{ credentials.my.mmc.number }}</template
                     >
@@ -666,7 +668,13 @@ const archiveType = () => {
                             :data-test="card.inForce ? 'renew' : 'add'"
                             @click="openOwn(card)"
                         >
-                            {{ card.inForce ? 'Renew' : 'Add' }}
+                            {{
+                                card.inForce
+                                    ? card.healthItem
+                                        ? 'Update'
+                                        : 'Renew'
+                                    : 'Add'
+                            }}
                         </Button>
                         <p
                             v-if="card.waiting"
@@ -1113,7 +1121,7 @@ const archiveType = () => {
                     />
                     <InputError :message="errors.expires" />
                 </div>
-                <div class="grid gap-1.5">
+                <div v-if="newType.health !== 'yes'" class="grid gap-1.5">
                     <Label for="type-warn"
                         >Warn from (days before expiry) *</Label
                     >
@@ -1355,7 +1363,7 @@ const archiveType = () => {
                         />
                         <InputError :message="errors.name" />
                     </div>
-                    <div class="grid gap-1.5">
+                    <div v-if="!edit.type?.healthItem" class="grid gap-1.5">
                         <Label for="edit-warn"
                             >Warn from (days before expiry) *</Label
                         >
