@@ -247,6 +247,9 @@ check items, keep them"). The rest stand unless the owner changes them.
     Daniel's look and a ship-it. Scope: staff and HR only. Patient messaging stays a separate decision. Synthetic
     data only until the owner provides the PDPA review, the leave policy and the accountant's confirmation. Nothing
     of these five is built until B.E.R.N.I.S.S's docs PR records the authorisation in AGENTS.md and BASELINE.
+46. Order of the five (owner, 2026-11-06, relayed verbatim by B.E.R.N.I.S.S: "go with Liyana's order"): after HR-7,
+    HR-12 outside HR product link, HR-13 job application intake, HR-14 staff messages (WhatsApp, SMS, email, OTP),
+    HR-15 locum portal, HR-16 selfie or location at clock-in. Draft notes in HR-PLAN section 15.
 
 ## 7. Open items and known limits
 
@@ -351,7 +354,7 @@ check items, keep them"). The rest stand unless the owner changes them.
 11. **HR-11 Clinic compliance.** Clinic document licences and expiry (clinic registration, X-ray, clinical waste,
     calibration), a monthly internal audit checklist with photos whose failed items become supervisor tasks, and a
     daily vaccine fridge temperature log with out-of-range alerts inside KPOne.
-12. **Authorised 2026-11-06 (decision 45), after HR-7, in the order the team proposes** (owner to confirm):
+12. **Authorised 2026-11-06 (decision 45), after HR-7, in this order (owner, decision 46):**
     - **HR-12 Outside HR product link.** Smallest and lowest risk. First find out whether the product has an API;
       if not, a reviewed file import and export.
     - **HR-13 Job application intake.** KPOne's first public intake, needing rate limits, spam protection, file
