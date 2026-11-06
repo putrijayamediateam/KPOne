@@ -6,7 +6,7 @@
     $place = implode(', ', array_filter(array_intersect_key($details, array_flip(['postcode', 'city', 'state', 'country']))));
 @endphp
 <style>
-.mc-sheet {color:#18181b;background:#fff;max-width:180mm;min-height:240mm;margin:auto;padding:12mm;font:11pt/1.6 Arial,sans-serif;overflow-wrap:anywhere;box-sizing:border-box}
+.mc-sheet {color:#18181b;background:#fff;max-width:180mm;min-height:240mm;margin:auto;padding:12mm;font:11pt/1.6 Arial,sans-serif;overflow-wrap:break-word;box-sizing:border-box}
 .mc-header {display:flex;gap:18px;align-items:center;border-bottom:1px solid #555;padding-bottom:14px;margin-bottom:18px}
 .mc-logo {width:80px;height:80px;object-fit:contain;flex:none}
 .mc-clinic {font-size:10pt;line-height:1.45}
@@ -18,8 +18,9 @@
 .mc-body {white-space:pre-wrap;line-height:2.1;margin:22px 0 10px}
 .mc-u {text-decoration:underline}
 .mc-reason {margin:6px 0}
-.mc-notice {text-align:center;font-size:9pt;letter-spacing:.06em;margin:34px 0 0}
-.mc-signature {margin:60px 0 0 auto;width:max-content;max-width:100%;text-align:center;break-inside:avoid}
+.mc-closing {break-inside:avoid}
+.mc-notice {text-align:center;font-size:9pt;letter-spacing:.06em;margin:34px 0 0;break-after:avoid}
+.mc-signature {margin:25mm 0 0 auto;break-before:avoid;width:max-content;max-width:100%;text-align:center;break-inside:avoid}
 .mc-signature-line {border-top:1px solid #18181b;padding-top:6px;min-width:70mm}
 .mc-evidence {font-size:9pt;margin-top:35px;border-top:1px solid #aaa;padding-top:8px}
 @media(max-width:600px){.mc-sheet{padding:18px;min-height:0}.mc-header{flex-wrap:wrap}.mc-logo{width:60px;height:60px}.mc-signature-line{min-width:0}}
@@ -45,7 +46,7 @@
     </header>
     <div class="mc-draft">DRAFT WORDING — awaiting doctor approval / DRAF — menunggu kelulusan doktor</div>
     <h1>{{ $snapshot['title'] }}</h1>
-    <div class="mc-reference"><strong>{{ $bm ? 'No. MC:' : 'MC No:' }}</strong> {{ $snapshot['fields']['mc_number'] }}<br><strong>{{ $bm ? 'Tarikh:' : 'Date:' }}</strong> {{ $snapshot['fields']['issue_date_iso'] }}</div>
+    <div class="mc-reference"><strong>{{ $bm ? 'No. MC:' : 'MC No:' }}</strong> {{ $snapshot['fields']['mc_number'] }}<br><strong>{{ $bm ? 'Tarikh:' : 'Date:' }}</strong> {{ $snapshot['fields']['issue_date'] }}</div>
     {{-- Each piece is escaped with e(); only the fixed <strong> and class wrappers are markup. --}}
     <p class="mc-body">{!! collect($snapshot['wordingParts'])->map(fn (array $part): string => match ($part['style']) {
         'strong-u' => '<strong class="mc-u">'.e($part['text']).'</strong>',
@@ -53,7 +54,9 @@
         default => e($part['text']),
     })->implode('') !!}</p>
     @if($snapshot['reason'])<p class="mc-reason">{{ $bm ? 'Sebab (dengan persetujuan pesakit):' : 'Reason (with the patient\'s consent):' }} {{ $snapshot['reason'] }}</p>@endif
+    <div class="mc-closing">
     <p class="mc-notice">{{ $bm ? '(TIDAK SAH DI MAHKAMAH)' : '(NOT VALID IN THE COURT OF LAW)' }}</p>
     <div class="mc-signature"><div class="mc-signature-line">{{ $snapshot['fields']['doctor_name'] }} (MMC No: {{ $snapshot['fields']['mmc_number'] }})</div></div>
     <p class="mc-evidence">Pre-signature content snapshot only. Not an archived signed original. Wet-sign the paper and retain a signed duplicate.<br>Rekod kandungan sebelum tandatangan sahaja. Bukan salinan asal bertandatangan.<br>Issued at (UTC): {{ $snapshot['issuedAtUtc'] }} · {{ strtoupper($snapshot['language']) }} revision {{ $snapshot['templateRevision'] }} · {{ $snapshot['rendererVersion'] }}</p>
+    </div>
 </article>

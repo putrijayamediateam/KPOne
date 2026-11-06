@@ -401,9 +401,9 @@ class MedicalCertificateTest extends BillingTestCase
         $this->assertSame('mc-a4-v2', $snapshot['rendererVersion']);
         $this->assertFalse($snapshot['productionApproved']);
         $html = $snapshot['html'];
-        foreach (['DRAFT WORDING', '<h1>MEDICAL CERTIFICATE</h1>', '<strong>MC No:</strong> MC/KP/CHR/', '<strong>Date:</strong> '.$today->format('Y-m-d'),
-            'will be unfit on duty <strong class="mc-u">3</strong> day(s) (from <strong class="mc-u">'.$today->format('d/m/Y').'</strong> until <strong class="mc-u">'.$today->addDays(2)->format('d/m/Y').'</strong> )',
-            'He/She is to be re-examined on ________ He/She is able to resume duties from ________', 'Diagnosis: ________',
+        foreach (['DRAFT WORDING', '<h1>MEDICAL CERTIFICATE</h1>', '<strong>MC No:</strong> MC/KP/CHR/', '<strong>Date:</strong> '.$today->format('d/m/Y'),
+            'will be unfit on duty <strong class="mc-u">3</strong> day(s) (from <strong class="mc-u">'.$today->format('d/m/Y').'</strong> until <strong class="mc-u">'.$today->addDays(2)->format('d/m/Y').'</strong>)',
+            "He/She is to be re-examined on ________________\nHe/She is able to resume duties from ________________\nDiagnosis: __________________________________________________",
             '(NOT VALID IN THE COURT OF LAW)', 'Synthetic MC Doctor (MMC No: '.(100000 + $doctor->id).')'] as $expected) {
             $this->assertStringContainsString($expected, $html);
         }
@@ -424,7 +424,7 @@ class MedicalCertificateTest extends BillingTestCase
 
         $html = json_decode(Crypt::decryptString(DB::table('medical_certificates')->find($id)->encrypted_snapshot), true)['html'];
         foreach (['<h1>SIJIL CUTI SAKIT</h1>', '<strong>No. MC:</strong>', '<strong>Tarikh:</strong>', 'tidak sihat untuk bertugas selama <strong class="mc-u">1</strong> hari',
-            'Beliau perlu diperiksa semula pada ________', '(TIDAK SAH DI MAHKAMAH)', 'DRAF — menunggu kelulusan doktor'] as $expected) {
+            "Beliau perlu diperiksa semula pada ________________\nBeliau boleh kembali bertugas mulai ________________", '(TIDAK SAH DI MAHKAMAH)', 'DRAF — menunggu kelulusan doktor'] as $expected) {
             $this->assertStringContainsString($expected, $html);
         }
     }

@@ -47,8 +47,7 @@ final class MedicalCertificateSnapshot
         $fields = ['patient_name' => $patient->full_name, 'identification' => $identity->normalized_value,
             'examination_date' => $encounter->started_at->setTimezone($branch->timezone)->format('d/m/Y'), 'issue_date' => now()->setTimezone($branch->timezone)->format('d/m/Y'),
             'start_date' => $start->format('d/m/Y'), 'end_date' => $end->format('d/m/Y'), 'days_number' => (string) $days,
-            'days_words' => $this->daysWords($days, $input['language']), 'doctor_name' => $credential->professional_name, 'mmc_number' => $credential->mmc_number, 'mc_number' => $number,
-            'issue_date_iso' => now()->setTimezone($branch->timezone)->format('Y-m-d')];
+            'days_words' => $this->daysWords($days, $input['language']), 'doctor_name' => $credential->professional_name, 'mmc_number' => $credential->mmc_number, 'mc_number' => $number];
         $wording = $template->wording;
         foreach ($fields as $key => $value) {
             $wording = str_replace('{{'.$key.'}}', $value, $wording);

@@ -19,8 +19,8 @@ return new class extends Migration
         DB::statement("ALTER TABLE mc_template_revisions ADD CONSTRAINT mc_template_shape CHECK (language IN ('en','bm') AND revision >= 1 AND char_length(wording) BETWEEN 1 AND 2000 AND wording !~ '[<>]' AND ((revision = 1 AND renderer_version = 'mc-a4-v1') OR (revision = 2 AND renderer_version = 'mc-a4-v2')) AND NOT production_approved)");
 
         foreach ([
-            'en' => ['MEDICAL CERTIFICATE', "This is to certify that {{patient_name}} , {{identification}}\nwill be unfit on duty {{days_number}} day(s) (from {{start_date}} until {{end_date}} )\nHe/She is to be re-examined on ________ He/She is able to resume duties from ________\nDiagnosis: ________"],
-            'bm' => ['SIJIL CUTI SAKIT', "Dengan ini disahkan bahawa {{patient_name}} , {{identification}}\ntidak sihat untuk bertugas selama {{days_number}} hari (dari {{start_date}} hingga {{end_date}} )\nBeliau perlu diperiksa semula pada ________ Beliau boleh kembali bertugas mulai ________\nDiagnosis: ________"],
+            'en' => ['MEDICAL CERTIFICATE', "This is to certify that {{patient_name}}, {{identification}}\nwill be unfit on duty {{days_number}} day(s) (from {{start_date}} until {{end_date}})\nHe/She is to be re-examined on ________________\nHe/She is able to resume duties from ________________\nDiagnosis: __________________________________________________"],
+            'bm' => ['SIJIL CUTI SAKIT', "Dengan ini disahkan bahawa {{patient_name}}, {{identification}}\ntidak sihat untuk bertugas selama {{days_number}} hari (dari {{start_date}} hingga {{end_date}})\nBeliau perlu diperiksa semula pada ________________\nBeliau boleh kembali bertugas mulai ________________\nDiagnosis: __________________________________________________"],
         ] as $language => [$title, $wording]) {
             DB::table('mc_template_revisions')->insert([
                 'language' => $language, 'revision' => 2, 'title' => $title, 'wording' => $wording,
