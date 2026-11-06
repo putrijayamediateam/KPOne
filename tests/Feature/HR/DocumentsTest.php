@@ -102,7 +102,10 @@ class DocumentsTest extends VisitTestCase
         $this->mock(AuditRecorder::class, fn ($mock) => $mock->shouldReceive('record')->andThrow(new RuntimeException('audit unavailable')));
         $failed = $this->get(route('hr.records.documents.show', [$worker->public_id, $document->public_id]));
         $this->assertSame(500, $failed->getStatusCode());
-        $this->assertStringNotContainsString('SYNTHETIC-CONTRACT-MARKER', (string) $failed->getContent());
+        // Check the file's exact bytes, not its marker word: with APP_DEBUG on (as in CI), the error page shows source
+        // lines from the stack trace, including this test's own PDF constant, but never the stored file.
+        $this->assertStringNotContainsString(self::PDF, (string) $failed->getContent());
+        $this->assertStringNotContainsString('application/pdf', (string) $failed->headers->get('Content-Type'));
     }
 
     public function test_a_removal_keeps_the_row_deletes_the_bytes_and_follows_rule_3(): void
