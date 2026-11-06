@@ -609,8 +609,11 @@ const toggleDescription = computed(() => {
                     class="text-xs break-words text-muted-foreground"
                 >
                     Other names: {{ row.allergyAliases.slice(0, 3).join(', ')
-                    }}<template v-if="row.allergyAliases.length > 3">
-                        +{{ row.allergyAliases.length - 3 }} more</template
+                    }}<span
+                        v-if="row.allergyAliases.length > 3"
+                        class="whitespace-nowrap"
+                    >
+                        +{{ row.allergyAliases.length - 3 }} more</span
                     >
                 </p>
                 <dl v-if="setup.canManagePrices" class="grid gap-1 text-sm">
@@ -1518,7 +1521,7 @@ const toggleDescription = computed(() => {
                         rows="5"
                         maxlength="700"
                         :placeholder="'Augmentin\namoxycillin'"
-                        class="w-full rounded-md border bg-background p-2 text-sm"
+                        class="w-full rounded-md border bg-background p-2 text-sm aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40"
                         :aria-invalid="aliasesError ? 'true' : undefined"
                         aria-describedby="medicine-allergy-aliases-error"
                         data-field="allergy-aliases"

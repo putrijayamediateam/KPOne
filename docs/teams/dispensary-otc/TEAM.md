@@ -174,7 +174,8 @@ coordinator at the owner's request (2026-11-05); the designer was added by owner
 25. DSP-1c allergy other names (2026-11-06): the owner chose it ("go with allergy aliases"). Same editors, limits and
     stale-list guard as drug groups (decision 14): `medicines.manage.organisation`, up to 10, 3 to 60 characters,
     audited by count only; used for matching only and never printed. Iman's sketch: its own "Other names" menu entry
-    and dialog. The Dispensary warning wording now names "catalogue other names". (Decisions 23 and 24 are DSP-6b and
+    and dialog. The Dispensary warning wording now names "catalogue other names". Daniel: OK; keep the label
+    "Other names"; the Drug groups dialog losing typed groups on an error is design debt DD-37 (a later small piece). (Decisions 23 and 24 are DSP-6b and
     the "Print label" fix, on their own branches.)
 
 ## 7. Open items and known limits
