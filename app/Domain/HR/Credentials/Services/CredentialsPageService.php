@@ -70,7 +70,7 @@ final class CredentialsPageService
         }
         $today = $this->credentials->today($actor->organisation_id);
         $lines = [];
-        foreach ($this->cards($worker, $actor->roles->pluck('name')->all(), $this->types($actor->organisation_id), $today) as $card) {
+        foreach ($this->cards($worker, $this->roleNames($actor), $this->types($actor->organisation_id), $today) as $card) {
             if (in_array($card['status']['code'], ['expiring', 'expired'], true)) {
                 $words = $card['status']['words'];
                 $lines[] = 'Your '.$card['name'].' '.lcfirst($words).'.';
@@ -95,7 +95,7 @@ final class CredentialsPageService
         }
 
         return [...$base, 'hasFile' => true, 'workerId' => $worker->public_id, 'canOpenDocuments' => $actor->can(RecordPermissions::VIEW_OWN),
-            'cards' => $this->cards($worker, $actor->roles->pluck('name')->all(), $types, $today)];
+            'cards' => $this->cards($worker, $this->roleNames($actor), $types, $today)];
     }
 
     /**
@@ -159,7 +159,7 @@ final class CredentialsPageService
         $waitingList = [];
         $rows = [];
         foreach ($workers as $w) {
-            $roles = $w->user?->roles->pluck('name')->all() ?? [];
+            $roles = $w->user !== null ? $this->roleNames($w->user) : [];
             /** @var Collection<int, CredentialRecord> $own */
             $own = $records->get($w->id, collect());
             $refusal = $w->user !== null ? $this->support->refusalFor($actor, $w->user) : null;
@@ -254,10 +254,19 @@ final class CredentialsPageService
             ->get(['t.id', 't.public_id', 't.code', 't.expires', 't.health_item', 't.is_active', 't.lock_version', 't.current_version', 'v.id as version_id', 'v.name', 'v.warn_from_days']);
         $roles = DB::table('hr_credential_type_roles')->whereIn('type_version_id', $rows->pluck('version_id')->all())->get()->groupBy('type_version_id');
 
-        return $rows->mapWithKeys(fn (object $r): array => [(int) $r->id => ['id' => (int) $r->id, 'publicId' => (string) $r->public_id, 'code' => (string) $r->code,
+        /** @var Collection<int, array<string, mixed>> $types */
+        $types = $rows->mapWithKeys(fn (object $r): array => [(int) $r->id => ['id' => (int) $r->id, 'publicId' => (string) $r->public_id, 'code' => (string) $r->code,
             'name' => (string) $r->name, 'expires' => (bool) $r->expires, 'healthItem' => (bool) $r->health_item, 'isActive' => (bool) $r->is_active,
             'warnFromDays' => (int) $r->warn_from_days, 'version' => (int) $r->current_version, 'lockVersion' => (int) $r->lock_version,
             'roles' => $roles->get($r->version_id, collect())->pluck('role')->all()]]);
+
+        return $types;
+    }
+
+    /** @return list<string> */
+    private function roleNames(User $user): array
+    {
+        return array_values(array_map(fn ($name): string => (string) $name, $user->roles->pluck('name')->all()));
     }
 
     /**

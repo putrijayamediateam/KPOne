@@ -99,7 +99,7 @@ final class CredentialService
             if ($clash) {
                 throw ValidationException::withMessages(['name' => 'Another credential type already has this name.']);
             }
-            if ($type === null && $new !== null) {
+            if ($type === null) {
                 if (CredentialType::query()->where('organisation_id', $actor->organisation_id)->where('code', $new['code'])->exists()) {
                     throw ValidationException::withMessages(['code' => 'This code is already used, also by archived types. Choose another.']);
                 }
