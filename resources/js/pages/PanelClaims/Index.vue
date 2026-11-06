@@ -1010,6 +1010,11 @@ const visitTypeLabel = (value: string) =>
                         <Checkbox
                             :model-value="headerState"
                             :disabled="selectAllRows.length === 0"
+                            :aria-label="
+                                selectAllPanel
+                                    ? `Select all ${selectAllPanel} invoices on this page`
+                                    : 'Filter by one Panel to select all invoices on this page'
+                            "
                             @update:model-value="() => toggleAll(!allSelected)"
                         />
                         <span class="min-w-0 wrap-anywhere">
@@ -1395,6 +1400,11 @@ const visitTypeLabel = (value: string) =>
                             id="pack-select-all-phone"
                             :model-value="packHeaderState"
                             :disabled="packAllRows.length === 0"
+                            :aria-label="
+                                packAllPanel
+                                    ? `Select all ${packAllPanel} claims on this page`
+                                    : 'Filter by one Panel to select all claims on this page'
+                            "
                             @update:model-value="
                                 () => togglePackAll(!packAllSelected)
                             "
