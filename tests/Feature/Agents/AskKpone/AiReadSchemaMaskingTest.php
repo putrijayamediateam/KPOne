@@ -44,7 +44,7 @@ class AiReadSchemaMaskingTest extends QueueTestCase
             'called_at', 'removed_at'],
         'staff' => ['id', 'display_name', 'roles', 'is_active'],
         'stock_movements' => ['id', 'occurred_at', 'movement_type', 'sku_code', 'batch_number', 'source_location_id',
-            'destination_location_id', 'quantity', 'unit_cost_sen'],
+            'destination_location_id', 'quantity', 'unit_cost_sen', 'cost_total_sen', 'cost_source'],
         'visits' => ['id', 'visit_number', 'branch_id', 'patient_id', 'visit_type', 'status', 'priority', 'intake_purpose', 'coverage_type',
             'panel_id', 'assigned_doctor_user_id', 'registered_at', 'completed_at', 'cancelled_at'],
     ];
