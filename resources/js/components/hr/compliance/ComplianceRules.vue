@@ -167,13 +167,22 @@ const saveWork = () => {
                     or more is shown.
                 </p>
                 <div
+                    class="grid grid-cols-2 gap-2 text-xs text-muted-foreground sm:grid-cols-[6.5rem_1fr_1fr]"
+                    aria-hidden="true"
+                >
+                    <span class="hidden sm:block">Day</span>
+                    <span>Opens</span>
+                    <span>Closes</span>
+                </div>
+                <div
                     v-for="[d, label] in days"
                     :key="d"
-                    class="grid grid-cols-[6.5rem_1fr_1fr] items-center gap-2"
+                    class="grid grid-cols-2 items-center gap-2 sm:grid-cols-[6.5rem_1fr_1fr]"
                 >
-                    <span class="text-sm" :id="`hours-${d}-label`">{{
-                        label
-                    }}</span>
+                    <span
+                        class="col-span-2 text-sm font-medium sm:col-span-1 sm:font-normal"
+                        >{{ label }}</span
+                    >
                     <Input
                         v-model="cover.hours[d].open"
                         type="time"
@@ -194,7 +203,7 @@ const saveWork = () => {
                     />
                     <InputError
                         v-if="errors[`hours.${d}`]"
-                        class="col-span-3"
+                        class="col-span-2 sm:col-span-3"
                         :message="errors[`hours.${d}`]"
                     />
                 </div>

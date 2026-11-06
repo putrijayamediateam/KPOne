@@ -93,8 +93,9 @@ class ComplianceTest extends VisitTestCase
         $branch = $this->branch->name;
         $this->assertSame(["No resident doctor Mon 2:00 PM – 5:00 PM ({$branch})"], $messages['coverage']);
         $this->assertSame(["{$doctor->name}: 7 days in a row, Mon 8 Mar to Sun 14 Mar (limit 6)"], $messages['days_in_row']);
-        $this->assertSame(["{$doctor->name}: 3 h rest before Mon 8 Mar (11 h set)", "{$doctor->name}: 10 h rest before Tue 9 Mar (11 h set)"], array_slice($messages['rest'], 0, 2));
-        $this->assertCount(7, $messages['rest']);
+        // Daily rest only: Monday's 2 PM to 5 PM gap between sessions is a break, not rest (Suresh, S1).
+        $this->assertSame(["{$doctor->name}: 10 h rest before Tue 9 Mar (11 h set)", "{$doctor->name}: 10 h rest before Wed 10 Mar (11 h set)"], array_slice($messages['rest'], 0, 2));
+        $this->assertCount(6, $messages['rest']);
         $this->assertSame(["{$doctor->name}: planned 95 h this week (limit 48 h)"], $messages['hours']);
         $this->assertSame([['name' => $doctor->name, 'weekends' => 2, 'holidays' => 0, 'nights' => 1]], $compliance['rotation']['rows']);
         $this->assertSame('March 2027', $compliance['rotation']['month']);
@@ -111,6 +112,19 @@ class ComplianceTest extends VisitTestCase
         $after = collect($this->compliance($hr)['warnings'])->groupBy('kind')->map(fn ($g) => $g->pluck('message')->all());
         $this->assertContains("No resident doctor Tue 8:00 AM – 10:00 PM ({$branch})", $after['coverage']);
         $this->assertArrayNotHasKey('days_in_row', $after->all());
+
+        // Half-day leave takes out only its half of the shift from doctor cover (Suresh, M1).
+        $this->selectBranch($doctor);
+        $this->post(route('hr.leave.requests.store'), ['leave_type_id' => $type->id, 'start_date' => '2027-03-10', 'end_date' => '2027-03-10', 'start_part' => 'pm',
+            'end_part' => 'pm', 'idempotency_key' => (string) Str::uuid()])->assertSessionHasNoErrors();
+        $half = LeaveRequest::query()->where('user_id', $doctor->id)->whereDate('start_date', '2027-03-10')->sole();
+        $this->selectBranch($hr);
+        $this->post(route('hr.leave.requests.approve', $half->public_id), ['expected_lock_version' => $half->refresh()->lock_version, 'idempotency_key' => (string) Str::uuid()])
+            ->assertSessionHasNoErrors();
+        $wednesday = collect($this->compliance($hr)['warnings'])->where('kind', 'coverage')->pluck('message')->filter(fn (string $m): bool => str_starts_with($m, 'No resident doctor Wed'))->values();
+        $this->assertCount(1, $wednesday);
+        $this->assertStringNotContainsString('Wed 8:00 AM', $wednesday[0]);
+        $this->assertStringEndsWith("10:00 PM ({$branch})", $wednesday[0]);
 
         // Warnings never refuse: the week is sent and approved as it stands, and the payload names only the rule.
         $this->submit($hr, $draft)->assertSessionHasNoErrors();

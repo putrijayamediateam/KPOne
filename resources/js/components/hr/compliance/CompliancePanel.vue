@@ -78,7 +78,8 @@ const groups: { kind: string; title: string }[] = [
                 <SheetTitle>Compliance · {{ branch }}</SheetTitle>
                 <SheetDescription
                     >Warnings only. They don't stop you saving or sending the
-                    roster.</SheetDescription
+                    roster. Other branches and other weeks count only once
+                    approved.</SheetDescription
                 >
             </SheetHeader>
             <div class="flex flex-col gap-5 px-4 pb-6 text-sm">

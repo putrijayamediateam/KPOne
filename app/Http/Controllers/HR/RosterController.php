@@ -2,12 +2,14 @@
 
 namespace App\Http\Controllers\HR;
 
+use App\Domain\Audit\AuditRecorder;
 use App\Domain\HR\Compliance\Services\ComplianceRulesService;
 use App\Domain\HR\Credentials\Services\CredentialsPageService;
 use App\Domain\HR\Roster\Services\MinimumStaffingService;
 use App\Domain\HR\Roster\Services\RosterPageService;
 use App\Domain\HR\Roster\Services\RosterService;
 use App\Http\Controllers\Controller;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
@@ -112,6 +114,10 @@ class RosterController extends Controller
             $action();
         } catch (ValidationException $e) {
             throw $e->redirectTo($back);
+        } catch (AuthorizationException) {
+            // Still audited as a denial, and shown on the tab rather than a 403 page (Suresh, HR-5b M7).
+            app(AuditRecorder::class)->record('authorization.denied', $request->user(), ['route' => $request->route()?->getName(), 'method' => $request->method()], $request->user());
+            throw ValidationException::withMessages(['compliance' => 'You may no longer change these rules.'])->redirectTo($back);
         }
         Inertia::flash('toast', ['type' => 'success', 'message' => $message]);
 

@@ -61,8 +61,33 @@ final class ComplianceWarnings
      */
     private function coverageGaps(Branch $branch, CarbonImmutable $weekStart, array $coverage, Collection $shifts, Collection $people, Collection $leave): array
     {
-        $doctors = $shifts->filter(fn (RosterShift $s): bool => $this->isDoctor($people->get($s->staff_user_id))
-            && ! $leave->contains(fn (array $l): bool => $l['user'] === $s->staff_user_id && $l['from']->lessThan($s->ends_at) && $l['to']->greaterThan($s->starts_at)))->values();
+        // Each doctor's on-duty spans: the shift less any approved leave inside it, so half-day leave removes only its half
+        // (Suresh, M1).
+        $doctors = collect();
+        foreach ($shifts->filter(fn (RosterShift $s): bool => $this->isDoctor($people->get($s->staff_user_id))) as $s) {
+            $spans = [[$s->starts_at->getTimestamp(), $s->ends_at->getTimestamp()]];
+            foreach ($leave->where('user', $s->staff_user_id) as $l) {
+                [$lf, $lt] = [$l['from']->getTimestamp(), $l['to']->getTimestamp()];
+                $next = [];
+                foreach ($spans as [$a, $b]) {
+                    if ($lt <= $a || $lf >= $b) {
+                        $next[] = [$a, $b];
+
+                        continue;
+                    }
+                    if ($lf > $a) {
+                        $next[] = [$a, $lf];
+                    }
+                    if ($lt < $b) {
+                        $next[] = [$lt, $b];
+                    }
+                }
+                $spans = $next;
+            }
+            foreach ($spans as [$a, $b]) {
+                $doctors->push(['user' => (int) $s->staff_user_id, 'from' => $a, 'to' => $b]);
+            }
+        }
         $min = $coverage['minDoctors'];
         $out = [];
         for ($i = 0; $i < 7; $i++) {
@@ -74,8 +99,8 @@ final class ComplianceWarnings
             $open = CarbonImmutable::parse($day->toDateString().' '.$span['open'], $branch->timezone)->utc();
             $close = CarbonImmutable::parse($day->toDateString().' '.$span['close'], $branch->timezone)->utc();
             $points = [$open->getTimestamp(), $close->getTimestamp()];
-            foreach ($doctors as $s) {
-                foreach ([$s->starts_at->getTimestamp(), $s->ends_at->getTimestamp()] as $t) {
+            foreach ($doctors as $d) {
+                foreach ([$d['from'], $d['to']] as $t) {
                     if ($t > $points[0] && $t < $points[1]) {
                         $points[] = $t;
                     }
@@ -86,7 +111,7 @@ final class ComplianceWarnings
             $gaps = [];
             for ($p = 0; $p < count($points) - 1; $p++) {
                 [$a, $b] = [$points[$p], $points[$p + 1]];
-                $count = $doctors->filter(fn (RosterShift $s): bool => $s->starts_at->getTimestamp() <= $a && $s->ends_at->getTimestamp() >= $b)->pluck('staff_user_id')->unique()->count();
+                $count = $doctors->filter(fn (array $d): bool => $d['from'] <= $a && $d['to'] >= $b)->pluck('user')->unique()->count();
                 if ($count < $min) {
                     $last = array_key_last($gaps);
                     if ($last !== null && $gaps[$last][1] === $a) {
@@ -160,12 +185,17 @@ final class ComplianceWarnings
             }
 
             if ($work['minRestMinutes'] !== null) {
-                for ($i = 1; $i < $mine->count(); $i++) {
-                    $prev = $mine[$i - 1];
-                    $next = $mine[$i];
-                    $rest = (int) (($next['start']->getTimestamp() - $prev['end']->getTimestamp()) / 60);
-                    if ($rest >= 0 && $rest < $work['minRestMinutes'] && $next['date'] >= $weekFrom && $next['date'] <= $weekTo) {
-                        $out[] = ['kind' => 'rest', 'message' => "{$name}: ".$this->hours($rest).' rest before '.$this->rules->shortDayLabel(CarbonImmutable::parse($next['date']))
+                // Daily rest (Suresh, S1): from the end of the last shift that starts on one date to the start of the
+                // first shift on the next date worked. Gaps between sessions on the same date are breaks, not rest.
+                $byDate = $mine->groupBy('date')->sortKeys();
+                $dates = $byDate->keys()->all();
+                for ($i = 1; $i < count($dates); $i++) {
+                    $prevEnd = $byDate[$dates[$i - 1]]->max(fn (array $s): int => $s['end']->getTimestamp());
+                    $nextStart = $byDate[$dates[$i]]->min(fn (array $s): int => $s['start']->getTimestamp());
+                    $rest = (int) (($nextStart - $prevEnd) / 60);
+                    $date = (string) $dates[$i];
+                    if ($rest >= 0 && $rest < $work['minRestMinutes'] && $date >= $weekFrom && $date <= $weekTo) {
+                        $out[] = ['kind' => 'rest', 'message' => "{$name}: ".$this->hours($rest).' rest before '.$this->rules->shortDayLabel(CarbonImmutable::parse($date))
                             .' ('.$this->hours($work['minRestMinutes']).' set)'];
                     }
                 }
@@ -192,7 +222,8 @@ final class ComplianceWarnings
      */
     private function rotation(Branch $branch, CarbonImmutable $weekStart, RosterVersion $shown, Collection $shifts, Collection $people): array
     {
-        $monthStart = CarbonImmutable::parse($weekStart->toDateString(), $branch->timezone)->startOfMonth();
+        // The month that holds most of the week, its Thursday (Suresh, M4).
+        $monthStart = CarbonImmutable::parse($weekStart->toDateString(), $branch->timezone)->addDays(3)->startOfMonth();
         $monthEnd = $monthStart->endOfMonth();
         $approved = RosterShift::query()->with('version')->where('organisation_id', $branch->organisation_id)
             ->whereIn('roster_version_id', RosterVersion::query()->select('hr_roster_versions.id')->join('hr_roster_weeks', 'hr_roster_weeks.id', '=', 'hr_roster_versions.roster_week_id')
@@ -250,8 +281,9 @@ final class ComplianceWarnings
      */
     private function approvedLeave(Branch $branch, CarbonImmutable $weekStart, array $ids): Collection
     {
-        $from = CarbonImmutable::parse($weekStart->toDateString(), $branch->timezone)->utc();
-        $requests = $this->leave->overlapping($ids, $from, $from->addDays(7), ['approved']);
+        // A day either side, so an overnight shift at either end of the week sees its leave (Suresh, M2).
+        $from = CarbonImmutable::parse($weekStart->toDateString(), $branch->timezone)->subDay()->utc();
+        $requests = $this->leave->overlapping($ids, $from, $from->addDays(9), ['approved']);
         $zones = Branch::query()->whereIn('id', $requests->pluck('branch_id')->unique())->pluck('timezone', 'id');
 
         return $requests->map(function ($r) use ($zones): array {
