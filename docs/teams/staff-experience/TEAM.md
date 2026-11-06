@@ -204,6 +204,18 @@ authorisation to build them; the coordinator records it in `docs/BASELINE.md`.
    The shell's inline first-paint style sets the same, so scrollbars are right before `app.css` loads. The TV
    screen keeps following the TV account's setting rather than its own light/dark button (no form controls
    there; noted to Queue & TV).
+9. **UX-9 Shared branch report page (design debt DD-23).** Chosen by the owner on 2026-11-06. On
+   `pages/Reports/BranchReport.vue` (Daily summary, Panel summary, Stock movement, Transaction detail): the
+   standard `OperationalTable`; columns whose filled cells are all numbers are right-aligned
+   (`lib/report-cells.ts`); dates read "5 Nov 2026" and local date-times "5 Nov 2026, 17:36" on screen, with the
+   original in `datetime`; identifier columns (SKU, numbers, codes) stay left-aligned even when all digits; the
+   long basis text sits behind a closed "How this report counts (read before comparing totals)" disclosure. Downloads
+   and the server rows are unchanged. The owner approved two assertion changes in `branch-reports.test.mjs`
+   (the scroll box is now checked through `OperationalTable`, and the stock note is found after
+   `</OperationalTable>`). The basis wording itself is DD-14 (Billing). After Daniel's review the first column
+   (Local date or Row) stays in view while a wide report scrolls sideways. His second nit, the page title
+   "Transaction Detail" in sentence case, is left: the title comes from `TransactionReportService` and the
+   pilot-scale golden file (`tests/Fixtures/PilotScale/original-small-reports.json`) pins it.
 10. **UX-10 Confirm dialog colours.** Relayed by the coordinator for the owner on 2026-11-06 (
    Yasmin's token string): the shared `OperationalConfirmDialog` uses `bg-popover` and `dark:border-border`
    instead of the fixed `dark:bg-slate-900`, matching the Queue & TV Call next dialog. Light mode: the dialog
