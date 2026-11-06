@@ -207,10 +207,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::post('{worker}/bank/{bank}/{decision}', 'decideBank')->whereUuid(['worker', 'bank'])->whereIn('decision', ['confirm', 'reject'])->name('hr.records.bank.decide');
             Route::post('{worker}/documents', 'uploadDocument')->whereUuid('worker')->name('hr.records.documents.store');
             Route::post('{worker}/documents/{document}/remove', 'removeDocument')->whereUuid(['worker', 'document'])->name('hr.records.documents.remove');
-            Route::post('{worker}/periods/{period}/checklist/{item}', 'tick')->whereUuid(['worker', 'period', 'item'])->name('hr.records.checklist.tick');
+            Route::post('{worker}/periods/{period}/checklist/{checklistItem}', 'tick')->whereUuid(['worker', 'period', 'checklistItem'])->name('hr.records.checklist.tick');
             Route::put('settings/retention', 'saveRetention')->name('hr.records.retention');
             Route::post('settings/checklist-items', 'addChecklistItem')->name('hr.records.checklist-items.store');
-            Route::post('settings/checklist-items/{item}/archive', 'archiveChecklistItem')->whereUuid('item')->name('hr.records.checklist-items.archive');
+            Route::post('settings/checklist-items/{checklistItem}/archive', 'archiveChecklistItem')->whereUuid('checklistItem')->name('hr.records.checklist-items.archive');
             Route::post('{worker}/corrections/{correction}/{decision}', 'decideCorrection')->whereUuid(['worker', 'correction'])->whereIn('decision', ['apply', 'reject'])->name('hr.records.corrections.decide');
         });
     });

@@ -177,9 +177,9 @@ class RecordsController extends Controller
         ]);
     }
 
-    public function tick(Request $request, ChecklistService $checklists, string $worker, string $period, string $item): RedirectResponse
+    public function tick(Request $request, ChecklistService $checklists, string $worker, string $period, string $checklistItem): RedirectResponse
     {
-        return $this->run($request, $this->file($worker, 'checklist'), 'Ticked.', fn () => $checklists->tick($request->user(), $worker, $period, $item,
+        return $this->run($request, $this->file($worker, 'checklist'), 'Ticked.', fn () => $checklists->tick($request->user(), $worker, $period, $checklistItem,
             $request->only(['idempotency_key'])));
     }
 
@@ -195,9 +195,9 @@ class RecordsController extends Controller
             $request->only(['list', 'label', 'about_account', 'idempotency_key'])));
     }
 
-    public function archiveChecklistItem(Request $request, ChecklistService $checklists, string $item): RedirectResponse
+    public function archiveChecklistItem(Request $request, ChecklistService $checklists, string $checklistItem): RedirectResponse
     {
-        return $this->run($request, route('hr.records.index', ['tab' => 'files']), 'Item archived.', fn () => $checklists->archiveItem($request->user(), $item,
+        return $this->run($request, route('hr.records.index', ['tab' => 'files']), 'Item archived.', fn () => $checklists->archiveItem($request->user(), $checklistItem,
             $request->only(['expected_lock_version', 'idempotency_key'])));
     }
 

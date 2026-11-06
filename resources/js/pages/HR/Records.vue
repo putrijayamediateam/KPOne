@@ -3,12 +3,14 @@
 import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import { computed, reactive, ref, watch } from 'vue';
 import CorrectionSheet from '@/components/hr/records/CorrectionSheet.vue';
+import DocumentList from '@/components/hr/records/DocumentList.vue';
 import OwnValue from '@/components/hr/records/OwnValue.vue';
 import SyntheticNote from '@/components/hr/records/SyntheticNote.vue';
 import type {
     Address,
     EmergencyContact,
     RecordOptions,
+    StaffDocument,
     WorkerHeader,
 } from '@/components/hr/records/types';
 import {
@@ -79,6 +81,8 @@ type My = {
     };
     bank?: { bankName: string; holder: string; account: string } | null;
     corrections?: MyCorrection[];
+    workerId?: string;
+    documents?: StaffDocument[];
 };
 
 const props = defineProps<{
@@ -100,6 +104,21 @@ const props = defineProps<{
             attentionCount: number;
             branches: { id: number; name: string }[];
             withoutFile: { id: number; name: string }[];
+        } | null;
+        settings: {
+            retentions: {
+                category: string;
+                label: string;
+                days: number | null;
+                lockVersion: number;
+            }[];
+            items: {
+                id: string;
+                list: 'onboarding' | 'offboarding';
+                label: string;
+                aboutAccount: boolean;
+                lockVersion: number;
+            }[];
         } | null;
     };
 }>();
@@ -269,6 +288,62 @@ const correctionStatus = (c: MyCorrection) =>
         rejected: 'Not applied',
         withdrawn: 'Withdrawn',
     })[c.status];
+
+// ---- HR-4b settings ----
+const retentionDays = reactive<Record<string, string>>({});
+watch(
+    () => props.records.settings?.retentions,
+    (list) => {
+        for (const r of list ?? []) {
+            retentionDays[r.category] = r.days === null ? '' : String(r.days);
+        }
+    },
+    { immediate: true },
+);
+const saveRetention = (r: { category: string; lockVersion: number }) =>
+    router.put(
+        '/hr/records/settings/retention',
+        {
+            category: r.category,
+            retention_days: retentionDays[r.category],
+            expected_lock_version: r.lockVersion,
+            idempotency_key: crypto.randomUUID(),
+        },
+        { preserveScroll: true },
+    );
+const newItem = reactive({
+    list: 'onboarding',
+    label: '',
+    aboutAccount: false,
+    processing: false,
+});
+const addItem = () => {
+    newItem.processing = true;
+    router.post(
+        '/hr/records/settings/checklist-items',
+        {
+            list: newItem.list,
+            label: newItem.label,
+            about_account: newItem.aboutAccount,
+            idempotency_key: crypto.randomUUID(),
+        },
+        {
+            preserveScroll: true,
+            onSuccess: () =>
+                Object.assign(newItem, { label: '', aboutAccount: false }),
+            onFinish: () => (newItem.processing = false),
+        },
+    );
+};
+const archiveItem = (item: { id: string; lockVersion: number }) =>
+    router.post(
+        `/hr/records/settings/checklist-items/${item.id}/archive`,
+        {
+            expected_lock_version: item.lockVersion,
+            idempotency_key: crypto.randomUUID(),
+        },
+        { preserveScroll: true },
+    );
 
 // ---- Staff files ----
 const files = computed(() => props.records.files);
@@ -742,6 +817,23 @@ const sendLocum = () => {
                         </li>
                     </ul>
                 </section>
+
+                <section
+                    class="flex flex-col gap-3 rounded-xl border bg-card p-4"
+                    aria-labelledby="my-documents"
+                    data-test="my-documents"
+                >
+                    <h3 id="my-documents" class="text-sm font-semibold">
+                        My documents
+                    </h3>
+                    <DocumentList
+                        :documents="my.documents ?? []"
+                        :worker-id="my.workerId ?? ''"
+                        :can-open="true"
+                        empty-title="No documents yet."
+                        empty-description="HR adds your contract and other documents here. Ask HR if one is missing."
+                    />
+                </section>
             </template>
         </section>
 
@@ -984,6 +1076,177 @@ const sendLocum = () => {
                 </ul>
             </template>
         </section>
+
+        <!-- HR-4b settings: retention per document type and checklist items (managers, under Staff files) -->
+        <details
+            v-if="records.tab === 'files' && records.settings"
+            class="rounded-xl border bg-card p-4"
+            data-test="records-settings"
+        >
+            <summary
+                class="min-h-11 cursor-pointer content-center text-sm font-semibold lg:min-h-0"
+            >
+                Documents and checklist settings
+            </summary>
+            <div class="mt-4 grid gap-6 lg:grid-cols-2">
+                <section
+                    aria-labelledby="retention-title"
+                    class="flex flex-col gap-3"
+                >
+                    <h3 id="retention-title" class="text-sm font-semibold">
+                        How long documents are kept
+                    </h3>
+                    <p class="text-xs text-muted-foreground">
+                        Days after the person's last employment period ends.
+                        KPOne ships no number; until you enter one, documents of
+                        that type are kept.
+                    </p>
+                    <form
+                        v-for="r in records.settings.retentions"
+                        :key="r.category"
+                        class="flex flex-wrap items-end gap-2"
+                        @submit.prevent="saveRetention(r)"
+                    >
+                        <div class="grid min-w-0 gap-1.5">
+                            <Label :for="`retention-${r.category}`">{{
+                                r.label
+                            }}</Label>
+                            <Input
+                                :id="`retention-${r.category}`"
+                                v-model="retentionDays[r.category]"
+                                type="number"
+                                min="1"
+                                max="36500"
+                                inputmode="numeric"
+                                class="w-32 max-lg:h-11"
+                                :placeholder="r.days === null ? 'Not set' : ''"
+                            />
+                        </div>
+                        <Button
+                            type="submit"
+                            variant="outline"
+                            class="max-lg:min-h-11"
+                            :disabled="!retentionDays[r.category]"
+                            >Save</Button
+                        >
+                        <span class="text-xs text-muted-foreground">{{
+                            r.days === null ? 'Not set' : `${r.days} days`
+                        }}</span>
+                    </form>
+                    <InputError :message="errors.retention_days" />
+                </section>
+                <section
+                    aria-labelledby="items-title"
+                    class="flex flex-col gap-3"
+                >
+                    <h3 id="items-title" class="text-sm font-semibold">
+                        Checklist items
+                    </h3>
+                    <div
+                        v-for="list in ['onboarding', 'offboarding'] as const"
+                        :key="list"
+                        class="flex flex-col gap-2"
+                    >
+                        <p class="text-sm font-medium">
+                            {{
+                                list === 'onboarding'
+                                    ? 'Onboarding'
+                                    : 'Offboarding'
+                            }}
+                        </p>
+                        <p
+                            v-if="
+                                !records.settings.items.some(
+                                    (i) => i.list === list,
+                                )
+                            "
+                            class="text-sm text-muted-foreground"
+                        >
+                            No items yet.
+                        </p>
+                        <ul class="flex flex-col divide-y">
+                            <li
+                                v-for="item in records.settings.items.filter(
+                                    (i) => i.list === list,
+                                )"
+                                :key="item.id"
+                                class="flex flex-wrap items-center justify-between gap-2 py-2 text-sm"
+                            >
+                                <span
+                                    >{{ item.label
+                                    }}<span
+                                        v-if="item.aboutAccount"
+                                        class="text-muted-foreground"
+                                    >
+                                        · asks the account administrator</span
+                                    ></span
+                                >
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    class="max-lg:min-h-11"
+                                    @click="archiveItem(item)"
+                                    >Archive</Button
+                                >
+                            </li>
+                        </ul>
+                    </div>
+                    <form
+                        class="flex flex-col gap-3 border-t pt-3"
+                        @submit.prevent="addItem"
+                    >
+                        <div class="grid gap-1.5">
+                            <Label for="item-list">List</Label>
+                            <OperationalSelect
+                                id="item-list"
+                                v-model="newItem.list"
+                                trigger-class="max-lg:h-11"
+                                label="List"
+                                :options="[
+                                    {
+                                        value: 'onboarding',
+                                        label: 'Onboarding',
+                                    },
+                                    {
+                                        value: 'offboarding',
+                                        label: 'Offboarding',
+                                    },
+                                ]"
+                            />
+                        </div>
+                        <div class="grid gap-1.5">
+                            <Label for="item-label">Item</Label>
+                            <Input
+                                id="item-label"
+                                v-model="newItem.label"
+                                maxlength="160"
+                                class="max-lg:h-11"
+                                :aria-invalid="!!errors.label"
+                            />
+                            <InputError :message="errors.label" />
+                        </div>
+                        <label
+                            class="flex min-h-11 items-center gap-2 text-sm lg:min-h-0"
+                        >
+                            <input
+                                v-model="newItem.aboutAccount"
+                                type="checkbox"
+                                class="size-4"
+                            />
+                            About the KPOne account (HR asks the account
+                            administrator)
+                        </label>
+                        <Button
+                            type="submit"
+                            variant="outline"
+                            class="self-start max-lg:min-h-11"
+                            :disabled="newItem.processing"
+                            >Add item</Button
+                        >
+                    </form>
+                </section>
+            </div>
+        </details>
 
         <CorrectionSheet
             v-model:open="correctionOpen"
