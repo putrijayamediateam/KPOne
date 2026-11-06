@@ -32,7 +32,7 @@ const submit = () => form.patch(`/staff/${props.staff.id}`);
     <Head :title="`Edit ${staff.name}`" />
     <main class="flex flex-1 flex-col gap-5 p-4 md:p-7">
         <div class="flex items-start gap-3">
-            <div class="rounded-xl bg-emerald-100 p-2.5 text-emerald-800">
+            <div class="rounded-xl bg-success/10 p-2.5 text-success">
                 <UserRoundPen class="size-5" />
             </div>
             <div>
