@@ -351,6 +351,8 @@ final class PayrollRunService
 
     public const LAST_APPROVER = 'You are the only person left who can approve this run, so the HR Manager makes this change.';
 
+    public const LAST_APPROVER_PREPARE = 'You are the only person left who can approve payroll runs, so the HR Manager prepares them.';
+
     /**
      * Anyone who prepares any part of a run never approves it, so an approver may help prepare only while another active
      * approver who has not prepared this run is left (S6; B.E.R.N.I.S.S for the owner, option (a)). One rule for the
@@ -369,7 +371,7 @@ final class PayrollRunService
         $others = User::permission(PayrollPermissions::APPROVE)->where('organisation_id', $actor->organisation_id)->where('is_active', true)
             ->whereNotIn('id', array_values(array_unique($barred)))->exists();
 
-        return $others ? null : self::LAST_APPROVER;
+        return $others ? null : ($run === null ? self::LAST_APPROVER_PREPARE : self::LAST_APPROVER);
     }
 
     /**

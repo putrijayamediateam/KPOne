@@ -212,10 +212,11 @@ class PayrollRunsTest extends VisitTestCase
         // With the second Director inactive, the one Director left neither prepares a run nor takes a draft step.
         DB::table('users')->where('id', $this->director2->id)->update(['is_active' => false]);
         $last = 'You are the only person left who can approve this run, so the HR Manager makes this change.';
-        $this->prepare($this->director)->assertSessionHasErrors(['payroll' => $last]);
+        $prepare = 'You are the only person left who can approve payroll runs, so the HR Manager prepares them.';
+        $this->prepare($this->director)->assertSessionHasErrors(['payroll' => $prepare]);
         $this->assertSame(0, DB::table('hr_payroll_runs')->count());
         $this->selectBranch($this->director);
-        $this->get(route('hr.payroll.index', ['tab' => 'runs']))->assertInertia(fn (Assert $page) => $page->where('payroll.runs.prepareRefusal', $last));
+        $this->get(route('hr.payroll.index', ['tab' => 'runs']))->assertInertia(fn (Assert $page) => $page->where('payroll.runs.prepareRefusal', $prepare));
 
         $this->prepare($this->hr)->assertRedirect();
         $id = (string) DB::table('hr_payroll_runs')->value('public_id');
