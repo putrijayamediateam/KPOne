@@ -80,3 +80,15 @@ test('the only approver left sees why the draft steps are off, and Prepare run t
         /:aria-describedby="\s*prepareRefusal \? 'prepare-refusal' : undefined\s*"/,
     );
 });
+
+test('Lock run is the primary step and never red (Daniel)', () => {
+    const lock =
+        template('run').match(/<Button[^>]*data-test="run-lock"[^>]*>/s)?.[0] ??
+        '';
+    assert.ok(lock, 'Lock run button');
+    assert.doesNotMatch(lock, /variant=|destructive/);
+    assert.match(
+        template('run'),
+        /Employee contributions \{\{ myr\(p\.totals\.employee\) \}\}/,
+    );
+});

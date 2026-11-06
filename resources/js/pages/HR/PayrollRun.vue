@@ -203,7 +203,7 @@ const dialog = computed(() => {
             return {
                 title: 'Lock this run?',
                 description:
-                    "Locked runs make payslips and exports and can't be changed. Corrections need an adjustment run. Staff claims in this run are recorded as paid through payroll.",
+                    'A locked run never changes; a correction is an adjustment run. Staff claims in this run are recorded as paid through payroll.',
                 label: 'Lock run',
             };
         default:
@@ -286,7 +286,7 @@ const statusTone = computed(() =>
                     >Send for approval</Button
                 >
                 <p
-                    v-if="run.sendRefusal"
+                    v-if="run.sendRefusal && !run.draftRefusal"
                     id="send-refusal"
                     class="text-sm text-destructive"
                 >
@@ -304,7 +304,6 @@ const statusTone = computed(() =>
                 >
                 <Button
                     v-if="run.status === 'approved' && !run.steps.lock.refusal"
-                    variant="outline"
                     class="max-lg:min-h-11"
                     data-test="run-lock"
                     @click="asking = 'lock'"
@@ -525,8 +524,11 @@ const statusTone = computed(() =>
                 </div>
                 <p class="text-sm text-muted-foreground tabular-nums">
                     Earnings {{ myr(p.totals.earnings) }} · Deductions
-                    {{ myr(p.totals.deduction) }} · Employee
-                    {{ myr(p.totals.employee) }}
+                    {{ myr(p.totals.deduction)
+                    }}<template v-if="p.totals.refund">
+                        · Refunds {{ myr(p.totals.refund) }}</template
+                    >
+                    · Employee contributions {{ myr(p.totals.employee) }}
                 </p>
                 <div
                     v-if="p.errors.length || p.warnings.length"
