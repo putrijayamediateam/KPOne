@@ -274,6 +274,10 @@ check items, keep them"). The rest stand unless the owner changes them.
     of 11:22 UTC): "Yes, start HR-6 (staff claims) now, per its approved note"; its PR opens after Hui Min's sketch,
     Suresh's review and Daniel's look, with no further ship-it. HR-5c took migration `2026_11_10_001900`, so HR-6's
     migrations start at `2026_11_10_002000` (HR-PLAN 13.4 updated). Synthetic data only.
+53. HR-6 staff claims hub-map assertion approved by B.E.R.N.I.S.S for the owner (2026-11-06, 13:37 UTC, under the
+    owner's delegation of 11:22 UTC): `ClinicManagementTest` gains one line after `'/hr/sops'`,
+    `'/hr/claims' => ['hr.claims.submit.own', 'hr.claims.approve.organisation', 'hr.claims.pay.organisation', 'hr.claims.manage.organisation'],`
+    and nothing else.
 
 ## 7. Open items and known limits
 
