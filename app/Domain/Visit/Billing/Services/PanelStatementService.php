@@ -469,8 +469,10 @@ final class PanelStatementService
     }
 
     /**
-     * An invoice number as its letter and number groups, in capitals, each number without leading zeros. Groups are
-     * compared one by one and never glued together, so "KPI-00000012-1" is not "KPI-00000121".
+     * An invoice number as its letter and number groups, in capitals. Groups are compared one by one and never glued
+     * together, so "KPI-00000012-1" is not "KPI-00000121". Format mode drops each number's leading zeros; look-alike
+     * mode reads O, I, L, S, B and Z as digits but keeps every number at its exact length, so a letter suffix such as
+     * "KPI-00000012B" can never become another invoice ("KPI-00000128").
      */
     private static function invoiceTokens(string $value, bool $lookalike): ?string
     {
@@ -483,7 +485,7 @@ final class PanelStatementService
             return null;
         }
 
-        return implode('|', array_map(static fn (string $g): string => ctype_digit($g) ? (ltrim($g, '0') === '' ? '0' : ltrim($g, '0')) : $g, $groups[0]));
+        return implode('|', array_map(static fn (string $g): string => ctype_digit($g) && ! $lookalike ? (ltrim($g, '0') === '' ? '0' : ltrim($g, '0')) : $g, $groups[0]));
     }
 
     /**

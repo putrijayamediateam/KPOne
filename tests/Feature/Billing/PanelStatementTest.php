@@ -121,6 +121,7 @@ class PanelStatementTest extends BillingTestCase
             "{$format($a)},5.00",
             "{$format($otherPanels)},10.00",
             "{$e->invoice_number}-1,10.00",
+            "{$e->invoice_number}B,10.00",
         ]);
         $this->selectBranch($this->officer(), $this->branch);
         $this->post(route('panel-remittances.statements.store'), $this->upload($panel, $csv))->assertSessionHasNoErrors();
@@ -146,8 +147,9 @@ class PanelStatementTest extends BillingTestCase
                 ->where('statement.rows.7.result', 'not_found')
                 // Another Panel's claim is never suggested.
                 ->where('statement.rows.8.result', 'not_found')->where('statement.rows.8.claim', null)
-                // A suffix is never glued onto the number.
-                ->where('statement.rows.9.result', 'not_found'));
+                // A suffix is never glued onto the number, nor read as an extra digit.
+                ->where('statement.rows.9.result', 'not_found')
+                ->where('statement.rows.10.result', 'not_found'));
         $this->assertSame(0, DB::table('panel_claim_payments')->where('panel_claim_id', '!=', $paid->id)->count(), 'Nothing is recorded.');
     }
 
