@@ -19,7 +19,11 @@ return new class extends Migration
             $t->id();
             $t->unsignedBigInteger('organisation_id');
             $t->string('category', 16); // contract | offer | identity | certificate | resignation | other
-            $t->unsignedInteger('retention_days');
+            // The retention in force now (null: not set, keep everything). A first or shorter retention waits as pending
+            // for a grace period before the purge may use it, so a typing mistake can be undone (Suresh, HR-4b S1).
+            $t->unsignedInteger('retention_days')->nullable();
+            $t->unsignedInteger('pending_days')->nullable();
+            $t->date('pending_from')->nullable();
             $t->unsignedBigInteger('set_by_user_id');
             $t->unsignedInteger('lock_version')->default(1);
             $t->timestampsTz();
@@ -99,7 +103,7 @@ return new class extends Migration
         // The HR-4a change list gains the two HR-4b areas (field names only, as before).
         DB::statement('ALTER TABLE hr_record_changes DROP CONSTRAINT hr_record_changes_shape');
         DB::statement("ALTER TABLE hr_record_changes ADD CONSTRAINT hr_record_changes_shape CHECK (area IN ('worker', 'employment', 'position', 'personal', 'bank', 'correction', 'document', 'checklist') AND jsonb_typeof(fields) = 'array')");
-        DB::statement("ALTER TABLE hr_document_retentions ADD CONSTRAINT hr_document_retentions_shape CHECK (category IN ('contract', 'offer', 'identity', 'certificate', 'resignation', 'other') AND retention_days BETWEEN 1 AND 36500)");
+        DB::statement("ALTER TABLE hr_document_retentions ADD CONSTRAINT hr_document_retentions_shape CHECK (category IN ('contract', 'offer', 'identity', 'certificate', 'resignation', 'other') AND (retention_days IS NULL OR retention_days BETWEEN 1 AND 36500) AND (pending_days IS NULL OR pending_days BETWEEN 1 AND 36500) AND (pending_days IS NULL) = (pending_from IS NULL))");
         DB::statement(<<<'SQL'
 ALTER TABLE hr_documents ADD CONSTRAINT hr_documents_shape CHECK (
  category IN ('contract', 'offer', 'identity', 'certificate', 'resignation', 'other')
@@ -158,6 +162,9 @@ BEGIN
  SELECT organisation_id, list, is_active INTO i FROM hr_checklist_items WHERE id = NEW.item_id;
  IF p.organisation_id IS DISTINCT FROM NEW.organisation_id OR i.organisation_id IS DISTINCT FROM NEW.organisation_id THEN
   RAISE EXCEPTION 'A tick stays inside one organisation' USING ERRCODE = '23514';
+ END IF;
+ IF NOT i.is_active THEN
+  RAISE EXCEPTION 'An archived item is not ticked' USING ERRCODE = '23514';
  END IF;
  IF i.list = 'offboarding' AND p.ends_on IS NULL THEN
   RAISE EXCEPTION 'Offboarding items are ticked only for an ended period' USING ERRCODE = '23514';

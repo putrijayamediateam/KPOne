@@ -346,11 +346,18 @@ final class RecordsPageService
     private function settings(User $actor): array
     {
         $retentions = DB::table('hr_document_retentions')->where('organisation_id', $actor->organisation_id)->get()->keyBy('category');
+        $today = $this->today($actor)->toDateString();
 
         return [
-            'retentions' => collect(DocumentService::CATEGORIES)->map(fn (string $label, string $code): array => ['category' => $code, 'label' => $label,
-                'days' => isset($retentions[$code]) ? (int) $retentions[$code]->retention_days : null,
-                'lockVersion' => isset($retentions[$code]) ? (int) $retentions[$code]->lock_version : 0])->values()->all(),
+            'graceDays' => DocumentService::GRACE_DAYS,
+            'retentions' => collect(DocumentService::CATEGORIES)->map(function (string $label, string $code) use ($retentions, $today): array {
+                $row = $retentions[$code] ?? null;
+                $pending = $row !== null && $row->pending_days !== null && substr((string) $row->pending_from, 0, 10) > $today ? $row : null;
+
+                return ['category' => $code, 'label' => $label, 'days' => $row === null ? null : DocumentService::effectiveDays($row, $today),
+                    'pendingDays' => $pending === null ? null : (int) $pending->pending_days, 'pendingFrom' => $pending === null ? null : substr((string) $pending->pending_from, 0, 10),
+                    'lockVersion' => $row === null ? 0 : (int) $row->lock_version];
+            })->values()->all(),
             'items' => ChecklistItem::query()->where('organisation_id', $actor->organisation_id)->where('is_active', true)->orderBy('position')->get()
                 ->map(fn (ChecklistItem $i): array => ['id' => $i->public_id, 'list' => $i->list, 'label' => $i->label, 'aboutAccount' => $i->about_account,
                     'lockVersion' => $i->lock_version])->values()->all(),

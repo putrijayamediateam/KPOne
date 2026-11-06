@@ -5,6 +5,7 @@
 import { router, usePage } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
 import { Button } from '@/components/ui/button';
+import OperationalConfirmDialog from '@/components/ui/OperationalConfirmDialog.vue';
 import { EmptyState, ErrorState } from '@/components/ui/state';
 import { StatusBadge } from '@/components/ui/status';
 import type { ChecklistEntry, ChecklistPeriod } from './types';
@@ -20,26 +21,57 @@ const page = usePage();
 const errors = computed(
     () => (page.props.errors ?? {}) as Record<string, string | undefined>,
 );
-const busy = ref('');
-const tick = (period: ChecklistPeriod, item: ChecklistEntry) => {
-    if (busy.value) {
+// A tick is final, so it is confirmed with the item and the period named (Suresh, HR-4b S3).
+const pending = ref<{ period: ChecklistPeriod; item: ChecklistEntry } | null>(
+    null,
+);
+const processing = ref(false);
+const key = ref('');
+const ask = (period: ChecklistPeriod, item: ChecklistEntry) => {
+    pending.value = { period, item };
+    key.value = crypto.randomUUID();
+};
+const confirmTick = () => {
+    const p = pending.value;
+
+    if (!p) {
         return;
     }
 
-    busy.value = `${period.periodId}:${item.id}`;
+    processing.value = true;
     router.post(
-        `/hr/records/${props.workerId}/periods/${period.periodId}/checklist/${item.id}`,
-        { idempotency_key: crypto.randomUUID() },
-        { preserveScroll: true, onFinish: () => (busy.value = '') },
+        `/hr/records/${props.workerId}/periods/${p.period.periodId}/checklist/${p.item.id}`,
+        { idempotency_key: key.value },
+        {
+            preserveScroll: true,
+            onSuccess: () => (pending.value = null),
+            onFinish: () => (processing.value = false),
+        },
     );
 };
+const confirmText = computed(() => {
+    const p = pending.value;
+
+    if (!p) {
+        return '';
+    }
+
+    const period = `${p.period.typeLabel} from ${dateLabel(p.period.startsOn)}`;
+
+    return p.item.aboutAccount
+        ? `"${p.item.label}" for ${period}. This records that you asked the account administrator. It cannot be undone.`
+        : `"${p.item.label}" for ${period}. This records that it is done. It cannot be undone.`;
+});
 const done = (items: ChecklistEntry[]) => items.filter((i) => i.ticked).length;
 const tickedLabel = (t: { by: string; at: string }) =>
     `${t.by}, ${new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }).format(new Date(t.at))}`;
 </script>
 
 <template>
-    <ErrorState v-if="errors.checklist" :message="errors.checklist" />
+    <ErrorState
+        v-if="errors.checklist && !pending"
+        :message="errors.checklist"
+    />
     <EmptyState
         v-if="!periods.length"
         title="No employment period yet."
@@ -113,9 +145,8 @@ const tickedLabel = (t: { by: string; at: string }) =>
                             variant="outline"
                             size="sm"
                             class="max-lg:min-h-11"
-                            :disabled="busy === `${p.periodId}:${item.id}`"
                             data-test="tick"
-                            @click="tick(p, item)"
+                            @click="ask(p, item)"
                             >{{
                                 item.aboutAccount
                                     ? 'Mark as asked'
@@ -133,4 +164,17 @@ const tickedLabel = (t: { by: string; at: string }) =>
             The offboarding list appears once this period has an end date.
         </p>
     </section>
+    <OperationalConfirmDialog
+        :open="pending !== null"
+        :title="pending?.item.aboutAccount ? 'Mark as asked?' : 'Mark as done?'"
+        :description="confirmText"
+        :confirm-label="
+            pending?.item.aboutAccount ? 'Mark as asked' : 'Mark done'
+        "
+        processing-label="Saving…"
+        :processing="processing"
+        :error="errors.checklist ?? errors.records"
+        @update:open="(v: boolean) => !v && (pending = null)"
+        @confirm="confirmTick"
+    />
 </template>

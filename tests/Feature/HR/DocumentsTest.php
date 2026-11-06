@@ -12,6 +12,7 @@ use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -131,31 +132,96 @@ class DocumentsTest extends VisitTestCase
         $this->assertNoValuesInAudit();
     }
 
-    public function test_retention_is_clinic_entered_and_the_purge_counts_from_the_last_period_end(): void
+    public function test_retention_is_clinic_entered_waits_before_it_deletes_and_counts_from_the_last_period_end(): void
     {
         $hr = $this->actor('hr_manager');
         $current = $this->workerFor($hr, $this->actor('ca'));
         $left = $this->workerFor($hr, $this->actor('ca'));
+        $never = $this->workerFor($hr, $this->actor('ca'));
+        $rehired = $this->workerFor($hr, $this->actor('ca'));
+        $leaving = $this->workerFor($hr, $this->actor('ca'));
         $this->period($hr, $current, ['type' => 'permanent', 'starts_on' => '2020-01-01']);
         $this->period($hr, $left, ['type' => 'contract', 'starts_on' => '2020-01-01', 'ends_on' => '2026-12-31', 'end_reason' => 'contract_ended']);
-        $this->upload($hr, $current, ['category' => 'contract'], $this->pdf('A'))->assertSessionHasNoErrors();
-        $this->upload($hr, $left, ['category' => 'contract'], $this->pdf('B'))->assertSessionHasNoErrors();
+        $this->period($hr, $rehired, ['type' => 'contract', 'starts_on' => '2020-01-01', 'ends_on' => '2026-06-30', 'end_reason' => 'contract_ended']);
+        $this->period($hr, $rehired, ['type' => 'permanent', 'starts_on' => '2027-04-01']); // a future period after an ended one
+        $this->period($hr, $leaving, ['type' => 'contract', 'starts_on' => '2020-01-01', 'ends_on' => '2027-06-30', 'end_reason' => 'resigned']); // ends in the future
+        foreach ([$current, $left, $never, $rehired, $leaving] as $i => $worker) {
+            $this->upload($hr, $worker, ['category' => 'contract'], $this->pdf("W{$i}"))->assertSessionHasNoErrors();
+        }
         $this->upload($hr, $left, ['category' => 'certificate'], $this->pdf('C'))->assertSessionHasNoErrors();
+        $save = fn (mixed $days, int $lock) => $this->put(route('hr.records.retention'), ['category' => 'contract', 'retention_days' => $days,
+            'expected_lock_version' => $lock, 'idempotency_key' => (string) Str::uuid()]);
 
         // KPOne ships no number: nothing is purged before HR enters one.
         $this->assertSame(0, app(DocumentService::class)->purgeExpired());
         $this->selectBranch($hr);
-        $this->put(route('hr.records.retention'), ['category' => 'contract', 'retention_days' => 0, 'idempotency_key' => (string) Str::uuid()])->assertSessionHasErrors('retention_days');
-        $this->put(route('hr.records.retention'), ['category' => 'contract', 'retention_days' => 30, 'expected_lock_version' => 0, 'idempotency_key' => (string) Str::uuid()])->assertSessionHasNoErrors();
-        $this->get(route('hr.records.index', ['tab' => 'files']))->assertInertia(fn (Assert $page) => $page->where('records.settings.retentions.0.days', 30)
-            ->where('records.settings.retentions.1.days', null));
-
-        $this->assertSame(1, app(DocumentService::class)->purgeExpired()); // the left worker's contract only (ended 67 days ago)
-        $this->assertSame(['active'], Document::query()->where('worker_id', $current->id)->pluck('status')->all());
-        $this->assertEqualsCanonicalizing(['purged', 'active'], Document::query()->where('worker_id', $left->id)->pluck('status')->all());
-        $this->assertSame(1, DB::table('hr_document_events')->where('event', 'purged')->whereNull('actor_user_id')->count());
-        $this->assertCount(2, Storage::disk(DocumentService::DISK)->allFiles());
+        $save(0, 0)->assertSessionHasErrors('retention_days');
+        // A first retention waits GRACE_DAYS before the purge may use it (Suresh, S1).
+        $save(30, 0)->assertSessionHasNoErrors();
+        $this->get(route('hr.records.index', ['tab' => 'files']))->assertInertia(fn (Assert $page) => $page->where('records.settings.retentions.0.days', null)
+            ->where('records.settings.retentions.0.pendingDays', 30)->where('records.settings.retentions.0.pendingFrom', '2027-03-15'));
         $this->assertSame(0, app(DocumentService::class)->purgeExpired());
+
+        $this->travelTo(CarbonImmutable::parse('2027-03-15 09:00', $this->branch->timezone));
+        Auth::logout(); // the scheduled purge runs with nobody signed in
+        $this->assertSame(1, app(DocumentService::class)->purgeExpired()); // only the left worker's contract (ended 74 days ago)
+        foreach ([$current, $never, $rehired, $leaving] as $worker) {
+            $this->assertSame(['active'], Document::query()->where('worker_id', $worker->id)->pluck('status')->all());
+        }
+        $this->assertEqualsCanonicalizing(['purged', 'active'], Document::query()->where('worker_id', $left->id)->pluck('status')->all());
+        $audit = DB::table('audit_logs')->where('event', 'hr.records.document_purged')->first();
+        $this->assertNotNull($audit);
+        $this->assertNull($audit->actor_user_id);
+        $this->assertSame(['document_id'], array_keys(json_decode((string) $audit->metadata, true)));
+        $this->assertSame(1, DB::table('hr_document_events')->where('event', 'purged')->whereNull('actor_user_id')->count());
+        $this->assertCount(5, Storage::disk(DocumentService::DISK)->allFiles());
+        $this->assertSame(0, app(DocumentService::class)->purgeExpired());
+
+        // Lengthening and "Not set" apply at once; shortening waits again.
+        $this->selectBranch($hr);
+        $save(3000, 1)->assertSessionHasNoErrors();
+        $save(10, 2)->assertSessionHasNoErrors();
+        $this->get(route('hr.records.index', ['tab' => 'files']))->assertInertia(fn (Assert $page) => $page->where('records.settings.retentions.0.days', 3000)
+            ->where('records.settings.retentions.0.pendingDays', 10));
+        $save('', 3)->assertSessionHasNoErrors();
+        $this->get(route('hr.records.index', ['tab' => 'files']))->assertInertia(fn (Assert $page) => $page->where('records.settings.retentions.0.days', null)
+            ->where('records.settings.retentions.0.pendingDays', null));
+        $save(30, 1)->assertSessionHasErrors(['records' => 'This was changed by someone else. Reload to see the latest version.']);
+    }
+
+    public function test_a_failed_upload_leaves_no_file_and_rule_3_covers_remove_and_tick(): void
+    {
+        $director = $this->actor('director');
+        $hr = $this->actor('hr_manager');
+        $directorWorker = $this->workerFor($this->actor('director'), $director);
+        $this->upload($this->actor('director'), $directorWorker, ['category' => 'contract'])->assertSessionHasNoErrors();
+        $document = Document::query()->where('worker_id', $directorWorker->id)->firstOrFail();
+        $this->period($this->actor('director'), $directorWorker, ['type' => 'permanent', 'starts_on' => '2020-01-01']);
+        $period = DB::table('hr_employment_periods')->where('worker_id', $directorWorker->id)->first();
+        $this->assertNotNull($period);
+        $this->selectBranch($hr);
+        $this->post(route('hr.records.checklist-items.store'), ['list' => 'onboarding', 'label' => 'Sign the contract', 'idempotency_key' => (string) Str::uuid()])->assertSessionHasNoErrors();
+        $item = DB::table('hr_checklist_items')->first();
+        $this->assertNotNull($item);
+
+        $refusal = "Only a Director may change a Director's staff file.";
+        $this->remove($hr, $directorWorker, $document, 'wrong_file')->assertSessionHasErrors(['records' => $refusal]);
+        $this->post(route('hr.records.checklist.tick', [$directorWorker->public_id, $period->public_id, $item->public_id]), ['idempotency_key' => (string) Str::uuid()])
+            ->assertSessionHasErrors(['records' => $refusal]);
+        $this->selectBranch($director);
+        $this->remove($director, $directorWorker, $document, 'wrong_file')->assertSessionHasErrors(['records' => 'You may not manage your own staff file. Ask someone else, or use My HR details.']);
+        $this->assertSame('active', $document->fresh()?->status);
+        $this->assertSame(0, DB::table('hr_checklist_ticks')->count());
+
+        // If the audit row cannot be written, the upload rolls back and its encrypted file is deleted.
+        $files = Storage::disk(DocumentService::DISK)->allFiles();
+        $worker = $this->workerFor($hr, $this->actor('ca'));
+        $this->mock(AuditRecorder::class, fn ($mock) => $mock->shouldReceive('record')->andThrow(new RuntimeException('audit unavailable')));
+        $this->selectBranch($hr);
+        $failed = $this->post(route('hr.records.documents.store', $worker->public_id), ['category' => 'contract', 'file' => $this->pdf('FAIL'), 'idempotency_key' => (string) Str::uuid()]);
+        $this->assertSame(500, $failed->getStatusCode());
+        $this->assertSame($files, Storage::disk(DocumentService::DISK)->allFiles());
+        $this->assertSame(0, Document::query()->where('worker_id', $worker->id)->count());
     }
 
     public function test_checklists_are_clinic_entered_ticked_once_and_never_change_an_account(): void
@@ -192,6 +258,8 @@ class DocumentsTest extends VisitTestCase
         $this->get(route('hr.records.show', [$worker->public_id, 'tab' => 'checklist']))->assertInertia(fn (Assert $page) => $page->has('file.checklist.0.onboarding', 2));
         $this->assertRefused('P0001', fn () => DB::table('hr_checklist_items')->where('id', $items[0]->id)->update(['label' => 'Other']));
         $this->assertRefused('P0001', fn () => DB::table('hr_checklist_ticks')->delete());
+        $this->assertRefused('23514', fn () => DB::table('hr_checklist_ticks')->insert(['organisation_id' => $hr->organisation_id, 'period_id' => $period->id,
+            'item_id' => $items[0]->id, 'ticked_by_user_id' => $hr->id, 'ticked_at' => now()])); // archived
         $this->assertRefused('23514', fn () => DB::table('hr_checklist_ticks')->insert(['organisation_id' => $hr->organisation_id, 'period_id' => $period->id,
             'item_id' => $items[2]->id, 'ticked_by_user_id' => $hr->id, 'ticked_at' => now()]));
 

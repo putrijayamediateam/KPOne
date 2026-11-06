@@ -1263,9 +1263,14 @@ const bankDialog = computed(() => {
                     @submit.prevent="sendUpload"
                 >
                     <div class="grid gap-1.5">
-                        <Label for="document-category">Type *</Label>
+                        <Label for="document-category"
+                            ><span id="document-category-label"
+                                >Type *</span
+                            ></Label
+                        >
                         <OperationalSelect
                             id="document-category"
+                            labelledby="document-category-label"
                             v-model="upload.category"
                             trigger-class="max-lg:h-11"
                             label="Type"
@@ -1341,9 +1346,14 @@ const bankDialog = computed(() => {
             @confirm="sendRemoval"
         >
             <div class="grid gap-1.5">
-                <Label for="document-remove-reason">Why it is removed *</Label>
+                <Label for="document-remove-reason"
+                    ><span id="document-remove-reason-label"
+                        >Why it is removed *</span
+                    ></Label
+                >
                 <OperationalSelect
                     id="document-remove-reason"
+                    labelledby="document-remove-reason-label"
                     v-model="removal.reason"
                     trigger-class="max-lg:h-11"
                     label="Why it is removed"

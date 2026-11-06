@@ -106,10 +106,13 @@ const props = defineProps<{
             withoutFile: { id: number; name: string }[];
         } | null;
         settings: {
+            graceDays: number;
             retentions: {
                 category: string;
                 label: string;
                 days: number | null;
+                pendingDays: number | null;
+                pendingFrom: string | null;
                 lockVersion: number;
             }[];
             items: {
@@ -290,6 +293,72 @@ const correctionStatus = (c: MyCorrection) =>
     })[c.status];
 
 // ---- HR-4b settings ----
+type Retention = {
+    category: string;
+    label: string;
+    days: number | null;
+    pendingDays: number | null;
+    pendingFrom: string | null;
+    lockVersion: number;
+};
+// Saving a retention is confirmed in words, because the daily purge deletes files (Suresh, HR-4b S1).
+const retentionConfirm = reactive({
+    row: null as Retention | null,
+    value: '',
+    key: '',
+    processing: false,
+});
+const askRetention = (r: Retention) =>
+    Object.assign(retentionConfirm, {
+        row: r,
+        value: (retentionDays[r.category] ?? '').trim(),
+        key: crypto.randomUUID(),
+    });
+const retentionMessage = computed(() => {
+    const r = retentionConfirm.row;
+
+    if (!r) {
+        return '';
+    }
+
+    const grace = props.records.settings?.graceDays ?? 7;
+
+    if (retentionConfirm.value === '') {
+        return `${r.label}: Not set. Nothing of this type is deleted. This applies at once.`;
+    }
+
+    const days = Number(retentionConfirm.value);
+
+    if (r.days !== null && days >= r.days) {
+        return `${r.label}: ${days} days after the person's last day. This keeps files longer and applies at once.`;
+    }
+
+    return `${r.label}: ${days} days after the person's last day. This starts in ${grace} days; from then the daily purge deletes these files of people who left more than ${days} days earlier. Until then you can change it back.`;
+});
+const sendRetention = () => {
+    const r = retentionConfirm.row;
+
+    if (!r) {
+        return;
+    }
+
+    retentionConfirm.processing = true;
+    router.put(
+        '/hr/records/settings/retention',
+        {
+            category: r.category,
+            retention_days: retentionConfirm.value,
+            expected_lock_version: r.lockVersion,
+            idempotency_key: retentionConfirm.key,
+        },
+        {
+            preserveScroll: true,
+            onSuccess: () => (retentionConfirm.row = null),
+            onFinish: () => (retentionConfirm.processing = false),
+        },
+    );
+};
+
 const retentionDays = reactive<Record<string, string>>({});
 watch(
     () => props.records.settings?.retentions,
@@ -300,17 +369,6 @@ watch(
     },
     { immediate: true },
 );
-const saveRetention = (r: { category: string; lockVersion: number }) =>
-    router.put(
-        '/hr/records/settings/retention',
-        {
-            category: r.category,
-            retention_days: retentionDays[r.category],
-            expected_lock_version: r.lockVersion,
-            idempotency_key: crypto.randomUUID(),
-        },
-        { preserveScroll: true },
-    );
 const newItem = reactive({
     list: 'onboarding',
     label: '',
@@ -1099,39 +1157,53 @@ const sendLocum = () => {
                     <p class="text-xs text-muted-foreground">
                         Days after the person's last employment period ends.
                         KPOne ships no number; until you enter one, documents of
-                        that type are kept.
+                        that type are kept. The files of anyone with no ended
+                        employment period are always kept. A first or shorter
+                        retention starts after {{ records.settings.graceDays }}
+                        days, so a mistake can be undone.
                     </p>
+                    <ErrorState
+                        v-if="errors.records && !retentionConfirm.row"
+                        :message="errors.records"
+                    />
                     <form
                         v-for="r in records.settings.retentions"
                         :key="r.category"
-                        class="flex flex-wrap items-end gap-2"
-                        @submit.prevent="saveRetention(r)"
+                        class="flex flex-col gap-1"
+                        data-test="retention-form"
+                        @submit.prevent="askRetention(r)"
                     >
-                        <div class="grid min-w-0 gap-1.5">
-                            <Label :for="`retention-${r.category}`">{{
-                                r.label
-                            }}</Label>
-                            <Input
-                                :id="`retention-${r.category}`"
-                                v-model="retentionDays[r.category]"
-                                type="number"
-                                min="1"
-                                max="36500"
-                                inputmode="numeric"
-                                class="w-32 max-lg:h-11"
-                                :placeholder="r.days === null ? 'Not set' : ''"
-                            />
+                        <div class="flex flex-wrap items-end gap-2">
+                            <div class="grid min-w-0 gap-1.5">
+                                <Label :for="`retention-${r.category}`">{{
+                                    r.label
+                                }}</Label>
+                                <Input
+                                    :id="`retention-${r.category}`"
+                                    v-model="retentionDays[r.category]"
+                                    type="number"
+                                    min="1"
+                                    max="36500"
+                                    inputmode="numeric"
+                                    class="w-32 max-lg:h-11"
+                                    placeholder="Not set"
+                                />
+                            </div>
+                            <Button
+                                type="submit"
+                                variant="outline"
+                                class="max-lg:min-h-11"
+                                >Save</Button
+                            >
                         </div>
-                        <Button
-                            type="submit"
-                            variant="outline"
-                            class="max-lg:min-h-11"
-                            :disabled="!retentionDays[r.category]"
-                            >Save</Button
-                        >
-                        <span class="text-xs text-muted-foreground">{{
-                            r.days === null ? 'Not set' : `${r.days} days`
-                        }}</span>
+                        <p class="text-xs text-muted-foreground">
+                            Now:
+                            {{ r.days === null ? 'Not set' : `${r.days} days` }}
+                            <template v-if="r.pendingDays"
+                                >· {{ r.pendingDays }} days from
+                                {{ dateLabel(r.pendingFrom) }}</template
+                            >
+                        </p>
                     </form>
                     <InputError :message="errors.retention_days" />
                 </section>
@@ -1196,9 +1268,12 @@ const sendLocum = () => {
                         @submit.prevent="addItem"
                     >
                         <div class="grid gap-1.5">
-                            <Label for="item-list">List</Label>
+                            <Label for="item-list"
+                                ><span id="item-list-label">List</span></Label
+                            >
                             <OperationalSelect
                                 id="item-list"
+                                labelledby="item-list-label"
                                 v-model="newItem.list"
                                 trigger-class="max-lg:h-11"
                                 label="List"
@@ -1474,6 +1549,18 @@ const sendLocum = () => {
                 </form>
             </SheetContent>
         </Sheet>
+
+        <OperationalConfirmDialog
+            :open="retentionConfirm.row !== null"
+            title="Save this retention?"
+            :description="retentionMessage"
+            confirm-label="Save"
+            processing-label="Saving…"
+            :processing="retentionConfirm.processing"
+            :error="errors.retention_days ?? errors.records"
+            @update:open="(v: boolean) => !v && (retentionConfirm.row = null)"
+            @confirm="sendRetention"
+        />
 
         <OperationalConfirmDialog
             :open="withdrawing !== null"

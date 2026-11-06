@@ -44,13 +44,17 @@ test('the staff file gains Documents and Checklist tabs; upload is a sheet with 
     const file = template('file');
     assert.match(source.file, /value: 'documents', label: 'Documents'/);
     assert.match(source.file, /value: 'checklist', label: 'Checklist'/);
-    assert.match(file, /<Label for="document-category">Type \*<\/Label>/);
+    assert.match(
+        file,
+        /<Label for="document-category"[\s\S]{0,40}<span id="document-category-label"\s*>Type \*<\/span/,
+    );
+    assert.match(file, /labelledby="document-category-label"/);
     assert.match(file, /<Label for="document-file">File \*<\/Label>/);
     assert.match(file, /accept="application\/pdf,image\/jpeg,image\/png"/);
     assert.match(file, /PDF, JPG or PNG, up to 10 MB/);
     assert.match(
         file,
-        /<Label for="document-remove-reason">Why it is removed \*<\/Label>/,
+        /<Label for="document-remove-reason"[\s\S]{0,40}<span id="document-remove-reason-label"\s*>Why it is removed \*<\/span/,
     );
     assert.match(source.file, /forceFormData: true/);
 
@@ -68,6 +72,13 @@ test('checklists: onboarding always, offboarding only for an ended period, accou
         /Ask the account administrator\. HR does not\s+change accounts\./,
     );
     assert.match(checklist, /'Mark as asked'\s*: 'Mark done'/);
+    // A tick is final, so it is confirmed with the item and period named (Suresh, S3).
+    assert.match(
+        checklist,
+        /<OperationalConfirmDialog[\s\S]*@confirm="confirmTick"/,
+    );
+    assert.match(source.checklist, /It cannot be undone\./);
+    assert.doesNotMatch(checklist, /@click="tick\(/);
     assert.match(
         checklist,
         /The offboarding list appears once this period has an end date\./,
@@ -83,5 +94,9 @@ test('My HR details lists your own documents; settings sit under Staff files wit
     assert.match(records, /data-test="my-documents"/);
     assert.match(records, /data-test="records-settings"/);
     assert.match(records, /KPOne ships no number/);
-    assert.match(records, /:placeholder="r\.days === null \? 'Not set' : ''"/);
+    assert.match(records, /placeholder="Not set"/);
+    // Saving a retention is confirmed, and a first or shorter one waits (Suresh, S1).
+    assert.match(records, /title="Save this retention\?"/);
+    assert.match(source.records, /This starts in \$\{grace\} days/);
+    assert.match(records, /days from\s+\{\{ dateLabel\(r\.pendingFrom\) \}\}/);
 });

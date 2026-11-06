@@ -28,6 +28,9 @@ final class DocumentService
 
     public const MAX_BYTES = 10 * 1024 * 1024;
 
+    /** Days a first or shorter retention waits before the purge may use it (Suresh, HR-4b S1). */
+    public const GRACE_DAYS = 7;
+
     public const CATEGORIES = ['contract' => 'Contract', 'offer' => 'Offer letter', 'identity' => 'Identity copy', 'certificate' => 'Certificate',
         'resignation' => 'Resignation letter', 'other' => 'Other'];
 
@@ -129,8 +132,8 @@ final class DocumentService
             return $document;
         }, 3);
         // The bytes go only once the removal is committed.
-        if ($removedPath !== null) {
-            Storage::disk(self::DISK)->delete($removedPath);
+        if ($removedPath !== null && ! Storage::disk(self::DISK)->delete($removedPath)) {
+            Log::warning('HR document file could not be deleted after removal', ['document_id' => $document->id]);
         }
 
         return $document;
@@ -171,7 +174,13 @@ final class DocumentService
             'filename' => $document->category.'-'.substr($document->public_id, 0, 8).'.'.($document->kind === 'jpeg' ? 'jpg' : $document->kind)];
     }
 
-    /** @param array<string, mixed> $input */
+    /**
+     * Saves a category's retention (Suresh, HR-4b S1). Clearing it ("Not set": keep everything) and lengthening it apply
+     * at once, because they only keep more. A first or shorter retention could delete files, so it waits as pending for
+     * GRACE_DAYS before the purge uses it; saving again in that time replaces or cancels it.
+     *
+     * @param  array<string, mixed>  $input
+     */
     public function saveRetention(User $actor, array $input): void
     {
         $key = $this->support->key($input['idempotency_key'] ?? null);
@@ -179,12 +188,15 @@ final class DocumentService
         if (! is_string($category) || ! array_key_exists($category, self::CATEGORIES)) {
             throw ValidationException::withMessages(['category' => 'Choose the document type.']);
         }
-        $days = filter_var($input['retention_days'] ?? null, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1, 'max_range' => 36500]]);
+        $raw = $input['retention_days'] ?? null;
+        $days = $raw === null || $raw === '' ? null : filter_var($raw, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1, 'max_range' => 36500]]);
         if ($days === false) {
-            throw ValidationException::withMessages(['retention_days' => 'Enter a whole number of days from 1 to 36500.']);
+            throw ValidationException::withMessages(['retention_days' => 'Enter a whole number of days from 1 to 36500, or leave it empty for Not set.']);
         }
         DB::transaction(function () use ($actor, $input, $key, $category, $days): void {
             $actor = $this->support->lock($actor, RecordPermissions::MANAGE);
+            // A Director and an HR Manager hold different locks; serialise saves of one category (Suresh, M3).
+            DB::select('select pg_advisory_xact_lock(hashtextextended(?, 0))', ['hr_retention:'.$actor->organisation_id.':'.$category]);
             $hash = $this->support->hash([$actor->id, 'retention', $category, $days]);
             if ($this->support->replay($actor, $key, 'records_retention', $hash) !== null) {
                 return;
@@ -192,15 +204,44 @@ final class DocumentService
             $row = DB::table('hr_document_retentions')->where('organisation_id', $actor->organisation_id)->where('category', $category)->lockForUpdate()->first();
             if ($row !== null) {
                 $this->support->assertLock($row, $input);
-                DB::table('hr_document_retentions')->where('id', $row->id)->update(['retention_days' => $days, 'set_by_user_id' => $actor->id,
+            }
+            $today = $this->today($actor->organisation_id);
+            $current = $row === null ? null : self::effectiveDays($row, $today);
+            $values = match (true) {
+                $days === null => ['retention_days' => null, 'pending_days' => null, 'pending_from' => null],
+                $current !== null && $days >= $current => ['retention_days' => $days, 'pending_days' => null, 'pending_from' => null],
+                default => ['retention_days' => $current, 'pending_days' => $days, 'pending_from' => CarbonImmutable::parse($today)->addDays(self::GRACE_DAYS)->toDateString()],
+            };
+            if ($row !== null) {
+                DB::table('hr_document_retentions')->where('id', $row->id)->update([...$values, 'set_by_user_id' => $actor->id,
                     'lock_version' => (int) $row->lock_version + 1, 'updated_at' => now()->utc()]);
             } else {
-                DB::table('hr_document_retentions')->insert(['organisation_id' => $actor->organisation_id, 'category' => $category, 'retention_days' => $days,
+                DB::table('hr_document_retentions')->insert(['organisation_id' => $actor->organisation_id, 'category' => $category, ...$values,
                     'set_by_user_id' => $actor->id, 'lock_version' => 1, 'created_at' => now()->utc(), 'updated_at' => now()->utc()]);
             }
             $this->support->remember($actor, $key, 'records_retention', $hash, $category);
-            $this->support->audit->record('hr.records.retention_set', null, ['category' => $category, 'retention_days' => $days], $actor, null, $actor->organisation_id);
+            $this->support->audit->record('hr.records.retention_set', null, ['category' => $category, 'retention_days' => $days,
+                'pending_from' => $values['pending_from']], $actor, null, $actor->organisation_id);
         }, 3);
+    }
+
+    /** The retention the purge uses on a date: a pending one once its date has come, otherwise the current one. */
+    public static function effectiveDays(object $row, string $today): ?int
+    {
+        $pendingFrom = data_get($row, 'pending_from');
+        if (data_get($row, 'pending_days') !== null && is_string($pendingFrom) && substr($pendingFrom, 0, 10) <= $today) {
+            return (int) data_get($row, 'pending_days');
+        }
+        $days = data_get($row, 'retention_days');
+
+        return $days === null ? null : (int) $days;
+    }
+
+    private function today(int $organisationId): string
+    {
+        $zone = DB::table('branches')->where('organisation_id', $organisationId)->where('is_active', true)->orderBy('id')->value('timezone');
+
+        return CarbonImmutable::now(is_string($zone) ? $zone : 'UTC')->toDateString();
     }
 
     /**
@@ -232,7 +273,9 @@ final class DocumentService
                     return $document->stored_path;
                 }, 3);
                 if ($path !== null) {
-                    Storage::disk(self::DISK)->delete($path);
+                    if (! Storage::disk(self::DISK)->delete($path)) {
+                        Log::warning('HR document file could not be deleted by the purge', ['document_id' => $candidate->id]);
+                    }
                     $count++;
                 }
             }
@@ -243,7 +286,9 @@ final class DocumentService
 
     private function due(Worker $worker, Document $document): bool
     {
-        $days = DB::table('hr_document_retentions')->where('organisation_id', $worker->organisation_id)->where('category', $document->category)->value('retention_days');
+        $today = $this->today($worker->organisation_id);
+        $row = DB::table('hr_document_retentions')->where('organisation_id', $worker->organisation_id)->where('category', $document->category)->first();
+        $days = $row === null ? null : self::effectiveDays($row, $today);
         if ($days === null) {
             return false;
         }
@@ -251,10 +296,8 @@ final class DocumentService
         if ($latest === null || $latest->ends_on === null) {
             return false;
         }
-        $zone = DB::table('branches')->where('organisation_id', $worker->organisation_id)->where('is_active', true)->orderBy('id')->value('timezone');
-        $today = CarbonImmutable::now(is_string($zone) ? $zone : 'UTC')->toDateString();
 
-        return $latest->ends_on->addDays((int) $days)->toDateString() < $today;
+        return $latest->ends_on->addDays($days)->toDateString() < $today;
     }
 
     private function find(Worker $worker, string $documentId, bool $lock): Document
