@@ -133,7 +133,7 @@ test('UX-9: the page uses the standard table, aligns number columns and folds th
         page,
         /numericColumns\(data\.value\.rows, data\.value\.columns\)/,
     );
-    assert.match(page, /:class="numeric\[j\] \? 'text-right' : ''"/);
+    assert.match(page, /numeric\[j\] \? 'text-right' : ''/);
     assert.match(page, /row\.map\(reportCell\)/);
     assert.match(page, /columns\.map\(isIdentifierHeading\)/);
     assert.match(
@@ -148,4 +148,20 @@ test('UX-9: the page uses the standard table, aligns number columns and folds th
         /<details[^>]*data-testid="report-basis"[\s\S]*?How this report counts[\s\S]*?\{\{ basis \}\}[\s\S]*?<\/details>/,
     );
     assert.doesNotMatch(page, /<details[^>]*\bopen\b/);
+});
+
+test('UX-9: the first column stays in view while a wide report scrolls sideways', () => {
+    const page = readFileSync(
+        new URL(
+            '../../resources/js/pages/Reports/BranchReport.vue',
+            import.meta.url,
+        ),
+        'utf8',
+    );
+    assert.match(page, /sticky left-0 z-10/);
+    assert.match(page, /j === 0 \? stickyHead : ''/);
+    assert.match(page, /j === 0 \? stickyCell : ''/);
+    // Opaque backgrounds, so cells scrolling underneath never show through.
+    assert.match(page, /stickyHead = `\$\{stickyBase\} bg-\[color-mix\(/);
+    assert.match(page, /stickyCell = `\$\{stickyBase\} bg-card /);
 });

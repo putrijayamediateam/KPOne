@@ -204,4 +204,7 @@ authorisation to build them; the coordinator records it in `docs/BASELINE.md`.
    long basis text sits behind a closed "How this report counts (read before comparing totals)" disclosure. Downloads
    and the server rows are unchanged. The owner approved two assertion changes in `branch-reports.test.mjs`
    (the scroll box is now checked through `OperationalTable`, and the stock note is found after
-   `</OperationalTable>`). The basis wording itself is DD-14 (Billing).
+   `</OperationalTable>`). The basis wording itself is DD-14 (Billing). After Daniel's review the first column
+   (Local date or Row) stays in view while a wide report scrolls sideways. His second nit, the page title
+   "Transaction Detail" in sentence case, is left: the title comes from `TransactionReportService` and the
+   pilot-scale golden file (`tests/Fixtures/PilotScale/original-small-reports.json`) pins it.

@@ -58,6 +58,11 @@ const unbroken = computed(
 const cells = computed(
     () => data.value?.rows.map((row) => row.map(reportCell)) ?? [],
 );
+// The first column (date or row) stays in view while a wide report scrolls sideways.
+// Opaque backgrounds mix the header and hover tints over the card so scrolled cells never show through.
+const stickyBase = 'sticky left-0 z-10 shadow-[1px_0_0_var(--border)]';
+const stickyHead = `${stickyBase} bg-[color-mix(in_oklab,var(--muted)_60%,var(--card))]`;
+const stickyCell = `${stickyBase} bg-card [tr:hover_&]:bg-[color-mix(in_oklab,var(--muted)_40%,var(--card))]`;
 const pending = ref<Record<string, boolean>>({});
 const error = ref('');
 const busy = ref(false);
@@ -320,7 +325,10 @@ function applySelection(key: 'methods' | 'visit_types', value: string[]) {
                             v-for="(column, j) in data.columns"
                             :key="column"
                             scope="col"
-                            :class="numeric[j] ? 'text-right' : ''"
+                            :class="[
+                                numeric[j] ? 'text-right' : '',
+                                j === 0 ? stickyHead : '',
+                            ]"
                         >
                             {{ column }}
                         </th>
@@ -332,11 +340,14 @@ function applySelection(key: 'methods' | 'visit_types', value: string[]) {
                             v-for="(cell, j) in row"
                             :key="j"
                             class="tabular-nums"
-                            :class="{
-                                'text-right': numeric[j],
-                                'whitespace-nowrap':
-                                    unbroken[j] || cells[i]?.[j]?.datetime,
-                            }"
+                            :class="[
+                                {
+                                    'text-right': numeric[j],
+                                    'whitespace-nowrap':
+                                        unbroken[j] || cells[i]?.[j]?.datetime,
+                                },
+                                j === 0 ? stickyCell : '',
+                            ]"
                         >
                             <time
                                 v-if="cells[i]?.[j]?.datetime"
