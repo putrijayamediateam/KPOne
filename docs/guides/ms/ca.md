@@ -72,14 +72,14 @@ Semakan ini hanya membandingkan teks alahan dengan nama ubat, nama generik dan k
 
 Perkara lain pada label:
 
-- Tarikh luput dicetak di bawah sebelah kanan label sebagai “EXP: dd/mm/yyyy” hanya jika satu baris ubat menggunakan satu batch sahaja dengan tarikh luput sebenar. Jika tidak, label menunjukkan “EXP: -” dan bahagian di atas pratonton menerangkan sebabnya (“The expiry is printed only when exactly one batch was used for a medicine; otherwise the label shows "EXP: -".”). Nombor batch tidak dicetak pada label.
+- Tarikh luput dicetak di sudut kanan bawah label sebagai “EXP: dd/mm/yyyy” hanya jika satu baris ubat menggunakan satu batch sahaja dengan tarikh luput sebenar. Jika tidak, label menunjukkan “EXP: -” dan bahagian di atas pratonton menerangkan sebabnya (“The expiry is printed only when exactly one batch was used for a medicine; otherwise the label shows "EXP: -".”). Nombor batch tidak dicetak pada label.
 - Ubat yang ditanda terkawal mencetak “Ubat Terkawal/Controlled Medicine” di bawah sempadan label. Perkataan ini masih perlu disemak oleh ahli farmasi: [PERLU DISAHKAN].
-- Dosage, frequency dan instruction dicetak bersama dalam 3 baris sahaja, dan Route tidak dicetak (medan Dispensary menunjukkan “Route (not printed on the label)”). Jika arahan terlalu panjang, label disekat; jangan pendekkan arahan klinikal semata-mata supaya muat.
+- Dosage, frequency dan instruction berkongsi paling banyak 3 baris bercetak, dan Route tidak dicetak (medan Dispensary menunjukkan “Route (not printed on the label)”). Jika arahan terlalu panjang, label disekat; jangan pendekkan arahan klinikal semata-mata supaya muat.
 - Jika label pernah dicetak, pratonton menyatakan “This label was printed before. It will print marked REPRINT.” (atau “… of these labels were printed before …” jika beberapa label) dan label dicetak dengan kotak “REPRINT”. Buang label lama yang sudah tidak betul.
 - Cetakan hanya direkod apabila anda menekan “Print current labels” (butang menunjukkan “Checking saved record…” seketika). Jangan cetak terus dengan Ctrl+P.
 - Jika skrin menyatakan “The saved dispensing record or access changed. Reload and review before printing.”, muat semula halaman dan semak sebelum mencetak.
 
-Label ialah label melintang bersaiz 100 × 62 mm, masih berstatus sementara (“provisional”). Pencetak sebenar dan stok pelekat sebenar masih perlu diuji dengan cetakan ujian: [PERLU DISAHKAN].
+Label melintang ini bersaiz 100 × 62 mm dan masih bersifat sementara (“provisional”). Pencetak sebenar dan stok pelekat sebenar masih perlu diuji dengan cetakan ujian: [PERLU DISAHKAN].
 
 ## Bil, pelarasan dan bayaran
 
