@@ -189,7 +189,8 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php`.
   (`panel_claim.pack_printed`, claim ids only, with the first claim as the audit subject), not the browser's
   print itself, and a refresh adds a row; claims print in the order ticked (PNL-12); a claim
   longer than one A4 page repeats the table headings and "Panel claim N · invoice number" but not the letterhead
-  (PNL-12); the invoice totals can land alone on the next page; photo file names
+  (PNL-12); the totals, remarks and photos stay together and, if they move to the next page, carry the same
+  reference line (PNL-12); photo file names
   print as uploaded, so a name could carry clinical text; when the claim is below the invoice total the page
   shows "Amount claimed (Panel share)" but no "patient pays the rest" line.
 - **Staff names (PNL-6c, built 2026-11-05, B.E.R.N.I.S.S for the owner):** the Panel Claims list "Updated by"
@@ -280,4 +281,4 @@ Second backlog, chosen by the owner on 2026-11-05 ("panel order ok", relayed by 
    showed only Amount, Claim no and Panel). Cards below 1024 px on both the claims tabs and the Pending and
    Overdue tabs; frontend only.
 10. **PNL-12 Small leftovers. (Built 2026-11-06.)** Ticked order in the claim pack, the claim reference repeated
-    on each printed page, "1 claim" and "N invoices" on the summary cards, and a bulk-claim test across visit dates.
+    on each printed page and above the totals, "1 claim" and "N invoices" on the summary cards, and a bulk-claim test across visit dates.

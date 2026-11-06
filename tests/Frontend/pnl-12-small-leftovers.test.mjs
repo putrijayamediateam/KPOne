@@ -65,3 +65,23 @@ test('The pack sends the claims in the order they were ticked', () => {
         /v-for="\(claim, index\) in pack\.claims"[\s\S]{0,200}\{\{ index \+ 1 \}\}/,
     );
 });
+
+test('The totals, remarks and photos stay together and carry the claim reference in print', () => {
+    assert.match(
+        pack,
+        /<div class="pack-avoid" data-testid="pack-closing">\s*<p class="pack-ref-line" data-testid="pack-ref-totals">\s*Panel claim \{\{ claim\.claimNo \}\} ·\s*\{\{ claim\.invoiceNumber \}\}\s*<\/p>\s*<dl class="pack-totals">/,
+    );
+    const closing = pack.slice(
+        pack.indexOf('data-testid="pack-closing"'),
+        pack.lastIndexOf('class="pack-footer"'),
+    );
+    assert.match(closing, /data-testid="pack-photos"/);
+    assert.match(closing, /claim\.remarks/);
+    // Never a table footer: that would repeat the totals on every page.
+    assert.doesNotMatch(pack, /<tfoot/);
+    assert.match(pack, /\.pack-ref-line \{\s*display: none;/);
+    assert.match(
+        pack,
+        /@media print \{[\s\S]*?\.pack-ref-line \{\s*display: block;/,
+    );
+});

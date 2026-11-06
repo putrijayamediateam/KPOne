@@ -371,47 +371,54 @@ const print = () => window.print();
                         </tbody>
                     </table>
                 </div>
-                <dl class="pack-totals pack-avoid">
-                    <div>
-                        <dt>Invoice subtotal</dt>
-                        <dd>{{ myr(claim.invoiceSubtotalSen) }}</dd>
-                    </div>
-                    <div v-if="claim.invoiceAdjustmentSen !== 0">
-                        <dt>Invoice adjustment</dt>
-                        <dd>{{ signed(claim.invoiceAdjustmentSen) }}</dd>
-                    </div>
-                    <div>
-                        <dt>Invoice total</dt>
-                        <dd>{{ myr(claim.invoiceTotalSen) }}</dd>
-                    </div>
-                    <div v-if="claim.claimOnlyAdjustmentSen !== 0">
-                        <dt>Claim adjustment</dt>
-                        <dd>{{ signed(claim.claimOnlyAdjustmentSen) }}</dd>
-                    </div>
-                    <div class="pack-totals-final">
-                        <dt>Amount claimed (Panel share)</dt>
-                        <dd>{{ myr(claim.claimAmountSen) }}</dd>
-                    </div>
-                </dl>
-                <p
-                    v-if="claim.remarks"
-                    class="pack-avoid mt-4 break-words whitespace-pre-wrap"
-                >
-                    <span class="font-semibold">Remarks: </span>
-                    {{ claim.remarks }}
-                </p>
-                <p
-                    class="pack-avoid mt-2 [overflow-wrap:anywhere]"
-                    data-testid="pack-photos"
-                >
-                    <span class="font-semibold">Photos attached: </span>
-                    <template v-if="claim.photos.length">
-                        {{ claim.photos.length }} ({{
-                            claim.photos.join(', ')
-                        }})
-                    </template>
-                    <template v-else>none</template>
-                </p>
+                <!-- PNL-12: the totals, remarks and photos stay together; if they move to a new page the reference line goes with them. -->
+                <div class="pack-avoid" data-testid="pack-closing">
+                    <p class="pack-ref-line" data-testid="pack-ref-totals">
+                        Panel claim {{ claim.claimNo }} ·
+                        {{ claim.invoiceNumber }}
+                    </p>
+                    <dl class="pack-totals">
+                        <div>
+                            <dt>Invoice subtotal</dt>
+                            <dd>{{ myr(claim.invoiceSubtotalSen) }}</dd>
+                        </div>
+                        <div v-if="claim.invoiceAdjustmentSen !== 0">
+                            <dt>Invoice adjustment</dt>
+                            <dd>{{ signed(claim.invoiceAdjustmentSen) }}</dd>
+                        </div>
+                        <div>
+                            <dt>Invoice total</dt>
+                            <dd>{{ myr(claim.invoiceTotalSen) }}</dd>
+                        </div>
+                        <div v-if="claim.claimOnlyAdjustmentSen !== 0">
+                            <dt>Claim adjustment</dt>
+                            <dd>{{ signed(claim.claimOnlyAdjustmentSen) }}</dd>
+                        </div>
+                        <div class="pack-totals-final">
+                            <dt>Amount claimed (Panel share)</dt>
+                            <dd>{{ myr(claim.claimAmountSen) }}</dd>
+                        </div>
+                    </dl>
+                    <p
+                        v-if="claim.remarks"
+                        class="pack-avoid mt-4 break-words whitespace-pre-wrap"
+                    >
+                        <span class="font-semibold">Remarks: </span>
+                        {{ claim.remarks }}
+                    </p>
+                    <p
+                        class="pack-avoid mt-2 [overflow-wrap:anywhere]"
+                        data-testid="pack-photos"
+                    >
+                        <span class="font-semibold">Photos attached: </span>
+                        <template v-if="claim.photos.length">
+                            {{ claim.photos.length }} ({{
+                                claim.photos.join(', ')
+                            }})
+                        </template>
+                        <template v-else>none</template>
+                    </p>
+                </div>
                 <p v-if="letterhead.footerText" class="pack-footer">
                     {{ letterhead.footerText }}
                 </p>
@@ -506,9 +513,18 @@ const print = () => window.print();
     font-weight: 400;
     text-align: left;
 }
+.pack-ref-line {
+    display: none;
+    margin: 0.75rem 0 0;
+    font-size: 0.75rem;
+    font-weight: 400;
+}
 @media print {
     .pack-table .pack-ref {
         display: table-row;
+    }
+    .pack-ref-line {
+        display: block;
     }
 }
 .pack-table tr {
