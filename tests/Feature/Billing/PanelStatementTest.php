@@ -98,6 +98,51 @@ class PanelStatementTest extends BillingTestCase
         $this->assertSame(1, PanelStatementUpload::query()->count());
     }
 
+    public function test_a_not_found_invoice_that_differs_only_in_format_or_lookalike_letters_is_offered_as_a_near_match(): void
+    {
+        // PNL-18: a near match is only a suggestion, for one open claim, never a digit typed wrongly.
+        $panel = Panel::factory()->create(['organisation_id' => $this->organisation->id, 'code' => 'SYNTH-NEAR']);
+        [$a, $b, $c, $d, $e, $paid] = $this->acceptedClaims($panel, 6);
+        $this->pay($paid, 3000);
+        $this->assertStringContainsString('0', $b->invoice_number);
+        $format = static fn (PanelClaim $claim): string => strtolower(str_replace('-', ' ', $claim->invoice_number));
+        $lastDigit = (int) substr($e->invoice_number, -1);
+        $csv = implode("\n", [
+            'Invoice,Amount',
+            "{$format($a)},30.00",
+            str_replace('0', 'O', $b->invoice_number).',10.00',
+            "{$c->invoice_number},30.00",
+            "{$format($c)},5.00",
+            "{$format($d)},99.00",
+            substr($e->invoice_number, 0, -1).(($lastDigit + 5) % 10).',10.00',
+            "{$format($paid)},10.00",
+            "{$format($a)},5.00",
+        ]);
+        $this->selectBranch($this->officer(), $this->branch);
+        $this->post(route('panel-remittances.statements.store'), $this->upload($panel, $csv))->assertSessionHasNoErrors();
+        $upload = PanelStatementUpload::query()->sole();
+
+        $this->get(route('panel-remittances.index', ['panel' => $panel->code, 'statement' => $upload->public_id]))->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('statement.rows.0.result', 'near_match')->where('statement.rows.0.claim.publicId', $a->public_id)
+                ->where('statement.rows.0.nearReason', 'format')->where('statement.rows.0.statementInvoice', $format($a))
+                ->where('statement.rows.0.claim.invoiceNumber', $a->invoice_number)
+                ->where('statement.rows.1.result', 'near_match')->where('statement.rows.1.claim.publicId', $b->public_id)
+                ->where('statement.rows.1.nearReason', 'lookalike')
+                ->where('statement.rows.2.result', 'matched')->missing('statement.rows.2.nearReason')
+                // Already matched exactly in another row.
+                ->where('statement.rows.3.result', 'not_found')->where('statement.rows.3.claim', null)
+                // More than the claim still owes.
+                ->where('statement.rows.4.result', 'not_found')->where('statement.rows.4.claim', null)
+                // A digit typed wrongly may be another real invoice: never suggested.
+                ->where('statement.rows.5.result', 'not_found')->where('statement.rows.5.claim', null)
+                // A paid claim no longer waits for payment.
+                ->where('statement.rows.6.result', 'not_found')
+                // One suggestion per claim.
+                ->where('statement.rows.7.result', 'not_found'));
+        $this->assertSame(0, DB::table('panel_claim_payments')->where('panel_claim_id', '!=', $paid->id)->count(), 'Nothing is recorded.');
+    }
+
     public function test_files_that_are_not_a_usable_csv_are_refused_and_nothing_is_kept(): void
     {
         $panel = Panel::factory()->create(['organisation_id' => $this->organisation->id]);
