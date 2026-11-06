@@ -246,7 +246,7 @@ onBeforeUnmount(() => clearTimeout(pauseTimer));
 
     <Dialog :open="open" @update:open="setOpen">
         <DialogContent
-            class="gap-5 border-border/80 p-5 shadow-2xl shadow-black/15 sm:max-w-md sm:p-6 dark:bg-slate-900"
+            class="gap-5 border-border/80 bg-popover p-5 shadow-2xl shadow-black/15 sm:max-w-md sm:p-6 dark:border-border"
             :show-close-button="!processing"
             data-testid="call-next-dialog"
             @open-auto-focus="onOpenAutoFocus"
