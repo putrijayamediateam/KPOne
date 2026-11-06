@@ -258,154 +258,162 @@ const scopeText = computed(() => {
                     {{ error }}
                 </div>
 
-                <article
-                    v-if="answer"
-                    class="grid min-w-0 gap-3 rounded-xl border bg-card p-4"
-                    data-test="assistant-answer"
-                    aria-live="polite"
-                >
-                    <header class="grid gap-1">
-                        <h3 class="font-semibold">{{ answer.label }}</h3>
-                        <p
-                            class="text-xs text-muted-foreground"
-                            data-test="assistant-scope"
-                        >
-                            {{ scopeText }}
-                        </p>
-                    </header>
-                    <p class="text-base" data-test="assistant-sentence">
-                        {{ answer.sentence }}
-                    </p>
-
-                    <template v-if="answer.rows.length > 0">
-                        <div class="hidden md:block">
-                            <OperationalTable
-                                :label="answer.label"
-                                :columns="answer.columns.length"
-                                min-width="0"
+                <div aria-live="polite" class="grid min-w-0 gap-4">
+                    <article
+                        v-if="answer"
+                        class="grid min-w-0 gap-3 rounded-xl border bg-card p-4"
+                        data-test="assistant-answer"
+                    >
+                        <header class="grid gap-1">
+                            <h3 class="font-semibold">{{ answer.label }}</h3>
+                            <p
+                                class="text-xs text-muted-foreground"
+                                data-test="assistant-scope"
                             >
-                                <template #head>
-                                    <tr>
-                                        <th
-                                            v-for="column in answer.columns"
-                                            :key="column.key"
-                                            scope="col"
-                                            :class="
-                                                isNumber(column)
-                                                    ? 'text-right'
-                                                    : ''
-                                            "
+                                {{ scopeText }}
+                            </p>
+                        </header>
+                        <p class="text-base" data-test="assistant-sentence">
+                            {{ answer.sentence }}
+                        </p>
+
+                        <template v-if="answer.rows.length > 0">
+                            <div class="hidden md:block">
+                                <OperationalTable
+                                    :label="answer.label"
+                                    :columns="answer.columns.length"
+                                    min-width="0"
+                                >
+                                    <template #head>
+                                        <tr>
+                                            <th
+                                                v-for="column in answer.columns"
+                                                :key="column.key"
+                                                scope="col"
+                                                :class="
+                                                    isNumber(column)
+                                                        ? 'text-right'
+                                                        : ''
+                                                "
+                                            >
+                                                {{ column.label }}
+                                            </th>
+                                        </tr>
+                                    </template>
+                                    <template #body>
+                                        <tr
+                                            v-for="(row, index) in answer.rows"
+                                            :key="index"
+                                            data-test="assistant-row"
                                         >
-                                            {{ column.label }}
-                                        </th>
-                                    </tr>
-                                </template>
-                                <template #body>
-                                    <tr
-                                        v-for="(row, index) in answer.rows"
-                                        :key="index"
-                                        data-test="assistant-row"
-                                    >
-                                        <td
-                                            v-for="(cell, cellIndex) in row"
-                                            :key="cellIndex"
-                                            :class="
-                                                isNumber(
-                                                    answer.columns[cellIndex],
-                                                )
-                                                    ? 'text-right tabular-nums'
-                                                    : 'break-words'
-                                            "
+                                            <td
+                                                v-for="(cell, cellIndex) in row"
+                                                :key="cellIndex"
+                                                :class="
+                                                    isNumber(
+                                                        answer.columns[
+                                                            cellIndex
+                                                        ],
+                                                    )
+                                                        ? 'text-right tabular-nums'
+                                                        : 'break-words'
+                                                "
+                                            >
+                                                {{ format(cell) }}
+                                            </td>
+                                        </tr>
+                                        <tr
+                                            v-if="answer.totals"
+                                            class="font-semibold"
+                                            data-test="assistant-totals"
                                         >
-                                            {{ format(cell) }}
-                                        </td>
-                                    </tr>
-                                    <tr
-                                        v-if="answer.totals"
-                                        class="font-semibold"
-                                        data-test="assistant-totals"
+                                            <td
+                                                v-for="(
+                                                    cell, cellIndex
+                                                ) in answer.totals"
+                                                :key="cellIndex"
+                                                :class="
+                                                    isNumber(
+                                                        answer.columns[
+                                                            cellIndex
+                                                        ],
+                                                    )
+                                                        ? 'text-right tabular-nums'
+                                                        : ''
+                                                "
+                                            >
+                                                {{ format(cell) }}
+                                            </td>
+                                        </tr>
+                                    </template>
+                                </OperationalTable>
+                            </div>
+                            <ul
+                                class="grid gap-2 md:hidden"
+                                :aria-label="answer.label"
+                            >
+                                <li
+                                    v-for="(row, index) in [
+                                        ...answer.rows,
+                                        ...(answer.totals
+                                            ? [answer.totals]
+                                            : []),
+                                    ]"
+                                    :key="index"
+                                    class="rounded-lg border p-3 text-sm"
+                                    :class="
+                                        answer.totals &&
+                                        index === answer.rows.length
+                                            ? 'font-semibold'
+                                            : ''
+                                    "
+                                >
+                                    <p class="mb-2 font-medium break-words">
+                                        {{ format(row[0]) }}
+                                    </p>
+                                    <dl
+                                        class="grid grid-cols-[minmax(0,1fr)_auto] gap-x-3 gap-y-1"
                                     >
-                                        <td
+                                        <template
                                             v-for="(
                                                 cell, cellIndex
-                                            ) in answer.totals"
+                                            ) in row.slice(1)"
                                             :key="cellIndex"
-                                            :class="
-                                                isNumber(
-                                                    answer.columns[cellIndex],
-                                                )
-                                                    ? 'text-right tabular-nums'
-                                                    : ''
-                                            "
                                         >
-                                            {{ format(cell) }}
-                                        </td>
-                                    </tr>
-                                </template>
-                            </OperationalTable>
-                        </div>
-                        <ul
-                            class="grid gap-2 md:hidden"
-                            :aria-label="answer.label"
+                                            <dt class="text-muted-foreground">
+                                                {{
+                                                    answer.columns[
+                                                        cellIndex + 1
+                                                    ].label
+                                                }}
+                                            </dt>
+                                            <dd
+                                                class="min-w-0 text-right break-words tabular-nums"
+                                            >
+                                                {{ format(cell) }}
+                                            </dd>
+                                        </template>
+                                    </dl>
+                                </li>
+                            </ul>
+                        </template>
+                        <p
+                            v-if="answer.truncated"
+                            class="text-xs text-muted-foreground"
+                            data-test="assistant-truncated"
                         >
-                            <li
-                                v-for="(row, index) in [
-                                    ...answer.rows,
-                                    ...(answer.totals ? [answer.totals] : []),
-                                ]"
-                                :key="index"
-                                class="rounded-lg border p-3 text-sm"
-                                :class="
-                                    answer.totals &&
-                                    index === answer.rows.length
-                                        ? 'font-semibold'
-                                        : ''
-                                "
-                            >
-                                <p class="mb-2 font-medium break-words">
-                                    {{ format(row[0]) }}
-                                </p>
-                                <dl
-                                    class="grid grid-cols-[minmax(0,1fr)_auto] gap-x-3 gap-y-1"
-                                >
-                                    <template
-                                        v-for="(cell, cellIndex) in row.slice(
-                                            1,
-                                        )"
-                                        :key="cellIndex"
-                                    >
-                                        <dt class="text-muted-foreground">
-                                            {{
-                                                answer.columns[cellIndex + 1]
-                                                    .label
-                                            }}
-                                        </dt>
-                                        <dd
-                                            class="min-w-0 text-right break-words tabular-nums"
-                                        >
-                                            {{ format(cell) }}
-                                        </dd>
-                                    </template>
-                                </dl>
-                            </li>
-                        </ul>
-                    </template>
+                            Showing the first {{ answer.rows.length }} of
+                            {{ answer.totalRows }} rows. The sentence counts
+                            every row.
+                        </p>
+                    </article>
                     <p
-                        v-if="answer.truncated"
-                        class="text-xs text-muted-foreground"
-                        data-test="assistant-truncated"
+                        v-else-if="!error"
+                        class="rounded-xl border border-dashed p-6 text-sm text-muted-foreground"
                     >
-                        Showing the first {{ answer.rows.length }} of
-                        {{ answer.totalRows }} rows. The sentence counts every
-                        row.
+                        Choose a question, then press Answer.
                     </p>
-                </article>
-                <p
-                    v-else-if="!error"
-                    class="rounded-xl border border-dashed p-6 text-sm text-muted-foreground"
-                >
-                    Choose a question, then press Answer.
-                </p>
+                </div>
             </section>
         </div>
     </main>

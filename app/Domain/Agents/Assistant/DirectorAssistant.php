@@ -32,13 +32,15 @@ final class DirectorAssistant
     public function __construct(private AgentRunRecorder $recorder, private AgentToolGateway $gateway, private BranchAccessService $branches) {}
 
     /**
-     * Branches the Director may pick: active branches they can select.
+     * Branches the Director may pick: active branches where they have an effective assignment today (an agent
+     * run, like the report pages, needs one at its branch).
      *
      * @return Collection<int, Branch>
      */
     public function branchesFor(User $director): Collection
     {
-        return $this->branches->availableBranches($director)->where('is_active', true)->sortBy('code')->values();
+        return $this->branches->availableBranches($director)->where('is_active', true)
+            ->filter(fn (Branch $branch): bool => $this->branches->hasEffectiveAssignment($director, $branch))->sortBy('code')->values();
     }
 
     /** @param array{question?: mixed, branch?: mixed, date?: mixed} $input */
@@ -63,10 +65,19 @@ final class DirectorAssistant
         }
         $today = CarbonImmutable::now($branch->timezone ?? InsightsTodayTool::DEFAULT_TIMEZONE)->toDateString();
         $date = $this->date($input['date'] ?? null, $today, $question['date']);
+        // A branch-scoped source or a branch-scoped report permission reads one branch at a time, and "all branches"
+        // means each branch the Director works at today, as the Stock review, Daily summary and Panel summary pages do.
+        $targets = null;
+        if (QuickQuestions::readsEachBranch($key)) {
+            $targets = $branch !== null ? collect([$branch]) : $available;
+            if ($targets->isEmpty()) {
+                throw ValidationException::withMessages(['branch' => 'You are not assigned to any branch today.']);
+            }
+        }
 
         $run = $this->recorder->start(self::AGENT, self::TASK, $branch, $director, AgentPermissions::ASSISTANT);
         try {
-            [$results, $scope] = $this->read($run, $director, $key, $question, $branch, $available, $date, $today);
+            [$results, $scope] = $this->read($run, $director, $question, $branch, $targets, $date, $today);
             $built = QuickQuestions::build($key, $results, $scope);
             $this->recorder->step($run, 'decision', 'Answered: '.$question['label'].'.');
             $this->recorder->complete($run);
@@ -91,32 +102,33 @@ final class DirectorAssistant
 
     /**
      * @param  array{group: string, label: string, tool: string, date: string, alsoNeeds: string|null}  $question
-     * @param  Collection<int, Branch>  $available
+     * @param  Collection<int, Branch>|null  $targets  the branches to read one at a time, or null for one organisation-wide read
      * @return array{0: list<array<string, mixed>>, 1: array<string, string>}
      */
-    private function read(AiAgentRun $run, User $director, string $key, array $question, ?Branch $branch, Collection $available, ?string $date, string $today): array
+    private function read(AiAgentRun $run, User $director, array $question, ?Branch $branch, ?Collection $targets, ?string $date, string $today): array
     {
-        $branchLabel = $branch->code ?? 'all branches';
-        if (QuickQuestions::perBranchTool($key)) {
-            // A `.branch` data source reads one branch at a time: "all branches" means each branch the Director works at.
-            $targets = $branch !== null ? collect([$branch]) : $available->filter(fn (Branch $each): bool => $this->branches->hasEffectiveAssignment($director, $each))->values();
-            if ($targets->isEmpty()) {
-                throw ValidationException::withMessages(['branch' => 'You are not assigned to any branch today.']);
+        $input = in_array($question['date'], ['date', 'today'], true) ? ['date' => $date] : [];
+        $dated = $date !== null && $question['date'] !== 'week' ? ['date' => $date] : [];
+        if ($targets !== null) {
+            $label = $branch->code ?? implode(', ', $targets->pluck('code')->all());
+            $results = array_values($targets->map(fn (Branch $each): array => $this->gateway->call($run, $question['tool'], $director, $each, $input))->all());
+            if ($question['tool'] !== 'inventory.stock_review') {
+                // Per-branch summaries (money, Panel) are joined into one result with every branch's rows.
+                $results = [['branches' => array_merge(...array_map(fn (array $result): array => array_values((array) ($result['branches'] ?? [])), $results))]];
             }
-            $results = array_values($targets->map(fn (Branch $each): array => $this->gateway->call($run, $question['tool'], $director, $each))->all());
 
-            return [$results, ['branchLabel' => $branch !== null ? $branchLabel : implode(', ', $targets->pluck('code')->all())]];
+            return [$results, ['branchLabel' => $label, ...$dated]];
         }
+        $label = $branch->code ?? 'all branches';
         if ($question['date'] === 'week') {
             $week = QuickQuestions::week((string) $date, $today);
             $now = $this->gateway->call($run, $question['tool'], $director, $branch, ['from' => $week['from'], 'to' => $week['to']]);
             $before = $this->gateway->call($run, $question['tool'], $director, $branch, ['from' => $week['previousFrom'], 'to' => $week['previousTo']]);
 
-            return [[$now, $before], ['branchLabel' => $branchLabel, 'from' => $week['from'], 'to' => $week['to']]];
+            return [[$now, $before], ['branchLabel' => $label, 'from' => $week['from'], 'to' => $week['to']]];
         }
-        $input = in_array($question['date'], ['date', 'today'], true) ? ['date' => $date] : [];
 
-        return [[$this->gateway->call($run, $question['tool'], $director, $branch, $input)], ['branchLabel' => $branchLabel, ...($date !== null ? ['date' => $date] : [])]];
+        return [[$this->gateway->call($run, $question['tool'], $director, $branch, $input)], ['branchLabel' => $label, ...$dated]];
     }
 
     private function date(mixed $value, string $today, string $mode): ?string

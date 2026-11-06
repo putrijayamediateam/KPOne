@@ -5,6 +5,7 @@ namespace Tests\Feature\Agents;
 use App\Domain\Agents\Assistant\DirectorAssistant;
 use App\Domain\Agents\Models\AiAgentRun;
 use App\Domain\Agents\Models\AiAgentTool;
+use App\Domain\Organisation\Models\Branch;
 use App\Domain\Queue\Services\QueueEntryService;
 use App\Models\User;
 use Carbon\CarbonImmutable;
@@ -13,6 +14,7 @@ use Illuminate\Support\Facades\DB;
 use Inertia\Testing\AssertableInertia;
 use Tests\Feature\Queue\QueueTestCase;
 use Tests\Support\GovernedStockFixture;
+use Tests\Support\StaffBranchAssignmentBootstrapper;
 
 /** AG-5: Dato' Arif answers the Director's preset questions, one logged run per answer, nothing stored or changed. */
 class DirectorAssistantTest extends QueueTestCase
@@ -108,7 +110,7 @@ class DirectorAssistantTest extends QueueTestCase
 
         $low = $this->page($director, ['question' => 'stock.low', 'branch' => 'all'])['answer'];
         $this->assertSame([['CHERAS', 'Synthetic governed item', $f['sku']->sku_code, 1]], array_map(fn (array $row): array => array_column($row, 'value'), $low['rows']));
-        $this->assertSame('1 item is at or below their reorder level at CHERAS.', $low['sentence']);
+        $this->assertSame('1 item is at or below its reorder level at CHERAS.', $low['sentence']);
 
         $expiring = $this->page($director, ['question' => 'stock.expiring', 'branch' => 'CHERAS'])['answer'];
         $this->assertSame('10.000 unit', $expiring['rows'][0][4]['value']);
@@ -130,12 +132,50 @@ class DirectorAssistantTest extends QueueTestCase
     {
         $director = $this->actor('director');
 
-        $this->assertSame('Net sales on 2026-11-05 at all branches: RM 0.00. Received RM 0.00 (cash RM 0.00, non-cash RM 0.00); Panel RM 0.00 and pay later RM 0.00 are not received yet.', $this->page($director, ['question' => 'money.day'])['answer']['sentence']);
-        $this->assertSame('RM 0.00 received on 2026-11-05 at all branches through 0 payment methods; RM 0.00 of it in cash.', $this->page($director, ['question' => 'money.receipts_by_method'])['answer']['sentence']);
+        $this->assertSame('Net sales on 2026-11-05 at CHERAS: RM 0.00. Received RM 0.00 (cash RM 0.00, non-cash RM 0.00); Panel RM 0.00 and pay later RM 0.00 are not received yet.', $this->page($director, ['question' => 'money.day'])['answer']['sentence']);
+        $this->assertSame('RM 0.00 received on 2026-11-05 at CHERAS through 0 payment methods; RM 0.00 of it in cash.', $this->page($director, ['question' => 'money.receipts_by_method'])['answer']['sentence']);
         foreach (['panel.unclaimed', 'panel.overdue', 'panel.accepted_unpaid'] as $question) {
             $this->assertSame('Nothing to show: every Panel is up to date.', $this->page($director, ['question' => $question])['answer']['sentence'], $question);
         }
         $this->assertSame(5, AiAgentRun::query()->where('status', 'completed')->count());
+    }
+
+    /** Give the user a second, non-primary branch assignment. */
+    private function alsoAssign(User $user, string $code): void
+    {
+        StaffBranchAssignmentBootstrapper::create($user->staffProfile, $this->branchCode($code), ['is_primary' => false, 'assignment_type' => 'permanent', 'valid_from' => now()->subDay()->toDateString(), 'valid_until' => null]);
+    }
+
+    private function branchCode(string $code): Branch
+    {
+        return Branch::query()->where('organisation_id', $this->organisation->id)->where('code', $code)->firstOrFail();
+    }
+
+    public function test_branch_scoped_answers_cover_only_branches_the_director_works_at(): void
+    {
+        $director = $this->actor('director');
+        $this->assertSame(['CHERAS'], array_column($this->page($director)['branches'], 'code'));
+
+        $money = $this->page($director, ['question' => 'money.day', 'branch' => 'all'])['answer'];
+        $this->assertSame(['CHERAS'], array_map(fn (array $row): string => $row[0]['value'], $money['rows']));
+        $this->assertSame('CHERAS', $money['scope']['branch']);
+        $panel = $this->page($director, ['question' => 'panel.unclaimed', 'branch' => 'all'])['answer'];
+        $this->assertSame('CHERAS', $panel['scope']['branch']);
+        $this->assertSame(['CHERAS'], DB::table('ai_agent_run_steps')->where('tool_code', 'panel.claims_summary')->pluck('summary')->map(fn (string $s): string => str_replace('Read panel.claims_summary for ', '', $s))->all());
+
+        $this->alsoAssign($director, 'PUCHONG');
+        $this->assertSame(['CHERAS', 'PUCHONG'], array_column($this->page($director)['branches'], 'code'));
+        $money = $this->page($director, ['question' => 'money.day', 'branch' => 'all'])['answer'];
+        $this->assertSame(['CHERAS', 'PUCHONG'], array_map(fn (array $row): string => $row[0]['value'], $money['rows']));
+        $this->assertSame(['All branches'], [$money['totals'][0]['value']]);
+        $this->assertSame('CHERAS, PUCHONG', $money['scope']['branch']);
+
+        // The organisation-wide clinic figures still cover every branch.
+        $this->assertCount(3, $this->page($director, ['question' => 'clinic.patients_seen', 'branch' => 'all'])['answer']['rows']);
+        $runs = AiAgentRun::query()->count();
+        $refused = $this->page($director, ['question' => 'money.day', 'branch' => 'SUNGAI_BESI']);
+        $this->assertSame([null, 'Choose a branch you work at, or all branches.'], [$refused['answer'], $refused['error']]);
+        $this->assertSame($runs, AiAgentRun::query()->count(), 'no run starts for a branch the Director does not work at');
     }
 
     public function test_bad_input_is_refused_before_any_run_starts(): void

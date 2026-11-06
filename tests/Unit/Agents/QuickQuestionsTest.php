@@ -70,12 +70,17 @@ class QuickQuestionsTest extends TestCase
     public function test_patients_per_doctor_are_sorted_busiest_first(): void
     {
         $answer = $this->build('clinic.seen_per_doctor', [['branches' => [
-            ['branch' => 'CHERAS', 'doctors' => [['doctor' => 'Dr Alpha', 'seen' => 2, 'averageConsultationMinutes' => 9], ['doctor' => 'Dr Beta', 'seen' => 5, 'averageConsultationMinutes' => 7]]],
-            ['branch' => 'PUCHONG', 'doctors' => [['doctor' => 'Dr Alpha', 'seen' => 2, 'averageConsultationMinutes' => 4]]],
+            ['branch' => 'CHERAS', 'doctors' => [['doctorId' => 1, 'doctor' => 'Dr Alpha', 'seen' => 2, 'averageConsultationMinutes' => 9], ['doctorId' => 2, 'doctor' => 'Dr Beta', 'seen' => 5, 'averageConsultationMinutes' => 7]]],
+            ['branch' => 'PUCHONG', 'doctors' => [['doctorId' => 1, 'doctor' => 'Dr Alpha', 'seen' => 2, 'averageConsultationMinutes' => 4]]],
         ]]]);
 
         $this->assertSame([['CHERAS', 'Dr Beta', 5, 7], ['CHERAS', 'Dr Alpha', 2, 9], ['PUCHONG', 'Dr Alpha', 2, 4]], $this->values($answer));
         $this->assertSame('9 patients seen by 2 doctors on 2026-11-06 at all branches.', $answer['sentence']);
+        // Doctors are counted by id: two doctors who share a display name are still two.
+        $twins = $this->build('clinic.seen_per_doctor', [['branches' => [['branch' => 'CHERAS', 'doctors' => [
+            ['doctorId' => 1, 'doctor' => 'Dr Lee', 'seen' => 1, 'averageConsultationMinutes' => 5], ['doctorId' => 2, 'doctor' => 'Dr Lee', 'seen' => 1, 'averageConsultationMinutes' => 5],
+        ]]]]]);
+        $this->assertSame('2 patients seen by 2 doctors on 2026-11-06 at all branches.', $twins['sentence']);
     }
 
     public function test_the_days_money_keeps_received_apart_from_panel_and_pay_later(): void
@@ -125,6 +130,8 @@ class QuickQuestionsTest extends TestCase
 
         $this->assertSame([['Alpha Care', 3, 13500], ['Beta Health', 1, 12000]], $this->values($answer));
         $this->assertSame('4 approved Panel invoices worth RM 255.00 are not yet claimed, across 2 Panels.', $answer['sentence']);
+        $one = $this->build('panel.unclaimed', [['branches' => [['branch' => 'CHERAS', 'panels' => [$panel('Alpha Care', 1, 4500)]]]]]);
+        $this->assertSame('1 approved Panel invoice worth RM 45.00 is not yet claimed, across 1 Panel.', $one['sentence']);
         $none = $this->build('panel.overdue', [['branches' => [['branch' => 'CHERAS', 'panels' => [$panel('Alpha Care', 2, 9000)]]]]]);
         $this->assertSame([[], 'Nothing to show: every Panel is up to date.'], [$none['rows'], $none['sentence']]);
     }
@@ -137,8 +144,10 @@ class QuickQuestionsTest extends TestCase
         $low = $this->build('stock.low', $results);
         $this->assertSame([['CHERAS', 'Item A', 'A', 1], ['PUCHONG', 'Item A', 'A', 2]], $this->values($low));
         $this->assertSame('2 items are at or below their reorder level at CHERAS, PUCHONG.', $low['sentence']);
+        $this->assertSame('1 item is at or below its reorder level at CHERAS.', $this->build('stock.low', [$results[0]])['sentence']);
         $expiring = $this->build('stock.expiring', $results);
         $this->assertSame([['CHERAS', 'Item B', 'B', 2, '30.500 tablet']], $this->values($expiring));
         $this->assertSame('Nothing to show: no item is expired and still on hand.', $this->build('stock.expired', $results)['sentence']);
+        $this->assertSame('1 item is expiring within 90 days at CHERAS.', $expiring['sentence']);
     }
 }

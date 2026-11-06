@@ -46,10 +46,15 @@ final class QuickQuestions
         return self::QUESTIONS[$key] ?? throw new InvalidArgumentException('Unknown question.');
     }
 
-    /** A per-branch tool reads one branch at a time, so "all branches" means each branch the Director works at. */
-    public static function perBranchTool(string $key): bool
+    /**
+     * A `.branch` data source, or a question that also needs a `.branch` report permission, reads one branch at a
+     * time, so "all branches" means each branch the Director works at.
+     */
+    public static function readsEachBranch(string $key): bool
     {
-        return self::get($key)['tool'] === 'inventory.stock_review';
+        $question = self::get($key);
+
+        return $question['tool'] === 'inventory.stock_review' || $question['alsoNeeds'] !== null;
     }
 
     /**
@@ -68,12 +73,12 @@ final class QuickQuestions
             'money.day' => self::moneyDay($results[0], $scope),
             'money.week' => self::moneyWeek($results[0], $results[1], $scope),
             'money.receipts_by_method' => self::receiptsByMethod($results[0], $scope),
-            'panel.unclaimed' => self::panel($results[0], 'unclaimedInvoices', 'unclaimedSen', 'Invoices not claimed', 'approved Panel invoices worth %s are not yet claimed'),
-            'panel.overdue' => self::panel($results[0], 'overdueUnclaimedInvoices', 'overdueUnclaimedSen', 'Overdue invoices', 'approved Panel invoices worth %s are past their claim due date and not yet claimed'),
-            'panel.accepted_unpaid' => self::panel($results[0], 'acceptedUnpaidClaims', 'acceptedOutstandingSen', 'Claims accepted, unpaid', 'accepted Panel claims still have %s unpaid'),
-            'stock.low' => self::stock($results, 'lowStockLocations', null, 'Locations', 'at or below their reorder level'),
-            'stock.expiring' => self::stock($results, 'expiringBatches', 'expiringQuantity', 'Batches', 'expiring within 90 days'),
-            'stock.expired' => self::stock($results, 'expiredBatches', 'expiredQuantity', 'Batches', 'expired and still on hand'),
+            'panel.unclaimed' => self::panel($results[0], 'unclaimedInvoices', 'unclaimedSen', 'Invoices not claimed', ['approved Panel invoice worth %s is not yet claimed', 'approved Panel invoices worth %s are not yet claimed']),
+            'panel.overdue' => self::panel($results[0], 'overdueUnclaimedInvoices', 'overdueUnclaimedSen', 'Overdue invoices', ['approved Panel invoice worth %s is past its claim due date and not yet claimed', 'approved Panel invoices worth %s are past their claim due date and not yet claimed']),
+            'panel.accepted_unpaid' => self::panel($results[0], 'acceptedUnpaidClaims', 'acceptedOutstandingSen', 'Claims accepted, unpaid', ['accepted Panel claim still has %s unpaid', 'accepted Panel claims still have %s unpaid']),
+            'stock.low' => self::stock($results, 'lowStockLocations', null, 'Locations', ['item is at or below its reorder level', 'items are at or below their reorder level']),
+            'stock.expiring' => self::stock($results, 'expiringBatches', 'expiringQuantity', 'Batches', ['item is expiring within 90 days', 'items are expiring within 90 days']),
+            'stock.expired' => self::stock($results, 'expiredBatches', 'expiredQuantity', 'Batches', ['item is expired and still on hand', 'items are expired and still on hand']),
             default => throw new InvalidArgumentException('Unknown question.'),
         };
     }
@@ -193,12 +198,12 @@ final class QuickQuestions
         $doctors = [];
         foreach (self::branches($result) as $branch) {
             foreach ((array) $branch['doctors'] as $doctor) {
-                $doctors[] = [(string) $branch['branch'], (string) $doctor['doctor'], (int) $doctor['seen'], (int) $doctor['averageConsultationMinutes']];
+                $doctors[] = [(string) $branch['branch'], (string) $doctor['doctor'], (int) $doctor['seen'], (int) $doctor['averageConsultationMinutes'], (int) ($doctor['doctorId'] ?? 0)];
             }
         }
         usort($doctors, fn (array $a, array $b): int => [$b[2], $a[1], $a[0]] <=> [$a[2], $b[1], $b[0]]);
         $seen = array_sum(array_column($doctors, 2));
-        $people = count(array_unique(array_column($doctors, 1)));
+        $people = count(array_unique(array_column($doctors, 4)));
 
         return [
             'sentence' => sprintf('%s seen by %s on %s at %s.', self::plural($seen, 'patient'), self::plural($people, 'doctor'), $scope['date'], $scope['branchLabel']),
@@ -296,9 +301,10 @@ final class QuickQuestions
 
     /**
      * @param  array<string, mixed>  $result
+     * @param  array{0: string, 1: string}  $template  singular and plural sentence parts
      * @return Built
      */
-    private static function panel(array $result, string $countKey, string $senKey, string $countLabel, string $template): array
+    private static function panel(array $result, string $countKey, string $senKey, string $countLabel, array $template): array
     {
         $panels = [];
         foreach (self::branches($result) as $branch) {
@@ -319,7 +325,7 @@ final class QuickQuestions
         }
 
         return [
-            'sentence' => $rows === [] ? 'Nothing to show: every Panel is up to date.' : ucfirst(sprintf('%s %s, across %s.', number_format($count), sprintf($template, self::ringgit($sen)), self::plural(count($rows), 'Panel'))),
+            'sentence' => $rows === [] ? 'Nothing to show: every Panel is up to date.' : sprintf('%s %s, across %s.', number_format($count), sprintf($template[$count === 1 ? 0 : 1], self::ringgit($sen)), self::plural(count($rows), 'Panel')),
             'columns' => [self::column('panel', 'Panel'), self::column('count', $countLabel, true), self::column('amount', 'Amount', true)],
             'rows' => $rows,
             'totals' => count($rows) > 1 ? [self::cell('All Panels'), self::cell($count, 'count'), self::cell($sen, 'money')] : null,
@@ -328,9 +334,10 @@ final class QuickQuestions
 
     /**
      * @param  list<array<string, mixed>>  $results
+     * @param  array{0: string, 1: string}  $phrase  singular and plural sentence parts
      * @return Built
      */
-    private static function stock(array $results, string $countKey, ?string $quantityKey, string $countLabel, string $phrase): array
+    private static function stock(array $results, string $countKey, ?string $quantityKey, string $countLabel, array $phrase): array
     {
         $rows = [];
         $branches = [];
@@ -354,7 +361,7 @@ final class QuickQuestions
         $where = $branches === [] ? '' : ' at '.implode(', ', array_keys($branches));
 
         return [
-            'sentence' => $rows === [] ? 'Nothing to show: no item is '.$phrase.'.' : sprintf('%s %s%s.', self::plural(count($rows), 'item is', 'items are'), $phrase, $where),
+            'sentence' => $rows === [] ? 'Nothing to show: no '.$phrase[0].'.' : sprintf('%s %s%s.', number_format(count($rows)), $phrase[count($rows) === 1 ? 0 : 1], $where),
             'columns' => $columns,
             'rows' => $rows,
             'totals' => null,

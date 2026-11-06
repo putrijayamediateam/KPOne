@@ -26,7 +26,8 @@ test('money is formatted from whole sen and errors are announced', () => {
     assert.match(page, /cell\.kind === 'money'/);
     assert.match(page, /Math\.abs\(sen\) \/ 100/);
     assert.match(page, /role="alert"/);
-    assert.match(page, /The sentence counts every\s+row\./);
+    assert.match(page, /<div aria-live="polite"/);
+    assert.match(page, /The\s+sentence\s+counts\s+every\s+row\./);
 });
 
 test('the page has a table from 768 px and cards below it', () => {

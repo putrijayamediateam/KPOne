@@ -11,6 +11,7 @@ use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
+use LogicException;
 
 /**
  * AG-5: Dato' Arif's quick answers for the Director. The page lists the preset questions; pressing "Answer"
@@ -31,6 +32,9 @@ class AgentAssistantController extends Controller
                 $error = collect($exception->errors())->flatten()->first();
             } catch (AuthorizationException $exception) {
                 $error = $exception->getMessage();
+            } catch (LogicException) {
+                // The aggregate guard refused a data source result; the run is already marked failed.
+                $error = 'This answer was refused because the figures did not pass the privacy check.';
             }
         }
 
