@@ -92,7 +92,8 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php`.
 | PNL-6b | The Panel payments history and the Follow-up list show a colleague's name only under the staff-directory visibility rule (owner BIL-2 decision), otherwise "Staff member"; no visible change for today's roles | #262 (merged as `e0d41d9`) |
 | PNL-5 | PostgreSQL contention tests on one Panel claim: split against single payment, two part payments, a reversal against a new payment in both orders, two reversals, a double-submitted split payment (`PostgresPanelPaymentRegressionTest`, serial Contention suite); tests only | #267 |
 | PNL-11 | Panel Claims list on phones and tablets (design debt DD-31): below 1024 px each claim or invoice is a card with every table field, its checkbox (same claim-pack and bulk-claim rules) and its actions menu, plus a "Select all" row above the cards; the Columns menu shows from 1024 px only; Clear puts focus on the visible Select all, or the first claim that can still be ticked; frontend only | #326 (merged as `ce0d3d8`) |
-| PNL-12 | Small leftovers: the claim pack prints claims in the order they were ticked (cover and pages, audit `claim_ids` too); each printed page of a claim's invoice table repeats "Panel claim N · invoice number" (print only, no patient name); the Submissions and Payouts cards read "1 claim" / "N claims", and Pending and Overdue count invoices ("1 invoice" / "N invoices"); a test for a bulk claim whose visits fall on different dates | (this PR) |
+| PNL-12 | Small leftovers: the claim pack prints claims in the order they were ticked (cover and pages, audit `claim_ids` too); each printed page of a claim's invoice table repeats "Panel claim N · invoice number" (print only, no patient name); the Submissions and Payouts cards read "1 claim" / "N claims", and Pending and Overdue count invoices ("1 invoice" / "N invoices"); a test for a bulk claim whose visits fall on different dates | #330 (merged as `5b93b6b`) |
+| PNL-13 | Design debt DD-28: the Panel statement results (PNL-7) use the shared `OperationalTable` from 1024 px, with a 44 px target around each tick box; phones and tablets keep the cards (the switch moved from md to lg, because the seven columns needed about 675 px in a 658 px frame at 768 px); frontend only | (this PR) |
 | PNL-14 | Design debt DD-42: the Panel payments split list shows cards below 1024 px (was 768 px), because at 768 px the table scrolled inside its frame and cut off the "This payment (RM)" box; the card payment box is 44 px tall below 1024 px; frontend only; two owner-approved class lines in `pnl-3-remittance-matching.test.mjs` change from `md:` to `lg:` | (this PR) |
 
 ## 6. Owner decisions already made (never ask again)
@@ -215,7 +216,7 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php`.
   Panel references for up to 30 days, encrypted on the private disk; this belongs to the privacy review before
   real data. A first row that looks like an IC or phone number is refused (best effort). The retry clean-up
   (a file from a rolled-back attempt is deleted after commit) has no automated test; the failure path does.
-  Design debt: the desktop results are a plain table, not the shared table component.
+  The results use the shared table from 1024 px and cards below it (PNL-13, design debt DD-28).
 - PNL-11: in dark mode a disabled checkbox (a claim or invoice of another Panel while one is selected) is hard
   to see; the look comes from the shared checkbox component, so it is for the Design team's debt list, not a
   Panel-only change. The pack bar's "Only claims of … can be added" line still explains it.
@@ -286,4 +287,5 @@ Second backlog, chosen by the owner on 2026-11-05 ("panel order ok", relayed by 
    Overdue tabs; frontend only.
 10. **PNL-12 Small leftovers. (Built 2026-11-06.)** Ticked order in the claim pack, the claim reference repeated
     on each printed page and above the totals, "1 claim" and "N invoices" on the summary cards, and a bulk-claim test across visit dates.
+11. **PNL-13 Statement results in the shared table. (Built 2026-11-06.)** Design debt DD-28; the owner said "start 2".
 12. **PNL-14 Split list cards on tablets. (Built 2026-11-06.)** Design debt DD-42, found during the PNL-13 look.

@@ -5,6 +5,8 @@ namespace App\Http\Controllers\HR;
 use App\Domain\Audit\AuditRecorder;
 use App\Domain\HR\Records\Models\Worker;
 use App\Domain\HR\Records\Services\BankDetailService;
+use App\Domain\HR\Records\Services\ChecklistService;
+use App\Domain\HR\Records\Services\DocumentService;
 use App\Domain\HR\Records\Services\RecordCorrectionService;
 use App\Domain\HR\Records\Services\RecordsPageService;
 use App\Domain\HR\Records\Services\StaffFileService;
@@ -138,6 +140,64 @@ class RecordsController extends Controller
     public function withdrawCorrection(Request $request, RecordCorrectionService $corrections, string $correction): RedirectResponse
     {
         return $this->run($request, route('hr.records.index', ['tab' => 'my']), 'Correction withdrawn.', fn () => $corrections->withdraw($request->user(), $correction,
+            $request->only(['expected_lock_version', 'idempotency_key'])));
+    }
+
+    public function uploadDocument(Request $request, DocumentService $documents, string $worker): RedirectResponse
+    {
+        $back = $this->file($worker, 'documents');
+        // The file is checked by its content before anything is written (HR-2b pattern).
+        try {
+            $prepared = DocumentService::prepare($request->file('file'));
+        } catch (ValidationException $e) {
+            throw $e->redirectTo($back);
+        }
+
+        return $this->run($request, $back, 'Document added.', fn () => $documents->upload($request->user(), $worker, $prepared,
+            $request->only(['category', 'issued_on', 'expires_on', 'idempotency_key'])));
+    }
+
+    public function removeDocument(Request $request, DocumentService $documents, string $worker, string $document): RedirectResponse
+    {
+        return $this->run($request, $this->file($worker, 'documents'), 'Document removed.', fn () => $documents->remove($request->user(), $worker, $document,
+            $request->only(['reason', 'expected_lock_version', 'idempotency_key'])));
+    }
+
+    /** Each open is recorded before any byte is sent; a PDF downloads, a photo opens in the browser. */
+    public function openDocument(Request $request, DocumentService $documents, string $worker, string $document): \Illuminate\Http\Response
+    {
+        $opened = $documents->open($request->user(), $worker, $document);
+
+        return response($opened['content'], 200, [
+            'Content-Type' => $opened['mime'],
+            'Content-Disposition' => ($opened['inline'] ? 'inline' : 'attachment').'; filename="'.$opened['filename'].'"',
+            'X-Content-Type-Options' => 'nosniff',
+            'Content-Security-Policy' => "sandbox; default-src 'none'",
+            'Cache-Control' => 'no-store, private',
+        ]);
+    }
+
+    public function tick(Request $request, ChecklistService $checklists, string $worker, string $period, string $checklistItem): RedirectResponse
+    {
+        return $this->run($request, $this->file($worker, 'checklist'), 'Ticked.', fn () => $checklists->tick($request->user(), $worker, $period, $checklistItem,
+            $request->only(['idempotency_key'])));
+    }
+
+    public function saveRetention(Request $request, DocumentService $documents): RedirectResponse
+    {
+        return $this->run($request, route('hr.records.index', ['tab' => 'files']), 'Retention saved.', fn () => $documents->saveRetention($request->user(),
+            $request->only(['category', 'retention_days', 'expected_lock_version', 'idempotency_key'])));
+    }
+
+    public function addChecklistItem(Request $request, ChecklistService $checklists): RedirectResponse
+    {
+        return $this->run($request, route('hr.records.index', ['tab' => 'files']), 'Item added.', fn () => $checklists->addItem($request->user(),
+            $request->only(['list', 'label', 'about_account', 'idempotency_key'])));
+    }
+
+    public function archiveChecklistItem(Request $request, ChecklistService $checklists, string $checklistItem): RedirectResponse
+    {
+        return $this->run($request, route('hr.records.index', ['tab' => 'files']), 'Item archived.', fn () => $checklists->archiveItem($request->user(), $checklistItem,
             $request->only(['expected_lock_version', 'idempotency_key'])));
     }
 
