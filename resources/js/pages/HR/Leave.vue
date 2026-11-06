@@ -1343,7 +1343,7 @@ const calendarDays = computed(() =>
                                 >
                                     <th
                                         scope="row"
-                                        class="py-1 pr-2 font-normal"
+                                        class="py-1 pr-2 text-left font-normal"
                                     >
                                         {{ role.label }}
                                     </th>
@@ -1373,7 +1373,9 @@ const calendarDays = computed(() =>
                         :key="key"
                         :message="message"
                     />
-                    <div class="mt-3 flex flex-col gap-2 sm:flex-row">
+                    <div
+                        class="mt-3 flex flex-col gap-2 sm:flex-row sm:flex-wrap"
+                    >
                         <Button
                             class="min-h-11 sm:min-h-9"
                             :disabled="entitlementSaving"
