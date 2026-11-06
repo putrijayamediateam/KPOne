@@ -4,7 +4,9 @@ import { computed, ref, watch, onBeforeUnmount } from 'vue';
 import MultiSelectFilterChip from '@/components/reports/MultiSelectFilterChip.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { OperationalTable } from '@/components/ui/table';
 import { formatDateTime } from '@/lib/presentation';
+import { numericColumns, reportCell } from '@/lib/report-cells';
 type Filters = {
     expected_branch_id: number;
     from: string;
@@ -40,6 +42,12 @@ const clone = <T,>(value: T): T => JSON.parse(JSON.stringify(value));
 const draft = ref(clone(props.filters));
 const applied = ref(clone(props.filters));
 const data = ref<Result | null>(null);
+// DD-23: right-align columns that hold only numbers, so money and counts line up.
+const numeric = computed(() =>
+    data.value
+        ? numericColumns(data.value.rows, data.value.columns.length)
+        : [],
+);
 const pending = ref<Record<string, boolean>>({});
 const error = ref('');
 const busy = ref(false);
@@ -212,7 +220,17 @@ function applySelection(key: 'methods' | 'visit_types', value: string[]) {
                 >Download CSV</Button
             >
         </header>
-        <p class="text-sm text-muted-foreground">{{ basis }}</p>
+        <details
+            class="group rounded-lg border bg-card px-4 py-3 text-sm"
+            data-testid="report-basis"
+        >
+            <summary
+                class="cursor-pointer font-medium marker:text-muted-foreground"
+            >
+                How this report counts
+            </summary>
+            <p class="mt-2 max-w-prose text-muted-foreground">{{ basis }}</p>
+        </details>
         <section
             aria-label="Report filters"
             class="space-y-3 rounded-lg border bg-card p-4"
@@ -278,57 +296,45 @@ function applySelection(key: 'methods' | 'visit_types', value: string[]) {
                     <dd class="font-semibold tabular-nums">{{ value }}</dd>
                 </div>
             </dl>
-            <div
-                class="max-w-full overflow-x-auto rounded-lg border"
-                role="region"
-                aria-label="Report table; scroll horizontally"
-                tabindex="0"
+            <!-- Wider when a report has more than 12 columns (Daily summary has 15 since BIL-6b). -->
+            <OperationalTable
+                :label="`${title} table; scroll horizontally`"
+                :columns="data.columns.length"
+                :min-width="data.columns.length > 12 ? '1500px' : '1200px'"
+                :empty="!data.rows.length"
+                empty-message="No matching rows."
             >
-                <!-- Wider when a report has more than 12 columns (Daily summary has 15 since BIL-6b). -->
-                <table
-                    class="w-full text-left text-sm"
-                    :class="
-                        data.columns.length > 12
-                            ? 'min-w-[1500px]'
-                            : 'min-w-[1200px]'
-                    "
-                >
-                    <thead class="bg-muted">
-                        <tr>
-                            <th
-                                v-for="column in data.columns"
-                                :key="column"
-                                class="p-3"
-                            >
-                                {{ column }}
-                            </th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr
-                            v-for="(row, i) in data.rows"
-                            :key="i"
-                            class="border-t"
+                <template #head>
+                    <tr>
+                        <th
+                            v-for="(column, j) in data.columns"
+                            :key="column"
+                            scope="col"
+                            :class="numeric[j] ? 'text-right' : ''"
                         >
-                            <td
-                                v-for="(cell, j) in row"
-                                :key="j"
-                                class="p-3 tabular-nums"
-                            >
-                                {{ cell }}
-                            </td>
-                        </tr>
-                        <tr v-if="!data.rows.length">
-                            <td
-                                :colspan="data.columns.length"
-                                class="p-6 text-muted-foreground"
-                            >
-                                No matching rows.
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
+                            {{ column }}
+                        </th>
+                    </tr>
+                </template>
+                <template #body>
+                    <tr v-for="(row, i) in data.rows" :key="i">
+                        <td
+                            v-for="(cell, j) in row"
+                            :key="j"
+                            class="tabular-nums"
+                            :class="numeric[j] ? 'text-right' : ''"
+                        >
+                            <time
+                                v-if="reportCell(cell).datetime"
+                                :datetime="
+                                    reportCell(cell).datetime ?? undefined
+                                "
+                                >{{ reportCell(cell).text }}</time
+                            ><template v-else>{{ cell }}</template>
+                        </td>
+                    </tr>
+                </template>
+            </OperationalTable>
             <p
                 v-if="endpoint === '/reports/stock-movement'"
                 class="text-sm text-muted-foreground"
