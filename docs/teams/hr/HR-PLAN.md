@@ -1333,8 +1333,8 @@ DD-30). The Clock button stays the only primary on My attendance.
 
 Written 2026-11-06 at the owner's request ("start the HR-4 design note") while HR-3a (PR #327) and HR-3b wait to
 merge. It works out the HR-4 sketch in section 2 in detail and replaces it where the two differ. It changes no HR-1,
-HR-2 or HR-3 rule. **Status: draft, waiting for the owner's approval and Daniel's early look.** The questions in
-11.10 take the defaults written here until the clinic says otherwise.
+HR-2 or HR-3 rule. **Status: approved with its defaults by the owner on 2026-11-06 (TEAM.md decision 36); Daniel's
+early look pending.** The questions in 11.10 take the defaults written here until the clinic says otherwise.
 
 **This is the most sensitive slice so far.** It holds identity numbers, bank details, addresses and emergency
 contacts (TEAM.md decision 9). **Synthetic `.test` data only.** No real staff record or document is stored before the

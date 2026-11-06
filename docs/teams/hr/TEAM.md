@@ -192,6 +192,13 @@ check items, keep them"). The rest stand unless the owner changes them.
 35. HR-3b screens (Daniel, relayed by B.E.R.N.I.S.S 2026-11-06): **OK** at 819f136, every note in; optional nit applied
     (the summary line drops "0 waiting" when only a changed day is listed). HR-3b ship-it given by B.E.R.N.I.S.S for
     the owner ("BE ME"); the PR opens after #327 merges, with main merged in.
+36. HR-4 design note (HR-PLAN section 11) approved with its defaults (owner, 2026-11-06, in the HR session: "approve
+    the HR-4 note with the defaults"): HR-4a first (staff file), then HR-4b (documents and checklists); Show for full
+    identity and bank values for Director and HR Manager, each view recorded; a bank change confirmed by a second
+    person; staff change their own address, personal phone and emergency contact, the rest by a correction;
+    employment types Permanent, Contract, Part-time, Locum, Intern and the listed end reasons; staff see their own
+    documents (view only); a probation alert 14 days before the end, with no probation length shipped; document
+    categories and retention days entered by the clinic (adviser's call). Synthetic data only until the PDPA review.
 
 ## 7. Open items and known limits
 
