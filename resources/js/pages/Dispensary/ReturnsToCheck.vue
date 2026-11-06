@@ -59,7 +59,9 @@ const help = `${props.returns.branchName} · Medicine returns waiting for a chec
 
 <template>
     <Head title="Returns to check" />
-    <main class="mx-auto w-full max-w-[1600px] space-y-4 px-4 py-6">
+    <main
+        class="mx-auto flex w-full max-w-7xl min-w-0 flex-col gap-4 px-4 py-6 md:px-6"
+    >
         <PageHeader title="Returns to check" :description="help" />
         <p class="text-xs text-muted-foreground">
             Open the case to dispose, quarantine or refuse a return. This list
@@ -185,7 +187,8 @@ const help = `${props.returns.branchName} · Medicine returns waiting for a chec
                         }}</span>
                     </p>
                     <p class="text-xs text-muted-foreground">
-                        {{ row.recordedAt }} · by {{ by(row) }} ·
+                        {{ row.recordedAt }} · by
+                        {{ row.recordedByMe ? 'you' : row.recordedBy }} ·
                         {{ condition(row) }}
                     </p>
                     <p
