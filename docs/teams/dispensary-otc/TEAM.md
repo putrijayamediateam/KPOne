@@ -98,6 +98,7 @@ coordinator at the owner's request (2026-11-05); the designer was added by owner
 | DSP-6b | The label print check that logs a print is now a POST (`dispensary.labels.print`, `dispensary.items.label.print`, the page's address plus `/print`, token and branch in the body, CSRF header); the label page no longer accepts `?verify=1`. New tests: a consultation-case print and reprint, and a PostgreSQL race of two CAs printing one case at once (print numbers 1 and 2) | #317 |
 | DSP-1c | Other names for allergy matching: catalogue editors add up to 10 brand names or misspellings per medicine ("Other names" in the Medicine Catalogue "…" menu); the Dispensary allergy warning compares allergies with them too, through one `MedicineCatalogueItem::allergyMatchTerms()` list; never printed; audited by count | #324 |
 | Print label | The single-label button reads "Print label" (sentence case, Daniel's nit from DD-24 to DD-27); the `TreatmentPlanTest` pin and the printer test updated | pending (branch `fix/dsp-print-label-casing`) |
+| DD-37 | The Drug groups dialog keeps the typed groups on a validation error, with the message under the field and a red border; a list changed meanwhile still closes it with a toast (the DSP-1c pattern) | pending (branch `fix/dsp-dd-37-drug-groups-error`) |
 
 ## 6. Owner decisions already made (never ask again)
 
@@ -187,6 +188,8 @@ coordinator at the owner's request (2026-11-05); the designer was added by owner
     audited by count only; used for matching only and never printed. Iman's sketch: its own "Other names" menu entry
     and dialog. The Dispensary warning wording now names "catalogue other names". Daniel: OK; keep the label
     "Other names"; the Drug groups dialog losing typed groups on an error is design debt DD-37 (a later small piece).
+26. DD-37 (2026-11-06): the owner chose it ("go with DD-37"); the Drug groups dialog gets the same error handling as
+    Other names. Built on top of DSP-1c (#324), because both change the same dialog code.
 
 ## 7. Open items and known limits
 
