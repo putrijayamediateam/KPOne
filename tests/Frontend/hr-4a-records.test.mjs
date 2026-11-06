@@ -122,6 +122,8 @@ test('the correction sheet reuses the HR-3a pattern: Recorded, reason, note warn
 test('Staff files: a table from 1024 px and cards below, attention in words with every reason listed', () => {
     const records = template('records');
     assert.match(records, /class="hidden lg:block"/);
+    // Rows go in the shared table's body slot, or the table renders empty.
+    assert.match(records, /<template #body>[\s\S]*data-test="file-row"/);
     assert.match(records, /class="flex flex-col gap-3 lg:hidden"/);
     assert.match(
         source.records,

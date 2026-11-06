@@ -127,15 +127,22 @@ const selectTab = (value: string | number) =>
         { preserveScroll: true },
     );
 const notGiven = 'Not given';
-const timeLabel = (iso: string) =>
-    new Intl.DateTimeFormat('en-GB', {
+// KPOne formats: "6 Nov 2026, 7:24 AM".
+const timeLabel = (iso: string) => {
+    const d = new Date(iso);
+    const day = new Intl.DateTimeFormat('en-GB', {
         day: 'numeric',
         month: 'short',
         year: 'numeric',
+    }).format(d);
+    const time = new Intl.DateTimeFormat('en-US', {
         hour: 'numeric',
         minute: '2-digit',
         hour12: true,
-    }).format(new Date(iso));
+    }).format(d);
+
+    return `${day}, ${time}`;
+};
 const fieldWords = (fields: string[]) =>
     fields.map((f) => f.replaceAll('_', ' ')).join(', ');
 

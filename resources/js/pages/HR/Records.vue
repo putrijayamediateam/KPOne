@@ -373,13 +373,25 @@ const sendLocum = () => {
 </script>
 
 <template>
-    <Head title="KPOne HR staff files" />
+    <Head
+        :title="
+            records.tabs.includes('files') ? 'Staff files' : 'My HR details'
+        "
+    />
     <div class="mx-auto flex w-full max-w-7xl flex-col gap-4 px-4 py-4 md:px-5">
         <div class="flex flex-col gap-1">
             <PageHeader
                 eyebrow="KPOne HR"
-                title="Staff files"
-                description="Employment, personal and bank details. Sensitive values stay hidden until someone presses Show."
+                :title="
+                    records.tabs.includes('files')
+                        ? 'Staff files'
+                        : 'My HR details'
+                "
+                :description="
+                    records.tabs.includes('files')
+                        ? 'Employment, personal and bank details. Sensitive values stay hidden until someone presses Show.'
+                        : 'Your employment, personal and bank details. Change your contact details here, or ask HR to correct the rest.'
+                "
             />
             <SyntheticNote />
         </div>
@@ -805,60 +817,64 @@ const sendLocum = () => {
                                 <th scope="col">Needs attention</th>
                             </tr>
                         </template>
-                        <tr
-                            v-for="row in files.rows"
-                            :key="row.id"
-                            data-test="file-row"
-                        >
-                            <th scope="row" class="font-medium">
-                                <Link
-                                    :href="`/hr/records/${row.id}`"
-                                    class="underline-offset-4 hover:underline"
-                                    >{{ row.name }}</Link
-                                >
-                            </th>
-                            <td>{{ row.branch ?? '—' }}</td>
-                            <td>
-                                {{ row.role }}
-                                <StatusBadge
-                                    v-if="row.kind === 'locum'"
-                                    status="locum"
-                                    label="No KPOne sign-in"
-                                    tone="neutral"
-                                />
-                            </td>
-                            <td>{{ row.typeLabel ?? '—' }}</td>
-                            <td>
-                                <StatusBadge
-                                    :status="row.status"
-                                    :label="row.statusLabel"
-                                    :tone="statusTone(row.status)"
-                                />
-                            </td>
-                            <td>
-                                <template v-if="row.attention.length">
-                                    <StatusBadge
-                                        status="attention"
-                                        :label="attentionLabel(row.attention)"
-                                        tone="warning"
-                                    />
-                                    <ul
-                                        v-if="row.attention.length > 1"
-                                        class="mt-1 text-xs text-muted-foreground"
+                        <template #body>
+                            <tr
+                                v-for="row in files.rows"
+                                :key="row.id"
+                                data-test="file-row"
+                            >
+                                <th scope="row" class="font-medium">
+                                    <Link
+                                        :href="`/hr/records/${row.id}`"
+                                        class="underline-offset-4 hover:underline"
+                                        >{{ row.name }}</Link
                                     >
-                                        <li
-                                            v-for="reason in row.attention"
-                                            :key="reason"
+                                </th>
+                                <td>{{ row.branch ?? '—' }}</td>
+                                <td>
+                                    {{ row.role }}
+                                    <StatusBadge
+                                        v-if="row.kind === 'locum'"
+                                        status="locum"
+                                        label="No KPOne sign-in"
+                                        tone="neutral"
+                                    />
+                                </td>
+                                <td>{{ row.typeLabel ?? '—' }}</td>
+                                <td>
+                                    <StatusBadge
+                                        :status="row.status"
+                                        :label="row.statusLabel"
+                                        :tone="statusTone(row.status)"
+                                    />
+                                </td>
+                                <td>
+                                    <template v-if="row.attention.length">
+                                        <StatusBadge
+                                            status="attention"
+                                            :label="
+                                                attentionLabel(row.attention)
+                                            "
+                                            tone="warning"
+                                        />
+                                        <ul
+                                            v-if="row.attention.length > 1"
+                                            class="mt-1 text-xs text-muted-foreground"
                                         >
-                                            {{ reason }}
-                                        </li>
-                                    </ul>
-                                </template>
-                                <span v-else class="text-muted-foreground"
-                                    >—</span
-                                >
-                            </td>
-                        </tr>
+                                            <li
+                                                v-for="reason in row.attention"
+                                                :key="reason"
+                                            >
+                                                {{ reason }}
+                                            </li>
+                                        </ul>
+                                    </template>
+                                    <span v-else class="text-muted-foreground"
+                                        >—</span
+                                    >
+                                </td>
+                            </tr>
+                        </template>
                     </OperationalTable>
                 </div>
                 <ul
