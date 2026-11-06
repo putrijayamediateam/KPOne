@@ -1556,7 +1556,7 @@ My HR details is a tab on the same page, linked from My roster.
 
 Written 2026-11-06 at the owner's request ("start the HR-5 design note"). It works out the HR-5 sketch in section 2
 in detail and replaces it where the two differ. It changes no HR-1 to HR-4 rule. **Status: approved with its defaults by
-the owner on 2026-11-06 (TEAM.md decision 38); Daniel's early look pending.** The questions in 12.9 take the defaults written here until the clinic
+the owner on 2026-11-06 (TEAM.md decision 38); Daniel's early look folded into 12.6 (decision 39).** The questions in 12.9 take the defaults written here until the clinic
 says otherwise.
 
 **KPOne ships no credential list and no limit.** Which credentials each role needs, when a warning starts, opening
@@ -1692,7 +1692,7 @@ None is in the people-and-access authority set, and none touches DOC-02a's `clin
 New hub links ("KPOne HR credentials", and "KPOne HR SOPs" with HR-5c) add `/hr/credentials` and `/hr/sops` to the
 Clinic management destination map, which are existing-assertion changes to approve when built.
 
-### 12.6 Screens (Hui Min, for Daniel's early look)
+### 12.6 Screens (Hui Min; Daniel's early look folded in)
 
 - **My credentials:**
   - one card per type, with the status chip (warning tone for Expiring and Expired, neutral for Waiting for check, Not recorded and No expiry; never red);
@@ -1713,6 +1713,16 @@ Clinic management destination map, which are existing-assertion changes to appro
   - on each person's side, an "SOPs to read" card with an outline **Open** and, once opened, the primary **I have read and understood** (one primary on the card);
   - "Acknowledged on 6 Nov 2026" afterwards.
 - The shared synthetic-data line from HR-4, and the HR-4 Show pattern for references.
+- **Daniel's early look (2026-11-06): OK with changes, folded in here:**
+  - **Status words:** the time is in the words, with the date beside it ("Expires in 21 days · 27 Nov 2026", "Expired 3 days ago"). Expired gets stronger warning text and a small alert icon so it never reads the same as Expiring, and still never red. Waiting for check, Not recorded and No expiry stay neutral.
+  - **Register matrix:** the person column and the header row stay sticky. Cells hold short words ("Valid", "21 days", "Expired", "Waiting"), and screen readers hear the full sentence ("APC, expires in 21 days, 27 Nov 2026"). A type the person does not need shows "—", read as "Not required". There is no colour legend.
+  - **Waiting records** show who entered them and when. The person whose record it is sees "Someone else checks this" and no Accept or Reject (the HR-4 bank rule).
+  - **Planner warnings (HR-5b):** a worded chip ("3 compliance warnings") in warning tone. Each line in the side panel names the person, the day and the rule. One plain line at the top: "Warnings only. They don't stop you saving or sending the roster."
+  - **SOPs (HR-5c):** "I have read and understood" is disabled until the SOP has been opened, with a hint "Open the SOP first". When a new version is published, the card says "Version 3 is new. Please read it again." and lists the old acknowledgement as being for version 2. "Who hasn't acknowledged" lists name, role, branch and "published 6 Nov 2026" as plain text, with no red and no ranking.
+  - **MMC number:** shown read-only with a muted source line, "From Clinician credentials. The Director updates this."
+  - **Settings:** "Health item" has help text saying what it changes: only Done or Not done and a date, seen only by the person and managers.
+  - **Empty states:** My credentials with nothing required ("Your role needs no credentials"), the register with no types set up (pointing to Settings), and SOPs with none published.
+  - **One more screenshot:** a register row showing each status, at 1440 px dark.
 - Phones: no sideways scroll at 320, 390 and 768 px; 44 px targets.
 - **Screenshots when built:** My credentials with each status; the renew sheet with an error; the register at 1440 and 390 px; a waiting record decided by someone else; the type settings; a planner week with each HR-5b warning (HR-5b); an SOP being acknowledged and the "who has not" list (HR-5c); light and dark.
 

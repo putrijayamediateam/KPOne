@@ -214,6 +214,11 @@ check items, keep them"). The rest stand unless the owner changes them.
     row, 11 h rest and 48 h a week, to confirm with the HR adviser; SOP audiences chosen per SOP by role. DOC-02a stays
     Director only and nothing blocks clinical work. The `/hr/credentials` and `/hr/sops` hub-map assertions still need
     the owner's OK at build time.
+39. Daniel's early look at the HR-5 screens (HR-PLAN 12.6, relayed by B.E.R.N.I.S.S 2026-11-06): OK with changes,
+    all nine notes folded into 12.6 (time in the status words with Expired stronger and an icon; a sticky worded
+    matrix with "—" for not required; "Someone else checks this"; a worded planner chip with "Warnings only"; SOP
+    acknowledgement only after opening and per version; plain "who hasn't" list; read-only MMC with its source line;
+    Health item help text; empty states; one extra register shot at 1440 px dark).
 
 ## 7. Open items and known limits
 
