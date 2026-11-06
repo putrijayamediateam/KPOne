@@ -70,8 +70,10 @@ class TreatmentStepService
     /** Called inside an existing transaction that already holds the doctor, visit and queue entry locks (Resume). */
     public function acknowledgeLocked(QueueEntry $entry, User $doctor): void
     {
-        $step = TreatmentStep::query()->where('queue_entry_id', $entry->id)->whereNull('closed_at')->lockForUpdate()->first();
-        if ($step && $step->state === TreatmentStep::STATE_DONE) {
+        // Q-2c: every finished step waiting for the doctor clears together; a step still in progress stays.
+        $steps = TreatmentStep::query()->where('queue_entry_id', $entry->id)->whereNull('closed_at')
+            ->where('state', TreatmentStep::STATE_DONE)->orderBy('id')->lockForUpdate()->get();
+        foreach ($steps as $step) {
             $this->transition($step, 'acknowledged', $doctor, null);
         }
     }
@@ -160,9 +162,11 @@ class TreatmentStepService
                 || $visit->status !== Visit::STATUS_REGISTERED || $visit->visit_type !== 'consultation') {
                 $this->refuse('Treatment progress can only be updated while the consultation is in progress or on hold.');
             }
-            $step = TreatmentStep::query()->where('queue_entry_id', $entry->id)->whereNull('closed_at')->lockForUpdate()->first();
+            // Q-2c (owner decision 2026-11-06): one step in progress per patient; done steps keep waiting for the
+            // doctor beside it until Resume or opening the consultation.
+            $open = TreatmentStep::query()->where('queue_entry_id', $entry->id)->whereNull('closed_at')->orderBy('id')->lockForUpdate()->get();
             if ($action === 'start') {
-                if ($step) {
+                if ($open->contains('state', TreatmentStep::STATE_STARTED)) {
                     $this->refuse('This patient already has an open treatment step. Mark it done or cancel it first.');
                 }
                 $now = now()->utc();
@@ -171,7 +175,8 @@ class TreatmentStepService
                 $this->event($step, 'started', $actor->id, null, null);
                 $this->audit($step, 'started', $actor);
             } else {
-                if (! $step || $step->id !== (int) $data['treatment_step_id'] || $step->lock_version !== (int) $data['lock_version']) {
+                $step = $open->firstWhere('id', (int) $data['treatment_step_id']);
+                if (! $step || $step->lock_version !== (int) $data['lock_version']) {
                     $this->refuse("This patient's treatment progress was changed by someone else. Reload and try again.");
                 }
                 if ($action === 'done') {

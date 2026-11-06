@@ -87,5 +87,80 @@ export const treatmentButtonLabel = (
     progress?.state === 'started'
         ? 'Mark done'
         : progress?.state === 'done'
-          ? 'Cancel step…'
+          ? 'Start next step'
           : 'Start treatment step';
+
+/** Q-2c: a finished step still waiting for the doctor beside the main step. */
+export type TreatmentWaitingView = { label: string; doneAt: string | null };
+
+/** Q-2c (Yasmin): at most this many waiting lines on a chip, then "+N more done". */
+export const TREATMENT_WAITING_SHOWN = 2;
+
+const minutesSince = (iso: string | null, nowMs: number): number | null => {
+    const start = iso ? Date.parse(iso) : Number.NaN;
+
+    return Number.isFinite(start)
+        ? Math.max(0, Math.floor((nowMs - start) / 60_000))
+        : null;
+};
+
+const spokenAgo = (minutes: number | null): string =>
+    minutes === null
+        ? ''
+        : minutes === 0
+          ? ' just now'
+          : ` ${minutes} ${minutes === 1 ? 'minute' : 'minutes'} ago`;
+
+/**
+ * Q-2c: the chip's lines when finished steps wait beside the main step. "Ready to resume" appears once, on the
+ * last line. Returns null when nothing is waiting, so the single-line chip stays exactly as before.
+ */
+export const treatmentChipLines = (
+    progress: TreatmentProgressView | null | undefined,
+    minutes: number | null,
+    waiting: ReadonlyArray<TreatmentWaitingView> | null | undefined,
+    nowMs: number,
+): string[] | null => {
+    if (!progress?.state || !progress.label || !waiting?.length) {
+        return null;
+    }
+
+    const main =
+        progress.state === 'done'
+            ? `${progress.label}: done${ago(minutes)}`
+            : `${progress.label}: started${ago(minutes)}`;
+    const lines = waiting
+        .slice(0, TREATMENT_WAITING_SHOWN)
+        .map(
+            (item) =>
+                `${item.label}: done${ago(minutesSince(item.doneAt, nowMs))}`,
+        );
+
+    if (waiting.length > TREATMENT_WAITING_SHOWN) {
+        lines.push(`+${waiting.length - TREATMENT_WAITING_SHOWN} more done`);
+    }
+
+    lines[lines.length - 1] += ' · Ready to resume';
+
+    return [main, ...lines];
+};
+
+/** Q-2c: one screen-reader sentence for the whole chip when finished steps are waiting. */
+export const treatmentWaitingAriaLabel = (
+    progress: TreatmentProgressView | null | undefined,
+    minutes: number | null,
+    waiting: ReadonlyArray<TreatmentWaitingView> | null | undefined,
+    nowMs: number,
+): string | null => {
+    if (!progress?.state || !progress.label || !waiting?.length) {
+        return null;
+    }
+
+    const main = `${progress.label} ${progress.state === 'done' ? 'done' : 'started'}${spokenAgo(minutes)}`;
+    const done = waiting.map(
+        (item) =>
+            `${item.label} done${spokenAgo(minutesSince(item.doneAt, nowMs))}`,
+    );
+
+    return `Treatment progress: ${[main, ...done].join('; ')}, ready to resume`;
+};
