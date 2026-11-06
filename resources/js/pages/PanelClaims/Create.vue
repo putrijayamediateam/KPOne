@@ -77,6 +77,9 @@ const createClaim = () =>
         { forceFormData: true },
     );
 const errors = computed(() => Object.entries(form.errors));
+// UX-7: these fields announce their own error through InputError, so the summary repeats
+// them on screen only; every other error is announced here.
+const fieldAnnouncedErrors = new Set(['submitted_date', 'remarks', 'photos']);
 </script>
 
 <template>
@@ -104,10 +107,15 @@ const errors = computed(() => Object.entries(form.errors));
             </header>
             <div
                 v-if="errors.length"
-                role="alert"
                 class="rounded-lg border border-destructive p-4 text-sm text-destructive"
             >
-                <p v-for="[field, message] in errors" :key="field">
+                <p
+                    v-for="[field, message] in errors"
+                    :key="field"
+                    :role="
+                        fieldAnnouncedErrors.has(field) ? undefined : 'alert'
+                    "
+                >
                     {{ message }}
                 </p>
             </div>
