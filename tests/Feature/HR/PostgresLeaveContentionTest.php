@@ -6,6 +6,7 @@ use App\Domain\HR\Leave\LeavePermissions;
 use App\Domain\HR\Leave\Models\LeaveRequest;
 use App\Domain\HR\Leave\Models\LeaveType;
 use App\Domain\HR\Leave\Services\LeaveEntryService;
+use App\Domain\HR\Leave\Services\LeaveEvidenceService;
 use App\Domain\HR\Leave\Services\LeaveRequestService;
 use App\Domain\Identity\Models\StaffProfile;
 use App\Domain\Organisation\Models\Branch;
@@ -16,6 +17,7 @@ use Illuminate\Database\Connection;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use RuntimeException;
 use Spatie\Permission\Models\Permission;
@@ -125,6 +127,28 @@ class PostgresLeaveContentionTest extends TestCase
         $this->assertSame(1, substr_count($out, 'SUCCESS'), $out);
         $this->assertSame(1, substr_count($out, 'STALE start_date: You already have leave on'), $out);
         $this->assertSame(1, LeaveRequest::query()->where('user_id', $f['applicant']->id)->count());
+    }
+
+    public function test_two_files_racing_for_the_last_of_three_places_store_one(): void
+    {
+        $f = $this->fixture(10);
+        $f['type']->forceFill(['accepts_evidence_files' => true, 'evidence_retention_days' => 30])->save();
+        $request = app(LeaveRequestService::class)->apply($f['applicant'], ['leave_type_id' => $f['type']->id, 'start_date' => $f['day']->toDateString(),
+            'end_date' => $f['day']->toDateString(), 'idempotency_key' => (string) Str::uuid()]);
+        $pdf = fn (string $mark): string => "%PDF-1.4\n{$mark}\n%%EOF\n";
+        foreach (['ONE', 'TWO'] as $mark) {
+            app(LeaveEvidenceService::class)->add($f['applicant'], $request->public_id, ['content' => $pdf($mark), 'kind' => 'pdf', 'bytes' => strlen($pdf($mark)),
+                'sha256' => hash('sha256', $pdf($mark))], ['idempotency_key' => (string) Str::uuid()]);
+        }
+        $out = $this->race($f['applicant'], [
+            $this->worker($f['applicant'], ['op' => 'evidence', 'request' => $request->public_id, 'content' => base64_encode($pdf('THREE'))]),
+            $this->worker($f['manager1'], ['op' => 'evidence', 'request' => $request->public_id, 'content' => base64_encode($pdf('FOUR'))]),
+        ]);
+
+        $this->assertSame(1, substr_count($out, 'SUCCESS'), $out);
+        $this->assertSame(1, substr_count($out, 'STALE file: This request already has 3 files.'), $out);
+        $this->assertSame(3, DB::table('hr_leave_evidence_files')->where('leave_request_id', $request->id)->where('status', 'active')->count());
+        // The losing add is refused at the 3-file check, before it writes anything (worker processes use their own test storage).
     }
 
     /** @return array<string, mixed> */
@@ -281,6 +305,12 @@ class PostgresLeaveContentionTest extends TestCase
     {
         DB::transaction(function () use ($id): void {
             // Only this isolated PostgreSQL test fixture cleanup may discard retained synthetic leave evidence.
+            foreach (['hr_leave_evidence_events', 'hr_leave_evidence_files'] as $table) {
+                DB::statement("ALTER TABLE {$table} DISABLE TRIGGER USER");
+                DB::table($table)->where('organisation_id', $id)->delete();
+                DB::statement("ALTER TABLE {$table} ENABLE TRIGGER USER");
+            }
+            Storage::disk(LeaveEvidenceService::DISK)->deleteDirectory("hr-leave-evidence/{$id}");
             foreach (['hr_leave_ledger', 'hr_leave_request_actions', 'hr_leave_retries', 'hr_leave_requests', 'hr_leave_adjustments', 'hr_leave_openings', 'hr_leave_entitlements'] as $table) {
                 DB::statement("ALTER TABLE {$table} DISABLE TRIGGER USER");
                 DB::table($table)->where('organisation_id', $id)->delete();
