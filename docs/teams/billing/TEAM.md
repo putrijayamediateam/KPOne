@@ -269,8 +269,9 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php` and `BillingPermiss
   (`tests/Fixtures/PilotScale/original-small-reports.json`) was regenerated for the Daily summary entries only;
   the Panel, Stock movement and Transaction Detail entries are byte-identical.
 
-- Monthly cash closing (BIL-7): every ended day with no count is flagged "No count", including months before cash
-  closing was in use (for example October 2026 shows 31 such days); a floor date is a possible later change. A
+- Monthly cash closing (BIL-7): an ended day with no count is flagged "No count" only from the branch's first ever
+  count on; days before it show "Not in use yet" with no flag, and a month wholly before it shows only "Cash closing
+  started on …". So a day skipped before the first count is never flagged (there is no configured go-live date). A
   missing, malformed, future or pre-2000 `?month=` shows the current month without a message. "Changed after
   approval" recomputes each approved day's expected cash (about three queries per approved day, about 93 for a
   fully approved month); not load-tested. Today's count is in the money totals but in no day counter until the day
