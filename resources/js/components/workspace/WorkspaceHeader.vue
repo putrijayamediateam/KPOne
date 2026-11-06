@@ -78,14 +78,14 @@ useResizeObserver([desktopNav, desktopLinks], () => {
                             v-for="item in items"
                             :key="item.href"
                             :href="item.href"
-                            class="cursor-pointer rounded-md border-l-2 border-transparent px-3 py-2 text-sm font-medium hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                            class="cursor-pointer rounded-md border-l-2 px-3 py-2 text-sm font-medium hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
                             :aria-current="
                                 isActive(item.href) ? 'page' : undefined
                             "
                             :class="
                                 isActive(item.href)
-                                    ? 'border-pink-600 bg-muted text-foreground'
-                                    : 'text-muted-foreground'
+                                    ? 'border-brand bg-muted text-foreground'
+                                    : 'border-transparent text-muted-foreground'
                             "
                             @click="mobileNavOpen = false"
                         >
@@ -106,7 +106,7 @@ useResizeObserver([desktopNav, desktopLinks], () => {
                     class="size-8 object-contain"
                 />
                 <span
-                    class="hidden text-sm font-semibold tracking-tight text-pink-700 sm:block"
+                    class="hidden text-sm font-semibold tracking-tight text-brand-strong sm:block"
                     >KPOne</span
                 >
             </Link>
@@ -126,7 +126,7 @@ useResizeObserver([desktopNav, desktopLinks], () => {
                         :aria-current="isActive(item.href) ? 'page' : undefined"
                         :class="
                             isActive(item.href)
-                                ? 'font-medium text-foreground after:absolute after:inset-x-3 after:bottom-0 after:h-0.5 after:bg-pink-600'
+                                ? 'font-medium text-foreground after:absolute after:inset-x-3 after:bottom-0 after:h-0.5 after:bg-brand'
                                 : ''
                         "
                     >
