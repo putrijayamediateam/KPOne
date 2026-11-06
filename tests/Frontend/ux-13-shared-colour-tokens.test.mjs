@@ -7,7 +7,7 @@ import test from 'node:test';
 const read = (path) =>
     readFileSync(new URL(`../../${path}`, import.meta.url), 'utf8');
 const palette =
-    /\b(?:text|bg|border|ring|after:bg)-(?:red|pink|rose|emerald|green|amber|blue|slate)-\d{2,3}\b/;
+    /(?:^|[\s'"`:])(?:text|bg|border|ring|fill|stroke|outline)-(?:red|pink|rose|fuchsia|purple|violet|indigo|blue|sky|cyan|teal|emerald|green|lime|yellow|amber|orange|slate|gray|zinc|neutral|stone)-\d{2,3}\b/;
 
 test('UX-13: the top bar, branch switcher and form errors use theme tokens', () => {
     for (const file of [
