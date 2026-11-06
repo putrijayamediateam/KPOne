@@ -11,8 +11,17 @@ test('the month view is read only and links each day to the daily page', () => {
     assert.doesNotMatch(month, /router\.(post|put|patch|delete)|useForm/);
     assert.ok(month.includes('`/cash-closings?date=${row.date}`'));
     assert.ok(month.includes('`Open day, ${longDate(row.date)}`'));
+    // The phone card's own text (date, status, figures, flags) is its name: one aria-label only, on the desktop link.
+    assert.equal(
+        (
+            month.match(
+                /:aria-label="`Open day, \$\{longDate\(row\.date\)\}`"/g,
+            ) ?? []
+        ).length,
+        1,
+    );
     assert.ok(month.includes('Open day ›'));
-    assert.ok(month.includes('href="/cash-closings" variant="outline"'));
+    assert.ok(month.includes(':href="`/cash-closings?date=${lastDay}`"'));
     assert.ok(
         daily.includes(
             '`/cash-closings/month?month=${day.businessDate.slice(0, 7)}`',
@@ -23,10 +32,13 @@ test('the month view is read only and links each day to the daily page', () => {
 
 test('the month bar is a labelled nav and the current month cannot go forward', () => {
     assert.ok(month.includes('aria-label="Month"'));
-    assert.ok(
-        month.includes(
-            ':aria-disabled="view.nextMonth === null ? \'true\' : undefined"',
-        ),
+    assert.match(
+        month,
+        /:aria-disabled="\s*view\.nextMonth === null \|\| loading \? 'true' : undefined\s*"/,
+    );
+    assert.match(
+        month,
+        /:aria-disabled="\s*view\.previousMonth === null \|\| loading \? 'true' : undefined\s*"/,
     );
     assert.match(month, /if \(month === null \|\| loading\.value\)/);
 });
@@ -72,5 +84,6 @@ test('empty, loading and error states are shown', () => {
     assert.ok(month.includes('title="Could not load this month"'));
     assert.ok(month.includes('onHttpException'));
     assert.ok(month.includes('onNetworkError'));
+    assert.ok(month.includes('@click="goTo(lastTried)"'));
     assert.ok(month.includes('class="block min-h-11'));
 });

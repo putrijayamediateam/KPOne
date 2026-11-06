@@ -264,7 +264,7 @@ final class CashClosingService
             $latest = $dayClosings->first();
             $approvedClosing = $dayClosings->first(fn (CashClosing $c): bool => $c->decision?->decision === 'approved');
             $shown = $approvedClosing ?? $latest;
-            $ended = $this->dayEnded($branch, $day);
+            $ended = $day->lessThan($today); // dayEnded()'s rule, from the one clock reading above.
             $status = $approvedClosing !== null ? 'approved' : (! $ended ? 'open' : ($latest === null ? 'not_counted' : ($latest->decision === null ? 'waiting' : 'returned')));
             $changed = false;
             if ($approvedClosing !== null) {
@@ -302,7 +302,7 @@ final class CashClosingService
 
         return [
             'branch' => $branch->name, 'month' => $first->format('Y-m'), 'today' => $today->toDateString(), 'isCurrentMonth' => $current,
-            'previousMonth' => $first->subMonth()->format('Y-m'), 'nextMonth' => $current ? null : $first->addMonth()->format('Y-m'),
+            'previousMonth' => $first->year === 2000 && $first->month === 1 ? null : $first->subMonth()->format('Y-m'), 'nextMonth' => $current ? null : $first->addMonth()->format('Y-m'),
             'summary' => $summary, 'hasClosings' => $closings->isNotEmpty(), 'rows' => $rows,
         ];
     }

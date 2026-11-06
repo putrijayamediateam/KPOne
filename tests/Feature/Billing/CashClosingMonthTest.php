@@ -114,6 +114,55 @@ class CashClosingMonthTest extends ClinicalTestCase
             ->where('cashClosingMonth.rows.0.status', 'open')->where('cashClosingMonth.summary.notCounted', 0));
     }
 
+    public function test_the_month_and_today_follow_the_branch_clock_not_utc(): void
+    {
+        $this->selectBranch($this->actor('ca'));
+        // 07:59 in Kuala Lumpur on 1 Dec is still 30 Nov in UTC: the page must already show December.
+        $this->travelTo(CarbonImmutable::parse('2026-12-01 07:59', $this->branch->timezone));
+        $this->get(route('cash-closings.month'))->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('cashClosingMonth.month', '2026-12')->where('cashClosingMonth.today', '2026-12-01')->has('cashClosingMonth.rows', 1)
+            ->where('cashClosingMonth.rows.0.status', 'open')->where('cashClosingMonth.summary.notCounted', 0)->where('cashClosingMonth.nextMonth', null));
+        // 23:59 on 30 Nov in Kuala Lumpur: 30 Nov is still open, 29 Nov has ended.
+        $this->travelTo(CarbonImmutable::parse('2026-11-30 23:59', $this->branch->timezone));
+        $this->get(route('cash-closings.month'))->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('cashClosingMonth.month', '2026-11')->has('cashClosingMonth.rows', 30)
+            ->where('cashClosingMonth.rows.29.status', 'open')->where('cashClosingMonth.rows.28.status', 'not_counted')
+            ->where('cashClosingMonth.rows.28.flags', ['no_count']));
+        // The earliest month offers no earlier one.
+        $this->get(route('cash-closings.month', ['month' => '2000-01']))->assertInertia(fn (Assert $page) => $page
+            ->where('cashClosingMonth.month', '2000-01')->where('cashClosingMonth.previousMonth', null));
+    }
+
+    public function test_a_recount_after_a_return_shows_the_new_count_and_today_stays_open_even_when_returned(): void
+    {
+        $ca = $this->actor('ca');
+        $supervisor = $this->actor('ca_supervisor');
+        $this->selectBranch($ca);
+        $this->countDay('2026-11-02', '0.00', null);
+        $this->countDay('2026-11-03', '0.00', null);
+        $this->countDay('2026-11-05', '0.00', null);
+        $this->selectBranch($supervisor);
+        $this->decide('2026-11-02', 'returned', 'Synthetic: count again');
+        $this->decide('2026-11-03', 'returned', 'Synthetic: count again');
+        $this->decide('2026-11-05', 'returned', 'Synthetic: count again'); // Today can be returned, not approved.
+        $this->selectBranch($ca);
+        $this->countDay('2026-11-02', '2.00', 'Synthetic: RM 2.00 over'); // Recount, waiting.
+        $this->countDay('2026-11-03', '1.00', 'Synthetic: RM 1.00 over'); // Recount, then approved.
+        $this->selectBranch($supervisor);
+        $this->decide('2026-11-03', 'approved');
+
+        $this->selectBranch($ca);
+        $this->get(route('cash-closings.month'))->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('cashClosingMonth.rows.1.status', 'waiting')->where('cashClosingMonth.rows.1.countedCashSen', 200)
+            ->where('cashClosingMonth.rows.1.decision', null)->where('cashClosingMonth.rows.1.flags', ['not_approved'])
+            ->where('cashClosingMonth.rows.2.status', 'approved')->where('cashClosingMonth.rows.2.countedCashSen', 100)
+            ->where('cashClosingMonth.rows.2.decision', 'approved')->where('cashClosingMonth.rows.2.flags', [])
+            ->where('cashClosingMonth.rows.4.status', 'open')->where('cashClosingMonth.rows.4.decision', 'returned')
+            ->where('cashClosingMonth.rows.4.flags', [])
+            ->where('cashClosingMonth.summary', ['approved' => 1, 'waiting' => 1, 'returned' => 0, 'notCounted' => 2,
+                'countedSen' => 300, 'expectedSen' => 0, 'differenceSen' => 300, 'countsShown' => 3]));
+    }
+
     private function countDay(string $date, string $counted, ?string $reason): void
     {
         $this->post(route('cash-closings.store'), ['expected_branch_id' => $this->branch->id, 'business_date' => $date, 'counted_cash' => $counted,

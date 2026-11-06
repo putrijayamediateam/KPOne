@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Head, router } from '@inertiajs/vue3';
+import { Head, Link, router } from '@inertiajs/vue3';
 import {
     ChevronLeft,
     ChevronRight,
@@ -34,7 +34,7 @@ const props = defineProps<{
         month: string;
         today: string;
         isCurrentMonth: boolean;
-        previousMonth: string;
+        previousMonth: string | null;
         nextMonth: string | null;
         summary: {
             approved: number;
@@ -54,6 +54,10 @@ const props = defineProps<{
 const view = computed(() => props.cashClosingMonth);
 const loading = ref(false);
 const failed = ref(false);
+const lastTried = ref<string | null>(null);
+const lastDay = computed(
+    () => view.value.rows.at(-1)?.date ?? view.value.today,
+);
 
 // BIL-6: refunds can make a day's cash below zero, which the shared myr() does not format (same as the daily page).
 const money = (sen: number) => (sen < 0 ? `−${myr(-sen)}` : myr(sen));
@@ -118,6 +122,7 @@ const goTo = (month: string | null) => {
     }
 
     failed.value = false;
+    lastTried.value = month;
     router.get(
         '/cash-closings/month',
         { month },
@@ -152,7 +157,10 @@ const goTo = (month: string | null) => {
             :description="`${view.branch} · One row per day. Open a day to count or approve.`"
         >
             <template #actions>
-                <ActionLink href="/cash-closings" variant="outline">
+                <ActionLink
+                    :href="`/cash-closings?date=${lastDay}`"
+                    variant="outline"
+                >
                     Daily view
                 </ActionLink>
             </template>
@@ -164,7 +172,10 @@ const goTo = (month: string | null) => {
         >
             <button
                 type="button"
-                class="inline-flex min-h-11 items-center gap-1 rounded-md px-3 text-sm font-medium hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                class="inline-flex min-h-11 items-center gap-1 rounded-md px-3 text-sm font-medium hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none aria-disabled:cursor-not-allowed aria-disabled:text-muted-foreground aria-disabled:hover:bg-transparent"
+                :aria-disabled="
+                    view.previousMonth === null || loading ? 'true' : undefined
+                "
                 data-testid="month-previous"
                 @click="goTo(view.previousMonth)"
             >
@@ -177,7 +188,9 @@ const goTo = (month: string | null) => {
             <button
                 type="button"
                 class="inline-flex min-h-11 items-center gap-1 rounded-md px-3 text-sm font-medium hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none aria-disabled:cursor-not-allowed aria-disabled:text-muted-foreground aria-disabled:hover:bg-transparent"
-                :aria-disabled="view.nextMonth === null ? 'true' : undefined"
+                :aria-disabled="
+                    view.nextMonth === null || loading ? 'true' : undefined
+                "
                 data-testid="month-next"
                 @click="goTo(view.nextMonth)"
             >
@@ -189,9 +202,20 @@ const goTo = (month: string | null) => {
         <ErrorState
             v-if="failed"
             title="Could not load this month"
-            message="Try again."
+            message="Check the connection, then try again."
             data-testid="month-error"
-        />
+        >
+            <template #action>
+                <button
+                    type="button"
+                    class="inline-flex min-h-11 items-center rounded-md border border-destructive/40 px-3 text-sm font-medium hover:bg-destructive/10 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                    data-testid="month-retry"
+                    @click="goTo(lastTried)"
+                >
+                    Try again
+                </button>
+            </template>
+        </ErrorState>
 
         <section
             class="space-y-3"
@@ -276,6 +300,10 @@ const goTo = (month: string | null) => {
             </dl>
             <p class="text-xs text-muted-foreground">
                 Totals of the counts shown; days not counted add nothing.
+                <template v-if="view.isCurrentMonth">
+                    Today's count is in the totals but in no day count until the
+                    day ends.</template
+                >
             </p>
         </section>
 
@@ -312,14 +340,17 @@ const goTo = (month: string | null) => {
                     <tr
                         v-for="row in view.rows"
                         :key="row.date"
-                        :class="
-                            row.flags.length
-                                ? 'border-l-4 border-l-warning'
-                                : ''
-                        "
                         :data-testid="`month-row-${row.date}`"
                     >
-                        <th scope="row" class="font-medium whitespace-nowrap">
+                        <th
+                            scope="row"
+                            class="font-medium whitespace-nowrap"
+                            :class="
+                                row.flags.length
+                                    ? 'border-l-4 border-l-warning'
+                                    : ''
+                            "
+                        >
                             {{ shortDate(row.date) }}
                         </th>
                         <td>
@@ -381,11 +412,11 @@ const goTo = (month: string | null) => {
                             <span v-else class="text-muted-foreground">—</span>
                         </td>
                         <td class="text-right whitespace-nowrap">
-                            <a
+                            <Link
                                 :href="dayHref(row)"
                                 class="font-medium text-brand-strong underline-offset-4 hover:underline focus-visible:rounded-sm focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
                                 :aria-label="`Open day, ${longDate(row.date)}`"
-                                >Open day</a
+                                >Open day</Link
                             >
                         </td>
                     </tr>
@@ -399,13 +430,12 @@ const goTo = (month: string | null) => {
             :aria-label="`Cash closings, ${monthTitle}`"
         >
             <li v-for="row in view.rows" :key="row.date">
-                <a
+                <Link
                     :href="dayHref(row)"
                     class="block min-h-11 rounded-xl border bg-card p-3 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
                     :class="
                         row.flags.length ? 'border-l-4 border-l-warning' : ''
                     "
-                    :aria-label="`Open day, ${longDate(row.date)}`"
                     :data-testid="`month-card-${row.date}`"
                 >
                     <div class="flex items-center justify-between gap-2">
@@ -495,7 +525,7 @@ const goTo = (month: string | null) => {
                     >
                         Open day ›
                     </p>
-                </a>
+                </Link>
             </li>
         </ul>
     </main>
