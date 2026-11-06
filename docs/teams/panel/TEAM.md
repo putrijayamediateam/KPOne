@@ -170,7 +170,7 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php`.
   is not load-tested; a photo as the resetting action is not covered by a cloud test (GD missing; CI runs the
   photo tests).
 - **PNL-6 limits:** a reversal cannot itself be undone (record the payment again instead); the page is reached
-  from Panel invoices and Panel payments, not from Clinic management; the reversal note is stored as plain text
+  from Panel invoices, Panel payments and (since PNL-10) Clinic management; the reversal note is stored as plain text
   (like claim notes) and the screen asks for no patient details; no `lock_version` is asked for, because a
   payment never changes, a second reversal is refused and the idempotency key covers a double submit; reports
   change in the period of the original payment (decision 18), so past Insights and Panel summary figures can
