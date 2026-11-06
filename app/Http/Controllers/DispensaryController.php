@@ -118,19 +118,24 @@ class DispensaryController extends Controller
         return to_route('dispensary.show', $dispensaryCase);
     }
 
-    public function labels(Request $request, DispensaryCase $dispensaryCase, DispensaryDirectoryService $directory, ?string $itemPublicId = null): Response|JsonResponse
+    public function labels(Request $request, DispensaryCase $dispensaryCase, DispensaryDirectoryService $directory, ?string $itemPublicId = null): Response
     {
-        if ($request->boolean('verify')) {
-            $request->validate(['token' => ['required', 'string', 'regex:/^[a-f0-9]{64}$/'], 'branch' => ['required', 'integer']]);
-            // DSP-6: the fresh check before the print dialog also logs the print (owner decision 2026-11-05). The branch,
-            // token and blocked-label checks (409) now live in DrugLabelService::recordPrint, before anything is written.
-            $reprints = $directory->recordLabelPrint($request->user(), $dispensaryCase, $itemPublicId, $request->string('token')->toString(), (int) $request->query('branch'));
-
-            return response()->json(['current' => true, 'reprints' => $reprints]);
-        }
         ['labels' => $labels, 'batchNotes' => $batchNotes, 'reprints' => $reprints] = $directory->labelsWithBatchNotes($request->user(), $dispensaryCase, $itemPublicId);
 
         return Inertia::render('Dispensary/Labels', ['labels' => $labels, 'labelBatchNotes' => $batchNotes, 'labelReprints' => $reprints]);
+    }
+
+    /**
+     * DSP-6b: the fresh check before the print dialog, which also logs the print (DSP-6, owner decision 2026-11-05).
+     * A POST since DSP-6b, because it writes a print row; the branch, token and blocked-label checks (409) live in
+     * DrugLabelService::recordPrint, before anything is written.
+     */
+    public function printLabels(Request $request, DispensaryCase $dispensaryCase, DispensaryDirectoryService $directory, ?string $itemPublicId = null): JsonResponse
+    {
+        $request->validate(['token' => ['required', 'string', 'regex:/^[a-f0-9]{64}$/'], 'branch' => ['required', 'integer']]);
+        $reprints = $directory->recordLabelPrint($request->user(), $dispensaryCase, $itemPublicId, $request->string('token')->toString(), $request->integer('branch'));
+
+        return response()->json(['current' => true, 'reprints' => $reprints]);
     }
 
     public function start(DispensaryCaseActionRequest $request, DispensaryCase $dispensaryCase, DispensaryService $service): RedirectResponse
