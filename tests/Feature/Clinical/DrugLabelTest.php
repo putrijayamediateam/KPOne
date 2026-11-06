@@ -88,18 +88,22 @@ class DrugLabelTest extends BillingTestCase
         app(DispensaryService::class)->editItem($f['ca'], $case->refresh(), $item, [...$this->addPayload($f, $case), 'item_lock_version' => $item->lock_version, 'administration_instruction' => str_repeat('x', 385)]);
         $labels = app(DrugLabelService::class)->preview($f['ca'], $case);
         $this->assertSame([], $labels['items']);
-        $this->assertContains('Instruction: 385 characters; label limit 384.', $labels['blocked'][0]['errors']);
+        // DSP-10 (approved test change): the landscape label's instruction limit is 144 (was 384).
+        $this->assertContains('Instruction: 385 characters; label limit 144.', $labels['blocked'][0]['errors']);
         $this->assertSame(str_repeat('x', 385), $item->refresh()->effective('administration_instruction'));
         $this->postJson(route('dispensary.labels.print', $case), ['token' => $labels['token'], 'branch' => $case->branch_id])->assertStatus(409);
     }
 
     public function test_every_budget_boundary_and_newline_wide_character_total_line_policy_are_server_side(): void
     {
+        // DSP-10 (owner decisions 2026-11-06, approved test change): the 100 × 62 mm landscape label, 48 cells × 13 rows,
+        // with per-field character limits and per-block row limits; render() takes the expiry and the controlled flag.
         $layout = new DrugLabelLayout;
+        $titles = ['clinic' => 'Clinic name', 'name' => 'Medicine name', 'phone' => 'Phone'];
         foreach (DrugLabelLayout::FIELD_BUDGETS as $field => $limit) {
             foreach ([$limit, $limit + 1] as $length) {
-                $result = $layout->render(['dosage' => '1', 'frequency' => '1', $field => str_repeat('W', $length)], '01/01/2027', false, false);
-                $message = ucfirst($field).": {$length} characters; label limit {$limit}.";
+                $result = $layout->render(['dosage' => '1', 'frequency' => '1', $field => str_repeat('W', $length)], '01/01/2027', null, false);
+                $message = ($titles[$field] ?? ucfirst($field)).": {$length} characters; label limit {$limit}.";
                 if ($length > $limit) {
                     $this->assertContains($message, $result['errors']);
                 } else {
@@ -107,26 +111,46 @@ class DrugLabelTest extends BillingTestCase
                 }
             }
         }
-        $this->assertSame([], $layout->render(['dosage' => '', 'frequency' => ''], '', false, false)['lines']);
-        $this->assertSame([], $layout->render(['dosage' => '1', 'frequency' => '1', 'instruction' => str_repeat("\n", 40)], '', false, false)['lines']);
-        $wide = $layout->render(['dosage' => str_repeat('界', 48), 'frequency' => '1'], '01/01/2027', false, false);
+        $this->assertSame([], $layout->render(['dosage' => '', 'frequency' => ''], '', null, false)['lines']);
+        $base = ['clinic' => 'Synthetic Clinic', 'patient' => 'Synthetic Patient', 'name' => 'Synthetic medicine', 'quantity' => '1', 'dosage' => '1', 'frequency' => '1'];
+        // A saved newline never adds a printed row: directions are one wrapped block.
+        $newlines = $layout->render([...$base, 'instruction' => "Line one\n\n\nline two"], '01/01/2027', null, false);
+        $this->assertContains('1, 1, LINE ONE LINE TWO', $newlines['lines']);
+        // Directions over three rows, or a label over 13 rows, are blocked and never cut.
+        $long = $layout->render([...$base, 'instruction' => str_repeat('word ', 28)], '01/01/2027', null, false);
+        $this->assertSame([], $long['lines']);
+        $this->assertContains('Directions: 4 rows (145 characters); label limit 3 rows.', $long['errors']);
+        $full = $layout->render([...$base, 'address' => str_repeat('a ', 40), 'phone' => '03-0000 0000', 'patient' => str_repeat('p ', 30), 'name' => str_repeat('n ', 25), 'instruction' => str_repeat('i ', 50), 'precaution' => str_repeat('c ', 25), 'duration' => '3 days', 'indication' => str_repeat('d ', 25)], '01/01/2027', null, false);
+        $this->assertSame(['Label rows: 17 rows; label limit 13.'], $full['errors'], 'every block is within its own limit; only the total is over');
+        $wide = $layout->render([...$base, 'dosage' => str_repeat('界', 48)], '01/01/2027', null, false);
         foreach ($wide['lines'] as $line) {
             $this->assertLessThanOrEqual(DrugLabelLayout::COLUMNS, mb_strwidth($line));
         }
-        $this->assertSame(['width' => 100, 'height' => 150], DrugLabelLayout::DRUG_LABEL_PAGE_SIZE);
+        $this->assertSame(['width' => 100, 'height' => 62], DrugLabelLayout::DRUG_LABEL_PAGE_SIZE);
     }
 
     public function test_realistic_long_directions_fit_with_emphasised_identity_and_exact_decimal_display(): void
     {
-        $instruction = 'Arahan contoh untuk ujian susun atur sahaja. Sila baca keseluruhan arahan yang diberikan pada label ini. Jika ada bahagian yang tidak jelas, minta penjelasan daripada petugas sebelum menggunakan ubat. Jangan gunakan arahan daripada label lama selepas arahan dikemas kini.';
-        $precaution = 'Peringatan contoh untuk ujian cetakan sahaja. Simpan label bersama bekas asal dan rujuk petugas jika label rosak atau tidak dapat dibaca.';
-        $fields = ['clinic' => 'Synthetic Label Clinic', 'address' => '42 Test Street, 50000, Test City, Test State, MY', 'contact' => 'clinic@label.test', 'patient' => 'Synthetic Label Patient', 'reference' => 'KP-000001 / V-000001', 'name' => 'Synthetic medicine for layout test', 'strength' => '500 mg', 'form' => 'Tablet', 'quantity' => '2 tablet', 'dosage' => 'Dos contoh', 'frequency' => 'Kekerapan contoh', 'duration' => 'Tempoh contoh', 'route' => 'Laluan contoh', 'instruction' => $instruction, 'precaution' => $precaution];
-        $render = (new DrugLabelLayout)->render($fields, '20/10/2026', false, true, '20/10/2026 12:00 (Asia/Kuala_Lumpur)');
-        $this->assertGreaterThan(96, mb_strlen($instruction));
-        $this->assertSame($instruction, implode('', (new \ReflectionMethod(DrugLabelLayout::class, 'wrap'))->invoke(new DrugLabelLayout, $instruction)));
+        // DSP-10 (approved test change): the owner's sample label, laid out on the landscape grid.
+        $fields = ['clinic' => 'Synthetic Label Clinic', 'address' => '42 Test Street, Taman Contoh, 50000, Test City, Test State, MY', 'phone' => '03-0000 1234',
+            'patient' => 'Synthetic Label Patient', 'name' => 'PAIN -Synthorelax tab 35mg/450mg', 'quantity' => '10',
+            'dosage' => '1 tablet', 'frequency' => '2 atau 3 kali sehari', 'instruction' => 'after meal/selepas makan.',
+            'precaution' => 'Mengantuk / drowsy', 'duration' => '3 days', 'indication' => 'Muscle relaxant / sakit otot'];
+        $render = (new DrugLabelLayout)->render($fields, '20/10/2026', '30/10/2027', false);
         $this->assertSame([], $render['errors']);
-        $this->assertContains('Synthetic Label Patient', array_intersect_key($render['lines'], array_flip($render['emphasis'])));
-        $this->assertContains('Synthetic medicine for layout test', array_intersect_key($render['lines'], array_flip($render['emphasis'])));
+        $this->assertSame('SYNTHETIC LABEL CLINIC', $render['lines'][0]);
+        $this->assertContains('Tel: (03-0000 1234)', $render['lines']);
+        $this->assertSame(array_search('Tel: (03-0000 1234)', $render['lines'], true) + 1, $render['ruleAfter']);
+        $bold = array_intersect_key($render['lines'], array_flip($render['emphasis']));
+        $this->assertContains('Synthetic Label Patient', $bold);
+        $this->assertContains(str_pad('PAIN -Synthorelax tab 35mg/450mg', 37).'    QTY: 10', $bold);
+        $this->assertContains('1 TABLET, 2 ATAU 3 KALI SEHARI, AFTER', $render['lines']);
+        $this->assertContains('MEAL/SELEPAS MAKAN.', $render['lines']);
+        $this->assertContains('Precaution: MENGANTUK / DROWSY', $render['lines']);
+        $this->assertContains('Duration:   3 DAYS', $render['lines']);
+        $this->assertContains('Indication: MUSCLE RELAXANT / SAKIT OTOT', $render['lines']);
+        $this->assertSame('20/10/2026'.str_repeat(' ', 23).'EXP: 30/10/2027', end($render['lines']));
+        $this->assertLessThanOrEqual(DrugLabelLayout::MAX_ROWS, count($render['lines']));
         foreach (['2.000' => '2', '0.500' => '0.5', '2.125' => '2.125', '999999999999999.125' => '999999999999999.125'] as $saved => $display) {
             $this->assertSame($display, DrugLabelLayout::displayQuantity($saved));
         }

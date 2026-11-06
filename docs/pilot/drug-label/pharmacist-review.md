@@ -4,152 +4,124 @@
 **Please:** read the sample labels, then answer each question in section 3 with *Accept* or the change you
 want. KPOne changes nothing until the clinic owner decides on your answers.
 
-The clinic decides which medicines are controlled and what directions are written. KPOne prints what staff
-saved; it does not check doses, interactions or legal particulars.
+The clinic decides which medicines are controlled, what directions are written and each medicine's indication
+text. KPOne prints what staff saved; it does not check doses, interactions or legal particulars.
+
+The layout follows the clinic's current printed label (DSP-10, owner decisions 2026-11-06).
 
 ## 1. What the label shows
 
-In this order, one label per medicine line that was dispensed (quantity above zero; a partly dispensed line
-needs the doctor's acknowledgement first):
+One landscape label per medicine line that was dispensed (quantity above zero; a partly dispensed line needs
+the doctor's acknowledgement first). Inside a rounded border, in this order:
 
-1. Clinic name, address, and phone and/or email, as entered in the clinic's Business details (optional clinic
-   logo above)
-2. **Patient name** (bold) and the clinic's patient number / visit number
-3. **Medicine name** (bold), then **"Ubat Terkawal / Controlled Medicine"** (bold) if the medicine is marked
-   controlled in the clinic's catalogue
-4. Strength, dosage form, `Kuantiti:` quantity and unit
-5. `No. Batch:` and `Tarikh luput:` (dd/mm/yyyy) only when the whole line came from **one** batch
-6. `Dos:`, `Kekerapan:`, `Tempoh:`, `Laluan:`, `Arahan:`, `Peringatan:` exactly as the doctor or clinic
-   assistant typed them
-7. `Dibekalkan:` date supplied (or `Disediakan:` before the case is completed), `Dijana:` date and time printed,
-   and `Rekod semasa; cetakan semula mungkin berbeza.` (a reprint shows the current record)
-8. On a label printed before, a small boxed **REPRINT** at the end of that last line (DSP-6; it uses no line of
-   the limit)
+1. **Clinic name** (bold capitals), the address (up to two rows) and **Tel: (phone)** (bold), as entered in the
+   clinic's Business details, then a thick rule. No logo and no email.
+2. **Patient name** (bold). No patient or visit number.
+3. **Medicine name** (bold, the catalogue display name, up to two rows), with **QTY: n** on the right (the number
+   only, no unit).
+4. Directions in capitals on one block: dosage, frequency and instruction joined with commas. The route is not
+   printed.
+5. `Precaution:`, `Duration:` and `Indication:`, values in capitals, in one column. The indication is the
+   medicine's own catalogue text, not the patient's diagnosis. An empty one is left out.
+6. The date supplied (dd/mm/yyyy) on the left and `EXP: dd/mm/yyyy` on the right. `EXP: -` when the line did not
+   come from exactly **one** batch with a real expiry. No batch number.
+7. On a label printed before, a small boxed **REPRINT** at the top right (DSP-6; it uses none of the rows).
 
-**Not printed:** the indication (reason for the medicine), identity card number, date of birth or age, phone,
-address of the patient, allergies, the name of the person who dispensed, the queue number, and any barcode.
+Below the border, centred: **Ubat Terkawal/Controlled Medicine** (bold) when the medicine is marked controlled in
+the clinic's catalogue.
 
-**Size:** sticker 100 × 150 mm, Courier New 10 pt, 42 characters per line, at most 35 lines (33 with a logo).
+Capitals are for printing only; the saved text keeps its own case.
+
+**Not printed:** identity card number, date of birth or age, the patient's phone or address, allergies, the
+name of the person who dispensed, the queue number, the route, the batch number and any barcode.
+
+**Size:** sticker 100 × 62 mm (provisional until the real printer test), Courier New 9 pt, 48 characters per
+row, at most 13 rows inside the border.
 
 ## 2. Sample labels
 
-Made-up patient and clinic. Bold lines are marked with **B**. Line breaks are exactly as KPOne prints them for
-this made-up header; a real clinic name, address and contact can add or remove a line or two.
+Made-up patient and clinic. Bold rows are marked with **B**; the thick rule is shown as `━━━`. Rows are exactly as
+KPOne prints them for this made-up header; a longer clinic name or address can take a row.
 
-**Sample A — ordinary medicine (21 lines)**
+**Sample A — ordinary medicine, one batch (12 rows)**
 
 ```
-   Klinik Contoh (Demo)
-   No. 1, Jalan Contoh 1, 43000, Bandar
-   Contoh, Selangor, Malaysia
-   03-0000 0000 / klinik@contoh.test
+B  KLINIK CONTOH (DEMO)
+   No. 1, Jalan Contoh 1, 43000, Bandar Contoh,
+   Selangor, Malaysia
+B  Tel: (03-0000 0000)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 B  Pesakit Contoh Satu
-   KP-00000001 / KPV-00000001
-B  Paracetamol
-   500mg
-   Tablet
-   Kuantiti: 20 tablet
-   Dos: 2 biji
-   Kekerapan: 4 kali sehari jika perlu
-   Tempoh: 5 hari
-   Laluan: Oral
-   Arahan: Makan selepas makan.
-   Peringatan: Jangan lebih 8 biji sehari.
-   Dibekalkan: 05/11/2026
-   Dijana: 05/11/2026 10:30
-   (Asia/Kuala_Lumpur)
-   Rekod semasa; cetakan semula mungkin
-   berbeza.
+B  Paracetamol 500mg tablet                 QTY: 20
+   2 BIJI, 4 KALI SEHARI JIKA PERLU, MAKAN SELEPAS
+   MAKAN.
+   Precaution: JANGAN LEBIH 8 BIJI SEHARI.
+   Duration:   5 HARI
+   Indication: DEMAM / SAKIT / FEVER / PAIN
+   05/11/2026                       EXP: 31/12/2027
 ```
 
-**Sample B — controlled medicine from one batch (25 lines)**
+**Sample B — controlled medicine from two batches (12 rows, plus the line below the border)**
 
 ```
-   Klinik Contoh (Demo)
-   No. 1, Jalan Contoh 1, 43000, Bandar
-   Contoh, Selangor, Malaysia
-   03-0000 0000 / klinik@contoh.test
+B  KLINIK CONTOH (DEMO)
+   No. 1, Jalan Contoh 1, 43000, Bandar Contoh,
+   Selangor, Malaysia
+B  Tel: (03-0000 0000)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 B  Pesakit Contoh Satu
-   KP-00000001 / KPV-00000001
-B  Tramadol
-B  Ubat Terkawal / Controlled Medicine
-   50mg
-   Kapsul
-   Kuantiti: 10 kapsul
-   No. Batch: B2611-0042
-   Tarikh luput: 31/12/2027
-   Dos: 1 kapsul
-   Kekerapan: 2 kali sehari
-   Tempoh: 5 hari
-   Laluan: Oral
-   Arahan: Makan selepas makan.
-   Peringatan: Boleh menyebabkan mengantuk.
-   Jangan memandu.
-   Dibekalkan: 05/11/2026
-   Dijana: 05/11/2026 10:30
-   (Asia/Kuala_Lumpur)
-   Rekod semasa; cetakan semula mungkin
-   berbeza.
+B  Tramadol 50mg capsule                    QTY: 10
+   1 KAPSUL, 2 KALI SEHARI, MAKAN SELEPAS MAKAN.
+   Precaution: MENGANTUK. JANGAN MEMANDU / DROWSY,
+               DO NOT DRIVE.
+   Duration:   5 HARI
+   Indication: SAKIT TERUK / SEVERE PAIN
+   05/11/2026                                EXP: -
+
+B          Ubat Terkawal/Controlled Medicine        (below the border)
 ```
 
-**Sample C — long directions with the clinic logo, exactly at the 33-line limit**
+**Sample C — long directions, exactly at the 13-row limit**
 
 ```
-   Klinik Contoh (Demo)
-   No. 1, Jalan Contoh 1, 43000, Bandar
-   Contoh, Selangor, Malaysia
-   03-0000 0000 / klinik@contoh.test
+B  KLINIK CONTOH (DEMO)
+   No. 1, Jalan Contoh 1, 43000, Bandar Contoh,
+   Selangor, Malaysia
+B  Tel: (03-0000 0000)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 B  Pesakit Contoh Satu
-   KP-00000001 / KPV-00000001
-B  Amoxicillin
-   250mg
-   Kapsul
-   Kuantiti: 15 kapsul
-   No. Batch: B2611-0007
-   Tarikh luput: 30/06/2027
-   Dos: 1 kapsul
-   Kekerapan: 3 kali sehari
-   Tempoh: 5 hari
-   Laluan: Oral
-   Arahan: Habiskan semua ubat walaupun
-   sudah sihat. Habiskan semua ubat walaupun
-   sudah sihat. Habiskan semua ubat walaupun
-   sudah sihat. Habiskan semua ubat walaupun
-   sudah sihat. Habiskan semua ubat walaupun
-   sudah sihat. Habiskan semua ubat walaupun
-   sudah sihat. Habiskan semua ubat walaupun
-   sudah sihat.
-   Peringatan: Berhenti dan jumpa doktor
-   jika ada ruam. Berhenti dan jumpa doktor
-   jika ada ruam. Berhenti dan jumpa doktor
-   jika ada ruam.
-   Dibekalkan: 05/11/2026
-   Dijana: 05/11/2026 10:30
-   (Asia/Kuala_Lumpur)
-   Rekod semasa; cetakan semula mungkin
-   berbeza.
+B  Tramadol 50mg capsule                    QTY: 10
+   1 KAPSUL, 2 KALI SEHARI, MAKAN SELEPAS MAKAN
+   DENGAN SEGELAS AIR. MAKAN SELEPAS MAKAN DENGAN
+   SEGELAS AIR. SIMPAN DI TEMPAT KERING DAN SEJUK.
+   Precaution: MENGANTUK. JANGAN MEMANDU.
+   Duration:   5 HARI
+   Indication: SAKIT TERUK / SEVERE PAIN
+   05/11/2026                                EXP: -
 ```
 
-**Sample D — too long: blocked, not printed.** A controlled medicine from one batch, with the clinic logo, an
-instruction of 384 characters and a precaution of 192 characters (both exactly at their own limits) needs 38
-lines. The screen shows `Label lines: 38 lines; label limit 33.` and nothing prints until the directions are
-shortened. KPOne never cuts text off or shrinks it.
+**Sample D — too long: blocked, not printed.** A two-row medicine name, two rows of directions, a two-row
+precaution and a two-row indication need 16 rows. The screen shows `Label rows: 16 rows; label limit 13.` and
+nothing prints until the text is shortened. Directions over three rows show, for example,
+`Directions: 4 rows (150 characters); label limit 3 rows.` KPOne never cuts text off or shrinks it.
 
 ## 3. Questions
 
 | # | Question | Accept / change wanted |
 |---|---|---|
-| Q1 | Is the content in section 1 enough for a dispensed-medicine label at this clinic? Is anything required that is missing (for example the indication, which the clinic's current system prints)? | |
-| Q2 | Is the wording **"Ubat Terkawal / Controlled Medicine"** right, and is printing it under the medicine name, in bold, the right place? | |
-| Q3 | Should a controlled medicine label show anything else (for example a register or prescription reference)? | |
-| Q4 | Are **"No. Batch:"** and **"Tarikh luput:"** the right words, and is dd/mm/yyyy the right date format? | |
-| Q5 | When one line uses **two or more batches**, KPOne prints no batch or expiry at all. Is that acceptable, or must every batch be printed? | |
-| Q6 | Are the Malay headings right: Kuantiti, Dos, Kekerapan, Tempoh, Laluan, Arahan, Peringatan, Dibekalkan, Disediakan, Dijana? | |
-| Q7 | Are these **length limits** acceptable for real directions: instruction 384 characters, precaution 192, dosage 96, frequency 96, duration 48, route 48, medicine name 96? Sample C shows how long that is. | |
-| Q8 | A label that does not fit is **blocked** until the directions are shortened (Sample D). Is blocking right, or should long directions continue on a second sticker? | |
-| Q9 | A reprint shows the **current** saved record, so it can differ from a label already on a box, and the label says so. Is that acceptable, and should staff discard old labels after an edit? | |
-| Q10 | A label printed again carries a small boxed **REPRINT** at the end of the last line ("…mungkin berbeza. [REPRINT]"). Is the word right, or should it read "CETAKAN SEMULA / REPRINT" like the controlled-medicine line? | |
-| Q11 | Anything else you would change? | |
+| Q1 | Is the content in section 1 enough for a dispensed-medicine label at this clinic? Is anything required that is missing? | |
+| Q2 | Is **QTY with the number only** ("QTY: 10") clear enough, or should the unit print ("QTY: 10 TAB")? There is room for a short unit. | |
+| Q3 | The **indication** prints from the medicine's catalogue text (up to 72 characters, two rows). Is printing it acceptable, and is the medicine level (not the patient's diagnosis) right? | |
+| Q4 | Is the wording **"Ubat Terkawal/Controlled Medicine"** right, and is printing it below the label border the right place? Should a controlled medicine label show anything else? | |
+| Q5 | When one line uses **two or more batches**, the label prints `EXP: -`. Is that acceptable, or should it print the earliest expiry? | |
+| Q6 | The **route** and the **batch number** are no longer printed. Is that acceptable? | |
+| Q7 | Directions print in **capitals**. Is that acceptable for every medicine? | |
+| Q8 | Is **9 pt** text the smallest acceptable size for patients to read at home? | |
+| Q9 | Are these **limits** acceptable for real directions: dosage, frequency and instruction together at most 3 rows (instruction 144 characters), precaution 2 rows (72), duration 1 row (36), indication 2 rows (72), medicine name 2 rows (72)? Sample C shows a full label. | |
+| Q10 | A label that does not fit is **blocked** until the text is shortened (Sample D). Is blocking right, or should long directions continue on a second sticker? | |
+| Q11 | A reprint shows the **current** saved record, so it can differ from a label already on a box. Should staff discard old labels after an edit? | |
+| Q12 | A label printed again carries a small boxed **REPRINT** at the top right. Is the word right, or should it read "CETAKAN SEMULA / REPRINT"? | |
+| Q13 | Anything else you would change? | |
 
 ## 4. Sign-off
 

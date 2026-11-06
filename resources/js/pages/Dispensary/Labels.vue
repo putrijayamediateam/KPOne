@@ -13,10 +13,12 @@ const props = defineProps<{
             name: string;
             lines: string[];
             emphasis: number[];
+            // DSP-10: the thick rule follows this many header rows; the controlled line prints below the border.
+            ruleAfter: number;
+            controlled: string | null;
             previewUrl: string;
         }>;
         blocked: Array<{ name: string; errors: string[] }>;
-        logo: string | null;
         token: string;
         branchId: number;
         excludedCount: number;
@@ -132,9 +134,9 @@ const printLabels = async () => {
         <header class="print-toolbar">
             <h1>Medicine label preview</h1>
             <p>
-                Provisional {{ labels.pageSize.width }} ×
-                {{ labels.pageSize.height }} mm. Confirm printer and sticker
-                stock. Print at 100%, browser headers/footers off.
+                Label size {{ labels.pageSize.width }} ×
+                {{ labels.pageSize.height }} mm (provisional). Confirm printer
+                and sticker stock. Print at 100%, browser headers/footers off.
             </p>
             <p>
                 Saved fulfilment data only. Unsaved workspace edits are not
@@ -181,12 +183,12 @@ const printLabels = async () => {
             <section
                 v-if="batchNotes.length"
                 class="print-toolbar"
-                aria-label="Batch and expiry"
+                aria-label="Expiry"
                 data-testid="label-batch-notes"
             >
                 <p>
-                    Batch number and expiry are printed only when exactly one
-                    batch was used for a medicine.
+                    The expiry is printed only when exactly one batch was used
+                    for a medicine; otherwise the label shows "EXP: -".
                 </p>
                 <ul>
                     <li v-for="note in batchNotes" :key="note.previewUrl">
@@ -242,30 +244,32 @@ const printLabels = async () => {
                     :key="i"
                     class="medicine-label"
                 >
-                    <img
-                        v-if="labels.logo"
-                        :src="labels.logo"
-                        alt="Logo klinik"
-                        class="clinic-logo"
-                    />
-                    <p
-                        v-for="(line, n) in item.lines"
-                        :key="n"
-                        class="label-line"
-                        :class="{
-                            'safety-emphasis': item.emphasis.includes(n),
-                        }"
-                    >
-                        {{ line
-                        }}<span
-                            v-if="
-                                n === item.lines.length - 1 &&
-                                reprinted.includes(item.previewUrl)
-                            "
+                    <div class="label-box">
+                        <span
+                            v-if="reprinted.includes(item.previewUrl)"
                             class="reprint-mark"
                             data-testid="label-reprint-mark"
                             >REPRINT</span
                         >
+                        <p
+                            v-for="(line, n) in item.lines"
+                            :key="n"
+                            class="label-line"
+                            :class="{
+                                'safety-emphasis': item.emphasis.includes(n),
+                                'label-rule': n === item.ruleAfter - 1,
+                                'label-bottom': n === item.lines.length - 1,
+                            }"
+                        >
+                            {{ line }}
+                        </p>
+                    </div>
+                    <p
+                        v-if="item.controlled"
+                        class="controlled-line"
+                        data-testid="label-controlled"
+                    >
+                        {{ item.controlled }}
                     </p>
                 </article>
             </section>
@@ -301,40 +305,56 @@ const printLabels = async () => {
 .print-toolbar article {
     margin: 8px 0;
 }
+/* DSP-10: the clinic's landscape label (owner decisions 2026-11-06). Monospace 9 pt rows of 48 cells, at most 13 rows
+   inside a rounded border; a strip below the border is always kept for the controlled-medicine line. */
 .medicine-label {
     box-sizing: border-box;
-    width: min(100%, var(--label-width));
-    min-height: var(--label-height);
-    padding: 3mm;
+    width: var(--label-width);
+    height: var(--label-height);
+    padding: 1.5mm 1.5mm 0;
     margin: 0 auto 16px;
-    border: 1px solid #777;
     color: #171717;
     background: #fff;
+    outline: 1px dashed #bbb;
+}
+.label-box {
+    position: relative;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    height: 55mm;
+    padding: 1.5mm 2mm;
+    border: 0.4mm solid #000;
+    border-radius: 3mm;
 }
 .label-line {
     font:
-        10pt/4mm 'Courier New',
+        9pt/3.8mm 'Courier New',
         monospace;
-    white-space: pre-wrap;
-    overflow-wrap: anywhere;
+    white-space: pre;
     margin: 0;
+}
+.label-rule {
+    padding-bottom: 0.4mm;
+    border-bottom: 0.6mm solid #000;
+    margin-bottom: 0.4mm;
+}
+.label-bottom {
+    margin-top: auto;
 }
 .safety-emphasis {
     font-weight: 700;
 }
-/* DSP-6: sits at the right end of the always-short last row, so it uses no line of the label budget. */
-.label-line:last-child {
-    position: relative;
-}
+/* DSP-6, DSP-10: reserved cells at the top right of the first row (the clinic name stays clear of them). */
 .reprint-mark {
     position: absolute;
-    top: 0;
-    right: 0;
+    top: 1.5mm;
+    right: 2mm;
     box-sizing: border-box;
-    height: 4mm;
+    height: 3.8mm;
     padding: 0 1mm;
     font:
-        700 8pt/3.5mm 'Courier New',
+        700 7pt/3.4mm 'Courier New',
         monospace;
     border: 0.25mm solid #000;
     color: #000;
@@ -342,12 +362,20 @@ const printLabels = async () => {
     print-color-adjust: exact;
     white-space: nowrap;
 }
-.clinic-logo {
-    display: block;
-    height: 6mm;
-    max-width: 20mm;
-    object-fit: contain;
-    margin-bottom: 0;
+.controlled-line {
+    height: 4.5mm;
+    margin: 0;
+    font:
+        700 9pt/4.5mm 'Courier New',
+        monospace;
+    text-align: center;
+    white-space: nowrap;
+}
+/* The screen preview scales the true-size label to fit a phone; printing is always 100%. */
+@media screen and (max-width: 420px) {
+    .medicine-label {
+        zoom: 0.9;
+    }
 }
 @media print {
     .print-toolbar {
@@ -360,10 +388,7 @@ const printLabels = async () => {
         color: #171717 !important;
     }
     .medicine-label {
-        width: var(--label-width);
-        height: var(--label-height);
-        min-height: 0;
-        border: 0;
+        outline: 0;
         margin: 0;
         break-inside: avoid;
         break-after: page;
@@ -371,10 +396,6 @@ const printLabels = async () => {
     }
     .medicine-label:last-child {
         break-after: auto;
-    }
-    .label-line {
-        white-space: pre;
-        overflow-wrap: normal;
     }
 }
 </style>
