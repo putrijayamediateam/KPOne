@@ -42,6 +42,7 @@ class MedicineCatalogueItem extends Model
             'is_active' => 'boolean',
             'is_controlled' => 'boolean',
             'allergy_groups' => 'array',
+            'allergy_aliases' => 'array',
             'default_dosage_amount' => 'decimal:3',
         ];
     }
@@ -53,10 +54,37 @@ class MedicineCatalogueItem extends Model
      */
     public function allergyGroupList(): array
     {
-        $groups = $this->getAttribute('allergy_groups');
+        return $this->textList('allergy_groups');
+    }
+
+    /**
+     * DSP-1c: other names (brand names, common misspellings) used by the Dispensary allergy warning only.
+     *
+     * @return list<string>
+     */
+    public function allergyAliasList(): array
+    {
+        return $this->textList('allergy_aliases');
+    }
+
+    /**
+     * Every term the Dispensary allergy warning compares with a patient's allergy text (DSP-1, DSP-1b, DSP-1c):
+     * the display name, generic name, drug groups and other names.
+     *
+     * @return list<string>
+     */
+    public function allergyMatchTerms(): array
+    {
+        return [(string) $this->display_name, (string) $this->generic_name, ...$this->allergyGroupList(), ...$this->allergyAliasList()];
+    }
+
+    /** @return list<string> */
+    private function textList(string $attribute): array
+    {
+        $items = $this->getAttribute($attribute);
 
         // Only text items count; anything else is ignored rather than allowed to break a page.
-        return is_array($groups) ? array_values(array_filter($groups, fn (mixed $group): bool => is_string($group) && $group !== '')) : [];
+        return is_array($items) ? array_values(array_filter($items, fn (mixed $item): bool => is_string($item) && $item !== '')) : [];
     }
 
     public function getRouteKeyName(): string
