@@ -17,6 +17,7 @@ use LogicException;
  * @property string $state
  * @property string $country
  * @property string|null $phone
+ * @property string|null $phone_secondary
  * @property string|null $email
  * @property int $lock_version
  */

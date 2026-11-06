@@ -28,3 +28,13 @@ test('the icon tile is never empty and a destructive question uses the destructi
         /destructive\s*\?\s*'bg-destructive\/10 text-destructive dark:bg-destructive\/15'/,
     );
 });
+
+// UX-16 (the rest of design debt DD-20): a non-destructive question's tile uses the brand
+// tokens, which have their own dark values, instead of fixed pink palette colours.
+test('UX-16: a non-destructive question uses the brand tone', () => {
+    assert.match(
+        dialog,
+        /:\s*'bg-brand\/10 text-brand-strong dark:bg-brand\/15'/,
+    );
+    assert.doesNotMatch(dialog, /pink-\d+/);
+});

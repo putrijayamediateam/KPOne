@@ -29,13 +29,19 @@ class TreatmentStepProjection
         if ($serving === []) {
             return [];
         }
+        // Q-2c: an entry can have one step in progress and finished steps still waiting for the doctor.
         $steps = TreatmentStep::query()->where('organisation_id', $actor->organisation_id)
-            ->whereIn('queue_entry_id', array_keys($serving))->whereNull('closed_at')->get()->keyBy('queue_entry_id');
+            ->whereIn('queue_entry_id', array_keys($serving))->whereNull('closed_at')->orderBy('id')->get()->groupBy('queue_entry_id');
         $branchWide = $actor->is_active && $actor->can(TreatmentStepPermissions::SET_BRANCH);
         $own = $actor->is_active && $actor->can(TreatmentStepPermissions::SET_OWN);
         $result = [];
         foreach ($serving as $id => $doctorId) {
-            $step = $steps->get($id);
+            $open = $steps->get($id, collect());
+            // The main step: the one in progress, else the most recently finished one.
+            $step = $open->firstWhere('state', TreatmentStep::STATE_STARTED)
+                ?? $open->sortBy([['done_at', 'desc'], ['id', 'desc']])->first();
+            $waiting = $open->filter(fn (TreatmentStep $s): bool => $s->state === TreatmentStep::STATE_DONE && $s->id !== $step?->id)
+                ->sortBy([['done_at', 'asc'], ['id', 'asc']])->values();
             $result[$id] = [
                 'id' => $step?->id,
                 'code' => $step?->step_code,
@@ -47,6 +53,13 @@ class TreatmentStepProjection
                 // UI hint only; the service re-authorises under lock.
                 'canManage' => $branchWide || ($own && $doctorId === $actor->id),
             ];
+            if ($waiting->isNotEmpty()) {
+                // Q-2c: other finished steps still waiting for the doctor, oldest first. Only sent when there are any.
+                $result[$id]['waiting'] = $waiting->map(fn (TreatmentStep $s): array => [
+                    'label' => TreatmentStepService::STEPS[$s->step_code],
+                    'doneAt' => $s->done_at?->toIso8601String(),
+                ])->all();
+            }
         }
 
         return $result;
@@ -82,7 +95,8 @@ class TreatmentStepProjection
             ->where('e.event_type', 'done')->where('e.doctor_user_id', $actor->id)
             ->where('e.id', '>', $cursor ?? $ceiling)->where('e.id', '<=', $ceiling);
         $ready = $cursor !== null && (clone $visible)->exists();
-        $result = ['cursor' => $ceiling, 'ready' => $ready, 'doneCount' => $openDone()->count()];
+        // Q-2c: one patient can have several finished steps waiting; the count is of patients.
+        $result = ['cursor' => $ceiling, 'ready' => $ready, 'doneCount' => $openDone()->distinct()->count('s.queue_entry_id')];
         if ($details) {
             $result['numbers'] = $ready ? array_values($visible->orderBy('e.id')->limit(25)->get(['q.queue_number', 's.step_code'])
                 ->map(fn ($row): string => QueueNumberFormat::format((int) $row->queue_number).' '.TreatmentStepService::STEPS[$row->step_code])->unique()->all()) : [];
