@@ -50,13 +50,16 @@ class PublicQueueInsightTest extends QueueTestCase
         $service = new PublicQueueInsightService;
         $this->assertNull($service->waitRange($entry->branch_id, 2));
 
+        // One clock reading for all three times, so a second ticking over on a slow runner cannot turn the
+        // 20-minute wait into 20 min 1 s (which rounds the upper bound up to 53).
+        $now = now()->utc()->startOfSecond();
         foreach (range(1, 5) as $i) {
             $this->entry([
                 'status' => QueueEntry::STATUS_REMOVED,
-                'queued_at' => now()->utc()->subMinutes(40),
-                'called_at' => now()->utc()->subMinutes(20),
+                'queued_at' => $now->copy()->subMinutes(40),
+                'called_at' => $now->copy()->subMinutes(20),
                 'called_by_user_id' => $entry->queued_by_user_id,
-                'removed_at' => now()->utc(),
+                'removed_at' => $now->copy(),
                 'removal_reason' => 'completed',
             ]);
         }

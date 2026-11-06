@@ -15,6 +15,7 @@ use App\Domain\Queue\QueueNumberFormat;
 use App\Domain\Queue\Services\QueueEntryService;
 use App\Domain\Visit\Models\Visit;
 use App\Models\User;
+use Carbon\CarbonImmutable;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Auth;
@@ -225,6 +226,8 @@ class QueueDisplayTest extends QueueTestCase
 
     public function test_call_again_announces_the_serving_patient_once_more_without_changing_the_queue(): void
     {
+        // Midday at the branch, so the clock jumps below never cross the branch's midnight (a new day for "today").
+        $this->travelTo(CarbonImmutable::now($this->branch->timezone)->setTime(10, 0));
         $director = $this->actor('director');
         $room = app(QueueDisplayAdministrationService::class)->createRoom($director, $this->branch, [
             'kind' => 'consultation', 'name' => 'Consultation Room 2', 'sort_order' => 2,

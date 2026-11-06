@@ -93,6 +93,12 @@ class DispensaryController extends Controller
         return to_route('dispensary.show', $dispensaryCase);
     }
 
+    /** DSP-7b: returns at the active branch waiting for a check, for the people who may check them. */
+    public function returnsToCheck(Request $request, DispensaryReturnService $returns): Response
+    {
+        return Inertia::render('Dispensary/ReturnsToCheck', ['returns' => $returns->waitingList($request->user(), (int) $request->query('page', '1'))]);
+    }
+
     /** DSP-7: record medicine a patient brought back on one line of a completed case. Moves no stock. */
     public function recordReturn(Request $request, DispensaryCase $dispensaryCase, string $itemPublicId, DispensaryReturnService $returns): RedirectResponse
     {

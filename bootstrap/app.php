@@ -152,6 +152,8 @@ return Application::configure(basePath: dirname(__DIR__))
             'issued_on',
             'expires_on',
             'issuing_body',
+            // HR-6: a staff claim's purpose is encrypted at rest and never flashed (Suresh, S2).
+            'purpose',
             'member_reference',
             'reason',
             'coverage',
