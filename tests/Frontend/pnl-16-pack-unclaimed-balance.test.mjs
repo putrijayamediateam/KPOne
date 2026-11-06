@@ -21,3 +21,24 @@ test('The balance row follows the bold Panel share line and is only shown when a
     );
     assert.doesNotMatch(pack, /Patient pays|Patient share/);
 });
+
+test('The balance is the unclaimed rest, and zero for a full claim or a claim above the total', () => {
+    const body = pack.match(
+        /const unclaimedSen = \(claim: \{[^}]*\}\) =>\s*(Math\.max\([^;]*\));/,
+    );
+    assert.ok(body, 'unclaimedSen is defined');
+    const unclaimedSen = new Function('claim', `return ${body[1]};`);
+
+    assert.equal(
+        unclaimedSen({ invoiceTotalSen: 4000, claimAmountSen: 2500 }),
+        1500,
+    );
+    assert.equal(
+        unclaimedSen({ invoiceTotalSen: 4000, claimAmountSen: 4000 }),
+        0,
+    );
+    assert.equal(
+        unclaimedSen({ invoiceTotalSen: 4000, claimAmountSen: 4500 }),
+        0,
+    );
+});

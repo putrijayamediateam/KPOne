@@ -285,4 +285,5 @@ Second backlog, chosen by the owner on 2026-11-05 ("panel order ok", relayed by 
    Overdue tabs; frontend only.
 10. **PNL-12 Small leftovers. (Built 2026-11-06.)** Ticked order in the claim pack, the claim reference repeated
     on each printed page and above the totals, "1 claim" and "N invoices" on the summary cards, and a bulk-claim test across visit dates.
-14. **PNL-16 Balance line on the claim pack. (Built 2026-11-06.)**
+14. **PNL-16 Balance line on the claim pack. (Built 2026-11-06.)** "Balance not claimed from the Panel" under the Panel share;
+    never negative; does not say who pays.
