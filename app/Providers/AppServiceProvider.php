@@ -3,6 +3,8 @@
 namespace App\Providers;
 
 use App\Domain\Access\BranchAccessService;
+use App\Domain\Agents\Health\SystemHealthTool;
+use App\Domain\Agents\Tools\AgentToolRegistry;
 use App\Domain\Audit\AccessChangeActorContext;
 use App\Domain\Audit\Listeners\RecordAccessChanges;
 use App\Domain\Audit\Listeners\RecordAuthenticationEvents;
@@ -53,6 +55,8 @@ class AppServiceProvider extends ServiceProvider
     {
         $this->app->scoped(AccessChangeActorContext::class);
         $this->app->scoped(BranchAccessService::class);
+        // AG-10: the tenth agent data source joins the registry by tag (AgentToolRegistry stays unchanged).
+        $this->app->tag([SystemHealthTool::class], AgentToolRegistry::TAG);
     }
 
     /**
