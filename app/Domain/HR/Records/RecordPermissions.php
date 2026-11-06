@@ -18,9 +18,13 @@ final class RecordPermissions
 
     public const VIEW_OWN = 'hr.records.view.own';
 
+    /** HR-4b: open anyone's documents, each view audited (staff open their own with VIEW_OWN). */
+    public const DOCUMENTS_VIEW = 'hr.documents.view.organisation';
+
     /** @return array<string, list<string>> */
     public static function grants(): array
     {
-        return [self::VIEW_ORGANISATION => ['director', 'hr_manager'], self::MANAGE => ['director', 'hr_manager'], self::VIEW_OWN => RosterPermissions::HUMAN_ROLES];
+        return [self::VIEW_ORGANISATION => ['director', 'hr_manager'], self::MANAGE => ['director', 'hr_manager'], self::VIEW_OWN => RosterPermissions::HUMAN_ROLES,
+            self::DOCUMENTS_VIEW => ['director', 'hr_manager']];
     }
 }
