@@ -78,9 +78,9 @@ const editHref = (number: string) => `${visitHref(number)}/edit`;
 const statusClass = (tone: PatientBoardRow['statusTone']) =>
     ({
         neutral: 'bg-muted/55 text-muted-foreground',
-        waiting: 'bg-warning/10 text-warning-strong',
-        serving: 'bg-success/10 text-success',
-        held: 'bg-warning/15 text-warning-strong',
+        waiting: 'bg-amber-100/70 text-amber-800',
+        serving: 'bg-emerald-100/65 text-emerald-800',
+        held: 'bg-amber-100/80 text-amber-900',
         cancelled: 'bg-muted/70 text-muted-foreground',
         removed: 'bg-muted/40 text-muted-foreground',
     })[tone];
@@ -282,12 +282,12 @@ const rowWaitingTone = (row: PatientBoardRow) =>
                             >
                             <span
                                 v-if="row.priority === 'urgent'"
-                                class="inline-flex rounded-md bg-destructive/10 px-2 py-0.5 text-[11px] font-normal text-destructive"
+                                class="inline-flex rounded-md bg-rose-100/70 px-2 py-0.5 text-[11px] font-normal text-rose-700"
                                 >Urgent</span
                             >
                             <span
                                 v-if="row.returnedFromDispensary"
-                                class="inline-flex rounded-md bg-brand/10 px-2 py-0.5 text-[11px] font-normal text-brand-strong"
+                                class="inline-flex rounded-md bg-pink-100/70 px-2 py-0.5 text-[11px] font-normal text-pink-800"
                                 >Returned</span
                             >
                             <span
@@ -495,8 +495,7 @@ const rowWaitingTone = (row: PatientBoardRow) =>
                                     </DropdownMenuItem>
                                     <DropdownMenuItem
                                         v-if="row.can.cancel"
-                                        variant="destructive"
-                                        class="min-h-8 rounded-lg px-2.5 text-[13px]"
+                                        class="min-h-8 rounded-lg px-2.5 text-[13px] text-red-700 focus:text-red-700"
                                         @select="$emit('cancel', row)"
                                         >Cancel Visit</DropdownMenuItem
                                     >
