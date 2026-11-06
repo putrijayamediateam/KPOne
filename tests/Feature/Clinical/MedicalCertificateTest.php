@@ -85,11 +85,11 @@ class MedicalCertificateTest extends BillingTestCase
         $this->assertStringNotContainsString('Synthetic MC Doctor', $raw->encrypted_snapshot);
         $snapshot = json_decode(Crypt::decryptString($raw->encrypted_snapshot), true);
         $this->assertSame('pre-signature', $snapshot['evidence']);
-        $this->assertSame(1, $snapshot['templateRevision']);
+        $this->assertSame(2, $snapshot['templateRevision']);
         $this->assertFalse($snapshot['productionApproved']);
         $this->assertNull($snapshot['reason']);
         $this->assertStringNotContainsString('Synthetic diagnosis', $snapshot['html']);
-        $this->assertStringContainsString('Wet signature', $snapshot['html']);
+        $this->assertStringContainsString('Synthetic MC Doctor (MMC No: ', $snapshot['html']);
         $replacement = $this->act($doctor, $visit, $this->command(['action' => 'replace', 'document_id' => $first, 'lock_version' => 1, 'change_reason' => 'dates_corrected', 'language' => 'bm', 'end_date' => now()->addDay()->setTimezone($this->branch->timezone)->toDateString()]));
         $this->assertSame($before, $this->evidence());
         $this->assertSame($raw->encrypted_snapshot, DB::table('medical_certificates')->find($first)->encrypted_snapshot);

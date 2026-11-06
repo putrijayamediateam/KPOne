@@ -167,9 +167,9 @@ class ClinicianCredentialsTest extends VisitTestCase
         $revisions = app(FixedMedicalCertificateTemplates::class)->revisions();
         $this->assertSame(['bm', 'en'], array_column($revisions, 'language'));
         foreach ($revisions as $r) {
-            $this->assertSame(1, $r['revision']);
+            $this->assertSame(2, $r['revision']);
             $this->assertFalse($r['productionApproved']);
-            $this->assertSame('mc-a4-v1', $r['rendererVersion']);
+            $this->assertSame('mc-a4-v2', $r['rendererVersion']);
             preg_match_all('/{{([a-z_]+)}}/', $r['wording'], $matches);
             $this->assertSame([], array_diff($matches[1], $r['mergeFields']));
             $this->assertNotContains('diagnosis', $r['mergeFields']);
@@ -248,7 +248,7 @@ class ClinicianCredentialsTest extends VisitTestCase
         }
         $this->assertSame(1, ClinicianProfessionalProfile::query()->sole()->lock_version);
         $this->assertSame(1, DB::table('clinician_credential_commands')->count());
-        $this->assertSame(2, DB::table('mc_template_revisions')->count());
+        $this->assertSame(4, DB::table('mc_template_revisions')->count());
     }
 
     public function test_permission_migration_is_additive_and_replay_safe(): void
