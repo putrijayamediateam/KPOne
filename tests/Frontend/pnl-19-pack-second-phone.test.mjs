@@ -37,7 +37,7 @@ test('Both letterheads print every phone on one Tel line, each number unbroken',
     );
     assert.equal(
         pack.match(
-            /<template v-if="index > 0"> \/ <\/template\s*><span class="whitespace-nowrap">\{\{\s*number\s*\}\}<\/span>/g,
+            /<template v-if="index > 0">&nbsp;\/ <\/template\s*><span class="whitespace-nowrap">\{\{\s*number\s*\}\}<\/span>/g,
         )?.length,
         2,
     );

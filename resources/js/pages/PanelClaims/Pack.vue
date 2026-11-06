@@ -172,8 +172,8 @@ const print = () => window.print();
                             Tel:
                             <template
                                 v-for="(number, index) in phones"
-                                :key="number"
-                                ><template v-if="index > 0"> / </template
+                                :key="index"
+                                ><template v-if="index > 0">&nbsp;/ </template
                                 ><span class="whitespace-nowrap">{{
                                     number
                                 }}</span></template
@@ -304,8 +304,8 @@ const print = () => window.print();
                             Tel:
                             <template
                                 v-for="(number, index) in phones"
-                                :key="number"
-                                ><template v-if="index > 0"> / </template
+                                :key="index"
+                                ><template v-if="index > 0">&nbsp;/ </template
                                 ><span class="whitespace-nowrap">{{
                                     number
                                 }}</span></template
