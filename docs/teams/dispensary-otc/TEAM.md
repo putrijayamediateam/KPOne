@@ -100,6 +100,7 @@ coordinator at the owner's request (2026-11-05); the designer was added by owner
 | Print label | The single-label button reads "Print label" (sentence case, Daniel's nit from DD-24 to DD-27); the `TreatmentPlanTest` pin and the printer test updated | pending (branch `fix/dsp-print-label-casing`) |
 | DD-37 | The Drug groups dialog keeps the typed groups on a validation error, with the message under the field and a red border; a list changed meanwhile still closes it with a toast (the DSP-1c pattern) | pending (branch `fix/dsp-dd-37-drug-groups-error`) |
 | DSP-10 | The clinic's landscape drug label: 100 × 62 mm (provisional), Courier New 9 pt, 48 cells × at most 13 rows inside a rounded border. Clinic name (bold capitals, 40 characters), address, bold "Tel: (phone)" and a rule; patient name only; medicine display name with "QTY: n" (no unit); directions as one capitalised "dosage, frequency, instruction" block (3 rows); Precaution, Duration and the catalogue Indication (72 characters); date and "EXP: dd/mm/yyyy" (or "EXP: -") on the bottom row. No route, batch number, logo, email, patient or visit number. "Ubat Terkawal/Controlled Medicine" below the border; REPRINT top right inside it. Over a limit still blocks, never cuts | pending (branch `feature/dsp-10-landscape-label`) |
+| DSP-11 | Scan to check at Dispensary: on an open case the CA scans the box they picked (handheld scanner, typing or camera, STK-9's `ScanInput` with a new `dispensary` context and GET `/inventory/scan`); a box whose SKU is a saved line's mapped SKU marks that line "Checked by scan" and the summary counts "N of M"; any other known SKU shows "Not on this case: <item> (<SKU code>)". Screen only: nothing is saved, recorded or blocked; Complete is unchanged | pending (branch `feature/dsp-11-scan-check`) |
 
 ## 6. Owner decisions already made (never ask again)
 
@@ -213,6 +214,19 @@ coordinator at the owner's request (2026-11-05); the designer was added by owner
     `App\Domain\Shared\PrintedPhone::format()`; the stored value is unchanged. Malaysian +60, 60 and 0 forms print
     as 03-XXXX XXXX, 0X-XXX XXXX, 08X-XXX XXX, 01X-XXX XXXX or 011-XXXX XXXX; anything else prints as stored. This
     team owns the class; Billing (BIL-9) and the MC reuse it.
+29. DSP-11 scan to check (2026-11-06): the owner chose it ("go with scan to check at Dispensary"). It warns only:
+    a scan never saves, edits, dispenses, completes or blocks anything, and nothing is recorded; a "Checked by scan"
+    mark lives on the screen until reload and drops if the line is removed or its SKU changes. Iman's sketch; Daniel
+    "OK with changes": the match line says "Shown on this screen only", the help text says it doesn't check the
+    quantity or the batch, the summary reads "N of M (not saved)", a box only on a removed line says "On this case
+    but removed", and only a wrong box interrupts a screen reader. Zulkifli (Inventory) agreed to the ScanInput reuse
+    on condition that the Inventory behaviour, the endpoint and the stk9 tests stay unchanged; Mei Ling reviews the
+    ScanInput diff before the PR (Mei Ling: OK with changes). For the record (Inventory's condition): the "Checked
+    by scan" badge and "N of M" are an on-screen tick only, never saved and lost on reload; that goes slightly past
+    STK-9's "a scan never ticks", accepted because the owner chose it in DSP-11 on the understanding that it never
+    sets a saved field.
+    Reuses Inventory's `ScanInput` (new optional `dispensary` context and `describe` wording; the Inventory pages
+    are unchanged). No new permission: CA and CA Supervisor already hold `inventory.view.branch`.
 
 ## 7. Open items and known limits
 
@@ -334,6 +348,8 @@ order, each its own PR:
 10. **DSP-8 Dispensary pages on phones and tablets — built 2026-11-05 (branch `feature/dsp-8-dispensary-mobile`).**
     Checked at 320, 390, 768 and 1440 px, light and dark.
 11. **DSP-10 The clinic's landscape label — built 2026-11-06 (branch `feature/dsp-10-landscape-label`).** Decision 27.
+
+12. **DSP-11 Scan to check at Dispensary — built 2026-11-06 (branch `feature/dsp-11-scan-check`).** Decision 29.
 
 Team rules for this backlog: run the PHPStan stopgap before each push; migration timestamps from
 `2026_11_06_200000` up.
