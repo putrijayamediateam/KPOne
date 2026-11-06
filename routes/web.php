@@ -151,6 +151,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::post('versions/{version}/discard', 'discard')->whereUuid('version')->name('hr.roster.discard');
             Route::put('minimum-staffing', 'minimums')->name('hr.roster.minimums');
         });
+        // HR-5b compliance rules (Director, HR Manager): feed warnings on the planner, never a refusal.
+        Route::middleware(['permission:hr.credentials.manage.organisation', 'throttle:30,1'])->group(function (): void {
+            Route::put('compliance/coverage', 'coverage')->name('hr.roster.compliance.coverage');
+            Route::put('compliance/work-hours', 'workHours')->name('hr.roster.compliance.work-hours');
+        });
         Route::middleware(['permission:hr.roster.approve.organisation', 'throttle:30,1'])->group(function (): void {
             Route::post('versions/{version}/approve', 'approve')->whereUuid('version')->name('hr.roster.approve');
             Route::post('versions/{version}/return', 'returnToDraft')->whereUuid('version')->name('hr.roster.return');
