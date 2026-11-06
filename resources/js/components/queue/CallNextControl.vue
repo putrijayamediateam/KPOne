@@ -33,6 +33,8 @@ const props = defineProps<{
     busy: boolean;
     /** Re-polls the board with the applied filters and resolves when the new block is in. */
     refresh: () => Promise<void>;
+    /** Q-4b: the held consultation this control sits on; a refusal returns there instead of the queue board. */
+    fromVisit?: string;
 }>();
 const emit = defineEmits<{ processing: [busy: boolean] }>();
 
@@ -175,6 +177,9 @@ const submit = () => {
             visit_number: candidate.visitNumber,
             visit_lock_version: candidate.visitLockVersion,
             queue_lock_version: candidate.queueLockVersion,
+            ...(props.fromVisit
+                ? { from: 'consultation', from_visit: props.fromVisit }
+                : {}),
         },
         {
             preserveScroll: true,
