@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Domain\HR\Attendance\Services\ClockService;
 use App\Domain\HR\Attendance\Services\CorrectionService;
+use App\Domain\HR\Attendance\Services\OvertimeService;
 use App\Models\User;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Contracts\Console\Kernel;
@@ -13,7 +14,8 @@ use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 
 /*
- * HR-3a contention worker: one attendance write (clock in or decide a correction) in its own PostgreSQL session.
+ * HR-3a and HR-3b contention worker: one attendance write (clock in, decide a correction, ask for or decide overtime) in
+ * its own PostgreSQL session.
  * Prints READY <pid>, waits for GO, runs and prints SUCCESS, STALE <field>: <message> or DENIED.
  */
 require dirname(__DIR__, 2).'/vendor/autoload.php';
@@ -36,6 +38,8 @@ try {
     match ($a['op']) {
         'in' => app(ClockService::class)->clockIn($actor, $a),
         'approve' => app(CorrectionService::class)->decide($actor, $a['correction'], 'approve', $a),
+        'ask_overtime' => app(OvertimeService::class)->ask($actor, $a),
+        'approve_overtime' => app(OvertimeService::class)->decide($actor, $a['request'], 'approve', $a),
     };
     fwrite(STDOUT, 'SUCCESS '.$a['op'].PHP_EOL);
 } catch (ValidationException $e) {
