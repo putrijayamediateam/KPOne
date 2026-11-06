@@ -83,4 +83,19 @@ slip, and refunds spread across several receipts in one record.
 - **Issued copies (BIL-5, BIL-9):** after approval the invoice's figures change, so its next print is REVISED, with a
   "Refund credit" line in the totals; receipts are unchanged.
 - **Not changed:** Panel claims (Panel money untouched), completion evidence (the visit stays completed), stock.
-- **Reports:** waiting for the owner's answers (Insights bucket, date basis, receipt-report columns).
+- **Reports:** see section 8.
+- **Insights date basis:** `kpone_invoice_payable` feeds Insights sales on the invoice's finalisation date, so the
+  credit must not be folded into that function (decision 8B). The ledger and reconcile check subtract approved
+  credits separately; Insights adds a "Refund credits" row dated by approval.
+
+## 8. Reporting decisions (2026-11-06, approved for the owner by B.E.R.N.I.S.S while "BE ME"; marked "Check this")
+
+These are money reporting choices taken for the owner; the owner can still change them.
+
+- **A.** A credit shows as its own row, "Refund credits", in Insights net sales and the Sales CSV; discounts stay
+  discounts.
+- **B.** The credit lowers sales on the day the refund is approved; past days' reports never change.
+- **C.** The receipt stays counted on its own day, with a new "Refunded after completion" column on the payout day
+  in the Daily summary, Transaction Detail and the receipts-by-method CSV. "Total received" keeps its meaning.
+- **D.** The two Panel screens that ignored invoice discounts and surcharges are fixed separately by the Panel team
+  (PNL-15, Syafiq), not in BIL-10; Billing reviewed the money side.
