@@ -240,6 +240,13 @@ check items, keep them"). The rest stand unless the owner changes them.
 44. HR-4a hub-map line (`'/hr/records' => ['hr.records.view.own', 'hr.records.view.organisation']` in
     `ClinicManagementTest`): approved by the owner, relayed verbatim by B.E.R.N.I.S.S on 2026-11-06: "approve the hub
     line for liyana".
+45. The five items that were not authorised for KPOne HR are now authorised (owner, 2026-11-06, relayed verbatim by
+    B.E.R.N.I.S.S: "all i want." and "the one that needed before real use i will provide later"). They are WhatsApp,
+    SMS, email and OTP messages; a locum portal; selfie or location checks at clock-in; a link to the outside HR
+    product; and job application intake. Each is built like every other slice: a design note approved by the owner,
+    Daniel's look and a ship-it. Scope: staff and HR only. Patient messaging stays a separate decision. Synthetic
+    data only until the owner provides the PDPA review, the leave policy and the accountant's confirmation. Nothing
+    of these five is built until B.E.R.N.I.S.S's docs PR records the authorisation in AGENTS.md and BASELINE.
 
 ## 7. Open items and known limits
 
@@ -344,5 +351,15 @@ check items, keep them"). The rest stand unless the owner changes them.
 11. **HR-11 Clinic compliance.** Clinic document licences and expiry (clinic registration, X-ray, clinical waste,
     calibration), a monthly internal audit checklist with photos whose failed items become supervisor tasks, and a
     daily vaccine fridge temperature log with out-of-range alerts inside KPOne.
-12. **Not authorised (needs the owner):** WhatsApp, SMS, email, OTP or push messages; an outside locum portal;
-    selfie or continuous location at clock-in; integration with the outside HR product; applicant intake.
+12. **Authorised 2026-11-06 (decision 45), after HR-7, in the order the team proposes** (owner to confirm):
+    - **HR-12 Outside HR product link.** Smallest and lowest risk. First find out whether the product has an API;
+      if not, a reviewed file import and export.
+    - **HR-13 Job application intake.** KPOne's first public intake, needing rate limits, spam protection, file
+      checks and a privacy notice. It sits beside the static careers pages.
+    - **HR-14 Staff messages (WhatsApp, SMS, email, OTP).** An outside provider, keys in the environment's secrets,
+      opt-in and opt-out, no patient data. OTP and the locum portal depend on it.
+    - **HR-15 Locum portal.** Accounts made only by HR through StaffProvisioningService, a narrow locum role, and OTP
+      or password sign-in.
+    - **HR-16 Selfie or location at clock-in.** The riskiest under PDPA (biometric and location data), so last.
+      Optional per branch, consent text, encrypted selfies with short retention, a branch geofence checked only at
+      the moment of clock-in, and a fallback.
