@@ -2,6 +2,7 @@
 
 namespace App\Domain\Access;
 
+use App\Domain\Clinical\Dispensary\Services\DispensaryReturnService;
 use App\Models\User;
 
 /** Read-only destinations; their existing controllers remain the authority for access and scope. */
@@ -47,6 +48,8 @@ final class ClinicManagementNavigation
             [$settings, 'Medicine details', 'Configure shared prescribing options.', 'medicine-details.index'],
             [$settings, 'Suppliers', 'Manage supplier names and contact details.', 'supplier-settings.index'],
             [$branch && $actor->can('inventory.view.branch'), 'Inventory', 'Review stock, batches and movements for this branch.', 'inventory.index'],
+            // DSP-7b (B.E.R.N.I.S.S for the owner): only the people who may check a return see the list (v1: a CA Supervisor).
+            [$branch && $actor->can('dispensary.view.branch') && app(DispensaryReturnService::class)->canCheckReturns($actor), 'Returns to check', 'Medicine returns at this branch that are waiting for a check, oldest first.', 'dispensary.returns-to-check'],
         ]);
         $add('Patients', 'patients', [
             [$actor->can('patients.search.organisation'), 'Patient Records', 'Find patients within your existing access.', 'patients.index'],
