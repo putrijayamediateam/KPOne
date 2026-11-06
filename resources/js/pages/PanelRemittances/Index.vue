@@ -379,9 +379,9 @@ const record = () => {
                         Clear split
                     </Button>
                 </div>
-                <!-- Phones: one card per claim so the amount box is always on screen. -->
+                <!-- Phones and tablets: one card per claim so the amount box is always on screen (PNL-14: at 768 px the table cut the amount box off). -->
                 <ul
-                    class="divide-y rounded-xl border md:hidden"
+                    class="divide-y rounded-xl border lg:hidden"
                     aria-label="Accepted claims waiting for payment"
                 >
                     <li
@@ -429,7 +429,7 @@ const record = () => {
                     </li>
                 </ul>
                 <div
-                    class="relative hidden max-w-full overflow-x-auto rounded-xl border md:block"
+                    class="relative hidden max-w-full overflow-x-auto rounded-xl border lg:block"
                     role="region"
                     aria-label="Accepted claims waiting for payment"
                     tabindex="0"

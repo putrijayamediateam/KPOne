@@ -93,6 +93,7 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php`.
 | PNL-5 | PostgreSQL contention tests on one Panel claim: split against single payment, two part payments, a reversal against a new payment in both orders, two reversals, a double-submitted split payment (`PostgresPanelPaymentRegressionTest`, serial Contention suite); tests only | #267 |
 | PNL-11 | Panel Claims list on phones and tablets (design debt DD-31): below 1024 px each claim or invoice is a card with every table field, its checkbox (same claim-pack and bulk-claim rules) and its actions menu, plus a "Select all" row above the cards; the Columns menu shows from 1024 px only; Clear puts focus on the visible Select all, or the first claim that can still be ticked; frontend only | #326 (merged as `ce0d3d8`) |
 | PNL-12 | Small leftovers: the claim pack prints claims in the order they were ticked (cover and pages, audit `claim_ids` too); each printed page of a claim's invoice table repeats "Panel claim N · invoice number" (print only, no patient name); the Submissions and Payouts cards read "1 claim" / "N claims", and Pending and Overdue count invoices ("1 invoice" / "N invoices"); a test for a bulk claim whose visits fall on different dates | (this PR) |
+| PNL-14 | Design debt DD-42: the Panel payments split list shows cards below 1024 px (was 768 px), because at 768 px the table scrolled inside its frame and cut off the "This payment (RM)" box; frontend only; two owner-approved class lines in `pnl-3-remittance-matching.test.mjs` change from `md:` to `lg:` | (this PR) |
 
 ## 6. Owner decisions already made (never ask again)
 
@@ -149,6 +150,9 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php`.
 23. PNL-12 (owner chose "start 3" and "Ticked order", 2026-11-06): a claim pack prints its claims in the order
     the officer ticked them, not by claim number; the owner approved changing the one existing `PanelClaimPackTest`
     assertion that pinned claim-number order.
+24. PNL-14 (owner said "start PNL-14" and approved the test change, 2026-11-06): the Panel payments split list switches to
+    cards below 1024 px; the owner approved changing the two `md:` class lines in `pnl-3-remittance-matching.test.mjs`
+    ("Phones get one card per claim") to `lg:`.
 
 ## 7. Open items and known limits
 
@@ -282,3 +286,4 @@ Second backlog, chosen by the owner on 2026-11-05 ("panel order ok", relayed by 
    Overdue tabs; frontend only.
 10. **PNL-12 Small leftovers. (Built 2026-11-06.)** Ticked order in the claim pack, the claim reference repeated
     on each printed page and above the totals, "1 claim" and "N invoices" on the summary cards, and a bulk-claim test across visit dates.
+12. **PNL-14 Split list cards on tablets. (Built 2026-11-06.)** Design debt DD-42, found during the PNL-13 look.
