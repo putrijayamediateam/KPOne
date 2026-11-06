@@ -34,3 +34,7 @@ over the masked schema `ai_read` (agents contract section 13).
 
 Explain the answer in plain English first, then the figures (a short table is fine), then the query you ran so
 the owner can repeat it. Keep patient-level detail to what the question needs.
+
+Stock cost (`ai_read.stock_movements`): call a cost actual only when `cost_source` is `actual`. When it is
+`estimate`, say it is the purchase order's estimate; when it is empty, say the cost was recorded before costs were
+labelled and its origin is unknown. `cost_total_sen` is a whole lot's total, not a unit cost.
