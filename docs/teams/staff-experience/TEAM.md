@@ -216,3 +216,11 @@ authorisation to build them; the coordinator records it in `docs/BASELINE.md`.
    (Local date or Row) stays in view while a wide report scrolls sideways. His second nit, the page title
    "Transaction Detail" in sentence case, is left: the title comes from `TransactionReportService` and the
    pilot-scale golden file (`tests/Fixtures/PilotScale/original-small-reports.json`) pins it.
+11. **UX-11 Pale panels in dark mode (design debt DD-08, Staff pages and the shared patient board).** Chosen by the
+   owner on 2026-11-06. The Staff pages (directory, staff page, create and edit: header icon tile, Primary,
+   Active and assignment-state badges, "No current assignment") and the shared `PatientBoard` status, Urgent and
+   Returned chips used pale palette backgrounds with no dark style, so they stayed light in dark mode. They now use
+   the theme tokens (`success`, `warning`, `destructive`, `brand`, `muted`), as `StatusBadge` does. In light mode
+   the Waiting and Held chips read a little warmer. The Queue & TV and Patients & Registration teams were told,
+   because `PatientBoard` draws both boards; `QueueRows.vue` and `QrIntakeTable.vue` (their own files) still have
+   pale chips. No assertion changed.

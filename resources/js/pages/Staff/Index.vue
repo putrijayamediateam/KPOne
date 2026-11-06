@@ -85,7 +85,7 @@ const clearFilters = () => {
             class="flex flex-col justify-between gap-4 md:flex-row md:items-start"
         >
             <div class="flex items-start gap-3">
-                <div class="rounded-xl bg-emerald-100 p-2.5 text-emerald-800">
+                <div class="rounded-xl bg-success/10 p-2.5 text-success">
                     <Users class="size-5" />
                 </div>
                 <div>
@@ -200,7 +200,7 @@ const clearFilters = () => {
                                 <td class="px-5 py-4 align-top">
                                     <Link
                                         :href="`/staff/${member.id}`"
-                                        class="font-medium text-foreground hover:text-emerald-700 hover:underline"
+                                        class="font-medium text-foreground hover:text-success hover:underline"
                                         >{{ member.name }}</Link
                                     >
                                     <div
@@ -248,7 +248,7 @@ const clearFilters = () => {
                                             variant="outline"
                                             :class="
                                                 assignment.isPrimary &&
-                                                'border-emerald-300 bg-emerald-50 text-emerald-800'
+                                                'border-success/25 bg-success/10 text-success'
                                             "
                                             >{{ assignment.branch.code
                                             }}<span v-if="assignment.isPrimary">
@@ -256,7 +256,9 @@ const clearFilters = () => {
                                             ></Badge
                                         >
                                     </div>
-                                    <span v-else class="text-xs text-amber-700"
+                                    <span
+                                        v-else
+                                        class="text-xs text-warning-strong"
                                         >No current assignment</span
                                     >
                                 </td>
@@ -269,7 +271,7 @@ const clearFilters = () => {
                                         "
                                         :class="
                                             member.isActive &&
-                                            'bg-emerald-100 text-emerald-800 hover:bg-emerald-100'
+                                            'border-success/25 bg-success/10 text-success hover:bg-success/10'
                                         "
                                         >{{
                                             member.isActive

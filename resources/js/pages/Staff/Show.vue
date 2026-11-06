@@ -85,7 +85,7 @@ const setPrimary = (assignmentId: number) => {
             class="flex flex-col justify-between gap-4 lg:flex-row lg:items-start"
         >
             <div class="flex items-start gap-3">
-                <div class="rounded-xl bg-emerald-100 p-2.5 text-emerald-800">
+                <div class="rounded-xl bg-success/10 p-2.5 text-success">
                     <UserRound class="size-5" />
                 </div>
                 <div>
@@ -99,7 +99,7 @@ const setPrimary = (assignmentId: number) => {
                             "
                             :class="
                                 staff.isActive &&
-                                'bg-emerald-100 text-emerald-800 hover:bg-emerald-100'
+                                'border-success/25 bg-success/10 text-success hover:bg-success/10'
                             "
                             >{{ staff.isActive ? 'Active' : 'Inactive' }}</Badge
                         >
@@ -244,7 +244,7 @@ const setPrimary = (assignmentId: number) => {
                                     }}</span
                                     ><Badge
                                         v-if="assignment.isPrimary"
-                                        class="border-emerald-300 bg-emerald-50 text-emerald-800"
+                                        class="border-success/25 bg-success/10 text-success"
                                         variant="outline"
                                         >Primary</Badge
                                     ><AssignmentStateBadge
