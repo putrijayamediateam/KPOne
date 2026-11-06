@@ -36,7 +36,7 @@ final class ReceivingPayload
                 if (array_key_exists('sku_public_id', $lot) || array_key_exists('inventory_sku_id', $lot) || array_key_exists('item_public_id', $lot)) {
                     $this->refuse('Substitution is not accepted against this order line. Reject the wrong item and use an approved order for the correct product.');
                 }
-                $data = Validator::make($lot, ['quantity' => ['required', 'regex:/^\d{1,12}(?:\.\d{1,3})?$/'], 'batch_number' => ['required', 'string', 'max:100', 'regex:/^[^\p{C}<>]+$/u'], 'expiry_date' => ['required', 'date_format:Y-m-d'], 'outcome' => ['sometimes', Rule::in(['accepted', 'quarantined', 'rejected'])], 'reason' => ['nullable', Rule::in(self::REASONS)], 'unit_cost_sen' => ['nullable', 'integer', 'min:0', 'max:999999999999'], 'unit' => ['nullable', 'string', 'max:100']])->validate();
+                $data = Validator::make($lot, ['quantity' => ['required', 'regex:/^\d{1,12}(?:\.\d{1,3})?$/'], 'batch_number' => ['required', 'string', 'max:100', 'regex:/^[^\p{C}<>]+$/u'], 'expiry_date' => ['required', 'date_format:Y-m-d'], 'outcome' => ['sometimes', Rule::in(['accepted', 'quarantined', 'rejected'])], 'reason' => ['nullable', Rule::in(self::REASONS)], 'unit_cost_sen' => ['nullable', 'integer', 'min:0', 'max:999999999999'], 'cost_total_sen' => ['nullable', 'integer', 'min:0', 'max:999999999999'], 'unit' => ['nullable', 'string', 'max:100']])->validate();
                 if ($data['expiry_date'] === '9999-12-31') {
                     $this->refuse('Enter the actual expiry date, not a sentinel date.');
                 }
@@ -48,12 +48,18 @@ final class ReceivingPayload
                 if ($reason === 'wrong_item' && $outcome !== 'rejected') {
                     $this->refuse('A wrong item must be rejected. Receive the correct product against an approved order; do not substitute it silently.');
                 }
+                // STK-10B: a lot's cost is its total from the supplier invoice; a per-unit cost is the legacy form.
+                if (isset($data['unit_cost_sen'], $data['cost_total_sen'])) {
+                    $this->refuse('Enter the total cost on the supplier invoice for each batch, not a unit cost as well.');
+                }
                 $quantity = StockUnitQuantity::scaled($data['quantity']);
                 $sum += $quantity;
                 if ($sum > StockUnitQuantity::MAX) {
                     $this->refuse('The physical quantity exceeds the stock range.');
                 }
-                $lots[] = ['quantity' => StockUnitQuantity::format($quantity), 'batch_number' => trim($data['batch_number']), 'expiry_date' => $data['expiry_date'], 'outcome' => $outcome, 'reason' => $reason, 'unit_cost_sen' => isset($data['unit_cost_sen']) ? (int) $data['unit_cost_sen'] : null, 'unit' => $data['unit'] ?? null];
+                $lots[] = ['quantity' => StockUnitQuantity::format($quantity), 'batch_number' => trim($data['batch_number']), 'expiry_date' => $data['expiry_date'], 'outcome' => $outcome, 'reason' => $reason, 'unit_cost_sen' => isset($data['unit_cost_sen']) ? (int) $data['unit_cost_sen'] : null, 'unit' => $data['unit'] ?? null,
+                    // Added only when given, so the hash of a receipt or review made before STK-10B is unchanged.
+                    ...(isset($data['cost_total_sen']) ? ['cost_total_sen' => (int) $data['cost_total_sen']] : [])];
             }
             $physical = StockUnitQuantity::scaled($rich ? $line['physical_quantity'] : $line['quantity']);
             if ($sum !== $physical) {

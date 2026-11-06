@@ -157,6 +157,12 @@ const decide = (closing: Closing, decision: 'approved' | 'returned') => {
                 <ActionLink href="/payment-reconciliations" variant="secondary">
                     Terminal Reconciliation
                 </ActionLink>
+                <ActionLink
+                    :href="`/cash-closings/month?month=${day.businessDate.slice(0, 7)}`"
+                    variant="secondary"
+                >
+                    Month view
+                </ActionLink>
             </template>
         </PageHeader>
 
