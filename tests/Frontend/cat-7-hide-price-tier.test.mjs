@@ -15,7 +15,7 @@ const nav = page.slice(
     page.indexOf('</nav>', page.indexOf('<nav')),
 );
 
-test('the Medicine details settings menu has no Price tier item and keeps its two real pages', () => {
+test('the Medicine details settings menu has no Price tier item: the current page and a link to Suppliers', () => {
     assert.doesNotMatch(nav, /Price tier/);
     assert.doesNotMatch(nav, /aria-disabled/);
     assert.match(nav, /aria-current="page"[\s\S]*Medicine details/);
