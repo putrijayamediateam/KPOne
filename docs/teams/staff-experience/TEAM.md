@@ -216,3 +216,10 @@ authorisation to build them; the coordinator records it in `docs/BASELINE.md`.
    (Local date or Row) stays in view while a wide report scrolls sideways. His second nit, the page title
    "Transaction Detail" in sentence case, is left: the title comes from `TransactionReportService` and the
    pilot-scale golden file (`tests/Fixtures/PilotScale/original-small-reports.json`) pins it.
+10. **UX-10 Confirm dialog colours.** Relayed by the coordinator for the owner on 2026-11-06 (
+   Yasmin's token string): the shared `OperationalConfirmDialog` uses `bg-popover` and `dark:border-border`
+   instead of the fixed `dark:bg-slate-900`, matching the Queue & TV Call next dialog. Light mode: the dialog
+   is white instead of the page grey; dark mode: neutral near-black with a full-strength border instead of navy.
+   After Daniel's review the icon tile is never empty: seven dialogs on six pages passed no icon, so the tile
+   showed as a blank square; the shared component now falls back to a warning icon (destructive) or a question
+   icon, and a destructive question uses the destructive tone. No assertion changed.
