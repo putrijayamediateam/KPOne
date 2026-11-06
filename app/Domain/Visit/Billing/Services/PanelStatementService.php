@@ -478,7 +478,16 @@ final class PanelStatementService
     {
         $value = strtoupper($value);
         if ($lookalike) {
-            $value = strtr($value, ['O' => '0', 'I' => '1', 'L' => '1', 'S' => '5', 'B' => '8', 'Z' => '2']);
+            // A look-alike letter is read as a digit only when a real digit follows it in the same group, so a trailing
+            // letter ("KPI-0000012B") is never an extra digit.
+            $value = preg_replace_callback('/[A-Z0-9]+/', static function (array $m): string {
+                if (preg_match('/[0-9][^0-9]*\z/', $m[0], $tail, PREG_OFFSET_CAPTURE) !== 1) {
+                    return $m[0];
+                }
+                $lastDigit = (int) $tail[0][1];
+
+                return strtr(substr($m[0], 0, $lastDigit), ['O' => '0', 'I' => '1', 'L' => '1', 'S' => '5', 'B' => '8', 'Z' => '2']).substr($m[0], $lastDigit);
+            }, $value) ?? '';
         }
         preg_match_all('/[A-Z]+|[0-9]+/', $value, $groups);
         if ($groups[0] === []) {
