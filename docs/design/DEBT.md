@@ -43,6 +43,8 @@ own PR and tells B.E.R.N.I.S.S (formerly LUCY). See [REVIEW.md](REVIEW.md) for h
 | DD-31 | Panel Claims list on phones, `pages/PanelClaims/Index.vue` | At 390 px the claims table scrolls inside its box and shows only Amount, Claim no and Panel, so the patient and status are off screen while picking claims for a PNL-8 claim pack | 6, 16 | Panel | Minor | Syafiq, PNL-8 | Open |
 | DD-32 | Create patient description, `pages/Patient/Create.vue` | "Organisation-level canonical identity. This is not a registration or encounter.": internal words on a staff screen | 15 | Patients & Registration | Minor | REG-6 design look | Open |
 | DD-33 | "Added by CA" and "Edited by CA" chips on the Invoices page, `pages/Visits/History.vue` | Hand-styled `bg-pink-100 text-pink-900` chips with no dark style (the same chip DD-27 fixed on the Dispensary page); use the accent `StatusBadge` | 13, 10 | Billing | Major | DD-24 to DD-27 design look | Open |
+| DD-34 | "Record changed elsewhere" panel on the consultation page | The panel has no dark-mode colours | 13 | Queue & TV | Major | Q-4b design look (Yasmin) | Open |
+| DD-35 | Call next confirm dialog (Q-4 and Q-4b) | Uses a hard-coded `dark:bg-slate-900` instead of the theme tokens | 1, 13 | Queue & TV | Minor | Q-4b design look (Yasmin) | Open |
 
 ## Not debt (out of scope, owner-approved)
 
@@ -64,3 +66,4 @@ receipt and drug-label print layouts.
 - 2026-11-06: DD-04 and DD-13 marked Fixed (CAT-1, PR #263: Pricing labels and phone cards; Medicine Catalogue Edit plus "…" menu and phone cards).
 - 2026-11-06: DD-30 marked Fixed (PR #296: Queue board tabs scroll with a right-edge fade on phones, 44 px tall).
 - 2026-11-06: DD-33 added (Invoices page CA chips with no dark style, seen during the DD-24 to DD-27 look).
+- 2026-11-06: DD-34 and DD-35 added (consultation page dark-mode gaps noted by Yasmin during Q-4b).
