@@ -21,7 +21,7 @@ import { OperationalSelect } from '@/components/ui/select';
 import OperationalTabs from '@/components/ui/tabs/OperationalTabs.vue';
 import { useCallReadinessAlerts } from '@/composables/useCallReadinessAlerts';
 import { useTreatmentDoneAlerts } from '@/composables/useTreatmentDoneAlerts';
-import { completedShownLine } from '@/lib/completed-tab';
+import { completedShownLine, servingShownLine } from '@/lib/completed-tab';
 import { formatDate } from '@/lib/presentation';
 import {
     applyQueueFilters,
@@ -125,6 +125,14 @@ const completedLine = computed(() =>
         activeTab.value,
         live.value.removed.length,
         live.value.tabCounts?.removed,
+    ),
+);
+// Q-5b: the Serving Now tab lists the latest 25 serving entries; its count is every serving entry.
+const servingLine = computed(() =>
+    servingShownLine(
+        activeTab.value,
+        live.value.serving.length,
+        live.value.tabCounts?.serving,
     ),
 );
 const isRefreshing = ref(false);
@@ -853,6 +861,13 @@ onBeforeUnmount(() => {
                 data-testid="completed-shown-count"
             >
                 {{ completedLine }}
+            </p>
+            <p
+                v-if="servingLine"
+                class="border-t px-3 py-2 text-xs text-muted-foreground"
+                data-testid="serving-shown-count"
+            >
+                {{ servingLine }}
             </p>
             <div
                 v-if="
