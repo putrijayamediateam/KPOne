@@ -17,9 +17,11 @@ use Tests\Feature\Visit\VisitTestCase;
 use Tests\Support\OtcDispensaryFixtures;
 
 /**
- * DSP-2 (owner backlog 2026-11-05): the drug label prints the batch number and expiry date only when
- * exactly one batch was allocated to the line; otherwise it prints nothing extra and the preview says
- * why. Printing stays read only. Synthetic data only.
+ * DSP-2 (owner backlog 2026-11-05), DSP-10 (owner decisions 2026-11-06): the drug label's bottom row prints
+ * "EXP: dd/mm/yyyy" only when exactly one batch with a real expiry was allocated to the line, and "EXP: -" otherwise,
+ * with the reason on the preview screen; the batch number is no longer printed. Printing stays read only.
+ * DSP-10 changed these assertions with the owner's approval (the old ones pinned the DSP-2 "No. Batch" and
+ * "Tarikh luput" rows). Synthetic data only.
  */
 class DrugLabelBatchExpiryTest extends VisitTestCase
 {
@@ -56,12 +58,10 @@ class DrugLabelBatchExpiryTest extends VisitTestCase
         $label = $preview['labels']['items'][0];
 
         $expiry = CarbonImmutable::parse($f['batch']->expiry_date)->format('d/m/Y');
-        $this->assertContains('No. Batch: '.$f['batch']->batch_number, $label['lines']);
-        $this->assertContains('Tarikh luput: '.$expiry, $label['lines']);
+        $this->assertStringEndsWith('EXP: '.$expiry, (string) end($label['lines']), 'the expiry is on the bottom row');
+        $this->assertSame([], array_values(array_filter($label['lines'], fn (string $line): bool => str_contains($line, $f['batch']->batch_number))), 'no batch number');
         $this->assertSame([], $preview['batchNotes']);
-        $this->assertArrayNotHasKey('batchNote', $label, 'the label payload shape is unchanged');
-        $at = fn (string $prefix): int|false => array_search(true, array_map(fn (string $line): bool => str_starts_with($line, $prefix), $label['lines']), true);
-        $this->assertTrue($at('Kuantiti: ') < $at('No. Batch: ') && $at('No. Batch: ') < $at('Tarikh luput: ') && $at('Tarikh luput: ') < $at('Dos: '), 'batch and expiry follow the quantity');
+        $this->assertArrayNotHasKey('batchNote', $label, 'the label payload carries no batch note');
         $this->assertSame($before, $this->stockSnapshot(), 'printing changes no stock or allocation');
     }
 
@@ -79,10 +79,10 @@ class DrugLabelBatchExpiryTest extends VisitTestCase
         $preview = app(DrugLabelService::class)->previewWithBatchNotes($f['ca'], $case->refresh());
         $label = $preview['labels']['items'][0];
 
-        $this->assertSame([], array_values(array_filter($label['lines'], fn (string $line): bool => str_starts_with($line, 'No. Batch') || str_starts_with($line, 'Tarikh luput'))));
-        $this->assertSame([['name' => 'Synthetic OTC medicine', 'previewUrl' => $label['previewUrl'], 'note' => 'Batch and expiry not printed: more than one batch is allocated to this line.']], $preview['batchNotes']);
+        $this->assertStringEndsWith('EXP: -', (string) end($label['lines']));
+        $this->assertSame([['name' => 'Synthetic OTC medicine', 'previewUrl' => $label['previewUrl'], 'note' => 'Expiry printed as "EXP: -": more than one batch is allocated to this line.']], $preview['batchNotes']);
         $this->get(route('dispensary.labels', $case))->assertOk()->assertInertia(fn (Assert $page) => $page->component('Dispensary/Labels')
-            ->where('labelBatchNotes.0.note', 'Batch and expiry not printed: more than one batch is allocated to this line.')
+            ->where('labelBatchNotes.0.note', 'Expiry printed as "EXP: -": more than one batch is allocated to this line.')
             ->missing('labels.items.0.batchNote'));
     }
 
@@ -104,7 +104,7 @@ class DrugLabelBatchExpiryTest extends VisitTestCase
 
         $preview = app(DrugLabelService::class)->previewWithBatchNotes($f['ca'], $case->refresh());
 
-        $this->assertContains('No. Batch: '.$f['batch']->batch_number, $preview['labels']['items'][0]['lines']);
+        $this->assertStringEndsWith('EXP: '.CarbonImmutable::parse($f['batch']->expiry_date)->format('d/m/Y'), (string) end($preview['labels']['items'][0]['lines']));
         $this->assertSame([], $preview['batchNotes']);
     }
 
@@ -118,8 +118,9 @@ class DrugLabelBatchExpiryTest extends VisitTestCase
 
         $preview = app(DrugLabelService::class)->previewWithBatchNotes($f['ca'], $case->refresh());
 
-        $this->assertSame([], array_values(array_filter($preview['labels']['items'][0]['lines'], fn (string $line): bool => str_contains($line, '9999') || str_starts_with($line, 'No. Batch'))));
-        $this->assertSame('Batch and expiry not printed: this batch has no real expiry date recorded.', $preview['batchNotes'][0]['note']);
+        $this->assertSame([], array_values(array_filter($preview['labels']['items'][0]['lines'], fn (string $line): bool => str_contains($line, '9999'))));
+        $this->assertStringEndsWith('EXP: -', (string) end($preview['labels']['items'][0]['lines']));
+        $this->assertSame('Expiry printed as "EXP: -": this batch has no real expiry date recorded.', $preview['batchNotes'][0]['note']);
     }
 
     public function test_a_completed_case_reprint_keeps_the_batch_and_expiry(): void
@@ -133,32 +134,32 @@ class DrugLabelBatchExpiryTest extends VisitTestCase
 
         $label = app(DrugLabelService::class)->preview($f['ca'], $case)['items'][0];
 
-        $this->assertContains('No. Batch: '.$f['batch']->batch_number, $label['lines']);
-        $this->assertContains('Tarikh luput: '.CarbonImmutable::parse($f['batch']->expiry_date)->format('d/m/Y'), $label['lines']);
+        $this->assertStringEndsWith('EXP: '.CarbonImmutable::parse($f['batch']->expiry_date)->format('d/m/Y'), (string) end($label['lines']));
     }
 
-    public function test_an_over_budget_batch_number_blocks_the_label_instead_of_truncating_it(): void
+    public function test_a_long_batch_number_no_longer_blocks_the_label_because_it_is_not_printed(): void
     {
         $f = $this->fixture();
-        $f['batch']->forceFill(['batch_number' => str_repeat('B', DrugLabelLayout::FIELD_BUDGETS['batch'] + 1)])->save();
+        $f['batch']->forceFill(['batch_number' => str_repeat('B', 49)])->save();
         $case = $this->open($f);
         app(DispensaryService::class)->addItem($f['ca'], $case, $this->addPayload($f, $case));
         $this->confirmAllergy($f, $case);
 
         $preview = app(DrugLabelService::class)->preview($f['ca'], $case->refresh());
 
-        $this->assertSame([], $preview['items']);
-        $this->assertContains('Batch: 49 characters; label limit 48.', $preview['blocked'][0]['errors']);
+        $this->assertSame([], $preview['blocked']);
+        $this->assertSame([], array_values(array_filter($preview['items'][0]['lines'], fn (string $line): bool => str_contains($line, 'BBBB'))));
     }
 
-    public function test_the_layout_prints_batch_and_expiry_only_when_given(): void
+    public function test_the_layout_prints_the_expiry_only_when_given(): void
     {
         $layout = new DrugLabelLayout;
-        $with = $layout->render(['quantity' => '2 unit', 'batch' => 'SYN-B1', 'expiry' => '31/12/2027', 'dosage' => '1', 'frequency' => '1'], '01/01/2027', false, false);
-        $without = $layout->render(['quantity' => '2 unit', 'dosage' => '1', 'frequency' => '1'], '01/01/2027', false, false);
+        $fields = ['clinic' => 'Synthetic Clinic', 'patient' => 'Synthetic Patient', 'name' => 'Synthetic medicine', 'quantity' => '2', 'dosage' => '1', 'frequency' => '1'];
+        $with = $layout->render($fields, '01/01/2027', '31/12/2027', false);
+        $without = $layout->render($fields, '01/01/2027', null, false);
 
-        $this->assertSame(['Kuantiti: 2 unit', 'No. Batch: SYN-B1', 'Tarikh luput: 31/12/2027', 'Dos: 1'], array_slice($with['lines'], 0, 4));
-        $this->assertSame(count($without['lines']) + 2, count($with['lines']));
-        $this->assertSame([], array_values(array_filter($without['lines'], fn (string $line): bool => str_contains($line, 'Batch') || str_contains($line, 'luput'))));
+        $this->assertSame('01/01/2027'.str_repeat(' ', 23).'EXP: 31/12/2027', end($with['lines']));
+        $this->assertSame('01/01/2027'.str_repeat(' ', 32).'EXP: -', end($without['lines']));
+        $this->assertSame(count($without['lines']), count($with['lines']), 'the expiry uses no extra row');
     }
 }

@@ -15,15 +15,14 @@ use App\Domain\Clinical\Models\ClinicalEncounterAllergyReview;
 use App\Domain\Clinical\Models\MedicineCatalogueItem;
 use App\Domain\Clinical\Models\PatientAllergyProfile;
 use App\Domain\Organisation\BusinessDetails\BranchLetterheadAssembler;
-use App\Domain\Organisation\BusinessDetails\BusinessDetailAsset;
 use App\Domain\Organisation\Inventory\Models\InventoryBatch;
 use App\Domain\Organisation\Models\Branch;
 use App\Domain\Patient\Models\Patient;
+use App\Domain\Shared\PrintedPhone;
 use App\Domain\Visit\Models\Visit;
 use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 final class DrugLabelService
@@ -118,25 +117,16 @@ final class DrugLabelService
             }
             $items = $all->filter(fn (DispensaryItem $item): bool => ($itemPublicId === null || $item->public_id === $itemPublicId) && $item->change_state !== 'removed' && in_array($item->status, ['dispensed', 'partial'], true) && $item->quantity_dispensed !== null && (float) $item->quantity_dispensed > 0);
             abort_if($items->isEmpty(), 404);
-            $head = $this->letterheads->assemble($branch, function (string $id) use ($actor): string {
-                $asset = BusinessDetailAsset::query()->where('organisation_id', $actor->organisation_id)->where('public_id', $id)->whereNull('retired_at')->firstOrFail();
-                if (! Storage::disk('local')->exists($asset->path)) {
-                    return '';
-                }
-                $bytes = Storage::disk('local')->get($asset->path);
-
-                return hash_equals($asset->sha256, hash('sha256', $bytes)) ? 'data:'.$asset->mime.';base64,'.base64_encode($bytes) : '';
-            });
-            $logo = ($head->logo['url'] ?? '') ?: null;
+            // DSP-10: the label prints no logo, so the logo file is never read here.
+            $head = $this->letterheads->assemble($branch, fn (string $id): string => '');
             $details = $head->details;
             $address = implode(', ', array_filter([$details['address_line_1'], $details['address_line_2'], $details['postcode'], $details['city'], $details['state'], $details['country']], fn ($s) => $s !== null && $s !== ''));
-            $contact = implode(' / ', array_filter([$details['phone'], $details['email']]));
             $blocked = [];
             $output = [];
             $batchNotes = [];
             $printable = [];
             $reprints = [];
-            $manifest = [$branch->id, $branch->timezone, $case->lock_version, $patient->lock_version, $handoff->id, $handoff->status, $head->organisationVersion, $head->branchVersion, $head->logo];
+            $manifest = [$branch->id, $branch->timezone, $case->lock_version, $patient->lock_version, $handoff->id, $handoff->status, $head->organisationVersion, $head->branchVersion];
             foreach ($items as $item) {
                 if ($item->status === 'partial' && ! $item->exceptions()->where('status', 'acknowledged')->where('expected_item_lock_version', $item->lock_version)->where('proposed_quantity_dispensed', $item->quantity_dispensed)->exists()) {
                     $blocked[] = ['name' => $item->medicine_name_snapshot, 'errors' => ['Partial quantity: current doctor acknowledgement required.']];
@@ -144,16 +134,20 @@ final class DrugLabelService
                     continue;
                 }
                 [$batch, $batchNote] = $this->singleBatch($item);
-                $fields = ['clinic' => $details['clinic_name'], 'address' => $address, 'contact' => $contact, 'patient' => $patient->full_name, 'reference' => $patient->patient_number.' / '.$visit->visit_number,
-                    'name' => $item->medicine_name_snapshot,
-                    ...($this->isControlled($item) ? ['controlled' => DrugLabelLayout::CONTROLLED_MARKER] : []),
-                    'strength' => $item->strength_snapshot, 'form' => $item->dosage_form_snapshot, 'quantity' => DrugLabelLayout::displayQuantity($item->quantity_dispensed).' '.$item->unit_snapshot,
-                    ...($batch ? ['batch' => $batch->batch_number, 'expiry' => CarbonImmutable::parse($batch->expiry_date)->format('d/m/Y')] : []),
-                    'dosage' => $item->effective('dosage'), 'frequency' => $item->effective('frequency'), 'duration' => $item->effective('duration'), 'route' => $item->effective('route'), 'instruction' => $item->effective('administration_instruction'), 'precaution' => $item->effective('precaution')];
+                // DSP-10 (owner decisions 2026-11-06): the clinic's landscape label. Phone only; the medicine display
+                // name with QTY; directions "dosage, frequency, instruction" (route is not printed); the medicine's
+                // catalogue indication; EXP only for exactly one batch with a real expiry; no batch number.
+                $medicine = MedicineCatalogueItem::query()->whereKey($item->medicine_catalogue_item_id)->where('organisation_id', $item->organisation_id)->first(['id', 'is_controlled', 'default_indication']);
+                $fields = ['clinic' => $details['clinic_name'], 'address' => $address, 'phone' => PrintedPhone::format($details['phone'] ?? null) ?? '', 'patient' => $patient->full_name,
+                    'name' => $item->medicine_name_snapshot, 'quantity' => DrugLabelLayout::displayQuantity($item->quantity_dispensed),
+                    'dosage' => $item->effective('dosage'), 'frequency' => $item->effective('frequency'), 'instruction' => $item->effective('administration_instruction'),
+                    'precaution' => $item->effective('precaution'), 'duration' => $item->effective('duration'), 'indication' => $medicine?->default_indication];
+                $expiry = $batch ? CarbonImmutable::parse($batch->expiry_date)->format('d/m/Y') : null;
+                $controlled = (bool) $medicine?->is_controlled;
                 $at = $completed ? $handoff->completed_at : $item->handled_at;
-                $date = $at ? CarbonImmutable::parse($at)->setTimezone($branch->timezone)->format('d/m/Y') : 'Tidak direkod';
-                $render = $this->layout->render($fields, $date, $completed, $logo !== null, now()->setTimezone($branch->timezone)->format('d/m/Y H:i').' ('.$branch->timezone.')');
-                $manifest[] = [$item->id, $item->lock_version, $fields, $date, $render['errors']];
+                $date = $at ? CarbonImmutable::parse($at)->setTimezone($branch->timezone)->format('d/m/Y') : '-';
+                $render = $this->layout->render($fields, $date, $expiry, $controlled);
+                $manifest[] = [$item->id, $item->lock_version, $fields, $date, $expiry, $controlled, $render['errors']];
                 if ($render['errors'] !== []) {
                     $blocked[] = ['name' => $item->medicine_name_snapshot, 'errors' => $render['errors']];
                 } else {
@@ -162,31 +156,21 @@ final class DrugLabelService
                     if (DispensaryLabelPrint::query()->where('dispensary_item_id', $item->id)->exists()) {
                         $reprints[] = $previewUrl;
                     }
-                    $output[] = ['name' => $item->medicine_name_snapshot, 'strength' => $item->strength_snapshot, 'quantity' => $item->quantity_dispensed, 'unit' => $item->unit_snapshot, 'dosage' => $item->effective('dosage'), 'frequency' => $item->effective('frequency'), 'duration' => $item->effective('duration'), 'instruction' => $item->effective('administration_instruction'), 'lines' => $render['lines'], 'emphasis' => $render['emphasis'], 'previewUrl' => $previewUrl];
+                    $output[] = ['name' => $item->medicine_name_snapshot, 'strength' => $item->strength_snapshot, 'quantity' => $item->quantity_dispensed, 'unit' => $item->unit_snapshot, 'dosage' => $item->effective('dosage'), 'frequency' => $item->effective('frequency'), 'duration' => $item->effective('duration'), 'instruction' => $item->effective('administration_instruction'), 'lines' => $render['lines'], 'emphasis' => $render['emphasis'], 'ruleAfter' => $render['ruleAfter'], 'controlled' => $render['controlled'], 'previewUrl' => $previewUrl];
                     if ($batchNote !== null) {
                         $batchNotes[] = ['name' => $item->medicine_name_snapshot, 'previewUrl' => $previewUrl, 'note' => $batchNote];
                     }
                 }
             }
 
-            return ['batchNotes' => $batchNotes, 'printable' => $printable, 'reprints' => $reprints, 'labels' => ['clinic' => $details['clinic_name'], 'branch' => $branch->name, 'patient' => ['name' => $patient->full_name, 'patientNumber' => $patient->patient_number], 'date' => now()->setTimezone($branch->timezone)->format('d/m/Y H:i').' ('.$branch->timezone.')',
-                'items' => $output, 'blocked' => $blocked, 'logo' => $logo, 'pageSize' => DrugLabelLayout::DRUG_LABEL_PAGE_SIZE, 'token' => hash_hmac('sha256', json_encode($manifest, JSON_THROW_ON_ERROR), (string) config('app.key')), 'branchId' => $branch->id, 'excludedCount' => $itemPublicId === null ? $all->count() - $items->count() : 0]];
+            return ['batchNotes' => $batchNotes, 'printable' => $printable, 'reprints' => $reprints, 'labels' => ['clinic' => $details['clinic_name'], 'branch' => $branch->name, 'patient' => ['name' => $patient->full_name], 'date' => now()->setTimezone($branch->timezone)->format('d/m/Y H:i').' ('.$branch->timezone.')',
+                'items' => $output, 'blocked' => $blocked, 'pageSize' => DrugLabelLayout::DRUG_LABEL_PAGE_SIZE, 'token' => hash_hmac('sha256', json_encode($manifest, JSON_THROW_ON_ERROR), (string) config('app.key')), 'branchId' => $branch->id, 'excludedCount' => $itemPublicId === null ? $all->count() - $items->count() : 0]];
         }, 3);
     }
 
     /**
-     * DSP-3: read live from the catalogue (the medicine name, strength and form are handoff snapshots; this
-     * flag and the letterhead are live). A change retires open previews, and reprints of already-dispensed
-     * lines follow the current flag.
-     */
-    private function isControlled(DispensaryItem $item): bool
-    {
-        return (bool) MedicineCatalogueItem::query()->whereKey($item->medicine_catalogue_item_id)->where('organisation_id', $item->organisation_id)->value('is_controlled');
-    }
-
-    /**
-     * DSP-2: the batch to print, only when every allocation of this line is the same one batch.
-     * Otherwise nothing extra is printed and the preview says why. Read only; stock is unchanged.
+     * DSP-2, DSP-10: the batch whose expiry is printed, only when every allocation of this line is the same one batch.
+     * Otherwise the label prints "EXP: -" and the preview says why. Read only; stock is unchanged.
      *
      * @return array{0: ?InventoryBatch, 1: ?string}
      */
@@ -196,14 +180,14 @@ final class DrugLabelService
         $batchIds = DispensaryItemBatchAllocation::query()->where('dispensary_item_id', $item->id)->orderBy('id')->pluck('inventory_batch_id')->unique()->values();
         if ($batchIds->count() !== 1) {
             return [null, $batchIds->isEmpty()
-                ? 'Batch and expiry not printed: no batch is allocated to this line.'
-                : 'Batch and expiry not printed: more than one batch is allocated to this line.'];
+                ? 'Expiry printed as "EXP: -": no batch is allocated to this line.'
+                : 'Expiry printed as "EXP: -": more than one batch is allocated to this line.'];
         }
 
         $batch = InventoryBatch::query()->whereKey($batchIds->first())->where('organisation_id', $item->organisation_id)->firstOrFail();
         // Before STK-3 a batch could carry the 9999-12-31 placeholder instead of a real expiry; never print it as a date.
         if (CarbonImmutable::parse($batch->expiry_date)->format('Y-m-d') === self::PLACEHOLDER_EXPIRY) {
-            return [null, 'Batch and expiry not printed: this batch has no real expiry date recorded.'];
+            return [null, 'Expiry printed as "EXP: -": this batch has no real expiry date recorded.'];
         }
 
         return [$batch, null];
