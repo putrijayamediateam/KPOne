@@ -293,7 +293,7 @@ const submit = () => {
                     The reason is retained privately and does not appear on the
                     invoice or activity log.
                 </p>
-                <div role="alert">
+                <div>
                     <InputError
                         v-for="(message, field) in errors"
                         :key="field"
