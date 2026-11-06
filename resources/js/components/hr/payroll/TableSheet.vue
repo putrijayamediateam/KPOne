@@ -283,12 +283,12 @@ const rowError = (i: number, field: string) =>
                                 <Label :for="`band-${i}-employee`"
                                     >Employee</Label
                                 >
-                                <div class="flex gap-1">
+                                <div class="flex flex-col gap-1">
                                     <OperationalSelect
                                         :id="`band-${i}-employee-kind`"
                                         v-model="row.employee_kind"
                                         :label="`Band ${i + 1} employee part kind`"
-                                        trigger-class="w-32 max-lg:h-11"
+                                        trigger-class="w-full max-lg:h-11"
                                         :options="kinds"
                                     />
                                     <Input
@@ -309,12 +309,12 @@ const rowError = (i: number, field: string) =>
                                 <Label :for="`band-${i}-employer`"
                                     >Employer</Label
                                 >
-                                <div class="flex gap-1">
+                                <div class="flex flex-col gap-1">
                                     <OperationalSelect
                                         :id="`band-${i}-employer-kind`"
                                         v-model="row.employer_kind"
                                         :label="`Band ${i + 1} employer part kind`"
-                                        trigger-class="w-32 max-lg:h-11"
+                                        trigger-class="w-full max-lg:h-11"
                                         :options="kinds"
                                     />
                                     <Input
