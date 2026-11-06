@@ -19,7 +19,8 @@ use Illuminate\Validation\ValidationException;
  */
 final class LeaveSettingsService
 {
-    private const TYPE_FIELDS = ['code', 'name', 'is_paid', 'uses_balance', 'allow_half_days', 'evidence_needed', 'allow_negative', 'carry_max_halves', 'carry_expires_on', 'is_active'];
+    private const TYPE_FIELDS = ['code', 'name', 'is_paid', 'uses_balance', 'allow_half_days', 'evidence_needed', 'allow_negative', 'carry_max_halves', 'carry_expires_on', 'is_active',
+        'accepts_evidence_files', 'evidence_retention_days'];
 
     public function __construct(private LeaveSupport $support, private LeaveCalendar $calendar, private LeaveBalanceService $balances) {}
 
@@ -446,9 +447,23 @@ final class LeaveSettingsService
             throw ValidationException::withMessages(['carry_expires_on' => 'Choose a month and day, for example 03-31.']);
         }
 
+        // HR-2b: files are off until HR switches them on and sets how many days to keep them after the leave ends.
+        $acceptsFiles = $flag('accepts_evidence_files');
+        $retention = $input['evidence_retention_days'] ?? null;
+        $retention = $retention === null || $retention === '' ? null : filter_var($retention, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1, 'max_range' => 3650]]);
+        if ($retention === false || ($acceptsFiles && $retention === null)) {
+            throw ValidationException::withMessages(['evidence_retention_days' => 'Enter how many days to keep files after the leave ends (1 to 3650).']);
+        }
+        // Files already kept must still be deleted on time, so the days cannot be cleared while any remain (Suresh).
+        if ($retention === null && $type->exists && DB::table('hr_leave_evidence_files')->where('status', 'active')
+            ->whereIn('leave_request_id', DB::table('hr_leave_requests')->where('leave_type_id', $type->id)->select('id'))->exists()) {
+            throw ValidationException::withMessages(['evidence_retention_days' => 'This type still has evidence files. Keep a number of days so they are deleted on time.']);
+        }
+
         return ['code' => $code, 'name' => $name, 'is_paid' => $flag('is_paid'), 'uses_balance' => $usesBalance, 'allow_half_days' => $flag('allow_half_days'),
             'evidence_needed' => $flag('evidence_needed'), 'allow_negative' => $usesBalance && $flag('allow_negative'), 'carry_max_halves' => $carryHalves,
-            'carry_expires_on' => $expires, 'is_active' => $type->exists ? $flag('is_active') : true];
+            'carry_expires_on' => $expires, 'is_active' => $type->exists ? $flag('is_active') : true,
+            'accepts_evidence_files' => $acceptsFiles, 'evidence_retention_days' => $retention];
     }
 
     private function year(mixed $value): int

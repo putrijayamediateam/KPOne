@@ -5,6 +5,7 @@ namespace App\Domain\HR\Leave\Services;
 use App\Domain\HR\Leave\LeavePermissions;
 use App\Domain\HR\Leave\Models\LeaveAdjustment;
 use App\Domain\HR\Leave\Models\LeaveBalanceEntry;
+use App\Domain\HR\Leave\Models\LeaveEvidenceFile;
 use App\Domain\HR\Leave\Models\LeaveOpening;
 use App\Domain\HR\Leave\Models\LeaveRequest;
 use App\Domain\HR\Leave\Models\LeaveType;
@@ -75,13 +76,20 @@ final class LeavePageService
         return [
             'balances' => $this->balances->summary($actor, $active->sortBy('name'), $today->year, $today),
             'types' => $active->map(fn (LeaveType $t): array => ['id' => $t->id, 'name' => $t->name, 'allowHalfDays' => $t->allow_half_days,
-                'evidenceNeeded' => $t->evidence_needed, 'usesBalance' => $t->uses_balance])->values()->all(),
-            'requests' => $requests->map(function (LeaveRequest $r) use ($typeNames, $branchZones): array {
-                $today = CarbonImmutable::now((string) ($branchZones[$r->branch_id] ?? 'UTC'))->toDateString();
-                $canCancel = $r->status === 'pending' || ($r->status === 'approved' && $r->start_date->toDateString() > $today);
+                'evidenceNeeded' => $t->evidence_needed, 'usesBalance' => $t->uses_balance, 'acceptsFiles' => $t->accepts_evidence_files,
+                'retentionDays' => $t->accepts_evidence_files ? $t->evidence_retention_days : null])->values()->all(),
+            'requests' => (function () use ($requests, $typeNames, $branchZones, $types, $actor): array {
+                $files = $this->filesFor($requests);
 
-                return [...$this->requestRow($r, (string) ($typeNames[$r->leave_type_id] ?? 'Leave')), 'reason' => $r->reason_encrypted, 'canCancel' => $canCancel];
-            })->values()->all(),
+                return $requests->map(function (LeaveRequest $r) use ($typeNames, $branchZones, $types, $actor, $files): array {
+                    $zone = (string) ($branchZones[$r->branch_id] ?? 'UTC');
+                    $today = CarbonImmutable::now($zone)->toDateString();
+                    $canCancel = $r->status === 'pending' || ($r->status === 'approved' && $r->start_date->toDateString() > $today);
+
+                    return [...$this->requestRow($r, (string) ($typeNames[$r->leave_type_id] ?? 'Leave')), 'reason' => $r->reason_encrypted, 'canCancel' => $canCancel,
+                        'evidence' => $this->evidence($r, $types->firstWhere('id', $r->leave_type_id), $actor, true, $zone, $files)];
+                })->values()->all();
+            })(),
         ];
     }
 
@@ -99,15 +107,26 @@ final class LeavePageService
     private function approvals(User $actor, Collection $pending, CarbonImmutable $today): array
     {
         $zones = Branch::query()->where('organisation_id', $actor->organisation_id)->pluck('timezone', 'id');
-        $rows = $pending->map(function (LeaveRequest $r) use ($zones): array {
+        $approvedRequests = LeaveRequest::query()->with(['person.roles', 'type'])->where('organisation_id', $actor->organisation_id)->where('status', 'approved')
+            ->where('user_id', '<>', $actor->id)->whereDate('end_date', '>=', $today->subDays(30)->toDateString())->orderBy('start_date')->limit(100)->get();
+        // HR-2b: other people's files only for holders of the evidence view permission.
+        $canSee = $actor->can(LeavePermissions::EVIDENCE_VIEW);
+        $files = $canSee ? $this->filesFor($pending->concat($approvedRequests)) : collect();
+        // The warning only counts files, so it is the same for approvers who cannot open them.
+        $attached = $pending->isEmpty() ? collect() : LeaveEvidenceFile::query()->whereIn('leave_request_id', $pending->pluck('id'))
+            ->where('status', 'active')->selectRaw('leave_request_id, count(*) as n')->groupBy('leave_request_id')->pluck('n', 'leave_request_id');
+        $rows = $pending->map(function (LeaveRequest $r) use ($zones, $actor, $files, $canSee, $attached): array {
             $zone = (string) ($zones[$r->branch_id] ?? 'UTC');
             $warnings = [];
             $shifts = $this->approvedShifts($r, $zone);
             if ($shifts > 0) {
                 $warnings[] = 'Has '.($shifts === 1 ? '1 approved shift' : "{$shifts} approved shifts").' in this period. Change the roster after approving.';
             }
-            if ($r->type->evidence_needed) {
-                $warnings[] = 'Evidence needed';
+            if ((int) ($attached[$r->id] ?? 0) > 0) {
+                $warnings[] = 'Evidence attached: check it';
+            } elseif ($r->type->evidence_needed) {
+                // Daniel, HR-2b: a reference alone still needs checking; nothing at all is the real gap.
+                $warnings[] = $r->evidence_reference_encrypted !== null && $r->evidence_reference_encrypted !== '' ? 'Evidence reference given: check it' : 'Evidence needed';
             }
             $sentOn = CarbonImmutable::parse($r->created_at)->setTimezone($zone)->startOfDay();
             $notice = (int) $sentOn->diffInDays(CarbonImmutable::parse($r->start_date->toDateString(), $zone), false);
@@ -120,12 +139,12 @@ final class LeavePageService
 
             return [...$this->requestRow($r, $r->type->name), 'person' => $r->person->name ?? 'Staff member', 'role' => $this->roleLabel($r->person),
                 'evidenceNeeded' => $r->type->evidence_needed, 'evidenceReference' => $r->evidence_reference_encrypted, 'reason' => $r->reason_encrypted,
-                'leftAfter' => $left === null ? null : LeaveSupport::days($left), 'warnings' => $warnings];
+                'leftAfter' => $left === null ? null : LeaveSupport::days($left), 'warnings' => $warnings,
+                'evidence' => $canSee ? $this->evidence($r, $r->type, $actor, false, $zone, $files) : null];
         })->values()->all();
 
-        $approved = LeaveRequest::query()->with(['person.roles', 'type'])->where('organisation_id', $actor->organisation_id)->where('status', 'approved')
-            ->where('user_id', '<>', $actor->id)->whereDate('end_date', '>=', $today->subDays(30)->toDateString())->orderBy('start_date')->limit(100)->get()
-            ->map(fn (LeaveRequest $r): array => [...$this->requestRow($r, $r->type->name), 'person' => $r->person->name ?? 'Staff member', 'role' => $this->roleLabel($r->person)])
+        $approved = $approvedRequests->map(fn (LeaveRequest $r): array => [...$this->requestRow($r, $r->type->name), 'person' => $r->person->name ?? 'Staff member',
+            'role' => $this->roleLabel($r->person), 'evidence' => $canSee ? $this->evidence($r, $r->type, $actor, false, (string) ($zones[$r->branch_id] ?? 'UTC'), $files) : null])
             ->values()->all();
 
         return ['pending' => $rows, 'approved' => $approved];
@@ -197,7 +216,8 @@ final class LeavePageService
             'types' => $types->map(fn (LeaveType $t): array => ['id' => $t->id, 'code' => $t->code, 'name' => $t->name, 'isPaid' => $t->is_paid, 'usesBalance' => $t->uses_balance,
                 'allowHalfDays' => $t->allow_half_days, 'evidenceNeeded' => $t->evidence_needed, 'allowNegative' => $t->allow_negative,
                 'carryMaxDays' => $t->carry_max_halves === null ? '' : LeaveSupport::days($t->carry_max_halves), 'carryExpiresOn' => $t->carry_expires_on ?? '',
-                'isActive' => $t->is_active, 'lockVersion' => $t->lock_version])->values()->all(),
+                'isActive' => $t->is_active, 'acceptsEvidenceFiles' => $t->accepts_evidence_files, 'evidenceRetentionDays' => $t->evidence_retention_days === null ? '' : (string) $t->evidence_retention_days,
+                'lockVersion' => $t->lock_version])->values()->all(),
             'roles' => collect(RosterPermissions::HUMAN_ROLES)->map(fn (string $r): array => ['value' => $r, 'label' => RosterRules::ROLE_LABELS[$r] ?? $r])->values()->all(),
             'entitlements' => collect($rows)->map(function (int $halves, string $key) use ($names): array {
                 [$typeId, $who] = explode(':', $key, 2);
@@ -215,6 +235,55 @@ final class LeavePageService
                 'label' => CarbonImmutable::parse(substr((string) $h->holiday_date, 0, 10))->format('D j M Y'), 'name' => $h->name])->values()->all(),
             'entries' => $entries->sortBy(fn (array $e): string => ($e['status'] === 'pending' ? '0' : '1').$e['person'])->values()->all(),
             'adjustmentReasons' => $this->options(LeaveEntryService::ADJUSTMENT_REASONS),
+        ];
+    }
+
+    /**
+     * @param  Collection<int, LeaveRequest>  $requests
+     * @return Collection<int, Collection<int, LeaveEvidenceFile>> active files by request id
+     */
+    private function filesFor(Collection $requests): Collection
+    {
+        $ids = $requests->pluck('id')->unique()->values();
+
+        return $ids->isEmpty() ? collect() : LeaveEvidenceFile::query()->whereIn('leave_request_id', $ids)->where('status', 'active')->orderBy('id')->get()->groupBy('leave_request_id');
+    }
+
+    /**
+     * HR-2b: the evidence line of one request. Labels never carry a file name or anything from the file.
+     *
+     * @param  Collection<int, Collection<int, LeaveEvidenceFile>>  $files
+     * @return array<string, mixed>|null
+     */
+    private function evidence(LeaveRequest $r, ?LeaveType $type, User $actor, bool $own, string $zone, Collection $files): ?array
+    {
+        $list = $files->get($r->id, collect());
+        if ($type === null || (! $type->accepts_evidence_files && $list->isEmpty())) {
+            return null;
+        }
+        $open = in_array($r->status, ['pending', 'approved'], true);
+        $today = CarbonImmutable::now($zone)->toDateString();
+        $ownWindow = $r->status === 'pending' || ($r->status === 'approved'
+            && $today <= CarbonImmutable::parse($r->end_date->toDateString())->addDays(LeaveEvidenceService::ADD_DAYS_AFTER_END)->toDateString());
+        $manage = ! $own && $actor->can(LeavePermissions::MANAGE);
+        $names = User::query()->whereIn('id', $list->pluck('uploaded_by_user_id')->unique())->pluck('name', 'id');
+        $counter = ['photo' => 0, 'pdf' => 0];
+
+        return [
+            'acceptsFiles' => $type->accepts_evidence_files,
+            'retentionDays' => $type->evidence_retention_days,
+            'canAdd' => $type->accepts_evidence_files && $open && $list->count() < LeaveEvidenceService::MAX_FILES && ($own ? $ownWindow : $manage),
+            'files' => $list->values()->map(function (LeaveEvidenceFile $f) use (&$counter, $names, $zone, $own, $manage, $r): array {
+                $group = $f->kind === 'pdf' ? 'pdf' : 'photo';
+                $counter[$group]++;
+
+                return ['publicId' => $f->public_id, 'kind' => $f->kind, 'label' => ($group === 'pdf' ? 'PDF ' : 'Photo ').$counter[$group],
+                    'size' => $f->bytes >= 1048576 ? round($f->bytes / 1048576, 1).' MB' : max(1, (int) round($f->bytes / 1024)).' KB',
+                    'addedBy' => (string) ($names[$f->uploaded_by_user_id] ?? 'Staff member'), 'onBehalf' => $f->on_behalf,
+                    'addedOn' => CarbonImmutable::parse($f->created_at)->setTimezone($zone)->format('j M Y'),
+                    'url' => route('hr.leave.evidence.show', $f->public_id), 'lockVersion' => $f->lock_version,
+                    'canRemove' => $own ? $r->status === 'pending' : $manage];
+            })->all(),
         ];
     }
 
