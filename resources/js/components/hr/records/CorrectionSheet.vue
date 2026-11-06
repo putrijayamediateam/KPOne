@@ -138,6 +138,9 @@ const send = () => {
                 </div>
                 <template v-else-if="kind === 'identity'">
                     <div class="grid gap-1.5">
+                        <Label for="correction-identity-kind"
+                            >Identity document</Label
+                        >
                         <OperationalSelect
                             trigger-class="max-lg:h-11"
                             id="correction-identity-kind"
@@ -218,6 +221,7 @@ const send = () => {
                 </template>
 
                 <div class="grid gap-1.5">
+                    <Label for="correction-reason">Reason *</Label>
                     <OperationalSelect
                         trigger-class="max-lg:h-11"
                         id="correction-reason"

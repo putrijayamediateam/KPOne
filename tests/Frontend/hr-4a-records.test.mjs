@@ -13,6 +13,7 @@ const files = {
     masked: `${dir}MaskedValue.vue`,
     correction: `${dir}CorrectionSheet.vue`,
     synthetic: `${dir}SyntheticNote.vue`,
+    own: `${dir}OwnValue.vue`,
 };
 const source = Object.fromEntries(
     Object.entries(files).map(([k, p]) => [k, read(p)]),
@@ -182,4 +183,36 @@ test('review fixes: Confirm waits for Show, targets are 44 px below 1024 px, and
     assert.match(template('masked'), /class="sr-only">\{\{ spoken \}\}/);
     assert.match(source.file, /idempotency_key: bankDecision\.key/);
     assert.match(source.file, /idempotency_key: correctionDecision\.key/);
+});
+
+test('Daniel: your own IC and account are masked on My HR details until Show, every dropdown has a visible label, and a waiting correction is a chip', () => {
+    const records = template('records');
+    assert.match(
+        records,
+        /<OwnValue[\s\S]*?label="Identity number"[\s\S]*?:mask="identityMask"/,
+    );
+    assert.match(records, /<OwnValue[\s\S]*?label="Account number"/);
+    assert.doesNotMatch(records, /my\.bank\.holder \} · \$\{my\.bank\.account/);
+    assert.match(source.own, /const shown = ref\(false\)/);
+    assert.match(source.own, /visibilitychange/);
+    assert.match(template('own'), /aria-hidden="true"/);
+    assert.match(
+        records,
+        /status="pending"\s+label="Correction waiting"\s+tone="neutral"/,
+    );
+    assert.doesNotMatch(records, /\? 'Correction waiting'/);
+
+    for (const key of ['records', 'file', 'correction']) {
+        const t = template(key);
+
+        for (const select of t.match(/<OperationalSelect[^>]*>/g) ?? []) {
+            const id = select.match(/\bid="([^"]+)"/)?.[1];
+            assert.ok(id && t.includes(`<Label for="${id}"`), `${key}: ${id}`);
+        }
+    }
+
+    assert.match(
+        template('correction'),
+        /<Label for="correction-reason">Reason \*<\/Label>/,
+    );
 });

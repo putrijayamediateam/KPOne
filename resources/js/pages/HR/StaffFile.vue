@@ -1134,6 +1134,7 @@ const bankDialog = computed(() => {
                         :message="errors.records"
                     />
                     <div class="grid gap-1.5">
+                        <Label for="period-type">Type</Label>
                         <OperationalSelect
                             trigger-class="max-lg:h-11"
                             id="period-type"
@@ -1192,6 +1193,7 @@ const bankDialog = computed(() => {
                         <InputError :message="errors.ends_on" />
                     </div>
                     <div v-if="period.endsOn" class="grid gap-1.5">
+                        <Label for="period-end-reason">Why it ended</Label>
                         <OperationalSelect
                             trigger-class="max-lg:h-11"
                             id="period-end-reason"
@@ -1223,6 +1225,9 @@ const bankDialog = computed(() => {
                         <InputError :message="errors.note" />
                     </div>
                     <div v-if="needsEditReason" class="grid gap-1.5">
+                        <Label for="period-edit-reason"
+                            >Why this is being changed</Label
+                        >
                         <OperationalSelect
                             trigger-class="max-lg:h-11"
                             id="period-edit-reason"
@@ -1271,6 +1276,9 @@ const bankDialog = computed(() => {
                         <InputError :message="errors.title" />
                     </div>
                     <div class="grid gap-1.5">
+                        <Label for="position-department"
+                            >Department (optional)</Label
+                        >
                         <OperationalSelect
                             trigger-class="max-lg:h-11"
                             id="position-department"
@@ -1287,6 +1295,9 @@ const bankDialog = computed(() => {
                         <InputError :message="errors.department_id" />
                     </div>
                     <div class="grid gap-1.5">
+                        <Label for="position-reports-to"
+                            >Reports to (optional)</Label
+                        >
                         <OperationalSelect
                             trigger-class="max-lg:h-11"
                             id="position-reports-to"
@@ -1365,6 +1376,9 @@ const bankDialog = computed(() => {
                         <InputError :message="errors.preferred_name" />
                     </div>
                     <div class="grid gap-1.5">
+                        <Label for="personal-identity-kind"
+                            >Identity document</Label
+                        >
                         <OperationalSelect
                             trigger-class="max-lg:h-11"
                             id="personal-identity-kind"
@@ -1610,6 +1624,7 @@ const bankDialog = computed(() => {
             @confirm="sendBankDecision"
         >
             <div v-if="bankDecision.decision === 'reject'" class="grid gap-1.5">
+                <Label for="bank-reject-reason">Why it is rejected</Label>
                 <OperationalSelect
                     trigger-class="max-lg:h-11"
                     id="bank-reject-reason"
@@ -1660,6 +1675,7 @@ const bankDialog = computed(() => {
                 v-if="correctionDecision.decision === 'reject'"
                 class="grid gap-1.5"
             >
+                <Label for="correction-reject-reason">Why it is rejected</Label>
                 <OperationalSelect
                     trigger-class="max-lg:h-11"
                     id="correction-reject-reason"

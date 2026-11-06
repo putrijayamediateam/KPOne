@@ -3,6 +3,7 @@
 import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import { computed, reactive, ref, watch } from 'vue';
 import CorrectionSheet from '@/components/hr/records/CorrectionSheet.vue';
+import OwnValue from '@/components/hr/records/OwnValue.vue';
 import SyntheticNote from '@/components/hr/records/SyntheticNote.vue';
 import type {
     Address,
@@ -136,6 +137,14 @@ const ownIdentity = computed(() => {
         ? `IC ${id.number}`
         : `Passport ${id.number}${id.country ? ` (${id.country})` : ''}`;
 });
+const identityMask = computed(() => {
+    const id = my.value?.personal?.identity;
+
+    return id
+        ? `${id.kind === 'ic' ? 'IC •••• •••• ' : 'Passport •••• '}${id.number.slice(-4)}`
+        : notGiven;
+});
+// The correction sheet's "Recorded" line masks your identity and account, as the page does.
 const recordedFor = (kind: string): string => {
     const p = my.value?.personal;
 
@@ -143,14 +152,14 @@ const recordedFor = (kind: string): string => {
         case 'legal_name':
             return p?.legalName ?? notGiven;
         case 'identity':
-            return ownIdentity.value;
+            return identityMask.value;
         case 'date_of_birth':
             return p?.dateOfBirth ? dateLabel(p.dateOfBirth) : notGiven;
         case 'nationality':
             return p?.nationality ?? notGiven;
         default:
             return my.value?.bank
-                ? `${my.value.bank.bankName} ${my.value.bank.account}`
+                ? `${my.value.bank.bankName} •••• ${my.value.bank.account.slice(-4)}`
                 : notGiven;
     }
 };
@@ -509,28 +518,40 @@ const sendLocum = () => {
                         <dl class="grid gap-3 text-sm">
                             <div>
                                 <dt class="text-muted-foreground">Account</dt>
-                                <dd class="break-words">
-                                    {{
-                                        my.bank
-                                            ? `${my.bank.bankName} · ${my.bank.holder} · ${my.bank.account}`
-                                            : notGiven
-                                    }}
+                                <dd class="flex flex-col gap-1">
+                                    <template v-if="my.bank">
+                                        <span class="break-words"
+                                            >{{ my.bank.bankName }} ·
+                                            {{ my.bank.holder }}</span
+                                        >
+                                        <OwnValue
+                                            label="Account number"
+                                            field="account number"
+                                            :mask="`Account •••• ${my.bank.account.slice(-4)}`"
+                                            :value="my.bank.account"
+                                            :last4="my.bank.account.slice(-4)"
+                                        />
+                                    </template>
+                                    <span v-else>{{ notGiven }}</span>
                                 </dd>
                             </div>
                         </dl>
+                        <p v-if="pendingKinds.has('bank')" class="mt-3">
+                            <StatusBadge
+                                status="pending"
+                                label="Correction waiting"
+                                tone="neutral"
+                            />
+                        </p>
                         <Button
+                            v-else
                             variant="outline"
                             size="sm"
                             class="mt-3 max-lg:min-h-11"
-                            :disabled="pendingKinds.has('bank')"
                             data-test="ask-bank"
                             @click="askCorrection('bank')"
                         >
-                            {{
-                                pendingKinds.has('bank')
-                                    ? 'Correction waiting'
-                                    : 'Ask for a correction'
-                            }}
+                            Ask for a correction
                         </Button>
                     </section>
                 </div>
@@ -576,23 +597,42 @@ const sendLocum = () => {
                             <dt class="text-muted-foreground">
                                 {{ item.label }}
                             </dt>
-                            <dd class="break-words">
+                            <dd
+                                v-if="
+                                    item.kind === 'identity' &&
+                                    my.personal.identity
+                                "
+                            >
+                                <OwnValue
+                                    label="Identity number"
+                                    field="identity number"
+                                    :mask="identityMask"
+                                    :value="ownIdentity"
+                                    :last4="
+                                        my.personal.identity.number.slice(-4)
+                                    "
+                                />
+                            </dd>
+                            <dd v-else class="break-words">
                                 {{ item.value ?? notGiven }}
                             </dd>
                             <dd>
+                                <StatusBadge
+                                    v-if="pendingKinds.has(item.kind)"
+                                    status="pending"
+                                    label="Correction waiting"
+                                    tone="neutral"
+                                    :data-test="`waiting-${item.kind}`"
+                                />
                                 <Button
+                                    v-else
                                     variant="outline"
                                     size="sm"
                                     class="max-lg:min-h-11"
-                                    :disabled="pendingKinds.has(item.kind)"
                                     :data-test="`ask-${item.kind}`"
                                     @click="askCorrection(item.kind)"
                                 >
-                                    {{
-                                        pendingKinds.has(item.kind)
-                                            ? 'Correction waiting'
-                                            : 'Ask for a correction'
-                                    }}
+                                    Ask for a correction
                                 </Button>
                             </dd>
                         </div>
@@ -728,6 +768,7 @@ const sendLocum = () => {
                     />
                 </div>
                 <div class="grid gap-1.5 lg:w-48">
+                    <Label for="files-branch">Branch</Label>
                     <OperationalSelect
                         trigger-class="max-lg:h-11"
                         id="files-branch"
@@ -737,6 +778,7 @@ const sendLocum = () => {
                     />
                 </div>
                 <div class="grid gap-1.5 lg:w-44">
+                    <Label for="files-type">Type</Label>
                     <OperationalSelect
                         trigger-class="max-lg:h-11"
                         id="files-type"
@@ -746,6 +788,7 @@ const sendLocum = () => {
                     />
                 </div>
                 <div class="grid gap-1.5 lg:w-48">
+                    <Label for="files-status">Status</Label>
                     <OperationalSelect
                         trigger-class="max-lg:h-11"
                         id="files-status"
@@ -826,7 +869,7 @@ const sendLocum = () => {
                                 <th scope="row" class="font-medium">
                                     <Link
                                         :href="`/hr/records/${row.id}`"
-                                        class="underline-offset-4 hover:underline"
+                                        class="text-foreground underline underline-offset-4"
                                         >{{ row.name }}</Link
                                     >
                                 </th>
@@ -901,7 +944,13 @@ const sendLocum = () => {
                         </div>
                         <p class="text-sm text-muted-foreground">
                             {{
-                                [row.role, row.branch, row.typeLabel]
+                                [
+                                    row.role,
+                                    row.branch,
+                                    row.typeLabel !== row.role
+                                        ? row.typeLabel
+                                        : null,
+                                ]
                                     .filter((p) => p)
                                     .join(' · ')
                             }}
@@ -1080,6 +1129,7 @@ const sendLocum = () => {
                         Everyone with a KPOne account already has a staff file.
                     </p>
                     <div v-else class="grid gap-1.5">
+                        <Label for="open-file-user">Staff member</Label>
                         <OperationalSelect
                             trigger-class="max-lg:h-11"
                             id="open-file-user"
