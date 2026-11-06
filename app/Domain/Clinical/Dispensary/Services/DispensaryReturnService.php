@@ -2,6 +2,7 @@
 
 namespace App\Domain\Clinical\Dispensary\Services;
 
+use App\Domain\Access\BranchAccessService;
 use App\Domain\Access\StaffAccessService;
 use App\Domain\Audit\AuditRecorder;
 use App\Domain\Clinical\Dispensary\Models\DispensaryCase;
@@ -116,6 +117,67 @@ final class DispensaryReturnService
                 ];
             })->values()->all(),
         ];
+    }
+
+    /**
+     * DSP-7b (approved by B.E.R.N.I.S.S for the owner, 2026-11-06): the active branch's returns still waiting for a
+     * check, oldest first, for the people who may check them (the v1 rule: a CA Supervisor). Read only: each row links
+     * to its case page, where the check happens. Staff names follow the staff-directory rule; the Other note is never
+     * listed.
+     *
+     * @return array<string, mixed>
+     */
+    public function waitingList(User $actor, int $page): array
+    {
+        $actor = $actor->fresh()?->load(['roles.permissions', 'permissions']);
+        abort_unless($actor && $actor->is_active && $actor->can('dispensary.view.branch') && $this->mayCheck($actor), 403);
+        $branches = app(BranchAccessService::class);
+        $branch = $branches->activeBranch($actor);
+        abort_unless($branch && $branch->organisation_id === $actor->organisation_id && $branches->hasEffectiveAssignment($actor, $branch), 403);
+
+        $paginator = DB::table('dispensary_returns as r')
+            ->join('dispensary_items as i', 'i.id', '=', 'r.dispensary_item_id')
+            ->join('dispensary_cases as c', 'c.id', '=', 'r.dispensary_case_id')
+            ->join('visits as v', 'v.id', '=', 'c.visit_id')
+            ->join('patients as p', 'p.id', '=', 'v.patient_id')
+            ->leftJoin('medicine_catalogue_items as m', 'm.id', '=', 'i.medicine_catalogue_item_id')
+            ->where('r.organisation_id', $actor->organisation_id)->where('r.branch_id', $branch->id)
+            ->whereNotExists(fn ($q) => $q->selectRaw('1')->from('dispensary_return_checks as k')->whereColumn('k.dispensary_return_id', 'r.id'))
+            ->orderBy('r.recorded_at')->orderBy('r.id')
+            ->select(['r.id', 'r.public_id', 'r.quantity', 'r.reason', 'r.condition', 'r.recorded_by_user_id', 'r.recorded_at',
+                'c.public_id as case_public_id', 'v.visit_number', 'p.full_name as patient_name',
+                'i.medicine_name_snapshot', 'i.strength_snapshot', 'i.unit_snapshot', 'm.is_controlled'])
+            ->paginate(25, ['*'], 'page', max(1, $page));
+        $rows = collect($paginator->items());
+        $names = $this->staff->visibleUsers($actor)->whereIn('id', $rows->pluck('recorded_by_user_id')->unique())->pluck('name', 'id');
+
+        return [
+            'branchName' => $branch->name,
+            'rows' => $rows->map(fn (\stdClass $r): array => [
+                'publicId' => (string) $r->public_id,
+                'recordedAt' => CarbonImmutable::parse($r->recorded_at)->setTimezone($branch->timezone)->format('j M Y, g:i A'),
+                'patient' => (string) $r->patient_name,
+                'visitNumber' => (string) $r->visit_number,
+                'medicine' => trim($r->medicine_name_snapshot.' '.($r->strength_snapshot ?? '')),
+                'quantity' => $this->trimmed((string) $r->quantity),
+                'unit' => (string) $r->unit_snapshot,
+                'reason' => (string) $r->reason,
+                'condition' => (string) $r->condition,
+                'controlled' => (bool) $r->is_controlled,
+                'recordedBy' => $names[$r->recorded_by_user_id] ?? 'Staff member',
+                'recordedByMe' => (int) $r->recorded_by_user_id === $actor->id,
+                'caseUrl' => route('dispensary.show', ['dispensaryCase' => $r->case_public_id], absolute: false),
+            ])->values()->all(),
+            'page' => $paginator->currentPage(),
+            'lastPage' => $paginator->lastPage(),
+            'total' => $paginator->total(),
+        ];
+    }
+
+    /** DSP-7b: the v1 checker rule, shared with the Clinic management link. */
+    public function canCheckReturns(User $actor): bool
+    {
+        return $this->mayCheck($actor);
     }
 
     /**
