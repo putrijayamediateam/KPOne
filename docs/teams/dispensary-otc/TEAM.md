@@ -232,6 +232,8 @@ coordinator at the owner's request (2026-11-05); the designer was added by owner
     list with the existing checker rule (a CA Supervisor who did not record the return). Adding the Finance Officer and
     Director as checkers stays out: it widens who signs a clinical check, so it waits for the owner (open question).
     Iman's sketch: Inventory & services group, table from 768 px and cards below, "Open case" to `#medicine-returns`.
+    Existing assertion change approved by B.E.R.N.I.S.S for the owner: `ClinicManagementTest`'s exact destination map
+    gains `/dispensary/returns-to-check` for the checker permission, CA Supervisor only.
 
 ## 7. Open items and known limits
 
