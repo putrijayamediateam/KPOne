@@ -200,4 +200,6 @@ authorisation to build them; the coordinator records it in `docs/BASELINE.md`.
    Yasmin's token string): the shared `OperationalConfirmDialog` uses `bg-popover` and `dark:border-border`
    instead of the fixed `dark:bg-slate-900`, matching the Queue & TV Call next dialog. Light mode: the dialog
    is white instead of the page grey; dark mode: neutral near-black with a full-strength border instead of navy.
-   No assertion changed.
+   After Daniel's review the icon tile is never empty: seven dialogs on six pages passed no icon, so the tile
+   showed as a blank square; the shared component now falls back to a warning icon (destructive) or a question
+   icon, and a destructive question uses the destructive tone. No assertion changed.

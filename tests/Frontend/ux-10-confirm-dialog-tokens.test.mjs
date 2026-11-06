@@ -17,3 +17,14 @@ test('the shared confirm dialog uses theme tokens, not a fixed slate surface', (
     );
     assert.doesNotMatch(dialog, /dark:bg-slate-\d+/);
 });
+
+test('the icon tile is never empty and a destructive question uses the destructive tone', () => {
+    assert.match(
+        dialog,
+        /<slot name="icon">\s*<AlertTriangle v-if="destructive" class="size-5" \/>\s*<CircleHelp v-else class="size-5" \/>\s*<\/slot>/,
+    );
+    assert.match(
+        dialog,
+        /destructive\s*\?\s*'bg-destructive\/10 text-destructive dark:bg-destructive\/15'/,
+    );
+});
