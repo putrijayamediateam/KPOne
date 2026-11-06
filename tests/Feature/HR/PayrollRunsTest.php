@@ -191,7 +191,7 @@ class PayrollRunsTest extends VisitTestCase
             ->where('run.steps.return.refusal', null));
 
         // The approved run is not stuck: only its approver sends it back, it is prepared again without the paid claim, then locked.
-        $this->step($this->director2, $id, 'return', ['reason' => 'missing_record'])->assertForbidden();
+        $this->step($this->director2, $id, 'return', ['reason' => 'missing_record'])->assertSessionHasErrors(['payroll' => 'The person who approved this run sends it back.']);
         $this->step($this->director, $id, 'return', ['reason' => 'missing_record'])->assertSessionHasNoErrors();
         $run = DB::table('hr_payroll_runs')->first();
         $this->assertNotNull($run);

@@ -283,46 +283,53 @@ const statusTone = computed(() =>
                     {{ run.sendRefusal }}
                 </p>
             </template>
-            <template v-else-if="run.status === 'sent'">
-                <template v-if="!run.steps.approve.refusal">
-                    <Button
-                        variant="outline"
-                        class="max-lg:min-h-11"
-                        data-test="run-approve"
-                        @click="asking = 'approve'"
-                        >Approve</Button
-                    >
-                    <Button
-                        variant="outline"
-                        class="max-lg:min-h-11"
-                        data-test="run-return"
-                        @click="
-                            returnReason = '';
-                            asking = 'return';
-                        "
-                        >Return to draft</Button
-                    >
-                </template>
-                <p v-else class="text-sm text-muted-foreground">
-                    {{ run.steps.approve.refusal }}
-                </p>
-            </template>
-            <template v-else-if="run.status === 'approved'">
+            <template v-else>
                 <Button
-                    v-if="!run.steps.lock.refusal"
+                    v-if="run.status === 'sent' && !run.steps.approve.refusal"
+                    variant="outline"
+                    class="max-lg:min-h-11"
+                    data-test="run-approve"
+                    @click="asking = 'approve'"
+                    >Approve</Button
+                >
+                <Button
+                    v-if="run.status === 'approved' && !run.steps.lock.refusal"
                     variant="outline"
                     class="max-lg:min-h-11"
                     data-test="run-lock"
                     @click="asking = 'lock'"
                     >Lock run</Button
                 >
-                <p v-else class="text-sm text-muted-foreground">
+                <Button
+                    v-if="run.status !== 'locked' && !run.steps.return.refusal"
+                    variant="outline"
+                    class="max-lg:min-h-11"
+                    data-test="run-return"
+                    @click="
+                        returnReason = '';
+                        asking = 'return';
+                    "
+                    >Return to draft</Button
+                >
+                <p
+                    v-if="run.status === 'sent' && run.steps.approve.refusal"
+                    class="text-sm text-muted-foreground"
+                >
+                    {{ run.steps.approve.refusal }}
+                </p>
+                <p
+                    v-if="run.status === 'approved' && run.steps.lock.refusal"
+                    class="text-sm text-muted-foreground"
+                >
                     {{ run.steps.lock.refusal }}
                 </p>
+                <p
+                    v-if="run.status === 'locked'"
+                    class="text-sm text-muted-foreground"
+                >
+                    Locked. Payslips and exports come with HR-7c.
+                </p>
             </template>
-            <p v-else class="text-sm text-muted-foreground">
-                Locked. Payslips and exports come with HR-7c.
-            </p>
         </div>
 
         <p
