@@ -564,20 +564,45 @@ const reload = () =>
                                     </div>
                                     <div
                                         v-if="canEdit"
-                                        class="min-w-0 flex-1 space-y-2"
+                                        class="min-w-0 flex-1 basis-40 space-y-2"
                                     >
-                                        <Label for="logo">Choose logo</Label>
+                                        <!-- CAT-10 (Daniel): a real button opens the hidden file input, and the chosen
+                                             file name sits on its own line, so 390 px no longer cuts "No file chosen". -->
                                         <input
-                                            id="logo"
                                             ref="fileInput"
                                             name="logo"
                                             type="file"
                                             accept="image/jpeg,image/png"
-                                            class="block w-full min-w-0 text-xs file:mr-2 file:cursor-pointer file:rounded-md file:border file:border-border file:bg-background file:px-3 file:py-2 file:text-xs"
-                                            aria-describedby="logo-error"
-                                            :aria-invalid="!!form.errors.logo"
+                                            class="sr-only"
+                                            tabindex="-1"
+                                            aria-hidden="true"
                                             @change="chooseLogo"
                                         />
+                                        <Button
+                                            id="logo"
+                                            type="button"
+                                            variant="outline"
+                                            class="min-h-11 sm:min-h-9"
+                                            aria-describedby="logo-error"
+                                            :aria-invalid="!!form.errors.logo"
+                                            data-testid="choose-logo"
+                                            @click="fileInput?.click()"
+                                            >{{
+                                                letterhead.logo
+                                                    ? 'Replace logo'
+                                                    : 'Choose logo'
+                                            }}</Button
+                                        >
+                                        <p
+                                            id="logo-file-name"
+                                            aria-live="polite"
+                                            class="text-xs [overflow-wrap:anywhere] break-words text-muted-foreground"
+                                        >
+                                            {{
+                                                form.logo?.name ??
+                                                'No file chosen'
+                                            }}
+                                        </p>
                                         <Button
                                             v-if="logoUrl"
                                             type="button"
