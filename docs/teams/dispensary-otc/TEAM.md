@@ -101,6 +101,7 @@ coordinator at the owner's request (2026-11-05); the designer was added by owner
 | DD-37 | The Drug groups dialog keeps the typed groups on a validation error, with the message under the field and a red border; a list changed meanwhile still closes it with a toast (the DSP-1c pattern) | pending (branch `fix/dsp-dd-37-drug-groups-error`) |
 | DSP-10 | The clinic's landscape drug label: 100 × 62 mm (provisional), Courier New 9 pt, 48 cells × at most 13 rows inside a rounded border. Clinic name (bold capitals, 40 characters), address, bold "Tel: (phone)" and a rule; patient name only; medicine display name with "QTY: n" (no unit); directions as one capitalised "dosage, frequency, instruction" block (3 rows); Precaution, Duration and the catalogue Indication (72 characters); date and "EXP: dd/mm/yyyy" (or "EXP: -") on the bottom row. No route, batch number, logo, email, patient or visit number. "Ubat Terkawal/Controlled Medicine" below the border; REPRINT top right inside it. Over a limit still blocks, never cuts | pending (branch `feature/dsp-10-landscape-label`) |
 | DSP-11 | Scan to check at Dispensary: on an open case the CA scans the box they picked (handheld scanner, typing or camera, STK-9's `ScanInput` with a new `dispensary` context and GET `/inventory/scan`); a box whose SKU is a saved line's mapped SKU marks that line "Checked by scan" and the summary counts "N of M"; any other known SKU shows "Not on this case: <item> (<SKU code>)". Screen only: nothing is saved, recorded or blocked; Complete is unchanged | pending (branch `feature/dsp-11-scan-check`) |
+| DSP-7b | Returns to check: a read-only branch list (`/dispensary/returns-to-check`, Clinic management > Inventory & services) of medicine returns waiting for a check, oldest first, 25 a page, each with an "Open case" link to the Completed page's returns section, where the check still happens; the Other note is never listed; only the v1 checkers (a CA Supervisor holding `inventory.variances.approve.branch`) see the page and its link | pending (branch `feature/dsp-7b-returns-to-check`) |
 
 ## 6. Owner decisions already made (never ask again)
 
@@ -227,6 +228,12 @@ coordinator at the owner's request (2026-11-05); the designer was added by owner
     sets a saved field.
     Reuses Inventory's `ScanInput` (new optional `dispensary` context and `describe` wording; the Inventory pages
     are unchanged). No new permission: CA and CA Supervisor already hold `inventory.view.branch`.
+30. DSP-7b returns list (2026-11-06): B.E.R.N.I.S.S for the owner chose option (a): the read-only "Returns to check"
+    list with the existing checker rule (a CA Supervisor who did not record the return). Adding the Finance Officer and
+    Director as checkers stays out: it widens who signs a clinical check, so it waits for the owner (open question).
+    Iman's sketch: Inventory & services group, table from 768 px and cards below, "Open case" to `#medicine-returns`.
+    Existing assertion change approved by B.E.R.N.I.S.S for the owner: `ClinicManagementTest`'s exact destination map
+    gains `/dispensary/returns-to-check` for the checker permission, CA Supervisor only.
 
 ## 7. Open items and known limits
 
@@ -252,8 +259,8 @@ coordinator at the owner's request (2026-11-05); the designer was added by owner
   not add the mark (the printer test says to use the button). Since DSP-10 the REPRINT mark sits top right inside the border, in the 8 cells the clinic name
   never uses (a test pins it). The fresh check writes a print row and an audit row, so it is a POST since DSP-6b (throttled, same-origin, CSRF-checked). A consultation-case print and two prints of the same case at the same moment are tested (DSP-6b).
 - **Medicine returns (DSP-7):** no refund in KPOne; only a CA Supervisor checks in v1, so a return a CA
-  Supervisor records needs a second CA Supervisor on shift; checkers see waiting returns only on the case page
-  (DSP-7b adds a branch list). A quarantine credits one batch, so a return larger than any single batch of the
+  Supervisor records needs a second CA Supervisor on shift; checkers see waiting returns on the case page and
+  in the branch "Returns to check" list (DSP-7b). A quarantine credits one batch, so a return larger than any single batch of the
   line cannot be quarantined (dispose it, or refuse it and record one return per batch). Returned stock leaves a
   returns location only by an STK-5 count or write-off, or a transfer to another returns location (STK-11).
 - **CA guide:** `docs/guides/ms/` should say the OTC allergy step now starts with no choice made (DSP-5).
@@ -343,8 +350,8 @@ order, each its own PR:
    CA Supervisor records a returned quantity, reason and condition on a completed case; a CA Supervisor who did not
    record it checks it: Dispose, Quarantine to a patient returns location (STK-11) or Refuse. Decisions 20 and 21.
    Merges only after STK-11.
-   - **DSP-7b (later, its own piece):** a branch list of returns waiting for a check, which also adds Finance
-     Officer and Director as checkers, and the Director for controlled medicines.
+   - **DSP-7b — built 2026-11-06 (branch `feature/dsp-7b-returns-to-check`), list only (decision 30).** Still open
+     for the owner: Finance Officer and Director as checkers, and the Director for controlled medicines.
 10. **DSP-8 Dispensary pages on phones and tablets — built 2026-11-05 (branch `feature/dsp-8-dispensary-mobile`).**
     Checked at 320, 390, 768 and 1440 px, light and dark.
 11. **DSP-10 The clinic's landscape label — built 2026-11-06 (branch `feature/dsp-10-landscape-label`).** Decision 27.
