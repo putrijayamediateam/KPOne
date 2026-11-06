@@ -38,10 +38,22 @@ final class BusinessDetailsService
             'postcode' => ['required', 'string', 'max:20'], 'city' => ['required', 'string', 'max:100'],
             'state' => ['required', 'string', 'max:100'], 'country' => ['required', 'string', 'max:100'],
             'phone' => ['nullable', 'string', 'max:40'], 'email' => ['nullable', 'email:rfc', 'max:254'],
+            // CAT-9: optional second clinic phone. When the key is absent (an older client), the saved value is kept.
+            'phone_secondary' => ['sometimes', 'nullable', 'string', 'max:40'],
             'remove_logo' => ['sometimes', 'boolean'],
             'organisation_id' => ['prohibited'], 'branch_id' => ['prohibited'], 'logo_asset_id' => ['prohibited'], 'path' => ['prohibited'],
         ])->validate();
         $data['phone'] = $this->phone($data['phone'] ?? null);
+        $secondaryGiven = array_key_exists('phone_secondary', $data);
+        if ($secondaryGiven) {
+            $data['phone_secondary'] = $this->phone($data['phone_secondary'], 'phone_secondary', 'Enter a valid second phone number, including the country code.');
+            if ($data['phone_secondary'] !== null && $data['phone'] === null) {
+                throw ValidationException::withMessages(['phone_secondary' => 'Enter the first phone before a second one.']);
+            }
+            if ($data['phone_secondary'] !== null && $data['phone_secondary'] === $data['phone']) {
+                throw ValidationException::withMessages(['phone_secondary' => 'The second phone is the same as the first.']);
+            }
+        }
         $remove = filter_var($data['remove_logo'] ?? false, FILTER_VALIDATE_BOOLEAN);
         if ($file && $remove) {
             throw ValidationException::withMessages(['logo' => 'Choose a replacement logo or remove the current logo, not both.']);
@@ -53,6 +65,9 @@ final class BusinessDetailsService
         $branchFields = [];
         foreach (['clinic_name', 'address_line_1', 'address_line_2', 'postcode', 'city', 'state', 'country', 'phone', 'email'] as $field) {
             $branchFields[$field] = ($data[$field] ?? '') === '' ? null : $data[$field];
+        }
+        if ($secondaryGiven) {
+            $branchFields['phone_secondary'] = $data['phone_secondary'];
         }
         $hash = hash('sha256', json_encode([(int) $data['expected_branch_id'], (int) $data['organisation_lock_version'],
             (int) $data['branch_lock_version'], $organisationFields, $branchFields, $remove, $image['sha256'] ?? null], JSON_THROW_ON_ERROR));
@@ -141,7 +156,7 @@ final class BusinessDetailsService
         }
     }
 
-    private function phone(?string $input): ?string
+    private function phone(?string $input, string $field = 'phone', string $message = 'Enter a valid clinic phone number, including the country code.'): ?string
     {
         if ($input === null || $input === '') {
             return null;
@@ -155,7 +170,7 @@ final class BusinessDetailsService
         } catch (NumberParseException) {
             // Only the safe field-level message leaves this boundary.
         }
-        throw ValidationException::withMessages(['phone' => 'Enter a valid clinic phone number, including the country code.']);
+        throw ValidationException::withMessages([$field => $message]);
     }
 
     /** @return array{mime: string, extension: string, sha256: string, bytes: int, width: int, height: int} */

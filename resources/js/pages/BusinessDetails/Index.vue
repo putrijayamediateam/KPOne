@@ -21,6 +21,8 @@ type Details = {
     state: string;
     country: string;
     phone: string | null;
+    // CAT-9: optional second clinic phone, printed as "Tel: A / B".
+    phone_secondary?: string | null;
     email: string | null;
 };
 type OrganisationDetails = {
@@ -96,6 +98,7 @@ const values = () => ({
     ...props.letterhead.organisation,
     address_line_2: props.letterhead.details.address_line_2 ?? '',
     phone: props.letterhead.details.phone ?? '',
+    phone_secondary: props.letterhead.details.phone_secondary ?? '',
     email: props.letterhead.details.email ?? '',
     registration_type: props.letterhead.organisation.registration_type ?? 'BRN',
     registration_number:
@@ -205,6 +208,7 @@ const stop = router.on('start', (event) => {
             'state',
             'country',
             'phone',
+            'phone_secondary',
             'email',
             'legal_name',
             'registration_number',
@@ -515,6 +519,33 @@ const reload = () =>
                                 <InputError
                                     id="phone-error"
                                     :message="form.errors.phone"
+                                />
+                            </div>
+                            <div class="grid gap-2">
+                                <Label for="phone_secondary"
+                                    >Second phone number (optional)</Label
+                                >
+                                <Input
+                                    id="phone_secondary"
+                                    v-model="form.phone_secondary"
+                                    name="phone_secondary"
+                                    type="tel"
+                                    maxlength="40"
+                                    :aria-invalid="
+                                        !!form.errors.phone_secondary
+                                    "
+                                    aria-describedby="phone_secondary-help phone_secondary-error"
+                                />
+                                <p
+                                    id="phone_secondary-help"
+                                    class="mt-1 text-xs text-muted-foreground"
+                                >
+                                    Printed after the first number, as "Tel: A /
+                                    B".
+                                </p>
+                                <InputError
+                                    id="phone_secondary-error"
+                                    :message="form.errors.phone_secondary"
                                 />
                             </div>
                             <div class="grid gap-2">
