@@ -113,7 +113,7 @@ export function checkScan(
     if (fresh.length === 0) {
         return {
             kind: 'already',
-            message: `Already checked: ${lineName(matched[0])}. ${count}`,
+            message: `Already checked: ${lineName(matched[0])}. ${count} Shown on this screen only.`,
             marks: next,
         };
     }
@@ -125,7 +125,7 @@ export function checkScan(
 
     return {
         kind: 'match',
-        message: `${what} Shown on this screen only. ${count}`,
+        message: `${what} ${count} Shown on this screen only.`,
         marks: next,
     };
 }

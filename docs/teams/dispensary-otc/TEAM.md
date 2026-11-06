@@ -194,7 +194,10 @@ coordinator at the owner's request (2026-11-05); the designer was added by owner
     quantity or the batch, the summary reads "N of M (not saved)", a box only on a removed line says "On this case
     but removed", and only a wrong box interrupts a screen reader. Zulkifli (Inventory) agreed to the ScanInput reuse
     on condition that the Inventory behaviour, the endpoint and the stk9 tests stay unchanged; Mei Ling reviews the
-    ScanInput diff before the PR.
+    ScanInput diff before the PR (Mei Ling: OK with changes). For the record (Inventory's condition): the "Checked
+    by scan" badge and "N of M" are an on-screen tick only, never saved and lost on reload; that goes slightly past
+    STK-9's "a scan never ticks", accepted because the owner chose it in DSP-11 on the understanding that it never
+    sets a saved field.
     Reuses Inventory's `ScanInput` (new optional `dispensary` context and `describe` wording; the Inventory pages
     are unchanged). No new permission: CA and CA Supervisor already hold `inventory.view.branch`.
 

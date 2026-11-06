@@ -81,21 +81,21 @@ test('DSP-11: wording says the check is on this screen only and counts lines', (
     assert.equal(one.kind, 'match');
     assert.equal(
         one.message,
-        'Matches: Amoxicillin 250 mg. Shown on this screen only. 1 of 3 lines checked by scan.',
+        'Matches: Amoxicillin 250 mg. 1 of 3 lines checked by scan. Shown on this screen only.',
     );
     assert.deepEqual({ ...one.marks }, { b: 'sku-amx' });
 
     const two = lib.checkScan(sku('sku-pcm'), lines, removed, one.marks);
     assert.equal(
         two.message,
-        'Matches 2 lines: Paracetamol 500 mg. Shown on this screen only. 3 of 3 lines checked by scan.',
+        'Matches 2 lines: Paracetamol 500 mg. 3 of 3 lines checked by scan. Shown on this screen only.',
     );
 
     const again = lib.checkScan(sku('sku-amx'), lines, removed, two.marks);
     assert.equal(again.kind, 'already');
     assert.equal(
         again.message,
-        'Already checked: Amoxicillin 250 mg. 3 of 3 lines checked by scan.',
+        'Already checked: Amoxicillin 250 mg. 3 of 3 lines checked by scan. Shown on this screen only.',
     );
 
     assert.deepEqual(
