@@ -24,6 +24,10 @@ use Tests\Support\ContentionTimeouts;
  * workers are proven to be waiting behind it, then releases it, so they run one after the other in whichever
  * order PostgreSQL grants the lock.
  *
+ * Races 1 to 3 are held by either the patient pair lock or the request row lock (removing both lets a second
+ * approval hit the unique patient_merges.patient_merge_request_id); race 4 by the duplicate's patient lock (the
+ * one-open-request index is the database backstop); race 5 by the shared record B in the pair lock.
+ *
  * The fixture is built through the real service inside the RefreshDatabase transaction and then committed, so the
  * worker processes can see it; the next test rebuilds the schema.
  *
@@ -152,6 +156,12 @@ class PostgresPatientMergeRegressionTest extends VisitTestCase
         // Both requests share record B, so they run one after the other and the second sees what the first did.
         $this->assertSame(1, substr_count($out, ' approved'), $out);
         $this->assertSame(1, substr_count($out, 'STALE '), $out);
+        // B into A first raises B's version, so C into B is refused as changed; C into B first leaves a record
+        // merged into B, so B into A is refused as a chain. Any other refusal (an allergy or a visit) fails here.
+        $this->assertMatchesRegularExpression(
+            '/STALE \w+: (One of the patient records changed after this request was made\.|Other records are already merged into this duplicate\.)/',
+            $out,
+        );
         $this->assertSame(1, DB::table('patient_merges')->count());
         $chains = DB::table('patients as child')
             ->join('patients as parent', 'parent.id', '=', 'child.merged_into_patient_id')
