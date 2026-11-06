@@ -205,8 +205,15 @@ class PayrollSetupTest extends VisitTestCase
         $this->profile($hr, $caWorker, [...$this->pay($group), 'items' => [['item_type_id' => $deduction, 'amount' => '10.00']]])
             ->assertSessionHasErrors(['items.0.item_type_id' => 'Choose an earnings pay item type that is in use.']);
         // Nobody enters their own profile, and only a Director enters a Director's.
-        $this->profile($hr, $hrWorker, $this->pay($group))->assertSessionHasErrors(['payroll' => 'Nobody enters their own pay profile. Ask someone else.']);
-        $this->profile($hr, $directorWorker, $this->pay($group))->assertSessionHasErrors('payroll');
+        // Managers' own pay stays outside KPOne in v1 (option (a)); nobody enters their own profile.
+        $managers = "Managers' own pay (the Director and the HR Manager) stays outside KPOne in this version.";
+        $this->profile($director, $hrWorker, $this->pay($group))->assertSessionHasErrors(['worker_id' => $managers]);
+        $this->profile($director2, $directorWorker, $this->pay($group))->assertSessionHasErrors(['worker_id' => $managers]);
+        $this->profile($hr, $hrWorker, $this->pay($group))->assertSessionHasErrors(['worker_id' => $managers]);
+        $ca2 = $this->actor('ca');
+        $ca2Worker = $this->workerFor($director, $ca2);
+        $this->selectBranch($ca2);
+        $this->post(route('hr.payroll.profiles.enter'), ['worker_id' => $ca2Worker->public_id, ...$this->pay($group), 'idempotency_key' => (string) Str::uuid()])->assertForbidden();
 
         $key = (string) Str::uuid();
         $this->profile($hr, $caWorker, [...$this->pay($group), 'items' => [['item_type_id' => $allowance, 'amount' => '150.00']]], $key)->assertSessionHasNoErrors();
@@ -240,21 +247,9 @@ class PayrollSetupTest extends VisitTestCase
         $this->decide($director, 'profiles', $changed->public_id, 'confirm')->assertSessionHasNoErrors();
         $this->assertSame(['replaced', 'confirmed'], DB::table('hr_pay_profiles')->orderBy('id')->pluck('status')->all());
 
-        // A Director's profile is entered by another Director and decided by a third: never by its own Director, and never by
-        // the HR Manager (HR-4 rule 3; Suresh, HR-7a S2).
-        $director3 = $this->actor('director');
-        $this->profile($director2, $directorWorker, $this->pay($group))->assertSessionHasNoErrors();
-        $own = DB::table('hr_pay_profiles')->where('worker_id', $directorWorker->id)->first();
-        $this->assertNotNull($own);
-        $this->decide($director, 'profiles', $own->public_id, 'confirm')->assertSessionHasErrors(['payroll' => 'Nobody confirms their own pay profile.']);
-        $this->decide($hr, 'profiles', $own->public_id, 'reject', ['reason' => 'wrong_amount'])->assertSessionHasErrors(['payroll' => "Only a Director may change a Director's staff file."]);
-        $this->decide($director3, 'profiles', $own->public_id, 'reject', ['reason' => 'wrong_amount'])->assertSessionHasNoErrors();
-        $this->profile($director2, $directorWorker, $this->pay($group))->assertSessionHasNoErrors();
-        $again = DB::table('hr_pay_profiles')->where('worker_id', $directorWorker->id)->where('status', 'waiting')->first();
-        $this->assertNotNull($again);
-        $this->withdraw($director3, 'profiles', $again->public_id)->assertSessionHasErrors(['payroll' => 'Only the person who entered this pay profile may withdraw it.']);
-        $this->withdraw($hr, 'profiles', $again->public_id)->assertSessionHasErrors('payroll');
-        $this->withdraw($director2, 'profiles', $again->public_id)->assertSessionHasNoErrors();
+        $this->selectBranch($hr);
+        $this->get(route('hr.payroll.index'))->assertInertia(fn (Assert $page) => $page->where('payroll.profiles.people', fn ($people) => collect($people)
+            ->contains(fn ($p) => $p['id'] === $directorWorker->public_id && $p['enterRefusal'] === $managers)));
 
         // A refused entry never flashes the salary or allowances into the session (Suresh, HR-7a S3).
         $this->profile($hr, $caWorker, [...$this->pay($group), 'rate' => '4,321.00', 'effective_from' => '', 'items' => [['item_type_id' => $allowance, 'amount' => '987.00']]])
@@ -272,12 +267,16 @@ class PayrollSetupTest extends VisitTestCase
             'position' => 5, 'item_type_id' => DB::table('hr_pay_item_types')->where('public_id', $allowance)->value('id'), 'item_type_version' => 1,
             'amount_encrypted' => Crypt::encryptString('1')]));
         $raw = fn (int $by, array $extra = []) => DB::table('hr_pay_profiles')->insertGetId(['public_id' => (string) Str::uuid(), 'organisation_id' => $hr->organisation_id,
-            'worker_id' => $hrWorker->id, 'pay_group_id' => DB::table('hr_pay_groups')->where('public_id', $group)->value('id'), 'pay_type' => 'monthly',
+            'worker_id' => $ca2Worker->id, 'pay_group_id' => DB::table('hr_pay_groups')->where('public_id', $group)->value('id'), 'pay_type' => 'monthly',
             'rate_encrypted' => Crypt::encryptString('100'), 'epf' => false, 'socso' => false, 'eis' => false, 'mtd' => false, 'hrd' => false,
             'effective_from' => '2026-11-01', 'status' => 'waiting', 'entered_by_user_id' => $by, 'created_at' => now(), 'updated_at' => now(), ...$extra]);
-        $this->assertRefused('23514', fn () => $raw($hr->id));
+        $this->assertRefused('23514', fn () => $raw($ca2->id)); // nobody enters their own
+        $this->assertRefused('23514', fn () => DB::table('hr_pay_profiles')->insert(['public_id' => (string) Str::uuid(), 'organisation_id' => $hr->organisation_id,
+            'worker_id' => $hrWorker->id, 'pay_group_id' => DB::table('hr_pay_groups')->where('public_id', $group)->value('id'), 'pay_type' => 'monthly',
+            'rate_encrypted' => Crypt::encryptString('100'), 'epf' => false, 'socso' => false, 'eis' => false, 'mtd' => false, 'hrd' => false,
+            'effective_from' => '2026-11-01', 'status' => 'waiting', 'entered_by_user_id' => $director->id, 'created_at' => now(), 'updated_at' => now()])); // a manager's pay
         $waitingId = $raw($director->id);
-        $this->assertRefused('23514', fn () => DB::table('hr_pay_profiles')->where('id', $waitingId)->update(['status' => 'confirmed', 'decided_by_user_id' => $hr->id, 'decided_at' => now()]));
+        $this->assertRefused('23514', fn () => DB::table('hr_pay_profiles')->where('id', $waitingId)->update(['status' => 'confirmed', 'decided_by_user_id' => $ca2->id, 'decided_at' => now()]));
         $this->assertRefused('23505', fn () => $raw($director2->id)); // one waiting change per person
         $this->assertRefused('23514', fn () => DB::table('hr_pay_profile_items')->insert(['organisation_id' => $hr->organisation_id, 'profile_id' => $waitingId,
             'position' => 1, 'item_type_id' => DB::table('hr_pay_item_types')->where('public_id', $deduction)->value('id'), 'item_type_version' => 1,

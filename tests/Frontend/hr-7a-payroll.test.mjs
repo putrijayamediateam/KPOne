@@ -36,6 +36,10 @@ test('every payroll page carries the accountant line, and nothing is red', () =>
     );
     assert.match(template('page'), /<SyntheticNote :text="ACCOUNTANT"/);
     assert.match(
+        template('page'),
+        /Managers' own pay \(the Director and the HR Manager\) stays\s+outside KPOne in this version\./,
+    );
+    assert.match(
         types,
         /status === 'confirmed' \|\| status === 'checked' \? 'success' : 'neutral'/,
     );

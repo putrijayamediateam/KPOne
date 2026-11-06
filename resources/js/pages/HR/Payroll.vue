@@ -413,6 +413,13 @@ const saveRates = () => {
                     · {{ payroll.profiles.missingCount }} without a confirmed
                     profile
                 </p>
+                <p
+                    class="text-sm text-muted-foreground"
+                    data-test="managers-outside"
+                >
+                    Managers' own pay (the Director and the HR Manager) stays
+                    outside KPOne in this version.
+                </p>
             </div>
             <EmptyState
                 v-if="!payroll.setUp.groups"

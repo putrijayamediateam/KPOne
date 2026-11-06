@@ -35,6 +35,12 @@ final class PayrollSetupService
 
     public const SUGGESTED_ITEM_TYPES = ['Basic salary', 'Fixed allowance', 'Overtime', 'Unpaid leave', 'Staff claim refund', 'Bonus', 'Other addition', 'Other deduction'];
 
+    /**
+     * Managers' own pay stays outside KPOne in v1 (B.E.R.N.I.S.S for the owner, 2026-11-06, option (a)): with one Director
+     * and one HR Manager nobody is left to confirm either of their profiles under the two-person and HR-4 rules.
+     */
+    public const MANAGERS_OUTSIDE = "Managers' own pay (the Director and the HR Manager) stays outside KPOne in this version.";
+
     public const MAX_ROWS = 200;
 
     public const MAX_ITEMS = 20;
@@ -323,6 +329,9 @@ final class PayrollSetupService
             if ($worker->kind !== 'staff') {
                 throw ValidationException::withMessages(['worker_id' => 'Locums are paid outside KPOne in this version.']);
             }
+            if (self::isManager($worker)) {
+                throw ValidationException::withMessages(['worker_id' => self::MANAGERS_OUTSIDE]);
+            }
             if ($worker->user_id === $actor->id) {
                 throw new AuthorizationException('Nobody enters their own pay profile. Ask someone else.');
             }
@@ -462,6 +471,12 @@ final class PayrollSetupService
         }
 
         return "The Director {$verb} this, or the HR Manager when a Director entered it.";
+    }
+
+    /** A Director or HR Manager, whose own pay stays outside KPOne in v1. */
+    public static function isManager(Worker $worker): bool
+    {
+        return $worker->user !== null && ($worker->user->hasRole('director') || $worker->user->hasRole('hr_manager'));
     }
 
     private function profileWorker(User $actor, string $profileId): Worker

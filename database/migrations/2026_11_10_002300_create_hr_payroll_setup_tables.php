@@ -315,6 +315,11 @@ BEGIN
   IF NEW.status <> 'waiting' THEN RAISE EXCEPTION 'A pay profile is entered as waiting for confirmation' USING ERRCODE = '23514'; END IF;
   IF w.kind <> 'staff' THEN RAISE EXCEPTION 'Locums are paid outside KPOne in this version' USING ERRCODE = '23514'; END IF;
   IF NEW.entered_by_user_id = w.user_id THEN RAISE EXCEPTION 'Nobody enters their own pay profile' USING ERRCODE = '23514'; END IF;
+  -- Managers' own pay stays outside KPOne in v1 (B.E.R.N.I.S.S for the owner, 2026-11-06, option (a)).
+  IF EXISTS (SELECT 1 FROM model_has_roles mr JOIN roles r ON r.id = mr.role_id WHERE mr.model_id = w.user_id
+    AND mr.model_type = 'App\Models\User' AND r.name IN ('director', 'hr_manager')) THEN
+   RAISE EXCEPTION 'Managers'' own pay stays outside KPOne in this version' USING ERRCODE = '23514';
+  END IF;
   RETURN NEW;
  END IF;
  IF NEW.id <> OLD.id OR NEW.public_id <> OLD.public_id OR NEW.organisation_id <> OLD.organisation_id OR NEW.worker_id <> OLD.worker_id

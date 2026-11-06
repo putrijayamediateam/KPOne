@@ -95,7 +95,8 @@ final class PayrollPageService
             $upcoming = $own->filter(fn (\stdClass $p): bool => $p->status === 'confirmed' && (string) $p->effective_from > $today)->sortBy('effective_from')->first();
             $waiting = $own->firstWhere('status', 'waiting');
             $earlier = $own->reject(fn (\stdClass $p): bool => in_array($p->id, [$current?->id, $upcoming?->id, $waiting?->id], true))->take(5);
-            $refusal = $w->user !== null && $w->user_id !== $actor->id ? $this->support->refusalFor($actor, $w->user) : ($w->user_id === $actor->id ? 'Nobody enters their own pay profile.' : null);
+            $refusal = PayrollSetupService::isManager($w) ? PayrollSetupService::MANAGERS_OUTSIDE
+                : ($w->user !== null && $w->user_id !== $actor->id ? $this->support->refusalFor($actor, $w->user) : ($w->user_id === $actor->id ? 'Nobody enters their own pay profile.' : null));
             $map = fn (?\stdClass $p): ?array => $p === null ? null : $this->profile($actor, $w, $p, $items->get($p->id, collect()), $typeNames, $groups, $names);
 
             return ['id' => $w->public_id, 'name' => $w->name(), 'active' => $w->user === null || (bool) $w->user->is_active,
@@ -105,7 +106,7 @@ final class PayrollPageService
         })->sortBy(fn (array $r): string => mb_strtolower($r['name']))->values();
 
         return ['people' => $rows->all(), 'waitingCount' => $rows->filter(fn (array $r): bool => $r['waiting'] !== null)->count(),
-            'missingCount' => $rows->filter(fn (array $r): bool => $r['active'] && $r['current'] === null)->count(), 'actorIsDirector' => $actorIsDirector];
+            'missingCount' => $rows->filter(fn (array $r): bool => $r['active'] && $r['current'] === null && $r['enterRefusal'] !== PayrollSetupService::MANAGERS_OUTSIDE)->count(), 'actorIsDirector' => $actorIsDirector];
     }
 
     /**
