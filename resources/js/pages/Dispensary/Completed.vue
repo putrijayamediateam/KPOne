@@ -22,7 +22,7 @@ defineProps<{
 <template>
     <Head title="Dispensary completed" />
     <main
-        class="mx-auto w-full max-w-5xl px-4 py-6 max-sm:[&_[data-slot=button]]:min-h-11 max-sm:[&_[data-slot=select-trigger]]:min-h-11 max-sm:[&_input:not([type=radio]):not([type=checkbox])]:min-h-11 max-sm:[&_select]:min-h-11 max-sm:[&_textarea]:min-h-11"
+        class="mx-auto w-full max-w-5xl px-4 py-6 max-lg:[&_[data-slot=button]]:min-h-11 max-lg:[&_[data-slot=select-trigger]]:min-h-11 max-lg:[&_input:not([type=radio]):not([type=checkbox])]:min-h-11 max-lg:[&_select]:min-h-11 max-lg:[&_textarea]:min-h-11"
     >
         <PageHeader
             title="Dispensary completed"
