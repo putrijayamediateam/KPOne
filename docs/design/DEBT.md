@@ -2,7 +2,7 @@
 
 Screens that break [GUIDE.md](GUIDE.md), found by the DES-1 survey (2026-11-05, `main` at `322228f`, 35 screens,
 390 and 1440 px, light and dark) and by SMOKE-1. Kept by Daniel (Lead UI/UX); the owning team fixes each item in its
-own PR and tells LUCY. See [REVIEW.md](REVIEW.md) for how items are added.
+own PR and tells B.E.R.N.I.S.S (formerly LUCY). See [REVIEW.md](REVIEW.md) for how items are added.
 
 **Severity:** **Blocker** = a REVIEW.md section 4 blocker (would stop a new PR); **Major** = clearly hurts daily work;
 **Minor** = inconsistent or untidy.
@@ -11,7 +11,7 @@ own PR and tells LUCY. See [REVIEW.md](REVIEW.md) for how items are added.
 | ID | Screen and file | Problem | Guide | Owner team | Severity | Source | Status |
 |---|---|---|---|---|---|---|---|
 | DD-01 | Insights Today, `pages/Insights/Today.vue` | Page is 490 px wide on a 390 px phone (ranking cards) | 16 | Staff Experience (Insights has no team; small layout fixes allowed) | Blocker | S1-004, DES-1 | Open |
-| DD-02 | Create patient, `pages/Patient/Create.vue` | Page is 433 px wide on a 390 px phone even with no errors (a field grid) | 16 | Patients & Registration | Blocker | REG-2 note, DES-1 | Open |
+| DD-02 | Create patient, `pages/Patient/Create.vue` | Page is 433 px wide on a 390 px phone even with no errors (a field grid) | 16 | Patients & Registration | Blocker | REG-2 note, DES-1 | Fixed (REG-6, PR #285) |
 | DD-03 | Registration board, Consultation queue, QR intake review: `pages/Registration/Index.vue`, `pages/Queue/Index.vue`, `pages/RegistrationReview/Index.vue` | No `h1` (may be `sr-only` on boards) | 4, 12 | Staff Experience (S1-009 to S1-014), page teams told: Patients & Registration, Queue & TV | Blocker | S1-009 to S1-014, DES-1 | Open |
 | DD-04 | Pricing, `pages/Pricing/Index.vue` | 10 of 13 fields have no label | 7 | Catalogue & settings (Adlina, Ravi; designer Nadia) | Blocker | DES-1 | Open: planned as CAT-1 (sketch to Daniel first) |
 | DD-05 | Add panel, `pages/PanelSettings/Form.vue` | 7 of 23 fields have no label | 7 | Panel | Blocker | DES-1 | Open |
@@ -59,3 +59,4 @@ receipt and drug-label print layouts.
 - 2026-11-05: DD-28 added (PNL-7 statement table) and DD-29 added (Billing workspace button height, found by Farah during BIL-5b).
 - 2026-11-05: DD-30 added (Queue board tab strip at 390 px, seen during the Q-4 look).
 - 2026-11-05: DD-31 added (Panel Claims list on phones, flagged by Syafiq during PNL-8) and DD-32 added (Create patient wording, seen during the REG-6 look).
+- 2026-11-06: DD-02 marked Fixed (REG-6, PR #285: Patient create and edit fit 320 and 390 px).

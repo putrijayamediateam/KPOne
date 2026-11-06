@@ -19,7 +19,7 @@ If unsure, ask Daniel: a look costs less than a second PR.
 
 ## 2. The two steps
 
-**Step 1: sketch (new pages and new components only, before building).** The team designer sends LUCY a short
+**Step 1: sketch (new pages and new components only, before building).** The team designer sends B.E.R.N.I.S.S (formerly LUCY) a short
 text sketch with:
 - the page and where it sits (route, menu or link, roles that see it);
 - each state: empty, normal, busy, error, refused, and any status chips with their wording;
@@ -29,7 +29,7 @@ text sketch with:
 
 Q-2 (treatment progress) and UX-2 (Medical Certificates link) are good examples of a sketch at the right size.
 
-**Step 2: screenshots (before hand-off to LUCY's review).** In the PR body, under a `## Design` heading:
+**Step 2: screenshots (before hand-off to B.E.R.N.I.S.S's review).** In the PR body, under a `## Design` heading:
 - the checklist, ticked or with a reason against each unticked line;
 - the head SHA the screenshots were taken from;
 - which demo accounts and URLs show each state;
@@ -38,21 +38,21 @@ Q-2 (treatment progress) and UX-2 (Medical Certificates link) are good examples 
 
 ## 3. How a look reaches Daniel
 
-1. The team sends LUCY: "Design look: PR #n, head `sha`, pages, accounts, states" (or the sketch).
-2. LUCY forwards it to Daniel's session with `send_message`.
+1. The team sends B.E.R.N.I.S.S: "Design look: PR #n, head `sha`, pages, accounts, states" (or the sketch).
+2. B.E.R.N.I.S.S forwards it to Daniel's session with `send_message`.
 3. Daniel checks out the PR head on a task-owned server and PostgreSQL 18 database (host, port and name verified
    before the first request; never a command that loads `.env`), seeds `migrate:fresh --seed` plus the
    presentation and demo-setup seeders, and takes his own screenshots at the four combinations. He never edits the
    PR branch.
-4. Daniel replies to LUCY with one of the three verdicts below, keyed to guide section numbers.
-5. After the team's changes, LUCY sends the new head SHA; Daniel re-checks only the lines he raised.
+4. Daniel replies to B.E.R.N.I.S.S with one of the three verdicts below, keyed to guide section numbers.
+5. After the team's changes, B.E.R.N.I.S.S sends the new head SHA; Daniel re-checks only the lines he raised.
 
 Daniel aims to answer within the same working session. A sketch look never blocks the team from starting backend
 work.
 
 ## 4. Verdicts
 
-| Verdict | Meaning | LUCY does |
+| Verdict | Meaning | B.E.R.N.I.S.S does |
 |---|---|---|
 | **OK** | Follows the guide | Proceeds with the normal review and merge |
 | **OK with changes** | Small fixes; list given | The team fixes them in the same PR; Daniel re-checks only those lines |
@@ -69,7 +69,7 @@ Everything else is a change request, not a blocker.
 
 When a team keeps something that breaks the guide on purpose (time, owner choice, waiting on another team), Daniel
 adds it to [DEBT.md](DEBT.md) with an ID, the owner team and the guide section. The owner can accept a blocker as
-debt; only the owner, not LUCY or a team, can do that. Debt is reviewed when the owning team picks its next slice.
+debt; only the owner, not B.E.R.N.I.S.S or a team, can do that. Debt is reviewed when the owning team picks its next slice.
 
 ## 6. What Daniel does not do
 
