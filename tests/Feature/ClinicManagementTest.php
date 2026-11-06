@@ -46,6 +46,7 @@ class ClinicManagementTest extends VisitTestCase
             '/inventory-services-settings/medicine-details' => ['catalogue.settings.manage.organisation'],
             '/inventory-services-settings/suppliers' => ['catalogue.settings.manage.organisation'],
             '/inventory' => ['inventory.view.branch'],
+            '/dispensary/returns-to-check' => ['inventory.variances.approve.branch'],
             '/patients' => ['patients.search.organisation'],
             '/financial-work' => ['finance.work.view.branch'],
             '/pay-later-collections' => ['outstanding.view.branch'],
@@ -82,6 +83,10 @@ class ClinicManagementTest extends VisitTestCase
                 ->keys()->sort()->values()->all();
             if (! $actor->hasAnyPermission(['billing.view.branch', 'billing.summary.branch'])) {
                 $expected = array_values(array_diff($expected, ['/financial-work', '/panel-responsibility']));
+            }
+            // DSP-7b (approved by B.E.R.N.I.S.S for the owner): returns are checked by a CA Supervisor in v1.
+            if (! $actor->hasRole('ca_supervisor')) {
+                $expected = array_values(array_diff($expected, ['/dispensary/returns-to-check']));
             }
             $this->get('/clinic-management')->assertOk()->assertInertia(fn (Assert $page) => $page
                 ->component('ClinicManagement/Index')
