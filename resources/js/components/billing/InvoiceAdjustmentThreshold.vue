@@ -95,7 +95,7 @@ const save = () => {
                 >Save threshold</Button
             >
         </form>
-        <div role="alert">
+        <div>
             <InputError
                 v-for="(message, field) in errors"
                 :key="field"
