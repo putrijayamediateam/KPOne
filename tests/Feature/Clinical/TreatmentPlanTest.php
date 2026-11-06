@@ -245,6 +245,26 @@ class TreatmentPlanTest extends ClinicalTestCase
         $this->assertSame($before, $this->fulfilmentSnapshot());
     }
 
+    public function test_a_consultation_case_label_print_is_logged_and_a_second_print_is_a_reprint(): void
+    {
+        // DSP-6b: the DSP-6 print log was tested on OTC cases only; this covers a consultation case. Synthetic data.
+        $fixture = $this->stockedPartialFixture(true);
+        $case = $fixture['case']->refresh();
+        $this->assertSame('consultation', $case->case_type);
+        $labels = app(DispensaryDirectoryService::class)->labels($fixture['ca'], $case);
+        $this->assertCount(1, $labels['items']);
+        $print = fn () => $this->postJson(route('dispensary.labels.print', $case), ['token' => $labels['token'], 'branch' => $labels['branchId']]);
+
+        $print()->assertOk()->assertExactJson(['current' => true, 'reprints' => []]);
+        $print()->assertOk()->assertExactJson(['current' => true, 'reprints' => [$labels['items'][0]['previewUrl']]]);
+        $rows = DB::table('dispensary_label_prints')->orderBy('id')->get();
+        $this->assertSame([1, 2], $rows->pluck('print_number')->map(fn ($n) => (int) $n)->all());
+        $this->assertSame([$case->id], $rows->pluck('dispensary_case_id')->unique()->values()->all());
+        $this->assertSame([$fixture['item']->id], $rows->pluck('dispensary_item_id')->unique()->values()->all());
+        $this->assertSame(['label_count' => 1, 'reprint_count' => 1], AuditLog::query()->where('event', 'dispensary.labels_printed')->latest('id')->first()->metadata);
+        $this->get(route('dispensary.labels', $case))->assertInertia(fn (Assert $page) => $page->where('labelReprints', [$labels['items'][0]['previewUrl']]));
+    }
+
     public function test_all_medicine_labels_exclude_services_and_do_not_fabricate_pending_actual_quantity(): void
     {
         $fixture = $this->stockedPartialFixture(true);
@@ -388,7 +408,9 @@ class TreatmentPlanTest extends ClinicalTestCase
         $this->assertStringNotContainsString('dispensing, stock and billing are handled later', $panel);
         $labels = file_get_contents(resource_path('js/pages/Dispensary/Labels.vue'));
         $this->assertStringContainsString('const printLabels = async () =>', $labels);
-        $this->assertStringContainsString("url.searchParams.set('verify', '1')", $labels);
+        // DSP-6b (owner-approved 2026-11-06): the fresh check that logs the print is a POST to the page's own address plus /print.
+        $this->assertStringContainsString('url.pathname = `${url.pathname.replace(/\/$/, \'\')}/print`;', $labels);
+        $this->assertStringContainsString("method: 'POST'", $labels);
         $this->assertStringContainsString('window.print();', $labels);
         $this->assertStringContainsString('@media print', $labels);
         $this->assertStringContainsString('Printing blocked', $labels);
