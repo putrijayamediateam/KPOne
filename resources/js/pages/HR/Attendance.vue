@@ -144,6 +144,12 @@ const errors = computed(
     () => (page.props.errors ?? {}) as Record<string, string | undefined>,
 );
 
+const clockNotes = computed(
+    () =>
+        !!props.attendance.my &&
+        (!props.attendance.my.settingsReady ||
+            !!props.attendance.my.staleLabel),
+);
 const userName = computed(() => page.props.auth?.user?.name ?? '');
 
 const tabLabels: Record<Tab, string> = {
@@ -573,7 +579,12 @@ const correctionStatusTone = (
             <h2 id="my-attendance-title" class="sr-only">My attendance</h2>
 
             <div
-                class="grid gap-4 rounded-xl border bg-card p-4 sm:p-5 lg:grid-cols-[minmax(0,26rem)_1fr]"
+                class="grid gap-4 rounded-xl border bg-card p-4 sm:p-5"
+                :class="
+                    clockNotes
+                        ? 'lg:grid-cols-[minmax(0,26rem)_1fr]'
+                        : 'lg:max-w-[28rem]'
+                "
                 data-test="clock-card"
             >
                 <div class="flex flex-col gap-3">
@@ -658,7 +669,7 @@ const correctionStatusTone = (
                         {{ userName }}. Sign out if this is a shared computer.
                     </p>
                 </div>
-                <div class="flex flex-col gap-3">
+                <div v-if="clockNotes" class="flex flex-col gap-3">
                     <p
                         v-if="!attendance.my.settingsReady"
                         class="text-sm text-muted-foreground"

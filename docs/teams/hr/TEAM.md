@@ -200,6 +200,13 @@ check items, keep them"). The rest stand unless the owner changes them.
   (`max-sm:[&>button]:h-11`, the DD-30 pattern from #296); if that component changes its buttons the height quietly
   stops applying. A phone-height option in `OperationalTabs` (Staff Experience) would remove both overrides.
 
+- HR-3a known limits (Suresh's review, kept for later): a correction withdrawal records no actor in the row (only the
+  audit says who withdrew); the session overlap trigger relies on the subject's account lock, not an `EXCLUDE`
+  constraint; a settings version saved for today also changes today's earlier flags; a clock-in racing an approved
+  correction for the same person has no two-process test yet; Review loads shifts for one branch, so a split shift
+  across two branches shows the other branch's session as "Not on the roster"; the toast and the live region can
+  both read a successful Clock in.
+
 ## 8. Rules (every task)
 
 - Read `CLAUDE.md`, `AGENTS.md`, `docs/BASELINE.md`, `docs/design/GUIDE.md`, this file and `HR-PLAN.md` first.
