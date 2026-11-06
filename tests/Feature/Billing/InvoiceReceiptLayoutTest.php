@@ -66,7 +66,9 @@ class InvoiceReceiptLayoutTest extends BillingTestCase
         $this->get(route('billing.issued.show', [$visit, $print->public_id]))->assertOk()->assertInertia(fn (Assert $page) => $page
             ->where('layout', 'bil9')->where('billing.patient.identifier', null)->where('billing.patient.phone', null)
             ->where('billing.invoice.number', $invoice->invoice_number)->has('billing.invoice.lines', 1)
-            ->where('receipt.amountSen', 1500)->where('receipt.number', $receipt->receipt_number));
+            ->where('receipt.amountSen', 1500)->where('receipt.number', $receipt->receipt_number)
+            // A receipt prints no categories and carries none, so a category rename never revises it.
+            ->missing('billing.invoice.categories')->missing('billing.invoice.lines.0.category'));
     }
 
     public function test_a_version_issued_in_the_earlier_layout_reprints_as_copy_in_that_layout_until_its_content_changes(): void
@@ -92,6 +94,11 @@ class InvoiceReceiptLayoutTest extends BillingTestCase
         $this->get(route('billing.issued.show', [$visit, $copy->public_id]))->assertOk()->assertInertia(fn (Assert $page) => $page
             ->missing('layout')->missing('billing.patient.identifier')->where('issued.label', 'copy')->where('issued.version', 1));
 
+        // The old paper never printed IC or phone: changing them alone still reprints version 1 as COPY.
+        $this->identity($visit, 'passport', 'SYNP1234567', '+60198765432');
+        $this->post(route('billing.issue', [$visit, $invoice]), $this->input($visit))->assertRedirect();
+        $this->assertSame([1, 'copy'], [IssuedBillingDocument::query()->count(), IssuedBillingDocumentPrint::query()->latest('id')->first()->label]);
+
         // A payment changes what it printed: a REVISED version 2, now in the clinic layout.
         (new PaymentMethod)->forceFill(['organisation_id' => $visit->organisation_id, 'code' => 'cash', 'name' => 'Synthetic cash', 'classification' => 'cash'])->save();
         $this->post(route('billing.payment', [$visit, $invoice]), ['expected_branch_id' => $visit->branch_id, 'lock_version' => $invoice->refresh()->lock_version, 'amount_sen' => '4000', 'method' => 'cash', 'idempotency_key' => (string) Str::uuid()])->assertSessionHasNoErrors();
@@ -113,6 +120,38 @@ class InvoiceReceiptLayoutTest extends BillingTestCase
         $this->selectBranch($ca->fresh());
         $this->post(route('billing.issue', [$visit, $invoice]), $this->input($visit))->assertSessionHasErrors('document');
         $this->assertSame(0, IssuedBillingDocument::query()->count());
+    }
+
+    public function test_the_earlier_layout_content_keeps_exactly_the_shape_issued_before_bil9(): void
+    {
+        // Hand-written from BIL-5 (D03), so the legacy match cannot drift with the code it checks.
+        [, $ca, $visit, $invoice] = $this->finalizedFixture(4000);
+        $this->selectBranch($ca);
+        [$legacy] = (new \ReflectionMethod(IssuedBillingDocumentService::class, 'legacyContent'))->invoke(app(IssuedBillingDocumentService::class), $ca, $visit, $invoice->refresh(), null, $visit->branch);
+        $this->assertSame(['billing', 'receipt', 'billTo', 'letterhead'], array_keys($legacy));
+        $this->assertSame(['patient', 'visit', 'invoice'], array_keys($legacy['billing']));
+        $this->assertSame(['name', 'patientNumber'], array_keys($legacy['billing']['patient']));
+        $this->assertSame(['visitNumber'], array_keys($legacy['billing']['visit']));
+        $this->assertSame(['number', 'finalizedAt', 'status', 'lines', 'adjustment', 'state'], array_keys($legacy['billing']['invoice']));
+        $this->assertSame(['name', 'quantity', 'unit', 'unitPriceSen', 'totalSen'], array_keys($legacy['billing']['invoice']['lines'][0]));
+        $this->assertSame(['subtotalSen', 'adjustmentSen'], array_keys($legacy['billing']['invoice']['adjustment']));
+        $this->assertSame(['total', 'self_pay', 'panel', 'deferred', 'due_now'], array_keys($legacy['billing']['invoice']['state']));
+        $this->assertSame(['details', 'logo', 'footerText'], array_keys($legacy['letterhead']));
+        $this->assertSame([], array_diff(array_keys($legacy['letterhead']['details']), ['clinic_name', 'address_line_1', 'address_line_2', 'postcode', 'city', 'state', 'country', 'email', 'phone']));
+    }
+
+    public function test_a_new_layout_copy_is_opened_or_reprinted_only_by_someone_who_may_see_patient_identity(): void
+    {
+        [, $ca, $visit, $invoice] = $this->finalizedFixture(4000);
+        $this->selectBranch($ca);
+        $this->post(route('billing.issue', [$visit, $invoice]), $this->input($visit))->assertRedirect();
+        $print = IssuedBillingDocumentPrint::query()->sole();
+        Role::findByName('ca', 'web')->revokePermissionTo('patients.view.organisation');
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
+        $this->selectBranch($ca->fresh());
+        $this->get(route('billing.issued.show', [$visit, $print->public_id]))->assertRedirect();
+        $this->post(route('billing.issued.reprint', [$visit, IssuedBillingDocument::query()->sole()->public_id]), $this->input($visit))->assertSessionHasErrors('document');
+        $this->assertSame(1, IssuedBillingDocumentPrint::query()->count());
     }
 
     public function test_service_lines_are_grouped_by_their_clinical_service_category(): void

@@ -81,6 +81,27 @@ missing logo, second phone, IC or phone leave their line out; the shared `myr()`
 (-150 sen prints "RM -1.-50") and is fixed first; Print.vue keeps the D03 template for versions issued before
 BIL-9 (decision 4) and picks the layout from the snapshot's layout version.
 
+9. A **void invoice prints no "Total due"** row (owner, 2026-11-06, after the A4 images): it is replaced by a new
+   invoice, so nothing is due on it. Subtotal, Discount, Tax, Invoice total and Total paid still show.
+
+Design approval: Daniel, "OK to build" (2026-11-06), title case on paper as the sample; page numbers ("Page 1 of
+2" on multi-page prints) were put to the owner by B.E.R.N.I.S.S and are not built until answered.
+
+## 7. Known limits (built)
+
+- The service-line category is read from the clinical service at print time, not frozen on the invoice line:
+  renaming a service's category after an invoice was issued in this layout moves money between category rows, so
+  the next print of that invoice is REVISED. Receipts carry no categories, so they are never revised by it.
+- The category match is English and exact: "Procedure(s)" and "Investigation(s)"; anything else, including
+  "Prosedur" or "Lab test", counts as Service.
+- The old live print pages (`/print`, still reachable by URL and marked PREVIEW) keep the D03 layout; only issued
+  copies use the clinic layout.
+- A copy issued before BIL-9 keeps its D03 layout and reprints as COPY until something it printed changes; a
+  change to the patient's IC, phone or a service category alone never revises it.
+- More personal data on paper (IC/passport, phone): a PDPA point before real patient use. The copy is opened or
+  reprinted only by someone who may see patient identity (`patients.view.organisation`).
+- The second phone prints once Catalogue & Settings adds `phone_secondary` (CAT-9); until then one number.
+
 ## 5. Open before building
 
 - Checked: the people who print (CA, CA Supervisor, `billing.print.branch`) already hold `patients.view.organisation`,

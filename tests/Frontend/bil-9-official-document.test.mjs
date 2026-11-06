@@ -203,6 +203,8 @@ test('missing IC, phone and second phone leave their lines out, and a void invoi
     assert.ok(out.includes('To Synthetic Patient Invoice No:'), out);
     assert.ok(out.includes('Tel: 03-1111 1111 ') && !out.includes(' / '), out);
     assert.ok(out.includes('OFFICIAL INVOICE VOID ORIGINAL'), out);
+    assert.ok(!out.includes('Total due'), 'nothing is due on a void invoice');
+    assert.ok(out.includes('Invoice total RM 67.50 Total paid RM 20.00'), out);
 });
 
 test('the receipt has its sentence, item table, invoice number and its own Total paid, with no category table', async () => {

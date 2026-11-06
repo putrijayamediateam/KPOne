@@ -105,6 +105,7 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php` and `BillingPermiss
 | BIL-5 | Issued invoice and receipt copies: printing is recorded; the first print freezes an encrypted, immutable copy (letterhead and logo included) labelled ORIGINAL, an unchanged reprint is COPY, a changed document prints as REVISED (version n); earlier versions reprint as COPY with a "later version exists" note, a reversed receipt's copy says so. "Issued copies" list on the Billing page; the old live print pages are marked PREVIEW. Two append-only tables with PostgreSQL guards; no new permission | PR #270 |
 | BIL-5b | The visit page (`Visits/History.vue`) Documents list prints invoices and receipts through the BIL-5 recorded print ("Back to visit" returns there); the issued-copies fallback name is "Staff member", as elsewhere. Daniel's BIL-5 changes: "Issued" shows date and time on one line and "by …" below, "1 print / 3 prints", and the version number sits beside its ORIGINAL/REVISED badge so the table fits; when the column is narrower than the table (1024 and 1280 px screens, phones) the list shows cards instead (a container query). Phone touch targets: the Billing workspace's compact button style (30 px) had silently overridden the 44 px targets of the print, Reprint and BIL-6 refund buttons; buttons marked `data-touch-target` now get 44 px below 640 px | PR #286 |
 | BIL-7 | Monthly cash closing view (`/cash-closings/month`): one row per day of the active branch up to today with the latest count (an approved day's approved count), status (Approved, Waiting for approval, Returned, Not counted, Open for today) and flags (No count, Not approved, Changed after approval), a month summary, previous and next month, "Open day" to the daily page and "Month view" from it. Read only; no new permission, table or migration. Design note: `BIL-7-DESIGN.md` | PR #315 |
+| BIL-9 | Issued invoices and receipts follow the clinic's own paper: letterhead in capitals with Email and Tel (second phone when set), To block with name, IC/passport and phone, item table, seven category totals, totals with Invoice total, Panel covers and Pay later, a receipt sentence, item table and invoice number, VOID on a void invoice. Versions issued before keep their D03 layout; `myr()` prints negative amounts as −RM x. Design note: `BIL-9-DESIGN.md` | PR pending |
 
 ## 6. Owner decisions already made (never ask again)
 
@@ -198,6 +199,11 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php` and `BillingPermiss
     no export or new tables. Layout follows Siti's sketch; sent to Daniel through B.E.R.N.I.S.S.
     Daniel (2026-11-06): "Not counted" stays danger; phone cards below 1024 px; flags show only what the badge does
     not already say (the warning border stays); a month with no counts never reads "Matches".
+30. BIL-9 invoice and receipt layout (2026-11-06, the owner shared the clinic's paper through B.E.R.N.I.S.S and
+    answered in the Billing session): name, IC/passport and phone in the To block; categories from the clinical
+    service's category; the sample's totals plus Invoice total, Panel covers and Pay later; earlier copies keep
+    their layout; Invoice No on the receipt; VOID on a void invoice and no Total due there; the receipt's Total
+    paid is its own amount. Details in `BIL-9-DESIGN.md` section 4. Page numbers wait for the owner.
 
 ## 7. Open items and known limits
 
@@ -279,6 +285,11 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php` and `BillingPermiss
   fully approved month); not load-tested. Today's count is in the money totals but in no day counter until the day
   ends. Staff names follow the staff-directory rule ("Staff member" otherwise), as on the daily page.
 
+- Invoice and receipt layout (BIL-9): see `BIL-9-DESIGN.md` section 7. In short: a service category rename revises
+  the next print of an invoice issued in the new layout; the category match is English and exact; the old live
+  `/print` preview keeps the D03 layout; copies issued before keep theirs; IC/passport and phone on paper are a PDPA
+  point before real use.
+
 ## 8. Rules (every task)
 
 - Read `CLAUDE.md`, `AGENTS.md`, `docs/BASELINE.md` and this file first.
@@ -348,3 +359,5 @@ authorisation to build them; the coordinator records it in `docs/BASELINE.md`.
    closing, no export.
 9. **BIL-8 Report boundary clean-up.** Make `TransactionReportService` use `BranchReportService`, with output
    proven byte-identical; test-led, no behaviour change.
+10. **BIL-9 Invoice and receipt in the clinic's layout.** *(Built 2026-11-06; PR pending.)* Owner request with the
+   clinic's paper; decisions in `BIL-9-DESIGN.md`. Page numbers wait for the owner's answer.

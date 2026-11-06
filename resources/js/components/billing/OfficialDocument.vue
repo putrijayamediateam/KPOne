@@ -297,10 +297,13 @@ const quantity = (value: string) =>
                         {{ myr(invoice.state.deferred) }}
                     </dd>
                 </template>
-                <dt class="font-bold">Total due</dt>
-                <dd class="text-right tabular-nums">
-                    {{ myr(invoice.state.due_now) }}
-                </dd>
+                <!-- A void invoice is replaced by a new one: nothing is due on it (owner decision 9). -->
+                <template v-if="!isVoid">
+                    <dt class="font-bold">Total due</dt>
+                    <dd class="text-right tabular-nums">
+                        {{ myr(invoice.state.due_now) }}
+                    </dd>
+                </template>
             </template>
         </dl>
     </div>

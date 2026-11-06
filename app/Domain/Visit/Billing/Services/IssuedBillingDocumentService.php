@@ -34,6 +34,9 @@ final class IssuedBillingDocumentService
 {
     public const PERMISSION = 'billing.print.branch';
 
+    /** BIL-9 (owner decision 2): the seven printed categories, in the clinic's order. */
+    public const CATEGORIES = ['Service', 'Procedure', 'Investigation', 'Consultation', 'Medicine', 'Document', 'Package'];
+
     public function __construct(
         private BillingContextService $context,
         private BillingDirectoryService $directory,
@@ -99,6 +102,7 @@ final class IssuedBillingDocumentService
             [$actor, $visit, $branch] = $this->context->lock($actor, $visit, $input['expected_branch_id'] ?? null, self::PERMISSION);
             $document = $this->visitDocument($actor, $visit, $branch, $documentPublicId);
             Invoice::query()->whereKey($document->invoice_id)->lockForUpdate()->firstOrFail();
+            $this->assertCanSeeIdentity($actor, $this->decrypt($document));
             $hash = $this->payloadHash(['reprint', $actor->id, $document->id]);
 
             return $this->replay($actor, $key, $hash) ?? $this->print($actor, $document, 'copy', $key, $hash, $branch);
@@ -130,6 +134,7 @@ final class IssuedBillingDocumentService
             } catch (DecryptException|\JsonException) {
                 throw $failed;
             }
+            $this->assertCanSeeIdentity($actor, $content);
             $latest = (int) IssuedBillingDocument::query()->where('invoice_id', $document->invoice_id)
                 ->where(fn ($q) => $document->payment_id ? $q->where('payment_id', $document->payment_id) : $q->whereNull('payment_id'))->max('version');
             $notes = [];
@@ -193,11 +198,6 @@ final class IssuedBillingDocumentService
     }
 
     /**
-     * Exactly what the print page shows, and nothing that depends on who looks at it (no permissions, links or ids).
-     *
-     * @return array<string, mixed>
-     */
-    /**
      * The earlier (BIL-5, D03) content and the BIL-9 content, a superset of it with `layout` = 'bil9'.
      *
      * @return array{0: array<string, mixed>, 1: array<string, mixed>}
@@ -211,7 +211,7 @@ final class IssuedBillingDocumentService
         }
         [$legacy, $head, $source] = $this->legacyContent($actor, $visit, $invoice, $payment, $branch);
         $patient = Patient::query()->where('organisation_id', $actor->organisation_id)->whereKey($visit->patient_id)->firstOrFail();
-        $identifier = PatientIdentifier::query()->where('patient_id', $patient->id)->whereNull('retired_at')->latest('created_at')->latest('id')->first();
+        $identifier = PatientIdentifier::query()->where('patient_id', $patient->id)->whereNull('retired_at')->oldest('id')->first(); // As the patient pages show it.
         $categories = DB::table('invoice_lines as l')->leftJoin('charge_definitions as c', 'c.id', '=', 'l.charge_definition_id')
             ->leftJoin('clinical_service_catalogue_items as s', 's.id', '=', 'c.clinical_service_catalogue_item_id')
             ->where('l.invoice_id', $invoice->id)->orderBy('l.id')->get(['l.line_type', 's.category'])
@@ -233,8 +233,10 @@ final class IssuedBillingDocumentService
             'identifier' => $identifier ? app(PatientIdentityService::class)->displayIdentifier($identifier->identifier_type, $identifier->normalized_value) : null,
             'phone' => $patient->mobile_phone === null || trim($patient->mobile_phone) === '' ? null : $patient->mobile_phone,
         ];
-        $content['billing']['invoice'] = [...$content['billing']['invoice'], 'lines' => $lines,
-            'categories' => array_map(fn (string $name): array => ['name' => $name, 'totalSen' => $totals[$name]], self::CATEGORIES),
+        // A receipt prints no categories, so it never carries them: renaming a service's category must not revise it.
+        $content['billing']['invoice'] = [...$content['billing']['invoice'],
+            'lines' => $payment ? array_map(fn (array $l): array => array_diff_key($l, ['category' => true]), $lines) : $lines,
+            ...($payment ? [] : ['categories' => array_map(fn (string $name): array => ['name' => $name, 'totalSen' => $totals[$name]], self::CATEGORIES)]),
             'adjustment' => ['subtotalSen' => $source['adjustment']['subtotalSen'], 'adjustmentSen' => $source['adjustment']['adjustmentSen']],
         ];
         $secondary = $head['details']['phone_secondary'] ?? null;
@@ -242,9 +244,6 @@ final class IssuedBillingDocumentService
 
         return [$legacy, $content];
     }
-
-    /** BIL-9 (owner decision 2): the seven printed categories, in the clinic's order. */
-    public const CATEGORIES = ['Service', 'Procedure', 'Investigation', 'Consultation', 'Medicine', 'Document', 'Package'];
 
     public static function category(string $lineType, ?string $serviceCategory): string
     {
@@ -262,7 +261,12 @@ final class IssuedBillingDocumentService
         };
     }
 
-    /** @return array{0: array<string, mixed>, 1: array<string, mixed>, 2: array<string, mixed>} */
+    /**
+     * Exactly what the D03 print page shows, and nothing that depends on who looks at it (no permissions, links or ids),
+     * plus the letterhead and invoice data the BIL-9 content builds on.
+     *
+     * @return array{0: array<string, mixed>, 1: array<string, mixed>, 2: array<string, mixed>}
+     */
     private function legacyContent(User $actor, Visit $visit, Invoice $invoice, ?Payment $payment, Branch $branch): array
     {
         // The frozen content must not depend on who prints: issue only for people who see every printed part.
@@ -309,6 +313,31 @@ final class IssuedBillingDocumentService
             'billTo' => $payment ? null : $this->billTo->forPrint($actor, $visit, $invoice, $branch->id),
             'letterhead' => ['details' => $details, 'logo' => $head['logo'] ? ['url' => $head['logo']['url']] : null, 'footerText' => $head['footerText']],
         ], $head, $source];
+    }
+
+    /**
+     * A BIL-9 copy holds the patient's IC/passport and phone: only someone who may see them opens or reprints it.
+     *
+     * @param  array<string, mixed>  $content
+     */
+    private function assertCanSeeIdentity(User $actor, array $content): void
+    {
+        if (($content['layout'] ?? null) === 'bil9' && ! $actor->can('patients.view.organisation')) {
+            throw ValidationException::withMessages(['document' => 'You cannot see every part of this document, so you cannot open it.']);
+        }
+    }
+
+    /** @return array<string, mixed> */
+    private function decrypt(IssuedBillingDocument $document): array
+    {
+        try {
+            /** @var array<string, mixed> $content */
+            $content = json_decode(Crypt::decryptString($document->encrypted_snapshot), true, flags: JSON_THROW_ON_ERROR);
+        } catch (DecryptException|\JsonException) {
+            throw ValidationException::withMessages(['document' => 'This issued copy failed its integrity check. Do not print it; report it.']);
+        }
+
+        return $content;
     }
 
     private function print(User $actor, IssuedBillingDocument $document, string $label, string $key, string $hash, Branch $branch): IssuedBillingDocumentPrint
