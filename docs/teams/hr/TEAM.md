@@ -57,18 +57,20 @@ Development, Finance and the TV account get no HR data by implication. Server ch
 
 | Slice | What it did | PR |
 |---|---|---|
-| HR-1 | Roster planner at `/hr/roster` (My roster, Planner, Minimum staffing); weekly branch versions draft, waiting for approval, approved, replaced; two-person send and approve or return backed by PostgreSQL; refusals for missing branch assignment, overlaps across branches, shifts over 16 hours; warnings for other drafts, shared rooms and minimum staffing; one hub link. Permissions `hr.roster.manage.organisation` (Director, HR Manager), `hr.roster.approve.organisation` (Director), `hr.roster.view.own` (every human role, not the TV account). Migrations `2026_11_10_000100` and `000200`. | (PR pending) |
+| HR-1 | Roster planner at `/hr/roster` (My roster, Planner, Minimum staffing); weekly branch versions draft, waiting for approval, approved, replaced; two-person send and approve or return backed by PostgreSQL; refusals for missing branch assignment, overlaps across branches, shifts over 16 hours; warnings for other drafts, shared rooms and minimum staffing; one hub link. Permissions `hr.roster.manage.organisation` (Director, HR Manager), `hr.roster.approve.organisation` (Director), `hr.roster.view.own` (every human role, not the TV account). Migrations `2026_11_10_000100` and `000200`. | PR #295, merged as `dca171e` (head `a84e395`) |
 
 ## 6. Decisions (never ask again)
 
 Decisions marked **B.E.R.N.I.S.S for the owner** were made by the coordinator under the owner's delegation of
-2026-11-05 ("for now, BE ME") and are on the owner's board for review; the owner may change them.
+2026-11-05 ("for now, BE ME"). The owner returned on 2026-11-06 at about 01:10 UTC; that delegation has ended, and
+the entries marked "confirmed by the owner, 2026-11-06" were confirmed in the owner's own words ("ok for the HR
+check items, keep them"). The rest stand unless the owner changes them.
 
 1. KPOne HR is authorised as a programme, built one slice at a time; each slice gets a design note approved before
    building and a "ship it" before its PR (owner, 2026-11-05: "i want all the things inside it and can be kpone
    mysyarikat").
 2. On screen it is called **KPOne HR**; it does not copy the outside product's name, logo, screens or wording
-   (B.E.R.N.I.S.S for the owner).
+   (B.E.R.N.I.S.S for the owner; confirmed by the owner, 2026-11-06).
 3. Who manages: Director and HR Manager manage; the Director approves rosters and HR Manager decisions that affect
    pay; nobody approves their own request (leave, claim, overtime, correction); each staff member sees their own
    (B.E.R.N.I.S.S for the owner, following `docs/reports/ANALYSIS-HR.md`).
@@ -79,15 +81,16 @@ Decisions marked **B.E.R.N.I.S.S for the owner** were made by the coordinator un
    OTP or push notification (AGENTS.md; B.E.R.N.I.S.S for the owner).
 6. Clock-in is a button in KPOne on the staff member's own signed-in account, with manual corrections approved by
    someone else. No selfie or face photo, no continuous location. A branch geofence check may be added later only
-   after a privacy (PDPA) review (B.E.R.N.I.S.S for the owner; the clinic HR proposal asked for geofence and selfie:
-   **owner to review**).
+   after a privacy (PDPA) review (B.E.R.N.I.S.S for the owner; the clinic HR proposal asked for geofence and selfie;
+   confirmed by the owner, 2026-11-06).
 7. Payroll is built inside KPOne (the owner asked for everything), late in the order, with every statutory rate
    and table (EPF, SOCSO, EIS, PCB/MTD, HRD) entered and versioned by the clinic, never hard-coded, and marked
    "to confirm with the clinic's accountant" before real use. KPOne makes no payment; it can export a reviewed
-   file (B.E.R.N.I.S.S for the owner; the HR analysis had advised keeping payroll outside: **owner to review**).
+   file (B.E.R.N.I.S.S for the owner; the HR analysis had advised keeping payroll outside; confirmed by the owner,
+   2026-11-06).
 8. Locums are HR-managed worker records without a KPOne login; there is no outside locum portal, OTP or WhatsApp
    broadcast (AGENTS.md: unknown identities never create users; messaging unauthorised) (B.E.R.N.I.S.S for the
-   owner; **owner to review**).
+   owner; confirmed by the owner, 2026-11-06).
 9. Sensitive fields (IC or passport number, bank account, salary, emergency contact, health and discipline notes,
    uploaded documents) are encrypted at rest, kept out of the staff directory and audit records (field names only,
    never values), and shown only to permitted holders (B.E.R.N.I.S.S for the owner).
@@ -99,7 +102,7 @@ Decisions marked **B.E.R.N.I.S.S for the owner** were made by the coordinator un
     (B.E.R.N.I.S.S for the owner, 2026-11-05).
 13. Roster self-approval: whoever sends a week for approval cannot approve it, even a Director. The HR Manager
     drafts and sends, the Director approves; a Director-drafted week is sent by someone else or approved by a second
-    Director (B.E.R.N.I.S.S for the owner, 2026-11-05; "Check this" on the owner's board for a one-Director clinic).
+    Director (B.E.R.N.I.S.S for the owner, 2026-11-05; confirmed by the owner, 2026-11-06).
 14. HR-1 defaults: sessions Morning, Afternoon, Evening, Night, Full day, Other; 16-hour maximum shift; minimum
     staffing for Resident Doctor, CA and CA Supervisor; no travel buffer between branches; CA Supervisors do not see
     the whole branch roster in HR-1 (a branch view is the possible follow-up HR-1b) (B.E.R.N.I.S.S for the owner,
@@ -112,8 +115,30 @@ Decisions marked **B.E.R.N.I.S.S for the owner** were made by the coordinator un
     version switch is a two-button group with `aria-pressed`; grid chips at least 44 px high; dark-mode icons of
     native date and time inputs are design debt DD-07 (not HR's to fix) (relayed by B.E.R.N.I.S.S, 2026-11-05).
 17. A clinic compliance slice (clinic document licences, internal audit checklist, vaccine fridge temperature log)
-    joins the backlog as HR-11, after HR-10 (B.E.R.N.I.S.S for the owner, 2026-11-05; "Check this" on the owner's
-    board because it is clinic data, not staff data).
+    joins the backlog as HR-11, after HR-10 (B.E.R.N.I.S.S for the owner, 2026-11-05; confirmed by the owner,
+    2026-11-06).
+18. HR-2 leave design note approved, split into HR-2a (settings, balances, requests, calendar, roster link) and HR-2b
+    (evidence files, its own note later); HR-2a keeps only an encrypted short evidence reference and an
+    "Evidence seen" tick (B.E.R.N.I.S.S for the owner, 2026-11-05).
+19. HR-2 defaults: no leave types, entitlements, carry-forward or holidays ship with KPOne (clinic-entered,
+    versioned); the yearly entitlement is granted by a manager action; no negative balance unless the type allows
+    it; replacement leave is a manual adjustment; a late application is flagged, not refused (B.E.R.N.I.S.S for
+    the owner, 2026-11-05).
+20. HR-2 two-person rules: the decider is never the applicant; an HR Manager's own leave goes to the Director, a
+    Director's to the HR Manager or another Director; opening balances and adjustments need a second manager's
+    confirmation; all backed by PostgreSQL (B.E.R.N.I.S.S for the owner, 2026-11-05).
+21. HR-2 roster link: a new shift on an approved-leave day is refused; existing shifts and pending leave only warn;
+    approving leave never changes a shift; the roster and team calendar show "On leave" only, never the type or
+    reason (B.E.R.N.I.S.S for the owner, 2026-11-05).
+22. Existing-assertion change approved: the `ClinicManagementTest` hub map gains `/hr/leave` for
+    `hr.leave.request.own`, `hr.leave.approve.organisation` and `hr.leave.manage.organisation` (B.E.R.N.I.S.S for
+    the owner, 2026-11-05).
+23. HR-2a design (Daniel, OK with changes, relayed by B.E.R.N.I.S.S 2026-11-06): no primary button in a list
+    (Approve, Reject and Confirm are outline; the primary "Approve leave" is in the dialog); a one-day request shows
+    one "Half day" control; the balance error reads "Not enough leave left: this request needs N days and you have
+    M." with no negative figure; the team calendar grid scrolls inside its box with a sticky name column, a caption
+    and screen-reader names per cell; the phone tab strip follows the Queue board's DD-30 pattern (#296); below
+    768 px entitlements are one card per role; "Rejected" and "Cancelled" are neutral.
 
 ## 7. Open items and known limits
 
@@ -128,6 +153,16 @@ Decisions marked **B.E.R.N.I.S.S for the owner** were made by the coordinator un
   shows one week at a time; the planner reads other drafts' overlaps with one query per shift (fine for a clinic
   week, not load-tested); shift swaps and a branch view for CA Supervisors are HR-1b; dark-mode icons of native
   date and time inputs are design debt DD-07.
+- HR-2a known limits: changing a branch's working days does not recount requests already sent (they keep their day
+  count; the Settings card says so); carry-forward subtracts pending requests, so days of a request rejected after
+  carry-forward stay in the closed year; a year carried forward is closed for new spending by that person and type
+  (Reviewer finding, fixed); a grant that lowers an entitlement below what was already used is refused and needs an
+  adjustment instead; the shared confirm dialog has no disabled state, so Approve and Reject say what is missing
+  instead of greying out; ledger and action foreign keys to requests, openings and adjustments are single-column
+  (organisation is checked in the service, not in PostgreSQL); no evidence files until HR-2b.
+- The 44 px phone tab height on the Leave page reaches into the shared `OperationalTabs` buttons
+  (`max-sm:[&>button]:h-11`, the DD-30 pattern from #296); if that component changes its buttons the height quietly
+  stops applying. A phone-height option in `OperationalTabs` (Staff Experience) would remove both overrides.
 
 ## 8. Rules (every task)
 
