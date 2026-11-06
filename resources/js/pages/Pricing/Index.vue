@@ -28,10 +28,15 @@ type ChargeRow = {
     isActive: boolean;
     currentPrice: {
         priceBookPublicId: string;
-        amountSen: number;
+        // CAT-6: null when the only prices for this charge start later.
+        amountSen: number | null;
         version: number;
     } | null;
-    scheduledPrice?: { amountSen: number; effectiveAt: string } | null;
+    scheduledPrice?: {
+        amountSen: number;
+        effectiveAt: string;
+        effectiveLabel: string;
+    } | null;
 };
 type PriceBookRow = {
     publicId: string;
@@ -129,9 +134,10 @@ const publishForm = (charge: ChargeRow) => {
     if (!publishForms[charge.publicId]) {
         publishForms[charge.publicId] = {
             priceBook: charge.currentPrice?.priceBookPublicId ?? '',
-            amount: charge.currentPrice
-                ? (charge.currentPrice.amountSen / 100).toFixed(2)
-                : '',
+            amount:
+                charge.currentPrice && charge.currentPrice.amountSen !== null
+                    ? (charge.currentPrice.amountSen / 100).toFixed(2)
+                    : '',
             busy: false,
             error: '',
         };
@@ -192,7 +198,7 @@ const publish = (charge: ChargeRow) => {
 const typeLabel = (type: ChargeRow['type']) =>
     chargeTypeOptions.find((option) => option.value === type)?.label ?? type;
 const priceText = (charge: ChargeRow) =>
-    charge.currentPrice
+    charge.currentPrice && charge.currentPrice.amountSen !== null
         ? `RM ${(charge.currentPrice.amountSen / 100).toFixed(2)}`
         : '—';
 
@@ -204,13 +210,8 @@ const scheduledText = (charge: ChargeRow) => {
         return null;
     }
 
-    const date = new Date(next.effectiveAt).toLocaleDateString('en-GB', {
-        day: 'numeric',
-        month: 'short',
-        year: 'numeric',
-    });
-
-    return `From ${date}: RM ${(next.amountSen / 100).toFixed(2)}`;
+    // The server formats the date in the active branch's time zone.
+    return `From ${next.effectiveLabel}: RM ${(next.amountSen / 100).toFixed(2)}`;
 };
 
 const toggleCharge = (charge: ChargeRow) => {
@@ -544,11 +545,13 @@ const toggleCharge = (charge: ChargeRow) => {
                             </div>
                         </td>
                         <td>{{ typeLabel(charge.type) }}</td>
-                        <td class="text-right whitespace-nowrap tabular-nums">
-                            {{ priceText(charge) }}
+                        <td class="text-right tabular-nums">
+                            <span class="whitespace-nowrap">{{
+                                priceText(charge)
+                            }}</span>
                             <span
                                 v-if="scheduledText(charge)"
-                                class="block text-xs text-muted-foreground"
+                                class="block min-w-32 text-xs text-muted-foreground"
                                 data-testid="scheduled-price"
                                 >{{ scheduledText(charge) }}</span
                             >

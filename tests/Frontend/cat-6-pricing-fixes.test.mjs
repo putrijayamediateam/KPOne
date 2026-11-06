@@ -8,7 +8,6 @@ import test from 'node:test';
 const read = (path) =>
     readFileSync(new URL(`../../${path}`, import.meta.url), 'utf8');
 const pricing = read('resources/js/pages/Pricing/Index.vue');
-const controller = read('app/Http/Controllers/PricingController.php');
 
 test('both price book selects wrap long names to two lines and keep the list inside the trigger width', () => {
     const flat = pricing.replace(/\s+/g, ' ');
@@ -22,14 +21,12 @@ test('both price book selects wrap long names to two lines and keep the list ins
     );
 });
 
-test('"Current price" uses the version in effect; the publish form keeps the newest version of that book', () => {
+test('"Current price" may have no amount yet; the publish form keeps the newest version of that book', () => {
+    // The selection itself is pinned by PricingCurrentPriceTest; here only the page's handling.
+    assert.match(pricing, /amountSen: number \| null;/);
     assert.match(
-        controller,
-        /->lessThanOrEqualTo\(\$now\)\)\s*\?\? \$forCharge->first\(\);/,
-    );
-    assert.match(
-        controller,
-        /\$newestInBook = \(int\) \$forCharge->where\('price_book_id', \$inEffect->price_book_id\)->max\('version'\);/,
+        pricing,
+        /charge\.currentPrice && charge\.currentPrice\.amountSen !== null\s*\? `RM \$\{\(charge\.currentPrice\.amountSen \/ 100\)\.toFixed\(2\)\}`\s*: '—'/,
     );
     assert.match(
         pricing,
@@ -40,7 +37,7 @@ test('"Current price" uses the version in effect; the publish form keeps the new
 test('a price scheduled for later is a muted second line, and the row cells stay top-aligned', () => {
     assert.match(
         pricing,
-        /`From \$\{date\}: RM \$\{\(next\.amountSen \/ 100\)\.toFixed\(2\)\}`/,
+        /`From \$\{next\.effectiveLabel\}: RM \$\{\(next\.amountSen \/ 100\)\.toFixed\(2\)\}`/,
     );
     assert.equal(
         (pricing.match(/data-testid="scheduled-price"/g) ?? []).length,
@@ -50,5 +47,11 @@ test('a price scheduled for later is a muted second line, and the row cells stay
         pricing.replace(/\s+/g, ' '),
         /label="Charge definitions" class="\[&_td\]:align-top"/,
     );
-    assert.match(controller, /'scheduledPrice' => \$latest\?->scheduled,/);
+    // The date comes from the server in the branch time zone, never the device clock.
+    assert.doesNotMatch(pricing, /toLocaleDateString/);
+    // Only the muted line may wrap; the amount stays on one line.
+    assert.match(
+        pricing.replace(/\s+/g, ' '),
+        /<td class="text-right tabular-nums"> <span class="whitespace-nowrap">\{\{ priceText\(charge\) \}\}<\/span>/,
+    );
 });

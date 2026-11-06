@@ -27,7 +27,7 @@ use Inertia\Response;
 
 class PricingController extends Controller
 {
-    public function index(Request $request): Response
+    public function index(Request $request, BranchAccessService $branches): Response
     {
         $actor = $request->user();
         $organisationId = $actor->organisation_id;
@@ -36,36 +36,48 @@ class PricingController extends Controller
             ->where('organisation_id', $organisationId)
             ->orderBy('display_name')
             ->get();
+        $books = PriceBook::query()
+            ->where('organisation_id', $organisationId)
+            ->orderBy('name')
+            ->get();
+        $activeBookIds = $books->where('is_active', true)->pluck('id')->all();
+        $bookPublicIds = $books->pluck('public_id', 'id');
+        // CAT-6: only active books count, as in billing (PriceResolutionService), and publishing to an inactive book
+        // is refused anyway.
         $entries = PriceEntry::query()
             ->where('organisation_id', $organisationId)
             ->whereIn('charge_definition_id', $charges->pluck('id'))
-            ->orderByDesc('version')
+            ->whereIn('price_book_id', $activeBookIds)
+            ->orderByDesc('effective_at')
+            ->orderByDesc('id')
             ->get();
-        // CAT-6: "Current price" is the version in effect now (billing never uses a price whose effective time is
-        // still ahead, PriceResolutionService). The publish form keeps the newest version of that book as its
-        // expected version, so publishing is unchanged.
+        $branch = $branches->activeBranch($actor);
+        $timezone = $branch !== null ? $branch->timezone : (string) config('app.timezone');
+        // CAT-6: "Current price" is the price that took effect most recently and is in effect now (billing never uses
+        // a price whose effective time is still ahead). The publish form keeps the newest version of that book as its
+        // expected version, so publishing is unchanged. A charge whose only prices start later shows no current
+        // amount, with the first one as the scheduled line.
         $now = CarbonImmutable::now('UTC');
         $latestEntries = $entries
             ->groupBy('charge_definition_id')
-            ->map(function ($forCharge) use ($now) {
-                $inEffect = $forCharge->first(fn (PriceEntry $entry): bool => CarbonImmutable::parse((string) $entry->getRawOriginal('effective_at'), 'UTC')->lessThanOrEqualTo($now))
-                    ?? $forCharge->first();
-                $newestInBook = (int) $forCharge->where('price_book_id', $inEffect->price_book_id)->max('version');
+            ->map(function ($forCharge) use ($now, $timezone) {
+                $at = fn (PriceEntry $entry): CarbonImmutable => CarbonImmutable::parse((string) $entry->getRawOriginal('effective_at'), 'UTC');
+                $isFuture = fn (PriceEntry $entry): bool => $at($entry)->greaterThan($now);
+                $inEffect = $forCharge->first(fn (PriceEntry $entry): bool => ! $isFuture($entry));
+                $bookId = $inEffect !== null ? $inEffect->price_book_id : $forCharge->last()->price_book_id;
+                $inBook = $forCharge->where('price_book_id', $bookId);
 
                 // The next version in that book that takes effect later, if any (shown as a muted line).
-                $scheduled = $forCharge
-                    ->where('price_book_id', $inEffect->price_book_id)
-                    ->filter(fn (PriceEntry $entry): bool => CarbonImmutable::parse((string) $entry->getRawOriginal('effective_at'), 'UTC')->greaterThan($now))
-                    ->sortBy('version')
-                    ->first();
+                $scheduled = $inBook->filter($isFuture)->sortBy(fn (PriceEntry $entry): string => $at($entry)->format('Y-m-d H:i:s.u').sprintf('%020d', $entry->id))->first();
 
                 return (object) [
-                    'price_book_id' => $inEffect->price_book_id,
-                    'unit_price_sen' => $inEffect->unit_price_sen,
-                    'version' => $newestInBook,
+                    'price_book_id' => $bookId,
+                    'unit_price_sen' => $inEffect?->unit_price_sen,
+                    'version' => (int) $inBook->max('version'),
                     'scheduled' => $scheduled === null ? null : [
                         'amountSen' => (int) $scheduled->unit_price_sen,
-                        'effectiveAt' => CarbonImmutable::parse((string) $scheduled->getRawOriginal('effective_at'), 'UTC')->toIso8601String(),
+                        'effectiveAt' => $at($scheduled)->toIso8601String(),
+                        'effectiveLabel' => $at($scheduled)->setTimezone($timezone)->format('j M Y, g:i A'),
                     ],
                 ];
             });
@@ -93,10 +105,7 @@ class PricingController extends Controller
                 ->get()
                 ->map(fn (ClinicalServiceCatalogueItem $s): array => ['publicId' => $s->public_id, 'displayName' => $s->display_name, 'code' => $s->code])
                 ->values(),
-            'priceBooks' => PriceBook::query()
-                ->where('organisation_id', $organisationId)
-                ->orderBy('name')
-                ->get()
+            'priceBooks' => $books
                 ->map(fn (PriceBook $book): array => [
                     'publicId' => $book->public_id,
                     'name' => $book->name,
@@ -105,7 +114,7 @@ class PricingController extends Controller
                     'scopeKey' => $book->scope_key,
                     'isActive' => $book->is_active,
                 ])->values(),
-            'charges' => $charges->map(function (ChargeDefinition $charge) use ($latestEntries): array {
+            'charges' => $charges->map(function (ChargeDefinition $charge) use ($latestEntries, $bookPublicIds): array {
                 $latest = $latestEntries->get($charge->id);
 
                 return [
@@ -116,7 +125,7 @@ class PricingController extends Controller
                     'unit' => $charge->unit,
                     'isActive' => $charge->is_active,
                     'currentPrice' => $latest ? [
-                        'priceBookPublicId' => optional(PriceBook::query()->find($latest->price_book_id))->public_id,
+                        'priceBookPublicId' => $bookPublicIds->get($latest->price_book_id),
                         'amountSen' => $latest->unit_price_sen,
                         'version' => $latest->version,
                     ] : null,
