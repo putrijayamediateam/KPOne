@@ -216,3 +216,9 @@ authorisation to build them; the coordinator records it in `docs/BASELINE.md`.
    (Local date or Row) stays in view while a wide report scrolls sideways. His second nit, the page title
    "Transaction Detail" in sentence case, is left: the title comes from `TransactionReportService` and the
    pilot-scale golden file (`tests/Fixtures/PilotScale/original-small-reports.json`) pins it.
+14. **UX-14 Malay guides for the landscape drug label.** Chosen by the owner on 2026-11-06, handed over by Dispensary &
+   OTC after DSP-10 (PR #344) and the "Print label" casing fix (PR #321). `docs/guides/ms/ca.md` and
+   `docs/guides/ms/penyelia-ca.md` now describe the 100 × 62 mm landscape label: "Print label", the expiry printed as
+   "EXP: dd/mm/yyyy" only for exactly one batch (otherwise "EXP: -"), no batch number, "Ubat Terkawal/Controlled
+   Medicine" below the border, and dosage, frequency and instruction sharing 3 rows with Route not printed. Every
+   quoted string was checked against the merged code. Docs only.
