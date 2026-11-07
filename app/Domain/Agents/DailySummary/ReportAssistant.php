@@ -60,7 +60,23 @@ final class ReportAssistant
             'panelApprovedSen' => (int) ($day['panelApprovedSen'] ?? 0),
             'payLaterDueSen' => (int) ($day['payLaterDueSen'] ?? 0),
         ];
-        $previousSeen = collect((array) ($previousClinic['doctors'] ?? []))->mapWithKeys(fn (array $d): array => [(int) $d['doctorId'] => (int) $d['seen']]);
+        $previousDoctors = collect((array) ($previousClinic['doctors'] ?? []));
+        $previousSeen = $previousDoctors->mapWithKeys(fn (array $d): array => [(int) $d['doctorId'] => (int) $d['seen']]);
+        $doctors = array_map(fn (array $d): array => [
+            'doctorId' => (int) $d['doctorId'],
+            'doctor' => (string) $d['doctor'],
+            'seen' => (int) $d['seen'],
+            'averageConsultationMinutes' => (int) $d['averageConsultationMinutes'],
+            'seenBefore' => $compare ? (int) ($previousSeen[(int) $d['doctorId']] ?? 0) : null,
+        ], (array) ($clinic['doctors'] ?? []));
+        // A doctor who saw patients on the comparison day but none on the report day stays in the list with 0 seen
+        // (AG-12), so the comparison does not silently drop them. Listed after the report day's doctors.
+        $todayIds = array_column($doctors, 'doctorId');
+        foreach ($previousDoctors as $d) {
+            if ((int) $d['seen'] > 0 && ! in_array((int) $d['doctorId'], $todayIds, true)) {
+                $doctors[] = ['doctorId' => (int) $d['doctorId'], 'doctor' => (string) $d['doctor'], 'seen' => 0, 'averageConsultationMinutes' => 0, 'seenBefore' => (int) $d['seen']];
+            }
+        }
 
         $clinicNow = $clinicFigures($clinic);
         $report = [
@@ -68,13 +84,7 @@ final class ReportAssistant
             'kind' => $compare ? 'whole_day' : 'so_far',
             'comparedWith' => $compare ? $previousDate : null,
             'clinic' => ['now' => $clinicNow, 'before' => $compare ? $clinicFigures($previousClinic ?? []) : null],
-            'doctors' => array_values(array_map(fn (array $d): array => [
-                'doctorId' => (int) $d['doctorId'],
-                'doctor' => (string) $d['doctor'],
-                'seen' => (int) $d['seen'],
-                'averageConsultationMinutes' => (int) $d['averageConsultationMinutes'],
-                'seenBefore' => $compare ? (int) ($previousSeen[(int) $d['doctorId']] ?? 0) : null,
-            ], (array) ($clinic['doctors'] ?? []))),
+            'doctors' => $doctors,
             'money' => ['now' => $moneyFigures($money), 'before' => $compare ? $moneyFigures($previousMoney ?? []) : null],
             'panel' => [
                 'unclaimedInvoices' => (int) ($panel['unclaimedInvoices'] ?? 0),
