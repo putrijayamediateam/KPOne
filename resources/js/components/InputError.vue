@@ -12,11 +12,7 @@ defineProps<{
         so the layout and existing links are unchanged.
     -->
     <div v-show="message">
-        <p
-            v-if="message"
-            role="alert"
-            class="text-sm text-red-600 dark:text-red-500"
-        >
+        <p v-if="message" role="alert" class="text-sm text-destructive">
             {{ message }}
         </p>
     </div>

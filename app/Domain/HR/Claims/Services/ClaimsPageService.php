@@ -150,9 +150,12 @@ final class ClaimsPageService
         $claims = DB::table('hr_staff_claims')->where('organisation_id', $actor->organisation_id)
             ->where(fn ($q) => $q->where('status', 'approved')->orWhere(fn ($p) => $p->where('status', 'paid')->where('updated_at', '>=', $since)))
             ->orderByRaw("CASE status WHEN 'approved' THEN 0 ELSE 1 END")->orderBy('decided_at')->orderBy('id')->get();
-        $rows = $this->rows($actor, $claims, $zone, false, false)->map(function (array $row) use ($actor, $claims): array {
+        $throughPayroll = DB::table('hr_staff_claim_payments')->whereIn('claim_id', $claims->pluck('id')->all())->where('kind', 'payment')
+            ->where('method', ClaimService::PAYROLL_METHOD)->pluck('claim_id')->map(fn ($id): int => (int) $id)->all();
+        $rows = $this->rows($actor, $claims, $zone, false, false)->map(function (array $row) use ($actor, $claims, $throughPayroll): array {
             $claim = $claims->firstWhere('id', $row['dbId']);
             $refusal = match (true) {
+                $claim->status === 'paid' && in_array((int) $claim->id, $throughPayroll, true) => ClaimService::PAYROLL_REFUSAL,
                 (int) $claim->claimant_user_id === $actor->id => 'Someone else records the payment of your own claim.',
                 (int) $claim->decided_by_user_id === $actor->id => 'You approved this claim, so someone else records its payment.',
                 default => null,
@@ -217,7 +220,7 @@ final class ClaimsPageService
             $reversed = null;
             foreach ($payments->get($c->id, collect()) as $p) {
                 if ($p->kind === 'payment') {
-                    $paid = ['paidOn' => CarbonImmutable::parse((string) $p->paid_on)->format('j M Y'), 'method' => ClaimService::METHODS[$p->method] ?? $p->method,
+                    $paid = ['paidOn' => CarbonImmutable::parse((string) $p->paid_on)->format('j M Y'), 'method' => ClaimService::METHOD_LABELS[$p->method] ?? $p->method,
                         'last4' => $p->reference_last4, 'paymentId' => $p->id];
                 } else {
                     $reversed = ['reason' => ClaimService::REVERSAL_REASONS[$p->reason_code] ?? $p->reason_code, 'on' => CarbonImmutable::parse((string) $p->created_at, 'UTC')->setTimezone($zone)->format('j M Y')];
