@@ -63,6 +63,7 @@ HR, finance, marketing, Panel or management agents, the 3D office, and the desig
 | Agent office (AG-3) | Page `resources/js/pages/Agents/Office.vue` at `/agents/office`; components in `resources/js/components/agents/office/` (`office-layout.ts` holds the geometry, seats and the fictional looks in `AVATARS`, `OfficeScene.vue`, `AgentFigure.vue`); `AgentOfficeController`; `AgentOfficeDetail` (click panel: last 5 steps; pending proposal rows only for `ai_proposals.view.branch` holders, at their active branch, as the inbox does) |
 | Stocktake officer (AG-9) | `app/Domain/Agents/Stocktake/`: `StocktakeOfficer::check($run, $requester, $branch)` reads `inventory.stock_counts` through the gateway inside the caller's run, records one counts-only decision step and returns a `StocktakeCheck` (counts due, open cases, unresolved variances, worklists of at most 25). The caller starts and finishes the run (task `stock_count_check`). `StocktakeOfficer::evaluate()` is the pure rule. |
 | Inventory analyst, Hana (AG-6) | `app/Domain/Agents/Inventory/`: `InventoryRules` (the contract section 6 rules, pure PHP in whole thousandths), `InventoryAnalyst` (reads, proposes, one summary step), `InventoryReview`; command `agents:inventory-review {branch} --checks= --slot=` (`app/Console/Commands/AgentsInventoryReview.php`, not scheduled: AG-8 calls it). **System path:** `AgentToolGateway::callAsSystem()` reads for a run with no person, console only, only tools that implement `SystemReadableTool` (`runForOrganisation`), only on the agent's allowlist and at the run's branch; AG-8 reuses it. The three inventory tools gained additive output fields (`rows` on stock review, `locations` on dispensing activity). |
+| Director quick answers, Dato' Arif (AG-5) | `app/Domain/Agents/Assistant/`: `QuickQuestions` (the 12 preset questions in one place: group, label, data source, date input, extra report permission, and the fixed table and sentence builders; add a question here), `DirectorAssistant::answer()` (one `director_assistant` run of task `quick_answer` per answer, asked for by the Director, reads through the gateway with the Director's own authority, one decision step, completed or failed), `QuickAnswer`; `AgentAssistantController`; page `resources/js/pages/Agents/Assistant.vue` at `GET /agents/assistant` (`ai_assistant.use.organisation`, throttled 30 a minute; an answer is asked for with `?question=&branch=&date=` and is not stored). |
 | Daily summary and Lina (AG-8) | `app/Domain/Agents/DailySummary/`: `ReportAssistant` (Lina: clinic, doctors, money, Panel and stock figures for one branch and date, read through `callAsSystem`), `DailyRun` (the 07:00 and 14:00 sections per branch, in each branch's time zone; Faris once per organisation in Asia/Kuala_Lumpur; up to three runs per section; reuses a slot `agents:inventory-review` already ran), `AiDailySummarySection` (stored, encrypted, never changed), `DailySummaryPage` (the read model, filtered per viewer); command `agents:daily-run {slot} {--branch=}` scheduled hourly at :05 (0700) and :10 (1400); migration `2026_11_11_000200_create_ai_daily_summary_sections`; page `resources/js/pages/Agents/DailySummary.vue` at `/agents/daily-summary` |
 | Tests | `tests/Feature/Agents/`, `tests/Frontend/ag-*.test.mjs`; no-AI guard `tests/Feature/Agents/NoAiServiceGuardTest.php` |
 | Reserved names per slice | Contract section 10 |
@@ -143,6 +144,10 @@ All in the contract; the main ones:
   B.E.R.N.I.S.S, 2026-11-05).
 - AG-6 (owner, 2026-11-06): build the system read path now, in AG-6; add the needed output fields to the inventory
   data sources (additive, existing keys unchanged).
+- AG-5 (owner, 2026-11-06): Dato' Arif also reads `clinic.day_summary`, `money.day_summary` and `panel.claims_summary`
+  (contract section 8 updated); the 12 preset questions in four groups; three existing test lines changed with the owner's
+  approval (the seeded allowlist list and count 12 to 15 in `AgentRegistryTest`, and the "not on allowlist" case in
+  `AgentToolGatewayTest` now uses `inventory.stock_counts`).
 - Backup push (owner, relayed by B.E.R.N.I.S.S, formerly LUCY, 2026-11-05): when stopping to wait for the owner with work not yet on GitHub,
   commit it to the slice's own feature branch and push it as a backup. No PR, never main or another team's branch,
   never merge, never force-push. If the branch already has an open PR, push only when the change is ready. The PR
@@ -213,5 +218,5 @@ All in the contract; the main ones:
 | AG-9 Rizal (stocktake officer) | Merged in PR #299 as `6538892` |
 | AG-10 Faris (system health) | Merged in PR #322 as `fcb883a` |
 | AG-6 Hana (inventory analyst) | Merged in PR #335 as `440f565` |
-| AG-5 Director quick answers | |
+| AG-5 Director quick answers | Merged in PR #345 as `5743da3` |
 | AG-8 Daily summary page and Lina | PR open (owner "ship it for AG-8", 2026-11-06) |

@@ -124,7 +124,7 @@ stock change; staff act on an approved item through the existing Inventory scree
 
 | Code | Name | Title | Department | Tools |
 |---|---|---|---|---|
-| `director_assistant` | Dato' Arif | Chief of Staff (AI agent) | Leadership | `insights.today`, `insights.sales_summary`, `inventory.stock_review` |
+| `director_assistant` | Dato' Arif | Chief of Staff (AI agent) | Leadership | `insights.today`, `insights.sales_summary`, `inventory.stock_review`, `clinic.day_summary`, `money.day_summary`, `panel.claims_summary` (the last three added for AG-5, owner decision 2026-11-06) |
 | `inventory_analyst` | Hana | Inventory Analyst (AI agent) | Clinic Operations | `inventory.stock_review`, `inventory.branch_balances`, `inventory.dispensing_activity` |
 | `stocktake_officer` | Rizal | Stocktake Officer (AI agent) | Clinic Operations | `inventory.stock_counts` |
 | `report_assistant` | Lina | Management Assistant (AI agent) | Leadership | `clinic.day_summary`, `money.day_summary`, `panel.claims_summary`, `inventory.stock_review` |
