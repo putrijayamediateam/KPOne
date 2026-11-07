@@ -110,7 +110,7 @@ These are money reporting choices taken for the owner; the owner can still chang
 - **Race tests:** two refunds recorded at the same moment on one receipt are serialised by the receipt row lock in the
   service and in the PostgreSQL rule, which re-reads the earlier refunds after the lock. There is no dedicated
   PostgreSQL contention test for it yet; the existing billing race tests run.
-- **Prints:** the issued invoice (D03 layout here, and the BIL-9 clinic layout once both are merged) prints a "Refund
-  credit" row. A copy issued before the credit stays as issued, and the next print is REVISED.
+- **Prints:** the issued invoice prints a "Refund credit" row in both layouts (D03, and the BIL-9 clinic layout,
+  after Tax and before Invoice total, added when BIL-9 took in BIL-10). A copy issued before the credit stays as issued, and the next print is REVISED.
 - **Panel claims** use the invoice total before refund credits (the same figure as `kpone_invoice_payable`). A refund
   after completion only gives back the patient's money.

@@ -38,6 +38,7 @@ use App\Http\Controllers\HR\AttendanceController as HrAttendanceController;
 use App\Http\Controllers\HR\ClaimsController as HrClaimsController;
 use App\Http\Controllers\HR\CredentialsController as HrCredentialsController;
 use App\Http\Controllers\HR\LeaveController;
+use App\Http\Controllers\HR\OutsideExportController as HrOutsideExportController;
 use App\Http\Controllers\HR\PayrollController as HrPayrollController;
 use App\Http\Controllers\HR\RecordsController as HrRecordsController;
 use App\Http\Controllers\HR\RosterController;
@@ -196,6 +197,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // HR-4a staff files (owner, 2026-11-06). Rules live in app/Domain/HR/Records. Synthetic data only until the PDPA review.
     Route::prefix('hr/records')->controller(HrRecordsController::class)->middleware('sensitive.no-store')->group(function (): void {
         Route::get('/', 'index')->middleware('permission:hr.records.view.own,hr.records.view.organisation')->name('hr.records.index');
+        // HR-12: a generic CSV for an outside HR product (staff list, approved leave, approved overtime), audited first, never stored.
+        Route::post('outside-export/{kind}', [HrOutsideExportController::class, 'download'])->whereIn('kind', ['staff', 'leave', 'overtime'])
+            ->middleware(['permission:hr.records.manage.organisation', 'throttle:reports-downloads'])->name('hr.records.outside-export');
         Route::middleware(['permission:hr.records.view.own', 'throttle:30,1'])->group(function (): void {
             Route::put('my/contact', 'saveOwnContact')->name('hr.records.my.contact');
             Route::post('my/corrections', 'askCorrection')->name('hr.records.my.corrections.store');

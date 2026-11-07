@@ -5,6 +5,7 @@ import { computed, reactive, ref, watch } from 'vue';
 import type { PayslipRow } from '@/components/hr/payroll/types';
 import CorrectionSheet from '@/components/hr/records/CorrectionSheet.vue';
 import DocumentList from '@/components/hr/records/DocumentList.vue';
+import OutsideExportCard from '@/components/hr/records/OutsideExportCard.vue';
 import OwnValue from '@/components/hr/records/OwnValue.vue';
 import SyntheticNote from '@/components/hr/records/SyntheticNote.vue';
 import type {
@@ -1205,6 +1206,11 @@ const sendLocum = () => {
                 </ul>
             </template>
         </section>
+
+        <!-- HR-12: a generic CSV for an outside HR product (managers, under Staff files) -->
+        <OutsideExportCard
+            v-if="records.tab === 'files' && records.canManage"
+        />
 
         <!-- HR-4b settings: retention per document type and checklist items (managers, under Staff files) -->
         <details
