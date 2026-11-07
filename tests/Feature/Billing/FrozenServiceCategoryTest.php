@@ -125,7 +125,9 @@ class FrozenServiceCategoryTest extends BillingTestCase
     {
         $total = null;
         $this->get(route('billing.issued.show', [$visit, $print->public_id]))->assertOk()->assertInertia(function (Assert $page) use ($name, &$total): void {
-            $total = collect($page->toArray()['props']['billing']['invoice']['categories'])->firstWhere('name', $name)['totalSen'];
+            /** @var list<array{name: string, totalSen: int}> $categories */
+            $categories = $page->toArray()['props']['billing']['invoice']['categories'];
+            $total = collect($categories)->firstWhere('name', $name)['totalSen'] ?? null;
         });
 
         return (int) $total;
