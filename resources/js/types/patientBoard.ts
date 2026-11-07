@@ -68,4 +68,6 @@ export type TreatmentProgress = {
     doneAt: string | null;
     lockVersion: number | null;
     canManage: boolean;
+    /** Q-2c: other finished steps still waiting for the doctor, oldest first; absent when there are none. */
+    waiting?: Array<{ label: string; doneAt: string | null }>;
 };

@@ -12,6 +12,7 @@ import {
     Users,
 } from '@lucide/vue';
 import type { Component } from 'vue';
+import { PageHeader } from '@/components/ui/page-header';
 
 defineOptions({
     layout: {
@@ -45,9 +46,7 @@ const icons: Record<string, Component> = {
     <main
         class="mx-auto w-full max-w-[1440px] flex-1 p-4 py-6 md:p-6 lg:px-8 lg:py-8"
     >
-        <h1 class="mb-4 text-lg font-semibold tracking-tight">
-            Clinic management
-        </h1>
+        <PageHeader title="Clinic management" class="mb-5" />
         <div
             class="grid gap-px overflow-hidden rounded-lg border bg-card md:grid-cols-2 xl:grid-cols-3"
             data-testid="clinic-management-cards"

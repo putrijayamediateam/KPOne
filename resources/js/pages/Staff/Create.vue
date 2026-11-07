@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Head, Link, useForm } from '@inertiajs/vue3';
-import { ArrowLeft, Plus, Trash2, UserPlus } from '@lucide/vue';
+import { ArrowLeft, Plus, Trash2 } from '@lucide/vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import {
@@ -10,6 +10,7 @@ import {
     CardHeader,
     CardTitle,
 } from '@/components/ui/card';
+import { PageHeader } from '@/components/ui/page-header';
 import { formatRoleLabel } from '@/lib/displayLabels';
 import type { StaffOptions } from '@/types';
 
@@ -77,20 +78,10 @@ const submit = () => form.post('/staff');
 <template>
     <Head title="Create staff" />
     <main class="flex flex-1 flex-col gap-5 p-4 md:p-7">
-        <div class="flex items-start gap-3">
-            <div class="rounded-xl bg-success/10 p-2.5 text-success">
-                <UserPlus class="size-5" />
-            </div>
-            <div>
-                <h1 class="text-2xl font-semibold tracking-tight">
-                    Create staff account
-                </h1>
-                <p class="text-sm text-muted-foreground">
-                    Provision identity, employment and initial access in one
-                    controlled transaction.
-                </p>
-            </div>
-        </div>
+        <PageHeader
+            title="Create staff account"
+            description="Provision identity, employment and initial access in one controlled transaction."
+        />
         <form
             class="grid gap-5 xl:grid-cols-[minmax(0,1fr)_360px]"
             @submit.prevent="submit"
