@@ -8,6 +8,7 @@ use App\Domain\Access\TransactionalActorAuthority;
 use App\Domain\Audit\AuditRecorder;
 use App\Domain\Organisation\Models\Branch;
 use App\Domain\Visit\Billing\Models\CashClosing;
+use App\Domain\Visit\Billing\Models\CashClosingStartDate;
 use App\Domain\Visit\Billing\Models\CashClosingDecision;
 use App\Domain\Visit\Billing\Models\Payment;
 use App\Domain\Visit\Billing\Models\PaymentRefund;
@@ -32,6 +33,9 @@ final class CashClosingService
     public const COUNT_PERMISSION = 'payments.reconcile.branch';
 
     public const APPROVE_PERMISSION = 'payments.cash_closing.approve.branch';
+
+    /** BIL-15: set or change a branch's cash closing start date (Finance Officer, Director). */
+    public const START_DATE_PERMISSION = 'payments.cash_closing.start_date.manage.branch';
 
     public function __construct(private TransactionalActorAuthority $authority, private BranchAccessService $branches, private StaffAccessService $staff, private AuditRecorder $audit) {}
 
@@ -252,9 +256,11 @@ final class CashClosingService
         $closings = CashClosing::query()->with('decision')->where('organisation_id', $branch->organisation_id)->where('branch_id', $branch->id)
             ->whereDate('business_date', '>=', $first->toDateString())->whereDate('business_date', '<=', $last->toDateString())
             ->orderByDesc('revision')->get();
-        // Days before the branch's first ever count were never due: shown as "before_start", not as missed.
-        $firstCount = CashClosing::query()->where('organisation_id', $branch->organisation_id)->where('branch_id', $branch->id)->min('business_date');
-        $startsOn = $firstCount === null ? null : CarbonImmutable::parse((string) $firstCount, $branch->timezone)->startOfDay();
+        // Days before the branch's start date were never due: shown as "before_start", not as missed. BIL-15: the start
+        // date set for the branch, or, until one is set, the branch's first ever count (owner decision 2026-11-07).
+        $setStart = $this->startDate($branch);
+        $firstCount = $setStart === null ? CashClosing::query()->where('organisation_id', $branch->organisation_id)->where('branch_id', $branch->id)->min('business_date') : null;
+        $startsOn = $setStart ?? ($firstCount === null ? null : CarbonImmutable::parse((string) $firstCount, $branch->timezone)->startOfDay());
         $byDay = $closings->groupBy(fn (CashClosing $c): string => $c->business_date->toDateString());
         $names = $this->staff->visibleUsers($actor)
             ->whereIn('id', $closings->pluck('counted_by_user_id')->merge($closings->pluck('decision.decided_by_user_id'))->filter()->unique())->pluck('name', 'id');
@@ -310,7 +316,67 @@ final class CashClosingService
             'previousMonth' => $first->year === 2000 && $first->month === 1 ? null : $first->subMonth()->format('Y-m'), 'nextMonth' => $current ? null : $first->addMonth()->format('Y-m'),
             'summary' => $summary, 'hasClosings' => $closings->isNotEmpty(), 'startsOn' => $startsOn?->toDateString(),
             'beforeStart' => $startsOn === null || $last->lessThan($startsOn), 'rows' => $rows,
+            'startDate' => $this->startDateContext($actor, $branch, $setStart),
         ];
+    }
+
+    /** BIL-15: the branch's current cash closing start date (its latest revision), or null when none is set. */
+    public function startDate(Branch $branch): ?CarbonImmutable
+    {
+        $row = CashClosingStartDate::query()->where('organisation_id', $branch->organisation_id)->where('branch_id', $branch->id)->orderByDesc('revision')->first();
+
+        return $row === null ? null : CarbonImmutable::parse($row->starts_on->toDateString(), $branch->timezone)->startOfDay();
+    }
+
+    /**
+     * BIL-15 (owner decisions 2026-11-07): a Finance Officer or Director sets or changes the branch's start date on the
+     * month page. Append-only revisions; the expected revision guards against a change made meanwhile.
+     *
+     * @param  array<string, mixed>  $input
+     */
+    public function setStartDate(User $actor, array $input): CashClosingStartDate
+    {
+        $key = $this->key($input['idempotency_key'] ?? null);
+
+        return DB::transaction(function () use ($actor, $input, $key): CashClosingStartDate {
+            $branch = $this->authority->branch($actor, $input['expected_branch_id'] ?? null);
+            $actor = $this->authority->lock($actor, $branch, self::START_DATE_PERMISSION);
+            DB::select('select pg_advisory_xact_lock(hashtextextended(?, 0))', ['cash_closing_start:'.$branch->organisation_id.':'.$branch->id]);
+            $value = $input['starts_on'] ?? null;
+            $date = is_string($value) && preg_match('/\A\d{4}-\d{2}-\d{2}\z/', $value) === 1 ? CarbonImmutable::createFromFormat('!Y-m-d', $value, $branch->timezone) : false;
+            if (! $date || $date->format('Y-m-d') !== $value || $date->year < 2000 || $date->greaterThan(now($branch->timezone)->startOfDay()->addYear())) {
+                throw ValidationException::withMessages(['starts_on' => 'Choose a valid start date, no more than a year ahead.']);
+            }
+            $current = CashClosingStartDate::query()->where('organisation_id', $branch->organisation_id)->where('branch_id', $branch->id)->orderByDesc('revision')->first();
+            $hash = hash('sha256', json_encode([$actor->id, $branch->id, $date->toDateString()], JSON_THROW_ON_ERROR));
+            $existing = CashClosingStartDate::query()->where('organisation_id', $branch->organisation_id)->where('idempotency_key', $key)->first();
+            if ($existing !== null) {
+                return $existing->payload_hash === $hash ? $existing : throw ValidationException::withMessages(['starts_on' => 'This request was already used for a different change. Reload and try again.']);
+            }
+            if ((int) ($current->revision ?? 0) !== filter_var($input['expected_revision'] ?? 0, FILTER_VALIDATE_INT)) {
+                throw ValidationException::withMessages(['starts_on' => 'The start date was changed meanwhile. Reload the page.']);
+            }
+            if ($current !== null && $current->starts_on->toDateString() === $date->toDateString()) {
+                throw ValidationException::withMessages(['starts_on' => 'This is already the start date.']);
+            }
+            $row = new CashClosingStartDate;
+            $row->forceFill(['organisation_id' => $branch->organisation_id, 'branch_id' => $branch->id, 'revision' => (int) ($current->revision ?? 0) + 1,
+                'starts_on' => $date->toDateString(), 'set_by_user_id' => $actor->id, 'set_at' => now()->utc(), 'idempotency_key' => $key, 'payload_hash' => $hash])->save();
+            $this->audit->record('billing.cash_closing_start_date_set', null, ['revision' => $row->revision, 'starts_on' => $date->toDateString(),
+                'previous_starts_on' => $current?->starts_on->toDateString()], $actor, $branch);
+
+            return $row;
+        }, 3);
+    }
+
+    /** @return array{startsOn: string|null, revision: int, setBy: string|null, setAt: string|null, canSet: bool} */
+    private function startDateContext(User $actor, Branch $branch, ?CarbonImmutable $setStart): array
+    {
+        $row = CashClosingStartDate::query()->where('organisation_id', $branch->organisation_id)->where('branch_id', $branch->id)->orderByDesc('revision')->first();
+        $name = $row === null ? null : ($this->staff->visibleUsers($actor)->whereKey($row->set_by_user_id)->value('name') ?? 'Staff member');
+
+        return ['startsOn' => $setStart?->toDateString(), 'revision' => (int) ($row->revision ?? 0), 'setBy' => $name,
+            'setAt' => $row?->set_at->setTimezone($branch->timezone)->format('j M Y, g:i A'), 'canSet' => $actor->can(self::START_DATE_PERMISSION)];
     }
 
     /** One writer at a time per branch and business date, then per request key (so a reused key never races). */
