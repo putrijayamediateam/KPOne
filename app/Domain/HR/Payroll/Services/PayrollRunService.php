@@ -27,7 +27,7 @@ final class PayrollRunService
 
     public const RETURN_REASONS = ['wrong_amount' => 'Wrong amount', 'wrong_person' => 'Wrong person', 'missing_record' => 'A record is missing', 'other' => 'Other'];
 
-    public function __construct(private RecordSupport $support, private PayrollRunCalculator $calculator) {}
+    public function __construct(private RecordSupport $support, private PayrollRunCalculator $calculator, private PayslipService $payslips) {}
 
     /** @param array<string, mixed> $input */
     public function saveLineTypes(User $actor, array $input): void
@@ -300,6 +300,7 @@ final class PayrollRunService
             }
             $now = now()->utc();
             $claims = 0;
+            $payslips = 0;
             if ($decision === 'approve') {
                 DB::table('hr_payroll_runs')->where('id', $run->id)->update(['status' => 'approved', 'approved_by_user_id' => $actor->id, 'approved_at' => $now,
                     'lock_version' => (int) $run->lock_version + 1, 'updated_at' => $now]);
@@ -313,13 +314,15 @@ final class PayrollRunService
                 $claims = $this->payClaims($actor, $run);
                 DB::table('hr_payroll_runs')->where('id', $run->id)->update(['status' => 'locked', 'locked_by_user_id' => $actor->id, 'locked_at' => $now,
                     'lock_version' => (int) $run->lock_version + 1, 'updated_at' => $now]);
+                // HR-7c: the payslips are snapshotted in the same transaction, so a locked run always has them.
+                $payslips = $this->payslips->issue($actor, $run);
             }
             if ($decision === 'approve') {
                 $this->action($actor, $run, 'approved');
             }
             $this->support->remember($actor, $key, 'payroll_run_decide', $hash, (string) $run->public_id);
             $this->support->audit->record('hr.payroll.run_'.['approve' => 'approved', 'return' => 'returned', 'lock' => 'locked'][$decision], null,
-                ['run_id' => (int) $run->id, 'reason_code' => $reason, 'claims_paid' => $claims], $actor, null, $actor->organisation_id);
+                ['run_id' => (int) $run->id, 'reason_code' => $reason, 'claims_paid' => $claims, 'payslips' => $payslips], $actor, null, $actor->organisation_id);
         }, 3);
     }
 

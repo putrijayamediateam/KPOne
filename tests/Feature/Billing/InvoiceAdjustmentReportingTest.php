@@ -68,7 +68,7 @@ class InvoiceAdjustmentReportingTest extends BillingTestCase
         $this->adjust($fourth[2], $fourth[3], 'add', 1500);
         $actor = $this->actor('marketing');
         $report = $this->sales($actor, '2026-10-15', '2026-10-15');
-        $this->assertSame(['grossSen' => 40000, 'discountsSen' => 1000, 'surchargesSen' => 1500, 'netSen' => 40500], $report['summary']['reconciliation']);
+        $this->assertSame(['grossSen' => 40000, 'discountsSen' => 1000, 'surchargesSen' => 1500, 'refundCreditsSen' => 0, 'netSen' => 40500], $report['summary']['reconciliation']);
         $this->assertSame(40500, $report['summary']['totalSen']);
         $this->assertSame([['date' => '2026-10-15', 'salesSen' => 40500, 'patients' => 4]], $report['dailyTrend']);
         $this->assertSame(40000, array_sum(array_column($report['services'], 'salesSen')));

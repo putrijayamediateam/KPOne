@@ -3,10 +3,12 @@
 namespace App\Http\Controllers\HR;
 
 use App\Domain\Audit\AuditRecorder;
+use App\Domain\HR\Payroll\Services\PayrollExportService;
 use App\Domain\HR\Payroll\Services\PayrollPageService;
 use App\Domain\HR\Payroll\Services\PayrollRunPageService;
 use App\Domain\HR\Payroll\Services\PayrollRunService;
 use App\Domain\HR\Payroll\Services\PayrollSetupService;
+use App\Domain\HR\Payroll\Services\PayslipService;
 use App\Http\Controllers\Controller;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\RedirectResponse;
@@ -14,13 +16,35 @@ use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
-/** HR-7a payroll setup. Thin: every rule lives in app/Domain/HR/Payroll. */
+/** HR-7a to HR-7c payroll. Thin: every rule lives in app/Domain/HR/Payroll. */
 class PayrollController extends Controller
 {
     public function index(Request $request, PayrollPageService $pages): Response
     {
         return Inertia::render('HR/Payroll', ['payroll' => $pages->page($request->user(), $request->only(['tab']))]);
+    }
+
+    /** HR-7c: the bank file or the accountant summary from a locked run, audited before its bytes and never stored. */
+    public function export(Request $request, PayrollExportService $exports, string $run, string $kind): StreamedResponse|RedirectResponse
+    {
+        $back = route('hr.payroll.index', ['tab' => 'exports']);
+        try {
+            $file = $kind === 'bank' ? $exports->bank($request->user(), $run) : $exports->accountant($request->user(), $run);
+        } catch (ValidationException $e) {
+            throw $e->redirectTo($back);
+        }
+
+        return response()->streamDownload(static function () use ($file): void {
+            echo $file['csv'];
+        }, $file['name'], ['Content-Type' => 'text/csv; charset=UTF-8', 'Cache-Control' => 'no-store, private']);
+    }
+
+    /** HR-7c: one payslip, your own or any for a payroll preparer or approver. Opening it is recorded. */
+    public function payslip(Request $request, PayslipService $payslips, string $payslip): Response
+    {
+        return Inertia::render('HR/Payslip', ['payslip' => $payslips->open($request->user(), $payslip)]);
     }
 
     public function showRun(Request $request, PayrollRunPageService $runs, string $run): Response
@@ -48,7 +72,7 @@ class PayrollController extends Controller
     {
         $input = $request->only(['worker_id', 'mtd', 'item_type_id', 'amount', 'reason_code', 'reason', 'expected_lock_version', 'idempotency_key']);
         $messages = ['again' => 'Run prepared again.', 'mtd' => 'MTD saved.', 'manual' => 'Line added.', 'send' => 'Sent for approval. The run is frozen.',
-            'approve' => 'Run approved. Lock it to finish.', 'return' => 'Run returned to draft.', 'lock' => 'Run locked. Payslips and exports come with HR-7c.'];
+            'approve' => 'Run approved. Lock it to finish.', 'return' => 'Run returned to draft.', 'lock' => 'Run locked. Each person\'s payslip is ready on My HR details.'];
 
         return $this->runOn($request, $run, $messages[$step] ?? 'Saved.', fn () => match ($step) {
             'again' => $runs->prepareAgain($request->user(), $run, $input),

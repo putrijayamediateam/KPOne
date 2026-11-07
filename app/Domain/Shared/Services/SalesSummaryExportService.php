@@ -42,7 +42,7 @@ final class SalesSummaryExportService
                     $previous ? $data['previousFrom'] : $data['from'], $previous ? $data['previousTo'] : $data['to'],
                     $period, $metric, $unit === 'MYR' ? ReportCsv::money($value) : (string) $value, $unit];
             };
-            foreach (['grossSen' => 'Gross item sales', 'discountsSen' => 'Invoice discounts', 'surchargesSen' => 'Invoice surcharges', 'netSen' => 'Net invoice sales'] as $key => $label) {
+            foreach (['grossSen' => 'Gross item sales', 'discountsSen' => 'Invoice discounts', 'surchargesSen' => 'Invoice surcharges', 'refundCreditsSen' => 'Refund credits', 'netSen' => 'Net invoice sales'] as $key => $label) {
                 $add('current', $label, $summary['reconciliation'][$key], 'MYR');
             }
             foreach (['newSen' => 'New net sales', 'returningSen' => 'Returning net sales', 'perPatientSen' => 'Net sales per patient'] as $key => $label) {

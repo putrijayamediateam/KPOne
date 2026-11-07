@@ -1,9 +1,15 @@
 @php
     // MC slice 1, renderer mc-a4-v2: the layout of the clinic's printed medical certificate (owner decision 2026-11-06).
-    // Rendered once at issuance into the encrypted snapshot; every value is escaped.
+    // Rendered once at issuance into the encrypted snapshot; every value is escaped. MC-2 (2026-11-07) changed the
+    // phone line and the footer in place: v2 copies issued before it print "Issued at (UTC)", later ones the clinic time.
     $bm = $snapshot['language'] === 'bm';
     $details = $snapshot['letterhead']['details'];
     $place = implode(', ', array_filter(array_intersect_key($details, array_flip(['postcode', 'city', 'state', 'country']))));
+    // One phone style on every print (owner decision 2026-11-06): "Tel: 03-2123 4567", or "Tel: A / B" with a second phone.
+    $tel = implode(' / ', array_filter([
+        \App\Domain\Shared\PrintedPhone::format($details['phone'] ?? null),
+        \App\Domain\Shared\PrintedPhone::format($details['phone_secondary'] ?? null),
+    ]));
 @endphp
 <style>
 .mc-sheet {color:#18181b;background:#fff;max-width:180mm;min-height:240mm;margin:auto;padding:12mm;font:11pt/1.6 Arial,sans-serif;overflow-wrap:break-word;box-sizing:border-box}
@@ -41,7 +47,7 @@
                 @if($place !== ''){{ $place }}<br>@endif
             </span>
             @if($details['email'])Email: {{ $details['email'] }}<br>@endif
-            @if($details['phone'])Tel: {{ $details['phone'] }}@endif
+            @if($tel !== '')Tel: {{ $tel }}@endif
         </div>
     </header>
     <div class="mc-draft">DRAFT WORDING — awaiting doctor approval / DRAF — menunggu kelulusan doktor</div>
@@ -57,6 +63,6 @@
     <div class="mc-closing">
     <p class="mc-notice">{{ $bm ? '(TIDAK SAH DI MAHKAMAH)' : '(NOT VALID IN THE COURT OF LAW)' }}</p>
     <div class="mc-signature"><div class="mc-signature-line">{{ $snapshot['fields']['doctor_name'] }} (MMC No: {{ $snapshot['fields']['mmc_number'] }})</div></div>
-    <p class="mc-evidence">Pre-signature content snapshot only. Not an archived signed original. Wet-sign the paper and retain a signed duplicate.<br>Rekod kandungan sebelum tandatangan sahaja. Bukan salinan asal bertandatangan.<br>Issued at (UTC): {{ $snapshot['issuedAtUtc'] }} · {{ strtoupper($snapshot['language']) }} revision {{ $snapshot['templateRevision'] }} · {{ $snapshot['rendererVersion'] }}</p>
+    <p class="mc-evidence">Pre-signature content snapshot only. Not an archived signed original. Wet-sign the paper and retain a signed duplicate.<br>Rekod kandungan sebelum tandatangan sahaja. Bukan salinan asal bertandatangan.<br>Issued at / Dikeluarkan pada: {{ $snapshot['issuedAtLocal'] }} ({{ $snapshot['issuedAtZone'] }})&nbsp;· {{ strtoupper($snapshot['language']) }} revision {{ $snapshot['templateRevision'] }}&nbsp;· {{ $snapshot['rendererVersion'] }}</p>
     </div>
 </article>
