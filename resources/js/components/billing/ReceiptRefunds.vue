@@ -4,11 +4,13 @@ import { computed, reactive, ref } from 'vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import type { RefundsContext } from '@/types/billing';
-import { myr } from '@/types/billing';
+import { myr, toSen } from '@/types/billing';
 
 /**
  * BIL-6: money handed back to the patient for a reversed receipt. One person records it; someone else approves
  * or rejects it. It never changes the invoice or the receipt.
+ * BIL-10: after completion, part or all of a posted receipt; once approved, an invoice credit of the same amount
+ * lowers the invoice so nothing becomes due again. The receipt itself never changes.
  */
 const props = defineProps<{
     refunds: RefundsContext;
@@ -21,7 +23,10 @@ const errors = computed(
     () => (page.props.errors ?? {}) as Record<string, string | undefined>,
 );
 const forms = reactive<
-    Record<string, { method: string; reason: string; key: string }>
+    Record<
+        string,
+        { method: string; reason: string; amount: string; key: string }
+    >
 >({});
 const rejectReason = reactive<Record<string, string>>({});
 const busy = reactive<Record<string, boolean>>({});
@@ -31,12 +36,14 @@ const form = (publicId: string) =>
     (forms[publicId] ??= {
         method: '',
         reason: '',
+        amount: '',
         key: crypto.randomUUID(),
     });
 const errorMessage = computed(
     () =>
         errors.value.refund ??
         errors.value.reason_code ??
+        errors.value.amount_sen ??
         errors.value.payment_method_id ??
         errors.value.expected_branch_id ??
         errors.value.idempotency_key,
@@ -74,11 +81,12 @@ const send = (
         },
     );
 };
-const record = (receipt: string) => {
+const record = (receipt: string, afterCompletion: boolean) => {
     const f = form(receipt);
     send(receipt, receipt, `${props.base}/refunds/${receipt}`, {
         payment_method_id: Number(f.method),
         reason_code: f.reason,
+        ...(afterCompletion ? { amount_sen: toSen(f.amount) } : {}),
         idempotency_key: f.key,
     });
 };
@@ -101,20 +109,23 @@ const decide = (
     >
         <header class="pb-2">
             <h2 class="font-medium">Refunds</h2>
-            <p class="text-xs text-muted-foreground">
+            <p
+                v-if="refunds.visitCompleted"
+                class="text-xs text-muted-foreground"
+                data-testid="refund-after-completion-note"
+            >
+                Give back part or all of what the patient paid on a receipt.
+                Someone else must approve it. Once approved, the invoice is
+                lowered by the same amount, so nothing becomes due again. The
+                receipt does not change.
+            </p>
+            <p v-else class="text-xs text-muted-foreground">
                 Record money handed back to the patient for a reversed receipt.
                 Someone else must approve it. The invoice and receipt do not
                 change.
             </p>
         </header>
         <InputError v-if="lastSent === null" :message="errorMessage" />
-        <p
-            v-if="refunds.visitCompleted"
-            class="pt-1 text-xs text-muted-foreground"
-        >
-            This visit is completed. A refund after completion is not available
-            yet.
-        </p>
         <article
             v-for="receipt in refunds.receipts"
             :key="receipt.publicId"
@@ -123,7 +134,12 @@ const decide = (
         >
             <p class="text-sm">
                 <span class="font-medium">{{ receipt.number }}</span>
-                · {{ receipt.method }} · {{ myr(receipt.amountSen) }} · Reversed
+                · {{ receipt.method }} · {{ myr(receipt.amountSen) }} ·
+                {{
+                    receipt.kind === 'after_completion'
+                        ? `Received · ${receipt.amountSen > receipt.refundableSen ? `${myr(receipt.amountSen - receipt.refundableSen)} refunded · ` : ''}${myr(receipt.refundableSen)} left to refund`
+                        : 'Reversed'
+                }}
             </p>
             <InputError
                 v-if="lastSent === receipt.publicId"
@@ -230,8 +246,27 @@ const decide = (
             <form
                 v-if="receipt.canRecord"
                 class="flex flex-wrap items-end gap-2"
-                @submit.prevent="record(receipt.publicId)"
+                @submit.prevent="
+                    record(
+                        receipt.publicId,
+                        receipt.kind === 'after_completion',
+                    )
+                "
             >
+                <label
+                    v-if="receipt.kind === 'after_completion'"
+                    class="grid gap-1 text-xs font-medium"
+                >
+                    Amount given back (RM)
+                    <input
+                        v-model="form(receipt.publicId).amount"
+                        inputmode="decimal"
+                        autocomplete="off"
+                        class="h-11 w-32 rounded-md border border-input bg-background px-2 text-sm tabular-nums sm:h-9"
+                        :placeholder="`Up to ${myr(receipt.refundableSen)}`"
+                        required
+                    />
+                </label>
                 <label class="grid gap-1 text-xs font-medium">
                     Given back by
                     <select
@@ -258,7 +293,10 @@ const decide = (
                     >
                         <option value="">Choose</option>
                         <option
-                            v-for="(label, code) in refunds.reasons"
+                            v-for="(label, code) in receipt.kind ===
+                            'after_completion'
+                                ? refunds.afterCompletionReasons
+                                : refunds.reasons"
                             :key="code"
                             :value="code"
                         >
@@ -272,7 +310,11 @@ const decide = (
                     class="max-sm:min-h-11"
                     data-touch-target
                     :disabled="busy[receipt.publicId]"
-                    >Record refund of {{ myr(receipt.amountSen) }}</Button
+                    >{{
+                        receipt.kind === 'after_completion'
+                            ? 'Record refund'
+                            : `Record refund of ${myr(receipt.amountSen)}`
+                    }}</Button
                 >
             </form>
         </article>

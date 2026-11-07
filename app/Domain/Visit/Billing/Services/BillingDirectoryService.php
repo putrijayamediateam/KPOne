@@ -38,6 +38,7 @@ class BillingDirectoryService
             $mutable = $visit->status === Visit::STATUS_REGISTERED && $invoice?->status === 'finalized' && ! $invoice->correction_hold;
             $state = $invoice ? $this->ledger->state($invoice) : null;
             $payments = $invoice ? Payment::query()->whereIn('id', PaymentAllocation::query()->where('invoice_id', $invoice->id)->select('payment_id'))->orderBy('id')->get() : collect();
+            $refunded = FinancialLedger::approvedRefundsByPayment($payments->pluck('id'));
             $recorders = $printing ? collect() : $this->staff->visibleUsers($actor)
                 ->whereIn('id', $payments->pluck('recorded_by_user_id')->filter()->unique())->pluck('name', 'id');
             $approvalCapabilities = DB::table('billing_approval_limits')
@@ -65,12 +66,12 @@ class BillingDirectoryService
                 'clinic' => $branch->organisation->name, 'branch' => $branch->name, 'outstanding' => $printing ? null : app(OutstandingBillService::class)->summary($actor, $visit),
                 'payLaterCollectionsUrl' => ! $printing && $actor->can('outstanding.view.branch') ? route('billing.pay-later-collections', absolute: false) : null,
                 'invoice' => $invoice ? ['publicId' => $invoice->public_id, 'number' => $invoice->invoice_number, 'status' => $invoice->status, 'lockVersion' => $invoice->lock_version, 'currency' => $invoice->currency,
-                    'finalizedAt' => $invoice->finalized_at?->setTimezone($branch->timezone)->format('j M Y, g:i A'), 'correctionHold' => $invoice->correction_hold, 'state' => $state, 'adjustment' => InvoiceAdjustmentService::summary($invoice), 'adjustmentControls' => $printing ? null : InvoiceAdjustmentService::controls($actor, $visit, $invoice),
+                    'finalizedAt' => $invoice->finalized_at?->setTimezone($branch->timezone)->format('j M Y, g:i A'), 'correctionHold' => $invoice->correction_hold, 'state' => $state, 'adjustment' => InvoiceAdjustmentService::summary($invoice), 'refundCreditSen' => (int) FinancialLedger::approvedCredits([$invoice->id])->sum('amount_sen'), 'adjustmentControls' => $printing ? null : InvoiceAdjustmentService::controls($actor, $visit, $invoice),
                     'lines' => ($actor->can('billing.view.branch') || $actor->can('billing.lines.view.branch')) ? InvoiceLine::query()->where('invoice_id', $invoice->id)->orderBy('id')->get()->map(fn ($l): array => ['type' => $l->line_type, 'name' => $l->display_name, 'unit' => $l->unit_snapshot, 'quantity' => $l->quantity, 'unitPriceSen' => $l->unit_price_sen, 'totalSen' => $l->line_total_sen])->all() : []] : null,
                 'panel' => ($actor->can('coverage.propose.branch') || $actor->can('coverage.approve.branch')) ? $proposal(CoverageAllocation::class) : null,
                 'panelShortfall' => ! $printing && $invoice && ($actor->can('coverage.propose.branch') || $actor->can('coverage.approve.branch')) ? PanelShortfall::forInvoice($invoice) : null,
                 'deferment' => ($actor->can('outstanding.view.branch') || $actor->can('outstanding.request.branch') || $actor->can('outstanding.approve.branch')) ? $proposal(PatientReceivable::class) : null,
-                'payments' => $payments->map(fn (Payment $p): array => ['publicId' => $p->public_id, 'number' => $p->receipt_number, 'amountSen' => $p->amount_sen, 'method' => $p->method_snapshot, 'status' => $p->status, 'lockVersion' => $p->lock_version, 'receivedAt' => $p->received_at->setTimezone($branch->timezone)->format('j M Y, g:i A'),
+                'payments' => $payments->map(fn (Payment $p): array => ['publicId' => $p->public_id, 'number' => $p->receipt_number, 'amountSen' => $p->amount_sen, 'refundedSen' => $refunded[$p->id] ?? 0, 'method' => $p->method_snapshot, 'status' => $p->status, 'lockVersion' => $p->lock_version, 'receivedAt' => $p->received_at->setTimezone($branch->timezone)->format('j M Y, g:i A'),
                     // BIL-2: screens only, never prints; the same name rule as the invoice activity log.
                     ...($printing ? [] : ['recordedBy' => $recorders[$p->recorded_by_user_id] ?? 'Staff member'])])->all(),
                 // BIL-6: reversed receipts of this visit and their refunds, for refund recorders and approvers only.

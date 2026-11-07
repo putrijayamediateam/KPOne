@@ -2,6 +2,7 @@
 
 namespace App\Domain\HR\Records\Services;
 
+use App\Domain\HR\Payroll\Services\PayslipService;
 use App\Domain\HR\Records\Models\BankDetail;
 use App\Domain\HR\Records\Models\ChecklistItem;
 use App\Domain\HR\Records\Models\Document;
@@ -26,7 +27,7 @@ final class RecordsPageService
 {
     public const PROBATION_ALERT_DAYS = 14;
 
-    public function __construct(private RecordSupport $support) {}
+    public function __construct(private RecordSupport $support, private PayslipService $payslips) {}
 
     /**
      * @param  array<string, mixed>  $query
@@ -47,6 +48,8 @@ final class RecordsPageService
             'canManage' => $actor->can(RecordPermissions::MANAGE),
             // Your own unmasked values load only on your own tab (Suresh, M9).
             'my' => $canOwn && $tab === 'my' ? $this->my($actor) : null,
+            // HR-7c: your own payslips, listed with no amount; each one opens on its own page.
+            'payslips' => $canOwn && $tab === 'my' ? $this->payslips->mine($actor) : [],
             'files' => $canFiles && $tab === 'files' ? $this->files($actor, $query) : null,
             // HR-4b settings (retention and checklist items) sit under Staff files, for managers.
             'settings' => $canManage && $tab === 'files' ? $this->settings($actor) : null,

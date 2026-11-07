@@ -32,6 +32,8 @@ export type Receipt = {
     publicId: string;
     number: string;
     amountSen: number;
+    /** BIL-10: approved refunds after completion of this receipt. */
+    refundedSen?: number;
     method: string;
     status: string;
     lockVersion: number;
@@ -78,6 +80,7 @@ export type RefundEntry = {
 export type RefundsContext = {
     can: { record: boolean; approve: boolean };
     reasons: Record<string, string>;
+    afterCompletionReasons: Record<string, string>;
     rejectReasons: Record<string, string>;
     methods: Array<{ id: number; name: string }>;
     visitCompleted: boolean;
@@ -86,6 +89,8 @@ export type RefundsContext = {
         number: string;
         method: string;
         amountSen: number;
+        kind: 'reversal' | 'after_completion';
+        refundableSen: number;
         canRecord: boolean;
         refunds: RefundEntry[];
     }>;
@@ -118,6 +123,7 @@ export type BillingPage = {
         correctionHold: boolean;
         state: BillingState;
         adjustment: InvoiceAdjustmentSummary;
+        refundCreditSen: number;
         adjustmentControls: null | {
             url: string;
             add: boolean;
@@ -163,8 +169,16 @@ export type BillingPage = {
     >;
 };
 
+/** A sen amount without "RM ", with thousands separators and a true minus sign: "1,234.50", "−12.00". */
+export const amount = (sen: number): string => {
+    const abs = Math.abs(sen);
+    const text = `${Math.trunc(abs / 100).toLocaleString('en-MY')}.${String(abs % 100).padStart(2, '0')}`;
+
+    return sen < 0 ? `\u2212${text}` : text;
+};
+/** "RM 1,234.50"; negative amounts read "−RM 12.00" (BIL-9 fixed "RM -1.-50"). */
 export const myr = (sen: number): string =>
-    `RM ${Math.trunc(sen / 100).toLocaleString('en-MY')}.${String(sen % 100).padStart(2, '0')}`;
+    sen < 0 ? `\u2212RM ${amount(-sen)}` : `RM ${amount(sen)}`;
 export const outstandingSen = (state: BillingState): number =>
     state.deferred + state.due_now;
 export const toSen = (text: string): string | null => {

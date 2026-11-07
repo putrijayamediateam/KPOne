@@ -20,7 +20,7 @@ use Illuminate\Validation\ValidationException;
  * branch-local date range (default: all time). `overdueUnclaimed*` counts unclaimed invoices past the
  * Panel's claim due rule (the Panel Claims Overdue-tab rule). Panel names and money only.
  */
-final class PanelClaimsSummaryTool implements AgentTool
+final class PanelClaimsSummaryTool implements SystemReadableTool
 {
     use ReadsBranches;
 
@@ -43,6 +43,13 @@ final class PanelClaimsSummaryTool implements AgentTool
 
     public function run(User $requester, ?Branch $branch, array $input): array
     {
+        return $this->runForOrganisation($requester->organisation_id, $branch, $input);
+    }
+
+    public function runForOrganisation(int $organisationId, ?Branch $branch, array $input): array
+    {
+        // AG-8: an organisation scope, never a person (see ReadsBranches::organisationScope).
+        $requester = $this->organisationScope($organisationId);
         if (isset($input['from'], $input['to']) && $input['to'] < $input['from']) {
             throw ValidationException::withMessages(['to' => 'The end date must not be before the start date.']);
         }

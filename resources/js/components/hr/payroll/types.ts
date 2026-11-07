@@ -67,6 +67,32 @@ export type StatutoryTable = {
     canWithdraw: boolean;
 };
 
+export type MtdSchedule = {
+    id: string;
+    year: number;
+    status: TableStatus;
+    rounding: string;
+    minimum: string;
+    reliefs: { label: string; amount: string }[];
+    sourceNote: string;
+    rows: {
+        from: string;
+        to: string | null;
+        rate: string;
+        baseCat13: string;
+        baseCat2: string;
+    }[];
+    enteredBy: string;
+    enteredAt: string;
+    decidedBy: string | null;
+    decidedAt: string | null;
+    reason: string | null;
+    lockVersion: number;
+    canDecide: boolean;
+    decideRefusal: string | null;
+    canWithdraw: boolean;
+};
+
 export const profileWords: Record<ProfileStatus, string> = {
     waiting: 'Waiting for confirmation',
     confirmed: 'Confirmed',
@@ -122,6 +148,34 @@ export type RunRow = {
     netSen: number;
     errors: number;
     lockedAt: string | null;
+};
+
+/** HR-7c: a locked run on the Exports tab (the Director only in v1). */
+export type ExportRun = {
+    id: string;
+    kind: 'regular' | 'adjustment';
+    month: string;
+    group: string;
+    people: number;
+    netSen: number;
+    lockedAt: string;
+    missingBank: string[];
+    exports: number;
+    statutory: {
+        scheme: string;
+        people: number;
+        employeeSen: number;
+        employerSen: number;
+    }[];
+};
+
+/** HR-7c: one of your own payslips on My HR details, listed with no amount. */
+export type PayslipRow = {
+    id: string;
+    period: string;
+    kind: 'regular' | 'adjustment';
+    group: string;
+    issuedOn: string;
 };
 
 export const runWords: Record<RunStatus, string> = {

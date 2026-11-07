@@ -124,7 +124,7 @@ stock change; staff act on an approved item through the existing Inventory scree
 
 | Code | Name | Title | Department | Tools |
 |---|---|---|---|---|
-| `director_assistant` | Dato' Arif | Chief of Staff (AI agent) | Leadership | `insights.today`, `insights.sales_summary`, `inventory.stock_review` |
+| `director_assistant` | Dato' Arif | Chief of Staff (AI agent) | Leadership | `insights.today`, `insights.sales_summary`, `inventory.stock_review`, `clinic.day_summary`, `money.day_summary`, `panel.claims_summary` (the last three added for AG-5, owner decision 2026-11-06) |
 | `inventory_analyst` | Hana | Inventory Analyst (AI agent) | Clinic Operations | `inventory.stock_review`, `inventory.branch_balances`, `inventory.dispensing_activity` |
 | `stocktake_officer` | Rizal | Stocktake Officer (AI agent) | Clinic Operations | `inventory.stock_counts` |
 | `report_assistant` | Lina | Management Assistant (AI agent) | Leadership | `clinic.day_summary`, `money.day_summary`, `panel.claims_summary`, `inventory.stock_review` |
@@ -156,7 +156,7 @@ credentials in these files**; that data lives in KPOne's database and reaches an
 | AG-4 data sources | none | `app/Domain/Agents/Tools/` and the no-AI guard test |
 | AG-5 Director quick answers | none | `app/Domain/Agents/Assistant/`, `resources/js/pages/Agents/Assistant.vue` |
 | AG-6 Inventory analyst | none | `app/Domain/Agents/Inventory/`, an Artisan command `agents:inventory-review` |
-| AG-8 Daily summary and Lina | `2026_11_05_800000` to `800900` | `app/Domain/Agents/DailySummary/`, `resources/js/pages/Agents/DailySummary.vue`, the `agents:daily-run` command and its scheduler entry |
+| AG-8 Daily summary and Lina | `2026_11_11_000200` (the team range moved to `2026_11_11_000100` onward on 2026-11-06) | `app/Domain/Agents/DailySummary/`, `resources/js/pages/Agents/DailySummary.vue`, the `agents:daily-run` command and its scheduler entry |
 | AG-9 Rizal | none | `app/Domain/Agents/Stocktake/` |
 | AG-10 Faris | none | `app/Domain/Agents/Health/` |
 
