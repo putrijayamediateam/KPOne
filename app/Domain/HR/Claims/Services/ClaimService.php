@@ -45,6 +45,14 @@ final class ClaimService
 
     public const METHODS = ['bank_transfer' => 'Bank transfer', 'cash' => 'Cash', 'cheque' => 'Cheque'];
 
+    /** HR-7b pays approved claims inside a locked payroll run; Finance never chooses this method in Record payment. */
+    public const PAYROLL_METHOD = 'payroll';
+
+    public const PAYROLL_REFUSAL = 'Paid through a locked payroll run. Correct it with an adjustment run.';
+
+    /** Words for every stored method, the payroll one included. */
+    public const METHOD_LABELS = self::METHODS + [self::PAYROLL_METHOD => 'Payroll'];
+
     /** @var array<string, \stdClass|null> */
     private array $versions = [];
 
@@ -416,8 +424,11 @@ final class ClaimService
             }
             $this->assertPayer($actor, $claim);
             $payment = DB::table('hr_staff_claim_payments as p')->where('p.claim_id', $claim->id)->where('p.kind', 'payment')
-                ->whereNotExists(fn ($q) => $q->from('hr_staff_claim_payments as r')->whereColumn('r.reverses_payment_id', 'p.id'))->orderByDesc('p.id')->first(['p.id']);
+                ->whereNotExists(fn ($q) => $q->from('hr_staff_claim_payments as r')->whereColumn('r.reverses_payment_id', 'p.id'))->orderByDesc('p.id')->first(['p.id', 'p.method']);
             abort_if($payment === null, 409);
+            if ($payment->method === self::PAYROLL_METHOD) {
+                throw ValidationException::withMessages(['claims' => self::PAYROLL_REFUSAL]);
+            }
             DB::table('hr_staff_claim_payments')->insert(['public_id' => (string) Str::uuid(), 'organisation_id' => $actor->organisation_id, 'claim_id' => $claim->id,
                 'kind' => 'reversal', 'reverses_payment_id' => $payment->id, 'reason_code' => $reason, 'recorded_by_user_id' => $actor->id, 'created_at' => now()->utc()]);
             DB::table('hr_staff_claims')->where('id', $claim->id)->update(['status' => 'approved', 'lock_version' => (int) $claim->lock_version + 1, 'updated_at' => now()->utc()]);
