@@ -59,4 +59,17 @@ trait ReadsBranches
 
         return $sign.intdiv($milli, 1000).'.'.str_pad((string) ($milli % 1000), 3, '0', STR_PAD_LEFT);
     }
+
+    /**
+     * The organisation a system read runs for, as the `User` shape the shared report services take. It is a scope
+     * only: it is never saved, holds no role or permission, and the services read nothing from it but
+     * `organisation_id`. A permission check against it always fails, so it can never stand in for a person.
+     */
+    protected function organisationScope(int $organisationId): User
+    {
+        $scope = new User;
+        $scope->forceFill(['organisation_id' => $organisationId]);
+
+        return $scope;
+    }
 }

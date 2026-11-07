@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AccessControlController;
 use App\Http\Controllers\AgentAssistantController;
+use App\Http\Controllers\AgentDailySummaryController;
 use App\Http\Controllers\AgentInboxController;
 use App\Http\Controllers\AgentOfficeController;
 use App\Http\Controllers\AgentRegistryController;
@@ -919,6 +920,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
         // AG-5: each answer is one agent run (a GET that records the run, as an explicit Answer press), so it is throttled.
         Route::middleware(['permission:ai_assistant.use.organisation', 'sensitive.no-store'])
             ->get('agents/assistant', [AgentAssistantController::class, 'index'])->middleware('throttle:30,1')->name('agents.assistant');
+
+        Route::get('agents/daily-summary', [AgentDailySummaryController::class, 'index'])
+            ->middleware(['permission:ai_daily_summary.view.branch', 'sensitive.no-store', 'throttle:60,1'])->name('agents.daily-summary');
 
         Route::middleware(['permission:ai_agents.view.organisation', 'sensitive.no-store'])->prefix('agents')->group(function () {
             Route::get('/', [AgentRegistryController::class, 'index'])->name('agents.index');

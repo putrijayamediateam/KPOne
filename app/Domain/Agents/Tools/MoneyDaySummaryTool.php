@@ -16,7 +16,7 @@ use Carbon\CarbonImmutable;
  * received, Panel approved and approved pay-later Due (invoice finalisation date), plus net invoice
  * sales and discounts from the Sales summary. Money in sen; no patient data.
  */
-final class MoneyDaySummaryTool implements AgentTool
+final class MoneyDaySummaryTool implements SystemReadableTool
 {
     use ReadsBranches;
 
@@ -39,6 +39,13 @@ final class MoneyDaySummaryTool implements AgentTool
 
     public function run(User $requester, ?Branch $branch, array $input): array
     {
+        return $this->runForOrganisation($requester->organisation_id, $branch, $input);
+    }
+
+    public function runForOrganisation(int $organisationId, ?Branch $branch, array $input): array
+    {
+        // AG-8: an organisation scope, never a person (see ReadsBranches::organisationScope).
+        $requester = $this->organisationScope($organisationId);
         $methods = PaymentMethod::query()->where('organisation_id', $requester->organisation_id)->get()->keyBy('code');
         $result = [];
         foreach ($this->branchesFor($requester, $branch) as $each) {
