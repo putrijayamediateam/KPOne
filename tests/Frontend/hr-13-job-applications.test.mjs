@@ -37,7 +37,7 @@ test('the public form sends the signed token, the hidden field and a PDF, and ke
     assert.match(template('apply'), /tabindex="-1"/);
     assert.match(
         template('apply'),
-        /Notice version \{\{ privacyNoticeVersion \}\}/,
+        /Notice version \/ Versi notis\s+\{\{ privacyNoticeVersion \}\}/,
     );
     assert.match(template('apply'), /never\s+used\s+for\s+marketing/);
     assert.doesNotMatch(source.apply, /localStorage|sessionStorage|indexedDB/);
@@ -48,6 +48,21 @@ test('the public form sends the signed token, the hidden field and a PDF, and ke
         ),
         ['clinicName'],
     );
+});
+
+test('applicants see English and Bahasa Melayu side by side (owner, 2026-11-07)', () => {
+    for (const ms of [
+        'Mohon jawatan',
+        'Nama penuh',
+        'Nombor telefon',
+        'Notis privasi',
+        'Hantar permohonan',
+    ]) {
+        assert.match(source.apply, new RegExp(ms));
+    }
+
+    assert.match(template('apply'), /lang="ms"/);
+    assert.match(template('thanks'), /Terima kasih kerana memohon/);
 });
 
 test('the layout serves the careers pages without the staff shell', () => {

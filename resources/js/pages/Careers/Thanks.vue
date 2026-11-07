@@ -6,7 +6,7 @@ defineProps<{ clinicName: string }>();
 </script>
 
 <template>
-    <Head title="Application sent"
+    <Head title="Application sent / Permohonan dihantar"
         ><meta name="referrer" content="no-referrer"
     /></Head>
     <main class="mx-auto min-h-svh max-w-xl px-4 py-5 sm:px-6 sm:py-8">
@@ -20,15 +20,27 @@ defineProps<{ clinicName: string }>();
                 >
                     {{ clinicName }}
                 </p>
-                <h1 class="text-xl font-semibold">Thank you for applying</h1>
+                <h1 class="text-xl font-semibold">
+                    Thank you for applying
+                    <span
+                        lang="ms"
+                        class="block text-base font-normal text-zinc-600 dark:text-zinc-400"
+                        >Terima kasih kerana memohon</span
+                    >
+                </h1>
                 <p class="text-sm">
                     We have your application. If you are shortlisted, the
                     clinic's HR team will contact you by phone or email.
                 </p>
+                <p lang="ms" class="text-sm text-zinc-600 dark:text-zinc-400">
+                    Permohonan anda telah diterima. Jika anda disenarai pendek,
+                    pasukan HR klinik akan menghubungi anda melalui telefon atau
+                    e-mel.
+                </p>
                 <a
                     href="/careers/apply"
                     class="inline-flex min-h-11 items-center text-sm font-medium text-pink-700 underline underline-offset-4 dark:text-pink-400"
-                    >Apply for another position</a
+                    >Apply for another position / Mohon jawatan lain</a
                 >
             </div>
         </section>

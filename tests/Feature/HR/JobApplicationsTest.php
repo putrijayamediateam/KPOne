@@ -139,12 +139,12 @@ class JobApplicationsTest extends VisitTestCase
         $this->travel(30)->seconds();
 
         $this->apply(['form_token' => $token, 'position' => $position], UploadedFile::fake()->createWithContent('cv.pdf', "\xFF\xD8\xFF\xE0\x00\x10JFIF\x00"))
-            ->assertSessionHasErrors(['cv' => 'Your CV must be a PDF file.']);
+            ->assertSessionHasErrors(['cv' => JobApplicationIntake::NOT_PDF]);
         $this->apply(['form_token' => $token, 'position' => $position], UploadedFile::fake()->createWithContent('cv.pdf', "%PDF-1.4\nno end marker"))
             ->assertSessionHasErrors('cv');
         $this->apply(['form_token' => $token, 'position' => $position], UploadedFile::fake()->createWithContent('cv.pdf', "%PDF-1.4\n".str_repeat('a', 5 * 1024 * 1024)."\n%%EOF\n"))
             ->assertSessionHasErrors('cv');
-        $this->apply(['form_token' => $token, 'position' => $position], false)->assertSessionHasErrors(['cv' => 'Attach your CV as a PDF.']);
+        $this->apply(['form_token' => $token, 'position' => $position], false)->assertSessionHasErrors(['cv' => 'Attach your CV as a PDF. / Lampirkan CV anda dalam bentuk PDF.']);
         $this->apply(['form_token' => $token, 'position' => $position, 'privacy_accepted' => '0'])->assertSessionHasErrors('privacy_accepted');
         $this->apply(['form_token' => $token, 'position' => $position, 'name' => 'A', 'phone' => 'call me', 'email' => 'nope', 'message' => str_repeat('x', 1001)])
             ->assertSessionHasErrors(['name', 'phone', 'email', 'message']);

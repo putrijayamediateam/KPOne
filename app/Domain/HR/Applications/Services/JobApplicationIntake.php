@@ -30,6 +30,11 @@ final class JobApplicationIntake
 
     public const HONEYPOT = 'website';
 
+    // Applicants see English and Bahasa Melayu side by side (owner, 2026-11-07).
+    public const ALREADY_SENT = 'This form was already sent. Reload the page to apply again. / Borang ini sudah dihantar. Muat semula halaman untuk memohon lagi.';
+
+    public const NOT_PDF = 'Your CV must be a PDF file. / CV anda mestilah fail PDF.';
+
     public function __construct(private AuditRecorder $audit) {}
 
     public function ensureEnabled(): void
@@ -109,16 +114,16 @@ final class JobApplicationIntake
             DB::transaction(function () use ($fields, $prepared, $nonce, &$path): void {
                 $position = DB::table('hr_job_positions')->where('public_id', $fields['position'])->sharedLock()->first();
                 if ($position === null || ! $position->is_open || (int) $position->organisation_id !== self::organisationId()) {
-                    throw ValidationException::withMessages(['position' => 'This position is no longer open. Choose another.']);
+                    throw ValidationException::withMessages(['position' => 'This position is no longer open. Choose another. / Jawatan ini sudah ditutup. Pilih jawatan lain.']);
                 }
                 if (DB::table('hr_job_applications')->where('form_nonce', $nonce)->exists()) {
-                    throw ValidationException::withMessages(['form' => 'This form was already sent. Reload the page to apply again.']);
+                    throw ValidationException::withMessages(['form' => self::ALREADY_SENT]);
                 }
                 $publicId = (string) Str::uuid();
                 $path = "hr-applications/{$position->organisation_id}/{$publicId}.bin";
                 if (! Storage::disk(self::DISK)->put($path, Crypt::encryptString($prepared['content']))) {
                     $path = null;
-                    throw ValidationException::withMessages(['cv' => 'Your CV could not be saved. Try again.']);
+                    throw ValidationException::withMessages(['cv' => 'Your CV could not be saved. Try again. / CV anda tidak dapat disimpan. Cuba lagi.']);
                 }
                 $now = now()->utc();
                 try {
@@ -131,7 +136,7 @@ final class JobApplicationIntake
                         'lock_version' => 1, 'created_at' => $now, 'updated_at' => $now]);
                 } catch (UniqueConstraintViolationException) {
                     // Two sends of one form at once (Suresh, HR-13 minor 1): the second gets the same message as a retry.
-                    throw ValidationException::withMessages(['form' => 'This form was already sent. Reload the page to apply again.']);
+                    throw ValidationException::withMessages(['form' => self::ALREADY_SENT]);
                 }
                 DB::table('hr_job_application_events')->insert(['organisation_id' => $position->organisation_id, 'application_id' => $id,
                     'action' => 'submitted', 'to_status' => 'new', 'created_at' => $now]);
@@ -156,7 +161,7 @@ final class JobApplicationIntake
     private function nonce(mixed $token, ?bool &$robot): string
     {
         $robot = false;
-        $stale = ValidationException::withMessages(['form' => 'This form has expired. Reload the page and try again.']);
+        $stale = ValidationException::withMessages(['form' => 'This form has expired. Reload the page and try again. / Borang ini sudah tamat tempoh. Muat semula halaman dan cuba lagi.']);
         if (! is_string($token) || $token === '' || strlen($token) > 1024) {
             throw $stale;
         }
@@ -187,26 +192,26 @@ final class JobApplicationIntake
         $errors = [];
         $position = is_string($input['position'] ?? null) ? $input['position'] : '';
         if (! Str::isUuid($position)) {
-            $errors['position'] = 'Choose the position you are applying for.';
+            $errors['position'] = 'Choose the position you are applying for. / Pilih jawatan yang anda mohon.';
         }
         $name = $text('name');
         if (mb_strlen($name) < 2 || mb_strlen($name) > 100) {
-            $errors['name'] = 'Enter your name (2 to 100 characters).';
+            $errors['name'] = 'Enter your name (2 to 100 characters). / Masukkan nama anda (2 hingga 100 aksara).';
         }
         $phone = $text('phone');
         if (preg_match('/^\+?[0-9][0-9 \-]{6,18}[0-9]$/', $phone) !== 1) {
-            $errors['phone'] = 'Enter a phone number we can call, for example 012-345 6789.';
+            $errors['phone'] = 'Enter a phone number we can call, for example 012-345 6789. / Masukkan nombor telefon yang boleh dihubungi, contohnya 012-345 6789.';
         }
         $email = $text('email');
         if (mb_strlen($email) > 120 || filter_var($email, FILTER_VALIDATE_EMAIL) === false) {
-            $errors['email'] = 'Enter an email address, for example name@example.com.';
+            $errors['email'] = 'Enter an email address, for example name@example.com. / Masukkan alamat e-mel, contohnya nama@example.com.';
         }
         $raw = is_string($input['message'] ?? null) ? trim($input['message']) : '';
         if (mb_strlen($raw) > 1000) {
-            $errors['message'] = 'Use at most 1,000 characters.';
+            $errors['message'] = 'Use at most 1,000 characters. / Gunakan tidak lebih 1,000 aksara.';
         }
         if (! filter_var($input['privacy_accepted'] ?? false, FILTER_VALIDATE_BOOL)) {
-            $errors['privacy_accepted'] = 'Read the privacy notice and tick the box to apply.';
+            $errors['privacy_accepted'] = 'Read the privacy notice and tick the box to apply. / Baca notis privasi dan tandakan kotak untuk memohon.';
         }
         if ($errors !== []) {
             throw ValidationException::withMessages($errors);
@@ -219,14 +224,20 @@ final class JobApplicationIntake
     public static function prepareCv(mixed $file): array
     {
         if (! $file instanceof UploadedFile || ! $file->isValid()) {
-            throw ValidationException::withMessages(['cv' => 'Attach your CV as a PDF.']);
+            throw ValidationException::withMessages(['cv' => 'Attach your CV as a PDF. / Lampirkan CV anda dalam bentuk PDF.']);
         }
         if ((string) (new \finfo(FILEINFO_MIME_TYPE))->file((string) $file->getRealPath()) !== 'application/pdf') {
-            throw ValidationException::withMessages(['cv' => 'Your CV must be a PDF file.']);
+            throw ValidationException::withMessages(['cv' => self::NOT_PDF]);
         }
-        $prepared = LeaveEvidenceFiles::prepare($file, 'cv', self::CV_MAX_BYTES);
+        try {
+            $prepared = LeaveEvidenceFiles::prepare($file, 'cv', self::CV_MAX_BYTES);
+        } catch (ValidationException $e) {
+            throw ValidationException::withMessages(['cv' => str_contains((string) ($e->errors()['cv'][0] ?? ''), 'MB')
+                ? 'Your CV is over 5 MB. / CV anda melebihi 5 MB.'
+                : "This PDF can't be opened. Save it again and try once more. / PDF ini tidak dapat dibuka. Simpan semula dan cuba lagi."]);
+        }
         if ($prepared['kind'] !== 'pdf') {
-            throw ValidationException::withMessages(['cv' => 'Your CV must be a PDF file.']);
+            throw ValidationException::withMessages(['cv' => self::NOT_PDF]);
         }
 
         return $prepared;

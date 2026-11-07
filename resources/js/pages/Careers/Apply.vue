@@ -45,7 +45,7 @@ const field =
 </script>
 
 <template>
-    <Head title="Apply for a job"
+    <Head title="Apply for a job / Mohon jawatan"
         ><meta name="referrer" content="no-referrer"
     /></Head>
     <main class="mx-auto min-h-svh max-w-xl px-4 py-5 sm:px-6 sm:py-8">
@@ -66,7 +66,14 @@ const field =
                         >
                             {{ clinicName }}
                         </p>
-                        <h1 class="text-xl font-semibold">Apply for a job</h1>
+                        <h1 class="text-xl font-semibold">
+                            Apply for a job
+                            <span
+                                lang="ms"
+                                class="block text-base font-normal text-zinc-600 dark:text-zinc-400"
+                                >Mohon jawatan</span
+                            >
+                        </h1>
                     </div>
                 </header>
 
@@ -77,6 +84,12 @@ const field =
                 >
                     There are no open positions right now. Please check again
                     later.
+                    <span
+                        lang="ms"
+                        class="mt-1 block text-zinc-600 dark:text-zinc-400"
+                        >Tiada jawatan kosong buat masa ini. Sila semak semula
+                        kemudian.</span
+                    >
                 </p>
 
                 <form
@@ -97,7 +110,13 @@ const field =
 
                     <div class="space-y-1.5">
                         <label for="apply-position" class="text-sm font-medium"
-                            >Position *</label
+                            >Position<span
+                                lang="ms"
+                                class="font-normal text-zinc-600 dark:text-zinc-400"
+                            >
+                                / Jawatan</span
+                            >
+                            *</label
                         >
                         <select
                             id="apply-position"
@@ -113,7 +132,9 @@ const field =
                             "
                             required
                         >
-                            <option value="" disabled>Choose a position</option>
+                            <option value="" disabled>
+                                Choose a position / Pilih jawatan
+                            </option>
                             <option
                                 v-for="p in positions"
                                 :key="p.id"
@@ -141,18 +162,21 @@ const field =
                             {
                                 key: 'name',
                                 label: 'Full name',
+                                ms: 'Nama penuh',
                                 type: 'text',
                                 auto: 'name',
                             },
                             {
                                 key: 'phone',
                                 label: 'Phone number',
+                                ms: 'Nombor telefon',
                                 type: 'tel',
                                 auto: 'tel',
                             },
                             {
                                 key: 'email',
                                 label: 'Email',
+                                ms: 'E-mel',
                                 type: 'email',
                                 auto: 'email',
                             },
@@ -163,7 +187,14 @@ const field =
                         <label
                             :for="`apply-${item.key}`"
                             class="text-sm font-medium"
-                            >{{ item.label }} *</label
+                            >{{ item.label
+                            }}<span
+                                lang="ms"
+                                class="font-normal text-zinc-600 dark:text-zinc-400"
+                            >
+                                / {{ item.ms }}</span
+                            >
+                            *</label
                         >
                         <input
                             :id="`apply-${item.key}`"
@@ -193,10 +224,11 @@ const field =
 
                     <div class="space-y-1.5">
                         <label for="apply-message" class="text-sm font-medium"
-                            >Short message
-                            <span
+                            >Short message (optional)<span
+                                lang="ms"
                                 class="font-normal text-zinc-600 dark:text-zinc-400"
-                                >(optional)</span
+                            >
+                                / Mesej ringkas (pilihan)</span
                             ></label
                         >
                         <textarea
@@ -216,6 +248,11 @@ const field =
                         >
                             Up to 1,000 characters. Please do not include your
                             IC number or health details.
+                            <span lang="ms" class="block"
+                                >Sehingga 1,000 aksara. Jangan sertakan nombor
+                                kad pengenalan atau maklumat kesihatan
+                                anda.</span
+                            >
                         </p>
                         <p
                             v-if="form.errors.message"
@@ -228,7 +265,13 @@ const field =
 
                     <div class="space-y-1.5">
                         <label for="apply-cv" class="text-sm font-medium"
-                            >Your CV (PDF) *</label
+                            >Your CV (PDF)<span
+                                lang="ms"
+                                class="font-normal text-zinc-600 dark:text-zinc-400"
+                            >
+                                / CV anda (PDF)</span
+                            >
+                            *</label
                         >
                         <input
                             id="apply-cv"
@@ -244,6 +287,10 @@ const field =
                             class="text-sm text-zinc-600 dark:text-zinc-400"
                         >
                             One PDF file, up to {{ cvMaxMb }} MB.
+                            <span lang="ms"
+                                >/ Satu fail PDF, sehingga
+                                {{ cvMaxMb }} MB.</span
+                            >
                         </p>
                         <p
                             v-if="form.errors.cv"
@@ -273,18 +320,31 @@ const field =
                         data-test="apply-privacy"
                     >
                         <h2 id="apply-privacy-title" class="font-semibold">
-                            Privacy notice
+                            Privacy notice<span
+                                lang="ms"
+                                class="font-normal text-zinc-600 dark:text-zinc-400"
+                            >
+                                / Notis privasi</span
+                            >
                         </h2>
                         <p>
                             {{ clinicName }} uses what you send here only to
                             consider your application for this position. Only
                             the clinic's HR team can see it. It is never used
                             for marketing. Your details and CV are deleted after
-                            the period the clinic sets once your application is
-                            closed.
+                            the period the clinic sets.
+                        </p>
+                        <p lang="ms" class="text-zinc-600 dark:text-zinc-400">
+                            {{ clinicName }} menggunakan maklumat yang anda
+                            hantar di sini hanya untuk menimbang permohonan anda
+                            bagi jawatan ini. Hanya pasukan HR klinik boleh
+                            melihatnya. Ia tidak sekali-kali digunakan untuk
+                            pemasaran. Maklumat dan CV anda dipadam selepas
+                            tempoh yang ditetapkan oleh klinik.
                         </p>
                         <p class="text-xs text-zinc-600 dark:text-zinc-400">
-                            Notice version {{ privacyNoticeVersion }}
+                            Notice version / Versi notis
+                            {{ privacyNoticeVersion }}
                         </p>
                         <label class="flex items-start gap-3 pt-1">
                             <input
@@ -301,7 +361,14 @@ const field =
                             <span
                                 >I have read the privacy notice and agree that
                                 the clinic may use my details to consider my
-                                application.</span
+                                application.
+                                <span
+                                    lang="ms"
+                                    class="block text-zinc-600 dark:text-zinc-400"
+                                    >Saya telah membaca notis privasi dan
+                                    bersetuju klinik menggunakan maklumat saya
+                                    untuk menimbang permohonan saya.</span
+                                ></span
                             >
                         </label>
                         <p
@@ -319,7 +386,11 @@ const field =
                         :disabled="form.processing"
                         data-test="apply-submit"
                     >
-                        {{ form.processing ? 'Sending…' : 'Send application' }}
+                        {{
+                            form.processing
+                                ? 'Sending… / Menghantar…'
+                                : 'Send application / Hantar permohonan'
+                        }}
                     </button>
                 </form>
             </div>
