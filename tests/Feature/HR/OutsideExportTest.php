@@ -44,6 +44,12 @@ class OutsideExportTest extends VisitTestCase
         // A position title that looks like a formula is neutralised in the file.
         DB::table('hr_positions')->insert(['organisation_id' => $worker->organisation_id, 'worker_id' => $worker->id, 'title' => '=Clinic Assistant',
             'from_date' => '2026-08-06', 'created_by_user_id' => $this->director->id, 'created_at' => now()]);
+        $rehired = $this->staffFile($this->actor('ca'));
+        foreach ([['2025-01-01', '2025-12-31'], ['2027-01-04', null]] as [$from, $to]) {
+            DB::table('hr_employment_periods')->insert(['public_id' => (string) Str::uuid(), 'organisation_id' => $rehired->organisation_id, 'worker_id' => $rehired->id,
+                'type' => 'contract', 'starts_on' => $from, 'ends_on' => $to, 'end_reason' => $to === null ? null : 'contract_ended', 'created_by_user_id' => $this->director->id,
+                'created_at' => now(), 'updated_at' => now()]);
+        }
         $this->selectBranch($this->director);
         $this->post(route('hr.records.locums.store'), ['display_name' => 'Synthetic Locum', 'phone' => '+60123456780', 'idempotency_key' => (string) Str::uuid()])
             ->assertSessionHasNoErrors();
@@ -65,11 +71,16 @@ class OutsideExportTest extends VisitTestCase
             $rows);
         $this->assertTrue(collect($rows)->contains(fn (array $r): bool => ($r[1] ?? null) === 'Synthetic Locum' && $r[2] === 'Locum' && $r[10] === 'No employment period'));
         $this->assertSame('KPOne HR export', $rows[0][0]);
+        $this->assertTrue(collect($rows)->contains(fn (array $r): bool => ($r[0] ?? null) === (string) $rehired->public_id && $r[10] === 'Starting'), 'rehired with a future start');
 
         // Leave touching November, approved only, with all of its days; never the reason.
         $leave = $this->rows($this->download('leave', '2026-11')->assertOk()->streamedContent());
-        $this->assertSame(['KPOne ID', 'Name', 'Leave type', 'From', 'To', 'Days', 'Paid'], $leave[3]);
-        $this->assertSame([[(string) $worker->public_id, $this->ca->name, 'Annual leave', '2026-10-30', '2026-11-02 (am)', '2.5', 'Yes']], array_slice($leave, 4));
+        $this->assertSame('Days', $leave[1][0]);
+        $this->assertSame(['KPOne ID', 'Name', 'Leave type', 'From', 'To', 'Days in request', 'Paid'], $leave[4]);
+        $this->assertSame([[(string) $worker->public_id, $this->ca->name, 'Annual leave', '2026-10-30', '2026-11-02 (am)', '2.5', 'Yes']], array_slice($leave, 5));
+        // A request crossing months is in each month's file, with all of its days.
+        $october = $this->rows($this->download('leave', '2026-10')->assertOk()->streamedContent());
+        $this->assertSame('2.5', $october[5][5] ?? null);
 
         // Overtime approved in November only, minutes and day type, never pay.
         $overtime = $this->rows($this->download('overtime', '2026-11')->assertOk()->streamedContent());
@@ -82,8 +93,9 @@ class OutsideExportTest extends VisitTestCase
 
         // Every download is audited first, with the kind, month and row count only.
         $audits = DB::table('audit_logs')->where('event', 'hr.outside_export.downloaded')->orderBy('id')->pluck('metadata')->map(fn ($m) => json_decode((string) $m, true))->all();
-        $this->assertCount(3, $audits);
+        $this->assertCount(4, $audits);
         $this->assertSame(['kind' => 'leave', 'month' => '2026-11', 'rows' => 1], array_intersect_key($audits[1], ['kind' => 1, 'month' => 1, 'rows' => 1]));
+        $this->assertSame('overtime', $audits[3]['kind'] ?? null);
         $this->assertStringNotContainsString($this->ca->name, json_encode($audits, JSON_THROW_ON_ERROR));
     }
 

@@ -57,6 +57,7 @@ final class OutsideHrExportService
             $title = $kind === 'staff' ? 'As of '.$today->format('j M Y') : $period->format('F Y');
             $csv = ReportCsv::encode($headings, $rows, [
                 ['KPOne HR export', self::KINDS[$kind].' · '.$title],
+                ...($kind === 'leave' ? [['Days', 'Each row is one approved request touching the month, with all of its days; a request crossing months is in each month\'s file.']] : []),
                 ['Note', 'Synthetic data only until the PDPA review. No identity numbers, bank details or documents.'],
             ]);
             // Audited before the bytes leave, with no names or values (HR-PLAN 15.1).
@@ -82,8 +83,10 @@ final class OutsideHrExportService
             /** @var EmploymentPeriod|null $p */
             $p = $periods->get($w->id, collect())->first(fn (EmploymentPeriod $p): bool => $p->starts_on->lessThanOrEqualTo($today))
                 ?? $periods->get($w->id, collect())->last();
+            // Someone rehired with a future start reads "Starting", not "Ended" (Suresh, minor 2).
+            $rehired = $periods->get($w->id, collect())->contains(fn (EmploymentPeriod $f): bool => $f->starts_on->greaterThan($today));
             $status = $p === null ? 'No employment period' : ($p->starts_on->greaterThan($today) ? 'Starting'
-                : ($p->ends_on !== null && $p->ends_on->lessThan($today) ? 'Ended' : 'Active'));
+                : ($p->ends_on !== null && $p->ends_on->lessThan($today) ? ($rehired ? 'Starting' : 'Ended') : 'Active'));
 
             return [(string) $w->public_id, $w->name(), $w->kind === 'locum' ? 'Locum' : 'Staff', (string) ($positions->get($w->id)?->first()->title ?? ''),
                 $p === null ? '' : (StaffFileService::TYPES[$p->type] ?? (string) $p->type),
@@ -111,7 +114,8 @@ final class OutsideHrExportService
                 intdiv((int) $r->halves, 2).((int) $r->halves % 2 === 1 ? '.5' : ''), $r->is_paid ? 'Yes' : 'No'])->values()->all();
         $rows = array_values($rows);
 
-        return [['KPOne ID', 'Name', 'Leave type', 'From', 'To', 'Days', 'Paid'], $rows];
+        // Days are the whole request's, so a request crossing months appears in each month's file (Suresh, M1).
+        return [['KPOne ID', 'Name', 'Leave type', 'From', 'To', 'Days in request', 'Paid'], $rows];
     }
 
     /** @return array{0: list<string>, 1: list<list<string>>} approved overtime in the month, minutes only, never pay */
