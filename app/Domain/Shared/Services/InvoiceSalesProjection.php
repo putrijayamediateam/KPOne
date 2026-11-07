@@ -43,20 +43,24 @@ final class InvoiceSalesProjection
     /**
      * BIL-12 (owner decision 2026-11-07): each approved credit comes off the provider row of the invoice it belongs
      * to, on its approval day: a consultation invoice's attending doctor, or the OTC row. Rows then add up to the
-     * headline net sales. A provider with credits but no invoices in the period still appears, with 0 patients.
+     * headline net sales. A provider with credits but no invoices in the period still appears, with 0 patients,
+     * unless the doctor list was cut at its cap: then a doctor below the cut is not re-added with only their credit
+     * (their sales are not in the list either), and the caller's truncated flag explains why rows do not add up.
      *
+     * @param  int  $organisationId  the actor's organisation; the doctor name lookup stays inside it
      * @param  array<int, array{id: int, name: string, salesSen: int, patients: int}>  $doctors  invoice sales by doctor
      * @param  Builder  $credits  approvedCredits() already scoped to the same branches, period and doctor filter
      * @param  array{name: string, salesSen: int, patients: int, fixed: true}|null  $otc  the OTC row, when shown
+     * @param  bool  $truncated  the doctor list was cut at its cap before credits
      * @return array{doctors: list<array{name: string, salesSen: int, patients: int}>, otc: array{name: string, salesSen: int, patients: int, fixed: true}|null}
      */
-    public static function withCredits(array $doctors, Builder $credits, ?array $otc, bool $showOtc): array
+    public static function withCredits(int $organisationId, array $doctors, Builder $credits, ?array $otc, bool $showOtc, bool $truncated = false): array
     {
         $byDoctor = (clone $credits)->whereNotNull('doctor_id')->selectRaw('doctor_id, SUM(amount_sen) AS amount')->groupBy('doctor_id')->pluck('amount', 'doctor_id');
         $rows = collect($doctors)->keyBy('id');
         $missing = $byDoctor->keys()->map(fn ($id): int => (int) $id)->diff($rows->keys()->all());
-        if ($missing->isNotEmpty()) {
-            foreach (DB::table('users')->whereIn('id', $missing->all())->get(['id', 'name']) as $user) {
+        if ($missing->isNotEmpty() && ! $truncated) {
+            foreach (DB::table('users')->where('organisation_id', $organisationId)->whereIn('id', $missing->all())->get(['id', 'name']) as $user) {
                 $rows->put((int) $user->id, ['id' => (int) $user->id, 'name' => (string) $user->name, 'salesSen' => 0, 'patients' => 0]);
             }
         }

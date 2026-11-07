@@ -322,7 +322,7 @@ class ClinicInsightsReportService
             $otc = OtcProviderRow::from($otcQuery);
         }
         // BIL-12: refund credits come off their invoice's doctor (or the OTC row) on the approval day.
-        $withCredits = InvoiceSalesProjection::withCredits($providers, $credits, $otc, $doctorId === null);
+        $withCredits = InvoiceSalesProjection::withCredits($actor->organisation_id, $providers, $credits, $otc, $doctorId === null, $providersTruncated);
         $providers = $withCredits['otc'] === null ? $withCredits['doctors'] : [...$withCredits['doctors'], $withCredits['otc']];
 
         return [
