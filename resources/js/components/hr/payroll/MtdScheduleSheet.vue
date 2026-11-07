@@ -304,7 +304,7 @@ const rowError = (i: number, field: string) =>
                             </div>
                             <div class="grid gap-1">
                                 <Label :for="`mtd-band-${i}-b13`"
-                                    >Tax on M, categories 1 and 3 (RM)</Label
+                                    >Tax on M, cat. 1 &amp; 3 (RM)</Label
                                 >
                                 <Input
                                     :id="`mtd-band-${i}-b13`"
@@ -319,7 +319,7 @@ const rowError = (i: number, field: string) =>
                             </div>
                             <div class="grid gap-1">
                                 <Label :for="`mtd-band-${i}-b2`"
-                                    >Tax on M, category 2 (RM)</Label
+                                    >Tax on M, cat. 2 (RM)</Label
                                 >
                                 <Input
                                     :id="`mtd-band-${i}-b2`"

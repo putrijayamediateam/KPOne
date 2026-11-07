@@ -117,6 +117,33 @@ const sections: { key: Line['section']; label: string }[] = [
     { key: 'employer', label: 'Employer contributions (information)' },
 ];
 
+// HR-7d: an employer-only scheme (the HRD levy) has no employee part, so its zero employee line is not shown (Daniel).
+const shownLines = (lines: Line[], section: Line['section']) =>
+    lines.filter(
+        (l) =>
+            l.section === section &&
+            !(
+                l.amountSen === 0 &&
+                l.explanation.startsWith('HRD levy employee')
+            ),
+    );
+// HR-7d: which MTD figure counts, said next to the figure (Daniel).
+const mtdNote = (lines: Line[]): string | null => {
+    const line = lines.find((l) => l.section === 'mtd');
+
+    if (!line) {
+        return null;
+    }
+
+    if (line.explanation.includes('(worked out:')) {
+        return "The typed figure counts for this run. KPOne's worked-out figure is in brackets for comparison. Check both with the clinic's accountant.";
+    }
+
+    return line.explanation.startsWith('MTD (PCB) · worked out')
+        ? "Worked out by KPOne. Check it with the clinic's accountant before real use."
+        : null;
+};
+
 // ---- one person's lines ----
 const panel = reactive({ person: null as RunPerson | null, mtd: '' });
 const openPerson = (p: RunPerson) =>
@@ -583,16 +610,15 @@ const statusTone = computed(() =>
                     <ErrorState v-if="failure" :message="failure" />
                     <template v-for="s in sections" :key="s.key">
                         <div
-                            v-if="
-                                current.lines.some((l) => l.section === s.key)
-                            "
+                            v-if="shownLines(current.lines, s.key).length"
                             class="flex flex-col gap-1"
                         >
                             <h4 class="text-sm font-semibold">{{ s.label }}</h4>
                             <ul class="flex flex-col gap-1 text-sm">
                                 <li
-                                    v-for="(l, i) in current.lines.filter(
-                                        (x) => x.section === s.key,
+                                    v-for="(l, i) in shownLines(
+                                        current.lines,
+                                        s.key,
                                     )"
                                     :key="i"
                                     class="flex justify-between gap-3"
@@ -606,6 +632,13 @@ const statusTone = computed(() =>
                                     >
                                 </li>
                             </ul>
+                            <p
+                                v-if="s.key === 'mtd' && mtdNote(current.lines)"
+                                class="text-xs text-muted-foreground"
+                                data-test="run-mtd-note"
+                            >
+                                {{ mtdNote(current.lines) }}
+                            </p>
                         </div>
                     </template>
 

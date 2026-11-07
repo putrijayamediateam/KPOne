@@ -34,8 +34,8 @@ test('the MTD schedule sheet ships no tax number and posts every band and relief
     // Every figure starts empty; only the first band's start is filled.
     assert.match(source.sheet, /rows: \[band\('0\.00'\)\]/);
     assert.doesNotMatch(source.sheet, /9,?000|4,?000|2,?000\.00/);
-    assert.match(template('sheet'), /Tax on M, categories 1 and 3 \(RM\)/);
-    assert.match(template('sheet'), /Tax on M, category 2 \(RM\)/);
+    assert.match(template('sheet'), /Tax on M, cat\. 1 &amp; 3 \(RM\)/);
+    assert.match(template('sheet'), /Tax on M, cat\. 2 \(RM\)/);
     assert.match(template('sheet'), /Smallest MTD deducted \(RM\)/);
 });
 
@@ -61,4 +61,15 @@ test('the run MTD box says a saved figure replaces the worked-out one', () => {
         /A\s+figure saved here replaces it for this run; leave it\s+empty to use the worked-out figure\./,
     );
     assert.doesNotMatch(template('run'), /does not work out MTD yet/);
+});
+
+test('the lines panel says which MTD figure counts, next to the figure', () => {
+    assert.match(template('run'), /data-test="run-mtd-note"/);
+    assert.match(
+        source.run,
+        /Worked out by KPOne\. Check it with the clinic's accountant before real use\./,
+    );
+    assert.match(source.run, /The typed figure counts for this run\./);
+    // An employer-only scheme's zero employee line is not shown.
+    assert.match(source.run, /startsWith\('HRD levy employee'\)/);
 });
