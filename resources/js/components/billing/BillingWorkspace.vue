@@ -501,6 +501,17 @@ const reverse = (receipt: Receipt) =>
                                 {{ receipt.method }} · {{ receipt.receivedAt }}
                             </p>
                             <p
+                                v-if="receipt.refundedSen"
+                                class="text-xs text-muted-foreground tabular-nums"
+                                data-testid="payment-refunded"
+                            >
+                                Refunded {{ myr(receipt.refundedSen) }} ·
+                                {{
+                                    myr(receipt.amountSen - receipt.refundedSen)
+                                }}
+                                kept
+                            </p>
+                            <p
                                 v-if="receipt.recordedBy"
                                 class="text-xs break-words text-muted-foreground"
                             >
@@ -817,6 +828,21 @@ const reverse = (receipt: Receipt) =>
                                         <p class="mt-1 text-muted-foreground">
                                             {{ receipt.number }}
                                         </p>
+                                        <p
+                                            v-if="receipt.refundedSen"
+                                            class="text-xs text-muted-foreground tabular-nums"
+                                            data-testid="payment-refunded"
+                                        >
+                                            Refunded
+                                            {{ myr(receipt.refundedSen) }} ·
+                                            {{
+                                                myr(
+                                                    receipt.amountSen -
+                                                        receipt.refundedSen,
+                                                )
+                                            }}
+                                            kept
+                                        </p>
                                     </td>
                                     <td class="p-3">
                                         {{ receipt.receivedAt }}
@@ -949,6 +975,17 @@ const reverse = (receipt: Receipt) =>
                                     receipt.status
                                 }}</span>
                             </div>
+                            <p
+                                v-if="receipt.refundedSen"
+                                class="text-xs text-muted-foreground tabular-nums"
+                                data-testid="payment-refunded"
+                            >
+                                Refunded {{ myr(receipt.refundedSen) }} ·
+                                {{
+                                    myr(receipt.amountSen - receipt.refundedSen)
+                                }}
+                                kept
+                            </p>
                             <p
                                 v-if="receipt.recordedBy"
                                 class="text-[11px] break-words text-muted-foreground"
