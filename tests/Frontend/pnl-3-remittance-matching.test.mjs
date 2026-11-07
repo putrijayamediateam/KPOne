@@ -62,10 +62,10 @@ test('One idempotency key per payment, renewed only after success', () => {
 });
 
 test('Phones get one card per claim so the amount box stays on screen', () => {
-    assert.match(page, /class="divide-y rounded-xl border md:hidden"/);
+    assert.match(page, /class="divide-y rounded-xl border lg:hidden"/);
     assert.match(
         page,
-        /relative hidden max-w-full overflow-x-auto[^"]*md:block/,
+        /relative hidden max-w-full overflow-x-auto[^"]*lg:block/,
     );
     assert.match(
         page,

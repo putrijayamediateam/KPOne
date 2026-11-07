@@ -92,7 +92,14 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php`.
 | PNL-6b | The Panel payments history and the Follow-up list show a colleague's name only under the staff-directory visibility rule (owner BIL-2 decision), otherwise "Staff member"; no visible change for today's roles | #262 (merged as `e0d41d9`) |
 | PNL-5 | PostgreSQL contention tests on one Panel claim: split against single payment, two part payments, a reversal against a new payment in both orders, two reversals, a double-submitted split payment (`PostgresPanelPaymentRegressionTest`, serial Contention suite); tests only | #267 |
 | PNL-11 | Panel Claims list on phones and tablets (design debt DD-31): below 1024 px each claim or invoice is a card with every table field, its checkbox (same claim-pack and bulk-claim rules) and its actions menu, plus a "Select all" row above the cards; the Columns menu shows from 1024 px only; Clear puts focus on the visible Select all, or the first claim that can still be ticked; frontend only | #326 (merged as `ce0d3d8`) |
-| PNL-12 | Small leftovers: the claim pack prints claims in the order they were ticked (cover and pages, audit `claim_ids` too); each printed page of a claim's invoice table repeats "Panel claim N · invoice number" (print only, no patient name); the Submissions and Payouts cards read "1 claim" / "N claims", and Pending and Overdue count invoices ("1 invoice" / "N invoices"); a test for a bulk claim whose visits fall on different dates | (this PR) |
+| PNL-12 | Small leftovers: the claim pack prints claims in the order they were ticked (cover and pages, audit `claim_ids` too); each printed page of a claim's invoice table repeats "Panel claim N · invoice number" (print only, no patient name); the Submissions and Payouts cards read "1 claim" / "N claims", and Pending and Overdue count invoices ("1 invoice" / "N invoices"); a test for a bulk claim whose visits fall on different dates | #330 (merged as `5b93b6b`) |
+| PNL-13 | Design debt DD-28: the Panel statement results (PNL-7) use the shared `OperationalTable` from 1024 px, with a 44 px target around each tick box; phones and tablets keep the cards (the switch moved from md to lg, because the seven columns needed about 675 px in a 658 px frame at 768 px); frontend only | #340 (merged as `2dbc8b3`) |
+| PNL-14 | Design debt DD-42: the Panel payments split list shows cards below 1024 px (was 768 px), because at 768 px the table scrolled inside its frame and cut off the "This payment (RM)" box; the card payment box is 44 px tall below 1024 px; frontend only; two owner-approved class lines in `pnl-3-remittance-matching.test.mjs` change from `md:` to `lg:` | #342 (merged as `649633a`) |
+| PNL-15 | Invoice discounts and surcharges on two Panel screens (found by Farah, Billing, during BIL-10): the Create claim page's eligibility check and the Panel invoices report and CSV now use the payable total after the invoice adjustment (`FinancialLedger::state()['total']`, `kpone_invoice_payable`), as creation and the claim snapshot already did; with a surcharge the page refused a Panel share above the original total, and the report showed the original total | #351 (merged as `0838838`) |
+| PNL-16 | The claim pack prints "Balance not claimed from the Panel" (invoice total minus the Panel share) under the bold Panel share line when the claim is below the invoice total; no row for a full claim or a claim above the total; it never says who pays the balance (patient, pay later or already paid); print and screen, frontend only | #353 (merged as `1281646`) |
+| PNL-17 | Panel summary: six new columns at the end of the page and CSV, "Awaiting decision" (submitted or queried claims with no Panel decision yet: count, current claim amount, and ageing from the first submitted date in 0-30, 31-60, 61-90 and over 90 days); Accepted outstanding and every earlier figure unchanged; the basis text says so | #359 (merged as `2fe5719`) |
+| PNL-18 | Panel statement near matches: a "Not found" row whose invoice number equals exactly one open claim's, compared group by group, apart from spaces, punctuation, capitals, leading zeros, or look-alike letters (O, I, L, S, B, Z) before a real digit at the same length, is offered as "Near match: check" with both numbers shown and the look-alike letters marked; never ticked automatically; a digit typed wrongly, a suffix or a split number is never suggested, because invoice numbers run in sequence; nothing is recorded from the file | #363 (merged as `01d3a7c`) |
+| PNL-19 | The claim pack letterhead (cover and each claim page) prints the branch's optional second clinic phone (CAT-9) on the existing line as "Tel: A / B", like the referral and attendance letters; each number stays whole when the line wraps; both numbers print through the shared `PrintedPhone` format; a branch without a second phone prints as before | #367 (merged as `2cb6e04`) |
 
 ## 6. Owner decisions already made (never ask again)
 
@@ -149,6 +156,31 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php`.
 23. PNL-12 (owner chose "start 3" and "Ticked order", 2026-11-06): a claim pack prints its claims in the order
     the officer ticked them, not by claim number; the owner approved changing the one existing `PanelClaimPackTest`
     assertion that pinned claim-number order.
+24. PNL-14 (owner said "start PNL-14" and approved the test change, 2026-11-06): the Panel payments split list switches to
+    cards below 1024 px; the owner approved changing the two `md:` class lines in `pnl-3-remittance-matching.test.mjs`
+    ("Phones get one card per claim") to `lg:`.
+25. PNL-15 (decided by B.E.R.N.I.S.S for the owner during the owner's "BE ME", 2026-11-06): the two Panel screens that
+    ignored invoice discounts and surcharges use the ledger's adjusted total, as the claim snapshot does; a separate PR,
+    with Farah or Kumar (Billing) reviewing the money side.
+26. PNL-16 (owner said "start 2", 2026-11-06): the pack's balance line reads "Balance not claimed from the Panel" (Arjun's
+    wording choice), because the rest is not always paid by the patient.
+27. PNL-17 (B.E.R.N.I.S.S for the owner, 2026-11-06: "go with 1(a), then 3"): the Panel summary gains separate
+    "Awaiting decision" columns at the end (count, amount, ageing from the first submitted date), as BIL-6b did for
+    the Daily summary; Outstanding stays accepted less remitted, so an undecided claim is still not counted there.
+    The `panel-page` and `panel-csv` entries of the pilot-scale golden file are regenerated, including the Basis line
+    (approved by B.E.R.N.I.S.S for the owner); Farah (Billing) checked the money side.
+28. PNL-18 (B.E.R.N.I.S.S for the owner, 2026-11-06: item 3 of "go with 1(a), then 3"): statement matching gains
+    near matches, suggested only, never picked. Syafiq narrowed "one character different" to differences that cannot
+    change the number (format and look-alike letters), because KPOne invoice numbers run in sequence and a wrong digit
+    is often another real invoice; Priya's reviews closed three ways a value could reach another real invoice. Two
+    existing assertions that pinned `:disabled="row.result !== 'matched'"` change to `!canTick(row)`, and the pnl-7
+    test's title becomes "Only matched and near-match rows can be ticked…" (all three approved by B.E.R.N.I.S.S for the
+    owner). Daniel and Farah (Billing) said OK.
+29. PNL-19 (B.E.R.N.I.S.S for the owner, 2026-11-06: item 2, once CAT-9 merged, approved after Daniel's OK): the claim pack
+    letterhead prints the second clinic phone as "Tel: A / B" on one line; Arjun asked that each number stay whole and that a
+    lone second phone print "Tel: B"; Daniel asked that both numbers go through `PrintedPhone`, as invoices and receipts do
+    in BIL-9. The pack widens the shared `PrintLetterhead` type locally for `phone_secondary`; CAT-13 (#372) has since
+    added it to the shared type, so a later Panel tidy can drop the local widening.
 
 ## 7. Open items and known limits
 
@@ -192,16 +224,22 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php`.
   (PNL-12); the totals, remarks and photos stay together and, if they move to the next page, carry the same
   reference line (PNL-12); photo file names
   print as uploaded, so a name could carry clinical text; when the claim is below the invoice total the page
-  shows "Amount claimed (Panel share)" but no "patient pays the rest" line.
+  shows "Amount claimed (Panel share)" and, below it, "Balance not claimed from the Panel" (PNL-16).
 - **Staff names (PNL-6c, built 2026-11-05, B.E.R.N.I.S.S for the owner):** the Panel Claims list "Updated by"
   and a claim page's Logs now follow the BIL-2 staff-visibility rule like every other Panel page; a name the
   viewer may not see reads "Staff member". Every claim event has an actor (the column is required), so no event
   was ever dropped by the old join. Doctor names on Panel invoices are doctor display names and are not covered
   by the staff-name rule.
+- **PNL-17 limit (Farah, from before PNL-17):** a claim that was submitted, rejected and then had its amount edited
+  goes back to Prepared; it still counts under Claimed, but appears under none of Awaiting decision, Outstanding or
+  Rejected until it is resubmitted.
 - **PNL-7 limits:** one statement covers one Panel at one branch; up to 1 MB and 500 rows; matching is exact
   (ignoring case) in a fixed order: invoice number first, then KPOne's claim number (if the two point at
   different claims the row is "More than one claim"), and a member reference only for a row with neither, and
-  only among claims still waiting for payment; so a typo or a different number format is "Not found". The claim
+  only among claims still waiting for payment. Since PNL-18 a "Not found" row whose invoice number differs only in
+  format or look-alike letters is offered as a near match (never pre-ticked); a digit typo is still "Not found",
+  and only the 500 oldest open claims of the Panel at the branch are compared for near matches, with no note on
+  screen when that cut is reached (Farah's minor; a later Panel tidy). The claim
   number column is never pre-selected (a Panel's own claim number is not KPOne's). Amounts read "1,000.00" and
   "10,00" (a comma before two final digits) as ringgit and sen, but "1.000,00" is "Amount not readable"; only
   the 200 oldest open claims can be filled into the split. A file past its 30 days stops showing at once; the
@@ -211,7 +249,7 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php`.
   Panel references for up to 30 days, encrypted on the private disk; this belongs to the privacy review before
   real data. A first row that looks like an IC or phone number is refused (best effort). The retry clean-up
   (a file from a rolled-back attempt is deleted after commit) has no automated test; the failure path does.
-  Design debt: the desktop results are a plain table, not the shared table component.
+  The results use the shared table from 1024 px and cards below it (PNL-13, design debt DD-28).
 - PNL-11: in dark mode a disabled checkbox (a claim or invoice of another Panel while one is selected) is hard
   to see; the look comes from the shared checkbox component, so it is for the Design team's debt list, not a
   Panel-only change. The pack bar's "Only claims of … can be added" line still explains it.
@@ -282,3 +320,12 @@ Second backlog, chosen by the owner on 2026-11-05 ("panel order ok", relayed by 
    Overdue tabs; frontend only.
 10. **PNL-12 Small leftovers. (Built 2026-11-06.)** Ticked order in the claim pack, the claim reference repeated
     on each printed page and above the totals, "1 claim" and "N invoices" on the summary cards, and a bulk-claim test across visit dates.
+11. **PNL-13 Statement results in the shared table. (Built 2026-11-06.)** Design debt DD-28; the owner said "start 2".
+12. **PNL-14 Split list cards on tablets. (Built 2026-11-06, PR #342.)** Design debt DD-42, found during the PNL-13 look.
+13. **PNL-15 Adjusted invoice totals on Panel screens. (Built 2026-11-06.)** The Create claim check and the Panel
+    invoices report and CSV.
+14. **PNL-16 Balance line on the claim pack. (Built 2026-11-06, PR #353.)** "Balance not claimed from the Panel" under the Panel share;
+    never negative; does not say who pays.
+16. **PNL-17 Awaiting decision on the Panel summary. (Built 2026-11-06, PR #359.)** Count, amount and ageing columns at the end.
+17. **PNL-18 Statement near matches. (Built 2026-11-06, PR #363.)** Suggest only; never a digit typo.
+15. **PNL-19 Second clinic phone on the claim pack. (Built 2026-11-06, PR #367.)** "Tel: A / B" on both letterheads, through `PrintedPhone`.

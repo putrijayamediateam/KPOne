@@ -1551,3 +1551,949 @@ My HR details is a tab on the same page, linked from My roster.
 5. HR-4b document categories and the retention days for each (the adviser's call); and who keeps the paper originals?
 6. Should staff see their own documents? (Default: yes, view only.)
 7. Is a probation alert 14 days before the end right? (Default: yes; KPOne ships no probation length.)
+
+## 12. HR-5 credentials and compliance: design note
+
+Written 2026-11-06 at the owner's request ("start the HR-5 design note"). It works out the HR-5 sketch in section 2
+in detail and replaces it where the two differ. It changes no HR-1 to HR-4 rule. **Status: approved with its defaults by
+the owner on 2026-11-06 (TEAM.md decision 38); Daniel's early look folded into 12.6 (decision 39).** The questions in 12.9 take the defaults written here until the clinic
+says otherwise.
+
+**KPOne ships no credential list and no limit.** Which credentials each role needs, when a warning starts, opening
+hours, the doctor coverage rule and the work-hour limits are all clinic-entered, versioned settings. Until HR saves
+them, the register reads "Credentials are not set up yet." and the planner shows no HR-5 warnings.
+
+**What stays where it is.** The doctor's MMC registration and its verification stay in DOC-02a ("Clinician
+credentials", Director only). HR-5 shows that status read-only ("MMC: verified by the Director") and never changes
+it. **Nothing in HR-5 blocks clinical work** (TEAM.md decision 4): an expired APC or a missing BLS shows a warning
+to HR and to the person, and never stops sign-in, Call In, a consultation, an MC or dispensing.
+
+**Synthetic data only** until the PDPA review (decision 11). Health items such as Hepatitis B vaccination are
+sensitive (decision 9).
+
+### 12.1 Split
+
+- **HR-5a (build first, after HR-4b): the credential register.** It holds:
+  - clinic-entered credential types;
+  - each person's records, with versions;
+  - staff send a renewal, and someone else checks it;
+  - statuses and in-KPOne reminders;
+  - My credentials and the Credentials register.
+  - Evidence is a document in the HR-4b vault (category Certificate), linked to the record.
+- **HR-5b: roster compliance warnings on the HR-1 planner.** It holds:
+  - the doctor coverage rule (opening hours and the minimum number of resident doctors);
+  - work-hour rules;
+  - fair-rotation counts.
+  - These are warnings only, never a refusal.
+- **HR-5c: SOPs.** It holds:
+  - SOP documents with versions;
+  - publishing to chosen roles;
+  - "I have read and understood" acknowledgements;
+  - a list of who has not acknowledged yet.
+
+### 12.2 What the clinic gets
+
+- **Credential types** (Director, HR Manager, in Settings). Each type has:
+  - a name, for example "Annual Practising Certificate (APC)", "BLS", "ACLS", "Hepatitis B vaccination" or "Radiation safety";
+  - whether it expires;
+  - the roles that need it;
+  - a "warn from" number of days (the form suggests 60);
+  - whether it is a health item (shown only to the person and managers).
+  - The form suggests the clinic HR proposal's list and ticks nothing; nothing counts until a manager saves.
+- **My credentials** (every human role, not the TV account): one card per type my roles need, plus any I hold anyway. Each card shows:
+  - the status chip: Valid, Expiring in N days, Expired N days ago, Waiting for check, Not recorded or No expiry;
+  - the issue and expiry dates and the issuing body;
+  - the reference number (masked to the last four), and the linked document.
+  - **Add or renew** opens a sheet with the dates, the reference and an evidence file. The file goes to the HR-4b vault as a Certificate.
+- **Credentials register** (Director, HR Manager): everyone against every type their roles need.
+  - A summary line: "3 expiring · 1 expired · 2 not recorded · 1 waiting for check".
+  - Filters by branch, role, type and status.
+  - It is a table from 1024 px, cards below.
+  - Waiting records have outline **Accept** and **Reject**, with the primary action in the dialog.
+- **Reminders, inside KPOne only** (decision 5):
+  - the chips on My credentials and the register;
+  - one line on My roster and My attendance: "Your BLS expires in 21 days";
+  - the 60, 30 and 7 day steps change the words ("Expires in 30 days"), never a message.
+- **HR-5b on the planner:** warning chips beside the week, each with its reason in words:
+  - "No resident doctor Tue 2:00 PM – 5:00 PM (Cheras)";
+  - "Dr Aina: 7 days in a row";
+  - "Dr Aina: 9 h rest before Wed (11 h set)";
+  - "Planned 52 h this week (limit 48 h)".
+  - A **Fair rotation** panel counts weekend, public holiday and night shifts per doctor for the month.
+- **HR-5c SOPs** (Director, HR Manager publish; everyone acknowledges):
+  - an SOP list with title, version, roles and "N of M acknowledged";
+  - each person sees "SOPs to read" on My HR details, opens the PDF (the view is recorded) and presses **I have read and understood**;
+  - a new version needs a new acknowledgement.
+
+### 12.3 Rules
+
+1. **A credential record is versioned.** A renewal adds a version; earlier versions stay, and only the newest
+   accepted version is in force.
+2. **Someone else checks.** A record a staff member sends is "Waiting for check" until a manager who is not that
+   person accepts it (service and PostgreSQL CHECK). Until then the earlier accepted version stays in force. A record
+   a manager enters for someone else is accepted by another manager, never by the person who entered it. A rejection
+   needs a reason (Wrong dates, Not readable, Wrong person, Other) and is kept.
+3. **Status** is worked out when a page opens, never stored:
+   - **Not recorded:** a type the person's roles need with no accepted version.
+   - **Expired:** an expiry date before today (branch-local).
+   - **Expiring:** within the type's warn-from days.
+   - **Valid** or **No expiry** otherwise.
+   - "Waiting for check" is shown beside the status of the version in force.
+4. **Dates:** the issue date is not in the future, and the expiry date is after the issue date. A type with "no
+   expiry" refuses an expiry date.
+5. **Health items** (Hepatitis B and any type marked as health) record only Done or Not done and the date: no test
+   results, no titres, no notes about health. They are shown only to the person and to Director and HR Manager, and
+   never in lists other people see.
+6. **Reference numbers** are encrypted and masked to the last four everywhere except on Show (the HR-4 rule:
+   audited before release).
+7. **HR-5b warnings come only from approved and draft weeks, and never refuse.**
+   - **Coverage:** the branch's opening hours by weekday, and the minimum number of resident doctors (the form suggests 1). A gap of 15 minutes or more is shown.
+   - **Work hours:** the most days in a row (the form suggests 6), the least rest between two shifts (11 h), and the most planned hours a week (48 h).
+   - **Fair rotation:** counts only.
+   - Approved leave (HR-2a) counts as a day off.
+8. **HR-5c:** an SOP version is a PDF (the HR-2b checks, encrypted, view recorded). An acknowledgement is
+   append-only: who, which version, when. A version is never edited, only replaced by a new one. Withdrawing an SOP
+   keeps every acknowledgement.
+9. **Every write:** a fresh permission check under lock; `DB::transaction`; the worker and record rows locked;
+   `lock_version`; an idempotency key; and audit with ids, type codes and dates only. Reference numbers and notes
+   never reach audit.
+
+### 12.4 Tables (sketch)
+
+| Table | Holds |
+|---|---|
+| `hr_credential_types` | organisation, name, code, expires, warn-from days, health item, active, `lock_version` |
+| `hr_credential_type_roles` | type, role (versioned with the type's settings) |
+| `hr_credential_records` | worker, type, version, issued on, expires on (nullable), issuing body, encrypted reference, last four, linked document (HR-4b), status waiting/accepted/rejected/replaced, entered by, decided by and at, decision reason |
+| HR-5b: `hr_branch_opening_hours`, `hr_coverage_rules`, `hr_work_hour_rules` | clinic-entered versions per branch or organisation |
+| HR-5c: `hr_sops`, `hr_sop_versions`, `hr_sop_audiences`, `hr_sop_acknowledgements` | an SOP, its PDF versions, roles and append-only acknowledgements |
+| `hr_compliance_retries` | idempotency records |
+
+PostgreSQL:
+- one accepted version in force per worker and type (partial unique index);
+- the decider is never the worker's user and never the person who entered it (CHECK);
+- the expiry date is after the issue date, and empty when the type does not expire;
+- decided records, settings versions and acknowledgements are append-only;
+- nothing is deleted or truncated;
+- every row's people belong to one organisation.
+
+Migrations from `2026_11_10_001500`, with the grants in their own additive migration.
+
+### 12.5 Permissions
+
+| Permission | Holders |
+|---|---|
+| `hr.credentials.view.own` (My credentials, send own renewals) | every human role, not the TV account |
+| `hr.credentials.manage.organisation` (register, types, enter for others, accept or reject; HR-5b settings) | Director, HR Manager |
+| `hr.sops.manage.organisation` (HR-5c: publish, replace, withdraw, see who has not acknowledged) | Director, HR Manager |
+| `hr.sops.acknowledge.own` (HR-5c: read and acknowledge SOPs for your roles) | every human role, not the TV account |
+
+None is in the people-and-access authority set, and none touches DOC-02a's `clinician_credentials.manage.organisation`.
+New hub links ("KPOne HR credentials", and "KPOne HR SOPs" with HR-5c) add `/hr/credentials` and `/hr/sops` to the
+Clinic management destination map, which are existing-assertion changes to approve when built.
+
+### 12.6 Screens (Hui Min; Daniel's early look folded in)
+
+- **My credentials:**
+  - one card per type, with the status chip (warning tone for Expiring and Expired, neutral for Waiting for check, Not recorded and No expiry; never red);
+  - dates in KPOne formats ("30 Nov 2026");
+  - an outline **Add** or **Renew** on each card, with the primary action in the sheet;
+  - the masked reference, read to screen readers as "Reference, ending 4321, hidden".
+- **Credentials register:**
+  - the summary line, then a matrix of person × required type, with a chip in each cell, as a table from 1024 px;
+  - below 1024 px, one card per person listing only what needs attention, then "All others valid";
+  - a waiting record shows the recorded and new values side by side, with outline Accept and Reject.
+- **Settings card for credential types:** name, expires (Yes or No), warn from (days, suggests 60), the roles that need it (ticks, using the app's role labels) and Health item (Yes or No), with saved versions listed below.
+- **Planner warnings (HR-5b):**
+  - a "Compliance" chip on the week header with the count;
+  - its list opens in the existing planner side panel;
+  - each line names the person, the day and the rule in words.
+- **SOPs (HR-5c):**
+  - a list with version and "N of M acknowledged";
+  - on each person's side, an "SOPs to read" card with an outline **Open** and, once opened, the primary **I have read and understood** (one primary on the card);
+  - "Acknowledged on 6 Nov 2026" afterwards.
+- The shared synthetic-data line from HR-4, and the HR-4 Show pattern for references.
+- **Daniel's early look (2026-11-06): OK with changes, folded in here:**
+  - **Status words:** the time is in the words, with the date beside it ("Expires in 21 days · 27 Nov 2026", "Expired 3 days ago"). Expired gets stronger warning text and a small alert icon so it never reads the same as Expiring, and still never red. Waiting for check, Not recorded and No expiry stay neutral.
+  - **Register matrix:** the person column and the header row stay sticky. Cells hold short words ("Valid", "21 days", "Expired", "Waiting"), and screen readers hear the full sentence ("APC, expires in 21 days, 27 Nov 2026"). A type the person does not need shows "—", read as "Not required". There is no colour legend.
+  - **Waiting records** show who entered them and when. The person whose record it is sees "Someone else checks this" and no Accept or Reject (the HR-4 bank rule).
+  - **Planner warnings (HR-5b):** a worded chip ("3 compliance warnings") in warning tone. Each line in the side panel names the person, the day and the rule. One plain line at the top: "Warnings only. They don't stop you saving or sending the roster."
+  - **SOPs (HR-5c):** "I have read and understood" is disabled until the SOP has been opened, with a hint "Open the SOP first". When a new version is published, the card says "Version 3 is new. Please read it again." and lists the old acknowledgement as being for version 2. "Who hasn't acknowledged" lists name, role, branch and "published 6 Nov 2026" as plain text, with no red and no ranking.
+  - **MMC number:** shown read-only with a muted source line, "From Clinician credentials. The Director updates this."
+  - **Settings:** "Health item" has help text saying what it changes: only Done or Not done and a date, seen only by the person and managers.
+  - **Empty states:** My credentials with nothing required ("Your role needs no credentials"), the register with no types set up (pointing to Settings), and SOPs with none published.
+  - **One more screenshot:** a register row showing each status, at 1440 px dark.
+- Phones: no sideways scroll at 320, 390 and 768 px; 44 px targets.
+- **Screenshots when built:** My credentials with each status; the renew sheet with an error; the register at 1440 and 390 px; a waiting record decided by someone else; the type settings; a planner week with each HR-5b warning (HR-5b); an SOP being acknowledged and the "who has not" list (HR-5c); light and dark.
+
+### 12.7 Tests (planned)
+
+- Grants for every role, the TV account refused, none in the authority set, and the hub map lines to approve.
+- Versions and the version in force; someone else checks (service and PostgreSQL); a rejection is kept; the earlier
+  version stays in force while one is waiting.
+- Statuses at the warn-from boundary, on the expiry day and the day after, with a frozen branch-local clock; types
+  with no expiry; Not recorded only for the roles that need it.
+- Health items: only Done or Not done and the date accepted; shown only to the person and managers (payload scan).
+- References encrypted, masked and never in audit; Show audited first.
+- Nothing blocks clinical work: a person with an expired APC still signs in, calls in and issues an MC (the
+  DOC-02a and queue tests stay green, plus one direct check).
+- DOC-02a's clinician credentials are untouched (the table is compared before and after).
+- HR-5b: a coverage gap, days in a row, short rest and planned hours, with approved leave counted; warnings never
+  refuse a save or an approval.
+- HR-5c: a new version needs a new acknowledgement; acknowledgements are append-only; withdrawal keeps them; each
+  PDF view is recorded.
+- PostgreSQL refusals; another organisation's ids; nothing written to accounts, rosters or anything clinical.
+
+### 12.8 What stays out
+
+- Any change to DOC-02a (MMC number and verification stay Director only), and any regulator lookup or API.
+- Any clinical gate (decision 4).
+- Health details beyond Done or Not done and a date.
+- The KKM audit file export, which needs its own export decision.
+- Shift swaps (HR-1b); opening locum slots (needs locum rostering first).
+- Clinic document licences, the internal audit checklist and the vaccine fridge log (HR-11).
+- Messages or reminders outside KPOne of any kind.
+
+### 12.9 Questions only the clinic can answer [TO CONFIRM]
+
+1. Which credentials does each role need? (Default: none ticked; the form suggests APC and BLS for Resident Doctor,
+   BLS for CA and CA Supervisor, and Hepatitis B vaccination for clinical roles.)
+2. When should a warning start? (Default: 60 days before expiry, with the words changing at 30 and 7.)
+3. Hepatitis B: only Done or Not done and a date? (Default: yes; anything more is health data for the PDPA review.)
+4. Who checks a renewal? (Default: Director or HR Manager, never the person themselves.)
+5. HR-5b: each branch's opening hours, and the minimum number of resident doctors? (Default: none until entered; the
+   form suggests 1.)
+6. HR-5b work-hour limits? (Default: suggested 6 days in a row, 11 h rest and 48 h a week, to confirm with the HR
+   adviser.)
+7. HR-5c: who must acknowledge which SOPs? (Default: chosen per SOP by role.)
+
+## 13. HR-6 staff claims: design note
+
+Written 2026-11-06 at the owner's request ("start the HR-6 design note"). It works out the HR-6 sketch in section 2
+in detail and replaces it where the two differ. It changes no HR-1 to HR-5 rule. **Status: approved with its defaults by
+the owner on 2026-11-06 (TEAM.md decision 40); Daniel's early look folded into 13.6 (decision 41).** The questions in 13.9 take the defaults written here until the clinic
+says otherwise.
+
+**Staff claims are not Panel Claims.** They use different tables, pages, permissions and words ("Staff claims",
+"Claim a refund of what I paid"), and share nothing with Panel Claims, invoices, receipts, payments, refunds, daily
+cash closing or any report of clinic income. **KPOne pays nothing:** it records that someone paid a claim outside
+KPOne, with a reference.
+
+**KPOne ships no category, limit or rule.** Categories, their limits, the amount above which the Director must
+approve and how far back a claim may go are clinic-entered, versioned settings. Until HR saves at least one category,
+My claims reads "Staff claims are not set up yet."
+
+**Synthetic data only** until the PDPA review (decision 11). Receipts can carry names, addresses and card digits.
+
+### 13.1 One slice
+
+HR-6 is one slice, built after HR-5c in the current order. HR-6 does not need HR-4, so the owner may move it earlier.
+It covers:
+- settings (categories and the Director level);
+- submitting a claim with receipts;
+- approval by someone else;
+- recording payment;
+- a monthly list for Finance.
+
+Mileage, per diem, advances and paying through payroll are out (13.8).
+
+### 13.2 What the clinic gets
+
+- **My claims** (every human role, not the TV account):
+  - **New claim** opens a sheet with category, date spent, amount in RM, what it was for (up to 200 characters, encrypted) and receipts (JPG, PNG or PDF, up to 5 MB each, up to 5 per claim, through the HR-2b checks), for the active branch.
+  - My list shows each claim's status: Waiting for approval, Approved, Rejected, Paid, Withdrawn.
+  - The person who sent a claim withdraws it while it waits.
+- **Approvals** (Director, HR Manager): claims waiting, each card showing:
+  - the person, branch, category, date and amount;
+  - the receipts (opening one is recorded);
+  - the category's limit and the person's total in that category this month;
+  - any warning in words: "Over the RM 200.00 limit for Meals", "This receipt was also attached to claim SC-0012", "Needs the Director: over RM 500.00".
+  - Outline **Approve** and **Reject** buttons, with the primary action in the dialog.
+- **Pay** (Finance Officer, Director): approved claims not yet paid. **Record payment** asks for:
+  - the method (Bank transfer, Cash, Cheque);
+  - the paid date;
+  - a reference (encrypted, masked to the last four).
+  - A mistake is corrected with **Reverse payment** and a reason; the claim goes back to Approved, and both rows stay.
+- **Monthly list** (Finance Officer, Director, HR Manager): approved and paid claims for a month, by branch and category, with totals. On screen only: no CSV (exports need their own authorisation).
+- **Settings** (Director, HR Manager). Each category has:
+  - a name;
+  - whether a receipt is needed;
+  - an optional limit per claim and per person per month;
+  - whether it is active.
+  - The settings also hold the Director level (claims above it need the Director) and how many days back a claim may go (the form suggests 30).
+  - KPOne ships none of these.
+
+### 13.3 Rules
+
+1. **A claim** belongs to one person, one branch (the active branch when it is sent) and one category. It has:
+   - an amount in whole sen, from 1 to 99,999,999;
+   - a date spent that is not in the future and not further back than the settings allow.
+   - Claim numbers are `SC-` plus 6 digits, per organisation, never reused.
+2. **Receipts:**
+   - A category that needs a receipt refuses a claim without one.
+   - A receipt is checked by content, re-encoded and encrypted, with no file name kept (the HR-2b pipeline).
+   - The same file (by hash) on another active claim of the organisation is a warning to the approver, never a refusal (two people can share one bill).
+3. **Two people at each step** (service and PostgreSQL CHECK):
+   - the approver is never the claimant;
+   - the payer is never the claimant and never the approver of that claim.
+   - An HR Manager's own claim goes to the Director, and a Director's to the HR Manager or another Director (TEAM.md decision 3).
+4. **The Director level:** a claim above the saved amount can be approved only by a Director. Below it, a Director or
+   HR Manager approves.
+5. **Limits warn, never refuse.** Over a category's per-claim or monthly limit, the approver sees it in words and may
+   still approve. The approval stores the settings version it saw.
+6. **Approve fewer** is not offered. A wrong amount is rejected with the reason Wrong amount, and the person sends a
+   new claim. A claim is decided as sent, and never edited after it is sent.
+7. **States:**
+   - waiting → approved, rejected or withdrawn;
+   - approved → paid;
+   - paid → approved again only through a payment reversal row.
+   - Every step is an append-only action row.
+   - Reject reasons: No receipt, Not a work expense, Over the limit, Wrong amount, Duplicate, Other with a note.
+   - A payment reversal reason: Wrong claim, Wrong amount, Payment failed, Other.
+8. **Nothing here touches clinic money:** no invoice, receipt, payment method, refund, cash closing, Insights or
+   report of clinic income reads or writes staff claims. A test compares those tables before and after.
+9. **Every write:** a fresh permission check under lock; `DB::transaction`; the claim row locked; `lock_version`; an
+   idempotency key on send, decide, withdraw, pay and reverse; and audit with ids, category, amount and codes only.
+   The purpose text, notes and payment references are encrypted and never audited.
+
+### 13.4 Tables (sketch)
+
+| Table | Holds |
+|---|---|
+| `hr_claim_settings` | append-only versions: Director level (sen, nullable), days back |
+| `hr_claim_categories` | organisation, name, needs receipt, per-claim limit, monthly limit, active, `lock_version` (changes recorded as versions) |
+| `hr_claim_counters` | per organisation, for `SC-` numbers |
+| `hr_staff_claims` | number, person, branch, category, date spent, amount sen, encrypted purpose, status, settings version, `lock_version` |
+| `hr_staff_claim_receipts` | claim, encrypted file path, hash, size, kind, status active/removed |
+| `hr_staff_claim_actions` | append-only: claim, action, actor, reason code, encrypted note, time |
+| `hr_staff_claim_payments` | append-only: claim, method, paid on, encrypted reference, last four, paid by; reversal rows point to the payment they reverse |
+| `hr_claim_retries` | idempotency records |
+
+PostgreSQL:
+- a claim's amount, person, branch, category and date never change after it is sent;
+- the approver differs from the claimant, and the payer from the claimant and the approver (CHECK);
+- one live payment per claim (partial unique index), and a reversal row points to exactly one payment;
+- actions, payments, settings versions and counters are append-only, or increment-only for counters;
+- nothing is deleted or truncated;
+- every row's people and branch belong to one organisation.
+
+Migrations from `2026_11_10_002000` (HR-5c took `001900`; TEAM.md decision 52), with the grants in their own additive migration.
+
+### 13.5 Permissions
+
+| Permission | Holders |
+|---|---|
+| `hr.claims.submit.own` (My claims: send, withdraw, see own receipts) | every human role, not the TV account |
+| `hr.claims.approve.organisation` (Approvals: open receipts, approve, reject) | Director, HR Manager |
+| `hr.claims.pay.organisation` (Pay: approved claims with name, branch, category, amount and receipts only; record and reverse payments) | Finance Officer, Director |
+| `hr.claims.manage.organisation` (Settings; the monthly list with HR's view) | Director, HR Manager |
+
+Finance Officer also sees the monthly list through `hr.claims.pay.organisation`. None is in the people-and-access
+authority set, and none is a Panel or billing permission. A new hub link, "KPOne HR staff claims", adds `/hr/claims`
+to the Clinic management destination map, which is an existing-assertion change to approve when built.
+
+### 13.6 Screens (Hui Min; Daniel's early look folded in)
+
+- One page, `/hr/claims`, with tabs My claims, Approvals, Pay, Monthly and Settings, each shown only to its holders, using the shared OperationalTabs.
+- **Amounts:**
+  - in KPOne's money format ("RM 45.60"), right-aligned with tabular-nums;
+  - typed in RM in the sheet, converted to sen with whole-number arithmetic (the STK-10B rule), never floating point.
+- **The New claim sheet:**
+  - visible labels and help text: "Up to 5 receipts. JPG, PNG or PDF, 5 MB each.";
+  - the HR-2b upload button and "Uploading…";
+  - "Do not write medical details here." under the purpose;
+  - errors under each field, all in one submit.
+- **Status chips:** Waiting for approval neutral, Approved success, Paid success with the date, Rejected neutral with the reason, Withdrawn neutral. None is red.
+- **Approvals cards:**
+  - warnings as warning chips with words;
+  - the receipts as thumbnails on a neutral bordered surface (the HR-2b pattern), with each opening recorded.
+- **Pay:** a table from 1024 px, cards below. A paid row shows "Paid 6 Nov 2026 · Bank transfer · Ref •••• 4321".
+- **Monthly:** totals per category and branch, with a total row (the HR-3b Summary pattern).
+- **Daniel's early look (2026-11-06): OK, with these to build in:**
+  - **Approved and Paid** are both in success tone, so the words tell them apart: "Approved" and "Paid 6 Nov 2026".
+  - **The claimant** never sees Approve or Reject on their own claim, only "Someone else approves this" (the HR-4 bank rule). On the HR Manager's view, a claim above the Director level reads "Waiting for the Director".
+  - **A reversed payment** shows "Payment reversed" in neutral tone with its reason, and the claim is back to Approved.
+  - **The amount field** has a visible "RM" prefix, `inputmode="decimal"` and the help text "For example 45.60".
+  - **Receipt thumbnails** have alt text ("Receipt 1 of 3, JPG"), and a PDF shows a file tile, never a broken image.
+  - **Not built (owner, 2026-11-06: "keep rule 6"):** Daniel also suggested "Approved RM 30.00 of RM 45.60" for a partly approved claim. Rule 6 stands: there is no partial approval, so a wrong amount is rejected with the reason Wrong amount and sent again.
+  - **Daniel's option, kept:** a claim rejected for Wrong amount shows the reason in words on the claimant's card, with an outline **Send a new claim** that opens the New claim sheet with the purpose and receipts copied in. Receipts copied from the claimant's own rejected claim do not count as a duplicate on the approval card. The new claim is a separate claim with its own number, and the rejected one is kept.
+- The shared synthetic-data line from HR-4. Empty states for each tab, each saying what to do next. 44 px targets, and no sideways scroll at 320, 390 and 768 px.
+- **Screenshots when built:** My claims with each status; the New claim sheet with an error; an approval card with each warning; the Director-level case seen by an HR Manager; a payment recorded and reversed; the monthly list; the settings; at 390 and 1440 px, light and dark.
+
+### 13.7 Tests (planned)
+
+- Grants for every role, the TV account refused, none in the authority set, and the hub map line to approve.
+- Amounts in sen with whole-number conversion; date limits with a frozen branch-local clock; claim numbers unique
+  and gapless per organisation under a race (a two-process PostgreSQL test).
+- Receipts: content checks and limits; a needed receipt refused when missing; the duplicate warning.
+- The two-person rule at approval and payment, for the self, HR Manager and Director cases (service and PostgreSQL);
+  the Director level; limits that warn and never refuse.
+- States, withdrawal by the sender only, the payment reversal back to Approved with both rows kept, and one live
+  payment per claim (a two-process race between two payers).
+- Purpose, notes and references encrypted and never in audit; references masked.
+- Clinic money untouched: invoices, receipts, payments, refunds, cash closings and Panel claims compared before and
+  after.
+- Another organisation's ids refused; nothing written to accounts or anything clinical.
+
+### 13.8 What stays out
+
+- Paying money from KPOne, bank files and any payment integration.
+- Mileage, per diem, cash advances and paying claims through payroll (HR-7 may add "paid through payroll" later).
+- Exports; messages or reminders of any kind.
+- Any link to patient billing, Panel Claims, daily cash closing or clinic income reports.
+- Tax treatment, which is for the clinic's accountant.
+
+### 13.9 Questions only the clinic can answer [TO CONFIRM]
+
+1. Which claim categories, and does each need a receipt? (Default: none shipped; the form suggests Meals, Travel and
+   parking, Training and courses, Supplies bought for the clinic, and Other, each needing a receipt.)
+2. Limits per claim and per month for each category? (Default: none; limits warn only.)
+3. Above what amount must the Director approve? (Default: none until entered.)
+4. How far back may a claim go? (Default: the form suggests 30 days.)
+5. Must the payer be someone other than the approver? (Default: yes.)
+6. Are claims ever paid in cash from the till? (Default: no. KPOne records a cash payment but never links it to daily
+   cash closing, so till cash for staff claims must be handled outside KPOne. Tell us if that is wrong.)
+
+## 14. HR-7 payroll: design note
+
+Written 2026-11-06 at the owner's request ("start the HR-7 design note"). It works out the HR-7 sketch in section 2
+and TEAM.md decision 7 in detail and replaces the sketch where the two differ. It changes no HR-1 to HR-6 rule.
+**Status: approved with its defaults by B.E.R.N.I.S.S for the owner on 2026-11-06, during the owner's 20-minute "BE ME" (TEAM.md decision 43, marked "Check this" on the owner's board); Daniel's early look folded into 14.6.** The questions in 14.10 take the
+defaults written here until the clinic says otherwise. **Most of them are for the clinic's accountant.**
+
+**This is the riskiest slice, and it is built to be safe before it is built to be clever.**
+- **Every rate, band, threshold, divisor and rounding rule is clinic-entered data.** That includes EPF, SOCSO, EIS, MTD (PCB) and the HRD levy, entered by one person and checked by a second (decision 7). **KPOne ships no statutory number** and computes nothing from a rate written in code.
+- **Every payroll page shows one plain line:** "To confirm with the clinic's accountant before real use. Synthetic data only." This stays until the owner records the accountant's sign-off and the PDPA review.
+- **KPOne makes no payment, files nothing with KWSP, PERKESO or LHDN, and posts nothing to an accounting ledger.** It prepares figures, has them approved, shows payslips and gives a reviewed export file (decision 7).
+- **All money is whole sen.** There is no floating point anywhere; percentages are stored as basis points, and every rounding step follows the rule written on its table.
+
+### 14.1 Split
+
+- **HR-7a: pay profiles and statutory tables.** Each person's pay profile (salary, fixed allowances, pay type, which statutory schemes apply), effective-dated and confirmed by a second person. The clinic-entered statutory tables and the pay item types. Nothing is calculated yet.
+- **HR-7b: the payroll run.** A monthly run per pay group, built from the HR-7a profiles and from approved HR records:
+  - approved overtime (HR-3b);
+  - approved unpaid leave (HR-2a);
+  - worked hours for hourly staff (HR-3a);
+  - approved staff claims (HR-6);
+  - manual lines.
+  - The run goes Draft, then Sent for approval (frozen), then Approved by someone else, then Locked. A correction is a new adjustment run, never an edit.
+- **HR-7c: payslips and exports.** An encrypted payslip snapshot per person per approved run, shown in KPOne and printable. A reviewed bank-upload file and an accountant summary, each audited and never stored. A statutory summary on screen, for the clinic to enter by hand on the KWSP, PERKESO and LHDN portals.
+
+### 14.2 What the clinic gets
+
+- **Pay profiles** (preparers), opened from the HR-4 staff file. Each profile has:
+  - **pay type:** Monthly salary, or Hourly (part-time, paid on HR-3a worked hours). Locums are paid outside KPOne in v1 (14.8).
+  - **basic monthly salary** or **hourly rate**, in RM;
+  - **fixed allowances**, each a clinic-entered pay item type and an amount;
+  - **the schemes that apply:** EPF (with its category, for example "Malaysian below 60"), SOCSO (its category), EIS, MTD and HRD levy, each Yes or No;
+  - **the pay group;**
+  - **the date it applies from.**
+  - A new or changed profile is **Waiting for confirmation** until someone other than the person who entered it, and other than the worker, confirms it (the HR-4 bank rule). The earlier profile stays in force until then.
+  - Bank details come from the confirmed HR-4 bank record and are never copied here.
+- **Pay item types** (clinic-entered): for example Basic salary, Fixed allowance, Overtime, Unpaid leave, Staff claim refund, Bonus, Other addition, Other deduction. Each has:
+  - whether it is earnings, a deduction or a refund;
+  - a Yes or No for each of EPF, SOCSO, EIS, MTD and HRD wages, because the clinic decides, for example, whether overtime counts for EPF.
+- **Statutory tables** (preparers enter, a second person checks). There is one kind of table, a **banded table**, which is enough for EPF, SOCSO, EIS and the HRD levy:
+  - each table has a name, a scheme, a category (for example SOCSO Category 1), the date it applies from and a source note (where the figures came from);
+  - its rows are wage bands (from and to, in sen) with an employee and an employer part, each either a fixed amount in sen or a rate in basis points;
+  - each table has a rounding rule: none, to the nearest sen, or up to the next ringgit.
+  - A table counts only once it is **Checked** by someone other than the person who entered it, and a checked version never changes; a correction is a new version.
+- **MTD (PCB) in v1:** the monthly MTD amount per person is **entered on the run, from the LHDN calculator or the accountant**, and checked with the run. KPOne does not compute MTD in v1: the formula needs reliefs, TP1 and TP3 forms and year-to-date figures that the clinic's accountant must design with us first (14.8).
+- **Rate settings** (clinic-entered, versioned): how a daily and an hourly rate are derived from a monthly salary (for example "basic ÷ 26 days" and "daily ÷ 8 hours"), used for overtime and unpaid leave. KPOne ships no divisor.
+- **Payroll runs** (HR-7b): pick a pay group and a month, and press **Prepare**. The draft lists each person's lines and totals, with every figure's source in words:
+  - "Overtime: 3 h 30 min × RM 12.50 × 1.5 (normal day, approved 4 Nov)";
+  - "Unpaid leave: 1 day × RM 96.15";
+  - "Staff claim SC-000012 refund";
+  - "EPF employee 11% of RM 2,500.00, rounded up".
+  - Warnings in words: "No confirmed pay profile", "No checked EPF table for this category", "MTD not entered", "Bank details waiting for confirmation".
+  - **Prepare again** recalculates the whole draft. **Send for approval** freezes it. The **approver**, who is never the preparer, reads the frozen run and presses **Approve**, or **Return** with a reason. **Lock** follows approval, and only a locked run gives payslips and exports.
+- **Payslips** (HR-7c): every person sees their own on My HR details. Each payslip shows:
+  - the clinic letterhead;
+  - the period;
+  - earnings, deductions and refunds;
+  - the employer contributions as information;
+  - the net pay, and the bank account masked to the last four.
+  - Printing uses the browser, white in every theme (PRINT-1). Opening a payslip is recorded.
+- **Exports** (HR-7c), from a locked run only, by an exporter. Each download writes its audit row first, and the file is never stored:
+  - the **bank file**, a clinic-chosen layout from a small list (generic CSV of name, bank, account, amount, reference; more layouts on request);
+  - the **accountant summary** CSV (totals by person and pay item type);
+  - both with the CSV safety rules: UTF-8 BOM, formula-neutralised cells, and the row cap and throttle of the reports.
+  - The **statutory summary** is on screen only, with totals per scheme to type into the portals by hand.
+
+### 14.3 Rules
+
+1. **Money:** integers in sen; rates in basis points (1100 = 11.00%); multipliers as hundredths (150 = 1.5x). Every
+   multiplication rounds once, at the step its table or setting names, and the rounding is shown on the line.
+2. **Statutory tables and pay profiles need two people.** The person who enters is never the one who checks or
+   confirms, and nobody confirms their own pay profile (service and PostgreSQL CHECK). Only checked tables and
+   confirmed profiles are used.
+3. **Effective dates:** a run uses the profile, table and setting versions in force on the last day of its month,
+   and the approval stores every version id it used, so a later version never changes an approved run.
+4. **Sources are only approved records:**
+   - overtime approved in HR-3b (minutes × hourly rate × the multiplier stored on the approval);
+   - unpaid leave approved in HR-2a, on leave types the clinic marks as unpaid;
+   - HR-3a worked minutes for hourly staff;
+   - staff claims approved in HR-6 and not yet paid.
+   - A staff claim paid through payroll is recorded as paid by the payroll run when the run is locked, through HR-6's own payment row (method Payroll), so it can never be paid twice.
+5. **Manual lines:** an addition or deduction with a pay item type, an amount and a reason code. They belong to the
+   draft and are frozen with it.
+6. **Approval:** the approver is never the preparer. A run prepared by the Director needs another Director, or the
+   HR Manager if the clinic allows it (14.10). A returned run goes back to Draft, and an approved run is locked and
+   never edited.
+7. **Corrections:** an adjustment run for the same month references the locked run. It holds only the differences
+   and goes through the same two-person approval. Payslips show the original and the adjustment separately.
+8. **Who sees what:**
+   - preparers and approvers see the salaries and lines of the runs they handle;
+   - exporters see the locked run's net pay per person, and the bank file;
+   - everyone sees only their own payslip.
+   - Salary never appears in Staff files lists, HR-4 tabs for other holders, audit or any other page.
+9. **Every write:** a fresh permission check under lock; `DB::transaction`; the run row locked (and the worker rows,
+   in id order); `lock_version`; an idempotency key; and audit with ids, codes, counts and version ids only, never
+   amounts. Payslip snapshots and amounts are encrypted at rest.
+10. **HR never blocks clinical work**, and no clinical, billing, Panel, cash-closing or Insights page reads payroll.
+
+### 14.4 Tables (sketch)
+
+| Table | Holds |
+|---|---|
+| `hr_pay_groups` | organisation, name, pay day, active |
+| `hr_pay_item_types` | organisation, name, kind earnings/deduction/refund, counts for EPF, SOCSO, EIS, MTD and HRD (Yes or No each), active |
+| `hr_pay_profiles` | worker, pay group, pay type, encrypted basic or hourly rate, schemes and categories, effective from, status waiting/confirmed/rejected/replaced, entered by, confirmed by and at |
+| `hr_pay_profile_items` | profile, pay item type, encrypted amount |
+| `hr_rate_settings` | append-only versions: daily and hourly divisors |
+| `hr_statutory_tables` | organisation, scheme, category, effective from, rounding rule, source note, status entered/checked/replaced, entered by, checked by |
+| `hr_statutory_table_rows` | table, wage from and to (sen), employee and employer part as fixed sen or basis points |
+| `hr_payroll_runs` | pay group, month, kind regular/adjustment, adjusts run, status draft/sent/approved/locked, prepared by, approved by, version ids used, `lock_version` |
+| `hr_payroll_lines` | run, worker, pay item type or scheme, encrypted amount, source kind and id, encrypted explanation |
+| `hr_payslips` | run, worker, encrypted snapshot, hash |
+| `hr_payroll_exports` | append-only audit of each download: run, layout, row count, by, time (no file) |
+| `hr_payroll_retries` | idempotency records |
+
+PostgreSQL:
+- the decider differs from the entrant for tables and profiles, and the approver from the preparer for runs (CHECK);
+- a checked table, a confirmed profile, a sent or approved run and its lines never change;
+- one regular run per pay group and month (unique);
+- one confirmed profile in force per worker and date;
+- payslips, exports, settings and table rows are append-only;
+- nothing is deleted or truncated;
+- every row belongs to one organisation.
+
+Migrations from `2026_11_10_002300`, with the grants in their own additive migration.
+
+### 14.5 Permissions
+
+| Permission | Holders |
+|---|---|
+| `hr.payroll.prepare.organisation` (profiles, tables, pay item types and settings, prepare runs; see salaries) | HR Manager, Director |
+| `hr.payroll.approve.organisation` (confirm profiles and check tables entered by someone else; approve, return and lock runs) | Director |
+| `hr.payroll.export.organisation` (bank file and accountant summary from locked runs; the statutory summary) | Director, Finance Officer |
+| `hr.payslips.view.own` (my payslips) | every human role, not the TV account |
+
+None is in the people-and-access authority set. Under rule 2, an HR Manager can enter a table that the Director
+checks, and the Director can enter one that the HR Manager checks only if the clinic allows it (14.10). A new hub
+link, "KPOne HR payroll", adds `/hr/payroll` to the Clinic management destination map, which is an
+existing-assertion change to approve when built. **Exports** are authorised by decision 7 ("a reviewed file") and
+follow the RPT-01 safety rules.
+
+### 14.6 Screens (Hui Min; Daniel's early look folded in)
+
+- One page, `/hr/payroll`, with tabs Runs, Pay profiles, Tables and Settings for preparers, and Exports for exporters. Payslips sit on My HR details for everyone.
+- **The accountant line** under the header on every payroll page: the shared muted component from HR-4, with these words.
+- **Runs:**
+  - one card per run, with its status chip: Draft neutral; Waiting for approval neutral; Approved success; Locked success with the date; Returned neutral with the reason.
+  - The run page is a table from 1024 px (person, earnings, deductions, refunds, employee contributions, net, warnings), with a total row, and cards below.
+  - Each person's row opens a side panel with every line and its source sentence.
+- **Warnings** are warning chips with words, listed at the top ("4 things to check before sending") and on each row.
+- **Tables:** a banded table is edited as rows (from, to, employee, employer) with right-aligned tabular-nums, a rounding select with help text, and the source note. A checked table is read-only, with "Checked by … on …".
+- **Pay profile:** amounts masked to "RM ••••" for anyone outside payroll, with no Show for them. For preparers the full amounts show, and a waiting change appears side by side ("Recorded: RM 2,500.00 · New: RM 2,700.00").
+- **Payslip:** one A4 layout, white in every theme, letterhead, period, earnings, deductions and refunds as three short tables, net pay in bold, the bank masked.
+- **Approve, Return and Lock** are outline buttons with the primary action in the dialog. "Lock" says what it means: "Locked runs make payslips and exports and can't be changed. Corrections need an adjustment run."
+- 44 px targets, no sideways scroll at 320, 390 and 768 px. Wide run tables scroll inside their own container.
+- **Daniel's early look (2026-11-06): OK with notes, folded in here:**
+  - **Money** uses Billing's shared `myr()` (`resources/js/types/billing.ts`) everywhere, so payroll and billing match exactly: "RM 2,500.00" with a thousands separator, and after BIL-9 a negative amount reads "−RM 1.50" with a true minus sign (Farah, 2026-11-06).
+  - **The run table** from 1024 px keeps the person column sticky while it scrolls inside its container (the UX-9 pattern), with the total row at the bottom.
+  - **Warnings and errors are told apart.** Warnings never stop sending, and the list says so ("Warnings don't stop you sending"). Anything that does stop sending, such as no confirmed pay profile, no checked table for a scheme in use, or MTD not entered for someone with MTD on, is an error in the destructive tone with its reason, and the disabled Send button says why.
+  - **The Lock dialog's** primary button is "Lock run", never red: locking is not deleting.
+  - **Masked amounts** "RM ••••" are read to screen readers as "Amount hidden".
+  - **Table editing:** each row's add and remove buttons are named ("Remove band 3"), and an overlap or gap error sits under the row it belongs to.
+  - **Exports:** before the download, a summary of what the file holds (run, period, number of people and total); afterwards a muted "Downloaded at 2:14 PM. Recorded." (the HR-4 Show pattern).
+  - **Payslip print:** an A4 `@page` margin of 15 to 20 mm, checked on images taken from a real A4 PDF; the period is written as "October 2026".
+  - **Empty states** for each tab: no runs yet; no tables checked (pointing to Tables); no payslips yet.
+- **Screenshots when built:**
+  - a statutory table being checked;
+  - a pay profile change waiting;
+  - a draft run with warnings;
+  - a person's line panel;
+  - a run waiting for approval as seen by its preparer;
+  - an approved and locked run;
+  - a payslip on screen and in print;
+  - the export page;
+  - all at 390 and 1440 px, light and dark.
+
+### 14.7 Tests (planned)
+
+- Grants for every role, the TV account refused, none in the authority set, and the hub map line to approve.
+- **Calculation golden files:** synthetic tables and profiles for a monthly and an hourly worker, with overtime on
+  each day type, unpaid leave, a claim refund, manual lines, each scheme and each rounding rule. Each expected figure
+  is written by hand in the test, never computed by the code under test.
+- Integer-only arithmetic, with a source scan that fails on float casts or `round()` on money in the payroll code.
+- The two-person rules for tables, profiles and runs (service and PostgreSQL); a checked or confirmed version never
+  changes; version ids are stored on approval, and a later version leaves an approved run unchanged.
+- A claim paid through payroll exactly once (HR-6 payment row), including a two-process race between locking the
+  run and a Finance payment of the same claim.
+- An adjustment run holds only the differences; a locked run and its payslips never change.
+- Payslips: own only, encrypted, the view recorded, the print white.
+- Exports: from locked runs only, audit before release, formula-neutralised, no stored file, the row cap and
+  throttle.
+- Visibility: salary absent from every other page payload (a scan), amounts never in audit.
+- Clinic money untouched: billing, Panel, cash closing and Insights tables compared before and after.
+
+### 14.8 What stays out
+
+- Any payment, bank API or bank-specific integration beyond the reviewed file.
+- Any filing with KWSP, PERKESO, LHDN or HRD Corp, and any outside HR or payroll product.
+- **MTD computed by KPOne** (a later slice HR-7d, designed with the accountant: reliefs, TP1, TP3, year-to-date and
+  additional remuneration).
+- Locum pay in KPOne, which v1 leaves outside (a later decision once locums can be rostered); EA forms and
+  year-end statements (a later slice); bonuses by formula; salary advances and loans.
+- The Director's and the HR Manager's own pay, which v1 keeps outside KPOne (option (a), TEAM.md decision 54): no
+  pay profile for them, and they are never in a run (service, PostgreSQL and page).
+- Accounting ledger entries; costs on the HR dashboard (HR-9 after HR-7).
+- Any real salary, statutory number or payslip before the accountant's sign-off and the PDPA review.
+
+### 14.9 Known risks
+
+- **Statutory correctness depends entirely on the tables the clinic enters.** The two-person check and the source
+  note reduce mistakes but cannot replace the accountant.
+- Hourly pay depends on HR-3a clock data, and a missing clock-out pays nothing until it is corrected.
+- Encrypted amounts cannot be summed in SQL, so totals are computed in PHP from decrypted lines. That is acceptable
+  for a clinic's headcount; the run page is not load-tested.
+
+### 14.10 Questions only the clinic can answer [TO CONFIRM] (most with the accountant)
+
+1. Pay groups and pay day? (Default: one monthly group, pay day entered by HR.)
+2. Who may approve runs? (Default: the Director only, never the preparer. A run the Director prepares needs another
+   Director; tell us if the HR Manager may approve one in that case.)
+3. Who checks statutory tables and confirms pay profiles? (Default: the Director, or the HR Manager when the
+   Director entered it.)
+4. Which pay items count for EPF, SOCSO, EIS, MTD and HRD? (Default: none until the clinic ticks them.)
+5. Daily and hourly rate divisors for overtime and unpaid leave? (Default: none shipped; the accountant enters them.)
+6. MTD: entered per person per run in v1 (default), with KPOne's own calculation later as HR-7d?
+7. Part-timers paid hourly from clock data (default yes); locums paid outside KPOne in v1 (default yes)?
+8. The bank file layout, and does Finance need the accountant summary? (Default: generic CSV, and yes.)
+9. Paper payslips: does HR print them for anyone? (Default: each person prints their own.)
+10. Date format on payslips and other HR prints (Daniel's question): the MC and drug label print "30/10/2026", while invoices and receipts print "30 Oct 2026". (Default: "30 Oct 2026", as on invoices and receipts, with the period as "October 2026".)
+
+## 15. HR-12 to HR-16: the five newly authorised items (design notes, drafts)
+
+Written 2026-11-06 after the owner authorised the five items that were not authorised ("all i want."; "the one that
+needed before real use i will provide later", relayed verbatim by B.E.R.N.I.S.S; TEAM.md decision 45). **Status:
+approved by the owner on 2026-11-06 ("approve all five HR notes for liyana"; TEAM.md decision 47); the 15.7 questions
+stay open.** Nothing in this section is built until (a) B.E.R.N.I.S.S's docs PR
+records the authorisation in `AGENTS.md` and `docs/BASELINE.md`, (b) the owner approves that slice's note, and (c)
+Daniel has had his look. **Scope: staff and HR only.** No note here sends anything to a patient or reads patient
+data; patient messaging stays a separate owner decision. **Synthetic data only** in every slice until the owner
+provides the PDPA review (and, where named, the leave policy and the accountant's confirmation).
+
+Shared rules for all five:
+- **Secrets** (API keys, tokens, webhook signing secrets) live in the environment's secret store and reach KPOne as
+  environment variables named in `.env.example` with empty placeholders. Never in code, in the database, in a commit
+  or in a real `.env` that the team opens. A missing key turns the feature off with a plain message; it never fails a
+  clinical or HR write.
+- **Every outside call** is made from a queued job or a short synchronous call with a timeout, never inside a
+  database transaction that holds row locks, and every attempt is logged with ids and status codes only.
+- **Every write** keeps the HR pattern: a fresh permission check under lock, `DB::transaction`, row locks,
+  `lock_version`, idempotency keys and audit with ids and codes only.
+- **HR never blocks clinical work**, and nothing here is read by a clinical, billing or Panel screen.
+
+### 15.1 HR-12 Outside HR product link (smallest; first)
+
+- **Question first (for the owner):** which product, and does it have a documented API? The proposal names
+  MySyarikat-style features, not a specific integration. **If there is no API, there is no live link**: KPOne offers
+  a reviewed **file export and import** instead.
+- **Direction (default):** KPOne → the outside product only, one way, for the data the clinic names (default: staff
+  list with employment type and dates, approved leave days, approved overtime minutes; never identity numbers, bank
+  details or documents unless the owner and the PDPA review say so). Nothing flows back into KPOne in v1, so KPOne
+  stays the source for what it holds.
+- **With an API:** the credentials (client id and secret, or token) are held by a named person the owner chooses,
+  entered in the environment's secret store; a Director turns the link on; each send is a queued job with a retry
+  limit, logged with counts only; a failed send never changes HR data.
+- **Without an API (file):** a CSV export in the product's import format, made on request by the Director or HR
+  Manager, audited (filters and row count), formula-safe, at most 5,000 rows, never stored, plus an optional
+  import preview that **shows** differences and changes nothing.
+- **Tests:** the export's exact columns, formula neutralising, row cap, audit, and that no identity or bank value is
+  in the file by default; with an API, a fake HTTP client proves timeouts and failures change nothing.
+
+### 15.2 HR-13 Job application intake (KPOne's first public intake)
+
+- **What:** a public "Apply" form for open positions; applications land in a private HR list; HR moves an
+  application through New, Shortlisted, Interview, Offered, Not taken forward, Withdrawn. Turning an applicant into
+  staff is still done by the account administrator through `StaffProvisioningService`; HR-13 creates no account.
+- **Where:** the careers pages are static today (W1b drafts; the website is not published from KPOne). v1 serves the
+  form from KPOne at a public route, like the QR check-in, linked from the careers page later. **Turned off by
+  default** (`HR_APPLICATIONS_ENABLED=false` in `.env.example`) until the privacy notice is approved.
+- **Protection:** per-IP and per-form rate limits, a honeypot field and a minimum fill time, a short-lived signed
+  form token, server-side validation as the only authority, file upload checked by content (PDF only, at most 5 MB,
+  one CV), re-encoded or stored encrypted on the private disk, no original file name kept, and no file ever served
+  publicly. No CAPTCHA service in v1 (it would be an outside call); the owner may choose one later.
+- **Privacy:** a privacy notice version shown and recorded with each application (draft until the owner's legal
+  check), the minimum fields (name, phone, email, position, short message, CV), encrypted at rest, deleted after a
+  clinic-entered retention (no number shipped), never used for marketing. A thank-you page shows no data back.
+- **Permissions:** `hr.applications.manage.organisation` (Director, HR Manager). Every CV view is audited before any
+  byte is sent.
+- **Tests:** rate limits, honeypot and timing, file checks, the switch off by default, audit before release, no
+  account created, and retention purge.
+
+### 15.3 HR-14 Staff messages: WhatsApp, SMS, email and OTP (foundation for HR-15)
+
+- **Provider (owner to choose):** one provider per channel, for example an email service, an SMS gateway and the
+  WhatsApp Business Platform through a provider. **The owner (or a person they name) holds each account**; KPOne
+  holds only the API key, in the environment's secret store. WhatsApp needs approved message templates and a
+  business number; this takes days with Meta and is outside KPOne.
+- **Cost:** shown per message type in the settings page from a clinic-entered price per message; a monthly count
+  per channel on the dashboard; a monthly cap per channel after which KPOne stops sending and says so.
+- **Opt-in and opt-out:** each staff member chooses channels on My HR details (default: nothing on, in-KPOne
+  notices only); every SMS and WhatsApp carries a stop instruction; a "stop" reply or an opt-out in KPOne turns that
+  channel off at once. OTP for sign-in (HR-15) is the one message sent without a marketing opt-in, and only to the
+  number on the person's own account.
+- **What is sent:** fixed templates only, with no free text from KPOne users in v1: "Your leave request was
+  approved", "A shift was added on 8 Mar", "Your payslip for October 2026 is ready in KPOne", "Your KPOne code is
+  123456". **No patient data, no clinical text, no amounts of money and no identity or bank values in any message**;
+  a template lint test refuses them.
+- **What is stored:** a delivery row per message (template code, channel, recipient user id, provider message id,
+  status, timestamps); never the rendered text for SMS or WhatsApp beyond the template code and its placeholder ids;
+  provider webhooks verified by signature and recorded by status only.
+- **OTP:** six digits, hashed at rest, valid 5 minutes, at most 5 tries and 3 sends per 15 minutes per account,
+  never logged, never shown to staff.
+- **Tests:** template lint (no patient or money fields), opt-out stops sending, caps stop sending, a fake provider
+  proves failures never change HR data, webhook signatures checked, OTP limits.
+
+### 15.4 HR-15 Locum portal (needs HR-14 for OTP)
+
+- **Accounts:** a locum gets a KPOne sign-in only when HR asks and the account administrator creates it through
+  `StaffProvisioningService` (public registration stays disabled; an unknown identity never creates a user; Google
+  sign-in only for an existing active account). A new narrow role, `locum`, links the account to the HR-4a locum
+  file.
+- **What a locum sees:** their own roster shifts (HR-1 extended to roster locums with an account), open locum shifts
+  the clinic offers, and their own claims and payslips if HR-6 and HR-7 apply to them. Nothing clinical by
+  implication: any clinical permission for a locum doctor is a separate explicit role decision (AGENTS.md).
+- **Sign-in:** password (the existing rules) or a one-time code by SMS or WhatsApp to the account's own number
+  (HR-14). Sessions follow the existing timeout and inactive-account rules.
+- **Open shifts:** HR posts an open shift; a locum asks to take it; a manager who is not the locum confirms; the
+  confirmed shift joins the next roster draft. No automatic assignment.
+- **Tests:** no self-registration path, role permissions exact, a locum sees only their own data, OTP limits, and a
+  confirmed open shift never lands in an approved roster without approval.
+
+### 15.5 HR-16 Selfie or location at clock-in (riskiest under PDPA; last)
+
+- **This is the riskiest item in KPOne HR.** A selfie is biometric-adjacent personal data and a location is
+  sensitive; both need the PDPA review the owner will provide **before any real staff use**, a written purpose, a
+  consent text and a retention the clinic sets. The team will not turn either on for real staff before that.
+- **Off by default, per branch:** a Director turns on "photo at clock-in" and/or "location check at clock-in" for one
+  branch at a time, with the consent text shown to staff first.
+- **Selfie:** taken in the browser at the moment of the press, re-encoded, stored encrypted on the private disk,
+  never used for face matching (no biometric template, no outside face service), seen only by the HR Manager and
+  Director on a disputed day, each view audited, deleted after a short clinic-set retention (default suggestion 30
+  days, shipped as a suggestion only).
+- **Location:** read once in the browser at the moment of the press and compared with the branch geofence (centre
+  and radius entered by the Director); KPOne stores only "inside", "outside" or "not available" and the accuracy
+  band, **never the coordinates**, and never tracks anyone before or after.
+- **Fallback:** refusing the camera or location, or a GPS failure, never blocks the clock-in; the session is marked
+  "no photo" or "location not checked" and appears on Review, where a manager may ask the person.
+- **Tests:** off by default, coordinates never stored, selfie encrypted and purged on retention, every view audited,
+  a refusal still clocks in, and nothing in HR-3a's rules changes when both are off.
+
+### 15.6 Proposed order (owner to confirm)
+
+After HR-4b, HR-5a to HR-5c, HR-6 and HR-7: HR-12 (smallest; may become a file export), HR-13 (public intake, its own
+privacy notice), HR-14 (messages; HR-15 depends on it), HR-15 (locum portal), HR-16 (selfie and location; last,
+riskiest). HR-14 could come earlier if the owner wants staff reminders for leave and claims sooner; the cost is
+setting up provider accounts first.
+
+### 15.7 Questions only the owner can answer [TO CONFIRM]
+
+1. Which outside HR product, and who has its admin login? Does it have an API?
+2. Which providers for email, SMS and WhatsApp, and who holds each account?
+3. The monthly message cap and the price per message to show.
+4. Applications: which positions, how long applications are kept, and who approves the privacy notice.
+5. Locums: which locums get a sign-in, and may a locum doctor's account ever get clinical permissions?
+6. Selfie and location: which branch first, the geofence radius, the retention, and the consent text (after the PDPA
+   review).
+
+## 16. HR-7b payroll runs: design note
+
+Written 2026-11-06 after HR-7a (#376). It works out the runs part of section 14 in detail and changes no HR-1 to
+HR-7a rule. **Status: approved by B.E.R.N.I.S.S for the owner (2026-11-06, under the owner's delegation that day),
+with the defaults in 16.11 (TEAM.md decision 56); built in HR-7b (PR #379).** 16.13 records what was decided while building it.
+Everything below is synthetic until the accountant's sign-off and the PDPA review. The accountant line stays on every
+payroll page. The defaults are not an accountant's sign-off.
+
+### 16.1 Scope
+- **A monthly run per pay group:**
+  - Draft (prepare and prepare again);
+  - Sent for approval (frozen);
+  - Approved by someone else;
+  - Locked.
+  - A returned run goes back to Draft with its reason.
+- **An adjustment run** for a locked month holds only the differences and goes through the same steps.
+- **Not in HR-7b:**
+  - payslips and the bank, accountant and statutory exports (HR-7c);
+  - MTD computed by KPOne (HR-7d);
+  - EA forms;
+  - any payment or filing.
+- **Who is in a run:**
+  - **Managers' own pay stays outside KPOne** (option (a), decided by B.E.R.N.I.S.S for the owner). A run never includes a Director or HR Manager, and the run page says so.
+  - Locums stay outside.
+
+### 16.2 What a run reads
+Only approved records, as of the month's last day (the branch-local calendar of the worker's primary branch):
+
+| Source | What becomes a line |
+|---|---|
+| Confirmed HR-7a pay profile in force on the last day | basic salary (monthly) or the hourly rate, and each fixed allowance |
+| HR-4 employment periods | the days employed in the month, for joiners and leavers (16.3) |
+| HR-3b overtime approved in the month | minutes × hourly rate × the multiplier stored on its approval's setting |
+| HR-2a leave approved in the month, on types with `is_paid` = false | days (half days allowed) × daily rate, as a deduction |
+| HR-3a worked minutes in the month (hourly staff) | minutes × hourly rate |
+| HR-6 claims approved and not yet paid | a refund line ("Staff claim SC-000012 refund") |
+| Manual lines | an addition or deduction with a pay item type, an amount and a reason code |
+
+The pay group's name and pay day are copied onto the run when it is prepared (Suresh, HR-7a M3).
+
+### 16.3 Calculation (whole sen, integer arithmetic only)
+1. **Derived rates are kept as exact fractions:**
+   - daily rate = basic ÷ the daily divisor;
+   - hourly rate = the daily rate ÷ the hourly divisor.
+   - A line is rounded once, half up to the nearest sen, and the line shows the rounding. Nothing is rounded twice.
+2. **Joiners and leavers:** basic and allowances are pro rata by calendar days employed ÷ days in the month, rounded down to the sen. **[TO CONFIRM with the accountant]**
+3. **The wage for each scheme** is basic, plus every line whose pay item type counts for that scheme, minus unpaid leave if its type counts. **Basic always counts** for every scheme the profile has. **[TO CONFIRM]**
+4. **Statutory parts:**
+   - find the band holding the wage in the checked table in force on the last day;
+   - a rate part is wage × basis points ÷ 10000, rounded by the table's rule;
+   - a fixed part is taken as written;
+   - the employer part is shown as information.
+5. **Choosing the table:**
+   - **EPF and SOCSO:** the profile's category must match a checked table's category, ignoring case.
+   - **EIS and HRD:** v1 needs exactly one checked table in force for the scheme, with any category; two in force is an error (Suresh, HR-7a M3).
+   - HR-7b also warns at profile entry when no entered or checked table has the typed EPF or SOCSO category.
+6. **MTD:** entered per person on the draft in RM, from the LHDN calculator or the accountant. It is required when the profile has MTD on.
+7. **Net pay** = earnings − the employee's statutory parts − MTD − deductions + refunds.
+
+### 16.4 Errors (stop sending) and warnings (never stop sending)
+- **Errors:**
+  - no confirmed profile for someone in the group;
+  - no checked table for a scheme in use, or two for EIS or HRD;
+  - MTD missing where it is on;
+  - no rate settings while overtime or unpaid-leave lines exist;
+  - net pay below zero.
+  - The disabled Send button says which.
+- **Warnings:**
+  - bank details missing or waiting for confirmation;
+  - an hourly worker with a clock-in that has no clock-out;
+  - a claim older than 90 days.
+  - "Warnings don't stop you sending."
+
+### 16.5 Freezing, approval and locking
+- **Freezing.** Send for approval freezes the run and stores every version it used:
+  - profile ids and item-type versions;
+  - table ids and the rate-settings version;
+  - the copied pay group;
+  - each line's source kind and id.
+  - A later change to a source never changes a sent run. Prepare again works only in Draft.
+- **Approval.** The approver is never the preparer (CHECK). The Director approves; a run prepared by the Director needs another Director (14.10 item 2 default).
+- **Locking:**
+  - the approver locks;
+  - only a locked run will give payslips and exports (HR-7c);
+  - on lock, each HR-6 claim in the run gets HR-6's own payment row with method Payroll, so it is never paid twice;
+  - if the locker is that claim's claimant or approver, the lock is refused and names the claim;
+  - a two-process race test covers a lock against a Finance payment of the same claim.
+  - This adds `payroll` to the HR-6 payment method CHECK in a new HR migration.
+
+### 16.6 Corrections
+An adjustment run references the locked run and holds only the differences, with the same two-person steps. One open adjustment per run at a time. A locked run and its lines never change.
+
+### 16.7 Tables (sketch)
+| Table | Holds |
+|---|---|
+| `hr_payroll_runs` | pay group, month, kind regular/adjustment, adjusts run, status, preparer, approver, locker, copied group name and pay day, version ids used, `lock_version` |
+| `hr_payroll_run_people` | run, worker, profile id, encrypted MTD, encrypted totals |
+| `hr_payroll_lines` | run, worker, item type and version or scheme, encrypted amount, source kind and id, encrypted explanation |
+| `hr_payroll_run_actions` | append-only: prepared, sent, returned (reason), approved, locked |
+
+Retries are the shared `hr_record_retries`.
+
+**PostgreSQL rules:**
+- the approver is not the preparer;
+- one regular run per pay group and month;
+- a sent, approved or locked run and its lines never change;
+- statuses move draft → sent → approved → locked, and sent or approved back to draft (16.13);
+- nothing is deleted or truncated;
+- one organisation throughout.
+
+Migrations from `2026_11_10_002500`.
+
+### 16.8 Permissions
+The existing `hr.payroll.prepare.organisation` and `hr.payroll.approve.organisation`. No new grant and no hub change.
+
+### 16.9 Screens (Hui Min, HR-PLAN 14.6 and Daniel's early look)
+- **Runs tab:** one card per run with a worded status chip.
+- **The run page:**
+  - a table from 1024 px (person, earnings, deductions, refunds, employee contributions, net, warnings) with a sticky person column inside its own scrolling container, and a total row;
+  - cards below 1024 px;
+  - each person opens a side panel of lines, each with its source sentence ("Overtime: 3 h 30 min × RM 12.50 × 1.5 (normal day, approved 4 Nov)").
+- **Errors and warnings:** errors are in the destructive tone with their reason, and warnings are worded chips.
+- **Lock dialog:** the primary button is "Lock run", never red.
+
+### 16.10 Tests (planned)
+- Golden files written by hand: a monthly and an hourly worker, overtime on each day type, unpaid leave, a joiner, a claim refund, manual lines, each scheme and each rounding rule.
+- A source scan that fails on a float cast or `round()` on money.
+- Two-person and freeze rules (service and PostgreSQL).
+- A later version leaves a sent run unchanged.
+- A claim paid once, including the lock-against-Finance race.
+- An adjustment run holds only the differences.
+- Managers and locums are never in a run.
+- No amount reaches audit or the session.
+- Clinic money tables are identical before and after.
+
+### 16.11 Questions [TO CONFIRM] and the defaults used meanwhile
+1. Pro rata for joiners and leavers: calendar days (default) or working days?
+2. Does basic always count for every scheme on the profile? (Default yes.)
+3. Rounding of derived rates: one half-up rounding per line (default).
+4. Who locks: the approver (default).
+5. Rate settings and item-type scheme flags change pay with one person (Suresh, HR-7a M4). Default: the run shows who set each version, with no second person in v1.
+6. A claim whose claimant or approver is the locker: the lock is refused and names the claim (default).
+
+### 16.12 Known risks and limits
+- Statutory correctness depends entirely on the tables the clinic enters.
+- Hourly pay depends on HR-3a clock data.
+- Encrypted amounts are totalled in PHP, and the run page is not load-tested.
+- When a person drops out of a run (for example their profile moved group), their MTD and manual lines drop out
+  without notice (Suresh, M2).
+- An approver deactivated at the very moment another approver takes a draft step can leave a run with no approver;
+  reactivating them or adding an approver recovers it.
+- The only-approver message names the HR Manager, so a clinic with one Director and no active HR Manager cannot
+  prepare a run.
+- Approval does not lock claim rows, so Finance can still pay a claim between approve and lock; the lock is then
+  refused and the approver sends the run back.
+
+### 16.13 Decided while building HR-7b (B.E.R.N.I.S.S for the owner, 2026-11-06)
+- **Pay item types used by runs:** a versioned setting in HR-7b's own tables names the pay item type a run uses for
+  overtime, unpaid leave and staff claim refunds, so each line knows which schemes it counts for.
+- **Adjustment runs hold manual difference lines only** in v1, with a reason per line. A negative net on an
+  adjustment is a warning, never an error, since a recovery is negative by nature (Suresh, S2).
+- **Sending back:** a sent or approved run goes back to Draft with a reason; from approved, only its approver sends
+  it back (Suresh, B1). The claim checks run before approval as well as at lock, so a run never reaches a lock
+  nobody may take.
+- **Every prepare step counts:** anyone who prepared any part of a run (prepare, prepare again, MTD, manual lines)
+  never approves, sends back or locks it; `prepared_by` stays the first preparer (Suresh, S1).
+- **The only approver left never prepares** (Suresh, S6, option (a)): while no other active approver who has not
+  prepared the run would be left, an approve-holder's draft steps are refused with "You are the only person left
+  who can approve this run, so the HR Manager makes this change.", and Prepare run with "You are the only person
+  left who can approve payroll runs, so the HR Manager prepares them."
+- **HR-6:** a claim paid through payroll shows the method "Payroll", which Finance never chooses in Record payment;
+  reversing it is refused with "Paid through a locked payroll run. Correct it with an adjustment run." The HR-6
+  migration change only adds `payroll` to the method CHECK; no HR-6 assertion changed.
+- **Tabs:** Runs is a tab on `/hr/payroll`; Pay profiles stays the default. The one existing-assertion change is in
+  `PayrollSetupTest` (`payroll.tabs` gains `runs`).
+- **Daniel's look:** Lock run is the primary step and never red, with the Lock confirm in the standard tone; phone
+  cards read "Employee contributions" and show Refunds when not zero.

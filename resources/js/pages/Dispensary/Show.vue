@@ -7,9 +7,11 @@ import {
     Plus,
     Printer,
     RotateCcw,
+    ScanLine,
     Trash2,
+    TriangleAlert,
 } from '@lucide/vue';
-import { computed, reactive, ref, watch } from 'vue';
+import { computed, nextTick, reactive, ref, watch } from 'vue';
 import ScanInput from '@/components/inventory/ScanInput.vue';
 import { Button } from '@/components/ui/button';
 import { PageHeader } from '@/components/ui/page-header';
@@ -20,6 +22,7 @@ import {
     checkedCount,
     isChecked,
     keepCurrentMarks,
+    scanAddOutcome,
     scannableCount,
 } from '@/lib/dispensary-scan';
 import type { ScanCheckLine, ScanMarks } from '@/lib/dispensary-scan';
@@ -706,6 +709,8 @@ const csrf = () =>
             ?.split('=')[1] ?? '',
     );
 const searchMedicines = async () => {
+    clearScanAdd();
+
     if (searchTerm.value.trim().length < 2) {
         results.value = [];
 
@@ -743,6 +748,134 @@ const chooseMedicine = (medicine: Medicine) => {
         medicine.availability.findIndex((stock) => !stock.held),
     );
     addForm.fefoReason = '';
+};
+// DSP-12: scan to find a medicine to add (find only; the CA still sets quantity and batch and presses Add).
+const scanAddOpen = ref(false);
+const scanAddMessage = ref('');
+const scanAddAllergy = ref(false);
+// Only the newest scan's answer counts; an earlier, slower lookup is ignored (Hakim, DSP-12).
+let scanAddGeneration = 0;
+const clearScanAdd = () => {
+    scanAddMessage.value = '';
+    scanAddAllergy.value = false;
+};
+const focusScanAddButton = async () => {
+    await nextTick();
+    document
+        .querySelector<HTMLButtonElement>('[data-action="scan-to-add"]')
+        ?.focus();
+};
+const openScanAdd = async () => {
+    scanAddOpen.value = !scanAddOpen.value;
+
+    if (scanAddOpen.value) {
+        await nextTick();
+        document.getElementById('scan-dispensary-add')?.focus();
+    }
+};
+const closeScanAdd = () => {
+    scanAddOpen.value = false;
+    void focusScanAddButton();
+};
+// Typed directions on the medicine being added are never replaced by a scan.
+const addFormHasTyping = () =>
+    chosen.value !== null &&
+    [
+        addForm.dosage,
+        addForm.frequency,
+        addForm.duration,
+        addForm.route,
+        addForm.instruction,
+        addForm.precaution,
+    ].some((value) => value.trim() !== '');
+const pickMedicine = (medicine: Medicine) => {
+    clearScanAdd();
+    chooseMedicine(medicine);
+};
+const scanToAdd = async (sku: ScannedSku) => {
+    if (busy.value) {
+        scanAddAllergy.value = false;
+        scanAddMessage.value = 'Wait for the save to finish, then scan again.';
+
+        return;
+    }
+
+    if (addFormHasTyping()) {
+        scanAddAllergy.value = false;
+        scanAddMessage.value =
+            'Finish or cancel the medicine you are adding first, then scan again.';
+
+        return;
+    }
+
+    const generation = ++scanAddGeneration;
+    scanAddAllergy.value = false;
+    scanAddMessage.value = 'Finding the medicine…';
+    searching.value = true;
+
+    try {
+        const response = await fetch(
+            `/dispensary/${props.dispensary.publicId}/medicines/by-sku`,
+            {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Accept: 'application/json',
+                    'X-XSRF-TOKEN': csrf(),
+                },
+                body: JSON.stringify({ sku: sku.public_id }),
+            },
+        );
+        const medicines = response.ok
+            ? ((await response.json()) as { data: Medicine[] }).data
+            : null;
+
+        if (generation !== scanAddGeneration || busy.value) {
+            return;
+        }
+
+        if (medicines === null) {
+            scanAddMessage.value = 'Lookup failed. Try again.';
+
+            return;
+        }
+
+        const outcome = scanAddOutcome(medicines, sku);
+
+        if (outcome.kind === 'choose') {
+            results.value = [outcome.medicine];
+            chooseMedicine(outcome.medicine);
+            scanAddMessage.value = outcome.message;
+            scanAddOpen.value = false;
+            await nextTick();
+            document
+                .querySelector<HTMLInputElement>('[data-field="add-quantity"]')
+                ?.focus();
+        } else if (outcome.kind === 'list') {
+            chosen.value = null;
+            results.value = outcome.medicines;
+            scanAddMessage.value = outcome.message;
+            scanAddAllergy.value = outcome.allergy;
+            await nextTick();
+            document
+                .querySelector<HTMLButtonElement>(
+                    '[data-action="choose-medicine"]:not([disabled])',
+                )
+                ?.focus();
+        } else {
+            results.value = [];
+            scanAddMessage.value = outcome.message;
+        }
+    } catch {
+        if (generation === scanAddGeneration) {
+            scanAddMessage.value = 'Lookup failed. Try again.';
+        }
+    } finally {
+        if (generation === scanAddGeneration) {
+            searching.value = false;
+        }
+    }
 };
 const refreshChosen = async (publicId: string) => {
     await searchMedicines();
@@ -1552,10 +1685,10 @@ const inputClass = 'mt-1 h-9 w-full rounded-md border px-2';
                     >
                         Add a medicine
                     </h2>
-                    <div class="flex gap-2">
+                    <div class="flex flex-wrap gap-2">
                         <input
                             v-model="searchTerm"
-                            class="h-9 w-full max-w-sm rounded-md border px-2"
+                            class="h-9 w-full rounded-md border px-2 sm:max-w-sm"
                             placeholder="Search medicine name or code"
                             aria-label="Search medicine"
                             data-field="medicine-search"
@@ -1565,10 +1698,66 @@ const inputClass = 'mt-1 h-9 w-full rounded-md border px-2';
                             size="sm"
                             variant="outline"
                             :disabled="searching || busy"
+                            class="flex-1 sm:flex-none"
                             @click="searchMedicines"
                             ><Plus class="size-4" />Search</Button
                         >
+                        <Button
+                            size="sm"
+                            variant="outline"
+                            class="flex-1 sm:flex-none"
+                            :disabled="busy"
+                            :aria-expanded="scanAddOpen"
+                            :aria-controls="
+                                scanAddOpen ? 'scan-add-panel' : undefined
+                            "
+                            data-action="scan-to-add"
+                            @click="openScanAdd"
+                            ><ScanLine class="size-4" />Scan to add</Button
+                        >
                     </div>
+                    <div
+                        v-if="scanAddOpen"
+                        id="scan-add-panel"
+                        class="mt-2 grid gap-1"
+                        @keydown.esc="closeScanAdd"
+                    >
+                        <ScanInput
+                            context="dispensary-add"
+                            refocus-key="dispensary-add"
+                            :describe="() => ''"
+                            data-testid="dispensary-scan-add"
+                            @found="scanToAdd"
+                        />
+                        <Button
+                            size="sm"
+                            variant="outline"
+                            class="justify-self-start"
+                            data-action="close-scan-add"
+                            @click="closeScanAdd"
+                            >Close scan</Button
+                        >
+                    </div>
+                    <p
+                        v-if="scanAddAllergy"
+                        role="alert"
+                        class="mt-2 flex items-start gap-2 rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 font-medium text-destructive"
+                        data-testid="scan-add-allergy"
+                    >
+                        <TriangleAlert
+                            class="mt-0.5 size-4 shrink-0"
+                            aria-hidden="true"
+                        /><span>{{ scanAddMessage }}</span>
+                    </p>
+                    <p
+                        v-else-if="scanAddMessage"
+                        role="status"
+                        aria-live="polite"
+                        class="mt-2 text-xs text-muted-foreground"
+                        data-testid="scan-add-status"
+                    >
+                        {{ scanAddMessage }}
+                    </p>
                     <ul
                         v-if="!chosen && results.length"
                         class="mt-2 divide-y rounded-md border"
@@ -1597,7 +1786,7 @@ const inputClass = 'mt-1 h-9 w-full rounded-md border px-2';
                                 variant="outline"
                                 :disabled="!medicine.availability.length"
                                 data-action="choose-medicine"
-                                @click="chooseMedicine(medicine)"
+                                @click="pickMedicine(medicine)"
                                 >{{
                                     medicine.availability.length
                                         ? 'Choose'
@@ -1609,6 +1798,7 @@ const inputClass = 'mt-1 h-9 w-full rounded-md border px-2';
                     <p
                         v-else-if="
                             !chosen &&
+                            !scanAddMessage &&
                             searchTerm.trim().length >= 2 &&
                             !searching &&
                             !results.length

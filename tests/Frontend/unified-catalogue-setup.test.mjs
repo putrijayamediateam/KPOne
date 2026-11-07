@@ -60,7 +60,7 @@ test('Clinical Service setup offers reusable categories, self-pay and panel tari
     const source = read('resources/js/pages/ClinicalService/Index.vue');
     const money = read('resources/js/lib/money.ts');
 
-    assert.match(source, /type="service_category"/);
+    assert.match(source, /serviceCategories/);
     assert.match(source, /self_pay_rm/);
     assert.match(source, /panel_default_rm/);
     assert.match(source, /rmToSen\(data\.prices\.self_pay_rm\)/);

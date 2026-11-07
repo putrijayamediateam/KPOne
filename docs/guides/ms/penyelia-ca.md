@@ -92,7 +92,7 @@ Aliran lama “Stocktake” dan “Manual Adjustment” telah ditutup. Gunakan �
 1. Buka “Clinic management” > “Inventory & services” > “Medicine Catalogue”.
 2. Pada baris ubat, buka menu “…” dan pilih “Drug groups”. Masukkan satu kumpulan ubat setiap baris (maksimum 10, contohnya Penicillins atau NSAIDs) dan pilih “Save”. Amaran alahan di farmasi turut menyemak kumpulan ini.
 3. Kumpulan ubat perlu disemak dengan rujukan yang boleh dipercayai; KPOne tidak menentukannya. Jangan keliru dengan medan “Group” dalam dialog “Edit medicine”.
-4. Untuk ubat terkawal, buka menu “…”, pilih “Mark controlled”, kemudian “Mark”. Label (termasuk cetakan semula) akan mencetak “Ubat Terkawal / Controlled Medicine”. Untuk membuang tanda, pilih “Unmark controlled” dan “Remove mark”.
+4. Untuk ubat terkawal, buka menu “…”, pilih “Mark controlled”, kemudian “Mark”. Label (termasuk cetakan semula) akan mencetak “Ubat Terkawal/Controlled Medicine” di bawah sempadan label. Untuk membuang tanda, pilih “Unmark controlled” dan “Remove mark”.
 
 Senarai kumpulan ubat dan ubat terkawal perlu disemak oleh ahli farmasi sebelum digunakan: [PERLU DISAHKAN].
 

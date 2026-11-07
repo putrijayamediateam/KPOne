@@ -23,6 +23,7 @@ use App\Http\Requests\ConfirmOtcAllergyRequest;
 use App\Http\Requests\DispensaryCaseActionRequest;
 use App\Http\Requests\EditDispensaryItemRequest;
 use App\Http\Requests\EditDispensaryServiceLineRequest;
+use App\Http\Requests\FindDispensaryMedicineBySkuRequest;
 use App\Http\Requests\OpenOtcDispensaryRequest;
 use App\Http\Requests\RemoveDispensaryItemRequest;
 use App\Http\Requests\RemoveDispensaryServiceLineRequest;
@@ -91,6 +92,12 @@ class DispensaryController extends Controller
         Inertia::flash('toast', ['type' => 'success', 'message' => 'Allergy added.']);
 
         return to_route('dispensary.show', $dispensaryCase);
+    }
+
+    /** DSP-7b: returns at the active branch waiting for a check, for the people who may check them. */
+    public function returnsToCheck(Request $request, DispensaryReturnService $returns): Response
+    {
+        return Inertia::render('Dispensary/ReturnsToCheck', ['returns' => $returns->waitingList($request->user(), (int) $request->query('page', '1'))]);
     }
 
     /** DSP-7: record medicine a patient brought back on one line of a completed case. Moves no stock. */
@@ -181,6 +188,12 @@ class DispensaryController extends Controller
     public function searchMedicines(SearchDispensaryMedicinesRequest $request, DispensaryCase $dispensaryCase, DispensaryDirectoryService $directory): JsonResponse
     {
         return response()->json(['data' => $directory->searchMedicines($request->user(), $dispensaryCase, $request->validated('query'))]);
+    }
+
+    /** DSP-12: the medicine mapped to a scanned SKU, shaped like a search result; nothing is added. */
+    public function medicinesForSku(FindDispensaryMedicineBySkuRequest $request, DispensaryCase $dispensaryCase, DispensaryDirectoryService $directory): JsonResponse
+    {
+        return response()->json(['data' => $directory->medicinesForSku($request->user(), $dispensaryCase, $request->validated('sku'))]);
     }
 
     public function addService(AddDispensaryServiceLineRequest $request, DispensaryCase $dispensaryCase, DispensaryService $service): RedirectResponse
