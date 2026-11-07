@@ -64,6 +64,7 @@ const name = (copy: IssuedCopy) =>
 <template>
     <section
         class="@container space-y-2 border-t pt-3"
+        id="issued-copies"
         data-testid="issued-copies"
     >
         <div>
