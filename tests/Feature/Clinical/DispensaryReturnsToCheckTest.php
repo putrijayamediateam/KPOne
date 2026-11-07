@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Clinical;
 
+use App\Domain\Access\BranchAccessService;
 use App\Domain\Clinical\Dispensary\Models\DispensaryCase;
 use App\Domain\Clinical\Dispensary\Models\DispensaryReturn;
 use App\Domain\Clinical\Dispensary\Models\DispensaryReturnCheck;
@@ -120,7 +121,7 @@ class DispensaryReturnsToCheckTest extends VisitTestCase
 
     public function test_a_ca_supervisor_of_another_organisation_never_sees_these_returns(): void
     {
-        $this->waiting();
+        $w = $this->waiting();
         $foreign = Organisation::query()->create(['code' => 'DSP13_FOREIGN', 'name' => 'Synthetic Foreign Organisation']);
         DB::table('departments')->insert(['organisation_id' => $foreign->id, 'code' => 'DSP13_FOREIGN', 'name' => 'Synthetic Foreign Department', 'is_active' => true, 'created_at' => now(), 'updated_at' => now()]);
         $foreignBranch = (new Branch)->forceFill(['organisation_id' => $foreign->id, 'code' => 'DSP13_FOREIGN', 'name' => 'Synthetic Foreign Branch', 'timezone' => 'Asia/Kuala_Lumpur', 'is_active' => true]);
@@ -130,6 +131,13 @@ class DispensaryReturnsToCheckTest extends VisitTestCase
 
         $this->get(route('dispensary.returns-to-check'))->assertOk()
             ->assertInertia(fn (Assert $page) => $page->where('returns.total', 0)->where('returns.branchName', $foreignBranch->name));
+
+        // Pointing the session at this organisation's branch does not select it: the page stays on the outsider's
+        // own branch, and no patient from this organisation reaches the page.
+        session([BranchAccessService::SESSION_KEY => $w['f']['visit']->branch_id]);
+        $response = $this->get(route('dispensary.returns-to-check'))->assertOk()
+            ->assertInertia(fn (Assert $page) => $page->where('returns.total', 0)->where('returns.branchName', $foreignBranch->name));
+        $this->assertStringNotContainsString($w['f']['visit']->patient->full_name, (string) $response->getContent());
     }
 
     public function test_a_recorder_the_viewer_may_not_see_shows_as_staff_member(): void
@@ -143,7 +151,9 @@ class DispensaryReturnsToCheckTest extends VisitTestCase
             ->update(['valid_until' => now()->subDays(2)->toDateString()]);
         $response = $this->get(route('dispensary.returns-to-check'))
             ->assertInertia(fn (Assert $page) => $page->where('returns.rows.0.recordedBy', 'Staff member'));
-        $this->assertStringNotContainsString(e($w['f']['ca']->name), (string) $response->getContent());
+        $content = (string) $response->getContent();
+        $this->assertStringNotContainsString(e($w['f']['ca']->name), $content);
+        $this->assertStringNotContainsString(trim((string) json_encode($w['f']['ca']->name), '"'), $content);
     }
 
     public function test_an_inactive_ca_supervisor_is_refused(): void
