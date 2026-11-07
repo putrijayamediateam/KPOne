@@ -64,6 +64,12 @@ BEGIN
  END IF;
  SELECT coalesce(sum(f.amount_sen), 0) INTO refunded FROM payment_refunds f WHERE f.payment_id = NEW.payment_id
    AND NOT EXISTS (SELECT 1 FROM payment_refund_decisions d WHERE d.payment_refund_id = f.id AND d.decision = 'rejected');
+ -- One receipt pays one invoice today (PaymentService); a receipt split across invoices is refused here rather than
+ -- credited beyond what it paid on the credited invoice.
+ IF (SELECT count(*) FROM payment_allocations a WHERE a.payment_id = p.id) <> 1
+   OR (SELECT a.amount_sen FROM payment_allocations a WHERE a.payment_id = p.id) <> p.amount_sen THEN
+  RAISE EXCEPTION 'A refund after completion needs a receipt that pays exactly one invoice' USING ERRCODE = '23514';
+ END IF;
  IF refunded + NEW.amount_sen > p.amount_sen THEN
   RAISE EXCEPTION 'A refund cannot be more than the receipt less its earlier refunds' USING ERRCODE = '23514';
  END IF;
@@ -89,7 +95,8 @@ BEGIN
  IF f.id IS NULL OR f.kind <> 'after_completion' OR f.organisation_id <> NEW.organisation_id OR f.branch_id <> NEW.branch_id
    OR f.amount_sen <> NEW.amount_sen
    OR NOT EXISTS (SELECT 1 FROM payment_allocations a JOIN invoices i ON i.id = a.invoice_id
-     WHERE a.payment_id = f.payment_id AND a.invoice_id = NEW.invoice_id AND i.organisation_id = NEW.organisation_id AND i.branch_id = NEW.branch_id) THEN
+     WHERE a.payment_id = f.payment_id AND a.invoice_id = NEW.invoice_id AND i.organisation_id = NEW.organisation_id AND i.branch_id = NEW.branch_id
+       AND i.status = 'finalized') THEN
   RAISE EXCEPTION 'An invoice credit must match its refund after completion, amount and invoice' USING ERRCODE = '23514';
  END IF;
  RETURN NEW;

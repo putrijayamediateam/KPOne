@@ -231,7 +231,7 @@ final class IssuedBillingDocumentService
                     'lines' => array_map(fn (array $l): array => ['name' => $l['name'], 'quantity' => $l['quantity'], 'unit' => $l['unit'], 'unitPriceSen' => $l['unitPriceSen'], 'totalSen' => $l['totalSen']], $source['lines']),
                     'adjustment' => ['subtotalSen' => $source['adjustment']['subtotalSen'], 'adjustmentSen' => $source['adjustment']['adjustmentSen']],
                     'state' => array_intersect_key($source['state'], array_flip(['total', 'self_pay', 'panel', 'deferred', 'due_now'])),
-                ],
+                ] + (($source['refundCreditSen'] ?? 0) > 0 ? ['refundCreditSen' => $source['refundCreditSen']] : []), // BIL-10: only when credited, so copies without a credit keep their content hash.
             ],
             'receipt' => $receipt,
             'billTo' => $payment ? null : $this->billTo->forPrint($actor, $visit, $invoice, $branch->id),

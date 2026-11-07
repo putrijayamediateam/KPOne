@@ -84,6 +84,16 @@ class FinancialLedger
     }
 
     /**
+     * BIL-10: what the invoice charges before refund credits (total plus any adjustment), the same figure as
+     * PostgreSQL's kpone_invoice_payable. Panel claims use it: a refund credit gives back only the patient's money, so
+     * it never changes what the Panel was billed against, and it must not read as an invoice discount there.
+     */
+    public function chargedBeforeCredits(Invoice $invoice): int
+    {
+        return $this->state($invoice)['total'] + (int) self::approvedCredits([$invoice->id])->sum('amount_sen');
+    }
+
+    /**
      * BIL-10: approved refunds after completion, summed per receipt, for the receipt lists.
      *
      * @param  iterable<int>  $paymentIds

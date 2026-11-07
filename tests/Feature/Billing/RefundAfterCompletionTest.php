@@ -2,15 +2,17 @@
 
 namespace Tests\Feature\Billing;
 
+use App\Domain\Shared\Services\ClinicInsightsReportService;
 use App\Domain\Visit\Billing\Models\Invoice;
 use App\Domain\Visit\Billing\Models\InvoiceCredit;
-use App\Domain\Visit\Models\Panel;
 use App\Domain\Visit\Billing\Models\Payment;
 use App\Domain\Visit\Billing\Models\PaymentMethod;
 use App\Domain\Visit\Billing\Models\PaymentRefund;
 use App\Domain\Visit\Billing\Services\CashClosingService;
 use App\Domain\Visit\Billing\Services\FinancialLedger;
+use App\Domain\Visit\Billing\Services\IssuedBillingDocumentService;
 use App\Domain\Visit\Billing\Services\ResponsibilityService;
+use App\Domain\Visit\Models\Panel;
 use App\Domain\Visit\Models\Visit;
 use App\Models\User;
 use Carbon\CarbonImmutable;
@@ -89,17 +91,27 @@ class RefundAfterCompletionTest extends BillingTestCase
     public function test_a_rejected_refund_after_completion_changes_nothing_and_frees_its_amount(): void
     {
         $f = $this->completedFixture();
+        // A Finance Officer may record and approve, but never decide a refund they recorded.
+        $recorder = $this->actor('finance_officer');
+        $this->selectBranch($recorder);
+        $this->post(route('billing.refund', [$f['visit'], $f['receipt']->public_id]), $this->input($f, 'goodwill', 500))->assertSessionHasNoErrors();
+        $own = PaymentRefund::query()->sole();
+        $this->post(route('billing.refund.decide', [$f['visit'], $own->public_id, 'approved']), $this->decide($f))->assertSessionHasErrors('refund');
+        $this->assertDatabaseRefuses('23514', fn () => DB::table('payment_refund_decisions')->insert(['organisation_id' => $own->organisation_id, 'payment_refund_id' => $own->id,
+            'decision' => 'approved', 'reason_code' => null, 'decided_by_user_id' => $recorder->id, 'decided_at' => now(), 'idempotency_key' => (string) Str::uuid(), 'payload_hash' => str_repeat('b', 64)]), 'cannot decide');
+        $this->selectBranch($this->actor('director'));
+        $this->post(route('billing.refund.decide', [$f['visit'], $own->public_id, 'rejected']), [...$this->decide($f), 'reason_code' => 'duplicate'])->assertSessionHasNoErrors();
         $supervisor = $this->actor('ca_supervisor');
         $this->selectBranch($supervisor);
         $this->post(route('billing.refund', [$f['visit'], $f['receipt']->public_id]), $this->input($f, 'invoice_corrected', 4000))->assertSessionHasNoErrors();
-        $refund = PaymentRefund::query()->sole();
+        $refund = PaymentRefund::query()->latest('id')->firstOrFail();
         $finance = $this->actor('finance_officer');
         $this->selectBranch($finance);
         $this->post(route('billing.refund.decide', [$f['visit'], $refund->public_id, 'rejected']), [...$this->decide($f), 'reason_code' => 'amount_wrong'])->assertSessionHasNoErrors();
         $this->assertSame(['total' => 4000, 'self_pay' => 4000, 'panel' => 0, 'deferred' => 0, 'due_now' => 0], app(FinancialLedger::class)->state($f['invoice']->refresh()));
         $this->selectBranch($supervisor);
         $this->post(route('billing.refund', [$f['visit'], $f['receipt']->public_id]), $this->input($f, 'invoice_corrected', 4000))->assertSessionHasNoErrors();
-        $this->assertSame(2, InvoiceCredit::query()->count());
+        $this->assertSame(3, InvoiceCredit::query()->count());
     }
 
     public function test_only_the_patient_share_can_be_refunded_and_the_panel_share_stays_covered(): void
@@ -123,6 +135,8 @@ class RefundAfterCompletionTest extends BillingTestCase
         $this->assertSame(['total' => 3000, 'self_pay' => 0, 'panel' => 3000, 'deferred' => 0, 'due_now' => 0], app(FinancialLedger::class)->state($invoice->refresh()));
         // The PostgreSQL payable and reconciliation checks see neither the refund nor the credit, so they still hold.
         $this->assertSame(4000, (int) DB::selectOne('SELECT kpone_invoice_payable(?) AS p', [$invoice->id])->p);
+        // Panel claims compare and freeze what the invoice charged before refund credits, so no credit reads as a discount.
+        $this->assertSame(4000, app(FinancialLedger::class)->chargedBeforeCredits($invoice));
     }
 
     public function test_a_cash_refund_after_completion_is_paid_out_on_its_day_and_the_receipt_stays_on_its_own(): void
@@ -139,6 +153,50 @@ class RefundAfterCompletionTest extends BillingTestCase
         $this->assertSame(['count' => 1, 'sen' => 4000], $closing->expected($f['visit']->branch, $receiptDay->startOfDay()));
         $this->assertSame(['count' => 0, 'sen' => -1500], $closing->expected($f['visit']->branch, $refundDay->startOfDay()));
         $this->assertSame(['count' => 1, 'sen' => 1500, 'waiting' => 1], $closing->cashRefunds($f['visit']->branch, $refundDay->startOfDay()));
+
+        // Decision C: the Daily summary shows it on the payout day, as part of Cash refunds paid; Total received is unchanged.
+        $finance = $this->actor('finance_officer');
+        $this->selectBranch($finance);
+        $range = ['expected_branch_id' => $f['visit']->branch_id, 'from' => $receiptDay->toDateString(), 'to' => $refundDay->toDateString()];
+        $daily = $this->postJson(route('reports.daily-summary.run'), $range)->assertOk()->json('result');
+        $this->assertSame('Refunded after completion (payout date, MYR)', $daily['columns'][15]);
+        $this->assertSame(['40.00', '0.00', '0.00'], [$daily['rows'][0][11], $daily['rows'][0][12], $daily['rows'][0][15]]);
+        $this->assertSame(['0.00', '15.00', '15.00'], [$daily['rows'][1][11], $daily['rows'][1][12], $daily['rows'][1][15]]);
+        $this->assertSame('15.00', $daily['totals']['Refunded after completion (payout date, MYR)']);
+        $this->assertSame('40.00', $daily['totals']['Total received (Cash + Non-cash) (receipt date, MYR)']);
+        // Decision C: Transaction Detail shows it on the receipt's own row and in a total; original and net are unchanged.
+        $tx = $this->postJson(route('reports.transactions.run'), $range)->assertOk()->json('result');
+        $this->assertSame('Refunded after completion (MYR)', end($tx['columns']));
+        $this->assertSame(['40.00', '0.00', '40.00', 'Posted', '15.00'], array_slice($tx['rows'][0], 8));
+        $this->assertSame('15.00', $tx['totals']['Refunded after completion (MYR)']);
+        $this->assertSame('40.00', $tx['totals']['Net received (MYR)']);
+        // A rejected refund leaves both columns at zero.
+        $this->post(route('billing.refund.decide', [$f['visit'], PaymentRefund::query()->sole()->public_id, 'rejected']), [...$this->decide($f), 'reason_code' => 'not_paid_out'])->assertSessionHasNoErrors();
+        $this->assertSame('0.00', $this->postJson(route('reports.transactions.run'), $range)->assertOk()->json('result.totals')['Refunded after completion (MYR)']);
+        $this->assertSame('0.00', $this->postJson(route('reports.daily-summary.run'), $range)->assertOk()->json('result.totals')['Refunded after completion (payout date, MYR)']);
+    }
+
+    public function test_the_next_issued_invoice_is_revised_with_the_refund_credit_and_the_receipt_is_not(): void
+    {
+        $f = $this->completedFixture();
+        $issuer = app(IssuedBillingDocumentService::class);
+        $issue = fn (?Payment $payment) => $issuer->issue($f['ca'], $f['visit'], $f['invoice']->refresh(), $payment, ['expected_branch_id' => $f['visit']->branch_id, 'idempotency_key' => (string) Str::uuid()]);
+        $this->selectBranch($f['ca']);
+        $this->assertSame('original', $issue(null)->label);
+        $this->assertSame('original', $issue($f['receipt'])->label);
+        $supervisor = $this->actor('ca_supervisor');
+        $this->selectBranch($supervisor);
+        $this->post(route('billing.refund', [$f['visit'], $f['receipt']->public_id]), $this->input($f, 'medicine_returned', 1500))->assertSessionHasNoErrors();
+        $this->selectBranch($f['ca']);
+        $this->assertSame('copy', $issue(null)->label, 'A waiting refund changes nothing on paper.');
+        $this->selectBranch($this->actor('director'));
+        $this->post(route('billing.refund.decide', [$f['visit'], PaymentRefund::query()->sole()->public_id, 'approved']), $this->decide($f))->assertSessionHasNoErrors();
+        $this->selectBranch($f['ca']);
+        $revised = $issue(null);
+        $this->assertSame('revised', $revised->label);
+        $shown = $issuer->show($f['ca'], $f['visit'], $revised->public_id);
+        $this->assertSame([1500, 2500, 2500], [$shown['billing']['invoice']['refundCreditSen'], $shown['billing']['invoice']['state']['total'], $shown['billing']['invoice']['state']['self_pay']]);
+        $this->assertSame('copy', $issue($f['receipt'])->label, 'The receipt stays the evidence of what was paid.');
     }
 
     public function test_insights_and_the_sales_csv_take_an_approved_credit_off_net_sales_on_its_approval_day_and_the_log_shows_it(): void
@@ -157,7 +215,7 @@ class RefundAfterCompletionTest extends BillingTestCase
 
         $director = $this->actor('director');
         $this->selectBranch($director);
-        $report = fn (CarbonImmutable $day) => app(\App\Domain\Shared\Services\ClinicInsightsReportService::class)
+        $report = fn (CarbonImmutable $day) => app(ClinicInsightsReportService::class)
             ->report($director, 'sales', 'all', $day->toDateString(), $day->toDateString(), null)['report']['summary'];
         // The sale day keeps its figures; the credit is its own row on the approval day.
         $sale = $report($saleDay);
@@ -165,7 +223,7 @@ class RefundAfterCompletionTest extends BillingTestCase
         $approval = $report($approvalDay);
         $this->assertSame(['grossSen' => 0, 'discountsSen' => 0, 'surchargesSen' => 0, 'refundCreditsSen' => 1500, 'netSen' => -1500], $approval['reconciliation']);
         $this->assertSame(-1500, $approval['totalSen']);
-        $both = app(\App\Domain\Shared\Services\ClinicInsightsReportService::class)->report($director, 'sales', 'all', $saleDay->toDateString(), $approvalDay->toDateString(), null)['report']['summary'];
+        $both = app(ClinicInsightsReportService::class)->report($director, 'sales', 'all', $saleDay->toDateString(), $approvalDay->toDateString(), null)['report']['summary'];
         $this->assertSame([2500, 4000, 1500], [$both['totalSen'], $both['newSen'] + $both['returningSen'], $both['reconciliation']['refundCreditsSen']]);
 
         $director->givePermissionTo('reports.sales.export.organisation');

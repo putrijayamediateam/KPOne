@@ -99,3 +99,18 @@ These are money reporting choices taken for the owner; the owner can still chang
   in the Daily summary, Transaction Detail and the receipts-by-method CSV. "Total received" keeps its meaning.
 - **D.** The two Panel screens that ignored invoice discounts and surcharges are fixed separately by the Panel team
   (PNL-15, Syafiq), not in BIL-10; Billing reviewed the money side.
+
+## 9. Known limits (built)
+
+- **Insights Provider table:** it stays invoice-based. Refund credits come off the headline net sales on their approval
+  day, but not off any provider's row, so the headline can be lower than the provider total by the credits approved in
+  the period. A day with a credit and no sales shows a negative sales figure with 0 patients in the daily trend.
+- **One invoice per receipt:** a refund after completion needs a receipt that pays exactly one invoice (PostgreSQL
+  rule). KPOne creates one allocation per receipt today; a future split receipt would need its own refund rule.
+- **Race tests:** two refunds recorded at the same moment on one receipt are serialised by the receipt row lock in the
+  service and in the PostgreSQL rule, which re-reads the earlier refunds after the lock. There is no dedicated
+  PostgreSQL contention test for it yet; the existing billing race tests run.
+- **Prints:** the issued invoice (D03 layout here, and the BIL-9 clinic layout once both are merged) prints a "Refund
+  credit" row. A copy issued before the credit stays as issued, and the next print is REVISED.
+- **Panel claims** use the invoice total before refund credits (the same figure as `kpone_invoice_payable`). A refund
+  after completion only gives back the patient's money.

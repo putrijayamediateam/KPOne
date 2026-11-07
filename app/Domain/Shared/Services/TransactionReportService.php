@@ -5,6 +5,7 @@ namespace App\Domain\Shared\Services;
 use App\Domain\Organisation\Models\Branch;
 use App\Domain\Visit\Billing\Models\Payment;
 use App\Domain\Visit\Billing\Models\PaymentMethod;
+use App\Domain\Visit\Billing\Models\PaymentRefund;
 use App\Domain\Visit\Billing\Services\PostedReceiptProjection;
 use App\Models\User;
 use Carbon\CarbonImmutable;
@@ -20,7 +21,7 @@ class TransactionReportService extends BranchReportService
 
     public const EXPORT = 'reports.transactions.export.branch';
 
-    public const BASIS = 'Original receipt date in the branch timezone, not invoice finalisation. Whole receipt amounts use the same posted/reversed cohort as receipt reconciliation: original, recording-reversed and net are explicit. A recording reversal is not evidence of a cash refund; later reversals restate the original receipt date. Current patient names and governed classification; payment-method names are receipt snapshots. Not classified counts as Non-cash. One row per receipt, even if several invoice references exist. Unallocated receipts remain included for money reconciliation but patient identity is masked and no invoice/visit is invented. Visit-type filters select any linked invoice and keep the whole receipt; separately filtered cohorts can overlap. Current records at generation, not an issued snapshot. MYR, two decimals. Empty periods have no patient rows.';
+    public const BASIS = 'Original receipt date in the branch timezone, not invoice finalisation. Whole receipt amounts use the same posted/reversed cohort as receipt reconciliation: original, recording-reversed and net are explicit. A recording reversal is not evidence of a cash refund; later reversals restate the original receipt date. Current patient names and governed classification; payment-method names are receipt snapshots. Not classified counts as Non-cash. One row per receipt, even if several invoice references exist. Unallocated receipts remain included for money reconciliation but patient identity is masked and no invoice/visit is invented. Visit-type filters select any linked invoice and keep the whole receipt; separately filtered cohorts can overlap. Current records at generation, not an issued snapshot. MYR, two decimals. Empty periods have no patient rows. Refunded after completion is the money given back on that receipt after the visit was completed (waiting or approved, not rejected), whatever its payout date (BIL-10); original, reversed and net are unchanged by it.';
 
     public function key(): string
     {
@@ -99,12 +100,14 @@ class TransactionReportService extends BranchReportService
             $key = $method->reportClassification() === 'cash' ? 'Cash net received (MYR)' : 'Non-cash net received (MYR)';
             $sums[$key] += $amounts['netSen'];
         }
+        // BIL-10 (decision C): refunds after completion on these receipts, waiting or approved, not rejected.
+        $sums['Refunded after completion (MYR)'] = (int) self::refundsAfterCompletion()->whereIn('payment_id', (clone $query)->select('id'))->sum('amount_sen');
         $totals = array_map(ReportCsv::money(...), $sums);
         $selected = (clone $query)->orderBy('received_at')->orderBy('id');
         if ($page !== null) {
             $selected->offset(($page - 1) * self::PAGE_SIZE)->limit(self::PAGE_SIZE);
         }
-        $columns = ['Row', 'Local receipt date/time', 'KPOne patient number', 'Patient name (current)', 'Visit number(s)', 'Invoice number(s)', 'Payment method (receipt snapshot)', 'Classification (current)', 'Original receipt (MYR)', 'Reversed (MYR)', 'Net received (MYR)', 'Status'];
+        $columns = ['Row', 'Local receipt date/time', 'KPOne patient number', 'Patient name (current)', 'Visit number(s)', 'Invoice number(s)', 'Payment method (receipt snapshot)', 'Classification (current)', 'Original receipt (MYR)', 'Reversed (MYR)', 'Net received (MYR)', 'Status', 'Refunded after completion (MYR)'];
         if ($download) {
             array_splice($columns, 6, 0, ['Payment method code']);
         }
@@ -112,6 +115,8 @@ class TransactionReportService extends BranchReportService
         $position = $page === null ? 0 : ($page - 1) * self::PAGE_SIZE;
         $receipts = $selected->get(['id', 'organisation_id', 'branch_id', 'patient_id', 'payment_method_id', 'received_at', 'method_snapshot', 'amount_sen', 'status']);
         $identities = $this->identities($receipts);
+        $refunded = self::refundsAfterCompletion()->whereIn('payment_id', $receipts->pluck('id'))
+            ->selectRaw('payment_id, SUM(amount_sen) AS amount')->groupBy('payment_id')->pluck('amount', 'payment_id');
         foreach ($receipts as $receipt) {
             $receipt->setRelation('transactionReportIdentity', $identities[$receipt->id]);
             $method = $methods->get($receipt->payment_method_id);
@@ -119,7 +124,7 @@ class TransactionReportService extends BranchReportService
             [$number, $name, $visits, $invoices] = $this->identity($receipt);
             $amounts = PostedReceiptProjection::amounts($receipt->amount_sen, $receipt->status);
             $classification = $method->classification === null ? 'Not classified (Non-cash)' : ($method->reportClassification() === 'cash' ? 'Cash' : 'Non-cash');
-            $row = [(string) ++$position, $receipt->received_at->setTimezone($branch->timezone)->format('Y-m-d H:i:s'), $number, $name, $visits, $invoices, $receipt->method_snapshot, $classification, ReportCsv::money($amounts['receiptsSen']), ReportCsv::money($amounts['reversedSen']), ReportCsv::money($amounts['netSen']), $receipt->status === 'posted' ? 'Posted' : 'Reversed (recording reversal)'];
+            $row = [(string) ++$position, $receipt->received_at->setTimezone($branch->timezone)->format('Y-m-d H:i:s'), $number, $name, $visits, $invoices, $receipt->method_snapshot, $classification, ReportCsv::money($amounts['receiptsSen']), ReportCsv::money($amounts['reversedSen']), ReportCsv::money($amounts['netSen']), $receipt->status === 'posted' ? 'Posted' : 'Reversed (recording reversal)', ReportCsv::money((int) ($refunded[$receipt->id] ?? 0))];
             if ($download) {
                 array_splice($row, 6, 0, [$method->code]);
             }
@@ -127,6 +132,13 @@ class TransactionReportService extends BranchReportService
         }
 
         return ['columns' => $columns, 'rows' => $rows, 'totals' => $totals];
+    }
+
+    /** @return Builder<PaymentRefund> */
+    private static function refundsAfterCompletion(): Builder
+    {
+        return PaymentRefund::query()->where('kind', PaymentRefund::KIND_AFTER_COMPLETION)
+            ->whereDoesntHave('decision', fn ($decision) => $decision->where('decision', 'rejected'));
     }
 
     /** @param array<string,mixed> $filters
