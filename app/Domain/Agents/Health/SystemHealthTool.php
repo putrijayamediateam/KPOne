@@ -2,7 +2,7 @@
 
 namespace App\Domain\Agents\Health;
 
-use App\Domain\Agents\Tools\SystemReadableTool;
+use App\Domain\Agents\Tools\OrganisationWideSystemTool;
 use App\Domain\Organisation\Models\Branch;
 use App\Models\User;
 use Carbon\CarbonImmutable;
@@ -15,9 +15,10 @@ use Throwable;
  * `system.health` (AG-10, contract section 5): counts only. Error-level application log entries since a time
  * (only each line's timestamp and level are read; log text is never kept or returned), failed scheduled agent
  * runs, pending database migrations and failed queue jobs when that table exists. Registered by tagging in
- * AppServiceProvider, so AgentToolRegistry is unchanged.
+ * AppServiceProvider, so AgentToolRegistry is unchanged. Organisation-wide (AG-12): a branchless system run reads it
+ * with no branch.
  */
-final class SystemHealthTool implements SystemReadableTool
+final class SystemHealthTool implements OrganisationWideSystemTool
 {
     public const LEVELS = ['ERROR', 'CRITICAL', 'ALERT', 'EMERGENCY'];
 

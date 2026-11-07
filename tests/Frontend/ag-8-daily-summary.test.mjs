@@ -93,3 +93,14 @@ test('nothing on either day shows no comparison; the inbox is a button; long cou
         /`and \$\{branch\.rizal\.due\.length - RIZAL_SHOWN\} more`/,
     );
 });
+
+test('AG-12: a doctor seen last week but none on the report day reads "None seen", not "0 seen, about 0 min"', () => {
+    assert.match(
+        page,
+        /<span v-if="doctor\.seen > 0"\s*>\{\{ doctor\.seen \}\} seen, about/,
+    );
+    assert.match(
+        page,
+        /<span v-else data-test="lina-doctor-none"\s*>None seen<\/span\s*>/,
+    );
+});
