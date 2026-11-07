@@ -100,7 +100,7 @@ class ClinicInsightsService
 
     /**
      * @param  array<int, array{branch: Branch, todayStart: CarbonImmutable, tomorrowStart: CarbonImmutable, yesterdayStart: CarbonImmutable}>  $periods
-     * @return array{totalSen: int, newSen: int, returningSen: int, reconciliation: array{grossSen: int, discountsSen: int, surchargesSen: int, netSen: int}}
+     * @return array{totalSen: int, newSen: int, returningSen: int, reconciliation: array{grossSen: int, discountsSen: int, surchargesSen: int, refundCreditsSen: int, netSen: int}}
      */
     private function salesSummary(User $actor, array $periods, string $period): array
     {
@@ -108,8 +108,12 @@ class ClinicInsightsService
             ->where('organisation_id', $actor->organisation_id)
             ->where('status', 'finalized');
         $this->applyPeriod($query, $periods, 'finalized_at', $period);
-        $reconciliation = InvoiceSalesProjection::reconciliation($query);
-        $total = (int) $query->sum(DB::raw(InvoiceSalesProjection::PAYABLE));
+        // BIL-10: refund credits come off net sales on the day the refund was approved.
+        $credits = InvoiceSalesProjection::approvedCredits($actor->organisation_id);
+        $this->applyPeriod($credits, $periods, 'decided_at', $period);
+        $creditSen = (int) $credits->sum('amount_sen');
+        $reconciliation = InvoiceSalesProjection::reconciliation($query, $creditSen);
+        $total = (int) $query->sum(DB::raw(InvoiceSalesProjection::PAYABLE)) - $creditSen;
 
         if ($period !== 'today') {
             return ['totalSen' => $total, 'newSen' => 0, 'returningSen' => 0, 'reconciliation' => $reconciliation];
@@ -157,6 +161,11 @@ class ClinicInsightsService
             $branch = $periods[$invoice->branch_id]['branch'];
             $hour = CarbonImmutable::parse($invoice->finalized_at, 'UTC')->setTimezone($branch->timezone)->hour;
             $salesByHour[$hour] += (int) $invoice->total_sen;
+        }
+        $credits = InvoiceSalesProjection::approvedCredits($actor->organisation_id);
+        $this->applyPeriod($credits, $periods, 'decided_at', 'today');
+        foreach ($credits->get(['branch_id', 'decided_at', 'amount_sen']) as $credit) {
+            $salesByHour[CarbonImmutable::parse($credit->decided_at, 'UTC')->setTimezone($periods[$credit->branch_id]['branch']->timezone)->hour] -= (int) $credit->amount_sen;
         }
 
         return array_map(

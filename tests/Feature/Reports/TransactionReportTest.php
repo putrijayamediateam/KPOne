@@ -166,8 +166,8 @@ class TransactionReportTest extends BillingTestCase
         $response = $this->postJson(route('reports.transactions.run'), $filters)->assertOk();
         $result = $response->json('result');
         $this->assertSame(3, $result['count']);
-        $this->assertSame(['66.23', '25.00', '41.23', '0.00', '41.23'], array_values($result['totals']));
-        $this->assertSame(['25.00', '25.00', '0.00', 'Reversed (recording reversal)'], array_slice($result['rows'][0], 8));
+        $this->assertSame(['66.23', '25.00', '41.23', '0.00', '41.23', '0.00'], array_values($result['totals']));
+        $this->assertSame(['25.00', '25.00', '0.00', 'Reversed (recording reversal)', '0.00'], array_slice($result['rows'][0], 8));
         $this->assertSame($patient->full_name, $result['rows'][0][3]);
         $this->assertSame('2027-01-01 00:01:00', $result['rows'][0][1]);
         $this->assertSame('Not classified (Non-cash)', $result['rows'][1][7]);

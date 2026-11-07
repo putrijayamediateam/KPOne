@@ -105,9 +105,9 @@ class DailySummaryReportTest extends BillingTestCase
         $before = $this->sourceEvidence();
         $audits = DB::table('audit_logs')->orderBy('id')->get();
         $result = $this->postJson(route('reports.daily-summary.run'), $filters)->assertOk()->json('result');
-        $this->assertSame(['2026-12-31', '0.00', '0.00', '0.00', '0.00', '0.00', '0.00', '30.00', '20.00', '0.00', '0.00', '0.00', '0.00', '0.00', '0.00'], $result['rows'][0]);
-        $this->assertSame(['2027-01-01', '25.00', '25.00', '0.00', '40.00', '0.00', '40.00', '0.00', '0.00', '65.00', '25.00', '40.00', '0.00', '0.00', '0.00'], $result['rows'][1]);
-        $this->assertSame(array_fill(1, 14, '0.00'), array_combine(range(1, 14), array_slice($result['rows'][2], 1))); // BIL-6b: three refund columns appended (owner-approved test change).
+        $this->assertSame(['2026-12-31', '0.00', '0.00', '0.00', '0.00', '0.00', '0.00', '30.00', '20.00', '0.00', '0.00', '0.00', '0.00', '0.00', '0.00', '0.00'], $result['rows'][0]);
+        $this->assertSame(['2027-01-01', '25.00', '25.00', '0.00', '40.00', '0.00', '40.00', '0.00', '0.00', '65.00', '25.00', '40.00', '0.00', '0.00', '0.00', '0.00'], $result['rows'][1]);
+        $this->assertSame(array_fill(1, 15, '0.00'), array_combine(range(1, 15), array_slice($result['rows'][2], 1))); // BIL-6b: three refund columns appended; BIL-10: one more (both owner-approved test changes).
         $this->assertSame($before, $this->sourceEvidence());
         $csv = $this->postJson(route('reports.daily-summary.download'), $filters)->assertOk()->streamedContent();
         [$metadata, $columns, $rows] = $this->decodeReportCsv($csv);

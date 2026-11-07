@@ -2,6 +2,7 @@ export type InvoiceSalesReconciliation = {
     grossSen: number;
     discountsSen: number;
     surchargesSen: number;
+    refundCreditsSen: number;
     netSen: number;
 };
 export type InsightRankingItem = {
