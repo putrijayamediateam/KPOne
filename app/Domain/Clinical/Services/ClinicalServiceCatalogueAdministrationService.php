@@ -24,6 +24,7 @@ class ClinicalServiceCatalogueAdministrationService
     {
         $this->authorize($actor);
         $values = $this->createValues($attributes);
+        ClinicalServiceCategories::assertAllowed($values['category']);
 
         return DB::transaction(function () use ($actor, $values): ClinicalServiceCatalogueItem {
             $this->lockOrganisation($actor);
@@ -73,6 +74,9 @@ class ClinicalServiceCatalogueAdministrationService
             }
             if (array_key_exists('order_unit', $changes)) {
                 $this->assertIdentityEditable($locked, 'order_unit');
+            }
+            if (array_key_exists('category', $changes)) {
+                ClinicalServiceCategories::assertAllowed($changes['category']);
             }
 
             $locked->forceFill([
