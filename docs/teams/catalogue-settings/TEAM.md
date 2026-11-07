@@ -79,6 +79,7 @@ Server checks stay the authority; hiding a control is a usability aid only.
 | **CAT-10 (this team)** | Leftovers tidy. Business details: the logo's native file input (cut to "No …sen" at 390 px) becomes a reusable `catalogue/FileChooseButton` (a hidden native input opened by an outline "Choose logo" or "Replace logo" button, 44 px below 640 px, with a state line that the button describes and that screen readers hear: "<file> · not saved yet", "Logo will be removed when you save.", "Current logo saved." or "No file chosen"; the error slot keeps `id="logo-error"`); a file that fails the check or cannot be shown is never previewed (Daniel); "Remove logo" is 44 px on phones; the page fits 320 px. Medicine Catalogue: "Price publication branch" now reads "Branch used for price publication", with its select connected to the label, as on Clinical Service. Frontend only; no existing assertion changed. Tests: `tests/Frontend/cat-10-leftovers-tidy.test.mjs` | #366 (`c30bd6e`) |
 | **CAT-12 (this team)** | A "Check price list" card in Clinic management, in "Inventory & services" straight after Pricing ("See the price billing uses for every active item, with gaps flagged."; wording, group and placement from Staff Experience), for holders of `pricing.references.manage.organisation` with an active branch (the page shows results only for the active branch). One approved existing assertion change: the exact destination map in `ClinicManagementTest` gains `/pricing/price-check`. Tests: `tests/Feature/Catalogue/PriceCheckCardTest.php` | #371 (`8794506`) |
 | **CAT-13 (this team)** | One phone style on the referral and attendance letterheads: new copies print both clinic phones through `App\Domain\Shared\PrintedPhone` ("03-2000 0001"), through a small helper `Clinical/Documents/LetterheadContactLine`; a second phone with no first prints "Tel: B"; without a second phone the line keeps the "phone / email" shape. Issued letters keep the HTML stored at issue. `PrintLetterhead` (`resources/js/types/letterhead.ts`) gains an optional `phone_secondary`, and Business details reuses `PrintLetterhead['details']`. Three approved existing assertion values in `DocumentSecondPhoneTest` (lines 46, 59, 62) follow PrintedPhone. Tests: `tests/Unit/LetterheadContactLineTest.php`, `tests/Frontend/cat-13-letterhead-type.test.mjs` | #372 (`90a7e39`) |
+| **CAT-11 (this team)** | Fixed clinical service categories: "Procedure(s)", "Investigation(s)", "Consultation-related", "Other service", or none (`ClinicalServiceCategories::NAMES`). The Clinical Service add and edit dialog uses a fixed select, "Category (optional)", instead of the free-text picker; a category saved before CAT-11 stays as it is and shows as its own option, "(saved before the fixed list)". `ClinicalServiceCatalogueAdministrationService` refuses an unlisted value on create, and on update only when the category changes ("Choose a category from the list."). A PostgreSQL trigger (migration `2026_11_09_000200`, `BEFORE INSERT OR UPDATE OF category`) repeats the rule for new rows and changed categories only; no data is rewritten. The demo seeder uses "Procedure(s)" and "Investigation(s)". One approved existing assertion change: line 63 of `unified-catalogue-setup.test.mjs` checks `serviceCategories` instead of `type="service_category"`. Tests: `tests/Feature/Clinical/ClinicalServiceCategoriesTest.php`, `tests/Frontend/cat-11-service-categories.test.mjs` | #381 (`d5dec88`) |
 
 ## 6. Owner decisions already made (never ask again)
 
@@ -138,6 +139,10 @@ Server checks stay the authority; hiding a control is a usability aid only.
    and is left to her MC follow-up.
 19. From CAT-10 on, a build PR leaves TEAM.md out; its lines go in a later Catalogue docs PR (coordinator rule,
    2026-11-06), so stacked PRs do not conflict.
+20. CAT-11: the four fixed clinical service categories, nothing rewritten, a trigger that checks only new and changed
+   rows, the line-63 assertion change and the demo seeder change: B.E.R.N.I.S.S for the owner, 2026-11-06; the names
+   "Procedure(s)" and "Investigation(s)" confirmed by Billing (Farah) for BIL-9; Daniel OK (he finds the "(s)" names
+   a little awkward, kept to match the clinic's invoice categories); Ravi OK.
 
 ## 7. Open items and known limits
 
@@ -181,6 +186,10 @@ Server checks stay the authority; hiding a control is a usability aid only.
 - CAT-13 known limits: a new referral or attendance letter's phone line looks different from paper printed before
   CAT-13 (issued copies keep their stored HTML); the MC still prints the stored phone until its owner changes it;
   the Panel claim pack and Billing's invoice and receipt switch to PrintedPhone in PNL-19 and BIL-9.
+- CAT-11 known limits: the `service_category` option type in `CatalogueOptionService` is now unused (its rows stay as
+  unused data); once a listed name is picked, an older value's option disappears until the dialog is cancelled; BIL-9
+  must put any category outside the four names (older free text) on the Service row; the four names live in both
+  `ClinicalServiceCategories::NAMES` and the trigger's SQL (a test inserts every listed name to catch drift).
 
 ## 8. Rules (every task)
 
