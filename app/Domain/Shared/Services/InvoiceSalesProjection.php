@@ -45,7 +45,7 @@ final class InvoiceSalesProjection
      * to, on its approval day: a consultation invoice's attending doctor, or the OTC row. Rows then add up to the
      * headline net sales. A provider with credits but no invoices in the period still appears, with 0 patients.
      *
-     * @param  list<array{id: int, name: string, salesSen: int, patients: int}>  $doctors  invoice sales by doctor
+     * @param  array<int, array{id: int, name: string, salesSen: int, patients: int}>  $doctors  invoice sales by doctor
      * @param  Builder  $credits  approvedCredits() already scoped to the same branches, period and doctor filter
      * @param  array{name: string, salesSen: int, patients: int, fixed: true}|null  $otc  the OTC row, when shown
      * @return array{doctors: list<array{name: string, salesSen: int, patients: int}>, otc: array{name: string, salesSen: int, patients: int, fixed: true}|null}
@@ -62,7 +62,7 @@ final class InvoiceSalesProjection
         }
         $rows = $rows->map(fn (array $row): array => [...$row, 'salesSen' => $row['salesSen'] - (int) ($byDoctor[$row['id']] ?? 0)])
             ->sortBy([['salesSen', 'desc'], ['name', 'asc']])->values()
-            ->map(fn (array $row): array => ['name' => $row['name'], 'salesSen' => $row['salesSen'], 'patients' => $row['patients']])->all();
+            ->map(fn (array $row): array => ['name' => $row['name'], 'salesSen' => $row['salesSen'], 'patients' => $row['patients']])->values()->all();
         if ($showOtc) {
             $otcCredit = (int) (clone $credits)->whereNotNull('dispensary_case_id')->sum('amount_sen');
             if ($otcCredit !== 0) {
@@ -71,6 +71,6 @@ final class InvoiceSalesProjection
             }
         }
 
-        return ['doctors' => $rows, 'otc' => $showOtc ? $otc : null];
+        return ['doctors' => array_values($rows), 'otc' => $showOtc ? $otc : null];
     }
 }
