@@ -118,11 +118,6 @@ const generalError = computed(
             aria-label="Inventory and services settings"
             class="flex flex-wrap gap-2 md:flex-col"
         >
-            <span
-                aria-disabled="true"
-                class="rounded-md px-4 py-3 text-sm font-medium text-muted-foreground"
-                >Price tier</span
-            >
             <Link
                 href="/inventory-services-settings/medicine-details"
                 class="rounded-md px-4 py-3 text-sm font-medium text-muted-foreground hover:bg-muted"

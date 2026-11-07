@@ -1055,6 +1055,7 @@ const toggleDescription = computed(() => {
                                 v-model="form.default_indication"
                                 type="indication"
                                 label="Indication"
+                                hint="Prints on drug labels: up to 72 characters."
                                 :error="form.errors.default_indication"
                             />
                         </div>
@@ -1252,10 +1253,14 @@ const toggleDescription = computed(() => {
                                 </p>
                             </div>
                             <label class="grid gap-1 text-xs">
-                                Branch used for price publication
+                                <span id="medicine-publication-branch-label"
+                                    >Branch used for price publication</span
+                                >
                                 <OperationalSelect
+                                    id="medicine-publication-branch"
                                     v-model="form.expected_branch_id"
-                                    label="Price publication branch"
+                                    label="Branch used for price publication"
+                                    labelledby="medicine-publication-branch-label"
                                     :options="
                                         setup.branches.map((branch) => ({
                                             value: String(branch.id),
@@ -1443,8 +1448,8 @@ const toggleDescription = computed(() => {
             :open="pendingToggle.row !== null"
             :title="
                 pendingToggle.row?.isActive
-                    ? 'Deactivate Medicine'
-                    : 'Activate Medicine'
+                    ? 'Deactivate medicine'
+                    : 'Activate medicine'
             "
             :description="toggleDescription"
             :confirm-label="

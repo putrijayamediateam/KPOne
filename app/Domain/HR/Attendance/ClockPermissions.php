@@ -16,9 +16,12 @@ final class ClockPermissions
 
     public const REVIEW = 'hr.attendance.review.organisation';
 
+    /** HR-3b: decide and reverse overtime requests (never one's own, never one they asked for). */
+    public const OVERTIME_APPROVE = 'hr.overtime.approve.organisation';
+
     /** @return array<string, list<string>> */
     public static function grants(): array
     {
-        return [self::CLOCK_OWN => RosterPermissions::HUMAN_ROLES, self::REVIEW => ['director', 'hr_manager']];
+        return [self::CLOCK_OWN => RosterPermissions::HUMAN_ROLES, self::REVIEW => ['director', 'hr_manager'], self::OVERTIME_APPROVE => ['director', 'hr_manager']];
     }
 }
