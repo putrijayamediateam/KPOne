@@ -41,8 +41,9 @@ class CompletedPatientTest extends BillingTestCase
     {
         [$doctor, $ca, $visit, $invoice] = $this->finalizedFixture();
         $before = [$invoice->attributesToArray(), $visit->attributesToArray(), DB::table('audit_logs')->count()];
-        $this->get(route('billing.print', [$visit, $invoice]))->assertOk()->assertInertia(fn (Assert $page) => $page->component('Billing/Print')->missing('billing.clinicalNote'));
+        $this->get(route('billing.print', [$visit, $invoice]))->assertRedirect(route('billing.show', $visit).'#issued-copies');
         $this->assertSame($before, [$invoice->fresh()->attributesToArray(), $visit->fresh()->attributesToArray(), DB::table('audit_logs')->count()]);
+        $this->issuedInvoicePage($visit, $invoice)->assertOk()->assertInertia(fn (Assert $page) => $page->component('Billing/Print')->missing('billing.clinicalNote'));
         foreach ([$doctor, $this->actor('technical_admin')] as $actor) {
             $this->selectBranch($actor, $visit->branch);
             $this->get(route('billing.show', $visit))->assertForbidden();

@@ -2,10 +2,12 @@
 
 namespace Tests\Feature\Billing;
 
+use App\Domain\Organisation\Models\Branch;
 use App\Domain\Visit\Billing\Models\IssuedBillingDocument;
 use App\Domain\Visit\Billing\Models\IssuedBillingDocumentPrint;
 use App\Domain\Visit\Billing\Models\Payment;
 use App\Domain\Visit\Billing\Models\PaymentMethod;
+use App\Domain\Visit\Billing\Services\PaymentService;
 use App\Domain\Visit\Models\Visit;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\Crypt;
@@ -144,7 +146,8 @@ class IssuedBillingDocumentTest extends BillingTestCase
     {
         [, $ca, $visit, $invoice] = $this->finalizedFixture();
         $this->selectBranch($ca);
-        $this->get(route('billing.print', [$visit, $invoice]))->assertOk()->assertInertia(fn (Assert $page) => $page->component('Billing/Print')->missing('issued'));
+        // BIL-14: the old live address no longer shows a preview; it sends staff to Issued copies and records nothing.
+        $this->get(route('billing.print', [$visit, $invoice]))->assertRedirect(route('billing.show', $visit).'#issued-copies');
         $this->assertSame(0, IssuedBillingDocumentPrint::query()->count());
 
         $this->post(route('billing.issue', [$visit, $invoice]), $this->input($visit))->assertRedirect();
@@ -256,6 +259,29 @@ class IssuedBillingDocumentTest extends BillingTestCase
     }
 
     /** @return array<string, mixed> */
+    public function test_the_old_print_addresses_send_staff_to_issued_copies_record_nothing_and_keep_their_checks(): void
+    {
+        // BIL-14 (owner decision 2026-11-07): the old live invoice and receipt addresses only redirect, with a note.
+        [, $ca, $visit, $invoice] = $this->finalizedFixture();
+        $this->cashMethod($visit);
+        $payment = app(PaymentService::class)->add($ca, $visit, $invoice, ['expected_branch_id' => $visit->branch_id, 'lock_version' => $invoice->lock_version, 'amount_sen' => 1000, 'method' => 'cash', 'idempotency_key' => (string) Str::uuid()]);
+        $this->selectBranch($ca);
+        $before = [$this->financialEvidence(), DB::table('audit_logs')->count()];
+        foreach ([route('billing.print', [$visit, $invoice]), route('billing.receipt', [$visit, $invoice, $payment])] as $url) {
+            $this->get($url)->assertRedirect(route('billing.show', $visit).'#issued-copies')
+                ->assertSessionHas('inertia.flash_data.toast', ['type' => 'info', 'message' => 'Print from here so the copy is recorded.']);
+        }
+        $this->assertSame(0, IssuedBillingDocument::query()->count());
+        $this->assertSame(0, IssuedBillingDocumentPrint::query()->count());
+        $this->assertSame($before, [$this->financialEvidence(), DB::table('audit_logs')->count()]);
+        // The same permission and branch checks as before: no print permission refuses, another branch is not found.
+        $this->selectBranch($this->actor('technical_admin'));
+        $this->get(route('billing.print', [$visit, $invoice]))->assertForbidden();
+        $other = Branch::query()->where('organisation_id', $visit->organisation_id)->where('id', '!=', $visit->branch_id)->firstOrFail();
+        $this->selectBranch($this->actor('ca', $other), $other);
+        $this->get(route('billing.receipt', [$visit, $invoice, $payment]))->assertNotFound();
+    }
+
     private function input(Visit $visit): array
     {
         return ['expected_branch_id' => $visit->branch_id, 'idempotency_key' => (string) Str::uuid(), 'return_to' => 'billing'];

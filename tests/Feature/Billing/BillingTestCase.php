@@ -4,10 +4,15 @@ namespace Tests\Feature\Billing;
 
 use App\Domain\Clinical\Services\CompleteConsultationService;
 use App\Domain\Visit\Billing\Models\ChargeDefinition;
+use App\Domain\Visit\Billing\Models\Invoice;
+use App\Domain\Visit\Billing\Models\Payment;
 use App\Domain\Visit\Billing\Models\PriceBook;
 use App\Domain\Visit\Billing\Models\PriceEntry;
 use App\Domain\Visit\Billing\Services\BillingBuilderService;
+use App\Domain\Visit\Models\Visit;
 use Illuminate\Support\Str;
+use Illuminate\Testing\TestResponse;
+use Symfony\Component\HttpFoundation\Response;
 use Tests\Feature\Clinical\ClinicalTestCase;
 
 abstract class BillingTestCase extends ClinicalTestCase
@@ -36,5 +41,39 @@ abstract class BillingTestCase extends ClinicalTestCase
         $invoice = $builder->finalize($ca, $visit, $invoice, ['expected_branch_id' => $visit->branch_id, 'lock_version' => $invoice->lock_version]);
 
         return [$doctor, $ca, $visit, $invoice];
+    }
+
+    /**
+     * BIL-14: the old live print pages redirect to Issued copies, so a test of what an invoice prints issues a
+     * recorded copy (as the current user) and opens it.
+     *
+     * @return TestResponse<Response>
+     */
+    protected function issuedInvoicePage(Visit $visit, Invoice $invoice): TestResponse
+    {
+        return $this->openIssued($this->post(route('billing.issue', [$visit, $invoice]), $this->issueInput($visit)));
+    }
+
+    /** @return TestResponse<Response> */
+    protected function issuedReceiptPage(Visit $visit, Invoice $invoice, Payment $payment): TestResponse
+    {
+        return $this->openIssued($this->post(route('billing.receipt.issue', [$visit, $invoice, $payment]), $this->issueInput($visit)));
+    }
+
+    /** @return array{expected_branch_id: int, idempotency_key: string, return_to: string} */
+    private function issueInput(Visit $visit): array
+    {
+        return ['expected_branch_id' => (int) $visit->branch_id, 'idempotency_key' => (string) Str::uuid(), 'return_to' => 'billing'];
+    }
+
+    /**
+     * @param  TestResponse<Response>  $issued
+     * @return TestResponse<Response>
+     */
+    private function openIssued(TestResponse $issued): TestResponse
+    {
+        $issued->assertSessionHasNoErrors()->assertRedirect();
+
+        return $this->get((string) $issued->headers->get('Location'));
     }
 }

@@ -32,28 +32,33 @@ class PrintLayoutReleaseTest extends BillingTestCase
             $before = $this->allRows();
             $this->assertNotEmpty($before['invoices']);
             $this->assertNotEmpty($before['payments']);
-            $invoiceResponse = $this->get(route('billing.print', [$visit, $invoice]))->assertOk();
+            // BIL-14: the old print addresses only redirect to Issued copies and change no row.
+            $this->get(route('billing.print', [$visit, $invoice]))->assertRedirect(route('billing.show', $visit).'#issued-copies');
+            foreach ($payments as $payment) {
+                $this->get(route('billing.receipt', [$visit, $invoice, $payment]))->assertRedirect(route('billing.show', $visit).'#issued-copies');
+            }
+            $this->assertSame($before, $this->allRows(), 'All public rows must remain identical after opening the old print addresses.');
+            $invoiceResponse = $this->issuedInvoicePage($visit, $invoice)->assertOk();
             $invoiceProps = $invoiceResponse->viewData('page')['props'];
             $this->assertSame(4000, $invoiceProps['billing']['invoice']['state']['total']);
             $this->assertSame($reversed ? 1500 : 2500, $invoiceProps['billing']['invoice']['state']['self_pay']);
             $this->assertSame($reversed ? 2500 : 1500, $invoiceProps['billing']['invoice']['state']['due_now']);
             $this->assertSame($invoice->finalized_at->setTimezone($visit->branch->timezone)->format('j M Y, g:i A'), $invoiceProps['billing']['invoice']['finalizedAt']);
             foreach ($payments as $index => $payment) {
-                $response = $this->get(route('billing.receipt', [$visit, $invoice, $payment]))->assertOk()->assertHeader('Cache-Control', 'max-age=0, must-revalidate, no-store, private');
+                $response = $this->issuedReceiptPage($visit, $invoice, $payment)->assertOk()->assertHeader('Cache-Control', 'max-age=0, must-revalidate, no-store, private');
                 $page = $response->viewData('page');
                 $this->assertSame('Billing/Print', $page['component']);
                 $props = $page['props'];
-                $this->assertSame(['name', 'patientNumber', 'profileUrl'], array_keys($props['billing']['patient']));
+                $this->assertSame(['name', 'patientNumber', 'identifier', 'phone'], array_keys($props['billing']['patient'])); // BIL-9 paper
                 $this->assertSame($visit->patient->full_name, $props['billing']['patient']['name']);
                 $this->assertSame($visit->patient->patient_number, $props['billing']['patient']['patientNumber']);
-                $this->assertArrayNotHasKey('billTo', $props);
+                $this->assertNull($props['billTo']);
                 $this->assertSame($index === 0 ? 1000 : 1500, $props['receipt']['amountSen']);
                 $this->assertSame('Synthetic saved method', $props['receipt']['method']);
                 $this->assertSame($reversed && $index === 0 ? 'reversed' : 'posted', $props['receipt']['status']);
                 $this->assertSame($payment->receipt_number, $props['receipt']['number']);
                 $this->assertSame($payment->received_at->setTimezone($visit->branch->timezone)->format('j M Y, g:i A'), $props['receipt']['receivedAt']);
             }
-            $this->assertSame($before, $this->allRows(), 'All public rows must remain identical after invoice and receipt reads.');
             $this->assertSame($routes, $this->routeContract());
         }
     }
