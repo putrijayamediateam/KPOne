@@ -302,25 +302,28 @@ class ClinicInsightsReportService
             $providersQuery->where('users.id', $doctorId);
         }
         $providers = $providersQuery
-            ->selectRaw('users.name, SUM(kpone_invoice_payable(invoices.id)) as sales_sen, COUNT(DISTINCT invoices.patient_id) as patients')
+            ->selectRaw('users.id, users.name, SUM(kpone_invoice_payable(invoices.id)) as sales_sen, COUNT(DISTINCT invoices.patient_id) as patients')
             ->groupBy('users.id', 'users.name')
             ->orderByDesc('sales_sen')
             ->limit(101)
             ->get()
             ->map(static fn (object $row): array => [
+                'id' => (int) $row->id,
                 'name' => (string) $row->name,
                 'salesSen' => (int) $row->sales_sen,
                 'patients' => (int) $row->patients,
             ]);
         $providersTruncated = $providers->count() > 100;
         $providers = $providers->take(100)->values()->all();
+        $otc = null;
         if ($doctorId === null) {
             $otcQuery = DB::table('invoices')->where('invoices.organisation_id', $actor->organisation_id)->where('invoices.status', 'finalized');
             $this->scopePeriod($otcQuery, $periods, 'invoices.finalized_at', 'invoices.branch_id');
-            if ($otc = OtcProviderRow::from($otcQuery)) {
-                $providers[] = $otc;
-            }
+            $otc = OtcProviderRow::from($otcQuery);
         }
+        // BIL-12: refund credits come off their invoice's doctor (or the OTC row) on the approval day.
+        $withCredits = InvoiceSalesProjection::withCredits($providers, $credits, $otc, $doctorId === null);
+        $providers = $withCredits['otc'] === null ? $withCredits['doctors'] : [...$withCredits['doctors'], $withCredits['otc']];
 
         return [
             'kind' => 'sales',

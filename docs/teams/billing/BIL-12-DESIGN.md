@@ -22,8 +22,18 @@ credit its rows add up to more than the headline.
 - A provider with credits in the period but no invoices in it still appears, with its credit as a negative figure
   and 0 patients.
 - Patients and invoice counts per provider are unchanged; only the sales figure moves.
-- The Today report has no provider table; nothing changes there.
+- The Today report's provider table follows the same rule for credits approved today, so it matches the Today
+  headline (which BIL-10 already nets).
 
 ## 4. Not in BIL-12
 
 No change to item rankings (they stay gross), the headline, reports outside Insights, or permissions.
+
+## 5. Built (2026-11-07)
+
+- `InvoiceSalesProjection::withCredits()` (shared by the Sales report and the Today report) takes each approved
+  credit off its invoice's attending doctor, or the OTC row, scoped like the headline credit (branch periods by
+  approval time, doctor filter through the invoice's checkout). Rows are re-sorted by net sales, then name.
+- Test: `RefundAfterCompletionTest` (sale day full sale; approval day the credit alone, 0 patients; both days add up
+  to the headline, with and without the doctor filter; Today's table on the approval day).
+- No existing assertion changed; no permission, migration or screen change (the table already shows signed money).
