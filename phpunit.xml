@@ -21,6 +21,7 @@
             <exclude>tests/Feature/HR/PostgresRecordsContentionTest.php</exclude>
             <exclude>tests/Feature/HR/PostgresCredentialsContentionTest.php</exclude>
             <exclude>tests/Feature/HR/PostgresClaimsContentionTest.php</exclude>
+            <exclude>tests/Feature/HR/PostgresPayrollContentionTest.php</exclude>
             <exclude>tests/Feature/Inventory/PostgresBatchHoldTest.php</exclude>
             <exclude>tests/Feature/Inventory/PostgresGovernedStockTest.php</exclude>
             <exclude>tests/Feature/Inventory/PostgresStockReadinessTest.php</exclude>
@@ -64,6 +65,7 @@
             <file>tests/Feature/HR/PostgresRecordsContentionTest.php</file>
             <file>tests/Feature/HR/PostgresCredentialsContentionTest.php</file>
             <file>tests/Feature/HR/PostgresClaimsContentionTest.php</file>
+            <file>tests/Feature/HR/PostgresPayrollContentionTest.php</file>
             <file>tests/Feature/Inventory/PostgresBatchHoldTest.php</file>
             <file>tests/Feature/Inventory/PostgresGovernedStockTest.php</file>
             <file>tests/Feature/Inventory/PostgresStockReadinessTest.php</file>
