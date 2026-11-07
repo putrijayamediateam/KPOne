@@ -63,6 +63,6 @@
     <div class="mc-closing">
     <p class="mc-notice">{{ $bm ? '(TIDAK SAH DI MAHKAMAH)' : '(NOT VALID IN THE COURT OF LAW)' }}</p>
     <div class="mc-signature"><div class="mc-signature-line">{{ $snapshot['fields']['doctor_name'] }} (MMC No: {{ $snapshot['fields']['mmc_number'] }})</div></div>
-    <p class="mc-evidence">Pre-signature content snapshot only. Not an archived signed original. Wet-sign the paper and retain a signed duplicate.<br>Rekod kandungan sebelum tandatangan sahaja. Bukan salinan asal bertandatangan.<br>Issued at: {{ $snapshot['issuedAtLocal'] }} ({{ $snapshot['issuedAtZone'] }})&nbsp;· {{ strtoupper($snapshot['language']) }} revision {{ $snapshot['templateRevision'] }}&nbsp;· {{ $snapshot['rendererVersion'] }}</p>
+    <p class="mc-evidence">Pre-signature content snapshot only. Not an archived signed original. Wet-sign the paper and retain a signed duplicate.<br>Rekod kandungan sebelum tandatangan sahaja. Bukan salinan asal bertandatangan.<br>Issued at / Dikeluarkan pada: {{ $snapshot['issuedAtLocal'] }} ({{ $snapshot['issuedAtZone'] }})&nbsp;· {{ strtoupper($snapshot['language']) }} revision {{ $snapshot['templateRevision'] }}&nbsp;· {{ $snapshot['rendererVersion'] }}</p>
     </div>
 </article>

@@ -443,7 +443,7 @@ class MedicalCertificateTest extends BillingTestCase
         $this->assertSame('01/01/2027', $snapshot['fields']['issue_date']);
         $this->assertSame('1 Jan 2027, 12:10 AM', $snapshot['issuedAtLocal']);
         $this->assertSame('Kuala Lumpur', $snapshot['issuedAtZone']);
-        $this->assertStringContainsString('Issued at: 1 Jan 2027, 12:10 AM (Kuala Lumpur)&nbsp;· EN revision 2&nbsp;· mc-a4-v2', $html);
+        $this->assertStringContainsString('Issued at / Dikeluarkan pada: 1 Jan 2027, 12:10 AM (Kuala Lumpur)&nbsp;· EN revision 2&nbsp;· mc-a4-v2', $html);
         $this->assertStringNotContainsString('Issued at (UTC)', $html);
         // The stored evidence stays in UTC.
         $this->assertSame('2026-12-31 16:10:00.000000+00:00', $snapshot['issuedAtUtc']);
