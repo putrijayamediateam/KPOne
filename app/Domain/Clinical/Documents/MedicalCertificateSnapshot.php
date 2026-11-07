@@ -70,7 +70,7 @@ final class MedicalCertificateSnapshot
         return $snapshot;
     }
 
-    /** "Asia/Kuala_Lumpur" prints as "Kuala Lumpur"; a zone without a city part prints as stored. */
+    /** The city part of the zone with underscores as spaces: "Asia/Kuala_Lumpur" prints as "Kuala Lumpur", "UTC" as "UTC". */
     private static function zoneName(string $timezone): string
     {
         $city = substr($timezone, (int) strrpos($timezone, '/') + (str_contains($timezone, '/') ? 1 : 0));

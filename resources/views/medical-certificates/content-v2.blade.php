@@ -1,6 +1,7 @@
 @php
     // MC slice 1, renderer mc-a4-v2: the layout of the clinic's printed medical certificate (owner decision 2026-11-06).
-    // Rendered once at issuance into the encrypted snapshot; every value is escaped.
+    // Rendered once at issuance into the encrypted snapshot; every value is escaped. MC-2 (2026-11-07) changed the
+    // phone line and the footer in place: v2 copies issued before it print "Issued at (UTC)", later ones the clinic time.
     $bm = $snapshot['language'] === 'bm';
     $details = $snapshot['letterhead']['details'];
     $place = implode(', ', array_filter(array_intersect_key($details, array_flip(['postcode', 'city', 'state', 'country']))));
@@ -62,6 +63,6 @@
     <div class="mc-closing">
     <p class="mc-notice">{{ $bm ? '(TIDAK SAH DI MAHKAMAH)' : '(NOT VALID IN THE COURT OF LAW)' }}</p>
     <div class="mc-signature"><div class="mc-signature-line">{{ $snapshot['fields']['doctor_name'] }} (MMC No: {{ $snapshot['fields']['mmc_number'] }})</div></div>
-    <p class="mc-evidence">Pre-signature content snapshot only. Not an archived signed original. Wet-sign the paper and retain a signed duplicate.<br>Rekod kandungan sebelum tandatangan sahaja. Bukan salinan asal bertandatangan.<br>Issued at: {{ $snapshot['issuedAtLocal'] ?? $snapshot['issuedAtUtc'] }}@isset($snapshot['issuedAtZone']) ({{ $snapshot['issuedAtZone'] }})@endisset · {{ strtoupper($snapshot['language']) }} revision {{ $snapshot['templateRevision'] }} · {{ $snapshot['rendererVersion'] }}</p>
+    <p class="mc-evidence">Pre-signature content snapshot only. Not an archived signed original. Wet-sign the paper and retain a signed duplicate.<br>Rekod kandungan sebelum tandatangan sahaja. Bukan salinan asal bertandatangan.<br>Issued at: {{ $snapshot['issuedAtLocal'] }} ({{ $snapshot['issuedAtZone'] }})&nbsp;· {{ strtoupper($snapshot['language']) }} revision {{ $snapshot['templateRevision'] }}&nbsp;· {{ $snapshot['rendererVersion'] }}</p>
     </div>
 </article>
