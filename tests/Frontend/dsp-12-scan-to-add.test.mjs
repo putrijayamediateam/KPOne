@@ -153,5 +153,10 @@ test('DSP-12 review: only the newest scan counts, a scan never replaces typed di
     assert.match(show, /@click="pickMedicine\(medicine\)"/);
     // Closing the scan box returns focus to the button, and the success is announced once (by the page).
     assert.match(show, /@keydown\.esc="closeScanAdd"/);
+    // Daniel: "Close scan" is an outline button like the other row actions (44 px below 1024 px from the page rule).
+    assert.match(
+        show,
+        /variant="outline"\s+class="justify-self-start"\s+data-action="close-scan-add"/,
+    );
     assert.match(show, /:describe="\(\) => ''"/);
 });

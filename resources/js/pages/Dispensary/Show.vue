@@ -1731,8 +1731,9 @@ const inputClass = 'mt-1 h-9 w-full rounded-md border px-2';
                         />
                         <Button
                             size="sm"
-                            variant="ghost"
+                            variant="outline"
                             class="justify-self-start"
+                            data-action="close-scan-add"
                             @click="closeScanAdd"
                             >Close scan</Button
                         >
