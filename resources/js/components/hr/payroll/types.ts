@@ -67,6 +67,32 @@ export type StatutoryTable = {
     canWithdraw: boolean;
 };
 
+export type MtdSchedule = {
+    id: string;
+    year: number;
+    status: TableStatus;
+    rounding: string;
+    minimum: string;
+    reliefs: { label: string; amount: string }[];
+    sourceNote: string;
+    rows: {
+        from: string;
+        to: string | null;
+        rate: string;
+        baseCat13: string;
+        baseCat2: string;
+    }[];
+    enteredBy: string;
+    enteredAt: string;
+    decidedBy: string | null;
+    decidedAt: string | null;
+    reason: string | null;
+    lockVersion: number;
+    canDecide: boolean;
+    decideRefusal: string | null;
+    canWithdraw: boolean;
+};
+
 export const profileWords: Record<ProfileStatus, string> = {
     waiting: 'Waiting for confirmation',
     confirmed: 'Confirmed',
