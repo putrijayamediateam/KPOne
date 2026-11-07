@@ -2,7 +2,7 @@
 
 namespace App\Domain\Agents\Health;
 
-use App\Domain\Agents\Tools\AgentTool;
+use App\Domain\Agents\Tools\OrganisationWideSystemTool;
 use App\Domain\Organisation\Models\Branch;
 use App\Models\User;
 use Carbon\CarbonImmutable;
@@ -15,9 +15,10 @@ use Throwable;
  * `system.health` (AG-10, contract section 5): counts only. Error-level application log entries since a time
  * (only each line's timestamp and level are read; log text is never kept or returned), failed scheduled agent
  * runs, pending database migrations and failed queue jobs when that table exists. Registered by tagging in
- * AppServiceProvider, so AgentToolRegistry is unchanged.
+ * AppServiceProvider, so AgentToolRegistry is unchanged. Organisation-wide (AG-12): a branchless system run reads it
+ * with no branch.
  */
-final class SystemHealthTool implements AgentTool
+final class SystemHealthTool implements OrganisationWideSystemTool
 {
     public const LEVELS = ['ERROR', 'CRITICAL', 'ALERT', 'EMERGENCY'];
 
@@ -51,6 +52,12 @@ final class SystemHealthTool implements AgentTool
 
     public function run(User $requester, ?Branch $branch, array $input): array
     {
+        return $this->runForOrganisation($requester->organisation_id, $branch, $input);
+    }
+
+    public function runForOrganisation(int $organisationId, ?Branch $branch, array $input): array
+    {
+        $requester = (object) ['organisation_id' => $organisationId];
         $now = CarbonImmutable::now('UTC');
         $since = isset($input['since']) ? CarbonImmutable::parse((string) $input['since'])->utc() : $now->subHours(self::DEFAULT_LOOKBACK_HOURS);
         $since = $since->greaterThan($now) ? $now : $since;

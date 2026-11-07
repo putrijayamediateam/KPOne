@@ -62,6 +62,10 @@ Development, Finance and the TV account get no HR data by implication. Server ch
 | HR-5c | SOPs at `/hr/sops`: versioned SOPs with audiences by role, an open before each acknowledgement, and who is left to acknowledge. Migrations `2026_11_10_001800` and `001900`. | PR #364, merged as `f259810` (head `b0d02d7`) |
 | HR-6 | Staff claims at `/hr/claims` (My claims, Approvals, Pay, Monthly, Settings): claims with encrypted purpose and receipts, approval by someone else (HR Manager and Director rule, the Director level), payment recorded by a third person, reversal back to Approved, monthly totals on screen; KPOne pays nothing. Migrations `2026_11_10_002000` and `002100`. | PR #370, merged as `320f6a9` (head `dbfdd1a`) |
 | HR-7a | Payroll setup at `/hr/payroll` (Pay profiles, Tables, Settings): effective-dated pay profiles with encrypted salary and allowances, confirmed by someone else; clinic-entered EPF, SOCSO, EIS and HRD tables checked by someone else; versioned pay item types and rate settings; managers' own pay and locums outside KPOne; nothing calculated. Permissions `hr.payroll.prepare.organisation` (Director, HR Manager), `hr.payroll.approve.organisation` (Director). Migrations `2026_11_10_002300` and `002400`. | PR #376, merged as `845288e` (head `d4f9418`) |
+| HR-7b | Payroll runs on the Runs tab of `/hr/payroll`: prepare a monthly or adjustment run per pay group and month; lines worked out from confirmed pay profiles, approved overtime, staff claims to be refunded through payroll and the checked statutory tables, each with the sentence it came from; MTD entered by hand; errors stop sending and warnings never do; send, approve by a Director and lock, with the only approver left never preparing; adjustment runs hold manual difference lines only; staff claims paid by a locked run show as "Payroll". Nothing is paid and nothing is filed. Migrations `2026_11_10_002500` and `002600`. | PR #379, merged as `2c11b41` (head `590e261`) |
+| HR-7c | Payslips and exports: one encrypted, hashed payslip snapshot per person written when a run is locked (letterhead text, lines, totals, bank last four), opened only by its owner or a payroll preparer or approver, every open recorded; My payslips on My HR details; a printable A4 payslip; an Exports tab for the Director only with the generic CSV bank file (paying the bank details frozen at locking, anyone without them named and left out), the accountant summary CSV and the statutory summary on screen, each download audited first and never stored. Permissions `hr.payroll.export.organisation` (Director) and `hr.payslips.view.own` (every human role, not the TV account). Migrations `2026_11_10_002700` and `002800`. | PR #393, merged as `f29209f` (head `08138fd`) |
+| HR-7d | MTD (PCB) worked out by KPOne: a yearly MTD schedule (bands, reliefs, EPF relief limit, smallest MTD, rounding) entered by the clinic and checked by someone else; optional MTD details on the pay profile (category, children, disability); MTD worked out on monthly runs from the year to date of locked runs with the line explaining itself; one-off pay, an unlocked earlier month, no schedule or no band stop the worked figure; a typed MTD always counts and the line shows both. No new permission. Migration `2026_11_10_002900`. | PR #396, merged as `bfe546b` (head `81accec`) |
+| HR-12 | Export for an outside HR product: a closed-by-default section on the Staff files tab for the Director and HR Manager with three generic CSV downloads (staff list as of today, approved leave touching a month, approved overtime in a month), each audited before release, formula-safe, capped at 5,000 rows and never stored; no identity numbers, bank details, documents, pay or reasons. No new permission and no migration. | PR #397, merged as `8c6d78b` (head `cf24954`) |
 
 ## 6. Decisions (never ask again)
 
@@ -304,6 +308,40 @@ check items, keep them"). The rest stand unless the owner changes them.
 59. HR-7b S6, option (a), approved by B.E.R.N.I.S.S for the owner (2026-11-06): the only approver left never prepares
     a run or takes a draft step (HR-PLAN 16.13), with no new permission or grant change. Not a warning only (b), and
     no "cancel draft run" (c) in v1. HR-7b needs no further ship-it after Suresh's review and Daniel's OK.
+60. HR-7c design note (HR-PLAN section 17) approved by B.E.R.N.I.S.S for the owner (2026-11-07), with the 17.9
+    answers: synthetic data only; exports by the **Director only** (`hr.payroll.export.organisation`), and the Finance
+    Officer gets no payroll access until it is revisited after the PDPA review; `hr.payslips.view.own` for every human
+    role, not the TV account; a generic CSV bank file first; the accountant summary, exported by the Director; each
+    person prints their own payslip; dates "30 Oct 2026" and the period "October 2026".
+61. HR-7c hub-map assertion approved by B.E.R.N.I.S.S for the owner (2026-11-07): in `ClinicManagementTest`,
+    `'/hr/payroll' => ['hr.payroll.prepare.organisation'],` becomes
+    `'/hr/payroll' => ['hr.payroll.prepare.organisation', 'hr.payroll.export.organisation'],` and nothing else.
+62. HR-7c bank file (HR-PLAN 17.3 changed after Suresh's S1), approved by B.E.R.N.I.S.S for the owner (2026-11-07):
+    each payslip freezes the confirmed bank row at locking (`hr_payslips.bank_detail_id`) and the bank file pays only
+    that row; anyone with none is left out of the file and named on the Exports tab, to be paid outside the file. Not
+    "refuse the whole run", which could never be cleared once the account is frozen.
+63. HR-7c payslip letterhead (Daniel, 2026-11-07): the same text block as the other letters (clinic name first and
+    bold, the address on one line, then "Tel: …" through `PrintedPhone`); a branch with no Business details shows the
+    organisation's name; no logo in v1 ("logo on payslips?" is on the owner's later list).
+64. HR-7c fixture clean-up approved by B.E.R.N.I.S.S for the owner (2026-11-07): `PostgresPayrollContentionTest`
+    adds `hr_payslip_opens`, `hr_payroll_exports` and `hr_payslips` to its clean-up list, with no assertion change.
+    The new `HR/Payslip` no-layout case in `app.ts` sits before `PanelClaims/Pack`, because a Panel test pins that
+    case next to `QueueDisplay/Screen`.
+
+65. HR-7d design note (HR-PLAN section 18) approved by B.E.R.N.I.S.S for the owner with its defaults, on the owner's own
+    "start the HR-7d build" (2026-11-07). KPOne ships no tax number; the clinic enters the yearly schedule and someone
+    else checks it; every worked MTD is labelled as worked out by KPOne and to be checked with the clinic's accountant;
+    a typed MTD stays and the line shows both figures; the 18.10 items are accountant questions on the owner's list.
+66. HR-7d review changes (Suresh): one-off pay (any manual line counting for MTD) and an unlocked earlier month this
+    year stop the worked figure; a typed MTD always gets past the stop codes with a warning; MTD details are never
+    flashed into the session. Adjustment runs carry no MTD line in v1 (a known limit from HR-7b).
+67. HR-7d screens (Daniel, OK on v2): a note under the MTD figure says which figure counts; shorter band labels; the
+    HRD levy's zero employee line is hidden in the lines panel (display only).
+68. HR-12: the owner answered 15.7 item 1 in the HR session (2026-11-07): a generic CSV export first (no product or API
+    named yet), with the staff list, approved leave and approved overtime, and no payroll, identity, bank or document
+    data. It reuses `hr.records.manage.organisation`, so no new permission, migration or hub line.
+69. HR-12 leave type (Suresh, M2): kept by name in v1 on synthetic data, as a known limit; "hide leave type in the
+    outside-HR export?" is on the owner's PDPA-review list (B.E.R.N.I.S.S for the owner, 2026-11-07).
 
 ## 7. Open items and known limits
 
@@ -342,6 +380,19 @@ check items, keep them"). The rest stand unless the owner changes them.
   correction for the same person has no two-process test yet; Review loads shifts for one branch, so a split shift
   across two branches shows the other branch's session as "Not on the roster"; the toast and the live region can
   both read a successful Clock in.
+
+- HR-7c known limits: a former staff member whose account is inactive cannot sign in to open their old payslips
+  (HR opens them as a preparer); no logo on payslips in v1; opening a payslip is a GET that writes an open row each
+  time; statutory and export totals are summed in PHP over decrypted lines and are not load-tested; one generic bank
+  file layout only; the "Exports" tab is cut at 390 px (the shared tab-edge fade, DD-40).
+
+- HR-7d known limits: TP1, TP3, zakat, additional remuneration and non-residents are not counted (a typed MTD
+  covers them); adjustment runs carry no MTD line; the year to date counts only KPOne's own locked runs, and an earlier
+  month never prepared is not detected; variable overtime is projected like basic pay; one child-relief rate; a part
+  month for a joiner or leaver is projected; each band's From is M; a worker in two regular runs for one month would
+  be counted twice. Drafts prepared before the deploy ask to be prepared again once.
+- HR-12 known limits: the CSV is uploaded to the outside product by hand; no live link or import preview; leave rows
+  carry the whole request's days; the leave type is shown by name (PDPA-review item).
 
 ## 8. Rules (every task)
 

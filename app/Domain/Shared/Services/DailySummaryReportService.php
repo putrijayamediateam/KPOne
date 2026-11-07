@@ -28,14 +28,14 @@ class DailySummaryReportService extends BranchReportService
 
     public function basis(): string
     {
-        return 'Cash, Non-cash and Total use original receipt date, not invoice finalisation; original, reversed and net are explicit. Reversals restate the original receipt date, not refund-date cash flow (see refund columns). Panel is approved responsibility; Due is approved pay-later outstanding, both from the invoice finalisation-date cohort. Total is net receipts only: Total received (Cash + Non-cash). Panel and Due are not included in Total received. Refunds (waiting or approved, not rejected) use payout date and the refund\'s method, and are not deducted from Total received. Cash closing = Cash net + Cash reversed, refund recorded minus Cash refunds paid. Payment-method filters apply to receipt columns only, and to refunds by refund method (refunds paid) or receipt method (refund recorded). Visit type filters apply to both cohorts and to refunds (through the receipt\'s invoice); unallocated receipts cannot match a visit filter. Current classification applies to historical periods; Not classified counts as Non-cash. MYR, two decimals. Empty dates are zero rows. Current records at generation, not a historical snapshot.';
+        return 'Cash, Non-cash and Total use original receipt date, not invoice finalisation; original, reversed and net are explicit. Reversals restate the original receipt date, not refund-date cash flow (see refund columns). Panel is approved responsibility; Due is approved pay-later outstanding, both from the invoice finalisation-date cohort. Total is net receipts only: Total received (Cash + Non-cash). Panel and Due are not included in Total received. Refunds (waiting or approved, not rejected) use payout date and the refund\'s method, and are not deducted from Total received. Cash closing = Cash net + Cash reversed, refund recorded minus Cash refunds paid. Refunded after completion is the part of Cash and Non-cash refunds paid that gives back money on a receipt of a completed visit (BIL-10); it is already inside those two columns, so it is never added to them. Payment-method filters apply to receipt columns only, and to refunds by refund method (refunds paid) or receipt method (refund recorded). Visit type filters apply to both cohorts and to refunds (through the receipt\'s invoice); unallocated receipts cannot match a visit filter. Current classification applies to historical periods; Not classified counts as Non-cash. MYR, two decimals. Empty dates are zero rows. Current records at generation, not a historical snapshot.';
     }
 
     protected function project(User $actor, Branch $branch, array $filters): array
     {
         $days = [];
         for ($date = CarbonImmutable::parse($filters['from']); $date->toDateString() <= $filters['to']; $date = $date->addDay()) {
-            $days[$date->toDateString()] = array_fill(0, 14, 0);
+            $days[$date->toDateString()] = array_fill(0, 15, 0);
         }
         $methods = PaymentMethod::query()->where('organisation_id', $actor->organisation_id)->get()->keyBy('code');
         foreach (app(ClinicInsightsReportService::class)->branchReceiptRows($actor, $branch, $filters['from'], $filters['to'], $filters['visit_types']) as $row) {
@@ -65,8 +65,8 @@ class DailySummaryReportService extends BranchReportService
             }
         });
         $this->refunds($actor, $branch, $filters, $methods->keyBy('id'), $days);
-        $columns = ['Local date', 'Cash original (receipt date, MYR)', 'Cash reversed (receipt date, MYR)', 'Cash net (receipt date, MYR)', 'Non-cash original (receipt date, MYR)', 'Non-cash reversed (receipt date, MYR)', 'Non-cash net (receipt date, MYR)', 'Panel approved (invoice finalisation date, MYR)', 'Due approved pay-later outstanding (invoice finalisation date, MYR)', 'Total original receipts (receipt date, MYR)', 'Total reversed receipts (receipt date, MYR)', 'Total received (Cash + Non-cash) (receipt date, MYR)', 'Cash refunds paid (payout date, MYR)', 'Cash reversed, refund recorded (receipt date, MYR)', 'Non-cash refunds paid (payout date, MYR)'];
-        $sums = array_fill(0, 14, 0);
+        $columns = ['Local date', 'Cash original (receipt date, MYR)', 'Cash reversed (receipt date, MYR)', 'Cash net (receipt date, MYR)', 'Non-cash original (receipt date, MYR)', 'Non-cash reversed (receipt date, MYR)', 'Non-cash net (receipt date, MYR)', 'Panel approved (invoice finalisation date, MYR)', 'Due approved pay-later outstanding (invoice finalisation date, MYR)', 'Total original receipts (receipt date, MYR)', 'Total reversed receipts (receipt date, MYR)', 'Total received (Cash + Non-cash) (receipt date, MYR)', 'Cash refunds paid (payout date, MYR)', 'Cash reversed, refund recorded (receipt date, MYR)', 'Non-cash refunds paid (payout date, MYR)', 'Refunded after completion (payout date, MYR)'];
+        $sums = array_fill(0, 15, 0);
         $rows = [];
         foreach ($days as $date => $values) {
             foreach ($values as $i => $value) {
@@ -108,12 +108,16 @@ class DailySummaryReportService extends BranchReportService
         $wanted = fn (int $methodId): bool => $filters['methods'] === [] || in_array((string) $methodId, $filters['methods'], true);
         $cash = fn (int $methodId): bool => $methods->get($methodId)?->reportClassification() === 'cash';
 
-        foreach ($open()->where('paid_out_at', '>=', $start)->where('paid_out_at', '<', $end)->get(['payment_method_id', 'amount_sen', 'paid_out_at']) as $refund) {
+        foreach ($open()->where('paid_out_at', '>=', $start)->where('paid_out_at', '<', $end)->get(['payment_method_id', 'amount_sen', 'paid_out_at', 'kind']) as $refund) {
             if (! $wanted((int) $refund->payment_method_id)) {
                 continue;
             }
             $date = $refund->paid_out_at->setTimezone($branch->timezone)->toDateString();
             $days[$date][$cash((int) $refund->payment_method_id) ? 11 : 13] += (int) $refund->amount_sen;
+            if ($refund->kind === PaymentRefund::KIND_AFTER_COMPLETION) {
+                // BIL-10 (decision C): an "of which" breakdown of the two refund-paid columns.
+                $days[$date][14] += (int) $refund->amount_sen;
+            }
         }
 
         $receipts = $open()->join('payments', 'payments.id', '=', 'payment_refunds.payment_id')
