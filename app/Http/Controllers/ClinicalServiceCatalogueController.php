@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Domain\Access\BranchAccessService;
 use App\Domain\Clinical\Models\ClinicalServiceCatalogueItem;
 use App\Domain\Clinical\Services\ClinicalServiceCatalogueAdministrationService;
+use App\Domain\Clinical\Services\ClinicalServiceCategories;
 use App\Domain\Clinical\Services\UnifiedCatalogueSetupService;
 use App\Domain\Visit\Billing\Models\ChargeDefinition;
 use App\Domain\Visit\Billing\Models\PriceBook;
@@ -142,6 +143,8 @@ class ClinicalServiceCatalogueController extends Controller
             'setup' => [
                 'canManagePrices' => $actor->can(PricingReferenceAdministrationService::PERMISSION),
                 'canPublishPrices' => $actor->can('prices.publish.organisation'),
+                // CAT-11: the fixed category names a new service or a changed category must use.
+                'serviceCategories' => ClinicalServiceCategories::NAMES,
                 'activeBranchId' => $branches->activeBranch($actor)?->id,
                 'branches' => $branches->availableBranches($actor)->map(fn ($branch): array => [
                     'id' => $branch->id,

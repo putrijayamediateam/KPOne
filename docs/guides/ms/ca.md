@@ -65,20 +65,21 @@ Semakan ini hanya membandingkan teks alahan dengan nama ubat, nama generik dan k
 
 ## Cetak label ubat
 
-1. Pada kes “Dispensary”, pilih “Print all labels” untuk semua ubat atau “Print Label” pada ubat berkenaan.
+1. Pada kes “Dispensary”, pilih “Print all labels” untuk semua ubat atau “Print label” pada ubat berkenaan.
 2. Halaman yang dibuka bertajuk “Medicine label preview”.
 3. Semak label ubat yang telah disimpan. Label hanya tersedia untuk kuantiti akhir yang positif; kandungan terlalu panjang akan disekat, bukan dipendekkan.
 4. Pilih “Print current labels” dan gunakan dialog cetak pelayar.
 
 Perkara lain pada label:
 
-- Jika satu baris ubat menggunakan satu batch sahaja, label mencetak “No. Batch: …” dan “Tarikh luput: dd/mm/yyyy”. Jika lebih daripada satu batch, tiada batch, atau tiada tarikh luput sebenar, kedua-duanya tidak dicetak dan bahagian “Batch and expiry” di atas pratonton menerangkan sebabnya.
-- Ubat yang ditanda terkawal mencetak “Ubat Terkawal / Controlled Medicine” di bawah nama ubat. Perkataan ini masih perlu disemak oleh ahli farmasi: [PERLU DISAHKAN].
+- Tarikh luput dicetak di sudut kanan bawah label sebagai “EXP: dd/mm/yyyy” hanya jika satu baris ubat menggunakan satu batch sahaja dengan tarikh luput sebenar. Jika tidak, label menunjukkan “EXP: -” dan bahagian di atas pratonton menerangkan sebabnya (“The expiry is printed only when exactly one batch was used for a medicine; otherwise the label shows "EXP: -".”). Nombor batch tidak dicetak pada label.
+- Ubat yang ditanda terkawal mencetak “Ubat Terkawal/Controlled Medicine” di bawah sempadan label. Perkataan ini masih perlu disemak oleh ahli farmasi: [PERLU DISAHKAN].
+- Dosage, frequency dan instruction berkongsi paling banyak 3 baris bercetak, dan Route tidak dicetak (medan Dispensary menunjukkan “Route (not printed on the label)”). Jika arahan terlalu panjang, label disekat; jangan pendekkan arahan klinikal semata-mata supaya muat.
 - Jika label pernah dicetak, pratonton menyatakan “This label was printed before. It will print marked REPRINT.” (atau “… of these labels were printed before …” jika beberapa label) dan label dicetak dengan kotak “REPRINT”. Buang label lama yang sudah tidak betul.
 - Cetakan hanya direkod apabila anda menekan “Print current labels” (butang menunjukkan “Checking saved record…” seketika). Jangan cetak terus dengan Ctrl+P.
 - Jika skrin menyatakan “The saved dispensing record or access changed. Reload and review before printing.”, muat semula halaman dan semak sebelum mencetak.
 
-Saiz 100 × 150 mm masih berstatus “Provisional”. Pencetak sebenar dan stok pelekat sebenar masih perlu diuji dengan cetakan ujian: [PERLU DISAHKAN].
+Label melintang ini bersaiz 100 × 62 mm dan masih bersifat sementara (“provisional”). Pencetak sebenar dan stok pelekat sebenar masih perlu diuji dengan cetakan ujian: [PERLU DISAHKAN].
 
 ## Bil, pelarasan dan bayaran
 

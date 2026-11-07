@@ -45,6 +45,9 @@ final class PanelStatementService
 
     private const PAYABLE = ['accepted', 'partially_accepted', 'partially_paid'];
 
+    /** How many of the oldest open claims are compared for near matches. */
+    private const NEAR_CANDIDATES = 500;
+
     private const UNDECIDED = ['prepared', 'submitted', 'queried'];
 
     /**
@@ -372,6 +375,7 @@ final class PanelStatementService
         $claims = $this->claims($actor, $branch, $panel, array_values(array_filter($claimNumbers)), array_values(array_filter($invoices)), array_values(array_filter($members)));
         $outstanding = static fn (PanelClaim $claim): int => max(0, (int) $claim->accepted_amount_sen - (int) $claim->getAttribute('received_sen'));
         $used = [];
+        $pending = [];
         $out = [];
         foreach ($rows as $i => $row) {
             // Invoice number first, then KPOne's claim number; a member reference is only a fallback, because one
@@ -403,6 +407,9 @@ final class PanelStatementService
             if ($result === 'matched') {
                 $used[$claim->id] = true;
             }
+            if ($result === 'not_found' && $invoices[$i] !== '' && $amount !== null) {
+                $pending[$i] = $amount;
+            }
             $reference = (string) (array_values(array_filter([$cell($row, $columns['claim']), $cell($row, $columns['invoice']), $cell($row, $columns['member'])]))[0] ?? '');
             $out[] = [
                 'line' => $row['line'],
@@ -417,8 +424,92 @@ final class PanelStatementService
                 ],
             ];
         }
+        // Second pass, after every exact match is known: a "Not found" row whose invoice number is close to exactly
+        // one open claim (see nearInvoice) is offered as a near match. It is only a suggestion; the officer must tick it.
+        if ($pending !== []) {
+            $open = $this->openClaims($actor, $branch, $panel);
+            foreach ($pending as $i => $pendingSen) {
+                $statementInvoice = $cell($rows[$i], $columns['invoice']);
+                // Exactly one candidate first; only then the already-used and unpaid checks, so a second claim on a
+                // near number never lets the first one through.
+                $near = $open->filter(fn (PanelClaim $c): bool => self::nearInvoice($statementInvoice, (string) $c->invoice_number) !== null);
+                $claim = $near->count() === 1 ? $near->first() : null;
+                if ($claim === null || isset($used[$claim->id]) || $pendingSen > $outstanding($claim)) {
+                    continue;
+                }
+                $used[$claim->id] = true;
+                $out[$i]['result'] = 'near_match';
+                $out[$i]['statementInvoice'] = Str::limit($statementInvoice, 40);
+                $out[$i]['nearReason'] = self::nearInvoice($statementInvoice, (string) $claim->invoice_number);
+                $out[$i]['claim'] = ['publicId' => $claim->public_id, 'claimNo' => (string) $claim->id, 'invoiceNumber' => $claim->invoice_number, 'outstandingSen' => $outstanding($claim)];
+            }
+        }
 
         return $out;
+    }
+
+    /**
+     * Why two different invoice numbers count as a near match, or null when they do not. KPOne numbers run in
+     * sequence, so a digit typed wrongly may be another real invoice: only differences that cannot change the
+     * number count. "format": the same apart from spaces, punctuation, capitals or leading zeros; "lookalike":
+     * also reading letters that look like digits (O, I, L, S, B, Z) as those digits.
+     */
+    public static function nearInvoice(string $statement, string $claim): ?string
+    {
+        $format = self::invoiceTokens($statement, false);
+        if ($format === null || ($claimFormat = self::invoiceTokens($claim, false)) === null) {
+            return null;
+        }
+
+        return match (true) {
+            $format === $claimFormat => 'format',
+            self::invoiceTokens($statement, true) === self::invoiceTokens($claim, true) => 'lookalike',
+            default => null,
+        };
+    }
+
+    /**
+     * An invoice number as its letter and number groups, in capitals. Groups are compared one by one and never glued
+     * together, so "KPI-00000012-1" is not "KPI-00000121". Format mode drops each number's leading zeros; look-alike
+     * mode reads O, I, L, S, B and Z as digits but keeps every number at its exact length, so a letter suffix such as
+     * "KPI-00000012B" can never become another invoice ("KPI-00000128").
+     */
+    private static function invoiceTokens(string $value, bool $lookalike): ?string
+    {
+        $value = strtoupper($value);
+        if ($lookalike) {
+            // A look-alike letter is read as a digit only when a real digit follows it in the same group, so a trailing
+            // letter ("KPI-0000012B") is never an extra digit.
+            $value = preg_replace_callback('/[A-Z0-9]+/', static function (array $m): string {
+                if (preg_match('/[0-9][^0-9]*\z/', $m[0], $tail, PREG_OFFSET_CAPTURE) !== 1) {
+                    return $m[0];
+                }
+                $lastDigit = (int) $tail[0][1];
+
+                return strtr(substr($m[0], 0, $lastDigit), ['O' => '0', 'I' => '1', 'L' => '1', 'S' => '5', 'B' => '8', 'Z' => '2']).substr($m[0], $lastDigit);
+            }, $value) ?? '';
+        }
+        preg_match_all('/[A-Z]+|[0-9]+/', $value, $groups);
+        if ($groups[0] === []) {
+            return null;
+        }
+
+        return implode('|', array_map(static fn (string $g): string => ctype_digit($g) && ! $lookalike ? (ltrim($g, '0') === '' ? '0' : ltrim($g, '0')) : $g, $groups[0]));
+    }
+
+    /**
+     * Open claims of this Panel at this branch that still wait for payment, oldest first, as near-match candidates.
+     *
+     * @return Collection<int, PanelClaim>
+     */
+    private function openClaims(User $actor, Branch $branch, Panel $panel): Collection
+    {
+        $received = '(select coalesce(sum(p.amount_sen), 0) from panel_claim_payments p where p.panel_claim_id = panel_claims.id and p.organisation_id = panel_claims.organisation_id and p.branch_id = panel_claims.branch_id and '.PanelClaimPaymentReversal::NOT_REVERSED_P.')';
+
+        return PanelClaim::query()->where('organisation_id', $actor->organisation_id)->where('branch_id', $branch->id)->where('panel_id', $panel->id)
+            ->whereIn('status', self::PAYABLE)->orderBy('id')
+            ->select('panel_claims.*')->selectRaw("{$received} as received_sen")->limit(self::NEAR_CANDIDATES)->get()
+            ->filter(fn (PanelClaim $c): bool => max(0, (int) $c->accepted_amount_sen - (int) $c->getAttribute('received_sen')) > 0)->values();
     }
 
     /**

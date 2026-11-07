@@ -27,7 +27,7 @@ import type { CameraSupport, ScanLookup, ScannedSku } from '@/lib/scan';
  * decides what to show, and nothing is ever saved by a scan.
  */
 const props = defineProps<{
-    context: 'search' | 'receiving' | 'dispensary';
+    context: 'search' | 'receiving' | 'dispensary' | 'dispensary-add';
     /** Refocus key used after a scan-triggered page reload, so the next wedge scan lands here. */
     refocusKey: string;
     /** Optional page check; return a message to refuse the SKU (for example "not on this order"). */
@@ -67,6 +67,10 @@ const statusTone = computed(() =>
 );
 const alerting = computed(
     () => failed.value && (props.context !== 'dispensary' || warning.value),
+);
+// DSP-12: scanning to add announces every lookup result politely; the page raises its own allergy warning.
+const shout = computed(
+    () => alerting.value && props.context !== 'dispensary-add',
 );
 
 function box(): HTMLInputElement | null {
@@ -335,7 +339,15 @@ onBeforeUnmount(() => {
             </div>
         </div>
         <p
-            v-if="context === 'dispensary'"
+            v-if="context === 'dispensary-add'"
+            :id="`${inputId}-help`"
+            class="text-xs text-muted-foreground"
+        >
+            Scan the box to find the medicine to add. Scanning only finds it.
+            You still set the quantity, directions and batch, then press Add.
+        </p>
+        <p
+            v-else-if="context === 'dispensary'"
             :id="`${inputId}-help`"
             class="text-xs text-muted-foreground"
         >
@@ -357,7 +369,7 @@ onBeforeUnmount(() => {
         </p>
         <div :id="`${inputId}-status`" class="min-w-0 text-sm break-words">
             <p role="status" aria-live="polite" :class="statusTone">
-                {{ alerting ? '' : status }}
+                {{ shout ? '' : status }}
             </p>
             <p
                 role="alert"
@@ -377,7 +389,7 @@ onBeforeUnmount(() => {
                     class="mt-0.5 size-4 shrink-0"
                     aria-hidden="true"
                 />
-                <span>{{ alerting ? status : '' }}</span>
+                <span>{{ shout ? status : '' }}</span>
             </p>
         </div>
         <Dialog :open="open" @update:open="onOpenChange">
