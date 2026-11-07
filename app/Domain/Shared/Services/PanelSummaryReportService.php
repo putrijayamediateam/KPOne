@@ -30,7 +30,7 @@ class PanelSummaryReportService extends BranchReportService
 
     public function basis(): string
     {
-        return 'Invoice finalisation-date cohort: current approved Panel responsibility on finalised, non-void invoices, including correction holds. Claim figures are current recorded amounts, not invoice adjustments. Claimed means a first submitted event exists; never-submitted prepared packs remain unclaimed. Accepted is the recorded accepted amount; Rejected is current fully rejected claim amount (not a partial-decision remainder). Remitted is recorded claim payments, not patient receipts. Outstanding is accepted less remitted, floored at zero, matching claim detail; unaccepted claims are not accepted receivables. Age as of branch-local today, from first submitted date; unclaimed responsibility ages separately from invoice finalisation. Buckets: 0-30, 31-60, 61-90, over 90 days. MYR. Current Panel names; no patient content. Only Panels with qualifying invoices appear.';
+        return 'Invoice finalisation-date cohort: current approved Panel responsibility on finalised, non-void invoices, including correction holds. Claim figures are current recorded amounts, not invoice adjustments. Claimed means a first submitted event exists; never-submitted prepared packs remain unclaimed. Accepted is the recorded accepted amount; Rejected is current fully rejected claim amount (not a partial-decision remainder). Remitted is recorded claim payments, not patient receipts. Outstanding is accepted less remitted, floored at zero, matching claim detail; unaccepted claims are not accepted receivables. Age as of branch-local today, from first submitted date; unclaimed responsibility ages separately from invoice finalisation. Awaiting decision is current claim amount of submitted or queried claims with no Panel decision yet, aged from first submitted date; it is not counted in Outstanding. Buckets: 0-30, 31-60, 61-90, over 90 days. MYR. Current Panel names; no patient content. Only Panels with qualifying invoices appear.';
     }
 
     protected function project(User $actor, Branch $branch, array $filters): array
@@ -50,7 +50,7 @@ class PanelSummaryReportService extends BranchReportService
                 ->whereIn('panel_claim_id', $claims->pluck('id'))->whereRaw(PanelClaimPaymentReversal::NOT_REVERSED)->selectRaw('panel_claim_id, SUM(amount_sen) AS paid')->groupBy('panel_claim_id')->pluck('paid', 'panel_claim_id');
             foreach ($allocations as $allocation) {
                 $id = (int) $allocation->panel_id;
-                $group = $groups[$id] ?? ['name' => (string) $allocation->name, 'values' => array_fill(0, 18, 0)];
+                $group = $groups[$id] ?? ['name' => (string) $allocation->name, 'values' => array_fill(0, 24, 0)];
                 $group['values'][0]++;
                 $group['values'][1] += (int) $allocation->amount_sen;
                 $claim = $claims->get($allocation->id);
@@ -64,6 +64,11 @@ class PanelSummaryReportService extends BranchReportService
                     }
                     $index = $this->bucket(CarbonImmutable::parse((string) $submitted, 'UTC')->setTimezone($branch->timezone), $today);
                     $group['values'][10 + $index] = ($group['values'][10 + $index] ?? 0) + $money['outstanding'];
+                    if (in_array($claim->status, ['submitted', 'queried'], true) && $claim->accepted_amount_sen === null) {
+                        $group['values'][18]++;
+                        $group['values'][19] += (int) $claim->claim_amount_sen;
+                        $group['values'][20 + $index] += (int) $claim->claim_amount_sen;
+                    }
                 } else {
                     $group['values'][4]++;
                     $group['values'][5] += (int) $allocation->amount_sen;
@@ -73,21 +78,21 @@ class PanelSummaryReportService extends BranchReportService
                 $groups[$id] = $group;
             }
         });
-        $columns = ['Panel', 'Approved invoices', 'Approved responsibility (MYR)', 'Claimed invoices', 'Claimed current (MYR)', 'Unclaimed invoices', 'Unclaimed responsibility (MYR)', 'Accepted (MYR)', 'Fully rejected current (MYR)', 'Remitted (MYR)', 'Accepted outstanding (MYR)', 'Claim outstanding 0-30 days (MYR)', 'Claim outstanding 31-60 days (MYR)', 'Claim outstanding 61-90 days (MYR)', 'Claim outstanding over 90 days (MYR)', 'Unclaimed 0-30 days (MYR)', 'Unclaimed 31-60 days (MYR)', 'Unclaimed 61-90 days (MYR)', 'Unclaimed over 90 days (MYR)'];
-        $sums = array_fill(0, 18, 0);
+        $columns = ['Panel', 'Approved invoices', 'Approved responsibility (MYR)', 'Claimed invoices', 'Claimed current (MYR)', 'Unclaimed invoices', 'Unclaimed responsibility (MYR)', 'Accepted (MYR)', 'Fully rejected current (MYR)', 'Remitted (MYR)', 'Accepted outstanding (MYR)', 'Claim outstanding 0-30 days (MYR)', 'Claim outstanding 31-60 days (MYR)', 'Claim outstanding 61-90 days (MYR)', 'Claim outstanding over 90 days (MYR)', 'Unclaimed 0-30 days (MYR)', 'Unclaimed 31-60 days (MYR)', 'Unclaimed 61-90 days (MYR)', 'Unclaimed over 90 days (MYR)', 'Awaiting decision claims', 'Awaiting decision (MYR)', 'Awaiting decision 0-30 days (MYR)', 'Awaiting decision 31-60 days (MYR)', 'Awaiting decision 61-90 days (MYR)', 'Awaiting decision over 90 days (MYR)'];
+        $sums = array_fill(0, 24, 0);
         $rows = [];
         foreach ($groups as $group) {
             $values = [];
-            for ($i = 0; $i < 18; $i++) {
+            for ($i = 0; $i < 24; $i++) {
                 $number = $group['values'][$i] ?? 0;
                 $sums[$i] += $number;
-                $values[] = in_array($i, [0, 2, 4], true) ? (string) $number : ReportCsv::money($number);
+                $values[] = in_array($i, [0, 2, 4, 18], true) ? (string) $number : ReportCsv::money($number);
             }
             $rows[] = [$group['name'], ...$values];
         }
         $totals = [];
         foreach ($sums as $i => $value) {
-            $totals[$columns[$i + 1]] = in_array($i, [0, 2, 4], true) ? (string) $value : ReportCsv::money($value);
+            $totals[$columns[$i + 1]] = in_array($i, [0, 2, 4, 18], true) ? (string) $value : ReportCsv::money($value);
         }
 
         return ['columns' => $columns, 'rows' => $rows, 'totals' => $totals];
