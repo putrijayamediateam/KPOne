@@ -142,6 +142,7 @@ final class ClinicManagementNavigation
             [$actor->can('hr.sops.acknowledge.own') || $actor->can('hr.sops.manage.organisation'), 'KPOne HR SOPs', 'SOPs to read for your role, and who has acknowledged them for HR.', 'hr.sops.index'],
             [$actor->can('hr.claims.submit.own') || $actor->can('hr.claims.approve.organisation') || $actor->can('hr.claims.pay.organisation') || $actor->can('hr.claims.manage.organisation'), 'KPOne HR staff claims', 'Claim back what you paid for the clinic; approvals, payments recorded and settings for HR and Finance.', 'hr.claims.index'],
             [$actor->can('hr.payroll.prepare.organisation') || $actor->can('hr.payroll.export.organisation'), 'KPOne HR payroll', 'Payroll runs, pay profiles, statutory tables and exports, each checked by a second person.', 'hr.payroll.index'],
+            [$actor->can('hr.applications.manage.organisation'), 'KPOne HR job applications', 'Open positions and the applications sent from the public form.', 'hr.applications.index'],
             [$actor->can('staff.view.own') || $actor->can('staff.view.branch') || $actor->can('staff.view.organisation'), 'Staff', 'Review staff within your existing access.', 'staff.index'],
             [$actor->can('branches.view.branch') || $actor->can('branches.view.organisation'), 'Branches', 'Review the clinic locations you may access.', 'branches.index'],
             [$actor->can('access.view.organisation'), 'Access Control', 'Review existing roles and permissions.', 'access-control.index'],
