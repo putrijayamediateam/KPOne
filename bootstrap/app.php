@@ -160,6 +160,11 @@ return Application::configure(basePath: dirname(__DIR__))
             // HR-7b: a person's MTD figure and a manual line amount are never flashed (Suresh, S3).
             'mtd',
             'amount',
+            // HR-7d: a person's tax category, children and disability are personal data, never flashed (Suresh, M3).
+            'mtd_category',
+            'mtd_children',
+            'mtd_disabled_self',
+            'mtd_disabled_spouse',
             'member_reference',
             'reason',
             'coverage',
