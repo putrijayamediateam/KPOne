@@ -121,6 +121,47 @@ class PayrollMtdTest extends VisitTestCase
         $this->assertNotContains('Joined this year: pay from a previous employer (TP3) is not counted in MTD', $this->person($feb)['warnings']);
     }
 
+    public function test_one_off_pay_an_unlocked_earlier_month_or_no_schedule_ask_for_a_typed_mtd(): void
+    {
+        $worker = $this->clinic(['mtd_category' => '1', 'mtd_children' => '0']);
+        $this->travelTo(CarbonImmutable::parse('2026-03-03 09:00', $this->branch->timezone));
+
+        // No checked schedule yet: an error, but a typed MTD gets past it with a warning (Suresh, M1).
+        $jan = $this->prepareRun('2026-01');
+        $this->assertSame(['No checked MTD schedule for this year'], $this->person($jan)['errors']);
+        $this->step($this->hr, $jan, 'mtd', ['worker_id' => $worker->public_id, 'mtd' => '125.00'])->assertSessionHasNoErrors();
+        $this->assertSame([], $this->person($jan)['errors']);
+        $this->assertContains('MTD could not be worked out for this run; the typed figure is used', $this->person($jan)['warnings']);
+        $this->assertSame(['mtd', 'mtd', 12500, 'MTD (PCB) · entered for this run'], $this->mtdLine($worker, $jan));
+
+        $schedule = $this->enterSchedule($this->hr);
+        $this->selectBranch($this->director);
+        $this->post(route('hr.payroll.mtd-schedules.decide', [$schedule, 'check']), ['expected_lock_version' => 1, 'idempotency_key' => (string) Str::uuid()])->assertSessionHasNoErrors();
+
+        // January is not locked yet, so February's year to date would miss it (Suresh, S2).
+        $feb = $this->prepareRun('2026-02');
+        $this->assertSame(['An earlier month this year is not locked yet: lock it and prepare again, or type the MTD'], $this->person($feb)['errors']);
+        $this->assertNull($this->mtdLine($worker, $feb));
+        // The schedule checked after January was prepared changes January's lines, so it is prepared again before locking.
+        $this->step($this->hr, $jan, 'again')->assertSessionHasNoErrors();
+        $this->lock($jan);
+        $this->step($this->hr, $feb, 'again')->assertSessionHasNoErrors();
+        $this->assertSame([], $this->person($feb)['errors']);
+        // X is January's typed 125.00: (12,000.00 × 8% + 600.00 − 125.00) ÷ 11 = 130.4545 → RM 130.50.
+        $this->assertSame(13050, $this->mtdLine($worker, $feb)[2]);
+
+        // A bonus as a manual line is one-off pay: never projected over the year, so the MTD must be typed (Suresh, S1).
+        $bonus = app(PayrollSetupService::class)->saveItemType($this->hr, ['name' => 'Bonus', 'kind' => 'earnings', 'counts_mtd' => true, 'is_active' => true,
+            'idempotency_key' => (string) Str::uuid()]);
+        $this->step($this->hr, $feb, 'manual', ['worker_id' => $worker->public_id, 'item_type_id' => $bonus, 'amount' => '3,000.00', 'reason_code' => 'bonus'])
+            ->assertSessionHasNoErrors();
+        $this->assertSame(['One-off pay on this run counts for MTD: type the MTD for this person'], $this->person($feb)['errors']);
+        $this->assertNull($this->mtdLine($worker, $feb));
+        $this->step($this->hr, $feb, 'mtd', ['worker_id' => $worker->public_id, 'mtd' => '430.00'])->assertSessionHasNoErrors();
+        $this->assertSame([], $this->person($feb)['errors']);
+        $this->assertSame(43000, $this->mtdLine($worker, $feb)[2]);
+    }
+
     public function test_category_2_children_and_the_joiner_warning(): void
     {
         $worker = $this->clinic(['mtd_category' => '2', 'mtd_children' => '2'], '2026-01-05');

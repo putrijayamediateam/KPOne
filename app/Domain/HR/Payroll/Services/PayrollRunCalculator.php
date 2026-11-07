@@ -21,6 +21,8 @@ final class PayrollRunCalculator
         'mtd_missing' => 'MTD not entered',
         'no_mtd_schedule' => 'No checked MTD schedule for this year',
         'no_mtd_band' => 'No MTD band for this chargeable income',
+        'mtd_one_off' => 'One-off pay on this run counts for MTD: type the MTD for this person',
+        'mtd_earlier_open' => 'An earlier month this year is not locked yet: lock it and prepare again, or type the MTD',
         'no_rates' => 'No rate settings for overtime or unpaid leave',
         'no_type_overtime' => 'No pay item type chosen for overtime',
         'no_type_unpaid_leave' => 'No pay item type chosen for unpaid leave',
@@ -40,6 +42,7 @@ final class PayrollRunCalculator
         'net_negative_adjustment' => 'This correction takes money back: net below zero',
         'mtd_typed' => 'MTD typed for this run instead of the worked-out figure',
         'mtd_tp3' => 'Joined this year: pay from a previous employer (TP3) is not counted in MTD',
+        'mtd_not_worked' => 'MTD could not be worked out for this run; the typed figure is used',
     ];
 
     public const SCHEME_LABELS = ['epf' => 'EPF', 'socso' => 'SOCSO', 'eis' => 'EIS', 'hrd' => 'HRD levy'];
@@ -94,6 +97,7 @@ final class PayrollRunCalculator
         $year = (int) $start->format('Y');
         $schedule = $this->mtdSchedule($org, $year);
         $yearToDate = $this->mtdYearToDate($org, $run, $types, array_values($profiles->keys()->map(fn ($v): int => (int) $v)->all()));
+        $openEarlier = $this->openEarlierThisYear($org, $run);
         $periods = DB::table('hr_employment_periods')->whereIn('worker_id', $profiles->keys()->all())->get()->groupBy('worker_id');
 
         foreach ($profiles as $workerId => $profile) {
@@ -226,10 +230,19 @@ final class PayrollRunCalculator
             }
 
             if ($profile->mtd) {
-                $worked = null; // HR-7d: worked out by KPOne when the profile has MTD details (HR-PLAN 18.4)
+                // HR-7d: worked out by KPOne when the profile has MTD details (HR-PLAN 18.4). Anything the method cannot see
+                // stops the worked figure and asks for a typed one; a typed MTD always counts (Suresh, S1, S2, M1).
+                $worked = null;
+                $typed = array_key_exists((int) $workerId, $mtd);
+                $stop = null;
                 if (($profile->mtd_category ?? null) !== null) {
+                    $oneOff = self::schemeWage(array_values(array_filter($lines, fn (array $l): bool => $l['kind'] === 'manual')), $types, 'mtd');
                     if ($schedule === null) {
-                        $errors[] = 'no_mtd_schedule';
+                        $stop = 'no_mtd_schedule';
+                    } elseif ($oneOff !== 0) {
+                        $stop = 'mtd_one_off'; // a manual line is one-off pay (additional remuneration), never projected over the year
+                    } elseif (in_array((int) $workerId, $openEarlier, true)) {
+                        $stop = 'mtd_earlier_open';
                     } else {
                         $versions['mtdSchedule'] = $schedule['id'];
                         $epf = 0;
@@ -242,16 +255,23 @@ final class PayrollRunCalculator
                                 'disabled_self' => (bool) $profile->mtd_disabled_self, 'disabled_spouse' => (bool) $profile->mtd_disabled_spouse],
                             ['y' => $ytd['y'], 'k' => $ytd['k'], 'x' => $ytd['x'], 'y1' => self::schemeWage($lines, $types, 'mtd'), 'k1' => $epf], (int) $start->format('n'));
                         if ($worked === null) {
-                            $errors[] = 'no_mtd_band';
+                            $stop = 'no_mtd_band';
                         }
-                        if ($this->joinedThisYear($periods->get($workerId, collect()), $year)) {
-                            $warnings[] = 'mtd_tp3';
+                    }
+                    if ($this->joinedThisYear($periods->get($workerId, collect()), $year)) {
+                        $warnings[] = 'mtd_tp3';
+                    }
+                    if ($stop !== null) {
+                        if ($typed) {
+                            $warnings[] = 'mtd_not_worked';
+                        } else {
+                            $errors[] = $stop;
                         }
                     }
                 }
                 $how = $worked === null ? null : PayrollMoney::rm($worked['chargeable']).' chargeable for the year, category '.(int) $profile->mtd_category
                     .', '.$worked['monthsLeft'].' '.($worked['monthsLeft'] === 1 ? 'month' : 'months').' left';
-                if (array_key_exists((int) $workerId, $mtd)) {
+                if ($typed) {
                     if ($worked !== null) {
                         $warnings[] = 'mtd_typed';
                     }
@@ -479,6 +499,22 @@ final class PayrollRunCalculator
         }
 
         return $out;
+    }
+
+    /**
+     * Workers in a regular run of an earlier month this year that is not locked yet: their year to date would be
+     * missing that month, so KPOne does not work their MTD out (Suresh, S2).
+     *
+     * @return list<int>
+     */
+    private function openEarlierThisYear(int $org, \stdClass $run): array
+    {
+        $start = CarbonImmutable::parse((string) $run->month)->startOfMonth();
+
+        return array_values(DB::table('hr_payroll_run_people as p')->join('hr_payroll_runs as r', 'r.id', '=', 'p.run_id')->where('r.organisation_id', $org)
+            ->where('r.kind', 'regular')->where('r.status', '<>', 'locked')->where('r.id', '<>', $run->id)
+            ->where('r.month', '>=', $start->startOfYear()->toDateString())->where('r.month', '<', $start->toDateString())
+            ->distinct()->pluck('p.worker_id')->map(fn ($v): int => (int) $v)->all());
     }
 
     /**
