@@ -66,6 +66,7 @@ Development, Finance and the TV account get no HR data by implication. Server ch
 | HR-7c | Payslips and exports: one encrypted, hashed payslip snapshot per person written when a run is locked (letterhead text, lines, totals, bank last four), opened only by its owner or a payroll preparer or approver, every open recorded; My payslips on My HR details; a printable A4 payslip; an Exports tab for the Director only with the generic CSV bank file (paying the bank details frozen at locking, anyone without them named and left out), the accountant summary CSV and the statutory summary on screen, each download audited first and never stored. Permissions `hr.payroll.export.organisation` (Director) and `hr.payslips.view.own` (every human role, not the TV account). Migrations `2026_11_10_002700` and `002800`. | PR #393, merged as `f29209f` (head `08138fd`) |
 | HR-7d | MTD (PCB) worked out by KPOne: a yearly MTD schedule (bands, reliefs, EPF relief limit, smallest MTD, rounding) entered by the clinic and checked by someone else; optional MTD details on the pay profile (category, children, disability); MTD worked out on monthly runs from the year to date of locked runs with the line explaining itself; one-off pay, an unlocked earlier month, no schedule or no band stop the worked figure; a typed MTD always counts and the line shows both. No new permission. Migration `2026_11_10_002900`. | PR #396, merged as `bfe546b` (head `81accec`) |
 | HR-12 | Export for an outside HR product: a closed-by-default section on the Staff files tab for the Director and HR Manager with three generic CSV downloads (staff list as of today, approved leave touching a month, approved overtime in a month), each audited before release, formula-safe, capped at 5,000 rows and never stored; no identity numbers, bank details, documents, pay or reasons. No new permission and no migration. | PR #397, merged as `8c6d78b` (head `cf24954`) |
+| HR-13 | Job applications: a public bilingual (English and BM) Apply form at `/careers/apply`, off by default and closed until HR saves a retention period, with a signed one-time form token, a honeypot, a minimum fill time, rate limits, an encrypted PDF CV and encrypted values. A "Job applications" page for the Director and HR Manager covers positions, steps with a declined offer allowed to become Withdrawn, recorded CV opens and a clinic-entered retention with a daily purge. New permission `hr.applications.manage.organisation`; migrations `003000` and `003100`. **The switch stays off until the owner approves the privacy notice (a lawyer review is recommended).** | PR #402, merged as `9eedfd4` (head `01e6503`) |
 
 ## 6. Decisions (never ask again)
 
@@ -342,6 +343,19 @@ check items, keep them"). The rest stand unless the owner changes them.
     data. It reuses `hr.records.manage.organisation`, so no new permission, migration or hub line.
 69. HR-12 leave type (Suresh, M2): kept by name in v1 on synthetic data, as a known limit; "hide leave type in the
     outside-HR export?" is on the owner's PDPA-review list (B.E.R.N.I.S.S for the owner, 2026-11-07).
+70. HR-13: the owner answered in the HR session (2026-11-07): open positions are kept in KPOne by HR; retention is
+    entered by HR, with no number shipped; the public form shows English and Bahasa Melayu side by side.
+71. HR-13 conditions (B.E.R.N.I.S.S for the owner, 2026-11-07): the form ships off (`HR_APPLICATIONS_ENABLED=false`,
+    config default false), a test proves it is closed while off, and **the switch must not be turned on until the owner
+    has approved the privacy notice (a lawyer review is recommended)**. Turning it on is the owner's call. The hub line
+    `'/hr/applications'` in `ClinicManagementTest` was approved by B.E.R.N.I.S.S for the owner.
+72. HR-13 screens (Daniel, OK with changes, then OK): the form stays closed until a retention period is saved, because
+    the notice promises deletion after that period (option (a), chosen by B.E.R.N.I.S.S for the owner); each step chip
+    has its own tone; the public CV control is the shared FileChooseButton, "Choose PDF / Pilih PDF".
+73. HR-13 review changes (Suresh): an application nobody moved is purged too, counted from when it was sent; no input
+    is flashed into the session on a refusal; the migration's `down()` keeps the evidence; a declined offer can be
+    marked Withdrawn; a double send gives "already sent". Found in the screenshot run: the field checks now run before
+    the timing check, so a person who sends an empty form sees what to fill in.
 
 ## 7. Open items and known limits
 
@@ -393,6 +407,12 @@ check items, keep them"). The rest stand unless the owner changes them.
   be counted twice. Drafts prepared before the deploy ask to be prepared again once.
 - HR-12 known limits: the CSV is uploaded to the outside product by hand; no live link or import preview; leave rows
   carry the whole request's days; the leave type is shown by name (PDPA-review item).
+- HR-13 known limits: the public form stays off until the owner approves the privacy notice; one organisation per
+  installation; an application still in progress is cleared once the period has passed since it was sent; phone and
+  email show on the HR list without a Show button (only CV opens are audited); the overall cap of 100 sends an hour can
+  lock real applicants out for up to an hour, and behind a proxy with no trusted list all senders share one address;
+  the CV's size and hash and the nonce stay after a purge; the clinic name on the form is fixed text; the PDF check is
+  shallow; applicants have no self-service withdrawal or deletion; Daniel's optional pending-date hint is not built.
 
 ## 8. Rules (every task)
 
