@@ -24,10 +24,14 @@ export function cleanScannedCode(raw: string): string {
 
 export function scanMessage(
     result: ScanLookup,
-    context: 'search' | 'receiving' | 'dispensary',
+    context: 'search' | 'receiving' | 'dispensary' | 'dispensary-add',
 ): string {
     if (context === 'dispensary') {
         return dispensaryScanMessage(result);
+    }
+
+    if (context === 'dispensary-add') {
+        return dispensaryAddScanMessage(result);
     }
 
     if (result.status === 'not_found') {
@@ -116,4 +120,21 @@ function dispensaryScanMessage(result: ScanLookup): string {
     return result.sku.active
         ? `Found SKU ${label}.`
         : `SKU ${label} is inactive. Check the box by eye.`;
+}
+
+/** DSP-12 wording when scanning to find a medicine to add: it ends by pointing back to the name search. */
+function dispensaryAddScanMessage(result: ScanLookup): string {
+    if (result.status === 'not_found') {
+        return `No medicine has the code ${result.code}. Search by name instead.`;
+    }
+
+    if (result.status === 'shared') {
+        return 'This code is on more than one SKU, so it cannot be used to add a medicine. Search by name instead.';
+    }
+
+    const label = `${result.sku.sku_code} · ${result.sku.item_name}`;
+
+    return result.sku.active
+        ? `Found SKU ${label}.`
+        : `SKU ${label} is inactive. Search by name instead.`;
 }
