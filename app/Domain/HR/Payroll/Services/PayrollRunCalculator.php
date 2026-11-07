@@ -236,10 +236,12 @@ final class PayrollRunCalculator
                 $typed = array_key_exists((int) $workerId, $mtd);
                 $stop = null;
                 if (($profile->mtd_category ?? null) !== null) {
-                    $oneOff = self::schemeWage(array_values(array_filter($lines, fn (array $l): bool => $l['kind'] === 'manual')), $types, 'mtd');
+                    // Any manual line of a type that counts for MTD is one-off pay, even when lines cancel out (Suresh, re-check minor 1).
+                    $oneOff = collect($lines)->contains(fn (array $l): bool => $l['kind'] === 'manual' && $l['itemTypeId'] !== null
+                        && (bool) ($types->get($l['itemTypeId'].':'.$l['itemTypeVersion'])->counts_mtd ?? false));
                     if ($schedule === null) {
                         $stop = 'no_mtd_schedule';
-                    } elseif ($oneOff !== 0) {
+                    } elseif ($oneOff) {
                         $stop = 'mtd_one_off'; // a manual line is one-off pay (additional remuneration), never projected over the year
                     } elseif (in_array((int) $workerId, $openEarlier, true)) {
                         $stop = 'mtd_earlier_open';
@@ -502,8 +504,8 @@ final class PayrollRunCalculator
     }
 
     /**
-     * Workers in a regular run of an earlier month this year that is not locked yet: their year to date would be
-     * missing that month, so KPOne does not work their MTD out (Suresh, S2).
+     * Workers in a run (regular or adjustment) of an earlier month this year that is not locked yet: their year to date
+     * would be missing that month, so KPOne does not work their MTD out (Suresh, S2 and re-check minor 2).
      *
      * @return list<int>
      */
@@ -512,7 +514,7 @@ final class PayrollRunCalculator
         $start = CarbonImmutable::parse((string) $run->month)->startOfMonth();
 
         return array_values(DB::table('hr_payroll_run_people as p')->join('hr_payroll_runs as r', 'r.id', '=', 'p.run_id')->where('r.organisation_id', $org)
-            ->where('r.kind', 'regular')->where('r.status', '<>', 'locked')->where('r.id', '<>', $run->id)
+            ->where('r.status', '<>', 'locked')->where('r.id', '<>', $run->id)
             ->where('r.month', '>=', $start->startOfYear()->toDateString())->where('r.month', '<', $start->toDateString())
             ->distinct()->pluck('p.worker_id')->map(fn ($v): int => (int) $v)->all());
     }
