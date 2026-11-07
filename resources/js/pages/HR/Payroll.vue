@@ -6,11 +6,13 @@ import { Head, router, usePage } from '@inertiajs/vue3';
 import { computed, reactive, ref } from 'vue';
 import AccountantNote from '@/components/hr/payroll/AccountantNote.vue';
 import ProfileSheet from '@/components/hr/payroll/ProfileSheet.vue';
+import RunsTab from '@/components/hr/payroll/RunsTab.vue';
 import TableSheet from '@/components/hr/payroll/TableSheet.vue';
 import type {
     Option,
     Person,
     Profile,
+    RunRow,
     StatutoryTable,
 } from '@/components/hr/payroll/types';
 import {
@@ -39,7 +41,7 @@ import { StatusBadge } from '@/components/ui/status';
 import { OperationalTabs } from '@/components/ui/tabs';
 import { myr } from '@/types/billing';
 
-type Tab = 'profiles' | 'tables' | 'settings';
+type Tab = 'runs' | 'profiles' | 'tables' | 'settings';
 type Group = {
     id: string;
     name: string;
@@ -76,12 +78,19 @@ const props = defineProps<{
             profileRejectReasons: Option[];
             groups: Option[];
             allowanceTypes: Option[];
+            deductionTypes: Option[];
+            refundTypes: Option[];
             categories: { epf: string[]; socso: string[] };
             suggestedItemTypes: string[];
             maxRows: number;
             maxItems: number;
         };
         setUp: { groups: boolean; rates: boolean; checkedTables: boolean };
+        runs: {
+            runs: RunRow[];
+            months: Option[];
+            prepareRefusal: string | null;
+        } | null;
         profiles: {
             people: Person[];
             waitingCount: number;
@@ -89,6 +98,12 @@ const props = defineProps<{
         } | null;
         tables: { tables: StatutoryTable[]; waitingCount: number } | null;
         settings: {
+            lineTypes: {
+                version: number;
+                overtime: string | null;
+                unpaidLeave: string | null;
+                claim: string | null;
+            };
             groups: Group[];
             itemTypes: ItemType[];
             rates: {
@@ -113,6 +128,7 @@ const errors = computed(
 );
 const failure = computed(() => errors.value.payroll ?? errors.value.records);
 const tabLabels: Record<Tab, string> = {
+    runs: 'Runs',
     profiles: 'Pay profiles',
     tables: 'Tables',
     settings: 'Settings',
@@ -348,6 +364,31 @@ const unusedSuggestions = computed(() =>
             ),
     ),
 );
+const lineTypes = reactive({
+    overtime: props.payroll.settings?.lineTypes.overtime ?? '',
+    unpaidLeave: props.payroll.settings?.lineTypes.unpaidLeave ?? '',
+    claim: props.payroll.settings?.lineTypes.claim ?? '',
+    key: crypto.randomUUID(),
+    processing: false,
+});
+const saveLineTypes = () => {
+    lineTypes.processing = true;
+    router.post(
+        '/hr/payroll/line-types',
+        {
+            overtime_type_id: lineTypes.overtime,
+            unpaid_leave_type_id: lineTypes.unpaidLeave,
+            claim_type_id: lineTypes.claim,
+            expected_version: props.payroll.settings?.lineTypes.version ?? 0,
+            idempotency_key: lineTypes.key,
+        },
+        {
+            preserveScroll: true,
+            onSuccess: () => (lineTypes.key = crypto.randomUUID()),
+            onFinish: () => (lineTypes.processing = false),
+        },
+    );
+};
 const rates = reactive({
     daily: props.payroll.settings?.rates.daily ?? '',
     hourly: props.payroll.settings?.rates.hourly ?? '',
@@ -380,7 +421,7 @@ const saveRates = () => {
             <PageHeader
                 eyebrow="KPOne HR"
                 title="Payroll"
-                description="Pay profiles, statutory tables and pay settings. A second person checks each one before it counts. Payroll runs come next; KPOne makes no payment and files nothing."
+                description="Payroll runs, pay profiles, statutory tables and pay settings. A second person checks each one before it counts. KPOne makes no payment and files nothing."
             />
             <AccountantNote />
         </div>
@@ -394,6 +435,15 @@ const saveRates = () => {
         />
 
         <ErrorState v-if="failure && !anyDialog" :message="failure" />
+
+        <RunsTab
+            v-if="payroll.tab === 'runs' && payroll.runs"
+            :runs="payroll.runs.runs"
+            :months="payroll.runs.months"
+            :groups="payroll.options.groups"
+            :ready="payroll.setUp.groups && payroll.setUp.checkedTables"
+            :prepare-refusal="payroll.runs.prepareRefusal"
+        />
 
         <!-- Pay profiles -->
         <section
@@ -956,6 +1006,92 @@ const saveRates = () => {
                     </li>
                 </ul>
             </div>
+
+            <form
+                class="flex flex-col gap-3 rounded-xl border bg-card p-4"
+                aria-labelledby="line-types-title"
+                data-test="line-types"
+                @submit.prevent="saveLineTypes"
+            >
+                <div>
+                    <h3 id="line-types-title" class="text-base font-semibold">
+                        Pay item types used by runs
+                    </h3>
+                    <p class="text-sm text-muted-foreground">
+                        Which pay item type a run uses for overtime, unpaid
+                        leave and staff claim refunds, so it knows which schemes
+                        each counts for. Each save is a new version. Unpaid
+                        leave lowers the EPF, SOCSO or EIS wage only when its
+                        pay item type counts for that scheme.
+                    </p>
+                </div>
+                <div class="flex flex-wrap gap-4">
+                    <div class="grid min-w-52 gap-1.5">
+                        <Label for="line-overtime"
+                            ><span id="line-overtime-label"
+                                >Overtime</span
+                            ></Label
+                        >
+                        <OperationalSelect
+                            id="line-overtime"
+                            v-model="lineTypes.overtime"
+                            labelledby="line-overtime-label"
+                            label="Overtime"
+                            placeholder="Choose an earnings type"
+                            trigger-class="max-lg:h-11"
+                            :options="payroll.options.allowanceTypes"
+                            :invalid="!!errors.overtime_type_id"
+                        />
+                        <InputError :message="errors.overtime_type_id" />
+                    </div>
+                    <div class="grid min-w-52 gap-1.5">
+                        <Label for="line-unpaid"
+                            ><span id="line-unpaid-label"
+                                >Unpaid leave</span
+                            ></Label
+                        >
+                        <OperationalSelect
+                            id="line-unpaid"
+                            v-model="lineTypes.unpaidLeave"
+                            labelledby="line-unpaid-label"
+                            label="Unpaid leave"
+                            placeholder="Choose a deduction type"
+                            trigger-class="max-lg:h-11"
+                            :options="payroll.options.deductionTypes"
+                            :invalid="!!errors.unpaid_leave_type_id"
+                        />
+                        <InputError :message="errors.unpaid_leave_type_id" />
+                    </div>
+                    <div class="grid min-w-52 gap-1.5">
+                        <Label for="line-claim"
+                            ><span id="line-claim-label"
+                                >Staff claim refunds</span
+                            ></Label
+                        >
+                        <OperationalSelect
+                            id="line-claim"
+                            v-model="lineTypes.claim"
+                            labelledby="line-claim-label"
+                            label="Staff claim refunds"
+                            placeholder="Choose a refund type"
+                            trigger-class="max-lg:h-11"
+                            :options="payroll.options.refundTypes"
+                            :invalid="!!errors.claim_type_id"
+                        />
+                        <InputError :message="errors.claim_type_id" />
+                    </div>
+                </div>
+                <Button
+                    type="submit"
+                    variant="outline"
+                    class="self-start max-lg:min-h-11"
+                    :disabled="lineTypes.processing"
+                    data-test="line-types-save"
+                    >{{
+                        lineTypes.processing ? 'Saving…' : 'Save run line types'
+                    }}</Button
+                >
+            </form>
 
             <form
                 class="flex flex-col gap-3 rounded-xl border bg-card p-4"

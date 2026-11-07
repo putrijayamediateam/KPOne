@@ -23,6 +23,7 @@ use App\Http\Requests\ConfirmOtcAllergyRequest;
 use App\Http\Requests\DispensaryCaseActionRequest;
 use App\Http\Requests\EditDispensaryItemRequest;
 use App\Http\Requests\EditDispensaryServiceLineRequest;
+use App\Http\Requests\FindDispensaryMedicineBySkuRequest;
 use App\Http\Requests\OpenOtcDispensaryRequest;
 use App\Http\Requests\RemoveDispensaryItemRequest;
 use App\Http\Requests\RemoveDispensaryServiceLineRequest;
@@ -187,6 +188,12 @@ class DispensaryController extends Controller
     public function searchMedicines(SearchDispensaryMedicinesRequest $request, DispensaryCase $dispensaryCase, DispensaryDirectoryService $directory): JsonResponse
     {
         return response()->json(['data' => $directory->searchMedicines($request->user(), $dispensaryCase, $request->validated('query'))]);
+    }
+
+    /** DSP-12: the medicine mapped to a scanned SKU, shaped like a search result; nothing is added. */
+    public function medicinesForSku(FindDispensaryMedicineBySkuRequest $request, DispensaryCase $dispensaryCase, DispensaryDirectoryService $directory): JsonResponse
+    {
+        return response()->json(['data' => $directory->medicinesForSku($request->user(), $dispensaryCase, $request->validated('sku'))]);
     }
 
     public function addService(AddDispensaryServiceLineRequest $request, DispensaryCase $dispensaryCase, DispensaryService $service): RedirectResponse
