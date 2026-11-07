@@ -25,6 +25,10 @@ class ClinicManagementTest extends VisitTestCase
             '/website/faqs' => ['website.content.view.organisation'],
             '/website/branch-profiles' => ['website.content.view.organisation'],
             '/website/media' => ['website.assets.manage.organisation'],
+            // AG-11 (the owner's choice, 2026-11-07): the AI agent pages.
+            '/agents' => ['ai_agents.view.organisation'],
+            '/agents/office' => ['ai_agents.view.organisation'],
+            '/agents/inbox' => ['ai_proposals.view.branch'],
             '/medical-certificate-templates' => ['catalogue.settings.manage.organisation'],
             '/clinician-credentials' => ['clinician_credentials.manage.organisation'],
             '/clinician-credentials/me' => ['encounters.view.own'],
