@@ -269,7 +269,7 @@ class RefundTest extends BillingTestCase
         $this->assertSame(['Cash refunds paid (payout date, MYR)', 'Cash reversed, refund recorded (receipt date, MYR)', 'Non-cash refunds paid (payout date, MYR)', 'Refunded after completion (payout date, MYR)'], array_slice($result['columns'], 12));
         $this->assertSame([$days[0], '40.00', '40.00', '0.00', '0.00', '0.00', '0.00', '0.00', '0.00', '40.00', '40.00', '0.00', '0.00', '40.00', '0.00', '0.00'], $result['rows'][0]);
         $this->assertSame([$days[1], ...array_fill(0, 11, '0.00'), '40.00', '0.00', '0.00', '0.00'], $result['rows'][1]);
-        $this->assertSame(['40.00', '40.00', '0.00'], array_slice(array_values($result['totals']), 11));
+        $this->assertSame(['40.00', '40.00', '0.00', '0.00'], array_slice(array_values($result['totals']), 11));
         $matchesClosing($result);
         // Filters: the refund method and the receipt's invoice visit.
         $this->assertSame('0.00', $run(['methods' => [(string) $card->id]])['rows'][1][12]);
@@ -280,7 +280,7 @@ class RefundTest extends BillingTestCase
         // Rejected: no refund at all. A new refund by card of the cash receipt: the cash stayed in the drawer.
         $this->post(route('billing.refund.decide', [$f['visit'], PaymentRefund::query()->sole()->public_id, 'rejected']), [...$this->decideInput($f), 'reason_code' => 'amount_wrong'])->assertSessionHasNoErrors();
         $result = $run();
-        $this->assertSame(['0.00', '0.00', '0.00'], array_slice(array_values($result['totals']), 11));
+        $this->assertSame(['0.00', '0.00', '0.00', '0.00'], array_slice(array_values($result['totals']), 11));
         $matchesClosing($result);
         $this->travelTo($this->refundDay->setTime(15, 0)); // Paid out on the refund day, inside the report range.
         $this->selectBranch($supervisor);
