@@ -75,7 +75,10 @@ Server checks stay the authority; hiding a control is a usability aid only.
 | **CAT-6 (this team)** | Pricing small fixes. "Current price" is the price that took effect most recently and is in effect now, in active books only (as billing); a price that starts later shows as a muted second line "From <date and time in the branch time zone>: RM x.xx", and a charge whose only prices start later shows "—". The publish form still sends the newest version of that book as its expected version, so publishing is unchanged. The price book select wraps long names to two lines (36 px minimum on desktop, 44 px on a phone), the list opens at the box width, and table cells are top-aligned. No existing assertion changed. Tests: `tests/Feature/Billing/PricingCurrentPriceTest.php`, `tests/Frontend/cat-6-pricing-fixes.test.mjs` | #318 (`a07bc58`) |
 | **CAT-7 (this team)** | The greyed, non-clickable "Price tier" item is removed from the Inventory and services settings menu on Medicine details and Suppliers, because SET-01 stays skipped (decision 4). The menu is a two-item link list with the current page marked. No backend, route or permission change. One owner-approved existing assertion change (decision 13). Tests: `tests/Frontend/cat-7-hide-price-tier.test.mjs` | #334 (`efed808`) |
 | **CAT-8 (this team)** | Catalogue wording and a label hint. The activate and deactivate confirm titles are sentence case on both catalogues ("Deactivate medicine", "Activate medicine", "Deactivate clinical service", "Activate clinical service"; Daniel's nit). The Medicine Catalogue Indication field says "Prints on drug labels: up to 72 characters." (the DSP-10 label budget, 2 rows of 36 at 9 pt), through a new optional `hint` prop on `CatalogueOptionPicker` connected with `aria-describedby`; the field still accepts 300 characters. Both picker help lines are `text-xs` (12 px), the help-text minimum (Daniel). No existing assertion changed. Tests: `tests/Frontend/cat-8-catalogue-wording.test.mjs` | #355 (`0cb1cd6`) |
-| **CAT-9 (this team)** | An optional second clinic phone per branch in Business details: `branch_business_profiles.phone_secondary` (migration `2026_11_09_000100`), normalised to E.164 like the first phone, refused without a first phone or when the same as it (checked inside the transaction against the value that will be saved), kept when a request leaves the field out, audited by field name only. The letterhead carries `details.phone_secondary`; new referral and attendance copies print "Tel: A / B" (a copy without it renders byte for byte as before). Labels "Phone (optional)" and "Second phone (optional)". No existing assertion changed. Tests: `tests/Feature/BusinessDetailsSecondPhoneTest.php`, `tests/Feature/Clinical/DocumentSecondPhoneTest.php`, `tests/Frontend/cat-9-second-phone.test.mjs` | PR after CAT-8 |
+| **CAT-9 (this team)** | An optional second clinic phone per branch in Business details: `branch_business_profiles.phone_secondary` (migration `2026_11_09_000100`), normalised to E.164 like the first phone, refused without a first phone or when the same as it (checked inside the transaction against the value that will be saved), kept when a request leaves the field out, audited by field name only. The letterhead carries `details.phone_secondary`; new referral and attendance copies print "Tel: A / B" (a copy without it renders byte for byte as before). Labels "Phone (optional)" and "Second phone (optional)". No existing assertion changed. Tests: `tests/Feature/BusinessDetailsSecondPhoneTest.php`, `tests/Feature/Clinical/DocumentSecondPhoneTest.php`, `tests/Frontend/cat-9-second-phone.test.mjs` | #362 (`6766129`) |
+| **CAT-10 (this team)** | Leftovers tidy. Business details: the logo's native file input (cut to "No …sen" at 390 px) becomes a reusable `catalogue/FileChooseButton` (a hidden native input opened by an outline "Choose logo" or "Replace logo" button, 44 px below 640 px, with a state line that the button describes and that screen readers hear: "<file> · not saved yet", "Logo will be removed when you save.", "Current logo saved." or "No file chosen"; the error slot keeps `id="logo-error"`); a file that fails the check or cannot be shown is never previewed (Daniel); "Remove logo" is 44 px on phones; the page fits 320 px. Medicine Catalogue: "Price publication branch" now reads "Branch used for price publication", with its select connected to the label, as on Clinical Service. Frontend only; no existing assertion changed. Tests: `tests/Frontend/cat-10-leftovers-tidy.test.mjs` | #366 (`c30bd6e`) |
+| **CAT-12 (this team)** | A "Check price list" card in Clinic management, in "Inventory & services" straight after Pricing ("See the price billing uses for every active item, with gaps flagged."; wording, group and placement from Staff Experience), for holders of `pricing.references.manage.organisation` with an active branch (the page shows results only for the active branch). One approved existing assertion change: the exact destination map in `ClinicManagementTest` gains `/pricing/price-check`. Tests: `tests/Feature/Catalogue/PriceCheckCardTest.php` | #371 (`8794506`) |
+| **CAT-13 (this team)** | One phone style on the referral and attendance letterheads: new copies print both clinic phones through `App\Domain\Shared\PrintedPhone` ("03-2000 0001"), through a small helper `Clinical/Documents/LetterheadContactLine`; a second phone with no first prints "Tel: B"; without a second phone the line keeps the "phone / email" shape. Issued letters keep the HTML stored at issue. `PrintLetterhead` (`resources/js/types/letterhead.ts`) gains an optional `phone_secondary`, and Business details reuses `PrintLetterhead['details']`. Three approved existing assertion values in `DocumentSecondPhoneTest` (lines 46, 59, 62) follow PrintedPhone. Tests: `tests/Unit/LetterheadContactLineTest.php`, `tests/Frontend/cat-13-letterhead-type.test.mjs` | #372 (`90a7e39`) |
 
 ## 6. Owner decisions already made (never ask again)
 
@@ -124,6 +127,17 @@ Server checks stay the authority; hiding a control is a usability aid only.
    receipts only"). Decided by B.E.R.N.I.S.S for the owner during the owner's "BE ME": the drug label does not print
    it (Dispensary & OTC, for the label's row budget); referral and attendance copies print it in CAT-9; the MC
    template is left to its owner (MC slice 1). Daniel: "Phone (optional)" and "Second phone (optional)".
+16. CAT-10: the leftovers tidy (the styled logo file button and the Medicine Catalogue publication branch label):
+   B.E.R.N.I.S.S for the owner, 2026-11-06, during the owner's "BE ME"; Daniel OK (state line wording "Current logo
+   saved."), Ravi OK.
+17. CAT-12: a "Check price list" card in Clinic management and the one `ClinicManagementTest` map line: B.E.R.N.I.S.S
+   for the owner, 2026-11-06; wording, group and placement agreed by Staff Experience (Kavitha); Ravi OK.
+18. CAT-13: PrintedPhone on referral and attendance letterheads, "Tel: B", the shared `PrintLetterhead` type and the
+   three `DocumentSecondPhoneTest` values: B.E.R.N.I.S.S for the owner, 2026-11-06 (from the PNL-19 reviews by
+   Arjun and Priya, and Daniel's "one phone style on every print"); Daniel OK, Ravi OK. The MC template is Nurul's
+   and is left to her MC follow-up.
+19. From CAT-10 on, a build PR leaves TEAM.md out; its lines go in a later Catalogue docs PR (coordinator rule,
+   2026-11-06), so stacked PRs do not conflict.
 
 ## 7. Open items and known limits
 
@@ -144,8 +158,7 @@ Server checks stay the authority; hiding a control is a usability aid only.
   dropdown cuts long names at 1440 px.
 - CAT-2 known limits: checks run in memory over every active item on each request (fine for a clinic catalogue;
   revisit if the catalogue grows to thousands of items); prices are shown for the active branch only; a Panel's
-  price is listed only when its own book has one; no Clinic management card (it would change an existing hub
-  assertion), reached from Pricing instead.
+  price is listed only when its own book has one; no Clinic management card at first (added in CAT-12).
 - CAT-3 known limits: the history reads all versions of one charge per request; the pre-existing Pricing "Current
   price" column showed the highest version even when it was scheduled for later (fixed in CAT-6).
 - CAT-4 known limits: the configured logo file is read and hashed on each Business details view (at most 2 MB);
@@ -153,15 +166,21 @@ Server checks stay the authority; hiding a control is a usability aid only.
   other than the active one are fixed by switching branch in the header.
 - Seen in CAT-5, not built: Suppliers (Inventory team) has the same raw table and switch; the Panel tariff editor's
   "Choose Panel to add" select has an aria-label but no visible label (Staff Experience UX-6 is editing that file);
-  the Medicine Catalogue still says "Price publication branch" where Clinical Service now says "Branch used for
-  price publication".
+  the Medicine Catalogue said "Price publication branch" where Clinical Service says "Branch used for price
+  publication" (fixed in CAT-10).
 - CAT-6 known limits: a Pricing row shows one book's price (the one that took effect most recently), so a charge
   with Self-pay and Panel prices shows only one of them there; Price check and Price history show every book.
 - CAT-9 known limits: the second phone prints only where each document's owner adds it (invoices and receipts by
   Billing, the Panel claim pack by Panel, the MC by its owner; never on the drug label); the next print of an
   existing invoice after it is set will be REVISED once Billing adds it, because the letterhead changed; a referral
-  or attendance preview open across the deploy asks for one reload. Seen, not built (Daniel): at 390 px the logo's
-  native file input cuts "No file chosen" to "No …sen"; a styled file button would fix it.
+  or attendance preview open across the deploy asks for one reload. Seen (Daniel): at 390 px the logo's native file input
+  cut "No file chosen" to "No …sen" (fixed in CAT-10).
+- CAT-10 known limits: `FileChooseButton` is used only for the Business details logo; other pages with a native file
+  input (Panel, Queue Display, HR and Website pages) keep it until their teams adopt the component (offered to
+  Staff Experience in the CAT-10 PR).
+- CAT-13 known limits: a new referral or attendance letter's phone line looks different from paper printed before
+  CAT-13 (issued copies keep their stored HTML); the MC still prints the stored phone until its owner changes it;
+  the Panel claim pack and Billing's invoice and receipt switch to PrintedPhone in PNL-19 and BIL-9.
 
 ## 8. Rules (every task)
 

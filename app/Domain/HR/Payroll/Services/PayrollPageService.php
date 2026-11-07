@@ -19,7 +19,7 @@ use Illuminate\Support\Facades\DB;
  */
 final class PayrollPageService
 {
-    public function __construct(private PayrollSetupService $setup, private RecordSupport $support) {}
+    public function __construct(private PayrollSetupService $setup, private RecordSupport $support, private PayrollRunPageService $runs) {}
 
     /**
      * @param  array<string, mixed>  $query
@@ -27,7 +27,8 @@ final class PayrollPageService
      */
     public function page(User $actor, array $query): array
     {
-        $tabs = ['profiles', 'tables', 'settings'];
+        // Pay profiles stay the default tab: a clinic sets profiles and tables up before its first run.
+        $tabs = ['runs', 'profiles', 'tables', 'settings'];
         $tab = in_array($query['tab'] ?? null, $tabs, true) ? (string) $query['tab'] : 'profiles';
         $org = $actor->organisation_id;
         $today = CarbonImmutable::now($this->zone($org))->toDateString();
@@ -50,6 +51,10 @@ final class PayrollPageService
                 'groups' => $groups->where('is_active', true)->values()->map(fn (\stdClass $g): array => ['value' => (string) $g->public_id, 'label' => (string) $g->name])->all(),
                 'allowanceTypes' => $types->where('isActive', true)->where('kind', 'earnings')->values()
                     ->map(fn (array $t): array => ['value' => $t['id'], 'label' => $t['name']])->all(),
+                'deductionTypes' => $types->where('isActive', true)->where('kind', 'deduction')->values()
+                    ->map(fn (array $t): array => ['value' => $t['id'], 'label' => $t['name']])->all(),
+                'refundTypes' => $types->where('isActive', true)->where('kind', 'refund')->values()
+                    ->map(fn (array $t): array => ['value' => $t['id'], 'label' => $t['name']])->all(),
                 'categories' => $this->categories($org),
                 'suggestedItemTypes' => PayrollSetupService::SUGGESTED_ITEM_TYPES,
                 'maxRows' => PayrollSetupService::MAX_ROWS,
@@ -57,9 +62,11 @@ final class PayrollPageService
             ],
             'setUp' => ['groups' => $groups->where('is_active', true)->isNotEmpty(), 'rates' => $rates->isNotEmpty(),
                 'checkedTables' => DB::table('hr_statutory_tables')->where('organisation_id', $org)->where('status', 'checked')->exists()],
+            'runs' => $tab === 'runs' ? $this->runs->list($actor) : null,
             'profiles' => $tab === 'profiles' ? $this->profiles($actor, $today, $names) : null,
             'tables' => $tab === 'tables' ? $this->tables($actor, $names) : null,
             'settings' => $tab === 'settings' ? [
+                'lineTypes' => $this->runs->list($actor)['lineTypes'],
                 'groups' => $groups->map(fn (\stdClass $g): array => ['id' => (string) $g->public_id, 'name' => (string) $g->name,
                     'payDay' => $g->pay_day === null ? null : (int) $g->pay_day, 'isActive' => (bool) $g->is_active, 'lockVersion' => (int) $g->lock_version])->values()->all(),
                 'itemTypes' => $types->map(fn (array $t): array => array_diff_key($t, ['dbId' => true]))->values()->all(),

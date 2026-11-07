@@ -47,7 +47,7 @@ test('Each table tick box keeps its rules and gets a 44 px target', () => {
         table,
         /<label\s+class="-m-2 inline-flex min-h-11 min-w-11 items-center justify-center"\s*>\s*<input\s+type="checkbox"/,
     );
-    assert.match(table, /:disabled="row\.result !== 'matched'"/);
+    assert.match(table, /:disabled="!canTick\(row\)"/);
     assert.match(
         table,
         /:aria-describedby="`statement-result-\$\{row\.line\}`"/,
