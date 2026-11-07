@@ -67,7 +67,7 @@ class OutsideExportTest extends VisitTestCase
         $rows = $this->rows($staff->streamedContent());
         $this->assertSame(['KPOne ID', 'Name', 'Kind', 'Position', 'Employment type', 'Starts on', 'Probation ends on', 'Confirmed on', 'Ends on', 'Primary branch', 'Status'],
             $rows[3]);
-        $this->assertContains([(string) $worker->public_id, $this->ca->name, 'Staff', "'=Clinic Assistant", 'Permanent', '2026-08-06', '2026-11-30', '', '', $this->branch->name, 'Active'],
+        $this->assertContains([(string) $worker->public_id, $this->ca->name, 'Staff', "'=Clinic Assistant", 'Permanent', '2026-08-06', '2026-11-30', '', '', $this->branch->name, 'On probation'],
             $rows);
         $this->assertTrue(collect($rows)->contains(fn (array $r): bool => ($r[1] ?? null) === 'Synthetic Locum' && $r[2] === 'Locum' && $r[10] === 'No employment period'));
         $this->assertSame('KPOne HR export', $rows[0][0]);

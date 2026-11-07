@@ -85,8 +85,10 @@ final class OutsideHrExportService
                 ?? $periods->get($w->id, collect())->last();
             // Someone rehired with a future start reads "Starting", not "Ended" (Suresh, minor 2).
             $rehired = $periods->get($w->id, collect())->contains(fn (EmploymentPeriod $f): bool => $f->starts_on->greaterThan($today));
+            // The same words as the Staff files list, plus "Starting" for a period that has not begun.
+            $probation = $p !== null && $p->probation_ends_on !== null && $p->confirmed_on === null && $p->probation_ends_on->greaterThanOrEqualTo($today);
             $status = $p === null ? 'No employment period' : ($p->starts_on->greaterThan($today) ? 'Starting'
-                : ($p->ends_on !== null && $p->ends_on->lessThan($today) ? ($rehired ? 'Starting' : 'Ended') : 'Active'));
+                : ($p->ends_on !== null && $p->ends_on->lessThan($today) ? ($rehired ? 'Starting' : 'Left') : ($probation ? 'On probation' : 'Active')));
 
             return [(string) $w->public_id, $w->name(), $w->kind === 'locum' ? 'Locum' : 'Staff', (string) ($positions->get($w->id)?->first()->title ?? ''),
                 $p === null ? '' : (StaffFileService::TYPES[$p->type] ?? (string) $p->type),
