@@ -19,7 +19,8 @@
             "Total received (Cash + Non-cash) (receipt date, MYR)",
             "Cash refunds paid (payout date, MYR)",
             "Cash reversed, refund recorded (receipt date, MYR)",
-            "Non-cash refunds paid (payout date, MYR)"
+            "Non-cash refunds paid (payout date, MYR)",
+            "Refunded after completion (payout date, MYR)"
         ],
         "rows": [
             [
@@ -32,6 +33,7 @@
                 "0.00",
                 "20.00",
                 "10.00",
+                "0.00",
                 "0.00",
                 "0.00",
                 "0.00",
@@ -54,10 +56,12 @@
                 "30.00",
                 "0.00",
                 "0.00",
+                "0.00",
                 "0.00"
             ],
             [
                 "2027-01-02",
+                "0.00",
                 "0.00",
                 "0.00",
                 "0.00",
@@ -88,10 +92,11 @@
             "Total received (Cash + Non-cash) (receipt date, MYR)": "30.00",
             "Cash refunds paid (payout date, MYR)": "0.00",
             "Cash reversed, refund recorded (receipt date, MYR)": "0.00",
-            "Non-cash refunds paid (payout date, MYR)": "0.00"
+            "Non-cash refunds paid (payout date, MYR)": "0.00",
+            "Refunded after completion (payout date, MYR)": "0.00"
         }
     },
-    "daily-csv": "﻿Report,\"Daily summary\"\r\nBranch,Cheras\r\nTimezone,Asia\/Kuala_Lumpur\r\nFrom,2026-12-31\r\nTo,2027-01-02\r\n\"Generated at UTC\",2027-01-02T02:00:00+00:00\r\nBasis,\"Cash, Non-cash and Total use original receipt date, not invoice finalisation; original, reversed and net are explicit. Reversals restate the original receipt date, not refund-date cash flow (see refund columns). Panel is approved responsibility; Due is approved pay-later outstanding, both from the invoice finalisation-date cohort. Total is net receipts only: Total received (Cash + Non-cash). Panel and Due are not included in Total received. Refunds (waiting or approved, not rejected) use payout date and the refund's method, and are not deducted from Total received. Cash closing = Cash net + Cash reversed, refund recorded minus Cash refunds paid. Payment-method filters apply to receipt columns only, and to refunds by refund method (refunds paid) or receipt method (refund recorded). Visit type filters apply to both cohorts and to refunds (through the receipt's invoice); unallocated receipts cannot match a visit filter. Current classification applies to historical periods; Not classified counts as Non-cash. MYR, two decimals. Empty dates are zero rows. Current records at generation, not a historical snapshot.\"\r\n\"Payment method IDs\",all\r\n\"Visit types\",all\r\nRows,3\r\n\"Total Cash original (receipt date, MYR)\",25.00\r\n\"Total Cash reversed (receipt date, MYR)\",25.00\r\n\"Total Cash net (receipt date, MYR)\",0.00\r\n\"Total Non-cash original (receipt date, MYR)\",30.00\r\n\"Total Non-cash reversed (receipt date, MYR)\",0.00\r\n\"Total Non-cash net (receipt date, MYR)\",30.00\r\n\"Total Panel approved (invoice finalisation date, MYR)\",20.00\r\n\"Total Due approved pay-later outstanding (invoice finalisation date, MYR)\",10.00\r\n\"Total Total original receipts (receipt date, MYR)\",55.00\r\n\"Total Total reversed receipts (receipt date, MYR)\",25.00\r\n\"Total Total received (Cash + Non-cash) (receipt date, MYR)\",30.00\r\n\"Total Cash refunds paid (payout date, MYR)\",0.00\r\n\"Total Cash reversed, refund recorded (receipt date, MYR)\",0.00\r\n\"Total Non-cash refunds paid (payout date, MYR)\",0.00\r\n\r\n\"Local date\",\"Cash original (receipt date, MYR)\",\"Cash reversed (receipt date, MYR)\",\"Cash net (receipt date, MYR)\",\"Non-cash original (receipt date, MYR)\",\"Non-cash reversed (receipt date, MYR)\",\"Non-cash net (receipt date, MYR)\",\"Panel approved (invoice finalisation date, MYR)\",\"Due approved pay-later outstanding (invoice finalisation date, MYR)\",\"Total original receipts (receipt date, MYR)\",\"Total reversed receipts (receipt date, MYR)\",\"Total received (Cash + Non-cash) (receipt date, MYR)\",\"Cash refunds paid (payout date, MYR)\",\"Cash reversed, refund recorded (receipt date, MYR)\",\"Non-cash refunds paid (payout date, MYR)\"\r\n2026-12-31,0.00,0.00,0.00,0.00,0.00,0.00,20.00,10.00,0.00,0.00,0.00,0.00,0.00,0.00\r\n2027-01-01,25.00,25.00,0.00,30.00,0.00,30.00,0.00,0.00,55.00,25.00,30.00,0.00,0.00,0.00\r\n2027-01-02,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00\r\n",
+    "daily-csv": "﻿Report,\"Daily summary\"\r\nBranch,Cheras\r\nTimezone,Asia\/Kuala_Lumpur\r\nFrom,2026-12-31\r\nTo,2027-01-02\r\n\"Generated at UTC\",2027-01-02T02:00:00+00:00\r\nBasis,\"Cash, Non-cash and Total use original receipt date, not invoice finalisation; original, reversed and net are explicit. Reversals restate the original receipt date, not refund-date cash flow (see refund columns). Panel is approved responsibility; Due is approved pay-later outstanding, both from the invoice finalisation-date cohort. Total is net receipts only: Total received (Cash + Non-cash). Panel and Due are not included in Total received. Refunds (waiting or approved, not rejected) use payout date and the refund's method, and are not deducted from Total received. Cash closing = Cash net + Cash reversed, refund recorded minus Cash refunds paid. Refunded after completion is the part of Cash and Non-cash refunds paid that gives back money on a receipt of a completed visit (BIL-10); it is already inside those two columns, so it is never added to them. Payment-method filters apply to receipt columns only, and to refunds by refund method (refunds paid) or receipt method (refund recorded). Visit type filters apply to both cohorts and to refunds (through the receipt's invoice); unallocated receipts cannot match a visit filter. Current classification applies to historical periods; Not classified counts as Non-cash. MYR, two decimals. Empty dates are zero rows. Current records at generation, not a historical snapshot.\"\r\n\"Payment method IDs\",all\r\n\"Visit types\",all\r\nRows,3\r\n\"Total Cash original (receipt date, MYR)\",25.00\r\n\"Total Cash reversed (receipt date, MYR)\",25.00\r\n\"Total Cash net (receipt date, MYR)\",0.00\r\n\"Total Non-cash original (receipt date, MYR)\",30.00\r\n\"Total Non-cash reversed (receipt date, MYR)\",0.00\r\n\"Total Non-cash net (receipt date, MYR)\",30.00\r\n\"Total Panel approved (invoice finalisation date, MYR)\",20.00\r\n\"Total Due approved pay-later outstanding (invoice finalisation date, MYR)\",10.00\r\n\"Total Total original receipts (receipt date, MYR)\",55.00\r\n\"Total Total reversed receipts (receipt date, MYR)\",25.00\r\n\"Total Total received (Cash + Non-cash) (receipt date, MYR)\",30.00\r\n\"Total Cash refunds paid (payout date, MYR)\",0.00\r\n\"Total Cash reversed, refund recorded (receipt date, MYR)\",0.00\r\n\"Total Non-cash refunds paid (payout date, MYR)\",0.00\r\n\"Total Refunded after completion (payout date, MYR)\",0.00\r\n\r\n\"Local date\",\"Cash original (receipt date, MYR)\",\"Cash reversed (receipt date, MYR)\",\"Cash net (receipt date, MYR)\",\"Non-cash original (receipt date, MYR)\",\"Non-cash reversed (receipt date, MYR)\",\"Non-cash net (receipt date, MYR)\",\"Panel approved (invoice finalisation date, MYR)\",\"Due approved pay-later outstanding (invoice finalisation date, MYR)\",\"Total original receipts (receipt date, MYR)\",\"Total reversed receipts (receipt date, MYR)\",\"Total received (Cash + Non-cash) (receipt date, MYR)\",\"Cash refunds paid (payout date, MYR)\",\"Cash reversed, refund recorded (receipt date, MYR)\",\"Non-cash refunds paid (payout date, MYR)\",\"Refunded after completion (payout date, MYR)\"\r\n2026-12-31,0.00,0.00,0.00,0.00,0.00,0.00,20.00,10.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00\r\n2027-01-01,25.00,25.00,0.00,30.00,0.00,30.00,0.00,0.00,55.00,25.00,30.00,0.00,0.00,0.00,0.00\r\n2027-01-02,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00\r\n",
     "panel-page": {
         "generatedAt": "2027-01-02T02:00:00+00:00",
         "count": 1,
@@ -232,7 +237,8 @@
             "Original receipt (MYR)",
             "Reversed (MYR)",
             "Net received (MYR)",
-            "Status"
+            "Status",
+            "Refunded after completion (MYR)"
         ],
         "rows": [
             [
@@ -247,7 +253,8 @@
                 "25.00",
                 "25.00",
                 "0.00",
-                "Reversed (recording reversal)"
+                "Reversed (recording reversal)",
+                "0.00"
             ],
             [
                 "2",
@@ -261,7 +268,8 @@
                 "30.00",
                 "0.00",
                 "30.00",
-                "Posted"
+                "Posted",
+                "0.00"
             ]
         ],
         "totals": {
@@ -269,8 +277,9 @@
             "Reversed receipts (MYR)": "25.00",
             "Net received (MYR)": "30.00",
             "Cash net received (MYR)": "0.00",
-            "Non-cash net received (MYR)": "30.00"
+            "Non-cash net received (MYR)": "30.00",
+            "Refunded after completion (MYR)": "0.00"
         }
     },
-    "transactions-csv": "﻿Report,\"Transaction Detail\"\r\nBranch,Cheras\r\nTimezone,Asia\/Kuala_Lumpur\r\nFrom,2026-12-31\r\nTo,2027-01-02\r\n\"Generated at UTC\",2027-01-02T02:00:00+00:00\r\nCurrency,MYR\r\nBasis,\"Original receipt date in the branch timezone, not invoice finalisation. Whole receipt amounts use the same posted\/reversed cohort as receipt reconciliation: original, recording-reversed and net are explicit. A recording reversal is not evidence of a cash refund; later reversals restate the original receipt date. Current patient names and governed classification; payment-method names are receipt snapshots. Not classified counts as Non-cash. One row per receipt, even if several invoice references exist. Unallocated receipts remain included for money reconciliation but patient identity is masked and no invoice\/visit is invented. Visit-type filters select any linked invoice and keep the whole receipt; separately filtered cohorts can overlap. Current records at generation, not an issued snapshot. MYR, two decimals. Empty periods have no patient rows.\"\r\n\"Payment method IDs\",all\r\n\"Visit types\",all\r\nRows,2\r\n\"Total Original receipts (MYR)\",55.00\r\n\"Total Reversed receipts (MYR)\",25.00\r\n\"Total Net received (MYR)\",30.00\r\n\"Total Cash net received (MYR)\",0.00\r\n\"Total Non-cash net received (MYR)\",30.00\r\n\r\nRow,\"Local receipt date\/time\",\"KPOne patient number\",\"Patient name (current)\",\"Visit number(s)\",\"Invoice number(s)\",\"Payment method code\",\"Payment method (receipt snapshot)\",\"Classification (current)\",\"Original receipt (MYR)\",\"Reversed (MYR)\",\"Net received (MYR)\",Status\r\n1,\"2027-01-01 00:05:00\",KP-88000001,\"' =Synthetic, \"\"雪\"\"\",KPV-00000001,KPI-00000001,CASH,\"Synthetic CASH\",Cash,25.00,25.00,0.00,\"Reversed (recording reversal)\"\r\n2,\"2027-01-01 00:05:00\",KP-88000001,\"' =Synthetic, \"\"雪\"\"\",KPV-00000001,KPI-00000001,CARD,\"Synthetic CARD\",\"Not classified (Non-cash)\",30.00,0.00,30.00,Posted\r\n"
+    "transactions-csv": "﻿Report,\"Transaction Detail\"\r\nBranch,Cheras\r\nTimezone,Asia\/Kuala_Lumpur\r\nFrom,2026-12-31\r\nTo,2027-01-02\r\n\"Generated at UTC\",2027-01-02T02:00:00+00:00\r\nCurrency,MYR\r\nBasis,\"Original receipt date in the branch timezone, not invoice finalisation. Whole receipt amounts use the same posted\/reversed cohort as receipt reconciliation: original, recording-reversed and net are explicit. A recording reversal is not evidence of a cash refund; later reversals restate the original receipt date. Current patient names and governed classification; payment-method names are receipt snapshots. Not classified counts as Non-cash. One row per receipt, even if several invoice references exist. Unallocated receipts remain included for money reconciliation but patient identity is masked and no invoice\/visit is invented. Visit-type filters select any linked invoice and keep the whole receipt; separately filtered cohorts can overlap. Current records at generation, not an issued snapshot. MYR, two decimals. Empty periods have no patient rows. Refunded after completion is the money given back on that receipt after the visit was completed (waiting or approved, not rejected), whatever its payout date (BIL-10); original, reversed and net are unchanged by it.\"\r\n\"Payment method IDs\",all\r\n\"Visit types\",all\r\nRows,2\r\n\"Total Original receipts (MYR)\",55.00\r\n\"Total Reversed receipts (MYR)\",25.00\r\n\"Total Net received (MYR)\",30.00\r\n\"Total Cash net received (MYR)\",0.00\r\n\"Total Non-cash net received (MYR)\",30.00\r\n\"Total Refunded after completion (MYR)\",0.00\r\n\r\nRow,\"Local receipt date\/time\",\"KPOne patient number\",\"Patient name (current)\",\"Visit number(s)\",\"Invoice number(s)\",\"Payment method code\",\"Payment method (receipt snapshot)\",\"Classification (current)\",\"Original receipt (MYR)\",\"Reversed (MYR)\",\"Net received (MYR)\",Status,\"Refunded after completion (MYR)\"\r\n1,\"2027-01-01 00:05:00\",KP-88000001,\"' =Synthetic, \"\"雪\"\"\",KPV-00000001,KPI-00000001,CASH,\"Synthetic CASH\",Cash,25.00,25.00,0.00,\"Reversed (recording reversal)\",0.00\r\n2,\"2027-01-01 00:05:00\",KP-88000001,\"' =Synthetic, \"\"雪\"\"\",KPV-00000001,KPI-00000001,CARD,\"Synthetic CARD\",\"Not classified (Non-cash)\",30.00,0.00,30.00,Posted,0.00\r\n"
 }
