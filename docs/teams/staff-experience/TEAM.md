@@ -69,6 +69,18 @@ usability aid only and must follow the permission the backend already enforces.
 | UX-2 | Medical certificates link (S1-005): the visit page offers it only when the visit has a consultation record, using one new boolean `visit.hasConsultation` from `VisitDirectoryService::detail` (owner decision 2026-11-05; Patients & Registration told through LUCY); otherwise a quiet line says why: "Medical certificates are available after the doctor starts the consultation." or, on a cancelled visit, "No medical certificate: this visit was cancelled." (design reviewed by Daniel). The visit history page offers it only when it holds a consultation record. No route or permission change | #254 |
 | UX-3 | Screen-reader names and page headings (S1-009 to S1-014): a scripted pass (Chromium accessibility tree, 11 demo roles, 120 pages at 1440 and 390 px) found 8 pages with problems and finds none after the change; the review added the Patient identifier form, which only opens after a click, and a truer name for the Quick create list. Added a visually hidden `h1` to the Registration board, Consultation queue and TV screen; hidden labels on the Registration, Queue and Patient search boxes; names on the Billing approval limit fields, the Panel claim due days field, the Quick create results list (named by its visible caption), and the Patient identifier fields (the Pricing publish amount is left to Catalogue & settings' CAT-1). Frontend only; nothing changes on screen | #265 |
 | UX-4 | Malay staff quick guides (`docs/guides/ms/`) brought up to date with screens merged since PR #203, read from the code: CA (tab counts, waiting colours, OTC allergy details, Dispensary allergy warning, label batch and expiry, controlled marker and REPRINT, Panel shortfall, Recorded by, Pay later to collect, Daily cash closing count, treatment steps, treatment-room usage, barcode scan, receiving transfers, proposing a merge, the Medical certificates line, toasts at the top), doctor (waiting colours, tab counts, treatment steps, MC links) and CA Supervisor (cash closing approval, refunds, transfer differences, supplier returns, usage reversal, drug groups, controlled flag, pricing, merges, change history, scanning). Docs only; still drafts for clinic review | pending |
+| UX-5 | Consultation page toasts: in focus mode from 1024 px, toasts show at the bottom left, at most 20 rem wide, so they no longer cover the doctor's toolbar (owner decision; the one approved toast exception in the design guide) | #277 |
+| UX-6 | Thirteen fields named only by their placeholder get a real accessible name, including the clinical note, the visit cancellation reason, the passport issuer, the picker add fields and the Panel address fields | #287 |
+| UX-7 | The shared `InputError` inserts its message with `role="alert"`, so screen readers announce form errors; seven duplicate alerts removed | #306 |
+| UX-8 | Dark-mode browser controls (DD-07): `app.css` sets `color-scheme` per theme, so date and time picker icons, checkboxes and radios read in dark mode; prints stay light | #310 |
+| UX-9 | Shared branch report page (DD-23): `OperationalTable`, right-aligned number columns, KPOne date formats, the counting rules behind a disclosure, a sticky first column | #332 |
+| UX-10 | Shared confirm dialog colours: theme surface and border instead of a fixed navy in dark mode, and a default icon (red warning for a destructive question) | #333 |
+| UX-11 | Staff pages' pale panels and emerald accents in dark mode (DD-08) moved to theme tokens | #337 |
+| UX-12 | Staff page formats (DD-43): long emails wrap in their column; dates and times in the shared KPOne formats | #346 |
+| UX-13 | Shared shell colours (DD-20): top bar marker and wordmark, branch switcher selection and `InputError` on `brand`, `brand-strong` and `destructive`; the drawer's active marker now shows | #348 |
+| UX-14 | Malay guides for the 100 × 62 mm landscape drug label (CA and CA Supervisor) | #357 |
+| UX-15 | Shared `PageHeader` on the Staff pages and Clinic management (DD-17, part), with optional `title-extra` and `description` slots | #369 |
+| UX-16 | Confirm dialog's non-destructive tile on the brand tokens; closes DD-20 | #365 |
 
 ## 6. Owner decisions already made (never ask again)
 
@@ -230,3 +242,36 @@ authorisation to build them; the coordinator records it in `docs/BASELINE.md`.
    rule and "No current assignment" now use the theme tokens (`success`, `warning-strong`, `brand`, `muted`,
    `ring`), as `StatusBadge` does. The shared `PatientBoard` chips were left to Queue & TV (DD-38, PR #331, and
    Cancel Visit in PR #336), as the Lead UI/UX Designer asked. No assertion changed.
+12. **UX-12 Staff page formats (design debt DD-43).** Chosen by the owner on 2026-11-06 from the Lead UI/UX
+   Designer's UX-11 review. On the staff page a long work email ran into the Staff number column (by 43 px at
+   1280 and 1440 px); it now wraps inside its own column, preferably after the "@", on the staff page and the
+   directory. Dates and times use the shared `formatDate` and `formatDateTime` ("1 Jan 2026", "5 Nov 2026, 5:16 PM",
+   Kuala Lumpur time) instead of the browser's own format and time zone, and an assignment reads "From 1 Jan 2026,
+   no end date" or "1 Jan 2026 to 31 Dec 2026 (inclusive)". No assertion changed.
+13. **UX-13 Shared shell colour tokens (design debt DD-20).** Chosen by the owner on 2026-11-06. The top bar (active
+   link marker in the menu and the drawer, the "KPOne" wordmark), the branch switcher's selected row and the shared
+   `InputError` used fixed palette colours (`pink-600`, `pink-700`, `pink-50/800/950/200`, `text-red-600
+   dark:text-red-500`). They now use `brand`, `brand-strong` and `destructive`. Light mode is the same for the top
+   bar (the tokens equal those pinks) and a slightly deeper red for errors; in dark mode the wordmark and the
+   selected branch are a lighter, readable pink. The confirm dialog's non-destructive pink tile followed in UX-16. No assertion changed.
+14. **UX-14 Malay guides for the landscape drug label.** Chosen by the owner on 2026-11-06, handed over by Dispensary &
+   OTC after DSP-10 (PR #344) and the "Print label" casing fix (PR #321). `docs/guides/ms/ca.md` and
+   `docs/guides/ms/penyelia-ca.md` now describe the 100 × 62 mm landscape label: "Print label", the expiry printed as
+   "EXP: dd/mm/yyyy" only for exactly one batch (otherwise "EXP: -"), no batch number, "Ubat Terkawal/Controlled
+   Medicine" below the border, and dosage, frequency and instruction sharing 3 rows with Route not printed. Every
+   quoted string was checked against the merged code. Docs only.
+15. **UX-15 Shared page header on the Staff Experience pages (design debt DD-17, part).** Approved by
+   B.E.R.N.I.S.S for the owner on 2026-11-06. The staff directory, the staff page, Create staff, Edit staff and
+   Clinic management drew their own titles (Clinic management at `text-lg`, the Staff pages with an optional
+   icon tile). They now start with the shared `PageHeader`: one `h1` at `text-2xl`, one description line and the
+   actions on the right; the icon tiles are dropped, as the guide allows. `PageHeader` gains two optional
+   slots, `title-extra` (the staff page's Active or Inactive badge) and `description` (the staff number and
+   email line, which keeps its wrapping); pages that use neither render as before. Layout only: no data,
+   permission or route change. Other teams' pages keep their own titles for now. The Lead UI/UX Designer's optional nit, a small back link above the
+   title instead of "← Directory" among the actions, waits for a back-link slot in `PageHeader`. No assertion changed.
+16. **UX-16 Confirm dialog tile token (the rest of design debt DD-20).** Approved by B.E.R.N.I.S.S for the owner
+   on 2026-11-06, after UX-10. The shared confirm dialog's icon tile for a non-destructive question used fixed
+   pink palette colours (`bg-pink-50 text-pink-700 dark:bg-pink-950/50 dark:text-pink-300`); it now uses the brand tokens
+   (`bg-brand/10 text-brand-strong dark:bg-brand/15`), which carry their own dark values. It looks almost the
+   same: the icon's contrast on its tile is 5.2:1 in light and 6.9:1 in dark (3:1 needed for an icon). A
+   destructive question keeps its red tile. No assertion changed.
