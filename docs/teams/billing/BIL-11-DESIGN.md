@@ -55,8 +55,13 @@ re-issue of existing copies.
 - Additive migration `2026_11_12_300100`: nullable `invoice_lines.service_category_snapshot`.
 - `PriceResolutionService::price()` copies the clinical service's category onto each service line when the draft is
   built and again at finalisation; `''` means frozen with no category (Service). The value is part of the line set
-  the draft's hash covers, so a rename between build and finalisation makes the draft stale and staff rebuild it.
+  the draft's hash covers (the existing build and finalisation comparison, unchanged), so a rename between build and
+  finalisation makes the draft stale and staff rebuild it.
 - `IssuedBillingDocumentService` groups lines by `COALESCE(service_category_snapshot, live category)`: frozen lines
   never move; lines finalised before BIL-11 (NULL) keep reading the live category (owner decision 1).
 - A finalised line's frozen category cannot be changed (existing `invoice_lines_retained` guard, checked at commit).
 - No change to amounts, receipts, permissions, screens or reports. No existing assertion changed.
+- **Deployment note:** a draft invoice built before this change has no frozen category; finalising it after the
+  deploy is refused with the usual "changed, reload" message, and staff press Build again. Finalised invoices are not
+  affected.
+- OTC invoices carry medicine lines only, so they never have a frozen category.

@@ -60,6 +60,12 @@ class FrozenServiceCategoryTest extends BillingTestCase
         [$ca, $visit, $invoice, $service] = $this->serviceInvoice('Procedure(s)', freeze: false);
         $this->assertNull(InvoiceLine::query()->where('line_type', 'service')->sole()->service_category_snapshot);
         $this->selectBranch($ca);
+        // Unchanged category: an older invoice reprints as COPY (its content, and so its hash, did not change).
+        $this->post(route('billing.issue', [$visit, $invoice]), $this->input($visit))->assertRedirect();
+        $this->post(route('billing.issue', [$visit, $invoice]), $this->input($visit))->assertRedirect();
+        $this->assertSame(['original', 'copy'], IssuedBillingDocumentPrint::query()->orderBy('id')->pluck('label')->all());
+        $this->assertSame(152, $this->categoryTotal($visit, IssuedBillingDocumentPrint::query()->latest('id')->firstOrFail(), 'Procedure'));
+        // A rename still moves it, as before BIL-11 (owner decision: older invoices keep reading the live category).
         $service->forceFill(['category' => 'Investigation(s)'])->save();
         $this->post(route('billing.issue', [$visit, $invoice]), $this->input($visit))->assertRedirect();
         $this->assertSame(152, $this->categoryTotal($visit, IssuedBillingDocumentPrint::query()->latest('id')->firstOrFail(), 'Investigation'));
