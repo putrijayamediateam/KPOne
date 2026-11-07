@@ -316,6 +316,9 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php` and `BillingPermiss
   point before real use.
 - Refunds after completion (BIL-10): see `BIL-10-DESIGN.md` section 9 (Insights Provider table nets credits since BIL-12;
   one invoice per refunded receipt; no dedicated contention test yet).
+- Insights provider credits (BIL-12): when the Range provider list is cut at 100 doctors, a doctor below the cut who
+  has a credit in the period is not added with only that credit (their sales are not shown either); the existing
+  "truncated" note explains why the rows then do not add up to the headline. Below 100 doctors the rows always add up.
 
 ## 8. Rules (every task)
 
