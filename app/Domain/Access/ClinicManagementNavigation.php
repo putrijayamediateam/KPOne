@@ -2,6 +2,7 @@
 
 namespace App\Domain\Access;
 
+use App\Domain\Clinical\Dispensary\Services\DispensaryReturnService;
 use App\Models\User;
 
 /** Read-only destinations; their existing controllers remain the authority for access and scope. */
@@ -44,9 +45,14 @@ final class ClinicManagementNavigation
             [$actor->can('medicines.manage.organisation'), 'Medicine Catalogue', 'Manage medicines and their catalogue details.', 'medicines.index'],
             [$actor->can('clinical_services.manage.organisation'), 'Clinical Service Catalogue', 'Manage clinical services and consultation tariffs.', 'clinical-services.index'],
             [$actor->can('pricing.references.manage.organisation'), 'Pricing', 'Manage charge definitions and governed price books.', 'pricing.index'],
+            // CAT-12 (B.E.R.N.I.S.S for the owner; wording and group from Staff Experience): the price check page
+            // shows results only with an active branch.
+            [$branch && $actor->can('pricing.references.manage.organisation'), 'Check price list', 'See the price billing uses for every active item, with gaps flagged.', 'pricing.price-check'],
             [$settings, 'Medicine details', 'Configure shared prescribing options.', 'medicine-details.index'],
             [$settings, 'Suppliers', 'Manage supplier names and contact details.', 'supplier-settings.index'],
             [$branch && $actor->can('inventory.view.branch'), 'Inventory', 'Review stock, batches and movements for this branch.', 'inventory.index'],
+            // DSP-7b (B.E.R.N.I.S.S for the owner): only the people who may check a return see the list (v1: a CA Supervisor).
+            [$branch && $actor->can('dispensary.view.branch') && app(DispensaryReturnService::class)->canCheckReturns($actor), 'Returns to check', 'Medicine returns at this branch that are waiting for a check, oldest first.', 'dispensary.returns-to-check'],
         ]);
         $add('Patients', 'patients', [
             [$actor->can('patients.search.organisation'), 'Patient Records', 'Find patients within your existing access.', 'patients.index'],
@@ -101,6 +107,9 @@ final class ClinicManagementNavigation
             [$actor->can('hr.attendance.clock.own') || $actor->can('hr.attendance.review.organisation'), 'KPOne HR attendance', 'Clock in and out, correct your times and review attendance.', 'hr.attendance.index'],
             [$actor->can('hr.records.view.own') || $actor->can('hr.records.view.organisation'), 'KPOne HR staff files', 'Your HR details, and staff files for HR.', 'hr.records.index'],
             [$actor->can('hr.credentials.view.own') || $actor->can('hr.credentials.manage.organisation'), 'KPOne HR credentials', 'Your certificates and renewals, and the credentials register for HR.', 'hr.credentials.index'],
+            [$actor->can('hr.sops.acknowledge.own') || $actor->can('hr.sops.manage.organisation'), 'KPOne HR SOPs', 'SOPs to read for your role, and who has acknowledged them for HR.', 'hr.sops.index'],
+            [$actor->can('hr.claims.submit.own') || $actor->can('hr.claims.approve.organisation') || $actor->can('hr.claims.pay.organisation') || $actor->can('hr.claims.manage.organisation'), 'KPOne HR staff claims', 'Claim back what you paid for the clinic; approvals, payments recorded and settings for HR and Finance.', 'hr.claims.index'],
+            [$actor->can('hr.payroll.prepare.organisation'), 'KPOne HR payroll', 'Pay profiles, statutory tables and pay settings, each checked by a second person.', 'hr.payroll.index'],
             [$actor->can('staff.view.own') || $actor->can('staff.view.branch') || $actor->can('staff.view.organisation'), 'Staff', 'Review staff within your existing access.', 'staff.index'],
             [$actor->can('branches.view.branch') || $actor->can('branches.view.organisation'), 'Branches', 'Review the clinic locations you may access.', 'branches.index'],
             [$actor->can('access.view.organisation'), 'Access Control', 'Review existing roles and permissions.', 'access-control.index'],

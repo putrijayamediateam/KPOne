@@ -156,16 +156,20 @@ test('stock opening entries are explained visibly below the results table', () =
 
 test('Transaction Detail reuses receipt evidence and guards personal preparation behind scope and cap', () => {
     const transaction = read('app/Domain/Shared/Services/TransactionReportService.php');
+    // BIL-8 (owner approval 2026-11-06): Transaction Detail extends the shared boundary, so the transaction
+    // isolation, the audit call and the cap check live in BranchReportService.
+    const shared = read('app/Domain/Shared/Services/BranchReportService.php');
     assert.match(transaction, /PostedReceiptProjection::query/);
     assert.match(transaction, /PostedReceiptProjection::amounts/);
     assert.match(transaction, /PostedReceiptProjection::filterVisitTypes/);
-    assert.match(transaction, /REPEATABLE READ/);
+    assert.match(shared, /REPEATABLE READ/);
     assert.match(transaction, /self::PAGE_SIZE/);
-    assert.ok(transaction.indexOf('$count > ReportCsv::MAX_ROWS') < transaction.indexOf('$this->identity($receipt)'));
+    assert.ok(transaction.indexOf('$this->guardWindow(') > -1 && transaction.indexOf('$this->guardWindow(') < transaction.indexOf('$this->identities($receipts)'));
+    assert.match(shared, /function guardWindow[\s\S]*\$count > ReportCsv::MAX_ROWS/);
     assert.match(transaction, /Not shown \(no invoice allocation\)/);
     assert.match(transaction, /Payment method code/);
     assert.match(transaction, /if \(\$download\)/);
-    assert.match(transaction, /AuditRecorder::class/);
+    assert.match(shared, /AuditRecorder::class/);
     assert.doesNotMatch(transaction, /identity_number|passport|nric|phone_number|email_address|diagnosis_text|bill_to_revisions|invoice_notes/);
     assert.match(read('routes/web.php'), /reports\/transactions\/download[^\n]*throttle:reports-downloads/);
     assert.match(read('app/Domain/Access/ReportPermissions.php'), /reports\.transactions\.view\.branch/);

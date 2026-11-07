@@ -6,6 +6,7 @@ use App\Domain\Access\BranchAccessService;
 use App\Domain\Access\TransactionalActorAuthority;
 use App\Domain\Audit\AuditRecorder;
 use App\Domain\Organisation\BusinessDetails\BranchLetterheadAssembler;
+use App\Domain\Shared\PrintedPhone;
 use App\Domain\Visit\Billing\Models\PanelClaim;
 use App\Models\User;
 use Carbon\CarbonImmutable;
@@ -128,8 +129,14 @@ final class PanelClaimPackService
 
             $letterhead = $this->letterheads->assemble($branch, static fn (string $asset): string => route('panel-claims.letterhead-logo', ['asset' => $asset], absolute: false));
 
+            // PNL-19: both clinic phones print in the shared reading format, as on the other printed documents.
+            $printed = $letterhead->toArray();
+            foreach (['phone', 'phone_secondary'] as $field) {
+                $printed['details'][$field] = PrintedPhone::format($printed['details'][$field] ?? null);
+            }
+
             return [
-                'letterhead' => $letterhead->toArray(),
+                'letterhead' => $printed,
                 'pack' => [
                     'panelName' => (string) $first->panel_name_snapshot,
                     'branchName' => (string) $branch->name,

@@ -124,6 +124,8 @@ const props = defineProps<{
             }[];
         } | null;
     };
+    // HR-5c: how many SOPs you still have to read.
+    sopsToRead?: number;
 }>();
 
 const page = usePage();
@@ -569,6 +571,20 @@ const sendLocum = () => {
             data-test="my-hr"
         >
             <h2 id="my-hr-title" class="sr-only">My HR details</h2>
+            <!-- HR-5c: SOPs to read, linking to /hr/sops; inside KPOne only. -->
+            <div
+                v-if="sopsToRead"
+                class="flex flex-wrap items-center justify-between gap-3 rounded-xl border bg-card p-4"
+                data-test="sops-to-read"
+            >
+                <p class="text-sm">
+                    <span class="font-semibold">SOPs to read:</span>
+                    {{ sopsToRead }}
+                </p>
+                <Button as-child variant="outline" class="max-lg:min-h-11">
+                    <Link href="/hr/sops">Open SOPs</Link>
+                </Button>
+            </div>
             <EmptyState
                 v-if="!my.hasFile"
                 title="HR has not opened your staff file yet."
