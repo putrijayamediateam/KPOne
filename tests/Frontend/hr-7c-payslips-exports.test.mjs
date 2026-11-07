@@ -73,8 +73,10 @@ test('exports download through a recorded POST, never a stored file, and the ban
     );
     assert.match(
         template('exports'),
-        /:disabled="!!busy \|\| run\.missingBank\.length > 0"/,
+        /:disabled="!!busy \|\| run\.missingBank\.length === run\.people"/,
     );
+    assert.match(template('exports'), /pay\s+them\s+outside\s+the\s+file/);
+    assert.match(template('exports'), /keep\s+their\s+leading\s+zeros/);
     assert.match(template('exports'), /Statutory summary for the portals/);
     assert.match(template('exports'), /KPOne files nothing\./);
     assert.match(template('payroll'), /<ExportsTab/);

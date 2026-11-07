@@ -396,7 +396,13 @@ class PayrollRunsTest extends VisitTestCase
             $this->assertFalse(PermissionCatalogue::isAdministrativeAuthority($permission));
         }
 
-        [$aina, $ben, $cara, $id] = $this->lockedClinic();
+        // Aina and Ben have confirmed bank details when the run is locked; Cara has none.
+        [$aina, $ben, $cara, $id] = $this->lockedClinic(function (Worker $aina, Worker $ben): void {
+            $this->confirmBank($aina, '1111222233');
+            $this->confirmBank($ben, '4444555566');
+        });
+        $this->assertSame([(int) DB::table('hr_bank_details')->where('worker_id', $aina->id)->value('id'), null],
+            [(int) DB::table('hr_payslips')->where('worker_id', $aina->id)->value('bank_detail_id'), DB::table('hr_payslips')->where('worker_id', $cara->id)->value('bank_detail_id')]);
         // Only the Director exports; the Finance Officer gets no payroll access in v1.
         foreach (['hr_manager', 'finance_officer', 'ca'] as $role) {
             $this->selectBranch($role === 'hr_manager' ? $this->hr : $this->actor($role));
@@ -412,7 +418,7 @@ class PayrollRunsTest extends VisitTestCase
         $this->get(route('hr.payroll.index', ['tab' => 'exports']))->assertOk()->assertInertia(fn (Assert $page) => $page
             ->where('payroll.tabs', ['runs', 'profiles', 'tables', 'settings', 'exports'])
             ->where('payroll.exports.runs.0.netSen', 239352 + 11452 + 150000)->where('payroll.exports.runs.0.people', 3)
-            ->where('payroll.exports.runs.0.missingBank', collect([$aina->name(), $ben->name(), $cara->name()])->sort()->values()->all())
+            ->where('payroll.exports.runs.0.missingBank', [$cara->name()])
             ->where('payroll.exports.runs.0.statutory', [
                 ['scheme' => 'EPF', 'people' => 1, 'employeeSen' => 28600, 'employerSen' => 33800],
                 ['scheme' => 'SOCSO', 'people' => 1, 'employeeSen' => 1408, 'employerSen' => 4927],
@@ -420,38 +426,38 @@ class PayrollRunsTest extends VisitTestCase
                 ['scheme' => 'MTD (PCB)', 'people' => 1, 'employeeSen' => 1200, 'employerSen' => 0],
             ]));
 
-        // The bank file is refused while anyone has no confirmed bank details, and names them; nothing is recorded.
-        $this->postJson(route('hr.payroll.runs.export', [$id, 'bank']))->assertStatus(422)->assertJsonPath('errors.export.0', fn (string $m) => str_contains($m, $aina->name()));
-        $this->assertSame(0, DB::table('hr_payroll_exports')->count());
-        foreach ([[$aina, '1111222233'], [$ben, '4444555566'], [$cara, '7777888899']] as [$worker, $account]) {
-            $this->confirmBank($worker, $account);
-        }
-
+        // A new account confirmed after locking never changes the file: it pays the account frozen on the payslip (Suresh, S1).
+        $this->confirmBank($aina, '9999000011');
         $this->selectBranch($this->director);
         $response = $this->postJson(route('hr.payroll.runs.export', [$id, 'bank']))->assertOk();
         $this->assertSame('text/csv; charset=UTF-8', $response->headers->get('Content-Type'));
         $this->assertStringContainsString('no-store', (string) $response->headers->get('Cache-Control'));
         $this->assertStringContainsString('payroll-bank-2026-11.csv', (string) $response->headers->get('Content-Disposition'));
         $csv = $response->streamedContent();
-        $this->assertStringStartsWith("\xEF\xBB\xBFName,Bank,\"Account number\",\"Amount (MYR)\",Reference\r\n", $csv);
-        $rows = $this->csvRows($csv);
-        foreach ([[$aina, '1111222233', '2393.52'], [$ben, '4444555566', '114.52'], [$cara, '7777888899', '1500.00']] as [$worker, $account, $amount]) {
-            $this->assertContains([$worker->name(), 'Synthetic Bank', $account, $amount, 'Salary November 2026'], $rows);
-        }
-        $this->assertCount(4, $rows);
+        $this->assertStringStartsWith("\xEF\xBB\xBFName,\"Account holder\",Bank,\"Account number\",\"Amount (MYR)\",Reference\r\n", $csv);
+        // Cara had no confirmed bank details when the run was locked, so she is left out of the file and named on the tab.
+        $this->assertSame([
+            ['Name', 'Account holder', 'Bank', 'Account number', 'Amount (MYR)', 'Reference'],
+            ...collect([[$aina->name(), 'Synthetic Holder', 'Synthetic Bank', '1111222233', '2393.52', 'Salary November 2026'],
+                [$ben->name(), 'Synthetic Holder', 'Synthetic Bank', '4444555566', '114.52', 'Salary November 2026']])->sortBy(fn (array $r): string => mb_strtolower($r[0]))->values()->all(),
+        ], $this->csvRows($csv));
+        $this->assertStringNotContainsString('9999000011', $csv);
         $export = DB::table('hr_payroll_exports')->first();
         $this->assertNotNull($export);
-        $this->assertSame(['bank', 'generic_csv', 3, (int) $this->director->id], [$export->kind, $export->layout, (int) $export->row_count, (int) $export->exported_by_user_id]);
+        $this->assertSame(['bank', 'generic_csv', 2, (int) $this->director->id], [$export->kind, $export->layout, (int) $export->row_count, (int) $export->exported_by_user_id]);
         $audit = (string) DB::table('audit_logs')->where('event', 'hr.payroll.exported')->value('metadata');
         foreach (['1111222233', '2393', '239352', 'Synthetic Bank'] as $secret) {
             $this->assertStringNotContainsString($secret, $audit);
         }
 
-        // The accountant summary: totals by person and item, with the accountant line.
+        // The accountant summary: totals by person and item, with the accountant line. Two people who share a name stay
+        // apart, because rows are grouped by the worker, not the name (Suresh, S2).
+        DB::table('users')->where('id', $cara->user_id)->update(['name' => $aina->user->name]);
         $csv = $this->postJson(route('hr.payroll.runs.export', [$id, 'accountant']))->assertOk()->streamedContent();
         $this->assertStringContainsString("To confirm with the clinic's accountant before real use. Synthetic data only.", $csv);
         $rows = $this->csvRows($csv);
         $this->assertContains([$aina->name(), 'Earnings', 'Basic salary', '2600.00'], $rows);
+        $this->assertContains([$aina->name(), 'Earnings', 'Basic salary', '1500.00'], $rows);
         $this->assertContains([$aina->name(), 'Employee contributions', 'EPF employee', '286.00'], $rows);
         $this->assertContains([$aina->name(), 'Employer contributions (information)', 'EPF employer', '338.00'], $rows);
         $this->assertContains([$aina->name(), 'Refunds', 'Staff claim refund', '45.60'], $rows);
@@ -478,10 +484,16 @@ class PayrollRunsTest extends VisitTestCase
         $this->assertNotNull($aina);
     }
 
-    /** @return array{0: Worker, 1: Worker, 2: Worker, 3: string} the clinic with its November run locked by the second Director */
-    private function lockedClinic(): array
+    /**
+     * @param  (callable(Worker, Worker, Worker): void)|null  $before  runs before the run is prepared
+     * @return array{0: Worker, 1: Worker, 2: Worker, 3: string} the clinic with its November run locked by the second Director
+     */
+    private function lockedClinic(?callable $before = null): array
     {
         [$aina, $ben, $cara] = $this->clinic();
+        if ($before !== null) {
+            $before($aina, $ben, $cara);
+        }
         $this->lineTypes($this->hr);
         $this->prepare($this->hr)->assertRedirect();
         $id = (string) DB::table('hr_payroll_runs')->value('public_id');

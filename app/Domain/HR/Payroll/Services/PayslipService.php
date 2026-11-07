@@ -42,7 +42,7 @@ final class PayslipService
             if (! $worker instanceof Worker || $worker->user_id === null) {
                 continue; // a run never holds a locum (HR-7b), so this is only a guard
             }
-            $bank = DB::table('hr_bank_details')->where('worker_id', $worker->id)->where('status', 'confirmed')->orderByDesc('id')->first(['bank_name_encrypted', 'account_last4']);
+            $bank = DB::table('hr_bank_details')->where('worker_id', $worker->id)->where('status', 'confirmed')->orderByDesc('id')->first(['id', 'bank_name_encrypted', 'account_last4']);
             $snapshot = [
                 'version' => 1,
                 'name' => $worker->name(),
@@ -61,7 +61,7 @@ final class PayslipService
             ];
             $json = json_encode($snapshot, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
             DB::table('hr_payslips')->insert(['public_id' => (string) Str::uuid(), 'organisation_id' => $actor->organisation_id, 'run_id' => $run->id,
-                'worker_id' => $worker->id, 'user_id' => $worker->user_id, 'snapshot_encrypted' => Crypt::encryptString($json),
+                'worker_id' => $worker->id, 'user_id' => $worker->user_id, 'bank_detail_id' => $bank?->id, 'snapshot_encrypted' => Crypt::encryptString($json),
                 'snapshot_hash' => hash('sha256', $json), 'created_at' => $lockedAt]);
             $count++;
         }
@@ -81,7 +81,7 @@ final class PayslipService
             ->orderByDesc('r.month')->orderByDesc('s.id')->limit(60)->get(['s.public_id', 'r.month', 'r.kind', 'r.group_name', 's.created_at'])
             ->map(fn (\stdClass $s): array => ['id' => (string) $s->public_id, 'period' => CarbonImmutable::parse((string) $s->month)->format('F Y'),
                 'kind' => (string) $s->kind, 'group' => (string) $s->group_name,
-                'issuedOn' => CarbonImmutable::parse((string) $s->created_at)->format('j M Y')])->all());
+                'issuedOn' => CarbonImmutable::parse((string) $s->created_at, 'UTC')->setTimezone($this->zone($actor->organisation_id))->format('j M Y')])->all());
     }
 
     /**
@@ -103,11 +103,16 @@ final class PayslipService
                 'opened_by_user_id' => $actor->id, 'created_at' => now()->utc()]);
             $this->support->audit->record('hr.payslips.opened', null, ['payslip_id' => (int) $payslip->id, 'run_id' => (int) $payslip->run_id, 'own' => $own],
                 $actor, null, $actor->organisation_id);
-            $json = Crypt::decryptString((string) $payslip->snapshot_encrypted);
+            try {
+                $json = Crypt::decryptString((string) $payslip->snapshot_encrypted);
+            } catch (DecryptException) {
+                abort(409); // a damaged snapshot is a conflict, as a hash mismatch is (Suresh, M1)
+            }
             abort_if(! hash_equals((string) $payslip->snapshot_hash, hash('sha256', $json)), 409);
             $snapshot = json_decode($json, true, 16, JSON_THROW_ON_ERROR);
+            $issuedOn = CarbonImmutable::parse((string) $payslip->created_at, 'UTC')->setTimezone($this->zone($actor->organisation_id))->format('j M Y');
 
-            return ['id' => (string) $payslip->public_id, 'own' => $own, ...(is_array($snapshot) ? $snapshot : [])];
+            return ['id' => (string) $payslip->public_id, 'own' => $own, ...(is_array($snapshot) ? $snapshot : []), 'issuedOn' => $issuedOn];
         });
     }
 
@@ -137,6 +142,13 @@ final class PayslipService
             'address' => array_values(array_filter([$d['address_line_1'], $d['address_line_2'], trim($d['postcode'].' '.$d['city']), $d['state']],
                 fn (?string $v): bool => $v !== null && trim($v) !== '')),
             'contact' => array_values(array_filter([$d['phone'] === null ? null : 'Tel: '.$d['phone'], $d['email']], fn (?string $v): bool => $v !== null && $v !== ''))];
+    }
+
+    private function zone(int $organisationId): string
+    {
+        $zone = DB::table('branches')->where('organisation_id', $organisationId)->where('is_active', true)->orderBy('id')->value('timezone');
+
+        return is_string($zone) ? $zone : 'UTC';
     }
 
     /** @return array<string, int> */

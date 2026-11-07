@@ -21,12 +21,15 @@ return new class extends Migration
             $t->unsignedBigInteger('run_id');
             $t->unsignedBigInteger('worker_id');
             $t->unsignedBigInteger('user_id');
+            // The confirmed bank details in force at locking, so the bank file pays exactly the account the payslip shows (Suresh, S1).
+            $t->unsignedBigInteger('bank_detail_id')->nullable();
             $t->text('snapshot_encrypted');
             $t->char('snapshot_hash', 64);
             $t->timestampTz('created_at');
             $t->foreign(['run_id', 'organisation_id'], 'hr_payslips_run_fk')->references(['id', 'organisation_id'])->on('hr_payroll_runs')->restrictOnDelete();
             $t->foreign(['worker_id', 'organisation_id'], 'hr_payslips_worker_fk')->references(['id', 'organisation_id'])->on('hr_workers')->restrictOnDelete();
             $t->foreign(['user_id', 'organisation_id'], 'hr_payslips_user_fk')->references(['id', 'organisation_id'])->on('users')->restrictOnDelete();
+            $t->foreign('bank_detail_id', 'hr_payslips_bank_fk')->references('id')->on('hr_bank_details')->restrictOnDelete();
             $t->unique(['run_id', 'worker_id'], 'hr_payslips_once');
             $t->unique(['id', 'organisation_id'], 'hr_payslips_scope_unique');
             $t->index(['user_id', 'id'], 'hr_payslips_user');
@@ -80,6 +83,10 @@ BEGIN
  END IF;
  IF NOT EXISTS (SELECT 1 FROM hr_workers WHERE id = NEW.worker_id AND user_id = NEW.user_id) THEN
   RAISE EXCEPTION 'A payslip belongs to the worker''s own account' USING ERRCODE = '23514';
+ END IF;
+ IF NEW.bank_detail_id IS NOT NULL AND NOT EXISTS (SELECT 1 FROM hr_bank_details WHERE id = NEW.bank_detail_id AND worker_id = NEW.worker_id
+   AND organisation_id = NEW.organisation_id AND status = 'confirmed') THEN
+  RAISE EXCEPTION 'A payslip''s bank details are the worker''s own confirmed ones' USING ERRCODE = '23514';
  END IF;
  RETURN NEW;
 END $$;

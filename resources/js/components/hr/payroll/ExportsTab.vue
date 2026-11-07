@@ -78,6 +78,10 @@ const download = async (run: ExportRun, kind: 'bank' | 'accountant') => {
                 From locked runs only. Each download is recorded and no file is
                 kept in KPOne. KPOne makes no payment and files nothing.
             </p>
+            <p class="text-sm text-muted-foreground">
+                Open the bank file in a spreadsheet as text, so account numbers
+                keep their leading zeros.
+            </p>
         </div>
 
         <ErrorState v-if="failure" :message="failure" />
@@ -117,23 +121,19 @@ const download = async (run: ExportRun, kind: 'bank' | 'accountant') => {
 
             <p
                 v-if="run.missingBank.length"
-                id="missing-bank"
                 class="text-sm text-muted-foreground"
                 data-test="export-missing-bank"
             >
-                No confirmed bank details for
-                {{ run.missingBank.join(', ') }}. Confirm them in their staff
-                files before the bank file can be downloaded.
+                Not in the bank file: {{ run.missingBank.join(', ') }}. They had
+                no confirmed bank details when the run was locked, so pay them
+                outside the file.
             </p>
 
             <div class="flex flex-wrap gap-2">
                 <Button
                     variant="outline"
                     class="max-lg:min-h-11"
-                    :disabled="!!busy || run.missingBank.length > 0"
-                    :aria-describedby="
-                        run.missingBank.length ? 'missing-bank' : undefined
-                    "
+                    :disabled="!!busy || run.missingBank.length === run.people"
                     data-test="export-bank"
                     @click="download(run, 'bank')"
                     >{{

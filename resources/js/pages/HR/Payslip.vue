@@ -43,6 +43,7 @@ const props = defineProps<{
         totals: Totals;
         bank: { name: string; last4: string } | null;
         lockedAt: string;
+        issuedOn: string;
     };
 }>();
 
@@ -60,13 +61,6 @@ const title = computed(() =>
     props.payslip.kind === 'adjustment'
         ? `Payslip adjustment · ${props.payslip.adjusts ?? props.payslip.period}`
         : `Payslip · ${props.payslip.period}`,
-);
-const issued = computed(() =>
-    new Date(props.payslip.lockedAt).toLocaleDateString('en-GB', {
-        day: 'numeric',
-        month: 'short',
-        year: 'numeric',
-    }),
 );
 const print = () => window.print();
 </script>
@@ -136,7 +130,7 @@ const print = () => window.print();
                     }}<template v-if="payslip.payDay">
                         · pay day {{ payslip.payDay }}</template
                     >
-                    · issued {{ issued }}
+                    · issued {{ payslip.issuedOn }}
                 </p>
             </div>
             <div class="text-right">
