@@ -13,6 +13,7 @@ use App\Domain\Clinical\Models\ClinicalServiceCatalogueItem;
 use App\Domain\Clinical\Models\MedicineCatalogueItem;
 use App\Domain\Clinical\Models\PatientAllergyProfile;
 use App\Domain\Clinical\Models\PatientAllergyRecord;
+use App\Domain\Organisation\Inventory\Models\InventorySku;
 use App\Domain\Organisation\Inventory\Models\MedicineCatalogueInventorySku;
 use App\Domain\Organisation\Inventory\Services\InventoryAvailabilityService;
 use App\Domain\Organisation\Models\Branch;
@@ -208,12 +209,52 @@ class DispensaryDirectoryService
         $patientId = $case->visit()->value('patient_id');
         $activeAllergies = $this->activeAllergyRecords(PatientAllergyProfile::query()->where('organisation_id', $actor->organisation_id)->where('patient_id', $patientId)->first());
 
-        return MedicineCatalogueItem::query()
+        $medicines = MedicineCatalogueItem::query()
             ->where('organisation_id', $actor->organisation_id)->where('is_active', true)
             ->where(fn ($q) => $q->whereRaw("LOWER(display_name) LIKE ? ESCAPE '\\'", [$term])->orWhereRaw("LOWER(code) LIKE ? ESCAPE '\\'", [$term]))
-            ->orderBy('display_name')->orderBy('id')->limit(15)->get()
-            ->map(function (MedicineCatalogueItem $medicine) use ($actor, $case, $activeAllergies): ?array {
-                $mapping = MedicineCatalogueInventorySku::query()->where('organisation_id', $actor->organisation_id)->where('medicine_catalogue_item_id', $medicine->id)->where('is_active', true)->with('sku')->first();
+            ->orderBy('display_name')->orderBy('id')->limit(15)->get();
+
+        return $this->medicineResults($actor, $case, $medicines, $activeAllergies);
+    }
+
+    /**
+     * DSP-12 (B.E.R.N.I.S.S for the owner, 2026-11-06): the active catalogue medicines whose active stock mapping is the
+     * scanned SKU, shaped exactly like a name search. Find only: nothing is added or saved; the CA still chooses the
+     * batch and quantity and presses Add, and the domain service re-checks everything on add.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function medicinesForSku(User $actor, DispensaryCase $case, string $skuPublicId): array
+    {
+        $this->authorizedBranch($actor, $case);
+        abort_unless($actor->can('dispensary.update.branch'), 403);
+        $patientId = $case->visit()->value('patient_id');
+        $activeAllergies = $this->activeAllergyRecords(PatientAllergyProfile::query()->where('organisation_id', $actor->organisation_id)->where('patient_id', $patientId)->first());
+        $skuId = InventorySku::query()->where('organisation_id', $actor->organisation_id)->where('public_id', $skuPublicId)->value('id');
+        if ($skuId === null) {
+            return [];
+        }
+        $medicineIds = MedicineCatalogueInventorySku::query()->where('organisation_id', $actor->organisation_id)->where('is_active', true)
+            ->where('inventory_sku_id', $skuId)->pluck('medicine_catalogue_item_id');
+        $medicines = MedicineCatalogueItem::query()->where('organisation_id', $actor->organisation_id)->where('is_active', true)
+            ->whereIn('id', $medicineIds)->orderBy('display_name')->orderBy('id')->limit(15)->get();
+
+        return $this->medicineResults($actor, $case, $medicines, $activeAllergies, (int) $skuId);
+    }
+
+    /**
+     * A scan passes its SKU so the result always carries the scanned stock mapping (Hakim, DSP-12).
+     *
+     * @param  Collection<int, MedicineCatalogueItem>  $medicines
+     * @param  Collection<int, mixed>  $activeAllergies
+     * @return array<int, array<string, mixed>>
+     */
+    private function medicineResults(User $actor, DispensaryCase $case, Collection $medicines, Collection $activeAllergies, ?int $skuId = null): array
+    {
+        return $medicines
+            ->map(function (MedicineCatalogueItem $medicine) use ($actor, $case, $activeAllergies, $skuId): ?array {
+                $mapping = MedicineCatalogueInventorySku::query()->where('organisation_id', $actor->organisation_id)->where('medicine_catalogue_item_id', $medicine->id)->where('is_active', true)
+                    ->when($skuId !== null, fn ($q) => $q->where('inventory_sku_id', $skuId))->with('sku')->first();
 
                 return $mapping ? [
                     'publicId' => $medicine->public_id, 'name' => $medicine->display_name, 'code' => $medicine->code, 'strength' => $medicine->strength_text,
