@@ -135,7 +135,8 @@ class PostgresBillingRegressionTest extends TestCase
         // BIL-5: the invoice row lock (and the version and label triggers) put two presses of Print in order.
         $f = $this->billingFixture();
         foreach (['ca', 'ca2'] as $key) {
-            foreach (['billing.print.branch', 'billing.bill_to.view.branch', 'billing.view.branch'] as $permission) {
+            // BIL-9: the printer must also see the patient's identity, as CA and CA Supervisor do.
+            foreach (['billing.print.branch', 'billing.bill_to.view.branch', 'billing.view.branch', 'patients.view.organisation'] as $permission) {
                 $f[$key]->givePermissionTo(Permission::findOrCreate($permission, 'web'));
             }
         }
