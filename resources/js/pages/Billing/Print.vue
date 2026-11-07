@@ -234,6 +234,14 @@ const print = () => window.print();
                         }}
                     </dd>
                 </div>
+                <div
+                    v-if="billing.invoice.refundCreditSen"
+                    class="flex justify-between"
+                    data-testid="print-refund-credit"
+                >
+                    <dt>Refund credit</dt>
+                    <dd>−{{ myr(billing.invoice.refundCreditSen) }}</dd>
+                </div>
                 <div class="flex justify-between font-semibold">
                     <dt>Adjusted total</dt>
                     <dd>{{ myr(billing.invoice.state.total) }}</dd>

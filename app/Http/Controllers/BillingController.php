@@ -92,7 +92,7 @@ class BillingController extends Controller
     /** BIL-6: record money handed back for a reversed receipt (approved later by someone else). */
     public function refund(Request $request, Visit $visit, string $payment, RefundService $service): RedirectResponse
     {
-        $this->stayOnSettlement($request, $visit, fn () => $service->record($request->user(), $visit, $payment, $request->only(['expected_branch_id', 'payment_method_id', 'reason_code', 'idempotency_key'])));
+        $this->stayOnSettlement($request, $visit, fn () => $service->record($request->user(), $visit, $payment, $request->only(['expected_branch_id', 'payment_method_id', 'reason_code', 'amount_sen', 'idempotency_key'])));
         Inertia::flash('toast', ['type' => 'success', 'message' => 'Refund recorded. Someone else must now approve it.']);
 
         return redirect($this->settlementDestination($request, $visit));
