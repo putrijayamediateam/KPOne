@@ -34,6 +34,6 @@ test('the AI agents group lists the registry, the office and the inbox under the
     );
     assert.match(
         nav,
-        /\[\$activeBranch !== null && \$actor->can\('ai_proposals\.view\.branch'\) && \$this->branches->hasEffectiveAssignment\(\$actor, \$activeBranch\), 'Approval inbox', .*'agents\.inbox'\]/,
+        /\[\$activeBranch !== null && \$actor->can\('ai_proposals\.view\.branch'\) && \(! \$exact \|\| \$this->branches->hasEffectiveAssignment\(\$actor, \$activeBranch\)\), 'Approval inbox', .*'agents\.inbox'\]/,
     );
 });

@@ -2,7 +2,9 @@
 
 namespace Tests\Feature\Agents;
 
+use App\Domain\Access\ClinicManagementNavigation;
 use App\Domain\Organisation\Models\Branch;
+use Illuminate\Support\Facades\DB;
 use Inertia\Testing\AssertableInertia as Assert;
 use Tests\Feature\Visit\VisitTestCase;
 
@@ -71,5 +73,20 @@ class AgentMenuLinksTest extends VisitTestCase
         // works at), so they stay.
         $this->assertSame(['/agents', '/agents/office', '/agents/assistant', '/agents/daily-summary'], array_column($this->agentLinks('director', $other), 'href'));
         $this->get('/agents/inbox')->assertForbidden();
+    }
+
+    public function test_the_menu_flag_on_every_page_reads_no_staff_record_for_the_inbox_row(): void
+    {
+        // The shell asks only whether the hub has anything; the inbox row's assignment check (a staff record read)
+        // is for the hub page itself, so ordinary pages such as the website releases read no staff record for it.
+        $director = $this->actor('director');
+        $this->selectBranch($director);
+        $fresh = $director->fresh();
+        DB::enableQueryLog();
+        DB::flushQueryLog();
+        $this->assertTrue(app(ClinicManagementNavigation::class)->hasDestinations($fresh));
+        $queries = array_column(DB::getQueryLog(), 'query');
+        DB::disableQueryLog();
+        $this->assertSame([], preg_grep('/\b(?:staff_profiles|staff_branch_assignments)\b/', $queries));
     }
 }

@@ -10,8 +10,28 @@ final class ClinicManagementNavigation
 {
     public function __construct(private BranchAccessService $branches, private BillingWorkAccess $billing) {}
 
-    /** @return list<array{title: string, icon: string, links: list<array{title: string, description: string, href: string}>}> */
+    /**
+     * The hub's exact rows (ClinicManagementController).
+     *
+     * @return list<array{title: string, icon: string, links: list<array{title: string, description: string, href: string}>}>
+     */
     public function groups(User $actor): array
+    {
+        return $this->build($actor, true);
+    }
+
+    /**
+     * Whether the hub has anything for this person: the shell's menu flag, built on every page. It skips the one
+     * row check that needs the person's staff profile (the approval inbox's branch assignment, AG-11), so ordinary
+     * pages read no staff record for the menu; every person who may see the inbox also has other rows.
+     */
+    public function hasDestinations(User $actor): bool
+    {
+        return $this->build($actor, false) !== [];
+    }
+
+    /** @return list<array{title: string, icon: string, links: list<array{title: string, description: string, href: string}>}> */
+    private function build(User $actor, bool $exact): array
     {
         $activeBranch = $this->branches->activeBranch($actor);
         $branch = $activeBranch !== null;
@@ -106,7 +126,7 @@ final class ClinicManagementNavigation
             [$actor->can('ai_assistant.use.organisation'), 'Quick answers', 'Ask preset questions about today, money, Panel and stock.', 'agents.assistant'],
             // AG-8's page lists every branch the viewer works at today, so it needs no active branch.
             [$actor->can('ai_daily_summary.view.branch'), 'AI daily summary', 'Read the 07:00 report and the 14:00 update from the AI agents.', 'agents.daily-summary'],
-            [$activeBranch !== null && $actor->can('ai_proposals.view.branch') && $this->branches->hasEffectiveAssignment($actor, $activeBranch), 'Approval inbox', 'Approve or reject AI agent suggestions for this branch. Approving changes nothing in stock.', 'agents.inbox'],
+            [$activeBranch !== null && $actor->can('ai_proposals.view.branch') && (! $exact || $this->branches->hasEffectiveAssignment($actor, $activeBranch)), 'Approval inbox', 'Approve or reject AI agent suggestions for this branch. Approving changes nothing in stock.', 'agents.inbox'],
         ]);
         $add('Documents', 'documents', [
             [$settings, 'MC template previews', 'Review fixed English and Bahasa Melayu wording. No issuance.', 'medical-certificate-templates.index'],
