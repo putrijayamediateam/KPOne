@@ -55,7 +55,7 @@ class AttendanceTest extends VisitTestCase
     /** @return list<array{string, int, list<string>}> */
     public static function viewers(): array
     {
-        return [['director', 200, ['my', 'review', 'settings']], ['hr_manager', 200, ['my', 'review', 'settings']], ['ca', 200, ['my']],
+        return [['director', 200, ['my', 'review', 'overtime', 'summary', 'settings']], ['hr_manager', 200, ['my', 'review', 'overtime', 'summary', 'settings']], ['ca', 200, ['my']],
             ['resident_doctor', 200, ['my']], ['finance_officer', 200, ['my']], ['technical_admin', 200, ['my']], ['queue_display', 403, []]];
     }
 

@@ -97,7 +97,11 @@ coordinator at the owner's request (2026-11-05); the designer was added by owner
 | DD-24 to DD-27 | Design debt from DSP-8: 44 px controls below 1024 px too (tablets); the case page uses PageHeader "Dispensary" and only the patient card names the patient (h2, labelled KP number, Visit, Doctor); batch options lead with "N unit on hand · exp 30 Oct 2027" plus a "Selected:" line under the dropdown; the Added/Edited by CA chips are `StatusBadge` accent | #308 (`4c95234`) |
 | DSP-6b | The label print check that logs a print is now a POST (`dispensary.labels.print`, `dispensary.items.label.print`, the page's address plus `/print`, token and branch in the body, CSRF header); the label page no longer accepts `?verify=1`. New tests: a consultation-case print and reprint, and a PostgreSQL race of two CAs printing one case at once (print numbers 1 and 2) | #317 |
 | DSP-1c | Other names for allergy matching: catalogue editors add up to 10 brand names or misspellings per medicine ("Other names" in the Medicine Catalogue "…" menu); the Dispensary allergy warning compares allergies with them too, through one `MedicineCatalogueItem::allergyMatchTerms()` list; never printed; audited by count | #324 |
+| Print label | The single-label button reads "Print label" (sentence case, Daniel's nit from DD-24 to DD-27); the `TreatmentPlanTest` pin and the printer test updated | pending (branch `fix/dsp-print-label-casing`) |
 | DD-37 | The Drug groups dialog keeps the typed groups on a validation error, with the message under the field and a red border; a list changed meanwhile still closes it with a toast (the DSP-1c pattern) | pending (branch `fix/dsp-dd-37-drug-groups-error`) |
+| DSP-10 | The clinic's landscape drug label: 100 × 62 mm (provisional), Courier New 9 pt, 48 cells × at most 13 rows inside a rounded border. Clinic name (bold capitals, 40 characters), address, bold "Tel: (phone)" and a rule; patient name only; medicine display name with "QTY: n" (no unit); directions as one capitalised "dosage, frequency, instruction" block (3 rows); Precaution, Duration and the catalogue Indication (72 characters); date and "EXP: dd/mm/yyyy" (or "EXP: -") on the bottom row. No route, batch number, logo, email, patient or visit number. "Ubat Terkawal/Controlled Medicine" below the border; REPRINT top right inside it. Over a limit still blocks, never cuts | pending (branch `feature/dsp-10-landscape-label`) |
+| DSP-11 | Scan to check at Dispensary: on an open case the CA scans the box they picked (handheld scanner, typing or camera, STK-9's `ScanInput` with a new `dispensary` context and GET `/inventory/scan`); a box whose SKU is a saved line's mapped SKU marks that line "Checked by scan" and the summary counts "N of M"; any other known SKU shows "Not on this case: <item> (<SKU code>)". Screen only: nothing is saved, recorded or blocked; Complete is unchanged | pending (branch `feature/dsp-11-scan-check`) |
+| DSP-7b | Returns to check: a read-only branch list (`/dispensary/returns-to-check`, Clinic management > Inventory & services) of medicine returns waiting for a check, oldest first, 25 a page, each with an "Open case" link to the Completed page's returns section, where the check still happens; the Other note is never listed; only the v1 checkers (a CA Supervisor holding `inventory.variances.approve.branch`) see the page and its link | pending (branch `feature/dsp-7b-returns-to-check`) |
 
 ## 6. Owner decisions already made (never ask again)
 
@@ -178,40 +182,85 @@ coordinator at the owner's request (2026-11-05); the designer was added by owner
     existing tests that sent the check as a GET (`drug-labels.test.mjs` line 33, `TreatmentPlanTest` line 391, and the
     `getJson(...?verify=1...)` calls in `DrugLabelTest` and `DrugLabelPrintLogTest`) to the POST; every expected
     result is unchanged. No screen change, so no design review.
+24. "Print label" (2026-11-06): the owner approved the one-word fix ("go with the Print label fix and the guide
+    handoff"), including the `TreatmentPlanTest` line 400 pin changing from 'Print Label' to 'Print label'. The
+    Malay CA guide update (the OTC allergy step starts with no choice made; the button now reads "Print label") is
+    handed to Staff Experience through the coordinator, because that team owns `docs/guides/ms/`.
 25. DSP-1c allergy other names (2026-11-06): the owner chose it ("go with allergy aliases"). Same editors, limits and
     stale-list guard as drug groups (decision 14): `medicines.manage.organisation`, up to 10, 3 to 60 characters,
     audited by count only; used for matching only and never printed. Iman's sketch: its own "Other names" menu entry
     and dialog. The Dispensary warning wording now names "catalogue other names". Daniel: OK; keep the label
-    "Other names"; the Drug groups dialog losing typed groups on an error is design debt DD-37 (a later small piece). (Decision 24 is
-    the "Print label" fix, on its own branch.)
+    "Other names"; the Drug groups dialog losing typed groups on an error is design debt DD-37 (a later small piece).
 26. DD-37 (2026-11-06): the owner chose it ("go with DD-37"); the Drug groups dialog gets the same error handling as
     Other names. Built on top of DSP-1c (#324), because both change the same dialog code.
+27. DSP-10 landscape label (2026-11-06): the owner chose the recommendations ("go with your recommendations for the
+    label", then "start building DSP-10 now"): provisional 100 × 62 mm in one constant; directions as one line
+    "dosage, frequency, instruction"; route not printed; capitals for print only; medicine display name and QTY;
+    "EXP: -" unless exactly one batch with a real expiry; no batch number; REPRINT top right inside the border;
+    indication from the catalogue's `default_indication` (pharmacist review recommended). Approved by
+    B.E.R.N.I.S.S for the owner: QTY with no unit; phone only (no email); medicine name budget 72 (2 rows) and
+    clinic name 40; the controlled wording "Ubat Terkawal/Controlled Medicine" with no spaces; dates stay
+    dd/mm/yyyy; the label test changes in principle (the exact list goes to the owner before "ship it"). Daniel: OK;
+    9 pt; always keep the controlled strip; Print button at least 44 px at 390 px; keep the "(provisional)" size line
+    until the real sticker test; flag "QTY: n" for the pharmacist. Adlina (Catalogue) adds a 72-character hint under
+    the catalogue Indication field.
+    CAT-9's optional second clinic phone stays off the label (approved by B.E.R.N.I.S.S for the owner, 2026-11-06):
+    one "Tel" row only; adding it later is a small change after CAT-9.
+    Also approved by B.E.R.N.I.S.S for the owner (the owner's 20-minute "BE ME", 2026-11-06, marked "Check this"):
+    saved line breaks in directions print joined into one line with spaces; the changed existing label assertions
+    (DrugLabelTest, DrugLabelBatchExpiryTest, ControlledMedicineTest, DrugLabelPrintLogTest, TreatmentPlanTest,
+    and the drug-labels, dsp-6 and dsp-3 frontend tests) as listed in the PR.
+28. Clinic phone on prints (2026-11-06): the owner's own words, relayed by B.E.R.N.I.S.S, "go with Daniel's phone
+    format". Every print shows the clinic phone as "Tel: 03-2123 4567" (no brackets) through one shared formatter,
+    `App\Domain\Shared\PrintedPhone::format()`; the stored value is unchanged. Malaysian +60, 60 and 0 forms print
+    as 03-XXXX XXXX, 0X-XXX XXXX, 08X-XXX XXX, 01X-XXX XXXX or 011-XXXX XXXX; anything else prints as stored. This
+    team owns the class; Billing (BIL-9) and the MC reuse it.
+29. DSP-11 scan to check (2026-11-06): the owner chose it ("go with scan to check at Dispensary"). It warns only:
+    a scan never saves, edits, dispenses, completes or blocks anything, and nothing is recorded; a "Checked by scan"
+    mark lives on the screen until reload and drops if the line is removed or its SKU changes. Iman's sketch; Daniel
+    "OK with changes": the match line says "Shown on this screen only", the help text says it doesn't check the
+    quantity or the batch, the summary reads "N of M (not saved)", a box only on a removed line says "On this case
+    but removed", and only a wrong box interrupts a screen reader. Zulkifli (Inventory) agreed to the ScanInput reuse
+    on condition that the Inventory behaviour, the endpoint and the stk9 tests stay unchanged; Mei Ling reviews the
+    ScanInput diff before the PR (Mei Ling: OK with changes). For the record (Inventory's condition): the "Checked
+    by scan" badge and "N of M" are an on-screen tick only, never saved and lost on reload; that goes slightly past
+    STK-9's "a scan never ticks", accepted because the owner chose it in DSP-11 on the understanding that it never
+    sets a saved field.
+    Reuses Inventory's `ScanInput` (new optional `dispensary` context and `describe` wording; the Inventory pages
+    are unchanged). No new permission: CA and CA Supervisor already hold `inventory.view.branch`.
+30. DSP-7b returns list (2026-11-06): B.E.R.N.I.S.S for the owner chose option (a): the read-only "Returns to check"
+    list with the existing checker rule (a CA Supervisor who did not record the return). Adding the Finance Officer and
+    Director as checkers stays out: it widens who signs a clinical check, so it waits for the owner (open question).
+    Iman's sketch: Inventory & services group, table from 768 px and cards below, "Open case" to `#medicine-returns`.
+    Existing assertion change approved by B.E.R.N.I.S.S for the owner: `ClinicManagementTest`'s exact destination map
+    gains `/dispensary/returns-to-check` for the checker permission, CA Supervisor only.
 
 ## 7. Open items and known limits
 
 - **Controlled-medicine flag (DSP-3):** Director, CA Supervisor and Administrator set it (decision 12). The flag is read live: reprints of
-  past dispenses follow the current flag. It adds one bold line, which counts toward the line limit, so a
-  controlled medicine with long directions may now be blocked (include one in the printer test). Medicines have
+  past dispenses follow the current flag. Since DSP-10 its line prints below the border and uses none of the 13 rows. Medicines have
   no `lock_version`; the change uses an expected-value guard on the one boolean instead (a quick A→B→A
   sequence is not detected; every change is audited).
 - **Real printer and sticker test** for drug labels at the pilot branch (owner to do by hand; checklist in
   [printer-test.md](../../pilot/drug-label/printer-test.md)).
-- **Pharmacist review**: the 384 and 192 character direction limits, and the controlled-medicine marker wording
-  "Ubat Terkawal / Controlled Medicine" (DSP-3). Yezza also prints the indication; KPOne still omits it. Which
+- **Pharmacist review**: the DSP-10 limits (directions 3 rows, instruction 144, precaution 72, indication 72),
+  "QTY: n" with no unit, the indication at medicine level, "EXP: -" for more than one batch, no route or batch
+  number, and the marker wording "Ubat Terkawal/Controlled Medicine" (DSP-3, DSP-10). Which
   medicines are controlled is set by catalogue editors; KPOne does not decide it. Questions and sample labels
   for the pharmacist: [pharmacist-review.md](../../pilot/drug-label/pharmacist-review.md) (DSP-9).
-- **Labels:** batch and expiry print only for a line with exactly one allocated batch (DSP-2); a line split
-  across batches, or a batch with the old `9999-12-31` placeholder expiry, prints neither. No barcode and no label
-  snapshot; prints are logged per line (DSP-6). The two or three extra lines count toward the 35-line limit (33 with a
-  logo), so a label with long directions may now be blocked; include one in the real printer test. A batch
-  number over 48 characters blocks the label. "No. Batch" / "Tarikh luput" wording joins the pharmacist review.
+- **Labels (DSP-10):** 100 × 62 mm is provisional until the real sticker test; a different size changes every
+  limit. The expiry prints only for a line with exactly one allocated batch with a real expiry; otherwise "EXP: -".
+  No batch number, barcode or label snapshot; prints are logged per line (DSP-6). The 13-row limit is tighter than
+  the old 35, so a long clinic header plus long directions is blocked sooner. The phone prints in reading form ("Tel: 03-2123 4567",
+  decision 28); a number the formatter does not recognise prints as stored. The CA and CA Supervisor guides in
+  `docs/guides/ms/` still describe the controlled line under the medicine name (Staff Experience told).
 - **Label print log (DSP-6):** a print is logged when the fresh check passes, so a cancelled dialog, or a page that
   goes stale during the check, still counts. Printing from the browser's own menu or Ctrl+P is not logged and does
-  not add the mark (the printer test says to use the button). The REPRINT mark relies on the label's closing sentence
-  leaving a short last row (a test pins it). The fresh check writes a print row and an audit row, so it is a POST since DSP-6b (throttled, same-origin, CSRF-checked). A consultation-case print and two prints of the same case at the same moment are tested (DSP-6b).
+  not add the mark (the printer test says to use the button). Since DSP-10 the REPRINT mark sits top right inside the border, in the 8 cells the clinic name
+  never uses (a test pins it). The fresh check writes a print row and an audit row, so it is a POST since DSP-6b (throttled, same-origin, CSRF-checked). A consultation-case print and two prints of the same case at the same moment are tested (DSP-6b).
 - **Medicine returns (DSP-7):** no refund in KPOne; only a CA Supervisor checks in v1, so a return a CA
-  Supervisor records needs a second CA Supervisor on shift; checkers see waiting returns only on the case page
-  (DSP-7b adds a branch list). A quarantine credits one batch, so a return larger than any single batch of the
+  Supervisor records needs a second CA Supervisor on shift; checkers see waiting returns on the case page and
+  in the branch "Returns to check" list (DSP-7b). A quarantine credits one batch, so a return larger than any single batch of the
   line cannot be quarantined (dispose it, or refuse it and record one return per batch). Returned stock leaves a
   returns location only by an STK-5 count or write-off, or a transfer to another returns location (STK-11).
 - **CA guide:** `docs/guides/ms/` should say the OTC allergy step now starts with no choice made (DSP-5).
@@ -301,10 +350,13 @@ order, each its own PR:
    CA Supervisor records a returned quantity, reason and condition on a completed case; a CA Supervisor who did not
    record it checks it: Dispose, Quarantine to a patient returns location (STK-11) or Refuse. Decisions 20 and 21.
    Merges only after STK-11.
-   - **DSP-7b (later, its own piece):** a branch list of returns waiting for a check, which also adds Finance
-     Officer and Director as checkers, and the Director for controlled medicines.
+   - **DSP-7b — built 2026-11-06 (branch `feature/dsp-7b-returns-to-check`), list only (decision 30).** Still open
+     for the owner: Finance Officer and Director as checkers, and the Director for controlled medicines.
 10. **DSP-8 Dispensary pages on phones and tablets — built 2026-11-05 (branch `feature/dsp-8-dispensary-mobile`).**
     Checked at 320, 390, 768 and 1440 px, light and dark.
+11. **DSP-10 The clinic's landscape label — built 2026-11-06 (branch `feature/dsp-10-landscape-label`).** Decision 27.
+
+12. **DSP-11 Scan to check at Dispensary — built 2026-11-06 (branch `feature/dsp-11-scan-check`).** Decision 29.
 
 Team rules for this backlog: run the PHPStan stopgap before each push; migration timestamps from
 `2026_11_06_200000` up.

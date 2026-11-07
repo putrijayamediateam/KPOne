@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Head, router, usePage } from '@inertiajs/vue3';
+import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import { CalendarCheck, CalendarX, Clock } from '@lucide/vue';
 import {
     computed,
@@ -11,6 +11,21 @@ import {
     useTemplateRef,
     watch,
 } from 'vue';
+import MyOvertimeSection from '@/components/hr/attendance/MyOvertime.vue';
+import OvertimeAskSheet from '@/components/hr/attendance/OvertimeAskSheet.vue';
+import OvertimeSettingsForm from '@/components/hr/attendance/OvertimeSettingsForm.vue';
+import OvertimeTab from '@/components/hr/attendance/OvertimeTab.vue';
+import SummaryTab from '@/components/hr/attendance/SummaryTab.vue';
+import type {
+    MyOvertime,
+    OvertimeChoice,
+    OvertimeOptions,
+    OvertimeSettingsCard,
+    OvertimeTabData,
+    SummaryTabData,
+    WeekHours,
+} from '@/components/hr/attendance/types';
+import { weekTone } from '@/components/hr/attendance/types';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -31,7 +46,7 @@ import { OperationalTable } from '@/components/ui/table';
 import { OperationalTabs } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 
-type Tab = 'my' | 'review' | 'settings';
+type Tab = 'my' | 'review' | 'overtime' | 'summary' | 'settings';
 type Kind = 'change_in' | 'set_out' | 'add_day';
 type Option = { value: string; label: string };
 type Flag = { code: string; label: string };
@@ -56,6 +71,8 @@ type Row = {
     flags: Flag[];
     correctionWaiting: boolean;
     needsClockOut: boolean;
+    overtimeChoice?: OvertimeChoice | null;
+    week?: WeekHours | null;
 };
 type Correction = {
     publicId: string;
@@ -77,6 +94,8 @@ type Correction = {
 };
 
 const props = defineProps<{
+    /** HR-5a: your own expiring or expired credentials, in words. */
+    credentialReminders?: string[];
     attendance: {
         tab: Tab;
         tabs: Tab[];
@@ -84,6 +103,8 @@ const props = defineProps<{
         kinds: Option[];
         reasons: Option[];
         rejectReasons: Option[];
+        overtimeOptions: OvertimeOptions;
+        overtimePendingCount: number;
         my: {
             branch: { id: number; name: string } | null;
             timezone: string;
@@ -101,6 +122,7 @@ const props = defineProps<{
             settingsReady: boolean;
             correctionDays: number | null;
             corrections: Correction[];
+            overtime: MyOvertime;
         } | null;
         review: {
             branches: { id: number; name: string }[];
@@ -135,7 +157,10 @@ const props = defineProps<{
                 summary: string;
                 by: string;
             }[];
+            overtime: OvertimeSettingsCard;
         } | null;
+        overtime: OvertimeTabData | null;
+        summary: SummaryTabData | null;
     };
 }>();
 
@@ -155,6 +180,8 @@ const userName = computed(() => page.props.auth?.user?.name ?? '');
 const tabLabels: Record<Tab, string> = {
     my: 'My attendance',
     review: 'Review',
+    overtime: 'Overtime',
+    summary: 'Summary',
     settings: 'Settings',
 };
 const tabs = computed(() =>
@@ -163,7 +190,10 @@ const tabs = computed(() =>
         label:
             value === 'review' && props.attendance.pendingCount > 0
                 ? `Review (${props.attendance.pendingCount})`
-                : tabLabels[value],
+                : value === 'overtime' &&
+                    props.attendance.overtimePendingCount > 0
+                  ? `Overtime (${props.attendance.overtimePendingCount})`
+                  : tabLabels[value],
     })),
 );
 const reviewQuery = computed(() => ({
@@ -475,6 +505,45 @@ const confirmDecision = () => {
     );
 };
 
+// ---- HR-3b overtime ----
+const ask = reactive({
+    open: false,
+    sessionId: '',
+    fromReview: false,
+    person: '',
+    userId: 0,
+    choices: [] as OvertimeChoice[],
+});
+const myChoices = computed(() => props.attendance.my?.overtime.choices ?? []);
+const choiceFor = (row: Row) =>
+    row.session
+        ? (myChoices.value.find((c) => c.sessionId === row.session?.publicId) ??
+          null)
+        : null;
+const openAsk = (sessionId: string) =>
+    Object.assign(ask, {
+        open: true,
+        sessionId,
+        fromReview: false,
+        person: '',
+        userId: 0,
+        choices: myChoices.value,
+    });
+const openAskFor = (row: Row) => {
+    if (!row.overtimeChoice) {
+        return;
+    }
+
+    Object.assign(ask, {
+        open: true,
+        sessionId: row.overtimeChoice.sessionId,
+        fromReview: true,
+        person: row.person ?? '',
+        userId: row.userId,
+        choices: [row.overtimeChoice],
+    });
+};
+
 // ---- Settings ----
 const settingsForm = reactive({
     grace_minutes: String(
@@ -577,6 +646,20 @@ const correctionStatusTone = (
             class="flex flex-col gap-4"
         >
             <h2 id="my-attendance-title" class="sr-only">My attendance</h2>
+            <!-- HR-5a: your expiring or expired credentials, in words; inside KPOne only. -->
+            <ul
+                v-if="credentialReminders?.length"
+                class="flex flex-col gap-1 text-sm"
+                data-test="credential-reminders"
+            >
+                <li v-for="r in credentialReminders" :key="r">
+                    <Link
+                        href="/hr/credentials"
+                        class="underline underline-offset-4"
+                        >{{ r }}</Link
+                    >
+                </li>
+            </ul>
 
             <div
                 class="grid gap-4 rounded-xl border bg-card p-4 sm:p-5"
@@ -719,12 +802,32 @@ const correctionStatusTone = (
             </div>
 
             <div class="flex flex-wrap items-center justify-between gap-2">
-                <h3 class="text-base font-semibold">
-                    This week
-                    <span class="text-sm font-normal text-muted-foreground">{{
-                        attendance.my.weekLabel
-                    }}</span>
-                </h3>
+                <div class="flex flex-col gap-1">
+                    <h3 class="text-base font-semibold">
+                        This week
+                        <span
+                            class="text-sm font-normal text-muted-foreground"
+                            >{{ attendance.my.weekLabel }}</span
+                        >
+                    </h3>
+                    <p
+                        class="flex flex-wrap items-center gap-2 text-sm"
+                        data-test="week-hours"
+                    >
+                        <span class="tabular-nums"
+                            >{{ attendance.my.overtime.weekHours.label }} this
+                            week</span
+                        >
+                        <StatusBadge
+                            v-if="attendance.my.overtime.weekHours.chip"
+                            status="week"
+                            :label="attendance.my.overtime.weekHours.chip"
+                            :tone="
+                                weekTone(attendance.my.overtime.weekHours.level)
+                            "
+                        />
+                    </p>
+                </div>
                 <Button
                     v-if="attendance.my.settingsReady && attendance.my.branch"
                     variant="outline"
@@ -786,7 +889,19 @@ const correctionStatusTone = (
                             !r.correctionWaiting &&
                             attendance.my.settingsReady
                         "
+                        class="flex flex-col gap-2 sm:flex-row"
                     >
+                        <Button
+                            v-if="choiceFor(r)"
+                            variant="outline"
+                            class="min-h-11 w-full sm:min-h-8 sm:w-auto"
+                            data-test="ask-overtime"
+                            @click="openAsk(r.session.publicId)"
+                        >
+                            Ask for overtime<span class="sr-only">
+                                for {{ r.dateLabel }}</span
+                            >
+                        </Button>
                         <Button
                             variant="outline"
                             class="min-h-11 w-full sm:min-h-8 sm:w-auto"
@@ -844,6 +959,34 @@ const correctionStatusTone = (
                     </li>
                 </ul>
             </div>
+
+            <div
+                v-if="
+                    attendance.my.overtime.eligible &&
+                    attendance.my.overtime.choices.length > 0
+                "
+                class="flex flex-wrap items-center justify-between gap-2 rounded-xl border bg-card p-4 text-sm"
+                data-test="overtime-days"
+            >
+                <span
+                    >{{
+                        attendance.my.overtime.choices.length === 1
+                            ? '1 day'
+                            : `${attendance.my.overtime.choices.length} days`
+                    }}
+                    with time beyond your roster can still be asked for.</span
+                >
+                <Button
+                    variant="outline"
+                    class="min-h-11 sm:min-h-9"
+                    @click="
+                        openAsk(attendance.my.overtime.choices[0].sessionId)
+                    "
+                >
+                    Ask for overtime
+                </Button>
+            </div>
+            <MyOvertimeSection :data="attendance.my.overtime" />
         </section>
 
         <!-- Review -->
@@ -983,7 +1126,16 @@ const correctionStatusTone = (
                                     :key="r.key"
                                     data-test="review-row"
                                 >
-                                    <td class="font-medium">{{ r.person }}</td>
+                                    <td class="font-medium">
+                                        {{ r.person }}
+                                        <StatusBadge
+                                            v-if="r.week?.chip"
+                                            status="week"
+                                            :label="r.week.chip"
+                                            :tone="weekTone(r.week.level)"
+                                            class="mt-1"
+                                        />
+                                    </td>
                                     <td>{{ r.shift?.label ?? 'No shift' }}</td>
                                     <td class="tabular-nums">
                                         {{ r.session?.in ?? '–' }}
@@ -1012,20 +1164,39 @@ const correctionStatusTone = (
                                         </div>
                                     </td>
                                     <td class="text-right">
-                                        <Button
-                                            v-if="
-                                                r.session &&
-                                                !r.correctionWaiting &&
-                                                attendance.review.settingsReady
-                                            "
-                                            variant="outline"
-                                            size="sm"
-                                            @click="openCorrection(r, true)"
+                                        <div
+                                            class="flex flex-wrap justify-end gap-2"
                                         >
-                                            Correct<span class="sr-only">
-                                                times for {{ r.person }}</span
+                                            <Button
+                                                v-if="r.overtimeChoice"
+                                                variant="outline"
+                                                size="sm"
+                                                data-test="review-ask-overtime"
+                                                @click="openAskFor(r)"
                                             >
-                                        </Button>
+                                                Ask for overtime<span
+                                                    class="sr-only"
+                                                >
+                                                    for {{ r.person }}</span
+                                                >
+                                            </Button>
+                                            <Button
+                                                v-if="
+                                                    r.session &&
+                                                    !r.correctionWaiting &&
+                                                    attendance.review
+                                                        .settingsReady
+                                                "
+                                                variant="outline"
+                                                size="sm"
+                                                @click="openCorrection(r, true)"
+                                            >
+                                                Correct<span class="sr-only">
+                                                    times for
+                                                    {{ r.person }}</span
+                                                >
+                                            </Button>
+                                        </div>
                                     </td>
                                 </tr>
                             </template>
@@ -1038,6 +1209,12 @@ const correctionStatusTone = (
                             class="rounded-xl border bg-card p-4 text-sm"
                         >
                             <p class="font-semibold">{{ r.person }}</p>
+                            <StatusBadge
+                                v-if="r.week?.chip"
+                                status="week"
+                                :label="r.week.chip"
+                                :tone="weekTone(r.week.level)"
+                            />
                             <p>{{ r.shift?.label ?? 'No shift' }}</p>
                             <p class="tabular-nums">
                                 In {{ r.session?.in ?? '–' }} · Out
@@ -1064,6 +1241,16 @@ const correctionStatusTone = (
                                     tone="neutral"
                                 />
                             </div>
+                            <Button
+                                v-if="r.overtimeChoice"
+                                variant="outline"
+                                class="mt-2 min-h-11 w-full"
+                                @click="openAskFor(r)"
+                            >
+                                Ask for overtime<span class="sr-only">
+                                    for {{ r.person }}</span
+                                >
+                            </Button>
                             <Button
                                 v-if="
                                     r.session &&
@@ -1160,6 +1347,18 @@ const correctionStatusTone = (
                 </div>
             </template>
         </section>
+
+        <!-- HR-3b Overtime and Summary -->
+        <OvertimeTab
+            v-if="attendance.tab === 'overtime' && attendance.overtime"
+            :data="attendance.overtime"
+            :options="attendance.overtimeOptions"
+            :error="errors.overtime"
+        />
+        <SummaryTab
+            v-if="attendance.tab === 'summary' && attendance.summary"
+            :data="attendance.summary"
+        />
 
         <!-- Settings -->
         <section
@@ -1283,6 +1482,10 @@ const correctionStatusTone = (
                     </li>
                 </ul>
             </div>
+            <OvertimeSettingsForm
+                :card="attendance.settings.overtime"
+                :today="attendance.settings.today"
+            />
         </section>
 
         <!-- Clock out confirm (Daniel: only Clock out asks) -->
@@ -1336,6 +1539,17 @@ const correctionStatusTone = (
                 />
             </div>
         </OperationalConfirmDialog>
+
+        <OvertimeAskSheet
+            v-model:open="ask.open"
+            :choices="ask.choices"
+            :reasons="attendance.overtimeOptions.reasons"
+            :session-id="ask.sessionId"
+            :person="ask.person"
+            :user-id="ask.userId"
+            :from-review="ask.fromReview"
+            :review-query="reviewQuery"
+        />
 
         <!-- Correction sheet -->
         <Sheet v-model:open="correction.open">
