@@ -108,3 +108,25 @@ export const rmText = (sen: number | null): string =>
     sen === null
         ? ''
         : `${Math.trunc(sen / 100)}.${String(sen % 100).padStart(2, '0')}`;
+
+export type RunStatus = 'draft' | 'sent' | 'approved' | 'locked';
+
+export type RunRow = {
+    id: string;
+    kind: 'regular' | 'adjustment';
+    month: string;
+    monthValue: string;
+    group: string;
+    status: RunStatus;
+    people: number;
+    netSen: number;
+    errors: number;
+    lockedAt: string | null;
+};
+
+export const runWords: Record<RunStatus, string> = {
+    draft: 'Draft',
+    sent: 'Waiting for approval',
+    approved: 'Approved',
+    locked: 'Locked',
+};
