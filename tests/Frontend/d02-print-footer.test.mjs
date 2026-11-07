@@ -26,6 +26,10 @@ return { Head: { render: () => null } };
 return { default: { render: () => null } };
 }
 
+        if (name === '@/components/billing/OfficialDocument.vue') {
+return { default: { render: () => null } };
+}
+
         if (name === '@/types/billing') {
 return { myr: (sen) => `RM ${(sen / 100).toFixed(2)}` };
 }
