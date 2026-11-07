@@ -27,7 +27,8 @@ use Throwable;
  * call this every hour. Each section is stored once per branch, slot and local date (Faris once per organisation);
  * a section already stored is skipped, and a failed attempt is retried on the next call, up to three runs. Only one
  * process stores a section at a time (a PostgreSQL advisory lock per section and local date); a second process
- * skips it. Nothing here changes clinic data or sends any message.
+ * skips it. Call it from the console with no outer transaction, on a direct or session-pooled database connection
+ * (a transaction-pooled connection does not keep session locks). Nothing here changes clinic data or sends any message.
  */
 final class DailyRun
 {

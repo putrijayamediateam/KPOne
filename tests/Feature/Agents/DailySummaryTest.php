@@ -344,17 +344,18 @@ class DailySummaryTest extends QueueTestCase
             // The lock covers both slots of one day, so a late 07:00 run and the 14:00 run never race on Hana's keys.
             $this->travelTo(CarbonImmutable::parse('2026-11-06T06:30:00Z'));
             $this->assertContains('CHERAS hana 1400 2026-11-06: another run is storing this', $this->dailyRun('1400', 'CHERAS')['skipped']);
-        } finally {
             $holder->select('select pg_advisory_unlock(hashtextextended(?, 0))', [$key]);
+
+            $this->travelTo(CarbonImmutable::parse('2026-11-06T00:30:00Z'));
+            $this->assertContains('CHERAS hana 0700 2026-11-06', $this->dailyRun('0700', 'CHERAS')['stored']);
+            $this->assertSame(['total' => 1, 'pending' => 1], $this->section('hana', '0700')->payload['counts']['restock']);
+            // The run released its lock: another session can take it at once (a session lock is re-entrant, so only
+            // a second connection proves the release).
+            $this->assertTrue((bool) $holder->selectOne('select pg_try_advisory_lock(hashtextextended(?, 0)) as locked', [$key])->locked);
+        } finally {
+            $holder->select('select pg_advisory_unlock_all()');
             DB::purge($name);
         }
-
-        $this->travelTo(CarbonImmutable::parse('2026-11-06T00:30:00Z'));
-        $this->assertContains('CHERAS hana 0700 2026-11-06', $this->dailyRun('0700', 'CHERAS')['stored']);
-        $this->assertSame(['total' => 1, 'pending' => 1], $this->section('hana', '0700')->payload['counts']['restock']);
-        // The lock is released after each section, so this process can take it again at once.
-        $this->assertTrue((bool) DB::selectOne('select pg_try_advisory_lock(hashtextextended(?, 0)) as locked', [$key])->locked);
-        DB::select('select pg_advisory_unlock(hashtextextended(?, 0))', [$key]);
     }
 
     public function test_only_a_tool_marked_organisation_wide_is_read_with_no_branch(): void
