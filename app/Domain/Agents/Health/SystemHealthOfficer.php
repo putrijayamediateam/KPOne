@@ -15,8 +15,8 @@ use Illuminate\Auth\Access\AuthorizationException;
  * completed health check (or the last 24 hours), records one counts-only decision step and returns the line
  * for the daily summary. Faris changes nothing, proposes nothing and sends no message.
  *
- * The requester is the person whose authority the read uses. The 07:00 and 14:00 runs act as "system"
- * (contract section 5), so AG-8 adds the gateway's system path and a matching entry point here. Call it outside
+ * The requester is the person whose authority the read uses; the 07:00 and 14:00 runs pass none and read through
+ * the gateway's system path (contract section 5, AG-8). Call it outside
  * an outer transaction: a failed pending-migration lookup is swallowed and would abort that transaction.
  */
 final class SystemHealthOfficer
@@ -27,7 +27,8 @@ final class SystemHealthOfficer
 
     public function __construct(private AgentToolGateway $gateway, private AgentRunRecorder $recorder) {}
 
-    public function check(AiAgentRun $run, User $requester): SystemHealthCheck
+    /** With no requester (the 07:00 and 14:00 runs, AG-8) the read goes through the gateway's system path. */
+    public function check(AiAgentRun $run, ?User $requester): SystemHealthCheck
     {
         $agent = AiAgent::query()->whereKey($run->ai_agent_id)->where('organisation_id', $run->organisation_id)->first();
         if (! $agent || $agent->code !== self::AGENT) {
@@ -42,7 +43,10 @@ final class SystemHealthOfficer
             ->where('task_type', self::TASK)->where('status', 'completed')->whereKeyNot($run->id)->max('started_at');
         $input = $previous !== null ? ['since' => (string) $previous] : [];
 
-        $result = SystemHealthCheck::fromRead($this->gateway->call($run, 'system.health', $requester, null, $input));
+        $read = $requester === null
+            ? $this->gateway->callAsSystem($run, 'system.health', null, $input)
+            : $this->gateway->call($run, 'system.health', $requester, null, $input);
+        $result = SystemHealthCheck::fromRead($read);
         $this->recorder->step($run, 'decision', $result->summary());
 
         return $result;
