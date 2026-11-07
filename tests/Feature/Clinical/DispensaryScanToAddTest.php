@@ -48,6 +48,17 @@ class DispensaryScanToAddTest extends VisitTestCase
         $this->postJson($url, ['sku' => $f['sku']->public_id])->assertOk()->assertJsonCount(0, 'data');
     }
 
+    public function test_a_ca_supervisor_handling_the_case_may_look_up_and_another_case_handler_is_refused(): void
+    {
+        $f = $this->fixture();
+        $case = $this->open($f);
+        $supervisor = $this->actor('ca_supervisor', $f['visit']->branch);
+        $this->selectBranch($supervisor, $f['visit']->branch);
+        // The lookup follows the same rule as the name search for who may edit the case.
+        $byName = $this->actingAs($supervisor)->postJson(route('dispensary.medicines.search', $case), ['query' => $f['medicine']->display_name])->status();
+        $this->assertSame($byName, $this->postJson(route('dispensary.medicines.by-sku', $case), ['sku' => $f['sku']->public_id])->status());
+    }
+
     public function test_only_people_who_may_edit_the_case_at_its_branch_can_look_up(): void
     {
         $f = $this->fixture();

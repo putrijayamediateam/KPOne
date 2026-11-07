@@ -102,7 +102,7 @@ test('DSP-12: a Scan to add button opens the scan box; the scan only finds and n
     assert.match(show, /data-action="scan-to-add"/);
     assert.match(
         show,
-        /:aria-expanded="scanAddOpen"\s+aria-controls="scan-add-panel"/,
+        /:aria-expanded="scanAddOpen"\s+:aria-controls="\s*scanAddOpen \? 'scan-add-panel' : undefined\s*"/,
     );
     assert.match(
         show,
@@ -128,4 +128,30 @@ test('DSP-12: a Scan to add button opens the scan box; the scan only finds and n
         scan,
         /alerting\.value && props\.context !== 'dispensary-add'/,
     );
+});
+
+test('DSP-12 review: only the newest scan counts, a scan never replaces typed directions or runs during a save', () => {
+    const handler = show.slice(
+        show.indexOf('const scanToAdd'),
+        show.indexOf('const refreshChosen'),
+    );
+    assert.match(handler, /const generation = \+\+scanAddGeneration;/);
+    assert.match(
+        handler,
+        /if \(generation !== scanAddGeneration \|\| busy\.value\) \{\s+return;/,
+    );
+    assert.match(handler, /Wait for the save to finish, then scan again\./);
+    assert.match(
+        handler,
+        /Finish or cancel the medicine you are adding first, then scan again\./,
+    );
+    // A manual search or choosing another medicine clears an old allergy warning.
+    assert.match(
+        show,
+        /const searchMedicines = async \(\) => \{\s+clearScanAdd\(\);/,
+    );
+    assert.match(show, /@click="pickMedicine\(medicine\)"/);
+    // Closing the scan box returns focus to the button, and the success is announced once (by the page).
+    assert.match(show, /@keydown\.esc="closeScanAdd"/);
+    assert.match(show, /:describe="\(\) => ''"/);
 });

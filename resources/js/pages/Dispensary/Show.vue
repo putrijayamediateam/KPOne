@@ -709,6 +709,8 @@ const csrf = () =>
             ?.split('=')[1] ?? '',
     );
 const searchMedicines = async () => {
+    clearScanAdd();
+
     if (searchTerm.value.trim().length < 2) {
         results.value = [];
 
@@ -751,6 +753,18 @@ const chooseMedicine = (medicine: Medicine) => {
 const scanAddOpen = ref(false);
 const scanAddMessage = ref('');
 const scanAddAllergy = ref(false);
+// Only the newest scan's answer counts; an earlier, slower lookup is ignored (Hakim, DSP-12).
+let scanAddGeneration = 0;
+const clearScanAdd = () => {
+    scanAddMessage.value = '';
+    scanAddAllergy.value = false;
+};
+const focusScanAddButton = async () => {
+    await nextTick();
+    document
+        .querySelector<HTMLButtonElement>('[data-action="scan-to-add"]')
+        ?.focus();
+};
 const openScanAdd = async () => {
     scanAddOpen.value = !scanAddOpen.value;
 
@@ -759,7 +773,42 @@ const openScanAdd = async () => {
         document.getElementById('scan-dispensary-add')?.focus();
     }
 };
+const closeScanAdd = () => {
+    scanAddOpen.value = false;
+    void focusScanAddButton();
+};
+// Typed directions on the medicine being added are never replaced by a scan.
+const addFormHasTyping = () =>
+    chosen.value !== null &&
+    [
+        addForm.dosage,
+        addForm.frequency,
+        addForm.duration,
+        addForm.route,
+        addForm.instruction,
+        addForm.precaution,
+    ].some((value) => value.trim() !== '');
+const pickMedicine = (medicine: Medicine) => {
+    clearScanAdd();
+    chooseMedicine(medicine);
+};
 const scanToAdd = async (sku: ScannedSku) => {
+    if (busy.value) {
+        scanAddAllergy.value = false;
+        scanAddMessage.value = 'Wait for the save to finish, then scan again.';
+
+        return;
+    }
+
+    if (addFormHasTyping()) {
+        scanAddAllergy.value = false;
+        scanAddMessage.value =
+            'Finish or cancel the medicine you are adding first, then scan again.';
+
+        return;
+    }
+
+    const generation = ++scanAddGeneration;
     scanAddAllergy.value = false;
     scanAddMessage.value = 'Finding the medicine…';
     searching.value = true;
@@ -778,21 +827,26 @@ const scanToAdd = async (sku: ScannedSku) => {
                 body: JSON.stringify({ sku: sku.public_id }),
             },
         );
+        const medicines = response.ok
+            ? ((await response.json()) as { data: Medicine[] }).data
+            : null;
 
-        if (!response.ok) {
+        if (generation !== scanAddGeneration || busy.value) {
+            return;
+        }
+
+        if (medicines === null) {
             scanAddMessage.value = 'Lookup failed. Try again.';
 
             return;
         }
 
-        const medicines = ((await response.json()) as { data: Medicine[] })
-            .data;
         const outcome = scanAddOutcome(medicines, sku);
-        scanAddMessage.value = outcome.message;
 
         if (outcome.kind === 'choose') {
             results.value = [outcome.medicine];
             chooseMedicine(outcome.medicine);
+            scanAddMessage.value = outcome.message;
             scanAddOpen.value = false;
             await nextTick();
             document
@@ -801,6 +855,7 @@ const scanToAdd = async (sku: ScannedSku) => {
         } else if (outcome.kind === 'list') {
             chosen.value = null;
             results.value = outcome.medicines;
+            scanAddMessage.value = outcome.message;
             scanAddAllergy.value = outcome.allergy;
             await nextTick();
             document
@@ -810,11 +865,16 @@ const scanToAdd = async (sku: ScannedSku) => {
                 ?.focus();
         } else {
             results.value = [];
+            scanAddMessage.value = outcome.message;
         }
     } catch {
-        scanAddMessage.value = 'Lookup failed. Try again.';
+        if (generation === scanAddGeneration) {
+            scanAddMessage.value = 'Lookup failed. Try again.';
+        }
     } finally {
-        searching.value = false;
+        if (generation === scanAddGeneration) {
+            searching.value = false;
+        }
     }
 };
 const refreshChosen = async (publicId: string) => {
@@ -1648,7 +1708,9 @@ const inputClass = 'mt-1 h-9 w-full rounded-md border px-2';
                             class="flex-1 sm:flex-none"
                             :disabled="busy"
                             :aria-expanded="scanAddOpen"
-                            aria-controls="scan-add-panel"
+                            :aria-controls="
+                                scanAddOpen ? 'scan-add-panel' : undefined
+                            "
                             data-action="scan-to-add"
                             @click="openScanAdd"
                             ><ScanLine class="size-4" />Scan to add</Button
@@ -1658,11 +1720,12 @@ const inputClass = 'mt-1 h-9 w-full rounded-md border px-2';
                         v-if="scanAddOpen"
                         id="scan-add-panel"
                         class="mt-2 grid gap-1"
-                        @keydown.esc="scanAddOpen = false"
+                        @keydown.esc="closeScanAdd"
                     >
                         <ScanInput
                             context="dispensary-add"
                             refocus-key="dispensary-add"
+                            :describe="() => ''"
                             data-testid="dispensary-scan-add"
                             @found="scanToAdd"
                         />
@@ -1670,7 +1733,7 @@ const inputClass = 'mt-1 h-9 w-full rounded-md border px-2';
                             size="sm"
                             variant="ghost"
                             class="justify-self-start"
-                            @click="scanAddOpen = false"
+                            @click="closeScanAdd"
                             >Close scan</Button
                         >
                     </div>
@@ -1722,7 +1785,7 @@ const inputClass = 'mt-1 h-9 w-full rounded-md border px-2';
                                 variant="outline"
                                 :disabled="!medicine.availability.length"
                                 data-action="choose-medicine"
-                                @click="chooseMedicine(medicine)"
+                                @click="pickMedicine(medicine)"
                                 >{{
                                     medicine.availability.length
                                         ? 'Choose'
@@ -1734,6 +1797,7 @@ const inputClass = 'mt-1 h-9 w-full rounded-md border px-2';
                     <p
                         v-else-if="
                             !chosen &&
+                            !scanAddMessage &&
                             searchTerm.trim().length >= 2 &&
                             !searching &&
                             !results.length
