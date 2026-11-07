@@ -625,8 +625,10 @@ const statusTone = computed(() =>
                             id="run-mtd-help"
                             class="text-xs text-muted-foreground"
                         >
-                            From the LHDN calculator or the accountant. KPOne
-                            does not work out MTD yet.
+                            KPOne works out MTD when the pay profile has MTD
+                            details and the year's MTD schedule is checked. A
+                            figure saved here replaces it for this run; leave it
+                            empty to use the worked-out figure.
                         </p>
                         <InputError :message="errors.mtd" />
                         <Button

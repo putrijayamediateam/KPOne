@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\HR;
 
 use App\Domain\Audit\AuditRecorder;
+use App\Domain\HR\Payroll\Services\MtdScheduleService;
 use App\Domain\HR\Payroll\Services\PayrollPageService;
 use App\Domain\HR\Payroll\Services\PayrollRunPageService;
 use App\Domain\HR\Payroll\Services\PayrollRunService;
@@ -91,7 +92,7 @@ class PayrollController extends Controller
     {
         return $this->run($request, 'profiles', 'Pay profile entered. Someone else confirms it.', fn () => $setup->enterProfile($request->user(),
             $request->only(['worker_id', 'pay_group_id', 'pay_type', 'rate', 'epf', 'epf_category', 'socso', 'socso_category', 'eis', 'mtd', 'hrd',
-                'effective_from', 'items', 'idempotency_key'])));
+                'mtd_category', 'mtd_children', 'mtd_disabled_self', 'mtd_disabled_spouse', 'effective_from', 'items', 'idempotency_key'])));
     }
 
     public function decideProfile(Request $request, PayrollSetupService $setup, string $profile, string $decision): RedirectResponse
@@ -122,6 +123,25 @@ class PayrollController extends Controller
     {
         return $this->run($request, 'tables', 'Table withdrawn.',
             fn () => $setup->withdrawTable($request->user(), $table, $request->only(['expected_lock_version', 'idempotency_key'])));
+    }
+
+    /** HR-7d: the year's MTD schedule (HR-PLAN 18.2), for someone else to check. */
+    public function enterMtdSchedule(Request $request, MtdScheduleService $schedules): RedirectResponse
+    {
+        return $this->run($request, 'tables', 'MTD schedule entered. Someone else checks it before it counts.', fn () => $schedules->enter($request->user(),
+            $request->only(['year', 'rounding', 'minimum', ...array_keys(MtdScheduleService::RELIEFS), 'source_note', 'rows', 'idempotency_key'])));
+    }
+
+    public function decideMtdSchedule(Request $request, MtdScheduleService $schedules, string $schedule, string $decision): RedirectResponse
+    {
+        return $this->run($request, 'tables', $decision === 'check' ? 'MTD schedule checked. KPOne works out MTD with it for its year.' : 'MTD schedule rejected.',
+            fn () => $schedules->decide($request->user(), $schedule, $decision, $request->only(['reason', 'expected_lock_version', 'idempotency_key'])));
+    }
+
+    public function withdrawMtdSchedule(Request $request, MtdScheduleService $schedules, string $schedule): RedirectResponse
+    {
+        return $this->run($request, 'tables', 'MTD schedule withdrawn.',
+            fn () => $schedules->withdraw($request->user(), $schedule, $request->only(['expected_lock_version', 'idempotency_key'])));
     }
 
     public function saveGroup(Request $request, PayrollSetupService $setup): RedirectResponse

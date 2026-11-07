@@ -59,6 +59,10 @@ final class PayrollPageService
                 'suggestedItemTypes' => PayrollSetupService::SUGGESTED_ITEM_TYPES,
                 'maxRows' => PayrollSetupService::MAX_ROWS,
                 'maxItems' => PayrollSetupService::MAX_ITEMS,
+                'mtdRounding' => self::options(MtdCalculator::ROUNDING),
+                'mtdCategories' => array_map(fn (int $c, string $label): array => ['value' => (string) $c, 'label' => $label], array_keys(MtdCalculator::CATEGORIES), MtdCalculator::CATEGORIES),
+                'mtdReliefs' => self::options(MtdScheduleService::RELIEFS),
+                'maxMtdBands' => MtdScheduleService::MAX_BANDS,
             ],
             'setUp' => ['groups' => $groups->where('is_active', true)->isNotEmpty(), 'rates' => $rates->isNotEmpty(),
                 'checkedTables' => DB::table('hr_statutory_tables')->where('organisation_id', $org)->where('status', 'checked')->exists()],
@@ -132,6 +136,11 @@ final class PayrollPageService
         foreach (['epf' => 'EPF', 'socso' => 'SOCSO', 'eis' => 'EIS', 'mtd' => 'MTD', 'hrd' => 'HRD levy'] as $key => $label) {
             if ($p->{$key}) {
                 $category = in_array($key, ['epf', 'socso'], true) ? $p->{"{$key}_category"} : null;
+                if ($key === 'mtd' && ($p->mtd_category ?? null) !== null) {
+                    // HR-7d: the MTD details that let KPOne work MTD out (HR-PLAN 18.3).
+                    $category = 'category '.(int) $p->mtd_category.', '.(int) $p->mtd_children.' '.((int) $p->mtd_children === 1 ? 'child' : 'children')
+                        .($p->mtd_disabled_self ? ', disabled' : '').($p->mtd_disabled_spouse ? ', disabled spouse' : '');
+                }
                 $schemes[] = $category === null ? $label : "{$label} ({$category})";
             }
         }
@@ -181,7 +190,44 @@ final class PayrollPageService
                 'canWithdraw' => $entered && (int) $t->entered_by_user_id === $actor->id];
         })->sortBy(fn (array $t): int => $rank[$t['status']] ?? 3)->values();
 
-        return ['tables' => $out->all(), 'waitingCount' => $out->where('status', 'entered')->count()];
+        return ['tables' => $out->all(), 'waitingCount' => $out->where('status', 'entered')->count(), 'mtdSchedules' => $this->mtdSchedules($actor, $names)];
+    }
+
+    /**
+     * HR-7d yearly MTD schedules (HR-PLAN 18.2), newest year first: waiting ones first, then checked, then earlier ones.
+     *
+     * @param  array<int, string>  $names
+     * @return list<array<string, mixed>>
+     */
+    private function mtdSchedules(User $actor, array &$names): array
+    {
+        $org = $actor->organisation_id;
+        $rows = DB::table('hr_mtd_schedule_rows')->where('organisation_id', $org)->orderBy('position')->get()->groupBy('schedule_id');
+        $rank = ['entered' => 0, 'checked' => 1, 'rejected' => 2, 'withdrawn' => 2, 'replaced' => 2];
+        $signed = fn (int $sen): string => $sen < 0 ? '−'.PayrollMoney::rm(-$sen) : PayrollMoney::rm($sen);
+
+        return array_values(DB::table('hr_mtd_schedules')->where('organisation_id', $org)->orderByDesc('year')->orderByDesc('id')->limit(30)->get()
+            ->map(function (\stdClass $m) use ($actor, $rows, $signed, &$names): array {
+                $entered = $m->status === 'entered';
+                $refusal = $entered ? $this->setup->deciderRefusal($actor, (int) $m->entered_by_user_id, null) : null;
+                $reliefs = [];
+                foreach (MtdScheduleService::RELIEFS as $field => $label) {
+                    $reliefs[] = ['label' => $label, 'amount' => PayrollMoney::rm((int) $m->{"{$field}_sen"})];
+                }
+
+                return ['id' => (string) $m->public_id, 'year' => (int) $m->year, 'status' => (string) $m->status,
+                    'rounding' => MtdCalculator::ROUNDING[$m->rounding] ?? (string) $m->rounding, 'minimum' => PayrollMoney::rm((int) $m->minimum_sen),
+                    'reliefs' => $reliefs, 'sourceNote' => (string) $m->source_note,
+                    'rows' => $rows->get($m->id, collect())->map(fn (\stdClass $r): array => ['from' => PayrollMoney::rm((int) $r->chargeable_from_sen),
+                        'to' => $r->chargeable_to_sen === null ? null : PayrollMoney::rm((int) $r->chargeable_to_sen), 'rate' => PayrollMoney::percent((int) $r->rate_bps),
+                        'baseCat13' => $signed((int) $r->base_cat13_sen), 'baseCat2' => $signed((int) $r->base_cat2_sen)])->values()->all(),
+                    'enteredBy' => $this->name((int) $m->entered_by_user_id, $names), 'enteredAt' => CarbonImmutable::parse((string) $m->created_at)->toIso8601String(),
+                    'decidedBy' => $m->decided_by_user_id === null ? null : $this->name((int) $m->decided_by_user_id, $names),
+                    'decidedAt' => $m->decided_at === null ? null : CarbonImmutable::parse((string) $m->decided_at)->toIso8601String(),
+                    'reason' => $m->decision_reason === null ? null : (PayrollSetupService::TABLE_REJECT_REASONS[$m->decision_reason] ?? null),
+                    'lockVersion' => (int) $m->lock_version, 'canDecide' => $entered && $refusal === null, 'decideRefusal' => $refusal,
+                    'canWithdraw' => $entered && (int) $m->entered_by_user_id === $actor->id];
+            })->sortBy(fn (array $m): int => $rank[$m['status']] ?? 3)->values()->all());
     }
 
     /** @return Collection<int, array{dbId:int, id:string, name:string, kind:string, kindLabel:string, version:int, countsEpf:bool, countsSocso:bool, countsEis:bool, countsMtd:bool, countsHrd:bool, isActive:bool, lockVersion:int}> current version of each pay item type */

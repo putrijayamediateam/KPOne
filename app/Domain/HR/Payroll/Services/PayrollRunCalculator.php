@@ -19,6 +19,8 @@ final class PayrollRunCalculator
 {
     public const ERRORS = [
         'mtd_missing' => 'MTD not entered',
+        'no_mtd_schedule' => 'No checked MTD schedule for this year',
+        'no_mtd_band' => 'No MTD band for this chargeable income',
         'no_rates' => 'No rate settings for overtime or unpaid leave',
         'no_type_overtime' => 'No pay item type chosen for overtime',
         'no_type_unpaid_leave' => 'No pay item type chosen for unpaid leave',
@@ -36,6 +38,8 @@ final class PayrollRunCalculator
         'no_period' => 'No employment period recorded; counted for the whole month',
         'profile_waiting' => 'A pay profile change is waiting for confirmation',
         'net_negative_adjustment' => 'This correction takes money back: net below zero',
+        'mtd_typed' => 'MTD typed for this run instead of the worked-out figure',
+        'mtd_tp3' => 'Joined this year: pay from a previous employer (TP3) is not counted in MTD',
     ];
 
     public const SCHEME_LABELS = ['epf' => 'EPF', 'socso' => 'SOCSO', 'eis' => 'EIS', 'hrd' => 'HRD levy'];
@@ -65,7 +69,7 @@ final class PayrollRunCalculator
         $rates = DB::table('hr_rate_settings')->where('organisation_id', $org)->orderByDesc('version')->first();
         $versions = ['rates' => $rates?->version === null ? null : (int) $rates->version, 'lineTypes' => $lineTypes?->version === null ? null : (int) $lineTypes->version,
             'group' => ['name' => (string) $run->group_name, 'payDay' => $run->group_pay_day === null ? null : (int) $run->group_pay_day],
-            'profiles' => [], 'tables' => [], 'itemTypes' => []];
+            'profiles' => [], 'tables' => [], 'itemTypes' => [], 'mtdSchedule' => null];
         $people = [];
 
         if ($run->kind === 'adjustment') {
@@ -87,6 +91,9 @@ final class PayrollRunCalculator
             ->map(fn (Collection $c): \stdClass => $c->first())->filter(fn (\stdClass $p): bool => (int) $p->pay_group_id === (int) $run->pay_group_id);
         $waiting = DB::table('hr_pay_profiles')->where('organisation_id', $org)->where('status', 'waiting')->pluck('worker_id')->map(fn ($v) => (int) $v)->all();
         $tables = $this->tables($org, $to);
+        $year = (int) $start->format('Y');
+        $schedule = $this->mtdSchedule($org, $year);
+        $yearToDate = $this->mtdYearToDate($org, $run, $types, array_values($profiles->keys()->map(fn ($v): int => (int) $v)->all()));
         $periods = DB::table('hr_employment_periods')->whereIn('worker_id', $profiles->keys()->all())->get()->groupBy('worker_id');
 
         foreach ($profiles as $workerId => $profile) {
@@ -186,15 +193,7 @@ final class PayrollRunCalculator
                 if (! $profile->{$scheme}) {
                     continue;
                 }
-                $wage = 0;
-                foreach ($lines as $line) {
-                    $counts = in_array($line['kind'], ['basic', 'hourly'], true)
-                        || ($line['itemTypeId'] !== null && (bool) ($types->get($line['itemTypeId'].':'.$line['itemTypeVersion'])->{"counts_{$scheme}"} ?? false));
-                    if ($counts) {
-                        $wage += $line['section'] === 'deduction' ? -(int) $line['amount'] : ($line['section'] === 'earnings' ? (int) $line['amount'] : 0);
-                    }
-                }
-                $wage = max(0, (int) $wage);
+                $wage = max(0, self::schemeWage($lines, $types, $scheme));
                 $category = in_array($scheme, ['epf', 'socso'], true) ? mb_strtolower((string) $profile->{"{$scheme}_category"}) : null;
                 $candidates = ($tables[$scheme] ?? collect())->filter(fn (array $t): bool => $category === null || mb_strtolower($t['category']) === $category);
                 if ($candidates->isEmpty()) {
@@ -227,9 +226,40 @@ final class PayrollRunCalculator
             }
 
             if ($profile->mtd) {
+                $worked = null; // HR-7d: worked out by KPOne when the profile has MTD details (HR-PLAN 18.4)
+                if (($profile->mtd_category ?? null) !== null) {
+                    if ($schedule === null) {
+                        $errors[] = 'no_mtd_schedule';
+                    } else {
+                        $versions['mtdSchedule'] = $schedule['id'];
+                        $epf = 0;
+                        foreach ($lines as $line) {
+                            $epf += $line['kind'] === 'employee' && $line['scheme'] === 'epf' ? (int) $line['amount'] : 0;
+                        }
+                        $ytd = $yearToDate[(int) $workerId] ?? ['y' => 0, 'k' => 0, 'x' => 0];
+                        $worked = MtdCalculator::month($schedule['values'], $schedule['bands'],
+                            ['category' => (int) $profile->mtd_category, 'children' => (int) $profile->mtd_children,
+                                'disabled_self' => (bool) $profile->mtd_disabled_self, 'disabled_spouse' => (bool) $profile->mtd_disabled_spouse],
+                            ['y' => $ytd['y'], 'k' => $ytd['k'], 'x' => $ytd['x'], 'y1' => self::schemeWage($lines, $types, 'mtd'), 'k1' => $epf], (int) $start->format('n'));
+                        if ($worked === null) {
+                            $errors[] = 'no_mtd_band';
+                        }
+                        if ($this->joinedThisYear($periods->get($workerId, collect()), $year)) {
+                            $warnings[] = 'mtd_tp3';
+                        }
+                    }
+                }
+                $how = $worked === null ? null : PayrollMoney::rm($worked['chargeable']).' chargeable for the year, category '.(int) $profile->mtd_category
+                    .', '.$worked['monthsLeft'].' '.($worked['monthsLeft'] === 1 ? 'month' : 'months').' left';
                 if (array_key_exists((int) $workerId, $mtd)) {
-                    $lines[] = $this->line('mtd', 'mtd', $mtd[(int) $workerId], 'MTD (PCB) · entered for this run', 'profile', (int) $profile->id);
-                } else {
+                    if ($worked !== null) {
+                        $warnings[] = 'mtd_typed';
+                    }
+                    $lines[] = $this->line('mtd', 'mtd', $mtd[(int) $workerId], 'MTD (PCB) · entered for this run'
+                        .($worked === null ? '' : ' (worked out: '.PayrollMoney::rm($worked['amount']).')'), 'profile', (int) $profile->id);
+                } elseif ($worked !== null) {
+                    $lines[] = $this->line('mtd', 'mtd', $worked['amount'], 'MTD (PCB) · worked out: '.$how, 'mtd_schedule', $schedule['id'] ?? null);
+                } elseif (($profile->mtd_category ?? null) === null) {
                     $errors[] = 'mtd_missing';
                 }
             }
@@ -368,6 +398,99 @@ final class PayrollRunCalculator
         }
 
         return $out;
+    }
+
+    /**
+     * The scheme wage of a person's lines (16.3): basic or worked hours always count, and a line of a pay item type
+     * counts where that type is ticked for the scheme; a deduction counts against it.
+     *
+     * @param  list<array<string, mixed>>  $lines
+     * @param  Collection<string, \stdClass>  $types
+     */
+    private static function schemeWage(array $lines, Collection $types, string $scheme): int
+    {
+        $wage = 0;
+        foreach ($lines as $line) {
+            $counts = in_array($line['kind'], ['basic', 'hourly'], true)
+                || ($line['itemTypeId'] !== null && (bool) ($types->get($line['itemTypeId'].':'.$line['itemTypeVersion'])->{"counts_{$scheme}"} ?? false));
+            if ($counts) {
+                $wage += $line['section'] === 'deduction' ? -(int) $line['amount'] : ($line['section'] === 'earnings' ? (int) $line['amount'] : 0);
+            }
+        }
+
+        return (int) $wage;
+    }
+
+    /**
+     * The checked MTD schedule for the year, with its bands (HR-PLAN 18.2), or null.
+     *
+     * @return array{id:int, values:array{rounding:string, minimum_sen:int, individual_relief_sen:int, spouse_relief_sen:int, disabled_self_relief_sen:int, disabled_spouse_relief_sen:int, child_relief_sen:int, epf_relief_cap_sen:int}, bands:list<array{from:int, to:?int, rate_bps:int, base_cat13:int, base_cat2:int}>}|null
+     */
+    private function mtdSchedule(int $org, int $year): ?array
+    {
+        $s = DB::table('hr_mtd_schedules')->where('organisation_id', $org)->where('year', $year)->where('status', 'checked')->first();
+        if (! $s instanceof \stdClass) {
+            return null;
+        }
+        $bands = DB::table('hr_mtd_schedule_rows')->where('schedule_id', $s->id)->orderBy('position')->get()
+            ->map(fn (\stdClass $r): array => ['from' => (int) $r->chargeable_from_sen, 'to' => $r->chargeable_to_sen === null ? null : (int) $r->chargeable_to_sen,
+                'rate_bps' => (int) $r->rate_bps, 'base_cat13' => (int) $r->base_cat13_sen, 'base_cat2' => (int) $r->base_cat2_sen])->values()->all();
+        $bands = array_values($bands);
+        $values = ['rounding' => (string) $s->rounding];
+        foreach (['minimum_sen', 'individual_relief_sen', 'spouse_relief_sen', 'disabled_self_relief_sen', 'disabled_spouse_relief_sen', 'child_relief_sen', 'epf_relief_cap_sen'] as $k) {
+            $values[$k] = (int) $s->{$k};
+        }
+
+        /** @var array{rounding:string, minimum_sen:int, individual_relief_sen:int, spouse_relief_sen:int, disabled_self_relief_sen:int, disabled_spouse_relief_sen:int, child_relief_sen:int, epf_relief_cap_sen:int} $values */
+        return ['id' => (int) $s->id, 'values' => $values, 'bands' => $bands];
+    }
+
+    /**
+     * Year to date from each person's lines in this year's locked runs before this run's month (HR-PLAN 18.4): the pay
+     * that counts for MTD (Y), the EPF employee part (K) and the MTD already deducted (X). KPOne's own runs only.
+     *
+     * @param  Collection<string, \stdClass>  $types
+     * @param  list<int>  $workerIds
+     * @return array<int, array{y:int, k:int, x:int}>
+     */
+    private function mtdYearToDate(int $org, \stdClass $run, Collection $types, array $workerIds): array
+    {
+        $start = CarbonImmutable::parse((string) $run->month)->startOfMonth();
+        $runs = DB::table('hr_payroll_runs')->where('organisation_id', $org)->where('status', 'locked')->where('id', '<>', $run->id)
+            ->where('month', '>=', $start->startOfYear()->toDateString())->where('month', '<', $start->toDateString())->pluck('id')->all();
+        if ($runs === [] || $workerIds === []) {
+            return [];
+        }
+        $people = DB::table('hr_payroll_run_people')->whereIn('run_id', $runs)->whereIn('worker_id', $workerIds)->pluck('worker_id', 'id');
+        $out = [];
+        $byPerson = DB::table('hr_payroll_lines')->whereIn('run_person_id', $people->keys()->all())->orderBy('id')->get()->groupBy('run_person_id');
+        foreach ($byPerson as $personId => $rows) {
+            $workerId = (int) $people[$personId];
+            $out[$workerId] ??= ['y' => 0, 'k' => 0, 'x' => 0];
+            $lines = $rows->map(fn (\stdClass $l): array => ['kind' => (string) $l->kind, 'section' => (string) $l->section, 'amount' => (int) $this->decrypt((string) $l->amount_encrypted),
+                'itemTypeId' => $l->item_type_id === null ? null : (int) $l->item_type_id, 'itemTypeVersion' => $l->item_type_version === null ? null : (int) $l->item_type_version,
+                'scheme' => $l->scheme])->values()->all();
+            $lines = array_values($lines);
+            $out[$workerId]['y'] += self::schemeWage($lines, $types, 'mtd');
+            foreach ($lines as $line) {
+                $out[$workerId]['k'] += $line['kind'] === 'employee' && $line['scheme'] === 'epf' ? $line['amount'] : 0;
+                $out[$workerId]['x'] += $line['kind'] === 'mtd' ? $line['amount'] : 0;
+            }
+        }
+
+        return $out;
+    }
+
+    /**
+     * Whether the person's employment began this year after 1 January, so pay from a previous employer may be missing.
+     *
+     * @param  Collection<int, \stdClass>  $periods
+     */
+    private function joinedThisYear(Collection $periods, int $year): bool
+    {
+        $first = $periods->min('starts_on');
+
+        return is_string($first) && $first > sprintf('%04d-01-01', $year) && $first <= sprintf('%04d-12-31', $year);
     }
 
     /**
