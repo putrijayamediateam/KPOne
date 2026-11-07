@@ -14,7 +14,7 @@ use Illuminate\Support\Facades\DB;
  * count are included, so a checker can see what is due; `stocked` says whether a pair holds stock now
  * (a pair with only case history may be empty).
  */
-final class InventoryStockCountsTool implements AgentTool
+final class InventoryStockCountsTool implements SystemReadableTool
 {
     use ReadsBranches;
 
@@ -41,6 +41,13 @@ final class InventoryStockCountsTool implements AgentTool
 
     public function run(User $requester, ?Branch $branch, array $input): array
     {
+        return $this->runForOrganisation($requester->organisation_id, $branch, $input);
+    }
+
+    public function runForOrganisation(int $organisationId, ?Branch $branch, array $input): array
+    {
+        // AG-8: an organisation scope, never a person (see ReadsBranches::organisationScope).
+        $requester = $this->organisationScope($organisationId);
         assert($branch !== null);
         // The gateway has checked the branch is in the requester's organisation; reading it from the branch
         // keeps this tool usable by AG-8's system path, which has no requester.

@@ -73,7 +73,9 @@ final class PayrollRunPageService
             $mtd = $p->mtd_encrypted === null ? null : (int) $this->decrypt((string) $p->mtd_encrypted);
 
             return ['id' => (string) ($worker->public_id ?? ''), 'name' => $worker instanceof Worker ? $worker->name() : 'Staff member', 'totals' => $this->totals($p), 'mtdSen' => $mtd,
-                'needsMtd' => in_array('mtd_missing', json_decode((string) $p->errors, true) ?: [], true) || $mtd !== null,
+                // HR-7d: a worked-out MTD can still be typed over, so the box shows for it too.
+                'needsMtd' => in_array('mtd_missing', json_decode((string) $p->errors, true) ?: [], true) || $mtd !== null
+                    || $lines->get($p->id, collect())->contains(fn (\stdClass $l): bool => $l->kind === 'mtd'),
                 'errors' => array_map(fn (string $c): string => $this->errorWords($c), json_decode((string) $p->errors, true) ?: []),
                 'warnings' => array_map(fn (string $c): string => PayrollRunCalculator::WARNINGS[$c] ?? $c, json_decode((string) $p->warnings, true) ?: []),
                 'lines' => $lines->get($p->id, collect())->map(fn (\stdClass $l): array => ['kind' => (string) $l->kind, 'section' => (string) $l->section,

@@ -29,6 +29,7 @@ if (authenticationHistory.ready) {
                 case name === 'Welcome':
                 case name === 'Dispensary/Labels':
                 case name === 'Billing/Print':
+                case name === 'HR/Payslip':
                 case name === 'PanelClaims/Pack':
                 case name === 'QueueDisplay/Screen':
                     return null;

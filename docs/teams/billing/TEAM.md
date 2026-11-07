@@ -106,6 +106,7 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php` and `BillingPermiss
 | BIL-5b | The visit page (`Visits/History.vue`) Documents list prints invoices and receipts through the BIL-5 recorded print ("Back to visit" returns there); the issued-copies fallback name is "Staff member", as elsewhere. Daniel's BIL-5 changes: "Issued" shows date and time on one line and "by …" below, "1 print / 3 prints", and the version number sits beside its ORIGINAL/REVISED badge so the table fits; when the column is narrower than the table (1024 and 1280 px screens, phones) the list shows cards instead (a container query). Phone touch targets: the Billing workspace's compact button style (30 px) had silently overridden the 44 px targets of the print, Reprint and BIL-6 refund buttons; buttons marked `data-touch-target` now get 44 px below 640 px | PR #286 |
 | BIL-7 | Monthly cash closing view (`/cash-closings/month`): one row per day of the active branch up to today with the latest count (an approved day's approved count), status (Approved, Waiting for approval, Returned, Not counted, Open for today) and flags (No count, Not approved, Changed after approval), a month summary, previous and next month, "Open day" to the daily page and "Month view" from it. Read only; no new permission, table or migration. Design note: `BIL-7-DESIGN.md` | PR #315 |
 | BIL-8 | Transaction Detail (`TransactionReportService`) now extends the shared `BranchReportService` instead of repeating its request boundary. The shared class gains optional hooks (`window`, `guardWindow`, `tooManyRowsMessage`, `extraMetadata`, `filterRules`, `filterDefaults`) whose defaults keep the other reports unchanged. Output proven byte-identical against a verbatim copy of the old service (`TransactionReportBoundaryTest`); patient identity still read only for the rows shown. no behaviour, permission or migration change | PR #338 |
+| BIL-9 | Issued invoices and receipts follow the clinic's own paper: letterhead in capitals with Email and Tel (second phone when set), To block with name, IC/passport and phone, item table, seven category totals, totals with Invoice total, Panel covers and Pay later, a receipt sentence, item table and invoice number, VOID on a void invoice. Versions issued before keep their D03 layout; `myr()` prints negative amounts as −RM x. Design note: `BIL-9-DESIGN.md` | PR #388 |
 | BIL-10 | Refunds after a visit is completed: part or all of one posted receipt (never more than the receipt less its refunds that are not rejected), recorded by a CA Supervisor or Finance Officer and approved or rejected by a Finance Officer or Director, never the recorder (the two BIL-6 permissions). Each carries an invoice credit of the same amount: once approved, the ledger lowers the invoice total and what was paid together, so nothing becomes due again. Billing page refund panel (amount, method, reason), "Refunded … · … kept" under the receipt and a "Refund credit" line on the Billing, Invoice and printed invoice; Insights and the Sales CSV show "Refund credits" as their own row on the approval day; Daily summary and Transaction Detail gain a "Refunded after completion" column. Additive migration with PostgreSQL guards (`invoice_credits`, `payment_refunds.kind`). Design note: `BIL-10-DESIGN.md` | PR #392 |
 
 ## 6. Owner decisions already made (never ask again)
@@ -206,6 +207,13 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php` and `BillingPermiss
     `tests/Frontend/branch-reports.test.mjs` ("Transaction Detail reuses receipt evidence…") at
     `BranchReportService.php`, where they now live: REPEATABLE READ, the audit call, and the cap check before any
     patient lookup (now `guardWindow()` before `identities()`). No other line of that test changed.
+30. BIL-9 invoice and receipt layout (2026-11-06, the owner shared the clinic's paper through B.E.R.N.I.S.S and
+    answered in the Billing session): name, IC/passport and phone in the To block; categories from the clinical
+    service's category; the sample's totals plus Invoice total, Panel covers and Pay later; earlier copies keep
+    their layout; Invoice No on the receipt; VOID on a void invoice and no Total due there; the receipt's Total
+    paid is its own amount; page numbers on documents longer than one page (owner, relayed); phones in Daniel's
+    format through the shared `PrintedPhone` (owner: "go with Daniel's phone format"). Details in `BIL-9-DESIGN.md`
+    section 4.
 31. BIL-10 refunds after completion (2026-11-06, the owner in the Billing session; then B.E.R.N.I.S.S for the owner):
     an invoice credit of the same amount; partial amounts up to the receipt less its earlier refunds; the BIL-6 people
     and permissions; no time limit. Reports (B.E.R.N.I.S.S for the owner, marked "Check this"): "Refund credits" as
@@ -298,9 +306,13 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php` and `BillingPermiss
   then rows); one small extra query. The frozen pre-BIL-8 copy and its comparison test were retired by BIL-10, as
   agreed; the privacy checks remain. The `BASELINE.md` note that the service "repeats the shared report boundary" is
   out of date (Billing does not edit `BASELINE.md`).
+- Invoice and receipt layout (BIL-9): see `BIL-9-DESIGN.md` section 7. In short: a service category rename revises
+  the next print of an invoice issued in the new layout; the category match is English and exact ("Procedure(s)" and "Investigation(s)", CAT-11's fixed names, included; any
+  other or older free-text category counts as Service); the old live
+  `/print` preview keeps the D03 layout; copies issued before keep theirs; IC/passport and phone on paper are a PDPA
+  point before real use.
 - Refunds after completion (BIL-10): see `BIL-10-DESIGN.md` section 9 (Insights Provider table stays invoice-based;
-  one invoice per refunded receipt; no dedicated contention test yet; the BIL-9 clinic layout needs its own "Refund
-  credit" row once both are merged).
+  one invoice per refunded receipt; no dedicated contention test yet).
 
 ## 8. Rules (every task)
 
@@ -371,6 +383,8 @@ authorisation to build them; the coordinator records it in `docs/BASELINE.md`.
    closing, no export.
 9. **BIL-8 Report boundary clean-up.** *(Built 2026-11-06; PR #338.)* Make `TransactionReportService` use `BranchReportService`, with output
    proven byte-identical; test-led, no behaviour change.
-10. **BIL-10 Refunds after completion and partial refunds.** *(Built 2026-11-06/07; owner "start with 1", "ship it for
+10. **BIL-9 Invoice and receipt in the clinic's layout.** *(Built 2026-11-06; PR #388.)* Owner request with the
+   clinic's paper; decisions in `BIL-9-DESIGN.md`.
+11. **BIL-10 Refunds after completion and partial refunds.** *(Built 2026-11-06/07; owner "start with 1", "ship it for
    BIL-10 for farah", relayed.)* A refund of part or all of a posted receipt after the visit is completed, with an
    invoice credit of the same amount, approved by a second person. Design note `BIL-10-DESIGN.md`.
