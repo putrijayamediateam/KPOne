@@ -37,3 +37,6 @@ No change to item rankings (they stay gross), the headline, reports outside Insi
 - Test: `RefundAfterCompletionTest` (sale day full sale; approval day the credit alone, 0 patients; both days add up
   to the headline, with and without the doctor filter; Today's table on the approval day).
 - No existing assertion changed; no permission, migration or screen change (the table already shows signed money).
+- Daniel (2026-11-07, relayed): in Gross to net invoice sales a zero reads "RM 0.00" with no sign on Invoice
+  surcharges, Invoice discounts and Refund credits; any other value keeps its + or − sign. No existing test pinned the
+  signed zero.
