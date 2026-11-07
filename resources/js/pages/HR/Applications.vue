@@ -172,7 +172,7 @@ const askMove = (to: string) => {
         Object.assign(moving, { to, key: crypto.randomUUID() });
     }
 
-    // A step that closes the application is final, so it asks first.
+    // A step that closes the application asks first.
     if (['offered', 'not_taken_forward', 'withdrawn'].includes(to)) {
         moving.confirm = true;
 
@@ -514,9 +514,10 @@ const saveRetention = () => {
                 How long applications are kept
             </h2>
             <p class="text-sm text-muted-foreground">
-                Days after an application is closed (Offered, Not taken forward
-                or Withdrawn) before the applicant's details and CV are deleted.
-                KPOne ships no number. Leave it empty to keep applications.
+                Days before the applicant's details and CV are deleted, counted
+                from when the application closed (Offered, Not taken forward or
+                Withdrawn), or from when it was sent if nobody closed it. KPOne
+                ships no number. Leave it empty to keep applications.
             </p>
             <p class="text-sm" data-test="retention-in-force">
                 In force:
@@ -673,7 +674,11 @@ const saveRetention = () => {
         <OperationalConfirmDialog
             :open="moving.confirm"
             :title="`Move to ${label(moving.to)}?`"
-            description="This closes the application. A closed application cannot be moved again, and the retention period starts from today."
+            :description="
+                moving.to === 'offered'
+                    ? 'This closes the application, and the retention period starts from today. If the offer is declined, you can still mark it Withdrawn.'
+                    : 'This closes the application. A closed application cannot be moved again, and the retention period starts from today.'
+            "
             :confirm-label="`Move to ${label(moving.to)}`"
             :destructive="moving.to !== 'offered'"
             :processing="moving.processing"

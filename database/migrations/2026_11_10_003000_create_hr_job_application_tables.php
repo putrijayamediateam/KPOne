@@ -93,7 +93,7 @@ return new class extends Migration
             status IN ('new', 'shortlisted', 'interview', 'offered', 'not_taken_forward', 'withdrawn')
             AND ((closed_at IS NULL) = (status IN ('new', 'shortlisted', 'interview')))
             AND cv_bytes > 0 AND cv_sha256 ~ '^[0-9a-f]{64}$' AND form_nonce ~ '^[0-9a-f]{32}$'
-            AND (purged_at IS NULL OR (closed_at IS NOT NULL AND name_encrypted IS NULL AND phone_encrypted IS NULL AND email_encrypted IS NULL
+            AND (purged_at IS NULL OR (name_encrypted IS NULL AND phone_encrypted IS NULL AND email_encrypted IS NULL
                 AND message_encrypted IS NULL AND cv_path IS NULL))
             AND (purged_at IS NOT NULL OR (name_encrypted IS NOT NULL AND phone_encrypted IS NOT NULL AND email_encrypted IS NOT NULL AND cv_path IS NOT NULL)))");
         DB::statement("ALTER TABLE hr_job_application_events ADD CONSTRAINT hr_job_app_events_shape CHECK (action IN ('submitted', 'status_changed', 'cv_opened', 'purged'))");
@@ -138,6 +138,10 @@ BEGIN
   RAISE EXCEPTION 'An application keeps what was sent' USING ERRCODE = 'P0001';
  END IF;
  IF NEW.status <> OLD.status THEN
+  -- A declined offer is recorded as Withdrawn (Suresh, HR-13 M5); every other closed step is final.
+  IF OLD.status = 'offered' AND NEW.status = 'withdrawn' AND OLD.purged_at IS NULL THEN
+   RETURN NEW;
+  END IF;
   IF OLD.closed_at IS NOT NULL OR NOT (
        (OLD.status = 'new' AND NEW.status IN ('shortlisted', 'not_taken_forward', 'withdrawn'))
     OR (OLD.status = 'shortlisted' AND NEW.status IN ('interview', 'not_taken_forward', 'withdrawn'))
@@ -153,15 +157,5 @@ CREATE TRIGGER hr_job_applications_guard BEFORE UPDATE ON hr_job_applications FO
 SQL);
     }
 
-    public function down(): void
-    {
-        DB::unprepared(<<<'SQL'
-DROP TABLE IF EXISTS hr_job_application_settings;
-DROP TABLE IF EXISTS hr_job_application_events;
-DROP TABLE IF EXISTS hr_job_applications;
-DROP TABLE IF EXISTS hr_job_positions;
-DROP FUNCTION IF EXISTS guard_hr_job_application();
-DROP FUNCTION IF EXISTS guard_hr_job_position();
-SQL);
-    }
+    public function down(): void {} // Applications and their history are evidence; they are kept (Suresh, HR-13 M4).
 };

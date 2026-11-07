@@ -39,7 +39,12 @@ final class JobApplicationService
         'new' => ['shortlisted', 'not_taken_forward', 'withdrawn'],
         'shortlisted' => ['interview', 'not_taken_forward', 'withdrawn'],
         'interview' => ['offered', 'not_taken_forward', 'withdrawn'],
+        // A declined offer (Suresh, HR-13 M5).
+        'offered' => ['withdrawn'],
     ];
+
+    /** The steps an application is still open at; the others are closed and start the retention. */
+    public const OPEN = ['new', 'shortlisted', 'interview'];
 
     /** A first or shorter retention waits this long before the purge may use it, so a mistake can be undone. */
     public const GRACE_DAYS = 7;
@@ -120,11 +125,11 @@ final class JobApplicationService
             $application = $this->application($actor, $applicationId, true);
             $this->support->assertLock($application, $input);
             if ($application->purged_at !== null || ! in_array($to, self::NEXT[$application->status] ?? [], true)) {
-                throw ValidationException::withMessages(['to' => $application->closed_at !== null
+                throw ValidationException::withMessages(['to' => $application->closed_at !== null && $application->status !== 'offered'
                     ? 'This application is closed. Reload the page.'
                     : 'Choose one of the next steps shown.']);
             }
-            $closed = ! isset(self::NEXT[$to]);
+            $closed = ! in_array($to, self::OPEN, true);
             DB::table('hr_job_applications')->where('id', $application->id)->update(['status' => $to, 'closed_at' => $closed ? now()->utc() : null,
                 'lock_version' => (int) $application->lock_version + 1, 'updated_at' => now()->utc()]);
             DB::table('hr_job_application_events')->insert(['organisation_id' => $actor->organisation_id, 'application_id' => $application->id,
@@ -220,8 +225,9 @@ final class JobApplicationService
     }
 
     /**
-     * Daily: for closed applications past the retention in force, deletes the CV and clears every personal value.
-     * The application row, its status and its events stay. Open applications are never purged.
+     * Daily: for applications past the retention in force, deletes the CV and clears every personal value. A closed
+     * application counts from when it closed; one left open counts from when it was sent, so an application nobody
+     * moved is not kept for ever (Suresh, HR-13 M1). The application row, its step and its events stay.
      */
     public function purgeExpired(): int
     {
@@ -235,12 +241,12 @@ final class JobApplicationService
                 continue;
             }
             $cutoff = CarbonImmutable::parse($today, self::zone($organisationId))->subDays($days)->startOfDay()->utc();
-            DB::table('hr_job_applications')->where('organisation_id', $organisationId)->whereNull('purged_at')->whereNotNull('closed_at')
-                ->where('closed_at', '<', $cutoff)->select('id')->orderBy('id')->chunkById(200, function ($chunk) use (&$count, $organisationId, $cutoff): void {
+            DB::table('hr_job_applications')->where('organisation_id', $organisationId)->whereNull('purged_at')
+                ->whereRaw('coalesce(closed_at, submitted_at) < ?', [$cutoff])->select('id')->orderBy('id')->chunkById(200, function ($chunk) use (&$count, $organisationId, $cutoff): void {
                     foreach ($chunk as $candidate) {
                         $path = DB::transaction(function () use ($candidate, $organisationId, $cutoff): ?string {
                             $row = DB::table('hr_job_applications')->where('id', $candidate->id)->lockForUpdate()->first();
-                            if ($row === null || $row->purged_at !== null || $row->closed_at === null || CarbonImmutable::parse($row->closed_at)->gte($cutoff)) {
+                            if ($row === null || $row->purged_at !== null || CarbonImmutable::parse($row->closed_at ?? $row->submitted_at)->gte($cutoff)) {
                                 return null;
                             }
                             DB::table('hr_job_applications')->where('id', $row->id)->update(['name_encrypted' => null, 'phone_encrypted' => null,

@@ -22,8 +22,9 @@ class JobApplicationController extends Controller
         try {
             $intake->submit($request->only(['form_token', 'position', 'name', 'phone', 'email', 'message', 'privacy_accepted', JobApplicationIntake::HONEYPOT]), $request->file('cv'));
         } catch (ValidationException $e) {
-            // The CV is never kept on a refusal; the applicant chooses it again with the other fields kept.
-            throw $e->redirectTo(route('hr-applications.show'));
+            // Errors only, never the input: nothing the applicant typed goes into the session (Suresh, HR-13 M3). The
+            // page keeps the typed fields in the browser; the CV is chosen again.
+            return redirect()->route('hr-applications.show')->withErrors($e->errors());
         }
 
         // The same page whether stored or caught as a robot; it shows nothing the applicant sent.

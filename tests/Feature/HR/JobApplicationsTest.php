@@ -122,6 +122,11 @@ class JobApplicationsTest extends VisitTestCase
         $this->travel(30)->seconds();
         $this->apply(['form_token' => $token, 'position' => $position, 'website' => 'http://spam.test'])->assertRedirect(route('hr-applications.thanks'));
 
+        // A person who presses Send too soon on an empty form sees what to fill in, not the thank-you page.
+        $this->apply(['form_token' => JobApplicationIntake::issueToken(), 'position' => $position, 'name' => ''], false, false)
+            ->assertSessionHasErrors(['name', 'cv']);
+        // Nothing typed goes into the session (Suresh, HR-13 M3).
+        $this->assertNull(session()->getOldInput('message'));
         $this->assertSame(0, DB::table('hr_job_applications')->count());
         $this->assertSame([], Storage::disk(JobApplicationIntake::DISK)->allFiles());
     }
@@ -165,7 +170,17 @@ class JobApplicationsTest extends VisitTestCase
         $this->assertSame('not_taken_forward', $row->status);
         $this->assertNotNull($row->closed_at);
         $this->move($hr, $id, 'withdrawn', 4)->assertSessionHasErrors('to');
-        $this->assertSame(['submitted', 'status_changed', 'status_changed', 'status_changed'], DB::table('hr_job_application_events')->orderBy('id')->pluck('action')->all());
+
+        // A declined offer is recorded as Withdrawn; that is final too (Suresh, HR-13 M5).
+        $offer = $this->filedApplication($hr, 'Synthetic Offer Role');
+        $this->selectBranch($hr);
+        foreach (['shortlisted', 'interview', 'offered', 'withdrawn'] as $i => $step) {
+            $this->move($hr, $offer, $step, $i + 1)->assertSessionHasNoErrors();
+        }
+        $this->move($hr, $offer, 'offered', 5)->assertSessionHasErrors('to');
+        $this->assertSame('withdrawn', DB::table('hr_job_applications')->where('public_id', $offer)->value('status'));
+        $row = DB::table('hr_job_applications')->where('public_id', $id)->sole();
+        $this->assertSame(['submitted', 'status_changed', 'status_changed', 'status_changed'], DB::table('hr_job_application_events')->where('application_id', $row->id)->orderBy('id')->pluck('action')->all());
 
         // PostgreSQL holds the same lines.
         foreach ([
@@ -227,9 +242,15 @@ class JobApplicationsTest extends VisitTestCase
         $this->assertNull($closed->name_encrypted);
         $this->assertNull($closed->cv_path);
         $this->assertSame('withdrawn', $closed->status);
+        // An application nobody closed counts from when it was sent, so it is cleared too (Suresh, HR-13 M1).
         $open = DB::table('hr_job_applications')->where('public_id', $openId)->sole();
-        $this->assertNull($open->purged_at);
-        $this->assertCount(1, Storage::disk(JobApplicationIntake::DISK)->allFiles());
+        $this->assertNotNull($open->purged_at);
+        $this->assertSame('new', $open->status);
+        $this->assertSame([], Storage::disk(JobApplicationIntake::DISK)->allFiles());
+        // A new application within the retention is kept.
+        $recent = $this->filedApplication($hr, 'Synthetic Third Role');
+        Artisan::call('hr-applications:purge');
+        $this->assertNull(DB::table('hr_job_applications')->where('public_id', $recent)->value('purged_at'));
         $this->get(route('hr.applications.cv', $closedId))->assertRedirect();
         // A purged application stays purged.
         $this->expectException(QueryException::class);

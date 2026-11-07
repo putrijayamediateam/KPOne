@@ -6,6 +6,7 @@ use App\Domain\Audit\AuditRecorder;
 use App\Domain\HR\Leave\Services\LeaveEvidenceFiles;
 use App\Domain\Organisation\Models\Organisation;
 use Illuminate\Contracts\Encryption\DecryptException;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
@@ -79,11 +80,29 @@ final class JobApplicationIntake
     {
         $this->ensureEnabled();
         $nonce = $this->nonce($input['form_token'] ?? null, $robot);
-        if ($robot || ! empty($input[self::HONEYPOT])) {
+        if (! empty($input[self::HONEYPOT])) {
             return false;
         }
-        $fields = self::validated($input);
-        $prepared = self::prepareCv($cv);
+        // Fields first, so a person who presses Send too soon on an empty form sees what to fill in; a complete form
+        // sent within the minimum time is a robot (found in the HR-13 screenshot run).
+        // One send names everything to fix, the CV included.
+        $errors = [];
+        try {
+            $fields = self::validated($input);
+        } catch (ValidationException $e) {
+            $errors = $e->errors();
+        }
+        try {
+            $prepared = self::prepareCv($cv);
+        } catch (ValidationException $e) {
+            $errors = [...$errors, ...$e->errors()];
+        }
+        if ($errors !== [] || ! isset($fields, $prepared)) {
+            throw ValidationException::withMessages($errors);
+        }
+        if ($robot) {
+            return false;
+        }
 
         $path = null;
         try {
@@ -102,13 +121,18 @@ final class JobApplicationIntake
                     throw ValidationException::withMessages(['cv' => 'Your CV could not be saved. Try again.']);
                 }
                 $now = now()->utc();
-                $id = DB::table('hr_job_applications')->insertGetId(['public_id' => $publicId, 'organisation_id' => $position->organisation_id,
-                    'position_id' => $position->id, 'status' => 'new', 'name_encrypted' => Crypt::encryptString($fields['name']),
-                    'phone_encrypted' => Crypt::encryptString($fields['phone']), 'email_encrypted' => Crypt::encryptString($fields['email']),
-                    'message_encrypted' => $fields['message'] === null ? null : Crypt::encryptString($fields['message']),
-                    'cv_path' => $path, 'cv_bytes' => $prepared['bytes'], 'cv_sha256' => $prepared['sha256'],
-                    'privacy_notice_version' => self::privacyVersion(), 'form_nonce' => $nonce, 'submitted_at' => $now,
-                    'lock_version' => 1, 'created_at' => $now, 'updated_at' => $now]);
+                try {
+                    $id = DB::table('hr_job_applications')->insertGetId(['public_id' => $publicId, 'organisation_id' => $position->organisation_id,
+                        'position_id' => $position->id, 'status' => 'new', 'name_encrypted' => Crypt::encryptString($fields['name']),
+                        'phone_encrypted' => Crypt::encryptString($fields['phone']), 'email_encrypted' => Crypt::encryptString($fields['email']),
+                        'message_encrypted' => $fields['message'] === null ? null : Crypt::encryptString($fields['message']),
+                        'cv_path' => $path, 'cv_bytes' => $prepared['bytes'], 'cv_sha256' => $prepared['sha256'],
+                        'privacy_notice_version' => self::privacyVersion(), 'form_nonce' => $nonce, 'submitted_at' => $now,
+                        'lock_version' => 1, 'created_at' => $now, 'updated_at' => $now]);
+                } catch (UniqueConstraintViolationException) {
+                    // Two sends of one form at once (Suresh, HR-13 minor 1): the second gets the same message as a retry.
+                    throw ValidationException::withMessages(['form' => 'This form was already sent. Reload the page to apply again.']);
+                }
                 DB::table('hr_job_application_events')->insert(['organisation_id' => $position->organisation_id, 'application_id' => $id,
                     'action' => 'submitted', 'to_status' => 'new', 'created_at' => $now]);
                 $this->audit->record('hr.applications.received', null, ['application_id' => $id, 'position_id' => (int) $position->id,

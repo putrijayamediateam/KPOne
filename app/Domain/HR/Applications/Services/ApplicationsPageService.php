@@ -78,7 +78,7 @@ final class ApplicationsPageService
 
         $base = DB::table('hr_job_applications as a')->join('hr_job_positions as p', 'p.id', '=', 'a.position_id')
             ->where('a.organisation_id', $actor->organisation_id)
-            ->when($status === 'open', fn ($q) => $q->whereIn('a.status', array_keys(JobApplicationService::NEXT)))
+            ->when($status === 'open', fn ($q) => $q->whereIn('a.status', JobApplicationService::OPEN))
             ->when($status !== 'open', fn ($q) => $q->where('a.status', $status))
             ->when($position !== '', fn ($q) => $q->where('p.public_id', $position));
         $total = (clone $base)->count();

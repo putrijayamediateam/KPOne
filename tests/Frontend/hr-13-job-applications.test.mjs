@@ -68,7 +68,15 @@ test('the HR page records each CV open on the server and asks before a closing s
     assert.match(template('hr'), /A closed application cannot be moved again/);
     assert.match(
         template('hr'),
-        /KPOne ships no number\. Leave it empty to keep applications\./,
+        /KPOne\s+ships no number\. Leave it empty to keep applications\./,
+    );
+    assert.match(
+        template('hr'),
+        /or from when it was sent if nobody closed\s+it/,
+    );
+    assert.match(
+        template('hr'),
+        /If the offer is declined, you can still mark it Withdrawn\./,
     );
     assert.match(template('hr'), /The public form is <strong>off<\/strong>/);
 });
