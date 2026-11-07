@@ -5,15 +5,19 @@
 import { Head, router, usePage } from '@inertiajs/vue3';
 import { computed, reactive, ref } from 'vue';
 import AccountantNote from '@/components/hr/payroll/AccountantNote.vue';
+import ExportsTab from '@/components/hr/payroll/ExportsTab.vue';
+import MtdScheduleSheet from '@/components/hr/payroll/MtdScheduleSheet.vue';
 import ProfileSheet from '@/components/hr/payroll/ProfileSheet.vue';
 import RunsTab from '@/components/hr/payroll/RunsTab.vue';
 import TableSheet from '@/components/hr/payroll/TableSheet.vue';
 import type {
+    ExportRun,
     Option,
     Person,
     Profile,
     RunRow,
     StatutoryTable,
+    MtdSchedule,
 } from '@/components/hr/payroll/types';
 import {
     day,
@@ -41,7 +45,7 @@ import { StatusBadge } from '@/components/ui/status';
 import { OperationalTabs } from '@/components/ui/tabs';
 import { myr } from '@/types/billing';
 
-type Tab = 'runs' | 'profiles' | 'tables' | 'settings';
+type Tab = 'runs' | 'profiles' | 'tables' | 'settings' | 'exports';
 type Group = {
     id: string;
     name: string;
@@ -84,6 +88,10 @@ const props = defineProps<{
             suggestedItemTypes: string[];
             maxRows: number;
             maxItems: number;
+            mtdRounding: Option[];
+            mtdCategories: Option[];
+            mtdReliefs: Option[];
+            maxMtdBands: number;
         };
         setUp: { groups: boolean; rates: boolean; checkedTables: boolean };
         runs: {
@@ -91,12 +99,17 @@ const props = defineProps<{
             months: Option[];
             prepareRefusal: string | null;
         } | null;
+        exports: { runs: ExportRun[] } | null;
         profiles: {
             people: Person[];
             waitingCount: number;
             missingCount: number;
         } | null;
-        tables: { tables: StatutoryTable[]; waitingCount: number } | null;
+        tables: {
+            tables: StatutoryTable[];
+            waitingCount: number;
+            mtdSchedules: MtdSchedule[];
+        } | null;
         settings: {
             lineTypes: {
                 version: number;
@@ -132,6 +145,7 @@ const tabLabels: Record<Tab, string> = {
     profiles: 'Pay profiles',
     tables: 'Tables',
     settings: 'Settings',
+    exports: 'Exports',
 };
 const tabs = computed(() =>
     props.payroll.tabs.map((value) => ({ value, label: tabLabels[value] })),
@@ -162,10 +176,11 @@ const enterFor = (person: Person) =>
 
 // ---- Tables ----
 const tableSheet = ref(false);
+const mtdSheet = ref(false);
 
 // ---- Decide and withdraw (profiles and tables) ----
 type Target = {
-    kind: 'profile' | 'table';
+    kind: 'profile' | 'table' | 'mtd';
     id: string;
     lockVersion: number;
     label: string;
@@ -183,6 +198,18 @@ const askDecide = (target: Target, action: 'check' | 'reject') =>
         reason: '',
         key: crypto.randomUUID(),
     });
+const targetPath = (t: Target) =>
+    t.kind === 'profile'
+        ? 'profiles'
+        : t.kind === 'mtd'
+          ? 'mtd-schedules'
+          : 'tables';
+const noun = (t: Target | null) =>
+    t?.kind === 'mtd'
+        ? 'MTD schedule'
+        : t?.kind === 'table'
+          ? 'table'
+          : 'pay profile';
 const decide = () => {
     const t = decision.target;
 
@@ -198,7 +225,7 @@ const decide = () => {
                 : 'reject'
             : decision.action;
     router.post(
-        `/hr/payroll/${t.kind === 'profile' ? 'profiles' : 'tables'}/${t.id}/${verb}`,
+        `/hr/payroll/${targetPath(t)}/${t.id}/${verb}`,
         {
             reason: decision.action === 'reject' ? decision.reason : null,
             expected_lock_version: t.lockVersion,
@@ -223,7 +250,7 @@ const withdraw = () => {
 
     busy.value = true;
     router.post(
-        `/hr/payroll/${t.kind === 'profile' ? 'profiles' : 'tables'}/${t.id}/withdraw`,
+        `/hr/payroll/${targetPath(t)}/${t.id}/withdraw`,
         {
             expected_lock_version: t.lockVersion,
             idempotency_key: withdrawing.key,
@@ -246,6 +273,12 @@ const tableTarget = (t: StatutoryTable): Target => ({
     id: t.id,
     lockVersion: t.lockVersion,
     label: `${t.schemeLabel} · ${t.category} · from ${day(t.effectiveFrom)}`,
+});
+const mtdTarget = (m: MtdSchedule): Target => ({
+    kind: 'mtd',
+    id: m.id,
+    lockVersion: m.lockVersion,
+    label: `MTD schedule for ${m.year}`,
 });
 
 // ---- Settings ----
@@ -443,6 +476,11 @@ const saveRates = () => {
             :groups="payroll.options.groups"
             :ready="payroll.setUp.groups && payroll.setUp.checkedTables"
             :prepare-refusal="payroll.runs.prepareRefusal"
+        />
+
+        <ExportsTab
+            v-if="payroll.tab === 'exports' && payroll.exports"
+            :runs="payroll.exports.runs"
         />
 
         <!-- Pay profiles -->
@@ -881,6 +919,190 @@ const saveRates = () => {
             </article>
         </section>
 
+        <!-- HR-7d: the yearly MTD schedules (HR-PLAN 18.2), on the Tables tab after the statutory tables. -->
+        <section
+            v-if="payroll.tab === 'tables' && payroll.tables"
+            aria-labelledby="mtd-title"
+            class="flex flex-col gap-3"
+            data-test="mtd-schedules"
+        >
+            <div class="flex flex-wrap items-center justify-between gap-2">
+                <div class="flex flex-col gap-1">
+                    <h2 id="mtd-title" class="text-base font-semibold">
+                        MTD (PCB) schedules
+                    </h2>
+                    <p class="max-w-prose text-sm text-muted-foreground">
+                        The year's chargeable income bands and reliefs, entered
+                        by the clinic as its accountant gives them. Once
+                        checked, KPOne works out MTD on monthly runs for staff
+                        whose pay profile has MTD details. KPOne ships no tax
+                        number.
+                    </p>
+                </div>
+                <Button
+                    variant="outline"
+                    class="max-lg:min-h-11"
+                    data-test="mtd-enter"
+                    @click="mtdSheet = true"
+                    >Enter an MTD schedule</Button
+                >
+            </div>
+            <EmptyState
+                v-if="!payroll.tables.mtdSchedules.length"
+                title="No MTD schedule yet."
+                description="Until a schedule is checked for the year, MTD is typed for each person on each run."
+            />
+            <article
+                v-for="m in payroll.tables.mtdSchedules"
+                :key="m.id"
+                class="flex flex-col gap-3 rounded-xl border bg-card p-4"
+                :aria-labelledby="`mtd-${m.id}`"
+                data-test="mtd-schedule"
+            >
+                <div class="flex flex-wrap items-start justify-between gap-2">
+                    <div class="min-w-0">
+                        <h3 :id="`mtd-${m.id}`" class="text-base font-semibold">
+                            MTD schedule · {{ m.year }}
+                        </h3>
+                        <p class="text-sm text-muted-foreground">
+                            {{ m.rounding }} · nothing deducted below
+                            {{ m.minimum }}
+                        </p>
+                    </div>
+                    <StatusBadge
+                        :status="m.status"
+                        :label="
+                            m.reason
+                                ? `${tableWords[m.status]}: ${m.reason}`
+                                : tableWords[m.status]
+                        "
+                        :tone="tone(m.status)"
+                    />
+                </div>
+                <p class="text-sm break-words">Source: {{ m.sourceNote }}</p>
+                <dl class="grid gap-x-6 gap-y-1 text-sm sm:grid-cols-2">
+                    <div
+                        v-for="r in m.reliefs"
+                        :key="r.label"
+                        class="flex justify-between gap-3 border-b py-1"
+                    >
+                        <dt class="text-muted-foreground">{{ r.label }}</dt>
+                        <dd class="tabular-nums">{{ r.amount }}</dd>
+                    </div>
+                </dl>
+                <div class="overflow-x-auto rounded-lg border">
+                    <table class="w-full min-w-[36rem] text-sm">
+                        <caption class="sr-only">
+                            Chargeable income bands for
+                            {{
+                                m.year
+                            }}
+                        </caption>
+                        <thead class="bg-muted/50 text-left">
+                            <tr>
+                                <th scope="col" class="px-3 py-2 font-medium">
+                                    From (M)
+                                </th>
+                                <th scope="col" class="px-3 py-2 font-medium">
+                                    To
+                                </th>
+                                <th
+                                    scope="col"
+                                    class="px-3 py-2 text-right font-medium"
+                                >
+                                    Rate (R)
+                                </th>
+                                <th
+                                    scope="col"
+                                    class="px-3 py-2 text-right font-medium"
+                                >
+                                    Tax on M, categories 1 and 3
+                                </th>
+                                <th
+                                    scope="col"
+                                    class="px-3 py-2 text-right font-medium"
+                                >
+                                    Tax on M, category 2
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr
+                                v-for="(r, i) in m.rows"
+                                :key="i"
+                                class="border-t tabular-nums"
+                            >
+                                <td class="px-3 py-2 whitespace-nowrap">
+                                    {{ r.from }}
+                                </td>
+                                <td class="px-3 py-2 whitespace-nowrap">
+                                    {{ r.to ?? 'and above' }}
+                                </td>
+                                <td
+                                    class="px-3 py-2 text-right whitespace-nowrap"
+                                >
+                                    {{ r.rate }}
+                                </td>
+                                <td
+                                    class="px-3 py-2 text-right whitespace-nowrap"
+                                >
+                                    {{ r.baseCat13 }}
+                                </td>
+                                <td
+                                    class="px-3 py-2 text-right whitespace-nowrap"
+                                >
+                                    {{ r.baseCat2 }}
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <p class="text-xs text-muted-foreground">
+                    Entered by {{ m.enteredBy }} on {{ on(m.enteredAt)
+                    }}<template v-if="m.decidedBy && m.decidedAt">
+                        ·
+                        {{ m.status === 'rejected' ? 'Rejected' : 'Checked' }}
+                        by {{ m.decidedBy }} on {{ on(m.decidedAt) }}</template
+                    >
+                </p>
+                <div
+                    v-if="m.status === 'entered'"
+                    class="flex flex-wrap items-center gap-2"
+                >
+                    <template v-if="m.canDecide">
+                        <Button
+                            variant="outline"
+                            class="max-lg:min-h-11"
+                            data-test="mtd-check"
+                            @click="askDecide(mtdTarget(m), 'check')"
+                            >Check</Button
+                        >
+                        <Button
+                            variant="outline"
+                            class="max-lg:min-h-11"
+                            data-test="mtd-reject"
+                            @click="askDecide(mtdTarget(m), 'reject')"
+                            >Reject</Button
+                        >
+                    </template>
+                    <p
+                        v-else-if="m.decideRefusal"
+                        class="text-sm text-muted-foreground"
+                    >
+                        {{ m.decideRefusal }}
+                    </p>
+                    <Button
+                        v-if="m.canWithdraw"
+                        variant="outline"
+                        class="max-lg:min-h-11"
+                        data-test="mtd-withdraw"
+                        @click="askWithdraw(mtdTarget(m))"
+                        >Withdraw</Button
+                    >
+                </div>
+            </article>
+        </section>
+
         <!-- Settings -->
         <section
             v-if="payroll.tab === 'settings' && payroll.settings"
@@ -1180,6 +1402,7 @@ const saveRates = () => {
             :categories="payroll.options.categories"
             :max-items="payroll.options.maxItems"
             :today="payroll.today"
+            :mtd-categories="payroll.options.mtdCategories"
         />
         <TableSheet
             v-model:open="tableSheet"
@@ -1187,17 +1410,22 @@ const saveRates = () => {
             :rounding="payroll.options.rounding"
             :max-rows="payroll.options.maxRows"
         />
+        <MtdScheduleSheet
+            v-model:open="mtdSheet"
+            :rounding="payroll.options.mtdRounding"
+            :reliefs="payroll.options.mtdReliefs"
+            :max-bands="payroll.options.maxMtdBands"
+            :year="Number(payroll.today.slice(0, 4))"
+        />
 
         <OperationalConfirmDialog
             :open="decision.target !== null"
             :title="
                 decision.action === 'reject'
-                    ? decision.target?.kind === 'table'
-                        ? 'Reject this table?'
-                        : 'Reject this pay profile?'
-                    : decision.target?.kind === 'table'
-                      ? 'Check this table?'
-                      : 'Confirm this pay profile?'
+                    ? `Reject this ${noun(decision.target)}?`
+                    : decision.target?.kind === 'profile'
+                      ? 'Confirm this pay profile?'
+                      : `Check this ${noun(decision.target)}?`
             "
             :description="
                 decision.target
@@ -1205,15 +1433,17 @@ const saveRates = () => {
                         ? `${decision.target.label}. The rejection is kept with its reason; enter a new one to correct it.`
                         : decision.target.kind === 'table'
                           ? `${decision.target.label}. Compare every band with the official table. A checked table never changes.`
-                          : `${decision.target.label}. It counts from that date and never changes; a later change is a new profile.`
+                          : decision.target.kind === 'mtd'
+                            ? `${decision.target.label}. Compare every band and relief with the accountant's figures. KPOne works out MTD with it for that year, and it never changes.`
+                            : `${decision.target.label}. It counts from that date and never changes; a later change is a new profile.`
                     : ''
             "
             :confirm-label="
                 decision.action === 'reject'
                     ? 'Reject'
-                    : decision.target?.kind === 'table'
-                      ? 'Check'
-                      : 'Confirm'
+                    : decision.target?.kind === 'profile'
+                      ? 'Confirm'
+                      : 'Check'
             "
             processing-label="Saving…"
             :processing="busy"
@@ -1235,9 +1465,9 @@ const saveRates = () => {
                     placeholder="Choose a reason"
                     trigger-class="max-lg:h-11"
                     :options="
-                        decision.target?.kind === 'table'
-                            ? payroll.options.tableRejectReasons
-                            : payroll.options.profileRejectReasons
+                        decision.target?.kind === 'profile'
+                            ? payroll.options.profileRejectReasons
+                            : payroll.options.tableRejectReasons
                     "
                     :invalid="!!errors.reason"
                 />

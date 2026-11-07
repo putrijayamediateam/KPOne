@@ -97,6 +97,14 @@ final class InvoiceActivityService
             }
             $queries[] = $this->rows($tenant('invoice_adjustment_reversals')->where('invoice_id', $invoice->id), 13, 'Invoice adjustment reversed', 'created_at', 'actor_user_id', 'amount_sen');
             $queries[] = $this->rows($tenant('payment_reversals')->where('invoice_id', $invoice->id), 6, 'Payment recording reversed (not a cash refund)', 'reversed_at', 'approved_by_user_id', 'amount_sen');
+            // BIL-10: refunds after completion and their invoice credits (figures only; no reason text).
+            $credited = DB::table('invoice_credits')->where('invoice_id', $invoice->id)->select('payment_refund_id');
+            $queries[] = $this->rows($tenant('payment_refunds')->where('kind', 'after_completion')->whereIn('id', $credited), 16, 'Refund after completion recorded', 'created_at', 'recorded_by_user_id', 'amount_sen', 'method_snapshot');
+            $decided = DB::query()->fromSub(DB::table('payment_refunds')->where('payment_refunds.organisation_id', $actor->organisation_id)->where('payment_refunds.branch_id', $branch->id)->join('payment_refund_decisions as d', 'd.payment_refund_id', '=', 'payment_refunds.id')
+                ->where('payment_refunds.kind', 'after_completion')->whereIn('payment_refunds.id', clone $credited)
+                ->select(['payment_refunds.id', 'payment_refunds.amount_sen', 'd.decision', 'd.decided_at', 'd.decided_by_user_id']), 'decided');
+            $queries[] = $this->rows((clone $decided)->where('decision', 'approved'), 17, 'Refund after completion approved; invoice credited', 'decided_at', 'decided_by_user_id', 'amount_sen');
+            $queries[] = $this->rows((clone $decided)->where('decision', 'rejected'), 18, 'Refund after completion rejected', 'decided_at', 'decided_by_user_id', 'amount_sen');
             foreach (['coverage_allocations' => $panel, 'patient_receivables' => $deferment] as $table => $allowed) {
                 if (! $allowed) {
                     continue;

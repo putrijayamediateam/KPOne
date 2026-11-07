@@ -263,16 +263,22 @@ Route::middleware(['auth', 'verified'])->group(function () {
     });
 
     // HR-7a payroll setup (HR-PLAN 14; TEAM.md decision 43). No calculation, payment or filing; synthetic data only.
-    Route::prefix('hr/payroll')->controller(HrPayrollController::class)->middleware(['sensitive.no-store', 'permission:hr.payroll.prepare.organisation'])->group(function (): void {
-        Route::get('/', 'index')->name('hr.payroll.index');
-        Route::get('runs/{run}', 'showRun')->whereUuid('run')->name('hr.payroll.runs.show');
-        Route::middleware('throttle:60,1')->group(function (): void {
+    Route::prefix('hr/payroll')->controller(HrPayrollController::class)->middleware('sensitive.no-store')->group(function (): void {
+        Route::get('/', 'index')->middleware('permission:hr.payroll.prepare.organisation,hr.payroll.export.organisation')->name('hr.payroll.index');
+        // HR-7c exports from locked runs (the Director only in v1); each download is audited first and never stored.
+        Route::post('runs/{run}/export/{kind}', 'export')->whereUuid('run')->whereIn('kind', ['bank', 'accountant'])
+            ->middleware(['permission:hr.payroll.export.organisation', 'throttle:reports-downloads'])->name('hr.payroll.runs.export');
+        Route::get('runs/{run}', 'showRun')->whereUuid('run')->middleware('permission:hr.payroll.prepare.organisation')->name('hr.payroll.runs.show');
+        Route::middleware(['permission:hr.payroll.prepare.organisation', 'throttle:60,1'])->group(function (): void {
             Route::post('profiles', 'enterProfile')->name('hr.payroll.profiles.enter');
             Route::post('profiles/{profile}/withdraw', 'withdrawProfile')->whereUuid('profile')->name('hr.payroll.profiles.withdraw');
             Route::post('profiles/{profile}/{decision}', 'decideProfile')->whereUuid('profile')->whereIn('decision', ['confirm', 'reject'])->name('hr.payroll.profiles.decide');
             Route::post('tables', 'enterTable')->name('hr.payroll.tables.enter');
             Route::post('tables/{table}/withdraw', 'withdrawTable')->whereUuid('table')->name('hr.payroll.tables.withdraw');
             Route::post('tables/{table}/{decision}', 'decideTable')->whereUuid('table')->whereIn('decision', ['check', 'reject'])->name('hr.payroll.tables.decide');
+            Route::post('mtd-schedules', 'enterMtdSchedule')->name('hr.payroll.mtd-schedules.enter');
+            Route::post('mtd-schedules/{schedule}/withdraw', 'withdrawMtdSchedule')->whereUuid('schedule')->name('hr.payroll.mtd-schedules.withdraw');
+            Route::post('mtd-schedules/{schedule}/{decision}', 'decideMtdSchedule')->whereUuid('schedule')->whereIn('decision', ['check', 'reject'])->name('hr.payroll.mtd-schedules.decide');
             Route::post('groups', 'saveGroup')->name('hr.payroll.groups.save');
             Route::post('item-types', 'saveItemType')->name('hr.payroll.item-types.save');
             Route::post('rates', 'saveRates')->name('hr.payroll.rates.save');
@@ -282,6 +288,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::post('runs/{run}/{step}', 'runStep')->whereUuid('run')->whereIn('step', ['again', 'mtd', 'manual', 'send', 'approve', 'return', 'lock'])->name('hr.payroll.runs.step');
         });
     });
+
+    // HR-7c payslips: your own, or any for a payroll preparer or approver; each open is recorded.
+    Route::get('hr/payslips/{payslip}', [HrPayrollController::class, 'payslip'])->whereUuid('payslip')
+        ->middleware(['sensitive.no-store', 'permission:hr.payslips.view.own,hr.payroll.prepare.organisation,hr.payroll.approve.organisation', 'throttle:60,1'])
+        ->name('hr.payslips.show');
 
     // HR-5c SOPs (owner, 2026-11-06: "approve the HR-5 note with the defaults").
     Route::prefix('hr/sops')->controller(HrSopsController::class)->middleware('sensitive.no-store')->group(function (): void {
