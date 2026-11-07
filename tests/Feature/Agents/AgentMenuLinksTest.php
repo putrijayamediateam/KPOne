@@ -59,7 +59,7 @@ class AgentMenuLinksTest extends VisitTestCase
     {
         $links = collect($this->agentLinks('director'))->keyBy('href');
 
-        $this->assertSame(['AI agents', 'Agent office', 'Approval inbox'], $links->pluck('title')->values()->all());
+        $this->assertSame(['All agents', 'Agent office', 'Approval inbox'], $links->pluck('title')->values()->all());
         $this->assertStringContainsString('Approving changes nothing in stock.', $links['/agents/inbox']['description']);
     }
 

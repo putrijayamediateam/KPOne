@@ -101,8 +101,8 @@ final class ClinicManagementNavigation
         // The inbox lists the active branch's suggestions and opens only where the viewer is assigned today (ProposalInbox);
         // the registry and office are organisation-wide.
         $add('AI agents', 'agents', [
-            [$actor->can('ai_agents.view.organisation'), 'AI agents', 'See each AI agent, what it reads and its latest runs.', 'agents.index'],
-            [$actor->can('ai_agents.view.organisation'), 'Agent office', 'Watch the AI agents at work in the 2.5D office.', 'agents.office'],
+            [$actor->can('ai_agents.view.organisation'), 'All agents', 'See each AI agent, what it reads and its latest runs.', 'agents.index'],
+            [$actor->can('ai_agents.view.organisation'), 'Agent office', 'Watch the AI agents at work in the office view.', 'agents.office'],
             [$activeBranch !== null && $actor->can('ai_proposals.view.branch') && $this->branches->hasEffectiveAssignment($actor, $activeBranch), 'Approval inbox', 'Approve or reject AI agent suggestions for this branch. Approving changes nothing in stock.', 'agents.inbox'],
         ]);
         $add('Documents', 'documents', [
