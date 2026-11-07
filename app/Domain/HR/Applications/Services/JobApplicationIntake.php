@@ -39,9 +39,25 @@ final class JobApplicationIntake
 
     public function ensureEnabled(): void
     {
-        if (! (bool) config('hr-applications.enabled', false)) {
+        if (self::state() !== 'on') {
             throw new NotFoundHttpException;
         }
+    }
+
+    /**
+     * 'off' while HR_APPLICATIONS_ENABLED is false; 'needs_retention' while HR has not saved how long applications are
+     * kept, because the privacy notice promises deletion after that period (Daniel, HR-13); otherwise 'on'.
+     */
+    public static function state(): string
+    {
+        if (! (bool) config('hr-applications.enabled', false)) {
+            return 'off';
+        }
+        $organisationId = self::organisationId();
+        $latest = $organisationId === null ? null : DB::table('hr_job_application_settings')->where('organisation_id', $organisationId)
+            ->orderByDesc('version')->value('retention_days');
+
+        return $latest === null ? 'needs_retention' : 'on';
     }
 
     /**

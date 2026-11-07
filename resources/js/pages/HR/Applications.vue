@@ -57,7 +57,12 @@ const props = defineProps<{
     applications: {
         tab: Tab;
         tabs: Tab[];
-        form: { enabled: boolean; url: string; privacyNoticeVersion: string };
+        form: {
+            enabled: boolean;
+            state: 'off' | 'needs_retention' | 'on';
+            url: string;
+            privacyNoticeVersion: string;
+        };
         options: {
             statuses: Option[];
             branches: Option[];
@@ -138,11 +143,12 @@ const pages = computed(() =>
 const tone = (status: string) =>
     (
         ({
+            // Each open step its own tone (Daniel, HR-13).
             new: 'accent',
-            shortlisted: 'accent',
+            shortlisted: 'neutral',
             interview: 'warning',
             offered: 'success',
-            not_taken_forward: 'neutral',
+            not_taken_forward: 'danger',
             withdrawn: 'neutral',
         }) as const
     )[status] ?? 'neutral';
@@ -311,10 +317,15 @@ const saveRetention = () => {
             class="rounded-xl border bg-card p-3 text-sm"
             data-test="applications-form-state"
         >
-            <template v-if="applications.form.enabled">
+            <template v-if="applications.form.state === 'on'">
                 The public form is <strong>on</strong> at
                 <span class="break-all">{{ applications.form.url }}</span
                 >.
+            </template>
+            <template v-else-if="applications.form.state === 'needs_retention'">
+                The public form is <strong>off</strong> until you set how long
+                applications are kept (Settings), because the privacy notice
+                promises deletion after that period.
             </template>
             <template v-else>
                 The public form is <strong>off</strong>. Nobody can apply until
@@ -380,7 +391,7 @@ const saveRetention = () => {
                 v-if="!list.rows.length"
                 title="No applications here."
                 :description="
-                    applications.form.enabled
+                    applications.form.state === 'on'
                         ? 'Applications sent from the public form appear here.'
                         : 'The public form is off, so no applications arrive yet.'
                 "

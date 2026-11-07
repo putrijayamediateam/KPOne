@@ -41,6 +41,7 @@ final class ApplicationsPageService
             'tabs' => $tabs,
             'form' => [
                 'enabled' => (bool) config('hr-applications.enabled', false),
+                'state' => JobApplicationIntake::state(),
                 'url' => route('hr-applications.show'),
                 'privacyNoticeVersion' => JobApplicationIntake::privacyVersion(),
             ],

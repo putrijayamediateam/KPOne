@@ -57,6 +57,27 @@ class JobApplicationsTest extends VisitTestCase
             ->where('applications.form.enabled', false)->where('applications.settings.retentionDays', null)->where('applications.positions', []));
     }
 
+    public function test_the_form_stays_closed_until_hr_saves_how_long_applications_are_kept(): void
+    {
+        $hr = $this->actor('hr_manager');
+        $this->selectBranch($hr);
+        $this->post(route('hr.applications.positions.store'), ['title' => 'Synthetic Cleaner', 'branch_id' => 'any', 'idempotency_key' => (string) Str::uuid()])->assertSessionHasNoErrors();
+        config(['hr-applications.enabled' => true]);
+
+        // The switch is on, but the privacy notice promises deletion after a period nobody has set (Daniel, HR-13).
+        $this->get(route('hr-applications.show'))->assertNotFound();
+        $this->post(route('hr-applications.submit'), [])->assertNotFound();
+        $this->get(route('hr.applications.index'))->assertInertia(fn (Assert $page) => $page->where('applications.form.state', 'needs_retention'));
+
+        $this->post(route('hr.applications.retention'), ['retention_days' => 365, 'expected_version' => 0, 'idempotency_key' => (string) Str::uuid()])->assertSessionHasNoErrors();
+        $this->get(route('hr-applications.show'))->assertOk();
+        $this->get(route('hr.applications.index'))->assertInertia(fn (Assert $page) => $page->where('applications.form.state', 'on'));
+
+        // Clearing the period closes the form again.
+        $this->post(route('hr.applications.retention'), ['retention_days' => '', 'expected_version' => 1, 'idempotency_key' => (string) Str::uuid()])->assertSessionHasNoErrors();
+        $this->get(route('hr-applications.show'))->assertNotFound();
+    }
+
     public function test_an_applicant_sends_one_application_that_is_encrypted_creates_no_account_and_audits_no_values(): void
     {
         $hr = $this->actor('hr_manager');
@@ -224,14 +245,15 @@ class JobApplicationsTest extends VisitTestCase
         $this->selectBranch($hr);
         $this->move($hr, $closedId, 'withdrawn', 1)->assertSessionHasNoErrors();
 
-        // No retention: nothing is ever cleared.
+        // Ten years in force: nothing is cleared after 400 days.
         $this->travel(400)->days();
         Artisan::call('hr-applications:purge');
         $this->assertSame(0, DB::table('hr_job_applications')->whereNotNull('purged_at')->count());
 
-        // A first retention waits the grace days.
-        $this->post(route('hr.applications.retention'), ['retention_days' => 'abc', 'expected_version' => 0, 'idempotency_key' => (string) Str::uuid()])->assertSessionHasErrors('retention_days');
-        $this->post(route('hr.applications.retention'), ['retention_days' => 30, 'expected_version' => 0, 'idempotency_key' => (string) Str::uuid()])->assertSessionHasNoErrors();
+        // A shorter retention waits the grace days.
+        $this->post(route('hr.applications.retention'), ['retention_days' => 'abc', 'expected_version' => 1, 'idempotency_key' => (string) Str::uuid()])->assertSessionHasErrors('retention_days');
+        $this->post(route('hr.applications.retention'), ['retention_days' => 30, 'expected_version' => 0, 'idempotency_key' => (string) Str::uuid()])->assertSessionHasErrors('retention_days');
+        $this->post(route('hr.applications.retention'), ['retention_days' => 30, 'expected_version' => 1, 'idempotency_key' => (string) Str::uuid()])->assertSessionHasNoErrors();
         Artisan::call('hr-applications:purge');
         $this->assertSame(0, DB::table('hr_job_applications')->whereNotNull('purged_at')->count());
         $this->travel(8)->days();
@@ -271,6 +293,10 @@ class JobApplicationsTest extends VisitTestCase
     {
         $this->selectBranch($hr);
         $this->post(route('hr.applications.positions.store'), ['title' => $title, 'branch_id' => 'any', 'idempotency_key' => (string) Str::uuid()])->assertSessionHasNoErrors();
+        // The form opens only once a retention period is saved (Daniel, HR-13); ten years here, so nothing is cleared.
+        if (! DB::table('hr_job_application_settings')->exists()) {
+            $this->post(route('hr.applications.retention'), ['retention_days' => 3650, 'expected_version' => 0, 'idempotency_key' => (string) Str::uuid()])->assertSessionHasNoErrors();
+        }
 
         return (string) DB::table('hr_job_positions')->where('title', $title)->value('public_id');
     }

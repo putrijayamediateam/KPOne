@@ -2,7 +2,8 @@
 // HR-13 public job-application form (HR-PLAN 15.2). The server is the only judge: it checks the signed form token,
 // the honeypot, the time taken, every field and the CV by its content. Nothing typed here is kept in the browser.
 import { Head, useForm } from '@inertiajs/vue3';
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
+import FileChooseButton from '@/components/catalogue/FileChooseButton.vue';
 
 type Position = { id: string; title: string; branch: string | null };
 
@@ -29,6 +30,7 @@ const form = useForm({
 const formError = computed(
     () => (form.errors as Record<string, string | undefined>).form,
 );
+const cvPicker = ref<InstanceType<typeof FileChooseButton> | null>(null);
 const onCv = (event: Event) => {
     form.cv = (event.target as HTMLInputElement).files?.[0] ?? null;
 };
@@ -37,7 +39,10 @@ const submit = () => {
         forceFormData: true,
         preserveScroll: true,
         // The CV is never kept after a refusal: the applicant chooses it again.
-        onError: () => form.reset('cv'),
+        onError: () => {
+            form.reset('cv');
+            cvPicker.value?.clear();
+        },
     });
 };
 const field =
@@ -273,11 +278,17 @@ const field =
                             >
                             *</label
                         >
-                        <input
+                        <FileChooseButton
                             id="apply-cv"
-                            type="file"
+                            ref="cvPicker"
                             accept="application/pdf,.pdf"
-                            class="block w-full text-sm file:mr-3 file:min-h-11 file:rounded-lg file:border-0 file:bg-pink-50 file:px-4 file:font-medium file:text-pink-800 dark:file:bg-pink-950 dark:file:text-pink-200"
+                            label="Choose PDF / Pilih PDF"
+                            status-id="apply-cv-status"
+                            :status="
+                                form.cv
+                                    ? form.cv.name
+                                    : 'No file chosen / Tiada fail dipilih'
+                            "
                             :aria-invalid="form.errors.cv ? 'true' : undefined"
                             aria-describedby="apply-cv-hint"
                             @change="onCv"

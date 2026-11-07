@@ -32,6 +32,9 @@ test('the public form sends the signed token, the hidden field and a PDF, and ke
     assert.match(source.apply, /forceFormData: true/);
     assert.match(source.apply, /form\.reset\('cv'\)/);
     assert.match(template('apply'), /accept="application\/pdf,\.pdf"/);
+    // The shared picker, labelled in both languages (Daniel, HR-13).
+    assert.match(template('apply'), /<FileChooseButton/);
+    assert.match(template('apply'), /label="Choose PDF \/ Pilih PDF"/);
     // The honeypot is hidden from sight and from screen readers, and skipped by the keyboard.
     assert.match(template('apply'), /class="sr-only" aria-hidden="true"/);
     assert.match(template('apply'), /tabindex="-1"/);
@@ -94,4 +97,13 @@ test('the HR page records each CV open on the server and asks before a closing s
         /If the offer is declined, you can still mark it Withdrawn\./,
     );
     assert.match(template('hr'), /The public form is <strong>off<\/strong>/);
+    // Off until a retention period is saved, because the notice promises deletion (Daniel, HR-13).
+    assert.match(
+        template('hr'),
+        /applications\.form\.state === 'needs_retention'/,
+    );
+    assert.match(
+        template('hr'),
+        /until you set how long\s+applications are kept/,
+    );
 });
