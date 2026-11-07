@@ -61,6 +61,7 @@ Development, Finance and the TV account get no HR data by implication. Server ch
 | HR-2a | Leave at `/hr/leave` (My leave, Approvals, Team calendar, Settings): leave types and per-role entitlements per year, branch working days and public holidays, half days, requests with an encrypted short evidence reference, approval by someone other than the applicant, cancel and withdraw, balances from approved and pending requests, and roster warnings for leave on approved shifts. Migrations from `2026_11_10_000300`. | PR #302, merged as `836fe96` (head `0b4c189`) |
 | HR-5c | SOPs at `/hr/sops`: versioned SOPs with audiences by role, an open before each acknowledgement, and who is left to acknowledge. Migrations `2026_11_10_001800` and `001900`. | PR #364, merged as `f259810` (head `b0d02d7`) |
 | HR-6 | Staff claims at `/hr/claims` (My claims, Approvals, Pay, Monthly, Settings): claims with encrypted purpose and receipts, approval by someone else (HR Manager and Director rule, the Director level), payment recorded by a third person, reversal back to Approved, monthly totals on screen; KPOne pays nothing. Migrations `2026_11_10_002000` and `002100`. | PR #370, merged as `320f6a9` (head `dbfdd1a`) |
+| HR-7a | Payroll setup at `/hr/payroll` (Pay profiles, Tables, Settings): effective-dated pay profiles with encrypted salary and allowances, confirmed by someone else; clinic-entered EPF, SOCSO, EIS and HRD tables checked by someone else; versioned pay item types and rate settings; managers' own pay and locums outside KPOne; nothing calculated. Permissions `hr.payroll.prepare.organisation` (Director, HR Manager), `hr.payroll.approve.organisation` (Director). Migrations `2026_11_10_002300` and `002400`. | PR #376, merged as `845288e` (head `d4f9418`) |
 
 ## 6. Decisions (never ask again)
 
@@ -280,6 +281,29 @@ check items, keep them"). The rest stand unless the owner changes them.
     owner's delegation of 11:22 UTC): `ClinicManagementTest` gains one line after `'/hr/sops'`,
     `'/hr/claims' => ['hr.claims.submit.own', 'hr.claims.approve.organisation', 'hr.claims.pay.organisation', 'hr.claims.manage.organisation'],`
     and nothing else.
+54. **Option (a): the Director's and the HR Manager's own pay stays outside KPOne in v1** (Suresh's HR-7a S1),
+    approved by B.E.R.N.I.S.S for the owner, 2026-11-06. No pay profile for them and never in a run (service,
+    PostgreSQL and page), with Daniel's wording: "In this first version, the Director's and the HR Manager's own pay is
+    kept outside KPOne." and, on their cards, "Pay kept outside KPOne in this version." (HR-PLAN 14.8.)
+55. HR-7a hub-map assertion approved by B.E.R.N.I.S.S for the owner (2026-11-06): `ClinicManagementTest` gains one
+    line after `'/hr/claims'`, `'/hr/payroll' => ['hr.payroll.prepare.organisation'],` and nothing else.
+56. HR-7b design note (HR-PLAN section 16) approved by B.E.R.N.I.S.S for the owner (2026-11-06) with its defaults
+    (16.11): calendar-day pro rata rounded down to the sen, basic counts for every scheme, one half-up rounding per
+    line, the approver locks, and the lock refused when the locker is a claim's claimant or approver. Also approved:
+    the versioned "pay item types used by runs" setting, and adjustment runs holding manual difference lines only
+    in v1 (16.13). The [TO CONFIRM] items stay on the owner's later list; the defaults are not an accountant's
+    sign-off. Rate-setting and scheme-flag changes by one person stay on that list too (16.11 item 5).
+57. HR-6 label and reversal for payroll payments approved by B.E.R.N.I.S.S for the owner (2026-11-06): the method shows
+    as "Payroll", is kept out of Finance's Record payment, and reversing it is refused with "Paid through a locked
+    payroll run. Correct it with an adjustment run." The HR-6 migration change only adds `payroll` to the method
+    CHECK; no HR-6 assertion changes (ask first if one must).
+58. HR-7b tabs assertion approved by B.E.R.N.I.S.S for the owner (2026-11-06): in `PayrollSetupTest`,
+    `->where('payroll.tabs', ['profiles', 'tables', 'settings'])` becomes
+    `->where('payroll.tabs', ['runs', 'profiles', 'tables', 'settings'])` and nothing else. Pay profiles stays the
+    default tab, and who sees Runs follows the existing prepare and approve permissions only.
+59. HR-7b S6, option (a), approved by B.E.R.N.I.S.S for the owner (2026-11-06): the only approver left never prepares
+    a run or takes a draft step (HR-PLAN 16.13), with no new permission or grant change. Not a warning only (b), and
+    no "cancel draft run" (c) in v1. HR-7b needs no further ship-it after Suresh's review and Daniel's OK.
 
 ## 7. Open items and known limits
 
