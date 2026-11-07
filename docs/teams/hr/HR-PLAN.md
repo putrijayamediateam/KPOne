@@ -2156,6 +2156,8 @@ follow the RPT-01 safety rules.
   additional remuneration).
 - Locum pay in KPOne, which v1 leaves outside (a later decision once locums can be rostered); EA forms and
   year-end statements (a later slice); bonuses by formula; salary advances and loans.
+- The Director's and the HR Manager's own pay, which v1 keeps outside KPOne (option (a), TEAM.md decision 54): no
+  pay profile for them, and they are never in a run (service, PostgreSQL and page).
 - Accounting ledger entries; costs on the HR dashboard (HR-9 after HR-7).
 - Any real salary, statutory number or payslip before the accountant's sign-off and the PDPA review.
 
@@ -2317,3 +2319,181 @@ setting up provider accounts first.
 5. Locums: which locums get a sign-in, and may a locum doctor's account ever get clinical permissions?
 6. Selfie and location: which branch first, the geofence radius, the retention, and the consent text (after the PDPA
    review).
+
+## 16. HR-7b payroll runs: design note
+
+Written 2026-11-06 after HR-7a (#376). It works out the runs part of section 14 in detail and changes no HR-1 to
+HR-7a rule. **Status: approved by B.E.R.N.I.S.S for the owner (2026-11-06, under the owner's delegation that day),
+with the defaults in 16.11 (TEAM.md decision 56); built in HR-7b (PR #379).** 16.13 records what was decided while building it.
+Everything below is synthetic until the accountant's sign-off and the PDPA review. The accountant line stays on every
+payroll page. The defaults are not an accountant's sign-off.
+
+### 16.1 Scope
+- **A monthly run per pay group:**
+  - Draft (prepare and prepare again);
+  - Sent for approval (frozen);
+  - Approved by someone else;
+  - Locked.
+  - A returned run goes back to Draft with its reason.
+- **An adjustment run** for a locked month holds only the differences and goes through the same steps.
+- **Not in HR-7b:**
+  - payslips and the bank, accountant and statutory exports (HR-7c);
+  - MTD computed by KPOne (HR-7d);
+  - EA forms;
+  - any payment or filing.
+- **Who is in a run:**
+  - **Managers' own pay stays outside KPOne** (option (a), decided by B.E.R.N.I.S.S for the owner). A run never includes a Director or HR Manager, and the run page says so.
+  - Locums stay outside.
+
+### 16.2 What a run reads
+Only approved records, as of the month's last day (the branch-local calendar of the worker's primary branch):
+
+| Source | What becomes a line |
+|---|---|
+| Confirmed HR-7a pay profile in force on the last day | basic salary (monthly) or the hourly rate, and each fixed allowance |
+| HR-4 employment periods | the days employed in the month, for joiners and leavers (16.3) |
+| HR-3b overtime approved in the month | minutes × hourly rate × the multiplier stored on its approval's setting |
+| HR-2a leave approved in the month, on types with `is_paid` = false | days (half days allowed) × daily rate, as a deduction |
+| HR-3a worked minutes in the month (hourly staff) | minutes × hourly rate |
+| HR-6 claims approved and not yet paid | a refund line ("Staff claim SC-000012 refund") |
+| Manual lines | an addition or deduction with a pay item type, an amount and a reason code |
+
+The pay group's name and pay day are copied onto the run when it is prepared (Suresh, HR-7a M3).
+
+### 16.3 Calculation (whole sen, integer arithmetic only)
+1. **Derived rates are kept as exact fractions:**
+   - daily rate = basic ÷ the daily divisor;
+   - hourly rate = the daily rate ÷ the hourly divisor.
+   - A line is rounded once, half up to the nearest sen, and the line shows the rounding. Nothing is rounded twice.
+2. **Joiners and leavers:** basic and allowances are pro rata by calendar days employed ÷ days in the month, rounded down to the sen. **[TO CONFIRM with the accountant]**
+3. **The wage for each scheme** is basic, plus every line whose pay item type counts for that scheme, minus unpaid leave if its type counts. **Basic always counts** for every scheme the profile has. **[TO CONFIRM]**
+4. **Statutory parts:**
+   - find the band holding the wage in the checked table in force on the last day;
+   - a rate part is wage × basis points ÷ 10000, rounded by the table's rule;
+   - a fixed part is taken as written;
+   - the employer part is shown as information.
+5. **Choosing the table:**
+   - **EPF and SOCSO:** the profile's category must match a checked table's category, ignoring case.
+   - **EIS and HRD:** v1 needs exactly one checked table in force for the scheme, with any category; two in force is an error (Suresh, HR-7a M3).
+   - HR-7b also warns at profile entry when no entered or checked table has the typed EPF or SOCSO category.
+6. **MTD:** entered per person on the draft in RM, from the LHDN calculator or the accountant. It is required when the profile has MTD on.
+7. **Net pay** = earnings − the employee's statutory parts − MTD − deductions + refunds.
+
+### 16.4 Errors (stop sending) and warnings (never stop sending)
+- **Errors:**
+  - no confirmed profile for someone in the group;
+  - no checked table for a scheme in use, or two for EIS or HRD;
+  - MTD missing where it is on;
+  - no rate settings while overtime or unpaid-leave lines exist;
+  - net pay below zero.
+  - The disabled Send button says which.
+- **Warnings:**
+  - bank details missing or waiting for confirmation;
+  - an hourly worker with a clock-in that has no clock-out;
+  - a claim older than 90 days.
+  - "Warnings don't stop you sending."
+
+### 16.5 Freezing, approval and locking
+- **Freezing.** Send for approval freezes the run and stores every version it used:
+  - profile ids and item-type versions;
+  - table ids and the rate-settings version;
+  - the copied pay group;
+  - each line's source kind and id.
+  - A later change to a source never changes a sent run. Prepare again works only in Draft.
+- **Approval.** The approver is never the preparer (CHECK). The Director approves; a run prepared by the Director needs another Director (14.10 item 2 default).
+- **Locking:**
+  - the approver locks;
+  - only a locked run will give payslips and exports (HR-7c);
+  - on lock, each HR-6 claim in the run gets HR-6's own payment row with method Payroll, so it is never paid twice;
+  - if the locker is that claim's claimant or approver, the lock is refused and names the claim;
+  - a two-process race test covers a lock against a Finance payment of the same claim.
+  - This adds `payroll` to the HR-6 payment method CHECK in a new HR migration.
+
+### 16.6 Corrections
+An adjustment run references the locked run and holds only the differences, with the same two-person steps. One open adjustment per run at a time. A locked run and its lines never change.
+
+### 16.7 Tables (sketch)
+| Table | Holds |
+|---|---|
+| `hr_payroll_runs` | pay group, month, kind regular/adjustment, adjusts run, status, preparer, approver, locker, copied group name and pay day, version ids used, `lock_version` |
+| `hr_payroll_run_people` | run, worker, profile id, encrypted MTD, encrypted totals |
+| `hr_payroll_lines` | run, worker, item type and version or scheme, encrypted amount, source kind and id, encrypted explanation |
+| `hr_payroll_run_actions` | append-only: prepared, sent, returned (reason), approved, locked |
+
+Retries are the shared `hr_record_retries`.
+
+**PostgreSQL rules:**
+- the approver is not the preparer;
+- one regular run per pay group and month;
+- a sent, approved or locked run and its lines never change;
+- statuses move draft → sent → approved → locked, and sent or approved back to draft (16.13);
+- nothing is deleted or truncated;
+- one organisation throughout.
+
+Migrations from `2026_11_10_002500`.
+
+### 16.8 Permissions
+The existing `hr.payroll.prepare.organisation` and `hr.payroll.approve.organisation`. No new grant and no hub change.
+
+### 16.9 Screens (Hui Min, HR-PLAN 14.6 and Daniel's early look)
+- **Runs tab:** one card per run with a worded status chip.
+- **The run page:**
+  - a table from 1024 px (person, earnings, deductions, refunds, employee contributions, net, warnings) with a sticky person column inside its own scrolling container, and a total row;
+  - cards below 1024 px;
+  - each person opens a side panel of lines, each with its source sentence ("Overtime: 3 h 30 min × RM 12.50 × 1.5 (normal day, approved 4 Nov)").
+- **Errors and warnings:** errors are in the destructive tone with their reason, and warnings are worded chips.
+- **Lock dialog:** the primary button is "Lock run", never red.
+
+### 16.10 Tests (planned)
+- Golden files written by hand: a monthly and an hourly worker, overtime on each day type, unpaid leave, a joiner, a claim refund, manual lines, each scheme and each rounding rule.
+- A source scan that fails on a float cast or `round()` on money.
+- Two-person and freeze rules (service and PostgreSQL).
+- A later version leaves a sent run unchanged.
+- A claim paid once, including the lock-against-Finance race.
+- An adjustment run holds only the differences.
+- Managers and locums are never in a run.
+- No amount reaches audit or the session.
+- Clinic money tables are identical before and after.
+
+### 16.11 Questions [TO CONFIRM] and the defaults used meanwhile
+1. Pro rata for joiners and leavers: calendar days (default) or working days?
+2. Does basic always count for every scheme on the profile? (Default yes.)
+3. Rounding of derived rates: one half-up rounding per line (default).
+4. Who locks: the approver (default).
+5. Rate settings and item-type scheme flags change pay with one person (Suresh, HR-7a M4). Default: the run shows who set each version, with no second person in v1.
+6. A claim whose claimant or approver is the locker: the lock is refused and names the claim (default).
+
+### 16.12 Known risks and limits
+- Statutory correctness depends entirely on the tables the clinic enters.
+- Hourly pay depends on HR-3a clock data.
+- Encrypted amounts are totalled in PHP, and the run page is not load-tested.
+- When a person drops out of a run (for example their profile moved group), their MTD and manual lines drop out
+  without notice (Suresh, M2).
+- An approver deactivated at the very moment another approver takes a draft step can leave a run with no approver;
+  reactivating them or adding an approver recovers it.
+- The only-approver message names the HR Manager, so a clinic with one Director and no active HR Manager cannot
+  prepare a run.
+- Approval does not lock claim rows, so Finance can still pay a claim between approve and lock; the lock is then
+  refused and the approver sends the run back.
+
+### 16.13 Decided while building HR-7b (B.E.R.N.I.S.S for the owner, 2026-11-06)
+- **Pay item types used by runs:** a versioned setting in HR-7b's own tables names the pay item type a run uses for
+  overtime, unpaid leave and staff claim refunds, so each line knows which schemes it counts for.
+- **Adjustment runs hold manual difference lines only** in v1, with a reason per line. A negative net on an
+  adjustment is a warning, never an error, since a recovery is negative by nature (Suresh, S2).
+- **Sending back:** a sent or approved run goes back to Draft with a reason; from approved, only its approver sends
+  it back (Suresh, B1). The claim checks run before approval as well as at lock, so a run never reaches a lock
+  nobody may take.
+- **Every prepare step counts:** anyone who prepared any part of a run (prepare, prepare again, MTD, manual lines)
+  never approves, sends back or locks it; `prepared_by` stays the first preparer (Suresh, S1).
+- **The only approver left never prepares** (Suresh, S6, option (a)): while no other active approver who has not
+  prepared the run would be left, an approve-holder's draft steps are refused with "You are the only person left
+  who can approve this run, so the HR Manager makes this change.", and Prepare run with "You are the only person
+  left who can approve payroll runs, so the HR Manager prepares them."
+- **HR-6:** a claim paid through payroll shows the method "Payroll", which Finance never chooses in Record payment;
+  reversing it is refused with "Paid through a locked payroll run. Correct it with an adjustment run." The HR-6
+  migration change only adds `payroll` to the method CHECK; no HR-6 assertion changed.
+- **Tabs:** Runs is a tab on `/hr/payroll`; Pay profiles stays the default. The one existing-assertion change is in
+  `PayrollSetupTest` (`payroll.tabs` gains `runs`).
+- **Daniel's look:** Lock run is the primary step and never red, with the Lock confirm in the standard tone; phone
+  cards read "Employee contributions" and show Refunds when not zero.
