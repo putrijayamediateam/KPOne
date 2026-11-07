@@ -450,10 +450,13 @@ const RIZAL_SHOWN = 5;
                                     <span class="font-medium">{{
                                         doctor.doctor
                                     }}</span>
-                                    <span
+                                    <span v-if="doctor.seen > 0"
                                         >{{ doctor.seen }} seen, about
                                         {{ doctor.averageConsultationMinutes }}
                                         min each</span
+                                    >
+                                    <span v-else data-test="lina-doctor-none"
+                                        >None seen</span
                                     >
                                     <span
                                         v-if="

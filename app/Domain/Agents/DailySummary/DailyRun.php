@@ -25,8 +25,9 @@ use Throwable;
  *
  * Each branch runs in its own time zone and only once its local clock has reached the slot, so the scheduler may
  * call this every hour. Each section is stored once per branch, slot and local date (Faris once per organisation);
- * a section already stored is skipped, and a failed attempt is retried on the next call, up to three runs. Nothing
- * here changes clinic data or sends any message.
+ * a section already stored is skipped, and a failed attempt is retried on the next call, up to three runs. Only one
+ * process stores a section at a time (a PostgreSQL advisory lock per section and local date); a second process
+ * skips it. Nothing here changes clinic data or sends any message.
  */
 final class DailyRun
 {
@@ -85,6 +86,31 @@ final class DailyRun
     private function section(array &$outcome, int $organisationId, ?Branch $branch, string $date, string $slot, string $section): void
     {
         $label = ($branch->code ?? 'organisation')." {$section} {$slot} {$date}";
+        // One process at a time per section and local date, across both slots (AG-12): two daily runs started at
+        // the same moment could otherwise share one agent run and log a false "failed", and a late 07:00 run and
+        // the 14:00 run could race on Hana's proposal keys. The lock is a PostgreSQL session lock, released below.
+        $lock = self::lockKey($organisationId, $branch, $date, $section);
+        if (! (bool) DB::selectOne('select pg_try_advisory_lock(hashtextextended(?, 0)) as locked', [$lock])->locked) {
+            $outcome['skipped'][] = "{$label}: another run is storing this";
+
+            return;
+        }
+        try {
+            $this->storeSection($outcome, $organisationId, $branch, $date, $slot, $section, $label);
+        } finally {
+            DB::select('select pg_advisory_unlock(hashtextextended(?, 0))', [$lock]);
+        }
+    }
+
+    /** The advisory lock name for one section on one local date (public so a test can hold it from another connection). */
+    public static function lockKey(int $organisationId, ?Branch $branch, string $date, string $section): string
+    {
+        return 'ai_daily_summary:'.$organisationId.':'.($branch->id ?? 'org').":{$date}:{$section}";
+    }
+
+    /** @param array{stored: list<string>, skipped: list<string>, failed: list<string>} $outcome */
+    private function storeSection(array &$outcome, int $organisationId, ?Branch $branch, string $date, string $slot, string $section, string $label): void
+    {
         $exists = AiDailySummarySection::query()->where('organisation_id', $organisationId)->where('local_date', $date)->where('slot', $slot)->where('section', $section)
             ->when($branch !== null, fn ($q) => $q->where('branch_id', $branch?->id), fn ($q) => $q->whereNull('branch_id'))->exists();
         if ($exists) {

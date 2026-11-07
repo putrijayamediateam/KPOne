@@ -7,14 +7,19 @@ use App\Domain\Agents\DailySummary\DailyRun;
 use App\Domain\Agents\DailySummary\ReportAssistant;
 use App\Domain\Agents\Health\SystemHealthOfficer;
 use App\Domain\Agents\Health\SystemHealthTool;
+use App\Domain\Agents\Inventory\InventoryAnalyst;
 use App\Domain\Agents\Models\AiAgent;
 use App\Domain\Agents\Models\AiAgentRun;
 use App\Domain\Agents\Proposals\AiProposal;
 use App\Domain\Agents\Services\AgentRunRecorder;
 use App\Domain\Agents\Stocktake\StocktakeOfficer;
 use App\Domain\Agents\Tools\AgentToolGateway;
+use App\Domain\Agents\Tools\AgentToolRegistry;
+use App\Domain\Agents\Tools\OrganisationWideSystemTool;
 use App\Domain\Organisation\Inventory\Models\InventoryLocation;
 use App\Domain\Organisation\Models\Branch;
+use App\Domain\Organisation\Models\Department;
+use App\Domain\Organisation\Models\Organisation;
 use Carbon\CarbonImmutable;
 use Database\Seeders\KPOneAgentSeeder;
 use Illuminate\Auth\Access\AuthorizationException;
@@ -317,5 +322,115 @@ class DailySummaryTest extends QueueTestCase
         foreach (['ca', 'resident_doctor', 'technical_admin', 'panel_officer'] as $role) {
             $this->actingAs($this->actor($role))->get('/agents/daily-summary')->assertForbidden();
         }
+    }
+
+    public function test_a_section_another_process_is_storing_is_skipped_and_stored_on_the_next_call(): void
+    {
+        // AG-12: hold Hana's lock for today from a second database connection, as a second daily run would.
+        $name = 'ag12_lock_holder';
+        config(["database.connections.{$name}" => config('database.connections.'.config('database.default'))]);
+        $holder = DB::connection($name);
+        $key = DailyRun::lockKey($this->organisation->id, $this->branch, '2026-11-06', 'hana');
+        try {
+            $this->assertTrue((bool) $holder->selectOne('select pg_try_advisory_lock(hashtextextended(?, 0)) as locked', [$key])->locked);
+
+            $outcome = $this->dailyRun('0700', 'CHERAS');
+
+            $this->assertSame([], $outcome['failed'], 'Waiting for another process is never a failure.');
+            $this->assertContains('CHERAS hana 0700 2026-11-06: another run is storing this', $outcome['skipped']);
+            $this->assertNull($this->section('hana', '0700'));
+            $this->assertNotNull($this->section('lina', '0700'), 'Only the locked section waits.');
+            $this->assertSame(0, AiAgentRun::query()->whereHas('agent', fn ($q) => $q->where('code', InventoryAnalyst::AGENT))->count(), 'No run starts while another process holds the section.');
+            // The lock covers both slots of one day, so a late 07:00 run and the 14:00 run never race on Hana's keys.
+            $this->travelTo(CarbonImmutable::parse('2026-11-06T06:30:00Z'));
+            $this->assertContains('CHERAS hana 1400 2026-11-06: another run is storing this', $this->dailyRun('1400', 'CHERAS')['skipped']);
+        } finally {
+            $holder->select('select pg_advisory_unlock(hashtextextended(?, 0))', [$key]);
+            DB::purge($name);
+        }
+
+        $this->travelTo(CarbonImmutable::parse('2026-11-06T00:30:00Z'));
+        $this->assertContains('CHERAS hana 0700 2026-11-06', $this->dailyRun('0700', 'CHERAS')['stored']);
+        $this->assertSame(['total' => 1, 'pending' => 1], $this->section('hana', '0700')->payload['counts']['restock']);
+        // The lock is released after each section, so this process can take it again at once.
+        $this->assertTrue((bool) DB::selectOne('select pg_try_advisory_lock(hashtextextended(?, 0)) as locked', [$key])->locked);
+        DB::select('select pg_advisory_unlock(hashtextextended(?, 0))', [$key]);
+    }
+
+    public function test_only_a_tool_marked_organisation_wide_is_read_with_no_branch(): void
+    {
+        $organisationWide = collect(app(AgentToolRegistry::class)->all())->filter(fn ($tool): bool => $tool instanceof OrganisationWideSystemTool)->map->code()->values()->all();
+        $this->assertSame(['system.health'], $organisationWide);
+
+        $recorder = app(AgentRunRecorder::class);
+        $gateway = app(AgentToolGateway::class);
+        // clinic.day_summary is system-readable and its permission is not `.branch`, but it is not marked
+        // organisation-wide, so a branchless run cannot read it for every branch at once.
+        $branchless = $recorder->start(ReportAssistant::AGENT, ReportAssistant::TASK, null, organisationId: $this->organisation->id);
+        $this->assertThrows(fn () => $gateway->callAsSystem($branchless, 'clinic.day_summary', null), AuthorizationException::class, 'This data source is read one branch at a time.');
+        $faris = $recorder->start(SystemHealthOfficer::AGENT, SystemHealthOfficer::TASK, null, organisationId: $this->organisation->id);
+        $this->assertTrue($gateway->callAsSystem($faris, 'system.health', null)['allClear']);
+    }
+
+    public function test_a_doctor_seen_last_week_but_not_on_the_report_day_stays_in_the_comparison(): void
+    {
+        $ca = $this->actor('ca');
+        $absent = $this->doctor();
+        $present = $this->doctor();
+        $seen = function ($doctor, string $at) use ($ca): void {
+            $entry = $this->send($ca, $this->consultationVisit($ca, $doctor));
+            DB::table('visits')->where('id', $entry->visit_id)->update(['registered_at' => $at]);
+            DB::table('queue_entries')->where('id', $entry->id)->update(['status' => 'serving', 'called_at' => $at, 'called_by_user_id' => $ca->id]);
+        };
+        $seen($absent, '2026-10-29 02:00:00'); // same weekday last week only
+        $seen($present, '2026-10-29 02:30:00');
+        $seen($present, '2026-11-05 02:00:00'); // both days
+
+        $this->dailyRun('0700', 'CHERAS');
+
+        $doctors = collect($this->section('lina', '0700')->payload['doctors'])->keyBy('doctorId');
+        $this->assertSame([1, 1], [$doctors[$present->id]['seen'], $doctors[$present->id]['seenBefore']]);
+        $this->assertSame([0, 0, 1], [$doctors[$absent->id]['seen'], $doctors[$absent->id]['averageConsultationMinutes'], $doctors[$absent->id]['seenBefore']]);
+        $this->assertSame([$present->id, $absent->id], array_keys($doctors->all()), 'Doctors absent on the report day come after the others.');
+
+        // The 14:00 update has no comparison, so it adds nobody from last week.
+        $this->travelTo(CarbonImmutable::parse('2026-11-06T06:30:00Z'));
+        $this->dailyRun('1400', 'CHERAS');
+        $this->assertSame([], $this->section('lina', '1400')->payload['doctors']);
+    }
+
+    public function test_a_viewer_with_an_ended_assignment_sees_only_the_branch_they_work_at_today(): void
+    {
+        $this->dailyRun('0700');
+        $director = $this->actor('director');
+        $puchong = Branch::query()->where('organisation_id', $this->organisation->id)->where('code', 'PUCHONG')->firstOrFail();
+        DB::table('staff_branch_assignments')->insert([
+            ...collect((array) DB::table('staff_branch_assignments')->where('staff_profile_id', $director->staffProfile->id)->first())->except(['id', 'branch_id', 'is_primary', 'valid_from', 'valid_until'])->all(),
+            'branch_id' => $puchong->id, 'is_primary' => false, 'valid_from' => '2026-10-01', 'valid_until' => '2026-11-04',
+        ]);
+        $this->assertNotNull($this->section('lina', '0700', $puchong), 'PUCHONG has a stored report.');
+
+        $summary = $this->actingAs($director)->get('/agents/daily-summary')->assertOk()->viewData('page')['props']['summary'];
+
+        $this->assertSame(['CHERAS'], array_column($summary['branches'], 'code'));
+    }
+
+    public function test_a_viewer_from_another_organisation_sees_none_of_its_sections(): void
+    {
+        $this->dailyRun('0700');
+        $organisation = new Organisation;
+        $organisation->forceFill(['code' => 'SYN-AG12', 'name' => 'Synthetic other organisation', 'is_active' => true])->save();
+        $branch = new Branch;
+        $branch->forceFill(['organisation_id' => $organisation->id, 'code' => 'SYN-AG12', 'name' => 'Synthetic other branch', 'timezone' => 'Asia/Kuala_Lumpur', 'is_active' => true])->save();
+        $department = new Department;
+        $department->forceFill(['organisation_id' => $organisation->id, 'code' => 'SYN-DEPT', 'name' => 'Synthetic Department', 'is_active' => true])->save();
+        $outsider = $this->actor('director', $branch);
+
+        $summary = $this->actingAs($outsider)->get('/agents/daily-summary')->assertOk()->viewData('page')['props']['summary'];
+
+        $this->assertSame(['SYN-AG12'], array_column($summary['branches'], 'code'));
+        $branchParts = collect($summary['branches'][0])->except(['code', 'name', 'id'])->filter()->all();
+        $this->assertSame([], $branchParts, 'No section from the other organisation reaches this viewer.');
+        $this->assertNull($summary['faris']);
     }
 }
