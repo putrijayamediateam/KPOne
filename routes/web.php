@@ -276,6 +276,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::post('tables', 'enterTable')->name('hr.payroll.tables.enter');
             Route::post('tables/{table}/withdraw', 'withdrawTable')->whereUuid('table')->name('hr.payroll.tables.withdraw');
             Route::post('tables/{table}/{decision}', 'decideTable')->whereUuid('table')->whereIn('decision', ['check', 'reject'])->name('hr.payroll.tables.decide');
+            Route::post('mtd-schedules', 'enterMtdSchedule')->name('hr.payroll.mtd-schedules.enter');
+            Route::post('mtd-schedules/{schedule}/withdraw', 'withdrawMtdSchedule')->whereUuid('schedule')->name('hr.payroll.mtd-schedules.withdraw');
+            Route::post('mtd-schedules/{schedule}/{decision}', 'decideMtdSchedule')->whereUuid('schedule')->whereIn('decision', ['check', 'reject'])->name('hr.payroll.mtd-schedules.decide');
             Route::post('groups', 'saveGroup')->name('hr.payroll.groups.save');
             Route::post('item-types', 'saveItemType')->name('hr.payroll.item-types.save');
             Route::post('rates', 'saveRates')->name('hr.payroll.rates.save');
