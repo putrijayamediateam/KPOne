@@ -5,8 +5,10 @@ namespace App\Domain\HR\Payroll\Services;
 use App\Domain\HR\Payroll\PayrollPermissions;
 use App\Domain\HR\Records\Models\Worker;
 use App\Domain\HR\Records\Services\RecordSupport;
+use App\Domain\Organisation\BusinessDetails\BranchBusinessProfile;
 use App\Domain\Organisation\BusinessDetails\BranchLetterheadAssembler;
 use App\Domain\Organisation\Models\Branch;
+use App\Domain\Shared\PrintedPhone;
 use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Auth\Access\AuthorizationException;
@@ -137,11 +139,19 @@ final class PayslipService
         $d = $l->details;
         $registration = $l->organisation['registration_number'] === null ? null
             : trim(($l->organisation['registration_type'] ?? '').' '.$l->organisation['registration_number']);
+        // The same text block as the other letters (Daniel, HR-7c): the clinic name first, then the address on one
+        // line, then "Tel: …" through PrintedPhone. A branch with no Business details shows the organisation's name,
+        // never the bare branch name.
+        $hasProfile = BranchBusinessProfile::query()->where('branch_id', $branch->id)->exists();
+        $address = implode(', ', array_filter([$d['address_line_1'], $d['address_line_2'], trim($d['postcode'].' '.$d['city']), $d['state']],
+            fn (?string $v): bool => $v !== null && trim($v) !== ''));
+        $phones = implode(' / ', array_filter([PrintedPhone::format($d['phone'] ?? null), PrintedPhone::format($d['phone_secondary'] ?? null)],
+            fn (?string $v): bool => $v !== null));
+        $contact = implode(' · ', array_filter([$phones === '' ? null : 'Tel: '.$phones, $d['email'] === null || trim((string) $d['email']) === '' ? null : trim((string) $d['email'])],
+            fn (?string $v): bool => $v !== null));
 
-        return ['clinicName' => $d['clinic_name'], 'legalName' => $l->organisation['legal_name'], 'registration' => $registration,
-            'address' => array_values(array_filter([$d['address_line_1'], $d['address_line_2'], trim($d['postcode'].' '.$d['city']), $d['state']],
-                fn (?string $v): bool => $v !== null && trim($v) !== '')),
-            'contact' => array_values(array_filter([$d['phone'] === null ? null : 'Tel: '.$d['phone'], $d['email']], fn (?string $v): bool => $v !== null && $v !== ''))];
+        return ['clinicName' => $hasProfile ? (string) $d['clinic_name'] : (string) $l->organisation['legal_name'], 'legalName' => (string) $l->organisation['legal_name'],
+            'registration' => $registration, 'address' => $address === '' ? [] : [$address], 'contact' => $contact === '' ? [] : [$contact]];
     }
 
     private function zone(int $organisationId): string

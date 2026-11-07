@@ -56,6 +56,22 @@ test('the payslip shows net pay in bold, the bank masked, employer parts as info
     assert.doesNotMatch(source.payslip, /toFixed\(|\/ 100\b|parseFloat\(/);
 });
 
+test('the payslip letterhead is the clinic name in bold, then the address and the printed phone line', () => {
+    const head = template('payslip')
+        .split('data-test="payslip-letterhead"')[1]
+        .split('</header>')[0];
+    assert.match(
+        head,
+        /font-bold">\s*\{\{ payslip\.letterhead\.clinicName \}\}/,
+    );
+    assert.ok(
+        head.indexOf('clinicName') < head.indexOf('letterhead.address') &&
+            head.indexOf('letterhead.address') <
+                head.indexOf('letterhead.contact'),
+    );
+    assert.doesNotMatch(head, /legalName|registration|<img/);
+});
+
 test('My HR details lists your own payslips with no amount and links to each', () => {
     assert.match(template('records'), /My payslips/);
     assert.match(template('records'), /:href="`\/hr\/payslips\/\$\{p\.id\}`"/);

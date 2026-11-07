@@ -386,6 +386,34 @@ class PayrollRunsTest extends VisitTestCase
         $this->assertSame(3, DB::table('hr_payslips')->count());
     }
 
+    public function test_the_payslip_letterhead_is_the_clinic_name_address_and_printed_phone_frozen_at_locking(): void
+    {
+        $branchOf = fn (Worker $w): int => (int) DB::table('staff_branch_assignments as a')->join('staff_profiles as p', 'p.id', '=', 'a.staff_profile_id')
+            ->where('p.user_id', $w->user_id)->where('a.is_primary', true)->value('a.branch_id');
+        $profiled = 0;
+        [$aina, $ben] = $this->lockedClinic(function (Worker $aina) use ($branchOf, &$profiled): void {
+            $profiled = $branchOf($aina);
+            DB::table('branch_business_profiles')->insert(['organisation_id' => $aina->organisation_id, 'branch_id' => $profiled, 'clinic_name' => 'Klinik Contoh Synthetic',
+                'address_line_1' => '1 Jalan Contoh', 'address_line_2' => null, 'postcode' => '56000', 'city' => 'Kuala Lumpur', 'state' => 'WP Kuala Lumpur', 'country' => 'MY',
+                'phone' => '+60320000001', 'email' => 'clinic@kpone.test', 'lock_version' => 1, 'created_at' => now(), 'updated_at' => now()]);
+        });
+        $snapshot = fn (Worker $w): array => json_decode(Crypt::decryptString((string) DB::table('hr_payslips')->where('worker_id', $w->id)->value('snapshot_encrypted')), true)['letterhead'];
+        $mine = $snapshot($aina);
+        $this->assertSame(['Klinik Contoh Synthetic', ['1 Jalan Contoh, 56000 Kuala Lumpur, WP Kuala Lumpur'], ['Tel: 03-2000 0001 · clinic@kpone.test']],
+            [$mine['clinicName'], $mine['address'], $mine['contact']]);
+
+        // A branch with no Business details shows the organisation's name, never the bare branch name.
+        if ($branchOf($ben) !== $profiled) {
+            $theirs = $snapshot($ben);
+            $this->assertSame([(string) DB::table('organisations')->where('id', $ben->organisation_id)->value('name'), [], []],
+                [$theirs['clinicName'], $theirs['address'], $theirs['contact']]);
+        }
+
+        // A later change to Business details never reaches the issued payslip.
+        DB::table('branch_business_profiles')->where('branch_id', $profiled)->update(['clinic_name' => 'Renamed later', 'phone' => '+60320009999']);
+        $this->assertSame('Klinik Contoh Synthetic', $snapshot($aina)['clinicName']);
+    }
+
     public function test_the_director_alone_exports_a_locked_run_and_each_download_is_recorded_first(): void
     {
         $holders = fn (string $permission): array => collect(PermissionCatalogue::roles())->filter(fn (array $p) => in_array($permission, $p, true))->keys()->sort()->values()->all();

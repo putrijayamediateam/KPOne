@@ -93,21 +93,11 @@ const print = () => window.print();
             >
         </div>
 
-        <header class="mb-5 border-b pb-4">
-            <p class="text-base font-semibold">
+        <!-- The same letterhead text block as the other letters (Daniel): the clinic name first and bold, the address on
+             one line, then "Tel: …" printed through PrintedPhone on the server. No logo in v1. -->
+        <header class="mb-5 border-b pb-4" data-test="payslip-letterhead">
+            <p class="text-base font-bold">
                 {{ payslip.letterhead.clinicName }}
-            </p>
-            <p
-                v-if="
-                    payslip.letterhead.legalName !==
-                    payslip.letterhead.clinicName
-                "
-                class="text-xs"
-            >
-                {{ payslip.letterhead.legalName
-                }}<template v-if="payslip.letterhead.registration">
-                    · {{ payslip.letterhead.registration }}</template
-                >
             </p>
             <p
                 v-for="line in payslip.letterhead.address"
