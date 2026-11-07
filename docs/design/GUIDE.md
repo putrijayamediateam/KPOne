@@ -244,6 +244,17 @@ cookie); `.dark` on `<html>` switches the tokens.
   `.label-preview` classes. `app.css` forces white paper and black text in every theme (PRINT-1). Keep it.
 - **Do** hide screen-only controls with `print:hidden` (toolbar, help notes).
 - **Don't** change the invoice, receipt or label layout without the owner and, for labels, the pharmacist.
+- **Prints follow their own rules, not the screen rules.** Where the owner gave a sample, the sample wins.
+  Recorded exceptions (owner and B.E.R.N.I.S.S for the owner, 2026-11-06):
+  - **Dates:** the Medical Certificate and the drug label print `dd/mm/yyyy`; the invoice and receipt print
+    `30 Oct 2026`, as on screen.
+  - **Phones:** every letterhead prints phones through the shared `PrintedPhone` formatter, local form, one
+    "Tel:" label, a second phone after " / " (`Tel: 03-2123 4567 / 012-345 6789`). A line may wrap only after the
+    " / ", never inside a number.
+  - **A4 margins:** 15 to 20 mm set in `@page`. Check a print with real PDF page images, not a screen shot of the
+    print view.
+  - **Page numbers:** a multi-page document prints its number and "Page n of N" on every page
+    (`KPI-00000002 · Page 1 of 2`); a single page prints none.
 
 ## 15. Wording
 
@@ -257,7 +268,7 @@ cookie); `.dark` on `<html>` switches the tokens.
   paid." instead of "original receipt date, not invoice finalisation". Keep internal words out of the UI
   ("canonical", "operational view", "cohort", "projection", "provisioning", "authoritative").
 - **Numbers:** money as `RM 0.00` (two decimals, space after RM), dates as `5 Nov 2026` on screens and in the branch
-  time zone, with times as `5:04 PM`.
+  time zone, with times as `5:04 PM`. Prints have their own date and phone rules (section 14).
 - **Long rules** (the Daily summary page shows about 15 lines before the form on a phone; the text comes from
   `app/Domain/Shared/Services/DailySummaryReportService.php` and is shown by `pages/Reports/BranchReport.vue`):
   one summary sentence on screen, the rest in a collapsible "How this report counts" block.
