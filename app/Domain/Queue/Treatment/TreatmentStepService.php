@@ -70,8 +70,10 @@ class TreatmentStepService
     /** Called inside an existing transaction that already holds the doctor, visit and queue entry locks (Resume). */
     public function acknowledgeLocked(QueueEntry $entry, User $doctor): void
     {
-        $step = TreatmentStep::query()->where('queue_entry_id', $entry->id)->whereNull('closed_at')->lockForUpdate()->first();
-        if ($step && $step->state === TreatmentStep::STATE_DONE) {
+        // Q-2c: every finished step waiting for the doctor clears together; a step still in progress stays.
+        $steps = TreatmentStep::query()->where('queue_entry_id', $entry->id)->whereNull('closed_at')
+            ->where('state', TreatmentStep::STATE_DONE)->orderBy('id')->lockForUpdate()->get();
+        foreach ($steps as $step) {
             $this->transition($step, 'acknowledged', $doctor, null);
         }
     }
@@ -108,10 +110,15 @@ class TreatmentStepService
         if (! Schema::connection($entry->getConnectionName())->hasTable('queue_treatment_steps')) {
             return;
         }
-        $step = TreatmentStep::query()->where('queue_entry_id', $entry->id)->whereNull('closed_at')->lockForUpdate()->first();
-        if ($step) {
-            abort_unless(DB::transactionLevel() > 0, 409);
-            $this->transition($step, 'system_closed', User::query()->findOrFail($entry->updated_by_user_id), null);
+        // Q-2c: a step in progress and finished steps waiting for the doctor all close together.
+        $steps = TreatmentStep::query()->where('queue_entry_id', $entry->id)->whereNull('closed_at')->orderBy('id')->lockForUpdate()->get();
+        if ($steps->isEmpty()) {
+            return;
+        }
+        abort_unless(DB::transactionLevel() > 0, 409);
+        $actor = User::query()->findOrFail($entry->updated_by_user_id);
+        foreach ($steps as $step) {
+            $this->transition($step, 'system_closed', $actor, null);
             SystemEvent::query()->create(['event_id' => (string) Str::uuid(), 'organisation_id' => $step->organisation_id, 'branch_id' => $step->branch_id, 'name' => 'queue.treatment_step.system_closed', 'source' => 'queue', 'severity' => 'info', 'payload' => ['treatment_step_id' => $step->id, 'queue_entry_id' => $step->queue_entry_id], 'occurred_at' => now()->utc()]);
         }
     }
@@ -160,9 +167,11 @@ class TreatmentStepService
                 || $visit->status !== Visit::STATUS_REGISTERED || $visit->visit_type !== 'consultation') {
                 $this->refuse('Treatment progress can only be updated while the consultation is in progress or on hold.');
             }
-            $step = TreatmentStep::query()->where('queue_entry_id', $entry->id)->whereNull('closed_at')->lockForUpdate()->first();
+            // Q-2c (owner decision 2026-11-06): one step in progress per patient; done steps keep waiting for the
+            // doctor beside it until Resume or opening the consultation.
+            $open = TreatmentStep::query()->where('queue_entry_id', $entry->id)->whereNull('closed_at')->orderBy('id')->lockForUpdate()->get();
             if ($action === 'start') {
-                if ($step) {
+                if ($open->contains('state', TreatmentStep::STATE_STARTED)) {
                     $this->refuse('This patient already has an open treatment step. Mark it done or cancel it first.');
                 }
                 $now = now()->utc();
@@ -171,7 +180,8 @@ class TreatmentStepService
                 $this->event($step, 'started', $actor->id, null, null);
                 $this->audit($step, 'started', $actor);
             } else {
-                if (! $step || $step->id !== (int) $data['treatment_step_id'] || $step->lock_version !== (int) $data['lock_version']) {
+                $step = $open->firstWhere('id', (int) $data['treatment_step_id']);
+                if (! $step || $step->lock_version !== (int) $data['lock_version']) {
                     $this->refuse("This patient's treatment progress was changed by someone else. Reload and try again.");
                 }
                 if ($action === 'done') {

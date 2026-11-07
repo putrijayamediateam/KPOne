@@ -53,11 +53,11 @@ const statusLabel: Record<QrIntakeItem['displayStatus'], string> = {
     data_purged: 'Data Purged',
 };
 const statusClass: Record<QrIntakeItem['displayStatus'], string> = {
-    pending: 'bg-amber-100 text-amber-900',
-    reviewed: 'bg-emerald-100 text-emerald-900',
-    rejected: 'bg-red-100 text-red-900',
-    expired: 'bg-muted text-muted-foreground',
-    data_purged: 'bg-muted text-muted-foreground',
+    pending: 'border-warning/25 bg-warning/10 text-warning-strong',
+    reviewed: 'border-brand/25 bg-brand/10 text-brand-strong',
+    rejected: 'border-destructive/25 bg-destructive/10 text-destructive',
+    expired: 'border-border text-muted-foreground',
+    data_purged: 'border-border text-muted-foreground',
 };
 const purpose = (item: QrIntakeItem) =>
     item.summary
@@ -143,7 +143,7 @@ const historyItems = computed(() =>
                             </td>
                             <td class="px-3 py-2.5 align-middle">
                                 <span
-                                    class="inline-flex rounded-md px-2 py-0.5 text-[11px] font-medium"
+                                    class="inline-flex rounded-md border px-2 py-0.5 text-[11px] font-medium"
                                     :class="statusClass[item.displayStatus]"
                                     >{{ statusLabel[item.displayStatus] }}</span
                                 >
@@ -222,7 +222,7 @@ const historyItems = computed(() =>
                         </td>
                         <td class="px-3 py-2.5 align-middle">
                             <span
-                                class="inline-flex rounded-md px-2 py-0.5 text-[11px] font-medium"
+                                class="inline-flex rounded-md border px-2 py-0.5 text-[11px] font-medium"
                                 :class="statusClass[item.displayStatus]"
                                 >{{ statusLabel[item.displayStatus] }}</span
                             >
@@ -291,7 +291,7 @@ const historyItems = computed(() =>
                         </p>
                     </div>
                     <span
-                        class="inline-flex shrink-0 rounded-md px-2 py-0.5 text-[11px] font-medium"
+                        class="inline-flex shrink-0 rounded-md border px-2 py-0.5 text-[11px] font-medium"
                         :class="statusClass[item.displayStatus]"
                         >{{ statusLabel[item.displayStatus] }}</span
                     >
@@ -360,7 +360,7 @@ const historyItems = computed(() =>
                         </p>
                     </div>
                     <span
-                        class="inline-flex shrink-0 rounded-md px-2 py-0.5 text-[11px] font-medium"
+                        class="inline-flex shrink-0 rounded-md border px-2 py-0.5 text-[11px] font-medium"
                         :class="statusClass[item.displayStatus]"
                         >{{ statusLabel[item.displayStatus] }}</span
                     >

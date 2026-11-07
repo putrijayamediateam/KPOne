@@ -513,7 +513,10 @@ final class PanelClaimDirectoryService
                 ->where('organisation_id', $actor->organisation_id)->where('branch_id', $branch->id)->firstOrFail();
             abort_unless($allocation->status === 'approved' && (int) $allocation->current_invoice_guard === $invoice->id
                 && $invoice->status === 'finalized' && ! $invoice->correction_hold && ! $invoice->source_stale
-                && $allocation->amount_sen > 0 && $allocation->amount_sen <= $invoice->total_sen, 422);
+                && $allocation->amount_sen > 0, 422);
+            // PNL-15: compare with the payable total after any invoice discount or surcharge, as creation does.
+            $payableSen = app(FinancialLedger::class)->state($invoice)['total'];
+            abort_unless($allocation->amount_sen <= $payableSen, 422);
             $existing = PanelClaim::query()->where('coverage_allocation_id', $allocation->id)->first();
             $patient = DB::table('patients')->where('id', $invoice->patient_id)
                 ->where('organisation_id', $actor->organisation_id)->first(['full_name']);
@@ -526,7 +529,7 @@ final class PanelClaimDirectoryService
                     'publicId' => $allocation->public_id, 'lockVersion' => $allocation->lock_version,
                     'invoiceLockVersion' => $invoice->lock_version, 'panelName' => $allocation->panel_name_snapshot,
                     'amountSen' => $allocation->amount_sen, 'patientName' => $patient->full_name,
-                    'invoiceNumber' => $invoice->invoice_number, 'invoiceTotalSen' => app(FinancialLedger::class)->state($invoice)['total'], 'invoiceBreakdown' => InvoiceAdjustmentService::summary($invoice),
+                    'invoiceNumber' => $invoice->invoice_number, 'invoiceTotalSen' => $payableSen, 'invoiceBreakdown' => InvoiceAdjustmentService::summary($invoice),
                     'visitDate' => $visit->registered_at->setTimezone($branch->timezone)->toDateString(),
                     'visitDateTime' => $visit->registered_at->setTimezone($branch->timezone)->format('j M Y, g:i A'),
                     'lines' => InvoiceLine::query()->where('invoice_id', $invoice->id)->orderBy('id')->get()

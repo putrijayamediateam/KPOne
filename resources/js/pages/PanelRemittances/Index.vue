@@ -379,9 +379,9 @@ const record = () => {
                         Clear split
                     </Button>
                 </div>
-                <!-- Phones: one card per claim so the amount box is always on screen. -->
+                <!-- Phones and tablets: one card per claim so the amount box is always on screen (PNL-14: at 768 px the table cut the amount box off). -->
                 <ul
-                    class="divide-y rounded-xl border md:hidden"
+                    class="divide-y rounded-xl border lg:hidden"
                     aria-label="Accepted claims waiting for payment"
                 >
                     <li
@@ -406,30 +406,37 @@ const record = () => {
                             Accepted {{ myr(claim.acceptedSen) }} · Received
                             {{ myr(claim.receivedSen) }}
                         </p>
-                        <label
-                            class="flex flex-wrap items-center justify-between gap-2"
+                        <div
+                            class="flex flex-wrap items-end justify-between gap-2"
                         >
                             <span class="font-medium tabular-nums">
                                 Unpaid {{ myr(claim.outstandingSen) }}
                             </span>
-                            <input
-                                v-model="parts[claim.publicId]"
-                                inputmode="decimal"
-                                placeholder="0.00"
-                                :aria-label="`Amount of this payment for claim ${claim.claimNo}`"
-                                :aria-invalid="invalidParts.includes(claim)"
-                                :aria-describedby="
-                                    invalidParts.includes(claim)
-                                        ? 'split-amount-error'
-                                        : undefined
-                                "
-                                class="h-9 w-32 rounded-md border bg-background px-2 text-right text-sm tabular-nums aria-invalid:border-destructive"
-                            />
-                        </label>
+                            <!-- PNL-14 (Daniel): the box carries the same visible label as the table column. -->
+                            <label
+                                class="grid gap-1 text-xs font-medium text-muted-foreground"
+                                data-testid="split-card-payment-label"
+                            >
+                                This payment (RM)
+                                <input
+                                    v-model="parts[claim.publicId]"
+                                    inputmode="decimal"
+                                    placeholder="0.00"
+                                    :aria-label="`Amount of this payment for claim ${claim.claimNo}`"
+                                    :aria-invalid="invalidParts.includes(claim)"
+                                    :aria-describedby="
+                                        invalidParts.includes(claim)
+                                            ? 'split-amount-error'
+                                            : undefined
+                                    "
+                                    class="h-9 w-32 rounded-md border bg-background px-2 text-right text-sm text-foreground tabular-nums aria-invalid:border-destructive max-lg:h-11"
+                                />
+                            </label>
+                        </div>
                     </li>
                 </ul>
                 <div
-                    class="relative hidden max-w-full overflow-x-auto rounded-xl border md:block"
+                    class="relative hidden max-w-full overflow-x-auto rounded-xl border lg:block"
                     role="region"
                     aria-label="Accepted claims waiting for payment"
                     tabindex="0"

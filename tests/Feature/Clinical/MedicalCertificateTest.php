@@ -85,11 +85,11 @@ class MedicalCertificateTest extends BillingTestCase
         $this->assertStringNotContainsString('Synthetic MC Doctor', $raw->encrypted_snapshot);
         $snapshot = json_decode(Crypt::decryptString($raw->encrypted_snapshot), true);
         $this->assertSame('pre-signature', $snapshot['evidence']);
-        $this->assertSame(1, $snapshot['templateRevision']);
+        $this->assertSame(2, $snapshot['templateRevision']);
         $this->assertFalse($snapshot['productionApproved']);
         $this->assertNull($snapshot['reason']);
         $this->assertStringNotContainsString('Synthetic diagnosis', $snapshot['html']);
-        $this->assertStringContainsString('Wet signature', $snapshot['html']);
+        $this->assertStringContainsString('Synthetic MC Doctor (MMC No: ', $snapshot['html']);
         $replacement = $this->act($doctor, $visit, $this->command(['action' => 'replace', 'document_id' => $first, 'lock_version' => 1, 'change_reason' => 'dates_corrected', 'language' => 'bm', 'end_date' => now()->addDay()->setTimezone($this->branch->timezone)->toDateString()]));
         $this->assertSame($before, $this->evidence());
         $this->assertSame($raw->encrypted_snapshot, DB::table('medical_certificates')->find($first)->encrypted_snapshot);
@@ -383,6 +383,69 @@ class MedicalCertificateTest extends BillingTestCase
             $this->fail('Cached active branch accepted');
         } catch (ModelNotFoundException|HttpException $e) {
             $this->assertSame(1, DB::table('mc_actions')->count());
+        }
+    }
+
+    /** MC slice 1 (owner decision 2026-11-06): new certificates use the DRAFT layout of the clinic's paper certificate. */
+    public function test_a_new_certificate_uses_the_draft_paper_layout_revision_2(): void
+    {
+        [$doctor, , $visit, $queue] = $this->servingFixture();
+        $this->startEncounter($doctor, $visit, $queue);
+        $this->verified($doctor);
+        $visit->patient->forceFill(['full_name' => "Synthetic O'Neil & Sons", 'lock_version' => $visit->patient->lock_version + 1])->save();
+        $today = CarbonImmutable::now($this->branch->timezone);
+        $id = $this->act($doctor, $visit, $this->command(['end_date' => $today->addDays(2)->toDateString()]));
+
+        $snapshot = json_decode(Crypt::decryptString(DB::table('medical_certificates')->find($id)->encrypted_snapshot), true);
+        $this->assertSame(2, $snapshot['templateRevision']);
+        $this->assertSame('mc-a4-v2', $snapshot['rendererVersion']);
+        $this->assertFalse($snapshot['productionApproved']);
+        $html = $snapshot['html'];
+        foreach (['DRAFT WORDING', '<h1>MEDICAL CERTIFICATE</h1>', '<strong>MC No:</strong> MC/KP/CHR/', '<strong>Date:</strong> '.$today->format('d/m/Y'),
+            'will be unfit on duty <strong class="mc-u">3</strong> day(s) (from <strong class="mc-u">'.$today->format('d/m/Y').'</strong> until <strong class="mc-u">'.$today->addDays(2)->format('d/m/Y').'</strong>)',
+            "He/She is to be re-examined on ________________\nHe/She is able to resume duties from ________________\nDiagnosis: __________________________________________________",
+            '(NOT VALID IN THE COURT OF LAW)', 'Synthetic MC Doctor (MMC No: '.(100000 + $doctor->id).')'] as $expected) {
+            $this->assertStringContainsString($expected, $html);
+        }
+        // Every merged value is escaped: the name's apostrophe and ampersand cannot become markup.
+        $this->assertStringContainsString('<strong>Synthetic O&#039;Neil &amp; Sons</strong>', $html);
+        $this->assertStringNotContainsString("O'Neil & Sons", $html);
+        $this->assertStringNotContainsString('Wet signature', $html);
+        $this->assertStringNotContainsString('Synthetic diagnosis', $html);
+        $this->get("/visits/{$visit->visit_number}/medical-certificates/{$id}?print=1")->assertOk()->assertSee('(NOT VALID IN THE COURT OF LAW)')
+            // The on-screen print instruction never reaches the paper; only "COPY — <status>" prints.
+            ->assertSee('.copy-help{display:none}', false)->assertSee('COPY — CURRENT<span class="copy-help">', false);
+    }
+
+    public function test_the_bahasa_melayu_revision_2_has_its_own_labels_and_notice(): void
+    {
+        [$doctor, , $visit, $queue] = $this->servingFixture();
+        $this->startEncounter($doctor, $visit, $queue);
+        $this->verified($doctor);
+        $id = $this->act($doctor, $visit, $this->command(['language' => 'bm']));
+
+        $html = json_decode(Crypt::decryptString(DB::table('medical_certificates')->find($id)->encrypted_snapshot), true)['html'];
+        foreach (['<h1>SIJIL CUTI SAKIT</h1>', '<strong>No. MC:</strong>', '<strong>Tarikh:</strong>', 'tidak sihat untuk bertugas selama <strong class="mc-u">1</strong> hari',
+            "Beliau perlu diperiksa semula pada ________________\nBeliau boleh kembali bertugas mulai ________________", '(TIDAK SAH DI MAHKAMAH)', 'DRAF — menunggu kelulusan doktor'] as $expected) {
+            $this->assertStringContainsString($expected, $html);
+        }
+    }
+
+    public function test_revision_1_stays_unchanged_and_the_database_still_refuses_approved_or_mismatched_rows(): void
+    {
+        $this->assertStringContainsString('was examined on {{examination_date}}', (string) DB::table('mc_template_revisions')->where(['language' => 'en', 'revision' => 1])->value('wording'));
+        $this->assertSame(['mc-a4-v1', 'mc-a4-v2'], DB::table('mc_template_revisions')->where('language', 'en')->orderBy('revision')->pluck('renderer_version')->all());
+        foreach ([['revision' => 3, 'renderer_version' => 'mc-a4-v2', 'production_approved' => false], ['revision' => 3, 'renderer_version' => 'mc-a4-v1', 'production_approved' => false],
+            ['revision' => 3, 'renderer_version' => 'mc-a4-v2', 'production_approved' => true]] as $row) {
+            DB::beginTransaction();
+            try {
+                DB::table('mc_template_revisions')->insert(['language' => 'en', 'title' => 'Synthetic', 'wording' => 'Synthetic wording', 'merge_fields' => '[]', 'created_at' => now(), ...$row]);
+                $this->fail('A template row outside revisions 1 and 2, or an approved row, must be refused.');
+            } catch (QueryException) {
+                $this->assertTrue(true);
+            } finally {
+                DB::rollBack();
+            }
         }
     }
 }
