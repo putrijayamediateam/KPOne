@@ -44,8 +44,10 @@ final class MedicalCertificateSnapshot
         $start = CarbonImmutable::parse($input['start_date']);
         $end = CarbonImmutable::parse($input['end_date']);
         $days = (int) $start->diffInDays($end) + 1;
+        // The printed issue date and time come from the same instant as the stored UTC issue time, in the branch time zone.
+        $issuedLocal = CarbonImmutable::parse($issuedAt)->setTimezone($branch->timezone);
         $fields = ['patient_name' => $patient->full_name, 'identification' => $identity->normalized_value,
-            'examination_date' => $encounter->started_at->setTimezone($branch->timezone)->format('d/m/Y'), 'issue_date' => now()->setTimezone($branch->timezone)->format('d/m/Y'),
+            'examination_date' => $encounter->started_at->setTimezone($branch->timezone)->format('d/m/Y'), 'issue_date' => $issuedLocal->format('d/m/Y'),
             'start_date' => $start->format('d/m/Y'), 'end_date' => $end->format('d/m/Y'), 'days_number' => (string) $days,
             'days_words' => $this->daysWords($days, $input['language']), 'doctor_name' => $credential->professional_name, 'mmc_number' => $credential->mmc_number, 'mc_number' => $number];
         $wording = $template->wording;
@@ -55,7 +57,8 @@ final class MedicalCertificateSnapshot
         $snapshot = ['schemaVersion' => 1, 'rendererVersion' => $template->renderer_version, 'templateId' => $template->id, 'templateRevision' => (int) $template->revision,
             'productionApproved' => false, 'language' => $input['language'], 'title' => $template->title, 'wording' => $wording, 'templateWording' => $template->wording,
             'letterhead' => $letterhead, 'fields' => $fields, 'reason' => $input['reason'] ?? null, 'reasonConsent' => (bool) ($input['reason_consent'] ?? false),
-            'issuedAtUtc' => $issuedAt, 'credentialVersion' => $credential->lock_version, 'evidence' => 'pre-signature',
+            'issuedAtUtc' => $issuedAt, 'issuedAtLocal' => $issuedLocal->format('j M Y, g:i A'), 'issuedAtZone' => self::zoneName($branch->timezone),
+            'credentialVersion' => $credential->lock_version, 'evidence' => 'pre-signature',
             'wordingParts' => $this->wordingParts($template->wording, $fields)];
         $view = match ($template->renderer_version) {
             'mc-a4-v1' => 'medical-certificates.content',
@@ -65,6 +68,14 @@ final class MedicalCertificateSnapshot
         $snapshot['html'] = view($view, ['snapshot' => $snapshot])->render();
 
         return $snapshot;
+    }
+
+    /** "Asia/Kuala_Lumpur" prints as "Kuala Lumpur"; a zone without a city part prints as stored. */
+    private static function zoneName(string $timezone): string
+    {
+        $city = substr($timezone, (int) strrpos($timezone, '/') + (str_contains($timezone, '/') ? 1 : 0));
+
+        return str_replace('_', ' ', $city);
     }
 
     /** Fields the v2 layout prints bold, or bold and underlined, as on the clinic's paper certificate. */
