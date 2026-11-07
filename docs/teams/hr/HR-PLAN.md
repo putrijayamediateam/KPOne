@@ -2224,6 +2224,21 @@ Shared rules for all five:
 - **Tests:** the export's exact columns, formula neutralising, row cap, audit, and that no identity or bank value is
   in the file by default; with an API, a fake HTTP client proves timeouts and failures change nothing.
 
+### 15.1a HR-12 as built (2026-11-07)
+
+- **The owner's answers** (15.7 item 1, in the HR session): a generic CSV export first. There is no named product or API yet, so there is no live link and no import preview in v1. The data is the staff list, approved leave and approved overtime only. No payroll, identity numbers, bank details or documents.
+- **Where:** a closed-by-default "Export for an outside HR product" section on the Staff files tab of `/hr/records`, for the Director and the HR Manager (`hr.records.manage.organisation`). No new permission, no migration and no Clinic management line.
+- **Files:**
+  - Staff list: KPOne ID, name, kind, position, employment type and dates, primary branch, and status in the Staff files words, plus Starting.
+  - Approved leave touching a month: type, from, to, "Days in request" and paid. A note line in the file explains requests that cross months.
+  - Approved overtime in a month: date, day type and approved minutes, never pay.
+- **Rules:** each download is a POST, audited before release with the kind, month and row count, and never stored. Cells are formula-safe, and the 5,000-row cap refuses rather than cuts.
+- **Known limits:**
+  - The file is uploaded to the outside product by hand.
+  - Leave rows carry the whole request's days.
+  - The leave type is shown by name and can hint at health. "Hide leave type in the outside-HR export?" is on the owner's PDPA-review list (B.E.R.N.I.S.S for the owner).
+- Built in PR #397, merged as `8c6d78b`. Daniel: OK. Suresh: ready to merge after M1.
+
 ### 15.2 HR-13 Job application intake (KPOne's first public intake)
 
 - **What:** a public "Apply" form for open positions; applications land in a private HR list; HR moves an
@@ -2617,3 +2632,146 @@ Also decided while building:
 - A former staff member whose account is inactive cannot sign in to open their old payslips; HR opens them as a preparer.
 - Opening a payslip is a GET that writes an open row each time.
 - The bank file has one generic layout only.
+
+## 18. HR-7d MTD (PCB) worked out by KPOne: design note
+
+Written 2026-11-07. **Status: approved by B.E.R.N.I.S.S for the owner with its defaults, on the owner's own "start the
+HR-7d build" (2026-11-07); built in PR #396, merged as `bfe546b`.** Every [TO CONFIRM] stays on the owner's later list as
+an accountant question. The defaults are not the accountant's sign-off.
+It works out the MTD part that section 14.8 left for later, and changes no HR-1 to HR-7c rule.
+**KPOne ships no tax number and files nothing.** Synthetic data only until the accountant's sign-off and the PDPA
+review. The accountant line stays on every payroll page.
+
+### 18.1 Scope
+- **In:**
+  - a yearly MTD schedule that the clinic enters, checked by someone else;
+  - each person's MTD details on their pay profile;
+  - KPOne working out MTD for **normal monthly remuneration** on a monthly run, from the year to date in KPOne's own locked runs;
+  - the preparer may still type a different MTD for a person on a draft, and the line then says so.
+  - **Changed after review (Suresh):**
+    - **S1:** a manual line on a monthly run that counts for MTD is one-off pay. It is never projected over the year: the worked figure stops, and the run asks for a typed MTD.
+    - **S2:** a run (regular or adjustment) of an earlier month this year that is not locked yet stops the worked figure until it is locked and the run is prepared again, or the MTD is typed.
+    - **M1:** a typed MTD always gets past the schedule and band errors, with a warning instead.
+- **Not in HR-7d (later, each with the accountant):**
+  - additional remuneration (bonus, arrears and commission). A manual line that counts for MTD on a monthly run stops the worked figure, and the preparer types that person's MTD. Adjustment runs carry no MTD line in v1, which predates HR-7d (Suresh, M2), so the MTD on a bonus paid through an adjustment run is recorded outside KPOne for now;
+  - TP1 (other reliefs and rebates the employee claims);
+  - TP3 (pay, EPF, MTD and zakat from a previous employer this year);
+  - zakat;
+  - non-residents' flat rate;
+  - EA forms;
+  - CP39 or e-PCB files.
+- **TP3 gap:** a person who joined in the year after January gets a warning saying that previous employment (TP3) is not counted, so the preparer can check it and type the MTD instead.
+
+### 18.2 The MTD schedule (Tables tab)
+- **One schedule per year:**
+  - a source note (for example "LHDN schedule for 2026, as given by the accountant");
+  - the rounding (round up to the next 5 sen, to the nearest sen, or none);
+  - the smallest MTD that is deducted (a smaller result deducts nothing);
+  - the yearly reliefs: individual (D), spouse (S), disabled individual (DU), disabled spouse (SU), each child (Q), and the EPF relief limit;
+  - the bands, each with:
+    - "chargeable income from" (M) and "to";
+    - the rate (R);
+    - the tax on M for categories 1 and 3 (B);
+    - the tax on M for category 2 (B).
+- **No number is shipped.** The form suggests nothing and starts empty.
+- **Checked by someone other than the person who entered it,** with the same decider rule as the other tables (14.4): a Director, or the HR Manager when a Director entered it.
+  - It counts only once checked, and a later checked schedule for the same year replaces it.
+  - Rows are append-only, and every schedule says "To confirm with the clinic's accountant before real use."
+
+### 18.3 MTD details on the pay profile
+When "MTD" is ticked on a pay profile, it also holds:
+- the tax category: 1 (single), 2 (married, spouse not working) or 3 (married, spouse working);
+- the number of children for relief;
+- disabled individual (yes or no);
+- disabled spouse (yes or no; category 2 only).
+
+They are confirmed with the profile by someone else, as the profile already is. A profile saved before HR-7d, with no category, keeps the HR-7b behaviour: MTD typed for each run.
+
+### 18.4 How KPOne works it out (monthly run, normal remuneration)
+This follows the computerised method's structure: the yearly chargeable income spread over the remaining months.
+- **Y1:** this month's pay that counts for MTD.
+  - Basic or worked hours always count, and pay item types count where "counts for MTD" is ticked.
+  - Unpaid leave counts against it, as for the other schemes.
+- **K1:** this month's EPF employee part.
+- **Y and K:** the same, summed from the person's lines in this year's locked runs in KPOne.
+- **X:** the MTD already deducted in those runs.
+- **n:** the months left in the year after this one.
+- **Y2 = Y1** for each remaining month, and **K2 = K1**, with the EPF limit applied to the year's total.
+- **P** = Y − K + (Y1 − K1) + (Y2 − K2) × n − (D + S if category 2 + DU if disabled + SU if category 2 and disabled spouse + Q × children).
+  - P is never below zero.
+- **The band** is the one holding P, which gives M, R and B for the person's category.
+- **MTD for the month** = ((P − M) × R + B − X) ÷ (n + 1), then:
+  - never below zero;
+  - rounded as the schedule says;
+  - nothing deducted when below the smallest MTD.
+- **Whole sen throughout,** with one rounding at the end (PayrollMath).
+
+The line explains itself, for example: "MTD (PCB) · worked out: RM 34,560.00 chargeable for the year, category 1, 3 months left".
+
+### 18.5 Errors and warnings on the run
+- **Errors** (each becomes a warning when an MTD is typed for the person):
+  - no checked schedule for the run's year when a person's profile has MTD details;
+  - no band for P;
+  - one-off pay on this run that counts for MTD;
+  - an earlier month this year not locked yet;
+  - "MTD not entered" (unchanged) for a profile without MTD details.
+- **Warnings:**
+  - "Joined this year: previous employment (TP3) is not counted";
+  - "MTD typed for this run instead of RM x worked out".
+
+### 18.6 Permissions and rules
+- **No new permission:**
+  - the schedule uses `hr.payroll.prepare.organisation` to enter, and the existing decider rule to check;
+  - MTD details use the pay profile's own flow.
+- Every write follows the HR pattern: a fresh permission check under lock, `DB::transaction`, row locks, `lock_version`, an idempotency key, and audit with ids, codes and versions only, never an amount.
+- MTD details are not secret amounts: category, children and the disability flags. They are personal data, shown only where the pay profile is.
+
+### 18.7 Tables (sketch)
+| Table | Holds |
+|---|---|
+| `hr_mtd_schedules` | year, source note, rounding, the smallest MTD, the reliefs and the EPF limit (sen), status, entered by, decided by, lock version |
+| `hr_mtd_schedule_rows` | append-only: position, chargeable from and to (sen), rate (basis points), tax on M for categories 1 and 3, and for category 2 (sen) |
+| `hr_pay_profiles` (+) | `mtd_category`, `mtd_children`, `mtd_disabled_self`, `mtd_disabled_spouse` (nullable; required with MTD for new profiles) |
+
+Migrations from `2026_11_10_002900` (after HR-7c's `002800`).
+
+### 18.8 Screens (Hui Min, with Daniel's look)
+- **Tables tab:** an "MTD schedule" card beside the other tables (year, status, bands and reliefs), with Enter, Check, Reject and Withdraw as for the other tables.
+- **Pay profile form:** the MTD fields under the MTD tick.
+- **Run lines:** the worked-out MTD with its sentence, and the typed one marked as typed. The MTD box still lets the preparer type a figure.
+
+### 18.9 Tests (planned)
+- Hand-worked synthetic cases:
+  - category 1, 2 and 3;
+  - children and disability;
+  - a person over the EPF limit;
+  - January and December;
+  - a mid-year joiner with earlier runs in the year;
+  - rounding to 5 sen;
+  - below the smallest MTD.
+- Year to date counts only locked runs of the same year and the same person.
+- A typed MTD replaces the worked one, and the run says so.
+- No checked schedule, or no band, gives an error; a profile without details keeps "MTD not entered".
+- The two-person check and the PostgreSQL append-only rules on the schedule.
+- No amount in audit.
+
+### 18.10 Questions for the owner and the accountant [TO CONFIRM], with the defaults used
+1. **Method:** LHDN's computerised calculation for normal remuneration, with the clinic entering the year's schedule and reliefs (default). Or keep typing MTD from the LHDN calculator?
+2. **TP1, TP3 and zakat:** left for a later slice (default), with the mid-year joiner warning.
+3. **Bonuses and arrears** (additional remuneration): MTD typed by hand on the adjustment run (default).
+4. **Who may type over a worked-out MTD:** any preparer, with the run showing both figures (default).
+5. **Rounding and the smallest MTD:** entered on each year's schedule (default: no value shipped).
+
+### 18.11 Known risks and limits
+- Correctness depends entirely on the schedule and reliefs the clinic enters, and on the accountant confirming the method against LHDN's current specification.
+- TP1, TP3, zakat and additional remuneration are not counted in HR-7d, so those people need a typed MTD.
+- Year to date counts only KPOne's own locked runs. Pay from before KPOne payroll began is not counted.
+- Variable overtime is projected over the remaining months like basic pay (an accountant question).
+- Child relief has one rate for every child; LHDN's differs by the child's age, education and disability (Suresh, M4).
+- In a joiner's or leaver's month the part-month pay is projected over the remaining months, so that month's MTD is low; later months catch up through X.
+- Each band's "From" is M; with bands running on by one sen, M is 1 sen from LHDN's figure for later bands (negligible).
+- A worker in two regular runs for one month (a pay group change, from HR-7b) would be counted twice in the year to date.
+- Adjustment runs carry no MTD line in v1.
+- The person's MTD details are never flashed into the session (`dontFlash`).
+- Deploy note: drafts prepared before the deploy ask to be prepared again once, because the run fingerprint gains the MTD schedule.
+- An earlier month this year whose run was never prepared is not detected: the year to date silently lacks it.
