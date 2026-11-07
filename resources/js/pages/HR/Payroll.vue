@@ -5,11 +5,13 @@
 import { Head, router, usePage } from '@inertiajs/vue3';
 import { computed, reactive, ref } from 'vue';
 import AccountantNote from '@/components/hr/payroll/AccountantNote.vue';
+import ExportsTab from '@/components/hr/payroll/ExportsTab.vue';
 import MtdScheduleSheet from '@/components/hr/payroll/MtdScheduleSheet.vue';
 import ProfileSheet from '@/components/hr/payroll/ProfileSheet.vue';
 import RunsTab from '@/components/hr/payroll/RunsTab.vue';
 import TableSheet from '@/components/hr/payroll/TableSheet.vue';
 import type {
+    ExportRun,
     Option,
     Person,
     Profile,
@@ -43,7 +45,7 @@ import { StatusBadge } from '@/components/ui/status';
 import { OperationalTabs } from '@/components/ui/tabs';
 import { myr } from '@/types/billing';
 
-type Tab = 'runs' | 'profiles' | 'tables' | 'settings';
+type Tab = 'runs' | 'profiles' | 'tables' | 'settings' | 'exports';
 type Group = {
     id: string;
     name: string;
@@ -97,6 +99,7 @@ const props = defineProps<{
             months: Option[];
             prepareRefusal: string | null;
         } | null;
+        exports: { runs: ExportRun[] } | null;
         profiles: {
             people: Person[];
             waitingCount: number;
@@ -142,6 +145,7 @@ const tabLabels: Record<Tab, string> = {
     profiles: 'Pay profiles',
     tables: 'Tables',
     settings: 'Settings',
+    exports: 'Exports',
 };
 const tabs = computed(() =>
     props.payroll.tabs.map((value) => ({ value, label: tabLabels[value] })),
@@ -472,6 +476,11 @@ const saveRates = () => {
             :groups="payroll.options.groups"
             :ready="payroll.setUp.groups && payroll.setUp.checkedTables"
             :prepare-refusal="payroll.runs.prepareRefusal"
+        />
+
+        <ExportsTab
+            v-if="payroll.tab === 'exports' && payroll.exports"
+            :runs="payroll.exports.runs"
         />
 
         <!-- Pay profiles -->

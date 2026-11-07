@@ -70,6 +70,7 @@ export type VisitHistoryFinancial = {
     currency: string;
     state: BillingState;
     adjustment: InvoiceAdjustmentSummary;
+    refundCreditSen: number;
     lines: Array<{
         type: string;
         name: string;
@@ -81,6 +82,7 @@ export type VisitHistoryFinancial = {
     payments: Array<{
         receiptNumber: string;
         amountSen: number;
+        refundedSen: number;
         method: string;
         status: string;
         printUrl: string | null;

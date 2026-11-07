@@ -150,6 +150,34 @@ export type RunRow = {
     lockedAt: string | null;
 };
 
+/** HR-7c: a locked run on the Exports tab (the Director only in v1). */
+export type ExportRun = {
+    id: string;
+    kind: 'regular' | 'adjustment';
+    month: string;
+    group: string;
+    people: number;
+    netSen: number;
+    lockedAt: string;
+    missingBank: string[];
+    exports: number;
+    statutory: {
+        scheme: string;
+        people: number;
+        employeeSen: number;
+        employerSen: number;
+    }[];
+};
+
+/** HR-7c: one of your own payslips on My HR details, listed with no amount. */
+export type PayslipRow = {
+    id: string;
+    period: string;
+    kind: 'regular' | 'adjustment';
+    group: string;
+    issuedOn: string;
+};
+
 export const runWords: Record<RunStatus, string> = {
     draft: 'Draft',
     sent: 'Waiting for approval',

@@ -39,8 +39,11 @@ test('a refund is recorded for a reversed receipt and decided by someone else', 
             'You recorded this refund. Someone else must approve it.',
         ),
     );
+    // BIL-10 (owner-approved test change): refunds after completion are now available.
     assert.ok(
-        refunds.includes('A refund after completion is not available yet.'),
+        refunds.includes(
+            'Once approved, the invoice is lowered by the same amount, so nothing becomes due again.',
+        ),
     );
 });
 

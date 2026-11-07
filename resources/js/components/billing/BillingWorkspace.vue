@@ -501,6 +501,17 @@ const reverse = (receipt: Receipt) =>
                                 {{ receipt.method }} · {{ receipt.receivedAt }}
                             </p>
                             <p
+                                v-if="receipt.refundedSen"
+                                class="text-xs text-muted-foreground tabular-nums"
+                                data-testid="payment-refunded"
+                            >
+                                Refunded {{ myr(receipt.refundedSen) }} ·
+                                {{
+                                    myr(receipt.amountSen - receipt.refundedSen)
+                                }}
+                                kept
+                            </p>
+                            <p
                                 v-if="receipt.recordedBy"
                                 class="text-xs break-words text-muted-foreground"
                             >
@@ -646,7 +657,10 @@ const reverse = (receipt: Receipt) =>
                         </div>
                     </dl>
                     <dl
-                        v-if="billing.invoice.adjustment.adjustmentSen !== 0"
+                        v-if="
+                            billing.invoice.adjustment.adjustmentSen !== 0 ||
+                            billing.invoice.refundCreditSen
+                        "
                         class="mt-2 border-t pt-2 text-xs"
                     >
                         <div class="flex justify-between py-1">
@@ -657,7 +671,12 @@ const reverse = (receipt: Receipt) =>
                                 }}
                             </dd>
                         </div>
-                        <div class="flex justify-between py-1">
+                        <div
+                            v-if="
+                                billing.invoice.adjustment.adjustmentSen !== 0
+                            "
+                            class="flex justify-between py-1"
+                        >
                             <dt>
                                 {{
                                     billing.invoice.adjustment.adjustmentSen < 0
@@ -665,7 +684,7 @@ const reverse = (receipt: Receipt) =>
                                         : 'Surcharge'
                                 }}
                             </dt>
-                            <dd>
+                            <dd class="tabular-nums">
                                 {{
                                     billing.invoice.adjustment.adjustmentSen < 0
                                         ? '−'
@@ -678,6 +697,16 @@ const reverse = (receipt: Receipt) =>
                                         ),
                                     )
                                 }}
+                            </dd>
+                        </div>
+                        <div
+                            v-if="billing.invoice.refundCreditSen"
+                            class="flex justify-between py-1"
+                            data-testid="billing-refund-credit"
+                        >
+                            <dt>Refund credit</dt>
+                            <dd class="tabular-nums">
+                                −{{ myr(billing.invoice.refundCreditSen) }}
                             </dd>
                         </div>
                     </dl>
@@ -799,6 +828,21 @@ const reverse = (receipt: Receipt) =>
                                         <p class="mt-1 text-muted-foreground">
                                             {{ receipt.number }}
                                         </p>
+                                        <p
+                                            v-if="receipt.refundedSen"
+                                            class="text-xs text-muted-foreground tabular-nums"
+                                            data-testid="payment-refunded"
+                                        >
+                                            Refunded
+                                            {{ myr(receipt.refundedSen) }} ·
+                                            {{
+                                                myr(
+                                                    receipt.amountSen -
+                                                        receipt.refundedSen,
+                                                )
+                                            }}
+                                            kept
+                                        </p>
                                     </td>
                                     <td class="p-3">
                                         {{ receipt.receivedAt }}
@@ -869,6 +913,17 @@ const reverse = (receipt: Receipt) =>
                                 {{ receipt.number }} · {{ receipt.receivedAt }}
                             </p>
                             <p
+                                v-if="receipt.refundedSen"
+                                class="text-xs text-muted-foreground tabular-nums"
+                                data-testid="payment-refunded"
+                            >
+                                Refunded {{ myr(receipt.refundedSen) }} ·
+                                {{
+                                    myr(receipt.amountSen - receipt.refundedSen)
+                                }}
+                                kept
+                            </p>
+                            <p
                                 v-if="receipt.recordedBy"
                                 class="text-[11px] break-words text-muted-foreground"
                             >
@@ -920,6 +975,17 @@ const reverse = (receipt: Receipt) =>
                                     receipt.status
                                 }}</span>
                             </div>
+                            <p
+                                v-if="receipt.refundedSen"
+                                class="text-xs text-muted-foreground tabular-nums"
+                                data-testid="payment-refunded"
+                            >
+                                Refunded {{ myr(receipt.refundedSen) }} ·
+                                {{
+                                    myr(receipt.amountSen - receipt.refundedSen)
+                                }}
+                                kept
+                            </p>
                             <p
                                 v-if="receipt.recordedBy"
                                 class="text-[11px] break-words text-muted-foreground"

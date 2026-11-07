@@ -346,6 +346,7 @@ class VisitHistoryService
             ->whereIn('id', PaymentAllocation::query()->where('invoice_id', $invoice->id)->select('payment_id'))
             ->orderBy('id')->get();
         $canPrint = $actor->can('billing.print.branch');
+        $refunded = FinancialLedger::approvedRefundsByPayment($payments->pluck('id'));
 
         return [
             'invoiceNumber' => $invoice->invoice_number,
@@ -353,6 +354,7 @@ class VisitHistoryService
             'currency' => $invoice->currency,
             'state' => $this->ledger->state($invoice),
             'adjustment' => InvoiceAdjustmentService::summary($invoice),
+            'refundCreditSen' => (int) FinancialLedger::approvedCredits([$invoice->id])->sum('amount_sen'),
             'lines' => $canLines ? InvoiceLine::query()->where('invoice_id', $invoice->id)->orderBy('id')->get()
                 ->map(fn (InvoiceLine $line): array => [
                     'type' => $line->line_type,
@@ -365,6 +367,7 @@ class VisitHistoryService
             'payments' => $payments->map(fn (Payment $payment): array => [
                 'receiptNumber' => $payment->receipt_number,
                 'amountSen' => $payment->amount_sen,
+                'refundedSen' => $refunded[$payment->id] ?? 0,
                 'method' => $payment->method_snapshot,
                 'status' => $payment->status,
                 'printUrl' => $canPrint ? route('billing.receipt', [$visit, $invoice, $payment]) : null,

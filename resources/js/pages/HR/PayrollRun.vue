@@ -363,7 +363,7 @@ const statusTone = computed(() =>
                     v-if="run.status === 'locked'"
                     class="text-sm text-muted-foreground"
                 >
-                    Locked. Payslips and exports come with HR-7c.
+                    Locked. Each person's payslip is ready on My HR details.
                 </p>
             </template>
         </div>
