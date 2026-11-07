@@ -28,6 +28,7 @@ const props = defineProps<{
     categories: { epf: string[]; socso: string[] };
     maxItems: number;
     today: string;
+    mtdCategories: Option[];
 }>();
 const emit = defineEmits<{ 'update:open': [value: boolean] }>();
 
@@ -59,6 +60,11 @@ const form = reactive({
     } as Record<SchemeKey, boolean>,
     epfCategory: '',
     socsoCategory: '',
+    // HR-7d (HR-PLAN 18.3): optional MTD details; with a category KPOne works MTD out on monthly runs.
+    mtdCategory: 'none',
+    mtdChildren: '0',
+    mtdDisabledSelf: false,
+    mtdDisabledSpouse: false,
     items: [] as { type: string; amount: string }[],
     key: '',
     processing: false,
@@ -94,6 +100,10 @@ watch(
             },
             epfCategory: category('EPF'),
             socsoCategory: category('SOCSO'),
+            mtdCategory: category('MTD').match(/^category (\d)/)?.[1] ?? 'none',
+            mtdChildren: category('MTD').match(/, (\d+) child/)?.[1] ?? '0',
+            mtdDisabledSelf: /, disabled(,|$)/.test(category('MTD')),
+            mtdDisabledSpouse: category('MTD').includes('disabled spouse'),
             items: (current?.items ?? [])
                 .map((i) => ({
                     type:
@@ -105,6 +115,9 @@ watch(
             key: crypto.randomUUID(),
         });
     },
+);
+const worksOutMtd = computed(
+    () => form.schemes.mtd && ['1', '2', '3'].includes(form.mtdCategory),
 );
 const payTypes: Option[] = [
     { value: 'monthly', label: 'Monthly salary' },
@@ -135,6 +148,13 @@ const send = () => {
             eis: form.schemes.eis,
             mtd: form.schemes.mtd,
             hrd: form.schemes.hrd,
+            mtd_category: worksOutMtd.value ? form.mtdCategory : '',
+            mtd_children: worksOutMtd.value ? form.mtdChildren : '',
+            mtd_disabled_self: worksOutMtd.value && form.mtdDisabledSelf,
+            mtd_disabled_spouse:
+                form.schemes.mtd &&
+                form.mtdCategory === '2' &&
+                form.mtdDisabledSpouse,
             items: form.items.map((i) => ({
                 item_type_id: i.type,
                 amount: i.amount,
@@ -287,6 +307,82 @@ const send = () => {
                                         : errors.socso_category
                                 "
                             />
+                        </div>
+                        <div
+                            v-if="s.key === 'mtd' && form.schemes.mtd"
+                            class="grid gap-3 pl-6"
+                            data-test="profile-mtd-details"
+                        >
+                            <div class="grid gap-1.5">
+                                <Label for="profile-mtd-category"
+                                    ><span id="profile-mtd-category-label"
+                                        >Tax category</span
+                                    ></Label
+                                >
+                                <OperationalSelect
+                                    id="profile-mtd-category"
+                                    v-model="form.mtdCategory"
+                                    labelledby="profile-mtd-category-label"
+                                    label="Tax category"
+                                    placeholder="None: type MTD each run"
+                                    trigger-class="max-lg:h-11"
+                                    :options="[
+                                        {
+                                            value: 'none',
+                                            label: 'None: type MTD each run',
+                                        },
+                                        ...mtdCategories,
+                                    ]"
+                                    :invalid="!!errors.mtd_category"
+                                />
+                                <p class="text-xs text-muted-foreground">
+                                    With a category, KPOne works MTD out on
+                                    monthly runs once the year's MTD schedule is
+                                    checked.
+                                </p>
+                                <InputError :message="errors.mtd_category" />
+                            </div>
+                            <template v-if="worksOutMtd">
+                                <div class="grid gap-1.5">
+                                    <Label for="profile-mtd-children"
+                                        >Children for relief</Label
+                                    >
+                                    <Input
+                                        id="profile-mtd-children"
+                                        v-model="form.mtdChildren"
+                                        inputmode="numeric"
+                                        maxlength="2"
+                                        class="w-24 text-right tabular-nums max-lg:h-11"
+                                        :aria-invalid="!!errors.mtd_children"
+                                    />
+                                    <InputError
+                                        :message="errors.mtd_children"
+                                    />
+                                </div>
+                                <label
+                                    class="flex min-h-11 items-center gap-2 text-sm lg:min-h-0"
+                                >
+                                    <input
+                                        v-model="form.mtdDisabledSelf"
+                                        type="checkbox"
+                                        class="size-4"
+                                        data-test="profile-mtd-disabled"
+                                    />
+                                    Disabled individual
+                                </label>
+                                <label
+                                    v-if="form.mtdCategory === '2'"
+                                    class="flex min-h-11 items-center gap-2 text-sm lg:min-h-0"
+                                >
+                                    <input
+                                        v-model="form.mtdDisabledSpouse"
+                                        type="checkbox"
+                                        class="size-4"
+                                        data-test="profile-mtd-disabled-spouse"
+                                    />
+                                    Disabled spouse
+                                </label>
+                            </template>
                         </div>
                     </template>
                     <datalist id="profile-epf-categories">
