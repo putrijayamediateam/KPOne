@@ -176,6 +176,11 @@ class InvoiceReceiptLayoutTest extends BillingTestCase
         $this->assertSame('Medicine', IssuedBillingDocumentService::category('medicine', null));
         $this->assertSame('Procedure', IssuedBillingDocumentService::category('service', ' Procedures '));
         $this->assertSame('Investigation', IssuedBillingDocumentService::category('service', 'investigation'));
+        // CAT-11's fixed list ("Procedure(s)", "Investigation(s)"); "Consultation-related" and "Other service" count as Service.
+        $this->assertSame('Procedure', IssuedBillingDocumentService::category('service', 'Procedure(s)'));
+        $this->assertSame('Investigation', IssuedBillingDocumentService::category('service', 'Investigation(s)'));
+        $this->assertSame('Service', IssuedBillingDocumentService::category('service', 'Consultation-related'));
+        $this->assertSame('Service', IssuedBillingDocumentService::category('service', 'Test')); // Free text saved before CAT-11.
         $this->assertSame('Service', IssuedBillingDocumentService::category('service', 'Wound care'));
         $this->assertSame('Service', IssuedBillingDocumentService::category('service', null));
         $this->assertSame(['Service', 'Procedure', 'Investigation', 'Consultation', 'Medicine', 'Document', 'Package'], IssuedBillingDocumentService::CATEGORIES);

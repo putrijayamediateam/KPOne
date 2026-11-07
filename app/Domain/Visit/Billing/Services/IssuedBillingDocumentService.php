@@ -259,8 +259,8 @@ final class IssuedBillingDocumentService
         }
 
         return match (mb_strtolower(trim((string) $serviceCategory))) {
-            'procedure', 'procedures' => 'Procedure',
-            'investigation', 'investigations' => 'Investigation',
+            'procedure', 'procedures', 'procedure(s)' => 'Procedure',
+            'investigation', 'investigations', 'investigation(s)' => 'Investigation',
             default => 'Service',
         };
     }
