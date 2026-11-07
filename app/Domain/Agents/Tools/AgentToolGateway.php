@@ -80,7 +80,8 @@ final class AgentToolGateway
      * The "system" path for scheduled runs (contract section 5, owner decision 2026-11-05; built in AG-6 at the
      * owner's choice on 2026-11-06). Reads with no person's authority, only for a started, unfinished run that no
      * person asked for, only from the console (never from a web request), only data sources on the run's agent
-     * allowlist that are SystemReadableTool, and only at the run's own active branch (or, for an organisation-wide tool, with no branch on a branchless run). Every read is checked by
+     * allowlist that are SystemReadableTool, and only at the run's own active branch (or, for a tool marked
+     * OrganisationWideSystemTool, with no branch on a branchless run). Every read is checked by
      * the aggregate guard and logged as a `data_read` step. People's permissions apply when results are shown.
      *
      * @param  array<string, mixed>  $input
@@ -107,9 +108,9 @@ final class AgentToolGateway
             throw new AuthorizationException('This agent may not use that data source.');
         }
         if ($branch === null) {
-            // An organisation-wide read (AG-8: Faris's system health, Lina's all-branch figures) needs a run with no
-            // branch and a tool that is not branch-scoped.
-            if ($run->branch_id !== null || str_ends_with($tool->requiredPermission(), '.branch')) {
+            // An organisation-wide read (Faris's system health) needs a run with no branch and a tool explicitly marked
+            // organisation-wide (AG-12), never a guess from the permission name.
+            if ($run->branch_id !== null || ! $tool instanceof OrganisationWideSystemTool) {
                 throw new AuthorizationException('This data source is read one branch at a time.');
             }
         } else {
