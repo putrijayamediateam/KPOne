@@ -78,9 +78,9 @@ class KPOneDemoSetupSeeder extends Seeder
 
     /** @var list<array{code: string, display_name: string, order_unit: string, category: string, self_pay_sen: int, panel_default_sen: int}> */
     public const SERVICES = [
-        ['code' => 'DEMO-NEB', 'display_name' => 'Nebulisation', 'order_unit' => 'session', 'category' => 'Procedure', 'self_pay_sen' => 2500, 'panel_default_sen' => 2000],
-        ['code' => 'DEMO-DRESS', 'display_name' => 'Simple wound dressing', 'order_unit' => 'session', 'category' => 'Procedure', 'self_pay_sen' => 2000, 'panel_default_sen' => 1500],
-        ['code' => 'DEMO-GLUCOSE', 'display_name' => 'Capillary blood glucose test', 'order_unit' => 'test', 'category' => 'Test', 'self_pay_sen' => 1000, 'panel_default_sen' => 800],
+        ['code' => 'DEMO-NEB', 'display_name' => 'Nebulisation', 'order_unit' => 'session', 'category' => 'Procedure(s)', 'self_pay_sen' => 2500, 'panel_default_sen' => 2000],
+        ['code' => 'DEMO-DRESS', 'display_name' => 'Simple wound dressing', 'order_unit' => 'session', 'category' => 'Procedure(s)', 'self_pay_sen' => 2000, 'panel_default_sen' => 1500],
+        ['code' => 'DEMO-GLUCOSE', 'display_name' => 'Capillary blood glucose test', 'order_unit' => 'test', 'category' => 'Investigation(s)', 'self_pay_sen' => 1000, 'panel_default_sen' => 800],
     ];
 
     /** @var array{code: string, display_name: string, self_pay_sen: int, panel_default_sen: int} */
