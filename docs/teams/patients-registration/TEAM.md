@@ -88,6 +88,8 @@ team's Reviewer is Hafiz, with the same role and rules.
 | REG-6 | Patient create, patient edit and Registration Quick create fit a 320 or 390 px phone: the phone number box can shrink, and below 640 px the phone country list and the Quick create identity type list stack above their box at full width; the Patient create identifier box and its fields stay inside their border. Layout only | #285 (`b77d244`) |
 | REG-7 | Screen-reader names: the public QR form's 4 back buttons carry "Kembali" on the button with the arrow icon hidden; the shared `OperationalSelect` names its open option list like its trigger (`aria-label`, or `aria-labelledby` when the caller passes `labelledby`), on every screen that uses it. Frontend only, no visual change | #300 (`8bc868f`) |
 | REG-8 | PostgreSQL contention test for patient merges (test only): two approvers on one request, approve against reject, approve against the proposer withdrawing, two proposals for the same duplicate, and approving A←B and B←C at once; each race proves both sessions wait on the shared patient row, and exactly one wins with no chain | pending (branch `feature/reg-8-merge-approval-contention`) |
+| MC-1 | Medical certificate DRAFT layout matching the clinic's printed paper (renderer `mc-a4-v2`, template revision 2 in EN and BM; still DRAFT, `production_approved` false): uppercase letterhead with Email and Tel, title, right-aligned MC No and date, bold name and identifier, bold-underlined days and dates, blank re-examine, resume and "Diagnosis" lines, "(NOT VALID IN THE COURT OF LAW)", signature line "<Doctor> (MMC No: n)". New MCs use revision 2; issued MCs keep their frozen snapshot; revision 1 unchanged. Five owner-approved assertion changes (`MedicalCertificateTest` :88, :92; `ClinicianCredentialsTest` :170, :172, :251) | not merged yet (`feature/doc-mc-1-layout`) |
+| DD-08 (this team's part) | The QR intake list's status chips (`QrIntakeTable.vue`) move from pale palette colours with no dark style to theme tokens, with the same choices as DD-38 (#331) on the board: Pending warning, Reviewed accent, Rejected danger, Expired and Data Purged outline. Text contrast is at least 4.5:1 in light and dark. Frontend only; the owner said "yes, start DD-08" on 2026-11-06 | not merged yet (`fix/dd-08-qr-intake-chips-dark`) |
 
 ## 6. Owner decisions already made (never ask again)
 
@@ -148,6 +150,12 @@ team's Reviewer is Hafiz, with the same role and rules.
     of Patient create, then REG-7 accessible names (the public QR form's icon-only back buttons and this team's
     SMOKE-1 S1-009 to S1-014 items). REG-7 leaves to Staff Experience's UX-6 the two labels it already adds in this
     team's files (the cancellation reason on `Registration/Show.vue` and the issuer box on `Patient/Index.vue`).
+21. **MC slice 1 (owner, 2026-11-06, in this session and relayed by B.E.R.N.I.S.S):** "yes, build MC slice 1" on the
+    recommended scope: DRAFT still, KPOne's MC number format kept, one phone line, a blank "Diagnosis: ________" line (no
+    diagnosis is ever filled in by KPOne), blank re-examine and resume lines, the court notice, the new signature line,
+    EN and BM both DRAFT, DRAFT banner kept. "approve the 3 MC assertions", then "approve the MC test changes for
+    nurul" (all five). Approved wording and `production_approved` (slice 2) wait for a named doctor's sign-off. The MC
+    "Date:" uses dd/mm/yyyy, the same as the body dates (owner, relayed word for word: "go with 1 for the MC date").
 
 ## 7. Open items and known limits
 

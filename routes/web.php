@@ -36,6 +36,7 @@ use App\Http\Controllers\HR\AttendanceController as HrAttendanceController;
 use App\Http\Controllers\HR\ClaimsController as HrClaimsController;
 use App\Http\Controllers\HR\CredentialsController as HrCredentialsController;
 use App\Http\Controllers\HR\LeaveController;
+use App\Http\Controllers\HR\PayrollController as HrPayrollController;
 use App\Http\Controllers\HR\RecordsController as HrRecordsController;
 use App\Http\Controllers\HR\RosterController;
 use App\Http\Controllers\HR\SopsController as HrSopsController;
@@ -256,6 +257,27 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::middleware(['permission:hr.claims.manage.organisation', 'throttle:30,1'])->group(function (): void {
             Route::post('settings', 'saveSettings')->name('hr.claims.settings');
             Route::post('categories', 'saveCategory')->name('hr.claims.categories.save');
+        });
+    });
+
+    // HR-7a payroll setup (HR-PLAN 14; TEAM.md decision 43). No calculation, payment or filing; synthetic data only.
+    Route::prefix('hr/payroll')->controller(HrPayrollController::class)->middleware(['sensitive.no-store', 'permission:hr.payroll.prepare.organisation'])->group(function (): void {
+        Route::get('/', 'index')->name('hr.payroll.index');
+        Route::get('runs/{run}', 'showRun')->whereUuid('run')->name('hr.payroll.runs.show');
+        Route::middleware('throttle:60,1')->group(function (): void {
+            Route::post('profiles', 'enterProfile')->name('hr.payroll.profiles.enter');
+            Route::post('profiles/{profile}/withdraw', 'withdrawProfile')->whereUuid('profile')->name('hr.payroll.profiles.withdraw');
+            Route::post('profiles/{profile}/{decision}', 'decideProfile')->whereUuid('profile')->whereIn('decision', ['confirm', 'reject'])->name('hr.payroll.profiles.decide');
+            Route::post('tables', 'enterTable')->name('hr.payroll.tables.enter');
+            Route::post('tables/{table}/withdraw', 'withdrawTable')->whereUuid('table')->name('hr.payroll.tables.withdraw');
+            Route::post('tables/{table}/{decision}', 'decideTable')->whereUuid('table')->whereIn('decision', ['check', 'reject'])->name('hr.payroll.tables.decide');
+            Route::post('groups', 'saveGroup')->name('hr.payroll.groups.save');
+            Route::post('item-types', 'saveItemType')->name('hr.payroll.item-types.save');
+            Route::post('rates', 'saveRates')->name('hr.payroll.rates.save');
+            Route::post('line-types', 'saveLineTypes')->name('hr.payroll.line-types.save');
+            Route::post('runs', 'prepareRun')->name('hr.payroll.runs.prepare');
+            Route::post('runs/{run}/manual/{line}/remove', 'removeManual')->whereUuid('run')->whereUuid('line')->name('hr.payroll.runs.manual.remove');
+            Route::post('runs/{run}/{step}', 'runStep')->whereUuid('run')->whereIn('step', ['again', 'mtd', 'manual', 'send', 'approve', 'return', 'lock'])->name('hr.payroll.runs.step');
         });
     });
 
@@ -765,6 +787,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
             ->whereUuid('dispensaryCase')->whereUuid('item')->middleware(['permission:dispensary.update.branch', 'throttle:60,1'])->name('dispensary.items.remove');
         Route::post('dispensary/{dispensaryCase}/medicines/search', [DispensaryController::class, 'searchMedicines'])
             ->whereUuid('dispensaryCase')->middleware(['permission:dispensary.update.branch', 'throttle:60,1'])->name('dispensary.medicines.search');
+        // DSP-12: find the medicine mapped to a scanned SKU for the Add a medicine picker (read only).
+        Route::post('dispensary/{dispensaryCase}/medicines/by-sku', [DispensaryController::class, 'medicinesForSku'])
+            ->whereUuid('dispensaryCase')->middleware(['permission:dispensary.update.branch', 'throttle:60,1'])->name('dispensary.medicines.by-sku');
         Route::post('dispensary/{dispensaryCase}/services', [DispensaryController::class, 'addService'])
             ->whereUuid('dispensaryCase')->middleware(['permission:dispensary.update.branch', 'throttle:60,1'])->name('dispensary.services.add');
         Route::put('dispensary/{dispensaryCase}/services/{line}/final', [DispensaryController::class, 'editService'])

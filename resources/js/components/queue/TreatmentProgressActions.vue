@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { router } from '@inertiajs/vue3';
-import { Activity, CheckCircle2, LoaderCircle, XCircle } from '@lucide/vue';
+import { Activity, CheckCircle2, ChevronDown, LoaderCircle } from '@lucide/vue';
 import { computed, nextTick, ref, watch } from 'vue';
 import { Button } from '@/components/ui/button';
 import {
@@ -59,6 +59,8 @@ const cancelReason = ref('');
 const error = ref('');
 const busy = ref(false);
 const busyAction = ref<'start' | 'done' | 'cancel' | null>(null);
+// Q-2c (Mira): which action the error belongs to, so it shows beside the control in use.
+const errorAction = ref<'start' | 'done' | 'cancel' | null>(null);
 let key = '';
 let keyAction = '';
 const state = computed(() => props.progress?.state ?? null);
@@ -80,6 +82,8 @@ const submit = (action: 'start' | 'done' | 'cancel') => {
     if (busy.value || !props.progress) {
         return;
     }
+
+    errorAction.value = action;
 
     if (action === 'start' && !stepCode.value) {
         error.value = 'Select a treatment step.';
@@ -164,11 +168,6 @@ const submit = (action: 'start' | 'done' | 'cancel') => {
                 class="size-4"
                 aria-hidden="true"
             />
-            <XCircle
-                v-else-if="state === 'done'"
-                class="size-4"
-                aria-hidden="true"
-            />
             <Activity v-else class="size-4" aria-hidden="true" />
         </template>
         {{ treatmentButtonLabel(progress) }}
@@ -198,12 +197,13 @@ const submit = (action: 'start' | 'done' | 'cancel') => {
                         state === 'started'
                             ? 'The attending doctor will be alerted to resume.'
                             : state === 'done'
-                              ? 'Waiting for the doctor to resume. Cancel only if this was entered in error.'
+                              ? 'Waiting for the doctor to resume. You can start the next step now.'
                               : 'Choose the step. This is for the board only. It is not a clinical record and is not shown on the TV.'
                     }}
                 </DialogDescription>
             </DialogHeader>
-            <label v-if="!state" class="grid gap-2"
+            <!-- Q-2c (Yasmin): the next step can start while a finished one waits for the doctor. -->
+            <label v-if="!state || state === 'done'" class="grid gap-2"
                 >Treatment step *
                 <select
                     v-model="stepCode"
@@ -222,14 +222,14 @@ const submit = (action: 'start' | 'done' | 'cancel') => {
                     </option>
                 </select>
                 <span
-                    v-if="error"
+                    v-if="error && errorAction !== 'cancel'"
                     id="treatment-progress-error"
                     role="alert"
                     class="text-sm text-destructive"
                     >{{ error }}</span
                 >
             </label>
-            <div v-else class="grid gap-2">
+            <div v-if="state" class="grid gap-2">
                 <Button
                     type="button"
                     variant="ghost"
@@ -238,15 +238,22 @@ const submit = (action: 'start' | 'done' | 'cancel') => {
                     aria-controls="treatment-progress-cancel-panel"
                     data-testid="treatment-progress-cancel-toggle"
                     @click="showCancel = !showCancel"
-                    >Entered in error?</Button
-                >
+                    >Entered in error?<ChevronDown
+                        class="size-4 transition-transform"
+                        :class="showCancel ? 'rotate-180' : ''"
+                        aria-hidden="true"
+                /></Button>
                 <div
                     v-if="showCancel"
                     id="treatment-progress-cancel-panel"
                     class="grid gap-2 rounded-md border p-3"
                 >
                     <p class="text-sm font-medium">
-                        Cancel this step (entered in error)
+                        {{
+                            state === 'done'
+                                ? `Cancel “${progress?.label}” (entered in error)`
+                                : 'Cancel this step (entered in error)'
+                        }}
                     </p>
                     <label class="grid gap-2 text-sm"
                         >Reason *
@@ -254,7 +261,7 @@ const submit = (action: 'start' | 'done' | 'cancel') => {
                             v-model="cancelReason"
                             required
                             :aria-invalid="!!error && !cancelReason"
-                            aria-describedby="treatment-progress-error"
+                            aria-describedby="treatment-progress-cancel-error"
                             class="min-h-11 w-full rounded-md border bg-background px-3 aria-invalid:border-destructive dark:scheme-dark"
                         >
                             <option value="">Select a reason</option>
@@ -267,8 +274,12 @@ const submit = (action: 'start' | 'done' | 'cancel') => {
                             </option>
                         </select>
                         <span
-                            v-if="error"
-                            id="treatment-progress-error"
+                            v-if="
+                                error &&
+                                (errorAction === 'cancel' ||
+                                    state === 'started')
+                            "
+                            id="treatment-progress-cancel-error"
                             role="alert"
                             class="text-sm text-destructive"
                             >{{ error }}</span
@@ -308,7 +319,6 @@ const submit = (action: 'start' | 'done' | 'cancel') => {
                     >Close</Button
                 >
                 <Button
-                    v-if="state !== 'done'"
                     type="button"
                     class="min-h-11 gap-1.5"
                     :disabled="busy"
@@ -329,7 +339,9 @@ const submit = (action: 'start' | 'done' | 'cancel') => {
                               ? 'Marking done…'
                               : state === 'started'
                                 ? 'Mark done'
-                                : 'Start'
+                                : state === 'done'
+                                  ? 'Start next step'
+                                  : 'Start'
                     }}
                 </Button>
             </DialogFooter>
