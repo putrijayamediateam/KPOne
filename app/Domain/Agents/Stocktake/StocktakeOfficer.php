@@ -22,9 +22,8 @@ use Illuminate\Auth\Access\AuthorizationException;
  * Notes: a completed count that a later reversal case undoes still counts as completed (the count did
  * happen). Stock under an inactive SKU or item is still counted as due while it is on hand.
  *
- * The requester is the person whose authority the read uses. The gateway needs one today; the 07:00 run
- * acts as "system" (contract section 5), so AG-8 adds the gateway's system path and a matching entry point
- * here. Do not invent a requester for scheduled runs.
+ * The requester is the person whose authority the read uses; the 07:00 run passes none and reads through the
+ * gateway's system path (contract section 5, AG-8). Do not invent a requester for scheduled runs.
  */
 final class StocktakeOfficer
 {
@@ -39,13 +38,16 @@ final class StocktakeOfficer
 
     public function __construct(private AgentToolGateway $gateway, private AgentRunRecorder $recorder) {}
 
-    public function check(AiAgentRun $run, User $requester, Branch $branch): StocktakeCheck
+    /** With no requester (the 07:00 run, AG-8) the read goes through the gateway's system path. */
+    public function check(AiAgentRun $run, ?User $requester, Branch $branch): StocktakeCheck
     {
         $agent = AiAgent::query()->whereKey($run->ai_agent_id)->where('organisation_id', $run->organisation_id)->first();
         if (! $agent || $agent->code !== self::AGENT) {
             throw new AuthorizationException('Only the stocktake officer runs this check.');
         }
-        $read = $this->gateway->call($run, 'inventory.stock_counts', $requester, $branch);
+        $read = $requester === null
+            ? $this->gateway->callAsSystem($run, 'inventory.stock_counts', $branch)
+            : $this->gateway->call($run, 'inventory.stock_counts', $requester, $branch);
         $result = self::evaluate($read);
         $this->recorder->step($run, 'decision', $result->summary());
 
