@@ -2,6 +2,7 @@
 // HR-4a /hr/records: My HR details (everyone) and Staff files (Director, HR Manager). HR-PLAN 11.2 and 11.6.
 import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import { computed, reactive, ref, watch } from 'vue';
+import type { PayslipRow } from '@/components/hr/payroll/types';
 import CorrectionSheet from '@/components/hr/records/CorrectionSheet.vue';
 import DocumentList from '@/components/hr/records/DocumentList.vue';
 import OwnValue from '@/components/hr/records/OwnValue.vue';
@@ -92,6 +93,7 @@ const props = defineProps<{
         options: RecordOptions;
         canManage: boolean;
         my: My | null;
+        payslips: PayslipRow[];
         files: {
             filters: {
                 q: string;
@@ -916,6 +918,50 @@ const sendLocum = () => {
                         empty-title="No documents yet."
                         empty-description="HR adds your contract and other documents here. Ask HR if one is missing."
                     />
+                </section>
+
+                <!-- HR-7c: your own payslips, newest first; each opens on its own page, and opening it is recorded. -->
+                <section
+                    class="flex flex-col gap-3 rounded-xl border bg-card p-4"
+                    aria-labelledby="my-payslips"
+                    data-test="my-payslips"
+                >
+                    <h3 id="my-payslips" class="text-sm font-semibold">
+                        My payslips
+                    </h3>
+                    <ul
+                        v-if="records.payslips.length"
+                        class="flex flex-col divide-y"
+                    >
+                        <li
+                            v-for="p in records.payslips"
+                            :key="p.id"
+                            class="flex flex-wrap items-center justify-between gap-2 py-2 text-sm"
+                            data-test="my-payslip"
+                        >
+                            <span class="min-w-0">
+                                <span class="font-medium">{{
+                                    p.kind === 'adjustment'
+                                        ? `${p.period} (adjustment)`
+                                        : p.period
+                                }}</span>
+                                <span class="text-muted-foreground">
+                                    · {{ p.group }} · issued
+                                    {{ p.issuedOn }}</span
+                                >
+                            </span>
+                            <Link
+                                :href="`/hr/payslips/${p.id}`"
+                                class="inline-flex min-h-11 items-center rounded-md border px-3 text-sm font-medium hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none lg:min-h-9"
+                                :aria-label="`Open payslip for ${p.period}`"
+                                >Open</Link
+                            >
+                        </li>
+                    </ul>
+                    <p v-else class="text-sm text-muted-foreground">
+                        No payslips yet. Each one appears here once HR locks
+                        that month's payroll run.
+                    </p>
                 </section>
             </template>
         </section>

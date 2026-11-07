@@ -30,6 +30,7 @@ if (authenticationHistory.ready) {
                 case name === 'Dispensary/Labels':
                 case name === 'Billing/Print':
                 case name === 'PanelClaims/Pack':
+                case name === 'HR/Payslip':
                 case name === 'QueueDisplay/Screen':
                     return null;
                 case name.startsWith('PublicCheckIn/'):

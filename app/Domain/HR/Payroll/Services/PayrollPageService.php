@@ -19,7 +19,7 @@ use Illuminate\Support\Facades\DB;
  */
 final class PayrollPageService
 {
-    public function __construct(private PayrollSetupService $setup, private RecordSupport $support, private PayrollRunPageService $runs) {}
+    public function __construct(private PayrollSetupService $setup, private RecordSupport $support, private PayrollRunPageService $runs, private PayrollExportService $exports) {}
 
     /**
      * @param  array<string, mixed>  $query
@@ -27,9 +27,11 @@ final class PayrollPageService
      */
     public function page(User $actor, array $query): array
     {
-        // Pay profiles stay the default tab: a clinic sets profiles and tables up before its first run.
-        $tabs = ['runs', 'profiles', 'tables', 'settings'];
-        $tab = in_array($query['tab'] ?? null, $tabs, true) ? (string) $query['tab'] : 'profiles';
+        // Pay profiles stay the default tab: a clinic sets profiles and tables up before its first run. HR-7c adds
+        // Exports for exporters (the Director only in v1); an exporter who does not prepare sees only Exports.
+        $prepares = $actor->can(PayrollPermissions::PREPARE);
+        $tabs = [...($prepares ? ['runs', 'profiles', 'tables', 'settings'] : []), ...($actor->can(PayrollPermissions::EXPORT) ? ['exports'] : [])];
+        $tab = in_array($query['tab'] ?? null, $tabs, true) ? (string) $query['tab'] : ($prepares ? 'profiles' : 'exports');
         $org = $actor->organisation_id;
         $today = CarbonImmutable::now($this->zone($org))->toDateString();
         $groups = DB::table('hr_pay_groups')->where('organisation_id', $org)->orderBy('name')->get();
@@ -63,6 +65,7 @@ final class PayrollPageService
             'setUp' => ['groups' => $groups->where('is_active', true)->isNotEmpty(), 'rates' => $rates->isNotEmpty(),
                 'checkedTables' => DB::table('hr_statutory_tables')->where('organisation_id', $org)->where('status', 'checked')->exists()],
             'runs' => $tab === 'runs' ? $this->runs->list($actor) : null,
+            'exports' => $tab === 'exports' ? ['runs' => $this->exports->runs($actor)] : null,
             'profiles' => $tab === 'profiles' ? $this->profiles($actor, $today, $names) : null,
             'tables' => $tab === 'tables' ? $this->tables($actor, $names) : null,
             'settings' => $tab === 'settings' ? [
