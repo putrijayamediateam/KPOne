@@ -15,7 +15,7 @@ use Illuminate\Support\Facades\DB;
  * consultation minutes. `waitingNow` (entries still waiting) is given for today only. Counts and the
  * doctor's display name (contract section 14) only; no patient data.
  */
-final class ClinicDaySummaryTool implements AgentTool
+final class ClinicDaySummaryTool implements SystemReadableTool
 {
     use ReadsBranches;
 
@@ -38,6 +38,13 @@ final class ClinicDaySummaryTool implements AgentTool
 
     public function run(User $requester, ?Branch $branch, array $input): array
     {
+        return $this->runForOrganisation($requester->organisation_id, $branch, $input);
+    }
+
+    public function runForOrganisation(int $organisationId, ?Branch $branch, array $input): array
+    {
+        // AG-8: an organisation scope, never a person (see ReadsBranches::organisationScope).
+        $requester = $this->organisationScope($organisationId);
         $doctors = collect($this->reports->doctors($requester))->pluck('name', 'id');
         $result = [];
         foreach ($this->branchesFor($requester, $branch) as $each) {

@@ -30,6 +30,10 @@ test('the AI agents group lists the registry, the office and the inbox under the
     );
     assert.match(
         nav,
+        /\[\$actor->can\('ai_daily_summary\.view\.branch'\), 'AI daily summary', .*'agents\.daily-summary'\]/,
+    );
+    assert.match(
+        nav,
         /\[\$activeBranch !== null && \$actor->can\('ai_proposals\.view\.branch'\) && \$this->branches->hasEffectiveAssignment\(\$actor, \$activeBranch\), 'Approval inbox', .*'agents\.inbox'\]/,
     );
 });

@@ -33,11 +33,11 @@ class AgentMenuLinksTest extends VisitTestCase
     public function test_each_role_sees_exactly_the_agent_pages_it_may_open_and_every_link_opens(): void
     {
         $expected = [
-            'director' => ['/agents', '/agents/office', '/agents/assistant', '/agents/inbox'],
-            'administrator' => ['/agents', '/agents/office'],
+            'director' => ['/agents', '/agents/office', '/agents/assistant', '/agents/daily-summary', '/agents/inbox'],
+            'administrator' => ['/agents', '/agents/office', '/agents/daily-summary'],
             'technical_admin' => ['/agents', '/agents/office'],
-            'ca_supervisor' => ['/agents/inbox'],
-            'finance_officer' => ['/agents/inbox'],
+            'ca_supervisor' => ['/agents/daily-summary', '/agents/inbox'],
+            'finance_officer' => ['/agents/daily-summary', '/agents/inbox'],
             'ca' => [],
             'resident_doctor' => [],
             'panel_officer' => [],
@@ -59,7 +59,7 @@ class AgentMenuLinksTest extends VisitTestCase
     {
         $links = collect($this->agentLinks('director'))->keyBy('href');
 
-        $this->assertSame(['All agents', 'Agent office', 'Quick answers', 'Approval inbox'], $links->pluck('title')->values()->all());
+        $this->assertSame(['All agents', 'Agent office', 'Quick answers', 'AI daily summary', 'Approval inbox'], $links->pluck('title')->values()->all());
         $this->assertStringContainsString('Approving changes nothing in stock.', $links['/agents/inbox']['description']);
     }
 
@@ -67,8 +67,9 @@ class AgentMenuLinksTest extends VisitTestCase
     {
         $other = Branch::query()->where('organisation_id', $this->organisation->id)->whereKeyNot($this->branch->id)->where('is_active', true)->firstOrFail();
 
-        // Quick answers is not tied to one branch (it reads the branches the Director works at), so it stays.
-        $this->assertSame(['/agents', '/agents/office', '/agents/assistant'], array_column($this->agentLinks('director', $other), 'href'));
+        // Quick answers and the AI daily summary are not tied to one branch (they read the branches the Director
+        // works at), so they stay.
+        $this->assertSame(['/agents', '/agents/office', '/agents/assistant', '/agents/daily-summary'], array_column($this->agentLinks('director', $other), 'href'));
         $this->get('/agents/inbox')->assertForbidden();
     }
 }

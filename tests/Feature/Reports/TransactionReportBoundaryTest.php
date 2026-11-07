@@ -15,16 +15,13 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
-use Spatie\Permission\Models\Role;
-use Spatie\Permission\PermissionRegistrar;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 use Tests\Feature\Billing\BillingTestCase;
-use Tests\Support\LegacyTransactionReportService;
 
 /**
- * BIL-8: Transaction Detail runs on the shared BranchReportService boundary with byte-identical output. The oracle is a
- * verbatim copy of the service before the move; every screen page, filter, CSV byte, audit row and refusal must match.
- * Patient identity is still prepared only for the rows shown (or the capped download), never for the whole period.
+ * BIL-8: Transaction Detail runs on the shared BranchReportService boundary. Patient identity is prepared only for the
+ * rows shown (or the capped download), never for the whole period. BIL-10 changed Transaction Detail on purpose, so the
+ * frozen pre-BIL-8 copy and its byte-for-byte comparison were retired, as agreed when BIL-8 merged.
  */
 class TransactionReportBoundaryTest extends BillingTestCase
 {
@@ -77,75 +74,6 @@ class TransactionReportBoundaryTest extends BillingTestCase
         return [$result, $audits];
     }
 
-    public function test_every_page_filter_file_audit_and_refusal_is_byte_identical_to_the_service_before_the_move(): void
-    {
-        $actor = $this->fixture();
-        $cashId = (string) PaymentMethod::query()->where('code', 'SYN-CASH')->value('id');
-        $scenarios = [
-            'form' => [$this->input(), false, false],
-            'page 1' => [$this->input(), true, false],
-            'page 2' => [$this->input(['page' => 2]), true, false],
-            'cash only' => [$this->input(['methods' => [$cashId]]), true, false],
-            'consultation only' => [$this->input(['visit_types' => ['consultation']]), true, false],
-            'otc only' => [$this->input(['visit_types' => ['otc']]), true, false],
-            'download' => [$this->input(), false, true],
-            'download cash' => [$this->input(['methods' => [$cashId]]), false, true],
-            'page unavailable' => [$this->input(['page' => 3]), true, false],
-            'empty day' => [$this->input(['from' => '2026-11-01', 'to' => '2026-11-01']), true, false],
-            // Several validation errors at once: their order follows the rule order (filterRules).
-            'invalid filters' => [['from' => '2026-11-06', 'to' => '2026-11-05', 'page' => 0, 'methods' => ['999999'], 'visit_types' => ['x'], 'doctor' => '1'], true, false],
-            'over 31 days' => [$this->input(['from' => '2026-10-01', 'to' => '2026-11-06']), true, false],
-        ];
-        foreach ($scenarios as $name => [$input, $run, $download]) {
-            $legacy = $this->capture(fn () => app(LegacyTransactionReportService::class)->execute($actor, $input, $run, $download));
-            $live = $this->capture(fn () => app(TransactionReportService::class)->execute($actor, $input, $run, $download));
-            $this->assertSame($legacy, $live, $name);
-        }
-        // Without the export permission both refuse the download the same way (403).
-        Role::findByName('finance_officer', 'web')->revokePermissionTo(TransactionReportService::EXPORT);
-        app(PermissionRegistrar::class)->forgetCachedPermissions();
-        $actor = $actor->fresh();
-        $legacy = $this->capture(fn () => app(LegacyTransactionReportService::class)->execute($actor, $this->input(), false, true));
-        $this->assertSame(403, $legacy[0]['http'] ?? null);
-        $this->assertSame($legacy, $this->capture(fn () => app(TransactionReportService::class)->execute($actor, $this->input(), false, true)));
-        Role::findByName('finance_officer', 'web')->givePermissionTo(TransactionReportService::EXPORT);
-        app(PermissionRegistrar::class)->forgetCachedPermissions();
-        $actor = $actor->fresh();
-
-        // A receipt whose payment method is unknown is refused (409) by both, before any row is released.
-        $unknown = 'select 1 as id, 100 as amount_sen, \'posted\' as status, 0 as payment_method_id';
-        $legacyBad = new class($unknown) extends LegacyTransactionReportService
-        {
-            public function __construct(private string $sql) {}
-
-            protected function query(User $actor, Branch $branch, array $filters): Builder
-            {
-                return Payment::query()->fromRaw('('.$this->sql.') as payments');
-            }
-        };
-        $liveBad = new class($unknown) extends TransactionReportService
-        {
-            public function __construct(private string $sql) {}
-
-            protected function query(User $actor, Branch $branch, array $filters): Builder
-            {
-                return Payment::query()->fromRaw('('.$this->sql.') as payments');
-            }
-        };
-        $legacy = $this->capture(fn () => $legacyBad->execute($actor, $this->input(), true));
-        $this->assertSame(409, $legacy[0]['http'] ?? null);
-        $this->assertSame($legacy, $this->capture(fn () => $liveBad->execute($actor, $this->input(), true)));
-
-        // The fixture really covers what it claims: two pages, a masked unallocated receipt, a reversal and both classes.
-        $page = app(TransactionReportService::class)->execute($actor, $this->input(), true);
-        $this->assertSame([23, 2], [$page['result']['count'], $page['result']['pages']]);
-        $file = app(TransactionReportService::class)->execute($actor, $this->input(), false, true);
-        $this->assertStringContainsString('Not shown (no invoice allocation)', $file['csv']);
-        $this->assertStringContainsString('Reversed (recording reversal)', $file['csv']);
-        $this->assertStringContainsString('Not classified (Non-cash)', $file['csv']);
-        $this->assertStringContainsString('Payment method code', $file['csv']);
-    }
-
     public function test_the_export_cap_is_checked_before_any_patient_identity_and_a_page_reads_only_its_own_patients(): void
     {
         if (DB::getDriverName() !== 'pgsql') {
@@ -159,16 +87,11 @@ class TransactionReportBoundaryTest extends BillingTestCase
                 return Payment::query()->fromRaw('(select generate_series(1,5001) as id, 0 as amount_sen, \'posted\' as status, 0 as payment_method_id) as payments');
             }
         };
-        $legacyLarge = new class extends LegacyTransactionReportService
-        {
-            protected function query(User $actor, Branch $branch, array $filters): Builder
-            {
-                return Payment::query()->fromRaw('(select generate_series(1,5001) as id, 0 as amount_sen, \'posted\' as status, 0 as payment_method_id) as payments');
-            }
-        };
         DB::enableQueryLog();
         DB::flushQueryLog();
-        $this->assertSame($this->capture(fn () => $legacyLarge->execute($actor, $this->input(), false, true)), $this->capture(fn () => $large->execute($actor, $this->input(), false, true)));
+        // BIL-10 (owner-approved test change): the frozen pre-BIL-8 copy is retired; the live service must refuse.
+        [$refused] = $this->capture(fn () => $large->execute($actor, $this->input(), false, true));
+        $this->assertSame(['export' => ['More than 5,000 receipts match. Narrow the filters.']], $refused['refused'] ?? $refused);
         $this->assertSame([], $this->patientQueries(), 'A refused download must not look up any patient.');
 
         DB::flushQueryLog();
