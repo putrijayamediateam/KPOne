@@ -24,8 +24,16 @@ export function cleanScannedCode(raw: string): string {
 
 export function scanMessage(
     result: ScanLookup,
-    context: 'search' | 'receiving',
+    context: 'search' | 'receiving' | 'dispensary' | 'dispensary-add',
 ): string {
+    if (context === 'dispensary') {
+        return dispensaryScanMessage(result);
+    }
+
+    if (context === 'dispensary-add') {
+        return dispensaryAddScanMessage(result);
+    }
+
     if (result.status === 'not_found') {
         return `No SKU has the code ${result.code}. Check the code or search by name.`;
     }
@@ -95,4 +103,38 @@ export function isRepeat(
         previous.code === code &&
         now - previous.at < REPEAT_WINDOW_MS
     );
+}
+
+/** DSP-11 wording on the Dispensary page, where a scan only checks the box against the case. */
+function dispensaryScanMessage(result: ScanLookup): string {
+    if (result.status === 'not_found') {
+        return `No medicine has the code ${result.code}. Check the code, or check the box by eye.`;
+    }
+
+    if (result.status === 'shared') {
+        return 'This code is on more than one SKU, so it cannot be checked by scan. Check the box by eye.';
+    }
+
+    const label = `${result.sku.sku_code} · ${result.sku.item_name}`;
+
+    return result.sku.active
+        ? `Found SKU ${label}.`
+        : `SKU ${label} is inactive. Check the box by eye.`;
+}
+
+/** DSP-12 wording when scanning to find a medicine to add: it ends by pointing back to the name search. */
+function dispensaryAddScanMessage(result: ScanLookup): string {
+    if (result.status === 'not_found') {
+        return `No medicine has the code ${result.code}. Search by name instead.`;
+    }
+
+    if (result.status === 'shared') {
+        return 'This code is on more than one SKU, so it cannot be used to add a medicine. Search by name instead.';
+    }
+
+    const label = `${result.sku.sku_code} · ${result.sku.item_name}`;
+
+    return result.sku.active
+        ? `Found SKU ${label}.`
+        : `SKU ${label} is inactive. Search by name instead.`;
 }

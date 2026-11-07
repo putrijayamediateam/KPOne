@@ -277,8 +277,10 @@ class TreatmentPlanTest extends ClinicalTestCase
         $this->assertDatabaseCount('treatment_plan_service_orders', 1);
         $this->assertSame($before, $this->fulfilmentSnapshot());
         $labels = app(DispensaryDirectoryService::class)->labels($fixture['ca'], $fixture['case']->refresh());
-        $this->assertSame(['clinic', 'branch', 'patient', 'date', 'items', 'blocked', 'logo', 'pageSize', 'token', 'branchId', 'excludedCount'], array_keys($labels));
-        $this->assertSame(['name', 'strength', 'quantity', 'unit', 'dosage', 'frequency', 'duration', 'instruction', 'lines', 'emphasis', 'previewUrl'], array_keys($labels['items'][0]));
+        // DSP-10 (approved test change): the label prints no logo, and each label carries where its header rule goes and
+        // its controlled-medicine line (printed below the border).
+        $this->assertSame(['clinic', 'branch', 'patient', 'date', 'items', 'blocked', 'pageSize', 'token', 'branchId', 'excludedCount'], array_keys($labels));
+        $this->assertSame(['name', 'strength', 'quantity', 'unit', 'dosage', 'frequency', 'duration', 'instruction', 'lines', 'emphasis', 'ruleAfter', 'controlled', 'previewUrl'], array_keys($labels['items'][0]));
     }
 
     public function test_labels_exclude_non_dispensed_items_and_scope_item_identity_to_current_handoff(): void
@@ -419,7 +421,8 @@ class TreatmentPlanTest extends ClinicalTestCase
         }
         $workspace = file_get_contents(resource_path('js/pages/Dispensary/Show.vue'));
         $this->assertStringContainsString('Print all labels', $workspace);
-        $this->assertStringContainsString('Print Label', $workspace);
+        // Owner-approved 2026-11-06 (Daniel's sentence-case nit): the single-label button reads "Print label".
+        $this->assertStringContainsString('Print label', $workspace);
         $board = file_get_contents(resource_path('js/components/patient-board/PatientBoard.vue'));
         $this->assertStringContainsString('returnedFromDispensary', $board);
         $this->assertStringContainsString('Returned', $board);

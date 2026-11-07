@@ -7,15 +7,28 @@ import {
     Plus,
     Printer,
     RotateCcw,
+    ScanLine,
     Trash2,
+    TriangleAlert,
 } from '@lucide/vue';
-import { computed, reactive, ref, watch } from 'vue';
+import { computed, nextTick, reactive, ref, watch } from 'vue';
+import ScanInput from '@/components/inventory/ScanInput.vue';
 import { Button } from '@/components/ui/button';
 import { PageHeader } from '@/components/ui/page-header';
 import { OperationalSelect } from '@/components/ui/select';
 import { StatusBadge } from '@/components/ui/status';
+import {
+    checkScan,
+    checkedCount,
+    isChecked,
+    keepCurrentMarks,
+    scanAddOutcome,
+    scannableCount,
+} from '@/lib/dispensary-scan';
+import type { ScanCheckLine, ScanMarks } from '@/lib/dispensary-scan';
 import { formatInventoryReason } from '@/lib/inventory-picker';
 import { formatDate, formatStatusLabel } from '@/lib/presentation';
+import type { ScannedSku } from '@/lib/scan';
 import AllergyMatchWarning from '@/pages/Dispensary/Partials/AllergyMatchWarning.vue';
 import OtcAllergyRecordForm from '@/pages/Dispensary/Partials/OtcAllergyRecordForm.vue';
 
@@ -435,6 +448,43 @@ const visibleItems = computed(() =>
 const removedItems = computed(() =>
     props.dispensary.items.filter((item) => item.changeState === 'removed'),
 );
+// DSP-11: scan to check (screen only; nothing is saved). A line stays checked only while its SKU is the one scanned.
+const scanMarks = ref<ScanMarks>({});
+const toScanLine = (item: Item): ScanCheckLine => ({
+    publicId: item.publicId,
+    name: item.name,
+    strength: item.strength,
+    skuPublicId: item.sku?.publicId ?? null,
+});
+const scanLines = computed(() => visibleItems.value.map(toScanLine));
+const removedScanLines = computed(() => removedItems.value.map(toScanLine));
+const scanTotal = computed(() => scannableCount(scanLines.value));
+const scanChecked = computed(() =>
+    checkedCount(scanLines.value, scanMarks.value),
+);
+const isScanChecked = (item: Item): boolean =>
+    isChecked(toScanLine(item), scanMarks.value);
+const scanOutcome = (sku: ScannedSku) =>
+    checkScan(sku, scanLines.value, removedScanLines.value, scanMarks.value);
+const acceptScan = (sku: ScannedSku): string | null => {
+    const outcome = scanOutcome(sku);
+
+    return outcome.kind === 'removed' || outcome.kind === 'not_on_case'
+        ? outcome.message
+        : null;
+};
+const describeScan = (sku: ScannedSku): string => scanOutcome(sku).message;
+const markScanned = (sku: ScannedSku) => {
+    const outcome = scanOutcome(sku);
+
+    if (outcome.kind === 'match' || outcome.kind === 'already') {
+        scanMarks.value = outcome.marks;
+    }
+};
+// A removed, restored or changed line loses its mark, so it must be scanned again.
+watch(scanLines, (lines) => {
+    scanMarks.value = keepCurrentMarks(lines, scanMarks.value);
+});
 const unsaved = computed(() =>
     visibleItems.value.filter(
         (item) => item.status === 'pending' || isDirty(item),
@@ -659,6 +709,8 @@ const csrf = () =>
             ?.split('=')[1] ?? '',
     );
 const searchMedicines = async () => {
+    clearScanAdd();
+
     if (searchTerm.value.trim().length < 2) {
         results.value = [];
 
@@ -696,6 +748,134 @@ const chooseMedicine = (medicine: Medicine) => {
         medicine.availability.findIndex((stock) => !stock.held),
     );
     addForm.fefoReason = '';
+};
+// DSP-12: scan to find a medicine to add (find only; the CA still sets quantity and batch and presses Add).
+const scanAddOpen = ref(false);
+const scanAddMessage = ref('');
+const scanAddAllergy = ref(false);
+// Only the newest scan's answer counts; an earlier, slower lookup is ignored (Hakim, DSP-12).
+let scanAddGeneration = 0;
+const clearScanAdd = () => {
+    scanAddMessage.value = '';
+    scanAddAllergy.value = false;
+};
+const focusScanAddButton = async () => {
+    await nextTick();
+    document
+        .querySelector<HTMLButtonElement>('[data-action="scan-to-add"]')
+        ?.focus();
+};
+const openScanAdd = async () => {
+    scanAddOpen.value = !scanAddOpen.value;
+
+    if (scanAddOpen.value) {
+        await nextTick();
+        document.getElementById('scan-dispensary-add')?.focus();
+    }
+};
+const closeScanAdd = () => {
+    scanAddOpen.value = false;
+    void focusScanAddButton();
+};
+// Typed directions on the medicine being added are never replaced by a scan.
+const addFormHasTyping = () =>
+    chosen.value !== null &&
+    [
+        addForm.dosage,
+        addForm.frequency,
+        addForm.duration,
+        addForm.route,
+        addForm.instruction,
+        addForm.precaution,
+    ].some((value) => value.trim() !== '');
+const pickMedicine = (medicine: Medicine) => {
+    clearScanAdd();
+    chooseMedicine(medicine);
+};
+const scanToAdd = async (sku: ScannedSku) => {
+    if (busy.value) {
+        scanAddAllergy.value = false;
+        scanAddMessage.value = 'Wait for the save to finish, then scan again.';
+
+        return;
+    }
+
+    if (addFormHasTyping()) {
+        scanAddAllergy.value = false;
+        scanAddMessage.value =
+            'Finish or cancel the medicine you are adding first, then scan again.';
+
+        return;
+    }
+
+    const generation = ++scanAddGeneration;
+    scanAddAllergy.value = false;
+    scanAddMessage.value = 'Finding the medicine…';
+    searching.value = true;
+
+    try {
+        const response = await fetch(
+            `/dispensary/${props.dispensary.publicId}/medicines/by-sku`,
+            {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Accept: 'application/json',
+                    'X-XSRF-TOKEN': csrf(),
+                },
+                body: JSON.stringify({ sku: sku.public_id }),
+            },
+        );
+        const medicines = response.ok
+            ? ((await response.json()) as { data: Medicine[] }).data
+            : null;
+
+        if (generation !== scanAddGeneration || busy.value) {
+            return;
+        }
+
+        if (medicines === null) {
+            scanAddMessage.value = 'Lookup failed. Try again.';
+
+            return;
+        }
+
+        const outcome = scanAddOutcome(medicines, sku);
+
+        if (outcome.kind === 'choose') {
+            results.value = [outcome.medicine];
+            chooseMedicine(outcome.medicine);
+            scanAddMessage.value = outcome.message;
+            scanAddOpen.value = false;
+            await nextTick();
+            document
+                .querySelector<HTMLInputElement>('[data-field="add-quantity"]')
+                ?.focus();
+        } else if (outcome.kind === 'list') {
+            chosen.value = null;
+            results.value = outcome.medicines;
+            scanAddMessage.value = outcome.message;
+            scanAddAllergy.value = outcome.allergy;
+            await nextTick();
+            document
+                .querySelector<HTMLButtonElement>(
+                    '[data-action="choose-medicine"]:not([disabled])',
+                )
+                ?.focus();
+        } else {
+            results.value = [];
+            scanAddMessage.value = outcome.message;
+        }
+    } catch {
+        if (generation === scanAddGeneration) {
+            scanAddMessage.value = 'Lookup failed. Try again.';
+        }
+    } finally {
+        if (generation === scanAddGeneration) {
+            searching.value = false;
+        }
+    }
 };
 const refreshChosen = async (publicId: string) => {
     await searchMedicines();
@@ -1101,6 +1281,15 @@ const inputClass = 'mt-1 h-9 w-full rounded-md border px-2';
                         >Save all lines</Button
                     >
                 </div>
+                <ScanInput
+                    v-if="dispensary.can.update && visibleItems.length"
+                    context="dispensary"
+                    refocus-key="dispensary-check"
+                    :accept="acceptScan"
+                    :describe="describeScan"
+                    data-testid="dispensary-scan"
+                    @found="markScanned"
+                />
                 <section class="divide-y rounded-lg border bg-background">
                     <article
                         v-for="item in visibleItems"
@@ -1124,6 +1313,17 @@ const inputClass = 'mt-1 h-9 w-full rounded-md border px-2';
                                 tone="accent"
                                 :label="changeLabel(item)"
                             />
+                            <StatusBadge
+                                v-if="isScanChecked(item)"
+                                class="mt-1 ml-1"
+                                status="scan_checked"
+                                tone="success"
+                                label="Checked by scan"
+                                data-testid="scan-checked"
+                            />
+                            <span v-if="isScanChecked(item)" class="sr-only"
+                                >, not saved</span
+                            >
                             <p
                                 v-if="item.source === 'doctor'"
                                 class="mt-2 text-xs text-muted-foreground"
@@ -1173,7 +1373,7 @@ const inputClass = 'mt-1 h-9 w-full rounded-md border px-2';
                                     target="_blank"
                                     rel="noopener noreferrer"
                                 >
-                                    <Printer class="size-3.5" />Print Label
+                                    <Printer class="size-3.5" />Print label
                                     <span class="sr-only"
                                         >for {{ item.name }} (opens print
                                         preview in a new tab)</span
@@ -1191,12 +1391,14 @@ const inputClass = 'mt-1 h-9 w-full rounded-md border px-2';
                                 {{ dispensary.labelLimits?.dosage }}, frequency
                                 {{ dispensary.labelLimits?.frequency }},
                                 duration {{ dispensary.labelLimits?.duration }},
-                                route {{ dispensary.labelLimits?.route }},
                                 instruction
                                 {{ dispensary.labelLimits?.instruction }},
                                 precaution
-                                {{ dispensary.labelLimits?.precaution }}.
-                                Over-budget labels are blocked, never truncated.
+                                {{ dispensary.labelLimits?.precaution }},
+                                quantity {{ dispensary.labelLimits?.quantity }}.
+                                Dosage, frequency and instruction share 3
+                                printed rows. Route is not printed. Over-budget
+                                labels are blocked, never truncated.
                             </p>
                             <label
                                 >Quantity ({{ item.unit }})<input
@@ -1233,9 +1435,7 @@ const inputClass = 'mt-1 h-9 w-full rounded-md border px-2';
                                     data-field="duration"
                             /></label>
                             <label
-                                >Route (label max
-                                {{ dispensary.labelLimits?.route }}
-                                characters)<input
+                                >Route (not printed on the label)<input
                                     v-model="forms[item.publicId].route"
                                     :class="inputClass"
                                     maxlength="500"
@@ -1485,10 +1685,10 @@ const inputClass = 'mt-1 h-9 w-full rounded-md border px-2';
                     >
                         Add a medicine
                     </h2>
-                    <div class="flex gap-2">
+                    <div class="flex flex-wrap gap-2">
                         <input
                             v-model="searchTerm"
-                            class="h-9 w-full max-w-sm rounded-md border px-2"
+                            class="h-9 w-full rounded-md border px-2 sm:max-w-sm"
                             placeholder="Search medicine name or code"
                             aria-label="Search medicine"
                             data-field="medicine-search"
@@ -1498,10 +1698,66 @@ const inputClass = 'mt-1 h-9 w-full rounded-md border px-2';
                             size="sm"
                             variant="outline"
                             :disabled="searching || busy"
+                            class="flex-1 sm:flex-none"
                             @click="searchMedicines"
                             ><Plus class="size-4" />Search</Button
                         >
+                        <Button
+                            size="sm"
+                            variant="outline"
+                            class="flex-1 sm:flex-none"
+                            :disabled="busy"
+                            :aria-expanded="scanAddOpen"
+                            :aria-controls="
+                                scanAddOpen ? 'scan-add-panel' : undefined
+                            "
+                            data-action="scan-to-add"
+                            @click="openScanAdd"
+                            ><ScanLine class="size-4" />Scan to add</Button
+                        >
                     </div>
+                    <div
+                        v-if="scanAddOpen"
+                        id="scan-add-panel"
+                        class="mt-2 grid gap-1"
+                        @keydown.esc="closeScanAdd"
+                    >
+                        <ScanInput
+                            context="dispensary-add"
+                            refocus-key="dispensary-add"
+                            :describe="() => ''"
+                            data-testid="dispensary-scan-add"
+                            @found="scanToAdd"
+                        />
+                        <Button
+                            size="sm"
+                            variant="outline"
+                            class="justify-self-start"
+                            data-action="close-scan-add"
+                            @click="closeScanAdd"
+                            >Close scan</Button
+                        >
+                    </div>
+                    <p
+                        v-if="scanAddAllergy"
+                        role="alert"
+                        class="mt-2 flex items-start gap-2 rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 font-medium text-destructive"
+                        data-testid="scan-add-allergy"
+                    >
+                        <TriangleAlert
+                            class="mt-0.5 size-4 shrink-0"
+                            aria-hidden="true"
+                        /><span>{{ scanAddMessage }}</span>
+                    </p>
+                    <p
+                        v-else-if="scanAddMessage"
+                        role="status"
+                        aria-live="polite"
+                        class="mt-2 text-xs text-muted-foreground"
+                        data-testid="scan-add-status"
+                    >
+                        {{ scanAddMessage }}
+                    </p>
                     <ul
                         v-if="!chosen && results.length"
                         class="mt-2 divide-y rounded-md border"
@@ -1530,7 +1786,7 @@ const inputClass = 'mt-1 h-9 w-full rounded-md border px-2';
                                 variant="outline"
                                 :disabled="!medicine.availability.length"
                                 data-action="choose-medicine"
-                                @click="chooseMedicine(medicine)"
+                                @click="pickMedicine(medicine)"
                                 >{{
                                     medicine.availability.length
                                         ? 'Choose'
@@ -1542,6 +1798,7 @@ const inputClass = 'mt-1 h-9 w-full rounded-md border px-2';
                     <p
                         v-else-if="
                             !chosen &&
+                            !scanAddMessage &&
                             searchTerm.trim().length >= 2 &&
                             !searching &&
                             !results.length
@@ -1591,9 +1848,7 @@ const inputClass = 'mt-1 h-9 w-full rounded-md border px-2';
                                 maxlength="500"
                         /></label>
                         <label
-                            >Route (label max
-                            {{ dispensary.labelLimits?.route }}
-                            characters)<input
+                            >Route (not printed on the label)<input
                                 v-model="addForm.route"
                                 :class="inputClass"
                                 maxlength="500"
@@ -1684,12 +1939,14 @@ const inputClass = 'mt-1 h-9 w-full rounded-md border px-2';
                             Label limits: dosage
                             {{ dispensary.labelLimits?.dosage }}, frequency
                             {{ dispensary.labelLimits?.frequency }}, duration
-                            {{ dispensary.labelLimits?.duration }}, route
-                            {{ dispensary.labelLimits?.route }}, instruction
+                            {{ dispensary.labelLimits?.duration }}, instruction
                             {{ dispensary.labelLimits?.instruction }},
-                            precaution
-                            {{ dispensary.labelLimits?.precaution }} characters.
-                            Printing does not truncate saved text.
+                            precaution {{ dispensary.labelLimits?.precaution }},
+                            quantity
+                            {{ dispensary.labelLimits?.quantity }} characters.
+                            Dosage, frequency and instruction share 3 printed
+                            rows. Route is not printed. Printing does not
+                            truncate saved text.
                         </p>
                         <AllergyMatchWarning
                             v-if="matchesFor(chosen).length"
@@ -1994,6 +2251,14 @@ const inputClass = 'mt-1 h-9 w-full rounded-md border px-2';
                         </template>
                         <dt class="text-muted-foreground">Not saved yet</dt>
                         <dd>{{ unsaved.length + unsavedServices.length }}</dd>
+                        <template v-if="dispensary.can.update && scanTotal">
+                            <dt class="text-muted-foreground">
+                                Checked by scan
+                            </dt>
+                            <dd class="tabular-nums">
+                                {{ scanChecked }} of {{ scanTotal }} (not saved)
+                            </dd>
+                        </template>
                     </dl>
                 </section>
                 <section

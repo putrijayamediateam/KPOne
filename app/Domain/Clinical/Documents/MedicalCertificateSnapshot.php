@@ -28,7 +28,8 @@ final class MedicalCertificateSnapshot
         if (! $identity) {
             throw ValidationException::withMessages(['certificate' => 'An active patient identity document is required.']);
         }
-        $template = DB::table('mc_template_revisions')->where('language', $input['language'])->where('revision', 1)->sole();
+        // New certificates use the newest fixed revision for the language; issued ones keep their frozen snapshot.
+        $template = DB::table('mc_template_revisions')->where('language', $input['language'])->orderByDesc('revision')->firstOrFail();
         $head = $this->letterheads->assemble($branch, function (string $publicId) use ($branch): string {
             $asset = BusinessDetailAsset::query()->where('organisation_id', $branch->organisation_id)->where('public_id', $publicId)->whereNull('retired_at')->lockForUpdate()->sole();
             $bytes = Storage::disk('local')->get($asset->path);
@@ -51,13 +52,43 @@ final class MedicalCertificateSnapshot
         foreach ($fields as $key => $value) {
             $wording = str_replace('{{'.$key.'}}', $value, $wording);
         }
-        $snapshot = ['schemaVersion' => 1, 'rendererVersion' => $template->renderer_version, 'templateId' => $template->id, 'templateRevision' => 1,
+        $snapshot = ['schemaVersion' => 1, 'rendererVersion' => $template->renderer_version, 'templateId' => $template->id, 'templateRevision' => (int) $template->revision,
             'productionApproved' => false, 'language' => $input['language'], 'title' => $template->title, 'wording' => $wording, 'templateWording' => $template->wording,
             'letterhead' => $letterhead, 'fields' => $fields, 'reason' => $input['reason'] ?? null, 'reasonConsent' => (bool) ($input['reason_consent'] ?? false),
-            'issuedAtUtc' => $issuedAt, 'credentialVersion' => $credential->lock_version, 'evidence' => 'pre-signature'];
-        $snapshot['html'] = view('medical-certificates.content', ['snapshot' => $snapshot])->render();
+            'issuedAtUtc' => $issuedAt, 'credentialVersion' => $credential->lock_version, 'evidence' => 'pre-signature',
+            'wordingParts' => $this->wordingParts($template->wording, $fields)];
+        $view = match ($template->renderer_version) {
+            'mc-a4-v1' => 'medical-certificates.content',
+            'mc-a4-v2' => 'medical-certificates.content-v2',
+            default => throw new \LogicException('Unknown MC renderer'),
+        };
+        $snapshot['html'] = view($view, ['snapshot' => $snapshot])->render();
 
         return $snapshot;
+    }
+
+    /** Fields the v2 layout prints bold, or bold and underlined, as on the clinic's paper certificate. */
+    private const EMPHASIS = ['patient_name' => 'strong', 'identification' => 'strong', 'days_number' => 'strong-u', 'start_date' => 'strong-u', 'end_date' => 'strong-u'];
+
+    /**
+     * The template wording as plain text pieces and merged values, so the renderer can emphasise values without
+     * any HTML in the stored wording. Every piece is escaped by Blade.
+     *
+     * @param  array<string, string>  $fields
+     * @return list<array{text: string, style: ?string}>
+     */
+    private function wordingParts(string $wording, array $fields): array
+    {
+        $parts = [];
+        foreach (preg_split('/({{[a-z_]+}})/', $wording, -1, PREG_SPLIT_DELIM_CAPTURE | PREG_SPLIT_NO_EMPTY) ?: [] as $piece) {
+            if (preg_match('/^{{([a-z_]+)}}$/', $piece, $match) === 1 && array_key_exists($match[1], $fields)) {
+                $parts[] = ['text' => $fields[$match[1]], 'style' => self::EMPHASIS[$match[1]] ?? null];
+            } else {
+                $parts[] = ['text' => $piece, 'style' => null];
+            }
+        }
+
+        return $parts;
     }
 
     private function daysWords(int $days, string $language): string
