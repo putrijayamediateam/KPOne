@@ -279,7 +279,7 @@ class PostgresPayrollContentionTest extends TestCase
     {
         DB::transaction(function () use ($id): void {
             // Only this isolated PostgreSQL test fixture cleanup may discard retained synthetic payroll and staff claim evidence.
-            foreach (['hr_payroll_run_actions', 'hr_payroll_lines', 'hr_payroll_manual_lines', 'hr_payroll_run_people', 'hr_payroll_runs', 'hr_payroll_line_types',
+            foreach (['hr_payslip_opens', 'hr_payroll_exports', 'hr_payslips', 'hr_payroll_run_actions', 'hr_payroll_lines', 'hr_payroll_manual_lines', 'hr_payroll_run_people', 'hr_payroll_runs', 'hr_payroll_line_types',
                 'hr_pay_profile_items', 'hr_pay_profiles', 'hr_pay_item_type_versions', 'hr_pay_item_types', 'hr_pay_groups', 'hr_staff_claim_payments',
                 'hr_staff_claim_actions', 'hr_staff_claim_receipts', 'hr_staff_claims', 'hr_claim_counters', 'hr_claim_category_versions', 'hr_claim_categories',
                 'hr_claim_settings', 'hr_record_changes', 'hr_employment_periods', 'hr_workers', 'hr_record_retries'] as $table) {
