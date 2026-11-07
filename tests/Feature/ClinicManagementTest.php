@@ -28,6 +28,7 @@ class ClinicManagementTest extends VisitTestCase
             // AG-11 (the owner's choice, 2026-11-07): the AI agent pages.
             '/agents' => ['ai_agents.view.organisation'],
             '/agents/office' => ['ai_agents.view.organisation'],
+            '/agents/assistant' => ['ai_assistant.use.organisation'],
             '/agents/inbox' => ['ai_proposals.view.branch'],
             '/medical-certificate-templates' => ['catalogue.settings.manage.organisation'],
             '/clinician-credentials' => ['clinician_credentials.manage.organisation'],

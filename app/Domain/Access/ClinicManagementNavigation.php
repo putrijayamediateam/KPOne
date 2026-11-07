@@ -103,6 +103,7 @@ final class ClinicManagementNavigation
         $add('AI agents', 'agents', [
             [$actor->can('ai_agents.view.organisation'), 'All agents', 'See each AI agent, what it reads and its latest runs.', 'agents.index'],
             [$actor->can('ai_agents.view.organisation'), 'Agent office', 'Watch the AI agents at work in the office view.', 'agents.office'],
+            [$actor->can('ai_assistant.use.organisation'), 'Quick answers', 'Ask preset questions about today, money, Panel and stock.', 'agents.assistant'],
             [$activeBranch !== null && $actor->can('ai_proposals.view.branch') && $this->branches->hasEffectiveAssignment($actor, $activeBranch), 'Approval inbox', 'Approve or reject AI agent suggestions for this branch. Approving changes nothing in stock.', 'agents.inbox'],
         ]);
         $add('Documents', 'documents', [

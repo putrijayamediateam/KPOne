@@ -22,6 +22,10 @@ test('the AI agents group lists the registry, the office and the inbox under the
     );
     assert.match(
         nav,
+        /\[\$actor->can\('ai_assistant\.use\.organisation'\), 'Quick answers', .*'agents\.assistant'\]/,
+    );
+    assert.match(
+        nav,
         /\[\$actor->can\('ai_agents\.view\.organisation'\), 'Agent office', .*'agents\.office'\]/,
     );
     assert.match(
