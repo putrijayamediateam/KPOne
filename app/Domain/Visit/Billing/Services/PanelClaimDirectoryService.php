@@ -515,7 +515,7 @@ final class PanelClaimDirectoryService
                 && $invoice->status === 'finalized' && ! $invoice->correction_hold && ! $invoice->source_stale
                 && $allocation->amount_sen > 0, 422);
             // PNL-15: compare with the payable total after any invoice discount or surcharge, as creation does.
-            $payableSen = app(FinancialLedger::class)->state($invoice)['total'];
+            $payableSen = app(FinancialLedger::class)->chargedBeforeCredits($invoice);
             abort_unless($allocation->amount_sen <= $payableSen, 422);
             $existing = PanelClaim::query()->where('coverage_allocation_id', $allocation->id)->first();
             $patient = DB::table('patients')->where('id', $invoice->patient_id)
