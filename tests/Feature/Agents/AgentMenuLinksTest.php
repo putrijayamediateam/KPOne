@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Agents;
 
+use App\Domain\Organisation\Models\Branch;
 use Inertia\Testing\AssertableInertia as Assert;
 use Tests\Feature\Visit\VisitTestCase;
 
@@ -9,10 +10,10 @@ use Tests\Feature\Visit\VisitTestCase;
 class AgentMenuLinksTest extends VisitTestCase
 {
     /** @return list<array{title: string, description: string, href: string}> */
-    private function agentLinks(string $role): array
+    private function agentLinks(string $role, ?Branch $branch = null): array
     {
         $actor = $this->actor($role);
-        $this->selectBranch($actor);
+        $this->selectBranch($actor, $branch);
         $links = [];
         $this->actingAs($actor)->get('/clinic-management')->assertOk()->assertInertia(function (Assert $page) use (&$links): void {
             $page->where('groups', function ($groups) use (&$links): bool {
@@ -41,6 +42,9 @@ class AgentMenuLinksTest extends VisitTestCase
             'resident_doctor' => [],
             'panel_officer' => [],
             'hr_manager' => [],
+            'marketing' => [],
+            'business_development' => [],
+            'queue_display' => [],
         ];
         foreach ($expected as $role => $hrefs) {
             $links = $this->agentLinks($role);
@@ -57,5 +61,13 @@ class AgentMenuLinksTest extends VisitTestCase
 
         $this->assertSame(['AI agents', 'Agent office', 'Approval inbox'], $links->pluck('title')->values()->all());
         $this->assertStringContainsString('Approving changes nothing in stock.', $links['/agents/inbox']['description']);
+    }
+
+    public function test_the_inbox_row_hides_on_a_branch_the_viewer_is_not_assigned_to_and_the_inbox_agrees(): void
+    {
+        $other = Branch::query()->where('organisation_id', $this->organisation->id)->whereKeyNot($this->branch->id)->where('is_active', true)->firstOrFail();
+
+        $this->assertSame(['/agents', '/agents/office'], array_column($this->agentLinks('director', $other), 'href'));
+        $this->get('/agents/inbox')->assertForbidden();
     }
 }

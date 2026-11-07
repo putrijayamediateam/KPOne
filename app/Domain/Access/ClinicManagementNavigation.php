@@ -13,7 +13,8 @@ final class ClinicManagementNavigation
     /** @return list<array{title: string, icon: string, links: list<array{title: string, description: string, href: string}>}> */
     public function groups(User $actor): array
     {
-        $branch = $this->branches->activeBranch($actor) !== null;
+        $activeBranch = $this->branches->activeBranch($actor);
+        $branch = $activeBranch !== null;
         $settings = $branch && $actor->can('catalogue.settings.manage.organisation');
         $panels = $actor->can('panels.manage.organisation');
         $display = $actor->can('queue_display.manage.organisation') || $actor->can('queue_display.manage.branch');
@@ -97,11 +98,12 @@ final class ClinicManagementNavigation
             [$branch && $actor->can('website.assets.manage.organisation'), 'Media library', 'Manage sanitised private website images and rights references.', 'website.media'],
         ]);
         // AG-11 (the owner's choice, 2026-11-07): the AI agent pages, each shown only to people who may open it.
-        // The inbox lists the active branch's suggestions, so it needs one; the registry and office are organisation-wide.
+        // The inbox lists the active branch's suggestions and opens only where the viewer is assigned today (ProposalInbox);
+        // the registry and office are organisation-wide.
         $add('AI agents', 'agents', [
             [$actor->can('ai_agents.view.organisation'), 'AI agents', 'See each AI agent, what it reads and its latest runs.', 'agents.index'],
             [$actor->can('ai_agents.view.organisation'), 'Agent office', 'Watch the AI agents at work in the 2.5D office.', 'agents.office'],
-            [$branch && $actor->can('ai_proposals.view.branch'), 'Approval inbox', 'Approve or reject AI agent suggestions for this branch. Approving changes nothing in stock.', 'agents.inbox'],
+            [$activeBranch !== null && $actor->can('ai_proposals.view.branch') && $this->branches->hasEffectiveAssignment($actor, $activeBranch), 'Approval inbox', 'Approve or reject AI agent suggestions for this branch. Approving changes nothing in stock.', 'agents.inbox'],
         ]);
         $add('Documents', 'documents', [
             [$settings, 'MC template previews', 'Review fixed English and Bahasa Melayu wording. No issuance.', 'medical-certificate-templates.index'],
