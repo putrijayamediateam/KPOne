@@ -1,0 +1,321 @@
+<?php
+
+namespace App\Domain\HR\Applications\Services;
+
+use App\Domain\HR\Applications\ApplicationPermissions;
+use App\Domain\HR\Records\Services\RecordSupport;
+use App\Models\User;
+use Carbon\CarbonImmutable;
+use Illuminate\Contracts\Encryption\DecryptException;
+use Illuminate\Support\Facades\Crypt;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
+
+/**
+ * HR-13 staff side (HR-PLAN 15.2). Director and HR Manager keep the open positions, move an application through New,
+ * Shortlisted, Interview and then Offered, Not taken forward or Withdrawn (a closed application stays closed), open a
+ * CV (the open is recorded before any byte is sent) and set the retention. Turning an applicant into staff stays with
+ * the account administrator through StaffProvisioningService; nothing here creates an account. Every write: a fresh
+ * permission check under lock, DB::transaction, row locks, lock_version, an idempotency key and audit with ids and
+ * codes only, never a name, phone, email, message or CV.
+ */
+final class JobApplicationService
+{
+    /** @var array<string, string> the steps, in the order HR moves through them */
+    public const STATUSES = [
+        'new' => 'New',
+        'shortlisted' => 'Shortlisted',
+        'interview' => 'Interview',
+        'offered' => 'Offered',
+        'not_taken_forward' => 'Not taken forward',
+        'withdrawn' => 'Withdrawn',
+    ];
+
+    /** @var array<string, list<string>> */
+    public const NEXT = [
+        'new' => ['shortlisted', 'not_taken_forward', 'withdrawn'],
+        'shortlisted' => ['interview', 'not_taken_forward', 'withdrawn'],
+        'interview' => ['offered', 'not_taken_forward', 'withdrawn'],
+    ];
+
+    /** A first or shorter retention waits this long before the purge may use it, so a mistake can be undone. */
+    public const GRACE_DAYS = 7;
+
+    public function __construct(private RecordSupport $support) {}
+
+    /** @param array<string, mixed> $input */
+    public function addPosition(User $actor, array $input): string
+    {
+        $key = $this->support->key($input['idempotency_key'] ?? null);
+        $title = self::title($input['title'] ?? null);
+
+        return DB::transaction(function () use ($actor, $input, $key, $title): string {
+            $actor = $this->support->lock($actor, ApplicationPermissions::MANAGE);
+            $branchId = $this->branchId($actor, $input['branch_id'] ?? null);
+            $hash = $this->support->hash([$actor->id, 'job_position_add', $title, $branchId]);
+            if (($replay = $this->support->replay($actor, $key, 'job_position_add', $hash)) !== null) {
+                return $replay;
+            }
+            $publicId = (string) Str::uuid();
+            $id = DB::table('hr_job_positions')->insertGetId(['public_id' => $publicId, 'organisation_id' => $actor->organisation_id, 'title' => $title,
+                'branch_id' => $branchId, 'is_open' => true, 'created_by_user_id' => $actor->id, 'lock_version' => 1,
+                'created_at' => now()->utc(), 'updated_at' => now()->utc()]);
+            $this->support->remember($actor, $key, 'job_position_add', $hash, $publicId);
+            $this->support->audit->record('hr.applications.position_added', null, ['position_id' => $id], $actor, null, $actor->organisation_id);
+
+            return $publicId;
+        }, 3);
+    }
+
+    /**
+     * Renames a position, changes its branch, or opens or closes it. A closed position leaves the public form;
+     * its applications stay.
+     *
+     * @param  array<string, mixed>  $input
+     */
+    public function updatePosition(User $actor, string $positionId, array $input): void
+    {
+        $key = $this->support->key($input['idempotency_key'] ?? null);
+        $title = self::title($input['title'] ?? null);
+        $open = filter_var($input['is_open'] ?? null, FILTER_VALIDATE_BOOL, FILTER_NULL_ON_FAILURE);
+        if ($open === null) {
+            throw ValidationException::withMessages(['is_open' => 'Choose open or closed.']);
+        }
+        DB::transaction(function () use ($actor, $positionId, $input, $key, $title, $open): void {
+            $actor = $this->support->lock($actor, ApplicationPermissions::MANAGE);
+            $branchId = $this->branchId($actor, $input['branch_id'] ?? null);
+            $hash = $this->support->hash([$actor->id, 'job_position_update', $positionId, $title, $branchId, $open]);
+            if ($this->support->replay($actor, $key, 'job_position_update', $hash) !== null) {
+                return;
+            }
+            $position = $this->position($actor, $positionId);
+            $this->support->assertLock($position, $input);
+            $changed = array_keys(array_filter(['title' => $position->title !== $title, 'branch' => $position->branch_id !== $branchId,
+                'is_open' => (bool) $position->is_open !== $open]));
+            if ($changed === []) {
+                throw ValidationException::withMessages(['position' => 'Nothing was changed.']);
+            }
+            DB::table('hr_job_positions')->where('id', $position->id)->update(['title' => $title, 'branch_id' => $branchId, 'is_open' => $open,
+                'lock_version' => (int) $position->lock_version + 1, 'updated_at' => now()->utc()]);
+            $this->support->remember($actor, $key, 'job_position_update', $hash, $positionId);
+            $this->support->audit->record('hr.applications.position_updated', null, ['position_id' => (int) $position->id, 'fields' => $changed],
+                $actor, null, $actor->organisation_id);
+        }, 3);
+    }
+
+    /** @param array<string, mixed> $input */
+    public function move(User $actor, string $applicationId, array $input): void
+    {
+        $key = $this->support->key($input['idempotency_key'] ?? null);
+        $to = is_string($input['to'] ?? null) ? $input['to'] : '';
+        DB::transaction(function () use ($actor, $applicationId, $input, $key, $to): void {
+            $actor = $this->support->lock($actor, ApplicationPermissions::MANAGE);
+            $hash = $this->support->hash([$actor->id, 'job_application_move', $applicationId, $to]);
+            if ($this->support->replay($actor, $key, 'job_application_move', $hash) !== null) {
+                return;
+            }
+            $application = $this->application($actor, $applicationId, true);
+            $this->support->assertLock($application, $input);
+            if ($application->purged_at !== null || ! in_array($to, self::NEXT[$application->status] ?? [], true)) {
+                throw ValidationException::withMessages(['to' => $application->closed_at !== null
+                    ? 'This application is closed. Reload the page.'
+                    : 'Choose one of the next steps shown.']);
+            }
+            $closed = ! isset(self::NEXT[$to]);
+            DB::table('hr_job_applications')->where('id', $application->id)->update(['status' => $to, 'closed_at' => $closed ? now()->utc() : null,
+                'lock_version' => (int) $application->lock_version + 1, 'updated_at' => now()->utc()]);
+            DB::table('hr_job_application_events')->insert(['organisation_id' => $actor->organisation_id, 'application_id' => $application->id,
+                'action' => 'status_changed', 'from_status' => $application->status, 'to_status' => $to, 'actor_user_id' => $actor->id,
+                'created_at' => now()->utc()]);
+            $this->support->remember($actor, $key, 'job_application_move', $hash, $applicationId);
+            $this->support->audit->record('hr.applications.moved', null, ['application_id' => (int) $application->id, 'from' => $application->status,
+                'to' => $to], $actor, null, $actor->organisation_id);
+        }, 3);
+    }
+
+    /**
+     * Records the open, then returns the decrypted CV. Nothing is returned if the record cannot be written.
+     *
+     * @return array{content:string, filename:string}
+     */
+    public function openCv(User $actor, string $applicationId): array
+    {
+        $application = DB::transaction(function () use ($actor, $applicationId): \stdClass {
+            $actor = $this->support->authority->lock($actor, ApplicationPermissions::MANAGE);
+            $application = $this->application($actor, $applicationId, false);
+            if ($application->cv_path === null) {
+                throw ValidationException::withMessages(['application' => 'This CV was deleted after the retention period.']);
+            }
+            DB::table('hr_job_application_events')->insert(['organisation_id' => $actor->organisation_id, 'application_id' => $application->id,
+                'action' => 'cv_opened', 'actor_user_id' => $actor->id, 'created_at' => now()->utc()]);
+            $this->support->audit->record('hr.applications.cv_opened', null, ['application_id' => (int) $application->id], $actor, null, $actor->organisation_id);
+
+            return $application;
+        }, 3);
+        $stored = Storage::disk(JobApplicationIntake::DISK)->exists((string) $application->cv_path) ? Storage::disk(JobApplicationIntake::DISK)->get((string) $application->cv_path) : null;
+        abort_if(! is_string($stored), 404);
+        try {
+            $content = Crypt::decryptString($stored);
+        } catch (DecryptException) {
+            Log::error('HR application CV could not be decrypted', ['application_id' => $application->id]);
+            abort(404);
+        }
+
+        return ['content' => $content, 'filename' => 'cv-'.substr((string) $application->public_id, 0, 8).'.pdf'];
+    }
+
+    /**
+     * A new retention version: days after an application closes before its values and CV are deleted, or none (keep
+     * everything). A first or shorter retention takes effect only after the grace days.
+     *
+     * @param  array<string, mixed>  $input
+     */
+    public function setRetention(User $actor, array $input): void
+    {
+        $key = $this->support->key($input['idempotency_key'] ?? null);
+        $raw = $input['retention_days'] ?? null;
+        $days = $raw === null || $raw === '' ? null : filter_var($raw, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1, 'max_range' => 3650]]);
+        if ($days === false) {
+            throw ValidationException::withMessages(['retention_days' => 'Enter 1 to 3,650 days, or leave it empty to keep applications.']);
+        }
+        DB::transaction(function () use ($actor, $input, $key, $days): void {
+            $actor = $this->support->lock($actor, ApplicationPermissions::MANAGE);
+            $hash = $this->support->hash([$actor->id, 'job_application_retention', $days]);
+            if ($this->support->replay($actor, $key, 'job_application_retention', $hash) !== null) {
+                return;
+            }
+            DB::select('select pg_advisory_xact_lock(hashtextextended(?, 0))', ['hr_job_application_settings:'.$actor->organisation_id]);
+            $current = DB::table('hr_job_application_settings')->where('organisation_id', $actor->organisation_id)->orderByDesc('version')->first();
+            if (filter_var($input['expected_version'] ?? null, FILTER_VALIDATE_INT) !== ($current === null ? 0 : (int) $current->version)) {
+                throw ValidationException::withMessages(['retention_days' => 'This was changed by someone else. Reload to see the latest version.']);
+            }
+            $currentDays = $current?->retention_days === null ? null : (int) $current->retention_days;
+            if ($current !== null && $currentDays === $days) {
+                throw ValidationException::withMessages(['retention_days' => 'Nothing was changed.']);
+            }
+            $today = self::today($actor->organisation_id);
+            // Longer, or none: at once. First or shorter: after the grace days.
+            $waits = $days !== null && ($currentDays === null || $days < $currentDays);
+            $version = $current === null ? 1 : (int) $current->version + 1;
+            DB::table('hr_job_application_settings')->insert(['organisation_id' => $actor->organisation_id, 'version' => $version, 'retention_days' => $days,
+                'effective_from' => $waits ? CarbonImmutable::parse($today)->addDays(self::GRACE_DAYS)->toDateString() : $today,
+                'set_by_user_id' => $actor->id, 'created_at' => now()->utc()]);
+            $this->support->remember($actor, $key, 'job_application_retention', $hash, (string) $version);
+            $this->support->audit->record('hr.applications.retention_set', null, ['version' => $version, 'days' => $days], $actor, null, $actor->organisation_id);
+        }, 3);
+    }
+
+    /**
+     * The retention in force on a date: the newest version already effective, or null (keep everything).
+     */
+    public static function retentionOn(int $organisationId, string $date): ?int
+    {
+        $row = DB::table('hr_job_application_settings')->where('organisation_id', $organisationId)->where('effective_from', '<=', $date)
+            ->orderByDesc('version')->first(['retention_days']);
+
+        return $row?->retention_days === null ? null : (int) $row->retention_days;
+    }
+
+    /**
+     * Daily: for closed applications past the retention in force, deletes the CV and clears every personal value.
+     * The application row, its status and its events stay. Open applications are never purged.
+     */
+    public function purgeExpired(): int
+    {
+        $count = 0;
+        $organisations = DB::table('hr_job_application_settings')->distinct()->pluck('organisation_id');
+        foreach ($organisations as $organisationId) {
+            $organisationId = (int) $organisationId;
+            $today = self::today($organisationId);
+            $days = self::retentionOn($organisationId, $today);
+            if ($days === null) {
+                continue;
+            }
+            $cutoff = CarbonImmutable::parse($today, self::zone($organisationId))->subDays($days)->startOfDay()->utc();
+            DB::table('hr_job_applications')->where('organisation_id', $organisationId)->whereNull('purged_at')->whereNotNull('closed_at')
+                ->where('closed_at', '<', $cutoff)->select('id')->orderBy('id')->chunkById(200, function ($chunk) use (&$count, $organisationId, $cutoff): void {
+                    foreach ($chunk as $candidate) {
+                        $path = DB::transaction(function () use ($candidate, $organisationId, $cutoff): ?string {
+                            $row = DB::table('hr_job_applications')->where('id', $candidate->id)->lockForUpdate()->first();
+                            if ($row === null || $row->purged_at !== null || $row->closed_at === null || CarbonImmutable::parse($row->closed_at)->gte($cutoff)) {
+                                return null;
+                            }
+                            DB::table('hr_job_applications')->where('id', $row->id)->update(['name_encrypted' => null, 'phone_encrypted' => null,
+                                'email_encrypted' => null, 'message_encrypted' => null, 'cv_path' => null, 'purged_at' => now()->utc(),
+                                'lock_version' => (int) $row->lock_version + 1, 'updated_at' => now()->utc()]);
+                            DB::table('hr_job_application_events')->insert(['organisation_id' => $organisationId, 'application_id' => $row->id,
+                                'action' => 'purged', 'created_at' => now()->utc()]);
+                            $this->support->audit->record('hr.applications.purged', null, ['application_id' => (int) $row->id], null, null, $organisationId);
+
+                            return (string) $row->cv_path;
+                        }, 3);
+                        if ($path !== null) {
+                            if (! Storage::disk(JobApplicationIntake::DISK)->delete($path)) {
+                                Log::warning('HR application CV could not be deleted by the purge', ['application_id' => $candidate->id]);
+                            }
+                            $count++;
+                        }
+                    }
+                });
+        }
+
+        return $count;
+    }
+
+    public static function today(int $organisationId): string
+    {
+        return CarbonImmutable::now(self::zone($organisationId))->toDateString();
+    }
+
+    public static function zone(int $organisationId): string
+    {
+        $zone = DB::table('branches')->where('organisation_id', $organisationId)->where('is_active', true)->orderBy('id')->value('timezone');
+
+        return is_string($zone) ? $zone : 'UTC';
+    }
+
+    public static function title(mixed $value): string
+    {
+        $title = is_string($value) ? trim((string) preg_replace('/\s+/u', ' ', $value)) : '';
+        if (mb_strlen($title) < 3 || mb_strlen($title) > 80) {
+            throw ValidationException::withMessages(['title' => 'Enter a position title of 3 to 80 characters.']);
+        }
+
+        return $title;
+    }
+
+    private function branchId(User $actor, mixed $value): ?int
+    {
+        if ($value === null || $value === '' || $value === 'any') {
+            return null;
+        }
+
+        return (int) $this->support->authority->branch($actor, $value)->id;
+    }
+
+    private function position(User $actor, string $positionId): \stdClass
+    {
+        if (! Str::isUuid($positionId)) {
+            abort(404);
+        }
+        $row = DB::table('hr_job_positions')->where('organisation_id', $actor->organisation_id)->where('public_id', $positionId)->lockForUpdate()->first();
+        abort_if(! $row instanceof \stdClass, 404);
+
+        return $row;
+    }
+
+    private function application(User $actor, string $applicationId, bool $lock): \stdClass
+    {
+        if (! Str::isUuid($applicationId)) {
+            abort(404);
+        }
+        $query = DB::table('hr_job_applications')->where('organisation_id', $actor->organisation_id)->where('public_id', $applicationId);
+        $row = ($lock ? $query->lockForUpdate() : $query)->first();
+        abort_if(! $row instanceof \stdClass, 404);
+
+        return $row;
+    }
+}

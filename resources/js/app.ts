@@ -34,6 +34,7 @@ if (authenticationHistory.ready) {
                 case name === 'QueueDisplay/Screen':
                     return null;
                 case name.startsWith('PublicCheckIn/'):
+                case name.startsWith('Careers/'):
                     return PublicCheckInLayout;
                 case name.startsWith('auth/'):
                     return AuthLayout;

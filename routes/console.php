@@ -3,6 +3,7 @@
 use App\Console\Commands\AgentsDailyRun;
 use App\Console\Commands\CleanupPublicPatientIntakes;
 use App\Console\Commands\PurgeHrDocuments;
+use App\Console\Commands\PurgeJobApplications;
 use App\Console\Commands\PurgeLeaveEvidence;
 use App\Console\Commands\PurgePanelStatements;
 use Illuminate\Foundation\Inspiring;
@@ -32,6 +33,12 @@ Schedule::command(PurgeLeaveEvidence::class)
 
 // HR-4b: staff document files are deleted after their category's clinic-entered retention.
 Schedule::command(PurgeHrDocuments::class)
+    ->daily()
+    ->withoutOverlapping()
+    ->onOneServer();
+
+// HR-13: closed job applications are cleared after the clinic-entered retention (none shipped; nothing until HR sets one).
+Schedule::command(PurgeJobApplications::class)
     ->daily()
     ->withoutOverlapping()
     ->onOneServer();
