@@ -417,6 +417,60 @@ class MedicalCertificateTest extends BillingTestCase
             ->assertSee('.copy-help{display:none}', false)->assertSee('COPY — CURRENT<span class="copy-help">', false);
     }
 
+    public function test_the_mc_prints_both_clinic_phones_in_the_shared_style_and_the_issue_time_in_clinic_time(): void
+    {
+        // 16:10 UTC on 31 Dec is 00:10 on 1 Jan in Kuala Lumpur: the printed date and time follow the branch, from the same instant.
+        $this->travelTo(CarbonImmutable::parse('2026-12-31 16:10:00', 'UTC'));
+        [$doctor, , $visit, $queue] = $this->servingFixture();
+        $this->startEncounter($doctor, $visit, $queue);
+        $this->verified($doctor);
+        $director = $this->actor('director');
+        $this->selectBranch($director);
+        app(BusinessDetailsService::class)->save($director, [
+            'expected_branch_id' => $this->branch->id, 'organisation_lock_version' => 0, 'branch_lock_version' => 0,
+            'idempotency_key' => (string) Str::uuid(), 'legal_name' => 'Synthetic MC Group', 'clinic_name' => 'Synthetic MC Clinic',
+            'address_line_1' => '42 Synthetic Street', 'postcode' => '50000', 'city' => 'Synthetic City', 'state' => 'Synthetic State', 'country' => 'MY',
+            'email' => 'clinic@mc.test', 'phone' => '+60321110000', 'phone_secondary' => '+60123456789',
+        ], null);
+        $this->selectBranch($doctor);
+        $id = $this->act($doctor, $visit, $this->command(['end_date' => '2027-01-02']));
+
+        $snapshot = json_decode(Crypt::decryptString(DB::table('medical_certificates')->find($id)->encrypted_snapshot), true);
+        $html = $snapshot['html'];
+        $this->assertStringContainsString('Tel: 03-2111 0000 / 012-345 6789', $html);
+        $this->assertStringNotContainsString('+60321110000', $html);
+        $this->assertStringContainsString('Email: clinic@mc.test', $html);
+        $this->assertSame('01/01/2027', $snapshot['fields']['issue_date']);
+        $this->assertSame('1 Jan 2027, 12:10 AM', $snapshot['issuedAtLocal']);
+        $this->assertSame('Kuala Lumpur', $snapshot['issuedAtZone']);
+        $this->assertStringContainsString('Issued at / Dikeluarkan pada: 1 Jan 2027, 12:10 AM (Kuala Lumpur)&nbsp;· EN revision 2&nbsp;· mc-a4-v2', $html);
+        $this->assertStringNotContainsString('Issued at (UTC)', $html);
+        // The stored evidence stays in UTC.
+        $this->assertSame('2026-12-31 16:10:00.000000+00:00', $snapshot['issuedAtUtc']);
+    }
+
+    public function test_the_mc_prints_one_phone_without_a_slash_when_there_is_no_second_phone(): void
+    {
+        [$doctor, , $visit, $queue] = $this->servingFixture();
+        $this->startEncounter($doctor, $visit, $queue);
+        $this->verified($doctor);
+        $director = $this->actor('director');
+        $this->selectBranch($director);
+        app(BusinessDetailsService::class)->save($director, [
+            'expected_branch_id' => $this->branch->id, 'organisation_lock_version' => 0, 'branch_lock_version' => 0,
+            'idempotency_key' => (string) Str::uuid(), 'legal_name' => 'Synthetic MC Group', 'clinic_name' => 'Synthetic MC Clinic',
+            'address_line_1' => '42 Synthetic Street', 'postcode' => '50000', 'city' => 'Synthetic City', 'state' => 'Synthetic State', 'country' => 'MY',
+            'phone' => '+60321110000',
+        ], null);
+        $this->selectBranch($doctor);
+        $id = $this->act($doctor, $visit, $this->command());
+
+        $html = json_decode(Crypt::decryptString(DB::table('medical_certificates')->find($id)->encrypted_snapshot), true)['html'];
+        $this->assertStringContainsString('Tel: 03-2111 0000', $html);
+        $this->assertStringNotContainsString('Tel: 03-2111 0000 /', $html);
+        $this->assertStringNotContainsString('Email:', $html);
+    }
+
     public function test_the_bahasa_melayu_revision_2_has_its_own_labels_and_notice(): void
     {
         [$doctor, , $visit, $queue] = $this->servingFixture();

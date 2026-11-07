@@ -80,13 +80,13 @@ final class AgentToolGateway
      * The "system" path for scheduled runs (contract section 5, owner decision 2026-11-05; built in AG-6 at the
      * owner's choice on 2026-11-06). Reads with no person's authority, only for a started, unfinished run that no
      * person asked for, only from the console (never from a web request), only data sources on the run's agent
-     * allowlist that are SystemReadableTool, and only at the run's own active branch. Every read is checked by
+     * allowlist that are SystemReadableTool, and only at the run's own active branch (or, for an organisation-wide tool, with no branch on a branchless run). Every read is checked by
      * the aggregate guard and logged as a `data_read` step. People's permissions apply when results are shown.
      *
      * @param  array<string, mixed>  $input
      * @return array<string, mixed>
      */
-    public function callAsSystem(AiAgentRun $run, string $toolCode, Branch $branch, array $input = []): array
+    public function callAsSystem(AiAgentRun $run, string $toolCode, ?Branch $branch, array $input = []): array
     {
         if (! app()->runningInConsole()) {
             throw new AuthorizationException('System reads run only from scheduled work, never from a request.');
@@ -106,15 +106,23 @@ final class AgentToolGateway
         if (! $agent || ! $agent->is_enabled || ! $agent->allows($tool->code())) {
             throw new AuthorizationException('This agent may not use that data source.');
         }
-        $branch = Branch::query()->whereKey($branch->id)->where('organisation_id', $run->organisation_id)->where('is_active', true)->first();
-        if (! $branch || ($run->branch_id !== null && $run->branch_id !== $branch->id)) {
-            throw new AuthorizationException('This branch is not available to this run.');
+        if ($branch === null) {
+            // An organisation-wide read (AG-8: Faris's system health, Lina's all-branch figures) needs a run with no
+            // branch and a tool that is not branch-scoped.
+            if ($run->branch_id !== null || str_ends_with($tool->requiredPermission(), '.branch')) {
+                throw new AuthorizationException('This data source is read one branch at a time.');
+            }
+        } else {
+            $branch = Branch::query()->whereKey($branch->id)->where('organisation_id', $run->organisation_id)->where('is_active', true)->first();
+            if (! $branch || ($run->branch_id !== null && $run->branch_id !== $branch->id)) {
+                throw new AuthorizationException('This branch is not available to this run.');
+            }
         }
 
         $validated = Validator::make($input, $tool->inputSchema())->validate();
         $result = $tool->runForOrganisation($run->organisation_id, $branch, $validated);
         $this->guard->assertAggregate($result);
-        $this->recorder->step($run, 'data_read', 'Read '.$tool->code().' for '.$branch->code, $tool->code());
+        $this->recorder->step($run, 'data_read', 'Read '.$tool->code().($branch ? ' for '.$branch->code : ''), $tool->code());
 
         return $result;
     }

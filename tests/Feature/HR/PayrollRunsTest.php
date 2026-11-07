@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\HR;
 
+use App\Domain\Access\PermissionCatalogue;
 use App\Domain\HR\Attendance\Models\ClockSession;
 use App\Domain\HR\Payroll\Services\PayrollMath;
 use App\Domain\HR\Payroll\Services\PayrollRunService;
@@ -331,6 +332,227 @@ class PayrollRunsTest extends VisitTestCase
             $source = (string) file_get_contents($file);
             $this->assertDoesNotMatchRegularExpression('/\(float\)|floatval\(|\bround\(|number_format\(|\bfloor\(|\bceil\(/', $source, basename($file));
         }
+    }
+
+    // ---- HR-7c payslips and exports (HR-PLAN section 17; B.E.R.N.I.S.S for the owner, 2026-11-07) ----
+
+    public function test_locking_issues_one_frozen_payslip_per_person_and_each_person_opens_only_their_own(): void
+    {
+        [$aina, $ben, $cara, $id] = $this->lockedClinic();
+        $this->assertSame(3, DB::table('hr_payslips')->count());
+        $payslip = DB::table('hr_payslips')->where('worker_id', $aina->id)->first();
+        $this->assertNotNull($payslip);
+        $json = Crypt::decryptString((string) $payslip->snapshot_encrypted);
+        $this->assertSame(hash('sha256', $json), $payslip->snapshot_hash);
+        $snapshot = json_decode($json, true);
+        $this->assertSame(['earnings' => 281563, 'deduction' => 15000, 'refund' => 4560, 'employee' => 30571, 'employer' => 39290, 'mtd' => 1200, 'net' => 239352], $snapshot['totals']);
+        $this->assertSame(array_map(fn (array $l): array => [$l[1], $l[2], $l[3]], $this->lines($aina, $id)),
+            array_map(fn (array $l): array => [$l['section'], $l['amountSen'], $l['explanation']], $snapshot['lines']));
+        $this->assertSame(['November 2026', 'regular', 'Cheras pay', 28, null], [$snapshot['period'], $snapshot['kind'], $snapshot['group'], $snapshot['payDay'], $snapshot['bank']]);
+        $this->assertSame($aina->name(), $snapshot['name']);
+
+        // My HR details lists it with no amount; opening it is recorded with no amount.
+        $this->selectBranch($aina->user);
+        $this->get(route('hr.records.index', ['tab' => 'my']))->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('records.payslips', [['id' => (string) $payslip->public_id, 'period' => 'November 2026', 'kind' => 'regular', 'group' => 'Cheras pay', 'issuedOn' => '3 Dec 2026']]));
+        $this->get(route('hr.payslips.show', $payslip->public_id))->assertOk()->assertInertia(fn (Assert $page) => $page->component('HR/Payslip')
+            ->where('payslip.own', true)->where('payslip.totals.net', 239352)->where('payslip.period', 'November 2026')->where('payslip.bank', null));
+        $this->assertSame(1, DB::table('hr_payslip_opens')->where('payslip_id', $payslip->id)->where('opened_by_user_id', $aina->user->id)->count());
+        $audit = (string) DB::table('audit_logs')->where('event', 'hr.payslips.opened')->value('metadata');
+        $this->assertStringNotContainsString('239352', $audit);
+        $this->assertStringNotContainsString('amount', $audit);
+
+        // Nobody else opens it, except a payroll preparer or approver.
+        $this->selectBranch($ben->user);
+        $this->get(route('hr.payslips.show', $payslip->public_id))->assertForbidden();
+        $this->get(route('hr.payslips.show', (string) Str::uuid()))->assertNotFound();
+        $this->selectBranch($this->actor('queue_display'));
+        $this->get(route('hr.payslips.show', $payslip->public_id))->assertForbidden();
+        $this->selectBranch($this->hr);
+        $this->get(route('hr.payslips.show', $payslip->public_id))->assertOk()->assertInertia(fn (Assert $page) => $page->where('payslip.own', false));
+        $this->assertSame(2, DB::table('hr_payslip_opens')->count());
+
+        // A payslip never changes, and only a locked run gives one.
+        $this->assertRefused('P0001', fn () => DB::table('hr_payslips')->where('id', $payslip->id)->update(['snapshot_hash' => str_repeat('0', 64)]));
+        $this->assertRefused('P0001', fn () => DB::table('hr_payslips')->where('id', $payslip->id)->delete());
+        $this->assertRefused('P0001', fn () => DB::table('hr_payslip_opens')->delete());
+        $this->assertRefused('23505', fn () => DB::table('hr_payslips')->insert(['public_id' => (string) Str::uuid(), 'organisation_id' => $aina->organisation_id,
+            'run_id' => $payslip->run_id, 'worker_id' => $aina->id, 'user_id' => $aina->user_id, 'snapshot_encrypted' => 'x', 'snapshot_hash' => str_repeat('a', 64), 'created_at' => now()]));
+        $this->prepare($this->hr, 'adjustment')->assertRedirect();
+        $draft = DB::table('hr_payroll_runs')->where('kind', 'adjustment')->first();
+        $this->assertNotNull($draft);
+        $this->assertRefused('23514', fn () => DB::table('hr_payslips')->insert(['public_id' => (string) Str::uuid(), 'organisation_id' => $aina->organisation_id,
+            'run_id' => $draft->id, 'worker_id' => $aina->id, 'user_id' => $aina->user_id, 'snapshot_encrypted' => 'x', 'snapshot_hash' => str_repeat('a', 64), 'created_at' => now()]));
+        $this->assertSame(3, DB::table('hr_payslips')->count());
+    }
+
+    public function test_the_payslip_letterhead_is_the_clinic_name_address_and_printed_phone_frozen_at_locking(): void
+    {
+        $branchOf = fn (Worker $w): int => (int) DB::table('staff_branch_assignments as a')->join('staff_profiles as p', 'p.id', '=', 'a.staff_profile_id')
+            ->where('p.user_id', $w->user_id)->where('a.is_primary', true)->value('a.branch_id');
+        $profiled = 0;
+        [$aina, $ben] = $this->lockedClinic(function (Worker $aina) use ($branchOf, &$profiled): void {
+            $profiled = $branchOf($aina);
+            DB::table('branch_business_profiles')->insert(['organisation_id' => $aina->organisation_id, 'branch_id' => $profiled, 'clinic_name' => 'Klinik Contoh Synthetic',
+                'address_line_1' => '1 Jalan Contoh', 'address_line_2' => null, 'postcode' => '56000', 'city' => 'Kuala Lumpur', 'state' => 'WP Kuala Lumpur', 'country' => 'MY',
+                'phone' => '+60320000001', 'email' => 'clinic@kpone.test', 'lock_version' => 1, 'created_at' => now(), 'updated_at' => now()]);
+        });
+        $snapshot = fn (Worker $w): array => json_decode(Crypt::decryptString((string) DB::table('hr_payslips')->where('worker_id', $w->id)->value('snapshot_encrypted')), true)['letterhead'];
+        $mine = $snapshot($aina);
+        $this->assertSame(['Klinik Contoh Synthetic', ['1 Jalan Contoh, 56000 Kuala Lumpur, WP Kuala Lumpur'], ['Tel: 03-2000 0001 · clinic@kpone.test']],
+            [$mine['clinicName'], $mine['address'], $mine['contact']]);
+
+        // A branch with no Business details shows the organisation's name, never the bare branch name.
+        if ($branchOf($ben) !== $profiled) {
+            $theirs = $snapshot($ben);
+            $this->assertSame([(string) DB::table('organisations')->where('id', $ben->organisation_id)->value('name'), [], []],
+                [$theirs['clinicName'], $theirs['address'], $theirs['contact']]);
+        }
+
+        // A later change to Business details never reaches the issued payslip.
+        DB::table('branch_business_profiles')->where('branch_id', $profiled)->update(['clinic_name' => 'Renamed later', 'phone' => '+60320009999']);
+        $this->assertSame('Klinik Contoh Synthetic', $snapshot($aina)['clinicName']);
+    }
+
+    public function test_the_director_alone_exports_a_locked_run_and_each_download_is_recorded_first(): void
+    {
+        $holders = fn (string $permission): array => collect(PermissionCatalogue::roles())->filter(fn (array $p) => in_array($permission, $p, true))->keys()->sort()->values()->all();
+        $this->assertSame(['director'], $holders('hr.payroll.export.organisation'));
+        $this->assertCount(11, $holders('hr.payslips.view.own'));
+        $this->assertNotContains('queue_display', $holders('hr.payslips.view.own'));
+        foreach (['hr.payroll.export.organisation', 'hr.payslips.view.own'] as $permission) {
+            $this->assertFalse(PermissionCatalogue::isAdministrativeAuthority($permission));
+        }
+
+        // Aina and Ben have confirmed bank details when the run is locked; Cara has none.
+        [$aina, $ben, $cara, $id] = $this->lockedClinic(function (Worker $aina, Worker $ben): void {
+            $this->confirmBank($aina, '1111222233');
+            $this->confirmBank($ben, '4444555566');
+        });
+        $this->assertSame([(int) DB::table('hr_bank_details')->where('worker_id', $aina->id)->value('id'), null],
+            [(int) DB::table('hr_payslips')->where('worker_id', $aina->id)->value('bank_detail_id'), DB::table('hr_payslips')->where('worker_id', $cara->id)->value('bank_detail_id')]);
+        // Only the Director exports; the Finance Officer gets no payroll access in v1.
+        foreach (['hr_manager', 'finance_officer', 'ca'] as $role) {
+            $this->selectBranch($role === 'hr_manager' ? $this->hr : $this->actor($role));
+            $this->postJson(route('hr.payroll.runs.export', [$id, 'bank']))->assertForbidden();
+        }
+        $this->selectBranch($this->actor('finance_officer'));
+        $this->get(route('hr.payroll.index'))->assertForbidden();
+        $this->selectBranch($this->hr);
+        $this->get(route('hr.payroll.index'))->assertInertia(fn (Assert $page) => $page->where('payroll.tabs', ['runs', 'profiles', 'tables', 'settings']));
+
+        // The statutory summary is on screen, totalled by hand from the run's own lines.
+        $this->selectBranch($this->director);
+        $this->get(route('hr.payroll.index', ['tab' => 'exports']))->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('payroll.tabs', ['runs', 'profiles', 'tables', 'settings', 'exports'])
+            ->where('payroll.exports.runs.0.netSen', 239352 + 11452 + 150000)->where('payroll.exports.runs.0.people', 3)
+            ->where('payroll.exports.runs.0.missingBank', [$cara->name()])
+            ->where('payroll.exports.runs.0.statutory', [
+                ['scheme' => 'EPF', 'people' => 1, 'employeeSen' => 28600, 'employerSen' => 33800],
+                ['scheme' => 'SOCSO', 'people' => 1, 'employeeSen' => 1408, 'employerSen' => 4927],
+                ['scheme' => 'EIS', 'people' => 2, 'employeeSen' => 586, 'employerSen' => 586],
+                ['scheme' => 'MTD (PCB)', 'people' => 1, 'employeeSen' => 1200, 'employerSen' => 0],
+            ]));
+
+        // A new account confirmed after locking never changes the file: it pays the account frozen on the payslip (Suresh, S1).
+        $this->confirmBank($aina, '9999000011');
+        $this->selectBranch($this->director);
+        $response = $this->postJson(route('hr.payroll.runs.export', [$id, 'bank']))->assertOk();
+        $this->assertSame('text/csv; charset=UTF-8', $response->headers->get('Content-Type'));
+        $this->assertStringContainsString('no-store', (string) $response->headers->get('Cache-Control'));
+        $this->assertStringContainsString('payroll-bank-2026-11.csv', (string) $response->headers->get('Content-Disposition'));
+        $csv = $response->streamedContent();
+        $this->assertStringStartsWith("\xEF\xBB\xBFName,\"Account holder\",Bank,\"Account number\",\"Amount (MYR)\",Reference\r\n", $csv);
+        // Cara had no confirmed bank details when the run was locked, so she is left out of the file and named on the tab.
+        $this->assertSame([
+            ['Name', 'Account holder', 'Bank', 'Account number', 'Amount (MYR)', 'Reference'],
+            ...collect([[$aina->name(), 'Synthetic Holder', 'Synthetic Bank', '1111222233', '2393.52', 'Salary November 2026'],
+                [$ben->name(), 'Synthetic Holder', 'Synthetic Bank', '4444555566', '114.52', 'Salary November 2026']])->sortBy(fn (array $r): string => mb_strtolower($r[0]))->values()->all(),
+        ], $this->csvRows($csv));
+        $this->assertStringNotContainsString('9999000011', $csv);
+        $export = DB::table('hr_payroll_exports')->first();
+        $this->assertNotNull($export);
+        $this->assertSame(['bank', 'generic_csv', 2, (int) $this->director->id], [$export->kind, $export->layout, (int) $export->row_count, (int) $export->exported_by_user_id]);
+        $audit = (string) DB::table('audit_logs')->where('event', 'hr.payroll.exported')->value('metadata');
+        foreach (['1111222233', '2393', '239352', 'Synthetic Bank'] as $secret) {
+            $this->assertStringNotContainsString($secret, $audit);
+        }
+
+        // The accountant summary: totals by person and item, with the accountant line. Two people who share a name stay
+        // apart, because rows are grouped by the worker, not the name (Suresh, S2).
+        DB::table('users')->where('id', $cara->user_id)->update(['name' => $aina->user->name]);
+        $csv = $this->postJson(route('hr.payroll.runs.export', [$id, 'accountant']))->assertOk()->streamedContent();
+        $this->assertStringContainsString("To confirm with the clinic's accountant before real use. Synthetic data only.", $csv);
+        $rows = $this->csvRows($csv);
+        $this->assertContains([$aina->name(), 'Earnings', 'Basic salary', '2600.00'], $rows);
+        $this->assertContains([$aina->name(), 'Earnings', 'Basic salary', '1500.00'], $rows);
+        $this->assertContains([$aina->name(), 'Employee contributions', 'EPF employee', '286.00'], $rows);
+        $this->assertContains([$aina->name(), 'Employer contributions (information)', 'EPF employer', '338.00'], $rows);
+        $this->assertContains([$aina->name(), 'Refunds', 'Staff claim refund', '45.60'], $rows);
+        $this->assertContains([$ben->name(), 'Earnings', 'Worked hours', '114.75'], $rows);
+        $this->assertStringNotContainsString('1111222233', $csv);
+        $this->assertSame(['bank', 'accountant'], DB::table('hr_payroll_exports')->orderBy('id')->pluck('kind')->all());
+        $this->assertRefused('P0001', fn () => DB::table('hr_payroll_exports')->delete());
+        $this->assertRefused('23514', fn () => DB::table('hr_payroll_exports')->insert(['public_id' => (string) Str::uuid(), 'organisation_id' => $aina->organisation_id,
+            'run_id' => DB::table('hr_payroll_runs')->value('id'), 'kind' => 'bank', 'layout' => 'summary_csv', 'row_count' => 1, 'exported_by_user_id' => $this->director->id, 'created_at' => now()]));
+    }
+
+    public function test_only_a_locked_run_is_exported(): void
+    {
+        [$aina] = $this->clinic();
+        $this->lineTypes($this->hr);
+        $this->prepare($this->hr)->assertRedirect();
+        $id = (string) DB::table('hr_payroll_runs')->value('public_id');
+        $this->selectBranch($this->director);
+        $this->postJson(route('hr.payroll.runs.export', [$id, 'accountant']))->assertStatus(422)->assertJsonPath('errors.export.0', 'Only a locked run is exported.');
+        $this->postJson(route('hr.payroll.runs.export', [(string) Str::uuid(), 'accountant']))->assertNotFound();
+        $this->get(route('hr.payroll.index', ['tab' => 'exports']))->assertInertia(fn (Assert $page) => $page->where('payroll.exports.runs', []));
+        $this->assertSame(0, DB::table('hr_payroll_exports')->count());
+        $this->assertSame(0, DB::table('hr_payslips')->count());
+        $this->assertNotNull($aina);
+    }
+
+    /**
+     * @param  (callable(Worker, Worker, Worker): void)|null  $before  runs before the run is prepared
+     * @return array{0: Worker, 1: Worker, 2: Worker, 3: string} the clinic with its November run locked by the second Director
+     */
+    private function lockedClinic(?callable $before = null): array
+    {
+        [$aina, $ben, $cara] = $this->clinic();
+        if ($before !== null) {
+            $before($aina, $ben, $cara);
+        }
+        $this->lineTypes($this->hr);
+        $this->prepare($this->hr)->assertRedirect();
+        $id = (string) DB::table('hr_payroll_runs')->value('public_id');
+        $this->step($this->hr, $id, 'mtd', ['worker_id' => $aina->public_id, 'mtd' => '12.00'])->assertSessionHasNoErrors();
+        $this->step($this->hr, $id, 'send')->assertSessionHasNoErrors();
+        $this->step($this->director2, $id, 'approve')->assertSessionHasNoErrors();
+        $this->step($this->director2, $id, 'lock')->assertSessionHasNoErrors();
+        $this->assertSame('locked', DB::table('hr_payroll_runs')->value('status'));
+
+        return [$aina, $ben, $cara, $id];
+    }
+
+    /** @return list<list<string>> */
+    private function csvRows(string $csv): array
+    {
+        $lines = preg_split('/\r\n/', substr($csv, 3), -1, PREG_SPLIT_NO_EMPTY) ?: [];
+
+        return array_map(fn (string $line): array => array_map('strval', str_getcsv($line, ',', '"', '')), $lines);
+    }
+
+    private function confirmBank(Worker $worker, string $account): void
+    {
+        $this->selectBranch($this->hr);
+        $this->post(route('hr.records.bank.store', $worker->public_id), ['bank_name' => 'Synthetic Bank', 'holder' => 'Synthetic Holder', 'account' => $account,
+            'idempotency_key' => (string) Str::uuid()])->assertSessionHasNoErrors();
+        $bank = DB::table('hr_bank_details')->where('worker_id', $worker->id)->where('status', 'waiting')->first();
+        $this->assertNotNull($bank);
+        $this->selectBranch($this->director);
+        $this->postJson(route('hr.records.show-value', $worker->public_id), ['field' => 'bank_account', 'bank_id' => $bank->public_id])->assertOk();
+        $this->post(route('hr.records.bank.decide', [$worker->public_id, $bank->public_id, 'confirm']), ['expected_lock_version' => (int) $bank->lock_version,
+            'idempotency_key' => (string) Str::uuid()])->assertSessionHasNoErrors();
     }
 
     /** @return array{0: Worker, 1: Worker, 2: Worker} the monthly worker, the hourly part-timer and the joiner */

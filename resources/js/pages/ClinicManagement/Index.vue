@@ -3,6 +3,7 @@ import { Head, Link } from '@inertiajs/vue3';
 import {
     Archive,
     ArrowRight,
+    Bot,
     Building2,
     ChartNoAxesCombined,
     ClipboardList,
@@ -38,6 +39,7 @@ const icons: Record<string, Component> = {
     staff: Users,
     documents: FileText,
     website: Globe,
+    agents: Bot,
 };
 </script>
 
