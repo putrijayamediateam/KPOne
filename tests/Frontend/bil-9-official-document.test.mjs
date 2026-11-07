@@ -283,3 +283,31 @@ test('money: thousands separators and a true minus sign', () => {
     assert.equal(money.exports.amount(-1200), '−12.00');
     assert.equal(money.exports.amount(0), '0.00');
 });
+
+test('an invoice with an approved refund credit shows it after Tax and before Invoice total (BIL-10)', async () => {
+    const base = props();
+    const out = await render({
+        ...base,
+        billing: {
+            ...base.billing,
+            invoice: {
+                ...base.billing.invoice,
+                refundCreditSen: 500,
+                state: {
+                    ...base.billing.invoice.state,
+                    total: 6250,
+                    self_pay: 1500,
+                    due_now: 1750,
+                },
+            },
+        },
+    });
+    assert.ok(
+        out.includes(
+            'Tax RM 0.00 Refund credit −RM 5.00 Invoice total RM 62.50 Total paid RM 15.00',
+        ),
+        out,
+    );
+    const plain = await render(props());
+    assert.ok(!plain.includes('Refund credit'));
+});

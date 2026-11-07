@@ -326,6 +326,14 @@ const totals = computed(() => {
                                 }}
                             </dd></template
                         >
+                        <template v-if="invoice.financial.refundCreditSen"
+                            ><dt data-testid="invoice-refund-credit">
+                                Refund credit
+                            </dt>
+                            <dd class="text-right tabular-nums">
+                                −{{ myr(invoice.financial.refundCreditSen) }}
+                            </dd></template
+                        >
                         <dt class="font-semibold">Total</dt>
                         <dd class="text-right font-semibold tabular-nums">
                             {{ myr(invoice.financial.state.total) }}
@@ -390,6 +398,20 @@ const totals = computed(() => {
                                         payment.status
                                     }}</span>
                                 </div>
+                                <p
+                                    v-if="payment.refundedSen"
+                                    class="mt-1 text-xs text-muted-foreground tabular-nums"
+                                    data-testid="payment-refunded"
+                                >
+                                    Refunded {{ myr(payment.refundedSen) }} ·
+                                    {{
+                                        myr(
+                                            payment.amountSen -
+                                                payment.refundedSen,
+                                        )
+                                    }}
+                                    kept
+                                </p>
                             </li>
                         </ul>
                     </section>

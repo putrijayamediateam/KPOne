@@ -32,6 +32,8 @@ const props = defineProps<{
             lines: Line[];
             categories?: { name: string; totalSen: number }[];
             adjustment: { subtotalSen: number; adjustmentSen: number };
+            /** BIL-10: an approved refund credit, only on invoices that have one. */
+            refundCreditSen?: number;
             state?: {
                 total: number;
                 self_pay: number;
@@ -323,6 +325,14 @@ const quantity = (value: string) =>
                     </dd>
                 </template>
                 <template v-else-if="invoice.state">
+                    <template v-if="invoice.refundCreditSen">
+                        <dt class="font-bold" data-testid="refund-credit">
+                            Refund credit
+                        </dt>
+                        <dd class="text-right tabular-nums">
+                            {{ myr(-invoice.refundCreditSen) }}
+                        </dd>
+                    </template>
                     <dt class="font-bold">Invoice total</dt>
                     <dd class="text-right tabular-nums">
                         {{ myr(invoice.state.total) }}

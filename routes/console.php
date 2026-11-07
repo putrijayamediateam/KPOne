@@ -1,5 +1,6 @@
 <?php
 
+use App\Console\Commands\AgentsDailyRun;
 use App\Console\Commands\CleanupPublicPatientIntakes;
 use App\Console\Commands\PurgeHrDocuments;
 use App\Console\Commands\PurgeLeaveEvidence;
@@ -32,5 +33,17 @@ Schedule::command(PurgeLeaveEvidence::class)
 // HR-4b: staff document files are deleted after their category's clinic-entered retention.
 Schedule::command(PurgeHrDocuments::class)
     ->daily()
+    ->withoutOverlapping()
+    ->onOneServer();
+
+// AG-8: the AI agents' daily summary runs. Each branch runs a slot once its local clock reaches 07:00 or 14:00
+// (once per local date), so calling every hour is safe and catches up after a missed hour.
+Schedule::command(AgentsDailyRun::class, ['0700'])
+    ->hourlyAt(5)
+    ->withoutOverlapping()
+    ->onOneServer();
+
+Schedule::command(AgentsDailyRun::class, ['1400'])
+    ->hourlyAt(10)
     ->withoutOverlapping()
     ->onOneServer();
