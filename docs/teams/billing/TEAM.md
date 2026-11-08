@@ -109,6 +109,7 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php` and `BillingPermiss
 | BIL-9 | Issued invoices and receipts follow the clinic's own paper: letterhead in capitals with Email and Tel (second phone when set), To block with name, IC/passport and phone, item table, seven category totals, totals with Invoice total, Panel covers and Pay later, a receipt sentence, item table and invoice number, VOID on a void invoice. Versions issued before keep their D03 layout; `myr()` prints negative amounts as −RM x. Design note: `BIL-9-DESIGN.md` | PR #388 |
 | BIL-10 | Refunds after a visit is completed: part or all of one posted receipt (never more than the receipt less its refunds that are not rejected), recorded by a CA Supervisor or Finance Officer and approved or rejected by a Finance Officer or Director, never the recorder (the two BIL-6 permissions). Each carries an invoice credit of the same amount: once approved, the ledger lowers the invoice total and what was paid together, so nothing becomes due again. Billing page refund panel (amount, method, reason), "Refunded … · … kept" under the receipt and a "Refund credit" line on the Billing, Invoice and printed invoice; Insights and the Sales CSV show "Refund credits" as their own row on the approval day; Daily summary and Transaction Detail gain a "Refunded after completion" column. Additive migration with PostgreSQL guards (`invoice_credits`, `payment_refunds.kind`). Design note: `BIL-10-DESIGN.md` | PR #392 |
 | BIL-12 | Insights provider tables (Sales and Today) take each approved refund credit off its invoice's doctor, or the OTC row, on the approval day, so the rows add up to the headline net sales (owner decision). No permission, migration or screen change. Design note: `BIL-12-DESIGN.md` | PR pending |
+| BIL-13 | PostgreSQL race tests for refunds after completion: two refunds at once on one receipt never exceed it (one recorded, the other refused on the amount), and two that fit together are both recorded. The race test cleanup also removes invoice credits. Test only | PR #399 |
 
 ## 6. Owner decisions already made (never ask again)
 
@@ -315,7 +316,7 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php` and `BillingPermiss
   `/print` preview keeps the D03 layout; copies issued before keep theirs; IC/passport and phone on paper are a PDPA
   point before real use.
 - Refunds after completion (BIL-10): see `BIL-10-DESIGN.md` section 9 (Insights Provider table nets credits since BIL-12;
-  one invoice per refunded receipt; no dedicated contention test yet).
+  one invoice per refunded receipt; the race test is BIL-13).
 - Insights provider credits (BIL-12): when the Range provider list is cut at 100 doctors, a doctor below the cut who
   has a credit in the period is not added with only that credit (their sales are not shown either); the existing
   "truncated" note explains why the rows then do not add up to the headline. Below 100 doctors the rows always add up.

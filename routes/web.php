@@ -34,6 +34,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DiagnosisPresetSettingsController;
 use App\Http\Controllers\DispensaryController;
 use App\Http\Controllers\GovernedStockController;
+use App\Http\Controllers\HR\ApplicationsController as HrApplicationsController;
 use App\Http\Controllers\HR\AttendanceController as HrAttendanceController;
 use App\Http\Controllers\HR\ClaimsController as HrClaimsController;
 use App\Http\Controllers\HR\CredentialsController as HrCredentialsController;
@@ -54,6 +55,7 @@ use App\Http\Controllers\InventoryStockReviewController;
 use App\Http\Controllers\InvoiceActivityController;
 use App\Http\Controllers\InvoiceBillToController;
 use App\Http\Controllers\InvoiceNoteController;
+use App\Http\Controllers\JobApplicationController;
 use App\Http\Controllers\MedicalCertificateController;
 use App\Http\Controllers\MedicineCatalogueController;
 use App\Http\Controllers\MedicineOptionSettingsController;
@@ -112,6 +114,17 @@ use Illuminate\Support\Facades\Route;
 Route::get('/', fn () => Auth::check()
     ? redirect()->route('workspace')
     : redirect()->route('login'))->name('home');
+
+// HR-13 public job-application form: off unless HR_APPLICATIONS_ENABLED is true (404 otherwise).
+Route::get('careers/apply', [JobApplicationController::class, 'show'])
+    ->middleware(['public-intake.proxy', 'throttle:hr-applications-view', 'sensitive.no-store:no-referrer'])
+    ->name('hr-applications.show');
+Route::post('careers/apply', [JobApplicationController::class, 'submit'])
+    ->middleware(['public-intake.proxy', 'throttle:hr-applications-submit', 'sensitive.no-store:no-referrer'])
+    ->name('hr-applications.submit');
+Route::get('careers/apply/thanks', [JobApplicationController::class, 'thanks'])
+    ->middleware(['public-intake.proxy', 'throttle:hr-applications-view', 'sensitive.no-store:no-referrer'])
+    ->name('hr-applications.thanks');
 
 Route::get('check-in', PublicCheckInController::class)
     ->middleware(['public-intake.proxy', 'throttle:public-checkin-view', 'sensitive.no-store:no-referrer'])
@@ -297,6 +310,19 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('hr/payslips/{payslip}', [HrPayrollController::class, 'payslip'])->whereUuid('payslip')
         ->middleware(['sensitive.no-store', 'permission:hr.payslips.view.own,hr.payroll.prepare.organisation,hr.payroll.approve.organisation', 'throttle:60,1'])
         ->name('hr.payslips.show');
+
+    // HR-13 job applications (owner, 2026-11-07: "start the HR-13 build").
+    Route::prefix('hr/applications')->controller(HrApplicationsController::class)
+        ->middleware(['sensitive.no-store', 'permission:hr.applications.manage.organisation'])->group(function (): void {
+            Route::get('/', 'index')->name('hr.applications.index');
+            Route::get('{application}/cv', 'cv')->whereUuid('application')->middleware('throttle:60,1')->name('hr.applications.cv');
+            Route::middleware('throttle:30,1')->group(function (): void {
+                Route::post('positions', 'addPosition')->name('hr.applications.positions.store');
+                Route::post('positions/{position}', 'updatePosition')->whereUuid('position')->name('hr.applications.positions.update');
+                Route::post('{application}/move', 'move')->whereUuid('application')->name('hr.applications.move');
+                Route::post('retention', 'retention')->name('hr.applications.retention');
+            });
+        });
 
     // HR-5c SOPs (owner, 2026-11-06: "approve the HR-5 note with the defaults").
     Route::prefix('hr/sops')->controller(HrSopsController::class)->middleware('sensitive.no-store')->group(function (): void {
