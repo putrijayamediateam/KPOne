@@ -7,6 +7,7 @@ use App\Domain\Visit\Billing\Models\PriceBook;
 use App\Domain\Visit\Billing\Models\PriceEntry;
 use App\Domain\Visit\Models\Visit;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class PriceResolutionService
@@ -33,6 +34,10 @@ class PriceResolutionService
                 });
             })->orderBy('id')->lockForUpdate()->get();
         $entries = PriceEntry::query()->where('organisation_id', $visit->organisation_id)->whereIn('price_book_id', $books->pluck('id'))->whereIn('charge_definition_id', $charges->pluck('id'))->where('effective_at', '<=', now()->utc())->orderBy('id')->lockForUpdate()->get();
+        // BIL-11 (owner decision 2026-11-07): each service line keeps its clinical service's category as it is now, so a
+        // later rename never moves money between the printed category rows. '' means frozen with no category.
+        $categories = DB::table('clinical_service_catalogue_items')->where('organisation_id', $visit->organisation_id)
+            ->whereIn('id', $charges->pluck('clinical_service_catalogue_item_id')->filter())->pluck('category', 'id');
         foreach ($lines as &$line) {
             $charge = $charges->get($line['charge_key']);
             $price = $this->select($books, $entries, $charge, $visit->coverage_type === 'panel', $visit->panel_id, (int) $visit->branch_id);
@@ -40,7 +45,8 @@ class PriceResolutionService
                 throw ValidationException::withMessages(['price' => 'A governed price with the exact selling unit is required for every charge.']);
             }
             unset($line['charge_key']);
-            $line += ['charge_definition_id' => $charge->id, 'price_entry_id' => $price->id, 'price_version' => $price->version,
+            $line += ['service_category_snapshot' => ($line['line_type'] ?? null) === 'service' ? (string) ($categories[$charge->clinical_service_catalogue_item_id] ?? '') : null,
+                'charge_definition_id' => $charge->id, 'price_entry_id' => $price->id, 'price_version' => $price->version,
                 'unit_price_sen' => $price->unit_price_sen, 'line_total_sen' => ExactMoney::line(ExactMoney::quantity($line['quantity']), $price->unit_price_sen)];
         }
         unset($line);
