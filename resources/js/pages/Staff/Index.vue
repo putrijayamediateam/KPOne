@@ -4,7 +4,13 @@ import { Plus, Search, X } from '@lucide/vue';
 import { computed, reactive, ref } from 'vue';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+    Card,
+    CardContent,
+    CardDescription,
+    CardHeader,
+    CardTitle,
+} from '@/components/ui/card';
 import OperationalConfirmDialog from '@/components/ui/OperationalConfirmDialog.vue';
 import { PageHeader } from '@/components/ui/page-header';
 import { OperationalSelect } from '@/components/ui/select';
@@ -140,17 +146,17 @@ const clearFilters = () => {
             v-if="accountRequests && accountRequests.length"
             data-test="staff-account-requests"
         >
-            <CardHeader class="pb-2"
-                ><CardTitle class="text-base"
+            <CardHeader>
+                <CardTitle class="text-base"
                     >Staff accounts HR asked for</CardTitle
-                ></CardHeader
-            >
-            <CardContent class="flex flex-col gap-3">
-                <p class="text-sm text-muted-foreground">
+                >
+                <CardDescription>
                     Candidates who passed and accepted. Create each account the
                     usual way with Create staff, then mark the request done.
                     Nothing is created from this list.
-                </p>
+                </CardDescription>
+            </CardHeader>
+            <CardContent class="flex flex-col gap-3">
                 <ul class="flex flex-col gap-2">
                     <li
                         v-for="request in accountRequests"

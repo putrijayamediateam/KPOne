@@ -1297,6 +1297,12 @@ const removeDocument = () => {
                             @click="askInvite(member)"
                             >Invite</Button
                         >
+                        <span
+                            v-if="!invitePick[member.id]"
+                            class="text-sm text-muted-foreground"
+                            data-test="pool-invite-why"
+                            >Choose a position first.</span
+                        >
                     </div>
                     <p v-else class="text-muted-foreground">
                         No open position of this type.

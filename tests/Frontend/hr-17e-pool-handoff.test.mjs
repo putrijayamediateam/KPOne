@@ -74,6 +74,7 @@ test('HR has a Talent pool tab, a pool period setting, invitations and the staff
 
     assert.match(source.hr, /pool: 'Talent pool'/);
     assert.match(t, /confirm-label="Invite"/);
+    assert.match(t, /Choose a position first\./);
     assert.match(source.hr, /\/account-request`/);
 });
 
