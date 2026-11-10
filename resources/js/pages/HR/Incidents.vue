@@ -9,8 +9,7 @@ import SyntheticNote from '@/components/hr/records/SyntheticNote.vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { DateField } from '@/components/ui/date-field';
-import { Input } from '@/components/ui/input';
+import { DateTimeField } from '@/components/ui/date-field';
 import { Label } from '@/components/ui/label';
 import { PageHeader } from '@/components/ui/page-header';
 import { OperationalSelect } from '@/components/ui/select';
@@ -65,7 +64,7 @@ const failure = computed(() => errors.value.incident ?? errors.value.records);
 const tabLabels: Record<Tab, string> = {
     mine: 'My reports',
     open: 'Open',
-    clinical: 'Needs clinical review',
+    clinical: 'Clinical review',
     closed: 'Closed',
 };
 const tabs = computed(() =>
@@ -93,8 +92,7 @@ const chooser = ref<{ clear: () => void } | null>(null);
 const form = reactive({
     open: false,
     branch: '',
-    occurredOn: '',
-    occurredTime: '',
+    occurredAt: '',
     category: '',
     directorOnly: false,
     description: '',
@@ -106,8 +104,7 @@ const startReport = () => {
     Object.assign(form, {
         open: true,
         branch: props.incidents.branches[0]?.id ?? '',
-        occurredOn: props.incidents.today,
-        occurredTime: '',
+        occurredAt: '',
         category: '',
         directorOnly: false,
         description: '',
@@ -127,8 +124,8 @@ const addPhoto = (event: Event) => {
 const missing = computed(() =>
     !form.category
         ? 'Choose what kind of incident it was.'
-        : !form.occurredTime
-          ? 'Choose the time it happened.'
+        : !form.occurredAt
+          ? 'Choose the date and time it happened.'
           : form.description.trim().length < 10
             ? 'Describe what happened first.'
             : null,
@@ -139,8 +136,8 @@ const submit = () => {
         '/hr/incidents',
         {
             branch_id: form.branch,
-            occurred_on: form.occurredOn,
-            occurred_time: form.occurredTime,
+            occurred_on: form.occurredAt.slice(0, 10),
+            occurred_time: form.occurredAt.slice(11, 16),
             category: form.category,
             director_only:
                 form.category === 'staff_conduct' && form.directorOnly ? 1 : 0,
@@ -338,28 +335,18 @@ const textareaClass =
                         />
                         <InputError :message="errors.branch_id" />
                     </div>
-                    <div class="grid gap-4 sm:grid-cols-2">
-                        <div class="flex flex-col gap-2">
-                            <Label for="incident-date">Date</Label>
-                            <DateField
-                                id="incident-date"
-                                v-model="form.occurredOn"
-                                :max="incidents.today"
-                                :aria-invalid="!!errors.occurred_on"
-                            />
-                            <InputError :message="errors.occurred_on" />
-                        </div>
-                        <div class="flex flex-col gap-2">
-                            <Label for="incident-time">Time</Label>
-                            <Input
-                                id="incident-time"
-                                v-model="form.occurredTime"
-                                type="time"
-                                class="max-lg:min-h-11"
-                                :aria-invalid="!!errors.occurred_time"
-                            />
-                            <InputError :message="errors.occurred_time" />
-                        </div>
+                    <div class="flex flex-col gap-2">
+                        <Label for="incident-when">When it happened</Label>
+                        <DateTimeField
+                            id="incident-when"
+                            v-model="form.occurredAt"
+                            :max="incidents.today"
+                            :aria-invalid="
+                                !!(errors.occurred_on || errors.occurred_time)
+                            "
+                        />
+                        <InputError :message="errors.occurred_on" />
+                        <InputError :message="errors.occurred_time" />
                     </div>
                     <div class="flex flex-col gap-2">
                         <Label for="incident-text">What happened</Label>
