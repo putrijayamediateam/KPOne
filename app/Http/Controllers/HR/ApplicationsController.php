@@ -4,6 +4,7 @@ namespace App\Http\Controllers\HR;
 
 use App\Domain\Audit\AuditRecorder;
 use App\Domain\HR\Applications\Services\ApplicationsPageService;
+use App\Domain\HR\Applications\Services\InterviewSlots;
 use App\Domain\HR\Applications\Services\JobApplicationService;
 use App\Http\Controllers\Controller;
 use Illuminate\Auth\Access\AuthorizationException;
@@ -49,6 +50,30 @@ class ApplicationsController extends Controller
 
         return $this->run($request, $back, 'Phone screening recorded.',
             fn () => $applications->screen($request->user(), $application, $request->only(['outcome', 'rating', 'ticked', 'note', 'reject_reason', 'expected_lock_version', 'idempotency_key'])));
+    }
+
+    /** HR-17c: confirm one of the candidate's three times. */
+    public function confirmInterview(Request $request, InterviewSlots $slots, string $application): RedirectResponse
+    {
+        return $this->run($request, $this->back($request), 'Interview confirmed. The candidate is told.',
+            fn () => $slots->confirm($request->user(), $application, $request->only(['start', 'expected_lock_version', 'idempotency_key'])));
+    }
+
+    public function askAgain(Request $request, InterviewSlots $slots, string $application): RedirectResponse
+    {
+        return $this->run($request, $this->back($request), 'New times asked for. The candidate is told.',
+            fn () => $slots->askAgain($request->user(), $application, $request->only(['expected_lock_version', 'idempotency_key'])));
+    }
+
+    public function cancelInterview(Request $request, InterviewSlots $slots, string $application): RedirectResponse
+    {
+        return $this->run($request, $this->back($request), 'Interview cancelled. The candidate is asked for new times.',
+            fn () => $slots->cancel($request->user(), $application, $request->only(['reason', 'expected_lock_version', 'idempotency_key'])));
+    }
+
+    private function back(Request $request): string
+    {
+        return route('hr.applications.index', array_filter(['tab' => 'applications', ...$request->only(['status', 'position', 'page'])]));
     }
 
     public function checklist(Request $request, JobApplicationService $applications): RedirectResponse

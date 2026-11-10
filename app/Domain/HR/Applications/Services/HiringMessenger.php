@@ -37,13 +37,14 @@ final class HiringMessenger
 
     /**
      * Call inside the transaction that made the change. $link is the full private link, given only with "received".
+     * $round is the interview round (HR-17c), so a message can come again in a later round of the same stage.
      *
      * @param  array<string, string>  $extra  the reminder's reference and stage
      */
-    public function record(\stdClass $application, string $template, string $stage, ?string $link = null, array $extra = []): void
+    public function record(\stdClass $application, string $template, string $stage, ?string $link = null, array $extra = [], int $round = 0): void
     {
         $toMailbox = $template === 'auto_reject_reminder';
-        $params = ['position' => self::positionTitle((int) $application->position_id), ...$extra];
+        $params = ['position' => self::positionTitle((int) $application->position_id), ...self::interviewParams($template, (int) $application->id, $round), ...$extra];
         if ($template === 'received') {
             $params['link'] = $link ?? HiringTemplates::LINK_SHOWN_ONCE;
         }
@@ -58,11 +59,12 @@ final class HiringMessenger
         $now = now()->utc();
         $inserted = DB::table('hr_job_application_messages')->insertOrIgnore(['organisation_id' => $application->organisation_id,
             'application_id' => $application->id, 'template' => $template, 'recipient' => $toMailbox ? 'mailbox' : 'candidate', 'stage' => $stage,
-            'status' => $off ? 'off' : 'sending', 'created_at' => $now, 'updated_at' => $now]);
+            'status' => $off ? 'off' : 'sending', 'round' => $round, 'created_at' => $now, 'updated_at' => $now]);
         if ($inserted === 0 || $off) {
             return;
         }
-        $id = (int) DB::table('hr_job_application_messages')->where('application_id', $application->id)->where('template', $template)->where('stage', $stage)->value('id');
+        $id = (int) DB::table('hr_job_application_messages')->where('application_id', $application->id)->where('template', $template)->where('stage', $stage)
+            ->where('round', $round)->value('id');
         $applicationId = (int) $application->id;
         DB::afterCommit(function () use ($id, $applicationId, $toMailbox, $message): void {
             $this->send($id, $applicationId, $toMailbox, $message);
@@ -100,6 +102,7 @@ final class HiringMessenger
         if ($template === 'auto_reject_reminder') {
             $params += ['reference' => self::reference($publicId), 'stage' => (string) (JobApplicationService::STATUSES[$row->stage] ?? 'New')];
         }
+        $params += self::interviewParams($template, (int) $row->application_id, (int) ($row->round ?? 0));
         try {
             $text = HiringTemplates::render($template, $params);
         } catch (\Throwable) {
@@ -109,6 +112,30 @@ final class HiringMessenger
         return ['template' => $template, 'label' => HiringTemplates::label($template), 'recipient' => (string) $row->recipient,
             'status' => (string) $row->status, 'subject' => $text['subject'], 'body' => $text['body'],
             'at' => CarbonImmutable::parse($row->created_at)->toIso8601String()];
+    }
+
+    /**
+     * The date, time and branch of the round's interview, for the messages that name it (HR-17c), in the branch's time.
+     *
+     * @return array<string, string>
+     */
+    public static function interviewParams(string $template, int $applicationId, int $round): array
+    {
+        if (! in_array($template, ['interview_confirmed', 'interview_cancelled'], true)) {
+            return [];
+        }
+        $interview = DB::table('hr_job_interviews as i')->join('branches as b', 'b.id', '=', 'i.branch_id')
+            ->where('i.application_id', $applicationId)->where('i.round', $round)->orderByDesc('i.id')->first(['i.starts_at', 'b.name', 'b.timezone']);
+        if ($interview === null) {
+            return [];
+        }
+        $at = CarbonImmutable::parse($interview->starts_at)->setTimezone((string) ($interview->timezone ?: 'UTC'));
+        $params = ['date' => $at->format('D j M Y'), 'time' => $at->format('g:i A')];
+        if ($template === 'interview_confirmed') {
+            $params['branch'] = trim((string) preg_replace('/[\r\n<>{}]+/u', ' ', (string) $interview->name));
+        }
+
+        return $params;
     }
 
     public static function reference(string $publicId): string
