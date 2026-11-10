@@ -201,11 +201,11 @@ const printQr = (link: LinkRow) => {
 </script>
 
 <template>
-    <Head title="Public Check-In Links" />
+    <Head title="QR check-in links" />
     <main class="flex flex-1 flex-col gap-6 p-4 md:p-7">
         <header class="space-y-1">
             <h1 class="text-2xl font-semibold tracking-tight">
-                Public Check-In Links
+                QR check-in links
             </h1>
             <p class="text-sm text-muted-foreground">
                 Issue and revoke branch-bound public landing links. No Patient
@@ -418,9 +418,10 @@ const printQr = (link: LinkRow) => {
                         v-else-if="link.requiresRotation"
                         class="rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900"
                     >
-                        QR lama ini tidak boleh dipaparkan semula kerana ia
-                        dicipta sebelum fungsi simpanan selamat diperkenalkan.
-                        Sila rotate sekali untuk menghasilkan QR baharu.
+                        This older QR cannot be shown again because it was
+                        created before secure storage was added. Rotate it to
+                        make a new QR. The old QR stops working, so print the
+                        new one.
                     </p>
                     <p v-else class="text-xs text-muted-foreground">
                         Historical link retained for audit. It cannot be used.

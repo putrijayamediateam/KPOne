@@ -101,7 +101,7 @@ const submit = () => {
             />
             <div
                 v-if="form.errors.lock_version"
-                class="rounded-md border border-amber-300 bg-amber-50 p-4 text-sm"
+                class="rounded-md border border-warning/25 bg-warning/10 p-4 text-sm text-warning-strong"
             >
                 {{ form.errors.lock_version }}
             </div>

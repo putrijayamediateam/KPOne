@@ -127,7 +127,7 @@ const submitCancel = () => {
                     </h1>
                     <StatusBadge :status="visit.status" /><span
                         v-if="visit.priority === 'urgent'"
-                        class="rounded-full bg-red-50 px-2.5 py-1 text-xs font-medium text-red-700"
+                        class="rounded-full border border-destructive/25 bg-destructive/10 px-2.5 py-1 text-xs font-medium text-destructive"
                         >Urgent</span
                     >
                 </div>
@@ -301,7 +301,7 @@ const submitCancel = () => {
         </section>
         <section
             v-if="visit.can.cancel"
-            class="rounded-lg border border-red-200 bg-card"
+            class="rounded-lg border border-destructive/25 bg-card"
         >
             <button
                 type="button"
@@ -309,12 +309,13 @@ const submitCancel = () => {
                 @click="cancelling = !cancelling"
             >
                 <span
-                    ><span class="font-semibold text-red-700">Cancel Visit</span
+                    ><span class="font-semibold text-destructive"
+                        >Cancel Visit</span
                     ><span class="block text-xs text-muted-foreground"
                         >Cancellation is final. A cancelled Visit cannot be
                         edited or reopened.</span
                     ></span
-                ><Ban class="size-4 text-red-700" />
+                ><Ban class="size-4 text-destructive" />
             </button>
             <form
                 v-if="cancelling"
