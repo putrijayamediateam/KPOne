@@ -15,6 +15,7 @@ import ReceiptCorrections from '@/components/billing/ReceiptCorrections.vue';
 import ReceiptRefunds from '@/components/billing/ReceiptRefunds.vue';
 import { ActionLink } from '@/components/ui/action-link';
 import { Button } from '@/components/ui/button';
+import { DateField } from '@/components/ui/date-field';
 import {
     Dialog,
     DialogContent,
@@ -1481,10 +1482,8 @@ const reverse = (receipt: Receipt) =>
                                 needs approval and is not a cash receipt.
                             </p>
                             <label class="mt-2 block"
-                                >Pay later due date<input
-                                    v-model="form.due_date"
-                                    type="date"
-                                    class="billing-input" /></label
+                                >Pay later due date<DateField
+                                    v-model="form.due_date" /></label
                             ><Button
                                 variant="secondary"
                                 size="sm"
