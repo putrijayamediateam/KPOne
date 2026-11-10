@@ -24,6 +24,11 @@ Draf untuk semakan klinik. Bukan dokumen rasmi.
 3. Untuk “Stock count (governed)”, jika sistem menyatakan snapshot telah berubah, jangan teruskan kes lama. Bukti lama dikekalkan; mulakan snapshot baharu hanya selepas mengesahkan SKU, batch dan lokasi yang betul.
 4. Jika mesej masih muncul, simpan nama halaman, masa dan teks ralat tanpa menyalin maklumat pesakit, kemudian beritahu “[NAMA PENGENDALI]”.
 
+## Pautan cetakan lama atau tarikh yang nampak salah
+
+1. Jika anda membuka pautan cetakan invois atau resit yang lama, anda akan dibawa ke senarai “Issued copies” pada halaman bil. Ini dijangka; tiada apa-apa dicetak atau direkod. Pilih “Reprint” pada dokumen yang betul.
+2. Jika tarikh pada skrin nampak tertukar hari dan bulan (contohnya 11/06 bukan 06/11), jangan simpan dahulu. Semak susunan medan tarikh itu: skrin yang sudah dikemas kini sentiasa menggunakan dd/mm/yyyy. Jika masih tidak pasti, beritahu “[NAMA PENGENDALI]” dengan nama halaman tersebut.
+
 ## Tidak pasti atau akses ditolak
 
 Berhenti dan minta bantuan “[NAMA PENGENDALI]”. Jangan berkongsi kata laluan atau cuba menggunakan peranan orang lain.

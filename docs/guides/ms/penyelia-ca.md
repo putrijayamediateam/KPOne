@@ -21,7 +21,7 @@ Penyelia CA juga menggunakan langkah dalam [panduan Pembantu Klinik](./ca.md). B
 4. Jumlah lot mesti sepadan dengan kuantiti fizikal. Tarikh luput sebenar diperlukan; jangan gunakan tarikh pengganti. Bagi penghantaran pendek, tandakan “Declared short delivery (requires approval)”.
 5. Untuk lot diterima sepenuhnya tanpa pengecualian, pilih “accepted” dan “Post receipt”.
 6. Untuk lot “quarantined”, “rejected”, atau kekurangan/pelanggaran yang memerlukan pengecualian, pilih sebab terkawal dan “Request exception approval”. Jangan pilih “Post receipt” untuk permintaan pengecualian.
-7. Pada “Inventory”, penyemak berkuasa yang bukan penerima membuka “Receiving reviews” dan memilih “Load receiving reviews (25 per page)”. Selepas ulasan dimuatkan, pilih “Approve delivery exception”. Selepas diluluskan, penerima asal kembali dan memilih “Post approved delivery”.
+7. Pada “Inventory”, penyemak berkuasa yang bukan penerima membuka bahagian “Delivery exceptions and corrections” dan memilih “Load receiving reviews (25 per page)”. Selepas ulasan dimuatkan, pilih “Approve delivery exception”. Selepas diluluskan, penerima asal kembali dan memilih “Post approved delivery”.
 8. “Quarantined” meletakkan tahanan pada seluruh batch di cawangan itu, termasuk baki terdahulu. Penerimaan tidak melepaskan tahanan.
 
 ## Buat kiraan, kiraan semula dan hapus kira
@@ -55,14 +55,49 @@ Aliran lama “Stocktake” dan “Manual Adjustment” telah ditutup. Gunakan �
 3. Jika kiraan perlu dibuat semula, tulis sebab dalam “Reason to return (only for Return)” dan pilih “Return for recount”.
 4. Jika kiraan betul, pilih “Approve closing”. Butang ini hanya boleh digunakan selepas hari itu tamat (selepas tengah malam waktu cawangan).
 5. Anda tidak boleh meluluskan kiraan sendiri. Hari itu juga tidak boleh diluluskan selagi ada bayaran balik tunai untuk hari itu yang belum diluluskan.
+6. Pilih “Month view” untuk halaman “Monthly cash closing”: setiap hari dalam bulan itu dengan status (“Approved”, “Waiting for approval”, “Returned”, “Not counted”, “Open day”), kiraan, jangkaan dan beza. Hari “Not counted” dikira bermula dari tarikh mula tutup tunai cawangan (“Cash closing start date”). Tarikh ini ditetapkan atau ditukar oleh Finance Officer atau Director; jika belum ditetapkan, kiraan bermula dari kiraan pertama cawangan.
 
 ## Rekod bayaran balik (refund)
 
+Bahagian “Refunds” berada pada halaman “Patient Billing” lawatan itu. Langkahnya bergantung pada sama ada lawatan sudah selesai.
+
+**Sebelum “Complete Visitation”:**
+
 1. Resit mesti diterbalikkan dahulu oleh Finance Officer (“Reverse recording error”). Penyelia CA tidak boleh menterbalikkan resit.
-2. Pada halaman “Patient Billing” lawatan itu, buka bahagian “Refunds”. Pilih “Given back by” (cara wang dipulangkan) dan “Reason” (“Overpaid”, “Service not given”, “Invoice corrected” atau “Other”).
+2. Dalam “Refunds”, pilih “Given back by” (cara wang dipulangkan) dan “Reason” (“Overpaid”, “Service not given”, “Invoice corrected” atau “Other”).
 3. Pilih “Record refund of RM …”. Amaun ialah amaun penuh resit yang diterbalikkan; ia tidak ditaip.
-4. Finance Officer atau Director yang bukan perekod memilih “Approve refund” atau “Reject” (dengan sebab).
-5. Bayaran balik tidak tersedia selepas “Complete Visitation”. Hanya resit yang telah diterbalikkan boleh dibayar balik.
+
+**Selepas “Complete Visitation”:**
+
+1. Resit tidak perlu diterbalikkan. Dalam “Refunds”, setiap resit menunjukkan baki yang boleh dipulangkan (“… left to refund”).
+2. Masukkan “Amount given back (RM)” (sebahagian atau semua, tidak melebihi baki), pilih “Given back by” dan “Reason” (“Medicine returned”, “Service not given”, “Invoice corrected”, “Goodwill” atau “Other”).
+3. Pilih “Record refund”. Selepas diluluskan, invois dikurangkan dengan amaun yang sama dan dicetak sebagai “REVISED”, jadi tiada amaun baharu perlu dibayar. Resit asal tidak berubah.
+
+**Dalam kedua-dua keadaan:** Finance Officer atau Director yang bukan perekod memilih “Approve refund” atau “Reject” (dengan sebab). Jika anda merekod bayaran balik itu, skrin menyatakan “You recorded this refund. …”; anda tidak boleh meluluskannya sendiri.
+
+Jika resit tersalah rekod (contohnya amaun atau cara bayaran salah), gunakan “Correct a receipt”, bukan bayaran balik. Pembetulan resit dibuat oleh Finance Officer yang bukan perekod resit itu: resit yang salah diterbalikkan dan amaun yang benar-benar diterima direkod semula. Hanya wang yang tidak diterima menjadi amaun perlu dibayar.
+
+## Semak pulangan ubat
+
+1. Buka “Clinic management” > “Inventory & services” > “Returns to check”. Senarai menunjukkan pulangan ubat cawangan ini yang menunggu semakan, yang paling lama dahulu. Pilih “Open case” untuk pergi ke bahagian “Medicine returns” kes itu.
+2. Pada pulangan yang menunggu, buka “Check this return” dan pilih satu:
+    - “Dispose”: ubat dimusnahkan; tiada stok dikembalikan.
+    - “Quarantine”: ubat dipindahkan ke lokasi pulangan (“Move to returns location”) dan ditahan; ia tidak boleh didispens dari situ. Jika baris ubat dibekalkan daripada beberapa batch, pilih batch asal.
+    - “Refuse”: pulangan direkod secara salah. Pilih sebab (contohnya “Wrong case or patient” atau “Recorded twice”), kemudian “Refuse return”. Tiada perubahan stok, dan kuantiti itu boleh direkod semula.
+3. “Dispose” dan “Quarantine” tidak boleh dibatalkan. Ubat terkawal tidak boleh dikuarantin; lupuskan atau tolak sahaja.
+4. Anda tidak boleh menyemak pulangan yang anda rekod sendiri: senarai menyatakan “You recorded this. Another CA Supervisor must check it.” Jika cawangan belum ada lokasi pulangan, skrin menyatakan “This branch has no returns location yet. Ask the Inventory team to set one up.”
+
+Sama ada Finance Officer dan Director juga boleh menyemak pulangan masih menunggu keputusan pemilik: [PERLU DISAHKAN].
+
+## Panggil pesakit seterusnya untuk doktor (“Call next”)
+
+1. Pada papan “Consultation”, pilih doktor dalam penapis doktor dan pilih “Apply”. Butang “Call next for …” hanya muncul selepas seorang doktor dipilih.
+2. Pilih butang itu. Dialog menamakan pesakit, contohnya “Call A-012 Ahmad Ismail?”. Semak nama dan pilih “Call A-012”.
+3. Peraturan sama seperti doktor: pesakit hari ini dahulu, pesakit “Not ready to call” dilangkau, dan tiada panggilan tanpa pengesahan.
+
+## Ringkasan harian AI
+
+Buka “Clinic management” > “AI agents” > “AI daily summary” untuk membaca laporan pukul 07:00 dan kemas kini pukul 14:00 daripada ejen AI. Halaman ini untuk bacaan sahaja; cadangan ejen tidak mengubah apa-apa sehingga orang yang berkuasa meluluskannya, dan kelulusan itu hanya merekod keputusan.
 
 ## Pemindahan stok: terima dan selesaikan perbezaan
 
@@ -94,11 +129,15 @@ Aliran lama “Stocktake” dan “Manual Adjustment” telah ditutup. Gunakan �
 3. Kumpulan ubat perlu disemak dengan rujukan yang boleh dipercayai; KPOne tidak menentukannya. Jangan keliru dengan medan “Group” dalam dialog “Edit medicine”.
 4. Untuk ubat terkawal, buka menu “…”, pilih “Mark controlled”, kemudian “Mark”. Label (termasuk cetakan semula) akan mencetak “Ubat Terkawal/Controlled Medicine” di bawah sempadan label. Untuk membuang tanda, pilih “Unmark controlled” dan “Remove mark”.
 
+5. Untuk nama jenama atau ejaan lain yang biasa, buka menu “…” dan pilih “Other names”. Masukkan satu nama setiap baris (maksimum 10). Amaran alahan di farmasi turut menyemak nama ini. Nama lain tidak dicetak pada label dan tidak mengubah nama ubat.
+
 Senarai kumpulan ubat dan ubat terkawal perlu disemak oleh ahli farmasi sebelum digunakan: [PERLU DISAHKAN].
 
 ## Harga
 
 Pada “Pricing”, isi “Price book *” dan “Amount (RM) *”, kemudian pilih “Publish price”. Amaun kosong ditolak. Taip 0.00 jika perkhidmatan itu percuma.
+
+Lajur “Current price” menunjukkan harga yang berkuat kuasa sekarang; harga baharu yang dijadualkan dipaparkan sebagai baris kedua (“From …”). Untuk menyemak semua ubat dan perkhidmatan sekali gus, buka “Check price list” (dari halaman “Pricing” atau “Clinic management”). Pilih “Price history” pada baris harga untuk melihat semua versi yang pernah diterbitkan.
 
 ## Gabungkan rekod pesakit yang berganda
 
