@@ -61,6 +61,16 @@ const canAdd = computed(
         !exactExists.value &&
         props.selected.length < 5,
 );
+// The results list exists only while this is true; aria-controls must not point at it otherwise.
+const listboxVisible = computed(
+    () =>
+        open.value &&
+        query.value.trim() !== '' &&
+        (results.value.length > 0 ||
+            canAdd.value ||
+            searching.value ||
+            inactiveExactMatch.value),
+);
 
 const search = async () => {
     controller?.abort();
@@ -305,7 +315,7 @@ const onKeydown = (event: KeyboardEvent) => {
                 autocomplete="off"
                 role="combobox"
                 aria-label="Search Visit Reasons"
-                :aria-controls="listboxId"
+                :aria-controls="listboxVisible ? listboxId : undefined"
                 :aria-expanded="open"
                 aria-autocomplete="list"
                 :aria-activedescendant="activeDescendant"
@@ -322,14 +332,7 @@ const onKeydown = (event: KeyboardEvent) => {
                 @keydown="onKeydown"
             />
             <div
-                v-if="
-                    open &&
-                    query.trim() &&
-                    (results.length ||
-                        canAdd ||
-                        searching ||
-                        inactiveExactMatch)
-                "
+                v-if="listboxVisible"
                 class="absolute z-20 mt-1 max-h-56 w-full overflow-auto rounded-md border bg-popover p-1 shadow-md"
             >
                 <div :id="listboxId" role="listbox">
