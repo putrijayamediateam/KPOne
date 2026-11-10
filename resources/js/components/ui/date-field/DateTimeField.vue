@@ -6,6 +6,7 @@ import {
     formatEchoDate,
     formatEchoTime,
     from12Hour,
+    timeProblem as describeTime,
     splitDateTime,
     to12Hour,
 } from '@/lib/date-field';
@@ -108,6 +109,11 @@ const echoText = computed(() => {
 
     return `${formatEchoDate(d, props.locale)}, ${formatEchoTime(t)}`;
 });
+const timeMessage = computed(
+    () =>
+        describeTime(hour.value, minute.value, props.locale) ||
+        words.value.invalidTime,
+);
 const disabled = computed(() => attrs.disabled !== undefined && attrs.disabled !== false);
 </script>
 
@@ -182,7 +188,7 @@ const disabled = computed(() => attrs.disabled !== undefined && attrs.disabled !
             class="mt-1 text-sm text-destructive"
             role="alert"
         >
-            {{ words.invalidTime }}
+            {{ timeMessage }}
         </p>
     </div>
 </template>
