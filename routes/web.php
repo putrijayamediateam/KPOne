@@ -289,8 +289,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // HR-11a clinic licences (owner, 2026-11-10: "yes, order is fine, go ahead"). Clinic data, not HR data; see HR-11-DESIGN.md.
     Route::prefix('clinic-compliance')->controller(ClinicComplianceController::class)->middleware('sensitive.no-store')->group(function (): void {
+        Route::get('/', 'index')->middleware('permission:compliance.licences.manage.organisation,compliance.fridge.manage.organisation,compliance.fridge.record.branch,compliance.fridge.review.branch')->name('clinic-compliance.index');
         Route::middleware(['permission:compliance.licences.manage.organisation'])->group(function (): void {
-            Route::get('/', 'index')->name('clinic-compliance.index');
             Route::get('files/{file}', 'openFile')->whereUuid('file')->middleware('throttle:30,1')->name('clinic-compliance.files.open');
             Route::middleware('throttle:60,1')->group(function (): void {
                 Route::post('types', 'saveType')->name('clinic-compliance.types.save');
@@ -299,6 +299,14 @@ Route::middleware(['auth', 'verified'])->group(function () {
                 Route::post('versions/{version}/error', 'markInError')->whereUuid('version')->name('clinic-compliance.versions.error');
             });
         });
+        // HR-11b vaccine fridge log: managing fridges is organisation-wide; readings and actions are checked at the fridge's branch in the service.
+        Route::middleware(['permission:compliance.fridge.manage.organisation', 'throttle:60,1'])->group(function (): void {
+            Route::post('fridges', 'saveFridge')->name('clinic-compliance.fridges.save');
+            Route::post('fridges/{fridge}/archive', 'archiveFridge')->whereUuid('fridge')->name('clinic-compliance.fridges.archive');
+            Route::post('readings/{reading}/error', 'readingError')->whereUuid('reading')->name('clinic-compliance.readings.error');
+        });
+        Route::post('readings', 'recordReading')->middleware(['permission:compliance.fridge.record.branch', 'throttle:60,1'])->name('clinic-compliance.readings.store');
+        Route::post('readings/{reading}/review', 'reviewReading')->whereUuid('reading')->middleware(['permission:compliance.fridge.review.branch', 'throttle:60,1'])->name('clinic-compliance.readings.review');
     });
 
     // HR-6 staff claims (B.E.R.N.I.S.S for the owner, 2026-11-06). Not Panel Claims; KPOne pays nothing.
