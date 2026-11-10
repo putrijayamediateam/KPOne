@@ -32,6 +32,8 @@ type Application = {
     } | null;
     // HR-17d: the clinic's documents for a confirmed interview.
     documents?: { id: string; title: string; size: string }[];
+    // HR-17e: whether they ticked the talent pool, and whether they left it.
+    pool?: { consented: boolean; left: boolean };
 };
 
 const props = defineProps<{
@@ -117,6 +119,24 @@ const sendPicks = () => {
             preserveScroll: true,
             onSuccess: () => (chosen.value = []),
             onFinish: () => (sending.value = false),
+        },
+    );
+};
+
+// HR-17e: leaving the talent pool asks first, then is final.
+const leavingPool = ref(false);
+const poolBusy = ref(false);
+const leavePool = () => {
+    poolBusy.value = true;
+    router.post(
+        '/careers/status/leave-pool',
+        {},
+        {
+            preserveScroll: true,
+            onFinish: () => {
+                poolBusy.value = false;
+                leavingPool.value = false;
+            },
         },
     );
 };
@@ -513,6 +533,107 @@ const closedWell = computed(() => props.application?.stage === 'passed');
                                 </p>
                             </li>
                         </ol>
+                    </section>
+
+                    <section
+                        v-if="application.pool?.consented"
+                        class="space-y-3 border-t border-zinc-200 pt-5 dark:border-zinc-800"
+                        aria-labelledby="pool-heading"
+                        data-test="status-pool"
+                    >
+                        <h2 id="pool-heading" class="text-base font-semibold">
+                            Talent pool
+                            <span
+                                lang="ms"
+                                class="block text-sm font-normal text-zinc-600 dark:text-zinc-400"
+                                >Kumpulan bakat</span
+                            >
+                        </h2>
+                        <p
+                            v-if="application.pool.left"
+                            class="text-sm"
+                            data-test="status-pool-left"
+                        >
+                            You are not in the talent pool. The clinic will not
+                            contact you about other openings.
+                            <span
+                                lang="ms"
+                                class="block text-zinc-600 dark:text-zinc-400"
+                                >Anda tiada dalam kumpulan bakat. Klinik tidak
+                                akan menghubungi anda tentang jawatan
+                                lain.</span
+                            >
+                        </p>
+                        <template v-else>
+                            <p class="text-sm">
+                                You asked the clinic to keep your details for
+                                future openings of the same kind.
+                                <span
+                                    lang="ms"
+                                    class="block text-zinc-600 dark:text-zinc-400"
+                                    >Anda meminta klinik menyimpan butiran anda
+                                    untuk jawatan akan datang yang sama
+                                    jenis.</span
+                                >
+                            </p>
+                            <p
+                                v-if="errors.pool"
+                                role="alert"
+                                class="text-sm text-red-700 dark:text-red-400"
+                            >
+                                {{ errors.pool }}
+                            </p>
+                            <button
+                                v-if="!leavingPool"
+                                type="button"
+                                class="inline-flex min-h-11 items-center rounded-lg border border-zinc-300 px-4 text-sm font-medium hover:bg-zinc-50 focus-visible:ring-2 focus-visible:ring-pink-500 focus-visible:outline-none dark:border-zinc-700 dark:hover:bg-zinc-800"
+                                data-test="status-pool-leave"
+                                @click="leavingPool = true"
+                            >
+                                Remove me from the talent pool / Keluarkan saya
+                            </button>
+                            <div
+                                v-else
+                                class="space-y-3 rounded-xl border border-zinc-300 p-4 dark:border-zinc-700"
+                                role="group"
+                                aria-labelledby="pool-confirm-title"
+                                data-test="status-pool-confirm"
+                                @keydown.esc="leavingPool = false"
+                            >
+                                <p
+                                    id="pool-confirm-title"
+                                    class="text-sm font-medium"
+                                >
+                                    Leave the talent pool? You cannot join it
+                                    again from this application.
+                                    <span
+                                        lang="ms"
+                                        class="block font-normal text-zinc-700 dark:text-zinc-300"
+                                        >Keluar daripada kumpulan bakat? Anda
+                                        tidak boleh menyertainya semula melalui
+                                        permohonan ini.</span
+                                    >
+                                </p>
+                                <div class="flex flex-wrap gap-3">
+                                    <button
+                                        type="button"
+                                        class="inline-flex min-h-11 items-center rounded-lg bg-pink-700 px-4 text-sm font-medium text-white hover:bg-pink-800 focus-visible:ring-2 focus-visible:ring-pink-500 focus-visible:ring-offset-2 focus-visible:outline-none disabled:opacity-60"
+                                        :disabled="poolBusy"
+                                        data-test="status-pool-leave-yes"
+                                        @click="leavePool"
+                                    >
+                                        Remove me / Keluarkan saya
+                                    </button>
+                                    <button
+                                        type="button"
+                                        class="inline-flex min-h-11 items-center rounded-lg border border-zinc-300 px-4 text-sm font-medium dark:border-zinc-700"
+                                        @click="leavingPool = false"
+                                    >
+                                        Stay in it / Kekal
+                                    </button>
+                                </div>
+                            </div>
+                        </template>
                     </section>
 
                     <section

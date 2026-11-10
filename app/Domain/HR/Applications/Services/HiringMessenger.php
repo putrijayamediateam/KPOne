@@ -48,6 +48,9 @@ final class HiringMessenger
         if ($template === 'received') {
             $params['link'] = $link ?? HiringTemplates::LINK_SHOWN_ONCE;
         }
+        if ($template === 'pool_invited') {
+            $params['link'] = $link ?? HiringTemplates::LINK_IN_INVITATION;
+        }
         try {
             $message = HiringTemplates::render($template, $params);
         } catch (\Throwable $e) {
@@ -98,6 +101,9 @@ final class HiringMessenger
         $params = ['position' => $title];
         if ($template === 'received') {
             $params['link'] = HiringTemplates::LINK_SHOWN_ONCE;
+        }
+        if ($template === 'pool_invited') {
+            $params['link'] = HiringTemplates::LINK_IN_INVITATION;
         }
         if ($template === 'auto_reject_reminder') {
             $params += ['reference' => self::reference($publicId), 'stage' => (string) (JobApplicationService::STATUSES[$row->stage] ?? 'New')];
