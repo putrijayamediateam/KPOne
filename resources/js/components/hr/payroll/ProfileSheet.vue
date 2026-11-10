@@ -5,6 +5,7 @@ import { router, usePage } from '@inertiajs/vue3';
 import { computed, reactive, watch } from 'vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
+import { DateField } from '@/components/ui/date-field';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { OperationalSelect } from '@/components/ui/select';
@@ -243,11 +244,9 @@ const send = () => {
                 </div>
                 <div class="grid gap-1.5">
                     <Label for="profile-from">Applies from *</Label>
-                    <Input
+                    <DateField
                         id="profile-from"
                         v-model="form.effectiveFrom"
-                        type="date"
-                        class="w-44 max-lg:h-11"
                         :aria-invalid="!!errors.effective_from"
                     />
                     <InputError :message="errors.effective_from" />
