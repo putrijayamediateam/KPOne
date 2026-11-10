@@ -636,10 +636,10 @@ const field =
                                     <input
                                         id="apply-years_experience"
                                         v-model="form.years_experience"
-                                        type="number"
+                                        type="text"
                                         inputmode="numeric"
-                                        min="0"
-                                        max="50"
+                                        maxlength="2"
+                                        autocomplete="off"
                                         :class="field"
                                         :aria-invalid="
                                             errorOf('years_experience')

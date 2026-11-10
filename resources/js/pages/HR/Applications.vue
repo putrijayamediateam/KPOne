@@ -1158,8 +1158,11 @@ const saveRetention = () => {
                             class="rounded-md border border-warning/40 bg-warning/10 p-2 text-xs"
                             data-test="position-type-warning"
                         >
-                            {{ positionForm.position.openApplications }} open
-                            applications keep the answers they were sent with.
+                            {{
+                                positionForm.position.openApplications === 1
+                                    ? '1 open application keeps the answers it was sent with.'
+                                    : `${positionForm.position.openApplications} open applications keep the answers they were sent with.`
+                            }}
                             Only new applications get the new questions.
                         </p>
                         <InputError :message="errors.position_type" />
