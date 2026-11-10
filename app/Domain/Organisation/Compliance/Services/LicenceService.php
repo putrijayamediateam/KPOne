@@ -192,7 +192,7 @@ final class LicenceService
                 }
                 if ($series !== null) {
                     $inForce = $this->inForce((int) $series->id);
-                    $before = $inForce === null ? null : $this->dayOf($inForce->expires_on);
+                    $before = $inForce === null ? null : $this->dayOf(data_get($inForce, 'expires_on'));
                     if ($before !== null && $expires !== null && $expires < $before) {
                         throw ValidationException::withMessages(['expires_on' => "This expiry is earlier than the one in force ({$before}). Check the date, or mark the older entry as entered in error first."]);
                     }

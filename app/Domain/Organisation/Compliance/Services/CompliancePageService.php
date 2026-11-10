@@ -15,7 +15,7 @@ use Illuminate\Support\Facades\DB;
  */
 final class CompliancePageService
 {
-    public function __construct(private ComplianceSupport $support, private LicenceService $licences) {}
+    public function __construct(private ComplianceSupport $support) {}
 
     /**
      * @param  array<string, mixed>  $query
@@ -50,17 +50,17 @@ final class CompliancePageService
         ];
     }
 
-    /** @return list<array<string, mixed>> */
+    /** @return array<int, array<string, mixed>> */
     private function types(int $orgId): array
     {
         return DB::table('compliance_licence_types')->where('organisation_id', $orgId)->orderByDesc('is_active')->orderBy('name')->get()
             ->map(fn ($t): array => ['id' => (string) $t->public_id, 'name' => (string) $t->name, 'expires' => (bool) $t->expires,
-                'warnFromDays' => $t->warn_from_days === null ? null : (int) $t->warn_from_days, 'isActive' => (bool) $t->is_active, 'lockVersion' => (int) $t->lock_version])->all();
+                'warnFromDays' => $t->warn_from_days === null ? null : (int) $t->warn_from_days, 'isActive' => (bool) $t->is_active, 'lockVersion' => (int) $t->lock_version])->values()->all();
     }
 
     /**
-     * @param  list<array<string, mixed>>  $types
-     * @return list<array<string, mixed>>
+     * @param  array<int, array<string, mixed>>  $types
+     * @return array<int, array<string, mixed>>
      */
     private function rows(int $orgId, array $types, string $today): array
     {
@@ -103,12 +103,12 @@ final class CompliancePageService
                     'files' => ($files->get($v->id) ?? collect())->map(fn ($f): array => ['id' => (string) $f->public_id, 'label' => (string) $f->label, 'kind' => (string) $f->kind, 'bytes' => (int) $f->bytes])->values()->all(),
                 ])->all(),
             ];
-        })->all();
+        })->values()->all();
     }
 
     /**
-     * @param  list<array<string, mixed>>  $types
-     * @param  list<array<string, mixed>>  $rows
+     * @param  array<int, array<string, mixed>>  $types
+     * @param  array<int, array<string, mixed>>  $rows
      * @return array<string, mixed>
      */
     private function overview(array $types, array $rows): array
