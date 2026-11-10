@@ -554,8 +554,9 @@ check items, keep them"). The rest stand unless the owner changes them.
   request is a note between people, and the account created is not linked back to the application; the pool offers
   only open positions of the same type, because the form's questions differ by type.
 - HR-13 known limits: the public form stays off until the owner approves the privacy notice; one organisation per
-  installation; an application still in progress is cleared once the period has passed since it was sent; phone and
-  email show on the HR list without a Show button (only CV opens are audited); the overall cap of 100 sends an hour can
+  installation; an application still in progress is cleared once the period has passed since it was sent; from
+  hardening item 1, phone and email are masked on the HR list with an audited Show, while the name, message and form
+  answers still show there in full, and the email's domain stays visible; the overall cap of 100 sends an hour can
   lock real applicants out for up to an hour, and behind a proxy with no trusted list all senders share one address;
   the CV's size and hash and the nonce stay after a purge; the clinic name on the form is fixed text; the PDF check is
   shallow; applicants have no self-service withdrawal or deletion; Daniel's optional pending-date hint is not built.
