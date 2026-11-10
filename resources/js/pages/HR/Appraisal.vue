@@ -3,6 +3,7 @@
 // add one comment; a Director signs it off. The attendance, leave and overtime summary is read only (live while a draft,
 // frozen once sent). No total score.
 import { Head, Link, router, usePage } from '@inertiajs/vue3';
+import { AlertTriangle, Check } from '@lucide/vue';
 import { computed, reactive, ref } from 'vue';
 import SyntheticNote from '@/components/hr/records/SyntheticNote.vue';
 import InputError from '@/components/InputError.vue';
@@ -73,7 +74,9 @@ const day = (iso: string | undefined) =>
           })
         : '';
 const hours = (minutes: number) =>
-    `${Math.floor(minutes / 60)} h ${minutes % 60} min`;
+    minutes < 60
+        ? `${minutes} min`
+        : `${Math.floor(minutes / 60)} h ${minutes % 60} min`;
 
 // ---- Rating (manager, draft) ----
 const form = reactive({
@@ -197,7 +200,7 @@ const textareaClass =
             <h2 id="summary-title" class="text-sm font-semibold">
                 Attendance, leave and overtime in this period
             </h2>
-            <p class="text-xs text-muted-foreground">
+            <p class="text-sm text-muted-foreground">
                 {{
                     appraisal.summaryLive
                         ? 'Worked out now from KPOne HR; it is frozen when the appraisal is sent.'
@@ -206,7 +209,7 @@ const textareaClass =
             </p>
             <p
                 v-if="appraisal.summary?.partial"
-                class="text-xs text-muted-foreground"
+                class="text-sm text-muted-foreground"
                 data-test="summary-partial"
             >
                 Attendance as of {{ day(appraisal.summary.asOf) }}: the period
@@ -214,11 +217,18 @@ const textareaClass =
             </p>
             <p
                 v-if="appraisal.summary?.rulesMissing"
-                class="text-xs text-warning-strong"
+                class="flex items-start gap-2 text-sm text-warning-strong"
                 data-test="summary-rules-missing"
             >
-                Attendance rules were not set for part of this period, so late
-                days and missed clock-ins may be under-counted.
+                <AlertTriangle
+                    class="mt-0.5 size-4 shrink-0"
+                    aria-hidden="true"
+                />
+                <span
+                    ><span class="font-semibold">Note:</span> attendance rules
+                    were not set for part of this period, so late days and
+                    missed clock-ins may be under-counted.</span
+                >
             </p>
             <dl
                 v-if="appraisal.summary"
@@ -227,9 +237,11 @@ const textareaClass =
                 <div class="flex justify-between gap-2">
                     <dt>Late days</dt>
                     <dd class="tabular-nums">
-                        {{ appraisal.summary.late }} ({{
-                            hours(appraisal.summary.lateMinutes)
-                        }})
+                        {{
+                            appraisal.summary.late === 0
+                                ? '0'
+                                : `${appraisal.summary.late} (${hours(appraisal.summary.lateMinutes)})`
+                        }}
                     </dd>
                 </div>
                 <div class="flex justify-between gap-2">
@@ -264,6 +276,13 @@ const textareaClass =
         </section>
 
         <!-- Ratings -->
+        <p class="text-sm text-muted-foreground" data-test="rating-scale">
+            <span class="font-medium text-foreground"
+                >1 lowest · 5 highest</span
+            >
+            <span lang="ms"> (1 terendah · 5 tertinggi)</span>. Each criterion
+            stands on its own; KPOne adds no total.
+        </p>
         <form
             class="flex flex-col gap-3"
             data-test="appraisal-ratings"
@@ -295,7 +314,7 @@ const textareaClass =
                         <label
                             v-for="n in 5"
                             :key="n"
-                            class="flex min-h-11 min-w-11 cursor-pointer items-center justify-center gap-1 rounded-md border px-3 text-sm has-[:checked]:border-brand has-[:checked]:bg-brand/10 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring lg:min-h-9"
+                            class="flex min-h-11 min-w-11 cursor-pointer items-center justify-center gap-1 rounded-md border px-3 text-sm font-medium tabular-nums has-[:checked]:border-primary has-[:checked]:bg-primary has-[:checked]:text-primary-foreground has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring has-[:focus-visible]:ring-offset-2 lg:min-h-9"
                         >
                             <input
                                 v-model="form.ratings[i]!.rating"
@@ -303,6 +322,11 @@ const textareaClass =
                                 :name="`rating-${i}`"
                                 :value="n"
                                 class="sr-only"
+                            />
+                            <Check
+                                v-if="form.ratings[i]!.rating === n"
+                                class="size-4"
+                                aria-hidden="true"
                             />
                             {{ n }}
                         </label>
@@ -338,10 +362,6 @@ const textareaClass =
                     </p>
                 </template>
             </fieldset>
-            <p class="text-xs text-muted-foreground">
-                1 is the lowest and 5 the highest. Each criterion stands on its
-                own; KPOne adds no total.
-            </p>
             <div
                 v-if="appraisal.can.edit"
                 class="flex flex-wrap items-center gap-2"

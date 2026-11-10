@@ -76,3 +76,19 @@ test('the page says when sign-off opens and when the summary is partial or rules
     assert.match(page, /data-test="summary-rules-missing"/);
     assert.match(template('page'), /never sent and will stay unsent/);
 });
+
+test('the scale comes before rating; a chosen rating is filled with a tick; notes are readable', () => {
+    const page = template('appraisal');
+    assert.ok(
+        page.indexOf('data-test="rating-scale"') <
+            page.indexOf('data-test="appraisal-ratings"'),
+    );
+    assert.match(page, /1 lowest · 5 highest/);
+    assert.match(page, /has-\[:checked\]:bg-primary/);
+    assert.match(page, /<Check\s+v-if="form\.ratings\[i\]!\.rating === n"/);
+    assert.match(page, /<span class="font-semibold">Note:<\/span>/);
+    assert.doesNotMatch(
+        page,
+        /data-test="summary-rules-missing"[\s\S]{0,40}text-xs/,
+    );
+});

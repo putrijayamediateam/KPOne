@@ -692,7 +692,7 @@ const textareaClass =
             title="Close this cycle?"
             :description="
                 closing
-                    ? `${closing.name}. ${closing.draft === 1 ? '1 appraisal was' : `${closing.draft} appraisals were`} never sent and will stay unsent; they can no longer be rated. Sent appraisals can still take comments and be signed off.`
+                    ? `${closing.name}. ${closing.draft === 1 ? '1 appraisal was' : `${closing.draft} appraisals were`} never sent and will stay unsent; they can no longer be rated. Sent appraisals can still take comments and be signed off. This cannot be undone.`
                     : ''
             "
             confirm-label="Close cycle"
