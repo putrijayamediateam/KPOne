@@ -15,12 +15,15 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::table('hr_attendance_corrections', function (Blueprint $t): void {
-            $t->unsignedBigInteger('withdrawn_by_user_id')->nullable();
-            $t->timestampTz('withdrawn_at')->nullable();
-            $t->foreign(['withdrawn_by_user_id', 'organisation_id'], 'hr_attendance_corrections_withdrawn_by_fk')
-                ->references(['id', 'organisation_id'])->on('users')->restrictOnDelete();
-        });
+        // A rollback keeps the columns (see down()), so up() adds them only when they are not there yet.
+        if (! Schema::hasColumn('hr_attendance_corrections', 'withdrawn_by_user_id')) {
+            Schema::table('hr_attendance_corrections', function (Blueprint $t): void {
+                $t->unsignedBigInteger('withdrawn_by_user_id')->nullable();
+                $t->timestampTz('withdrawn_at')->nullable();
+                $t->foreign(['withdrawn_by_user_id', 'organisation_id'], 'hr_attendance_corrections_withdrawn_by_fk')
+                    ->references(['id', 'organisation_id'])->on('users')->restrictOnDelete();
+            });
+        }
         DB::statement(<<<'SQL'
 ALTER TABLE hr_attendance_corrections ADD CONSTRAINT hr_attendance_corrections_withdrawal_shape CHECK (
  (withdrawn_by_user_id IS NULL) = (withdrawn_at IS NULL)
@@ -52,6 +55,10 @@ CREATE TRIGGER hr_attendance_corrections_withdrawal BEFORE INSERT OR UPDATE ON h
 SQL);
     }
 
+    /**
+     * Keeps the two columns and their foreign key, so a rollback never deletes who withdrew a correction (HR migrations keep
+     * evidence on the way down). Only the guard and the CHECK go; up() then adds them again over the kept columns.
+     */
     public function down(): void
     {
         DB::unprepared(<<<'SQL'
@@ -59,9 +66,5 @@ DROP TRIGGER IF EXISTS hr_attendance_corrections_withdrawal ON hr_attendance_cor
 DROP FUNCTION IF EXISTS guard_hr_attendance_correction_withdrawal();
 ALTER TABLE hr_attendance_corrections DROP CONSTRAINT IF EXISTS hr_attendance_corrections_withdrawal_shape;
 SQL);
-        Schema::table('hr_attendance_corrections', function (Blueprint $t): void {
-            $t->dropForeign('hr_attendance_corrections_withdrawn_by_fk');
-            $t->dropColumn(['withdrawn_by_user_id', 'withdrawn_at']);
-        });
     }
 };
