@@ -2259,6 +2259,44 @@ Shared rules for all five:
 - **Tests:** rate limits, honeypot and timing, file checks, the switch off by default, audit before release, no
   account created, and retention purge.
 
+### 15.2a HR-13 as built (2026-11-07)
+
+- **The owner's answers** (15.7 item 4 and the form language, in the HR session):
+  - Positions: HR keeps a list in KPOne.
+  - Retention: HR enters it, and KPOne ships no number.
+  - Language: the public form shows English and Bahasa Melayu side by side, its error messages included.
+  - Who approves the privacy notice: the owner. The notice stays a draft (`draft-hr13-applications-v1`) until then.
+- **Switched off twice over:**
+  - The form returns 404 unless `HR_APPLICATIONS_ENABLED=true` (false in `.env.example` and in the config default).
+  - Even with the switch on, it stays closed until HR saves a retention period, because the notice promises deletion after that period (Daniel; option (a), chosen by B.E.R.N.I.S.S for the owner).
+  - **The switch must not be turned on until the owner approves the privacy notice. A lawyer review is recommended** (B.E.R.N.I.S.S for the owner).
+- **The public form** (`/careers/apply`):
+  - It asks for the position, name, phone, email, an optional message, one PDF CV of at most 5 MB, and a privacy tick.
+  - Spam is kept out by a signed form token with a one-time nonce, a honeypot field and a 5-second minimum fill time. The honeypot is checked first, then the fields and the CV in one pass, then the timing, so a person sees what to fill in and a robot gets the thank-you page with nothing stored.
+  - Each address may send 3 a minute and 10 an hour, and the whole form 100 an hour.
+  - Personal values and the CV are encrypted, and the original file name is never kept.
+  - Nothing typed goes into the session, and no account is ever created.
+- **The HR page** (`/hr/applications`, Director and HR Manager, `hr.applications.manage.organisation`):
+  - A status line says whether the form is on, off, or off until a retention period is saved.
+  - Applications, Positions and Settings tabs.
+  - Steps: New → Shortlisted → Interview → Offered, with Not taken forward and Withdrawn from any open step. A declined offer can become Withdrawn; every other closed step is final.
+  - A CV open is recorded before any byte is sent.
+- **Retention:**
+  - A first or shorter period waits 7 days.
+  - The daily `hr-applications:purge` clears the values and the CV, counting from when an application closed, or from when it was sent if nobody closed it (Suresh, M1). The row and its history stay.
+- **Known limits:**
+  - One organisation per installation.
+  - An application still at Interview is cleared once the period has passed since it was sent.
+  - Phone and email show on the HR list without a Show button.
+  - The overall cap of 100 sends an hour can lock real applicants out for up to an hour.
+  - Behind a proxy with no trusted list, all senders share one address for rate limiting.
+  - The CV's size and hash and the nonce stay after a purge.
+  - The clinic name is fixed text.
+  - The PDF check is shallow.
+  - Applicants have no self-service withdrawal or deletion.
+  - Daniel's optional follow-up (showing the pending retention date on the "on" line) is left for later.
+- Built in PR #402, merged as `9eedfd4`. Suresh: ready to merge after M1, M3, M4 and M5. Daniel: OK with changes, then OK.
+
 ### 15.3 HR-14 Staff messages: WhatsApp, SMS, email and OTP (foundation for HR-15)
 
 - **Provider (owner to choose):** one provider per channel, for example an email service, an SMS gateway and the

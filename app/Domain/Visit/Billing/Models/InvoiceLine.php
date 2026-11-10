@@ -16,6 +16,7 @@ use LogicException;
  * @property int $unit_price_sen
  * @property int $line_total_sen
  * @property int $price_version
+ * @property string|null $service_category_snapshot
  */
 #[Guarded(['*'])]
 class InvoiceLine extends Model

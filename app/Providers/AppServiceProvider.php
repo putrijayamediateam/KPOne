@@ -132,6 +132,13 @@ class AppServiceProvider extends ServiceProvider
             ];
         });
 
+        // HR-13: the public job-application form. Per IP, and a cap for the whole form so a flood cannot fill the disk.
+        RateLimiter::for('hr-applications-view', fn (Request $request): array => [Limit::perMinute(60)->by('hr-apply-view:'.$request->ip())]);
+        RateLimiter::for('hr-applications-submit', fn (Request $request): array => [
+            Limit::perMinute(3)->by('hr-apply:'.$request->ip()),
+            Limit::perHour(10)->by('hr-apply-hour:'.$request->ip()),
+            Limit::perHour(100)->by('hr-apply-all'),
+        ]);
         RateLimiter::for('public-intake-exchange', fn (Request $request): array => $this->publicLinkExchangeLimits($request));
         RateLimiter::for('public-intake-submit', function (Request $request): array {
             $context = $this->publicIntakeSessionContext($request);
