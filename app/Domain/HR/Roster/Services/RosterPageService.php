@@ -2,7 +2,6 @@
 
 namespace App\Domain\HR\Roster\Services;
 
-use App\Domain\HR\OpenShifts\OpenShiftPermissions;
 use App\Domain\Access\BranchAccessService;
 use App\Domain\Access\PermissionCatalogue;
 use App\Domain\HR\Attendance\ClockPermissions;
@@ -11,6 +10,7 @@ use App\Domain\HR\Compliance\Services\ComplianceWarnings;
 use App\Domain\HR\Credentials\CredentialPermissions;
 use App\Domain\HR\Leave\Models\LeaveRequest;
 use App\Domain\HR\Leave\Services\LeaveCalendar;
+use App\Domain\HR\OpenShifts\OpenShiftPermissions;
 use App\Domain\HR\Roster\Models\RosterShift;
 use App\Domain\HR\Roster\Models\RosterVersion;
 use App\Domain\HR\Roster\Models\RosterWeek;
