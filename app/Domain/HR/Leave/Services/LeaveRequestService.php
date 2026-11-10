@@ -5,6 +5,7 @@ namespace App\Domain\HR\Leave\Services;
 use App\Domain\HR\Leave\LeavePermissions;
 use App\Domain\HR\Leave\Models\LeaveRequest;
 use App\Domain\HR\Leave\Models\LeaveType;
+use App\Domain\HR\Messages\Services\StaffMessenger;
 use App\Domain\Organisation\Models\Branch;
 use App\Models\User;
 use Carbon\CarbonImmutable;
@@ -125,6 +126,7 @@ final class LeaveRequestService
             $this->support->remember($actor, $key, 'leave_approve', $hash, $request->public_id);
             $this->support->audit->record('hr.leave.approved', $request, ['applicant_user_id' => $request->user_id, 'leave_type_code' => $type->code,
                 'halves' => $request->halves, 'evidence_seen' => $evidenceSeen], $actor, $this->branch($request));
+            $this->message($request, 'approved');
 
             return $request;
         });
@@ -153,6 +155,7 @@ final class LeaveRequestService
             $this->support->remember($actor, $key, 'leave_reject', $hash, $request->public_id);
             $this->support->audit->record('hr.leave.rejected', $request, ['applicant_user_id' => $request->user_id, 'leave_type_code' => $this->type($request)->code,
                 'halves' => $request->halves, 'reason_code' => $reason], $actor, $this->branch($request));
+            $this->message($request, 'rejected');
 
             return $request;
         });
@@ -372,5 +375,15 @@ final class LeaveRequestService
             }
             throw $e;
         }
+    }
+
+    /** HR-14: tells the applicant on the channels they chose, after the commit. Dates only: never the type or reason. */
+    private function message(LeaveRequest $request, string $decision): void
+    {
+        app(StaffMessenger::class)->notify((int) $request->organisation_id, (int) $request->user_id, 'leave_decided', [
+            'from' => CarbonImmutable::parse($request->start_date)->format('j M Y'),
+            'to' => CarbonImmutable::parse($request->end_date)->format('j M Y'),
+            'decision' => $decision,
+        ], ['leave_request_id' => (int) $request->id]);
     }
 }
