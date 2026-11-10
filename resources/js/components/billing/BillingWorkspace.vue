@@ -473,7 +473,12 @@ const reverse = (receipt: Receipt) =>
                     >
                         <p class="text-sm tabular-nums">
                             <span class="font-medium">{{ voided.number }}</span>
-                            · {{ myr(voided.totalSen) }} · Voided
+                            · {{ myr(voided.totalSen) }}
+                            <StatusBadge
+                                status="voided"
+                                tone="neutral"
+                                class="ml-1"
+                            />
                         </p>
                         <p class="text-xs text-muted-foreground">
                             {{ voided.voidedAt }} by {{ voided.voidedBy }}
@@ -1076,10 +1081,10 @@ const reverse = (receipt: Receipt) =>
                                 billing[kind]!.status === 'approved' &&
                                 billing[kind]!.remainingSen === 0
                             "
-                            class="text-xs font-medium"
+                            class="text-xs font-medium text-success"
                             data-testid="pay-later-settled"
                         >
-                            Settled in full
+                            Paid in full · nothing left to collect
                         </p>
                         <p v-else-if="billing[kind]!.dueDate" class="text-xs">
                             <template
@@ -1090,7 +1095,8 @@ const reverse = (receipt: Receipt) =>
                                     billing[kind]!.remainingSen! <
                                         billing[kind]!.amountSen
                                 "
-                                >{{ myr(billing[kind]!.remainingSen!) }} left ·
+                                >{{ myr(billing[kind]!.remainingSen!) }} still
+                                to collect ·
                             </template>
                             Due {{ formatDate(billing[kind]!.dueDate) }}
                         </p>

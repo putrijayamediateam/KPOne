@@ -113,7 +113,7 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php` and `BillingPermiss
 | BIL-13 | PostgreSQL race tests for refunds after completion: two refunds at once on one receipt never exceed it (one recorded, the other refused on the amount), and two that fit together are both recorded. The race test cleanup also removes invoice credits. Test only | PR #399 |
 | BIL-14 | The old live invoice and receipt print addresses (PREVIEW pages) redirect to the visit's Billing page at Issued copies with "Print from here so the copy is recorded."; opening an old link prints and records nothing. Same permission and branch checks (owner decision). Tests that read the old page now read the recorded copy (15 checks, each approved by the owner 2026-11-10). No permission, migration or layout change. Design note: `BIL-14-DESIGN.md` | PR #406 |
 | BIL-16 | Correct a receipt recorded in error on a completed visit, in one step: a Finance Officer who did not record it reverses it and records what was really received; only money not received becomes due (owner decisions). Never a refund. Append-only `payment_corrections` evidence (migration `2026_11_12_400100`), no new permission. Design note: `BIL-16-DESIGN.md` | PR pending |
-| BIL-17 | Billing page display fixes: a fully paid pay-later reads "Settled in full"; voided invoices stay visible (number, total, who and when, receipts; never the reason); the "Use amount due" shortcut also shows on a completed visit with money due; the pay-later list notes money due now (paid first). Display only. Design note: `BIL-17-DESIGN.md` | PR pending |
+| BIL-17 | Billing page display fixes: a fully paid pay-later reads "Paid in full · nothing left to collect"; voided invoices stay visible (number, total, who and when, receipts; never the reason); the "Use amount due" shortcut also shows on a completed visit with money due; the pay-later list notes money due now (paid first). Display only. Design note: `BIL-17-DESIGN.md` | PR pending |
 
 ## 6. Owner decisions already made (never ask again)
 
@@ -253,7 +253,7 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php` and `BillingPermiss
   test in BIL-1).
 - After a void, the Billing page lists the voided invoice and its receipts under "Voided invoices" (BIL-17), without
   the void reason.
-- A fully settled pay-later card reads "Settled in full" (BIL-17).
+- A fully settled pay-later card reads "Paid in full · nothing left to collect" (BIL-17).
 - Issued copies (BIL-5): a print from the Billing or Invoice page is recorded and shows the frozen copy. The old
   live print pages still open and print, marked "PREVIEW — not an issued copy"; nothing in KPOne links to them
   any more (BIL-5b). Each version stores its own logo copy (up to
