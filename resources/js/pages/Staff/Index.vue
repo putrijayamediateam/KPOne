@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Head, Link, router } from '@inertiajs/vue3';
+import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import { Plus, Search, X } from '@lucide/vue';
 import { computed, reactive, ref } from 'vue';
 import { Badge } from '@/components/ui/badge';
@@ -34,7 +34,44 @@ const props = defineProps<{
     canCreate: boolean;
     // HR-17e: HR's staff-account requests; null for anyone who may not create staff accounts.
     accountRequests?: AccountRequest[] | null;
+    // HR-15a: locum sign-ins HR asked for, and the locum accounts that can be linked; same audience.
+    locumSignIns?: {
+        requests: LocumSignIn[];
+        accounts: { value: string; label: string }[];
+    } | null;
 }>();
+
+type LocumSignIn = {
+    id: string;
+    name: string;
+    email: string;
+    requestedOn: string;
+    requestedBy: string;
+    lockVersion: number;
+};
+const page = usePage();
+const linkError = computed(() => {
+    const errors = (page.props.errors ?? {}) as Record<
+        string,
+        string | undefined
+    >;
+
+    return errors.user_id ?? errors.request ?? errors.records ?? null;
+});
+const linkChoice = reactive<Record<string, string>>({});
+const linking = ref<string | null>(null);
+const linkLocum = (request: LocumSignIn) => {
+    linking.value = request.id;
+    router.post(
+        `/staff/locum-sign-ins/${request.id}/link`,
+        {
+            user_id: linkChoice[request.id] ?? '',
+            expected_lock_version: request.lockVersion,
+            idempotency_key: crypto.randomUUID(),
+        },
+        { preserveScroll: true, onFinish: () => (linking.value = null) },
+    );
+};
 
 type AccountRequest = {
     id: string;
@@ -184,6 +221,93 @@ const clearFilters = () => {
                             @click="marking = request"
                             >Mark done</Button
                         >
+                    </li>
+                </ul>
+            </CardContent>
+        </Card>
+
+        <Card
+            v-if="locumSignIns && locumSignIns.requests.length"
+            data-test="staff-locum-sign-ins"
+        >
+            <CardHeader>
+                <CardTitle class="text-base"
+                    >Locum sign-ins HR asked for</CardTitle
+                >
+                <CardDescription>
+                    Create each account the usual way with Create staff, with
+                    the Locum role only, then link it here. A locum sees only
+                    their own approved shifts.
+                </CardDescription>
+            </CardHeader>
+            <CardContent class="flex flex-col gap-3">
+                <p
+                    v-if="linkError"
+                    role="alert"
+                    class="text-sm text-destructive"
+                    data-test="staff-locum-link-error"
+                >
+                    {{ linkError }}
+                </p>
+                <ul class="flex flex-col gap-2">
+                    <li
+                        v-for="request in locumSignIns.requests"
+                        :key="request.id"
+                        class="flex flex-col gap-3 rounded-lg border p-3 text-sm lg:flex-row lg:items-end lg:justify-between"
+                    >
+                        <div class="flex min-w-0 flex-col">
+                            <span class="font-medium break-words">{{
+                                request.name
+                            }}</span>
+                            <span class="break-all text-muted-foreground">{{
+                                request.email
+                            }}</span>
+                            <span class="text-muted-foreground"
+                                >Locum · asked on {{ request.requestedOn }} by
+                                {{ request.requestedBy }}</span
+                            >
+                        </div>
+                        <div
+                            v-if="locumSignIns.accounts.length"
+                            class="flex flex-col gap-2 sm:flex-row sm:items-end"
+                        >
+                            <div class="flex min-w-0 flex-col gap-1 sm:w-72">
+                                <span
+                                    :id="`locum-account-${request.id}`"
+                                    class="text-xs text-muted-foreground"
+                                    >Locum account to link</span
+                                >
+                                <OperationalSelect
+                                    :model-value="linkChoice[request.id] ?? ''"
+                                    :options="locumSignIns.accounts"
+                                    label="Locum account to link"
+                                    :labelledby="`locum-account-${request.id}`"
+                                    placeholder="Choose the account"
+                                    trigger-class="max-lg:min-h-11"
+                                    @update:model-value="
+                                        (v) =>
+                                            (linkChoice[request.id] = String(v))
+                                    "
+                                />
+                            </div>
+                            <Button
+                                variant="outline"
+                                class="max-lg:min-h-11"
+                                :disabled="
+                                    !linkChoice[request.id] ||
+                                    linking === request.id
+                                "
+                                :aria-label="`Link the account to ${request.name}`"
+                                data-test="staff-locum-link"
+                                @click="linkLocum(request)"
+                                >{{
+                                    linking === request.id ? 'Linking…' : 'Link'
+                                }}</Button
+                            >
+                        </div>
+                        <p v-else class="text-muted-foreground">
+                            No locum account to link yet. Create it first.
+                        </p>
                     </li>
                 </ul>
             </CardContent>
