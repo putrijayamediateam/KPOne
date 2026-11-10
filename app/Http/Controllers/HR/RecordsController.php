@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\HR;
 
 use App\Domain\Audit\AuditRecorder;
+use App\Domain\HR\Letters\Services\LettersPageService;
 use App\Domain\HR\Memos\Services\MemosPageService;
 use App\Domain\HR\Records\Models\Worker;
 use App\Domain\HR\Records\Services\BankDetailService;
@@ -35,7 +36,9 @@ class RecordsController extends Controller
             // HR-5c: how many SOPs you still have to read, linking to /hr/sops.
             'sopsToRead' => app(SopsPageService::class)->toRead($request->user()),
             // HR-8: how many memos you still have to read, linking to /hr/memos.
-            'memosToRead' => app(MemosPageService::class)->toRead($request->user())]);
+            'memosToRead' => app(MemosPageService::class)->toRead($request->user()),
+            // HR-10a: how many current letters HR issued to you, linking to /hr/letters.
+            'lettersMine' => app(LettersPageService::class)->mineCount($request->user())]);
     }
 
     public function show(Request $request, RecordsPageService $pages, string $worker): Response
