@@ -10,6 +10,7 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
+import { formatDate } from '@/lib/presentation';
 type Review = {
     id: number;
     version: number;
@@ -131,7 +132,12 @@ watch(
             >Inventory</a
         >
         <h1 class="text-2xl font-semibold">Stock review</h1>
-        <p>{{ review.branchName }} · Branch-local date: {{ review.today }}</p>
+        <p>
+            {{ review.branchName }} · Branch-local date:
+            <span class="whitespace-nowrap">{{
+                formatDate(review.today)
+            }}</span>
+        </p>
         <p class="text-sm text-muted-foreground">
             Review evidence only. Acknowledgements do not change stock, send
             messages, place orders or hide unresolved conditions. Thresholds are
