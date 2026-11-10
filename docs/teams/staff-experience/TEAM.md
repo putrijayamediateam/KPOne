@@ -81,6 +81,7 @@ usability aid only and must follow the permission the backend already enforces.
 | UX-14 | Malay guides for the 100 × 62 mm landscape drug label (CA and CA Supervisor) | #357 |
 | UX-15 | Shared `PageHeader` on the Staff pages and Clinic management (DD-17, part), with optional `title-extra` and `description` slots | #369 |
 | UX-16 | Confirm dialog's non-destructive tile on the brand tokens; closes DD-20 | #365 |
+| UX-17 | One Malaysian date format everywhere: shared `DateField`, `DateTimeField` and `MonthField` (dd/mm/yyyy, mm/yyyy, 12-hour time), every native date input replaced in six sweeps (B1 to B6), and shown dates moved to `formatDate` and `formatDateTime` (C1, C2) | #409, #413, #446, #447, #450, #451, #452, #453, #454, #456 |
 
 ## 6. Owner decisions already made (never ask again)
 
@@ -275,3 +276,15 @@ authorisation to build them; the coordinator records it in `docs/BASELINE.md`.
    (`bg-brand/10 text-brand-strong dark:bg-brand/15`), which carry their own dark values. It looks almost the
    same: the icon's contrast on its tile is 5.2:1 in light and 6.9:1 in dark (3:1 needed for an icon). A
    destructive question keeps its red tile. No assertion changed.
+17. **UX-17 One date format (owner decision 2026-11-10).** Every date box and shown date reads the Malaysian
+   way. Shared components live in `resources/js/components/ui/date-field/` with helpers in
+   `resources/js/lib/date-field.ts`: the box shows and accepts dd/mm/yyyy (mm/yyyy for months, 12-hour AM/PM
+   time), has a Monday-first calendar, and still sends `yyyy-mm-dd`, `yyyy-mm-ddTHH:mm` or `yyyy-mm`, so no
+   server contract changed. The model stays empty until the typed date is complete, real and inside min and
+   max. The `change` event carries the new string, not a DOM event. A small "= 10 Nov 2026" echo shows under
+   the box (`echo` prop, off in filters and table cells). The public QR form uses `locale="ms"` (Malay
+   words, placeholder dd/mm/yyyy kept). New code must use these components, never a native date input.
+   Shown dates use `formatDate` and `formatDateTime`; chart axes use `formatDayMonth` ("10/11"). Existing
+   assertions changed with the owner's approval: a stub line for the new import in five test files, and
+   `q1b2` line 52 and the `pnl-1` regex. Known limits: the Insights date range picker is still
+   Sunday-first (queued); a patient-facing look for the QR form is a separate small PR.
