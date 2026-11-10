@@ -593,22 +593,34 @@ const visitTypeLabel = (value: string) =>
                     <Link href="/panel-remittances">Record Panel payment</Link>
                 </Button>
                 <template v-if="work.filters.range === 'custom'">
-                    <label class="sr-only" for="claims-from">From</label>
-                    <DateField
-                        id="claims-from"
-                        v-model="draft.from"
-                        @change="go({ claims_page: null })"
-                        class="w-40"
-                        :echo="false"
-                    />
-                    <label class="sr-only" for="claims-to">To</label>
-                    <DateField
-                        id="claims-to"
-                        v-model="draft.to"
-                        @change="go({ claims_page: null })"
-                        class="w-40"
-                        :echo="false"
-                    />
+                    <span class="flex items-center gap-1.5">
+                        <label
+                            class="text-xs font-medium text-muted-foreground"
+                            for="claims-from"
+                            >From</label
+                        >
+                        <DateField
+                            id="claims-from"
+                            v-model="draft.from"
+                            @change="go({ claims_page: null })"
+                            class="w-40"
+                            :echo="false"
+                        />
+                    </span>
+                    <span class="flex items-center gap-1.5">
+                        <label
+                            class="text-xs font-medium text-muted-foreground"
+                            for="claims-to"
+                            >To</label
+                        >
+                        <DateField
+                            id="claims-to"
+                            v-model="draft.to"
+                            @change="go({ claims_page: null })"
+                            class="w-40"
+                            :echo="false"
+                        />
+                    </span>
                 </template>
                 <OperationalSelect
                     :model-value="work.filters.range"
