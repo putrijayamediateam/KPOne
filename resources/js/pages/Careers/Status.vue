@@ -30,6 +30,8 @@ type Application = {
         zone?: string;
         confirmed?: string;
     } | null;
+    // HR-17d: the clinic's documents for a confirmed interview.
+    documents?: { id: string; title: string; size: string }[];
 };
 
 const props = defineProps<{
@@ -250,6 +252,39 @@ const closedWell = computed(() => props.application?.stage === 'passed');
                         <p class="text-sm">
                             {{ clinicName }} {{ application.interview.branch }}
                         </p>
+                        <div
+                            v-if="application.documents?.length"
+                            class="mt-4 space-y-2 border-t border-pink-200 pt-3 dark:border-pink-900/60"
+                            data-test="status-documents"
+                        >
+                            <h3 class="text-sm font-semibold">
+                                Please read before your interview
+                                <span
+                                    lang="ms"
+                                    class="block font-normal text-zinc-600 dark:text-zinc-400"
+                                    >Sila baca sebelum temu duga anda</span
+                                >
+                            </h3>
+                            <ul class="space-y-2">
+                                <li
+                                    v-for="doc in application.documents"
+                                    :key="doc.id"
+                                >
+                                    <a
+                                        :href="`/careers/status/documents/${doc.id}`"
+                                        class="inline-flex min-h-11 items-center gap-2 text-sm font-medium break-words text-pink-700 dark:text-pink-400"
+                                        ><span
+                                            class="underline underline-offset-4"
+                                            >{{ doc.title }}</span
+                                        >
+                                        <span
+                                            class="font-normal text-zinc-600 dark:text-zinc-400"
+                                            >PDF · {{ doc.size }}</span
+                                        ></a
+                                    >
+                                </li>
+                            </ul>
+                        </div>
                     </section>
 
                     <section

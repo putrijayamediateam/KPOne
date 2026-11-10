@@ -4,6 +4,7 @@
 import { Head, router, usePage } from '@inertiajs/vue3';
 import { ChevronRight, TriangleAlert } from '@lucide/vue';
 import { computed, onMounted, reactive, ref, watch } from 'vue';
+import FileChooseButton from '@/components/catalogue/FileChooseButton.vue';
 import SyntheticNote from '@/components/hr/records/SyntheticNote.vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
@@ -77,7 +78,22 @@ type Application = {
             past: boolean;
         }[];
         confirmed: string | null;
+        // HR-17d: which interview documents the candidate has downloaded.
+        documents?: { title: string; downloadedAt: string | null }[];
     } | null;
+};
+type InterviewDocumentGroup = {
+    type: string;
+    label: string;
+    documents: {
+        id: string;
+        title: string;
+        size: string;
+        uploadedOn: string;
+        uploadedBy: string;
+        candidates: number;
+        lockVersion: number;
+    }[];
 };
 type NeedsYouRow = {
     id: string;
@@ -132,6 +148,7 @@ const props = defineProps<{
             pending: { days: number | null; from: string } | null;
         };
         checklist: { version: number; items: string[] };
+        interviewDocuments: InterviewDocumentGroup[];
         needsYou: {
             picks: { count: number; rows: NeedsYouRow[] };
             today: { count: number; rows: NeedsYouRow[] };
@@ -551,6 +568,84 @@ const saveRetention = () => {
             preserveScroll: true,
             onSuccess: () => (retention.key = crypto.randomUUID()),
             onFinish: () => (retention.processing = false),
+        },
+    );
+};
+
+// HR-17d: interview documents per position type (HR-PLAN 19.7).
+const DOCS_MAX = 10;
+const documentForm = reactive({
+    type: props.applications.options.types[0]?.value ?? 'ca',
+    title: '',
+    file: null as File | null,
+    key: crypto.randomUUID(),
+    processing: false,
+});
+const documentPicker = ref<InstanceType<typeof FileChooseButton> | null>(null);
+const documentGroup = computed(() =>
+    props.applications.interviewDocuments.find(
+        (g) => g.type === documentForm.type,
+    ),
+);
+const documentFull = computed(
+    () => (documentGroup.value?.documents.length ?? 0) >= DOCS_MAX,
+);
+const chooseDocument = (event: Event) => {
+    documentForm.file = (event.target as HTMLInputElement).files?.[0] ?? null;
+};
+const uploadDocument = () => {
+    documentForm.processing = true;
+    router.post(
+        '/hr/applications/interview-documents',
+        {
+            position_type: documentForm.type,
+            title: documentForm.title,
+            file: documentForm.file,
+            idempotency_key: documentForm.key,
+        },
+        {
+            forceFormData: true,
+            preserveScroll: true,
+            onSuccess: () => {
+                Object.assign(documentForm, {
+                    title: '',
+                    file: null,
+                    key: crypto.randomUUID(),
+                });
+                documentPicker.value?.clear();
+            },
+            onFinish: () => (documentForm.processing = false),
+        },
+    );
+};
+const removingDocument = ref<{
+    id: string;
+    title: string;
+    lockVersion: number;
+} | null>(null);
+const removeDocumentKey = ref(crypto.randomUUID());
+const removeDocumentProcessing = ref(false);
+const removeDocument = () => {
+    const doc = removingDocument.value;
+
+    if (!doc) {
+        return;
+    }
+
+    removeDocumentProcessing.value = true;
+    router.post(
+        `/hr/applications/interview-documents/${doc.id}/remove`,
+        {
+            expected_lock_version: doc.lockVersion,
+            idempotency_key: removeDocumentKey.value,
+        },
+        {
+            preserveScroll: true,
+            onSuccess: () => {
+                removingDocument.value = null;
+                removeDocumentKey.value = crypto.randomUUID();
+            },
+            onFinish: () => (removeDocumentProcessing.value = false),
         },
     );
 };
@@ -1051,6 +1146,179 @@ const saveRetention = () => {
             </div>
         </section>
 
+        <!-- Settings: interview documents (HR-17d) -->
+        <section
+            v-if="applications.tab === 'settings'"
+            aria-labelledby="interview-docs-title"
+            class="flex max-w-xl flex-col gap-4 rounded-xl border bg-card p-4"
+            data-test="interview-documents"
+        >
+            <div class="flex flex-col gap-1">
+                <h2 id="interview-docs-title" class="text-base font-semibold">
+                    Interview documents
+                </h2>
+                <p class="text-sm text-muted-foreground">
+                    PDFs a candidate can download from their private page once
+                    their interview is confirmed, for their position type only.
+                    Up to {{ DOCS_MAX }} per type, 10 MB each. Each download is
+                    recorded. Do not upload a document that contains a person's
+                    private details.
+                </p>
+            </div>
+            <div
+                v-for="group in applications.interviewDocuments"
+                :key="group.type"
+                class="flex flex-col gap-2"
+                :data-test="`interview-documents-${group.type}`"
+            >
+                <h3 class="text-sm font-semibold">
+                    {{ group.label }}
+                    <span class="font-normal text-muted-foreground"
+                        >· {{ group.documents.length }} of {{ DOCS_MAX }}</span
+                    >
+                </h3>
+                <p
+                    v-if="group.documents.length === 0"
+                    class="text-sm text-muted-foreground"
+                >
+                    None yet.
+                </p>
+                <ul v-else class="flex flex-col gap-2">
+                    <li
+                        v-for="doc in group.documents"
+                        :key="doc.id"
+                        class="flex flex-wrap items-center justify-between gap-2 rounded-lg border p-2 text-sm"
+                    >
+                        <div class="flex min-w-0 flex-col">
+                            <a
+                                :href="`/hr/applications/interview-documents/${doc.id}`"
+                                class="inline-flex min-h-11 items-center font-medium break-words underline underline-offset-4 lg:min-h-0"
+                                >{{ doc.title }}</a
+                            >
+                            <span class="text-xs text-muted-foreground"
+                                >PDF · {{ doc.size }} · added
+                                {{ doc.uploadedOn }} by {{ doc.uploadedBy }} ·
+                                downloaded by {{ doc.candidates }}
+                                {{
+                                    doc.candidates === 1
+                                        ? 'candidate'
+                                        : 'candidates'
+                                }}</span
+                            >
+                        </div>
+                        <Button
+                            variant="outline"
+                            class="max-lg:min-h-11"
+                            :aria-label="`Remove ${doc.title}`"
+                            data-test="interview-document-remove"
+                            @click="
+                                removingDocument = {
+                                    id: doc.id,
+                                    title: doc.title,
+                                    lockVersion: doc.lockVersion,
+                                }
+                            "
+                            >Remove</Button
+                        >
+                    </li>
+                </ul>
+            </div>
+            <form
+                class="flex flex-col gap-3 border-t pt-4"
+                data-test="interview-document-add"
+                @submit.prevent="uploadDocument"
+            >
+                <h3 class="text-sm font-semibold">Add a document</h3>
+                <div class="flex flex-col gap-1.5">
+                    <Label id="interview-doc-type-label">Position type</Label>
+                    <OperationalSelect
+                        v-model="documentForm.type"
+                        :options="applications.options.types"
+                        label="Position type"
+                        labelledby="interview-doc-type-label"
+                        trigger-class="max-lg:min-h-11"
+                    />
+                    <InputError :message="errors.position_type" />
+                </div>
+                <div class="flex flex-col gap-1.5">
+                    <Label for="interview-doc-title">Title</Label>
+                    <Input
+                        id="interview-doc-title"
+                        v-model="documentForm.title"
+                        maxlength="80"
+                        class="max-lg:min-h-11"
+                        placeholder="For example: Clinic induction booklet"
+                        :aria-invalid="errors.title ? 'true' : undefined"
+                        aria-describedby="interview-doc-title-error"
+                    />
+                    <InputError
+                        id="interview-doc-title-error"
+                        :message="errors.title"
+                    />
+                </div>
+                <div class="flex flex-col gap-1.5">
+                    <Label for="interview-doc-file">PDF</Label>
+                    <FileChooseButton
+                        id="interview-doc-file"
+                        ref="documentPicker"
+                        accept="application/pdf,.pdf"
+                        :label="
+                            documentForm.file
+                                ? 'Choose another PDF'
+                                : 'Choose PDF'
+                        "
+                        :status="
+                            documentForm.file
+                                ? documentForm.file.name
+                                : 'No PDF chosen'
+                        "
+                        status-id="interview-doc-file-status"
+                        :disabled="documentForm.processing"
+                        aria-describedby="interview-doc-file-error"
+                        @change="chooseDocument"
+                    />
+                    <InputError
+                        id="interview-doc-file-error"
+                        :message="errors.file"
+                    />
+                </div>
+                <p
+                    v-if="documentFull"
+                    class="text-sm text-muted-foreground"
+                    data-test="interview-document-full"
+                >
+                    This position type has {{ DOCS_MAX }} documents. Remove one
+                    to add another.
+                </p>
+                <div class="flex flex-wrap items-center gap-3">
+                    <Button
+                        type="submit"
+                        class="max-lg:min-h-11"
+                        :disabled="
+                            documentForm.processing ||
+                            documentFull ||
+                            !documentForm.file ||
+                            documentForm.title.trim().length < 3
+                        "
+                        data-test="interview-document-upload"
+                        >{{
+                            documentForm.processing ? 'Adding…' : 'Add document'
+                        }}</Button
+                    >
+                    <span
+                        v-if="
+                            !documentFull &&
+                            (!documentForm.file ||
+                                documentForm.title.trim().length < 3)
+                        "
+                        class="text-sm text-muted-foreground"
+                        data-test="interview-document-why"
+                        >Choose a PDF and give it a title first.</span
+                    >
+                </div>
+            </form>
+        </section>
+
         <!-- One application -->
         <Sheet
             :open="viewing !== null"
@@ -1144,6 +1412,42 @@ const saveRetention = () => {
                                 "
                                 >Cancel and ask for new times</Button
                             >
+                            <div
+                                class="flex flex-col gap-1"
+                                data-test="interview-downloads"
+                            >
+                                <h4 class="text-sm font-medium">
+                                    Interview documents
+                                </h4>
+                                <p
+                                    v-if="!viewing.interview.documents?.length"
+                                    class="text-sm text-muted-foreground"
+                                >
+                                    None for this position type. Add them in
+                                    Settings.
+                                </p>
+                                <ul v-else class="flex flex-col gap-1 text-sm">
+                                    <li
+                                        v-for="(doc, i) in viewing.interview
+                                            .documents"
+                                        :key="i"
+                                    >
+                                        {{ doc.title }} ·
+                                        <span
+                                            :class="
+                                                doc.downloadedAt
+                                                    ? ''
+                                                    : 'text-muted-foreground'
+                                            "
+                                            >{{
+                                                doc.downloadedAt
+                                                    ? `downloaded ${doc.downloadedAt}`
+                                                    : 'not downloaded yet'
+                                            }}</span
+                                        >
+                                    </li>
+                                </ul>
+                            </div>
                         </template>
                         <template v-else-if="viewing.interview.picks.length">
                             <p class="text-sm text-muted-foreground">
@@ -1538,6 +1842,19 @@ const saveRetention = () => {
                 </div>
             </SheetContent>
         </Sheet>
+
+        <OperationalConfirmDialog
+            :open="removingDocument !== null"
+            :title="`Remove ${removingDocument?.title ?? ''}?`"
+            description="Candidates can no longer download it, and its file is deleted. The record that it existed and who downloaded it is kept."
+            confirm-label="Remove document"
+            cancel-label="Keep document"
+            destructive
+            :processing="removeDocumentProcessing"
+            :error="errors.document"
+            @update:open="(open) => !open && (removingDocument = null)"
+            @confirm="removeDocument"
+        />
 
         <OperationalConfirmDialog
             :open="confirming !== null"
