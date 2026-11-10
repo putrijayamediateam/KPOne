@@ -4,7 +4,7 @@
 // and the fragment is cleared from the address bar. The page shows the stage in plain words and the clinic's
 // messages, never HR's rating, note or checklist, and nothing the candidate sent.
 import { Head, router, usePage } from '@inertiajs/vue3';
-import { computed, onMounted, ref } from 'vue';
+import { computed, nextTick, onMounted, ref } from 'vue';
 
 type Message = { label: string; subject: string; body: string; at: string };
 type Application = {
@@ -29,6 +29,19 @@ const errors = computed(
 );
 const exchanging = ref(false);
 const confirming = ref(false);
+const withdrawButton = ref<HTMLButtonElement | null>(null);
+const confirmPanel = ref<HTMLElement | null>(null);
+// The confirm takes focus when it opens; Keep it and Esc close it and give focus back (Daniel, HR-17b).
+const askWithdraw = async () => {
+    confirming.value = true;
+    await nextTick();
+    confirmPanel.value?.focus();
+};
+const keepIt = async () => {
+    confirming.value = false;
+    await nextTick();
+    withdrawButton.value?.focus();
+};
 const withdrawing = ref(false);
 
 onMounted(() => {
@@ -228,17 +241,26 @@ const closedWell = computed(() => props.application?.stage === 'passed');
                             v-if="!confirming"
                             type="button"
                             class="inline-flex min-h-11 items-center rounded-lg border border-zinc-300 px-4 text-sm font-medium hover:bg-zinc-50 focus-visible:ring-2 focus-visible:ring-pink-500 focus-visible:outline-none dark:border-zinc-700 dark:hover:bg-zinc-800"
+                            ref="withdrawButton"
                             data-test="status-withdraw"
-                            @click="confirming = true"
+                            @click="askWithdraw"
                         >
                             Withdraw my application / Tarik balik permohonan
                         </button>
                         <div
                             v-else
                             class="space-y-3 rounded-xl border border-red-200 bg-red-50 p-4 dark:border-red-900/60 dark:bg-red-950/30"
+                            ref="confirmPanel"
+                            tabindex="-1"
+                            role="group"
+                            aria-labelledby="withdraw-confirm-title"
                             data-test="status-withdraw-confirm"
+                            @keydown.esc="keepIt"
                         >
-                            <p class="text-sm font-medium">
+                            <p
+                                id="withdraw-confirm-title"
+                                class="text-sm font-medium"
+                            >
                                 Withdraw your application? This cannot be
                                 undone.
                             </p>
@@ -262,7 +284,7 @@ const closedWell = computed(() => props.application?.stage === 'passed');
                                 <button
                                     type="button"
                                     class="inline-flex min-h-11 items-center rounded-lg border border-zinc-300 px-4 text-sm font-medium dark:border-zinc-700"
-                                    @click="confirming = false"
+                                    @click="keepIt"
                                 >
                                     Keep it / Kekalkan
                                 </button>
@@ -307,6 +329,12 @@ const closedWell = computed(() => props.application?.stage === 'passed');
                             Buka pautan peribadi daripada halaman terima kasih
                             atau e-mel klinik untuk melihat permohonan anda.
                         </p>
+                        <a
+                            href="/careers/apply"
+                            class="inline-flex min-h-11 items-center text-sm font-medium text-pink-700 underline underline-offset-4 dark:text-pink-400"
+                            data-test="status-apply"
+                            >Apply for a job / Mohon jawatan</a
+                        >
                     </template>
                 </template>
             </div>

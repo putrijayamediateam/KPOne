@@ -82,3 +82,24 @@ test('HR sees Needs you, each message with its outcome, and the auto-reject date
     assert.match(t, /m\.statusLabel/);
     assert.match(source.hr, /focus: row\.id/);
 });
+
+test('Daniel: the invalid link is not a dead end, and the withdraw confirm manages focus', () => {
+    const t = template('status');
+    assert.match(t, /data-test="status-apply"/);
+    assert.match(t, /Apply for a job \/ Mohon jawatan/);
+    assert.match(t, /@keydown\.esc="keepIt"/);
+    assert.match(t, /tabindex="-1"/);
+    assert.match(source.status, /confirmPanel\.value\?\.focus\(\)/);
+    assert.match(source.status, /withdrawButton\.value\?\.focus\(\)/);
+});
+
+test('Daniel: Needs you lists new applications as one line, and messages show a chevron and a failed outcome in words', () => {
+    const t = template('hr');
+    assert.match(t, /data-test="needs-you-new-show"/);
+    assert.match(t, /filter\(\{ status: 'new' \}\)/);
+    assert.doesNotMatch(t, /lg:max-w-3xl"\s+data-test="needs-you"/);
+    assert.match(t, /<ChevronRight/);
+    assert.match(t, /group-open:rotate-90/);
+    assert.match(t, /viewing\.autoRejectSoon/);
+    assert.match(t, /m\.status === 'failed'/);
+});

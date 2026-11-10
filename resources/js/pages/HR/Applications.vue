@@ -2,6 +2,7 @@
 // HR-13 /hr/applications (Director, HR Manager): applications from the public form, the open positions and the
 // retention. HR-PLAN 15.2, with HR-17a's position types, form answers, phone screening and call checklist (HR-PLAN 19). Every CV open is recorded by the server before any byte is sent.
 import { Head, router, usePage } from '@inertiajs/vue3';
+import { ChevronRight, TriangleAlert } from '@lucide/vue';
 import { computed, onMounted, reactive, ref, watch } from 'vue';
 import SyntheticNote from '@/components/hr/records/SyntheticNote.vue';
 import InputError from '@/components/InputError.vue';
@@ -64,6 +65,7 @@ type Application = {
         atLabel: string;
     }[];
     autoRejectOn: string | null;
+    autoRejectSoon: boolean;
 };
 type NeedsYouRow = {
     id: string;
@@ -568,7 +570,7 @@ const saveRetention = () => {
             <section
                 v-if="needsYouCount > 0 || applications.needsYou.noWorkingDays"
                 aria-labelledby="needs-you-title"
-                class="flex flex-col gap-3 rounded-xl border bg-card p-3 lg:max-w-3xl"
+                class="flex flex-col gap-3 rounded-xl border bg-card p-3"
                 data-test="needs-you"
             >
                 <h3 id="needs-you-title" class="font-semibold">
@@ -588,61 +590,75 @@ const saveRetention = () => {
                     so its applications are never closed automatically. Set the
                     working days to start the 3-day count.
                 </p>
-                <template
-                    v-for="group in [
-                        {
-                            key: 'closing',
-                            title: 'Closing at the start of the next working day',
-                            data: applications.needsYou.closing,
-                        },
-                        {
-                            key: 'new',
-                            title: 'New applications',
-                            data: applications.needsYou.new,
-                        },
-                    ]"
-                    :key="group.key"
+                <!-- The urgent ones in full; new applications as one line, since the list below shows them (Daniel, HR-17b). -->
+                <div
+                    v-if="applications.needsYou.closing.count"
+                    class="flex flex-col gap-1.5"
+                    data-test="needs-you-closing"
                 >
-                    <div
-                        v-if="group.data.count"
-                        class="flex flex-col gap-1.5"
-                        :data-test="`needs-you-${group.key}`"
-                    >
-                        <h4 class="text-sm font-medium">
-                            {{ group.title }} ({{ group.data.count }})
-                        </h4>
-                        <ul class="flex flex-col gap-1.5">
-                            <li
-                                v-for="row in group.data.rows"
-                                :key="row.id"
-                                class="flex flex-wrap items-center justify-between gap-2 rounded-lg border p-2"
-                            >
-                                <div class="min-w-0">
-                                    <p class="text-sm font-medium break-words">
-                                        {{ row.name }} · {{ row.position }}
-                                    </p>
-                                    <p class="text-sm text-muted-foreground">
-                                        {{ row.why }}
-                                    </p>
-                                </div>
-                                <Button
-                                    variant="outline"
-                                    class="max-lg:min-h-11"
-                                    :aria-label="`Open the application from ${row.name}`"
-                                    @click="focusOn(row)"
-                                    >Open</Button
-                                >
-                            </li>
-                        </ul>
-                        <p
-                            v-if="group.data.count > group.data.rows.length"
-                            class="text-sm text-muted-foreground"
+                    <h4 class="text-sm font-medium">
+                        Closing at the start of the next working day ({{
+                            applications.needsYou.closing.count
+                        }})
+                    </h4>
+                    <ul class="flex flex-col gap-1.5">
+                        <li
+                            v-for="row in applications.needsYou.closing.rows"
+                            :key="row.id"
+                            class="flex flex-wrap items-center justify-between gap-2 rounded-lg border p-2"
                         >
-                            And {{ group.data.count - group.data.rows.length }}
-                            more in the list below.
-                        </p>
-                    </div>
-                </template>
+                            <div class="min-w-0">
+                                <p class="text-sm font-medium break-words">
+                                    {{ row.name }} · {{ row.position }}
+                                </p>
+                                <p class="text-sm text-muted-foreground">
+                                    {{ row.why }}
+                                </p>
+                            </div>
+                            <Button
+                                variant="outline"
+                                class="max-lg:min-h-11"
+                                :aria-label="`Open the application from ${row.name}`"
+                                @click="focusOn(row)"
+                                >Open</Button
+                            >
+                        </li>
+                    </ul>
+                    <p
+                        v-if="
+                            applications.needsYou.closing.count >
+                            applications.needsYou.closing.rows.length
+                        "
+                        class="text-sm text-muted-foreground"
+                    >
+                        And
+                        {{
+                            applications.needsYou.closing.count -
+                            applications.needsYou.closing.rows.length
+                        }}
+                        more in the list below.
+                    </p>
+                </div>
+                <p
+                    v-if="applications.needsYou.new.count"
+                    class="flex flex-wrap items-center gap-x-2 text-sm"
+                    data-test="needs-you-new"
+                >
+                    {{ applications.needsYou.new.count }} new
+                    {{
+                        applications.needsYou.new.count === 1
+                            ? 'application'
+                            : 'applications'
+                    }}
+                    <span aria-hidden="true">·</span>
+                    <Button
+                        variant="link"
+                        class="h-auto p-0 max-lg:min-h-11"
+                        data-test="needs-you-new-show"
+                        @click="filter({ status: 'new' })"
+                        >Show</Button
+                    >
+                </p>
             </section>
             <p
                 v-if="list.filters.focus"
@@ -963,11 +979,25 @@ const saveRetention = () => {
                     </div>
                     <p
                         v-if="viewing.autoRejectOn"
-                        class="text-sm text-muted-foreground"
+                        class="flex items-start gap-2 text-sm"
+                        :class="
+                            viewing.autoRejectSoon
+                                ? 'rounded-lg border border-warning/40 bg-warning/10 p-2 text-foreground'
+                                : 'text-muted-foreground'
+                        "
+                        :role="viewing.autoRejectSoon ? 'status' : undefined"
                         data-test="application-auto-reject"
                     >
-                        Without a decision, KPOne closes this as Auto-rejected
-                        on {{ viewing.autoRejectOn }} and tells the candidate.
+                        <TriangleAlert
+                            v-if="viewing.autoRejectSoon"
+                            class="mt-0.5 size-4 shrink-0 text-warning"
+                            aria-hidden="true"
+                        />
+                        <span
+                            >Without a decision, KPOne closes this as
+                            Auto-rejected on {{ viewing.autoRejectOn }} and
+                            tells the candidate.</span
+                        >
                     </p>
 
                     <!-- The stage's own action comes first; the application's details follow (Daniel, HR-17a). -->
@@ -1248,11 +1278,17 @@ const saveRetention = () => {
                                 :key="i"
                                 class="rounded-lg border p-3 text-sm"
                             >
-                                <details>
+                                <details class="group">
                                     <summary
-                                        class="flex min-h-11 cursor-pointer list-none flex-wrap items-center justify-between gap-x-3 gap-y-1"
+                                        class="flex min-h-11 cursor-pointer list-none flex-wrap items-center justify-between gap-x-3 gap-y-1 [&::-webkit-details-marker]:hidden"
                                     >
-                                        <span class="font-medium">
+                                        <span
+                                            class="flex items-center gap-1 font-medium"
+                                        >
+                                            <ChevronRight
+                                                class="size-4 shrink-0 transition-transform group-open:rotate-90 motion-reduce:transition-none"
+                                                aria-hidden="true"
+                                            />
                                             {{ m.label }}
                                             <span
                                                 class="font-normal text-muted-foreground"
@@ -1264,7 +1300,12 @@ const saveRetention = () => {
                                                 }}</span
                                             >
                                         </span>
-                                        <span class="text-muted-foreground"
+                                        <span
+                                            :class="
+                                                m.status === 'failed'
+                                                    ? 'font-medium text-destructive'
+                                                    : 'text-muted-foreground'
+                                            "
                                             >{{ m.atLabel }} ·
                                             {{ m.statusLabel }}</span
                                         >

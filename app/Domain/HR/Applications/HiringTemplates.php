@@ -63,7 +63,7 @@ final class HiringTemplates
                 .'Terima kasih kerana menghadiri temu duga untuk jawatan {position}. Kami tidak akan meneruskan permohonan anda kali ini. Kami doakan yang terbaik untuk anda.',
         ],
         'auto_reject_reminder' => [
-            'label' => 'Reminder to the hiring mailbox',
+            'label' => 'Reminder',
             'subject' => 'Hiring: application {reference} closes at the next working day',
             'body' => 'Application {reference} for {position} is waiting at {stage}. If nobody decides today, KPOne closes it as Auto-rejected at the start of the next working day and tells the candidate. Open KPOne, then KPOne HR applications.',
         ],

@@ -198,7 +198,8 @@ class HiringMessagesTest extends VisitTestCase
         $this->selectBranch($hr);
         $this->get(route('hr.applications.index'))->assertInertia(fn (Assert $page) => $page
             ->where('applications.needsYou.closing.count', 1)->where('applications.needsYou.closing.rows.0.id', $id)->where('applications.needsYou.new.count', 0)
-            ->where('applications.needsYou.noWorkingDays', false)->where('applications.applications.rows.0.autoRejectOn', 'Tue 17 Nov 2026'));
+            ->where('applications.needsYou.noWorkingDays', false)->where('applications.applications.rows.0.autoRejectOn', 'Tue 17 Nov 2026')
+            ->where('applications.applications.rows.0.autoRejectSoon', true));
         // "Open" shows just that application.
         $this->get(route('hr.applications.index', ['status' => 'new', 'focus' => $id]))->assertInertia(fn (Assert $page) => $page
             ->where('applications.applications.filters.focus', $id)->has('applications.applications.rows', 1)->where('applications.applications.rows.0.id', $id));

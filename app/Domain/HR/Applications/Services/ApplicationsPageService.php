@@ -26,7 +26,7 @@ final class ApplicationsPageService
     public const MESSAGE_STATUSES = [
         'sending' => 'Sending',
         'sent' => 'Emailed',
-        'failed' => 'Email failed: shown in KPOne only',
+        'failed' => 'Failed: shown in KPOne only',
         'off' => 'Email off: shown in KPOne only',
     ];
 
@@ -184,6 +184,7 @@ final class ApplicationsPageService
                     'statusLabel' => self::MESSAGE_STATUSES[$m->status] ?? (string) $m->status, 'atLabel' => self::local($m->created_at, $zone)],
                     ($messages[$a->id] ?? collect())->all()),
                 'autoRejectOn' => $this->autoRejectOn($a),
+                'autoRejectSoon' => $this->autoRejectSoon($a),
                 'hasCv' => $a->cv_path !== null,
                 'cvKb' => (int) ceil((int) $a->cv_bytes / 1024),
                 'privacyNoticeVersion' => (string) $a->privacy_notice_version,
@@ -204,6 +205,18 @@ final class ApplicationsPageService
         $deadlines = $this->deadlines->deadlines($a);
 
         return $deadlines === null ? null : CarbonImmutable::parse($deadlines['reject'])->format('D j M Y');
+    }
+
+    /** Whether the daily check closes a waiting application at the start of the next working day (Daniel, HR-17b). */
+    private function autoRejectSoon(\stdClass $a): bool
+    {
+        if (! in_array($a->status, HiringDeadlines::WAITING, true) || $a->purged_at !== null) {
+            return false;
+        }
+        $deadlines = $this->deadlines->deadlines($a);
+        $today = $this->deadlines->today($a);
+
+        return $deadlines !== null && $today !== null && $today >= $deadlines['remind'];
     }
 
     /** @return array<string, mixed> */
