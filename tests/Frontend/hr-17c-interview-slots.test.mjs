@@ -88,6 +88,8 @@ test('HR confirms a time through a dialog and moves to Interview only when arran
     const t = template('hr');
 
     assert.match(t, /Arranged outside KPOne/);
+    assert.match(t, /cancel-label="Keep interview"/);
+    assert.match(t, /'passed',\s*'failed',\s*\]\.includes\(step\.value\)/);
     assert.match(t, /`Confirm \$\{confirming\?\.label \?\? ''\}\?`/);
     assert.match(source.hr, /const arrangedOutside = /);
     assert.match(

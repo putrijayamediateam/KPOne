@@ -1380,9 +1380,13 @@ const saveRetention = () => {
                                 v-for="step in moveSteps"
                                 :key="step.value"
                                 :variant="
-                                    ['not_taken_forward', 'withdrawn'].includes(
-                                        step.value,
-                                    ) || arrangedOutside(step.value)
+                                    [
+                                        'not_taken_forward',
+                                        'withdrawn',
+                                        'passed',
+                                        'failed',
+                                    ].includes(step.value) ||
+                                    arrangedOutside(step.value)
                                         ? 'outline'
                                         : 'default'
                                 "
@@ -1555,6 +1559,7 @@ const saveRetention = () => {
             title="Cancel this interview?"
             description="The slot is freed, the application goes back to Scheduling and the candidate is asked for three new times."
             confirm-label="Cancel interview"
+            cancel-label="Keep interview"
             destructive
             :processing="interviewAction.processing"
             :error="errors.reason"
