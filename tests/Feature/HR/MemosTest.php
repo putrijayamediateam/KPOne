@@ -343,6 +343,13 @@ class MemosTest extends VisitTestCase
         // Withdrawing the replacement frees the original: it takes reads again and can be replaced again.
         $this->selectBranch($hr);
         $this->withdraw($new, ['reason' => 'wrong_content'])->assertSessionHasNoErrors();
+        // The old memo row is untouched, and the page says why it applies again.
+        $this->assertSame((int) $old->lock_version, (int) DB::table('hr_memos')->where('id', $old->id)->value('lock_version'));
+        $this->selectBranch($ca);
+        $this->get(route('hr.memos.index'))->assertInertia(fn (Assert $page) => $page->where('memos.my.0.title', 'Synthetic original memo')->where('memos.my.0.status', 'open')
+            ->where('memos.my.0.replacementWithdrawnOn', '10 Nov 2026'));
+        $this->selectBranch($hr);
+        $this->get(route('hr.memos.index', ['tab' => 'manage']))->assertInertia(fn (Assert $page) => $page->where('memos.manage.memos.1.replacementWithdrawnOn', '10 Nov 2026'));
         $this->selectBranch($ca);
         $this->postJson(route('hr.memos.open', $old->public_id))->assertOk();
         $this->acknowledge($ca, $old->public_id)->assertSessionHasNoErrors();

@@ -92,6 +92,10 @@ test('All memos: "N of M expected now have read", who hasn\'t as plain text with
 
     assert.match(page, /Every read already given is kept\./);
     assert.match(page, /title="No memos yet\."/);
+    assert.match(
+        page,
+        /Its replacement was withdrawn on\s+\{\{ memo\.replacementWithdrawnOn \}\}; this memo applies again\./,
+    );
 });
 
 test('The publish form: title hint, plain text with a count, audience with a live count, open until, replaces and an optional PDF', () => {
@@ -113,7 +117,12 @@ test('The publish form: title hint, plain text with a count, audience with a liv
     assert.match(page, /Open until \(optional\)/);
     assert.match(page, /:min="memos\.options\.today"/);
     assert.match(page, /Replaces \(optional\)/);
-    assert.match(page, /accept="application\/pdf"/);
+    assert.match(page, /<DateField\s+id="memo-until"/);
+    assert.match(
+        page,
+        /<FileChooseButton[\s\S]{0,200}accept="application\/pdf"/,
+    );
+    assert.doesNotMatch(page, /type="date"|type="file"/);
     assert.match(page, /PDF only, up to \{\{ memos\.options\.maxMb \}\} MB\./);
     assert.match(source.page, /class="[^"]*max-lg:min-h-11/);
 });

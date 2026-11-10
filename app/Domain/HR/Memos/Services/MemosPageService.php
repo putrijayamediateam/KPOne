@@ -81,6 +81,7 @@ final class MemosPageService
         $opens = DB::table('hr_memo_opens')->where('user_id', $actor->id)->whereIn('memo_id', $ids)->get(['memo_id', 'kind'])->groupBy('memo_id');
         $acks = DB::table('hr_memo_acknowledgements')->where('user_id', $actor->id)->whereIn('memo_id', $ids)->pluck('created_at', 'memo_id');
         $replacedBy = $this->replacements($ids);
+        $freed = $this->freed($ids);
         $names = User::query()->whereIn('id', $memos->pluck('published_by_user_id')->unique()->all())->pluck('name', 'id');
 
         $rows = $memos->filter(function (\stdClass $m) use ($actor, $effective, $branchSets, $roleSets): bool {
@@ -88,7 +89,7 @@ final class MemosPageService
             $roles = array_map('strval', ($roleSets->get($m->id) ?? collect())->pluck('role')->all());
 
             return $this->audience->expects($actor, $branchIds, $roles, $effective);
-        })->map(function (\stdClass $m) use ($opens, $acks, $replacedBy, $names, $zone): array {
+        })->map(function (\stdClass $m) use ($opens, $acks, $replacedBy, $freed, $names, $zone): array {
             $kinds = ($opens->get($m->id) ?? collect())->pluck('kind')->all();
 
             return [
@@ -103,6 +104,7 @@ final class MemosPageService
                 'acknowledgedOn' => isset($acks[$m->id]) ? $this->date($acks[$m->id], $zone) : null,
                 'openUntil' => $m->expires_at === null ? null : $this->date(CarbonImmutable::parse((string) $m->expires_at, 'UTC')->subSecond(), $zone),
                 'replacedBy' => $replacedBy[$m->id] ?? null,
+                'replacementWithdrawnOn' => isset($freed[$m->id]) && ! isset($replacedBy[$m->id]) ? $this->date($freed[$m->id], $zone) : null,
             ];
         })->values();
 
@@ -126,11 +128,12 @@ final class MemosPageService
         $roleSets = DB::table('hr_memo_roles')->whereIn('memo_id', $ids)->get(['memo_id', 'role'])->groupBy('memo_id');
         $done = DB::table('hr_memo_acknowledgements')->whereIn('memo_id', $ids)->get(['memo_id', 'user_id'])->groupBy('memo_id');
         $replacedBy = $this->replacements($ids);
+        $freed = $this->freed($ids);
         $titles = $memos->pluck('title', 'public_id');
         $replaces = $memos->filter(fn (\stdClass $m): bool => $m->replaces_memo_id !== null)->mapWithKeys(fn (\stdClass $m): array => [(int) $m->id => (string) ($memos->firstWhere('id', $m->replaces_memo_id)->title ?? '')]);
         $names = User::query()->whereIn('id', [...$memos->pluck('published_by_user_id')->all(), ...$memos->pluck('withdrawn_by_user_id')->filter()->all()])->pluck('name', 'id');
 
-        return ['memos' => $memos->map(function (\stdClass $m) use ($people, $effective, $branchSets, $roleSets, $done, $replacedBy, $replaces, $names, $zone, $titles): array {
+        return ['memos' => $memos->map(function (\stdClass $m) use ($people, $effective, $branchSets, $roleSets, $done, $replacedBy, $freed, $replaces, $names, $zone, $titles): array {
             $branchRows = $branchSets->get($m->id) ?? collect();
             $branchIds = array_map('intval', $branchRows->pluck('branch_id')->all());
             $roles = array_map('strval', ($roleSets->get($m->id) ?? collect())->pluck('role')->all());
@@ -150,6 +153,7 @@ final class MemosPageService
                 'openUntil' => $m->expires_at === null ? null : $this->date(CarbonImmutable::parse((string) $m->expires_at, 'UTC')->subSecond(), $zone),
                 'replacesTitle' => $replaces[(int) $m->id] ?? null,
                 'replacedBy' => $replacedBy[$m->id] ?? null,
+                'replacementWithdrawnOn' => isset($freed[$m->id]) && ! isset($replacedBy[$m->id]) ? $this->date($freed[$m->id], $zone) : null,
                 'replacedByTitle' => isset($replacedBy[$m->id]) ? (string) ($titles[$replacedBy[$m->id]] ?? '') : null,
                 'withdrawnOn' => $m->withdrawn_at === null ? null : $this->date($m->withdrawn_at, $zone),
                 'withdrawnBy' => $m->withdrawn_by_user_id === null ? null : ($names[$m->withdrawn_by_user_id] ?? 'Staff member'),
@@ -191,6 +195,16 @@ final class MemosPageService
     {
         return DB::table('hr_memos as n')->join('hr_memos as o', 'o.id', '=', 'n.replaces_memo_id')->whereIn('o.id', $ids)->whereNull('n.withdrawn_at')->pluck('n.public_id', 'o.id')
             ->map(fn ($v): string => (string) $v)->all();
+    }
+
+    /**
+     * @param  array<int|string, mixed>  $ids
+     * @return array<int, string> memo id => when its latest replacement was withdrawn (UTC), for a memo that applies again
+     */
+    private function freed(array $ids): array
+    {
+        return DB::table('hr_memos as n')->join('hr_memos as o', 'o.id', '=', 'n.replaces_memo_id')->whereIn('o.id', $ids)->whereNotNull('n.withdrawn_at')
+            ->selectRaw('o.id as old_id, max(n.withdrawn_at) as at')->groupBy('o.id')->pluck('at', 'old_id')->map(fn ($v): string => (string) $v)->all();
     }
 
     /** @param array<int, string> $replacedBy */

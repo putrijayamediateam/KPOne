@@ -3,10 +3,12 @@
 // In KPOne only: nothing is sent by email, push, SMS or WhatsApp.
 import { Head, router, usePage } from '@inertiajs/vue3';
 import { computed, reactive, ref, watch } from 'vue';
+import FileChooseButton from '@/components/catalogue/FileChooseButton.vue';
 import SyntheticNote from '@/components/hr/records/SyntheticNote.vue';
 import { csrf } from '@/components/hr/records/types';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
+import { DateField } from '@/components/ui/date-field';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import OperationalConfirmDialog from '@/components/ui/OperationalConfirmDialog.vue';
@@ -38,6 +40,7 @@ type MyMemo = {
     acknowledgedOn: string | null;
     openUntil: string | null;
     replacedBy: string | null;
+    replacementWithdrawnOn: string | null;
 };
 type ManagedMemo = {
     id: string;
@@ -51,6 +54,7 @@ type ManagedMemo = {
     replacesTitle: string | null;
     replacedBy: string | null;
     replacedByTitle: string | null;
+    replacementWithdrawnOn: string | null;
     withdrawnOn: string | null;
     withdrawnBy: string | null;
     withdrawnReason: string | null;
@@ -223,7 +227,10 @@ const form = reactive({
     key: '',
     processing: false,
 });
-const startPublish = (replaces = '') =>
+const fileInput = ref<InstanceType<typeof FileChooseButton> | null>(null);
+const fileStatus = computed(() => form.file?.name ?? 'No file chosen');
+const startPublish = (replaces = '') => {
+    fileInput.value?.clear();
     Object.assign(form, {
         open: true,
         title: '',
@@ -235,6 +242,7 @@ const startPublish = (replaces = '') =>
         file: null,
         key: crypto.randomUUID(),
     });
+};
 const onFile = (event: Event) => {
     form.file = (event.target as HTMLInputElement).files?.[0] ?? null;
 };
@@ -464,6 +472,14 @@ const withdrawn = computed(() =>
                 </div>
 
                 <p
+                    v-if="memo.replacementWithdrawnOn"
+                    class="text-sm"
+                    data-test="memo-applies-again"
+                >
+                    Its replacement was withdrawn on
+                    {{ memo.replacementWithdrawnOn }}; this memo applies again.
+                </p>
+                <p
                     v-if="memo.status === 'replaced' && !memo.acknowledgedOn"
                     class="text-sm"
                     data-test="memo-replaced"
@@ -636,6 +652,14 @@ const withdrawn = computed(() =>
                         </p>
                     </div>
                 </div>
+                <p
+                    v-if="memo.replacementWithdrawnOn"
+                    class="text-sm"
+                    data-test="memo-applies-again"
+                >
+                    Its replacement was withdrawn on
+                    {{ memo.replacementWithdrawnOn }}; this memo applies again.
+                </p>
                 <div class="flex flex-wrap gap-2">
                     <Button
                         variant="outline"
@@ -880,12 +904,10 @@ const withdrawn = computed(() =>
                     <InputError :message="errors.audience" />
                     <div class="grid gap-1.5">
                         <Label for="memo-until">Open until (optional)</Label>
-                        <Input
+                        <DateField
                             id="memo-until"
                             v-model="form.openUntil"
-                            type="date"
                             :min="memos.options.today"
-                            class="max-lg:h-11"
                             :aria-invalid="!!errors.open_until"
                         />
                         <InputError :message="errors.open_until" />
@@ -908,12 +930,13 @@ const withdrawn = computed(() =>
                     </div>
                     <div class="grid gap-1.5">
                         <Label for="memo-file">PDF file (optional)</Label>
-                        <input
+                        <FileChooseButton
                             id="memo-file"
-                            type="file"
+                            ref="fileInput"
                             accept="application/pdf"
-                            class="min-h-11 text-sm file:mr-3 file:rounded-md file:border file:bg-card file:px-3 file:py-2"
-                            :aria-invalid="!!errors.file"
+                            label="Choose PDF"
+                            :status="fileStatus"
+                            status-id="memo-file-name"
                             aria-describedby="memo-file-help"
                             @change="onFile"
                         />
@@ -957,6 +980,7 @@ const withdrawn = computed(() =>
                     ? `${withdrawing.title}. Staff will no longer see it in their memos, and it takes no new reads. Every read already given is kept. It cannot come back; publish a new memo instead.`
                     : ''
             "
+            destructive
             confirm-label="Withdraw"
             processing-label="Withdrawing…"
             :processing="withdrawBusy"
