@@ -193,7 +193,7 @@ class PayrollMtdTest extends VisitTestCase
         // The details belong to the profile and never change after entry; a category needs MTD, and a disabled spouse category 2.
         $profile = DB::table('hr_pay_profiles')->where('worker_id', $worker->id)->first();
         $this->assertNotNull($profile);
-        $this->assertRefused('P0001', fn () => DB::table('hr_pay_profiles')->where('id', $profile->id)->update(['mtd_category' => 1, 'mtd_children' => 0]));
+        $this->assertRefused('P0001', fn () => DB::table('hr_pay_profiles')->where('id', $profile->id)->update(['mtd_details_encrypted' => PayProfileMtd::encrypt(['category' => 1, 'children' => 0, 'disabled_self' => false, 'disabled_spouse' => false])]));
         $this->selectBranch($this->hr);
         $this->post(route('hr.payroll.profiles.enter'), [...$this->pay(), 'worker_id' => $worker->public_id, 'mtd_category' => '4', 'idempotency_key' => (string) Str::uuid()])
             ->assertSessionHasErrors('mtd_category');
@@ -202,7 +202,8 @@ class PayrollMtdTest extends VisitTestCase
         $this->post(route('hr.payroll.profiles.enter'), [...$this->pay(), 'worker_id' => $worker->public_id, 'effective_from' => '2026-02-01', 'mtd_category' => '1',
             'mtd_children' => '1', 'mtd_disabled_spouse' => true, 'idempotency_key' => (string) Str::uuid()])->assertSessionHasNoErrors();
         $waiting = DB::table('hr_pay_profiles')->where('worker_id', $worker->id)->where('status', 'waiting')->first();
-        $this->assertSame([1, 1, false], [(int) $waiting?->mtd_category, (int) $waiting?->mtd_children, (bool) $waiting?->mtd_disabled_spouse]);
+        $details = PayProfileMtd::read($waiting);
+        $this->assertSame([1, 1, false], [$details['category'] ?? null, $details['children'] ?? null, $details['disabled_spouse'] ?? null]);
         $this->get(route('hr.payroll.index'))->assertInertia(fn (Assert $page) => $page->where('payroll.profiles.people', fn ($people) => collect($people)
             ->contains(fn ($p) => $p['id'] === $worker->public_id && in_array('MTD (category 1, 1 child)', $p['waiting']['schemes'], true))));
     }
