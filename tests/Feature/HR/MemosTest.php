@@ -289,7 +289,7 @@ class MemosTest extends VisitTestCase
 
         // The old memo takes no new read from the person who opened it but had not read it.
         $this->selectBranch($ca);
-        $this->acknowledge($ca, $old->public_id)->assertSessionHasErrors(['memo' => 'This memo was replaced by a newer memo. Read the newer one.']);
+        $this->acknowledge($ca, $old->public_id)->assertSessionHasErrors(['memo' => 'This memo was replaced and no longer takes reads.']);
         $this->assertRefused('23514', fn () => DB::table('hr_memo_acknowledgements')->insert(['organisation_id' => $ca->organisation_id, 'memo_id' => $old->id, 'user_id' => $ca->id, 'created_at' => now()]));
         $this->get(route('hr.memos.index'))->assertInertia(fn (Assert $page) => $page->where('memos.my.0.title', 'Synthetic corrected memo')->where('memos.my.0.status', 'open')
             ->where('memos.my.1.status', 'replaced')->where('memos.my.1.replacedBy', $new->public_id));
@@ -354,6 +354,43 @@ class MemosTest extends VisitTestCase
         $this->postJson(route('hr.memos.open', $old->public_id))->assertOk();
         $this->acknowledge($ca, $old->public_id)->assertSessionHasNoErrors();
         $this->publish($hr, ['roles' => ['ca'], 'title' => 'Synthetic second replacement', 'replaces' => $old->public_id])->assertSessionHasNoErrors();
+    }
+
+    public function test_the_middle_of_a_replacement_chain_cannot_be_withdrawn_while_the_newer_memo_is_live(): void
+    {
+        $hr = $this->actor('hr_manager');
+        $this->actor('ca');
+        $this->publish($hr, ['roles' => ['ca'], 'title' => 'Synthetic memo A'])->assertSessionHasNoErrors();
+        $a = DB::table('hr_memos')->where('title', 'Synthetic memo A')->first();
+        $this->publish($hr, ['roles' => ['ca'], 'title' => 'Synthetic memo B', 'replaces' => $a->public_id])->assertSessionHasNoErrors();
+        $b = DB::table('hr_memos')->where('title', 'Synthetic memo B')->first();
+        $this->publish($hr, ['roles' => ['ca'], 'title' => 'Synthetic memo C', 'replaces' => $b->public_id])->assertSessionHasNoErrors();
+        $c = DB::table('hr_memos')->where('title', 'Synthetic memo C')->first();
+        $this->assertNotNull($c);
+
+        // B replaces A and has a live replacement C: refused in the service and in PostgreSQL.
+        $this->withdraw($b, ['reason' => 'wrong_content'])->assertSessionHasErrors(['memo' => 'Withdraw the newer memo first.']);
+        $this->assertRefused('P0001', fn () => DB::table('hr_memos')->where('id', $b->id)->update(['withdrawn_at' => now(), 'withdrawn_by_user_id' => $hr->id, 'withdrawn_reason' => 'other']));
+        $this->assertNull(DB::table('hr_memos')->where('id', $b->id)->value('withdrawn_at'));
+        // Newest first works; then B can go too, and A (no predecessor) can be withdrawn at any time.
+        $this->withdraw($c, ['reason' => 'wrong_content'])->assertSessionHasNoErrors();
+        $this->withdraw($b, ['reason' => 'wrong_content'])->assertSessionHasNoErrors();
+        $this->withdraw($a, ['reason' => 'wrong_audience'])->assertSessionHasNoErrors();
+    }
+
+    public function test_a_replaced_memo_points_to_the_newer_one_only_when_the_reader_can_see_it(): void
+    {
+        $hr = $this->actor('hr_manager');
+        $caOther = $this->actor('ca', $this->other);
+        $ca = $this->actor('ca');
+        $this->publish($hr, ['title' => 'Synthetic all staff memo'])->assertSessionHasNoErrors();
+        $old = DB::table('hr_memos')->first();
+        $this->publish($hr, ['title' => 'Synthetic Cheras memo', 'branches' => [(string) $this->branch->id], 'replaces' => $old->public_id])->assertSessionHasNoErrors();
+        $new = DB::table('hr_memos')->where('title', 'Synthetic Cheras memo')->first();
+        $this->selectBranch($ca);
+        $this->get(route('hr.memos.index'))->assertInertia(fn (Assert $page) => $page->where('memos.my.1.status', 'replaced')->where('memos.my.1.replacedBy', $new->public_id));
+        $this->selectBranch($caOther);
+        $this->get(route('hr.memos.index'))->assertInertia(fn (Assert $page) => $page->has('memos.my', 1)->where('memos.my.0.status', 'replaced')->where('memos.my.0.replacedBy', null));
     }
 
     public function test_withdrawal_keeps_every_read_and_postgresql_refuses_changes(): void

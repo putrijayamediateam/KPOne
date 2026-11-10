@@ -109,6 +109,9 @@ final class MemoService
             if ($memo->withdrawn_at !== null) {
                 throw ValidationException::withMessages(['memo' => 'This memo was already withdrawn. Reload the page.']);
             }
+            if ($memo->replaces_memo_id !== null && DB::table('hr_memos')->where('replaces_memo_id', $memo->id)->whereNull('withdrawn_at')->exists()) {
+                throw ValidationException::withMessages(['memo' => 'Withdraw the newer memo first.']);
+            }
             DB::table('hr_memos')->where('id', $memo->id)->update(['withdrawn_at' => now()->utc(), 'withdrawn_by_user_id' => $actor->id, 'withdrawn_reason' => $reason,
                 'lock_version' => (int) $memo->lock_version + 1, 'updated_at' => now()->utc()]);
             $this->support->remember($actor, $key, 'memo_withdraw', $hash, $memoId);
@@ -318,7 +321,7 @@ final class MemoService
             throw ValidationException::withMessages(['memo' => 'This memo was withdrawn. Reload the page.']);
         }
         if (DB::table('hr_memos')->where('replaces_memo_id', $memo->id)->whereNull('withdrawn_at')->exists()) {
-            throw ValidationException::withMessages(['memo' => 'This memo was replaced by a newer memo. Read the newer one.']);
+            throw ValidationException::withMessages(['memo' => 'This memo was replaced and no longer takes reads.']);
         }
         if ($memo->expires_at !== null && CarbonImmutable::parse((string) $memo->expires_at, 'UTC')->lte(CarbonImmutable::now('UTC'))) {
             throw ValidationException::withMessages(['memo' => 'This memo is closed.']);

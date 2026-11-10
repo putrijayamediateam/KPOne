@@ -120,6 +120,11 @@ BEGIN
    OR NEW.withdrawn_by_user_id IS DISTINCT FROM OLD.withdrawn_by_user_id OR NEW.withdrawn_reason IS DISTINCT FROM OLD.withdrawn_reason) THEN
   RAISE EXCEPTION 'A withdrawn memo stays withdrawn' USING ERRCODE = 'P0001';
  END IF;
+ -- A memo that replaces another cannot be withdrawn while its own replacement is live: withdraw the newer memo first.
+ IF OLD.withdrawn_at IS NULL AND NEW.withdrawn_at IS NOT NULL AND OLD.replaces_memo_id IS NOT NULL
+   AND EXISTS (SELECT 1 FROM hr_memos WHERE replaces_memo_id = OLD.id AND withdrawn_at IS NULL) THEN
+  RAISE EXCEPTION 'Withdraw the newer memo first' USING ERRCODE = 'P0001';
+ END IF;
  RETURN NEW;
 END $$;
 CREATE TRIGGER hr_memos_guard BEFORE UPDATE ON hr_memos FOR EACH ROW EXECUTE FUNCTION guard_hr_memo();

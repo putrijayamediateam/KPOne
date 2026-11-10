@@ -484,8 +484,13 @@ const withdrawn = computed(() =>
                     class="text-sm"
                     data-test="memo-replaced"
                 >
-                    This memo was replaced by a newer memo. Please read the
-                    newer one.
+                    <template v-if="memo.replacedBy"
+                        >This memo was replaced by a newer memo. Please read the
+                        newer one.</template
+                    ><template v-else
+                        >This memo was replaced and no longer takes
+                        reads.</template
+                    >
                 </p>
                 <p
                     v-else-if="memo.status === 'closed' && !memo.acknowledgedOn"

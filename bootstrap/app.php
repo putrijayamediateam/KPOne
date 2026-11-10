@@ -54,6 +54,8 @@ return Application::configure(basePath: dirname(__DIR__))
             'value',
             'identifiers',
             'full_name',
+            'body',
+            'title',
             'date_of_birth',
             'sex',
             'nationality_code',

@@ -51,6 +51,7 @@ test('My memos: Open, the PDF link, then the one primary "I have read this", dis
         page,
         /This memo was replaced by a newer memo\. Please read the\s+newer one\./,
     );
+    assert.match(page, /This memo was replaced and no longer takes\s+reads\./);
     assert.match(page, /This memo is closed\. It no longer takes new reads\./);
     // Only an open, unread memo offers the button.
     assert.match(

@@ -108,6 +108,10 @@ final class MemosPageService
             ];
         })->values();
 
+        // Point to the newer memo only when this reader can see it (it may have gone to a narrower audience).
+        $visible = $rows->pluck('id')->all();
+        $rows = $rows->map(fn (array $r): array => [...$r, 'replacedBy' => in_array($r['replacedBy'], $visible, true) ? $r['replacedBy'] : null]);
+
         // To read first, then read, then closed, replaced or withdrawn; newest first inside each group.
         $rank = fn (array $r): int => $r['status'] === 'open' ? ($r['acknowledgedOn'] === null ? 0 : 1) : 2;
 
