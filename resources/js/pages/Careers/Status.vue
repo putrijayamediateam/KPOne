@@ -272,10 +272,13 @@ const closedWell = computed(() => props.application?.stage === 'passed');
                                 >
                                     <a
                                         :href="`/careers/status/documents/${doc.id}`"
-                                        class="inline-flex min-h-11 items-center gap-2 text-sm font-medium break-words text-pink-700 underline underline-offset-4 dark:text-pink-400"
-                                        >{{ doc.title }}
+                                        class="inline-flex min-h-11 items-center gap-2 text-sm font-medium break-words text-pink-700 dark:text-pink-400"
+                                        ><span
+                                            class="underline underline-offset-4"
+                                            >{{ doc.title }}</span
+                                        >
                                         <span
-                                            class="font-normal text-zinc-600 no-underline dark:text-zinc-400"
+                                            class="font-normal text-zinc-600 dark:text-zinc-400"
                                             >PDF · {{ doc.size }}</span
                                         ></a
                                     >
