@@ -10,6 +10,7 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog';
 import { formatInventoryReason } from '@/lib/inventory-picker';
+import { formatDate } from '@/lib/presentation';
 type Row = {
     public_id: string;
     batch_number: string;
@@ -134,7 +135,7 @@ watch(
                     {{ row.sku_code }} · {{ row.batch_number }}
                 </h2>
                 <p>
-                    Expiry: {{ row.expiry_date }} · Status:
+                    Expiry: {{ formatDate(row.expiry_date) }} · Status:
                     {{ label(row.status) }}
                 </p>
                 <p

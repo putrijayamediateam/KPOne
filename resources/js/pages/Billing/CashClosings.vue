@@ -6,6 +6,7 @@ import { ActionLink } from '@/components/ui/action-link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { PageHeader } from '@/components/ui/page-header';
+import { formatDate } from '@/lib/presentation';
 import { myr } from '@/types/billing';
 
 type Closing = {
@@ -201,7 +202,7 @@ const decide = (closing: Closing, decision: 'approved' | 'returned') => {
                 data-testid="cash-expected"
             >
                 <p class="text-xs text-muted-foreground">
-                    Expected cash for {{ day.businessDate }}
+                    Expected cash for {{ formatDate(day.businessDate) }}
                 </p>
                 <p class="mt-1 text-2xl font-semibold tabular-nums">
                     {{ money(day.expected.cashSen) }}

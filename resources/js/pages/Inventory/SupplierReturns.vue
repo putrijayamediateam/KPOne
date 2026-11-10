@@ -10,6 +10,7 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
+import { formatDate } from '@/lib/presentation';
 import type { ScannedSku } from '@/lib/scan';
 import {
     rmToSen,
@@ -269,7 +270,7 @@ watch(
                 <p class="text-sm">
                     {{ row.quantity }} {{ row.base_unit }} ·
                     {{ row.sku_code }} · batch {{ row.batch_number }} (expires
-                    {{ row.expiry_date }}) · {{ row.location }}
+                    {{ formatDate(row.expiry_date) }}) · {{ row.location }}
                 </p>
                 <p class="text-sm text-muted-foreground">
                     {{ row.supplier }} · delivery {{ row.delivery_reference }} ·
@@ -408,8 +409,8 @@ watch(
             >
                 <span class="min-w-0 flex-1"
                     >{{ lot.sku_code }} · batch {{ lot.batch_number }} (expires
-                    {{ lot.expiry_date }}) · {{ lot.supplier }} · delivery
-                    {{ lot.delivery_reference }} · received
+                    {{ formatDate(lot.expiry_date) }}) · {{ lot.supplier }} ·
+                    delivery {{ lot.delivery_reference }} · received
                     {{ lot.received_quantity }} {{ lot.stock_unit }}
                     <span v-if="lot.outcome === 'quarantined'">
                         (quarantined)</span

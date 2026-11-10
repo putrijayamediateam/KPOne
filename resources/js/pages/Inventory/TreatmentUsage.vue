@@ -10,6 +10,7 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
+import { formatDate } from '@/lib/presentation';
 import type { ScannedSku } from '@/lib/scan';
 import {
     firstReason,
@@ -124,7 +125,7 @@ function showRecord(row: StockRow) {
     form.unit = row.stock_unit;
     form.kind = 'usage';
     form.reason = firstReason(props.usage.reasons, form.kind);
-    label.value = `${row.item_name} · ${row.sku_code} · batch ${row.batch_number} (expires ${row.expiry_date}) · ${row.location} · on hand ${row.on_hand} ${row.stock_unit}`;
+    label.value = `${row.item_name} · ${row.sku_code} · batch ${row.batch_number} (expires ${formatDate(row.expiry_date)}) · ${row.location} · on hand ${row.on_hand} ${row.stock_unit}`;
     operation.value = 'record';
     endpoint.value = '/inventory/treatment-usage';
     open.value = true;
@@ -243,8 +244,9 @@ watch(
                     </p>
                     <p class="break-words text-muted-foreground">
                         batch {{ row.batch_number }} (expires
-                        {{ row.expiry_date }}) · {{ row.location }} · on hand
-                        {{ row.on_hand }} {{ row.stock_unit }}
+                        {{ formatDate(row.expiry_date) }}) ·
+                        {{ row.location }} · on hand {{ row.on_hand }}
+                        {{ row.stock_unit }}
                         <span
                             v-if="!row.usable"
                             class="ml-1 rounded-full bg-muted px-2 py-0.5 text-xs font-medium whitespace-nowrap text-foreground"
