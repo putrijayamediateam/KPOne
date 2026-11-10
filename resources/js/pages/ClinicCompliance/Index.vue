@@ -2,11 +2,13 @@
 // HR-11a clinic licences: Overview, Licences and Settings (licence types). Statuses come from the server, worked out
 // when the page opens; this page only shows them. Warnings only: nothing here blocks clinical work.
 import { Head, router, usePage } from '@inertiajs/vue3';
+import { ChevronDown, TriangleAlert } from '@lucide/vue';
 import { computed, reactive, ref } from 'vue';
 import FileChooseButton from '@/components/catalogue/FileChooseButton.vue';
 import { dateLabel } from '@/components/hr/records/types';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
+import { DateField } from '@/components/ui/date-field';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { PageHeader } from '@/components/ui/page-header';
@@ -117,6 +119,17 @@ const size = (bytes: number) =>
     bytes >= 1048576
         ? `${(bytes / 1048576).toFixed(1)} MB`
         : `${Math.max(1, Math.round(bytes / 1024))} KB`;
+
+const openRows = ref(new Set<string>());
+const toggleHistory = (id: string) => {
+    const next = new Set(openRows.value);
+
+    if (!next.delete(id)) {
+        next.add(id);
+    }
+
+    openRows.value = next;
+};
 
 // ---- Add or renew a licence ----
 const sheet = reactive({
@@ -370,9 +383,33 @@ const unusedSuggestions = computed(() => {
                             ['no_expiry', 'No expiry'],
                         ]"
                         :key="code"
-                        class="rounded-lg border bg-card p-4"
+                        :class="[
+                            'rounded-lg border p-4',
+                            code === 'expired' &&
+                            (compliance.overview.counts.expired ?? 0) > 0
+                                ? 'border-warning bg-warning/10'
+                                : 'bg-card',
+                        ]"
+                        :data-test="`count-${code}`"
                     >
-                        <p class="text-2xl font-semibold tabular-nums">
+                        <p
+                            :class="[
+                                'flex items-center gap-1.5 text-2xl font-semibold tabular-nums',
+                                code === 'expired' &&
+                                (compliance.overview.counts.expired ?? 0) > 0
+                                    ? 'text-warning-strong'
+                                    : '',
+                            ]"
+                        >
+                            <TriangleAlert
+                                v-if="
+                                    code === 'expired' &&
+                                    (compliance.overview.counts.expired ?? 0) >
+                                        0
+                                "
+                                class="size-5 shrink-0"
+                                aria-hidden="true"
+                            />
                             {{ compliance.overview.counts[code] ?? 0 }}
                         </p>
                         <p class="text-sm text-muted-foreground">{{ label }}</p>
@@ -399,11 +436,23 @@ const unusedSuggestions = computed(() => {
                                 >
                             </span>
                             <span class="flex items-center gap-2">
-                                <StatusBadge
-                                    :status="item.status.code"
-                                    :label="item.status.words"
-                                    :tone="tone(item.status.code)"
-                                />
+                                <span class="inline-flex items-center gap-1">
+                                    <TriangleAlert
+                                        v-if="item.status.code === 'expired'"
+                                        class="size-3.5 shrink-0 text-warning-strong"
+                                        aria-hidden="true"
+                                    />
+                                    <StatusBadge
+                                        :status="item.status.code"
+                                        :label="item.status.words"
+                                        :tone="tone(item.status.code)"
+                                        :class="
+                                            item.status.code === 'expired'
+                                                ? 'font-semibold'
+                                                : undefined
+                                        "
+                                    />
+                                </span>
                                 <span class="text-xs text-muted-foreground">{{
                                     dateLabel(item.expiresOn)
                                 }}</span>
@@ -472,11 +521,23 @@ const unusedSuggestions = computed(() => {
                             </p>
                         </div>
                         <div class="flex flex-wrap items-center gap-2">
-                            <StatusBadge
-                                :status="row.status.code"
-                                :label="row.status.words"
-                                :tone="tone(row.status.code)"
-                            />
+                            <span class="inline-flex items-center gap-1">
+                                <TriangleAlert
+                                    v-if="row.status.code === 'expired'"
+                                    class="size-3.5 shrink-0 text-warning-strong"
+                                    aria-hidden="true"
+                                />
+                                <StatusBadge
+                                    :status="row.status.code"
+                                    :label="row.status.words"
+                                    :tone="tone(row.status.code)"
+                                    :class="
+                                        row.status.code === 'expired'
+                                            ? 'font-semibold'
+                                            : undefined
+                                    "
+                                />
+                            </span>
                             <Button
                                 v-if="row.typeActive"
                                 type="button"
@@ -490,13 +551,28 @@ const unusedSuggestions = computed(() => {
                             >
                         </div>
                     </div>
-                    <details class="mt-3">
-                        <summary
-                            class="min-h-11 cursor-pointer py-2 text-sm text-muted-foreground lg:min-h-0"
+                    <div class="mt-3">
+                        <button
+                            type="button"
+                            class="inline-flex min-h-11 items-center gap-1.5 rounded-md py-2 text-sm text-muted-foreground hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none lg:min-h-9"
+                            :aria-expanded="openRows.has(row.id)"
+                            :aria-controls="`history-${row.id}`"
+                            @click="toggleHistory(row.id)"
                         >
+                            <ChevronDown
+                                :class="[
+                                    'size-4 transition-transform',
+                                    openRows.has(row.id) ? 'rotate-180' : '',
+                                ]"
+                                aria-hidden="true"
+                            />
                             History ({{ row.history.length }})
-                        </summary>
-                        <ul class="mt-2 divide-y">
+                        </button>
+                        <ul
+                            v-if="openRows.has(row.id)"
+                            :id="`history-${row.id}`"
+                            class="mt-2 divide-y"
+                        >
                             <li
                                 v-for="v in row.history"
                                 :key="v.id"
@@ -521,13 +597,18 @@ const unusedSuggestions = computed(() => {
                                     Reference: {{ v.reference }}
                                 </p>
                                 <p class="text-muted-foreground">
-                                    <template v-if="v.issuedOn"
-                                        >Issued {{ dateLabel(v.issuedOn) }}
-                                    </template>
-                                    <template v-if="v.expiresOn"
-                                        >· Expires
-                                        {{ dateLabel(v.expiresOn) }}</template
-                                    >
+                                    {{
+                                        [
+                                            v.issuedOn
+                                                ? `Issued ${dateLabel(v.issuedOn)}`
+                                                : null,
+                                            v.expiresOn
+                                                ? `Expires ${dateLabel(v.expiresOn)}`
+                                                : null,
+                                        ]
+                                            .filter(Boolean)
+                                            .join(' · ')
+                                    }}
                                 </p>
                                 <p v-if="v.note" class="break-words">
                                     {{ v.note }}
@@ -567,7 +648,7 @@ const unusedSuggestions = computed(() => {
                                 </div>
                             </li>
                         </ul>
-                    </details>
+                    </div>
                 </li>
             </ul>
         </section>
@@ -594,7 +675,7 @@ const unusedSuggestions = computed(() => {
                 v-if="unusedSuggestions.length"
                 class="flex flex-wrap items-center gap-2 text-sm"
             >
-                <span class="text-muted-foreground">Suggestions:</span>
+                <span class="text-muted-foreground">Suggested names:</span>
                 <Button
                     v-for="s in unusedSuggestions"
                     :key="s"
@@ -735,23 +816,23 @@ const unusedSuggestions = computed(() => {
                     </div>
                     <div class="grid gap-1.5">
                         <Label for="lic-issued">Issue date</Label>
-                        <Input
+                        <DateField
                             id="lic-issued"
                             v-model="sheet.issuedOn"
-                            type="date"
-                            class="max-lg:h-11"
-                            :aria-invalid="!!errors.issued_on"
+                            :aria-invalid="
+                                errors.issued_on ? 'true' : undefined
+                            "
                         />
                         <InputError :message="errors.issued_on" />
                     </div>
                     <div v-if="sheetType?.expires" class="grid gap-1.5">
                         <Label for="lic-expires">Expiry date *</Label>
-                        <Input
+                        <DateField
                             id="lic-expires"
                             v-model="sheet.expiresOn"
-                            type="date"
-                            class="max-lg:h-11"
-                            :aria-invalid="!!errors.expires_on"
+                            :aria-invalid="
+                                errors.expires_on ? 'true' : undefined
+                            "
                         />
                         <InputError :message="errors.expires_on" />
                     </div>

@@ -59,3 +59,13 @@ test('files open through the audited route and at most three can be added', () =
     assert.match(src, /`\$\{base\}\/files\/\$\{f\.id\}`/);
     assert.match(src, /sheet\.files\.length < 3/);
 });
+
+test('dates use the shared dd/mm/yyyy box, Expired has an icon and stronger text, and History is a chevron button', () => {
+    assert.match(src, /<DateField/);
+    assert.doesNotMatch(src, /type="date"/);
+    assert.match(src, /status\.code === 'expired'/);
+    assert.match(src, /TriangleAlert/);
+    assert.match(src, /:aria-expanded="openRows\.has\(row\.id\)"/);
+    assert.doesNotMatch(src, /<details|<summary/);
+    assert.match(src, /Suggested names:/);
+});
