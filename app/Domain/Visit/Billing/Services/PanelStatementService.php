@@ -370,7 +370,7 @@ class PanelStatementService
      * @param  array<string, int|null>  $columns
      * @return list<array<string, mixed>>
      */
-    private function match(User $actor, Branch $branch, Panel $panel, array $rows, array $columns, bool &$nearCut = false): array
+    private function match(User $actor, Branch $branch, Panel $panel, array $rows, array $columns, bool &$nearCut): array
     {
         $cell = static fn (array $row, ?int $index): string => $index === null ? '' : (string) ($row['cells'][$index] ?? '');
         $claimNumbers = $invoices = $members = [];
@@ -515,7 +515,7 @@ class PanelStatementService
      *
      * @return Collection<int, PanelClaim>
      */
-    private function openClaims(User $actor, Branch $branch, Panel $panel, bool &$cut = false): Collection
+    private function openClaims(User $actor, Branch $branch, Panel $panel, bool &$cut): Collection
     {
         $received = '(select coalesce(sum(p.amount_sen), 0) from panel_claim_payments p where p.panel_claim_id = panel_claims.id and p.organisation_id = panel_claims.organisation_id and p.branch_id = panel_claims.branch_id and '.PanelClaimPaymentReversal::NOT_REVERSED_P.')';
 

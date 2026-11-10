@@ -185,6 +185,28 @@ class PanelStatementTest extends BillingTestCase
             ->assertInertia(fn (Assert $page) => $page->where('statement.nearCut', false)->where('statement.rows.0.result', 'matched'));
     }
 
+    public function test_exactly_the_limit_of_open_claims_is_not_a_cut(): void
+    {
+        // PNL-20 boundary: the near pass runs with as many open claims as it compares, so nothing was left out.
+        $this->app->bind(PanelStatementService::class, fn ($app) => new class($app->make(TransactionalActorAuthority::class), $app->make(AuditRecorder::class)) extends PanelStatementService
+        {
+            protected function nearCandidateLimit(): int
+            {
+                return 2;
+            }
+        });
+        $panel = Panel::factory()->create(['organisation_id' => $this->organisation->id, 'code' => 'SYNTH-EDGE']);
+        [$a] = $this->acceptedClaims($panel, 2);
+        $this->selectBranch($this->officer(), $this->branch);
+        $format = strtolower(str_replace('-', ' ', $a->invoice_number));
+        $this->post(route('panel-remittances.statements.store'), $this->upload($panel, "Invoice,Amount\n{$format},30.00\nZZZ-NOPE,30.00"))->assertSessionHasNoErrors();
+        $this->get(route('panel-remittances.index', ['panel' => $panel->code, 'statement' => PanelStatementUpload::query()->value('public_id')]))->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('statement.nearCut', false)
+                ->where('statement.rows.0.result', 'near_match')
+                ->where('statement.rows.1.result', 'not_found'));
+    }
+
     public function test_files_that_are_not_a_usable_csv_are_refused_and_nothing_is_kept(): void
     {
         $panel = Panel::factory()->create(['organisation_id' => $this->organisation->id]);

@@ -419,9 +419,9 @@ const useTicked = () =>
                         data-testid="statement-near-cut"
                     >
                         Near matches were checked against this Panel's
-                        {{ statement.nearLimit ?? 500 }} oldest open claims
-                        only. A row that says Not found may still belong to a
-                        newer claim, so check those by hand.
+                        {{ statement.nearLimit ?? 500 }} oldest open claims at
+                        this branch only. A row that says Not found may still
+                        belong to a newer claim, so check those by hand.
                     </p>
                     <p
                         v-if="matchedCount === 0 && nearCount === 0"
