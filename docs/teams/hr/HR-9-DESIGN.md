@@ -1,6 +1,6 @@
 # HR-9 design note: the HR dashboard
 
-Status: BUILT on branch `feature/hr-9-dashboard` (the owner's own "ship it HR-9", 2026-11-10); the HR team (Liyana, Suresh) is still asked to check section 6 against HR's data, and any change they ask for is a follow-up edit. Written by the Agent platform team (Irfan) on the coordinator's request, 2026-11-10. Source: HR-PLAN section "HR-9", TEAM.md section 9 item 9.
+Status: BUILT and merged in PR #434 (HR-9); HR-9b (staff cost, section 3) built on `feature/hr-9b-staff-cost`. Original note: built on branch `feature/hr-9-dashboard` (the owner's own "ship it HR-9", 2026-11-10); the HR team (Liyana, Suresh) is still asked to check section 6 against HR's data, and any change they ask for is a follow-up edit. Written by the Agent platform team (Irfan) on the coordinator's request, 2026-11-10. Source: HR-PLAN section "HR-9", TEAM.md section 9 item 9.
 
 ## 1. What it is
 
@@ -16,9 +16,15 @@ One read-only page, `/hr/dashboard`, for the Director and the HR Manager. It add
 
 Left for later, each needing an owner decision first (HR-PLAN "TO CONFIRM"): turnover (does it count locums?), compliance counts, and a twice-daily "shift report" (the clinic's times; a section on this page, never a message).
 
-## 3. Staff cost
+## 3. Staff cost (HR-9b, BUILT)
 
-**Not in v1.** HR-7 is merged, but cost needs the accountant's confirmation, and the Director's and HR Manager's own pay stays outside KPOne (BASELINE section 6, item 30). Proposal for HR-9b once the owner agrees: one clinic-wide monthly total from approved payroll runs, no per-person and no per-branch split, shown only to `hr.payroll.approve.organisation` (Director).
+Built on branch `feature/hr-9b-staff-cost` after the owner's own "ship it HR-9b" (2026-11-10). HR-7b is merged, so approved pay runs exist. The accountant's confirmation and the PDPA review are still owed before real use; the card says so and data stays synthetic.
+
+- **One figure per month, clinic-wide.** "Staff cost" for the month in the picker = gross pay plus the employer's statutory contributions, summed over the totals of **approved or locked** pay runs of that month (regular runs and adjustment runs). A draft or a run waiting for approval never counts; the card says how many are waiting. "People paid" counts each person once.
+- **No split.** Nothing per person, per branch or per pay group leaves the server (a test pins the key list and that no name appears). The Director's and HR Manager's own pay and locums stay outside KPOne (HR-7a option (a)), so they are not in it.
+- **Who sees it.** Only a holder of `hr.payroll.approve.organisation` (the Director). The HR Manager sees the dashboard as before and the cost card is absent (the payload value is `null`). No new permission, route or migration.
+- **How it is made.** `StaffCostService` reads the run and run-person rows in two queries, decrypts each person's stored totals only to add them up, and returns the sums. It writes nothing. The existing `hr.dashboard.viewed` audit row gains `staff_cost` in its `sections` list for the Director (no figure in the audit).
+- **Not in HR-9b:** per-branch cost, cost per person, comparison with revenue, export. Each needs the owner and the accountant first.
 
 ## 4. Who sees it (decision for HR)
 

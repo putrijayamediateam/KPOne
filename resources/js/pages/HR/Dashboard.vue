@@ -45,6 +45,14 @@ type MonthFigures = {
     leave: { days: number; people: number } | null;
     shortfallDays: number | null;
 };
+type StaffCost = {
+    runs: number;
+    waiting: number;
+    people: number;
+    earningsText: string;
+    employerText: string;
+    totalText: string;
+};
 type BranchCard = {
     id: number;
     name: string;
@@ -59,6 +67,7 @@ const props = defineProps<{
         month: string;
         months: { value: string; label: string }[];
         attendanceSettingsSaved: boolean;
+        staffCost: StaffCost | null;
         branches: BranchCard[];
     };
 }>();
@@ -119,6 +128,76 @@ function days(value: number): string {
                 />
             </div>
         </div>
+
+        <section
+            v-if="dashboard.staffCost"
+            class="rounded-lg border bg-card p-4"
+            data-test="staff-cost"
+            aria-labelledby="staff-cost-title"
+        >
+            <h2 id="staff-cost-title" class="text-base font-semibold">
+                Staff cost, {{ monthLabel }}
+            </h2>
+            <p class="mt-1 text-sm text-muted-foreground">
+                One figure for the whole clinic, from approved pay runs only.
+                Not split by person or branch. To confirm with the clinic's
+                accountant before real use.
+            </p>
+            <p
+                v-if="dashboard.staffCost.runs === 0"
+                class="mt-3 text-sm"
+                data-test="staff-cost-none"
+            >
+                No approved pay run for this month yet.
+            </p>
+            <dl
+                v-else
+                class="mt-3 grid grid-cols-2 gap-x-6 gap-y-2 text-sm lg:grid-cols-4"
+            >
+                <div>
+                    <dt class="text-muted-foreground">Total staff cost</dt>
+                    <dd
+                        class="text-lg font-semibold tabular-nums"
+                        data-test="staff-cost-total"
+                    >
+                        {{ dashboard.staffCost.totalText }}
+                    </dd>
+                </div>
+                <div>
+                    <dt class="text-muted-foreground">Gross pay</dt>
+                    <dd class="tabular-nums">
+                        {{ dashboard.staffCost.earningsText }}
+                    </dd>
+                </div>
+                <div>
+                    <dt class="text-muted-foreground">
+                        Employer contributions
+                    </dt>
+                    <dd class="tabular-nums">
+                        {{ dashboard.staffCost.employerText }}
+                    </dd>
+                </div>
+                <div>
+                    <dt class="text-muted-foreground">People paid</dt>
+                    <dd class="tabular-nums">
+                        {{ dashboard.staffCost.people }}
+                    </dd>
+                </div>
+            </dl>
+            <p
+                v-if="dashboard.staffCost.waiting > 0"
+                class="mt-2 text-sm text-muted-foreground"
+                data-test="staff-cost-waiting"
+            >
+                {{ dashboard.staffCost.waiting }}
+                {{
+                    dashboard.staffCost.waiting === 1
+                        ? 'pay run is'
+                        : 'pay runs are'
+                }}
+                not approved yet and not counted.
+            </p>
+        </section>
 
         <details
             class="rounded-lg border bg-card px-4 py-3 text-sm"
