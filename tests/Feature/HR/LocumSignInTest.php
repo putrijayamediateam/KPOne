@@ -6,6 +6,7 @@ use App\Domain\Access\PermissionCatalogue;
 use App\Domain\Access\StaffAuthorityService;
 use App\Domain\HR\Records\Models\Worker;
 use App\Domain\HR\Roster\RosterPermissions;
+use App\Domain\Identity\Services\StaffRoleService;
 use App\Models\User;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
@@ -112,6 +113,30 @@ class LocumSignInTest extends VisitTestCase
         // added and removed again).
         $this->assertSame([$before[0] + 5, $before[1] + 5, $before[2] + 5],
             [DB::table('users')->count(), DB::table('model_has_roles')->count(), DB::table('staff_branch_assignments')->count()]);
+    }
+
+    public function test_a_locum_sign_in_holds_the_locum_role_only_on_the_staff_page(): void
+    {
+        $worker = $this->locumFile();
+        $this->ask($worker, 'locum@example.test')->assertSessionHasNoErrors();
+        $request = DB::table('hr_locum_sign_ins')->sole();
+        $account = $this->actor(PermissionCatalogue::LOCUM_ROLE);
+        $account->forceFill(['email' => 'locum@example.test'])->save();
+        $unlinked = $this->actor(PermissionCatalogue::LOCUM_ROLE);
+        $director = $this->actor('director');
+        $this->selectBranch($director);
+        $roles = fn (User $u, array $r) => $this->put(route('staff.roles.update', $u), ['roles' => $r]);
+
+        // Never Locum with another role, linked or not.
+        $roles($unlinked, ['locum', 'ca'])->assertSessionHasErrors(['roles' => StaffRoleService::LOCUM_ONLY]);
+        $this->link($request->public_id, $account->id)->assertSessionHasNoErrors();
+        // A linked locum account keeps the Locum role only.
+        $roles($account, ['locum', 'resident_doctor'])->assertSessionHasErrors(['roles' => StaffRoleService::LOCUM_ONLY]);
+        $roles($account, ['resident_doctor'])->assertSessionHasErrors(['roles' => StaffRoleService::LOCUM_ONLY]);
+        $this->assertSame(['locum'], $account->refresh()->getRoleNames()->all());
+        // Everything else is unchanged: an unlinked locum account can still become a staff account.
+        $roles($unlinked, ['ca'])->assertSessionHasNoErrors();
+        $this->assertSame(['ca'], $unlinked->refresh()->getRoleNames()->all());
     }
 
     public function test_hr_can_cancel_and_ask_again(): void
