@@ -49,6 +49,7 @@ type StaffCost = {
     runs: number;
     waiting: number;
     people: number;
+    unreadable: number;
     earningsText: string;
     employerText: string;
     totalText: string;
@@ -135,13 +136,18 @@ function days(value: number): string {
             data-test="staff-cost"
             aria-labelledby="staff-cost-title"
         >
-            <h2 id="staff-cost-title" class="text-base font-semibold">
-                Staff cost, {{ monthLabel }}
-            </h2>
+            <div class="flex flex-wrap items-center gap-2">
+                <h2 id="staff-cost-title" class="text-base font-semibold">
+                    Staff cost, {{ monthLabel }}
+                </h2>
+                <StatusBadge tone="warning" data-test="staff-cost-estimate">
+                    Estimate
+                </StatusBadge>
+            </div>
             <p class="mt-1 text-sm text-muted-foreground">
                 One figure for the whole clinic, from approved pay runs only.
-                Not split by person or branch. To confirm with the clinic's
-                accountant before real use.
+                Not split by person or branch. An estimate until the clinic's
+                accountant has checked the pay rules.
             </p>
             <p
                 v-if="dashboard.staffCost.runs === 0"
@@ -164,7 +170,9 @@ function days(value: number): string {
                     </dd>
                 </div>
                 <div>
-                    <dt class="text-muted-foreground">Gross pay</dt>
+                    <dt class="text-muted-foreground">
+                        Gross pay (less unpaid leave)
+                    </dt>
                     <dd class="tabular-nums">
                         {{ dashboard.staffCost.earningsText }}
                     </dd>
@@ -196,6 +204,20 @@ function days(value: number): string {
                         : 'pay runs are'
                 }}
                 not approved yet and not counted.
+            </p>
+            <p
+                v-if="dashboard.staffCost.unreadable > 0"
+                class="mt-2 text-sm font-medium text-warning-strong"
+                role="status"
+                data-test="staff-cost-unreadable"
+            >
+                {{ dashboard.staffCost.unreadable }}
+                {{
+                    dashboard.staffCost.unreadable === 1
+                        ? 'amount in an approved pay run'
+                        : 'amounts in approved pay runs'
+                }}
+                could not be read, so this figure is incomplete.
             </p>
         </section>
 
