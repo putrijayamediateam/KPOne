@@ -3,7 +3,7 @@ import { Head, usePage } from '@inertiajs/vue3';
 import { computed, ref, watch, onBeforeUnmount } from 'vue';
 import MultiSelectFilterChip from '@/components/reports/MultiSelectFilterChip.vue';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { DateField } from '@/components/ui/date-field';
 import { OperationalTable } from '@/components/ui/table';
 import { formatDateTime } from '@/lib/presentation';
 import {
@@ -252,10 +252,10 @@ function applySelection(key: 'methods' | 'visit_types', value: string[]) {
         >
             <div class="flex flex-wrap items-end gap-3">
                 <label class="grid gap-1 text-sm"
-                    >From<Input v-model="draft.from" type="date"
+                    >From<DateField v-model="draft.from" :echo="false"
                 /></label>
                 <label class="grid gap-1 text-sm"
-                    >To<Input v-model="draft.to" type="date"
+                    >To<DateField v-model="draft.to" :echo="false"
                 /></label>
                 <Button :disabled="busy" @click="perform()">Run report</Button>
             </div>

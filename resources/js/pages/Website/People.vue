@@ -2,6 +2,7 @@
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import { computed, nextTick, onUnmounted, ref, watch } from 'vue';
 import { Button } from '@/components/ui/button';
+import { DateField } from '@/components/ui/date-field';
 import type {
     PeopleContent,
     PeoplePage,
@@ -396,10 +397,10 @@ const inputClass =
                                         </option>
                                     </select></label
                                 ><label class="block text-sm"
-                                    >Closing date (optional)<input
-                                        v-model="form.content.closing_date"
-                                        type="date"
-                                        :class="inputClass" /></label
+                                    >Closing date (optional)<DateField
+                                        v-model="
+                                            form.content.closing_date
+                                        " /></label
                             ></template>
                             <fieldset class="space-y-2">
                                 <legend>

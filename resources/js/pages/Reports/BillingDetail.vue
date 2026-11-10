@@ -9,6 +9,7 @@ import {
 import { computed, ref, watch, onBeforeUnmount } from 'vue';
 import MultiSelectFilterChip from '@/components/reports/MultiSelectFilterChip.vue';
 import { Button } from '@/components/ui/button';
+import { DateField } from '@/components/ui/date-field';
 import { Input } from '@/components/ui/input';
 import { formatDateTime } from '@/lib/presentation';
 
@@ -258,15 +259,15 @@ function applyTime() {
         >
             <div class="flex flex-wrap items-end gap-3">
                 <label class="min-w-0 text-sm"
-                    >From<Input
+                    >From<DateField
                         v-model="draft.from"
-                        type="date"
-                        :disabled="busy" /></label
+                        :disabled="busy"
+                        :echo="false" /></label
                 ><label class="min-w-0 text-sm"
-                    >To<Input
+                    >To<DateField
                         v-model="draft.to"
-                        type="date"
-                        :disabled="busy" /></label
+                        :disabled="busy"
+                        :echo="false" /></label
                 ><Button :disabled="busy" @click="perform()">{{
                     busy ? 'Preparing…' : 'Run report'
                 }}</Button>
