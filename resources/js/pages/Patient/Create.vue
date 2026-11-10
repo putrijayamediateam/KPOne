@@ -129,7 +129,7 @@ const submit = () => {
     <Head title="Create patient" />
     <main class="flex flex-1 flex-col gap-5 p-4 md:p-7">
         <div class="flex items-start gap-3">
-            <div class="rounded-xl bg-emerald-100 p-2.5 text-emerald-800">
+            <div class="rounded-xl bg-brand/10 p-2.5 text-brand-strong">
                 <UserPlus class="size-5" />
             </div>
             <div>
@@ -253,7 +253,7 @@ const submit = () => {
             </section>
             <label
                 v-if="form.errors.duplicate_override"
-                class="flex items-start gap-3 rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm"
+                class="flex items-start gap-3 rounded-lg border border-warning/25 bg-warning/10 p-4 text-sm text-warning-strong"
             >
                 <input
                     v-model="form.duplicate_override"

@@ -322,7 +322,7 @@ watch(
             <div>
                 <Link
                     href="/registration?tab=qr-intake"
-                    class="mb-2 inline-flex items-center gap-1 text-xs font-medium text-pink-800 hover:underline"
+                    class="mb-2 inline-flex items-center gap-1 text-xs font-medium text-brand-strong hover:underline"
                 >
                     <ArrowLeft class="size-3.5" /> Registration · QR Intake
                 </Link>
@@ -460,7 +460,7 @@ watch(
                     </template>
                     <p
                         v-if="medicineOnly"
-                        class="rounded-md border border-sky-300 bg-sky-50 p-2 text-sm text-sky-950 md:col-span-2"
+                        class="rounded-md border border-border bg-muted/40 p-2 text-sm text-foreground md:col-span-2"
                         data-testid="medicine-only-note"
                     >
                         The patient chose "Buy medicine only". Accepting adds
@@ -508,7 +508,7 @@ watch(
                             class="h-10 rounded-md border bg-background px-3"
                     /></label>
                     <div
-                        class="rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-950 md:col-span-2"
+                        class="rounded-lg border border-warning/25 bg-warning/10 p-3 text-sm text-warning-strong md:col-span-2"
                     >
                         <p class="font-semibold">
                             Patient-reported coverage — not verified
@@ -851,7 +851,7 @@ watch(
                     </div>
                     <label
                         v-if="acceptance.errors.confirm_repeat"
-                        class="flex items-start gap-2 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm md:col-span-2"
+                        class="flex items-start gap-2 rounded-lg border border-warning/25 bg-warning/10 p-3 text-sm text-warning-strong md:col-span-2"
                         ><input
                             v-model="acceptance.confirm_repeat"
                             type="checkbox"
@@ -916,7 +916,7 @@ watch(
             ></Card
         >
         <div
-            class="flex items-center gap-2 rounded-lg bg-emerald-50 p-3 text-sm text-emerald-800"
+            class="flex items-center gap-2 rounded-lg border border-success/25 bg-success/10 p-3 text-sm text-success"
         >
             <CheckCircle2 class="size-5" />No Patient, Visit, or Queue record is
             created until acceptance commits.
