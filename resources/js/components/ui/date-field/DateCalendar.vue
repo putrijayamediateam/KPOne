@@ -14,8 +14,8 @@ import {
 } from '@/lib/date-field';
 import type { DateFieldLocale } from '@/lib/date-field';
 
-// The month grid behind the calendar button of DateField (UX-17). Sunday first, like the
-// Insights picker. Arrow keys move by day or week, Page Up and Page Down by month.
+// The month grid behind the calendar button of DateField (UX-17). Monday first (the owner's choice, 2026-11-10; the Insights picker
+// is still Sunday first). Arrow keys move by day or week, Page Up and Page Down by month.
 const props = withDefaults(
     defineProps<{
         modelValue?: string;
@@ -73,6 +73,10 @@ const moveTo = async (iso: string, focusCell = true): Promise<void> => {
     }
 };
 
+// 0 for Monday to 6 for Sunday.
+const weekdayIndex = (iso: string): number =>
+    (new Date(`${iso}T12:00:00`).getDay() + 6) % 7;
+
 const onKeydown = (event: KeyboardEvent): void => {
     const moves: Record<string, string> = {
         ArrowLeft: addDaysIso(focused.value, -1),
@@ -81,8 +85,8 @@ const onKeydown = (event: KeyboardEvent): void => {
         ArrowDown: addDaysIso(focused.value, 7),
         PageUp: addMonthsIso(focused.value, -1),
         PageDown: addMonthsIso(focused.value, 1),
-        Home: addDaysIso(focused.value, -new Date(`${focused.value}T12:00:00`).getDay()),
-        End: addDaysIso(focused.value, 6 - new Date(`${focused.value}T12:00:00`).getDay()),
+        Home: addDaysIso(focused.value, -weekdayIndex(focused.value)),
+        End: addDaysIso(focused.value, 6 - weekdayIndex(focused.value)),
     };
 
     if (moves[event.key]) {

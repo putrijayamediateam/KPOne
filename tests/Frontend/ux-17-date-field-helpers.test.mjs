@@ -123,18 +123,20 @@ test('time is 12-hour with AM and PM and converts both ways', () => {
     assert.deepEqual({ ...h.splitDateTime('') }, { date: '', time: '' });
 });
 
-test('the calendar grid starts on Sunday and covers the whole month', () => {
+test('the calendar grid starts on Monday and covers the whole month', () => {
     const weeks = h.calendarWeeks(2026, 11);
 
-    assert.equal(weeks[0][0].iso, '2026-11-01');
-    assert.equal(weeks[0][0].inMonth, true);
+    assert.equal(weeks[0][0].iso, '2026-10-26');
+    assert.equal(weeks[0][0].inMonth, false);
+    assert.equal(weeks[0][6].iso, '2026-11-01');
+    assert.equal(weeks[0][6].inMonth, true);
     assert.ok(weeks.every((week) => week.length === 7));
     assert.equal(weeks.flat().filter((cell) => cell.inMonth).length, 30);
 
     const february = h.calendarWeeks(2028, 2);
 
     assert.equal(february.flat().filter((cell) => cell.inMonth).length, 29);
-    assert.equal(february[0][0].iso, '2028-01-30');
+    assert.equal(february[0][0].iso, '2028-01-31');
 });
 
 test('moving by days and months keeps dates real', () => {

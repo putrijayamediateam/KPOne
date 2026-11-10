@@ -234,13 +234,13 @@ export const splitDateTime = (
 
 export type CalendarCell = { iso: string; day: number; inMonth: boolean };
 
-/** Weeks (Sunday first, like the Insights picker) covering one month, for the calendar grid. */
+/** Weeks (Monday first, the owner's choice) covering one month, for the calendar grid. */
 export const calendarWeeks = (
     year: number,
     month: number,
 ): CalendarCell[][] => {
     const first = new Date(year, month - 1, 1);
-    const start = new Date(year, month - 1, 1 - first.getDay());
+    const start = new Date(year, month - 1, 1 - ((first.getDay() + 6) % 7));
     const weeks: CalendarCell[][] = [];
 
     for (let week = 0; week < 6; week += 1) {
@@ -378,7 +378,7 @@ export const DATE_FIELD_TEXT: Record<
         hourOnly: 'Hour',
         minute: 'Minutes',
         meridiem: 'AM or PM',
-        weekdays: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
+        weekdays: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
     },
     ms: {
         choose: 'Pilih tarikh',
@@ -400,6 +400,6 @@ export const DATE_FIELD_TEXT: Record<
         hourOnly: 'Jam',
         minute: 'Minit',
         meridiem: 'AM atau PM',
-        weekdays: ['Ahd', 'Isn', 'Sel', 'Rab', 'Kha', 'Jum', 'Sab'],
+        weekdays: ['Isn', 'Sel', 'Rab', 'Kha', 'Jum', 'Sab', 'Ahd'],
     },
 };
