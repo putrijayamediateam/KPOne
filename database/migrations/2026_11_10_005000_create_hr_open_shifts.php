@@ -123,7 +123,7 @@ DECLARE s record;
 BEGIN
  SELECT * INTO s FROM hr_open_shifts WHERE id = NEW.open_shift_id;
  IF TG_OP = 'INSERT' THEN
-  IF NEW.status <> 'asked' OR NEW.lock_version <> 1 OR s.status <> 'open' OR s.starts_at <= clock_timestamp()
+  IF NEW.status <> 'asked' OR NEW.lock_version <> 1 OR s.status <> 'open' OR s.starts_at <= NEW.asked_at
     OR NOT hr_open_shift_assigned(NEW.locum_user_id, s.branch_id, (s.starts_at AT TIME ZONE s.timezone)::date)
     OR NOT hr_open_shift_assigned(NEW.locum_user_id, s.branch_id, ((s.ends_at - interval '1 second') AT TIME ZONE s.timezone)::date)
     OR NOT EXISTS (SELECT 1 FROM hr_locum_sign_ins l WHERE l.linked_user_id = NEW.locum_user_id AND l.status = 'done')
