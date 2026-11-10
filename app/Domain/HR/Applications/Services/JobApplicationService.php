@@ -15,7 +15,7 @@ use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 /**
- * HR-13 staff side (HR-PLAN 15.2), with HR-17a's stages (HR-PLAN 20.3). Director and HR Manager keep the open
+ * HR-13 staff side (HR-PLAN 15.2), with HR-17a's stages (HR-PLAN 19.3). Director and HR Manager keep the open
  * positions (each with a type), move an application through New, Phone screening (a recorded call), Scheduling,
  * Interview and then Passed or Failed, or Not taken forward or Withdrawn (a closed application stays closed), open a
  * CV (the open is recorded before any byte is sent) and set the retention. Turning an applicant into staff stays with
@@ -25,7 +25,7 @@ use Illuminate\Validation\ValidationException;
  */
 final class JobApplicationService
 {
-    /** @var array<string, string> the stages, in the order HR moves through them (HR-17a; HR-PLAN 20.3) */
+    /** @var array<string, string> the stages, in the order HR moves through them (HR-17a; HR-PLAN 19.3) */
     public const STATUSES = [
         'new' => 'New',
         'phone_screening' => 'Phone screening',
@@ -60,7 +60,7 @@ final class JobApplicationService
     /** The stages an application is still open at; the others are closed and start the retention. */
     public const OPEN = ['new', 'shortlisted', 'phone_screening', 'scheduling', 'interview'];
 
-    /** @var array<string, string> the position types; each has its own questions on the form (HR-PLAN 20.4) */
+    /** @var array<string, string> the position types; each has its own questions on the form (HR-PLAN 19.4) */
     public const TYPES = [
         'ca' => 'Clinic Assistant',
         'intern' => 'Intern',

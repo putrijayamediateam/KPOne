@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import { compileTemplate, parse } from '@vue/compiler-sfc';
 
-// HR-17a hiring stages (HR-PLAN 20; owner, 2026-11-10, relayed by B.E.R.N.I.S.S).
+// HR-17a hiring stages (HR-PLAN 19; owner, 2026-11-10, relayed by B.E.R.N.I.S.S).
 const read = (path) =>
     readFileSync(new URL(`../../${path}`, import.meta.url), 'utf8');
 const files = {

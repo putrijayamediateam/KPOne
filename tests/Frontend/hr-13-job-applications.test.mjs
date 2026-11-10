@@ -81,7 +81,7 @@ test('the HR page records each CV open on the server and asks before a closing s
     assert.match(template('hr'), /Each open of a CV is recorded\./);
     assert.match(
         source.hr,
-        // HR-17a's closing stages (HR-PLAN 20.3; owner, 2026-11-10).
+        // HR-17a's closing stages (HR-PLAN 19.3; owner, 2026-11-10).
         /\['passed', 'failed', 'not_taken_forward', 'withdrawn'\]\.includes\(to\)/,
     );
     assert.match(template('hr'), /A closed application cannot be moved again/);

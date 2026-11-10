@@ -18,7 +18,7 @@ use Inertia\Testing\AssertableInertia as Assert;
 use Tests\Feature\Visit\VisitTestCase;
 
 /**
- * HR-17a hiring stages (HR-PLAN 20; owner, 2026-11-10, relayed by B.E.R.N.I.S.S): position types and their questions,
+ * HR-17a hiring stages (HR-PLAN 19; owner, 2026-11-10, relayed by B.E.R.N.I.S.S): position types and their questions,
  * the talent-pool consent, the phone-screening call and its checklist, and the new stages. Synthetic `.test` data only.
  */
 class HiringStagesTest extends VisitTestCase

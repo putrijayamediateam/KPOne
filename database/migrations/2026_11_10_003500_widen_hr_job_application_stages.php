@@ -4,7 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Support\Facades\DB;
 
 /**
- * HR-17a hiring stages (HR-PLAN 20.3; owner, 2026-11-10): New, Phone screening, Scheduling, Interview, then Passed or
+ * HR-17a hiring stages (HR-PLAN 19.3; owner, 2026-11-10): New, Phone screening, Scheduling, Interview, then Passed or
  * Failed, with Not taken forward, Auto-rejected and Withdrawn from an open stage. HR-13's Shortlisted and Offered stay
  * readable for older rows (a Shortlisted row may still go on to Interview, an Offered one to Withdrawn) but no new
  * application moves to them. Leaving phone screening for scheduling needs a recorded passing screening, and the

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// HR-13 public job-application form (HR-PLAN 15.2), with HR-17a's questions per position type (HR-PLAN 20.4). The
+// HR-13 public job-application form (HR-PLAN 15.2), with HR-17a's questions per position type (HR-PLAN 19.4). The
 // server is the only judge: it checks the signed form token, the honeypot, the time taken, every field and the CV by
 // its content. Nothing typed here is kept in the browser. No IC number, date of birth, photo, salary or wage is asked.
 import { Head, useForm } from '@inertiajs/vue3';
@@ -51,7 +51,7 @@ const form = useForm({
     cv: null as File | null,
 });
 
-// The questions only this kind of position asks (HR-PLAN 20.4).
+// The questions only this kind of position asks (HR-PLAN 19.4).
 const positionType = computed<PositionType | null>(
     () => props.positions.find((p) => p.id === form.position)?.type ?? null,
 );

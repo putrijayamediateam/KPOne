@@ -1,6 +1,6 @@
 <script setup lang="ts">
 // HR-13 /hr/applications (Director, HR Manager): applications from the public form, the open positions and the
-// retention. HR-PLAN 15.2, with HR-17a's position types, form answers, phone screening and call checklist (HR-PLAN 20). Every CV open is recorded by the server before any byte is sent.
+// retention. HR-PLAN 15.2, with HR-17a's position types, form answers, phone screening and call checklist (HR-PLAN 19). Every CV open is recorded by the server before any byte is sent.
 import { Head, router, usePage } from '@inertiajs/vue3';
 import { computed, reactive, ref } from 'vue';
 import SyntheticNote from '@/components/hr/records/SyntheticNote.vue';

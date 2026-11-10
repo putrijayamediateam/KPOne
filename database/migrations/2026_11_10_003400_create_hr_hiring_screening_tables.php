@@ -6,7 +6,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * HR-17a hiring (HR-PLAN 20; owner, 2026-11-10, relayed by B.E.R.N.I.S.S): a position has a type (CA, intern, locum,
+ * HR-17a hiring (HR-PLAN 19; owner, 2026-11-10, relayed by B.E.R.N.I.S.S): a position has a type (CA, intern, locum,
  * Resident Doctor) that decides the form's extra questions; an application keeps those answers encrypted with its other
  * values, and whether the candidate agreed to be kept in the talent pool. HR keeps a phone-screening call checklist
  * (KPOne ships none; versions are append-only) and records one screening per application: the ticks, a 1 to 5 rating,

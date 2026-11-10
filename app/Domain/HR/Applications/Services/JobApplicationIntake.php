@@ -252,7 +252,7 @@ final class JobApplicationIntake
     }
 
     /**
-     * HR-17a: the form's other answers (HR-PLAN 20.4). No IC number, date of birth, photo, salary or wage is asked. A
+     * HR-17a: the form's other answers (HR-PLAN 19.4). No IC number, date of birth, photo, salary or wage is asked. A
      * doctor's MMC number and APC are as the candidate states them; KPOne does not check them.
      *
      * @param  array<string, mixed>  $input

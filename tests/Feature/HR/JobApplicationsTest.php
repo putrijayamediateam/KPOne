@@ -343,7 +343,7 @@ class JobApplicationsTest extends VisitTestCase
         $cv ??= UploadedFile::fake()->createWithContent('cv.pdf', self::PDF);
         $data = [...['name' => 'Synthetic Applicant', 'phone' => '012-345 6789', 'email' => 'applicant@example.test', 'message' => 'Synthetic note',
             'privacy_accepted' => '1', 'website' => '',
-            // HR-17a's questions every position asks (HR-PLAN 20.4).
+            // HR-17a's questions every position asks (HR-PLAN 19.4).
             'preferred_branch' => 'any', 'start_date' => now()->addDays(14)->toDateString(), 'education' => 'degree', 'years_experience' => '2',
             'languages' => ['malay', 'english']], ...$overrides];
         if ($cv !== false) {
