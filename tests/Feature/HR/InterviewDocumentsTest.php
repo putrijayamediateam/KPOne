@@ -3,6 +3,7 @@
 namespace Tests\Feature\HR;
 
 use App\Domain\HR\Applications\Services\CandidateLink;
+use App\Domain\HR\Applications\Services\InterviewDocuments;
 use App\Domain\HR\Applications\Services\InterviewSlots;
 use App\Domain\HR\Applications\Services\JobApplicationIntake;
 use App\Models\User;
@@ -188,6 +189,33 @@ class InterviewDocumentsTest extends VisitTestCase
         $this->get(route('hr.applications.documents.show', $doc->public_id))->assertForbidden();
         $this->post(route('hr.applications.documents.remove', $doc->public_id), ['expected_lock_version' => 1, 'idempotency_key' => (string) Str::uuid()])->assertForbidden();
         $this->assertSame(['uploaded'], DB::table('hr_interview_document_events')->pluck('action')->all());
+    }
+
+    public function test_an_upload_that_fails_after_the_file_is_written_keeps_neither_row_nor_bytes(): void
+    {
+        // The event insert fails after the bytes are on disk (Suresh, HR-17d m1): the row rolls back and the file goes.
+        DB::unprepared(<<<'SQL'
+CREATE FUNCTION test_fail_interview_doc_event() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RAISE EXCEPTION 'synthetic failure' USING ERRCODE = 'P0001'; END $$;
+CREATE TRIGGER test_fail_interview_doc_event BEFORE INSERT ON hr_interview_document_events FOR EACH ROW EXECUTE FUNCTION test_fail_interview_doc_event();
+SQL);
+        try {
+            app(InterviewDocuments::class)->upload($this->hr, $this->pdf('fails'), ['position_type' => 'ca', 'title' => 'Fails after the write',
+                'idempotency_key' => (string) Str::uuid()]);
+            $this->fail('The upload should have failed.');
+        } catch (QueryException $e) {
+            $this->assertStringContainsString('synthetic failure', $e->getMessage());
+        }
+        $this->assertSame(0, DB::table('hr_interview_documents')->count());
+        $this->assertSame([], Storage::disk(JobApplicationIntake::DISK)->allFiles('hr-interview-documents'));
+    }
+
+    public function test_the_download_filename_is_a_trimmed_slug_of_the_title(): void
+    {
+        $this->selectBranch($this->hr);
+        $this->upload('ca', str_repeat('a', 59).' booklet', $this->pdf('long'))->assertSessionHasNoErrors();
+        $doc = DB::table('hr_interview_documents')->sole();
+        $this->get(route('hr.applications.documents.show', $doc->public_id))->assertOk()
+            ->assertHeader('Content-Disposition', 'attachment; filename="'.str_repeat('a', 59).'.pdf"');
     }
 
     private function pdf(string $marker): UploadedFile

@@ -73,9 +73,11 @@ CREATE TRIGGER hr_interview_docs_truncate BEFORE TRUNCATE ON hr_interview_docume
 CREATE TRIGGER hr_interview_doc_events_append BEFORE UPDATE OR DELETE ON hr_interview_document_events FOR EACH ROW EXECUTE FUNCTION guard_hr_records_append_only();
 CREATE TRIGGER hr_interview_doc_events_truncate BEFORE TRUNCATE ON hr_interview_document_events FOR EACH STATEMENT EXECUTE FUNCTION guard_hr_records_append_only();
 
--- At most 10 active documents per position type; the service takes a lock per type before counting.
+-- At most 10 active documents per position type. The same per-type lock as the service, so two inserts count in turn
+-- even when they bypass the service (Suresh, HR-17d m3).
 CREATE OR REPLACE FUNCTION guard_hr_interview_document_insert() RETURNS trigger LANGUAGE plpgsql AS $$
 BEGIN
+ PERFORM pg_advisory_xact_lock(hashtextextended('hr_interview_documents:' || NEW.organisation_id || ':' || NEW.position_type, 0));
  IF NEW.status <> 'active' OR (SELECT count(*) FROM hr_interview_documents d WHERE d.organisation_id = NEW.organisation_id
      AND d.position_type = NEW.position_type AND d.status = 'active') >= 10 THEN
   RAISE EXCEPTION 'At most 10 interview documents per position type' USING ERRCODE = 'P0001';

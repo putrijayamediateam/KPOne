@@ -3,6 +3,7 @@
 namespace Tests\Feature\HR;
 
 use App\Domain\HR\Applications\ApplicationPermissions;
+use App\Domain\HR\Applications\Services\CandidateLink;
 use App\Domain\Identity\Models\StaffProfile;
 use App\Domain\Organisation\Models\Branch;
 use App\Domain\Organisation\Models\Organisation;
@@ -25,6 +26,7 @@ use Tests\TestCase;
  * HR-17c under real PostgreSQL contention (HR-PLAN 19.6, "Whole group"). Two HR managers confirming the same slot for two
  * candidates at once get one interview; the second waits on the slot's lock, then is refused with a plain reason.
  * HR-17d: two managers adding the tenth interview document of one position type at once get one; the other is refused.
+ * A removal that commits while a candidate's download waits leaves no download recorded and sends nothing.
  *
  * @phpstan-type WorkerProcess array{process: Process, input: InputStream}
  */
@@ -116,6 +118,35 @@ class PostgresInterviewContentionTest extends TestCase
         $this->assertSame(10, DB::table('hr_interview_documents')->where('organisation_id', $org)->where('position_type', 'ca')->where('status', 'active')->count());
         $paths = DB::table('hr_interview_documents')->where('organisation_id', $org)->where('title', 'like', 'Synthetic tenth%')->pluck('stored_path');
         $this->assertCount(1, $paths);
+    }
+
+    public function test_a_removal_committing_while_a_download_waits_records_no_download(): void
+    {
+        $f = $this->fixture();
+        $org = $f['organisation']->id;
+        $start = '2030-01-08T02:00:00Z';
+        $app = $this->scheduledApplication($f, $start);
+        $appId = (int) DB::table('hr_job_applications')->where('public_id', $app['public_id'])->value('id');
+        $pick = (int) DB::table('hr_job_interview_picks')->where('application_id', $appId)->value('id');
+        DB::table('hr_job_interviews')->insert(['organisation_id' => $org, 'application_id' => $appId, 'pick_id' => $pick, 'round' => 1,
+            'branch_id' => $f['branch']->id, 'starts_at' => $start, 'status' => 'confirmed', 'confirmed_by_user_id' => $f['hr1']->id, 'confirmed_at' => now()]);
+        [$token, $hash] = CandidateLink::issue();
+        DB::table('hr_job_applications')->where('id', $appId)->update(['status' => 'interview', 'stage_entered_at' => now(), 'status_token_hash' => $hash, 'lock_version' => 4]);
+        $docPublic = (string) Str::uuid();
+        $doc = DB::table('hr_interview_documents')->insertGetId(['public_id' => $docPublic, 'organisation_id' => $org, 'position_type' => 'ca',
+            'title' => 'Synthetic booklet', 'stored_path' => "hr-interview-documents/{$org}/synthetic.bin", 'bytes' => 10, 'sha256' => hash('sha256', 'booklet'),
+            'status' => 'active', 'uploaded_by_user_id' => $f['hr1']->id, 'uploaded_at' => now(), 'lock_version' => 1, 'created_at' => now(), 'updated_at' => now()]);
+
+        // This session removes the document as remove() does, holding its row; the download waits on FOR SHARE, then finds it gone.
+        $out = $this->race(fn () => DB::table('hr_interview_documents')->where('id', $doc)->lockForUpdate()->first()
+            && DB::table('hr_interview_documents')->where('id', $doc)->update(['status' => 'removed', 'stored_path' => null, 'removed_by_user_id' => $f['hr2']->id,
+                'removed_at' => now(), 'lock_version' => 2, 'updated_at' => now()]), [
+                    $this->worker($f['hr1'], ['op' => 'download', 'token' => $token, 'document' => $docPublic]),
+                ]);
+
+        $this->assertSame(1, substr_count($out, 'NOTFOUND download'), $out);
+        $this->assertSame(0, substr_count($out, 'SUCCESS'), $out);
+        $this->assertSame(0, DB::table('hr_interview_document_events')->where('document_id', $doc)->where('action', 'downloaded')->count());
     }
 
     /** @return array<string, mixed> */

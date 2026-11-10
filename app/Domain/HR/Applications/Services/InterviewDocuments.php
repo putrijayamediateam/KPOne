@@ -46,6 +46,11 @@ final class InterviewDocuments
         $path = null;
         try {
             return DB::transaction(function () use ($actor, $key, $type, $title, $prepared, &$path): string {
+                // A deadlock retry runs this again: the earlier attempt's bytes go first (Suresh, HR-17d m1).
+                if ($path !== null) {
+                    Storage::disk(JobApplicationIntake::DISK)->delete($path);
+                    $path = null;
+                }
                 $actor = $this->support->lock($actor, ApplicationPermissions::MANAGE);
                 $hash = $this->support->hash([$actor->id, 'interview_document_upload', $type, $title, $prepared['sha256']]);
                 if (($replay = $this->support->replay($actor, $key, 'interview_document_upload', $hash)) !== null) {
@@ -99,7 +104,7 @@ final class InterviewDocuments
             if ($this->support->replay($actor, $key, 'interview_document_remove', $hash) !== null) {
                 return;
             }
-            $document = $this->find($actor, $documentId, true);
+            $document = $this->find($actor, $documentId, 'update');
             if ($document->status !== 'active') {
                 throw ValidationException::withMessages(['document' => 'This document was already removed.']);
             }
@@ -124,19 +129,19 @@ final class InterviewDocuments
      */
     public function open(User $actor, string $documentId): array
     {
-        $document = DB::transaction(function () use ($actor, $documentId): \stdClass {
+        // The document is held FOR SHARE and its bytes read inside the transaction, so a removal cannot slip between the
+        // recorded open and the read (Suresh, HR-17d m2). The response is still built only after the commit.
+        return DB::transaction(function () use ($actor, $documentId): array {
             $actor = $this->support->authority->lock($actor, ApplicationPermissions::MANAGE);
-            $document = $this->find($actor, $documentId, false);
+            $document = $this->find($actor, $documentId, 'share');
             if ($document->status !== 'active') {
                 throw ValidationException::withMessages(['document' => 'This document was removed.']);
             }
             $this->event($actor->organisation_id, (int) $document->id, 'opened', $actor->id);
             $this->support->audit->record('hr.applications.interview_document_opened', null, ['document_id' => (int) $document->id], $actor, null, $actor->organisation_id);
 
-            return $document;
+            return $this->read($document);
         }, 3);
-
-        return $this->read($document);
     }
 
     /**
@@ -150,21 +155,21 @@ final class InterviewDocuments
         if (! Str::isUuid($documentId)) {
             return null;
         }
-        $document = DB::transaction(function () use ($token, $documentId, $links): ?\stdClass {
+
+        // As open(): the document is held FOR SHARE and read inside the transaction; a missing file rolls the event back.
+        return DB::transaction(function () use ($token, $documentId, $links): ?array {
             $application = $links->resolve($token, true);
             if ($application === null) {
                 return null;
             }
-            $document = collect(self::forApplication($application))->firstWhere('public_id', $documentId);
+            $document = collect(self::forApplication($application, true))->firstWhere('public_id', $documentId);
             if (! $document instanceof \stdClass) {
                 return null;
             }
             $this->event((int) $application->organisation_id, (int) $document->id, 'downloaded', null, (int) $application->id);
 
-            return $document;
+            return $this->read($document);
         }, 3);
-
-        return $document === null ? null : $this->read($document);
     }
 
     /**
@@ -172,7 +177,7 @@ final class InterviewDocuments
      *
      * @return list<\stdClass>
      */
-    public static function forApplication(\stdClass $application): array
+    public static function forApplication(\stdClass $application, bool $share = false): array
     {
         if ($application->status !== 'interview' || $application->purged_at !== null
             || ! DB::table('hr_job_interviews')->where('application_id', $application->id)->where('status', 'confirmed')->exists()) {
@@ -180,8 +185,10 @@ final class InterviewDocuments
         }
         $type = DB::table('hr_job_positions')->where('id', $application->position_id)->value('position_type');
 
-        return array_values(DB::table('hr_interview_documents')->where('organisation_id', $application->organisation_id)->where('position_type', $type)
-            ->where('status', 'active')->orderBy('title')->orderBy('id')->get(['id', 'public_id', 'title', 'bytes', 'stored_path'])->all());
+        $query = DB::table('hr_interview_documents')->where('organisation_id', $application->organisation_id)->where('position_type', $type)
+            ->where('status', 'active')->orderBy('title')->orderBy('id');
+
+        return array_values(($share ? $query->sharedLock() : $query)->get(['id', 'public_id', 'title', 'bytes', 'stored_path'])->all());
     }
 
     /**
@@ -282,16 +289,19 @@ final class InterviewDocuments
         }
         $slug = trim((string) preg_replace('/[^a-z0-9]+/', '-', strtolower(Str::ascii((string) $document->title))), '-');
 
-        return ['content' => $content, 'filename' => ($slug !== '' ? mb_substr($slug, 0, 60) : 'interview-document').'.pdf'];
+        $slug = rtrim(substr($slug, 0, 60), '-');
+
+        return ['content' => $content, 'filename' => ($slug !== '' ? $slug : 'interview-document').'.pdf'];
     }
 
-    private function find(User $actor, string $documentId, bool $lock): \stdClass
+    /** @param 'update'|'share' $lock */
+    private function find(User $actor, string $documentId, string $lock): \stdClass
     {
         if (! Str::isUuid($documentId)) {
             abort(404);
         }
         $query = DB::table('hr_interview_documents')->where('organisation_id', $actor->organisation_id)->where('public_id', $documentId);
-        $row = ($lock ? $query->lockForUpdate() : $query)->first();
+        $row = ($lock === 'update' ? $query->lockForUpdate() : $query->sharedLock())->first();
         abort_if(! $row instanceof \stdClass, 404);
 
         return $row;
