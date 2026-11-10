@@ -533,6 +533,10 @@ check items, keep them"). The rest stand unless the owner changes them.
   (Director and Technical Admin) without checking the role the account needs, so Technical Admin can see a locum or
   CA Supervisor request only the Director can finish; `StaffProvisioningService` refuses the role, and from HR-15b
   the card says "Only the Director can create a Locum account." (B.E.R.N.I.S.S: lists unchanged for v1).
+- HR-15b known limits: a confirmed open shift points at an ordinary draft roster shift (no foreign key), so if HR
+  later removes or moves that shift in the planner before approval, the open shift stays "Filled" with nobody
+  rostered; HR posts it again. Two confirms into the same branch week take turns on an advisory lock so the second
+  uses the first's new draft; no two-process test covers that case (the race test covers two confirms of one shift).
 - HR-17e known limits: the pool tick wording and the invitation message are drafts (Malay included); a staff-account
   request is a note between people, and the account created is not linked back to the application; the pool offers
   only open positions of the same type, because the form's questions differ by type.
