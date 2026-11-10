@@ -3159,3 +3159,119 @@ an additive migration as before. None is administrative authority.
 - Patient-care incidents may need clinical review that KPOne does not yet route.
 - Letter wording needs the clinic's adviser before real use; appraisal criteria are the clinic's own.
 - With one Director and one HR Manager, an HR Manager's own appraisal and discipline depend on the Director alone.
+
+## 21. HR-15 Locum portal: design note (draft; notes only until the owner decides, decision 82)
+
+Expands 15.4. A locum today is a staff file without a KPOne sign-in (HR-4a), paid outside KPOne. HR-15 lets a locum
+the clinic chooses sign in to see their own shifts and take open shifts. **Nothing is built until the owner answers
+21.1 and says "start HR-15".** Synthetic data only. Data Protection Officer: HR Manager.
+
+### 21.1 Questions for the owner (with my recommendation)
+
+1. **Which locums get a sign-in?** **Recommend:** only those HR asks for, one by one; a locum file stays sign-in-free
+   by default.
+2. **Clinical access for a locum doctor.** **Recommend:** none in HR-15. If a locum doctor is to consult in KPOne, that
+   is a separate, explicit role decision under AGENTS.md (it would mean the Resident Doctor permissions, which HR-15
+   never grants).
+3. **Sign-in method.** **Recommend:** password with the existing rules, and Google sign-in for an existing active
+   account. A one-time code by SMS or WhatsApp only once HR-14 has a chosen provider (15.7 question 2); until then, no
+   OTP.
+4. **Open shifts.** **Recommend:** HR posts open shifts; a locum asks; a manager who is not the locum confirms; the
+   shift joins the next roster draft and still needs the roster approval (HR-1). First come is not first served: the
+   manager chooses.
+5. **Pay.** **Recommend:** locums stay paid outside KPOne in v1 (decision 30's sibling); the portal shows shifts only,
+   no rates or amounts.
+
+### 21.2 Slices
+
+| Slice | What | Migrations |
+|---|---|---|
+| HR-15a | The `locum` role (narrow), linking an account to its HR-4a locum file; account creation only through `StaffProvisioningService`; "My shifts" for a locum | `004800` role and grants, `004900` link |
+| HR-15b | Open shifts: post, ask, confirm by a manager, into the next roster draft | `005000` |
+| HR-15c | One-time code sign-in, only after HR-14 has an SMS or WhatsApp provider and the owner says so | later |
+
+### 21.3 Accounts and the role
+
+- HR presses "Ask for a sign-in" on a locum file; the account administrator creates the account the usual way (the
+  same handoff as HR-17e: a request on the Staff page, never an account made by HR). Public registration stays
+  disabled; an unknown Google identity never creates a user.
+- **Role `locum`:** `hr.roster.view.own` and a new `hr.open_shifts.request.own` only. No patient, clinical, billing,
+  inventory, Insights or staff-directory permission. A test pins the role's exact permission list.
+- The link from account to locum file is set once by the administrator and checked on every request.
+
+### 21.4 Open shifts
+
+- `hr.open_shifts.manage.organisation` (Director, HR Manager) posts a shift (branch, date, start and end, role
+  needed), with the same rules as a roster shift (HR-1: no overlap, at most 16 hours, rest warnings from HR-5b).
+- A locum asks; a manager confirms one locum and declines the others with a reason; the confirmed shift is added to
+  the branch's next draft week and is visible to the locum only after that week is approved.
+- Append-only events; a confirmed request cannot be confirmed twice (unique index), races tested.
+
+### 21.5 New permissions and expected assertion changes
+
+- New: `hr.open_shifts.manage.organisation`, `hr.open_shifts.request.own`, and the role `locum`.
+- Expected changes (each needs approval): the exact role list in `PermissionCatalogue` tests and the staff-authority
+  administrability test gain the `locum` role (it carries no administrative authority, so every administrator can
+  administer it); the Clinic management map gains `/hr/open-shifts`.
+
+### 21.6 Risks and limits
+
+- A new role touches staff authority; AC-01's rules must hold (tested).
+- A locum shares nothing with patient data by design; a mistake here is a clinical-access risk, so the role's
+  permission list is pinned exactly.
+- OTP waits for HR-14's provider; until then sign-in is password or Google only.
+
+## 22. HR-16 Selfie or location at clock-in: design note (draft; notes only until the owner decides, decision 82)
+
+Expands 15.5. **The riskiest item in KPOne HR.** A selfie is biometric-adjacent and a location is sensitive; both
+need the owner's PDPA review, a written purpose, a consent text and a clinic-set retention **before any real staff
+use**. Nothing is built until the owner answers 22.1 and says "start HR-16".
+
+### 22.1 Questions for the owner (with my recommendation)
+
+1. **Which problem are we solving?** Buddy-punching (someone clocking in for another) points to the selfie; clocking
+   in from home points to the location check. **Recommend:** start with the location check only, at one branch,
+   because it stores less (no image).
+2. **Which branch first, and the geofence radius.** **Recommend:** one branch, a radius the Director enters (KPOne
+   suggests 150 m, as a suggestion only).
+3. **Retention of selfies,** if they are ever used. **Recommend:** 30 days, entered by the clinic; deleted daily after.
+4. **Consent text** (EN/BM) and who approves it: the owner's PDPA review, with the Data Protection Officer (HR Manager).
+5. **What happens on "outside" or "no photo".** **Recommend:** never block the clock-in; flag it on Review for a
+   manager to ask the person.
+
+### 22.2 Slices
+
+| Slice | What | Migrations |
+|---|---|---|
+| HR-16a | Location check per branch: off by default; geofence entered by the Director; "inside", "outside" or "not available" and an accuracy band stored, never coordinates | `005100` |
+| HR-16b | Photo at clock-in per branch: off by default; encrypted; viewed only on a disputed day with an audited view; purged after the clinic-set retention | `005200` |
+
+### 22.3 Rules both slices share
+
+- **Off by default for every branch.** A Director turns one on for one branch, with the consent text shown to staff
+  once and their acknowledgement recorded before their first press there.
+- **Only at the moment of the press.** The browser reads the location or takes the photo when the person presses
+  Clock in or Clock out, never before or after; no background tracking, no continuous location (AGENTS.md).
+- **A refusal never blocks.** Refusing the camera or location, or a GPS failure, still records the press, marked
+  "no photo" or "location not checked".
+- **No face matching** and no outside biometric or location service; no biometric template is ever made.
+- **Seen by** Director and HR Manager only, on Review; every photo view is audited before the image is sent.
+- **Coordinates are never stored** (HR-16a); the server receives them once, compares them with the geofence and keeps
+  only the result. A test proves no coordinate column exists and none reaches the log or audit.
+
+### 22.4 Expected assertion changes
+
+- HR-3a's attendance tests: a session gains an optional check result; existing assertions on the session row's exact
+  keys may need one more key (each listed for approval in the slice's PR). With both checks off, every HR-3a test must
+  pass unchanged.
+
+### 22.5 What Daniel needs to review
+
+- the consent screen at 390 px (EN/BM), the clock-in button's camera and location prompts, and how "outside" or "no
+  photo" looks on Review without accusing anyone (no red, plain words).
+
+### 22.6 Risks and limits
+
+- Under PDPA a selfie may be treated as biometric data; the review may say no, in which case HR-16b is never built.
+- Browser location can be wrong indoors; "outside" is a prompt for a conversation, never a decision.
+- Turning either on for real staff without the review breaks the owner's condition (decision 45).
