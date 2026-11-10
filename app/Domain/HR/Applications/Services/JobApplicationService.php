@@ -79,10 +79,18 @@ final class JobApplicationService
         'other' => 'Other',
     ];
 
+    /** @var array<string, string> the stage HR moves to and the fixed message the candidate gets (HR-17b) */
+    public const TELLS = [
+        'not_taken_forward' => 'not_taken_forward',
+        'withdrawn' => 'withdrawn',
+        'passed' => 'passed',
+        'failed' => 'failed',
+    ];
+
     /** A first or shorter retention waits this long before the purge may use it, so a mistake can be undone. */
     public const GRACE_DAYS = 7;
 
-    public function __construct(private RecordSupport $support) {}
+    public function __construct(private RecordSupport $support, private HiringMessenger $messenger) {}
 
     /** @param array<string, mixed> $input */
     public function addPosition(User $actor, array $input): string
@@ -169,13 +177,17 @@ final class JobApplicationService
             }
             $closed = ! in_array($to, self::OPEN, true);
             DB::table('hr_job_applications')->where('id', $application->id)->update(['status' => $to, 'closed_at' => $closed ? now()->utc() : null,
-                'lock_version' => (int) $application->lock_version + 1, 'updated_at' => now()->utc()]);
+                'stage_entered_at' => now()->utc(), 'lock_version' => (int) $application->lock_version + 1, 'updated_at' => now()->utc()]);
             DB::table('hr_job_application_events')->insert(['organisation_id' => $actor->organisation_id, 'application_id' => $application->id,
                 'action' => 'status_changed', 'from_status' => $application->status, 'to_status' => $to, 'actor_user_id' => $actor->id,
                 'created_at' => now()->utc()]);
             $this->support->remember($actor, $key, 'job_application_move', $hash, $applicationId);
             $this->support->audit->record('hr.applications.moved', null, ['application_id' => (int) $application->id, 'from' => $application->status,
                 'to' => $to], $actor, null, $actor->organisation_id);
+            // HR-17b: the candidate is told of a decision (HR-PLAN 19.3 and 19.8).
+            if (isset(self::TELLS[$to])) {
+                $this->messenger->record($application, self::TELLS[$to], $to);
+            }
         }, 3);
     }
 
@@ -318,7 +330,7 @@ final class JobApplicationService
                 'reject_reason' => $reason,
                 'actor_user_id' => $actor->id, 'created_at' => $now]);
             DB::table('hr_job_applications')->where('id', $application->id)->update(['status' => $to, 'closed_at' => $to === 'scheduling' ? null : $now,
-                'lock_version' => (int) $application->lock_version + 1, 'updated_at' => $now]);
+                'stage_entered_at' => $now, 'lock_version' => (int) $application->lock_version + 1, 'updated_at' => $now]);
             DB::table('hr_job_application_events')->insert([
                 ['organisation_id' => $actor->organisation_id, 'application_id' => $application->id, 'action' => 'screened', 'from_status' => null,
                     'to_status' => null, 'actor_user_id' => $actor->id, 'created_at' => $now],
@@ -328,6 +340,7 @@ final class JobApplicationService
             $this->support->remember($actor, $key, 'job_application_screen', $hash, $applicationId);
             $this->support->audit->record('hr.applications.screened', null, ['application_id' => (int) $application->id, 'outcome' => $outcome,
                 'reason' => $reason, 'ticked' => count($ticks)], $actor, null, $actor->organisation_id);
+            $this->messenger->record($application, $outcome === 'pass' ? 'screening_passed' : 'not_taken_forward', $to);
         }, 3);
     }
 
@@ -424,7 +437,7 @@ final class JobApplicationService
                                 return null;
                             }
                             DB::table('hr_job_applications')->where('id', $row->id)->update(['name_encrypted' => null, 'phone_encrypted' => null,
-                                'email_encrypted' => null, 'message_encrypted' => null, 'details_encrypted' => null, 'cv_path' => null, 'purged_at' => now()->utc(),
+                                'email_encrypted' => null, 'message_encrypted' => null, 'details_encrypted' => null, 'cv_path' => null, 'status_token_hash' => null, 'purged_at' => now()->utc(),
                                 'lock_version' => (int) $row->lock_version + 1, 'updated_at' => now()->utc()]);
                             DB::table('hr_job_screenings')->where('application_id', $row->id)->whereNotNull('note_encrypted')->update(['note_encrypted' => null]);
                             DB::table('hr_job_application_events')->insert(['organisation_id' => $organisationId, 'application_id' => $row->id,

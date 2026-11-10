@@ -2,7 +2,7 @@
 // HR-13 /hr/applications (Director, HR Manager): applications from the public form, the open positions and the
 // retention. HR-PLAN 15.2, with HR-17a's position types, form answers, phone screening and call checklist (HR-PLAN 19). Every CV open is recorded by the server before any byte is sent.
 import { Head, router, usePage } from '@inertiajs/vue3';
-import { computed, reactive, ref } from 'vue';
+import { computed, onMounted, reactive, ref } from 'vue';
 import SyntheticNote from '@/components/hr/records/SyntheticNote.vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
@@ -52,6 +52,25 @@ type Application = {
     closedAt: string | null;
     purged: boolean;
     lockVersion: number;
+    // HR-17b: the fixed messages the candidate (or the hiring mailbox) got, and when the daily check closes it.
+    messages: {
+        template: string;
+        label: string;
+        recipient: 'candidate' | 'mailbox';
+        status: string;
+        statusLabel: string;
+        subject: string;
+        body: string;
+        atLabel: string;
+    }[];
+    autoRejectOn: string | null;
+};
+type NeedsYouRow = {
+    id: string;
+    status: string;
+    name: string;
+    position: string;
+    why: string;
 };
 type Position = {
     id: string;
@@ -86,7 +105,7 @@ const props = defineProps<{
         };
         positions: Position[];
         applications: {
-            filters: { status: string; position: string };
+            filters: { status: string; position: string; focus: string };
             page: number;
             perPage: number;
             total: number;
@@ -98,6 +117,12 @@ const props = defineProps<{
             pending: { days: number | null; from: string } | null;
         };
         checklist: { version: number; items: string[] };
+        needsYou: {
+            closing: { count: number; rows: NeedsYouRow[] };
+            new: { count: number; rows: NeedsYouRow[] };
+            noWorkingDays: boolean;
+        };
+        email: { enabled: boolean; mailbox: boolean };
     };
 }>();
 
@@ -143,6 +168,7 @@ const filter = (changes: Record<string, string | number>) => {
         {
             tab: 'applications',
             status: next.status,
+            ...(changes.focus ? { focus: changes.focus } : {}),
             ...(next.position && next.position !== 'all'
                 ? { position: next.position }
                 : {}),
@@ -174,12 +200,33 @@ const tone = (status: string) =>
         }) as const
     )[status] ?? 'neutral';
 
+// HR-17b "Needs you": a row opens just that application.
+const needsYouCount = computed(
+    () =>
+        props.applications.needsYou.closing.count +
+        props.applications.needsYou.new.count,
+);
+const focusOn = (row: NeedsYouRow) =>
+    router.get(
+        '/hr/applications',
+        { tab: 'applications', status: row.status, focus: row.id },
+        { preserveScroll: true },
+    );
+const showAll = () => filter({ status: 'open' });
+
 const viewing = ref<Application | null>(null);
 const moving = reactive({
     to: '',
     key: '',
     processing: false,
     confirm: false,
+});
+onMounted(() => {
+    const focused = list.value?.filters.focus ? list.value.rows[0] : null;
+
+    if (focused) {
+        openApplication(focused);
+    }
 });
 const openApplication = (application: Application) => {
     viewing.value = application;
@@ -465,6 +512,24 @@ const saveRetention = () => {
                 Privacy notice version
                 {{ applications.form.privacyNoticeVersion }}.</span
             >
+            <span
+                class="block text-muted-foreground"
+                data-test="hiring-email-state"
+            >
+                <template v-if="applications.email.enabled">
+                    Hiring email is on: candidates get each message by email as
+                    well as on their private page.<template
+                        v-if="!applications.email.mailbox"
+                    >
+                        No hiring mailbox is set, so reminders show here
+                        only.</template
+                    >
+                </template>
+                <template v-else>
+                    Hiring email is off: candidates see the clinic's messages on
+                    their private page only.
+                </template>
+            </span>
         </p>
 
         <OperationalTabs
@@ -488,6 +553,98 @@ const saveRetention = () => {
             data-test="applications-list"
         >
             <h2 id="applications-title" class="sr-only">Applications</h2>
+            <section
+                v-if="needsYouCount > 0 || applications.needsYou.noWorkingDays"
+                aria-labelledby="needs-you-title"
+                class="flex flex-col gap-3 rounded-xl border bg-card p-3 lg:max-w-3xl"
+                data-test="needs-you"
+            >
+                <h3 id="needs-you-title" class="font-semibold">
+                    Needs you
+                    <span
+                        v-if="needsYouCount"
+                        class="font-normal text-muted-foreground"
+                        >({{ needsYouCount }})</span
+                    >
+                </h3>
+                <p
+                    v-if="applications.needsYou.noWorkingDays"
+                    class="rounded-lg border border-warning/40 bg-warning/10 p-2 text-sm"
+                    data-test="needs-you-no-working-days"
+                >
+                    A branch has no working days set in KPOne HR leave settings,
+                    so its applications are never closed automatically. Set the
+                    working days to start the 3-day count.
+                </p>
+                <template
+                    v-for="group in [
+                        {
+                            key: 'closing',
+                            title: 'Closing at the start of the next working day',
+                            data: applications.needsYou.closing,
+                        },
+                        {
+                            key: 'new',
+                            title: 'New applications',
+                            data: applications.needsYou.new,
+                        },
+                    ]"
+                    :key="group.key"
+                >
+                    <div
+                        v-if="group.data.count"
+                        class="flex flex-col gap-1.5"
+                        :data-test="`needs-you-${group.key}`"
+                    >
+                        <h4 class="text-sm font-medium">
+                            {{ group.title }} ({{ group.data.count }})
+                        </h4>
+                        <ul class="flex flex-col gap-1.5">
+                            <li
+                                v-for="row in group.data.rows"
+                                :key="row.id"
+                                class="flex flex-wrap items-center justify-between gap-2 rounded-lg border p-2"
+                            >
+                                <div class="min-w-0">
+                                    <p class="text-sm font-medium break-words">
+                                        {{ row.name }} · {{ row.position }}
+                                    </p>
+                                    <p class="text-sm text-muted-foreground">
+                                        {{ row.why }}
+                                    </p>
+                                </div>
+                                <Button
+                                    variant="outline"
+                                    class="max-lg:min-h-11"
+                                    :aria-label="`Open the application from ${row.name}`"
+                                    @click="focusOn(row)"
+                                    >Open</Button
+                                >
+                            </li>
+                        </ul>
+                        <p
+                            v-if="group.data.count > group.data.rows.length"
+                            class="text-sm text-muted-foreground"
+                        >
+                            And {{ group.data.count - group.data.rows.length }}
+                            more in the list below.
+                        </p>
+                    </div>
+                </template>
+            </section>
+            <p
+                v-if="list.filters.focus"
+                class="flex flex-wrap items-center gap-2 text-sm"
+                data-test="applications-focus"
+            >
+                Showing one application.
+                <Button
+                    variant="link"
+                    class="h-auto p-0 max-lg:min-h-11"
+                    @click="showAll"
+                    >Show all open applications</Button
+                >
+            </p>
             <div class="grid gap-3 sm:grid-cols-2 lg:max-w-3xl">
                 <div class="flex flex-col gap-1.5">
                     <Label id="filter-status-label">Step</Label>
@@ -792,6 +949,14 @@ const saveRetention = () => {
                             >Closed {{ viewing.closedAt }}</span
                         >
                     </div>
+                    <p
+                        v-if="viewing.autoRejectOn"
+                        class="text-sm text-muted-foreground"
+                        data-test="application-auto-reject"
+                    >
+                        Without a decision, KPOne closes this as Auto-rejected
+                        on {{ viewing.autoRejectOn }} and tells the candidate.
+                    </p>
 
                     <!-- The stage's own action comes first; the application's details follow (Daniel, HR-17a). -->
                     <form
@@ -1046,6 +1211,63 @@ const saveRetention = () => {
                         >
                             Each open of a CV is recorded.
                         </p>
+                    </section>
+
+                    <section
+                        class="flex flex-col gap-3 border-t pt-4"
+                        aria-labelledby="application-messages-title"
+                        data-test="application-messages"
+                    >
+                        <h3
+                            id="application-messages-title"
+                            class="text-sm font-semibold"
+                        >
+                            Messages
+                        </h3>
+                        <p
+                            v-if="!viewing.messages.length"
+                            class="text-sm text-muted-foreground"
+                        >
+                            No messages yet.
+                        </p>
+                        <ul v-else class="flex flex-col gap-2">
+                            <li
+                                v-for="(m, i) in viewing.messages"
+                                :key="i"
+                                class="rounded-lg border p-3 text-sm"
+                            >
+                                <details>
+                                    <summary
+                                        class="flex min-h-11 cursor-pointer list-none flex-wrap items-center justify-between gap-x-3 gap-y-1"
+                                    >
+                                        <span class="font-medium">
+                                            {{ m.label }}
+                                            <span
+                                                class="font-normal text-muted-foreground"
+                                                >·
+                                                {{
+                                                    m.recipient === 'mailbox'
+                                                        ? 'to the hiring mailbox'
+                                                        : 'to the candidate'
+                                                }}</span
+                                            >
+                                        </span>
+                                        <span class="text-muted-foreground"
+                                            >{{ m.atLabel }} ·
+                                            {{ m.statusLabel }}</span
+                                        >
+                                    </summary>
+                                    <p class="mt-2 font-medium break-words">
+                                        {{ m.subject }}
+                                    </p>
+                                    <p
+                                        class="mt-1 break-words whitespace-pre-line text-muted-foreground"
+                                    >
+                                        {{ m.body }}
+                                    </p>
+                                </details>
+                            </li>
+                        </ul>
                     </section>
                 </div>
             </SheetContent>
