@@ -42,6 +42,7 @@ use App\Http\Controllers\HR\ClaimsController as HrClaimsController;
 use App\Http\Controllers\HR\CredentialsController as HrCredentialsController;
 use App\Http\Controllers\HR\DashboardController as HrDashboardController;
 use App\Http\Controllers\HR\DisciplineController as HrDisciplineController;
+use App\Http\Controllers\HR\IncidentsController as HrIncidentsController;
 use App\Http\Controllers\HR\LeaveController;
 use App\Http\Controllers\HR\LettersController as HrLettersController;
 use App\Http\Controllers\HR\MemosController as HrMemosController;
@@ -459,6 +460,24 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::post('cycles/{cycle}/close', 'closeCycle')->whereUuid('cycle')->name('hr.appraisals.cycles.close');
             Route::post('{appraisal}', 'save')->whereUuid('appraisal')->name('hr.appraisals.save');
             Route::post('{appraisal}/sign-off', 'signOff')->whereUuid('appraisal')->name('hr.appraisals.sign-off');
+        });
+    });
+
+    // HR-10d incident reports (HR-PLAN 20.6; owner, 2026-11-10). Everyone reports; the Director and HR Manager handle.
+    Route::prefix('hr/incidents')->controller(HrIncidentsController::class)->middleware('sensitive.no-store')->group(function (): void {
+        Route::get('/', 'index')->middleware('permission:hr.incidents.report.own,hr.incidents.manage.organisation')->name('hr.incidents.index');
+        Route::get('{incident}', 'show')->whereUuid('incident')
+            ->middleware(['permission:hr.incidents.report.own,hr.incidents.manage.organisation', 'throttle:60,1'])->name('hr.incidents.show');
+        Route::get('{incident}/photos/{photo}', 'photo')->whereUuid('incident')->whereUuid('photo')
+            ->middleware(['permission:hr.incidents.report.own,hr.incidents.manage.organisation', 'throttle:60,1'])->name('hr.incidents.photos.show');
+        Route::post('/', 'store')->middleware(['permission:hr.incidents.report.own', 'throttle:10,1'])->name('hr.incidents.store');
+        Route::middleware(['permission:hr.incidents.manage.organisation', 'throttle:30,1'])->group(function (): void {
+            Route::post('{incident}/acknowledge', 'acknowledge')->whereUuid('incident')->name('hr.incidents.acknowledge');
+            Route::post('{incident}/notes', 'note')->whereUuid('incident')->name('hr.incidents.note');
+            Route::post('{incident}/actions', 'action')->whereUuid('incident')->name('hr.incidents.action');
+            Route::post('{incident}/actions/{action}/done', 'actionDone')->whereUuid('incident')->whereUuid('action')->name('hr.incidents.action-done');
+            Route::post('{incident}/link', 'link')->whereUuid('incident')->name('hr.incidents.link');
+            Route::post('{incident}/close', 'close')->whereUuid('incident')->name('hr.incidents.close');
         });
     });
 
