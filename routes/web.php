@@ -47,6 +47,7 @@ use App\Http\Controllers\HR\LeaveController;
 use App\Http\Controllers\HR\LettersController as HrLettersController;
 use App\Http\Controllers\HR\MemosController as HrMemosController;
 use App\Http\Controllers\HR\MessagesController as HrMessagesController;
+use App\Http\Controllers\HR\OpenShiftsController as HrOpenShiftsController;
 use App\Http\Controllers\HR\OutsideExportController as HrOutsideExportController;
 use App\Http\Controllers\HR\PayrollController as HrPayrollController;
 use App\Http\Controllers\HR\RecordsController as HrRecordsController;
@@ -259,6 +260,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::middleware(['permission:hr.records.manage.organisation', 'throttle:60,1'])->group(function (): void {
             Route::post('files', 'openFile')->name('hr.records.files.store');
             Route::post('locums', 'addLocum')->name('hr.records.locums.store');
+            // HR-15a: HR asks for a locum's sign-in; the account administrator creates and links it from the Staff page.
+            Route::post('{worker}/sign-in', 'askSignIn')->whereUuid('worker')->name('hr.records.sign-in.store');
+            Route::post('{worker}/sign-in/{signIn}/cancel', 'cancelSignIn')->whereUuid(['worker', 'signIn'])->name('hr.records.sign-in.cancel');
             Route::post('{worker}/periods', 'addPeriod')->whereUuid('worker')->name('hr.records.periods.store');
             Route::put('{worker}/periods/{period}', 'updatePeriod')->whereUuid(['worker', 'period'])->name('hr.records.periods.update');
             Route::post('{worker}/positions', 'addPosition')->whereUuid('worker')->name('hr.records.positions.store');
@@ -464,6 +468,21 @@ Route::middleware(['auth', 'verified'])->group(function () {
     });
 
     // HR-10d incident reports (HR-PLAN 20.6; owner, 2026-11-10). Everyone reports; the Director and HR Manager handle.
+    // HR-15b open shifts (HR-PLAN 21.4): managers post and confirm; a linked locum asks.
+    Route::prefix('hr/open-shifts')->controller(HrOpenShiftsController::class)->middleware('sensitive.no-store')->group(function (): void {
+        Route::get('/', 'index')->middleware('permission:hr.open_shifts.request.own,hr.open_shifts.manage.organisation')->name('hr.open-shifts.index');
+        Route::middleware(['permission:hr.open_shifts.request.own', 'throttle:30,1'])->group(function (): void {
+            Route::post('{shift}/ask', 'ask')->whereUuid('shift')->name('hr.open-shifts.ask');
+            Route::post('asks/{ask}/withdraw', 'withdrawAsk')->whereUuid('ask')->name('hr.open-shifts.ask-withdraw');
+        });
+        Route::middleware(['permission:hr.open_shifts.manage.organisation', 'throttle:30,1'])->group(function (): void {
+            Route::post('/', 'store')->name('hr.open-shifts.store');
+            Route::post('{shift}/withdraw', 'withdraw')->whereUuid('shift')->name('hr.open-shifts.withdraw');
+            Route::post('asks/{ask}/confirm', 'confirm')->whereUuid('ask')->name('hr.open-shifts.confirm');
+            Route::post('asks/{ask}/decline', 'decline')->whereUuid('ask')->name('hr.open-shifts.decline');
+        });
+    });
+
     Route::prefix('hr/incidents')->controller(HrIncidentsController::class)->middleware('sensitive.no-store')->group(function (): void {
         Route::get('/', 'index')->middleware('permission:hr.incidents.report.own,hr.incidents.manage.organisation')->name('hr.incidents.index');
         Route::get('{incident}', 'show')->whereUuid('incident')
@@ -718,6 +737,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->whereUuid('accountRequest')
         ->middleware(['permission:staff.manage.organisation', 'permission:access.manage.organisation', 'throttle:30,1'])
         ->name('staff.account-requests.done');
+    // HR-15a: the same people link the locum account they created to the locum's file.
+    Route::post('staff/locum-sign-ins/{signIn}/link', [StaffController::class, 'linkLocumSignIn'])
+        ->whereUuid('signIn')
+        ->middleware(['permission:staff.manage.organisation', 'permission:access.manage.organisation', 'throttle:30,1'])
+        ->name('staff.locum-sign-ins.link');
     Route::get('staff/create', [StaffController::class, 'create'])
         ->middleware(['permission:staff.manage.organisation', 'permission:access.manage.organisation'])
         ->name('staff.create');
