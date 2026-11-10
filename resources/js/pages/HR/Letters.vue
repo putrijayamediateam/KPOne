@@ -2,12 +2,19 @@
 // HR-10a /hr/letters: your own letters (everyone with a staff file) and issued letters and templates (Director, HR
 // Manager). Letters are printed and signed by hand; nothing is sent by email or message.
 import { Head, Link, router, usePage } from '@inertiajs/vue3';
+import { Ellipsis } from '@lucide/vue';
 import { computed, reactive, ref, watch } from 'vue';
 import SyntheticNote from '@/components/hr/records/SyntheticNote.vue';
 import { csrf } from '@/components/hr/records/types';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import { DateField } from '@/components/ui/date-field';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import OperationalConfirmDialog from '@/components/ui/OperationalConfirmDialog.vue';
@@ -51,6 +58,7 @@ type Template = {
     type: string;
     typeLabel: string;
     title: string;
+    titleBm: string;
     version: number;
     retired: boolean;
     lockVersion: number;
@@ -329,6 +337,7 @@ const tpl = reactive({
     id: '',
     type: '',
     title: '',
+    titleBm: '',
     bodyEn: '',
     bodyBm: '',
     lockVersion: 0,
@@ -341,6 +350,7 @@ const startTemplate = (template: Template | null = null) => {
         id: template?.id ?? '',
         type: template?.type ?? '',
         title: template?.title ?? '',
+        titleBm: template?.titleBm ?? '',
         bodyEn: template?.bodyEn ?? '',
         bodyBm: template?.bodyBm ?? '',
         lockVersion: template?.lockVersion ?? 0,
@@ -354,6 +364,7 @@ const saveTemplate = () => {
     tpl.processing = true;
     const data = {
         title: tpl.title,
+        title_bm: tpl.titleBm,
         body_en: tpl.bodyEn,
         body_bm: tpl.bodyBm,
         idempotency_key: tpl.key,
@@ -578,6 +589,16 @@ const textareaClass =
                             :label="statusLabel[letter.status]"
                             tone="neutral"
                         />
+                        <!-- The current state in words (Daniel): given or still to give. -->
+                        <StatusBadge
+                            v-else
+                            :status="letter.givenOn ? 'given' : 'waiting'"
+                            :label="
+                                letter.givenOn ? 'Given' : 'Waiting to be given'
+                            "
+                            :tone="letter.givenOn ? 'success' : 'neutral'"
+                            data-test="letter-given-state"
+                        />
                         <template v-if="!letter.refusal">
                             <Button
                                 as-child
@@ -600,9 +621,10 @@ const textareaClass =
                                     @click="askGiven(letter)"
                                     >Record given</Button
                                 >
+                                <!-- From 1024 px: Replace and Void as buttons; below, in a "…" menu (Daniel). -->
                                 <Button
                                     variant="outline"
-                                    class="max-lg:min-h-11"
+                                    class="hidden lg:inline-flex"
                                     :disabled="!activeTemplates.length"
                                     :aria-label="`Replace ${letter.reference}`"
                                     data-test="letter-replace"
@@ -611,12 +633,46 @@ const textareaClass =
                                 >
                                 <Button
                                     variant="outline"
-                                    class="text-destructive max-lg:min-h-11"
+                                    class="hidden text-destructive lg:inline-flex"
                                     :aria-label="`Void ${letter.reference}`"
                                     data-test="letter-void"
                                     @click="askVoid(letter)"
                                     >Void</Button
                                 >
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger as-child>
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            class="min-h-11 min-w-11 lg:hidden"
+                                            :aria-label="`More actions for ${letter.reference}`"
+                                            data-test="letter-menu"
+                                        >
+                                            <Ellipsis
+                                                class="size-4"
+                                                aria-hidden="true"
+                                            />
+                                        </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent
+                                        align="end"
+                                        class="w-48"
+                                    >
+                                        <DropdownMenuItem
+                                            class="min-h-11"
+                                            :disabled="!activeTemplates.length"
+                                            @select="startIssue(letter)"
+                                            >Replace</DropdownMenuItem
+                                        >
+                                        <DropdownMenuItem
+                                            class="min-h-11"
+                                            variant="destructive"
+                                            data-test="letter-menu-void"
+                                            @select="askVoid(letter)"
+                                            >Void</DropdownMenuItem
+                                        >
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
                             </template>
                         </template>
                     </div>
@@ -957,7 +1013,7 @@ const textareaClass =
                         <InputError :message="errors.type" />
                     </div>
                     <div class="grid gap-1.5">
-                        <Label for="tpl-title">Title *</Label>
+                        <Label for="tpl-title">English title *</Label>
                         <Input
                             id="tpl-title"
                             v-model="tpl.title"
@@ -966,6 +1022,24 @@ const textareaClass =
                             :aria-invalid="!!errors.title"
                         />
                         <InputError :message="errors.title" />
+                    </div>
+                    <div class="grid gap-1.5">
+                        <Label for="tpl-title-bm">Malay title *</Label>
+                        <Input
+                            id="tpl-title-bm"
+                            v-model="tpl.titleBm"
+                            maxlength="80"
+                            class="max-lg:h-11"
+                            aria-describedby="tpl-title-bm-help"
+                            :aria-invalid="!!errors.title_bm"
+                        />
+                        <p
+                            id="tpl-title-bm-help"
+                            class="text-xs text-muted-foreground"
+                        >
+                            A Malay letter prints the Malay title.
+                        </p>
+                        <InputError :message="errors.title_bm" />
                     </div>
                     <p
                         id="tpl-fields-help"

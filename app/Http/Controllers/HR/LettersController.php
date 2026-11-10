@@ -80,13 +80,13 @@ class LettersController extends Controller
     public function storeTemplate(Request $request, LetterService $letters): RedirectResponse
     {
         return $this->run($request, route('hr.letters.index', ['tab' => 'templates']), 'Template saved.',
-            fn () => $letters->createTemplate($request->user(), $request->only(['type', 'title', 'body_en', 'body_bm', 'idempotency_key'])));
+            fn () => $letters->createTemplate($request->user(), $request->only(['type', 'title', 'title_bm', 'body_en', 'body_bm', 'idempotency_key'])));
     }
 
     public function reviseTemplate(Request $request, LetterService $letters, string $template): RedirectResponse
     {
         return $this->run($request, route('hr.letters.index', ['tab' => 'templates']), 'Template saved as a new version. Letters already issued keep their text.',
-            fn () => $letters->reviseTemplate($request->user(), $template, $request->only(['title', 'body_en', 'body_bm', 'expected_lock_version', 'idempotency_key'])));
+            fn () => $letters->reviseTemplate($request->user(), $template, $request->only(['title', 'title_bm', 'body_en', 'body_bm', 'expected_lock_version', 'idempotency_key'])));
     }
 
     public function retireTemplate(Request $request, LetterService $letters, string $template): RedirectResponse

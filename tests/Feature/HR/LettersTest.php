@@ -69,6 +69,7 @@ class LettersTest extends VisitTestCase
         $this->post(route('hr.letters.templates.store'), $this->templateInput(['body_en' => 'Dear {name}, a stray { brace is not a field here.']))
             ->assertSessionHasErrors('body_en');
         $this->post(route('hr.letters.templates.store'), $this->templateInput(['type' => 'offer']))->assertSessionHasErrors('type');
+        $this->post(route('hr.letters.templates.store'), $this->templateInput(['title_bm' => '']))->assertSessionHasErrors('title_bm');
         $this->assertSame(0, DB::table('hr_letter_templates')->count());
 
         $template = $this->template();
@@ -115,6 +116,9 @@ class LettersTest extends VisitTestCase
         $this->assertSame('Tel: 03-2000 0001 · letters@clinic.test', $snapshot['letterhead']['contact']);
         $this->assertStringContainsString('as Clinic Assistant at Cheras from 1 March 2026', $snapshot['body']);
         $this->assertStringContainsString('Reference HRL/2026/000001, dated 10 November 2026', $snapshot['body']);
+        // A Malay letter carries the Malay title.
+        $this->assertSame('Confirmation of appointment', $snapshot['title']);
+        $this->assertSame('Pengesahan pelantikan', json_decode(Crypt::decryptString((string) $letters[1]->snapshot_encrypted), true)['title']);
 
         // A later template change or a new position never reaches an issued letter.
         app(StaffFileService::class)->addPosition($this->hr, $worker->public_id, ['title' => 'Senior Clinic Assistant', 'from_date' => '2026-11-01', 'idempotency_key' => (string) Str::uuid()]);
@@ -301,7 +305,7 @@ class LettersTest extends VisitTestCase
     /** @param array<string, mixed> $overrides */
     private function templateInput(array $overrides = []): array
     {
-        return ['type' => 'confirmation', 'title' => 'Confirmation of appointment', 'body_en' => self::EN, 'body_bm' => self::BM,
+        return ['type' => 'confirmation', 'title' => 'Confirmation of appointment', 'title_bm' => 'Pengesahan pelantikan', 'body_en' => self::EN, 'body_bm' => self::BM,
             'idempotency_key' => (string) Str::uuid(), ...$overrides];
     }
 

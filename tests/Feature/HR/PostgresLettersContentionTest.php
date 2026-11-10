@@ -146,7 +146,7 @@ class PostgresLettersContentionTest extends TestCase
         $hr2 = $this->user($organisation, $branch, $manage);
         $staff = $this->user($organisation, $branch, [RecordPermissions::VIEW_OWN], 'ca');
         $worker = app(StaffFileService::class)->openFile($hr, ['user_id' => $staff->id, 'idempotency_key' => (string) Str::uuid()]);
-        $template = app(LetterService::class)->createTemplate($hr, ['type' => 'confirmation', 'title' => 'Synthetic confirmation',
+        $template = app(LetterService::class)->createTemplate($hr, ['type' => 'confirmation', 'title' => 'Synthetic confirmation', 'title_bm' => 'Pengesahan sintetik',
             'body_en' => 'Dear {name}, this synthetic letter {reference} confirms your appointment.', 'body_bm' => 'Kepada {name}, surat sintetik {reference} ini mengesahkan pelantikan anda.',
             'idempotency_key' => (string) Str::uuid()]);
 

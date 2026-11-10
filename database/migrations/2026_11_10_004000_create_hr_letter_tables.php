@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\Schema;
 
 /**
  * HR-10a letters (HR-PLAN 20.3; owner, 2026-11-10: "all continue with your recommendations"). HR enters letter templates
- * (confirmation, warning, show-cause, other; EN and BM; each save a new version; KPOne ships none). Issuing a letter to a
+ * (confirmation, warning, show-cause, other; an English and a Malay title and text; each save a new version; KPOne ships none). Issuing a letter to a
  * staff file stores an encrypted, immutable snapshot (the filled text, the letterhead text and logo, the template version)
  * under a number HRL/{year}/{6-digit} from a locked yearly counter, never reused. A letter is never edited: a correction is
  * a new letter that replaces it, and a void keeps the row with its reason. Nothing is deleted or truncated.
@@ -39,7 +39,8 @@ return new class extends Migration
             $t->unsignedBigInteger('organisation_id');
             $t->unsignedBigInteger('template_id');
             $t->unsignedInteger('version');
-            $t->string('title', 80);
+            $t->string('title', 80); // English title
+            $t->string('title_bm', 80); // Malay title (Daniel: a Malay letter carries a Malay title)
             $t->text('body_en');
             $t->text('body_bm');
             $t->unsignedBigInteger('created_by_user_id');
@@ -113,6 +114,7 @@ return new class extends Migration
             AND ((retired_at IS NULL) = (retired_by_user_id IS NULL)))");
         DB::statement("ALTER TABLE hr_letter_template_versions ADD CONSTRAINT hr_letter_tpl_versions_shape CHECK (
             version >= 1 AND char_length(btrim(title)) BETWEEN 3 AND 80 AND title !~ '[<>{}\\r\\n]'
+            AND char_length(btrim(title_bm)) BETWEEN 3 AND 80 AND title_bm !~ '[<>{}\\r\\n]'
             AND char_length(btrim(body_en)) BETWEEN 20 AND 5000 AND char_length(btrim(body_bm)) BETWEEN 20 AND 5000
             AND body_en !~ '[<>]' AND body_bm !~ '[<>]')");
         DB::statement('ALTER TABLE hr_letter_counters ADD CONSTRAINT hr_letter_counters_shape CHECK (year BETWEEN 2000 AND 2999 AND last_number BETWEEN 0 AND 999999)');

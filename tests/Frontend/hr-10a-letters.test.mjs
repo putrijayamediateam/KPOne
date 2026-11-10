@@ -80,3 +80,31 @@ test('My HR details links to your letters', () => {
     assert.match(template('records'), /href="\/hr\/letters"/);
     assert.match(source.records, /lettersMine\?: number;/);
 });
+
+test('Daniel round 1: given state, the "…" menu below 1024 px, the closing line, 30 mm stamp space, a real page margin', () => {
+    const page = template('page');
+    assert.match(page, /'Waiting to be given'/);
+    assert.match(page, /data-test="letter-given-state"/);
+    assert.match(page, /class="hidden lg:inline-flex"/);
+    assert.match(page, /class="min-h-11 min-w-11 lg:hidden"/);
+    assert.match(
+        page,
+        /:aria-label="`More actions for \$\{letter\.reference\}`"/,
+    );
+    assert.match(
+        page,
+        /variant="destructive"[\s\S]{0,120}@select="askVoid\(letter\)"/,
+    );
+    assert.match(page, /for="tpl-title-bm">Malay title \*/);
+    const letter = template('letter');
+    assert.match(letter, /data-test="letter-closing"/);
+    assert.match(script('letter'), /closing: 'Yang benar,'/);
+    assert.match(letter, /h-\[30mm\]/);
+    assert.match(letter, /max-w-\[210mm\]/);
+    assert.match(letter, /min-h-screen/);
+    // @page sits outside @media print, so the 15 mm margin always applies to printed pages.
+    assert.match(
+        source.letter,
+        /<style>\s*\/\*[^*]*\*\/\s*@page \{\s*size: A4;\s*margin: 15mm;/,
+    );
+});

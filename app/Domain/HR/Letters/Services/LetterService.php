@@ -53,11 +53,11 @@ final class LetterService
         if (! array_key_exists($type, self::TYPES)) {
             throw ValidationException::withMessages(['type' => 'Choose the kind of letter.']);
         }
-        [$title, $en, $bm] = self::validatedTemplate($type, $input);
+        [$title, $titleBm, $en, $bm] = self::validatedTemplate($type, $input);
 
-        return DB::transaction(function () use ($actor, $key, $type, $title, $en, $bm): string {
+        return DB::transaction(function () use ($actor, $key, $type, $title, $titleBm, $en, $bm): string {
             $actor = $this->support->lock($actor, LetterPermissions::ISSUE);
-            $hash = $this->support->hash([$actor->id, 'letter_template_create', $type, $title, $en, $bm]);
+            $hash = $this->support->hash([$actor->id, 'letter_template_create', $type, $title, $titleBm, $en, $bm]);
             if (($replay = $this->support->replay($actor, $key, 'letter_template_create', $hash)) !== null) {
                 return $replay;
             }
@@ -66,7 +66,7 @@ final class LetterService
             $id = DB::table('hr_letter_templates')->insertGetId(['public_id' => $publicId, 'organisation_id' => $actor->organisation_id, 'type' => $type,
                 'current_version' => 1, 'created_by_user_id' => $actor->id, 'lock_version' => 1, 'created_at' => $now, 'updated_at' => $now]);
             DB::table('hr_letter_template_versions')->insert(['organisation_id' => $actor->organisation_id, 'template_id' => $id, 'version' => 1, 'title' => $title,
-                'body_en' => $en, 'body_bm' => $bm, 'created_by_user_id' => $actor->id, 'created_at' => $now]);
+                'title_bm' => $titleBm, 'body_en' => $en, 'body_bm' => $bm, 'created_by_user_id' => $actor->id, 'created_at' => $now]);
             $this->support->remember($actor, $key, 'letter_template_create', $hash, $publicId);
             $this->support->audit->record('hr.letters.template_created', null, ['template_id' => $id, 'type' => $type], $actor, null, $actor->organisation_id);
 
@@ -81,8 +81,8 @@ final class LetterService
         DB::transaction(function () use ($actor, $templateId, $input, $key): void {
             $actor = $this->support->lock($actor, LetterPermissions::ISSUE);
             $template = $this->template($actor, $templateId, true);
-            [$title, $en, $bm] = self::validatedTemplate((string) $template->type, $input);
-            $hash = $this->support->hash([$actor->id, 'letter_template_revise', $templateId, $title, $en, $bm]);
+            [$title, $titleBm, $en, $bm] = self::validatedTemplate((string) $template->type, $input);
+            $hash = $this->support->hash([$actor->id, 'letter_template_revise', $templateId, $title, $titleBm, $en, $bm]);
             if ($this->support->replay($actor, $key, 'letter_template_revise', $hash) !== null) {
                 return;
             }
@@ -91,14 +91,14 @@ final class LetterService
                 throw ValidationException::withMessages(['template' => 'This template was retired. Make a new one.']);
             }
             $current = DB::table('hr_letter_template_versions')->where('template_id', $template->id)->where('version', $template->current_version)->first();
-            if ($current !== null && $current->title === $title && $current->body_en === $en && $current->body_bm === $bm) {
+            if ($current !== null && $current->title === $title && $current->title_bm === $titleBm && $current->body_en === $en && $current->body_bm === $bm) {
                 throw ValidationException::withMessages(['template' => 'Nothing was changed.']);
             }
             $now = now()->utc();
             $version = (int) $template->current_version + 1;
             DB::table('hr_letter_templates')->where('id', $template->id)->update(['current_version' => $version, 'lock_version' => (int) $template->lock_version + 1, 'updated_at' => $now]);
             DB::table('hr_letter_template_versions')->insert(['organisation_id' => $actor->organisation_id, 'template_id' => $template->id, 'version' => $version,
-                'title' => $title, 'body_en' => $en, 'body_bm' => $bm, 'created_by_user_id' => $actor->id, 'created_at' => $now]);
+                'title' => $title, 'title_bm' => $titleBm, 'body_en' => $en, 'body_bm' => $bm, 'created_by_user_id' => $actor->id, 'created_at' => $now]);
             $this->support->remember($actor, $key, 'letter_template_revise', $hash, $templateId);
             $this->support->audit->record('hr.letters.template_revised', null, ['template_id' => (int) $template->id, 'version' => $version], $actor, null, $actor->organisation_id);
         }, 3);
@@ -144,7 +144,7 @@ final class LetterService
                 $this->support->audit->record('hr.records.value_shown', $worker, ['field' => 'legal_name', 'via' => 'letter_preview'], $actor, null, $actor->organisation_id);
             }
 
-            return ['title' => (string) $version->title, 'language' => $language, 'templateVersion' => (int) $version->version,
+            return ['title' => self::title($version, $language), 'language' => $language, 'templateVersion' => (int) $version->version,
                 'body' => $this->fill($worker, $version, $language, $details, 'HRL/'.$today->year.'/……', $today)];
         });
     }
@@ -191,7 +191,7 @@ final class LetterService
                 'reference' => $reference,
                 'type' => (string) $version->type,
                 'language' => $language,
-                'title' => (string) $version->title,
+                'title' => self::title($version, $language),
                 'templateVersion' => (int) $version->version,
                 'recipient' => $this->recipientName($worker),
                 'date' => $this->date($now, $language),
@@ -350,13 +350,17 @@ final class LetterService
 
     /**
      * @param  array<string, mixed>  $input
-     * @return array{0:string, 1:string, 2:string}
+     * @return array{0:string, 1:string, 2:string, 3:string}
      */
     public static function validatedTemplate(string $type, array $input): array
     {
-        $title = is_string($input['title'] ?? null) ? trim($input['title']) : '';
-        if (mb_strlen($title) < 3 || mb_strlen($title) > 80 || preg_match('/[<>{}\r\n]/', $title) === 1) {
-            throw ValidationException::withMessages(['title' => 'Use 3 to 80 characters, without < > { } or line breaks.']);
+        $titles = [];
+        foreach (['title' => 'English', 'title_bm' => 'Malay'] as $field => $label) {
+            $title = is_string($input[$field] ?? null) ? trim($input[$field]) : '';
+            if (mb_strlen($title) < 3 || mb_strlen($title) > 80 || preg_match('/[<>{}\r\n]/', $title) === 1) {
+                throw ValidationException::withMessages([$field => "Write the {$label} title: 3 to 80 characters, without < > { } or line breaks."]);
+            }
+            $titles[] = $title;
         }
         $bodies = [];
         foreach (['body_en' => 'English', 'body_bm' => 'Malay'] as $field => $label) {
@@ -382,7 +386,13 @@ final class LetterService
             $bodies[] = $body;
         }
 
-        return [$title, $bodies[0], $bodies[1]];
+        return [$titles[0], $titles[1], $bodies[0], $bodies[1]];
+    }
+
+    /** The letter's title in its own language. */
+    public static function title(\stdClass $version, string $language): string
+    {
+        return $language === 'bm' ? (string) $version->title_bm : (string) $version->title;
     }
 
     /**

@@ -85,10 +85,10 @@ final class LettersPageService
     {
         $rows = DB::table('hr_letter_templates as t')->join('hr_letter_template_versions as v', fn ($j) => $j->on('v.template_id', '=', 't.id')->on('v.version', '=', 't.current_version'))
             ->where('t.organisation_id', $actor->organisation_id)->orderByRaw('t.retired_at IS NOT NULL')->orderBy('v.title')->limit(100)
-            ->get(['t.public_id', 't.type', 't.current_version', 't.retired_at', 't.lock_version', 'v.title', 'v.body_en', 'v.body_bm']);
+            ->get(['t.public_id', 't.type', 't.current_version', 't.retired_at', 't.lock_version', 'v.title', 'v.title_bm', 'v.body_en', 'v.body_bm']);
 
         return array_values($rows->map(fn (\stdClass $t): array => ['id' => (string) $t->public_id, 'type' => (string) $t->type, 'typeLabel' => LetterService::TYPES[$t->type] ?? (string) $t->type,
-            'title' => (string) $t->title, 'version' => (int) $t->current_version, 'retired' => $t->retired_at !== null, 'lockVersion' => (int) $t->lock_version,
+            'title' => (string) $t->title, 'titleBm' => (string) $t->title_bm, 'version' => (int) $t->current_version, 'retired' => $t->retired_at !== null, 'lockVersion' => (int) $t->lock_version,
             'bodyEn' => (string) $t->body_en, 'bodyBm' => (string) $t->body_bm, 'hasDetails' => str_contains((string) $t->body_en.$t->body_bm, '{details}')])->all());
     }
 
@@ -110,7 +110,7 @@ final class LettersPageService
             ->where('l.organisation_id', $actor->organisation_id)->orderByDesc('l.issued_at')->orderByDesc('l.id')
             ->leftJoin('hr_letters as r', 'r.replaces_letter_id', '=', 'l.id')
             ->select(['l.id', 'l.public_id', 'l.worker_id', 'l.type', 'l.language', 'l.reference', 'l.issued_at', 'l.issued_by_user_id', 'l.given_on',
-                'l.voided_at', 'l.void_reason', 'l.lock_version', 'l.replaces_letter_id', 'v.title', 'r.reference as replaced_by', 'r.voided_at as replaced_by_voided_at']);
+                'l.voided_at', 'l.void_reason', 'l.lock_version', 'l.replaces_letter_id', 'v.title', 'v.title_bm', 'r.reference as replaced_by', 'r.voided_at as replaced_by_voided_at']);
     }
 
     /** @return array<string, mixed> */
@@ -118,7 +118,7 @@ final class LettersPageService
     {
         $status = $r->voided_at === null ? 'current' : ($r->void_reason === 'replaced' ? 'replaced' : 'void');
 
-        return ['id' => (string) $r->public_id, 'reference' => (string) $r->reference, 'title' => (string) $r->title, 'type' => (string) $r->type,
+        return ['id' => (string) $r->public_id, 'reference' => (string) $r->reference, 'title' => LetterService::title($r, (string) $r->language), 'type' => (string) $r->type,
             'typeLabel' => LetterService::TYPES[$r->type] ?? (string) $r->type, 'language' => $r->language === 'en' ? 'English' : 'Malay',
             'issuedOn' => CarbonImmutable::parse((string) $r->issued_at, 'UTC')->setTimezone($zone)->format('j M Y'),
             'givenOn' => $r->given_on === null ? null : CarbonImmutable::parse((string) $r->given_on)->format('j M Y'),
