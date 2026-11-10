@@ -104,6 +104,8 @@ final class CandidateLink
             'interview' => self::interviewView($application),
             // HR-17d: the clinic's documents for a confirmed interview (title and size only).
             'documents' => InterviewDocuments::candidateList($application),
+            // HR-17e: whether they ticked the talent pool and can still leave it.
+            'pool' => ['consented' => (bool) $application->talent_pool_consent, 'left' => $application->pool_withdrawn_at !== null],
             'submittedOn' => CarbonImmutable::parse($application->submitted_at)->setTimezone($zone)->toDateString(),
             'messages' => array_map(fn (array $m): array => ['label' => HiringTemplates::candidateLabel($m['template']), 'subject' => $m['subject'], 'body' => $m['body'], 'at' => $m['at']],
                 HiringMessenger::listFor($application, true)),

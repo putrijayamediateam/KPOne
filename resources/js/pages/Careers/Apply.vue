@@ -54,6 +54,8 @@ const form = useForm({
     apc_year: '',
     apc_expiry: '',
     privacy_accepted: false,
+    // HR-17e: optional and separate; never preset.
+    talent_pool: false,
     website: '',
     cv: null as File | null,
 });
@@ -1008,6 +1010,37 @@ const field =
                             >
                                 {{ form.errors.privacy_accepted }}
                             </p>
+                            <label
+                                class="flex min-h-11 cursor-pointer items-start gap-3 rounded-xl border border-zinc-200 p-3 text-sm dark:border-zinc-800"
+                            >
+                                <input
+                                    v-model="form.talent_pool"
+                                    type="checkbox"
+                                    class="mt-0.5 size-5 accent-pink-600"
+                                    data-test="apply-talent-pool"
+                                />
+                                <span
+                                    ><span class="font-medium">Optional:</span>
+                                    keep my details for future openings. If this
+                                    application does not go ahead, the clinic
+                                    may contact me about another position of the
+                                    same kind, for a period it sets. I can
+                                    remove myself at any time on my private
+                                    page.
+                                    <span
+                                        lang="ms"
+                                        class="block text-zinc-600 dark:text-zinc-400"
+                                        >Pilihan: simpan butiran saya untuk
+                                        jawatan akan datang. Jika permohonan ini
+                                        tidak diteruskan, klinik boleh
+                                        menghubungi saya tentang jawatan lain
+                                        yang sama jenis, untuk tempoh yang
+                                        ditetapkannya. Saya boleh mengeluarkan
+                                        diri saya pada bila-bila masa di halaman
+                                        peribadi saya.</span
+                                    ></span
+                                >
+                            </label>
                         </section>
                     </template>
 

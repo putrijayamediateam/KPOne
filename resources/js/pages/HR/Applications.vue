@@ -24,7 +24,7 @@ import { EmptyState, ErrorState } from '@/components/ui/state';
 import { StatusBadge } from '@/components/ui/status';
 import { OperationalTabs } from '@/components/ui/tabs';
 
-type Tab = 'applications' | 'positions' | 'settings';
+type Tab = 'applications' | 'pool' | 'positions' | 'settings';
 type Option = { value: string; label: string };
 type Application = {
     id: string;
@@ -81,6 +81,29 @@ type Application = {
         // HR-17d: which interview documents the candidate has downloaded.
         documents?: { title: string; downloadedAt: string | null }[];
     } | null;
+    // HR-17e: the talent pool and the staff-account request.
+    poolUntil?: string | null;
+    poolConsent?: boolean;
+    accountRequest?: {
+        id: string;
+        status: 'open' | 'done' | 'cancelled';
+        statusLabel: string;
+        at: string;
+        lockVersion: number;
+    } | null;
+};
+type PoolMember = {
+    id: string;
+    name: string;
+    position: string;
+    type: string;
+    result: string;
+    resultLabel: string;
+    closedOn: string;
+    until: string;
+    lockVersion: number;
+    invitedTo: string[];
+    positions: Option[];
 };
 type InterviewDocumentGroup = {
     type: string;
@@ -149,6 +172,12 @@ const props = defineProps<{
         };
         checklist: { version: number; items: string[] };
         interviewDocuments: InterviewDocumentGroup[];
+        pool: {
+            version: number;
+            days: number | null;
+            pending: { days: number | null; from: string } | null;
+            members: PoolMember[];
+        };
         needsYou: {
             picks: { count: number; rows: NeedsYouRow[] };
             today: { count: number; rows: NeedsYouRow[] };
@@ -172,6 +201,7 @@ const failure = computed(
 );
 const tabLabels: Record<Tab, string> = {
     applications: 'Applications',
+    pool: 'Talent pool',
     positions: 'Positions',
     settings: 'Settings',
 };
@@ -568,6 +598,111 @@ const saveRetention = () => {
             preserveScroll: true,
             onSuccess: () => (retention.key = crypto.randomUUID()),
             onFinish: () => (retention.processing = false),
+        },
+    );
+};
+
+// HR-17e: the talent pool period, invitations and the staff-account request (HR-PLAN 19.8).
+const poolDays = reactive({
+    days: props.applications.pool.days?.toString() ?? '',
+    key: crypto.randomUUID(),
+    processing: false,
+});
+const poolDaysDirty = computed(
+    () =>
+        poolDays.days.trim() !==
+        (props.applications.pool.days?.toString() ?? ''),
+);
+const savePoolDays = () => {
+    poolDays.processing = true;
+    router.post(
+        '/hr/applications/pool-days',
+        {
+            pool_days:
+                poolDays.days.trim() === '' ? null : poolDays.days.trim(),
+            expected_version: props.applications.pool.version,
+            idempotency_key: poolDays.key,
+        },
+        {
+            preserveScroll: true,
+            onSuccess: () => (poolDays.key = crypto.randomUUID()),
+            onFinish: () => (poolDays.processing = false),
+        },
+    );
+};
+const invitePick = reactive<Record<string, string>>({});
+const inviting = ref<{ member: PoolMember; position: Option } | null>(null);
+const inviteKey = ref(crypto.randomUUID());
+const inviteProcessing = ref(false);
+const askInvite = (member: PoolMember) => {
+    const position = member.positions.find(
+        (p) => p.value === invitePick[member.id],
+    );
+
+    if (position) {
+        inviting.value = { member, position };
+    }
+};
+const sendInvite = () => {
+    const target = inviting.value;
+
+    if (!target) {
+        return;
+    }
+
+    inviteProcessing.value = true;
+    router.post(
+        `/hr/applications/${target.member.id}/invite`,
+        {
+            position: target.position.value,
+            expected_lock_version: target.member.lockVersion,
+            idempotency_key: inviteKey.value,
+        },
+        {
+            preserveScroll: true,
+            onSuccess: () => {
+                inviting.value = null;
+                inviteKey.value = crypto.randomUUID();
+            },
+            onFinish: () => (inviteProcessing.value = false),
+        },
+    );
+};
+const invitationLink = computed(
+    () =>
+        (page as unknown as { flash?: { invitationLink?: string } }).flash
+            ?.invitationLink ?? null,
+);
+const linkCopied = ref<'copied' | 'select' | null>(null);
+const copyInvitationLink = async (event: Event) => {
+    try {
+        await navigator.clipboard.writeText(invitationLink.value ?? '');
+        linkCopied.value = 'copied';
+    } catch {
+        const input = (event.currentTarget as HTMLElement)
+            .closest('[data-test="pool-invitation-link"]')
+            ?.querySelector('input');
+        input?.select();
+        linkCopied.value = 'select';
+    }
+};
+const accountAction = reactive({ key: crypto.randomUUID(), processing: false });
+const accountPost = (path: string, lockVersion: number) => {
+    accountAction.processing = true;
+    router.post(
+        path,
+        {
+            expected_lock_version: lockVersion,
+            idempotency_key: accountAction.key,
+            ...(list.value?.filters ?? {}),
+        },
+        {
+            preserveScroll: true,
+            onSuccess: () => {
+                accountAction.key = crypto.randomUUID();
+                viewing.value = null;
+            },
+            onFinish: () => (accountAction.processing = false),
         },
     );
 };
@@ -1038,6 +1173,137 @@ const removeDocument = () => {
             </ul>
         </section>
 
+        <!-- Talent pool (HR-17e) -->
+        <section
+            v-if="applications.tab === 'pool'"
+            aria-labelledby="pool-title"
+            class="flex flex-col gap-3"
+            data-test="talent-pool"
+        >
+            <div class="flex flex-col gap-1">
+                <h2 id="pool-title" class="text-base font-semibold">
+                    Talent pool
+                </h2>
+                <p class="max-w-3xl text-sm text-muted-foreground">
+                    Candidates who ticked the optional talent-pool box and whose
+                    application closed as Passed or Failed, kept for the period
+                    set in Settings. You can invite them to an open position of
+                    the same type; that starts a new application at phone
+                    screening with the same answers and CV. They can leave the
+                    pool on their private page at any time.
+                </p>
+            </div>
+            <div
+                v-if="invitationLink"
+                class="flex max-w-3xl flex-col gap-2 rounded-xl border bg-card p-3 text-sm"
+                data-test="pool-invitation-link"
+            >
+                <p>
+                    <strong
+                        >The candidate's new private link, shown once.</strong
+                    >
+                    {{
+                        applications.email.enabled
+                            ? 'It was also emailed to them.'
+                            : 'Hiring email is off, so pass it on yourself, by phone or WhatsApp.'
+                    }}
+                </p>
+                <div class="flex flex-wrap items-center gap-2">
+                    <Input
+                        :model-value="invitationLink"
+                        readonly
+                        aria-label="New private link"
+                        class="min-w-0 flex-1 max-lg:min-h-11"
+                    />
+                    <Button
+                        variant="outline"
+                        class="max-lg:min-h-11"
+                        @click="copyInvitationLink"
+                        >Copy</Button
+                    >
+                </div>
+                <p
+                    v-if="linkCopied"
+                    role="status"
+                    class="text-muted-foreground"
+                >
+                    {{
+                        linkCopied === 'copied'
+                            ? 'Copied.'
+                            : 'Copy did not work here. The link is selected: copy it by hand.'
+                    }}
+                </p>
+            </div>
+            <ErrorState
+                v-if="errors.position || errors.application"
+                :message="errors.position ?? errors.application ?? ''"
+            />
+            <EmptyState
+                v-if="applications.pool.days === null"
+                title="No talent pool period set"
+                description="Until a period is set in Settings, nobody is kept in the pool beyond the usual retention."
+            />
+            <EmptyState
+                v-else-if="applications.pool.members.length === 0"
+                title="Nobody in the talent pool"
+                description="A candidate appears here once their application closes as Passed or Failed, if they ticked the box."
+            />
+            <ul v-else class="flex flex-col gap-2">
+                <li
+                    v-for="member in applications.pool.members"
+                    :key="member.id"
+                    class="flex flex-col gap-3 rounded-xl border bg-card p-3 text-sm lg:flex-row lg:items-center lg:justify-between"
+                    data-test="pool-member"
+                >
+                    <div class="flex min-w-0 flex-col gap-0.5">
+                        <span class="font-medium break-words">{{
+                            member.name
+                        }}</span>
+                        <span class="text-muted-foreground"
+                            >{{ member.position }} · {{ member.resultLabel }}
+                            {{ member.closedOn }} · in the pool until
+                            {{ member.until }}</span
+                        >
+                        <span
+                            v-if="member.invitedTo.length"
+                            class="text-muted-foreground"
+                            >Invited to {{ member.invitedTo.join(', ') }}</span
+                        >
+                    </div>
+                    <div
+                        v-if="member.positions.length"
+                        class="flex flex-wrap items-center gap-2"
+                    >
+                        <span :id="`pool-pick-${member.id}`" class="sr-only"
+                            >Position to invite {{ member.name }} to</span
+                        >
+                        <OperationalSelect
+                            :model-value="invitePick[member.id] ?? ''"
+                            :options="member.positions"
+                            label="Open position"
+                            :labelledby="`pool-pick-${member.id}`"
+                            placeholder="Choose a position"
+                            trigger-class="min-w-48 max-lg:min-h-11"
+                            @update:model-value="
+                                (v) => (invitePick[member.id] = String(v))
+                            "
+                        />
+                        <Button
+                            variant="outline"
+                            class="max-lg:min-h-11"
+                            :disabled="!invitePick[member.id]"
+                            data-test="pool-invite"
+                            @click="askInvite(member)"
+                            >Invite</Button
+                        >
+                    </div>
+                    <p v-else class="text-muted-foreground">
+                        No open position of this type.
+                    </p>
+                </li>
+            </ul>
+        </section>
+
         <!-- Settings -->
         <section
             v-if="applications.tab === 'settings'"
@@ -1099,6 +1365,64 @@ const removeDocument = () => {
                     data-test="retention-save"
                     @click="saveRetention"
                     >{{ retention.processing ? 'Saving…' : 'Save' }}</Button
+                >
+            </div>
+        </section>
+
+        <!-- Settings: the talent pool period (HR-17e) -->
+        <section
+            v-if="applications.tab === 'settings'"
+            aria-labelledby="pool-days-title"
+            class="flex max-w-xl flex-col gap-3 rounded-xl border bg-card p-4"
+            data-test="pool-settings"
+        >
+            <h2 id="pool-days-title" class="text-base font-semibold">
+                How long the talent pool keeps a candidate
+            </h2>
+            <p class="text-sm text-muted-foreground">
+                Days after a Passed or Failed application closes that a
+                candidate who ticked the talent-pool box is kept, and can be
+                invited to a new position. KPOne ships no number. Leave it empty
+                to keep nobody in the pool beyond the usual retention.
+            </p>
+            <p class="text-sm" data-test="pool-days-in-force">
+                In force:
+                <strong>{{
+                    applications.pool.days === null
+                        ? 'Not set (no pool)'
+                        : `${applications.pool.days} days`
+                }}</strong>
+            </p>
+            <p v-if="applications.pool.pending" class="text-sm">
+                From {{ applications.pool.pending.from }}:
+                {{
+                    applications.pool.pending.days === null
+                        ? 'no pool'
+                        : `${applications.pool.pending.days} days`
+                }}. A first or shorter period waits
+                {{ applications.options.graceDays }} days, so a mistake can be
+                undone.
+            </p>
+            <div class="flex flex-col gap-1.5">
+                <Label for="pool-days">Days after closing</Label>
+                <Input
+                    id="pool-days"
+                    v-model="poolDays.days"
+                    inputmode="numeric"
+                    class="max-w-40 max-lg:min-h-11"
+                    :aria-invalid="errors.pool_days ? 'true' : undefined"
+                    aria-describedby="pool-days-error"
+                />
+                <InputError id="pool-days-error" :message="errors.pool_days" />
+            </div>
+            <div>
+                <Button
+                    class="max-lg:min-h-11"
+                    :variant="poolDaysDirty ? 'default' : 'outline'"
+                    :disabled="!poolDaysDirty || poolDays.processing"
+                    data-test="pool-days-save"
+                    @click="savePoolDays"
+                    >{{ poolDays.processing ? 'Saving…' : 'Save' }}</Button
                 >
             </div>
         </section>
@@ -1667,6 +1991,83 @@ const removeDocument = () => {
                         </p>
                     </section>
 
+                    <section
+                        v-if="['passed', 'failed'].includes(viewing.status)"
+                        class="flex flex-col gap-2 rounded-xl border p-3"
+                        aria-labelledby="after-result-title"
+                        data-test="application-after-result"
+                    >
+                        <h3
+                            id="after-result-title"
+                            class="text-sm font-semibold"
+                        >
+                            After the result
+                        </h3>
+                        <p class="text-sm" data-test="application-pool-state">
+                            {{
+                                viewing.poolUntil
+                                    ? `In the talent pool until ${viewing.poolUntil}.`
+                                    : viewing.poolConsent
+                                      ? 'Ticked the talent pool, but no pool period is set or it has ended.'
+                                      : 'Not in the talent pool.'
+                            }}
+                        </p>
+                        <template v-if="viewing.status === 'passed'">
+                            <p
+                                v-if="viewing.accountRequest"
+                                class="text-sm"
+                                data-test="application-account-request"
+                            >
+                                Staff account:
+                                {{ viewing.accountRequest.statusLabel }} ·
+                                {{ viewing.accountRequest.at }}
+                            </p>
+                            <p v-else class="text-sm text-muted-foreground">
+                                No offer is made in KPOne. When they accept, ask
+                                the account administrator for a staff account.
+                            </p>
+                            <div class="flex flex-wrap gap-2">
+                                <Button
+                                    v-if="
+                                        viewing.accountRequest?.status !==
+                                            'open' &&
+                                        viewing.accountRequest?.status !==
+                                            'done' &&
+                                        !viewing.purged
+                                    "
+                                    variant="outline"
+                                    class="max-lg:min-h-11"
+                                    :disabled="accountAction.processing"
+                                    data-test="application-account-ask"
+                                    @click="
+                                        accountPost(
+                                            `/hr/applications/${viewing.id}/account-request`,
+                                            viewing.lockVersion,
+                                        )
+                                    "
+                                    >Ask for a staff account</Button
+                                >
+                                <Button
+                                    v-if="
+                                        viewing.accountRequest?.status ===
+                                        'open'
+                                    "
+                                    variant="outline"
+                                    class="max-lg:min-h-11"
+                                    :disabled="accountAction.processing"
+                                    data-test="application-account-cancel"
+                                    @click="
+                                        accountPost(
+                                            `/hr/applications/account-requests/${viewing.accountRequest.id}/cancel`,
+                                            viewing.accountRequest.lockVersion,
+                                        )
+                                    "
+                                    >Cancel the request</Button
+                                >
+                            </div>
+                        </template>
+                    </section>
+
                     <div v-if="viewing.next.length" class="flex flex-col gap-2">
                         <h3 class="text-sm font-semibold">Move to</h3>
                         <div class="flex flex-wrap gap-2">
@@ -1832,6 +2233,16 @@ const removeDocument = () => {
                 </div>
             </SheetContent>
         </Sheet>
+
+        <OperationalConfirmDialog
+            :open="inviting !== null"
+            :title="`Invite ${inviting?.member.name ?? ''} to ${inviting?.position.label ?? ''}?`"
+            description="A new application starts at phone screening with the same answers and CV, and the candidate gets a new private link. Call them first."
+            confirm-label="Invite"
+            :processing="inviteProcessing"
+            @update:open="(open) => !open && (inviting = null)"
+            @confirm="sendInvite"
+        />
 
         <OperationalConfirmDialog
             :open="removingDocument !== null"

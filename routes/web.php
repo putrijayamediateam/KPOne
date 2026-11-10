@@ -141,6 +141,9 @@ Route::get('careers/status/documents/{document}', [JobApplicationController::cla
     ->whereUuid('document')
     ->middleware(['public-intake.proxy', 'throttle:hr-applications-status', 'sensitive.no-store:no-referrer'])
     ->name('hr-applications.status.document');
+Route::post('careers/status/leave-pool', [JobApplicationController::class, 'leavePool'])
+    ->middleware(['public-intake.proxy', 'throttle:hr-applications-link', 'sensitive.no-store:no-referrer'])
+    ->name('hr-applications.status.leave-pool');
 Route::post('careers/status/withdraw', [JobApplicationController::class, 'withdraw'])
     ->middleware(['public-intake.proxy', 'throttle:hr-applications-link', 'sensitive.no-store:no-referrer'])
     ->name('hr-applications.status.withdraw');
@@ -356,6 +359,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
                 Route::post('{application}/interview/cancel', 'cancelInterview')->whereUuid('application')->name('hr.applications.interview.cancel');
                 Route::post('interview-documents', 'addDocument')->name('hr.applications.documents.store');
                 Route::post('interview-documents/{document}/remove', 'removeDocument')->whereUuid('document')->name('hr.applications.documents.remove');
+                // HR-17e talent pool and staff-account handoff.
+                Route::post('pool-days', 'poolDays')->name('hr.applications.pool-days');
+                Route::post('{application}/invite', 'invite')->whereUuid('application')->name('hr.applications.invite');
+                Route::post('{application}/account-request', 'requestAccount')->whereUuid('application')->name('hr.applications.account-request');
+                Route::post('account-requests/{accountRequest}/cancel', 'cancelAccountRequest')->whereUuid('accountRequest')->name('hr.applications.account-request.cancel');
                 Route::post('checklist', 'checklist')->name('hr.applications.checklist');
                 Route::post('retention', 'retention')->name('hr.applications.retention');
             });
@@ -592,6 +600,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('staff', [StaffController::class, 'index'])
         ->middleware('permission:staff.view.own,staff.view.branch,staff.view.organisation')
         ->name('staff.index');
+    // HR-17e: whoever may create staff accounts marks HR's request done once the account exists.
+    Route::post('staff/account-requests/{accountRequest}/done', [StaffController::class, 'accountRequestDone'])
+        ->whereUuid('accountRequest')
+        ->middleware(['permission:staff.manage.organisation', 'permission:access.manage.organisation', 'throttle:30,1'])
+        ->name('staff.account-requests.done');
     Route::get('staff/create', [StaffController::class, 'create'])
         ->middleware(['permission:staff.manage.organisation', 'permission:access.manage.organisation'])
         ->name('staff.create');

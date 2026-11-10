@@ -436,18 +436,28 @@ final class JobApplicationService
                 continue;
             }
             $cutoff = CarbonImmutable::parse($today, self::zone($organisationId))->subDays($days)->startOfDay()->utc();
+            // HR-17e: a pool candidate is kept until the pool period ends, if that is later than the retention.
+            $poolDays = TalentPool::daysOn($organisationId, $today);
+            $poolSince = $poolDays === null ? null : CarbonImmutable::parse($today, self::zone($organisationId))->subDays($poolDays)->startOfDay()->utc();
             DB::table('hr_job_applications')->where('organisation_id', $organisationId)->whereNull('purged_at')
-                ->whereRaw('coalesce(closed_at, submitted_at) < ?', [$cutoff])->select('id')->orderBy('id')->chunkById(200, function ($chunk) use (&$count, $organisationId, $cutoff): void {
+                ->whereRaw('coalesce(closed_at, submitted_at) < ?', [$cutoff])
+                ->when($poolSince !== null, fn ($q) => $q->whereNot(fn ($q) => $q->whereIn('status', TalentPool::RESULTS)->where('talent_pool_consent', true)
+                    ->whereNull('pool_withdrawn_at')->where('closed_at', '>=', $poolSince)))
+                ->select('id')->orderBy('id')->chunkById(200, function ($chunk) use (&$count, $organisationId, $cutoff, $poolSince, $poolDays): void {
                     foreach ($chunk as $candidate) {
-                        $path = DB::transaction(function () use ($candidate, $organisationId, $cutoff): ?string {
+                        $path = DB::transaction(function () use ($candidate, $organisationId, $cutoff, $poolSince, $poolDays): ?string {
                             $row = DB::table('hr_job_applications')->where('id', $candidate->id)->lockForUpdate()->first();
-                            if ($row === null || $row->purged_at !== null || CarbonImmutable::parse($row->closed_at ?? $row->submitted_at)->gte($cutoff)) {
+                            if ($row === null || $row->purged_at !== null || CarbonImmutable::parse($row->closed_at ?? $row->submitted_at)->gte($cutoff)
+                                || ($poolSince !== null && TalentPool::until($row, $poolDays) !== null)) {
                                 return null;
                             }
                             DB::table('hr_job_applications')->where('id', $row->id)->update(['name_encrypted' => null, 'phone_encrypted' => null,
                                 'email_encrypted' => null, 'message_encrypted' => null, 'details_encrypted' => null, 'cv_path' => null, 'status_token_hash' => null, 'purged_at' => now()->utc(),
                                 'lock_version' => (int) $row->lock_version + 1, 'updated_at' => now()->utc()]);
                             DB::table('hr_job_screenings')->where('application_id', $row->id)->whereNotNull('note_encrypted')->update(['note_encrypted' => null]);
+                            // HR-17e: a staff-account request's name and email go with the application's values.
+                            DB::table('hr_staff_account_requests')->where('application_id', $row->id)->whereNull('purged_at')
+                                ->update(['name_encrypted' => null, 'email_encrypted' => null, 'purged_at' => now()->utc(), 'updated_at' => now()->utc()]);
                             DB::table('hr_job_application_events')->insert(['organisation_id' => $organisationId, 'application_id' => $row->id,
                                 'action' => 'purged', 'created_at' => now()->utc()]);
                             $this->support->audit->record('hr.applications.purged', null, ['application_id' => (int) $row->id], null, null, $organisationId);
