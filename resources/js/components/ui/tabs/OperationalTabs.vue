@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, nextTick, ref } from 'vue';
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
 type OperationalTab = {
     value: string;
@@ -19,6 +19,37 @@ const emit = defineEmits<{
 }>();
 
 const tabElements = ref<(HTMLButtonElement | null)[]>([]);
+const nav = ref<HTMLElement | null>(null);
+
+/** DD-40: fade the right edge while more tabs are hidden there, so every tab strip hints at them once. */
+const moreTabsRight = ref(false);
+const updateFade = () => {
+    const element = nav.value;
+
+    moreTabsRight.value =
+        element !== null &&
+        element.scrollWidth > element.clientWidth + 1 &&
+        element.scrollLeft + element.clientWidth < element.scrollWidth - 1;
+};
+let resizeObserver: ResizeObserver | undefined;
+onMounted(() => {
+    updateFade();
+    nav.value?.addEventListener?.('scroll', updateFade, { passive: true });
+
+    if (typeof ResizeObserver !== 'undefined' && nav.value) {
+        resizeObserver = new ResizeObserver(updateFade);
+        resizeObserver.observe(nav.value);
+    }
+});
+onBeforeUnmount(() => {
+    nav.value?.removeEventListener?.('scroll', updateFade);
+    resizeObserver?.disconnect();
+});
+watch(
+    () => props.tabs,
+    () => void nextTick(updateFade),
+    { deep: true },
+);
 
 const enabledIndexes = computed(() =>
     props.tabs.flatMap((tab, index) => (tab.disabled ? [] : [index])),
@@ -102,7 +133,13 @@ const handleKeydown = (event: KeyboardEvent, index: number) => {
 
 <template>
     <nav
+        ref="nav"
         class="flex min-w-0 gap-1 overflow-x-auto border-b"
+        :class="
+            moreTabsRight
+                ? '[mask-image:linear-gradient(to_right,#000_calc(100%-2.5rem),transparent)]'
+                : ''
+        "
         :aria-label="label"
         role="tablist"
     >
