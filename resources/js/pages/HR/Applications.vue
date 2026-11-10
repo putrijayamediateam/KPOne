@@ -1486,8 +1486,8 @@ const removeDocument = () => {
                     PDFs a candidate can download from their private page once
                     their interview is confirmed, for their position type only.
                     Up to {{ DOCS_MAX }} per type, 10 MB each. Each download is
-                    recorded. Use dummy PDFs until the clinic sends the real
-                    ones.
+                    recorded. Do not upload a document that contains a person's
+                    private details.
                 </p>
             </div>
             <div
@@ -1615,7 +1615,7 @@ const removeDocument = () => {
                     This position type has {{ DOCS_MAX }} documents. Remove one
                     to add another.
                 </p>
-                <div>
+                <div class="flex flex-wrap items-center gap-3">
                     <Button
                         type="submit"
                         class="max-lg:min-h-11"
@@ -1629,6 +1629,16 @@ const removeDocument = () => {
                         >{{
                             documentForm.processing ? 'Adding…' : 'Add document'
                         }}</Button
+                    >
+                    <span
+                        v-if="
+                            !documentFull &&
+                            (!documentForm.file ||
+                                documentForm.title.trim().length < 3)
+                        "
+                        class="text-sm text-muted-foreground"
+                        data-test="interview-document-why"
+                        >Choose a PDF and give it a title first.</span
                     >
                 </div>
             </form>
