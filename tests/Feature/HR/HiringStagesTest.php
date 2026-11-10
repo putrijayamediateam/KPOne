@@ -143,6 +143,9 @@ class HiringStagesTest extends VisitTestCase
             'ticked' => '[]', 'rating' => 3, 'outcome' => 'pass', 'actor_user_id' => $hr->id, 'created_at' => now()->utc()]), '23505');
         $this->assertDatabaseRefuses(fn () => DB::table('hr_job_screenings')->where('id', $screening->id)->update(['rating' => 5]));
         $this->assertDatabaseRefuses(fn () => DB::table('hr_job_screenings')->where('id', $screening->id)->delete());
+        // The note is cleared only by the purge, and the audit holds no rating (Suresh, HR-17a).
+        $this->assertDatabaseRefuses(fn () => DB::table('hr_job_screenings')->where('id', $screening->id)->update(['note_encrypted' => null]));
+        $this->assertArrayNotHasKey('rating', (array) json_decode((string) DB::table('audit_logs')->where('event', 'hr.applications.screened')->value('metadata'), true));
         $this->assertDatabaseRefuses(fn () => DB::table('hr_job_screening_checklists')->update(['items' => '["x"]']));
     }
 

@@ -312,7 +312,7 @@ final class JobApplicationService
             ]);
             $this->support->remember($actor, $key, 'job_application_screen', $hash, $applicationId);
             $this->support->audit->record('hr.applications.screened', null, ['application_id' => (int) $application->id, 'outcome' => $outcome,
-                'rating' => $rating, 'ticked' => count($ticks)], $actor, null, $actor->organisation_id);
+                'ticked' => count($ticks)], $actor, null, $actor->organisation_id);
         }, 3);
     }
 

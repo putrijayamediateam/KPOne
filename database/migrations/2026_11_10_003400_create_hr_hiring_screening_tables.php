@@ -74,6 +74,11 @@ BEGIN
    OR (NEW.note_encrypted IS NOT NULL AND NEW.note_encrypted IS DISTINCT FROM OLD.note_encrypted) THEN
   RAISE EXCEPTION 'A phone screening keeps what was recorded' USING ERRCODE = 'P0001';
  END IF;
+ -- The note is cleared only once its application has been purged (Suresh, HR-17a).
+ IF NEW.note_encrypted IS NULL AND OLD.note_encrypted IS NOT NULL
+    AND NOT EXISTS (SELECT 1 FROM hr_job_applications a WHERE a.id = NEW.application_id AND a.purged_at IS NOT NULL) THEN
+  RAISE EXCEPTION 'A phone screening note is cleared only by the purge' USING ERRCODE = 'P0001';
+ END IF;
  RETURN NEW;
 END $$;
 CREATE TRIGGER hr_job_screenings_guard BEFORE UPDATE ON hr_job_screenings FOR EACH ROW EXECUTE FUNCTION guard_hr_job_screening();

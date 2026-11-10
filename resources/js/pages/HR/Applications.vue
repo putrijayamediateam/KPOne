@@ -1068,6 +1068,20 @@ const saveRetention = () => {
                             dates, a locum's availability, a doctor's MMC number
                             and APC.
                         </p>
+                        <p
+                            v-if="
+                                positionForm.position &&
+                                positionForm.position.openApplications > 0 &&
+                                positionForm.type !== positionForm.position.type
+                            "
+                            role="status"
+                            class="rounded-md border border-warning/40 bg-warning/10 p-2 text-xs"
+                            data-test="position-type-warning"
+                        >
+                            {{ positionForm.position.openApplications }} open
+                            applications keep the answers they were sent with.
+                            Only new applications get the new questions.
+                        </p>
                         <InputError :message="errors.position_type" />
                     </div>
                     <div class="flex flex-col gap-1.5">
