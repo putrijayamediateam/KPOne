@@ -83,6 +83,8 @@ return new class extends Migration
 -- (v1: start at one branch, HR-PLAN 22.1).
 CREATE OR REPLACE FUNCTION guard_hr_location_check_setting() RETURNS trigger LANGUAGE plpgsql AS $$
 BEGIN
+ -- The same key the service takes, so two inserts at different branches take turns even outside the service (Suresh, m1).
+ PERFORM pg_advisory_xact_lock(hashtextextended('hr_location_check:' || NEW.organisation_id, 0));
  IF NOT hr_user_holds(NEW.created_by_user_id, 'hr.attendance.location.manage.organisation') THEN
   RAISE EXCEPTION 'Only someone who manages the location check changes it' USING ERRCODE = '23514';
  END IF;
@@ -106,13 +108,15 @@ BEGIN
 END $$;
 CREATE TRIGGER hr_location_consents_guard BEFORE INSERT ON hr_location_consents FOR EACH ROW EXECUTE FUNCTION guard_hr_location_consent();
 
--- A result belongs to a version that is on at the session's own branch, and a checked result needs that person's consent.
+-- A result belongs to the version in force (the latest) at the session's own branch, which must be on, and a checked
+-- result needs that person's consent.
 CREATE OR REPLACE FUNCTION guard_hr_clock_location_check() RETURNS trigger LANGUAGE plpgsql AS $$
 DECLARE v_branch bigint; v_user bigint;
 BEGIN
  SELECT branch_id, user_id INTO v_branch, v_user FROM hr_clock_sessions WHERE id = NEW.clock_session_id;
- IF NOT EXISTS (SELECT 1 FROM hr_location_check_settings s WHERE s.id = NEW.setting_id AND s.enabled AND s.branch_id = v_branch) THEN
-  RAISE EXCEPTION 'A location result belongs to the check that is on at the session''s branch' USING ERRCODE = '23514';
+ IF NOT EXISTS (SELECT 1 FROM hr_location_check_settings s WHERE s.id = NEW.setting_id AND s.enabled AND s.branch_id = v_branch
+     AND s.id = (SELECT max(l.id) FROM hr_location_check_settings l WHERE l.branch_id = v_branch)) THEN
+  RAISE EXCEPTION 'A location result belongs to the check in force at the session''s branch' USING ERRCODE = '23514';
  END IF;
  IF NEW.result <> 'unavailable' AND NOT EXISTS (SELECT 1 FROM hr_location_consents c WHERE c.user_id = v_user AND c.setting_id = NEW.setting_id) THEN
   RAISE EXCEPTION 'A location is checked only after the person acknowledged the consent text' USING ERRCODE = '23514';

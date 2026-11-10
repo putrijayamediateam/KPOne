@@ -76,6 +76,8 @@ final class LocationCheckService
      */
     public function recordPress(User $actor, ClockSession $session, string $kind, array $input): void
     {
+        // A press takes turns with a Director's save, so it is checked against the version really in force (Suresh, m2).
+        DB::select('select pg_advisory_xact_lock_shared(hashtextextended(?, 0))', ['hr_location_check:'.$actor->organisation_id]);
         $setting = $this->enabled((int) $session->branch_id);
         if ($setting === null) {
             return; // Off: nothing is read or kept, whatever the browser sent.
@@ -91,7 +93,8 @@ final class LocationCheckService
         [$result, $band, $reason] = $consented ? $this->evaluate($setting, $input) : ['unavailable', null, 'declined'];
         DB::table('hr_clock_location_checks')->insert(['organisation_id' => $actor->organisation_id, 'clock_session_id' => $session->id, 'kind' => $kind,
             'setting_id' => $setting->id, 'result' => $result, 'accuracy_band' => $band, 'unavailable_reason' => $reason, 'created_at' => now()->utc()]);
-        $this->support->audit->record('hr.attendance.location_checked', $session, ['kind' => $kind, 'result' => $result], $actor,
+        // The result itself stays behind Review; the audit log holds only that a press was checked (Suresh, M1).
+        $this->support->audit->record('hr.attendance.location_checked', $session, ['kind' => $kind, 'setting_id' => (int) $setting->id], $actor,
             Branch::query()->find($session->branch_id));
     }
 
@@ -225,9 +228,15 @@ final class LocationCheckService
             return null;
         }
         $consented = $this->consented($person, $setting);
+        // Your own latest result, so you see what was kept about you (Suresh, m3); nobody else's.
+        $last = DB::table('hr_clock_location_checks as c')->join('hr_clock_sessions as s', 's.id', '=', 'c.clock_session_id')
+            ->where('s.user_id', $person->id)->orderByDesc('c.id')->first(['c.result', 'c.accuracy_band', 'c.unavailable_reason', 'c.kind', 'c.created_at', 's.timezone']);
 
         return ['consentNeeded' => ! $consented, 'consentEn' => $consented ? null : (string) $setting->consent_en,
-            'consentBm' => $consented ? null : (string) $setting->consent_bm];
+            'consentBm' => $consented ? null : (string) $setting->consent_bm,
+            'lastResult' => $last === null ? null : ($last->kind === 'out' ? 'Your last clock-out ' : 'Your last clock-in ')
+                .'('.AttendanceSupport::day(CarbonImmutable::parse((string) $last->created_at)->setTimezone((string) $last->timezone)).'): '
+                .self::line($last)];
     }
 
     /**
@@ -240,8 +249,7 @@ final class LocationCheckService
     {
         $out = [];
         foreach (DB::table('hr_clock_location_checks')->whereIn('clock_session_id', $sessionIds)->get() as $row) {
-            $text = self::RESULTS[$row->result] ?? 'Location not checked';
-            $text .= $row->result === 'unavailable' ? ' ('.(self::REASONS[$row->unavailable_reason] ?? '').')' : ', '.(self::BANDS[$row->accuracy_band] ?? '');
+            $text = self::line($row);
             $entry = $out[(int) $row->clock_session_id] ?? ['in' => null, 'out' => null, 'outside' => false];
             $entry[$row->kind === 'out' ? 'out' : 'in'] = $text;
             $entry['outside'] = $entry['outside'] || $row->result === 'outside';
@@ -249,6 +257,13 @@ final class LocationCheckService
         }
 
         return $out;
+    }
+
+    private static function line(\stdClass $row): string
+    {
+        $text = self::RESULTS[$row->result] ?? 'Location not checked';
+
+        return $text.($row->result === 'unavailable' ? ' ('.(self::REASONS[$row->unavailable_reason] ?? '').')' : ', '.(self::BANDS[$row->accuracy_band] ?? ''));
     }
 
     /**

@@ -43,6 +43,11 @@ test('consent is shown once, in English and Bahasa Melayu, and clocking in witho
         /data-test="location-agree"[\s\S]{0,200}locate\(clock\.consentFor \?\? 'in', true\)/,
     );
     assert.match(page, /data-test="location-note"/);
+    // You see your own latest result (Suresh, m3).
+    assert.match(
+        page,
+        /data-test="location-last"[\s\S]{0,80}attendance\.my\.location\.lastResult/,
+    );
 });
 
 test('Review shows the result in plain muted words, never a warning tone', () => {

@@ -137,6 +137,8 @@ const props = defineProps<{
                 consentNeeded: boolean;
                 consentEn: string | null;
                 consentBm: string | null;
+                /** Your own latest result, in plain words. */
+                lastResult: string | null;
             } | null;
         } | null;
         review: {
@@ -817,6 +819,13 @@ const correctionStatusTone = (
                         This branch checks your location when you press. Only
                         inside, outside or not available is kept, never where
                         you are.
+                    </p>
+                    <p
+                        v-if="attendance.my.location?.lastResult"
+                        class="text-sm text-muted-foreground"
+                        data-test="location-last"
+                    >
+                        {{ attendance.my.location.lastResult }}
                     </p>
                     <p
                         v-if="

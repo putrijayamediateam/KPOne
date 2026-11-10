@@ -93,7 +93,8 @@ class LocationCheckTest extends VisitTestCase
         $this->assertSame(['inside', 'good', null], $this->checkOf($second, 'in'));
         $this->assertSame(1, DB::table('hr_location_consents')->where('user_id', $ca->id)->count());
         $this->get(route('hr.attendance.index'))->assertInertia(fn (Assert $page) => $page->where('attendance.my.location.consentNeeded', false)
-            ->where('attendance.my.location.consentEn', null));
+            ->where('attendance.my.location.consentEn', null)
+            ->where('attendance.my.location.lastResult', 'Your last clock-in (8 Mar 2027): Inside the branch area, accurate to about 50 m'));
         $this->travelTo(CarbonImmutable::parse('2027-03-08 17:00', $this->branch->timezone));
         $this->clock($ca, 'out', ['clock_position' => self::FAR])->assertSessionHasNoErrors();
         $this->assertSame(['outside', 'fair', null], $this->checkOf($second, 'out'));
@@ -150,7 +151,8 @@ class LocationCheckTest extends VisitTestCase
         $columns = collect(['hr_clock_sessions', 'hr_clock_events', 'hr_clock_location_checks', 'hr_location_consents'])
             ->flatMap(fn (string $t) => DB::getSchemaBuilder()->getColumnListing($t));
         $this->assertEmpty($columns->filter(fn (string $c) => preg_match('/lat|lng|lon|coord|position|distance|ip|device|agent/i', $c) === 1)->all());
-        $this->assertSame(['kind', 'result'], array_keys(json_decode((string) DB::table('audit_logs')->where('event', 'hr.attendance.location_checked')->value('metadata'), true)));
+        // The result stays behind Review: the audit log says only that a press was checked (Suresh, M1).
+        $this->assertSame(['kind', 'setting_id'], array_keys(json_decode((string) DB::table('audit_logs')->where('event', 'hr.attendance.location_checked')->value('metadata'), true)));
         $this->assertContains('clock_position', (new \ReflectionProperty(Handler::class, 'dontFlash'))->getValue(app(ExceptionHandler::class)));
     }
 
@@ -189,6 +191,9 @@ class LocationCheckTest extends VisitTestCase
         $this->refused('23514', fn () => DB::table('hr_clock_location_checks')->insert([...$check, 'result' => 'inside', 'accuracy_band' => null])); // shape
         $this->refused('P0001', fn () => DB::table('hr_clock_location_checks')->where('clock_session_id', $session->id)->update(['result' => 'inside', 'accuracy_band' => 'good', 'unavailable_reason' => null]));
         $this->refused('P0001', fn () => DB::table('hr_clock_location_checks')->delete());
+        // A result against a version no longer in force is refused (Suresh, m2).
+        $this->turnOn($this->director, ['radius_metres' => 200])->assertSessionHasNoErrors();
+        $this->refused('23514', fn () => DB::table('hr_clock_location_checks')->insert([...$check, 'result' => 'unavailable', 'unavailable_reason' => 'failed']));
     }
 
     // ---- fixture ----
