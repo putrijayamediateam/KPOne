@@ -5,6 +5,7 @@ import { router } from '@inertiajs/vue3';
 import { CalendarCheck, CalendarX, Undo2 } from '@lucide/vue';
 import { computed, reactive, ref } from 'vue';
 import { Button } from '@/components/ui/button';
+import { MonthField } from '@/components/ui/date-field';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import OperationalConfirmDialog from '@/components/ui/OperationalConfirmDialog.vue';
@@ -290,15 +291,10 @@ const description = computed(() => {
                     >‹</Button
                 >
                 <Label for="overtime-month" class="sr-only">Month</Label>
-                <Input
+                <MonthField
                     id="overtime-month"
-                    type="month"
-                    class="min-h-11 w-44 sm:min-h-9"
                     :model-value="data.month"
-                    @change="
-                        (e: Event) =>
-                            visitMonth((e.target as HTMLInputElement).value)
-                    "
+                    @change="(value: string) => visitMonth(value)"
                 />
                 <Button
                     variant="outline"

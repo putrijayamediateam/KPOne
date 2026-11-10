@@ -5,6 +5,7 @@ import { router, usePage } from '@inertiajs/vue3';
 import { computed, reactive, watch } from 'vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
+import { DateField } from '@/components/ui/date-field';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { OperationalSelect } from '@/components/ui/select';
@@ -151,11 +152,9 @@ const send = () => {
                     </div>
                     <div v-if="form.health === 'done'" class="grid gap-1.5">
                         <Label for="credential-issued">Date done *</Label>
-                        <Input
+                        <DateField
                             id="credential-issued"
                             v-model="form.issuedOn"
-                            type="date"
-                            class="max-lg:h-11"
                             :aria-invalid="!!errors.issued_on"
                         />
                         <InputError :message="errors.issued_on" />
@@ -164,22 +163,18 @@ const send = () => {
                 <template v-else>
                     <div class="grid gap-1.5">
                         <Label for="credential-issued">Issue date *</Label>
-                        <Input
+                        <DateField
                             id="credential-issued"
                             v-model="form.issuedOn"
-                            type="date"
-                            class="max-lg:h-11"
                             :aria-invalid="!!errors.issued_on"
                         />
                         <InputError :message="errors.issued_on" />
                     </div>
                     <div v-if="type.expires" class="grid gap-1.5">
                         <Label for="credential-expires">Expiry date *</Label>
-                        <Input
+                        <DateField
                             id="credential-expires"
                             v-model="form.expiresOn"
-                            type="date"
-                            class="max-lg:h-11"
                             :aria-invalid="!!errors.expires_on"
                         />
                         <InputError :message="errors.expires_on" />

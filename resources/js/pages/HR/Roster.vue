@@ -8,6 +8,7 @@ import type { ComplianceSettings } from '@/components/hr/compliance/ComplianceRu
 import InputError from '@/components/InputError.vue';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { DateField } from '@/components/ui/date-field';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import OperationalConfirmDialog from '@/components/ui/OperationalConfirmDialog.vue';
@@ -1238,10 +1239,9 @@ const minimumError = (session: string, role: string) =>
                     </div>
                     <div class="grid gap-2">
                         <Label for="shift-date">Date *</Label>
-                        <Input
+                        <DateField
                             id="shift-date"
                             v-model="shiftForm.date"
-                            type="date"
                             :min="roster.week.start"
                             :max="roster.week.end"
                             :aria-invalid="
