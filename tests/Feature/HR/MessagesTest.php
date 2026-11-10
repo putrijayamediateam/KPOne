@@ -89,7 +89,7 @@ class MessagesTest extends VisitTestCase
     public function test_a_staff_member_chooses_a_connected_channel_and_turning_it_off_always_works(): void
     {
         $ca = $this->actor('ca');
-        $this->choose($ca, 'email', true, 0)->assertSessionHasErrors(['messages' => 'Email is not connected yet, so it cannot be chosen.']);
+        $this->choose($ca, 'email', true, 0)->assertSessionHasErrors(['messages' => 'Not connected yet: the clinic has not chosen a provider for Email.']);
         $this->choose($ca, 'sms', true, 0)->assertSessionHasErrors('messages');
         $this->choose($ca, 'whatsapp', true, 0)->assertSessionHasErrors('messages');
 
@@ -108,7 +108,10 @@ class MessagesTest extends VisitTestCase
     {
         $hr = $this->actor('hr_manager');
         $this->configure($hr, 'email', ['enabled' => true, 'monthly_cap' => 100, 'expected_version' => 0])
-            ->assertSessionHasErrors(['enabled' => 'Email is not connected yet, so it cannot be switched on.']);
+            ->assertSessionHasErrors(['messages' => 'Not connected yet: the clinic has not chosen a provider for Email. Settings open when this channel is connected.']);
+        // Nothing can be saved ahead for a channel that is not connected (Daniel, HR-14).
+        $this->configure($hr, 'email', ['enabled' => false, 'monthly_cap' => 100, 'price' => '0.05', 'expected_version' => 0])->assertSessionHasErrors('messages');
+        $this->assertSame(0, DB::table('hr_message_channel_settings')->count());
         config(['hr-messages.email.connected' => true]);
         $this->configure($hr, 'email', ['enabled' => true, 'expected_version' => 0])->assertSessionHasErrors(['monthly_cap' => 'Enter a monthly cap before switching this channel on.']);
         $this->configure($hr, 'email', ['enabled' => true, 'monthly_cap' => 0, 'expected_version' => 0])->assertSessionHasErrors('monthly_cap');
@@ -118,7 +121,12 @@ class MessagesTest extends VisitTestCase
         $this->configure($hr, 'email', ['enabled' => false, 'monthly_cap' => 100, 'price' => '0.05', 'expected_version' => 1])->assertSessionHasNoErrors();
         $this->assertSame([[1, true, 5, 100], [2, false, 5, 100]], DB::table('hr_message_channel_settings')->orderBy('version')->get()
             ->map(fn (object $r): array => [(int) $r->version, (bool) $r->enabled, (int) $r->price_sen, (int) $r->monthly_cap])->all());
-        $this->configure($hr, 'sms', ['enabled' => true, 'monthly_cap' => 10, 'expected_version' => 0])->assertSessionHasErrors('enabled');
+        $this->configure($hr, 'sms', ['enabled' => true, 'monthly_cap' => 10, 'expected_version' => 0])->assertSessionHasErrors('messages');
+        // Once set up, a channel that loses its connection can still be switched off, with its values unchanged.
+        config(['hr-messages.email.connected' => false]);
+        $this->configure($hr, 'email', ['enabled' => false, 'monthly_cap' => 100, 'price' => '0.05', 'expected_version' => 2])->assertSessionHasErrors('messages'); // nothing changed
+        $this->configure($hr, 'email', ['enabled' => false, 'monthly_cap' => 50, 'price' => '0.05', 'expected_version' => 2])->assertSessionHasErrors('messages');
+        config(['hr-messages.email.connected' => true]);
 
         // PostgreSQL keeps the versions and refuses a switched-on channel without a cap.
         $this->assertDatabaseRefuses(fn () => DB::table('hr_message_channel_settings')->where('version', 1)->update(['enabled' => false]));
@@ -162,6 +170,11 @@ class MessagesTest extends VisitTestCase
         $this->selectBranch($hr);
         $this->get(route('hr.messages.index', ['tab' => 'sent']))->assertInertia(fn (Assert $page) => $page->where('messages.sent.total', 2)
             ->where('messages.sent.rows.0.template', 'Staff claim decided or paid')->where('messages.sent.rows.0.statusLabel', 'Sent'));
+        // The Sent tab filters by status.
+        $this->get(route('hr.messages.index', ['tab' => 'sent', 'status' => 'failed']))->assertInertia(fn (Assert $page) => $page
+            ->where('messages.sent.status', 'failed')->where('messages.sent.total', 0));
+        $this->get(route('hr.messages.index', ['tab' => 'sent', 'status' => 'nonsense']))->assertInertia(fn (Assert $page) => $page
+            ->where('messages.sent.status', 'all')->where('messages.sent.total', 2));
         $this->get(route('hr.messages.index', ['tab' => 'settings']))->assertInertia(fn (Assert $page) => $page->where('messages.settings.0.sent', 2)
             ->where('messages.settings.0.cost', 'RM 0.10')->where('messages.settings.0.people', 1));
     }

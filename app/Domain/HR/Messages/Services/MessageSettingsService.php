@@ -37,7 +37,7 @@ final class MessageSettingsService
                 return;
             }
             if ($on && ! $this->delivery->channel($channel)->connected()) {
-                throw ValidationException::withMessages(['messages' => self::LABELS[$channel].' is not connected yet, so it cannot be chosen.']);
+                throw ValidationException::withMessages(['messages' => self::notConnected($channel)]);
             }
             $row = DB::table('hr_message_preferences')->where('user_id', $actor->id)->where('channel', $channel)->lockForUpdate()->first();
             $current = $row !== null && (bool) $row->opted_in;
@@ -95,8 +95,12 @@ final class MessageSettingsService
             if (filter_var($input['expected_version'] ?? null, FILTER_VALIDATE_INT) !== ($current === null ? 0 : (int) $current->version)) {
                 throw ValidationException::withMessages(['records' => 'This was changed by someone else. Reload to see the latest version.']);
             }
-            if ($enabled && ! $this->delivery->channel($channel)->connected()) {
-                throw ValidationException::withMessages(['enabled' => self::LABELS[$channel].' is not connected yet, so it cannot be switched on.']);
+            // Settings open only once a channel is connected, so values never wait unseen for a channel nobody can use
+            // (Daniel, HR-14). Switching off a channel that was set up before always works.
+            $sameValues = $current !== null && ($current->monthly_cap === null ? null : (int) $current->monthly_cap) === $cap
+                && ($current->price_sen === null ? null : (int) $current->price_sen) === $price;
+            if (! $this->delivery->channel($channel)->connected() && ($enabled || ! $sameValues)) {
+                throw ValidationException::withMessages(['messages' => self::notConnected($channel).' Settings open when this channel is connected.']);
             }
             if ($current !== null && (bool) $current->enabled === $enabled && ($current->monthly_cap === null ? null : (int) $current->monthly_cap) === $cap
                 && ($current->price_sen === null ? null : (int) $current->price_sen) === $price) {
@@ -109,6 +113,12 @@ final class MessageSettingsService
             $this->support->audit->record('hr.messages.settings_saved', null, ['channel' => $channel, 'version' => $version, 'enabled' => $enabled,
                 'monthly_cap' => $cap], $actor, null, $actor->organisation_id);
         }, 3);
+    }
+
+    /** The one wording for a channel that is not connected, used on both tabs (Daniel, HR-14). */
+    public static function notConnected(string $channel): string
+    {
+        return 'Not connected yet: the clinic has not chosen a provider for '.self::LABELS[$channel].'.';
     }
 
     private function assertChannel(string $channel): void

@@ -18,7 +18,7 @@ class MessagesController extends Controller
 {
     public function index(Request $request, MessagesPageService $pages): Response
     {
-        return Inertia::render('HR/Messages', ['messages' => $pages->page($request->user(), $request->only(['tab', 'page']))]);
+        return Inertia::render('HR/Messages', ['messages' => $pages->page($request->user(), $request->only(['tab', 'page', 'status']))]);
     }
 
     public function choose(Request $request, MessageSettingsService $settings, string $channel): RedirectResponse

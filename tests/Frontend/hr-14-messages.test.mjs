@@ -22,11 +22,9 @@ test('a staff member turns a channel on or off with the lock version and a fresh
     assert.match(source, /`\/hr\/messages\/my\/\$\{c\.channel\}`/);
     assert.match(source, /expected_lock_version: c\.lockVersion/);
     assert.match(source, /idempotency_key: crypto\.randomUUID\(\)/);
-    // A channel that is not connected cannot be turned on; turning off always works.
-    assert.match(
-        template,
-        /:disabled="!c\.connected \|\| choosing\.processing"/,
-    );
+    // A channel that is not connected has no button, only a "Not connected" chip (Daniel, HR-14).
+    assert.match(template, /v-else-if="c\.connected"/);
+    assert.match(template, /label="Not connected"/);
     assert.match(template, /Nothing is on unless you turn it on\./);
     assert.match(template, /Turn on/);
     assert.match(template, /Turn off/);
@@ -39,10 +37,17 @@ test('settings send the expected version, a cap and the clinic price, and ship n
     assert.match(template, /KPOne ships no number/);
     assert.match(template, /placeholder="Not set"/);
     assert.match(template, /:disabled="!s\.connected"/);
+    // Nothing is saved ahead for a channel that is not connected, and Save is the primary button only with changes.
+    assert.match(template, /Settings open when this channel is connected\./);
+    assert.match(template, /:variant="dirty\(s\) \? 'default' : 'outline'"/);
+    assert.match(template, /· cost \{\{ s\.cost \}\}/);
 });
 
 test('the sent list never shows message text, and the page keeps nothing in the browser', () => {
     assert.match(template, /The text itself is never kept\./);
+    // The Sent tab says how many it shows and filters by status.
+    assert.match(source, /Showing \$\{from\}/);
+    assert.match(template, /labelledby="sent-status-label"/);
     assert.doesNotMatch(template, /r\.body|r\.text|r\.subject/);
     assert.doesNotMatch(source, /localStorage|sessionStorage|indexedDB/);
     assert.match(

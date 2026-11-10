@@ -2,13 +2,14 @@
 // HR-14 /hr/messages: which channels KPOne may use to tell you about your own leave, roster, payslip and claims
 // (everyone), each channel's switch, price and monthly cap, and the messages sent (Director, HR Manager). HR-PLAN 15.3.
 import { Head, router, usePage } from '@inertiajs/vue3';
-import { computed, reactive, ref } from 'vue';
+import { computed, nextTick, reactive, ref, watch } from 'vue';
 import SyntheticNote from '@/components/hr/records/SyntheticNote.vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { PageHeader } from '@/components/ui/page-header';
+import { OperationalSelect } from '@/components/ui/select';
 import { EmptyState, ErrorState } from '@/components/ui/state';
 import { StatusBadge } from '@/components/ui/status';
 import { OperationalTabs } from '@/components/ui/tabs';
@@ -18,6 +19,7 @@ type MyChannel = {
     channel: string;
     label: string;
     connected: boolean;
+    notConnected: string;
     switchedOn: boolean;
     optedIn: boolean;
     lockVersion: number;
@@ -27,6 +29,7 @@ type ChannelSettings = {
     channel: string;
     label: string;
     connected: boolean;
+    notConnected: string;
     version: number;
     enabled: boolean;
     monthlyCap: number | null;
@@ -57,6 +60,8 @@ const props = defineProps<{
         my: MyChannel[] | null;
         settings: ChannelSettings[] | null;
         sent: {
+            status: string;
+            statuses: { value: string; label: string }[];
             page: number;
             perPage: number;
             total: number;
@@ -114,15 +119,41 @@ const forms = reactive<
     >
 >({});
 
-for (const s of props.messages.settings ?? []) {
-    forms[s.channel] = {
-        enabled: s.enabled,
-        price: s.price ? s.price.replace(/^RM /, '').replace(/,/g, '') : '',
-        cap: s.monthlyCap?.toString() ?? '',
-        key: crypto.randomUUID(),
-        processing: false,
-    };
-}
+// The saved values, so Save is the primary button only while a card has unsaved changes (Daniel, HR-14).
+const saved = (s: ChannelSettings) => ({
+    enabled: s.enabled,
+    price: s.price ? s.price.replace(/^RM /, '').replace(/,/g, '') : '',
+    cap: s.monthlyCap?.toString() ?? '',
+});
+const versions: Record<string, number> = {};
+const resetForms = (all: boolean) => {
+    for (const s of props.messages.settings ?? []) {
+        if (all || versions[s.channel] !== s.version) {
+            forms[s.channel] = {
+                ...saved(s),
+                key: crypto.randomUUID(),
+                processing: false,
+            };
+            versions[s.channel] = s.version;
+        }
+    }
+};
+resetForms(true);
+watch(
+    () => props.messages.settings,
+    () => resetForms(false),
+);
+const dirty = (s: ChannelSettings) => {
+    const f = forms[s.channel];
+    const before = saved(s);
+
+    return (
+        !!f &&
+        (f.enabled !== before.enabled ||
+            f.price.trim() !== before.price ||
+            f.cap.trim() !== before.cap)
+    );
+};
 
 // Errors show inside the card that was saved, next to their field.
 const lastSaved = ref('');
@@ -144,6 +175,21 @@ const save = (s: ChannelSettings) => {
         {
             preserveScroll: true,
             onSuccess: () => (f.key = crypto.randomUUID()),
+            // Focus moves to the first field with an error in this card.
+            onError: () =>
+                nextTick(() => {
+                    const first = (
+                        [
+                            ['enabled', `enabled-${s.channel}`],
+                            ['price', `price-${s.channel}`],
+                            ['monthly_cap', `cap-${s.channel}`],
+                        ] as const
+                    ).find(([key]) => errors.value[key]);
+
+                    if (first) {
+                        document.getElementById(first[1])?.focus();
+                    }
+                }),
             onFinish: () => (f.processing = false),
         },
     );
@@ -159,12 +205,27 @@ const sentPages = computed(() =>
           )
         : 1,
 );
-const goSent = (n: number) =>
+const goSent = (n: number, status = props.messages.sent?.status ?? 'all') =>
     router.get(
         '/hr/messages',
-        { tab: 'sent', ...(n > 1 ? { page: n } : {}) },
+        {
+            tab: 'sent',
+            ...(status !== 'all' ? { status } : {}),
+            ...(n > 1 ? { page: n } : {}),
+        },
         { preserveScroll: true },
     );
+const sentRange = computed(() => {
+    const sent = props.messages.sent;
+
+    if (!sent || sent.total === 0) {
+        return '';
+    }
+
+    const from = (sent.page - 1) * sent.perPage + 1;
+
+    return `Showing ${from}–${Math.min(sent.total, from + sent.rows.length - 1)} of ${sent.total}, newest first`;
+});
 const tone = (status: string) =>
     (
         ({
@@ -220,10 +281,9 @@ const tone = (status: string) =>
                 <div class="min-w-0">
                     <h3 class="font-semibold">{{ c.label }}</h3>
                     <p class="text-sm break-words text-muted-foreground">
-                        <template v-if="!c.connected"
-                            >Not connected yet. The clinic has not set up
-                            {{ c.label }} messages.</template
-                        >
+                        <template v-if="!c.connected">{{
+                            c.notConnected
+                        }}</template>
                         <template v-else-if="c.address"
                             >To {{ c.address }}, the address you sign in
                             with.</template
@@ -236,10 +296,18 @@ const tone = (status: string) =>
                 </div>
                 <div class="flex items-center gap-2">
                     <StatusBadge
+                        v-if="!c.connected"
+                        status="not_connected"
+                        label="Not connected"
+                        tone="neutral"
+                    />
+                    <StatusBadge
+                        v-else
                         :status="c.optedIn ? 'on' : 'off'"
                         :label="c.optedIn ? 'On' : 'Off'"
                         :tone="c.optedIn ? 'success' : 'neutral'"
                     />
+                    <!-- A channel that is not connected has no button: there is nothing to choose (Daniel, HR-14). -->
                     <Button
                         v-if="c.optedIn"
                         variant="outline"
@@ -251,9 +319,9 @@ const tone = (status: string) =>
                         >Turn off</Button
                     >
                     <Button
-                        v-else
+                        v-else-if="c.connected"
                         class="max-lg:min-h-11"
-                        :disabled="!c.connected || choosing.processing"
+                        :disabled="choosing.processing"
                         :aria-label="`Turn on ${c.label} messages`"
                         :data-test="`my-on-${c.channel}`"
                         @click="choose(c, true)"
@@ -305,11 +373,18 @@ const tone = (status: string) =>
                             {{
                                 s.connected
                                     ? `${s.people} staff chose it.`
-                                    : 'Not connected: no provider has been chosen yet.'
+                                    : s.notConnected
                             }}
                         </p>
                     </div>
                     <StatusBadge
+                        v-if="!s.connected"
+                        status="not_connected"
+                        label="Not connected"
+                        tone="neutral"
+                    />
+                    <StatusBadge
+                        v-else
                         :status="s.enabled ? 'on' : 'off'"
                         :label="s.enabled ? 'On' : 'Off'"
                         :tone="s.enabled ? 'success' : 'neutral'"
@@ -323,12 +398,19 @@ const tone = (status: string) =>
                         v-if="s.monthlyCap"
                     >
                         of {{ s.monthlyCap }}</template
-                    ><template v-if="s.cost"> · {{ s.cost }}</template
+                    ><template v-if="s.cost"> · cost {{ s.cost }}</template
                     ><template v-if="s.failed">
                         · {{ s.failed }} failed</template
                     ><template v-if="s.skipped">
                         · {{ s.skipped }} not sent (cap reached)</template
                     >
+                </p>
+                <p
+                    v-if="!s.connected"
+                    class="text-sm text-muted-foreground"
+                    :data-test="`settings-closed-${s.channel}`"
+                >
+                    Settings open when this channel is connected.
                 </p>
                 <form
                     v-if="forms[s.channel]"
@@ -368,6 +450,7 @@ const tone = (status: string) =>
                             inputmode="decimal"
                             placeholder="Not set"
                             class="max-lg:min-h-11"
+                            :disabled="!s.connected"
                             :aria-invalid="
                                 errorFor(s.channel, 'price')
                                     ? 'true'
@@ -388,6 +471,7 @@ const tone = (status: string) =>
                             inputmode="numeric"
                             placeholder="Not set"
                             class="max-lg:min-h-11"
+                            :disabled="!s.connected"
                             :aria-invalid="
                                 errorFor(s.channel, 'monthly_cap')
                                     ? 'true'
@@ -403,7 +487,12 @@ const tone = (status: string) =>
                     <Button
                         type="submit"
                         class="max-lg:min-h-11 sm:mt-[1.625rem]"
-                        :disabled="forms[s.channel].processing"
+                        :variant="dirty(s) ? 'default' : 'outline'"
+                        :disabled="
+                            !s.connected ||
+                            !dirty(s) ||
+                            forms[s.channel].processing
+                        "
                         :data-test="`save-${s.channel}`"
                         >Save</Button
                     >
@@ -419,13 +508,40 @@ const tone = (status: string) =>
             data-test="sent-messages"
         >
             <h2 id="sent-title" class="sr-only">Sent messages</h2>
-            <p class="text-sm text-muted-foreground">
-                One row per message. The text itself is never kept.
-            </p>
+            <div class="flex flex-wrap items-end justify-between gap-3">
+                <p class="text-sm text-muted-foreground">
+                    One row per message. The text itself is never kept.
+                    <span
+                        v-if="sentRange"
+                        class="block tabular-nums"
+                        data-test="sent-range"
+                        >{{ sentRange }}.</span
+                    >
+                </p>
+                <div class="flex w-full flex-col gap-1.5 sm:w-56">
+                    <Label id="sent-status-label">Status</Label>
+                    <OperationalSelect
+                        :model-value="messages.sent.status"
+                        :options="messages.sent.statuses"
+                        label="Status"
+                        labelledby="sent-status-label"
+                        trigger-class="max-lg:min-h-11"
+                        @update:model-value="(v) => goSent(1, String(v))"
+                    />
+                </div>
+            </div>
             <EmptyState
                 v-if="!messages.sent.rows.length"
-                title="No messages sent yet."
-                description="Messages appear here once staff choose a channel and HR switches it on."
+                :title="
+                    messages.sent.status === 'all'
+                        ? 'No messages sent yet.'
+                        : 'No messages with this status.'
+                "
+                :description="
+                    messages.sent.status === 'all'
+                        ? 'Messages appear here once staff choose a channel and HR switches it on.'
+                        : 'Choose All to see every message.'
+                "
             />
             <ul v-else class="flex flex-col gap-2">
                 <li

@@ -66,6 +66,7 @@ final class MessagesPageService
                 'channel' => $channel,
                 'label' => MessageSettingsService::LABELS[$channel],
                 'connected' => $this->delivery->channel($channel)->connected(),
+                'notConnected' => MessageSettingsService::notConnected($channel),
                 'switchedOn' => $settings !== null && (bool) $settings->enabled,
                 'optedIn' => (bool) ($prefs[$channel]->opted_in ?? false),
                 'lockVersion' => (int) ($prefs[$channel]->lock_version ?? 0),
@@ -93,6 +94,7 @@ final class MessagesPageService
                 'channel' => $channel,
                 'label' => MessageSettingsService::LABELS[$channel],
                 'connected' => $this->delivery->channel($channel)->connected(),
+                'notConnected' => MessageSettingsService::notConnected($channel),
                 'version' => $s === null ? 0 : (int) $s->version,
                 'enabled' => $s !== null && (bool) $s->enabled,
                 'monthlyCap' => $s?->monthly_cap === null ? null : (int) $s->monthly_cap,
@@ -114,12 +116,17 @@ final class MessagesPageService
     private function sent(User $actor, array $query, string $zone): array
     {
         $page = max(1, (int) filter_var($query['page'] ?? 1, FILTER_VALIDATE_INT, ['options' => ['default' => 1]]));
-        $base = DB::table('hr_message_deliveries as d')->join('users as u', 'u.id', '=', 'd.user_id')->where('d.organisation_id', $actor->organisation_id);
+        $status = is_string($query['status'] ?? null) && isset(self::STATUS_LABELS[$query['status']]) ? $query['status'] : 'all';
+        $base = DB::table('hr_message_deliveries as d')->join('users as u', 'u.id', '=', 'd.user_id')->where('d.organisation_id', $actor->organisation_id)
+            ->when($status !== 'all', fn ($q) => $q->where('d.status', $status));
         $total = (clone $base)->count();
         $rows = $base->orderByDesc('d.created_at')->orderByDesc('d.id')->offset(($page - 1) * self::PER_PAGE)->limit(self::PER_PAGE)
             ->get(['d.public_id', 'd.channel', 'd.template', 'd.status', 'd.error_code', 'd.created_at', 'u.name']);
 
         return [
+            'status' => $status,
+            'statuses' => [['value' => 'all', 'label' => 'All'], ...array_map(fn (string $v, string $l): array => ['value' => $v, 'label' => $l],
+                array_keys(self::STATUS_LABELS), self::STATUS_LABELS)],
             'page' => $page,
             'perPage' => self::PER_PAGE,
             'total' => $total,
