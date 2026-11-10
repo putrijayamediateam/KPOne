@@ -87,7 +87,7 @@ Jika resit tersalah rekod (contohnya amaun atau cara bayaran salah), gunakan “
 3. “Dispose” dan “Quarantine” tidak boleh dibatalkan. Ubat terkawal tidak boleh dikuarantin; lupuskan atau tolak sahaja.
 4. Anda tidak boleh menyemak pulangan yang anda rekod sendiri: senarai menyatakan “You recorded this. Another CA Supervisor must check it.” Jika cawangan belum ada lokasi pulangan, skrin menyatakan “This branch has no returns location yet. Ask the Inventory team to set one up.”
 
-Sama ada Finance Officer dan Director juga boleh menyemak pulangan masih menunggu keputusan pemilik: [PERLU DISAHKAN].
+Semakan pulangan ubat ialah semakan klinikal, jadi ia kekal dengan staf CA sahaja (keputusan pemilik, 10 November 2026). Finance Officer dan Director tidak menyemak pulangan ubat.
 
 ## Panggil pesakit seterusnya untuk doktor (“Call next”)
 
