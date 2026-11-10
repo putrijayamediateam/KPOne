@@ -200,7 +200,7 @@ class BillingController extends Controller
     public function printReceipt(Request $request, Visit $visit, Invoice $invoice, Payment $payment, BillingDirectoryService $directory): RedirectResponse
     {
         $data = $directory->detail($request->user(), $visit, $invoice, true);
-        abort_unless(collect($data['payments'])->contains(fn (array $candidate): bool => $candidate['publicId'] === $payment->public_id), 404);
+        abort_unless(in_array($payment->public_id, array_column($data['payments'], 'publicId'), true), 404);
 
         return $this->toIssuedCopies($visit);
     }
