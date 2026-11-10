@@ -175,9 +175,10 @@ function days(value: number): string {
                 </div>
                 <div class="flex items-baseline justify-between gap-4 sm:block">
                     <dt class="text-muted-foreground">
-                        Pay before deductions
+                        Pay after unpaid leave
                         <span class="block text-xs"
-                            >Unpaid leave already taken off</span
+                            >Gross pay less unpaid leave; other deductions are
+                            part of this pay</span
                         >
                     </dt>
                     <dd class="tabular-nums">
