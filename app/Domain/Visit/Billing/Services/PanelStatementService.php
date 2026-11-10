@@ -29,7 +29,7 @@ use Throwable;
  * recorded here. The file is kept encrypted on the private disk and deleted after 30 days; its rows are never
  * stored in the database, and the audit never holds its contents.
  */
-final class PanelStatementService
+class PanelStatementService
 {
     public const PERMISSION = PanelRemittanceService::PERMISSION;
 
@@ -119,6 +119,10 @@ final class PanelStatementService
             };
         }
 
+        $nearCut = false;
+        $rows = $chosen['amount'] === null || ($chosen['claim'] === null && $chosen['invoice'] === null && $chosen['member'] === null)
+            ? [] : $this->match($actor, $branch, $panel, $table['rows'], $chosen, $nearCut);
+
         return [
             'publicId' => $upload->public_id,
             'uploadedDate' => $upload->uploaded_at->setTimezone($branch->timezone)->format('j M Y'),
@@ -127,8 +131,11 @@ final class PanelStatementService
             'headers' => array_map(static fn (string $label, int $index): array => ['index' => $index, 'label' => $label !== '' ? Str::limit($label, 40) : 'Column '.($index + 1)],
                 $table['headers'], array_keys($table['headers'])),
             'mapping' => $chosen,
-            'rows' => $chosen['amount'] === null || ($chosen['claim'] === null && $chosen['invoice'] === null && $chosen['member'] === null)
-                ? [] : $this->match($actor, $branch, $panel, $table['rows'], $chosen),
+            'rows' => $rows,
+            // PNL-20: true when a "Not found" row was compared for near matches against only the oldest open claims
+            // because the Panel has more than that, so staff know a newer claim may still match by hand.
+            'nearCut' => $nearCut,
+            'nearLimit' => $this->nearCandidateLimit(),
         ];
     }
 
@@ -363,7 +370,7 @@ final class PanelStatementService
      * @param  array<string, int|null>  $columns
      * @return list<array<string, mixed>>
      */
-    private function match(User $actor, Branch $branch, Panel $panel, array $rows, array $columns): array
+    private function match(User $actor, Branch $branch, Panel $panel, array $rows, array $columns, bool &$nearCut): array
     {
         $cell = static fn (array $row, ?int $index): string => $index === null ? '' : (string) ($row['cells'][$index] ?? '');
         $claimNumbers = $invoices = $members = [];
@@ -427,7 +434,7 @@ final class PanelStatementService
         // Second pass, after every exact match is known: a "Not found" row whose invoice number is close to exactly
         // one open claim (see nearInvoice) is offered as a near match. It is only a suggestion; the officer must tick it.
         if ($pending !== []) {
-            $open = $this->openClaims($actor, $branch, $panel);
+            $open = $this->openClaims($actor, $branch, $panel, $nearCut);
             foreach ($pending as $i => $pendingSen) {
                 $statementInvoice = $cell($rows[$i], $columns['invoice']);
                 // Exactly one candidate first; only then the already-used and unpaid checks, so a second claim on a
@@ -497,18 +504,28 @@ final class PanelStatementService
         return implode('|', array_map(static fn (string $g): string => ctype_digit($g) && ! $lookalike ? (ltrim($g, '0') === '' ? '0' : ltrim($g, '0')) : $g, $groups[0]));
     }
 
+    /** How many of the oldest open claims are compared for near matches (a method so a test can use a small number). */
+    protected function nearCandidateLimit(): int
+    {
+        return self::NEAR_CANDIDATES;
+    }
+
     /**
      * Open claims of this Panel at this branch that still wait for payment, oldest first, as near-match candidates.
      *
      * @return Collection<int, PanelClaim>
      */
-    private function openClaims(User $actor, Branch $branch, Panel $panel): Collection
+    private function openClaims(User $actor, Branch $branch, Panel $panel, bool &$cut): Collection
     {
         $received = '(select coalesce(sum(p.amount_sen), 0) from panel_claim_payments p where p.panel_claim_id = panel_claims.id and p.organisation_id = panel_claims.organisation_id and p.branch_id = panel_claims.branch_id and '.PanelClaimPaymentReversal::NOT_REVERSED_P.')';
 
-        return PanelClaim::query()->where('organisation_id', $actor->organisation_id)->where('branch_id', $branch->id)->where('panel_id', $panel->id)
+        $claims = PanelClaim::query()->where('organisation_id', $actor->organisation_id)->where('branch_id', $branch->id)->where('panel_id', $panel->id)
             ->whereIn('status', self::PAYABLE)->orderBy('id')
-            ->select('panel_claims.*')->selectRaw("{$received} as received_sen")->limit(self::NEAR_CANDIDATES)->get()
+            ->select('panel_claims.*')->selectRaw("{$received} as received_sen")->limit($this->nearCandidateLimit() + 1)->get();
+        // One extra row tells us the Panel has more open claims than are compared (PNL-20).
+        $cut = $claims->count() > $this->nearCandidateLimit();
+
+        return $claims->take($this->nearCandidateLimit())
             ->filter(fn (PanelClaim $c): bool => max(0, (int) $c->accepted_amount_sen - (int) $c->getAttribute('received_sen')) > 0)->values();
     }
 
