@@ -110,6 +110,7 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php` and `BillingPermiss
 | BIL-10 | Refunds after a visit is completed: part or all of one posted receipt (never more than the receipt less its refunds that are not rejected), recorded by a CA Supervisor or Finance Officer and approved or rejected by a Finance Officer or Director, never the recorder (the two BIL-6 permissions). Each carries an invoice credit of the same amount: once approved, the ledger lowers the invoice total and what was paid together, so nothing becomes due again. Billing page refund panel (amount, method, reason), "Refunded … · … kept" under the receipt and a "Refund credit" line on the Billing, Invoice and printed invoice; Insights and the Sales CSV show "Refund credits" as their own row on the approval day; Daily summary and Transaction Detail gain a "Refunded after completion" column. Additive migration with PostgreSQL guards (`invoice_credits`, `payment_refunds.kind`). Design note: `BIL-10-DESIGN.md` | PR #392 |
 | BIL-11 | Each service line keeps its clinical service's category as priced (frozen at finalisation), so a later rename never moves money between the printed category rows or revises the copy. Invoices finalised before BIL-11 keep reading the live category (owner decision). Additive nullable column; no screen, amount or permission change. Design note: `BIL-11-DESIGN.md` | PR #404 |
 | BIL-13 | PostgreSQL race tests for refunds after completion: two refunds at once on one receipt never exceed it (one recorded, the other refused on the amount), and two that fit together are both recorded. The race test cleanup also removes invoice credits. Test only | PR #399 |
+| BIL-15 | Cash closing start date per branch: a Director or Finance Officer sets the first day the monthly cash closing (BIL-7) expects daily counts, on the cash closing month page; without one the start stays the first count. Append-only revisions, audited; a start date moved later is announced on the page and never hides counts already made. New permission `payments.cash_closing.start_date.manage.branch` (finance_officer, director; additive migration `2026_11_12_200100`). No change to counts, approvals or amounts | PR pending |
 
 ## 6. Owner decisions already made (never ask again)
 
@@ -225,6 +226,10 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php` and `BillingPermiss
     (listed in the PR). Details in `BIL-10-DESIGN.md` sections 6 and 8.
 32. BIL-11 frozen service category (2026-11-07, the owner in the Billing session): invoices finalised before BIL-11
     keep reading the live category; every invoice finalised after carries its frozen category.
+34. BIL-15 cash closing start date (2026-11-07 and 2026-11-10, the owner in the Billing session): set by a Director or
+    Finance Officer, on the cash closing month page; no date set means the start is the branch's first count. Moving the
+    date later is allowed and audited, and the month page says "Start date changed on X (was Y)". There is no "clear"
+    back to the first count: a date set by mistake is corrected by setting the first-count date by hand.
 
 ## 7. Open items and known limits
 
@@ -317,6 +322,9 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php` and `BillingPermiss
   point before real use.
 - Refunds after completion (BIL-10): see `BIL-10-DESIGN.md` section 9 (Insights Provider table stays invoice-based;
   one invoice per refunded receipt; the race test is BIL-13).
+- Cash closing start date (BIL-15): no way back to "no date set" (owner decision). A request key reused on two
+  different branches at the same moment can fail with a server error instead of a message (the branch check normally
+  catches it first). A month before the start that holds counts still shows them in full.
 
 ## 8. Rules (every task)
 
