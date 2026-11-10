@@ -2297,7 +2297,7 @@ const inputClass = 'mt-1 h-9 w-full rounded-md border px-2';
                         "
                         data-testid="dispensary-call"
                         @click="callPatient"
-                        ><Megaphone class="size-4" />Panggil</Button
+                        ><Megaphone class="size-4" />Call patient</Button
                     >
                     <Button
                         v-if="dispensary.can.start"

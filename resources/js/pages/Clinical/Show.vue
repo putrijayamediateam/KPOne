@@ -260,7 +260,7 @@ const recallPatient = () => {
             onError: (errors) => {
                 recallError.value =
                     Object.values(errors)[0] ??
-                    'Pesakit tidak dapat dipanggil semula.';
+                    'This patient cannot be called again.';
             },
             onFinish: () => (recallProcessing.value = false),
         },
@@ -272,7 +272,7 @@ const treatmentRoomId = ref<string | number>(
 );
 const callToTreatment = () => {
     if (treatmentRoomId.value === '') {
-        recallError.value = 'Pilih bilik rawatan dahulu.';
+        recallError.value = 'Choose a treatment room first.';
 
         return;
     }
@@ -293,7 +293,7 @@ const callToTreatment = () => {
             onError: (errors) => {
                 recallError.value =
                     Object.values(errors)[0] ??
-                    'Pesakit tidak dapat dipanggil ke bilik rawatan.';
+                    'This patient cannot be called to the treatment room.';
             },
             onFinish: () => (recallProcessing.value = false),
         },
@@ -584,7 +584,7 @@ const changeHoldState = (action: 'hold' | 'resume') => {
                     data-testid="recall-patient"
                     @click="recallPatient"
                 >
-                    <Megaphone class="size-4" /> Panggil semula
+                    <Megaphone class="size-4" /> Call again
                 </Button>
                 <div
                     v-if="
@@ -597,7 +597,7 @@ const changeHoldState = (action: 'hold' | 'resume') => {
                         v-if="(treatmentRooms?.length ?? 0) > 1"
                         v-model="treatmentRoomId"
                         label="Treatment room"
-                        placeholder="Bilik rawatan"
+                        placeholder="Treatment room"
                         trigger-class="h-8 w-40"
                         :options="
                             (treatmentRooms ?? []).map((room) => ({
@@ -614,7 +614,7 @@ const changeHoldState = (action: 'hold' | 'resume') => {
                         data-testid="call-treatment"
                         @click="callToTreatment"
                     >
-                        <Megaphone class="size-4" /> Ke bilik rawatan
+                        <Megaphone class="size-4" /> Call to treatment room
                     </Button>
                 </div>
                 <InputError
