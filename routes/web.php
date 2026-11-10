@@ -134,6 +134,9 @@ Route::get('careers/status', [JobApplicationController::class, 'status'])
 Route::post('careers/status/exchange', [JobApplicationController::class, 'exchange'])
     ->middleware(['public-intake.proxy', 'throttle:hr-applications-link', 'sensitive.no-store:no-referrer'])
     ->name('hr-applications.status.exchange');
+Route::post('careers/status/picks', [JobApplicationController::class, 'picks'])
+    ->middleware(['public-intake.proxy', 'throttle:hr-applications-link', 'sensitive.no-store:no-referrer'])
+    ->name('hr-applications.status.picks');
 Route::post('careers/status/withdraw', [JobApplicationController::class, 'withdraw'])
     ->middleware(['public-intake.proxy', 'throttle:hr-applications-link', 'sensitive.no-store:no-referrer'])
     ->name('hr-applications.status.withdraw');
@@ -343,6 +346,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
                 Route::post('{application}/move', 'move')->whereUuid('application')->name('hr.applications.move');
                 // HR-17a hiring stages (owner, 2026-11-10).
                 Route::post('{application}/screening', 'screen')->whereUuid('application')->name('hr.applications.screen');
+                Route::post('{application}/interview/confirm', 'confirmInterview')->whereUuid('application')->name('hr.applications.interview.confirm');
+                Route::post('{application}/interview/ask-again', 'askAgain')->whereUuid('application')->name('hr.applications.interview.ask-again');
+                Route::post('{application}/interview/cancel', 'cancelInterview')->whereUuid('application')->name('hr.applications.interview.cancel');
                 Route::post('checklist', 'checklist')->name('hr.applications.checklist');
                 Route::post('retention', 'retention')->name('hr.applications.retention');
             });

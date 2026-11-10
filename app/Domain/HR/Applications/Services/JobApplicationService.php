@@ -176,6 +176,9 @@ final class JobApplicationService
                         : 'Choose one of the next steps shown.')]);
             }
             $closed = ! in_array($to, self::OPEN, true);
+            if ($to === 'withdrawn') {
+                InterviewSlots::releaseOnWithdraw((int) $application->id, $actor->id);
+            }
             DB::table('hr_job_applications')->where('id', $application->id)->update(['status' => $to, 'closed_at' => $closed ? now()->utc() : null,
                 'stage_entered_at' => now()->utc(), 'lock_version' => (int) $application->lock_version + 1, 'updated_at' => now()->utc()]);
             DB::table('hr_job_application_events')->insert(['organisation_id' => $actor->organisation_id, 'application_id' => $application->id,
