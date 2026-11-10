@@ -398,8 +398,13 @@ const inputClass =
                                     </select></label
                                 ><label class="block text-sm"
                                     >Closing date (optional)<DateField
-                                        v-model="
-                                            form.content.closing_date
+                                        :model-value="
+                                            String(
+                                                form.content.closing_date ?? '',
+                                            )
+                                        "
+                                        @update:model-value="
+                                            form.content.closing_date = $event
                                         " /></label
                             ></template>
                             <fieldset class="space-y-2">
