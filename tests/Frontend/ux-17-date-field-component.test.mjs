@@ -89,4 +89,12 @@ test('the public QR date of birth uses the patient look', () => {
         'utf8',
     );
     assert.match(qr, /look="patient"/);
+    const field = readFileSync(
+        new URL(
+            '../../resources/js/components/ui/date-field/DateField.vue',
+            import.meta.url,
+        ),
+        'utf8',
+    );
+    assert.match(field, /rounded-xl border-border md:text-base/);
 });
