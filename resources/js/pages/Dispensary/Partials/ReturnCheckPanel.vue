@@ -5,7 +5,11 @@ import { computed, nextTick, ref, watch } from 'vue';
 import { Button } from '@/components/ui/button';
 import OperationalConfirmDialog from '@/components/ui/OperationalConfirmDialog.vue';
 import { OperationalSelect } from '@/components/ui/select';
-import { refuseReasonLabels } from '@/lib/dispensary-returns';
+import {
+    fromThousandths,
+    refuseReasonLabels,
+    toThousandths,
+} from '@/lib/dispensary-returns';
 import type {
     DispensaryReturnLine,
     DispensaryReturnRow,
@@ -51,6 +55,114 @@ const form = useForm({
     retry_key: crypto.randomUUID(),
 });
 const confirmOpen = ref(false);
+
+// DSP-15: a line dispensed from two or more batches is split across them: one box per batch, empty means 0. The
+// checker types what the boxes in hand show; "Fill from earliest expiry" only helps when they clearly match.
+const isSplit = computed(() => props.line.batches.length > 1);
+const shares = ref<Record<string, string>>(
+    Object.fromEntries(props.line.batches.map((b) => [b.publicId, ''])),
+);
+const splitErrors = ref<Record<string, string>>({});
+// The batches sent in the last request, in order, so a server message for batches.N lands under its own box.
+const sentOrder = ref<string[]>([]);
+const returned = computed(() => toThousandths(props.row.quantity) ?? 0);
+const available = (publicId: string): number =>
+    toThousandths(
+        props.line.batches.find((b) => b.publicId === publicId)?.available ??
+            '0',
+    ) ?? 0;
+const quarantineBlocked = computed(
+    () =>
+        props.line.quarantineAvailable !== null &&
+        (toThousandths(props.line.quarantineAvailable) ?? 0) < returned.value,
+);
+const placed = computed(() =>
+    Object.values(shares.value).reduce(
+        (sum, value) => sum + Math.max(0, toThousandths(value) ?? 0),
+        0,
+    ),
+);
+const placedText = computed(() => {
+    const base = `Placed ${fromThousandths(placed.value)} of ${props.row.quantity} ${props.line.unit}`;
+    const difference = returned.value - placed.value;
+
+    if (difference === 0) {
+        return `${base} · All placed`;
+    }
+
+    return difference > 0
+        ? `${base} · ${fromThousandths(difference)} left`
+        : `${base} · ${fromThousandths(-difference)} too many`;
+});
+// What screen readers hear changes only after a pause in typing, so it does not chatter.
+const placedAnnouncement = ref('');
+let announceTimer: ReturnType<typeof setTimeout> | undefined;
+watch(placedText, (text) => {
+    clearTimeout(announceTimer);
+    announceTimer = setTimeout(() => {
+        placedAnnouncement.value = text;
+    }, 500);
+});
+const anyTyped = computed(() =>
+    Object.values(shares.value).some((value) => value.trim() !== ''),
+);
+const fillFromEarliestExpiry = () => {
+    let left = returned.value;
+
+    for (const batch of props.line.batches) {
+        const take = Math.min(left, available(batch.publicId));
+        shares.value[batch.publicId] = take > 0 ? fromThousandths(take) : '';
+        left -= take;
+    }
+
+    clearTimeout(announceTimer);
+    placedAnnouncement.value =
+        'Filled from earliest expiry. Check the boxes match.';
+};
+const shareError = (publicId: string): string | undefined => {
+    if (splitErrors.value[publicId]) {
+        return splitErrors.value[publicId];
+    }
+
+    const index = sentOrder.value.indexOf(publicId);
+    const errors = form.errors as Record<string, string | undefined>;
+
+    return index === -1 ? undefined : errors[`batches.${index}.quantity`];
+};
+const splitError = computed(() => {
+    const errors = form.errors as Record<string, string | undefined>;
+
+    return (
+        splitErrors.value.batches ??
+        errors.batches ??
+        Object.entries(errors).find(([key]) =>
+            /^batches\.\d+\.batch_public_id$/.test(key),
+        )?.[1]
+    );
+});
+const sharesToSend = computed(() =>
+    props.line.batches
+        .map((b) => ({
+            batch_public_id: b.publicId,
+            quantity: (shares.value[b.publicId] ?? '').trim(),
+        }))
+        .filter((share) => (toThousandths(share.quantity) ?? 0) > 0),
+);
+// Typing in a box clears only the batch messages, never the location or a server alert.
+watch(
+    shares,
+    () => {
+        splitErrors.value = {};
+        const batchKeys = Object.keys(form.errors).filter((key) =>
+            key.startsWith('batches'),
+        );
+
+        if (batchKeys.length > 0) {
+            form.clearErrors(...(batchKeys as (keyof typeof form.data)[]));
+        }
+    },
+    { deep: true },
+);
 // Clear a field's error as soon as the field is corrected, so a fixed field never keeps its message.
 watch(
     () => form.outcome,
@@ -76,6 +188,25 @@ const locationName = computed(
     () =>
         locations.value.find((l) => l.publicId === form.location_public_id)
             ?.name ?? 'the returns location',
+);
+// DSP-15: the checker sees the batch or batches before confirming a quarantine.
+const dialogBatches = computed(() =>
+    isSplit.value
+        ? sharesToSend.value.map((share) => ({
+              publicId: share.batch_public_id,
+              label:
+                  props.line.batches.find(
+                      (b) => b.publicId === share.batch_public_id,
+                  )?.label ?? 'Batch',
+              quantity: fromThousandths(toThousandths(share.quantity) ?? 0),
+          }))
+        : props.line.batches
+              .filter((b) => b.publicId === form.batch_public_id)
+              .map((b) => ({
+                  publicId: b.publicId,
+                  label: b.label,
+                  quantity: props.row.quantity,
+              })),
 );
 const dialog = computed(() => {
     if (form.outcome === 'quarantine') {
@@ -116,12 +247,35 @@ const dialog = computed(() => {
 const validate = (): boolean => {
     form.clearErrors();
 
+    splitErrors.value = {};
+
     if (form.outcome === 'quarantine') {
         if (!form.location_public_id) {
             form.setError('location_public_id', 'Choose a returns location.');
         }
 
-        if (!form.batch_public_id) {
+        if (isSplit.value) {
+            for (const batch of props.line.batches) {
+                const value = toThousandths(shares.value[batch.publicId] ?? '');
+
+                if (value === null) {
+                    splitErrors.value[batch.publicId] =
+                        'Enter a number with up to 3 decimals, for example 2.5.';
+                } else if (value > available(batch.publicId)) {
+                    splitErrors.value[batch.publicId] =
+                        `At most ${batch.available} ${props.line.unit} from this batch.`;
+                }
+            }
+
+            if (Object.keys(splitErrors.value).length === 0) {
+                if (placed.value === 0) {
+                    splitErrors.value.batches =
+                        'Enter how many units went back to each batch.';
+                } else if (placed.value !== returned.value) {
+                    splitErrors.value.batches = `The batches add up to ${fromThousandths(placed.value)} ${props.line.unit}. They must add up to ${props.row.quantity} ${props.line.unit}.`;
+                }
+            }
+        } else if (!form.batch_public_id) {
             form.setError(
                 'batch_public_id',
                 'Choose the batch the units came from.',
@@ -140,7 +294,10 @@ const validate = (): boolean => {
         }
     }
 
-    return Object.keys(form.errors).length === 0;
+    return (
+        Object.keys(form.errors).length === 0 &&
+        Object.keys(splitErrors.value).length === 0
+    );
 };
 
 const openConfirm = async () => {
@@ -151,15 +308,23 @@ const openConfirm = async () => {
     }
 
     await nextTick();
-    document
-        .getElementById(id('panel'))
-        ?.querySelector<HTMLElement>(
+    const root = document.getElementById(id('panel'));
+    // A total or "nothing entered" message has no box of its own, so the first open box takes focus.
+    (
+        root?.querySelector<HTMLElement>(
             '[aria-invalid="true"], input[aria-invalid]',
+        ) ??
+        root?.querySelector<HTMLElement>(
+            'input[data-field="check-share"]:not(:disabled)',
         )
-        ?.focus();
+    )?.focus();
 };
 
 const submit = () => {
+    sentOrder.value =
+        isSplit.value && form.outcome === 'quarantine'
+            ? sharesToSend.value.map((share) => share.batch_public_id)
+            : [];
     form.transform((data) => ({
         expected_branch_id: props.returns.branchId,
         retry_key: data.retry_key,
@@ -172,7 +337,13 @@ const submit = () => {
         location_public_id:
             data.outcome === 'quarantine' ? data.location_public_id : null,
         batch_public_id:
-            data.outcome === 'quarantine' ? data.batch_public_id : null,
+            data.outcome === 'quarantine' && !isSplit.value
+                ? data.batch_public_id
+                : null,
+        batches:
+            data.outcome === 'quarantine' && isSplit.value
+                ? sharesToSend.value
+                : null,
     })).post(
         `/dispensary/${props.returns.casePublicId}/returns/${props.row.publicId}/check`,
         {
@@ -244,7 +415,8 @@ const serverAlert = computed(() => {
                     :value="outcome"
                     :disabled="
                         form.processing ||
-                        (outcome === 'quarantine' && locations.length === 0)
+                        (outcome === 'quarantine' &&
+                            (locations.length === 0 || quarantineBlocked))
                     "
                     class="mt-1 accent-brand"
                     data-field="check-outcome"
@@ -262,7 +434,9 @@ const serverAlert = computed(() => {
                     <span class="block text-xs text-muted-foreground">{{
                         outcome === 'quarantine' && locations.length === 0
                             ? 'This branch has no returns location yet. Ask the Inventory team to set one up.'
-                            : outcomeText[outcome]?.help
+                            : outcome === 'quarantine' && quarantineBlocked
+                              ? `Only ${line.quarantineAvailable} ${line.unit} can go back to this line's batches. Dispose the return, or refuse it if it was recorded wrongly.`
+                              : outcomeText[outcome]?.help
                     }}</span>
                 </span>
             </label>
@@ -305,30 +479,122 @@ const serverAlert = computed(() => {
                 class="text-xs text-destructive"
                 >{{ form.errors.location_public_id }}</span
             >
-            <div v-if="line.batches.length > 1" class="text-sm">
-                <label :for="id('batch')" class="font-medium"
-                    >Batch the units came from
-                    <span class="text-muted-foreground">(required)</span></label
+            <fieldset
+                v-if="isSplit"
+                class="grid gap-3 text-sm"
+                :aria-describedby="
+                    splitError
+                        ? `${id('split-help')} ${id('split-error')}`
+                        : id('split-help')
+                "
+                data-testid="return-check-split"
+            >
+                <legend class="mb-1 font-medium">
+                    Batches the units came from
+                    <span class="text-muted-foreground">(required)</span>
+                </legend>
+                <p :id="id('split-help')" class="text-xs text-muted-foreground">
+                    Enter how many went back to each batch. Leave 0 for a batch
+                    you did not use.
+                </p>
+                <div
+                    v-for="batch in line.batches"
+                    :key="batch.publicId"
+                    class="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-x-3 gap-y-1"
                 >
-                <OperationalSelect
-                    :id="id('batch')"
-                    v-model="form.batch_public_id"
-                    class="mt-1"
-                    trigger-class="h-11 sm:h-9"
-                    label="Batch"
-                    placeholder="Choose a batch"
-                    :invalid="!!form.errors.batch_public_id"
-                    :disabled="form.processing"
-                    :options="
-                        line.batches.map((b) => ({
-                            value: b.publicId,
-                            label: b.label,
-                        }))
+                    <div class="min-w-0">
+                        <label
+                            :for="id(`share-${batch.publicId}`)"
+                            class="font-medium [overflow-wrap:anywhere]"
+                            >{{ batch.label }}</label
+                        >
+                        <span
+                            :id="id(`share-${batch.publicId}-available`)"
+                            class="block text-xs text-muted-foreground tabular-nums"
+                            >{{
+                                batch.available === '0'
+                                    ? 'None left to return from this batch'
+                                    : `Available: ${batch.available} ${line.unit}`
+                            }}</span
+                        >
+                    </div>
+                    <span class="flex items-center gap-2">
+                        <input
+                            :id="id(`share-${batch.publicId}`)"
+                            v-model="shares[batch.publicId]"
+                            type="text"
+                            inputmode="decimal"
+                            autocomplete="off"
+                            placeholder="0"
+                            :disabled="
+                                form.processing || batch.available === '0'
+                            "
+                            :aria-label="`Quantity from batch ${batch.label}`"
+                            :aria-invalid="
+                                shareError(batch.publicId) ? 'true' : undefined
+                            "
+                            :aria-describedby="
+                                shareError(batch.publicId)
+                                    ? `${id(`share-${batch.publicId}-available`)} ${id(`share-${batch.publicId}-error`)}`
+                                    : id(`share-${batch.publicId}-available`)
+                            "
+                            class="h-9 w-24 rounded-md border border-input bg-card px-3 text-right tabular-nums outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/40 disabled:cursor-not-allowed disabled:opacity-60 aria-invalid:border-destructive max-lg:h-11"
+                            data-field="check-share"
+                        />
+                        <span class="text-muted-foreground">{{
+                            line.unit
+                        }}</span>
+                    </span>
+                    <span
+                        v-if="shareError(batch.publicId)"
+                        :id="id(`share-${batch.publicId}-error`)"
+                        role="alert"
+                        class="col-span-2 text-xs text-destructive"
+                        >{{ shareError(batch.publicId) }}</span
+                    >
+                </div>
+                <p
+                    class="text-sm tabular-nums"
+                    :class="
+                        placed > returned
+                            ? 'text-destructive'
+                            : 'text-muted-foreground'
                     "
-                />
-            </div>
+                    aria-hidden="true"
+                    data-testid="return-check-placed"
+                >
+                    {{ placedText }}
+                </p>
+                <p class="sr-only" role="status" aria-live="polite">
+                    {{ placedAnnouncement }}
+                </p>
+                <span
+                    v-if="splitError"
+                    :id="id('split-error')"
+                    role="alert"
+                    class="text-xs text-destructive"
+                    >{{ splitError }}</span
+                >
+                <div
+                    class="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-3"
+                >
+                    <Button
+                        type="button"
+                        variant="outline"
+                        class="h-9 w-full max-lg:h-11 sm:w-auto"
+                        :disabled="form.processing || anyTyped"
+                        data-action="fill-earliest-expiry"
+                        @click="fillFromEarliestExpiry"
+                    >
+                        Fill from earliest expiry
+                    </Button>
+                    <span class="text-xs text-muted-foreground"
+                        >Use only if the boxes in hand show these batches.</span
+                    >
+                </div>
+            </fieldset>
             <span
-                v-if="form.errors.batch_public_id"
+                v-if="!isSplit && form.errors.batch_public_id"
                 :id="id('batch-error')"
                 role="alert"
                 class="text-xs text-destructive"
@@ -471,6 +737,27 @@ const serverAlert = computed(() => {
             <template #icon>
                 <component :is="dialog.icon" class="size-5" />
             </template>
+            <div
+                v-if="form.outcome === 'quarantine' && dialogBatches.length > 0"
+                class="text-sm tabular-nums"
+                data-testid="return-check-dialog-batches"
+            >
+                <p v-if="dialogBatches.length === 1">
+                    From batch {{ dialogBatches[0].label }}
+                </p>
+                <template v-else>
+                    <p>From {{ dialogBatches.length }} batches:</p>
+                    <ul class="mt-1 list-disc pl-5">
+                        <li
+                            v-for="b in dialogBatches"
+                            :key="b.publicId"
+                            class="[overflow-wrap:anywhere]"
+                        >
+                            {{ b.label }} — {{ b.quantity }} {{ line.unit }}
+                        </li>
+                    </ul>
+                </template>
+            </div>
         </OperationalConfirmDialog>
     </div>
 </template>
