@@ -16,6 +16,18 @@ type Application = {
     open: boolean;
     submittedOn: string;
     messages: Message[];
+    // HR-17c: the slot picker at Scheduling, the confirmed time at Interview.
+    interview: {
+        branch?: string | null;
+        picked?: string[];
+        days?: {
+            date: string;
+            label: string;
+            slots: { start: string; label: string }[];
+        }[];
+        picks?: number;
+        confirmed?: string;
+    } | null;
 };
 
 const props = defineProps<{
@@ -67,6 +79,29 @@ onMounted(() => {
         },
     );
 });
+
+// HR-17c: choose exactly three times; nothing is kept in the browser.
+const chosen = ref<string[]>([]);
+const sending = ref(false);
+const toggle = (start: string) => {
+    chosen.value = chosen.value.includes(start)
+        ? chosen.value.filter((s) => s !== start)
+        : chosen.value.length < 3
+          ? [...chosen.value, start]
+          : chosen.value;
+};
+const sendPicks = () => {
+    sending.value = true;
+    router.post(
+        '/careers/status/picks',
+        { starts: chosen.value },
+        {
+            preserveScroll: true,
+            onSuccess: () => (chosen.value = []),
+            onFinish: () => (sending.value = false),
+        },
+    );
+};
 
 const withdraw = () => {
     withdrawing.value = true;
@@ -175,6 +210,156 @@ const closedWell = computed(() => props.application?.stage === 'passed');
                             {{ application.stageLabelMs }}
                         </p>
                     </div>
+
+                    <section
+                        v-if="application.interview?.confirmed"
+                        class="rounded-2xl border border-pink-200 p-4 dark:border-pink-900/60"
+                        aria-labelledby="interview-heading"
+                        data-test="status-interview"
+                    >
+                        <h2
+                            id="interview-heading"
+                            class="text-base font-semibold"
+                        >
+                            Your interview
+                            <span
+                                lang="ms"
+                                class="block text-sm font-normal text-zinc-600 dark:text-zinc-400"
+                                >Temu duga anda</span
+                            >
+                        </h2>
+                        <p class="mt-2 text-lg font-semibold">
+                            {{ application.interview.confirmed }}
+                        </p>
+                        <p class="text-sm">
+                            {{ clinicName }} {{ application.interview.branch }}
+                        </p>
+                    </section>
+
+                    <section
+                        v-else-if="
+                            application.stage === 'scheduling' &&
+                            application.interview
+                        "
+                        class="space-y-3"
+                        aria-labelledby="slots-heading"
+                        data-test="status-slots"
+                    >
+                        <h2 id="slots-heading" class="text-base font-semibold">
+                            Choose your interview times
+                            <span
+                                lang="ms"
+                                class="block text-sm font-normal text-zinc-600 dark:text-zinc-400"
+                                >Pilih masa temu duga anda</span
+                            >
+                        </h2>
+                        <template v-if="application.interview.picked?.length">
+                            <p class="text-sm">
+                                Your three times are with the clinic. They will
+                                confirm one, or ask you for new times.
+                            </p>
+                            <p
+                                lang="ms"
+                                class="text-sm text-zinc-600 dark:text-zinc-400"
+                            >
+                                Tiga masa anda telah dihantar kepada klinik.
+                                Klinik akan mengesahkan satu, atau meminta masa
+                                baharu.
+                            </p>
+                            <ul
+                                class="list-disc space-y-1 pl-5 text-sm font-medium"
+                                data-test="status-picked"
+                            >
+                                <li
+                                    v-for="p in application.interview.picked"
+                                    :key="p"
+                                >
+                                    {{ p }}
+                                </li>
+                            </ul>
+                        </template>
+                        <template
+                            v-else-if="application.interview.days?.length"
+                        >
+                            <p class="text-sm">
+                                Tick three one-hour times that suit you, at
+                                {{ clinicName }}
+                                {{ application.interview.branch }}. The clinic
+                                confirms one.
+                            </p>
+                            <p
+                                lang="ms"
+                                class="text-sm text-zinc-600 dark:text-zinc-400"
+                            >
+                                Tandakan tiga masa satu jam yang sesuai. Klinik
+                                akan mengesahkan satu.
+                            </p>
+                            <p
+                                v-if="errors.starts"
+                                role="alert"
+                                class="text-sm font-medium text-red-700 dark:text-red-400"
+                                data-test="status-slots-error"
+                            >
+                                {{ errors.starts }}
+                            </p>
+                            <fieldset
+                                v-for="day in application.interview.days"
+                                :key="day.date"
+                                class="space-y-2"
+                            >
+                                <legend class="text-sm font-semibold">
+                                    {{ day.label }}
+                                </legend>
+                                <div class="flex flex-wrap gap-2">
+                                    <label
+                                        v-for="slot in day.slots"
+                                        :key="slot.start"
+                                        class="inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-lg border px-3 text-sm has-[:checked]:border-pink-600 has-[:checked]:bg-pink-50 has-[:disabled]:cursor-not-allowed has-[:disabled]:opacity-50 dark:has-[:checked]:bg-pink-950/40"
+                                    >
+                                        <input
+                                            type="checkbox"
+                                            class="size-4"
+                                            :value="slot.start"
+                                            :checked="
+                                                chosen.includes(slot.start)
+                                            "
+                                            :disabled="
+                                                !chosen.includes(slot.start) &&
+                                                chosen.length >= 3
+                                            "
+                                            @change="toggle(slot.start)"
+                                        />
+                                        {{ slot.label }}
+                                    </label>
+                                </div>
+                            </fieldset>
+                            <div
+                                class="sticky bottom-0 flex flex-wrap items-center gap-3 border-t border-zinc-200 bg-white py-3 dark:border-zinc-800 dark:bg-zinc-900"
+                            >
+                                <p
+                                    role="status"
+                                    class="text-sm"
+                                    data-test="status-slots-count"
+                                >
+                                    {{ chosen.length }} of 3 chosen /
+                                    {{ chosen.length }} daripada 3 dipilih
+                                </p>
+                                <button
+                                    type="button"
+                                    class="inline-flex min-h-11 items-center rounded-lg bg-pink-700 px-4 text-sm font-medium text-white hover:bg-pink-800 focus-visible:ring-2 focus-visible:ring-pink-500 focus-visible:ring-offset-2 focus-visible:outline-none disabled:opacity-60"
+                                    :disabled="chosen.length !== 3 || sending"
+                                    data-test="status-slots-send"
+                                    @click="sendPicks"
+                                >
+                                    Send my three times / Hantar tiga masa saya
+                                </button>
+                            </div>
+                        </template>
+                        <p v-else class="text-sm" data-test="status-slots-none">
+                            The clinic will contact you to arrange a time. /
+                            Klinik akan menghubungi anda untuk menetapkan masa.
+                        </p>
+                    </section>
 
                     <section
                         aria-labelledby="messages-heading"
