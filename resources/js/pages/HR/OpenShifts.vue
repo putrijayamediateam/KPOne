@@ -94,7 +94,7 @@ const managed = computed(() =>
         : props.openShifts.open,
 );
 const shiftTone = (status: Shift['status']) =>
-    status === 'open' ? 'warning' : status === 'filled' ? 'success' : 'neutral';
+    status === 'open' ? 'accent' : status === 'filled' ? 'success' : 'neutral';
 const askTone = (status: Ask['status']) =>
     status === 'confirmed'
         ? 'success'
@@ -398,53 +398,43 @@ const withdrawAsk = (mine: MyAsk) => {
                 <li
                     v-for="s in managed"
                     :key="s.id"
-                    class="flex flex-col gap-3 rounded-xl border bg-card p-4"
+                    class="grid gap-3 rounded-xl border bg-card p-4 sm:grid-cols-[minmax(0,1fr)_auto]"
                 >
-                    <div
-                        class="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between"
-                    >
-                        <div class="min-w-0">
-                            <p
-                                class="flex flex-wrap items-center gap-2 font-medium"
-                            >
-                                <span>{{ s.when }}</span>
-                                <StatusBadge
-                                    :status="s.status"
-                                    :label="
-                                        s.status === 'open'
-                                            ? 'Open'
-                                            : s.status === 'filled'
-                                              ? 'Filled'
-                                              : 'Withdrawn'
-                                    "
-                                    :tone="shiftTone(s.status)"
-                                />
-                            </p>
-                            <p class="text-sm text-muted-foreground">
-                                {{ s.branch }} · {{ s.sessionLabel }} ·
-                                {{ s.roleLabel }}
-                                <template v-if="s.breakMinutes">
-                                    · {{ s.breakMinutes }} min break</template
-                                >
-                            </p>
-                        </div>
-                        <Button
-                            v-if="s.status === 'open'"
-                            variant="outline"
-                            class="max-lg:min-h-11"
-                            :aria-label="`Withdraw the shift on ${s.when}`"
-                            data-test="open-shift-withdraw"
-                            @click="withdrawing.shift = s"
-                            >Withdraw shift</Button
+                    <div class="min-w-0">
+                        <p
+                            class="flex flex-wrap items-center gap-2 font-medium"
                         >
+                            <span>{{ s.when }}</span>
+                            <StatusBadge
+                                :status="s.status"
+                                :label="
+                                    s.status === 'open'
+                                        ? 'Open'
+                                        : s.status === 'filled'
+                                          ? 'Filled'
+                                          : 'Withdrawn'
+                                "
+                                :tone="shiftTone(s.status)"
+                            />
+                        </p>
+                        <p class="text-sm text-muted-foreground">
+                            {{ s.branch }} · {{ s.sessionLabel }} ·
+                            {{ s.roleLabel }}
+                            <template v-if="s.breakMinutes">
+                                · {{ s.breakMinutes }} min break</template
+                            >
+                        </p>
                     </div>
                     <p
                         v-if="s.asks.length === 0"
-                        class="text-sm text-muted-foreground"
+                        class="text-sm text-muted-foreground sm:col-span-2"
                     >
                         No locum has asked yet.
                     </p>
-                    <ul v-else class="flex flex-col divide-y rounded-lg border">
+                    <ul
+                        v-else
+                        class="flex flex-col divide-y rounded-lg border sm:col-span-2"
+                    >
                         <li
                             v-for="a in s.asks"
                             :key="a.id"
@@ -513,6 +503,15 @@ const withdrawAsk = (mine: MyAsk) => {
                             </p>
                         </li>
                     </ul>
+                    <Button
+                        v-if="s.status === 'open'"
+                        variant="outline"
+                        class="max-lg:min-h-11 sm:col-start-2 sm:row-start-1 sm:self-start"
+                        :aria-label="`Withdraw the shift on ${s.when}`"
+                        data-test="open-shift-withdraw"
+                        @click="withdrawing.shift = s"
+                        >Withdraw shift</Button
+                    >
                 </li>
             </ul>
         </template>
