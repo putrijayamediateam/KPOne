@@ -11,7 +11,6 @@ use App\Domain\Visit\Billing\Services\BillingBuilderService;
 use App\Domain\Visit\Billing\Services\BillingDirectoryService;
 use App\Domain\Visit\Billing\Services\CompleteVisitationService;
 use App\Domain\Visit\Billing\Services\InvoiceAdjustmentService;
-use App\Domain\Visit\Billing\Services\InvoiceBillToService;
 use App\Domain\Visit\Billing\Services\InvoiceCorrectionService;
 use App\Domain\Visit\Billing\Services\IssuedBillingDocumentService;
 use App\Domain\Visit\Billing\Services\OutstandingBillService;
