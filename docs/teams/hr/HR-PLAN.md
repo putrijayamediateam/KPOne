@@ -3050,3 +3050,112 @@ new ──► phone_screening ──► scheduling ──► interview ──►
   - the answers and the call note are decrypted for the 25 listed rows (as HR-13);
   - consent withdrawal and the talent pool come with HR-17e;
   - the MMC number and APC are as stated by the candidate.
+
+## 20. HR-10 Appraisal, letters, discipline and incidents: design note (draft for the owner, 2026-11-10)
+
+Builds on HR-4a (staff files), HR-4b (documents), HR-3a and HR-3b (attendance and overtime) and HR-2a (leave). It
+covers section 2's HR-10 line: appraisal cycles, letters with numbered issued copies, a restricted discipline file
+and incident reports. **Nothing here is built until the owner answers 20.1 and says "start HR-10".** Synthetic data
+only until the PDPA review. Data Protection Officer: HR Manager (decision 83).
+
+### 20.1 Questions for the owner (with my recommendation)
+
+1. **Offer letters.** The owner decided on 2026-11-10 that no offer is made in KPOne (19.1, point 7). **Recommend:**
+   letters cover confirmation, warning, show-cause and "other" only; no offer letter.
+2. **Who sees discipline records.** **Recommend:** Director and HR Manager only, on a separate permission. An HR
+   Manager's own case only by a Director; nobody handles their own case. The staff member sees only the letters
+   issued to them (show-cause, warning), never the case notes.
+3. **Incidents: HR or clinical governance.** **Recommend:** HR-10 takes staff and workplace incidents (safety, conduct,
+   equipment, near misses). A report about patient care is flagged "needs clinical review" and its handling waits for
+   a clinical-governance decision; the form tells staff not to write a patient's name, IC or diagnosis.
+4. **Appraisal frequency and criteria.** **Recommend:** KPOne ships no criteria and no cycle length. HR enters the
+   criteria (versioned) and opens a cycle with dates; a supervisor rates each criterion 1 to 5 with a comment.
+5. **Letter wording.** **Recommend:** KPOne ships no letter text. HR enters templates (EN and BM, versioned), and the
+   clinic's adviser approves them before real use, as with the MC wording.
+6. **Retention** of appraisals, letters, discipline cases and incidents: [DECIDE], added to the PDPA pack's 04 table.
+
+### 20.2 Slices (each its own PR: Suresh, Daniel for screens, a green gate, then ship it)
+
+| Slice | What | Migrations (HR range) |
+|---|---|---|
+| HR-10a | Letters: templates (EN/BM, versioned), numbered issued copies, printable page, staff see their own | `004000` tables, `004100` grants |
+| HR-10b | Appraisal: criteria (versioned), cycles, supervisor rating, staff comment, Director sign-off, attendance and leave summary pulled in | `004200`, `004300` |
+| HR-10c | Discipline: restricted case file, show-cause and warning letters through HR-10a, outcome | `004400`, `004500` |
+| HR-10d | Incidents: report from any staff member, manager actions and closing, clinical-review flag | `004600`, `004700` |
+
+### 20.3 HR-10a Letters
+
+- **Templates.** Type (confirmation, warning, show-cause, other), title, EN and BM body with fixed placeholders only:
+  `{name}`, `{position}`, `{branch}`, `{date}`, `{reference}`, `{start_date}` and, for warnings, a free paragraph HR
+  writes per letter. Each save is a new version; KPOne ships none.
+- **Issue.** HR picks a staff file and a template; KPOne fills the placeholders, shows a preview, and on Issue stores
+  an encrypted, immutable snapshot (text, letterhead text, logo bytes, template version) and a number
+  `HRL/{year}/{6-digit}` from a locked yearly counter, never reused. A replacement or void keeps the original, as the
+  MC does. **No email**: the letter is printed and signed by hand; HR can record "given to the staff member on <date>".
+- **Who.** Issue and void: `hr.letters.issue.organisation` (Director, HR Manager; nobody issues a letter to
+  themselves; an HR Manager's own letters only by a Director). Staff see their own issued letters on My HR details
+  (`hr.records.view.own`).
+- **PostgreSQL.** Snapshots and numbers append-only; a void needs a reason; one number per letter.
+
+### 20.4 HR-10b Appraisal
+
+- **Criteria** (versioned, at most 15) and **cycles** (name, period, which staff). A cycle shows, per person, the
+  attendance summary from HR-3a (late days, missing clock-outs), approved leave days from HR-2a and approved overtime
+  from HR-3b, read only and for the cycle's dates.
+- **Steps.** The supervisor (`hr.appraisal.manage.organisation`: Director, HR Manager) rates each criterion 1 to 5 with
+  a comment, then sends it; the staff member reads it and adds their own comment (`hr.appraisal.view.own`, all human
+  roles); the Director signs it off. Nobody appraises themselves; an HR Manager's appraisal only by the Director.
+- **Stays out.** No ranking of staff against each other, no total score used for pay, no automatic decision.
+- Signed-off appraisals are immutable; comments are encrypted and never audited.
+
+### 20.5 HR-10c Discipline (restricted)
+
+- **Case.** Opened by `hr.discipline.manage.organisation` (Director, HR Manager) for one staff file: the allegation,
+  facts and notes (encrypted), dates, and attached documents through the HR-4b vault (category Discipline).
+- **Steps.** Show-cause letter (HR-10a) → the staff member's reply (recorded by HR, encrypted) → outcome: no action,
+  verbal warning, written warning (HR-10a), final warning, or "refer to the Director for termination". **KPOne never
+  ends employment or changes an account**; ending a period stays in HR-4a and account changes with the account
+  administrator.
+- **Who.** Separate permission; the case is never shown on the staff file's other tabs, the dashboard or any export.
+  The subject cannot open the case; an HR Manager's own case only by a Director. Every open is recorded first.
+- **PostgreSQL.** Case events append-only; an outcome once; no delete or truncate.
+
+### 20.6 HR-10d Incidents
+
+- **Report** (`hr.incidents.report.own`, all human roles, not the TV account): when, where (branch), category
+  (workplace safety, staff conduct, equipment or premises, near miss, patient care), what happened (encrypted, at
+  most 2,000 characters), optional photos (HR-2b checks, EXIF removed). The form says: "Do not write a patient's
+  name, IC or diagnosis."
+- **Handling** (`hr.incidents.manage.organisation`: Director, HR Manager): acknowledge, add actions with owners and
+  due dates, close with an outcome. The reporter sees their own report's status, not the manager's notes.
+- **Patient care** reports are flagged "Needs clinical review" and listed apart; who reviews them is the owner's
+  decision (20.1, point 3).
+- An incident about a staff member's conduct can be linked to a discipline case only by
+  `hr.discipline.manage.organisation`.
+
+### 20.7 New permissions
+
+`hr.letters.issue.organisation`, `hr.appraisal.manage.organisation`, `hr.appraisal.view.own`,
+`hr.discipline.manage.organisation`, `hr.incidents.report.own`, `hr.incidents.manage.organisation`, each granted by
+an additive migration as before. None is administrative authority.
+
+### 20.8 Existing assertions I expect to change (each needs approval)
+
+- `tests/Feature/ClinicManagementTest.php`: the exact destination map gains `/hr/letters`, `/hr/appraisals`,
+  `/hr/discipline` and `/hr/incidents` (one per slice).
+- The HR-4a "My HR details" tests may gain the staff member's own letters and appraisals. I will list exact lines in
+  each slice's PR.
+
+### 20.9 What Daniel needs to review
+
+- the letter template editor and the issued-letter print page (A4, EN and BM);
+- the appraisal form at 390 and 1440, with the read-only attendance summary;
+- the discipline case page (restricted, plain words, no red);
+- the incident report form for every staff member, and the manager's list.
+
+### 20.10 Known risks and limits
+
+- Discipline and incident text is sensitive; it is encrypted, never audited, and shown only to the two roles.
+- Patient-care incidents may need clinical review that KPOne does not yet route.
+- Letter wording needs the clinic's adviser before real use; appraisal criteria are the clinic's own.
+- With one Director and one HR Manager, an HR Manager's own appraisal and discipline depend on the Director alone.
