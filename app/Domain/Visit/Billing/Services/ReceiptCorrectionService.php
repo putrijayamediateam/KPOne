@@ -181,7 +181,7 @@ class ReceiptCorrectionService
                 $refused = match (true) {
                     $p->recorded_by_user_id === $actor->id => 'You recorded this receipt, so someone else must correct it.',
                     (int) ($splits[$p->id] ?? 0) !== 1 => 'This receipt pays more than one invoice.',
-                    $this->refunds->openRefund($p) !== null => 'This receipt has a refund.',
+                    $this->refunds->openRefund($p) !== null => 'This receipt has a refund, so it cannot be corrected.',
                     default => null,
                 };
 

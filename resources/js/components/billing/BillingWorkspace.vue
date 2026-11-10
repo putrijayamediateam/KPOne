@@ -458,11 +458,13 @@ const reverse = (receipt: Receipt) =>
                     :refunds="billing.refunds"
                     :base="base"
                     :manage="manage"
+                    :corrections-below="!!billing.corrections"
                 />
                 <ReceiptCorrections
                     v-if="billing.corrections"
                     :corrections="billing.corrections"
                     :base="invoiceBase"
+                    :due-now-sen="billing.invoice?.state.due_now ?? 0"
                     :manage="manage"
                 />
             </aside>

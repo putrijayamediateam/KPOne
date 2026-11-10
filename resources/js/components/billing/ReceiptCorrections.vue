@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { router, usePage } from '@inertiajs/vue3';
 import { ChevronRight } from '@lucide/vue';
-import { computed, reactive, ref } from 'vue';
+import { computed, nextTick, reactive, ref } from 'vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import type { CorrectionsContext } from '@/types/billing';
@@ -10,19 +10,18 @@ import { myr, toSen } from '@/types/billing';
 /**
  * BIL-16 (owner decisions 2026-11-10): correct a receipt recorded in error on a completed visit. A Finance Officer
  * who did not record it reverses it and records what was really received, in one step. Only money not received
- * becomes due. It is never a refund.
+ * becomes due, collected with Add under Payments. It is never a refund.
  */
 const props = defineProps<{
     corrections: CorrectionsContext;
     /** The invoice's billing address, for example /visits/KPV-1/billing/<invoice>. */
     base: string;
     manage?: boolean;
+    /** What the visit owes now, to point staff to collecting it after a correction. */
+    dueNowSen: number;
 }>();
 
-const page = usePage();
-const errors = computed(
-    () => (page.props.errors ?? {}) as Record<string, string | undefined>,
-);
+type Receipt = CorrectionsContext['receipts'][number];
 type Form = {
     received: string;
     method: string;
@@ -31,11 +30,16 @@ type Form = {
     confirmed: boolean;
     key: string;
 };
+
+const page = usePage();
+const errors = computed(
+    () => (page.props.errors ?? {}) as Record<string, string | undefined>,
+);
 const forms = reactive<Record<string, Form>>({});
 const open = reactive<Record<string, boolean>>({});
 const busy = ref<string | null>(null);
 const lastSent = ref<string | null>(null);
-const form = (receipt: CorrectionsContext['receipts'][number]): Form =>
+const form = (receipt: Receipt): Form =>
     (forms[receipt.publicId] ??= {
         received: (receipt.amountSen / 100).toFixed(2),
         method: '',
@@ -44,50 +48,95 @@ const form = (receipt: CorrectionsContext['receipts'][number]): Form =>
         confirmed: false,
         key: crypto.randomUUID(),
     });
-const errorMessage = computed(
-    () =>
-        errors.value.correction ??
-        errors.value.received_sen ??
-        errors.value.method ??
-        errors.value.reference ??
-        errors.value.reason ??
-        errors.value.recording_error_only ??
-        errors.value.invoice ??
-        errors.value.expected_branch_id ??
-        errors.value.idempotency_key,
-);
-const receivedSen = (f: Form) => toSen(f.received);
+// Field errors show under their field; anything else shows once, above the button.
+const fieldError = (receipt: Receipt, key: string): string | undefined =>
+    lastSent.value === receipt.publicId ? errors.value[key] : undefined;
+const generalError = (receipt: Receipt): string | undefined =>
+    lastSent.value === receipt.publicId
+        ? (errors.value.correction ??
+          errors.value.recording_error_only ??
+          errors.value.invoice ??
+          errors.value.expected_branch_id ??
+          errors.value.idempotency_key)
+        : undefined;
+
+const sen = (f: Form): number | null => {
+    const value = toSen(f.received);
+
+    return value === null ? null : Number(value);
+};
+const methodName = (f: Form) =>
+    props.corrections.methods.find((m) => m.code === f.method)?.name ?? '';
 const needsReference = (f: Form) =>
     props.corrections.methods.find((m) => m.code === f.method)
         ?.requiresReference ?? false;
-const ready = (
-    receipt: CorrectionsContext['receipts'][number],
-    f: Form,
-): boolean => {
-    const sen = receivedSen(f);
+// A problem with the amount, shown live under the amount box.
+const amountProblem = (receipt: Receipt, f: Form): string | null => {
+    const value = sen(f);
 
-    return (
-        sen !== null &&
-        Number(sen) <= receipt.amountSen &&
-        Number(sen) >= receipt.payLaterSen &&
-        (Number(sen) === 0 || f.method !== '') &&
-        (!needsReference(f) || f.reference.trim() !== '') &&
-        f.reason.trim() !== '' &&
-        f.confirmed
-    );
+    if (value === null) {
+        return 'Enter an amount such as 30.00.';
+    }
+
+    if (value > receipt.amountSen) {
+        return `Cannot be more than ${myr(receipt.amountSen)} (the receipt amount).`;
+    }
+
+    if (value < receipt.payLaterSen) {
+        return `Enter at least ${myr(receipt.payLaterSen)}. This receipt cleared ${myr(receipt.payLaterSen)} of pay-later, and that part cannot be reopened.`;
+    }
+
+    return null;
 };
-const dueAfter = (
-    receipt: CorrectionsContext['receipts'][number],
-    f: Form,
-): number | null => {
-    const sen = receivedSen(f);
+// What still stops the correction, shown under the disabled button.
+const missing = (receipt: Receipt, f: Form): string | null => {
+    if (amountProblem(receipt, f) !== null) {
+        return 'Fix the amount to continue.';
+    }
 
-    return sen === null ? null : receipt.amountSen - Number(sen);
+    if ((sen(f) ?? 0) > 0 && f.method === '') {
+        return 'Choose how the money was received to continue.';
+    }
+
+    if (needsReference(f) && f.reference.trim() === '') {
+        return 'Add the reference to continue.';
+    }
+
+    if (f.reason.trim() === '' || !f.confirmed) {
+        return 'Add what was wrong and tick the box to continue.';
+    }
+
+    return null;
+};
+// Everything that will happen, shown before the click because it changes money records.
+const summary = (receipt: Receipt, f: Form): string => {
+    const value = sen(f) ?? 0;
+    const due = receipt.amountSen - value;
+    const replacement =
+        value > 0
+            ? `New receipt: ${myr(value)} ${methodName(f)}.`
+            : 'Nothing was received, so there is no new receipt.';
+
+    return `${receipt.number} (${myr(receipt.amountSen)}) will be reversed. ${replacement}${due > 0 ? ` ${myr(due)} becomes due.` : ' Nothing becomes due.'}`;
+};
+const formatAmount = (f: Form) => {
+    const value = toSen(f.received);
+
+    if (value !== null) {
+        f.received = (Number(value) / 100).toFixed(2);
+    }
+};
+const fieldIds = ['received', 'method', 'reference', 'reason'] as const;
+const errorKeys: Record<(typeof fieldIds)[number], string> = {
+    received: 'received_sen',
+    method: 'method',
+    reference: 'reference',
+    reason: 'reason',
 };
 
-const submit = (receipt: CorrectionsContext['receipts'][number]) => {
+const submit = (receipt: Receipt) => {
     const f = form(receipt);
-    const sen = receivedSen(f) ?? '';
+    const value = toSen(f.received) ?? '';
     busy.value = receipt.publicId;
     lastSent.value = receipt.publicId;
     router.post(
@@ -97,8 +146,8 @@ const submit = (receipt: CorrectionsContext['receipts'][number]) => {
             return_to: props.manage ? 'payments' : 'billing',
             lock_version: props.corrections.invoiceLockVersion,
             payment_lock_version: receipt.lockVersion,
-            received_sen: sen,
-            method: sen === '0' ? null : f.method,
+            received_sen: value,
+            method: value === '0' ? null : f.method,
             reference: f.reference.trim() || null,
             reason: f.reason,
             recording_error_only: f.confirmed ? '1' : '0',
@@ -111,8 +160,17 @@ const submit = (receipt: CorrectionsContext['receipts'][number]) => {
                 delete forms[receipt.publicId];
                 open[receipt.publicId] = false;
             },
-            onError: () => {
+            onError: (bag) => {
                 open[receipt.publicId] = true;
+                // Move focus to the first field the server refused.
+                const field = fieldIds.find((id) => bag[errorKeys[id]]);
+                void nextTick(() =>
+                    document
+                        .getElementById(
+                            field ? `${field}-${receipt.publicId}` : '',
+                        )
+                        ?.focus(),
+                );
             },
             onFinish: () => {
                 busy.value = null;
@@ -120,6 +178,8 @@ const submit = (receipt: CorrectionsContext['receipts'][number]) => {
         },
     );
 };
+const field =
+    'h-11 rounded-md border border-input bg-background px-2 text-sm focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none sm:h-9';
 </script>
 
 <template>
@@ -128,7 +188,7 @@ const submit = (receipt: CorrectionsContext['receipts'][number]) => {
         aria-labelledby="receipt-corrections-heading"
         data-testid="receipt-corrections"
     >
-        <header class="pb-2">
+        <header class="space-y-1 pb-2">
             <h2 id="receipt-corrections-heading" class="font-semibold">
                 Correct a receipt
             </h2>
@@ -136,7 +196,17 @@ const submit = (receipt: CorrectionsContext['receipts'][number]) => {
                 For a receipt recorded in error, such as the wrong amount or
                 method. The wrong receipt is reversed and what was really
                 received is recorded instead. Only money not received becomes
-                due. This is not a refund.
+                due.
+                <strong class="text-foreground">This is not a refund.</strong>
+                To give money back, use Refunds above.
+            </p>
+            <p
+                v-if="corrections.corrections.length && dueNowSen > 0"
+                class="text-xs font-medium"
+                data-testid="correction-collect"
+            >
+                {{ myr(dueNowSen) }} is now due. Collect it with Add under
+                Payments.
             </p>
         </header>
         <article
@@ -145,7 +215,7 @@ const submit = (receipt: CorrectionsContext['receipts'][number]) => {
             class="space-y-2 border-t py-3 last:pb-0"
             data-testid="correction-receipt"
         >
-            <p class="text-sm">
+            <p class="text-sm tabular-nums">
                 <span class="font-medium">{{ receipt.number }}</span>
                 · {{ receipt.method }} · {{ myr(receipt.amountSen) }}
             </p>
@@ -167,46 +237,67 @@ const submit = (receipt: CorrectionsContext['receipts'][number]) => {
                 "
             >
                 <summary
-                    class="inline-flex min-h-11 cursor-pointer list-none items-center gap-1 text-sm font-medium sm:min-h-9 [&::-webkit-details-marker]:hidden"
+                    class="inline-flex min-h-11 cursor-pointer list-none items-center gap-1 rounded-md text-sm font-medium focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none sm:min-h-9 [&::-webkit-details-marker]:hidden"
+                    :aria-label="`Correct receipt ${receipt.number}`"
                 >
                     <ChevronRight
                         class="size-4 transition-transform group-open:rotate-90 motion-reduce:transition-none"
                         aria-hidden="true"
                     />
-                    Correct {{ receipt.number }}
+                    Correct this receipt
                 </summary>
                 <form
                     class="mt-2 grid gap-3"
                     data-testid="correction-form"
                     @submit.prevent="submit(receipt)"
                 >
-                    <div class="flex flex-wrap items-end gap-2">
-                        <label
-                            class="grid gap-1 text-xs font-medium"
-                            :for="`received-${receipt.publicId}`"
-                        >
-                            Really received (RM)
+                    <p class="text-xs text-muted-foreground">
+                        Enter 0.00 if nothing was received.
+                    </p>
+                    <div class="flex flex-wrap items-start gap-2">
+                        <div class="grid gap-1">
+                            <label
+                                class="text-xs font-medium"
+                                :for="`received-${receipt.publicId}`"
+                                >Amount actually received (RM)</label
+                            >
                             <input
                                 :id="`received-${receipt.publicId}`"
                                 v-model="form(receipt).received"
                                 inputmode="decimal"
                                 autocomplete="off"
-                                class="h-11 w-32 rounded-md border border-input bg-background px-2 text-sm sm:h-9"
-                                :aria-describedby="`received-hint-${receipt.publicId}`"
+                                :class="[field, 'w-36 tabular-nums']"
+                                :aria-invalid="
+                                    fieldError(receipt, 'received_sen') ||
+                                    amountProblem(receipt, form(receipt))
+                                        ? 'true'
+                                        : undefined
+                                "
+                                :aria-describedby="`received-problem-${receipt.publicId} received-error-${receipt.publicId}`"
+                                @blur="formatAmount(form(receipt))"
                             />
-                        </label>
-                        <label
-                            v-if="receivedSen(form(receipt)) !== '0'"
-                            class="grid gap-1 text-xs font-medium"
-                            :for="`method-${receipt.publicId}`"
+                        </div>
+                        <div
+                            v-if="(sen(form(receipt)) ?? 1) !== 0"
+                            class="grid gap-1"
                         >
-                            How it was received
+                            <label
+                                class="text-xs font-medium"
+                                :for="`method-${receipt.publicId}`"
+                                >Received by</label
+                            >
                             <select
                                 :id="`method-${receipt.publicId}`"
                                 v-model="form(receipt).method"
-                                class="h-11 rounded-md border border-input bg-background px-2 text-sm sm:h-9"
+                                :class="field"
+                                :aria-invalid="
+                                    fieldError(receipt, 'method')
+                                        ? 'true'
+                                        : undefined
+                                "
+                                :aria-describedby="`method-error-${receipt.publicId}`"
                             >
-                                <option value="">Choose</option>
+                                <option value="">Choose method</option>
                                 <option
                                     v-for="m in corrections.methods"
                                     :key="m.code"
@@ -215,66 +306,92 @@ const submit = (receipt: CorrectionsContext['receipts'][number]) => {
                                     {{ m.name }}
                                 </option>
                             </select>
-                        </label>
-                        <label
+                        </div>
+                        <div
                             v-if="needsReference(form(receipt))"
-                            class="grid gap-1 text-xs font-medium"
-                            :for="`reference-${receipt.publicId}`"
+                            class="grid gap-1"
                         >
-                            Reference
+                            <label
+                                class="text-xs font-medium"
+                                :for="`reference-${receipt.publicId}`"
+                                >Reference</label
+                            >
                             <input
                                 :id="`reference-${receipt.publicId}`"
                                 v-model="form(receipt).reference"
                                 maxlength="100"
-                                class="h-11 rounded-md border border-input bg-background px-2 text-sm sm:h-9"
+                                :class="field"
+                                :aria-invalid="
+                                    fieldError(receipt, 'reference')
+                                        ? 'true'
+                                        : undefined
+                                "
+                                :aria-describedby="`reference-error-${receipt.publicId}`"
                             />
-                        </label>
+                        </div>
                     </div>
                     <p
-                        :id="`received-hint-${receipt.publicId}`"
-                        class="text-xs text-muted-foreground"
-                        data-testid="correction-hint"
+                        :id="`received-problem-${receipt.publicId}`"
+                        class="text-xs text-destructive"
+                        data-testid="correction-amount-problem"
+                        aria-live="polite"
                     >
-                        Enter 0.00 if nothing was received.
-                        <template v-if="receipt.payLaterSen > 0">
-                            This receipt paid off
-                            {{ myr(receipt.payLaterSen) }} of pay-later, which
-                            cannot grow back, so enter at least that.
-                        </template>
-                        <template
-                            v-if="(dueAfter(receipt, form(receipt)) ?? 0) > 0"
-                        >
-                            {{ myr(dueAfter(receipt, form(receipt)) ?? 0) }}
-                            will become due on this visit.
-                        </template>
+                        {{ amountProblem(receipt, form(receipt)) ?? '' }}
                     </p>
-                    <label
-                        class="grid gap-1 text-xs font-medium"
-                        :for="`reason-${receipt.publicId}`"
-                    >
-                        What was wrong
+                    <InputError
+                        :id="`received-error-${receipt.publicId}`"
+                        :message="fieldError(receipt, 'received_sen')"
+                    />
+                    <InputError
+                        :id="`method-error-${receipt.publicId}`"
+                        :message="fieldError(receipt, 'method')"
+                    />
+                    <InputError
+                        :id="`reference-error-${receipt.publicId}`"
+                        :message="fieldError(receipt, 'reference')"
+                    />
+                    <div class="grid gap-1">
+                        <label
+                            class="text-xs font-medium"
+                            :for="`reason-${receipt.publicId}`"
+                            >What was wrong</label
+                        >
                         <textarea
                             :id="`reason-${receipt.publicId}`"
                             v-model="form(receipt).reason"
                             maxlength="500"
                             rows="2"
-                            class="rounded-md border border-input bg-background px-2 py-1 text-sm"
+                            class="rounded-md border border-input bg-background px-2 py-1 text-sm focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                            :aria-invalid="
+                                fieldError(receipt, 'reason')
+                                    ? 'true'
+                                    : undefined
+                            "
+                            :aria-describedby="`reason-error-${receipt.publicId}`"
                         />
-                    </label>
+                        <InputError
+                            :id="`reason-error-${receipt.publicId}`"
+                            :message="fieldError(receipt, 'reason')"
+                        />
+                    </div>
                     <label class="flex items-start gap-2 text-sm">
                         <input
                             v-model="form(receipt).confirmed"
                             type="checkbox"
-                            class="mt-1 size-4"
+                            class="mt-1 size-4 accent-primary"
                         />
                         This receipt was recorded in error. No money is being
-                        handed back.
+                        handed back. Use Refunds for that.
                     </label>
-                    <InputError
-                        v-if="lastSent === receipt.publicId"
-                        :message="errorMessage"
-                    />
-                    <div>
+                    <p
+                        v-if="missing(receipt, form(receipt)) === null"
+                        class="rounded-md bg-muted/40 p-2 text-sm tabular-nums"
+                        data-testid="correction-summary"
+                    >
+                        {{ summary(receipt, form(receipt)) }}
+                    </p>
+                    <InputError :message="generalError(receipt)" />
+                    <div class="grid justify-items-start gap-1">
                         <Button
                             type="submit"
                             variant="outline"
@@ -282,10 +399,22 @@ const submit = (receipt: CorrectionsContext['receipts'][number]) => {
                             class="max-sm:min-h-11"
                             data-touch-target
                             :disabled="
-                                busy !== null || !ready(receipt, form(receipt))
+                                busy !== null ||
+                                missing(receipt, form(receipt)) !== null
                             "
-                            >Correct receipt</Button
+                            >{{
+                                busy === receipt.publicId
+                                    ? 'Correcting…'
+                                    : 'Correct receipt'
+                            }}</Button
                         >
+                        <p
+                            v-if="missing(receipt, form(receipt))"
+                            class="text-xs text-muted-foreground"
+                            data-testid="correction-missing"
+                        >
+                            {{ missing(receipt, form(receipt)) }}
+                        </p>
                     </div>
                 </form>
             </details>
@@ -296,22 +425,22 @@ const submit = (receipt: CorrectionsContext['receipts'][number]) => {
             data-testid="correction-history"
         >
             <h3 class="text-xs font-semibold">Corrections made</h3>
-            <p
+            <div
                 v-for="c in corrections.corrections"
                 :key="c.publicId"
-                class="text-xs"
+                class="rounded-md bg-muted/40 p-2 text-sm"
             >
-                {{ c.original }} reversed
-                {{
-                    c.replacement
-                        ? `and replaced by ${c.replacement} (${myr(c.receivedSen)})`
-                        : '(nothing was received)'
-                }}
-                · {{ c.reason }} ·
-                <span class="text-muted-foreground"
-                    >{{ c.by }}, {{ c.at }}</span
-                >
-            </p>
+                <p class="tabular-nums">
+                    {{
+                        c.replacement
+                            ? `${c.original} reversed and replaced by ${c.replacement} (${myr(c.receivedSen)})`
+                            : `${c.original} reversed; nothing was received`
+                    }}
+                </p>
+                <p class="text-xs text-muted-foreground">
+                    Reason: {{ c.reason }} · {{ c.by }}, {{ c.at }}
+                </p>
+            </div>
         </div>
     </section>
 </template>

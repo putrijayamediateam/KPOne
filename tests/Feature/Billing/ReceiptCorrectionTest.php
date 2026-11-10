@@ -163,7 +163,7 @@ class ReceiptCorrectionTest extends BillingTestCase
             'reason_code' => 'goodwill', 'amount_sen' => '500', 'idempotency_key' => (string) Str::uuid()])->assertSessionHasNoErrors();
         $this->selectBranch($this->actor('finance_officer'));
         $this->post(route('billing.receipt.correct', [$g['visit'], $g['invoice'], $g['receipt']]), $this->input($g, '4000', 'cash'))->assertSessionHasErrors('correction');
-        $this->get(route('billing.show', $g['visit']))->assertInertia(fn (Assert $page) => $page->where('billing.corrections.receipts.0.refused', 'This receipt has a refund.'));
+        $this->get(route('billing.show', $g['visit']))->assertInertia(fn (Assert $page) => $page->where('billing.corrections.receipts.0.refused', 'This receipt has a refund, so it cannot be corrected.'));
         $this->assertSame(0, PaymentCorrection::query()->count());
     }
 
