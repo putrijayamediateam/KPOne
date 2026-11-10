@@ -3,7 +3,7 @@
 import { router } from '@inertiajs/vue3';
 import { computed } from 'vue';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { DateField } from '@/components/ui/date-field';
 import { Label } from '@/components/ui/label';
 import { OperationalSelect } from '@/components/ui/select';
 import { EmptyState } from '@/components/ui/state';
@@ -96,18 +96,16 @@ const periods = [
                             @click="visit({ date: data.prevDate })"
                             >‹</Button
                         >
-                        <Input
+                        <DateField
                             id="summary-date"
-                            type="date"
-                            class="min-h-11 w-40 sm:min-h-9"
                             :model-value="data.date ?? ''"
                             @change="
-                                (e: Event) =>
+                                (value: string) =>
                                     visit({
-                                        date: (e.target as HTMLInputElement)
-                                            .value,
+                                        date: value,
                                     })
                             "
+                            :echo="false"
                         />
                         <Button
                             variant="outline"
