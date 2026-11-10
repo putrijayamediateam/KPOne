@@ -6,6 +6,7 @@ import InventoryReferenceDataPanel from '@/components/inventory/InventoryReferen
 import InventorySearchSelect from '@/components/inventory/InventorySearchSelect.vue';
 import { ActionLink } from '@/components/ui/action-link';
 import { Button } from '@/components/ui/button';
+import { DateField } from '@/components/ui/date-field';
 import { Input } from '@/components/ui/input';
 import { PageHeader } from '@/components/ui/page-header';
 import { CompactPagination } from '@/components/ui/pagination';
@@ -326,22 +327,22 @@ const clearFilters = () => {
                     <label for="movement-date-from" class="text-xs font-medium">
                         Date from
                     </label>
-                    <Input
+                    <DateField
                         id="movement-date-from"
                         v-model="dateFrom"
-                        type="date"
                         :max="dateTo || undefined"
+                        :echo="false"
                     />
                 </div>
                 <div v-if="inventory.tab === 'movements'" class="space-y-1">
                     <label for="movement-date-to" class="text-xs font-medium">
                         Date to
                     </label>
-                    <Input
+                    <DateField
                         id="movement-date-to"
                         v-model="dateTo"
-                        type="date"
                         :min="dateFrom || undefined"
+                        :echo="false"
                     />
                 </div>
                 <div v-if="inventory.tab !== 'stock'" class="space-y-1">

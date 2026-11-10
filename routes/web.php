@@ -259,6 +259,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::middleware(['permission:hr.records.manage.organisation', 'throttle:60,1'])->group(function (): void {
             Route::post('files', 'openFile')->name('hr.records.files.store');
             Route::post('locums', 'addLocum')->name('hr.records.locums.store');
+            // HR-15a: HR asks for a locum's sign-in; the account administrator creates and links it from the Staff page.
+            Route::post('{worker}/sign-in', 'askSignIn')->whereUuid('worker')->name('hr.records.sign-in.store');
+            Route::post('{worker}/sign-in/{signIn}/cancel', 'cancelSignIn')->whereUuid(['worker', 'signIn'])->name('hr.records.sign-in.cancel');
             Route::post('{worker}/periods', 'addPeriod')->whereUuid('worker')->name('hr.records.periods.store');
             Route::put('{worker}/periods/{period}', 'updatePeriod')->whereUuid(['worker', 'period'])->name('hr.records.periods.update');
             Route::post('{worker}/positions', 'addPosition')->whereUuid('worker')->name('hr.records.positions.store');
@@ -718,6 +721,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->whereUuid('accountRequest')
         ->middleware(['permission:staff.manage.organisation', 'permission:access.manage.organisation', 'throttle:30,1'])
         ->name('staff.account-requests.done');
+    // HR-15a: the same people link the locum account they created to the locum's file.
+    Route::post('staff/locum-sign-ins/{signIn}/link', [StaffController::class, 'linkLocumSignIn'])
+        ->whereUuid('signIn')
+        ->middleware(['permission:staff.manage.organisation', 'permission:access.manage.organisation', 'throttle:30,1'])
+        ->name('staff.locum-sign-ins.link');
     Route::get('staff/create', [StaffController::class, 'create'])
         ->middleware(['permission:staff.manage.organisation', 'permission:access.manage.organisation'])
         ->name('staff.create');
