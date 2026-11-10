@@ -5,6 +5,7 @@ use App\Http\Middleware\EnsureActiveUser;
 use App\Http\Middleware\HandleAppearance;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\PreventSensitiveResponseCaching;
+use App\Http\Middleware\RefuseCrossSiteOpen;
 use App\Http\Middleware\RequireAnyPermission;
 use App\Http\Middleware\RouteIsolatedThrottle;
 use App\Http\Middleware\ValidatePublicIntakeProxy;
@@ -39,10 +40,13 @@ return Application::configure(basePath: dirname(__DIR__))
             'permission' => RequireAnyPermission::class,
             'sensitive.no-store' => PreventSensitiveResponseCaching::class,
             'public-intake.proxy' => ValidatePublicIntakeProxy::class,
+            'same-origin.open' => RefuseCrossSiteOpen::class,
         ]);
 
         $middleware->prependToPriorityList(SubstituteBindings::class, RequireAnyPermission::class);
         $middleware->prependToPriorityList(RequireAnyPermission::class, EnsureActiveUser::class);
+        // Before the permission check, which records authorization.denied: a refused cross-site open writes nothing.
+        $middleware->prependToPriorityList(RequireAnyPermission::class, RefuseCrossSiteOpen::class);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->dontFlash([
