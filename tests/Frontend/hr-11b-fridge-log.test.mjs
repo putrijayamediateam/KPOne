@@ -81,5 +81,8 @@ test('the Settings tab shows fridges to those who manage them and the page offer
     assert.match(src.page, /FridgeSettings/);
     assert.match(src.page, /compliance\.settings\.fridges/);
     assert.match(src.page, /fridge: 'Fridge log'/);
-    assert.match(src.settings, /confirm the range with your pharmacist/i);
+    assert.match(
+        src.settings,
+        /range with your pharmacist or vaccine supplier/i,
+    );
 });
