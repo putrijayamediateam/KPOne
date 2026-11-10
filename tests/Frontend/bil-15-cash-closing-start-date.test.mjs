@@ -49,3 +49,14 @@ test('only those allowed see the form, and the current date and who set it are s
     );
     assert.ok(page.includes('Save start date'));
 });
+
+test('every refusal of the start date form is shown, not only a bad date', () => {
+    for (const key of [
+        'starts_on',
+        'expected_branch_id',
+        'expected_revision',
+        'idempotency_key',
+    ]) {
+        assert.ok(page.includes(`errors?.${key}`), key);
+    }
+});

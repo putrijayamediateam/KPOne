@@ -79,10 +79,15 @@ class CashClosingStartDateTest extends ClinicalTestCase
             ->where('cashClosingMonth.rows.1.status', 'before_start')->where('cashClosingMonth.rows.2.status', 'not_counted'));
         $this->assertSame(['2026-11-02', '2026-11-03'], CashClosingStartDate::query()->orderBy('revision')->get()->map(fn ($r) => $r->starts_on->toDateString())->all());
 
-        // A start date in the future reads "starts" and marks nothing as missed this month.
+        // A start date in the future marks nothing as missed this month, but never hides the count already made:
+        // the 4 Nov count stays on the page, waiting (BIL-15 review).
         $this->post(route('cash-closings.start-date'), [...$this->input('2026-12-01'), 'expected_revision' => 2])->assertSessionHasNoErrors();
         $this->get(route('cash-closings.month'))->assertInertia(fn (Assert $page) => $page
-            ->where('cashClosingMonth.beforeStart', true)->where('cashClosingMonth.summary.notCounted', 0));
+            ->where('cashClosingMonth.beforeStart', false)->where('cashClosingMonth.hasClosings', true)->where('cashClosingMonth.summary.notCounted', 0)
+            ->where('cashClosingMonth.rows.3.status', 'waiting')->where('cashClosingMonth.rows.2.status', 'before_start'));
+        // A month with no counts before the start date reads "starts" and shows nothing to count.
+        $this->get(route('cash-closings.month', ['month' => '2026-10']))->assertInertia(fn (Assert $page) => $page
+            ->where('cashClosingMonth.beforeStart', true)->where('cashClosingMonth.hasClosings', false)->where('cashClosingMonth.summary.notCounted', 0));
     }
 
     public function test_bad_dates_stale_revisions_retries_and_other_branches_are_handled(): void
@@ -107,7 +112,7 @@ class CashClosingStartDateTest extends ClinicalTestCase
         $row = CashClosingStartDate::query()->sole();
         $this->assertThrows(fn () => $row->forceFill(['starts_on' => '2026-10-01'])->save(), LogicException::class);
         foreach ([fn () => DB::table('cash_closing_start_dates')->where('id', $row->id)->update(['starts_on' => '2026-10-01']),
-            fn () => DB::table('cash_closing_start_dates')->delete()] as $statement) {
+            fn () => DB::table('cash_closing_start_dates')->delete(), fn () => DB::statement('TRUNCATE cash_closing_start_dates')] as $statement) {
             try {
                 DB::transaction(fn () => $statement());
                 $this->fail('PostgreSQL accepted a change to a start date.');

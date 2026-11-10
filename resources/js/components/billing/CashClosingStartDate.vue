@@ -28,11 +28,18 @@ const plainDate = (iso: string) => {
 
 // BIL-15: set or change the branch's cash closing start date (Finance Officer, Director).
 const page = usePage();
-const startError = computed(
-    () =>
-        (page.props.errors as Record<string, string | undefined> | undefined)
-            ?.starts_on,
-);
+// Show every refusal of this form, including a branch change in another tab or a reused key (BIL-15 review).
+const startError = computed(() => {
+    const errors = page.props.errors as
+        Record<string, string | undefined> | undefined;
+
+    return (
+        errors?.starts_on ??
+        errors?.expected_branch_id ??
+        errors?.expected_revision ??
+        errors?.idempotency_key
+    );
+});
 const startInput = ref(props.startDate.startsOn ?? '');
 const startKey = ref(crypto.randomUUID());
 const savingStart = ref(false);

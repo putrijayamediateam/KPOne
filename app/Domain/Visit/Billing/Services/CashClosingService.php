@@ -8,8 +8,8 @@ use App\Domain\Access\TransactionalActorAuthority;
 use App\Domain\Audit\AuditRecorder;
 use App\Domain\Organisation\Models\Branch;
 use App\Domain\Visit\Billing\Models\CashClosing;
-use App\Domain\Visit\Billing\Models\CashClosingStartDate;
 use App\Domain\Visit\Billing\Models\CashClosingDecision;
+use App\Domain\Visit\Billing\Models\CashClosingStartDate;
 use App\Domain\Visit\Billing\Models\Payment;
 use App\Domain\Visit\Billing\Models\PaymentRefund;
 use App\Models\User;
@@ -315,7 +315,9 @@ final class CashClosingService
             'branch' => $branch->name, 'month' => $first->format('Y-m'), 'today' => $today->toDateString(), 'isCurrentMonth' => $current,
             'previousMonth' => $first->year === 2000 && $first->month === 1 ? null : $first->subMonth()->format('Y-m'), 'nextMonth' => $current ? null : $first->addMonth()->format('Y-m'),
             'summary' => $summary, 'hasClosings' => $closings->isNotEmpty(), 'startsOn' => $startsOn?->toDateString(),
-            'beforeStart' => $startsOn === null || $last->lessThan($startsOn), 'rows' => $rows,
+            // A month before the start shows nothing to count, unless counts exist in it (a start date moved later
+            // must never hide counts already made, BIL-15 review).
+            'beforeStart' => ($startsOn === null || $last->lessThan($startsOn)) && $closings->isEmpty(), 'rows' => $rows,
             'startDate' => $this->startDateContext($actor, $branch, $setStart),
         ];
     }
@@ -362,7 +364,7 @@ final class CashClosingService
             $row = new CashClosingStartDate;
             $row->forceFill(['organisation_id' => $branch->organisation_id, 'branch_id' => $branch->id, 'revision' => (int) ($current->revision ?? 0) + 1,
                 'starts_on' => $date->toDateString(), 'set_by_user_id' => $actor->id, 'set_at' => now()->utc(), 'idempotency_key' => $key, 'payload_hash' => $hash])->save();
-            $this->audit->record('billing.cash_closing_start_date_set', null, ['revision' => $row->revision, 'starts_on' => $date->toDateString(),
+            $this->audit->record('billing.cash_closing_start_date_set', $row, ['revision' => $row->revision, 'starts_on' => $date->toDateString(),
                 'previous_starts_on' => $current?->starts_on->toDateString()], $actor, $branch);
 
             return $row;
