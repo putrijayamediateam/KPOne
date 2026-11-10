@@ -4,6 +4,7 @@ import { computed } from 'vue';
 import InputError from '@/components/InputError.vue';
 import { ActionLink } from '@/components/ui/action-link';
 import { Button } from '@/components/ui/button';
+import { DateField } from '@/components/ui/date-field';
 import { Input } from '@/components/ui/input';
 import { PageHeader } from '@/components/ui/page-header';
 import { formatDate } from '@/lib/presentation';
@@ -170,10 +171,10 @@ const recordClose = () => {
                         for="report-date"
                     >
                         Business date
-                        <Input
+                        <DateField
                             id="report-date"
                             v-model="form.business_date"
-                            type="date"
+                            :echo="false"
                         />
                     </label>
                     <Button type="submit" variant="outline">Load day</Button>

@@ -3,6 +3,7 @@ import { router, usePage } from '@inertiajs/vue3';
 import { ChevronRight, TriangleAlert } from '@lucide/vue';
 import { computed, ref, watch } from 'vue';
 import InputError from '@/components/InputError.vue';
+import { DateField } from '@/components/ui/date-field';
 
 /** BIL-15 (owner decisions 2026-11-07): the branch's cash closing start date, on the month page. */
 const props = defineProps<{
@@ -148,13 +149,12 @@ const saveStart = () => {
             >
                 <label class="grid gap-1 text-xs font-medium">
                     {{ startDate.startsOn ? 'Change to' : 'Start date' }}
-                    <input
+                    <DateField
                         v-model="startInput"
-                        type="date"
                         required
                         aria-describedby="start-date-hint start-date-echo start-date-error"
                         :aria-invalid="startError ? 'true' : undefined"
-                        class="h-11 rounded-md border border-input bg-background px-2 text-sm sm:h-9"
+                        :echo="false"
                     />
                 </label>
                 <button
