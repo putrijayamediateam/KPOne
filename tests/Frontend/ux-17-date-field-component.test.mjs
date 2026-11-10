@@ -96,5 +96,23 @@ test('the public QR date of birth uses the patient look', () => {
         ),
         'utf8',
     );
-    assert.match(field, /rounded-xl border-border md:text-base/);
+    assert.match(field, /rounded-xl border-border shadow-none md:text-base/);
+});
+
+test('the QR date and sex columns can shrink so nothing passes the card edge', () => {
+    const qr = readFileSync(
+        new URL(
+            '../../resources/js/pages/PublicCheckIn/Show.vue',
+            import.meta.url,
+        ),
+        'utf8',
+    );
+    assert.match(
+        qr,
+        /min-w-0 grid-cols-\[minmax\(0,1fr\)\] gap-1\.5"\s+for="dob"/,
+    );
+    assert.match(
+        qr,
+        /min-w-0 grid-cols-\[minmax\(0,1fr\)\] gap-1\.5"\s+for="sex"/,
+    );
 });

@@ -613,7 +613,9 @@ onBeforeUnmount(() => {
                             ></label
                         >
                         <div class="grid grid-cols-2 items-start gap-3">
-                            <label class="grid gap-1.5" for="dob"
+                            <label
+                                class="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-1.5"
+                                for="dob"
                                 ><span class="text-sm font-medium"
                                     >Tarikh lahir *</span
                                 ><DateField
@@ -628,7 +630,9 @@ onBeforeUnmount(() => {
                                     role="alert"
                                     >{{ errorFor('date_of_birth') }}</span
                                 ></label
-                            ><label class="grid gap-1.5" for="sex"
+                            ><label
+                                class="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-1.5"
+                                for="sex"
                                 ><span class="text-sm font-medium"
                                     >Jantina *</span
                                 ><select
