@@ -55,6 +55,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'identifiers',
             'full_name',
             'body',
+            'details', // HR-10a: the paragraph of a warning or show-cause letter (Suresh, M1)
             'title',
             'date_of_birth',
             'sex',

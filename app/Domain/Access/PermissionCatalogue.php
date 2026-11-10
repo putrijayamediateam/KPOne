@@ -11,6 +11,7 @@ use App\Domain\HR\Attendance\ClockPermissions;
 use App\Domain\HR\Claims\ClaimPermissions;
 use App\Domain\HR\Credentials\CredentialPermissions;
 use App\Domain\HR\Leave\LeavePermissions;
+use App\Domain\HR\Letters\LetterPermissions;
 use App\Domain\HR\Memos\MemoPermissions;
 use App\Domain\HR\Messages\MessagePermissions;
 use App\Domain\HR\Payroll\PayrollPermissions;
@@ -67,6 +68,7 @@ final class PermissionCatalogue
             ...array_keys(CredentialPermissions::grants()),
             ...array_keys(SopPermissions::grants()),
             ...array_keys(MemoPermissions::grants()),
+            ...array_keys(LetterPermissions::grants()),
             ...array_keys(ClaimPermissions::grants()),
             ...array_keys(PayrollPermissions::grants()),
             ...array_keys(ApplicationPermissions::grants()),
@@ -472,7 +474,7 @@ final class PermissionCatalogue
         }
 
         // HR-1 (B.E.R.N.I.S.S for the owner, 2026-11-05): roster planning; never people or access authority.
-        foreach ([...RosterPermissions::grants(), ...LeavePermissions::grants(), ...ClockPermissions::grants(), ...RecordPermissions::grants(), ...CredentialPermissions::grants(), ...SopPermissions::grants(), ...MemoPermissions::grants(), ...ClaimPermissions::grants(), ...PayrollPermissions::grants(), ...ApplicationPermissions::grants(), ...MessagePermissions::grants(), ...CompliancePermissions::grants()] as $permission => $holders) {
+        foreach ([...RosterPermissions::grants(), ...LeavePermissions::grants(), ...ClockPermissions::grants(), ...RecordPermissions::grants(), ...CredentialPermissions::grants(), ...SopPermissions::grants(), ...MemoPermissions::grants(), ...LetterPermissions::grants(), ...ClaimPermissions::grants(), ...PayrollPermissions::grants(), ...ApplicationPermissions::grants(), ...MessagePermissions::grants(), ...CompliancePermissions::grants()] as $permission => $holders) {
             foreach ($holders as $role) {
                 $roles[$role][] = $permission;
             }
