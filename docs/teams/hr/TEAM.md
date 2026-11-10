@@ -68,6 +68,7 @@ Development, Finance and the TV account get no HR data by implication. Server ch
 | HR-12 | Export for an outside HR product: a closed-by-default section on the Staff files tab for the Director and HR Manager with three generic CSV downloads (staff list as of today, approved leave touching a month, approved overtime in a month), each audited before release, formula-safe, capped at 5,000 rows and never stored; no identity numbers, bank details, documents, pay or reasons. No new permission and no migration. | PR #397, merged as `8c6d78b` (head `cf24954`) |
 | HR-13 | Job applications: a public bilingual (English and BM) Apply form at `/careers/apply`, off by default and closed until HR saves a retention period, with a signed one-time form token, a honeypot, a minimum fill time, rate limits, an encrypted PDF CV and encrypted values. A "Job applications" page for the Director and HR Manager covers positions, steps with a declined offer allowed to become Withdrawn, recorded CV opens and a clinic-entered retention with a daily purge. New permission `hr.applications.manage.organisation`; migrations `003000` and `003100`. **The switch stays off until the owner approves the privacy notice (a lawyer review is recommended).** | PR #402, merged as `9eedfd4` (head `01e6503`) |
 | HR-14 | Staff messages at `/hr/messages` (My messages, Settings, Sent): email for four HR events (leave decided, roster approved, payslip ready, staff claim decided or paid) with fixed templates and no amount, reason or patient detail; nothing on by default; per-channel switch, clinic price and monthly cap; sent right after the commit with no queue, a failure recorded and never breaking the HR action; SMS and WhatsApp built but always "Not connected"; no OTP. Migrations `2026_11_10_003200` and `003300`. | PR #414, merged as `fa4d2f9` (head `5b8c4ba1`) |
+| HR-17a | Hiring stages at `/hr/applications`: a position type (Clinic Assistant, Intern, Locum, Resident Doctor) with its own form questions; a three-step public form (still off until the owner approves notice `draft-hr17-applications-v1`); stages New, Phone screening, Scheduling, Interview, then Passed or Failed (or Not taken forward, Auto-rejected, Withdrawn); a recorded phone call with HR's checklist, a 1 to 5 rating, an encrypted note and Pass or Reject with a fixed reason; Scheduling needs a passed call (service and PostgreSQL). No offer in KPOne; no talent-pool tick until HR-17e. Migrations `2026_11_10_003400` and `003500`. | PR #419, merged as `6da682e` |
 
 ## 6. Decisions (never ask again)
 
@@ -88,7 +89,10 @@ check items, keep them"). The rest stand unless the owner changes them.
    In, consultation or document issue. A later clinical link would be warnings first, by separate decision
    (B.E.R.N.I.S.S for the owner).
 5. Reminders and alerts are inside KPOne only, worked out when a permitted page is opened. No WhatsApp, SMS, email,
-   OTP or push notification (AGENTS.md; B.E.R.N.I.S.S for the owner).
+   OTP or push notification (AGENTS.md; B.E.R.N.I.S.S for the owner). **Amended 2026-11-10:** HR-14 (PR #414) can
+   send staff email for four HR events, off by default behind `HR_MESSAGES_EMAIL_ENABLED`, by the owner's decision
+   (decisions 74 to 76); hiring email (HR-17b) is the same, behind `HR_HIRING_EMAIL_ENABLED`. SMS, WhatsApp, OTP and
+   push stay off; in-KPOne reminders stay the default.
 6. Clock-in is a button in KPOne on the staff member's own signed-in account, with manual corrections approved by
    someone else. No selfie or face photo, no continuous location. A branch geofence check may be added later only
    after a privacy (PDPA) review (B.E.R.N.I.S.S for the owner; the clinic HR proposal asked for geofence and selfie;
@@ -381,6 +385,15 @@ check items, keep them"). The rest stand unless the owner changes them.
 80. HR-17a review (Suresh): no talent-pool tick or promise until HR-17e builds the pool and a way to withdraw
     consent; a screening note is cleared only by the purge; the screening audit holds the outcome and the tick count,
     never the rating; a warning when a position's type changes while it has open applications.
+81. HR-12 leave export (owner, 2026-11-10, word for word, relayed by B.E.R.N.I.S.S): "On leave only". The outside HR
+    product's leave file shows "On leave" for leave days and never the leave type (sick, maternity, hospitalisation and
+    so on), because health information is sensitive under PDPA. The merged HR-12 printed the type; the fix is PR
+    `fix/hr-12-leave-on-leave-only`. The Paid column stays.
+82. HR backlog split (owner, 2026-11-10: "i want to start all that"; B.E.R.N.I.S.S's plan): HR-8 announcements go to
+    Queue & TV (Amirul), HR-9 the HR dashboard to Agent platform (Irfan) and HR-11 clinic compliance to Catalogue &
+    settings (Adlina), each under this plan and with this team agreeing its design note first; migration ranges
+    `2026_11_13_2`, `2026_11_13_1` and `2026_11_13_3`. HR keeps HR-17b to HR-17e, then HR-10 (design note first).
+    HR-15 and HR-16 are design notes only until the owner decides.
 
 ## 7. Open items and known limits
 
@@ -515,8 +528,9 @@ check items, keep them"). The rest stand unless the owner changes them.
       if not, a reviewed file import and export.
     - **HR-13 Job application intake.** KPOne's first public intake, needing rate limits, spam protection, file
       checks and a privacy notice. It sits beside the static careers pages.
-    - **HR-14 Staff messages (WhatsApp, SMS, email, OTP).** An outside provider, keys in the environment's secrets,
-      opt-in and opt-out, no patient data. OTP and the locum portal depend on it.
+    - **HR-14 Staff messages (WhatsApp, SMS, email, OTP).** Built in PR #414: email only, off by default
+      (`HR_MESSAGES_EMAIL_ENABLED`), opt-in and opt-out, no patient data; SMS and WhatsApp "Not connected"; OTP left
+      to HR-15 (decision 75).
     - **HR-15 Locum portal.** Accounts made only by HR through StaffProvisioningService, a narrow locum role, and OTP
       or password sign-in.
     - **HR-16 Selfie or location at clock-in.** The riskiest under PDPA (biometric and location data), so last.
