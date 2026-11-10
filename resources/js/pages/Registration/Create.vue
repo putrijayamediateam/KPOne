@@ -17,6 +17,7 @@ import PhoneInput from '@/components/patient/PhoneInput.vue';
 import RegistrationContactFields from '@/components/patient/RegistrationContactFields.vue';
 import WhatsAppLink from '@/components/patient/WhatsAppLink.vue';
 import { Button } from '@/components/ui/button';
+import { DateField } from '@/components/ui/date-field';
 import { OperationalSelect } from '@/components/ui/select';
 import VisitReasonPicker from '@/components/visit/VisitReasonPicker.vue';
 import type { VisitReasonOption } from '@/components/visit/VisitReasonPicker.vue';
@@ -705,14 +706,12 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
                             ? 'DOB *'
                             : 'DOB (optional)'
                     }}</span
-                    ><input
+                    ><DateField
                         v-model="quick.date_of_birth"
                         :required="requirements.requireDateOfBirth"
                         :aria-invalid="
                             !!errorFor('quick_patient.date_of_birth')
-                        "
-                        type="date"
-                        class="h-10 rounded-md border bg-background px-3 text-sm" /><InputError
+                        " /><InputError
                         :message="errorFor('quick_patient.date_of_birth')"
                 /></label>
                 <AdultConfirmation
