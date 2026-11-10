@@ -51,6 +51,7 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->dontFlash([
             'password',
+            'clock_position', // HR-16a: a person's position at a press is never flashed
             'ratings',
             'comment',
             'allegation',

@@ -214,7 +214,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('hr/dashboard', [HrDashboardController::class, 'index'])
         ->middleware(['same-origin.open', 'permission:hr.roster.manage.organisation,hr.attendance.review.organisation,hr.leave.manage.organisation', 'sensitive.no-store', 'throttle:60,1'])->name('hr.dashboard.index');
 
-    // HR-3a attendance (owner, 2026-11-06). Rules live in app/Domain/HR/Attendance. Server time only; no location or photo.
+    // HR-3a attendance (owner, 2026-11-06). Rules live in app/Domain/HR/Attendance. Server time; HR-16a may keep a location result, never a position.
     Route::prefix('hr/attendance')->controller(HrAttendanceController::class)->middleware('sensitive.no-store')->group(function (): void {
         Route::get('/', 'index')->middleware('permission:hr.attendance.clock.own,hr.attendance.review.organisation')->name('hr.attendance.index');
         Route::middleware(['permission:hr.attendance.clock.own', 'throttle:10,1'])->group(function (): void {
@@ -229,6 +229,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::post('corrections/{correction}/{decision}', 'decide')->whereUuid('correction')->whereIn('decision', ['approve', 'reject'])->name('hr.attendance.corrections.decide');
             Route::put('settings', 'saveSettings')->name('hr.attendance.settings');
             Route::put('overtime-settings', 'saveOvertimeSettings')->name('hr.attendance.overtime-settings');
+        });
+        // HR-16a: the Director turns the location check on or off for one branch (HR-PLAN 22).
+        Route::middleware(['permission:hr.attendance.location.manage.organisation', 'throttle:30,1'])->group(function (): void {
+            Route::put('location-check', 'saveLocationCheck')->name('hr.attendance.location-check');
         });
         // HR-3b overtime (owner, 2026-11-06). Minutes and day type only; no money.
         Route::middleware(['permission:hr.attendance.clock.own,hr.attendance.review.organisation', 'throttle:30,1'])->group(function (): void {
