@@ -3,11 +3,13 @@
 namespace App\Http\Controllers;
 
 use App\Domain\HR\Applications\Services\CandidateLink;
+use App\Domain\HR\Applications\Services\InterviewDocuments;
 use App\Domain\HR\Applications\Services\InterviewSlots;
 use App\Domain\HR\Applications\Services\JobApplicationIntake;
 use Illuminate\Contracts\Encryption\DecryptException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response as HttpResponse;
 use Illuminate\Support\Facades\Cookie;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Validation\ValidationException;
@@ -90,6 +92,22 @@ class JobApplicationController extends Controller
         }
 
         return redirect()->route('hr-applications.status');
+    }
+
+    /** HR-17d: an interview document, while the interview is confirmed. The download is recorded first. */
+    public function document(Request $request, JobApplicationIntake $intake, CandidateLink $links, InterviewDocuments $documents, string $document): HttpResponse
+    {
+        $intake->ensureEnabled();
+        $file = $documents->download($request->cookie($this->cookieName()), $document, $links);
+        abort_if($file === null, 404);
+
+        return response($file['content'], 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'attachment; filename="'.$file['filename'].'"',
+            'X-Content-Type-Options' => 'nosniff',
+            'Content-Security-Policy' => "sandbox; default-src 'none'",
+            'Cache-Control' => 'no-store, private',
+        ]);
     }
 
     public function withdraw(Request $request, JobApplicationIntake $intake, CandidateLink $links): RedirectResponse
