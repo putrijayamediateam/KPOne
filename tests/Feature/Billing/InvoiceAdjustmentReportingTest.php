@@ -103,7 +103,7 @@ class InvoiceAdjustmentReportingTest extends BillingTestCase
         $this->assertSame(2000, $report['summary']['receivedSen']);
         $this->assertSame(7000, $report['summary']['outstandingSen']);
         $this->assertSame(1, $report['summary']['outstandingInvoices']);
-        $this->get(route('billing.receipt', [$visit, $invoice, $payment]))->assertOk()->assertInertia(fn (Assert $page) => $page->where('receipt.amountSen', 2000));
+        $this->issuedReceiptPage($visit, $invoice, $payment)->assertOk()->assertInertia(fn (Assert $page) => $page->where('receipt.amountSen', 2000));
     }
 
     private function approvedAdjustedClaim(string $direction = 'deduct', bool $legacy = false): array
@@ -205,7 +205,7 @@ class InvoiceAdjustmentReportingTest extends BillingTestCase
         $this->get(route('panel-claims.show', $claim))->assertOk()->assertDontSee('SYNTHETIC-PRIVATE-ADJUSTMENT');
         $ca = $this->actor('ca');
         $this->selectBranch($ca);
-        $this->get(route('billing.print', [$visit, $invoice]))->assertOk()->assertInertia(fn (Assert $page) => $page->where('billing.invoice.adjustment.subtotalSen', 10000)->where('billing.invoice.adjustment.adjustmentSen', -2000)->where('billing.invoice.state.total', 8000))->assertDontSee('SYNTHETIC-PRIVATE-ADJUSTMENT');
+        $this->issuedInvoicePage($visit, $invoice)->assertOk()->assertInertia(fn (Assert $page) => $page->where('billing.invoice.adjustment.subtotalSen', 10000)->where('billing.invoice.adjustment.adjustmentSen', -2000)->where('billing.invoice.state.total', 8000))->assertDontSee('SYNTHETIC-PRIVATE-ADJUSTMENT');
         foreach (['administrator', 'technical_admin'] as $role) {
             $actor = $this->actor($role);
             $this->selectBranch($actor);

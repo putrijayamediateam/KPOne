@@ -23,27 +23,34 @@ class PrintFooterReleaseTest extends BillingTestCase
         $this->assertLessThanOrEqual(1000, strlen($long));
         foreach ([null, "Synthetic branch footer\nA & B", $long, null] as $text) {
             BranchDocumentFooter::query()->updateOrCreate(['organisation_id' => $visit->organisation_id, 'branch_id' => $visit->branch_id], ['text' => $text, 'lock_version' => 1]);
+            // BIL-14: the old print addresses only send staff to Issued copies; opening them changes no row.
             $before = $this->allRows();
-            foreach ($urls as $index => $url) {
-                $response = $this->get($url)->assertOk()->assertHeader('Cache-Control', 'max-age=0, must-revalidate, no-store, private');
+            foreach ($urls as $url) {
+                $this->get($url)->assertRedirect(route('billing.show', $visit).'#issued-copies');
+            }
+            $this->assertSame($before, $this->allRows(), 'Opening either old print address must leave every database row unchanged.');
+            foreach ([$this->issuedInvoicePage($visit, $invoice), $this->issuedReceiptPage($visit, $invoice, $payment)] as $index => $response) {
+                $response->assertOk()->assertHeader('Cache-Control', 'max-age=0, must-revalidate, no-store, private');
                 $this->assertSame('Billing/Print', $response->viewData('page')['component']);
                 $props = json_decode(json_encode($response->viewData('page')['props'], JSON_THROW_ON_ERROR), true, flags: JSON_THROW_ON_ERROR);
                 $this->assertSame($text, $props['letterhead']['footerText']);
-                $this->assertSame(4000, $props['billing']['invoice']['state']['total']);
                 if ($index === 1) {
+                    // A recorded receipt carries its own figures, not the invoice's running totals (BIL-5).
+                    $this->assertSame($invoice->invoice_number, $props['billing']['invoice']['number']);
+                    $this->assertArrayNotHasKey('state', $props['billing']['invoice']);
                     $this->assertSame(1000, $props['receipt']['amountSen']);
-                    $this->assertArrayNotHasKey('billTo', $props);
+                    $this->assertNull($props['billTo']); // A recorded receipt never carries Bill to.
                 } else {
+                    $this->assertSame(4000, $props['billing']['invoice']['state']['total']);
                     $this->assertNull($props['receipt']);
                     $this->assertArrayHasKey('billTo', $props);
                 }
-                unset($props['letterhead']['footerText']);
+                unset($props['letterhead']['footerText'], $props['issued']);
                 if (! isset($baseline[$index])) {
                     $baseline[$index] = $props;
                 }
                 $this->assertSame($baseline[$index], $props, 'Only the existing footer value may differ between footer variants.');
             }
-            $this->assertSame($before, $this->allRows(), 'Opening either print must leave every database row unchanged.');
             $this->assertSame($routes, $this->routeContract());
         }
     }

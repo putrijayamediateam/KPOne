@@ -74,7 +74,7 @@ class PanelShortfallTest extends BillingTestCase
         $this->decide($panelOfficer, $visit, $this->createClaim($panelOfficer, $visit, $invoice, $allocation), 'rejected', '0', 'Synthetic rejection');
         $this->assertShortfall($ca, $visit, ['shortfallSen' => 3000, 'panelShareSen' => 3000, 'acceptedSen' => 0, 'decision' => 'rejected']);
         $this->selectBranch($ca);
-        $this->get(route('billing.print', [$visit, $invoice]))->assertOk()->assertInertia(fn (Assert $page) => $page->where('billing.panelShortfall', null));
+        $this->issuedInvoicePage($visit, $invoice)->assertOk()->assertInertia(fn (Assert $page) => $page->missing('billing.panelShortfall'))->assertDontSee('shortfallSen');
     }
 
     public function test_a_queried_claim_or_a_rejected_claim_reset_by_an_amount_edit_shows_no_warning(): void

@@ -104,9 +104,9 @@ class InvoiceBillToTest extends BillingTestCase
             $this->assertNull($current['current'][$field]);
         }
         $this->postJson($url, $this->command(['recipient' => ['party_type' => 'person', 'display_name' => 'Synthetic Guardian Two', 'city' => 'Synthetic City', 'country_code' => 'my']]))->assertOk();
-        $this->get(route('billing.print', [$visit, $invoice]))->assertOk()->assertInertia(fn (Assert $p) => $p->where('billTo.display_name', 'Synthetic Guardian Two')->where('billTo.country_code', 'MY')->where('billTo.address_line_1', null));
+        $this->issuedInvoicePage($visit, $invoice)->assertOk()->assertInertia(fn (Assert $p) => $p->where('billTo.display_name', 'Synthetic Guardian Two')->where('billTo.country_code', 'MY')->where('billTo.address_line_1', null));
         $this->postJson($url, $this->command(['operation' => 'clear', 'recipient' => null]))->assertOk();
-        $this->get(route('billing.print', [$visit, $invoice]))->assertOk()->assertInertia(fn (Assert $p) => $p->where('billTo', null)->where('billing.patient.name', $visit->patient->full_name));
+        $this->issuedInvoicePage($visit, $invoice)->assertOk()->assertInertia(fn (Assert $p) => $p->where('billTo', null)->where('billing.patient.name', $visit->patient->full_name));
         $this->getJson($url.'?expected_branch_id='.$visit->branch_id)->assertJsonPath('current', null)->assertJsonPath('data.0.kind', 'cleared')->assertJsonPath('data.1.recipient.display_name', 'Synthetic Guardian Two')->assertJsonPath('data.2.recipient.display_name', 'Synthetic Guardian');
     }
 
@@ -206,17 +206,20 @@ class InvoiceBillToTest extends BillingTestCase
         (new PaymentMethod)->forceFill(['organisation_id' => $visit->organisation_id, 'code' => 'cash', 'name' => 'Synthetic cash'])->save();
         $payment = app(PaymentService::class)->add($ca, $visit, $invoice, ['expected_branch_id' => $visit->branch_id, 'lock_version' => $invoice->lock_version, 'amount_sen' => 100, 'method' => 'cash', 'idempotency_key' => (string) Str::uuid()]);
         app(InvoiceNoteService::class)->write($ca, $visit, $invoice, ['expected_branch_id' => $visit->branch_id, 'lock_version' => 0, 'operation' => 'added', 'body' => 'Synthetic secret note print sentinel', 'idempotency_key' => (string) Str::uuid()]);
-        $this->get(route('billing.print', [$visit, $invoice]))->assertOk()->assertInertia(fn (Assert $p) => $p->where('billTo', null));
+        $this->issuedInvoicePage($visit, $invoice)->assertOk()->assertInertia(fn (Assert $p) => $p->where('billTo', null));
         $this->postJson($url, $this->command())->assertOk();
-        $this->get(route('billing.print', [$visit, $invoice]))->assertOk()->assertInertia(fn (Assert $p) => $p->where('billTo.display_name', 'Synthetic recipient sentinel')->where('billing.billTo', null)->where('billing.notes', null)->where('billing.patient.name', $visit->patient->full_name))->assertDontSee('Synthetic secret note print sentinel');
-        $this->get(route('billing.receipt', [$visit, $invoice, $payment]))->assertOk()->assertInertia(fn (Assert $p) => $p->missing('billTo')->where('billing.billTo', null)->where('billing.notes', null))->assertDontSee('Synthetic recipient sentinel')->assertDontSee('Synthetic secret note print sentinel');
+        $this->issuedInvoicePage($visit, $invoice)->assertOk()->assertInertia(fn (Assert $p) => $p->where('billTo.display_name', 'Synthetic recipient sentinel')->missing('billing.billTo')->missing('billing.notes')->where('billing.patient.name', $visit->patient->full_name))->assertDontSee('Synthetic secret note print sentinel');
+        $this->issuedReceiptPage($visit, $invoice, $payment)->assertOk()->assertInertia(fn (Assert $p) => $p->where('billTo', null)->missing('billing.billTo')->missing('billing.notes'))->assertDontSee('Synthetic recipient sentinel')->assertDontSee('Synthetic secret note print sentinel');
         $finance = $this->actor('finance_officer');
         $this->selectBranch($finance);
         $this->get(route('billing.print', [$visit, $invoice]))->assertForbidden();
         $this->selectBranch($ca);
         $ca->syncRoles([]);
-        $ca->givePermissionTo('billing.print.branch');
-        $this->get(route('billing.print', [$visit, $invoice]))->assertOk()->assertInertia(fn (Assert $p) => $p->where('billTo', null))->assertDontSee('Synthetic recipient sentinel');
+        $ca->givePermissionTo(['billing.print.branch', 'billing.view.branch', 'patients.view.organisation']);
+        // BIL-14: the old address only sends them to Issued copies; a printer who may see the patient and the bill
+        // but not Bill to cannot issue, so Bill to never reaches paper without its permission.
+        $this->get(route('billing.print', [$visit, $invoice]))->assertRedirect(route('billing.show', $visit).'#issued-copies');
+        $this->post(route('billing.issue', [$visit, $invoice]), ['expected_branch_id' => $visit->branch_id, 'idempotency_key' => (string) Str::uuid(), 'return_to' => 'billing'])->assertSessionHasErrors('document');
     }
 
     public function test_voided_history_remains_on_original_and_replacement_is_not_prefilled(): void
