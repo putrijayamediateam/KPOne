@@ -105,8 +105,8 @@ coordinator at the owner's request (2026-11-05); the designer was added by owner
 | DSP-12 | Scan to find a medicine in "Add a medicine": an outline "Scan to add" button opens the shared `ScanInput` (new `dispensary-add` context, polite only). POST `dispensary/{case}/medicines/by-sku` (read only; `dispensary.update.branch`, 60 a minute, branch and organisation checks, uuid SKU) returns the active medicines mapped to that SKU, shaped like the name search. One medicine with stock and no allergy match is chosen in the Add form and Quantity takes focus; an allergy match shows the red panel and the list with focus on Choose; several medicines or no stock show the list; an unlinked SKU says so. A scan saves nothing and is refused during a save or over typed directions; the newest scan wins | #383 (merged `378b1e4`) |
 | DSP-13 | Index `dispensary_return_branch_waiting_index` on `dispensary_returns (organisation_id, branch_id, recorded_at, id)` for the Returns to check list (migration `2026_11_06_200400`, no data change), and two tests: a CA Supervisor of another organisation sees none of these returns (even with the session pointed at this branch), and a recorder the viewer may not see shows as "Staff member" | #389 (merged `41944e9`) |
 | DSP-14 | Allergy match ignores strengths, dose forms and extra words: a "core" of each side drops tokens that start with a digit, units, dose forms and salt words (and, on the allergy side, wrapper, reaction, symptom and filler words); an allergy part's core inside a medicine name (whole words below 5 characters) or the medicine name's core inside the allergy text's core (whole words) also matches. Only adds matches; still warns, never blocks. Backend only | #428 (merged) |
-| DSP-15 | Quarantine one return across several batches: on a line dispensed from 2+ batches the check panel shows one box per batch (earliest expiry first, "Available: N", never prefilled, "Fill from earliest expiry" helper), a running "Placed X of Y" line, the shares in the confirm dialog and the batches on the history row. New append-only `dispensary_return_check_batches` (one STK-11 movement per share); PostgreSQL repeats the pairing, per-batch, can't-grow and exact-total rules. Migration `2026_11_07_000600` (decision 36) | #430 |
-| DSP-16 | Two-process race test: two CA Supervisors splitting two returns of one line at once; the loser waits on the case lock, then is refused over a batch's remaining capacity or succeeds when it fits. Fails with the case, item and location locks removed. Tests only | after #430 |
+| DSP-15 | Quarantine one return across several batches: on a line dispensed from 2+ batches the check panel shows one box per batch (earliest expiry first, "Available: N", never prefilled, "Fill from earliest expiry" helper), a running "Placed X of Y" line, the shares in the confirm dialog and the batches on the history row. New append-only `dispensary_return_check_batches` (one STK-11 movement per share); PostgreSQL repeats the pairing, per-batch, can't-grow and exact-total rules. Migration `2026_11_07_000600` (decision 36) | #430 (merged) |
+| DSP-16 | Two-process race test: two CA Supervisors splitting two returns of one line at once; the loser waits on the case lock, then is refused over a batch's remaining capacity or succeeds when it fits. Fails with the case, item and location locks removed. Tests only | #439 |
 
 ## 6. Owner decisions already made (never ask again)
 
@@ -299,7 +299,7 @@ coordinator at the owner's request (2026-11-05); the designer was added by owner
   DD-24 (44 px below 1024 px), but the rest of the panel still switches below 640 px (sm). Moving it to max-lg is a
   separate small fix.
 - **CA Supervisor guide after DSP-15:** `docs/guides/ms/penyelia-ca.md` says to choose the original batch for a
-  quarantine. Once #430 merges, it needs the split boxes ("Batches the units came from", "Fill from earliest expiry").
+  quarantine. Since #430 merged, it needs the split boxes ("Batches the units came from", "Fill from earliest expiry").
 - **Allergy matching is text only (DSP-1, DSP-1b, DSP-1c):** a CA add or edit that matches an active allergy record
   needs a recorded confirmation. Drug groups and other names (brand names, misspellings) are matched only when a
   catalogue editor has added them (DSP-1b, DSP-1c), so an untagged medicine still misses penicillin vs amoxicillin,
@@ -398,8 +398,8 @@ order, each its own PR:
 13. **DSP-12 Scan to add — merged in #383.** Decision 31.
 14. **DSP-13 Returns list index and tests — merged in #389.** Decision 32.
 15. **DSP-14 Allergy match with strengths — merged in #428.** Decision 34.
-16. **DSP-15 Quarantine one return across batches — PR #430.** Decisions 35 and 36.
-17. **DSP-16 Race test for split quarantines — PR after #430.** Decision 37.
+16. **DSP-15 Quarantine one return across batches — merged in #430.** Decisions 35 and 36.
+17. **DSP-16 Race test for split quarantines — PR #439.** Decision 37.
 
 Team rules for this backlog: run the PHPStan stopgap before each push; migration timestamps from
 `2026_11_06_200000` up.
