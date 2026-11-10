@@ -104,7 +104,7 @@ class DashboardTest extends VisitTestCase
         $this->assertSame('enough', $this->dashboard($director)['branches'][0]['today']['staffing']['state']);
     }
 
-    public function test_enough_or_short_judges_the_sessions_on_now_and_a_closed_day_shows_nothing(): void
+    public function test_enough_or_short_follows_the_planner_for_today_and_a_closed_day_shows_nothing(): void
     {
         $hr = $this->actor('hr_manager');
         $director = $this->actor('director');
@@ -113,11 +113,9 @@ class DashboardTest extends VisitTestCase
         $this->roster($hr, $director, [[$this->actor('ca'), '08:00', '19:00']]);
         $state = fn (): string => $this->dashboard($director)['branches'][0]['today']['staffing']['state'];
 
-        $this->assertSame('short', $state(), 'A full-day shift is judged as the morning at 10:00.');
-        $this->at('2027-03-08 14:00');
-        $this->assertSame('enough', $state(), 'At 14:00 it is the afternoon, which has no minimum; the morning is not judged.');
+        $this->assertSame('short', $state(), 'A full-day shift counts towards the morning minimum, as in the Planner.');
         $this->at('2027-03-08 21:00');
-        $this->assertSame('no_shift_now', $state(), 'Shifts today, none on now.');
+        $this->assertSame('short', $state(), 'Judged for today, not for the hour: still short after the shift ended.');
         $this->at('2027-03-14 10:00'); // Sunday: no shifts and not a working day.
         $this->assertSame('closed', $state());
     }

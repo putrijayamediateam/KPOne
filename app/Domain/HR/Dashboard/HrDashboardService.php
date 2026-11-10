@@ -143,7 +143,7 @@ final class HrDashboardService
                 // Only when someone is on now: a closed or quiet branch is not "without a doctor".
                 'noDoctor' => $onShift->isNotEmpty() && $doctors === 0,
             ];
-            $out['staffing'] = $this->staffing($actor, $branch, $localToday, $shifts, $now);
+            $out['staffing'] = $this->staffing($actor, $branch, $localToday);
         }
         if ($can['attendance']) {
             $open = ClockSession::query()->where('organisation_id', $actor->organisation_id)->where('branch_id', $branch->id)->whereNull('clock_out_at')
@@ -198,16 +198,14 @@ final class HrDashboardService
     }
 
     /**
-     * Enough or Short for the sessions that are on now (Liyana, HR), by the Planner's own rule
-     * (RosterPageService::shortfalls): the people on each session's shifts today, by role, against that session's
-     * minimum. A full-day shift counts for whichever of morning or afternoon it is now, as the Planner counts it for
-     * both; a "Full day" minimum applies all day. A day with no shifts at a branch that does not work today shows
-     * nothing (state "closed"), because minimums apply to every day (a known HR-1 limit).
+     * Enough or Short for today, by the Planner's own rule (RosterPageService::shortfalls; HR's decision: matching the
+     * Planner matters more than a session refinement): the people on each session's shifts today, by role, against that
+     * session's minimum. A branch with no shifts that does not work today shows nothing (state "closed"), because
+     * minimums apply to every day (a known HR-1 limit).
      *
-     * @param  Collection<int, RosterShift>  $covering  approved shifts on now
      * @return array<string, mixed>
      */
-    private function staffing(User $actor, Branch $branch, CarbonImmutable $localToday, Collection $covering, CarbonImmutable $now): array
+    private function staffing(User $actor, Branch $branch, CarbonImmutable $localToday): array
     {
         $shifts = $this->shiftsOn($actor->organisation_id, $branch, $localToday, $localToday);
         if ($shifts->isEmpty()) {
@@ -218,29 +216,21 @@ final class HrDashboardService
         if (collect($this->minimums->minimums($branch))->flatten()->sum() <= 0) {
             return ['state' => 'not_set', 'messages' => []];
         }
-        if ($covering->isEmpty()) {
-            return ['state' => 'no_shift_now', 'messages' => []];
-        }
-        $sessions = array_values(array_unique([...$covering->pluck('session_type')->all(), 'full_day']));
-        if (in_array('full_day', $covering->pluck('session_type')->all(), true)) {
-            $sessions[] = (int) $now->setTimezone($branch->timezone)->format('G') < 12 ? 'morning' : 'afternoon';
-        }
-        $gaps = $this->gaps($branch, $localToday, $shifts, array_values(array_unique($sessions)));
+        $gaps = $this->gaps($branch, $localToday, $shifts);
 
         return ['state' => $gaps === [] ? 'enough' : 'short', 'messages' => array_map(fn (array $g): string => $g['message'], $gaps)];
     }
 
     /**
      * @param  Collection<int, RosterShift>  $shifts
-     * @param  list<string>|null  $onlySessions
      * @return list<array{date: string, day: string, message: string}>
      */
-    private function gaps(Branch $branch, CarbonImmutable $from, Collection $shifts, ?array $onlySessions = null): array
+    private function gaps(Branch $branch, CarbonImmutable $from, Collection $shifts): array
     {
         $people = User::query()->with('roles')->whereIn('id', $shifts->pluck('staff_user_id')->unique())->get()->keyBy('id');
 
         // The Planner's check looks at 7 days from its start date; only the day asked for counts here.
-        return array_values(array_filter($this->roster->shortfalls($branch, $from, $shifts, $people, $onlySessions), fn (array $g): bool => $g['date'] === $from->toDateString()));
+        return array_values(array_filter($this->roster->shortfalls($branch, $from, $shifts, $people), fn (array $g): bool => $g['date'] === $from->toDateString()));
     }
 
     /** @return Collection<int, RosterShift> approved shifts that start on a branch-local date in [$from, $to] */

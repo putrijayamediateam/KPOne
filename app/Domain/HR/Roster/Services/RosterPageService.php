@@ -321,14 +321,14 @@ final class RosterPageService
     }
 
     /**
-     * One line per short day. A "Full day" shift also counts towards Morning and Afternoon.
+     * One line per short day. A "Full day" shift also counts towards Morning and Afternoon. The HR dashboard (HR-9,
+     * HrDashboardService) depends on this method so that it can never disagree with the Planner: keep its output shape.
      *
      * @param  Collection<int, RosterShift>  $shifts
      * @param  Collection<int, User>  $people
-     * @param  list<string>|null  $onlySessions  null judges every session (the Planner); HR-9 passes the sessions on now
      * @return list<array{date:string, day:string, message:string}>
      */
-    public function shortfalls(Branch $branch, CarbonImmutable $weekStart, Collection $shifts, Collection $people, ?array $onlySessions = null): array
+    public function shortfalls(Branch $branch, CarbonImmutable $weekStart, Collection $shifts, Collection $people): array
     {
         $minimums = $this->minimums->minimums($branch);
         $out = [];
@@ -336,9 +336,6 @@ final class RosterPageService
             $day = $weekStart->addDays($i);
             $gaps = [];
             foreach ($minimums as $session => $roles) {
-                if ($onlySessions !== null && ! in_array($session, $onlySessions, true)) {
-                    continue; // HR-9: the dashboard judges only the sessions that are on now.
-                }
                 foreach ($roles as $role => $minimum) {
                     if ($minimum <= 0) {
                         continue;

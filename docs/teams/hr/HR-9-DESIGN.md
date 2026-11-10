@@ -44,7 +44,7 @@ Director and HR Manager hold all three today, so the result is the same as the p
 
 - "Rostered now": shifts of approved roster versions only (a draft, a replaced version or a draft overlap never counts) whose local start is at or before now and whose end is after now, for active staff. A person whose approved leave covers now is shown as on leave and not as rostered (a half day: on leave for that half, rostered for the other half). A clinic-wide total is not built; figures are per branch.
 - "Clocked in": an open clock session at that branch.
-- "Enough" or "Short" (Liyana, HR): **per session, now.** The sessions on now are the sessions of the approved shifts covering the current branch-local time, plus "Full day" (whose minimum applies all day); a full-day shift counts for whichever of morning or afternoon it is now, as the Planner counts it for both. Each role's count on that session's shifts today is compared with that session's minimum through the Planner's own `RosterPageService::shortfalls` (made to accept a list of sessions), so a CA Supervisor never counts towards the CA minimum and the page cannot disagree with the Planner. States: Enough, Short, "No shift right now", "No shifts today", "Minimum staffing not set", and nothing at all for a branch with no shifts that does not work today (HR-2a working days). The page says that minimums apply to every day, so a day with a roster at a closed branch can read Short (HR-1 limit).
+- "Enough" or "Short" (Liyana, HR): **for today, by the Planner's own rule** (HR: "matching the Planner matters more than a session refinement"). Each role's count on each session's shifts today (a full-day shift counts for morning and afternoon) is compared with that session's minimum through `RosterPageService::shortfalls`, which the dashboard now depends on (docblock says so), so a CA Supervisor never counts towards the CA minimum and the page cannot disagree with the Planner. Labelled "for today", not "now". States: Enough, Short, "No shifts today", "Minimum staffing not set", and nothing at all for a branch with no shifts that does not work today (HR-2a working days). The page says that minimums apply to every day (HR-1 limit).
 - "No Resident Doctor rostered now" shows only when someone else is on shift now and no doctor is (a person on leave does not count as on shift).
 - Overtime minutes: approved requests dated in the month, with a later reversal excluded, using the stored approved minutes. Short days: counted from approved rosters only, by today's minimums (an HR-5b limit, stated on the page).
 - Month figures reuse the HR-3a flag rules and the HR-3b approved minutes, so this page cannot disagree with Review and Summary there. The flags stay hidden until HR has saved attendance settings, as on Review.
@@ -52,7 +52,7 @@ Director and HR Manager hold all three today, so the result is the same as the p
 
 ## 7. Questions for HR (Liyana, Suresh)
 
-1. Enough or Short per session now: answered by Liyana (per session, now), as built.
+1. Enough or Short: answered by Liyana, for today by the Planner's rule, as built.
 2. Should "late" count only flags after a saved grace period (as Review does)? We assume yes.
 3. Is leave days taken a single figure, or do you want sick versus annual in the monthly summary? We assume a single figure (no leave type on a dashboard).
 4. Reuse of the three existing permissions, or the new `hr.dashboard.view.organisation`?

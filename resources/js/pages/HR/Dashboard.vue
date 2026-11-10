@@ -28,13 +28,7 @@ type Today = {
     clockedIn: { count: number; people: Person[] } | null;
     onLeave: { count: number; people: Person[] } | null;
     staffing: {
-        state:
-            | 'enough'
-            | 'short'
-            | 'not_set'
-            | 'no_roster'
-            | 'no_shift_now'
-            | 'closed';
+        state: 'enough' | 'short' | 'not_set' | 'no_roster' | 'closed';
         messages: string[];
     } | null;
 };
@@ -125,10 +119,10 @@ function days(value: number): string {
 
         <p class="text-xs text-muted-foreground" data-test="rules-note">
             Enough or Short compares the people on today's shifts with the
-            minimum staffing for the sessions that are on now, as the roster
-            Planner does. Minimums apply to every day, so a day with a roster at
-            a branch that is closed can read Short. Short days are counted from
-            approved rosters only, by today's minimums.
+            minimum staffing for each session today, as the roster Planner does.
+            Minimums apply to every day, so a day with a roster at a branch that
+            is closed can read Short. Short days are counted from approved
+            rosters only, by today's minimums.
         </p>
 
         <EmptyState
@@ -157,13 +151,13 @@ function days(value: number): string {
                         <StatusBadge
                             v-if="branch.today.staffing.state === 'enough'"
                             status="enough"
-                            label="Enough staff"
+                            label="Enough staff today"
                             tone="success"
                         />
                         <StatusBadge
                             v-else-if="branch.today.staffing.state === 'short'"
                             status="short"
-                            label="Short of staff"
+                            label="Short of staff today"
                             tone="warning"
                         />
                         <StatusBadge
@@ -172,14 +166,6 @@ function days(value: number): string {
                             "
                             status="no_roster"
                             label="No shifts today"
-                            tone="neutral"
-                        />
-                        <StatusBadge
-                            v-else-if="
-                                branch.today.staffing.state === 'no_shift_now'
-                            "
-                            status="no_shift_now"
-                            label="No shift right now"
                             tone="neutral"
                         />
                         <StatusBadge
