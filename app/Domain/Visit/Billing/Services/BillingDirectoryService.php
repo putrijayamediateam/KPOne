@@ -103,14 +103,16 @@ class BillingDirectoryService
         $allocations = PaymentAllocation::query()->whereIn('invoice_id', $voided->pluck('id'))->get(['invoice_id', 'payment_id']);
         $payments = Payment::query()->whereIn('id', $allocations->pluck('payment_id'))->orderBy('id')->get()->keyBy('id');
         $names = $this->staff->visibleUsers($actor)->whereIn('id', $voided->pluck('voided_by_user_id')->filter()->unique())->pluck('name', 'id');
-
-        return $voided->map(fn (Invoice $i): array => [
+        /** @var list<array{number: string, totalSen: int, voidedAt: string|null, voidedBy: string, receipts: list<array{number: string, amountSen: int, method: string, status: string}>}> $list */
+        $list = $voided->map(fn (Invoice $i): array => [
             'number' => (string) $i->invoice_number, 'totalSen' => (int) $i->total_sen,
             'voidedAt' => $i->voided_at?->setTimezone($timezone)->format('j M Y, g:i A'),
-            'voidedBy' => $names[$i->voided_by_user_id] ?? 'Staff member',
+            'voidedBy' => (string) ($names[$i->voided_by_user_id] ?? 'Staff member'),
             'receipts' => $allocations->where('invoice_id', $i->id)->map(fn ($a): ?Payment => $payments->get($a->payment_id))->filter()
                 ->map(fn (Payment $p): array => ['number' => $p->receipt_number, 'amountSen' => (int) $p->amount_sen, 'method' => $p->method_snapshot, 'status' => $p->status])->values()->all(),
         ])->values()->all();
+
+        return $list;
     }
 
     /** @return array{label: string, href: string}|null */
