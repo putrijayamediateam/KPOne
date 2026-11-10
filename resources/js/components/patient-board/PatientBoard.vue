@@ -455,14 +455,14 @@ const rowWaitingTone = (row: PatientBoardRow) =>
                                         v-if="row.can.recall"
                                         class="min-h-8 rounded-lg px-2.5 text-[13px]"
                                         @select="$emit('recall', row)"
-                                        >Call Again</DropdownMenuItem
+                                        >Call again</DropdownMenuItem
                                     >
                                     <!-- prettier-ignore -->
                                     <DropdownMenuItem
                                         v-if="row.can.callTreatment"
                                         class="min-h-8 rounded-lg px-2.5 text-[13px]"
                                         @select="$emit('callTreatment', row)"
-                                        >Call to Treatment Room</DropdownMenuItem
+                                        >Call to treatment room</DropdownMenuItem
                                     >
                                     <DropdownMenuItem
                                         v-if="row.can.openConsultation"
