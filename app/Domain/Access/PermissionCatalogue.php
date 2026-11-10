@@ -453,8 +453,9 @@ final class PermissionCatalogue
             'queue.display.branch',
         ];
 
-        // HR-15a: a locum sees their own settings; their own shifts come with the HR roster grants below.
-        $roles[self::LOCUM_ROLE] = ['profile.view.own'];
+        // HR-15a: a locum sees their own settings and chooses among their own assigned branches (as the TV account
+        // does; no data comes with it); their own shifts come with the HR roster grants below.
+        $roles[self::LOCUM_ROLE] = ['profile.view.own', 'branch_context.switch.branch'];
 
         foreach (['ca_supervisor', 'finance_officer', 'director'] as $holder) {
             $roles[$holder][] = 'inventory.batch_holds.place.branch';
