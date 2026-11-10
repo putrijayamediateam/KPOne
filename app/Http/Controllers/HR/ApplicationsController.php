@@ -4,6 +4,7 @@ namespace App\Http\Controllers\HR;
 
 use App\Domain\Audit\AuditRecorder;
 use App\Domain\HR\Applications\Services\ApplicationsPageService;
+use App\Domain\HR\Applications\Services\InterviewDocuments;
 use App\Domain\HR\Applications\Services\InterviewSlots;
 use App\Domain\HR\Applications\Services\JobApplicationService;
 use App\Http\Controllers\Controller;
@@ -86,6 +87,40 @@ class ApplicationsController extends Controller
     {
         return $this->run($request, route('hr.applications.index', ['tab' => 'settings']), 'Retention saved.',
             fn () => $applications->setRetention($request->user(), $request->only(['retention_days', 'expected_version', 'idempotency_key'])));
+    }
+
+    /** HR-17d: a PDF the candidate can download once their interview is confirmed. */
+    public function addDocument(Request $request, InterviewDocuments $documents): RedirectResponse
+    {
+        return $this->run($request, route('hr.applications.index', ['tab' => 'settings']), 'Document added.',
+            fn () => $documents->upload($request->user(), $request->file('file'), $request->only(['position_type', 'title', 'idempotency_key'])));
+    }
+
+    public function removeDocument(Request $request, InterviewDocuments $documents, string $document): RedirectResponse
+    {
+        return $this->run($request, route('hr.applications.index', ['tab' => 'settings']), 'Document removed. Its file is deleted.',
+            fn () => $documents->remove($request->user(), $document, $request->only(['expected_lock_version', 'idempotency_key'])));
+    }
+
+    /** HR opens an interview document; the open is recorded first. */
+    public function document(Request $request, InterviewDocuments $documents, string $document): HttpResponse
+    {
+        try {
+            $opened = $documents->open($request->user(), $document);
+        } catch (ValidationException $e) {
+            throw $e->redirectTo(route('hr.applications.index', ['tab' => 'settings']));
+        } catch (AuthorizationException) {
+            app(AuditRecorder::class)->record('authorization.denied', $request->user(), ['route' => $request->route()?->getName(), 'method' => $request->method()], $request->user());
+            abort(403);
+        }
+
+        return response($opened['content'], 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'attachment; filename="'.$opened['filename'].'"',
+            'X-Content-Type-Options' => 'nosniff',
+            'Content-Security-Policy' => "sandbox; default-src 'none'",
+            'Cache-Control' => 'no-store, private',
+        ]);
     }
 
     /** The CV downloads; the open is recorded first. */
