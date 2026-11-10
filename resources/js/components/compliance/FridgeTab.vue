@@ -339,7 +339,7 @@ const sendMistake = () => {
                 <li
                     v-for="r in f.recent"
                     :key="r.id"
-                    class="flex flex-col gap-1 py-3 text-sm"
+                    class="relative flex flex-col gap-1 py-3 pr-14 text-sm"
                 >
                     <p class="flex flex-wrap items-center gap-2">
                         <StatusBadge
@@ -383,11 +383,14 @@ const sendMistake = () => {
                         >
                         · {{ r.review.by }}, {{ when(r.review.at, f.timezone) }}
                     </p>
-                    <div v-if="f.canManage && !r.errorReason">
+                    <div
+                        v-if="f.canManage && !r.errorReason"
+                        class="absolute top-2 right-0"
+                    >
                         <DropdownMenu>
                             <DropdownMenuTrigger as-child>
                                 <Button
-                                    variant="ghost"
+                                    variant="outline"
                                     size="icon"
                                     class="min-h-11 min-w-11 lg:min-h-9 lg:min-w-9"
                                     :aria-label="`More actions for the ${clock(r.takenAt, f.timezone)} reading`"
