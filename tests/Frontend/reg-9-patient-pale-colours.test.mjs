@@ -55,9 +55,10 @@ test('warning notices use the warning tokens', () => {
     }
 });
 
-test('the Visit Reason search box and its chips are at least 40 px tall', () => {
+test('the Visit Reason search box is 40 px on desktop and 44 px below 1024 px', () => {
     const picker = read('resources/js/components/visit/VisitReasonPicker.vue');
 
-    assert.match(picker, /h-10 w-full rounded-md border border-input/);
+    assert.match(picker, /class="h-10 [^"]*max-lg:h-11"/);
+    assert.match(picker, /class="flex min-h-10 [^"]*max-lg:min-h-11"/);
     assert.doesNotMatch(picker, /\b(?:h|min-h)-9\b/);
 });

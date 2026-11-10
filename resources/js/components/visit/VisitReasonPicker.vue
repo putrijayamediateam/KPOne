@@ -269,7 +269,7 @@ const onKeydown = (event: KeyboardEvent) => {
             <div
                 v-for="(reason, index) in selected"
                 :key="reason.publicId"
-                class="flex min-h-10 items-center gap-2 rounded-md border bg-background px-3 py-1.5 text-sm"
+                class="flex min-h-10 items-center gap-2 rounded-md border bg-background px-3 py-1.5 text-sm max-lg:min-h-11"
             >
                 <span
                     v-if="index === 0"
@@ -312,7 +312,7 @@ const onKeydown = (event: KeyboardEvent) => {
                 :aria-invalid="!!error"
                 :disabled="disabled || selected.length >= 5"
                 maxlength="120"
-                class="h-10 w-full rounded-md border border-input bg-card px-3 text-sm outline-none hover:border-foreground/25 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/40"
+                class="h-10 w-full rounded-md border border-input bg-card px-3 text-sm outline-none hover:border-foreground/25 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/40 max-lg:h-11"
                 :placeholder="
                     selected.length >= 5
                         ? 'Maximum 5 reasons selected'
