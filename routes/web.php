@@ -39,6 +39,7 @@ use App\Http\Controllers\HR\AttendanceController as HrAttendanceController;
 use App\Http\Controllers\HR\ClaimsController as HrClaimsController;
 use App\Http\Controllers\HR\CredentialsController as HrCredentialsController;
 use App\Http\Controllers\HR\LeaveController;
+use App\Http\Controllers\HR\MessagesController as HrMessagesController;
 use App\Http\Controllers\HR\OutsideExportController as HrOutsideExportController;
 use App\Http\Controllers\HR\PayrollController as HrPayrollController;
 use App\Http\Controllers\HR\RecordsController as HrRecordsController;
@@ -310,6 +311,15 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('hr/payslips/{payslip}', [HrPayrollController::class, 'payslip'])->whereUuid('payslip')
         ->middleware(['sensitive.no-store', 'permission:hr.payslips.view.own,hr.payroll.prepare.organisation,hr.payroll.approve.organisation', 'throttle:60,1'])
         ->name('hr.payslips.show');
+
+    // HR-14 staff messages (owner, 2026-11-10: "start"; email now, SMS and WhatsApp later).
+    Route::prefix('hr/messages')->controller(HrMessagesController::class)->middleware('sensitive.no-store')->group(function (): void {
+        Route::get('/', 'index')->middleware('permission:hr.messages.receive.own,hr.messages.manage.organisation')->name('hr.messages.index');
+        Route::post('my/{channel}', 'choose')->whereIn('channel', ['email', 'sms', 'whatsapp'])
+            ->middleware(['permission:hr.messages.receive.own', 'throttle:30,1'])->name('hr.messages.choose');
+        Route::post('channels/{channel}', 'configure')->whereIn('channel', ['email', 'sms', 'whatsapp'])
+            ->middleware(['permission:hr.messages.manage.organisation', 'throttle:30,1'])->name('hr.messages.configure');
+    });
 
     // HR-13 job applications (owner, 2026-11-07: "start the HR-13 build").
     Route::prefix('hr/applications')->controller(HrApplicationsController::class)

@@ -4,6 +4,7 @@ namespace App\Domain\HR\Claims\Services;
 
 use App\Domain\HR\Claims\ClaimPermissions;
 use App\Domain\HR\Leave\Services\LeaveEvidenceFiles;
+use App\Domain\HR\Messages\Services\StaffMessenger;
 use App\Domain\HR\Records\Services\RecordSupport;
 use App\Domain\Organisation\Models\Branch;
 use App\Models\User;
@@ -351,6 +352,9 @@ final class ClaimService
             $this->support->remember($actor, $key, 'claim_decide', $hash, $claimId);
             $this->support->audit->record('hr.claims.'.$status, null, ['claim_id' => (int) $claim->id, 'amount_sen' => (int) $claim->amount_sen, 'reason_code' => $reason,
                 'settings_version' => $settings?->version, 'category_version' => $categoryVersion], $actor, null, $actor->organisation_id);
+            // HR-14: the claimant hears the decision, after the commit. The claim number only, never the amount.
+            app(StaffMessenger::class)->notify((int) $actor->organisation_id, (int) $claim->claimant_user_id, 'claim_decided',
+                ['claim' => (string) $claim->number, 'decision' => $status], ['claim_id' => (int) $claim->id]);
         }, 3);
     }
 
@@ -398,6 +402,8 @@ final class ClaimService
             DB::table('hr_staff_claims')->where('id', $claim->id)->update(['status' => 'paid', 'lock_version' => (int) $claim->lock_version + 1, 'updated_at' => now()->utc()]);
             $this->action($actor, (int) $claim->id, 'paid', null, null, null, null);
             $this->support->remember($actor, $key, 'claim_pay', $hash, $claimId);
+            app(StaffMessenger::class)->notify((int) $actor->organisation_id, (int) $claim->claimant_user_id, 'claim_decided',
+                ['claim' => (string) $claim->number, 'decision' => 'recorded as paid'], ['claim_id' => (int) $claim->id]);
             $this->support->audit->record('hr.claims.paid', null, ['claim_id' => (int) $claim->id, 'amount_sen' => (int) $claim->amount_sen, 'method' => $method,
                 'paid_on' => $paidOn], $actor, null, $actor->organisation_id);
         }, 3);
