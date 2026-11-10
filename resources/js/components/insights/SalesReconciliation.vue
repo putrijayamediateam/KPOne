@@ -2,6 +2,9 @@
 import { myr } from '@/types/billing';
 import type { InvoiceSalesReconciliation } from '@/types/insights';
 defineProps<{ totals: InvoiceSalesReconciliation }>();
+// Daniel (2026-11-07): a zero reads "RM 0.00" with no sign; any other value keeps its + or − sign.
+const signed = (sign: '+' | '−', sen: number) =>
+    sen === 0 ? myr(0) : `${sign}${myr(sen)}`;
 </script>
 <template>
     <section
@@ -23,19 +26,19 @@ defineProps<{ totals: InvoiceSalesReconciliation }>();
                     Invoice surcharges
                 </dt>
                 <dd class="mt-1 font-semibold tabular-nums">
-                    +{{ myr(totals.surchargesSen) }}
+                    {{ signed('+', totals.surchargesSen) }}
                 </dd>
             </div>
             <div>
                 <dt class="text-xs text-muted-foreground">Invoice discounts</dt>
                 <dd class="mt-1 font-semibold tabular-nums">
-                    −{{ myr(totals.discountsSen) }}
+                    {{ signed('−', totals.discountsSen) }}
                 </dd>
             </div>
             <div>
                 <dt class="text-xs text-muted-foreground">Refund credits</dt>
                 <dd class="mt-1 font-semibold tabular-nums">
-                    −{{ myr(totals.refundCreditsSen) }}
+                    {{ signed('−', totals.refundCreditsSen) }}
                 </dd>
             </div>
             <div>
