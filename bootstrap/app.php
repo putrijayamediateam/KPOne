@@ -50,6 +50,8 @@ return Application::configure(basePath: dirname(__DIR__))
             'ratings',
             'comment',
             'allegation',
+            'description',
+            'outcome',
             'reply',
             'password_confirmation',
             'current_password',
