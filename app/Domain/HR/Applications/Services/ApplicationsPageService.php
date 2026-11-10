@@ -186,10 +186,10 @@ final class ApplicationsPageService
     }
 
     /**
-     * @param  array<int|string, object>  $lists
+     * @param  array<int|string, \stdClass>  $lists
      * @return array<string, mixed>
      */
-    private static function screening(object $s, array $lists, string $zone): array
+    private static function screening(\stdClass $s, array $lists, string $zone): array
     {
         $items = isset($lists[$s->checklist_version]) ? (array) json_decode((string) $lists[$s->checklist_version]->items, true) : [];
         $ticked = (array) json_decode((string) $s->ticked, true);
@@ -198,7 +198,7 @@ final class ApplicationsPageService
             'outcome' => (string) $s->outcome,
             'rating' => (int) $s->rating,
             'note' => self::plain($s->note_encrypted),
-            'items' => array_values(array_map(fn (int $i, mixed $text): array => ['text' => (string) $text, 'ticked' => in_array($i, $ticked, true)], array_keys($items), $items)),
+            'items' => array_map(fn (int $i, mixed $text): array => ['text' => (string) $text, 'ticked' => in_array($i, $ticked, true)], array_keys($items), $items),
             'by' => $s->name === null ? 'Staff member' : (string) $s->name,
             'at' => self::local($s->created_at, $zone),
         ];

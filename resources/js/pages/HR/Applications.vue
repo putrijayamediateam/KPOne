@@ -1,6 +1,6 @@
 <script setup lang="ts">
 // HR-13 /hr/applications (Director, HR Manager): applications from the public form, the open positions and the
-// retention. HR-PLAN 15.2. Every CV open is recorded by the server before any byte is sent.
+// retention. HR-PLAN 15.2, with HR-17a's position types, form answers, phone screening and call checklist (HR-PLAN 20). Every CV open is recorded by the server before any byte is sent.
 import { Head, router, usePage } from '@inertiajs/vue3';
 import { computed, reactive, ref } from 'vue';
 import SyntheticNote from '@/components/hr/records/SyntheticNote.vue';
@@ -34,6 +34,17 @@ type Application = {
     phone: string | null;
     email: string | null;
     message: string | null;
+    type: string;
+    details: { label: string; value: string }[];
+    talentPoolConsent: boolean;
+    screening: {
+        outcome: 'pass' | 'reject';
+        rating: number;
+        note: string | null;
+        items: { text: string; ticked: boolean }[];
+        by: string;
+        at: string;
+    } | null;
     hasCv: boolean;
     cvKb: number;
     privacyNoticeVersion: string;
@@ -45,6 +56,8 @@ type Application = {
 type Position = {
     id: string;
     title: string;
+    type: string;
+    typeLabel: string;
     branchId: string | null;
     branch: string | null;
     isOpen: boolean;
@@ -68,6 +81,7 @@ const props = defineProps<{
             branches: Option[];
             positions: Option[];
             graceDays: number;
+            types: Option[];
         };
         positions: Position[];
         applications: {
@@ -82,6 +96,7 @@ const props = defineProps<{
             retentionDays: number | null;
             pending: { days: number | null; from: string } | null;
         };
+        checklist: { version: number; items: string[] };
     };
 }>();
 
@@ -112,7 +127,7 @@ const selectTab = (value: string | number) =>
 // ---- Applications ----
 const list = computed(() => props.applications.applications);
 const statusFilter = computed(() => [
-    { value: 'open', label: 'Open (New, Shortlisted, Interview)' },
+    { value: 'open', label: 'Open (New to Interview)' },
     ...props.applications.options.statuses,
 ]);
 const positionFilter = computed(() => [
@@ -145,11 +160,16 @@ const tone = (status: string) =>
         ({
             // Each open step its own tone (Daniel, HR-13).
             new: 'accent',
-            shortlisted: 'neutral',
+            phone_screening: 'neutral',
+            scheduling: 'neutral',
             interview: 'warning',
-            offered: 'success',
+            passed: 'success',
+            failed: 'danger',
             not_taken_forward: 'danger',
+            auto_rejected: 'danger',
             withdrawn: 'neutral',
+            shortlisted: 'neutral',
+            offered: 'success',
         }) as const
     )[status] ?? 'neutral';
 
@@ -168,6 +188,58 @@ const openApplication = (application: Application) => {
         processing: false,
         confirm: false,
     });
+    Object.assign(screening, {
+        outcome: '',
+        rating: '',
+        ticked: [],
+        note: '',
+        key: crypto.randomUUID(),
+        processing: false,
+    });
+};
+
+// ---- Phone screening (HR-17a) ----
+const screening = reactive({
+    outcome: '' as '' | 'pass' | 'reject',
+    rating: '',
+    ticked: [] as number[],
+    note: '',
+    key: '',
+    processing: false,
+});
+const ratingOptions = [
+    { value: '1', label: '1 · Poor' },
+    { value: '2', label: '2' },
+    { value: '3', label: '3 · Fair' },
+    { value: '4', label: '4' },
+    { value: '5', label: '5 · Excellent' },
+];
+const saveScreening = () => {
+    const application = viewing.value;
+
+    if (!application) {
+        return;
+    }
+
+    screening.processing = true;
+    router.post(
+        `/hr/applications/${application.id}/screening`,
+        {
+            outcome: screening.outcome,
+            rating: screening.rating,
+            ticked: screening.ticked,
+            note: screening.note,
+            expected_lock_version: application.lockVersion,
+            idempotency_key: screening.key,
+            ...(list.value?.filters ?? {}),
+            page: list.value?.page ?? 1,
+        },
+        {
+            preserveScroll: true,
+            onSuccess: () => (viewing.value = null),
+            onFinish: () => (screening.processing = false),
+        },
+    );
 };
 const askMove = (to: string) => {
     if (!viewing.value) {
@@ -179,7 +251,7 @@ const askMove = (to: string) => {
     }
 
     // A step that closes the application asks first.
-    if (['offered', 'not_taken_forward', 'withdrawn'].includes(to)) {
+    if (['passed', 'failed', 'not_taken_forward', 'withdrawn'].includes(to)) {
         moving.confirm = true;
 
         return;
@@ -223,6 +295,7 @@ const positionForm = reactive({
     open: false,
     position: null as Position | null,
     title: '',
+    type: 'ca',
     branchId: 'any',
     isOpen: true,
     key: '',
@@ -237,6 +310,7 @@ const startAdd = () =>
         open: true,
         position: null,
         title: '',
+        type: 'ca',
         branchId: 'any',
         isOpen: true,
         key: crypto.randomUUID(),
@@ -246,6 +320,7 @@ const startEdit = (position: Position) =>
         open: true,
         position,
         title: position.title,
+        type: position.type,
         branchId: position.branchId ?? 'any',
         isOpen: position.isOpen,
         key: crypto.randomUUID(),
@@ -259,6 +334,7 @@ const savePosition = () => {
             : '/hr/applications/positions',
         {
             title: positionForm.title,
+            position_type: positionForm.type,
             branch_id: positionForm.branchId,
             ...(position
                 ? {
@@ -272,6 +348,32 @@ const savePosition = () => {
             preserveScroll: true,
             onSuccess: () => (positionForm.open = false),
             onFinish: () => (positionForm.processing = false),
+        },
+    );
+};
+
+// ---- Settings: the phone-screening call checklist (HR-17a) ----
+const checklist = reactive({
+    text: props.applications.checklist.items.join('\n'),
+    key: crypto.randomUUID(),
+    processing: false,
+});
+const saveChecklist = () => {
+    checklist.processing = true;
+    router.post(
+        '/hr/applications/checklist',
+        {
+            items: checklist.text
+                .split('\n')
+                .map((line) => line.trim())
+                .filter((line) => line !== ''),
+            expected_version: props.applications.checklist.version,
+            idempotency_key: checklist.key,
+        },
+        {
+            preserveScroll: true,
+            onSuccess: () => (checklist.key = crypto.randomUUID()),
+            onFinish: () => (checklist.processing = false),
         },
     );
 };
@@ -490,6 +592,7 @@ const saveRetention = () => {
                             {{ position.title }}
                         </p>
                         <p class="text-sm text-muted-foreground">
+                            {{ position.typeLabel }} ·
                             {{ position.branch ?? 'Any branch' }} ·
                             {{ position.openApplications }} open of
                             {{ position.applications }} applications
@@ -578,6 +681,48 @@ const saveRetention = () => {
             </div>
         </section>
 
+        <!-- Settings: the phone-screening call checklist (HR-17a) -->
+        <section
+            v-if="applications.tab === 'settings'"
+            aria-labelledby="checklist-title"
+            class="flex flex-col gap-3 rounded-xl border bg-card p-4"
+            data-test="screening-checklist"
+        >
+            <h2 id="checklist-title" class="text-base font-semibold">
+                Phone screening checklist
+            </h2>
+            <p class="text-sm text-muted-foreground">
+                The questions you ask on the call, one per line, up to 15. KPOne
+                ships none. Each save is a new version; calls already recorded
+                keep the version they used.
+            </p>
+            <div class="flex max-w-xl flex-col gap-1.5">
+                <Label for="checklist-items">Questions</Label>
+                <textarea
+                    id="checklist-items"
+                    v-model="checklist.text"
+                    rows="6"
+                    class="w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none aria-[invalid=true]:border-destructive"
+                    placeholder="For example: Speaks clearly and politely"
+                    :aria-invalid="errors.items ? 'true' : undefined"
+                    aria-describedby="checklist-items-error"
+                ></textarea>
+                <InputError
+                    id="checklist-items-error"
+                    :message="errors.items"
+                />
+            </div>
+            <div>
+                <Button
+                    class="max-lg:min-h-11"
+                    :disabled="checklist.processing"
+                    data-test="checklist-save"
+                    @click="saveChecklist"
+                    >{{ checklist.processing ? 'Saving…' : 'Save' }}</Button
+                >
+            </div>
+        </section>
+
         <!-- One application -->
         <Sheet
             :open="viewing !== null"
@@ -613,6 +758,20 @@ const saveRetention = () => {
                             <dt class="text-muted-foreground">Message</dt>
                             <dd class="break-words whitespace-pre-line">
                                 {{ viewing.message ?? '—' }}
+                            </dd>
+                        </div>
+                        <div v-for="d in viewing.details" :key="d.label">
+                            <dt class="text-muted-foreground">{{ d.label }}</dt>
+                            <dd class="break-words">{{ d.value }}</dd>
+                        </div>
+                        <div>
+                            <dt class="text-muted-foreground">Talent pool</dt>
+                            <dd>
+                                {{
+                                    viewing.talentPoolConsent
+                                        ? 'Agreed to be kept for other positions'
+                                        : 'Not agreed'
+                                }}
                             </dd>
                         </div>
                         <div>
@@ -657,6 +816,166 @@ const saveRetention = () => {
                     >
                         Each open of a CV is recorded.
                     </p>
+                    <section
+                        v-if="viewing.screening"
+                        class="flex flex-col gap-2 rounded-lg border p-3 text-sm"
+                        aria-labelledby="screening-record-title"
+                        data-test="screening-record"
+                    >
+                        <h3 id="screening-record-title" class="font-semibold">
+                            Phone screening:
+                            {{
+                                viewing.screening.outcome === 'pass'
+                                    ? 'passed'
+                                    : 'rejected'
+                            }}, rating {{ viewing.screening.rating }} of 5
+                        </h3>
+                        <ul
+                            v-if="viewing.screening.items.length"
+                            class="flex flex-col gap-1"
+                        >
+                            <li
+                                v-for="item in viewing.screening.items"
+                                :key="item.text"
+                            >
+                                {{ item.ticked ? 'Yes' : 'No' }} ·
+                                {{ item.text }}
+                            </li>
+                        </ul>
+                        <p
+                            v-if="viewing.screening.note"
+                            class="break-words whitespace-pre-line"
+                        >
+                            {{ viewing.screening.note }}
+                        </p>
+                        <p class="text-muted-foreground">
+                            By {{ viewing.screening.by }},
+                            {{ viewing.screening.at }}
+                        </p>
+                    </section>
+
+                    <form
+                        v-if="viewing.status === 'phone_screening'"
+                        class="flex flex-col gap-3 rounded-lg border p-3"
+                        aria-labelledby="screening-form-title"
+                        data-test="screening-form"
+                        @submit.prevent="saveScreening"
+                    >
+                        <h3
+                            id="screening-form-title"
+                            class="text-sm font-semibold"
+                        >
+                            Record the phone call
+                        </h3>
+                        <fieldset
+                            v-if="applications.checklist.items.length"
+                            class="flex flex-col gap-1"
+                        >
+                            <legend class="mb-1 text-sm text-muted-foreground">
+                                Tick what the candidate showed on the call
+                            </legend>
+                            <label
+                                v-for="(item, i) in applications.checklist
+                                    .items"
+                                :key="item"
+                                class="flex min-h-11 items-center gap-3 text-sm"
+                            >
+                                <input
+                                    v-model="screening.ticked"
+                                    type="checkbox"
+                                    :value="i"
+                                    class="size-5"
+                                />
+                                {{ item }}
+                            </label>
+                            <InputError :message="errors.ticked" />
+                        </fieldset>
+                        <p v-else class="text-sm text-muted-foreground">
+                            No call checklist yet. Add the questions you ask in
+                            Settings.
+                        </p>
+                        <div class="flex flex-col gap-1.5">
+                            <Label id="screening-rating-label"
+                                >How did they come across? (1 to 5)</Label
+                            >
+                            <OperationalSelect
+                                v-model="screening.rating"
+                                :options="ratingOptions"
+                                label="Rating"
+                                labelledby="screening-rating-label"
+                                placeholder="Choose a rating"
+                                trigger-class="max-lg:min-h-11"
+                                :invalid="Boolean(errors.rating)"
+                            />
+                            <InputError :message="errors.rating" />
+                        </div>
+                        <div class="flex flex-col gap-1.5">
+                            <Label for="screening-note">Note (optional)</Label>
+                            <textarea
+                                id="screening-note"
+                                v-model="screening.note"
+                                rows="3"
+                                maxlength="500"
+                                class="w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none"
+                                aria-describedby="screening-note-hint screening-note-error"
+                            ></textarea>
+                            <p
+                                id="screening-note-hint"
+                                class="text-xs text-muted-foreground"
+                            >
+                                Only HR sees it. Do not note health details or
+                                anything about pay.
+                            </p>
+                            <InputError
+                                id="screening-note-error"
+                                :message="errors.note"
+                            />
+                        </div>
+                        <fieldset class="flex flex-col gap-1">
+                            <legend class="mb-1 text-sm font-medium">
+                                Result
+                            </legend>
+                            <label
+                                class="flex min-h-11 items-center gap-3 text-sm"
+                            >
+                                <input
+                                    v-model="screening.outcome"
+                                    type="radio"
+                                    value="pass"
+                                    class="size-5"
+                                    data-test="screening-pass"
+                                />
+                                Pass: go on to scheduling the interview
+                            </label>
+                            <label
+                                class="flex min-h-11 items-center gap-3 text-sm"
+                            >
+                                <input
+                                    v-model="screening.outcome"
+                                    type="radio"
+                                    value="reject"
+                                    class="size-5"
+                                    data-test="screening-reject"
+                                />
+                                Reject: close as Not taken forward
+                            </label>
+                            <InputError :message="errors.outcome" />
+                        </fieldset>
+                        <div>
+                            <Button
+                                type="submit"
+                                class="max-lg:min-h-11"
+                                :disabled="screening.processing"
+                                data-test="screening-save"
+                                >{{
+                                    screening.processing
+                                        ? 'Saving…'
+                                        : 'Record the call'
+                                }}</Button
+                            >
+                        </div>
+                    </form>
+
                     <div v-if="viewing.next.length" class="flex flex-col gap-2">
                         <h3 class="text-sm font-semibold">Move to</h3>
                         <div class="flex flex-wrap gap-2">
@@ -686,12 +1005,12 @@ const saveRetention = () => {
             :open="moving.confirm"
             :title="`Move to ${label(moving.to)}?`"
             :description="
-                moving.to === 'offered'
-                    ? 'This closes the application, and the retention period starts from today. If the offer is declined, you can still mark it Withdrawn.'
+                moving.to === 'passed'
+                    ? 'This records that the candidate passed the interview and closes the application. The retention period starts from today. Any offer is made outside KPOne.'
                     : 'This closes the application. A closed application cannot be moved again, and the retention period starts from today.'
             "
             :confirm-label="`Move to ${label(moving.to)}`"
-            :destructive="moving.to !== 'offered'"
+            :destructive="moving.to !== 'passed'"
             :processing="moving.processing"
             @update:open="(open) => (moving.confirm = open)"
             @confirm="move"
@@ -733,6 +1052,23 @@ const saveRetention = () => {
                             id="position-title-error"
                             :message="errors.title"
                         />
+                    </div>
+                    <div class="flex flex-col gap-1.5">
+                        <Label id="position-type-label">Kind of position</Label>
+                        <OperationalSelect
+                            v-model="positionForm.type"
+                            :options="applications.options.types"
+                            label="Kind of position"
+                            labelledby="position-type-label"
+                            trigger-class="max-lg:min-h-11"
+                            :invalid="Boolean(errors.position_type)"
+                        />
+                        <p class="text-xs text-muted-foreground">
+                            Decides the extra questions on the form: an intern's
+                            dates, a locum's availability, a doctor's MMC number
+                            and APC.
+                        </p>
+                        <InputError :message="errors.position_type" />
                     </div>
                     <div class="flex flex-col gap-1.5">
                         <Label id="position-branch-label">Branch</Label>

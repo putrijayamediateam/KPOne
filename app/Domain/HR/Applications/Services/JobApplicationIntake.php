@@ -64,7 +64,7 @@ final class JobApplicationIntake
     /**
      * The open positions shown on the form, and a fresh signed form token.
      *
-     * @return array{positions:list<array{id:string, title:string, branch:?string, type:string}>, branches:list<array{value:string, label:string}>, formToken:string, privacyNoticeVersion:string}
+     * @return array{positions:list<array{id:string, title:string, branch:?string, type:string}>, branches:list<array{value:string, label:string}>, education:list<array{value:string, label:string}>, languages:list<array{value:string, label:string}>, formToken:string, privacyNoticeVersion:string}
      */
     public function form(): array
     {
@@ -80,7 +80,10 @@ final class JobApplicationIntake
             ->all();
         $positions = array_values($positions);
 
-        return ['positions' => $positions, 'branches' => self::branches($organisationId), 'formToken' => self::issueToken(), 'privacyNoticeVersion' => self::privacyVersion()];
+        $choices = fn (array $labels): array => array_map(fn (string $value, string $label): array => ['value' => $value, 'label' => $label], array_keys($labels), $labels);
+
+        return ['positions' => $positions, 'branches' => self::branches($organisationId), 'education' => $choices(self::EDUCATION),
+            'languages' => $choices(self::LANGUAGES), 'formToken' => self::issueToken(), 'privacyNoticeVersion' => self::privacyVersion()];
     }
 
     public static function issueToken(): string
