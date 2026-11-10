@@ -38,8 +38,9 @@ final class StaffCostService
         $employer = 0;
         $unreadable = 0;
         $workers = [];
+        $readable = [];
         if ($counted !== []) {
-            $rows = DB::table('hr_payroll_run_people')->where('organisation_id', $organisationId)->whereIn('run_id', $counted)->get(['worker_id', 'totals_encrypted']);
+            $rows = DB::table('hr_payroll_run_people')->where('organisation_id', $organisationId)->whereIn('run_id', $counted)->get(['id', 'worker_id', 'totals_encrypted']);
             foreach ($rows as $row) {
                 $totals = $this->totals($row->totals_encrypted);
                 if ($totals === null) {
@@ -51,9 +52,11 @@ final class StaffCostService
                 $earnings += (int) ($totals['earnings'] ?? 0);
                 $employer += (int) ($totals['employer'] ?? 0);
                 $workers[(int) $row->worker_id] = true;
+                $readable[] = (int) $row->id;
             }
             // Unpaid leave sits in the deduction section, but it is pay the clinic does not spend: take it off the gross.
-            foreach (DB::table('hr_payroll_lines')->where('organisation_id', $organisationId)->whereIn('run_id', $counted)->where('kind', 'unpaid_leave')->pluck('amount_encrypted') as $encrypted) {
+            // Only for people whose totals were read, so a skipped person's leave never comes off earnings never added.
+            foreach (DB::table('hr_payroll_lines')->where('organisation_id', $organisationId)->whereIn('run_id', $counted)->whereIn('run_person_id', $readable)->where('kind', 'unpaid_leave')->pluck('amount_encrypted') as $encrypted) {
                 $plain = $this->decrypt($encrypted);
                 if ($plain === null || preg_match('/\A-?[0-9]{1,10}\z/', $plain) !== 1) {
                     $unreadable++;

@@ -149,8 +149,9 @@ function days(value: number): string {
             </div>
             <p class="mt-1 text-sm text-muted-foreground">
                 One figure for the whole clinic, from approved pay runs only.
-                Not split by person or branch. An estimate until the clinic's
-                accountant has checked the pay rules.
+                Not split by person or branch. Includes corrections approved
+                later. An estimate until the clinic's accountant has checked the
+                pay rules.
             </p>
             <p
                 v-if="dashboard.staffCost.runs === 0"
@@ -195,7 +196,13 @@ function days(value: number): string {
                     </dd>
                 </div>
                 <div class="flex items-baseline justify-between gap-4 sm:block">
-                    <dt class="text-muted-foreground">People paid</dt>
+                    <dt class="text-muted-foreground">
+                        People paid through KPOne
+                        <span class="block text-xs"
+                            >Locums and the Director's and HR Manager's own pay
+                            are outside KPOne</span
+                        >
+                    </dt>
                     <dd class="tabular-nums">
                         {{ dashboard.staffCost.people }}
                     </dd>

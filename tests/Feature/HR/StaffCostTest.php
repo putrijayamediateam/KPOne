@@ -130,6 +130,22 @@ class StaffCostTest extends VisitTestCase
         $this->assertSame(333000, $cost['total'], 'The readable person is still counted; the page says the figure is incomplete.');
     }
 
+    public function test_the_leave_of_a_person_whose_total_cannot_be_read_is_not_taken_off_anyone_else(): void
+    {
+        $director = $this->actor('director');
+        $a = $this->worker($this->actor('ca'));
+        $b = $this->worker($this->actor('ca'));
+        $this->payRun($this->group($director), '2027-03-01', 'locked', [[$a, 300000, 33000]]);
+        // B's total is unreadable but B has an unpaid-leave line: it must not come off A's earnings.
+        $this->payRun($this->group($director, 'Second group'), '2027-03-01', 'locked', [[$b, 1, 1]], [$b => 50000], null, 'not-encrypted');
+
+        $cost = $this->dashboard($director)['staffCost'];
+
+        $this->assertSame(1, $cost['unreadable']);
+        $this->assertSame(300000, $cost['earnings']);
+        $this->assertSame(333000, $cost['total']);
+    }
+
     public function test_the_default_month_follows_kuala_lumpur_not_utc_after_local_midnight(): void
     {
         // 16:30 UTC on 28 Feb is 00:30 on 1 March in Kuala Lumpur: the cost month is March.

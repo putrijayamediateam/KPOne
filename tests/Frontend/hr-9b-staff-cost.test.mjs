@@ -13,6 +13,8 @@ test('HR-9b: the cost card shows only when the server sends a figure, never per 
     assert.match(page, /v-if="dashboard\.staffCost"/);
     assert.match(page, /data-test="staff-cost"/);
     assert.match(page, /Not split by person or branch/);
+    assert.match(page, /Includes corrections approved later/);
+    assert.match(page, /People paid through KPOne/);
     assert.match(page, /data-test="staff-cost-estimate"/);
     assert.match(page, /data-test="staff-cost-unreadable"/);
     assert.match(page, /so this figure is incomplete/);
