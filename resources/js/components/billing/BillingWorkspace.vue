@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Head, router, usePage } from '@inertiajs/vue3';
-import { ArrowLeft, UserRound } from '@lucide/vue';
+import { ArrowLeft, Check, UserRound } from '@lucide/vue';
 import { computed, onUnmounted, reactive, ref, watch } from 'vue';
 import BillingChargeRows from '@/components/billing/BillingChargeRows.vue';
 import BillingCompletionDialog from '@/components/billing/BillingCompletionDialog.vue';
@@ -1081,10 +1081,11 @@ const reverse = (receipt: Receipt) =>
                                 billing[kind]!.status === 'approved' &&
                                 billing[kind]!.remainingSen === 0
                             "
-                            class="text-xs font-medium text-success"
+                            class="flex items-center gap-1 text-xs font-medium text-success"
                             data-testid="pay-later-settled"
                         >
-                            Paid in full · nothing left to collect
+                            <Check class="size-3.5" aria-hidden="true" />
+                            <span>Paid in full · nothing left to collect</span>
                         </p>
                         <p v-else-if="billing[kind]!.dueDate" class="text-xs">
                             <template

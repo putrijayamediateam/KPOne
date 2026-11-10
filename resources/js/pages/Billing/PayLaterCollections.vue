@@ -185,11 +185,10 @@ const visit = (page: number, overdueOnly = props.collections.overdueOnly) =>
                             "
                             class="block text-xs font-normal text-muted-foreground"
                             data-testid="pay-later-due-now"
-                            >Also
-                            {{
+                            >{{
                                 myr(collections.dueNow?.[row.visitNumber] ?? 0)
                             }}
-                            due now: collect this first</span
+                            is also due now. A payment pays that first.</span
                         >
                     </td>
                     <td class="text-right">

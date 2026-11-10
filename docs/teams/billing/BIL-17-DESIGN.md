@@ -14,7 +14,7 @@ BIL-16 merges).
 3. **"Use amount due" on a completed visit.** The shortcut also shows on a completed visit when money is due
    (only after a BIL-16 correction).
 4. **The pay-later collection list notes money due now.** When an invoice also has money due after a correction,
-   its row says "Also RM X due now: collect this first", because a payment clears that before pay-later. It is sent beside the
+   its row says "RM X is also due now. A payment pays that first.", because a payment clears that before pay-later. It is sent beside the
    rows, so each row keeps its agreed fields (no existing assertion changes).
 
 ## Not in BIL-17

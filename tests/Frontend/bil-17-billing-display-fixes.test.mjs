@@ -14,6 +14,10 @@ const collections = read('resources/js/pages/Billing/PayLaterCollections.vue');
 test('a fully paid pay-later reads Paid in full, and a part-paid one shows what is left', () => {
     assert.ok(workspace.includes('data-testid="pay-later-settled"'));
     assert.ok(workspace.includes('Paid in full · nothing left to collect'));
+    assert.match(
+        workspace,
+        /<Check class="size-3\.5" aria-hidden="true" \/>\s*<span>Paid in full/,
+    );
     assert.ok(workspace.includes('billing[kind]!.remainingSen === 0'));
     assert.ok(workspace.includes('still to collect ·'));
 });
@@ -35,7 +39,9 @@ test('the amount-due shortcut is offered on a completed visit only when money is
 test('the pay-later list notes money due now, which is paid first', () => {
     assert.ok(collections.includes('data-testid="pay-later-due-now"'));
     assert.ok(collections.includes('collections.dueNow?.[row.visitNumber]'));
-    assert.ok(collections.includes('due now: collect this first'));
+    assert.ok(
+        collections.includes('is also due now. A payment pays that first.'),
+    );
 });
 
 test('voided invoices use the shared status badge (Siti)', () => {
