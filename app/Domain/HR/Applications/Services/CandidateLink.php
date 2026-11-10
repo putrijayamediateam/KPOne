@@ -102,6 +102,8 @@ final class CandidateLink
             'stageLabelMs' => self::CANDIDATE_STAGES_MS[$application->status] ?? 'Ditutup',
             'open' => in_array($application->status, JobApplicationService::OPEN, true),
             'interview' => self::interviewView($application),
+            // HR-17d: the clinic's documents for a confirmed interview (title and size only).
+            'documents' => InterviewDocuments::candidateList($application),
             'submittedOn' => CarbonImmutable::parse($application->submitted_at)->setTimezone($zone)->toDateString(),
             'messages' => array_map(fn (array $m): array => ['label' => HiringTemplates::candidateLabel($m['template']), 'subject' => $m['subject'], 'body' => $m['body'], 'at' => $m['at']],
                 HiringMessenger::listFor($application, true)),

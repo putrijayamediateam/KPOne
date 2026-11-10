@@ -137,6 +137,10 @@ Route::post('careers/status/exchange', [JobApplicationController::class, 'exchan
 Route::post('careers/status/picks', [JobApplicationController::class, 'picks'])
     ->middleware(['public-intake.proxy', 'throttle:hr-applications-link', 'sensitive.no-store:no-referrer'])
     ->name('hr-applications.status.picks');
+Route::get('careers/status/documents/{document}', [JobApplicationController::class, 'document'])
+    ->whereUuid('document')
+    ->middleware(['public-intake.proxy', 'throttle:hr-applications-status', 'sensitive.no-store:no-referrer'])
+    ->name('hr-applications.status.document');
 Route::post('careers/status/withdraw', [JobApplicationController::class, 'withdraw'])
     ->middleware(['public-intake.proxy', 'throttle:hr-applications-link', 'sensitive.no-store:no-referrer'])
     ->name('hr-applications.status.withdraw');
@@ -340,6 +344,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->middleware(['sensitive.no-store', 'permission:hr.applications.manage.organisation'])->group(function (): void {
             Route::get('/', 'index')->name('hr.applications.index');
             Route::get('{application}/cv', 'cv')->whereUuid('application')->middleware('throttle:60,1')->name('hr.applications.cv');
+            Route::get('interview-documents/{document}', 'document')->whereUuid('document')->middleware('throttle:60,1')->name('hr.applications.documents.show');
             Route::middleware('throttle:30,1')->group(function (): void {
                 Route::post('positions', 'addPosition')->name('hr.applications.positions.store');
                 Route::post('positions/{position}', 'updatePosition')->whereUuid('position')->name('hr.applications.positions.update');
@@ -349,6 +354,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
                 Route::post('{application}/interview/confirm', 'confirmInterview')->whereUuid('application')->name('hr.applications.interview.confirm');
                 Route::post('{application}/interview/ask-again', 'askAgain')->whereUuid('application')->name('hr.applications.interview.ask-again');
                 Route::post('{application}/interview/cancel', 'cancelInterview')->whereUuid('application')->name('hr.applications.interview.cancel');
+                Route::post('interview-documents', 'addDocument')->name('hr.applications.documents.store');
+                Route::post('interview-documents/{document}/remove', 'removeDocument')->whereUuid('document')->name('hr.applications.documents.remove');
                 Route::post('checklist', 'checklist')->name('hr.applications.checklist');
                 Route::post('retention', 'retention')->name('hr.applications.retention');
             });

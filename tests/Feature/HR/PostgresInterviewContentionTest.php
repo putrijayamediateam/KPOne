@@ -24,6 +24,7 @@ use Tests\TestCase;
 /**
  * HR-17c under real PostgreSQL contention (HR-PLAN 19.6, "Whole group"). Two HR managers confirming the same slot for two
  * candidates at once get one interview; the second waits on the slot's lock, then is refused with a plain reason.
+ * HR-17d: two managers adding the tenth interview document of one position type at once get one; the other is refused.
  *
  * @phpstan-type WorkerProcess array{process: Process, input: InputStream}
  */
@@ -92,6 +93,29 @@ class PostgresInterviewContentionTest extends TestCase
         $this->assertSame(1, DB::table('hr_job_interviews')->where('organisation_id', $f['organisation']->id)->where('status', 'confirmed')->count());
         $this->assertSame(1, DB::table('hr_job_applications')->where('organisation_id', $f['organisation']->id)->where('status', 'interview')->count());
         $this->assertSame(1, DB::table('hr_job_applications')->where('organisation_id', $f['organisation']->id)->where('status', 'scheduling')->count());
+    }
+
+    public function test_two_managers_adding_the_tenth_document_of_a_type_at_once_get_one(): void
+    {
+        $f = $this->fixture();
+        $org = $f['organisation']->id;
+        foreach (range(1, 9) as $n) {
+            DB::table('hr_interview_documents')->insert(['public_id' => (string) Str::uuid(), 'organisation_id' => $org, 'position_type' => 'ca',
+                'title' => "Synthetic document {$n}", 'stored_path' => "hr-interview-documents/{$org}/synthetic-{$n}.bin", 'bytes' => 10,
+                'sha256' => hash('sha256', "synthetic-{$n}"), 'status' => 'active', 'uploaded_by_user_id' => $f['hr1']->id, 'uploaded_at' => now(),
+                'lock_version' => 1, 'created_at' => now(), 'updated_at' => now()]);
+        }
+        $typeLock = "hr_interview_documents:{$org}:ca";
+        $out = $this->race(fn () => DB::select('select pg_advisory_xact_lock(hashtextextended(?, 0))', [$typeLock]), [
+            $this->worker($f['hr1'], ['op' => 'upload', 'position_type' => 'ca', 'title' => 'Synthetic tenth A', 'marker' => 'tenth-a']),
+            $this->worker($f['hr2'], ['op' => 'upload', 'position_type' => 'ca', 'title' => 'Synthetic tenth B', 'marker' => 'tenth-b']),
+        ]);
+
+        $this->assertSame(1, substr_count($out, 'SUCCESS upload'), $out);
+        $this->assertSame(1, substr_count($out, 'STALE file: This position type already has 10 documents.'), $out);
+        $this->assertSame(10, DB::table('hr_interview_documents')->where('organisation_id', $org)->where('position_type', 'ca')->where('status', 'active')->count());
+        $paths = DB::table('hr_interview_documents')->where('organisation_id', $org)->where('title', 'like', 'Synthetic tenth%')->pluck('stored_path');
+        $this->assertCount(1, $paths);
     }
 
     /** @return array<string, mixed> */
@@ -267,7 +291,7 @@ class PostgresInterviewContentionTest extends TestCase
     {
         DB::transaction(function () use ($id): void {
             // Only this isolated PostgreSQL test fixture cleanup may discard retained synthetic hiring evidence.
-            foreach (['hr_job_application_messages', 'hr_job_interviews', 'hr_job_interview_picks', 'hr_job_application_events', 'hr_job_screenings',
+            foreach (['hr_interview_document_events', 'hr_interview_documents', 'hr_job_application_messages', 'hr_job_interviews', 'hr_job_interview_picks', 'hr_job_application_events', 'hr_job_screenings',
                 'hr_job_applications', 'hr_job_positions', 'hr_record_retries', 'hr_branch_working_days'] as $table) {
                 DB::statement("ALTER TABLE {$table} DISABLE TRIGGER USER");
                 DB::table($table)->where('organisation_id', $id)->delete();
