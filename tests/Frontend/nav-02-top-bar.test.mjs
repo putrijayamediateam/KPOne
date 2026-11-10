@@ -212,7 +212,7 @@ test('direct grants only affect permitted daily items and management links stay 
                 'Branches',
                 'Access Control',
                 'Audit Logs',
-                'Public Check-In',
+                'QR check-in links',
                 'Queue Display (TV)',
             ]) {
                 if (
