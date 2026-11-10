@@ -626,7 +626,7 @@ const unusedSuggestions = computed(() => {
                                             :href="`${base}/files/${f.id}`"
                                             target="_blank"
                                             rel="noopener"
-                                            class="inline-flex min-h-11 items-center text-brand-strong underline lg:min-h-0"
+                                            class="inline-flex min-h-11 items-center rounded-md border border-input bg-card px-3 text-sm font-medium text-brand-strong hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none lg:min-h-9"
                                             >{{ f.label }} ({{
                                                 size(f.bytes)
                                             }})</a
@@ -636,7 +636,7 @@ const unusedSuggestions = computed(() => {
                                 <div v-if="!v.errorReason">
                                     <Button
                                         type="button"
-                                        variant="ghost"
+                                        variant="outline"
                                         class="min-h-11 px-2 sm:min-h-9"
                                         @click="openMistake(row, v)"
                                         >Mark entered in error<span
